@@ -17,11 +17,11 @@ import {
 } from './data/mockData';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
-import { DashboardView } from './components/DashboardView';
-import { WorkflowBoardView } from './components/WorkflowBoardView';
-import { SeriesBibleView } from './components/SeriesBibleView';
-import { MembersRolesView } from './components/MembersRolesView';
-import { ContentHubView } from './components/ContentHubView';
+import { DashboardView } from './views/DashboardView';
+import { WorkflowBoardView } from './views/WorkflowBoardView';
+import { SeriesBibleView } from './views/SeriesBibleView';
+import { MembersRolesView } from './views/MembersRolesView';
+import { ContentHubView } from './views/ContentHubView';
 import { SpreadWorkbenchModal } from './components/modals/SpreadWorkbenchModal';
 import { PageDetailModal } from './components/modals/PageDetailModal';
 import { ExportDeliveryModal } from './components/modals/ExportDeliveryModal';
