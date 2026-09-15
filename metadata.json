@@ -1,0 +1,6 @@
+{
+  "name": "PanelForge Manga Studio AI",
+  "description": "Production dashboard, kanban workflow, grounded lore series bible, and RBAC collaboration suite for AI-assisted manga publishing.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

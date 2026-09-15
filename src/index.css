@@ -1,0 +1,66 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Plus Jakarta Sans', sans-serif;
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-heading: 'Space Grotesk', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --color-ink-black: #171717;
+  --color-ink-dark: #333333;
+  --color-ink-gray: #555555;
+  --color-ink-light: #888888;
+
+  --color-paper-canvas: #ffffff;
+  --color-paper-white: #fffefa;
+  --color-paper-warm: #f8f6f0;
+  --color-paper-gray: #f3f1eb;
+
+  --color-tangerine: #f97316;
+  --color-tangerine-hover: #ea580c;
+  --color-tangerine-burnt: #c2410c;
+  --color-tangerine-light: #fff7ed;
+  --color-tangerine-border: #fdba74;
+
+  --color-ai-violet: #8b5cf6;
+  --color-ai-deep: #6d28d9;
+  --color-ai-surface: #f3e8ff;
+
+  --color-status-mint: #10b981;
+  --color-status-mint-dark: #059669;
+  --color-status-mint-surface: #ecfdf5;
+  --color-status-amber: #f59e0b;
+  --color-status-amber-dark: #d97706;
+  --color-status-amber-surface: #fffbeb;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: #f8f6f0;
+  color: #171717;
+  overflow-x: hidden;
+}
+
+h1,
+h2,
+h3,
+h4,
+.font-heading,
+.font-display {
+  font-family: var(--font-display);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f3f1eb;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #d8d4ca;
+  border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #b8b2a6;
+}
