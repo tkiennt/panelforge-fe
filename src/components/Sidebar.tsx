@@ -13,8 +13,8 @@ import {
 import { ViewMode, MangaProject } from '../types';
 
 interface SidebarProps {
-  currentView: ViewMode;
-  onSelectView: (view: ViewMode) => void;
+  currentView: ViewMode | string; // Thêm | string để không bị lỗi type
+  onSelectView: (view: any) => void;
   activeProject: MangaProject;
   projects: MangaProject[];
   onSelectProject: (proj: MangaProject) => void;
@@ -22,6 +22,7 @@ interface SidebarProps {
   onOpenSettings: () => void;
   onOpenHelp: () => void;
   onOpenStorageModal: () => void;
+  userRole: 'WRITER' | 'ARTIST' | 'EDITOR'; // <--- THÊM DÒNG NÀY
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -34,6 +35,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onOpenSettings,
   onOpenHelp,
   onOpenStorageModal,
+  userRole,
 }) => {
   const [projectMenuOpen, setProjectMenuOpen] = React.useState(false);
 
@@ -153,72 +155,78 @@ export const Sidebar: React.FC<SidebarProps> = ({
             Studio Workspace
           </div>
           <nav className='space-y-1'>
-            {/* 1. Dashboard */}
-            <button
-              onClick={() => onSelectView('dashboard')}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs transition-colors cursor-pointer ${
-                currentView === 'dashboard'
-                  ? 'font-semibold bg-[#FFF7ED] text-[#F97316] border-l-4 border-[#F97316]'
-                  : 'font-medium text-[#555555] hover:text-[#171717] hover:bg-[#F3F1EB]'
-              }`}
-            >
-              <LayoutGrid
-                className={`w-4 h-4 ${
-                  currentView === 'dashboard' ? 'text-[#F97316]' : 'text-[#888888]'
-                }`}
-              />
-              <span>Dashboard</span>
-            </button>
+            {/* MENU CHO ARTIST (Họa sĩ) */}
+            {userRole === 'ARTIST' && (
+              <>
+                <button
+                  onClick={() => onSelectView('dashboard')}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs transition-colors cursor-pointer ${currentView === 'dashboard' ? 'font-semibold bg-[#FFF7ED] text-[#F97316] border-l-4 border-[#F97316]' : 'font-medium text-[#555555] hover:text-[#171717] hover:bg-[#F3F1EB]'}`}
+                >
+                  <LayoutGrid
+                    className={`w-4 h-4 ${currentView === 'dashboard' ? 'text-[#F97316]' : 'text-[#888888]'}`}
+                  />
+                  <span>Dashboard (Họa sĩ)</span>
+                </button>
+                <button
+                  onClick={() => onSelectView('workflow')}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs transition-colors cursor-pointer ${currentView === 'workflow' ? 'font-semibold bg-[#FFF7ED] text-[#F97316] border-l-4 border-[#F97316]' : 'font-medium text-[#555555] hover:text-[#171717] hover:bg-[#F3F1EB]'}`}
+                >
+                  <Kanban
+                    className={`w-4 h-4 ${currentView === 'workflow' ? 'text-[#F97316]' : 'text-[#888888]'}`}
+                  />
+                  <span>Workflow Board</span>
+                </button>
+              </>
+            )}
 
-            {/* 2. Workflow Board */}
-            <button
-              onClick={() => onSelectView('workflow')}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs transition-colors cursor-pointer ${
-                currentView === 'workflow'
-                  ? 'font-semibold bg-[#FFF7ED] text-[#F97316] border-l-4 border-[#F97316]'
-                  : 'font-medium text-[#555555] hover:text-[#171717] hover:bg-[#F3F1EB]'
-              }`}
-            >
-              <Kanban
-                className={`w-4 h-4 ${
-                  currentView === 'workflow' ? 'text-[#F97316]' : 'text-[#888888]'
-                }`}
-              />
-              <span>Workflow Board</span>
-            </button>
+            {/* MENU CHO WRITER (Biên kịch) */}
+            {userRole === 'WRITER' && (
+              <>
+                <button
+                  onClick={() => onSelectView('script')}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs transition-colors cursor-pointer ${currentView === 'script' ? 'font-semibold bg-[#FFF7ED] text-[#F97316] border-l-4 border-[#F97316]' : 'font-medium text-[#555555] hover:text-[#171717] hover:bg-[#F3F1EB]'}`}
+                >
+                  <BookOpen
+                    className={`w-4 h-4 ${currentView === 'script' ? 'text-[#F97316]' : 'text-[#888888]'}`}
+                  />
+                  <span>Kịch bản & Lời thoại</span>
+                </button>
+              </>
+            )}
 
-            {/* 3. Series Bible */}
+            {/* MENU CHO EDITOR (Biên tập viên) */}
+            {userRole === 'EDITOR' && (
+              <>
+                <button
+                  onClick={() => onSelectView('review')}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs transition-colors cursor-pointer ${currentView === 'review' ? 'font-semibold bg-[#FFF7ED] text-[#F97316] border-l-4 border-[#F97316]' : 'font-medium text-[#555555] hover:text-[#171717] hover:bg-[#F3F1EB]'}`}
+                >
+                  <CheckCircle2
+                    className={`w-4 h-4 ${currentView === 'review' ? 'text-[#F97316]' : 'text-[#888888]'}`}
+                  />
+                  <span>Trung tâm Phê duyệt</span>
+                </button>
+                <button
+                  onClick={() => onSelectView('members')}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs transition-colors cursor-pointer ${currentView === 'members' ? 'font-semibold bg-[#FFF7ED] text-[#F97316] border-l-4 border-[#F97316]' : 'font-medium text-[#555555] hover:text-[#171717] hover:bg-[#F3F1EB]'}`}
+                >
+                  <Users
+                    className={`w-4 h-4 ${currentView === 'members' ? 'text-[#F97316]' : 'text-[#888888]'}`}
+                  />
+                  <span>Quản lý Nhân sự</span>
+                </button>
+              </>
+            )}
+
+            {/* MENU CHUNG CHO MỌI ROLE */}
             <button
               onClick={() => onSelectView('bible')}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs transition-colors cursor-pointer ${
-                currentView === 'bible'
-                  ? 'font-semibold bg-[#FFF7ED] text-[#F97316] border-l-4 border-[#F97316]'
-                  : 'font-medium text-[#555555] hover:text-[#171717] hover:bg-[#F3F1EB]'
-              }`}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs transition-colors cursor-pointer ${currentView === 'bible' ? 'font-semibold bg-[#FFF7ED] text-[#F97316] border-l-4 border-[#F97316]' : 'font-medium text-[#555555] hover:text-[#171717] hover:bg-[#F3F1EB]'}`}
             >
               <BookOpen
-                className={`w-4 h-4 ${
-                  currentView === 'bible' ? 'text-[#F97316]' : 'text-[#888888]'
-                }`}
+                className={`w-4 h-4 ${currentView === 'bible' ? 'text-[#F97316]' : 'text-[#888888]'}`}
               />
-              <span>Series Bible</span>
-            </button>
-
-            {/* 4. Members & Roles */}
-            <button
-              onClick={() => onSelectView('members')}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs transition-colors cursor-pointer ${
-                currentView === 'members'
-                  ? 'font-semibold bg-[#FFF7ED] text-[#F97316] border-l-4 border-[#F97316]'
-                  : 'font-medium text-[#555555] hover:text-[#171717] hover:bg-[#F3F1EB]'
-              }`}
-            >
-              <Users
-                className={`w-4 h-4 ${
-                  currentView === 'members' ? 'text-[#F97316]' : 'text-[#888888]'
-                }`}
-              />
-              <span>Members & Roles</span>
+              <span>Series Bible (Canon)</span>
             </button>
           </nav>
         </div>

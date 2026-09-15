@@ -31,7 +31,13 @@ import { AuditLogModal } from './components/modals/AuditLogModal';
 import { InviteMemberModal } from './components/modals/InviteMemberModal';
 import { AddEntityModal } from './components/modals/AddEntityModal';
 import { NewPageCardModal } from './components/modals/NewPageCardModal';
-import { CheckCircle2, AlertCircle } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
+import { ScriptView } from './views/ScriptView';
+import { ReviewView } from './views/ReviewView';
+
+// ---> IMPORT CÁC TRANG BÊN NGOÀI HỆ THỐNG <---
+import { LoginView } from './views/LoginView';
+import { LandingPageView } from './views/LandingPageView';
 
 interface Toast {
   id: string;
@@ -40,9 +46,23 @@ interface Toast {
 }
 
 export default function App() {
+  // ---> STATE QUẢN LÝ ĐĂNG NHẬP VÀ ĐIỀU HƯỚNG BÊN NGOÀI <---
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authMode, setAuthMode] = useState<'landing' | 'login' | 'register'>('landing');
+
   // Navigation & Data State
   const [viewScope, setViewScope] = useState<'hub' | 'project'>('hub');
-  const [currentView, setCurrentView] = useState<ViewMode>('dashboard');
+  const [currentView, setCurrentView] = useState<ViewMode | string>('dashboard');
+  const [currentRole, setCurrentRole] = useState<'WRITER' | 'ARTIST' | 'EDITOR'>('ARTIST');
+
+  useEffect(() => {
+    if (viewScope === 'project') {
+      if (currentRole === 'WRITER') setCurrentView('script');
+      else if (currentRole === 'EDITOR') setCurrentView('review');
+      else setCurrentView('dashboard');
+    }
+  }, [currentRole, viewScope]);
+
   const [projects, setProjects] = useState<MangaProject[]>(INITIAL_PROJECTS);
   const [activeProject, setActiveProject] = useState<MangaProject>(INITIAL_PROJECTS[0]);
   const [cards, setCards] = useState<KanbanCard[]>(INITIAL_KANBAN_CARDS);
@@ -73,9 +93,10 @@ export default function App() {
     }, 4000);
   };
 
-  // Keyboard shortcut for Command Palette (⌘K / Ctrl+K)
+  // Keyboard shortcut for Command Palette
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (!isAuthenticated) return; // Không cho mở Command Palette nếu chưa đăng nhập
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         setCommandPaletteOpen((prev) => !prev);
@@ -83,9 +104,9 @@ export default function App() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [isAuthenticated]);
 
-  // Update card stage (advance or drag)
+  // Các hàm tiện ích
   const handleUpdateCardStage = (cardId: string, newStage: KanbanStageKey) => {
     setCards((prev) => prev.map((c) => (c.id === cardId ? { ...c, stage: newStage } : c)));
     if (selectedCardForDetail && selectedCardForDetail.id === cardId) {
@@ -93,27 +114,15 @@ export default function App() {
     }
   };
 
-  // Add new card
-  const handleAddCard = (newCard: KanbanCard) => {
-    setCards((prev) => [newCard, ...prev]);
-  };
+  const handleAddCard = (newCard: KanbanCard) => setCards((prev) => [newCard, ...prev]);
+  const handleAddEntity = (newEntity: BibleEntity) => setEntities((prev) => [newEntity, ...prev]);
 
-  // Add new Bible Entity
-  const handleAddEntity = (newEntity: BibleEntity) => {
-    setEntities((prev) => [newEntity, ...prev]);
-  };
-
-  // Invite Member
   const handleInviteMember = (newMember: StudioMember) => {
     setMembers((prev) => [
       ...prev,
       {
         ...newMember,
-        permissions: newMember.permissions || [
-          'Master Commit & Tankōbon Lock',
-          '600 DPI TIFF & CMYK Production Export',
-          'Inking & Tone Separation',
-        ],
+        permissions: newMember.permissions || ['Master Commit & Tankōbon Lock'],
         cryptoKey: newMember.cryptoKey || 'ECDSA-P256 [0x9B2C...F18]',
         activeTask: newMember.activeTask || 'New Production Assignment',
         status: 'Active',
@@ -122,7 +131,6 @@ export default function App() {
     showToast('Member Provisioned', `Invited ${newMember.name} as ${newMember.role}.`);
   };
 
-  // Create New Manga Title in Publications Hub
   const handleCreateNewProject = (customProject?: MangaProject) => {
     const newId = `project-${Date.now()}`;
     const newProj: MangaProject = customProject || {
@@ -139,19 +147,13 @@ export default function App() {
       dueDate: 'Feb 2027',
       daysLeft: 60,
       genres: ['Cyberpunk', 'Tactical Mecha'],
-      coverStyle: 'halftone-cyber',
-      coverText: 'GHOST PROTOCOL 09',
-      tagline:
-        'Covert tactical android operatives uncovering illicit cyber-brain syndicates across Sector 9.',
       lastUpdated: 'Just now',
-      coverImage:
-        'https://lh3.googleusercontent.com/aida-public/AB6AXuDCN83560cOGR49r3erfCgnKKaEdU0_CmPncgfpr3QV2ogH_TYnPD4z1PYfLwJexShtfl9p0EKLHilGOYVFoLVrZUyQTyuOyrH0AP_FUrUwyvwkUvk8K3p7yTy1wI7wzkMLJjCgzfR5Bqbb4ZRwPaWZJ5Vgt66mLfNB6QGqv0CF4o6VwPCURuFKtDKLE-jOibIvwClUXeMLtzynkXFMdJMhLXCTyw-fXE6VF9-LJulNEOiBN9Op98vhkw',
     };
     setProjects((prev) => [newProj, ...prev]);
     showToast('Serialization Created', `Added "${newProj.title}" to Publications Catalog.`);
   };
 
-  const handleEnterProject = (proj: MangaProject, targetView: ViewMode = 'dashboard') => {
+  const handleEnterProject = (proj: MangaProject, targetView: ViewMode | string = 'dashboard') => {
     setActiveProject(proj);
     setCurrentView(targetView);
     setViewScope('project');
@@ -160,227 +162,253 @@ export default function App() {
 
   const handleReturnToHub = () => {
     setViewScope('hub');
-    showToast('Returned to Hub', 'Back to Publications & Serialization Catalog.');
+    showToast('Returned to Hub', 'Back to Publications Catalog.');
   };
 
   return (
     <div className='h-screen bg-[#F8F6F0] text-[#171717] font-sans antialiased overflow-hidden selection:bg-[#F97316]/20 selection:text-[#EA580C]'>
-      {viewScope === 'hub' ? (
-        /* Outer Publications Hub Screen */
-        <div className='h-screen w-full overflow-y-auto custom-scrollbar bg-[#FAF8F4]'>
-          <ContentHubView
-            projects={projects}
-            onSelectProject={(proj) => setActiveProject(proj)}
-            onEnterProject={handleEnterProject}
-            onCreateNewProject={handleCreateNewProject}
-            onOpenExportModal={() => setExportModalOpen(true)}
-            isRootView={true}
-          />
-        </div>
-      ) : (
-        /* Inner Project Studio Workspace ("Màn hình ở trong") */
-        <div className='flex h-screen overflow-hidden'>
-          {/* 1. Left Sidebar */}
-          <Sidebar
-            currentView={currentView}
-            onSelectView={(view) => {
-              if (view === 'publications') {
-                handleReturnToHub();
-              } else {
-                setCurrentView(view);
-              }
-            }}
-            activeProject={activeProject}
-            projects={projects}
-            onSelectProject={(proj) => {
-              setActiveProject(proj);
-              showToast('Project Switched', `Active workspace switched to ${proj.title}.`);
-            }}
-            onReturnToHub={handleReturnToHub}
-            onOpenSettings={() => {
-              showToast(
-                'Studio Settings',
-                'LoRA weights and tankōbon export resolutions are calibrated.',
-              );
-            }}
-            onOpenHelp={() => {
-              showToast(
-                'Help & Reference',
-                'PanelForge AI Tankōbon production documentation is up to date.',
-              );
-            }}
-            onOpenStorageModal={() => {
-              showToast('Storage Vault', '15.6 GB of 20 GB 600 DPI cloud storage used.');
-            }}
-          />
-
-          {/* 2. Main Content Area with Header */}
-          <div className='flex-1 flex flex-col min-w-0 overflow-hidden'>
-            {/* Top Header with Return Button */}
-            <Header
-              currentView={currentView}
-              activeProject={activeProject}
-              onReturnToHub={handleReturnToHub}
-              onOpenCommandPalette={() => setCommandPaletteOpen(true)}
-              onOpenAiEngineModal={() => setVectorStatusOpen(true)}
-              onOpenExportModal={() => setExportModalOpen(true)}
+      {/* ---> KHU VỰC BÊN NGOÀI (CHƯA ĐĂNG NHẬP) <--- */}
+      {!isAuthenticated ? (
+        <>
+          {authMode === 'landing' && (
+            <LandingPageView
+              projects={projects}
+              onLoginClick={() => setAuthMode('login')}
+              onRegisterClick={() => setAuthMode('register')}
             />
+          )}
 
-            {/* View Router */}
-            <main className='flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 custom-scrollbar'>
-              {currentView === 'dashboard' && (
-                <DashboardView
-                  activeProject={activeProject}
-                  assistants={assistants}
-                  provenanceLogs={provenanceLogs}
-                  onOpenSpreadModal={() => setSpreadModalOpen(true)}
-                  onOpenCanvasModal={() => setSpreadModalOpen(true)}
-                  onRunAiAudit={() => {
-                    showToast(
-                      'LoRA Audit Passed',
-                      'Verified 99.4% anatomical and mechanical continuity across 18 pages.',
-                    );
-                  }}
-                  onExportReport={() => setExportModalOpen(true)}
-                  onConfigureAnchors={() => setVectorStatusOpen(true)}
-                  onViewAuditLog={() => setAuditLogOpen(true)}
-                  onManageAssignments={() => setCurrentView('members')}
-                />
-              )}
+          {(authMode === 'login' || authMode === 'register') && (
+            <LoginView
+              mode={authMode}
+              onBack={() => setAuthMode('landing')}
+              onLogin={() => {
+                setIsAuthenticated(true);
+                showToast(
+                  authMode === 'login' ? 'Đăng nhập thành công' : 'Đăng ký thành công',
+                  'Chào mừng bạn đến với PanelForge Studio.',
+                );
+              }}
+            />
+          )}
+        </>
+      ) : (
+        /* ---> KHU VỰC BÊN TRONG HỆ THỐNG (ĐÃ ĐĂNG NHẬP) <--- */
+        <>
+          {viewScope === 'hub' ? (
+            <div className='h-screen w-full overflow-y-auto custom-scrollbar bg-[#FAF8F4]'>
+              <ContentHubView
+                projects={projects}
+                onSelectProject={(proj) => setActiveProject(proj)}
+                onEnterProject={handleEnterProject}
+                onCreateNewProject={handleCreateNewProject}
+                onOpenExportModal={() => setExportModalOpen(true)}
+                isRootView={true}
+              />
+            </div>
+          ) : (
+            <div className='flex h-screen overflow-hidden'>
+              <Sidebar
+                currentView={currentView}
+                userRole={currentRole}
+                onSelectView={(view) => {
+                  if (view === 'publications') handleReturnToHub();
+                  else setCurrentView(view);
+                }}
+                activeProject={activeProject}
+                projects={projects}
+                onSelectProject={(proj) => {
+                  setActiveProject(proj);
+                  showToast('Project Switched', `Active workspace switched to ${proj.title}.`);
+                }}
+                onReturnToHub={handleReturnToHub}
+                onOpenSettings={() =>
+                  showToast(
+                    'Studio Settings',
+                    'LoRA weights and tankōbon export resolutions are calibrated.',
+                  )
+                }
+                onOpenHelp={() =>
+                  showToast('Help & Reference', 'PanelForge documentation is up to date.')
+                }
+                onOpenStorageModal={() =>
+                  showToast('Storage Vault', '15.6 GB of 20 GB 600 DPI cloud storage used.')
+                }
+              />
 
-              {currentView === 'workflow' && (
-                <WorkflowBoardView
+              <div className='flex-1 flex flex-col min-w-0 overflow-hidden'>
+                <Header
+                  currentView={currentView as ViewMode}
                   activeProject={activeProject}
-                  cards={cards}
-                  onUpdateCardStage={handleUpdateCardStage}
-                  onOpenCardDetails={(card) => setSelectedCardForDetail(card)}
+                  onReturnToHub={handleReturnToHub}
+                  onOpenCommandPalette={() => setCommandPaletteOpen(true)}
+                  onOpenAiEngineModal={() => setVectorStatusOpen(true)}
                   onOpenExportModal={() => setExportModalOpen(true)}
-                  onOpenNewCardModal={() => setNewCardOpen(true)}
-                  onShowToast={showToast}
                 />
-              )}
 
-              {currentView === 'bible' && (
-                <SeriesBibleView
-                  activeProject={activeProject}
-                  entities={entities}
-                  onAddEntity={() => setAddEntityOpen(true)}
-                  onViewVectorStatus={() => setVectorStatusOpen(true)}
-                  onEditEntity={(entity) => {
-                    showToast('Edit Entity', `Editing canon specifications for ${entity.name}.`);
-                  }}
-                  onShowToast={showToast}
-                />
-              )}
+                <main className='flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 custom-scrollbar'>
+                  {currentView === 'dashboard' && (
+                    <DashboardView
+                      activeProject={activeProject}
+                      assistants={assistants}
+                      provenanceLogs={provenanceLogs}
+                      onOpenSpreadModal={() => setSpreadModalOpen(true)}
+                      onOpenCanvasModal={() => setSpreadModalOpen(true)}
+                      onRunAiAudit={() =>
+                        showToast('LoRA Audit Passed', 'Verified 99.4% continuity.')
+                      }
+                      onExportReport={() => setExportModalOpen(true)}
+                      onConfigureAnchors={() => setVectorStatusOpen(true)}
+                      onViewAuditLog={() => setAuditLogOpen(true)}
+                      onManageAssignments={() => setCurrentView('members')}
+                    />
+                  )}
+                  {currentView === 'workflow' && (
+                    <WorkflowBoardView
+                      activeProject={activeProject}
+                      cards={cards}
+                      onUpdateCardStage={handleUpdateCardStage}
+                      onOpenCardDetails={(card) => setSelectedCardForDetail(card)}
+                      onOpenExportModal={() => setExportModalOpen(true)}
+                      onOpenNewCardModal={() => setNewCardOpen(true)}
+                      onShowToast={showToast}
+                    />
+                  )}
+                  {currentView === 'bible' && (
+                    <SeriesBibleView
+                      activeProject={activeProject}
+                      entities={entities}
+                      onAddEntity={() => setAddEntityOpen(true)}
+                      onViewVectorStatus={() => setVectorStatusOpen(true)}
+                      onEditEntity={(entity) =>
+                        showToast('Edit Entity', `Editing canon for ${entity.name}.`)
+                      }
+                      onShowToast={showToast}
+                    />
+                  )}
+                  {currentView === 'members' && (
+                    <MembersRolesView
+                      activeProject={activeProject}
+                      members={members}
+                      onInviteMember={() => setInviteMemberOpen(true)}
+                      onUpdateMemberRole={(id, role, updatedPermissions) => {
+                        setMembers((prev) =>
+                          prev.map((m) =>
+                            m.id === id
+                              ? { ...m, role, permissions: updatedPermissions || m.permissions }
+                              : m,
+                          ),
+                        );
+                        showToast('Access Updated', `Updated permissions.`);
+                      }}
+                      onShowToast={showToast}
+                    />
+                  )}
+                  {currentView === 'publications' && (
+                    <ContentHubView
+                      projects={projects}
+                      onSelectProject={(proj) => {
+                        setActiveProject(proj);
+                        setCurrentView('dashboard');
+                      }}
+                      onEnterProject={handleEnterProject}
+                      onCreateNewProject={handleCreateNewProject}
+                      onOpenExportModal={() => setExportModalOpen(true)}
+                      isRootView={false}
+                    />
+                  )}
+                  {currentView === 'script' && <ScriptView />}
+                  {currentView === 'review' && <ReviewView />}
+                </main>
+              </div>
+            </div>
+          )}
 
-              {currentView === 'members' && (
-                <MembersRolesView
-                  activeProject={activeProject}
-                  members={members}
-                  onInviteMember={() => setInviteMemberOpen(true)}
-                  onUpdateMemberRole={(id, role, updatedPermissions) => {
-                    setMembers((prev) =>
-                      prev.map((m) =>
-                        m.id === id
-                          ? {
-                              ...m,
-                              role,
-                              permissions: updatedPermissions || m.permissions,
-                            }
-                          : m,
-                      ),
-                    );
-                    showToast('Access Updated', `Updated permissions and role for studio member.`);
-                  }}
-                  onShowToast={showToast}
-                />
-              )}
+          {/* Các Modals */}
+          <SpreadWorkbenchModal
+            isOpen={spreadModalOpen}
+            onClose={() => setSpreadModalOpen(false)}
+            onShowToast={showToast}
+            userRole={currentRole}
+          />
+          <PageDetailModal
+            card={selectedCardForDetail}
+            onClose={() => setSelectedCardForDetail(null)}
+            onUpdateStage={handleUpdateCardStage}
+            onShowToast={showToast}
+          />
+          <ExportDeliveryModal
+            isOpen={exportModalOpen}
+            onClose={() => setExportModalOpen(false)}
+            activeProject={activeProject}
+            onShowToast={showToast}
+          />
+          <CommandPaletteModal
+            isOpen={commandPaletteOpen}
+            onClose={() => setCommandPaletteOpen(false)}
+            onNavigateView={setCurrentView}
+            onSelectCard={(c) => setSelectedCardForDetail(c)}
+            onSelectEntity={(e) => {
+              setCurrentView('bible');
+              showToast('Entity Selected', `Navigated to ${e.name}`);
+            }}
+            cards={cards}
+            entities={entities}
+          />
+          <VectorStatusModal
+            isOpen={vectorStatusOpen}
+            onClose={() => setVectorStatusOpen(false)}
+            onShowToast={showToast}
+          />
+          <AuditLogModal
+            isOpen={auditLogOpen}
+            onClose={() => setAuditLogOpen(false)}
+            logs={provenanceLogs}
+            onShowToast={showToast}
+          />
+          <InviteMemberModal
+            isOpen={inviteMemberOpen}
+            onClose={() => setInviteMemberOpen(false)}
+            onInvite={handleInviteMember}
+            onShowToast={showToast}
+          />
+          <AddEntityModal
+            isOpen={addEntityOpen}
+            onClose={() => setAddEntityOpen(false)}
+            onAdd={handleAddEntity}
+            onShowToast={showToast}
+          />
+          <NewPageCardModal
+            isOpen={newCardOpen}
+            onClose={() => setNewCardOpen(false)}
+            onAddCard={handleAddCard}
+            onShowToast={showToast}
+          />
 
-              {currentView === 'publications' && (
-                <ContentHubView
-                  projects={projects}
-                  onSelectProject={(proj) => {
-                    setActiveProject(proj);
-                    setCurrentView('dashboard');
-                  }}
-                  onEnterProject={handleEnterProject}
-                  onCreateNewProject={handleCreateNewProject}
-                  onOpenExportModal={() => setExportModalOpen(true)}
-                  isRootView={false}
-                />
-              )}
-            </main>
+          {/* Thanh giả lập Role */}
+          <div className='fixed bottom-5 left-5 z-50 bg-white border border-[#E7E7E7] p-2 rounded-xl shadow-2xl flex items-center gap-2 font-mono text-xs animate-in slide-in-from-bottom-5'>
+            <span className='px-2 font-bold text-[#888888] uppercase tracking-wider text-[10px]'>
+              Simulate Role:
+            </span>
+            {(['WRITER', 'ARTIST', 'EDITOR'] as const).map((role) => (
+              <button
+                key={role}
+                onClick={() => {
+                  setCurrentRole(role);
+                  showToast('Role Switched', `You are now viewing as ${role}.`);
+                }}
+                className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+                  currentRole === role
+                    ? 'bg-[#F97316] text-white shadow-md'
+                    : 'bg-[#F8F6F0] text-[#555555] hover:bg-[#EAE8E0] hover:text-[#171717]'
+                }`}
+              >
+                {role}
+              </button>
+            ))}
           </div>
-        </div>
+        </>
       )}
-
-      {/* Modals & Slide-overs */}
-      <SpreadWorkbenchModal
-        isOpen={spreadModalOpen}
-        onClose={() => setSpreadModalOpen(false)}
-        onShowToast={showToast}
-      />
-
-      <PageDetailModal
-        card={selectedCardForDetail}
-        onClose={() => setSelectedCardForDetail(null)}
-        onUpdateStage={handleUpdateCardStage}
-        onShowToast={showToast}
-      />
-
-      <ExportDeliveryModal
-        isOpen={exportModalOpen}
-        onClose={() => setExportModalOpen(false)}
-        activeProject={activeProject}
-        onShowToast={showToast}
-      />
-
-      <CommandPaletteModal
-        isOpen={commandPaletteOpen}
-        onClose={() => setCommandPaletteOpen(false)}
-        onNavigateView={setCurrentView}
-        onSelectCard={(c) => setSelectedCardForDetail(c)}
-        onSelectEntity={(e) => {
-          setCurrentView('bible');
-          showToast('Entity Selected', `Navigated to ${e.name} in Series Bible.`);
-        }}
-        cards={cards}
-        entities={entities}
-      />
-
-      <VectorStatusModal
-        isOpen={vectorStatusOpen}
-        onClose={() => setVectorStatusOpen(false)}
-        onShowToast={showToast}
-      />
-
-      <AuditLogModal
-        isOpen={auditLogOpen}
-        onClose={() => setAuditLogOpen(false)}
-        logs={provenanceLogs}
-        onShowToast={showToast}
-      />
-
-      <InviteMemberModal
-        isOpen={inviteMemberOpen}
-        onClose={() => setInviteMemberOpen(false)}
-        onInvite={handleInviteMember}
-        onShowToast={showToast}
-      />
-
-      <AddEntityModal
-        isOpen={addEntityOpen}
-        onClose={() => setAddEntityOpen(false)}
-        onAdd={handleAddEntity}
-        onShowToast={showToast}
-      />
-
-      <NewPageCardModal
-        isOpen={newCardOpen}
-        onClose={() => setNewCardOpen(false)}
-        onAddCard={handleAddCard}
-        onShowToast={showToast}
-      />
 
       {/* Floating Toast Notification Stack */}
       <div className='fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none'>
