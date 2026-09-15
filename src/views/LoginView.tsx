@@ -3,19 +3,26 @@ import { Shield, ArrowRight, Loader2, ArrowLeft } from 'lucide-react';
 
 interface LoginViewProps {
   mode: 'login' | 'register';
-  onLogin: () => void;
+  onLogin: (username: string, pass: string) => void;
   onBack: () => void;
 }
 
 export const LoginView: React.FC<LoginViewProps> = ({ mode, onLogin, onBack }) => {
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
+  // State lưu trữ dữ liệu người dùng gõ vào
+  const [username, setUsername] = useState('writer'); // Mặc định để sẵn chữ writer
+  const [password, setPassword] = useState('123456');
+
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoggingIn(true);
+
+    // Giả lập độ trễ mạng 0.8 giây
     setTimeout(() => {
-      onLogin();
-    }, 1000);
+      onLogin(username, password);
+      setIsLoggingIn(false); // Tắt loading nếu đăng nhập sai
+    }, 800);
   };
 
   return (
@@ -43,12 +50,15 @@ export const LoginView: React.FC<LoginViewProps> = ({ mode, onLogin, onBack }) =
         <form onSubmit={handleLoginSubmit} className='space-y-4 mb-8 text-left'>
           <div>
             <label className='block text-[10px] font-mono font-bold text-[#888888] uppercase mb-1.5 ml-1'>
-              Mã Studio (Studio ID)
+              Mã Studio / Tài khoản
             </label>
             <input
               type='text'
-              defaultValue='mappa_studio_01'
-              className='w-full px-4 py-2.5 bg-[#F8F6F0] border border-[#E7E7E7] rounded-xl text-sm font-mono text-[#555555] outline-none'
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder='Nhập: writer, artist, hoặc editor'
+              className='w-full px-4 py-2.5 bg-[#F8F6F0] focus:bg-white border border-[#E7E7E7] rounded-xl text-sm font-mono text-[#171717] outline-none focus:border-[#F97316] transition-colors'
+              required
             />
           </div>
           <div>
@@ -57,26 +67,34 @@ export const LoginView: React.FC<LoginViewProps> = ({ mode, onLogin, onBack }) =
             </label>
             <input
               type='password'
-              defaultValue='••••••••••••'
-              className='w-full px-4 py-2.5 bg-[#F8F6F0] border border-[#E7E7E7] rounded-xl text-sm outline-none tracking-widest'
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder='123456'
+              className='w-full px-4 py-2.5 bg-[#F8F6F0] focus:bg-white border border-[#E7E7E7] rounded-xl text-sm outline-none tracking-widest focus:border-[#F97316] transition-colors'
+              required
             />
           </div>
 
           <button
             type='submit'
             disabled={isLoggingIn}
-            className='w-full py-3 mt-4 bg-[#EA580C] hover:bg-[#C2410C] text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-md active:scale-95 disabled:opacity-80'
+            className='w-full py-3 mt-4 bg-[#EA580C] hover:bg-[#C2410C] text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-md active:scale-95 disabled:opacity-80 cursor-pointer'
           >
             {isLoggingIn ? (
               <Loader2 className='w-4 h-4 animate-spin' />
             ) : (
               <Shield className='w-4 h-4' />
             )}
-            {isLoggingIn
-              ? 'Đang xác thực...'
-              : mode === 'login'
-                ? 'Đăng nhập vào Hệ thống'
-                : 'Hoàn tất Đăng ký'}
+
+            {/* ĐÃ SỬA: Bọc đoạn text này vào thẻ span để chống lỗi Google Dịch */}
+            <span>
+              {isLoggingIn
+                ? 'Đang xác thực...'
+                : mode === 'login'
+                  ? 'Đăng nhập vào Hệ thống'
+                  : 'Hoàn tất Đăng ký'}
+            </span>
+
             {!isLoggingIn && <ArrowRight className='w-4 h-4 ml-1' />}
           </button>
         </form>

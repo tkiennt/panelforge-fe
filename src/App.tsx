@@ -182,12 +182,33 @@ export default function App() {
             <LoginView
               mode={authMode}
               onBack={() => setAuthMode('landing')}
-              onLogin={() => {
-                setIsAuthenticated(true);
-                showToast(
-                  authMode === 'login' ? 'Đăng nhập thành công' : 'Đăng ký thành công',
-                  'Chào mừng bạn đến với PanelForge Studio.',
-                );
+
+              // Nhận username và password từ LoginView truyền lên
+              onLogin={(username, password) => {
+                // MOCK DATA: Định nghĩa các tài khoản ảo
+                const mockAccounts: Record<string, 'WRITER' | 'ARTIST' | 'EDITOR'> = {
+                  writer: 'WRITER',
+                  artist: 'ARTIST',
+                  editor: 'EDITOR',
+                };
+
+                const roleMatched = mockAccounts[username.toLowerCase()];
+
+                // Giả lập kiểm tra mật khẩu luôn là '123456'
+                if (roleMatched && password === '123456') {
+                  setIsAuthenticated(true);
+                  setCurrentRole(roleMatched); // Tự động set Role đúng với tài khoản
+                  showToast(
+                    authMode === 'login' ? 'Đăng nhập thành công' : 'Đăng ký thành công',
+                    `Chào mừng bạn trở lại với vai trò ${roleMatched}.`,
+                  );
+                } else {
+                  // Nếu sai tài khoản hoặc mật khẩu
+                  showToast(
+                    'Lỗi xác thực',
+                    'Tài khoản không tồn tại hoặc sai mật khẩu. Hãy thử: writer, artist, editor.',
+                  );
+                }
               }}
             />
           )}
