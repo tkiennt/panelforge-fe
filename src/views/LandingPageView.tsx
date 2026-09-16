@@ -73,67 +73,30 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onEnterDemo, o
       {/* ===== HERO ===== */}
       <div className="relative w-full min-h-[90vh] bg-[#FAF8F5] overflow-hidden border-b-[1.5px] border-[#171717] flex items-center justify-center pt-16 pb-16">
         {/* Halftone / Dot Grid Pattern - Giả lập vân giấy truyện tranh */}
-        <div className="absolute inset-0 opacity-[0.04] bg-[radial-gradient(#171717_1px,transparent_1px)] [background-size:16px_16px]"></div>
-
-        {/* Abstract Manga Panels (Khung truyện trừu tượng lơ lửng) */}
-        {/* FRAME 1: THE SHONEN ACTION PAGE (Left, Largest) */}
-        <div className="absolute hidden lg:flex flex-col h-[22rem] p-3 gap-2 bg-[#FFFFFF] shadow-[12px_12px_0px_#171717] left-[5%] top-1/3 -translate-y-1/2 w-64 border-[1.5px] border-[#171717] -rotate-6 transform hover:rotate-0 transition-transform duration-500 float-anim-slow z-10">
-          <div className="w-full h-1/3 border-[2px] border-[#171717] relative overflow-hidden">
-            <div className="absolute inset-0 bg-[radial-gradient(#171717_1.5px,transparent_1.5px)] bg-[size:10px_10px] opacity-15"></div>
-          </div>
-          <div className="grid grid-cols-2 gap-2 h-1/3">
-            <div className="border-[2px] border-[#171717] relative"></div>
-            <div className="border-[2px] border-[#171717] relative">
-              <div className="absolute -left-4 top-1/2 -translate-y-1/2 bg-white border-[1.5px] border-[#171717] rounded-full w-8 h-6 z-20"></div>
-            </div>
-          </div>
-          <div className="w-full h-1/3 border-[2px] border-[#171717] relative overflow-hidden"></div>
-        </div>
-
-        {/* FRAME 2: THE 4-KOMA YONKOMA STYLE (Top Left/Right) */}
-        <div className="absolute hidden lg:flex flex-col h-64 p-4 gap-2 bg-[#FFFFFF] shadow-[8px_8px_0px_#171717] left-[18%] top-[20%] -translate-y-1/2 w-48 border-[1.5px] border-[#171717] rotate-3 z-0 float-anim-delay">
-          {[1, 2, 3, 4].map(i => (
-            <div key={i} className="w-full flex-1 border-[2px] border-[#171717] relative">
-              {i === 1 && <div className="absolute -top-2 -right-2 bg-[#F97316] text-white text-[8px] px-1.5 py-0.5 font-bold shadow-sm z-10">4-KOMA</div>}
-            </div>
-          ))}
-        </div>
+        <div className="absolute inset-0 opacity-[0.03] bg-[radial-gradient(#171717_1px,transparent_1px)] [background-size:24px_24px]"></div>
         
-        {/* FRAME 3: THE SCRIPT-TO-PANEL BREAKDOWN (Bottom Right) */}
-        <div className="absolute hidden lg:grid grid-rows-2 h-[18rem] bg-[#FFFFFF] shadow-[10px_10px_0px_#171717] right-[15%] bottom-1/4 w-56 border-[1.5px] border-[#171717] rotate-6 z-10 float-anim">
-          <div className="p-3 border-b-[1.5px] border-dashed border-[#B8B8B8] bg-[#F8F6F0] flex items-center">
-            <div className="font-mono text-[9px] text-[#171717] leading-relaxed">
-              EXT. CITY - DAY<br/>
-              Akira looks up.<br/><br/>
-              AKIRA: "It's huge..."
-            </div>
-          </div>
-          <div className="p-3 flex gap-2 relative">
-            <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-[#F3E8FF] text-[#6D28D9] text-[8px] px-2 py-0.5 font-bold rounded-sm border border-[#8B5CF6]/20 z-20 whitespace-nowrap">AI Panel Split</div>
-            <div className="flex-1 border-[2px] border-[#171717]"></div>
-            <div className="flex-1 border-[2px] border-[#171717]"></div>
-          </div>
-        </div>
-
-        {/* FRAME 4: DYNAMIC SPREAD (Far Right) */}
-        <div className="absolute hidden lg:flex flex-col h-56 p-2.5 gap-2 bg-[#FFFFFF] shadow-[6px_6px_0px_#171717] right-[5%] bottom-1/3 w-40 border-[1.5px] border-[#171717] -rotate-3 float-anim-slow z-0">
-          <div className="flex-1 border-[2px] border-[#171717] relative overflow-hidden">
-             <div className="absolute inset-0 bg-[linear-gradient(135deg,transparent_48%,#171717_48%,#171717_52%,transparent_52%)]"></div>
-          </div>
-          <div className="h-1/3 border-[2px] border-[#171717]"></div>
-        </div>
+        {/* Drafting Crosshairs */}
+        <div className="absolute top-[15%] left-[10%] text-[#B8B8B8] font-mono text-[10px] opacity-40">+</div>
+        <div className="absolute top-[25%] right-[15%] text-[#B8B8B8] font-mono text-[10px] opacity-40">+</div>
+        <div className="absolute bottom-[20%] left-[20%] text-[#B8B8B8] font-mono text-[10px] opacity-40">+</div>
+        <div className="absolute bottom-[30%] right-[8%] text-[#B8B8B8] font-mono text-[10px] opacity-40">+</div>
 
         {/* Tangerine Orange Accent / Focal Point */}
-        <div className="absolute right-[20%] top-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-[#f97316] rounded-full blur-[120px] opacity-15"></div>
+        <div className="absolute right-[20%] top-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-[#f97316] rounded-full blur-[120px] opacity-10"></div>
         
         {/* AI Violet Element */}
-        <div className="absolute left-[30%] bottom-10 w-[300px] h-[300px] bg-[#8B5CF6] rounded-full blur-[100px] opacity-15"></div>
+        <div className="absolute left-[30%] bottom-10 w-[300px] h-[300px] bg-[#8B5CF6] rounded-full blur-[100px] opacity-10"></div>
 
         {/* Foreground Content */}
         <div className="relative z-20 text-center flex flex-col items-center max-w-4xl px-6 animate-on-scroll">
 
           <h1 className="font-serif text-6xl md:text-7xl lg:text-8xl font-bold text-[#171717] tracking-tight leading-[1.05]">
-            <em className="font-normal text-[#f97316] not-italic italic">Architect</em> Your<br />
+            <span className="relative inline-block">
+              <em className="font-normal text-[#f97316] not-italic italic relative z-10">Architect</em>
+              <svg className="absolute w-[110%] h-[12px] -bottom-1 -left-[5%] text-[#f97316] opacity-80 z-0" viewBox="0 0 200 12" preserveAspectRatio="none">
+                <path d="M 5,8 Q 50,2 100,6 T 195,5" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
+              </svg>
+            </span> Your<br />
             Manga Production.
           </h1>
           
@@ -163,6 +126,22 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onEnterDemo, o
         </div>
       </div>
 
+      {/* ===== CREATOR FIRST SECTION ===== */}
+      <div className="py-24 bg-[#171717] relative border-b-[1.5px] border-[#171717]">
+        <div className="max-w-4xl mx-auto px-6 text-center animate-on-scroll">
+          <div className="inline-flex items-center gap-3 text-xs font-semibold text-[#f97316] uppercase tracking-[0.2em] mb-10">
+            <span className="w-12 h-[1.5px] bg-[#f97316]"></span>
+            Built for the Modern Studio
+            <span className="w-12 h-[1.5px] bg-[#f97316]"></span>
+          </div>
+          
+          <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl italic text-white leading-tight font-medium max-w-3xl mx-auto relative">
+            <span className="text-[#404040] text-7xl font-serif absolute -top-8 -left-8 -z-10">"</span>
+            PanelForge didn't just organize our files; it gave our artists their creative time back.
+            <span className="text-[#404040] text-7xl font-serif absolute -bottom-14 -right-4 -z-10">"</span>
+          </h2>
+        </div>
+      </div>
       {/* ===== VALUE PROPOSITION ===== */}
       <div className="py-16 md:py-24 relative bg-[#F3F3F3]">
         <div className="max-w-6xl mx-auto px-6 lg:px-8">
@@ -212,121 +191,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onEnterDemo, o
         </div>
       </div>
 
-      {/* ===== THE FLOATING ECOSYSTEM & FEATURES HEADER ===== */}
-      <div id="block-features" className="relative w-full min-h-[600px] md:min-h-[700px] overflow-hidden bg-[#FAF8F5] border-t border-[#E7E7E7]/50">
-        
-        {/* 1. TEXTURES & BACKGROUND */}
-        <div className="absolute inset-0 bg-[radial-gradient(#171717_1px,transparent_1px)] bg-[size:24px_24px] opacity-[0.03]"></div>
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(200,200,200,0.5)_1px,transparent_1px),linear-gradient(90deg,rgba(200,200,200,0.5)_1px,transparent_1px)] bg-[size:100px_100px] opacity-50"></div>
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(249,115,22,0.15)_0%,rgba(139,92,246,0.1)_40%,transparent_70%)]"></div>
 
-        {/* 2. MANGA WIREFRAMES (Properly positioned and visible) */}
-        <div className="absolute inset-0 max-w-7xl mx-auto pointer-events-none">
-          <div className="absolute top-[10%] left-[5%] w-56 h-72 border-2 border-dashed border-[#D4D4D4] rounded pointer-events-none -rotate-2"></div>
-          <div className="absolute bottom-[5%] right-[5%] w-80 h-48 border-2 border-dashed border-[#D4D4D4] rounded pointer-events-none rotate-1"></div>
-          <div className="absolute top-[25%] right-[15%] w-40 h-64 border-2 border-dashed border-[#D4D4D4] rounded pointer-events-none rotate-3 opacity-60"></div>
-          <div className="absolute bottom-[15%] left-[15%] w-48 h-32 border-2 border-dashed border-[#D4D4D4] rounded pointer-events-none -rotate-1 opacity-60"></div>
-          
-          {/* Drafting Crosshairs */}
-          <div className="absolute top-[20%] left-[25%] text-[#A3A3A3] text-lg font-mono pointer-events-none">+</div>
-          <div className="absolute top-[15%] right-[30%] text-[#A3A3A3] text-lg font-mono pointer-events-none">+</div>
-          <div className="absolute bottom-[20%] left-[35%] text-[#A3A3A3] text-lg font-mono pointer-events-none">+</div>
-          <div className="absolute bottom-[25%] right-[25%] text-[#A3A3A3] text-lg font-mono pointer-events-none">+</div>
-        </div>
-
-        {/* 3. CENTRAL TEXT (With frosted glass to guarantee readability) */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center w-full h-full z-10 pointer-events-none">
-          <div className="text-center max-w-xl px-6 py-8 bg-[#FAF8F5]/70 backdrop-blur-md md:bg-transparent md:backdrop-blur-none rounded-3xl shadow-[0_0_40px_rgba(250,248,245,0.8)] md:shadow-none">
-            <div className="inline-flex items-center gap-2 text-[11px] font-semibold text-[#f97316] uppercase tracking-[0.2em] mb-6">
-              <span className="w-8 h-px bg-[#f97316]"></span>
-              The Four Pillars
-              <span className="w-8 h-px bg-[#f97316]"></span>
-            </div>
-            <h2 className="font-serif text-3xl md:text-5xl font-medium leading-[1.1] tracking-tight">
-              A studio operating system,<br />not another file drawer.
-            </h2>
-          </div>
-        </div>
-
-        {/* 4. QUADRANT ORBIT CARDS (Pushed to container edges) */}
-        <div className="absolute inset-0 w-full h-full max-w-7xl mx-auto pointer-events-none opacity-40 md:opacity-100 scale-75 md:scale-100 transform origin-center">
-          {/* Connecting Lines */}
-          <svg className="absolute inset-0 w-full h-full opacity-60" xmlns="http://www.w3.org/2000/svg">
-            <path d="M 10% 25% Q 30% 20% 50% 50%" fill="none" stroke="rgba(249,115,22,0.3)" strokeWidth="1.5" strokeDasharray="4 4" className="animate-pulse" />
-            <path d="M 90% 25% Q 70% 20% 50% 50%" fill="none" stroke="rgba(249,115,22,0.3)" strokeWidth="1.5" strokeDasharray="4 4" />
-            <path d="M 10% 75% Q 30% 80% 50% 50%" fill="none" stroke="rgba(249,115,22,0.3)" strokeWidth="1.5" strokeDasharray="4 4" className="animate-pulse" />
-            <path d="M 90% 75% Q 70% 80% 50% 50%" fill="none" stroke="rgba(249,115,22,0.3)" strokeWidth="1.5" strokeDasharray="4 4" />
-          </svg>
-
-          {/* 1. Kanban Pipeline Card (Top Left) */}
-          <div className="absolute top-[12%] left-2 lg:left-8 w-64 bg-[#FFFFFF] rounded-xl border border-[#E7E7E7] shadow-[0_20px_50px_-15px_rgba(0,0,0,0.08)] p-4 pointer-events-auto animate-float z-20">
-            <div className="flex justify-between items-center mb-3">
-              <span className="text-xs font-semibold text-[#171717]">Page 12</span>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#FFFBEB] text-[#D97706]">In Review</span>
-            </div>
-            <div className="h-16 border-2 border-dashed border-[#E7E7E7] rounded-lg mb-3 flex items-center justify-center">
-              <span className="text-[#A3A3A3] text-xs">Visual Draft</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="w-6 h-6 rounded-full bg-[#f97316] text-white flex items-center justify-center text-[10px] font-bold border border-white shadow-sm">A</div>
-              <div className="w-32 h-1.5 bg-[#F3F3F3] rounded-full overflow-hidden">
-                <div className="w-3/4 h-full bg-[#f97316]"></div>
-              </div>
-            </div>
-          </div>
-
-          {/* 2. Append-Only Event Log (Top Right) */}
-          <div className="absolute top-[18%] right-2 lg:right-8 w-64 bg-[#FFFFFF] rounded-xl border border-[#E7E7E7] shadow-[0_20px_50px_-15px_rgba(0,0,0,0.08)] p-4 pointer-events-auto animate-float animation-delay-2000 z-20">
-            <div className="text-[10px] uppercase tracking-widest text-[#A3A3A3] font-bold mb-3 border-b border-[#E7E7E7] pb-2">Event Log</div>
-            <div className="space-y-3 relative pl-3">
-              <div className="absolute left-[3px] top-1 bottom-1 w-px bg-[#E7E7E7]"></div>
-              <div className="relative">
-                <div className="absolute -left-[14px] top-1 w-2 h-2 rounded-full bg-[#f97316] border-2 border-white"></div>
-                <div className="font-mono text-[9px] text-[#A3A3A3] mb-0.5">a9f82c</div>
-                <div className="text-[10px] text-[#171717] font-medium">Script updated</div>
-              </div>
-              <div className="relative">
-                <div className="absolute -left-[14px] top-1 w-2 h-2 rounded-full bg-[#8B5CF6] border-2 border-white"></div>
-                <div className="font-mono text-[9px] text-[#A3A3A3] mb-0.5">b37x19</div>
-                <div className="text-[10px] text-[#171717] font-medium">AI Continuity Flag</div>
-              </div>
-            </div>
-          </div>
-
-          {/* 3. Structured Script Block (Bottom Left) */}
-          <div className="absolute bottom-[12%] left-2 lg:left-8 w-72 bg-[#FFFFFF] rounded-xl border border-[#E7E7E7] shadow-[0_20px_50px_-15px_rgba(0,0,0,0.08)] p-4 pointer-events-auto animate-float animation-delay-1000 z-30">
-            <div className="flex items-center gap-2 mb-2 pb-2 border-b border-[#E7E7E7]">
-              <FileEdit className="w-3.5 h-3.5 text-[#0EA5E9]" />
-              <span className="text-[10px] font-bold text-[#0EA5E9] uppercase tracking-wider">Script</span>
-            </div>
-            <div className="font-mono text-[10px] text-[#737373] leading-relaxed">
-              EXT. CITY - NIGHT<br/><br/>
-              <span className="bg-[#FFF1F2] text-[#E11D48] px-1 rounded font-semibold">V-4</span> steps out of the shadows.
-            </div>
-          </div>
-
-          {/* 4. Series Bible RAG Card (Bottom Right) */}
-          <div className="absolute bottom-[18%] right-2 lg:right-8 w-72 bg-white/90 backdrop-blur-md rounded-2xl border border-[#E7E7E7] shadow-[0_25px_65px_-15px_rgba(0,0,0,0.12)] p-5 pointer-events-auto animate-float animation-delay-3000 z-40">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-lg bg-[#F3F3F3] border border-[#E7E7E7] flex items-center justify-center flex-shrink-0">
-                <User className="w-5 h-5 text-[#A3A3A3]" />
-              </div>
-              <div>
-                <h4 className="text-sm font-bold text-[#171717] mb-1">Character Profile</h4>
-                <p className="text-[10px] text-[#737373] leading-snug mb-3">V-4's armor is always battle-scarred on the left shoulder.</p>
-                <div className="flex items-center gap-2">
-                  <span className="text-[9px] font-bold px-2 py-1 rounded bg-[#F3E8FF] text-[#6D28D9] flex items-center gap-1">
-                    <Sparkles className="w-2.5 h-2.5" /> AI Grounded
-                  </span>
-                  <span className="text-[9px] font-bold text-green-600 flex items-center gap-0.5">
-                    <CheckCheck className="w-3 h-3" /> Canon Verified
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* ===== FEATURE 1: Structured Content Model ===== */}
       <div className="py-12 md:py-20 bg-[#F3F3F3] relative">
