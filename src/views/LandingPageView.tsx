@@ -65,201 +65,59 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onEnterDemo })
       </header>
 
       {/* ===== HERO ===== */}
-      <div className="relative overflow-hidden bg-[#FAF8F5]">
-        <div className="absolute inset-0 halftone-pattern"></div>
-        <div className="absolute inset-0 hero-radial"></div>
-        <div className="absolute inset-0 grid-bg opacity-50"></div>
-        <div className="absolute top-32 -left-20 w-72 h-72 rounded-full bg-[#f97316] blur-[100px] opacity-15"></div>
-        <div className="absolute top-48 right-0 w-80 h-80 rounded-full bg-[#8b5cf6] blur-[100px] opacity-15"></div>
+      <div className="relative w-full min-h-[90vh] bg-[#FAF8F5] overflow-hidden border-b-[1.5px] border-[#171717] flex items-center justify-center pt-16 pb-16">
+        {/* Halftone / Dot Grid Pattern - Giả lập vân giấy truyện tranh */}
+        <div className="absolute inset-0 opacity-[0.04] bg-[radial-gradient(#171717_1px,transparent_1px)] [background-size:16px_16px]"></div>
 
-        <div className="relative max-w-7xl mx-auto px-6 lg:px-8 pt-16 md:pt-24 pb-24 md:pb-32">
-          <div className="grid lg:grid-cols-12 gap-12 lg:gap-16 items-center">
-            {/* Left: Copy */}
-            <div className="lg:col-span-6 animate-on-scroll">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-[#e7e7e7] text-xs font-medium text-[#404040] soft-shadow">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#f97316] pulse-dot"></span>
-                AI-Assisted Manga Production
-                <span className="text-[#737373]">·</span>
-                <span className="font-mono text-[10px] text-[#737373] uppercase tracking-wider">v3.0</span>
-              </div>
-              <h1 className="mt-7 font-serif text-5xl md:text-6xl lg:text-7xl font-medium leading-[1.02] tracking-tight text-[#171717]">
-                <em className="font-normal text-[#f97316] not-italic italic">Architect</em> Your<br />
-                Manga Production.
-              </h1>
-              <p className="mt-7 text-lg text-[#737373] max-w-lg leading-relaxed">
-                From first script to final approval, PanelForge turns chaotic creative work into{' '}
-                <span className="text-[#171717] font-medium">structured, verifiable production data</span> — with AI grounded in your series bible.
-              </p>
-              <div className="mt-9 flex flex-wrap items-center gap-3">
-                <button
-                  onClick={() => onEnterDemo('producer')}
-                  className="group inline-flex items-center gap-2 px-6 py-3.5 rounded-full tangerine-gradient text-white font-semibold text-sm tangerine-shadow hover:tangerine-shadow-lg transition-all hover:-translate-y-0.5 cursor-pointer"
-                >
-                  Onboard Studio
-                  <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-                </button>
-                <a href="#block-workflow" className="inline-flex items-center gap-2 px-6 py-3.5 rounded-full bg-white border border-[#e7e7e7] text-[#171717] font-medium text-sm hover:border-[#404040]/30 transition">
-                  <Play className="w-3.5 h-3.5 text-[#f97316] fill-[#f97316]" />
-                  See the workflow
-                </a>
-              </div>
-              <div className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-[#737373]">
-                <div className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-[#f97316]" /> 14-day studio trial</div>
-                <div className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-[#f97316]" /> Migrate from any tool</div>
-                <div className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-[#f97316]" /> SOC 2 ready</div>
-              </div>
-            </div>
+        {/* Abstract Manga Panels (Khung truyện trừu tượng lơ lửng) */}
+        <div className="absolute hidden lg:block left-[5%] top-1/3 -translate-y-1/2 w-64 h-[22rem] bg-[#FFFFFF] border-[1.5px] border-[#171717] shadow-[12px_12px_0px_#171717] -rotate-6 transform hover:rotate-0 transition-transform duration-500 float-anim-slow"></div>
+        <div className="absolute hidden lg:block left-[18%] top-[20%] -translate-y-1/2 w-48 h-64 bg-[#FFFFFF] border-[1.5px] border-[#171717] shadow-[8px_8px_0px_#171717] rotate-3 z-10 float-anim-delay"></div>
+        
+        <div className="absolute hidden lg:block right-[15%] bottom-1/4 w-56 h-[18rem] bg-[#FFFFFF] border-[1.5px] border-[#171717] shadow-[10px_10px_0px_#171717] rotate-6 z-10 float-anim"></div>
+        <div className="absolute hidden lg:block right-[5%] bottom-1/3 w-40 h-56 bg-[#FFFFFF] border-[1.5px] border-[#171717] shadow-[6px_6px_0px_#171717] -rotate-3 float-anim-slow"></div>
 
-            {/* Right: Visual composition */}
-            <div className="lg:col-span-6 relative animate-on-scroll delay-200">
-              <div className="relative h-[560px] md:h-[620px]">
-                {/* Main project card */}
-                <div className="absolute top-0 left-0 w-[340px] md:w-[380px] float-anim">
-                  <div className="bg-white rounded-2xl soft-shadow-lg border border-[#e7e7e7]/70 p-5">
-                    <div className="flex items-center justify-between pb-3.5 border-b border-[#e7e7e7]/60">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-9 h-9 rounded-lg tangerine-gradient flex items-center justify-center text-white font-serif font-bold text-base">A</div>
-                        <div>
-                          <div className="text-sm font-semibold text-[#171717] leading-tight">Chronicles of Aria</div>
-                          <div className="text-[10px] text-[#737373] uppercase tracking-wider mt-0.5">Series · In Production</div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1.5 text-[10px] text-[#737373] font-medium">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] pulse-dot"></span> Live
-                      </div>
-                    </div>
-                    <div className="pt-3.5 space-y-1">
-                      <div className="flex items-center gap-2 text-xs text-[#171717] font-medium">
-                        <span className="text-[#737373] text-[10px] w-3 inline-block">▾</span>
-                        <span>Vol. 3 — The Hollow Crown</span>
-                        <span className="ml-auto text-[10px] text-[#737373] font-mono">8/12 ch</span>
-                      </div>
-                      <div className="ml-4 pl-3 border-l border-dashed border-[#e7e7e7] space-y-1.5 pt-1">
-                        <div className="flex items-center gap-2 text-xs text-[#171717] font-medium">
-                          <span className="text-[#737373] text-[10px] w-3 inline-block">▾</span>
-                          <span>Ch. 14 — Embers</span>
-                          <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded bg-[#fff7ed] text-[#f97316] font-semibold tracking-wide">ACTIVE</span>
-                        </div>
-                        <div className="ml-4 pl-3 border-l border-dashed border-[#e7e7e7] space-y-1.5 pt-1">
-                          <div className="flex items-center gap-2 text-[11px] text-[#404040]">
-                            <span className="text-[#737373] text-[9px] w-3 inline-block">◇</span>
-                            <span>Scene 04 — "The Choice"</span>
-                            <span className="ml-auto text-[9px] text-[#737373] font-mono">4p</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-[11px] text-[#404040]">
-                            <span className="text-[#737373] text-[9px] w-3 inline-block">◇</span>
-                            <span>Scene 05 — "Departure"</span>
-                            <span className="ml-auto text-[9px] text-[#737373] font-mono">6p</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-[11px] text-[#737373]">
-                            <span className="text-[9px] w-3 inline-block">◇</span>
-                            <span className="italic">Scene 06 — "The Fire"</span>
-                            <span className="ml-auto text-[9px] italic font-mono">draft</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="mt-4 pt-3.5 border-t border-[#e7e7e7]/60 flex items-center gap-4 text-[10px] text-[#737373]">
-                      <div><span className="font-semibold text-[#171717] font-mono">142</span> panels</div>
-                      <div><span className="font-semibold text-[#171717] font-mono">3</span> artists</div>
-                      <div><span className="font-semibold text-green-600 font-mono">98%</span> on-time</div>
-                    </div>
-                  </div>
-                </div>
+        {/* Tangerine Orange Accent / Focal Point */}
+        <div className="absolute right-[20%] top-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-[#f97316] rounded-full blur-[120px] opacity-15"></div>
+        
+        {/* AI Violet Element */}
+        <div className="absolute left-[30%] bottom-10 w-[300px] h-[300px] bg-[#8B5CF6] rounded-full blur-[100px] opacity-15"></div>
 
-                {/* Mini Kanban */}
-                <div className="absolute top-8 right-0 w-[210px] float-anim-slow">
-                  <div className="bg-white rounded-2xl soft-shadow-lg border border-[#e7e7e7]/70 p-3.5">
-                    <div className="flex items-center justify-between mb-2.5">
-                      <div className="text-[9px] uppercase tracking-[0.15em] text-[#737373] font-semibold">Pipeline</div>
-                      <div className="text-[9px] text-[#737373] font-mono">CH-14</div>
-                    </div>
-                    <div className="grid grid-cols-3 gap-1.5">
-                      <div>
-                        <div className="text-[8px] uppercase tracking-wider text-[#737373] mb-1 font-semibold">Script</div>
-                        <div className="bg-[#faf8f5] rounded p-1.5 text-[10px] text-[#404040] font-mono font-semibold">3</div>
-                      </div>
-                      <div>
-                        <div className="text-[8px] uppercase tracking-wider text-[#D97706] mb-1 font-semibold">Ink</div>
-                        <div className="bg-[#FFFBEB] rounded p-1.5 text-[10px] text-[#D97706] font-mono font-bold">12</div>
-                      </div>
-                      <div>
-                        <div className="text-[8px] uppercase tracking-wider text-[#737373] mb-1 font-semibold">Done</div>
-                        <div className="bg-[#F0FDF4] rounded p-1.5 text-[10px] text-[#10B981] font-mono font-semibold">24</div>
-                      </div>
-                    </div>
-                    <div className="mt-3 h-1 rounded-full bg-[#e7e7e7] overflow-hidden">
-                      <div className="h-full w-3/5 tangerine-gradient rounded-full"></div>
-                    </div>
-                  </div>
-                </div>
+        {/* Foreground Content */}
+        <div className="relative z-20 text-center flex flex-col items-center max-w-4xl px-6 animate-on-scroll">
 
-                {/* AI Grounded Card */}
-                <div className="absolute top-44 right-2 md:-right-6 w-[260px] glass rounded-2xl shadow-xl border border-[#e7e7e7]/70 p-4 float-anim-delay">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-6 h-6 rounded ai-gradient flex items-center justify-center">
-                      <Sparkles className="w-3.5 h-3.5 text-white" />
-                    </div>
-                    <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#8b5cf6]">AI Grounded</span>
-                    <span className="ml-auto text-[9px] text-[#737373] font-mono">just now</span>
-                  </div>
-                  <div className="text-xs text-[#404040] leading-relaxed">
-                    Aria's scar should be <span className="font-semibold text-[#171717]">hidden</span> in this scene — established Vol. 1, Ch. 02.
-                  </div>
-                  <div className="mt-3 pt-3 border-t border-[#e7e7e7]/60 flex items-center gap-2 text-[10px]">
-                    <BookOpen className="w-3 h-3 text-[#737373]" />
-                    <span className="text-[#737373]">3 sources cited</span>
-                    <span className="ml-auto text-[#8b5cf6] font-semibold cursor-pointer">Apply →</span>
-                  </div>
-                </div>
+          <h1 className="font-serif text-6xl md:text-7xl lg:text-8xl font-bold text-[#171717] tracking-tight leading-[1.05]">
+            <em className="font-normal text-[#f97316] not-italic italic">Architect</em> Your<br />
+            Manga Production.
+          </h1>
+          
+          <p className="mt-8 text-[#171717] font-sans text-lg md:text-xl font-medium tracking-wide max-w-2xl leading-relaxed mx-auto">
+            From first script to final approval, PanelForge is the <span className="bg-[#171717] text-[#FAF8F5] px-2 py-0.5 rounded-sm font-mono text-sm uppercase">Data Layer</span> for Modern Manga Studios.
+          </p>
 
-                {/* Status Pill */}
-                <div className="absolute bottom-20 left-6 md:left-16 px-3.5 py-2 rounded-full bg-white border border-[#e7e7e7] soft-shadow text-xs flex items-center gap-2 float-anim">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] pulse-dot"></span>
-                  <span className="font-medium text-[#171717]">3 pages approved</span>
-                  <span className="text-[#737373]">· just now</span>
-                </div>
-
-                {/* Activity Feed */}
-                <div className="absolute bottom-0 right-0 w-[245px] bg-white rounded-2xl soft-shadow-lg border border-[#e7e7e7]/70 p-3.5 float-anim-slow">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="text-[10px] uppercase tracking-[0.15em] text-[#737373] font-semibold">Activity</div>
-                    <div className="flex items-center gap-1 text-[9px] text-[#737373] font-mono">
-                      <span className="w-1 h-1 rounded-full bg-[#f97316] pulse-dot"></span> live
-                    </div>
-                  </div>
-                  <div className="space-y-2.5 text-[11px]">
-                    <div className="flex items-start gap-2">
-                      <div className="w-5 h-5 rounded-full bg-[#fff7ed] flex items-center justify-center text-[#f97316] text-[9px] font-bold flex-shrink-0">M</div>
-                      <div className="flex-1 leading-relaxed">
-                        <span className="font-semibold text-[#171717]">Mika</span> <span className="text-[#404040]">inked page 14.3</span>
-                        <div className="text-[9px] text-[#737373] mt-0.5 font-mono">2 min ago</div>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <div className="w-5 h-5 rounded-full bg-[#f5f3ff] flex items-center justify-center text-[#8b5cf6] text-[9px] font-bold flex-shrink-0">✦</div>
-                      <div className="flex-1 leading-relaxed">
-                        <span className="font-semibold text-[#171717]">AI</span> <span className="text-[#404040]">flagged continuity on p.14.2</span>
-                        <div className="text-[9px] text-[#737373] mt-0.5 font-mono">5 min ago</div>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <div className="w-5 h-5 rounded-full bg-[#f4f0e8] flex items-center justify-center text-[#404040] text-[9px] font-bold flex-shrink-0">J</div>
-                      <div className="flex-1 leading-relaxed">
-                        <span className="font-semibold text-[#171717]">Jiro</span> <span className="text-[#404040]">approved scene 03</span>
-                        <div className="text-[9px] text-[#737373] mt-0.5 font-mono">12 min ago</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-5">
+            <button
+              onClick={() => onEnterDemo('producer')}
+              className="group inline-flex items-center gap-2 px-8 py-3.5 bg-[#f97316] border-[1.5px] border-[#171717] shadow-[6px_6px_0px_#171717] text-white font-bold text-sm uppercase tracking-wide hover:shadow-[2px_2px_0px_#171717] hover:translate-x-[4px] hover:translate-y-[4px] transition-all cursor-pointer rounded"
+            >
+              Onboard Studio
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </button>
+            <a href="#block-workflow" className="inline-flex items-center gap-2 px-8 py-3.5 bg-white border-[1.5px] border-[#171717] shadow-[6px_6px_0px_#171717] text-[#171717] font-bold text-sm uppercase tracking-wide hover:shadow-[2px_2px_0px_#171717] hover:translate-x-[4px] hover:translate-y-[4px] transition-all rounded cursor-pointer">
+              <Play className="w-3.5 h-3.5 text-[#f97316] fill-[#f97316]" />
+              See Workflow
+            </a>
+          </div>
+          
+          <div className="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-xs font-bold text-[#404040] uppercase tracking-wide">
+            <div className="flex items-center gap-2"><Check className="w-4 h-4 text-[#f97316]" /> 14-day studio trial</div>
+            <div className="flex items-center gap-2"><Check className="w-4 h-4 text-[#f97316]" /> Migrate from any tool</div>
+            <div className="flex items-center gap-2"><Check className="w-4 h-4 text-[#f97316]" /> SOC 2 ready</div>
           </div>
         </div>
       </div>
 
       {/* ===== VALUE PROPOSITION ===== */}
-      <div className="py-24 md:py-32 relative bg-[#F3F3F3]">
+      <div className="py-16 md:py-24 relative bg-[#F3F3F3]">
         <div className="max-w-6xl mx-auto px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto animate-on-scroll">
             <div className="inline-flex items-center gap-2 text-[11px] font-semibold text-[#f97316] uppercase tracking-[0.2em] mb-6">
@@ -278,7 +136,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onEnterDemo })
 
           <div className="relative mt-20">
             <div className="grid md:grid-cols-3 gap-5">
-              <div className="animate-on-scroll group p-8 rounded-2xl bg-white border border-[#e7e7e7]/70 hover:border-[#0EA5E9]/40 transition-all duration-500 hover:shadow-[0_20px_60px_rgba(14,165,233,0.10)] hover:-translate-y-1.5">
+              <div className="animate-on-scroll group p-8 rounded-2xl bg-white border border-[#e7e7e7] soft-shadow hover:border-[#0EA5E9]/40 transition-all duration-500 hover:shadow-[0_20px_60px_rgba(14,165,233,0.10)] hover:-translate-y-1.5">
                 <div className="w-12 h-12 rounded-xl bg-[#0EA5E9]/10 flex items-center justify-center text-[#0EA5E9] mb-5 group-hover:scale-110 transition-transform">
                   <FolderTree className="w-6 h-6" />
                 </div>
@@ -286,7 +144,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onEnterDemo })
                 <h3 className="font-serif text-2xl font-medium text-[#171717]">A first-class model for every panel.</h3>
                 <p className="mt-2.5 text-sm text-[#737373] leading-relaxed">Series, volumes, chapters, scenes, panels — each layer is a first-class object with linked script, references, and approvals.</p>
               </div>
-              <div className="animate-on-scroll delay-100 group p-8 rounded-2xl bg-white border border-[#e7e7e7]/70 hover:border-[#404040]/30 transition-all duration-500 hover:shadow-[0_20px_60px_rgba(23,23,23,0.08)] hover:-translate-y-1.5">
+              <div className="animate-on-scroll delay-100 group p-8 rounded-2xl bg-white border border-[#e7e7e7] soft-shadow hover:border-[#404040]/30 transition-all duration-500 hover:shadow-[0_20px_60px_rgba(23,23,23,0.08)] hover:-translate-y-1.5">
                 <div className="w-12 h-12 rounded-xl bg-[#f4f0e8] flex items-center justify-center text-[#171717] mb-5 group-hover:scale-110 transition-transform">
                   <History className="w-6 h-6" />
                 </div>
@@ -294,7 +152,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onEnterDemo })
                 <h3 className="font-serif text-2xl font-medium text-[#171717]">An append-only record of decisions.</h3>
                 <p className="mt-2.5 text-sm text-[#737373] leading-relaxed">Every change is appended, never overwritten. Roll back, audit, and trust the timeline of who did what, when.</p>
               </div>
-              <div className="animate-on-scroll delay-200 group p-8 rounded-2xl bg-white border border-[#e7e7e7]/70 hover:border-[#8b5cf6]/40 transition-all duration-500 hover:shadow-[0_20px_60px_rgba(139,92,246,0.10)] hover:-translate-y-1.5">
+              <div className="animate-on-scroll delay-200 group p-8 rounded-2xl bg-white border border-[#e7e7e7] soft-shadow hover:border-[#8b5cf6]/40 transition-all duration-500 hover:shadow-[0_20px_60px_rgba(139,92,246,0.10)] hover:-translate-y-1.5">
                 <div className="w-12 h-12 rounded-xl bg-[#f5f3ff] flex items-center justify-center text-[#8b5cf6] mb-5 group-hover:scale-110 transition-transform">
                   <Sparkles className="w-6 h-6" />
                 </div>
@@ -308,7 +166,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onEnterDemo })
       </div>
 
       {/* ===== FEATURES HEADER ===== */}
-      <div id="block-features" className="py-20 md:py-28 bg-[#FAF8F5] relative border-t border-[#E7E7E7]/50">
+      <div id="block-features" className="py-16 md:py-20 bg-[#FAF8F5] relative border-t border-[#E7E7E7]/50">
         <div className="absolute inset-0 dot-bg opacity-40"></div>
         <div className="relative max-w-6xl mx-auto px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-20 animate-on-scroll">
@@ -325,7 +183,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onEnterDemo })
       </div>
 
       {/* ===== FEATURE 1: Structured Content Model ===== */}
-      <div className="py-20 md:py-24 bg-[#F3F3F3] relative">
+      <div className="py-12 md:py-20 bg-[#F3F3F3] relative">
         <div className="absolute inset-0 halftone-pattern opacity-30"></div>
         <div className="relative max-w-6xl mx-auto px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
@@ -415,7 +273,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onEnterDemo })
       </div>
 
       {/* ===== FEATURE 2: Append-Only Event Store ===== */}
-      <div className="py-20 md:py-24 bg-[#FAF8F5] relative">
+      <div className="py-12 md:py-20 bg-[#FAF8F5] relative">
         <div className="relative max-w-6xl mx-auto px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
             <div className="animate-on-scroll lg:order-2">
@@ -487,7 +345,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onEnterDemo })
       </div>
 
       {/* ===== FEATURE 3: AI-Grounded Series Bible ===== */}
-      <div className="py-20 md:py-24 bg-[#F3F3F3] relative">
+      <div className="py-12 md:py-20 bg-[#F3F3F3] relative">
         <div className="absolute inset-0 halftone-pattern opacity-30"></div>
         <div className="relative max-w-6xl mx-auto px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
@@ -577,7 +435,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onEnterDemo })
       </div>
 
       {/* ===== FEATURE 4: Kanban Pipeline ===== */}
-      <div className="py-20 md:py-24 bg-[#FAF8F5] relative">
+      <div className="py-12 md:py-20 bg-[#FAF8F5] relative">
         <div className="relative max-w-6xl mx-auto px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
             <div className="animate-on-scroll lg:order-2">
@@ -624,7 +482,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onEnterDemo })
                     </div>
                     <div className="space-y-1.5">
                       {['Scene 04', 'Scene 05', 'Scene 06'].map((s, i) => (
-                        <div key={s} className="bg-[#faf8f5] rounded-md p-2 border border-[#e7e7e7]/60">
+                        <div key={s} className="bg-[#faf8f5] rounded-md p-2 border border-[#e7e7e7]">
                           <div className="text-[10px] font-semibold text-[#171717]">{s}</div>
                           {i === 2 && <div className="text-[8px] italic text-[#737373] mt-0.5">draft</div>}
                         </div>
@@ -645,7 +503,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onEnterDemo })
                         </div>
                       </div>
                       {['Page 14.4', 'Page 14.5'].map(p => (
-                        <div key={p} className="bg-[#faf8f5] rounded-md p-2 border border-[#e7e7e7]/60">
+                        <div key={p} className="bg-[#faf8f5] rounded-md p-2 border border-[#e7e7e7]">
                           <div className="text-[10px] font-semibold text-[#171717]">{p}</div>
                         </div>
                       ))}
@@ -678,7 +536,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onEnterDemo })
                     </div>
                     <div className="space-y-1.5">
                       {['Page 13.8', 'Page 13.7', 'Page 13.6'].map(p => (
-                        <div key={p} className="bg-[#f4f0e8]/60 rounded-md p-2 border border-[#e7e7e7]/60">
+                        <div key={p} className="bg-[#f4f0e8]/60 rounded-md p-2 border border-[#e7e7e7]">
                           <div className="text-[10px] font-semibold text-[#404040]">{p}</div>
                           <div className="text-[8px] text-[#10B981] mt-0.5 flex items-center gap-0.5">
                             <Check className="w-2.5 h-2.5" /> approved
@@ -695,7 +553,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onEnterDemo })
       </div>
 
       {/* ===== HOW IT WORKS ===== */}
-      <div id="block-workflow" className="py-24 md:py-32 relative">
+      <div id="block-workflow" className="py-16 md:py-24 relative">
         <div className="absolute inset-0 bg-gradient-to-b from-[#faf8f5] to-white"></div>
         <div className="relative max-w-6xl mx-auto px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-20 animate-on-scroll">
@@ -736,7 +594,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onEnterDemo })
       </div>
 
       {/* ===== SHOWCASE ===== */}
-      <div id="block-showcase" className="py-24 md:py-32 relative overflow-hidden">
+      <div id="block-showcase" className="py-16 md:py-24 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-white via-[#faf8f5] to-white"></div>
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[600px] rounded-full bg-[#f97316]/5 blur-3xl"></div>
         <div className="relative max-w-6xl mx-auto px-6 lg:px-8">
@@ -756,7 +614,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onEnterDemo })
 
           <div className="relative animate-on-scroll">
             <div className="absolute -inset-8 md:-inset-12 bg-gradient-to-br from-[#f97316]/10 via-[#8b5cf6]/5 to-transparent rounded-[2rem] blur-3xl"></div>
-            <div className="relative glass-strong rounded-3xl soft-shadow-lg border border-[#e7e7e7]/60 overflow-hidden">
+            <div className="relative glass-strong rounded-3xl soft-shadow-lg border border-[#e7e7e7] overflow-hidden">
               {/* Window chrome */}
               <div className="flex items-center gap-2 px-5 py-3 border-b border-[#e7e7e7]/60 bg-white/50">
                 <div className="flex items-center gap-1.5">
@@ -811,7 +669,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onEnterDemo })
                     { name: 'Page 13.6', sub: null, extra: 'approved' },
                   ]},
                 ].map(col => (
-                  <div key={col.title} className="bg-white/85 rounded-xl p-3 border border-[#e7e7e7]/50">
+                  <div key={col.title} className="bg-white/85 rounded-xl p-3 border border-[#e7e7e7]">
                     <div className="flex items-center justify-between mb-2.5">
                       <div className={`text-[10px] font-bold ${col.color} uppercase tracking-[0.15em]`}>{col.title}</div>
                       <div className={`text-[10px] ${col.color} font-mono font-bold`}>{col.count}</div>
@@ -880,7 +738,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onEnterDemo })
       </div>
 
       {/* ===== SOCIAL PROOF ===== */}
-      <div id="block-social" className="py-24 md:py-32 paper-gradient relative">
+      <div id="block-social" className="py-16 md:py-24 paper-gradient relative">
         <div className="max-w-6xl mx-auto px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-4 mb-20">
             {[
@@ -916,7 +774,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onEnterDemo })
       </div>
 
       {/* ===== CTA ===== */}
-      <div id="block-cta" className="py-24 md:py-32 relative overflow-hidden">
+      <div id="block-cta" className="py-16 md:py-24 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-white via-[#faf8f5] to-white"></div>
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[500px] rounded-full bg-[#f97316]/8 blur-3xl"></div>
         <div className="relative max-w-3xl mx-auto px-6 lg:px-8 text-center">
@@ -959,7 +817,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onEnterDemo })
       {/* ===== FOOTER ===== */}
       <footer className="bg-[#171717] text-white relative">
         <div className="absolute inset-0 dot-bg opacity-[0.05]"></div>
-        <div className="relative max-w-7xl mx-auto px-6 lg:px-8 py-20">
+        <div className="relative max-w-7xl mx-auto px-6 lg:px-8 py-12">
           <div className="grid grid-cols-2 md:grid-cols-6 gap-10 mb-16">
             <div className="col-span-2">
               <a href="#" className="inline-flex items-center gap-2.5">
@@ -1012,7 +870,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onEnterDemo })
 
       {/* ===== FLOATING ROLE WIDGET ===== */}
       <div className="fixed bottom-6 right-6 z-50">
-        <div className="glass rounded-full shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-[#e7e7e7]/80 p-1.5 flex items-center gap-1">
+        <div className="glass rounded-full shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-[#e7e7e7] p-1.5 flex items-center gap-1">
           <div className="hidden sm:flex items-center gap-1.5 pl-2 pr-1.5 py-1">
             <span className="w-1.5 h-1.5 rounded-full bg-[#f97316] pulse-dot"></span>
             <span className="text-[10px] font-semibold text-[#404040] uppercase tracking-[0.15em]">Preview</span>
