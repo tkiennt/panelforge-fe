@@ -37,7 +37,7 @@ import { ReviewView } from './views/ReviewView';
 
 import { MockRoleWorkspaceView } from './views/MockRoleWorkspaceView';
 
-import { LoginView } from './views/LoginView';
+import { LoginModal } from './components/modals/LoginModal';
 import { LandingPageView } from './views/LandingPageView';
 
 interface Toast {
@@ -96,6 +96,7 @@ export default function App() {
   const [addEntityOpen, setAddEntityOpen] = useState(false);
   const [newCardOpen, setNewCardOpen] = useState(false);
   const [selectedCardForDetail, setSelectedCardForDetail] = useState<KanbanCard | null>(null);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
   // Toast System
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -204,7 +205,7 @@ export default function App() {
           {authMode === 'landing' && (
             <>
               {!isDemoMode ? (
-                <LandingPageView onEnterDemo={handleEnterDemo} onOpenLogin={() => setAuthMode('login')} />
+                <LandingPageView onEnterDemo={handleEnterDemo} onOpenLogin={() => setIsLoginModalOpen(true)} />
               ) : (
                 demoRole && demoRole !== 'producer' && (
                   <MockRoleWorkspaceView role={demoRole} onEnterDemo={handleEnterDemo} />
@@ -213,48 +214,34 @@ export default function App() {
             </>
           )}
 
-          {(authMode === 'login' || authMode === 'register') && (
-            <LoginView
-              mode={authMode}
-              onBack={() => setAuthMode('landing')}
+          {isLoginModalOpen && (
+            <LoginModal
+              onClose={() => setIsLoginModalOpen(false)}
               onLogin={(username, password) => {
                 const mockAccounts: Record<string, 'WRITER' | 'ARTIST' | 'EDITOR'> = {
                   writer: 'WRITER',
                   artist: 'ARTIST',
                   editor: 'EDITOR',
                 };
-
-                const roleMatched = mockAccounts[username.toLowerCase()];
+                
+                // Trích xuất tên người dùng từ email
+                const name = username.split('@')[0].toLowerCase();
+                const roleMatched = mockAccounts[name] || mockAccounts[username.toLowerCase()];
 
                 if (roleMatched && password === '123456') {
                   setIsAuthenticated(true);
                   setCurrentRole(roleMatched);
-
-                  // TỰ ĐỘNG CHUYỂN VÀO PROJECT (BỎ QUA TRANG HUB/PRODUCT)
                   setViewScope('project');
+                  setIsLoginModalOpen(false);
 
-                  // ĐIỀU HƯỚNG THEO ROLE (SWITCH-CASE)
                   switch (roleMatched) {
-                    case 'WRITER':
-                      setCurrentView('script');
-                      break;
-                    case 'ARTIST':
-                      setCurrentView('dashboard');
-                      break;
-                    case 'EDITOR':
-                      setCurrentView('review');
-                      break;
+                    case 'WRITER': setCurrentView('script'); break;
+                    case 'ARTIST': setCurrentView('dashboard'); break;
+                    case 'EDITOR': setCurrentView('review'); break;
                   }
-
-                  showToast(
-                    authMode === 'login' ? 'Đăng nhập thành công' : 'Đăng ký thành công',
-                    `Chào mừng bạn trở lại với vai trò ${roleMatched}.`,
-                  );
+                  showToast('Đăng nhập thành công', `Chào mừng bạn trở lại với vai trò ${roleMatched}.`);
                 } else {
-                  showToast(
-                    'Lỗi xác thực',
-                    'Tài khoản không tồn tại hoặc sai mật khẩu. Hãy thử: writer, artist, editor.',
-                  );
+                  showToast('Lỗi xác thực', 'Tài khoản không tồn tại hoặc sai mật khẩu. Hãy thử: writer, artist, editor.');
                 }
               }}
             />

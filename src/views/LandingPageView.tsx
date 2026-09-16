@@ -76,11 +76,52 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onEnterDemo, o
         <div className="absolute inset-0 opacity-[0.04] bg-[radial-gradient(#171717_1px,transparent_1px)] [background-size:16px_16px]"></div>
 
         {/* Abstract Manga Panels (Khung truyện trừu tượng lơ lửng) */}
-        <div className="absolute hidden lg:block left-[5%] top-1/3 -translate-y-1/2 w-64 h-[22rem] bg-[#FFFFFF] border-[1.5px] border-[#171717] shadow-[12px_12px_0px_#171717] -rotate-6 transform hover:rotate-0 transition-transform duration-500 float-anim-slow"></div>
-        <div className="absolute hidden lg:block left-[18%] top-[20%] -translate-y-1/2 w-48 h-64 bg-[#FFFFFF] border-[1.5px] border-[#171717] shadow-[8px_8px_0px_#171717] rotate-3 z-10 float-anim-delay"></div>
+        {/* FRAME 1: THE SHONEN ACTION PAGE (Left, Largest) */}
+        <div className="absolute hidden lg:flex flex-col h-[22rem] p-3 gap-2 bg-[#FFFFFF] shadow-[12px_12px_0px_#171717] left-[5%] top-1/3 -translate-y-1/2 w-64 border-[1.5px] border-[#171717] -rotate-6 transform hover:rotate-0 transition-transform duration-500 float-anim-slow z-10">
+          <div className="w-full h-1/3 border-[2px] border-[#171717] relative overflow-hidden">
+            <div className="absolute inset-0 bg-[radial-gradient(#171717_1.5px,transparent_1.5px)] bg-[size:10px_10px] opacity-15"></div>
+          </div>
+          <div className="grid grid-cols-2 gap-2 h-1/3">
+            <div className="border-[2px] border-[#171717] relative"></div>
+            <div className="border-[2px] border-[#171717] relative">
+              <div className="absolute -left-4 top-1/2 -translate-y-1/2 bg-white border-[1.5px] border-[#171717] rounded-full w-8 h-6 z-20"></div>
+            </div>
+          </div>
+          <div className="w-full h-1/3 border-[2px] border-[#171717] relative overflow-hidden"></div>
+        </div>
+
+        {/* FRAME 2: THE 4-KOMA YONKOMA STYLE (Top Left/Right) */}
+        <div className="absolute hidden lg:flex flex-col h-64 p-4 gap-2 bg-[#FFFFFF] shadow-[8px_8px_0px_#171717] left-[18%] top-[20%] -translate-y-1/2 w-48 border-[1.5px] border-[#171717] rotate-3 z-0 float-anim-delay">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="w-full flex-1 border-[2px] border-[#171717] relative">
+              {i === 1 && <div className="absolute -top-2 -right-2 bg-[#F97316] text-white text-[8px] px-1.5 py-0.5 font-bold shadow-sm z-10">4-KOMA</div>}
+            </div>
+          ))}
+        </div>
         
-        <div className="absolute hidden lg:block right-[15%] bottom-1/4 w-56 h-[18rem] bg-[#FFFFFF] border-[1.5px] border-[#171717] shadow-[10px_10px_0px_#171717] rotate-6 z-10 float-anim"></div>
-        <div className="absolute hidden lg:block right-[5%] bottom-1/3 w-40 h-56 bg-[#FFFFFF] border-[1.5px] border-[#171717] shadow-[6px_6px_0px_#171717] -rotate-3 float-anim-slow"></div>
+        {/* FRAME 3: THE SCRIPT-TO-PANEL BREAKDOWN (Bottom Right) */}
+        <div className="absolute hidden lg:grid grid-rows-2 h-[18rem] bg-[#FFFFFF] shadow-[10px_10px_0px_#171717] right-[15%] bottom-1/4 w-56 border-[1.5px] border-[#171717] rotate-6 z-10 float-anim">
+          <div className="p-3 border-b-[1.5px] border-dashed border-[#B8B8B8] bg-[#F8F6F0] flex items-center">
+            <div className="font-mono text-[9px] text-[#171717] leading-relaxed">
+              EXT. CITY - DAY<br/>
+              Akira looks up.<br/><br/>
+              AKIRA: "It's huge..."
+            </div>
+          </div>
+          <div className="p-3 flex gap-2 relative">
+            <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-[#F3E8FF] text-[#6D28D9] text-[8px] px-2 py-0.5 font-bold rounded-sm border border-[#8B5CF6]/20 z-20 whitespace-nowrap">AI Panel Split</div>
+            <div className="flex-1 border-[2px] border-[#171717]"></div>
+            <div className="flex-1 border-[2px] border-[#171717]"></div>
+          </div>
+        </div>
+
+        {/* FRAME 4: DYNAMIC SPREAD (Far Right) */}
+        <div className="absolute hidden lg:flex flex-col h-56 p-2.5 gap-2 bg-[#FFFFFF] shadow-[6px_6px_0px_#171717] right-[5%] bottom-1/3 w-40 border-[1.5px] border-[#171717] -rotate-3 float-anim-slow z-0">
+          <div className="flex-1 border-[2px] border-[#171717] relative overflow-hidden">
+             <div className="absolute inset-0 bg-[linear-gradient(135deg,transparent_48%,#171717_48%,#171717_52%,transparent_52%)]"></div>
+          </div>
+          <div className="h-1/3 border-[2px] border-[#171717]"></div>
+        </div>
 
         {/* Tangerine Orange Accent / Focal Point */}
         <div className="absolute right-[20%] top-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-[#f97316] rounded-full blur-[120px] opacity-15"></div>
