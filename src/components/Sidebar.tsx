@@ -9,6 +9,7 @@ import {
   HelpCircle,
   ChevronsUpDown,
   ArrowLeft,
+  CheckCircle2, // <--- Đã thêm CheckCircle2 vào đây
 } from 'lucide-react';
 import { ViewMode, MangaProject } from '../types';
 

@@ -1,8 +1,8 @@
 import React from 'react';
 import { X, ShieldCheck } from 'lucide-react';
-import { WriterWorkspace } from './roles/WriterWorkspace';
-import { EditorWorkspace } from './roles/EditorWorkspace';
-import { ArtistWorkspace } from './roles/ArtistWorkspace';
+import WriterWorkspace from './roles/WriterWorkspace';
+import EditorWorkspace from './roles/EditorWorkspace';
+import ArtistWorkspace from './roles/ArtistWorkspace';
 
 interface SpreadWorkbenchModalProps {
   isOpen: boolean;

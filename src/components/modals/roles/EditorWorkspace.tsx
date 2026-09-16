@@ -1,119 +1,71 @@
 import React from 'react';
-import {
-  MessageSquare,
-  MousePointer2,
-  CheckCircle2,
-  XCircle,
-  History,
-  AlertCircle,
-} from 'lucide-react';
 
-interface EditorWorkspaceProps {
-  onShowToast: (title: string, desc: string) => void;
-}
-
-export const EditorWorkspace: React.FC<EditorWorkspaceProps> = ({ onShowToast }) => {
+export default function EditorWorkspace() {
   return (
-    <>
-      {/* Center: Annotation Canvas Area */}
-      <div className='flex-1 bg-[#121212] relative overflow-auto flex items-center justify-center p-8 custom-scrollbar'>
-        {/* Floating Toolbar for Editor */}
-        <div className='absolute top-6 left-6 bg-[#1E1E1E]/90 backdrop-blur-md border border-[#333333] rounded-xl flex flex-col p-1.5 gap-1.5 z-10 shadow-xl'>
-          <button
-            className='p-2 rounded-lg text-[#F97316] bg-[#333333] hover:bg-[#444444] transition-colors tooltip cursor-pointer'
-            title='Select Tool'
-          >
-            <MousePointer2 className='w-4 h-4' />
+    <div className='flex flex-col h-full bg-gray-50 text-gray-800'>
+      <div className='flex justify-between items-center p-4 border-b bg-white shadow-sm'>
+        <h2 className='text-xl font-bold'>Editor Workspace (QC)</h2>
+        <div className='space-x-3'>
+          <button className='px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition'>
+            ✖ Reject (Yêu cầu sửa)
           </button>
-          <button
-            className='p-2 rounded-lg text-[#888888] hover:text-white hover:bg-[#333333] transition-colors tooltip cursor-pointer'
-            title='Draw Annotation Box'
-          >
-            <MessageSquare className='w-4 h-4' />
+          <button className='px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition'>
+            ✔ Approve (Duyệt)
           </button>
         </div>
+      </div>
 
-        {/* Mocking the Artwork with Annotation */}
-        <div className='relative shadow-2xl border border-[#333333] rounded-lg overflow-hidden bg-black max-w-full'>
-          <img
-            src='https://lh3.googleusercontent.com/aida-public/AB6AXuBRF-X_pK-VNA-EDpW2TbENZXn5jBdsCJEViFUEfD1-cL_s6PpvrNV7Br-yvSJJP7XpLx-Q6po_dSRvBycNhUkNoZrpxI6pCLfmSiu3GY9sfOpdOlnvjkYYCL0y61ttCJ5fLSmT1ICs8y7G9Q6Y5MOdvUJxx1VFnqyY8qN7YBUINiyVOxDKYSL905nG_GxVijlasleWGD3OZipKscljZThMLHG09TocsEdeAvvhlPimteBhQD9Wacq_qA'
-            alt='Review Canvas'
-            className='w-[700px] h-auto opacity-80 select-none'
-          />
+      <div className='flex flex-1 overflow-hidden'>
+        {/* A/B Compare Area */}
+        <div className='w-3/4 p-4 flex flex-col bg-gray-200 border-r relative items-center justify-center'>
+          <h3 className='absolute top-4 left-4 font-semibold text-gray-700'>
+            A/B Compare (Slider Mode)
+          </h3>
 
-          {/* Mocked Editor Annotation Box */}
-          <div className='absolute top-[35%] left-[25%] w-[140px] h-[120px] border-2 border-[#EF4444] bg-[#EF4444]/10 cursor-pointer group rounded-sm'>
-            {/* Tooltip containing comment */}
-            <div className='absolute -top-4 left-full ml-3 bg-white text-[#171717] text-xs p-3 rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity w-[200px] z-20 pointer-events-none before:absolute before:top-6 before:-left-1.5 before:w-3 before:h-3 before:bg-white before:rotate-45'>
-              <div className='flex items-center gap-1.5 font-bold mb-1'>
-                <AlertCircle className='w-3.5 h-3.5 text-[#EF4444]' />
-                <span className='text-[#EF4444]'>Fix Required</span>
+          {/* Mockup for image comparison */}
+          <div className='w-full max-w-2xl h-96 bg-white border-4 border-gray-300 shadow flex items-center justify-center relative cursor-crosshair'>
+            <div className='absolute inset-0 bg-blue-100 flex items-center justify-center opacity-50 border-r-2 border-black w-1/2'>
+              <span className='text-gray-500 font-bold'>Bản Cũ (V1)</span>
+            </div>
+            <div className='absolute inset-0 bg-green-100 flex items-center justify-center opacity-50 left-1/2 w-1/2'>
+              <span className='text-gray-500 font-bold'>Bản Mới (V2)</span>
+            </div>
+
+            {/* Mock Visual Annotation Pin */}
+            <div className='absolute top-1/3 left-1/2 w-4 h-4 bg-red-500 rounded-full border-2 border-white shadow-md transform -translate-x-1/2 -translate-y-1/2'></div>
+          </div>
+          <p className='mt-4 text-sm text-gray-500'>
+            Click vào bất kỳ điểm nào trên ảnh để ghim bình luận (Visual Annotation).
+          </p>
+        </div>
+
+        {/* Feedback & Annotations Sidebar */}
+        <div className='w-1/4 p-4 bg-white overflow-y-auto'>
+          <h3 className='font-semibold mb-4'>Feedback & Bình luận</h3>
+          <div className='space-y-4'>
+            <div className='p-3 bg-red-50 border border-red-200 rounded text-sm'>
+              <div className='flex justify-between items-start mb-1'>
+                <strong className='text-red-700'>Pin #1</strong>
+                <span className='text-xs text-gray-500'>10 phút trước</span>
               </div>
-              <p className='leading-relaxed font-medium'>
-                "Phối cảnh góc tòa nhà này đang bị lệch tụ, làm hỏng tỉ lệ nhân vật."
+              <p>
+                Màu mắt của nhân vật đang là màu xanh dương, hãy đổi lại thành màu xanh lá theo
+                Series Bible.
               </p>
-              <div className='text-[9px] font-mono text-[#888888] mt-2 pt-2 border-t border-[#E7E7E7]'>
-                - Editor Tatsuki F. (10m ago)
-              </div>
+            </div>
+            <div className='p-3 bg-gray-50 border border-gray-200 rounded text-sm'>
+              <textarea
+                className='w-full p-2 border rounded resize-none focus:outline-none focus:ring-1 focus:ring-blue-500'
+                rows={3}
+                placeholder='Thêm nhận xét chung...'
+              ></textarea>
+              <button className='mt-2 w-full py-1 bg-gray-800 text-white rounded text-xs hover:bg-gray-700'>
+                Gửi Comment
+              </button>
             </div>
           </div>
         </div>
       </div>
-
-      {/* Right Column: Approval & Version Control */}
-      <div className='w-72 bg-[#1A1A1A] border-l border-[#2A2A2A] p-5 flex flex-col justify-between overflow-y-auto'>
-        <div>
-          <div className='flex items-center gap-2 mb-6'>
-            <History className='w-4 h-4 text-[#888888]' />
-            <h4 className='text-xs font-mono font-bold uppercase tracking-wider text-[#888888]'>
-              Version History
-            </h4>
-          </div>
-
-          {/* Timeline UI */}
-          <div className='space-y-4 relative before:absolute before:inset-0 before:ml-2.5 before:-translate-x-px before:h-full before:w-0.5 before:bg-[#333333]'>
-            {/* V2 (Current) */}
-            <div className='relative pl-8'>
-              <div className='absolute left-1 top-1.5 w-3.5 h-3.5 rounded-full bg-[#F97316] ring-4 ring-[#1A1A1A]'></div>
-              <div className='bg-[#242424] p-3 rounded-lg border border-[#F97316] shadow-md'>
-                <div className='flex justify-between items-center mb-1'>
-                  <span className='text-xs font-bold text-white'>v2.0 (Current)</span>
-                  <span className='text-[9px] text-[#888888] font-mono'>10m ago</span>
-                </div>
-                <div className='text-[10px] text-[#A3A3A3]'>Inker applied perspective fixes.</div>
-              </div>
-            </div>
-
-            {/* V1 (Previous) */}
-            <div className='relative pl-8 group cursor-pointer'>
-              <div className='absolute left-1.5 top-1.5 w-2 h-2 rounded-full bg-[#555555] group-hover:bg-[#888888] ring-4 ring-[#1A1A1A] transition-colors'></div>
-              <div className='bg-[#1E1E1E] p-3 rounded-lg border border-[#333333] group-hover:border-[#555555] transition-colors opacity-70 group-hover:opacity-100'>
-                <div className='flex justify-between items-center mb-1'>
-                  <span className='text-xs font-medium text-[#E7E7E7]'>v1.0 (Rough Pencil)</span>
-                  <span className='text-[9px] text-[#888888] font-mono'>Yesterday</span>
-                </div>
-                <div className='text-[10px] text-[#888888]'>Initial draft submitted.</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom Approval Actions */}
-        <div className='pt-6 mt-6 border-t border-[#2A2A2A] space-y-2.5 shrink-0'>
-          <button
-            onClick={() => onShowToast('Approved', 'Art approved. Moving to Lettering stage.')}
-            className='w-full py-2.5 bg-[#10B981] hover:bg-[#059669] text-white rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-lg'
-          >
-            <CheckCircle2 className='w-4 h-4' /> Approve Artwork
-          </button>
-          <button
-            onClick={() => onShowToast('Changes Requested', 'Notification sent to Inker.')}
-            className='w-full py-2.5 bg-[#EF4444]/10 border border-[#EF4444]/30 hover:bg-[#EF4444]/20 text-[#EF4444] rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer'
-          >
-            <XCircle className='w-4 h-4' /> Request Changes
-          </button>
-        </div>
-      </div>
-    </>
+    </div>
   );
-};
+}

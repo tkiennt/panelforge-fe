@@ -35,7 +35,11 @@ import { CheckCircle2 } from 'lucide-react';
 import { ScriptView } from './views/ScriptView';
 import { ReviewView } from './views/ReviewView';
 
-// ---> IMPORT CÁC TRANG BÊN NGOÀI HỆ THỐNG <---
+// IMPORTS CÁC WORKSPACE THEO ROLE BẠN ĐÃ TẠO
+import WriterWorkspace from './components/modals/roles/WriterWorkspace';
+import ArtistWorkspace from './components/modals/roles/ArtistWorkspace';
+import EditorWorkspace from './components/modals/roles/EditorWorkspace';
+
 import { LoginView } from './views/LoginView';
 import { LandingPageView } from './views/LandingPageView';
 
@@ -57,9 +61,19 @@ export default function App() {
 
   useEffect(() => {
     if (viewScope === 'project') {
-      if (currentRole === 'WRITER') setCurrentView('script');
-      else if (currentRole === 'EDITOR') setCurrentView('review');
-      else setCurrentView('dashboard');
+      switch (currentRole) {
+        case 'WRITER':
+          setCurrentView('script'); // Sẽ render WriterWorkspace
+          break;
+        case 'ARTIST':
+          setCurrentView('dashboard'); // Sẽ render ArtistWorkspace
+          break;
+        case 'EDITOR':
+          setCurrentView('review'); // Sẽ render EditorWorkspace
+          break;
+        default:
+          setCurrentView('dashboard');
+      }
     }
   }, [currentRole, viewScope]);
 
@@ -182,10 +196,7 @@ export default function App() {
             <LoginView
               mode={authMode}
               onBack={() => setAuthMode('landing')}
-
-              // Nhận username và password từ LoginView truyền lên
               onLogin={(username, password) => {
-                // MOCK DATA: Định nghĩa các tài khoản ảo
                 const mockAccounts: Record<string, 'WRITER' | 'ARTIST' | 'EDITOR'> = {
                   writer: 'WRITER',
                   artist: 'ARTIST',
@@ -194,16 +205,31 @@ export default function App() {
 
                 const roleMatched = mockAccounts[username.toLowerCase()];
 
-                // Giả lập kiểm tra mật khẩu luôn là '123456'
                 if (roleMatched && password === '123456') {
                   setIsAuthenticated(true);
-                  setCurrentRole(roleMatched); // Tự động set Role đúng với tài khoản
+                  setCurrentRole(roleMatched);
+
+                  // TỰ ĐỘNG CHUYỂN VÀO PROJECT (BỎ QUA TRANG HUB/PRODUCT)
+                  setViewScope('project');
+
+                  // ĐIỀU HƯỚNG THEO ROLE (SWITCH-CASE)
+                  switch (roleMatched) {
+                    case 'WRITER':
+                      setCurrentView('script');
+                      break;
+                    case 'ARTIST':
+                      setCurrentView('dashboard');
+                      break;
+                    case 'EDITOR':
+                      setCurrentView('review');
+                      break;
+                  }
+
                   showToast(
                     authMode === 'login' ? 'Đăng nhập thành công' : 'Đăng ký thành công',
                     `Chào mừng bạn trở lại với vai trò ${roleMatched}.`,
                   );
                 } else {
-                  // Nếu sai tài khoản hoặc mật khẩu
                   showToast(
                     'Lỗi xác thực',
                     'Tài khoản không tồn tại hoặc sai mật khẩu. Hãy thử: writer, artist, editor.',
@@ -268,22 +294,26 @@ export default function App() {
                 />
 
                 <main className='flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 custom-scrollbar'>
-                  {currentView === 'dashboard' && (
-                    <DashboardView
-                      activeProject={activeProject}
-                      assistants={assistants}
-                      provenanceLogs={provenanceLogs}
-                      onOpenSpreadModal={() => setSpreadModalOpen(true)}
-                      onOpenCanvasModal={() => setSpreadModalOpen(true)}
-                      onRunAiAudit={() =>
-                        showToast('LoRA Audit Passed', 'Verified 99.4% continuity.')
-                      }
-                      onExportReport={() => setExportModalOpen(true)}
-                      onConfigureAnchors={() => setVectorStatusOpen(true)}
-                      onViewAuditLog={() => setAuditLogOpen(true)}
-                      onManageAssignments={() => setCurrentView('members')}
-                    />
-                  )}
+                  {/* TÍCH HỢP GIAO DIỆN CỦA ARTIST / DASHBOARD CHUNG */}
+                  {currentView === 'dashboard' &&
+                    (currentRole === 'ARTIST' ? (
+                      <ArtistWorkspace />
+                    ) : (
+                      <DashboardView
+                        activeProject={activeProject}
+                        assistants={assistants}
+                        provenanceLogs={provenanceLogs}
+                        onOpenSpreadModal={() => setSpreadModalOpen(true)}
+                        onOpenCanvasModal={() => setSpreadModalOpen(true)}
+                        onRunAiAudit={() =>
+                          showToast('LoRA Audit Passed', 'Verified 99.4% continuity.')
+                        }
+                        onExportReport={() => setExportModalOpen(true)}
+                        onConfigureAnchors={() => setVectorStatusOpen(true)}
+                        onViewAuditLog={() => setAuditLogOpen(true)}
+                        onManageAssignments={() => setCurrentView('members')}
+                      />
+                    ))}
                   {currentView === 'workflow' && (
                     <WorkflowBoardView
                       activeProject={activeProject}
@@ -338,8 +368,10 @@ export default function App() {
                       isRootView={false}
                     />
                   )}
-                  {currentView === 'script' && <ScriptView />}
-                  {currentView === 'review' && <ReviewView />}
+
+                  {/* TÍCH HỢP GIAO DIỆN CỦA WRITER VÀ EDITOR */}
+                  {currentView === 'script' && <WriterWorkspace />}
+                  {currentView === 'review' && <EditorWorkspace />}
                 </main>
               </div>
             </div>
