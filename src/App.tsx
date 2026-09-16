@@ -31,14 +31,11 @@ import { AuditLogModal } from './components/modals/AuditLogModal';
 import { InviteMemberModal } from './components/modals/InviteMemberModal';
 import { AddEntityModal } from './components/modals/AddEntityModal';
 import { NewPageCardModal } from './components/modals/NewPageCardModal';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, Home, Briefcase, PenLine, Layers, CheckCheck } from 'lucide-react';
 import { ScriptView } from './views/ScriptView';
 import { ReviewView } from './views/ReviewView';
 
-// IMPORTS CÁC WORKSPACE THEO ROLE BẠN ĐÃ TẠO
-import WriterWorkspace from './components/modals/roles/WriterWorkspace';
-import ArtistWorkspace from './components/modals/roles/ArtistWorkspace';
-import EditorWorkspace from './components/modals/roles/EditorWorkspace';
+import { MockRoleWorkspaceView } from './views/MockRoleWorkspaceView';
 
 import { LoginView } from './views/LoginView';
 import { LandingPageView } from './views/LandingPageView';
@@ -54,10 +51,14 @@ export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authMode, setAuthMode] = useState<'landing' | 'login' | 'register'>('landing');
 
+  // ---> THÊM STATE CHO DEMO ROLE <---
+  const [isDemoMode, setIsDemoMode] = useState(false);
+  const [demoRole, setDemoRole] = useState<string | null>(null);
+
   // Navigation & Data State
   const [viewScope, setViewScope] = useState<'hub' | 'project'>('hub');
   const [currentView, setCurrentView] = useState<ViewMode | string>('dashboard');
-  const [currentRole, setCurrentRole] = useState<'WRITER' | 'ARTIST' | 'EDITOR'>('ARTIST');
+  const [currentRole, setCurrentRole] = useState<'WRITER' | 'ARTIST' | 'EDITOR' | 'PRODUCER'>('ARTIST');
 
   useEffect(() => {
     if (viewScope === 'project') {
@@ -179,17 +180,37 @@ export default function App() {
     showToast('Returned to Hub', 'Back to Publications Catalog.');
   };
 
+  const handleEnterDemo = (role: string) => {
+    if (role === 'landing') {
+      setDemoRole(null);
+      setIsDemoMode(false);
+      return;
+    }
+    setDemoRole(role);
+    setIsDemoMode(true);
+    if (role === 'producer') {
+      setViewScope('hub');
+      setCurrentRole('PRODUCER');
+    }
+  };
+
   return (
-    <div className='h-screen bg-[#F8F6F0] text-[#171717] font-sans antialiased overflow-hidden selection:bg-[#F97316]/20 selection:text-[#EA580C]'>
-      {/* ---> KHU VỰC BÊN NGOÀI (CHƯA ĐĂNG NHẬP) <--- */}
-      {!isAuthenticated ? (
+    <div className='min-h-screen bg-[#F8F6F0] text-[#171717] font-sans antialiased selection:bg-[#F97316]/20 selection:text-[#EA580C] relative'>
+      
+
+      {/* ---> KHU VỰC BÊN NGOÀI (CHƯA ĐĂNG NHẬP HOẶC KHÔNG PHẢI DEMO PRODUCER) <--- */}
+      {!isAuthenticated && !(isDemoMode && demoRole === 'producer') ? (
         <>
           {authMode === 'landing' && (
-            <LandingPageView
-              projects={projects}
-              onLoginClick={() => setAuthMode('login')}
-              onRegisterClick={() => setAuthMode('register')}
-            />
+            <>
+              {!isDemoMode ? (
+                <LandingPageView onEnterDemo={handleEnterDemo} />
+              ) : (
+                demoRole && demoRole !== 'producer' && (
+                  <MockRoleWorkspaceView role={demoRole} onEnterDemo={handleEnterDemo} />
+                )
+              )}
+            </>
           )}
 
           {(authMode === 'login' || authMode === 'register') && (
@@ -438,29 +459,51 @@ export default function App() {
             onShowToast={showToast}
           />
 
-          {/* Thanh giả lập Role */}
-          <div className='fixed bottom-5 left-5 z-50 bg-white border border-[#E7E7E7] p-2 rounded-xl shadow-2xl flex items-center gap-2 font-mono text-xs animate-in slide-in-from-bottom-5'>
-            <span className='px-2 font-bold text-[#888888] uppercase tracking-wider text-[10px]'>
-              Simulate Role:
-            </span>
-            {(['WRITER', 'ARTIST', 'EDITOR'] as const).map((role) => (
-              <button
-                key={role}
-                onClick={() => {
-                  setCurrentRole(role);
-                  showToast('Role Switched', `You are now viewing as ${role}.`);
-                }}
-                className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
-                  currentRole === role
-                    ? 'bg-[#F97316] text-white shadow-md'
-                    : 'bg-[#F8F6F0] text-[#555555] hover:bg-[#EAE8E0] hover:text-[#171717]'
-                }`}
-              >
-                {role}
-              </button>
-            ))}
-          </div>
         </>
+      )}
+
+      {/* ===== GLOBAL FLOATING PREVIEW WIDGET (visible on all pages) ===== */}
+      {!isAuthenticated && authMode === 'landing' && (
+        <div className='fixed bottom-6 right-6 z-[200]'>
+          <div className='glass rounded-full shadow-[0_8px_30px_rgba(0,0,0,0.14)] border border-[#e7e7e7]/80 p-1.5 flex items-center gap-1'>
+            <div className='hidden sm:flex items-center gap-1.5 pl-2 pr-1.5 py-1'>
+              <span className='w-1.5 h-1.5 rounded-full bg-[#f97316] pulse-dot'></span>
+              <span className='text-[10px] font-semibold text-[#404040] uppercase tracking-[0.15em]'>Preview</span>
+            </div>
+            <div className='hidden sm:block w-px h-5 bg-[#e7e7e7] mx-0.5'></div>
+            {[
+              { label: 'Landing', Icon: Home, roleKey: 'landing' },
+              { label: 'Producer', Icon: Briefcase, roleKey: 'producer' },
+              { label: 'Writer', Icon: PenLine, roleKey: 'writer' },
+              { label: 'Artist', Icon: Layers, roleKey: 'artist' },
+              { label: 'Reviewer', Icon: CheckCheck, roleKey: 'editor' },
+            ].map(({ label, Icon, roleKey }) => {
+              const isActive =
+                roleKey === 'landing'
+                  ? !isDemoMode
+                  : demoRole === roleKey && isDemoMode;
+              return (
+                <div key={roleKey} className='relative group'>
+                  <button
+                    onClick={() => handleEnterDemo(roleKey)}
+                    className={`w-9 h-9 rounded-full transition flex items-center justify-center text-sm cursor-pointer ${
+                      isActive
+                        ? 'bg-[#171717] text-white'
+                        : 'text-[#404040] hover:text-[#f97316] hover:bg-[#fff7ed]'
+                    }`}
+                    aria-label={`Preview as ${label}`}
+                  >
+                    <Icon className="w-4 h-4" />
+                  </button>
+                  <div className='absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-[#171717] text-white text-[10px] rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none'>
+                    {label}
+                    <div className='absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[#171717]'></div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       )}
 
       {/* Floating Toast Notification Stack */}
