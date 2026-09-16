@@ -128,3 +128,12 @@ h1, h2, h3, h4, .font-heading, .font-display {
 .custom-scrollbar::-webkit-scrollbar-thumb { background: #dcdcdc; border-radius: 5px; border: 2px solid #faf8f5; }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #c8c8c8; }
 ::selection { background: #f97316; color: white; }
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-15px); }
+}
+.animate-float { animation: float 6s ease-in-out infinite; }
+.animation-delay-1000 { animation-delay: 1s; }
+.animation-delay-2000 { animation-delay: 2s; }
+.animation-delay-3000 { animation-delay: 3s; }

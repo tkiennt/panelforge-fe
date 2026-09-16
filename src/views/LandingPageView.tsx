@@ -3,14 +3,15 @@ import {
   ArrowRight, Play, Check, FolderTree, History, Sparkles,
   Database, GitCommit, BookOpen, KanbanSquare, FileEdit,
   Layers, Eye, CheckCheck, Twitter, Github, Linkedin, Rss,
-  Lock, Briefcase, PenLine, ChevronRight
+  Lock, Briefcase, PenLine, ChevronRight, User
 } from 'lucide-react';
 
 interface LandingPageViewProps {
   onEnterDemo: (role: string) => void;
+  onOpenLogin: () => void;
 }
 
-export const LandingPageView: React.FC<LandingPageViewProps> = ({ onEnterDemo }) => {
+export const LandingPageView: React.FC<LandingPageViewProps> = ({ onEnterDemo, onOpenLogin }) => {
   const observerRef = useRef<IntersectionObserver | null>(null);
 
   useEffect(() => {
@@ -55,7 +56,12 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onEnterDemo })
             <a href="#" className="nav-link hover:text-[#171717] transition">Docs</a>
           </nav>
           <div className="flex items-center gap-3">
-            <button onClick={() => onEnterDemo('producer')} className="hidden sm:block text-sm text-[#404040] hover:text-[#171717] transition cursor-pointer">Sign in</button>
+            <button 
+              onClick={onOpenLogin} 
+              className="hidden sm:block text-sm text-[#404040] font-medium hover:text-white hover:bg-[#f97316] hover:shadow-[0_8px_20px_rgba(249,115,22,0.3)] hover:-translate-y-1 border border-transparent px-4 py-2 rounded-full transition-all duration-300 cursor-pointer"
+            >
+              Sign in
+            </button>
             <button onClick={() => onEnterDemo('producer')} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#171717] text-white text-sm font-medium hover:bg-[#404040] transition soft-shadow cursor-pointer">
               Onboard Studio
               <ArrowRight className="w-3.5 h-3.5" />
@@ -165,19 +171,118 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onEnterDemo })
         </div>
       </div>
 
-      {/* ===== FEATURES HEADER ===== */}
-      <div id="block-features" className="py-16 md:py-20 bg-[#FAF8F5] relative border-t border-[#E7E7E7]/50">
-        <div className="absolute inset-0 dot-bg opacity-40"></div>
-        <div className="relative max-w-6xl mx-auto px-6 lg:px-8">
-          <div className="text-center max-w-2xl mx-auto mb-20 animate-on-scroll">
+      {/* ===== THE FLOATING ECOSYSTEM & FEATURES HEADER ===== */}
+      <div id="block-features" className="relative w-full min-h-[600px] md:min-h-[700px] overflow-hidden bg-[#FAF8F5] border-t border-[#E7E7E7]/50">
+        
+        {/* 1. TEXTURES & BACKGROUND */}
+        <div className="absolute inset-0 bg-[radial-gradient(#171717_1px,transparent_1px)] bg-[size:24px_24px] opacity-[0.03]"></div>
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(200,200,200,0.5)_1px,transparent_1px),linear-gradient(90deg,rgba(200,200,200,0.5)_1px,transparent_1px)] bg-[size:100px_100px] opacity-50"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(249,115,22,0.15)_0%,rgba(139,92,246,0.1)_40%,transparent_70%)]"></div>
+
+        {/* 2. MANGA WIREFRAMES (Properly positioned and visible) */}
+        <div className="absolute inset-0 max-w-7xl mx-auto pointer-events-none">
+          <div className="absolute top-[10%] left-[5%] w-56 h-72 border-2 border-dashed border-[#D4D4D4] rounded pointer-events-none -rotate-2"></div>
+          <div className="absolute bottom-[5%] right-[5%] w-80 h-48 border-2 border-dashed border-[#D4D4D4] rounded pointer-events-none rotate-1"></div>
+          <div className="absolute top-[25%] right-[15%] w-40 h-64 border-2 border-dashed border-[#D4D4D4] rounded pointer-events-none rotate-3 opacity-60"></div>
+          <div className="absolute bottom-[15%] left-[15%] w-48 h-32 border-2 border-dashed border-[#D4D4D4] rounded pointer-events-none -rotate-1 opacity-60"></div>
+          
+          {/* Drafting Crosshairs */}
+          <div className="absolute top-[20%] left-[25%] text-[#A3A3A3] text-lg font-mono pointer-events-none">+</div>
+          <div className="absolute top-[15%] right-[30%] text-[#A3A3A3] text-lg font-mono pointer-events-none">+</div>
+          <div className="absolute bottom-[20%] left-[35%] text-[#A3A3A3] text-lg font-mono pointer-events-none">+</div>
+          <div className="absolute bottom-[25%] right-[25%] text-[#A3A3A3] text-lg font-mono pointer-events-none">+</div>
+        </div>
+
+        {/* 3. CENTRAL TEXT (With frosted glass to guarantee readability) */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center w-full h-full z-10 pointer-events-none">
+          <div className="text-center max-w-xl px-6 py-8 bg-[#FAF8F5]/70 backdrop-blur-md md:bg-transparent md:backdrop-blur-none rounded-3xl shadow-[0_0_40px_rgba(250,248,245,0.8)] md:shadow-none">
             <div className="inline-flex items-center gap-2 text-[11px] font-semibold text-[#f97316] uppercase tracking-[0.2em] mb-6">
               <span className="w-8 h-px bg-[#f97316]"></span>
               The Four Pillars
               <span className="w-8 h-px bg-[#f97316]"></span>
             </div>
-            <h2 className="font-serif text-4xl md:text-5xl font-medium leading-[1.1] tracking-tight">
+            <h2 className="font-serif text-3xl md:text-5xl font-medium leading-[1.1] tracking-tight">
               A studio operating system,<br />not another file drawer.
             </h2>
+          </div>
+        </div>
+
+        {/* 4. QUADRANT ORBIT CARDS (Pushed to container edges) */}
+        <div className="absolute inset-0 w-full h-full max-w-7xl mx-auto pointer-events-none opacity-40 md:opacity-100 scale-75 md:scale-100 transform origin-center">
+          {/* Connecting Lines */}
+          <svg className="absolute inset-0 w-full h-full opacity-60" xmlns="http://www.w3.org/2000/svg">
+            <path d="M 10% 25% Q 30% 20% 50% 50%" fill="none" stroke="rgba(249,115,22,0.3)" strokeWidth="1.5" strokeDasharray="4 4" className="animate-pulse" />
+            <path d="M 90% 25% Q 70% 20% 50% 50%" fill="none" stroke="rgba(249,115,22,0.3)" strokeWidth="1.5" strokeDasharray="4 4" />
+            <path d="M 10% 75% Q 30% 80% 50% 50%" fill="none" stroke="rgba(249,115,22,0.3)" strokeWidth="1.5" strokeDasharray="4 4" className="animate-pulse" />
+            <path d="M 90% 75% Q 70% 80% 50% 50%" fill="none" stroke="rgba(249,115,22,0.3)" strokeWidth="1.5" strokeDasharray="4 4" />
+          </svg>
+
+          {/* 1. Kanban Pipeline Card (Top Left) */}
+          <div className="absolute top-[12%] left-2 lg:left-8 w-64 bg-[#FFFFFF] rounded-xl border border-[#E7E7E7] shadow-[0_20px_50px_-15px_rgba(0,0,0,0.08)] p-4 pointer-events-auto animate-float z-20">
+            <div className="flex justify-between items-center mb-3">
+              <span className="text-xs font-semibold text-[#171717]">Page 12</span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#FFFBEB] text-[#D97706]">In Review</span>
+            </div>
+            <div className="h-16 border-2 border-dashed border-[#E7E7E7] rounded-lg mb-3 flex items-center justify-center">
+              <span className="text-[#A3A3A3] text-xs">Visual Draft</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="w-6 h-6 rounded-full bg-[#f97316] text-white flex items-center justify-center text-[10px] font-bold border border-white shadow-sm">A</div>
+              <div className="w-32 h-1.5 bg-[#F3F3F3] rounded-full overflow-hidden">
+                <div className="w-3/4 h-full bg-[#f97316]"></div>
+              </div>
+            </div>
+          </div>
+
+          {/* 2. Append-Only Event Log (Top Right) */}
+          <div className="absolute top-[18%] right-2 lg:right-8 w-64 bg-[#FFFFFF] rounded-xl border border-[#E7E7E7] shadow-[0_20px_50px_-15px_rgba(0,0,0,0.08)] p-4 pointer-events-auto animate-float animation-delay-2000 z-20">
+            <div className="text-[10px] uppercase tracking-widest text-[#A3A3A3] font-bold mb-3 border-b border-[#E7E7E7] pb-2">Event Log</div>
+            <div className="space-y-3 relative pl-3">
+              <div className="absolute left-[3px] top-1 bottom-1 w-px bg-[#E7E7E7]"></div>
+              <div className="relative">
+                <div className="absolute -left-[14px] top-1 w-2 h-2 rounded-full bg-[#f97316] border-2 border-white"></div>
+                <div className="font-mono text-[9px] text-[#A3A3A3] mb-0.5">a9f82c</div>
+                <div className="text-[10px] text-[#171717] font-medium">Script updated</div>
+              </div>
+              <div className="relative">
+                <div className="absolute -left-[14px] top-1 w-2 h-2 rounded-full bg-[#8B5CF6] border-2 border-white"></div>
+                <div className="font-mono text-[9px] text-[#A3A3A3] mb-0.5">b37x19</div>
+                <div className="text-[10px] text-[#171717] font-medium">AI Continuity Flag</div>
+              </div>
+            </div>
+          </div>
+
+          {/* 3. Structured Script Block (Bottom Left) */}
+          <div className="absolute bottom-[12%] left-2 lg:left-8 w-72 bg-[#FFFFFF] rounded-xl border border-[#E7E7E7] shadow-[0_20px_50px_-15px_rgba(0,0,0,0.08)] p-4 pointer-events-auto animate-float animation-delay-1000 z-30">
+            <div className="flex items-center gap-2 mb-2 pb-2 border-b border-[#E7E7E7]">
+              <FileEdit className="w-3.5 h-3.5 text-[#0EA5E9]" />
+              <span className="text-[10px] font-bold text-[#0EA5E9] uppercase tracking-wider">Script</span>
+            </div>
+            <div className="font-mono text-[10px] text-[#737373] leading-relaxed">
+              EXT. CITY - NIGHT<br/><br/>
+              <span className="bg-[#FFF1F2] text-[#E11D48] px-1 rounded font-semibold">V-4</span> steps out of the shadows.
+            </div>
+          </div>
+
+          {/* 4. Series Bible RAG Card (Bottom Right) */}
+          <div className="absolute bottom-[18%] right-2 lg:right-8 w-72 bg-white/90 backdrop-blur-md rounded-2xl border border-[#E7E7E7] shadow-[0_25px_65px_-15px_rgba(0,0,0,0.12)] p-5 pointer-events-auto animate-float animation-delay-3000 z-40">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-lg bg-[#F3F3F3] border border-[#E7E7E7] flex items-center justify-center flex-shrink-0">
+                <User className="w-5 h-5 text-[#A3A3A3]" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-[#171717] mb-1">Character Profile</h4>
+                <p className="text-[10px] text-[#737373] leading-snug mb-3">V-4's armor is always battle-scarred on the left shoulder.</p>
+                <div className="flex items-center gap-2">
+                  <span className="text-[9px] font-bold px-2 py-1 rounded bg-[#F3E8FF] text-[#6D28D9] flex items-center gap-1">
+                    <Sparkles className="w-2.5 h-2.5" /> AI Grounded
+                  </span>
+                  <span className="text-[9px] font-bold text-green-600 flex items-center gap-0.5">
+                    <CheckCheck className="w-3 h-3" /> Canon Verified
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -205,7 +310,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onEnterDemo })
                   { bold: 'Query the studio', rest: 'like a database — "all panels awaiting review"' },
                 ].map((item, i) => (
                   <li key={i} className="flex items-start gap-3">
-                    <span className="mt-0.5 w-5 h-5 rounded-full tangerine-gradient flex items-center justify-center flex-shrink-0">
+                    <span className="mt-0.5 w-5 h-5 rounded-full bg-[#0EA5E9] flex items-center justify-center flex-shrink-0 shadow-sm">
                       <Check className="w-3 h-3 text-white" />
                     </span>
                     <span><span className="text-[#171717] font-medium">{item.bold}</span> {item.rest}</span>
@@ -214,8 +319,9 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onEnterDemo })
               </ul>
             </div>
             <div className="animate-on-scroll delay-200 relative">
-              <div className="absolute -inset-6 bg-gradient-to-br from-[#f97316]/8 to-[#8b5cf6]/5 rounded-3xl blur-2xl"></div>
-              <div className="relative bg-white rounded-2xl soft-shadow-lg border border-[#e7e7e7]/70 p-5">
+              <div className="absolute -inset-6 bg-gradient-to-br from-[#0EA5E9]/10 to-transparent rounded-3xl blur-2xl"></div>
+              <div className="relative bg-white rounded-2xl shadow-[0_8px_30px_rgba(14,165,233,0.06)] border border-[#0EA5E9]/20 p-5 overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-[#0EA5E9]"></div>
                 <div className="flex items-center justify-between pb-3 border-b border-[#e7e7e7]/60">
                   <div className="text-[10px] uppercase tracking-[0.15em] text-[#737373] font-semibold">Content Model</div>
                   <div className="flex items-center gap-1.5 text-[10px] text-[#737373] font-mono">
@@ -277,12 +383,12 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onEnterDemo })
         <div className="relative max-w-6xl mx-auto px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
             <div className="animate-on-scroll lg:order-2">
-              <div className="inline-flex items-center gap-2 text-[11px] font-semibold text-[#404040] uppercase tracking-[0.2em] mb-4">
-                <span className="w-8 h-px bg-[#404040]"></span>
+              <div className="inline-flex items-center gap-2 text-[11px] font-semibold text-[#f97316] uppercase tracking-[0.2em] mb-4">
+                <span className="w-8 h-px bg-[#f97316]"></span>
                 02 / Append-Only Event Store
               </div>
               <h3 className="font-serif text-4xl md:text-5xl font-medium leading-[1.1] tracking-tight text-[#171717]">
-                Every decision, <em className="font-normal text-[#737373]">never</em> overwritten.
+                Every decision, <em className="font-normal text-[#f97316] italic">never</em> overwritten.
               </h3>
               <p className="mt-5 text-lg text-[#737373] leading-relaxed">
                 PanelForge treats your studio like a ledger. Script changes, panel revisions, and approvals are committed as events — fully auditable, fully reversible.
@@ -294,7 +400,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onEnterDemo })
                   { bold: 'Audit-ready exports', rest: 'for publishers, legal, and your future self' },
                 ].map((item, i) => (
                   <li key={i} className="flex items-start gap-3">
-                    <span className="mt-0.5 w-5 h-5 rounded-full bg-[#171717] flex items-center justify-center flex-shrink-0">
+                    <span className="mt-0.5 w-5 h-5 rounded-full bg-[#f97316] flex items-center justify-center flex-shrink-0 shadow-sm">
                       <Check className="w-3 h-3 text-white" />
                     </span>
                     <span><span className="text-[#171717] font-medium">{item.bold}</span> {item.rest}</span>
@@ -303,11 +409,12 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onEnterDemo })
               </ul>
             </div>
             <div className="animate-on-scroll delay-200 lg:order-1 relative">
-              <div className="absolute -inset-6 bg-gradient-to-br from-[#171717]/5 to-[#f97316]/5 rounded-3xl blur-2xl"></div>
-              <div className="relative bg-white rounded-2xl soft-shadow-lg border border-[#e7e7e7]/70 p-5">
+              <div className="absolute -inset-6 bg-gradient-to-br from-[#f97316]/10 to-transparent rounded-3xl blur-2xl"></div>
+              <div className="relative bg-white rounded-2xl shadow-[0_8px_30px_rgba(249,115,22,0.08)] border border-[#f97316]/30 p-3.5 overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-[#f97316]"></div>
                 <div className="flex items-center justify-between pb-3 border-b border-[#e7e7e7]/60">
                   <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded bg-[#f4f0e8] flex items-center justify-center text-[#171717]">
+                    <div className="w-7 h-7 rounded bg-[#f97316]/10 flex items-center justify-center text-[#f97316]">
                       <GitCommit className="w-4 h-4" />
                     </div>
                     <div>
@@ -315,7 +422,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onEnterDemo })
                       <div className="text-[10px] text-[#737373] font-mono">ch.14 / scene.04</div>
                     </div>
                   </div>
-                  <span className="text-[9px] px-2 py-0.5 rounded-full bg-[#171717] text-white font-semibold tracking-wider">APPEND-ONLY</span>
+                  <span className="text-[9px] px-2 py-0.5 rounded-full bg-[#f97316]/10 text-[#f97316] font-bold tracking-wider border border-[#f97316]/20">APPEND-ONLY</span>
                 </div>
                 <div className="relative pt-4 pl-6">
                   <div className="absolute left-[10px] top-5 bottom-3 w-px bg-[#e7e7e7]"></div>
@@ -350,12 +457,12 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onEnterDemo })
         <div className="relative max-w-6xl mx-auto px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
             <div className="animate-on-scroll">
-              <div className="inline-flex items-center gap-2 text-[11px] font-semibold text-[#8b5cf6] uppercase tracking-[0.2em] mb-4">
-                <span className="w-8 h-px bg-[#8b5cf6]"></span>
-                03 / AI-Grounded Bible
+              <div className="inline-flex items-center gap-2 text-[11px] font-semibold text-[#F59E0B] uppercase tracking-[0.2em] mb-4">
+                <span className="w-8 h-px bg-[#F59E0B]"></span>
+                03 / AI-Grounded Series Bible
               </div>
               <h3 className="font-serif text-4xl md:text-5xl font-medium leading-[1.1] tracking-tight text-[#171717]">
-                AI that <em className="font-normal text-[#8b5cf6]">cites</em> your own canon.
+                AI that <em className="font-normal text-[#F59E0B] italic">cites</em> your own canon.
               </h3>
               <p className="mt-5 text-lg text-[#737373] leading-relaxed">
                 Your series bible is the source of truth. PanelForge's AI only suggests from it — and every suggestion ships with a citation to the volume, chapter, and panel it came from.
@@ -367,7 +474,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onEnterDemo })
                   { bold: 'Continuity flags', rest: 'the moment a panel drifts from bible' },
                 ].map((item, i) => (
                   <li key={i} className="flex items-start gap-3">
-                    <span className="mt-0.5 w-5 h-5 rounded-full ai-gradient flex items-center justify-center flex-shrink-0">
+                    <span className="mt-0.5 w-5 h-5 rounded-full bg-[#F59E0B] flex items-center justify-center flex-shrink-0 shadow-sm">
                       <Check className="w-3 h-3 text-white" />
                     </span>
                     <span><span className="text-[#171717] font-medium">{item.bold}</span> {item.rest}</span>
@@ -376,12 +483,13 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onEnterDemo })
               </ul>
             </div>
             <div className="animate-on-scroll delay-200 relative">
-              <div className="absolute -inset-6 bg-gradient-to-br from-[#8b5cf6]/10 to-[#f97316]/5 rounded-3xl blur-2xl"></div>
-              <div className="relative bg-white rounded-2xl soft-shadow-lg border border-[#e7e7e7]/70 p-5">
+              <div className="absolute -inset-6 bg-gradient-to-br from-[#F59E0B]/10 to-transparent rounded-3xl blur-2xl"></div>
+              <div className="relative bg-[#FAF8F5] rounded-2xl shadow-[0_8px_30px_rgba(245,158,11,0.08)] border border-[#F59E0B]/20 p-5 overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-[#F59E0B]"></div>
                 <div className="flex items-center justify-between pb-3 border-b border-[#e7e7e7]/60">
                   <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded bg-[#f4f0e8] flex items-center justify-center">
-                      <BookOpen className="w-4 h-4 text-[#171717]" />
+                    <div className="w-7 h-7 rounded bg-[#F59E0B]/10 flex items-center justify-center text-[#F59E0B]">
+                      <Sparkles className="w-4 h-4" />
                     </div>
                     <div>
                       <div className="text-[10px] uppercase tracking-[0.15em] text-[#737373] font-semibold">Series Bible</div>
@@ -439,12 +547,12 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onEnterDemo })
         <div className="relative max-w-6xl mx-auto px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
             <div className="animate-on-scroll lg:order-2">
-              <div className="inline-flex items-center gap-2 text-[11px] font-semibold text-[#D97706] uppercase tracking-[0.2em] mb-4">
-                <span className="w-8 h-px bg-[#D97706]"></span>
+              <div className="inline-flex items-center gap-2 text-[11px] font-semibold text-[#10B981] uppercase tracking-[0.2em] mb-4">
+                <span className="w-8 h-px bg-[#10B981]"></span>
                 04 / Kanban Pipeline
               </div>
               <h3 className="font-serif text-4xl md:text-5xl font-medium leading-[1.1] tracking-tight text-[#171717]">
-                Production that <em className="font-normal text-[#D97706] italic">flows</em>, not queues.
+                Production that <em className="font-normal text-[#10B981] italic">flows</em>, not queues.
               </h3>
               <p className="mt-5 text-lg text-[#737373] leading-relaxed">
                 Every scene moves through a single, visible pipeline — script, sketch, ink, review, approved. No more "where is this page?" messages.
@@ -456,7 +564,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onEnterDemo })
                   { bold: 'Bottleneck detection', rest: '— flag stages that stall' },
                 ].map((item, i) => (
                   <li key={i} className="flex items-start gap-3">
-                    <span className="mt-0.5 w-5 h-5 rounded-full tangerine-gradient flex items-center justify-center flex-shrink-0">
+                    <span className="mt-0.5 w-5 h-5 rounded-full bg-[#10B981] flex items-center justify-center flex-shrink-0 shadow-sm">
                       <Check className="w-3 h-3 text-white" />
                     </span>
                     <span><span className="text-[#171717] font-medium">{item.bold}</span> {item.rest}</span>
@@ -465,8 +573,9 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onEnterDemo })
               </ul>
             </div>
             <div className="animate-on-scroll delay-200 lg:order-1 relative">
-              <div className="absolute -inset-6 bg-gradient-to-br from-[#f97316]/8 to-[#171717]/5 rounded-3xl blur-2xl"></div>
-              <div className="relative bg-white rounded-2xl soft-shadow-lg border border-[#e7e7e7]/70 p-3.5">
+              <div className="absolute -inset-6 bg-gradient-to-br from-[#10B981]/10 to-transparent rounded-3xl blur-2xl"></div>
+              <div className="relative bg-white rounded-2xl shadow-[0_8px_30px_rgba(16,185,129,0.08)] border border-[#10B981]/30 p-3.5 overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-[#10B981]"></div>
                 <div className="flex items-center justify-between pb-2.5 mb-3 border-b border-[#e7e7e7]/60 px-1">
                   <div className="text-[10px] uppercase tracking-[0.15em] text-[#737373] font-semibold">Chapter 14 · Pipeline</div>
                   <div className="flex items-center gap-1.5 text-[10px] text-[#737373] font-mono">
@@ -570,21 +679,21 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onEnterDemo })
             <div className="hidden lg:block absolute top-12 left-[12%] right-[12%] h-px connector-dashed"></div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-6 relative">
               {[
-                { step: '01', title: 'Script', role: 'Writer', Icon: FileEdit, color: 'text-[#f97316]', desc: 'Writers draft scenes in structured panels — dialogue, SFX, and beats, all linked to the bible.' },
-                { step: '02', title: 'Produce', role: 'Artist', Icon: Layers, color: 'text-[#f97316]', desc: 'Artists pull panel-by-panel assignments, with references, history, and ownership baked in.' },
-                { step: '03', title: 'Review', role: 'Reviewer', Icon: Eye, color: 'text-[#8b5cf6]', highlight: true, desc: 'Reviewers approve against the bible. AI surfaces continuity flags before humans need to.' },
-                { step: '04', title: 'Approved', role: 'Producer', Icon: CheckCheck, color: 'text-[#f97316]', border: true, desc: 'Approved pages export to your pipeline. Every state is in the log. Nothing is lost.' },
-              ].map(({ step, title, role, Icon, color, highlight, border, desc }, i) => (
+                { step: '01', title: 'Script', role: 'Writer', Icon: FileEdit, color: 'text-[#0EA5E9]', bgGlow: 'bg-[#0EA5E9]/15', borderClass: 'border-[#0EA5E9]/30', badgeClass: 'bg-[#0EA5E9]', desc: 'Writers draft scenes in structured panels — dialogue, SFX, and beats, all linked to the bible.' },
+                { step: '02', title: 'Produce', role: 'Artist', Icon: Layers, color: 'text-[#f97316]', bgGlow: 'bg-[#f97316]/15', borderClass: 'border-[#f97316]/30', badgeClass: 'bg-[#f97316]', desc: 'Artists pull panel-by-panel assignments, with references, history, and ownership baked in.' },
+                { step: '03', title: 'Review', role: 'Reviewer', Icon: Eye, color: 'text-[#F59E0B]', bgGlow: 'bg-[#F59E0B]/15', borderClass: 'border-[#F59E0B]/30', badgeClass: 'bg-[#F59E0B]', desc: 'Reviewers approve against the bible. AI surfaces continuity flags before humans need to.' },
+                { step: '04', title: 'Approved', role: 'Producer', Icon: CheckCheck, color: 'text-[#10B981]', bgGlow: 'bg-[#10B981]/15', borderClass: 'border-[#10B981]/30', badgeClass: 'bg-[#10B981]', desc: 'Approved pages export to your pipeline. Every state is in the log. Nothing is lost.' },
+              ].map(({ step, title, role, Icon, color, bgGlow, borderClass, badgeClass, desc }, i) => (
                 <div key={step} className={`animate-on-scroll ${i > 0 ? `delay-${i}00` : ''} flex flex-col items-center text-center`}>
                   <div className="relative mb-6">
-                    <div className={`absolute inset-0 ${highlight ? 'bg-[#8b5cf6]/15' : 'bg-[#f97316]/15'} rounded-full blur-2xl scale-110`}></div>
-                    <div className={`relative w-24 h-24 rounded-full bg-white ${border ? 'border-2 border-[#f97316]' : 'border-2 border-[#e7e7e7]'} soft-shadow flex items-center justify-center`}>
-                      <span className={`absolute -top-1 -right-1 w-7 h-7 rounded-full ${border ? 'tangerine-gradient' : 'ink-gradient'} text-white text-xs font-bold flex items-center justify-center font-mono`}>{step}</span>
+                    <div className={`absolute inset-0 ${bgGlow} rounded-full blur-2xl scale-110`}></div>
+                    <div className={`relative w-24 h-24 rounded-full bg-white border-2 ${borderClass} soft-shadow flex items-center justify-center`}>
+                      <span className={`absolute -top-1 -right-1 w-7 h-7 rounded-full ${badgeClass} text-white text-xs font-bold flex items-center justify-center font-mono shadow-sm`}>{step}</span>
                       <Icon className={`w-8 h-8 ${color}`} />
                     </div>
                   </div>
                   <h3 className="font-serif text-2xl font-medium text-[#171717]">{title}</h3>
-                  <div className={`text-[10px] uppercase tracking-[0.18em] ${highlight ? 'text-[#8b5cf6]' : 'text-[#f97316]'} font-semibold mt-1.5`}>{role}</div>
+                  <div className={`text-[10px] uppercase tracking-[0.18em] ${color} font-bold mt-1.5`}>{role}</div>
                   <p className="mt-2.5 text-sm text-[#737373] leading-relaxed max-w-[220px]">{desc}</p>
                 </div>
               ))}
@@ -636,9 +745,9 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onEnterDemo })
                 </div>
               </div>
               {/* Tab bar */}
-              <div className="flex items-center px-5 pt-3 border-b border-[#e7e7e7]/40 bg-white/30 overflow-x-auto">
+              <div className="flex items-center gap-2 px-5 py-3 border-b border-[#e7e7e7]/60 bg-[#faf8f5]/80 overflow-x-auto">
                 {['Pipeline', 'Script', 'Bible', 'Event Log', 'References'].map((tab, i) => (
-                  <button key={tab} className={`px-3 py-2 text-xs whitespace-nowrap ${i === 0 ? 'font-medium text-[#171717] border-b-2 border-[#f97316] -mb-px' : 'text-[#737373] hover:text-[#171717]'}`}>{tab}</button>
+                  <button key={tab} className={`px-3 py-1.5 text-[11px] font-semibold rounded-md whitespace-nowrap transition-colors ${i === 0 ? 'bg-[#171717] text-white shadow-sm' : 'bg-white text-[#737373] border border-[#e7e7e7] hover:border-[#171717] hover:text-[#171717]'}`}>{tab}</button>
                 ))}
                 <div className="ml-auto flex items-center gap-2 pb-1.5">
                   <div className="px-2.5 py-1 rounded-full bg-[#fff7ed] text-[#f97316] text-[10px] font-semibold flex items-center gap-1.5">
@@ -649,29 +758,29 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onEnterDemo })
               {/* Kanban board */}
               <div className="p-3 md:p-4 grid grid-cols-2 md:grid-cols-4 gap-2.5 bg-[#faf8f5]/30">
                 {[
-                  { title: 'Scripting', count: '3', color: 'text-[#404040]', cards: [
+                  { title: 'Scripting', count: '3', color: 'text-[#0EA5E9]', bgLabel: 'bg-[#0EA5E9]/10', cards: [
                     { name: 'Scene 04', sub: '"The Choice"', extra: null },
                     { name: 'Scene 05', sub: '"Departure"', extra: null },
                     { name: 'Scene 06', sub: '"The Fire"', extra: 'draft' },
                   ]},
-                  { title: 'Inking', count: '5', color: 'text-[#f97316]', cards: [
+                  { title: 'Inking', count: '5', color: 'text-[#f97316]', bgLabel: 'bg-[#f97316]/10', cards: [
                     { name: 'Page 14.3', sub: '3 panels · 2 of 3 done', extra: 'progress', flag: null },
                     { name: 'Page 14.4', sub: '4 panels', extra: null },
                     { name: 'Page 14.5', sub: '5 panels', extra: null },
                   ]},
-                  { title: 'Review', count: '2', color: 'text-[#404040]', cards: [
+                  { title: 'Review', count: '2', color: 'text-[#F59E0B]', bgLabel: 'bg-[#F59E0B]/10', cards: [
                     { name: 'Page 14.1', sub: 'awaiting Jiro', extra: 'ai-flag' },
                     { name: 'Page 14.2', sub: 'final pass', extra: null },
                   ]},
-                  { title: 'Done', count: '24', color: 'text-green-700', cards: [
+                  { title: 'Done', count: '24', color: 'text-[#10B981]', bgLabel: 'bg-[#10B981]/10', cards: [
                     { name: 'Page 13.8', sub: null, extra: 'approved' },
                     { name: 'Page 13.7', sub: null, extra: 'approved' },
                     { name: 'Page 13.6', sub: null, extra: 'approved' },
                   ]},
                 ].map(col => (
-                  <div key={col.title} className="bg-white/85 rounded-xl p-3 border border-[#e7e7e7]">
-                    <div className="flex items-center justify-between mb-2.5">
-                      <div className={`text-[10px] font-bold ${col.color} uppercase tracking-[0.15em]`}>{col.title}</div>
+                  <div key={col.title} className="bg-white/85 rounded-xl p-3 border border-[#e7e7e7] shadow-sm">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className={`px-2 py-1 rounded-md ${col.bgLabel} ${col.color} text-[10px] font-bold uppercase tracking-[0.1em]`}>{col.title}</div>
                       <div className={`text-[10px] ${col.color} font-mono font-bold`}>{col.count}</div>
                     </div>
                     <div className="space-y-2">
@@ -737,41 +846,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onEnterDemo })
         </div>
       </div>
 
-      {/* ===== SOCIAL PROOF ===== */}
-      <div id="block-social" className="py-16 md:py-24 paper-gradient relative">
-        <div className="max-w-6xl mx-auto px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-4 mb-20">
-            {[
-              { num: '10M+', label: 'Panels managed' },
-              { num: '500+', label: 'Studios onboarded' },
-              { num: '42%', label: 'Faster turnaround' },
-              { num: '99.9%', label: 'Uptime SLA' },
-            ].map((stat, i) => (
-              <div key={stat.label} className={`animate-on-scroll ${i > 0 ? `delay-${i}00` : ''} text-center md:text-left`}>
-                <div className="font-serif text-5xl md:text-6xl font-medium text-[#171717] leading-none">{stat.num.replace(/[+%]/, '')}<span className="text-[#f97316]">{stat.num.match(/[+%]/)?.[0]}</span></div>
-                <div className="mt-3 text-xs text-[#737373] uppercase tracking-[0.18em] font-semibold">{stat.label}</div>
-              </div>
-            ))}
-          </div>
 
-          <div className="flex items-center gap-4 mb-12 animate-on-scroll">
-            <div className="flex-1 h-px bg-[#e7e7e7]"></div>
-            <div className="text-[10px] uppercase tracking-[0.2em] text-[#737373] font-semibold text-center">Trusted by studios shipping the next generation of manga</div>
-            <div className="flex-1 h-px bg-[#e7e7e7]"></div>
-          </div>
-
-          <div className="animate-on-scroll">
-            <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-6 md:gap-x-14">
-              <div className="font-serif text-2xl font-bold text-[#737373] hover:text-[#171717] transition cursor-default">KUMA<span className="text-[#f97316]">.</span>STUDIO</div>
-              <div className="font-mono text-sm font-bold text-[#737373] hover:text-[#171717] transition cursor-default tracking-widest">AKIRA_LABS</div>
-              <div className="font-serif text-2xl font-medium italic text-[#737373] hover:text-[#171717] transition cursor-default">Neo Ink<span className="text-[#f97316]">.</span></div>
-              <div className="font-sans text-xl font-extrabold text-[#737373] hover:text-[#171717] transition cursor-default tracking-tight">MANGARIUM</div>
-              <div className="font-serif text-2xl font-semibold text-[#737373] hover:text-[#171717] transition cursor-default">Panel One<span className="text-[#f97316]">.</span></div>
-              <div className="font-mono text-sm font-medium text-[#737373] hover:text-[#171717] transition cursor-default flex items-center gap-1.5"><span className="text-[#f97316]">◇</span> INKHAUS</div>
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* ===== CTA ===== */}
       <div id="block-cta" className="py-16 md:py-24 relative overflow-hidden">

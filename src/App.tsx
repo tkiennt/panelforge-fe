@@ -204,7 +204,7 @@ export default function App() {
           {authMode === 'landing' && (
             <>
               {!isDemoMode ? (
-                <LandingPageView onEnterDemo={handleEnterDemo} />
+                <LandingPageView onEnterDemo={handleEnterDemo} onOpenLogin={() => setAuthMode('login')} />
               ) : (
                 demoRole && demoRole !== 'producer' && (
                   <MockRoleWorkspaceView role={demoRole} onEnterDemo={handleEnterDemo} />
