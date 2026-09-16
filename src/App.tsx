@@ -35,10 +35,11 @@ import { CheckCircle2 } from 'lucide-react';
 import { ScriptView } from './views/ScriptView';
 import { ReviewView } from './views/ReviewView';
 
-// IMPORTS CÁC WORKSPACE THEO ROLE BẠN ĐÃ TẠO
+// IMPORTS CÁC WORKSPACE THEO ROLE
 import WriterWorkspace from './components/modals/roles/WriterWorkspace';
 import ArtistWorkspace from './components/modals/roles/ArtistWorkspace';
 import EditorWorkspace from './components/modals/roles/EditorWorkspace';
+import LettererWorkspace from './components/modals/roles/LettererWorkspace';
 
 import { LoginView } from './views/LoginView';
 import { LandingPageView } from './views/LandingPageView';
@@ -50,27 +51,35 @@ interface Toast {
 }
 
 export default function App() {
-  // ---> STATE QUẢN LÝ ĐĂNG NHẬP VÀ ĐIỀU HƯỚNG BÊN NGOÀI <---
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authMode, setAuthMode] = useState<'landing' | 'login' | 'register'>('landing');
 
-  // Navigation & Data State
   const [viewScope, setViewScope] = useState<'hub' | 'project'>('hub');
   const [currentView, setCurrentView] = useState<ViewMode | string>('dashboard');
-  const [currentRole, setCurrentRole] = useState<'WRITER' | 'ARTIST' | 'EDITOR'>('ARTIST');
+
+  // ---> Đã thêm PRODUCER vào danh sách Role
+  const [currentRole, setCurrentRole] = useState<
+    'WRITER' | 'ARTIST' | 'EDITOR' | 'LETTERER' | 'PRODUCER'
+  >('PRODUCER');
 
   useEffect(() => {
     if (viewScope === 'project') {
       switch (currentRole) {
         case 'WRITER':
-          setCurrentView('script'); // Sẽ render WriterWorkspace
+          setCurrentView('script');
           break;
         case 'ARTIST':
-          setCurrentView('dashboard'); // Sẽ render ArtistWorkspace
+          setCurrentView('dashboard');
           break;
         case 'EDITOR':
-          setCurrentView('review'); // Sẽ render EditorWorkspace
+          setCurrentView('review');
           break;
+        case 'LETTERER':
+          setCurrentView('lettering');
+          break;
+        case 'PRODUCER':
+          setCurrentView('dashboard');
+          break; // Producer vào thẳng Dashboard tổng quan
         default:
           setCurrentView('dashboard');
       }
@@ -85,7 +94,6 @@ export default function App() {
   const [provenanceLogs, setProvenanceLogs] = useState(INITIAL_PROVENANCE_LOGS);
   const [assistants] = useState(INITIAL_ASSISTANTS);
 
-  // Modals
   const [spreadModalOpen, setSpreadModalOpen] = useState(false);
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
@@ -96,7 +104,6 @@ export default function App() {
   const [newCardOpen, setNewCardOpen] = useState(false);
   const [selectedCardForDetail, setSelectedCardForDetail] = useState<KanbanCard | null>(null);
 
-  // Toast System
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const showToast = (title: string, desc: string) => {
@@ -107,10 +114,16 @@ export default function App() {
     }, 4000);
   };
 
-  // Keyboard shortcut for Command Palette
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    setAuthMode('landing');
+    setViewScope('hub');
+    showToast('Đăng xuất thành công', 'Hẹn gặp lại bạn lần sau!');
+  };
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (!isAuthenticated) return; // Không cho mở Command Palette nếu chưa đăng nhập
+      if (!isAuthenticated) return;
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         setCommandPaletteOpen((prev) => !prev);
@@ -120,7 +133,6 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isAuthenticated]);
 
-  // Các hàm tiện ích
   const handleUpdateCardStage = (cardId: string, newStage: KanbanStageKey) => {
     setCards((prev) => prev.map((c) => (c.id === cardId ? { ...c, stage: newStage } : c)));
     if (selectedCardForDetail && selectedCardForDetail.id === cardId) {
@@ -181,7 +193,6 @@ export default function App() {
 
   return (
     <div className='h-screen bg-[#F8F6F0] text-[#171717] font-sans antialiased overflow-hidden selection:bg-[#F97316]/20 selection:text-[#EA580C]'>
-      {/* ---> KHU VỰC BÊN NGOÀI (CHƯA ĐĂNG NHẬP) <--- */}
       {!isAuthenticated ? (
         <>
           {authMode === 'landing' && (
@@ -197,10 +208,16 @@ export default function App() {
               mode={authMode}
               onBack={() => setAuthMode('landing')}
               onLogin={(username, password) => {
-                const mockAccounts: Record<string, 'WRITER' | 'ARTIST' | 'EDITOR'> = {
+                // ---> Bổ sung tài khoản Producer vào đây
+                const mockAccounts: Record<
+                  string,
+                  'WRITER' | 'ARTIST' | 'EDITOR' | 'LETTERER' | 'PRODUCER'
+                > = {
                   writer: 'WRITER',
                   artist: 'ARTIST',
                   editor: 'EDITOR',
+                  letterer: 'LETTERER',
+                  producer: 'PRODUCER',
                 };
 
                 const roleMatched = mockAccounts[username.toLowerCase()];
@@ -208,11 +225,8 @@ export default function App() {
                 if (roleMatched && password === '123456') {
                   setIsAuthenticated(true);
                   setCurrentRole(roleMatched);
-
-                  // TỰ ĐỘNG CHUYỂN VÀO PROJECT (BỎ QUA TRANG HUB/PRODUCT)
                   setViewScope('project');
 
-                  // ĐIỀU HƯỚNG THEO ROLE (SWITCH-CASE)
                   switch (roleMatched) {
                     case 'WRITER':
                       setCurrentView('script');
@@ -223,6 +237,12 @@ export default function App() {
                     case 'EDITOR':
                       setCurrentView('review');
                       break;
+                    case 'LETTERER':
+                      setCurrentView('lettering');
+                      break;
+                    case 'PRODUCER':
+                      setCurrentView('dashboard');
+                      break;
                   }
 
                   showToast(
@@ -232,7 +252,7 @@ export default function App() {
                 } else {
                   showToast(
                     'Lỗi xác thực',
-                    'Tài khoản không tồn tại hoặc sai mật khẩu. Hãy thử: writer, artist, editor.',
+                    'Tài khoản không tồn tại. Hãy thử: producer, writer, artist, editor, letterer.',
                   );
                 }
               }}
@@ -240,7 +260,6 @@ export default function App() {
           )}
         </>
       ) : (
-        /* ---> KHU VỰC BÊN TRONG HỆ THỐNG (ĐÃ ĐĂNG NHẬP) <--- */
         <>
           {viewScope === 'hub' ? (
             <div className='h-screen w-full overflow-y-auto custom-scrollbar bg-[#FAF8F4]'>
@@ -269,18 +288,10 @@ export default function App() {
                   showToast('Project Switched', `Active workspace switched to ${proj.title}.`);
                 }}
                 onReturnToHub={handleReturnToHub}
-                onOpenSettings={() =>
-                  showToast(
-                    'Studio Settings',
-                    'LoRA weights and tankōbon export resolutions are calibrated.',
-                  )
-                }
-                onOpenHelp={() =>
-                  showToast('Help & Reference', 'PanelForge documentation is up to date.')
-                }
-                onOpenStorageModal={() =>
-                  showToast('Storage Vault', '15.6 GB of 20 GB 600 DPI cloud storage used.')
-                }
+                onOpenSettings={() => showToast('Studio Settings', 'Cài đặt đã mở.')}
+                onOpenHelp={() => showToast('Help & Reference', 'Tài liệu hướng dẫn.')}
+                onOpenStorageModal={() => showToast('Storage Vault', 'Bộ nhớ đám mây.')}
+                onLogout={handleLogout}
               />
 
               <div className='flex-1 flex flex-col min-w-0 overflow-hidden'>
@@ -294,7 +305,7 @@ export default function App() {
                 />
 
                 <main className='flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 custom-scrollbar'>
-                  {/* TÍCH HỢP GIAO DIỆN CỦA ARTIST / DASHBOARD CHUNG */}
+                  {/* Dashboard: Artist thấy bảng Artist, Producer thấy Dashboard tổng quan */}
                   {currentView === 'dashboard' &&
                     (currentRole === 'ARTIST' ? (
                       <ArtistWorkspace />
@@ -369,9 +380,10 @@ export default function App() {
                     />
                   )}
 
-                  {/* TÍCH HỢP GIAO DIỆN CỦA WRITER VÀ EDITOR */}
+                  {/* Render các Workspace chuyên biệt */}
                   {currentView === 'script' && <WriterWorkspace />}
                   {currentView === 'review' && <EditorWorkspace />}
+                  {currentView === 'lettering' && <LettererWorkspace />}
                 </main>
               </div>
             </div>
@@ -437,29 +449,6 @@ export default function App() {
             onAddCard={handleAddCard}
             onShowToast={showToast}
           />
-
-          {/* Thanh giả lập Role */}
-          <div className='fixed bottom-5 left-5 z-50 bg-white border border-[#E7E7E7] p-2 rounded-xl shadow-2xl flex items-center gap-2 font-mono text-xs animate-in slide-in-from-bottom-5'>
-            <span className='px-2 font-bold text-[#888888] uppercase tracking-wider text-[10px]'>
-              Simulate Role:
-            </span>
-            {(['WRITER', 'ARTIST', 'EDITOR'] as const).map((role) => (
-              <button
-                key={role}
-                onClick={() => {
-                  setCurrentRole(role);
-                  showToast('Role Switched', `You are now viewing as ${role}.`);
-                }}
-                className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
-                  currentRole === role
-                    ? 'bg-[#F97316] text-white shadow-md'
-                    : 'bg-[#F8F6F0] text-[#555555] hover:bg-[#EAE8E0] hover:text-[#171717]'
-                }`}
-              >
-                {role}
-              </button>
-            ))}
-          </div>
         </>
       )}
 
