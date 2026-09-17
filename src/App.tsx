@@ -39,6 +39,9 @@ import { MockRoleWorkspaceView } from './views/MockRoleWorkspaceView';
 
 import { LoginModal } from './components/modals/LoginModal';
 import { LandingPageView } from './views/LandingPageView';
+import { UserProfile } from './views/UserProfile';
+import { auth, onAuthStateChanged } from './firebase';
+import { User } from 'firebase/auth';
 
 interface Toast {
   id: string;
@@ -50,10 +53,23 @@ export default function App() {
   // ---> STATE QUẢN LÝ ĐĂNG NHẬP VÀ ĐIỀU HƯỚNG BÊN NGOÀI <---
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authMode, setAuthMode] = useState<'landing' | 'login' | 'register'>('landing');
+  const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
 
   // ---> THÊM STATE CHO DEMO ROLE <---
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [demoRole, setDemoRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setFirebaseUser(user);
+      if (user) {
+        setIsAuthenticated(true);
+      } else {
+        setIsAuthenticated(false);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
   // Navigation & Data State
   const [viewScope, setViewScope] = useState<'hub' | 'project'>('hub');
@@ -244,11 +260,17 @@ export default function App() {
                   showToast('Lỗi xác thực', 'Tài khoản không tồn tại hoặc sai mật khẩu. Hãy thử: writer, artist, editor.');
                 }
               }}
+              onGoogleLogin={(user) => {
+                setIsLoginModalOpen(false);
+                showToast('Đăng nhập thành công', `Chào mừng ${user.displayName || user.email}`);
+              }}
             />
           )}
         </>
+      ) : firebaseUser ? (
+        <UserProfile user={firebaseUser} onLogout={() => setFirebaseUser(null)} />
       ) : (
-        /* ---> KHU VỰC BÊN TRONG HỆ THỐNG (ĐÃ ĐĂNG NHẬP) <--- */
+        /* ---> KHU VỰC BÊN TRONG HỆ THỐNG (ĐÃ ĐĂNG NHẬP DEMO TRUYỀN THỐNG) <--- */
         <>
           {viewScope === 'hub' ? (
             <div className='h-screen w-full overflow-y-auto custom-scrollbar bg-[#FAF8F4]'>

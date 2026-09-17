@@ -1,14 +1,28 @@
 import React, { useState } from 'react';
 import { X, Sparkles, Layers, Database, Users } from 'lucide-react';
 
+import { signInWithPopup, auth, googleProvider } from '../../firebase';
+
 interface LoginModalProps {
   onClose: () => void;
   onLogin: (email: string, pass: string) => void;
+  onGoogleLogin?: (user: any) => void;
 }
 
-export const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLogin }) => {
+export const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLogin, onGoogleLogin }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+
+  const handleGoogleSignIn = async () => {
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      if (onGoogleLogin) {
+        onGoogleLogin(result.user);
+      }
+    } catch (error) {
+      console.error('Google Sign In Error:', error);
+    }
+  };
 
   const features = [
     {
@@ -148,7 +162,11 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLogin }) => {
             </div>
 
             <div className="space-y-3">
-              <button type="button" className="w-full border border-[#E7E7E7] bg-white text-[#171717] text-sm font-medium py-2.5 rounded-lg flex items-center justify-center gap-2 hover:border-[#171717] hover:bg-[#FAF8F5] transition-colors cursor-pointer">
+              <button 
+                type="button" 
+                onClick={handleGoogleSignIn}
+                className="w-full border border-[#E7E7E7] bg-white text-[#171717] text-sm font-medium py-2.5 rounded-lg flex items-center justify-center gap-2 hover:border-[#171717] hover:bg-[#FAF8F5] transition-colors cursor-pointer"
+              >
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
                   <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
