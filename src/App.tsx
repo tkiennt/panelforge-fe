@@ -42,10 +42,10 @@ import {
   Type,
   BookOpen,
 } from 'lucide-react';
-import { ScriptView } from './views/ScriptView';
 import { ReviewView } from './views/ReviewView';
 import { GlobalAppShell } from './layouts/GlobalAppShell';
 import { ProductionPipelineView } from './views/ProductionPipelineView';
+import { ScriptEditorView } from './views/ScriptEditorView';
 
 import { MockRoleWorkspaceView } from './views/MockRoleWorkspaceView';
 
@@ -332,10 +332,7 @@ export default function App() {
                     isReaderMode={currentRole === 'READER'}
                   />
                 )}
-                {/* TÍCH HỢP GIAO DIỆN CỦA WRITER VÀ EDITOR NẾU CẦN */}
-                {currentView === 'script' && (
-                  <div className='p-4'>Writer Workspace (Placeholder)</div>
-                )}
+                {currentView === 'script' && <ScriptEditorView onShowToast={showToast} />}
                 {currentView === 'review' && (
                   <div className='p-4'>Editor Workspace (Placeholder)</div>
                 )}
