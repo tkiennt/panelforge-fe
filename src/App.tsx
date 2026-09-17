@@ -31,9 +31,10 @@ import { AuditLogModal } from './components/modals/AuditLogModal';
 import { InviteMemberModal } from './components/modals/InviteMemberModal';
 import { AddEntityModal } from './components/modals/AddEntityModal';
 import { NewPageCardModal } from './components/modals/NewPageCardModal';
-import { CheckCircle2, Home, Briefcase, PenLine, Layers, CheckCheck } from 'lucide-react';
+import { CheckCircle2, Home, Briefcase, PenLine, Layers, CheckCheck, Shield, Type, BookOpen } from 'lucide-react';
 import { ScriptView } from './views/ScriptView';
 import { ReviewView } from './views/ReviewView';
+import { GlobalAppShell } from './layouts/GlobalAppShell';
 
 import { MockRoleWorkspaceView } from './views/MockRoleWorkspaceView';
 
@@ -74,7 +75,9 @@ export default function App() {
   // Navigation & Data State
   const [viewScope, setViewScope] = useState<'hub' | 'project'>('hub');
   const [currentView, setCurrentView] = useState<ViewMode | string>('dashboard');
-  const [currentRole, setCurrentRole] = useState<'WRITER' | 'ARTIST' | 'EDITOR' | 'PRODUCER'>('ARTIST');
+  const [currentRole, setCurrentRole] = useState<'WRITER' | 'ARTIST' | 'EDITOR' | 'PRODUCER'>(
+    'ARTIST',
+  );
 
   useEffect(() => {
     if (viewScope === 'project') {
@@ -205,29 +208,20 @@ export default function App() {
     }
     setDemoRole(role);
     setIsDemoMode(true);
-    if (role === 'producer') {
-      setViewScope('hub');
-      setCurrentRole('PRODUCER');
-    }
+    setCurrentRole(role.toUpperCase() as any);
+    setViewScope('project'); // Always enter project to show App Shell
   };
 
   return (
     <div className='min-h-screen bg-[#F8F6F0] text-[#171717] font-sans antialiased selection:bg-[#F97316]/20 selection:text-[#EA580C] relative'>
-      
-
-      {/* ---> KHU VỰC BÊN NGOÀI (CHƯA ĐĂNG NHẬP HOẶC KHÔNG PHẢI DEMO PRODUCER) <--- */}
-      {!isAuthenticated && !(isDemoMode && demoRole === 'producer') ? (
+      {/* ---> KHU VỰC BÊN NGOÀI (CHƯA ĐĂNG NHẬP HOẶC KHÔNG PHẢI DEMO) <--- */}
+      {!isAuthenticated && !isDemoMode ? (
         <>
           {authMode === 'landing' && (
-            <>
-              {!isDemoMode ? (
-                <LandingPageView onEnterDemo={handleEnterDemo} onOpenLogin={() => setIsLoginModalOpen(true)} />
-              ) : (
-                demoRole && demoRole !== 'producer' && (
-                  <MockRoleWorkspaceView role={demoRole} onEnterDemo={handleEnterDemo} />
-                )
-              )}
-            </>
+            <LandingPageView
+              onEnterDemo={handleEnterDemo}
+              onOpenLogin={() => setIsLoginModalOpen(true)}
+            />
           )}
 
           {isLoginModalOpen && (
@@ -239,7 +233,7 @@ export default function App() {
                   artist: 'ARTIST',
                   editor: 'EDITOR',
                 };
-                
+
                 // Trích xuất tên người dùng từ email
                 const name = username.split('@')[0].toLowerCase();
                 const roleMatched = mockAccounts[name] || mockAccounts[username.toLowerCase()];
@@ -251,13 +245,25 @@ export default function App() {
                   setIsLoginModalOpen(false);
 
                   switch (roleMatched) {
-                    case 'WRITER': setCurrentView('script'); break;
-                    case 'ARTIST': setCurrentView('dashboard'); break;
-                    case 'EDITOR': setCurrentView('review'); break;
+                    case 'WRITER':
+                      setCurrentView('script');
+                      break;
+                    case 'ARTIST':
+                      setCurrentView('dashboard');
+                      break;
+                    case 'EDITOR':
+                      setCurrentView('review');
+                      break;
                   }
-                  showToast('Đăng nhập thành công', `Chào mừng bạn trở lại với vai trò ${roleMatched}.`);
+                  showToast(
+                    'Đăng nhập thành công',
+                    `Chào mừng bạn trở lại với vai trò ${roleMatched}.`,
+                  );
                 } else {
-                  showToast('Lỗi xác thực', 'Tài khoản không tồn tại hoặc sai mật khẩu. Hãy thử: writer, artist, editor.');
+                  showToast(
+                    'Lỗi xác thực',
+                    'Tài khoản không tồn tại hoặc sai mật khẩu. Hãy thử: writer, artist, editor.',
+                  );
                 }
               }}
               onGoogleLogin={(user) => {
@@ -284,127 +290,43 @@ export default function App() {
               />
             </div>
           ) : (
-            <div className='flex h-screen overflow-hidden'>
-              <Sidebar
-                currentView={currentView}
-                userRole={currentRole}
-                onSelectView={(view) => {
-                  if (view === 'publications') handleReturnToHub();
-                  else setCurrentView(view);
-                }}
-                activeProject={activeProject}
-                projects={projects}
-                onSelectProject={(proj) => {
-                  setActiveProject(proj);
-                  showToast('Project Switched', `Active workspace switched to ${proj.title}.`);
-                }}
-                onReturnToHub={handleReturnToHub}
-                onOpenSettings={() =>
-                  showToast(
-                    'Studio Settings',
-                    'LoRA weights and tankōbon export resolutions are calibrated.',
-                  )
-                }
-                onOpenHelp={() =>
-                  showToast('Help & Reference', 'PanelForge documentation is up to date.')
-                }
-                onOpenStorageModal={() =>
-                  showToast('Storage Vault', '15.6 GB of 20 GB 600 DPI cloud storage used.')
-                }
-              />
-
-              <div className='flex-1 flex flex-col min-w-0 overflow-hidden'>
-                <Header
-                  currentView={currentView as ViewMode}
-                  activeProject={activeProject}
-                  onReturnToHub={handleReturnToHub}
-                  onOpenCommandPalette={() => setCommandPaletteOpen(true)}
-                  onOpenAiEngineModal={() => setVectorStatusOpen(true)}
-                  onOpenExportModal={() => setExportModalOpen(true)}
-                />
-
-                <main className='flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 custom-scrollbar'>
-                  {/* TÍCH HỢP GIAO DIỆN CỦA ARTIST / DASHBOARD CHUNG */}
-                  {currentView === 'dashboard' &&
-                    (currentRole === 'ARTIST' ? (
-                      <ArtistWorkspace />
-                    ) : (
-                      <DashboardView
-                        activeProject={activeProject}
-                        assistants={assistants}
-                        provenanceLogs={provenanceLogs}
-                        onOpenSpreadModal={() => setSpreadModalOpen(true)}
-                        onOpenCanvasModal={() => setSpreadModalOpen(true)}
-                        onRunAiAudit={() =>
-                          showToast('LoRA Audit Passed', 'Verified 99.4% continuity.')
-                        }
-                        onExportReport={() => setExportModalOpen(true)}
-                        onConfigureAnchors={() => setVectorStatusOpen(true)}
-                        onViewAuditLog={() => setAuditLogOpen(true)}
-                        onManageAssignments={() => setCurrentView('members')}
-                      />
-                    ))}
-                  {currentView === 'workflow' && (
-                    <WorkflowBoardView
-                      activeProject={activeProject}
-                      cards={cards}
-                      onUpdateCardStage={handleUpdateCardStage}
-                      onOpenCardDetails={(card) => setSelectedCardForDetail(card)}
-                      onOpenExportModal={() => setExportModalOpen(true)}
-                      onOpenNewCardModal={() => setNewCardOpen(true)}
-                      onShowToast={showToast}
-                    />
-                  )}
-                  {currentView === 'bible' && (
-                    <SeriesBibleView
-                      activeProject={activeProject}
-                      entities={entities}
-                      onAddEntity={() => setAddEntityOpen(true)}
-                      onViewVectorStatus={() => setVectorStatusOpen(true)}
-                      onEditEntity={(entity) =>
-                        showToast('Edit Entity', `Editing canon for ${entity.name}.`)
-                      }
-                      onShowToast={showToast}
-                    />
-                  )}
-                  {currentView === 'members' && (
-                    <MembersRolesView
-                      activeProject={activeProject}
-                      members={members}
-                      onInviteMember={() => setInviteMemberOpen(true)}
-                      onUpdateMemberRole={(id, role, updatedPermissions) => {
-                        setMembers((prev) =>
-                          prev.map((m) =>
-                            m.id === id
-                              ? { ...m, role, permissions: updatedPermissions || m.permissions }
-                              : m,
-                          ),
-                        );
-                        showToast('Access Updated', `Updated permissions.`);
-                      }}
-                      onShowToast={showToast}
-                    />
-                  )}
-                  {currentView === 'publications' && (
-                    <ContentHubView
-                      projects={projects}
-                      onSelectProject={(proj) => {
-                        setActiveProject(proj);
-                        setCurrentView('dashboard');
-                      }}
-                      onEnterProject={handleEnterProject}
-                      onCreateNewProject={handleCreateNewProject}
-                      onOpenExportModal={() => setExportModalOpen(true)}
-                      isRootView={false}
-                    />
-                  )}
-
-                  {/* TÍCH HỢP GIAO DIỆN CỦA WRITER VÀ EDITOR */}
-                  {currentView === 'script' && <WriterWorkspace />}
-                  {currentView === 'review' && <EditorWorkspace />}
-                </main>
+            <GlobalAppShell
+              currentUser={{
+                name: firebaseUser
+                  ? firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User'
+                  : 'Tatsuki F.',
+                role: currentRole as any,
+                avatarInitials: firebaseUser
+                  ? (firebaseUser.displayName || firebaseUser.email || 'U').charAt(0).toUpperCase()
+                  : 'TF',
+              }}
+              activeSeries={activeProject}
+              aiState='active'
+              onNavigate={(href) => {
+                if (href === 'publications') handleReturnToHub();
+                else setCurrentView(href);
+              }}
+              onLogout={() => {
+                auth.signOut();
+                setFirebaseUser(null);
+                setIsAuthenticated(false);
+              }}
+              onLeaveFeedback={() => showToast('Feedback', 'Thanks for your feedback!')}
+            >
+              <div className='w-full h-full relative p-6'>
+                <div className="w-full h-full min-h-[460px] border-2 border-dashed border-[#B8B8B8] rounded-xl flex flex-col items-center justify-center p-8 text-center bg-[#FFFFFF]/60 backdrop-blur-xs transition-colors hover:border-[#F97316]/60 hover:bg-[#FFFFFF]/90 relative z-10">
+                  <div className="w-16 h-16 rounded-2xl bg-[#FFF7ED] border border-[#FDBA74] flex items-center justify-center text-[#F97316] mb-4 shadow-sm">
+                    <Layers className="w-8 h-8 stroke-[1.8]" />
+                  </div>
+                  <h2 className="text-base md:text-lg font-heading font-semibold text-[#171717] mb-1.5">
+                    Workspace Context: <span className="text-[#F97316]">{currentRole}</span>
+                  </h2>
+                  <p className="text-xs md:text-sm text-[#737373] max-w-lg mb-6 leading-relaxed">
+                    Dynamic layout adapts automatically based on role. The specific workspace content is temporarily hidden for demo purposes.
+                  </p>
+                </div>
               </div>
-            </div>
+            </GlobalAppShell>
           )}
 
           {/* Các Modals */}
@@ -467,30 +389,32 @@ export default function App() {
             onAddCard={handleAddCard}
             onShowToast={showToast}
           />
-
         </>
       )}
 
       {/* ===== GLOBAL FLOATING PREVIEW WIDGET (visible on all pages) ===== */}
-      {!isAuthenticated && authMode === 'landing' && (
+      {!isAuthenticated && (
         <div className='fixed bottom-6 right-6 z-[200]'>
           <div className='glass rounded-full shadow-[0_8px_30px_rgba(0,0,0,0.14)] border border-[#e7e7e7]/80 p-1.5 flex items-center gap-1'>
             <div className='hidden sm:flex items-center gap-1.5 pl-2 pr-1.5 py-1'>
               <span className='w-1.5 h-1.5 rounded-full bg-[#f97316] pulse-dot'></span>
-              <span className='text-[10px] font-semibold text-[#404040] uppercase tracking-[0.15em]'>Preview</span>
+              <span className='text-[10px] font-semibold text-[#404040] uppercase tracking-[0.15em]'>
+                Preview
+              </span>
             </div>
             <div className='hidden sm:block w-px h-5 bg-[#e7e7e7] mx-0.5'></div>
             {[
               { label: 'Landing', Icon: Home, roleKey: 'landing' },
+              { label: 'Admin', Icon: Shield, roleKey: 'administrator' },
               { label: 'Producer', Icon: Briefcase, roleKey: 'producer' },
               { label: 'Writer', Icon: PenLine, roleKey: 'writer' },
               { label: 'Artist', Icon: Layers, roleKey: 'artist' },
-              { label: 'Reviewer', Icon: CheckCheck, roleKey: 'editor' },
+              { label: 'Letterer', Icon: Type, roleKey: 'letterer' },
+              { label: 'Editor', Icon: CheckCheck, roleKey: 'editor' },
+              { label: 'Reader', Icon: BookOpen, roleKey: 'reader' },
             ].map(({ label, Icon, roleKey }) => {
               const isActive =
-                roleKey === 'landing'
-                  ? !isDemoMode
-                  : demoRole === roleKey && isDemoMode;
+                roleKey === 'landing' ? !isDemoMode : demoRole === roleKey && isDemoMode;
               return (
                 <div key={roleKey} className='relative group'>
                   <button
@@ -502,7 +426,7 @@ export default function App() {
                     }`}
                     aria-label={`Preview as ${label}`}
                   >
-                    <Icon className="w-4 h-4" />
+                    <Icon className='w-4 h-4' />
                   </button>
                   <div className='absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-[#171717] text-white text-[10px] rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none'>
                     {label}

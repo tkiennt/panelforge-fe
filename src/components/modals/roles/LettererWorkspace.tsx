@@ -20,7 +20,8 @@ export default function LettererWorkspace() {
         </div>
         <h3 className='text-lg font-bold mb-2'>Interactive Panel Canvas</h3>
         <p className='text-[#555555] max-w-md text-sm mb-6'>
-          This is a placeholder for the Letterer's interactive canvas. Features will include dragging speech balloons, setting AI-assisted text fit, and managing vector font files.
+          This is a placeholder for the Letterer's interactive canvas. Features will include
+          dragging speech balloons, setting AI-assisted text fit, and managing vector font files.
         </p>
         <button className='px-4 py-2 bg-[#EA580C] hover:bg-[#C2410C] text-white text-sm font-bold rounded-lg shadow-md transition-all active:scale-95 flex items-center gap-2'>
           <CheckCircle size={16} />

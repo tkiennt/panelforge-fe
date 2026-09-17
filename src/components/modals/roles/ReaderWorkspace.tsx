@@ -20,7 +20,8 @@ export default function ReaderWorkspace() {
         </div>
         <h3 className='text-lg font-bold mb-2'>Protected Viewing Session</h3>
         <p className='text-[#A3A3A3] max-w-md text-sm mb-6'>
-          This environment simulates a secure, watermarked preview link sent to clients or test readers. Copy protection and screenshot deterrence are active.
+          This environment simulates a secure, watermarked preview link sent to clients or test
+          readers. Copy protection and screenshot deterrence are active.
         </p>
         <div className='flex items-center gap-4'>
           <button className='px-4 py-2 bg-white text-[#171717] hover:bg-[#F3F1EB] text-sm font-bold rounded-lg transition-all active:scale-95'>
