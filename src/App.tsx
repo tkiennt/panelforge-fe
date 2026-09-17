@@ -31,10 +31,21 @@ import { AuditLogModal } from './components/modals/AuditLogModal';
 import { InviteMemberModal } from './components/modals/InviteMemberModal';
 import { AddEntityModal } from './components/modals/AddEntityModal';
 import { NewPageCardModal } from './components/modals/NewPageCardModal';
-import { CheckCircle2, Home, Briefcase, PenLine, Layers, CheckCheck, Shield, Type, BookOpen } from 'lucide-react';
+import {
+  CheckCircle2,
+  Home,
+  Briefcase,
+  PenLine,
+  Layers,
+  CheckCheck,
+  Shield,
+  Type,
+  BookOpen,
+} from 'lucide-react';
 import { ScriptView } from './views/ScriptView';
 import { ReviewView } from './views/ReviewView';
 import { GlobalAppShell } from './layouts/GlobalAppShell';
+import { ProductionPipelineView } from './views/ProductionPipelineView';
 
 import { MockRoleWorkspaceView } from './views/MockRoleWorkspaceView';
 
@@ -313,18 +324,21 @@ export default function App() {
               }}
               onLeaveFeedback={() => showToast('Feedback', 'Thanks for your feedback!')}
             >
-              <div className='w-full h-full relative p-6'>
-                <div className="w-full h-full min-h-[460px] border-2 border-dashed border-[#B8B8B8] rounded-xl flex flex-col items-center justify-center p-8 text-center bg-[#FFFFFF]/60 backdrop-blur-xs transition-colors hover:border-[#F97316]/60 hover:bg-[#FFFFFF]/90 relative z-10">
-                  <div className="w-16 h-16 rounded-2xl bg-[#FFF7ED] border border-[#FDBA74] flex items-center justify-center text-[#F97316] mb-4 shadow-sm">
-                    <Layers className="w-8 h-8 stroke-[1.8]" />
-                  </div>
-                  <h2 className="text-base md:text-lg font-heading font-semibold text-[#171717] mb-1.5">
-                    Workspace Context: <span className="text-[#F97316]">{currentRole}</span>
-                  </h2>
-                  <p className="text-xs md:text-sm text-[#737373] max-w-lg mb-6 leading-relaxed">
-                    Dynamic layout adapts automatically based on role. The specific workspace content is temporarily hidden for demo purposes.
-                  </p>
-                </div>
+              <div className='w-full h-full relative overflow-hidden'>
+                {currentView === 'dashboard' && (
+                  <ProductionPipelineView
+                    currentUserRole={currentRole as any}
+                    onShowToast={showToast}
+                    isReaderMode={currentRole === 'READER'}
+                  />
+                )}
+                {/* TÍCH HỢP GIAO DIỆN CỦA WRITER VÀ EDITOR NẾU CẦN */}
+                {currentView === 'script' && (
+                  <div className='p-4'>Writer Workspace (Placeholder)</div>
+                )}
+                {currentView === 'review' && (
+                  <div className='p-4'>Editor Workspace (Placeholder)</div>
+                )}
               </div>
             </GlobalAppShell>
           )}
