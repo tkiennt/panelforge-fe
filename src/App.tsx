@@ -48,6 +48,11 @@ import { ProductionPipelineView } from './views/ProductionPipelineView';
 import { ScriptEditorView } from './views/ScriptEditorView';
 import { LayoutArtworkView } from './views/LayoutArtworkView';
 
+// --- IMPORT FILE WRITER WORKSPACE VÀ ARTIST WORKSPACE Ở ĐÂY ---
+import WriterWorkspace from './components/modals/roles/WriterWorkspace';
+import ArtistWorkspace from './components/modals/roles/ArtistWorkspace';
+// ----------------------------------------------------------------
+
 import { MockRoleWorkspaceView } from './views/MockRoleWorkspaceView';
 
 import { LoginModal } from './components/modals/LoginModal';
@@ -95,13 +100,13 @@ export default function App() {
     if (viewScope === 'project') {
       switch (currentRole) {
         case 'WRITER':
-          setCurrentView('script'); // Sẽ render WriterWorkspace
+          setCurrentView('script'); 
           break;
         case 'ARTIST':
-          setCurrentView('dashboard'); // Sẽ render ArtistWorkspace
+          setCurrentView('dashboard'); 
           break;
         case 'EDITOR':
-          setCurrentView('review'); // Sẽ render EditorWorkspace
+          setCurrentView('review'); 
           break;
         default:
           setCurrentView('dashboard');
@@ -326,18 +331,38 @@ export default function App() {
               onLeaveFeedback={() => showToast('Feedback', 'Thanks for your feedback!')}
             >
               <div className='w-full h-full relative overflow-hidden'>
-                {currentView === 'dashboard' && (
+                
+                {/* --- RENDER WORKSPACE DỰA THEO ROLE --- */}
+                {currentView === 'layout' && currentRole === 'ARTIST' && (
+                  <LayoutArtworkView onShowToast={showToast} />
+                )}
+
+                {currentView === 'script' && currentRole === 'WRITER' && (
+                  <ScriptEditorView onShowToast={showToast} />
+                )}
+
+                {/* Fallbacks if accessed by other roles or directly */}
+                {currentView === 'layout' && currentRole !== 'ARTIST' && (
+                  <LayoutArtworkView onShowToast={showToast} />
+                )}
+                {currentView === 'script' && currentRole !== 'WRITER' && (
+                  <ScriptEditorView onShowToast={showToast} />
+                )}
+
+                {/* Render bảng Pipeline tổng quan cho các role khác (như PRODUCER, READER...) */}
+                {currentView === 'dashboard' && currentRole !== 'ARTIST' && (
                   <ProductionPipelineView
                     currentUserRole={currentRole as any}
                     onShowToast={showToast}
                     isReaderMode={currentRole === 'READER'}
                   />
                 )}
-                {currentView === 'script' && <ScriptEditorView onShowToast={showToast} />}
-                {currentView === 'layout' && <LayoutArtworkView onShowToast={showToast} />}
+
                 {currentView === 'review' && (
                   <div className='p-4'>Editor Workspace (Placeholder)</div>
                 )}
+                {/* ------------------------------- */}
+                
               </div>
             </GlobalAppShell>
           )}
