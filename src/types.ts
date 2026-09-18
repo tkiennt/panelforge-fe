@@ -114,6 +114,22 @@ export interface BibleEntity {
 export type StudioRole = 'Lead Producer' | 'Artist / Inker' | 'Writer' | 'Reviewer / Editor';
 export type RoleKey = 'producer' | 'artist' | 'writer' | 'reviewer';
 
+export type SystemRole =
+  'ADMINISTRATOR' | 'PRODUCER' | 'WRITER' | 'ARTIST' | 'LETTERER' | 'EDITOR' | 'READER';
+
+export function normalizeSystemRole(role: any): SystemRole {
+  if (!role) return 'ARTIST';
+  const r = String(role).trim().toUpperCase();
+  if (r === '0' || r === 'ADMIN' || r === 'ADMINISTRATOR') return 'ADMINISTRATOR';
+  if (r === '1' || r === 'PRODUCER') return 'PRODUCER';
+  if (r === '2' || r === 'WRITER') return 'WRITER';
+  if (r === '3' || r === 'ARTIST') return 'ARTIST';
+  if (r === '4' || r === 'LETTERER') return 'LETTERER';
+  if (r === '5' || r === 'EDITOR') return 'EDITOR';
+  if (r === '6' || r === 'READER') return 'READER';
+  return 'ARTIST';
+}
+
 export interface StudioMember {
   id: string;
   name: string;
