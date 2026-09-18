@@ -259,7 +259,6 @@ export default function LettererWorkspace() {
             </div>
           </div>
         </div>
-
       </div>
     </div>
   );
