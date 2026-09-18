@@ -46,6 +46,7 @@ import { ReviewView } from './views/ReviewView';
 import { GlobalAppShell } from './layouts/GlobalAppShell';
 import { ProductionPipelineView } from './views/ProductionPipelineView';
 import { ScriptEditorView } from './views/ScriptEditorView';
+import { LayoutArtworkView } from './views/LayoutArtworkView';
 
 import { MockRoleWorkspaceView } from './views/MockRoleWorkspaceView';
 
@@ -333,6 +334,7 @@ export default function App() {
                   />
                 )}
                 {currentView === 'script' && <ScriptEditorView onShowToast={showToast} />}
+                {currentView === 'layout' && <LayoutArtworkView onShowToast={showToast} />}
                 {currentView === 'review' && (
                   <div className='p-4'>Editor Workspace (Placeholder)</div>
                 )}
