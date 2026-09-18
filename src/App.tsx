@@ -45,7 +45,11 @@ import {
 import { ReviewView } from './views/ReviewView';
 import { GlobalAppShell } from './layouts/GlobalAppShell';
 import { ProductionPipelineView } from './views/ProductionPipelineView';
-import { ScriptEditorView } from './views/ScriptEditorView';
+
+// --- IMPORT FILE WRITER WORKSPACE VÀ ARTIST WORKSPACE Ở ĐÂY ---
+import WriterWorkspace from './components/modals/roles/WriterWorkspace';
+import ArtistWorkspace from './components/modals/roles/ArtistWorkspace';
+// ----------------------------------------------------------------
 
 import { MockRoleWorkspaceView } from './views/MockRoleWorkspaceView';
 
@@ -94,13 +98,13 @@ export default function App() {
     if (viewScope === 'project') {
       switch (currentRole) {
         case 'WRITER':
-          setCurrentView('script'); // Sẽ render WriterWorkspace
+          setCurrentView('script'); 
           break;
         case 'ARTIST':
-          setCurrentView('dashboard'); // Sẽ render ArtistWorkspace
+          setCurrentView('dashboard'); 
           break;
         case 'EDITOR':
-          setCurrentView('review'); // Sẽ render EditorWorkspace
+          setCurrentView('review'); 
           break;
         default:
           setCurrentView('dashboard');
@@ -325,17 +329,30 @@ export default function App() {
               onLeaveFeedback={() => showToast('Feedback', 'Thanks for your feedback!')}
             >
               <div className='w-full h-full relative overflow-hidden'>
-                {currentView === 'dashboard' && (
+                
+                {/* --- RENDER THEO ROLE Ở ĐÂY --- */}
+                {currentView === 'dashboard' && currentRole === 'ARTIST' && (
+                  <ArtistWorkspace />
+                )}
+
+                {currentView === 'script' && currentRole === 'WRITER' && (
+                  <WriterWorkspace />
+                )}
+
+                {/* Render bảng Pipeline tổng quan cho các role khác (như PRODUCER, READER...) */}
+                {currentView === 'dashboard' && currentRole !== 'ARTIST' && (
                   <ProductionPipelineView
                     currentUserRole={currentRole as any}
                     onShowToast={showToast}
                     isReaderMode={currentRole === 'READER'}
                   />
                 )}
-                {currentView === 'script' && <ScriptEditorView onShowToast={showToast} />}
+
                 {currentView === 'review' && (
                   <div className='p-4'>Editor Workspace (Placeholder)</div>
                 )}
+                {/* ------------------------------- */}
+                
               </div>
             </GlobalAppShell>
           )}
