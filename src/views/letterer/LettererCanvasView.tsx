@@ -52,7 +52,10 @@ export const LettererCanvasView: React.FC = () => {
   const loadElements = React.useCallback(async () => {
     setLoading(true);
     try {
-      const snap: PageSnapshotDto = await elementService.getPageSnapshot(DEFAULT_PAGE_ID, includeRemoved);
+      const snap: PageSnapshotDto = await elementService.getPageSnapshot(
+        DEFAULT_PAGE_ID,
+        includeRemoved,
+      );
       if (snap && snap.elements) {
         setElements(snap.elements);
         setPageVersion(snap.version || 1);
@@ -86,7 +89,9 @@ export const LettererCanvasView: React.FC = () => {
         content: newContent.trim(),
       });
 
-      const newElemId = res?.elementId || '99999999-9999-9999-9999-' + Math.floor(Math.random() * 899999999999 + 100000000000);
+      const newElemId =
+        res?.elementId ||
+        '99999999-9999-9999-9999-' + Math.floor(Math.random() * 899999999999 + 100000000000);
       const newElem: ElementSnapshotDto = {
         elementId: newElemId,
         elementType: newType,

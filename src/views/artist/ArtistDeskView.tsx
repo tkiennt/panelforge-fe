@@ -14,7 +14,13 @@ import {
   Sliders,
   Sparkles,
 } from 'lucide-react';
-import { pageService, PageDto, PageDetailDto, MOCK_PAGES, DEFAULT_CHAPTER_ID } from '../../services/page.service';
+import {
+  pageService,
+  PageDto,
+  PageDetailDto,
+  MOCK_PAGES,
+  DEFAULT_CHAPTER_ID,
+} from '../../services/page.service';
 
 export const ArtistDeskView: React.FC = () => {
   const [pages, setPages] = useState<PageDto[]>(MOCK_PAGES);

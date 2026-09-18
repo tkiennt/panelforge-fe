@@ -171,11 +171,14 @@ export const elementService = {
   ): Promise<{ message: string }> => {
     const validPageId = toValidPageGuid(pageId);
     const validElemId = toValidElementGuid(elementId);
-    const response = await fetch(`${API_URL}/api/pages/${validPageId}/elements/${validElemId}/position`, {
-      method: 'PUT',
-      headers: getAuthHeaders(token),
-      body: JSON.stringify(request),
-    });
+    const response = await fetch(
+      `${API_URL}/api/pages/${validPageId}/elements/${validElemId}/position`,
+      {
+        method: 'PUT',
+        headers: getAuthHeaders(token),
+        body: JSON.stringify(request),
+      },
+    );
     if (!response.ok && response.status !== 202) {
       throw new Error(await parseErrorResponse(response, 'Di chuyển Element thất bại.'));
     }
