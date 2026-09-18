@@ -9,12 +9,14 @@ import {
   HelpCircle,
   ChevronsUpDown,
   ArrowLeft,
-  CheckCircle2, // <--- Đã thêm CheckCircle2 vào đây
+  CheckCircle2,
+  Shield,
+  Cpu,
 } from 'lucide-react';
-import { ViewMode, MangaProject } from '../types';
+import { ViewMode, MangaProject, SystemRole } from '../types';
 
 interface SidebarProps {
-  currentView: ViewMode | string; // Thêm | string để không bị lỗi type
+  currentView: ViewMode | string;
   onSelectView: (view: any) => void;
   activeProject: MangaProject;
   projects: MangaProject[];
@@ -23,7 +25,7 @@ interface SidebarProps {
   onOpenSettings: () => void;
   onOpenHelp: () => void;
   onOpenStorageModal: () => void;
-  userRole: 'WRITER' | 'ARTIST' | 'EDITOR'; // <--- THÊM DÒNG NÀY
+  userRole?: SystemRole | string;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -215,6 +217,64 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     className={`w-4 h-4 ${currentView === 'members' ? 'text-[#F97316]' : 'text-[#888888]'}`}
                   />
                   <span>Quản lý Nhân sự</span>
+                </button>
+              </>
+            )}
+
+            {/* MENU CHO ADMIN (Quản trị viên) */}
+            {userRole === 'ADMINISTRATOR' && (
+              <>
+                <button
+                  onClick={() => onSelectView('admin-dash')}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs transition-colors cursor-pointer ${
+                    currentView === 'admin-dash'
+                      ? 'font-semibold bg-[#FFF7ED] text-[#F97316] border-l-4 border-[#F97316]'
+                      : 'font-medium text-[#555555] hover:text-[#171717] hover:bg-[#F3F1EB]'
+                  }`}
+                >
+                  <LayoutGrid
+                    className={`w-4 h-4 ${currentView === 'admin-dash' ? 'text-[#F97316]' : 'text-[#888888]'}`}
+                  />
+                  <span>Bảng Điều Khiển Admin</span>
+                </button>
+                <button
+                  onClick={() => onSelectView('users')}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs transition-colors cursor-pointer ${
+                    currentView === 'users' || currentView === 'roles'
+                      ? 'font-semibold bg-[#FFF7ED] text-[#F97316] border-l-4 border-[#F97316]'
+                      : 'font-medium text-[#555555] hover:text-[#171717] hover:bg-[#F3F1EB]'
+                  }`}
+                >
+                  <Users
+                    className={`w-4 h-4 ${currentView === 'users' || currentView === 'roles' ? 'text-[#F97316]' : 'text-[#888888]'}`}
+                  />
+                  <span>Quản Lý Người Dùng & RBAC</span>
+                </button>
+                <button
+                  onClick={() => onSelectView('ai-quota')}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs transition-colors cursor-pointer ${
+                    currentView === 'ai-quota' || currentView === 'storage'
+                      ? 'font-semibold bg-[#FFF7ED] text-[#F97316] border-l-4 border-[#F97316]'
+                      : 'font-medium text-[#555555] hover:text-[#171717] hover:bg-[#F3F1EB]'
+                  }`}
+                >
+                  <Cpu
+                    className={`w-4 h-4 ${currentView === 'ai-quota' || currentView === 'storage' ? 'text-[#F97316]' : 'text-[#888888]'}`}
+                  />
+                  <span>Hạn Ngạch AI & Cấu Hình</span>
+                </button>
+                <button
+                  onClick={() => onSelectView('audit')}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs transition-colors cursor-pointer ${
+                    currentView === 'audit'
+                      ? 'font-semibold bg-[#FFF7ED] text-[#F97316] border-l-4 border-[#F97316]'
+                      : 'font-medium text-[#555555] hover:text-[#171717] hover:bg-[#F3F1EB]'
+                  }`}
+                >
+                  <Shield
+                    className={`w-4 h-4 ${currentView === 'audit' ? 'text-[#F97316]' : 'text-[#888888]'}`}
+                  />
+                  <span>Nhật Ký Kiểm Toán (Audit)</span>
                 </button>
               </>
             )}

@@ -10,7 +10,7 @@ export const ScriptOutline: React.FC<ScriptOutlineProps> = ({ blocks }) => {
   // Generate outline items
   const outlineItems = blocks.filter((b) => b.type === 'scene_heading' || b.type === 'panel_break');
 
-  let pageCount = 1;
+  const pageCount = 1;
   let panelCount = 1;
 
   const formattedItems = outlineItems.map((item) => {

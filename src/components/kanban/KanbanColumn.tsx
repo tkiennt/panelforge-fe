@@ -34,11 +34,12 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
       isDimmed = stage.id !== 'script';
       isHighlighted = stage.id === 'script';
       break;
-    case 'ARTIST':
+    case 'ARTIST': {
       const artistStages = ['thumbnail', 'pencil', 'ink', 'color'];
       isDimmed = !artistStages.includes(stage.id);
       isHighlighted = artistStages.includes(stage.id);
       break;
+    }
     case 'LETTERER':
       isDimmed = stage.id !== 'letter';
       isHighlighted = stage.id === 'letter';
