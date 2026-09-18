@@ -43,3 +43,4 @@ coverage
 .stylelintcache
 .cache
 .parcel-cache
+.evn
