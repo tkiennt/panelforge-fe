@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MousePointer2, Square, ZoomIn, Sparkles, BookOpen, Trash2 } from 'lucide-react';
+import { MousePointer2, Square, ZoomIn, Sparkles, BookOpen, Trash2, Copy } from 'lucide-react';
 import {
   MOCK_PAGE_PANELS,
   PanelItem,
@@ -72,6 +72,22 @@ export const LayoutArtworkView: React.FC<LayoutArtworkViewProps> = ({ onShowToas
     }
   };
 
+  const handleDuplicateSelected = () => {
+    if (selectedPanelId && selectedPanel) {
+      const newPanel: PanelItem = {
+        ...selectedPanel,
+        id: `PNL-${(panels.length + 1).toString().padStart(2, '0')}`,
+        x: Math.min(100 - selectedPanel.width, selectedPanel.x + 5),
+        y: Math.min(100 - selectedPanel.height, selectedPanel.y + 5),
+        currentArtworkVersionId: undefined,
+        versions: [],
+      };
+      setPanels((prev) => [...prev, newPanel]);
+      setSelectedPanelId(newPanel.id);
+      onShowToast('Panel Duplicated', 'A copy of the panel was created.');
+    }
+  };
+
   const handleApplyAILayout = (newPanels: PanelItem[]) => {
     setPanels(newPanels);
     setSelectedPanelId(null);
@@ -124,6 +140,13 @@ export const LayoutArtworkView: React.FC<LayoutArtworkViewProps> = ({ onShowToas
           {selectedPanelId && (
             <>
               <div className='w-px h-5 bg-[#E7E7E7]'></div>
+              <button
+                onClick={handleDuplicateSelected}
+                className='p-1.5 rounded-md text-[#525252] hover:bg-[#F3F3F3] transition-colors'
+                title='Duplicate Selected Panel'
+              >
+                <Copy className='w-4 h-4' />
+              </button>
               <button
                 onClick={handleDeleteSelected}
                 className='p-1.5 rounded-md text-[#EF4444] hover:bg-[#FEE2E2] transition-colors'

@@ -35,6 +35,10 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 
+  // Resizing state
+  const [isResizing, setIsResizing] = useState(false);
+  const [resizeStartSize, setResizeStartSize] = useState({ width: 0, height: 0 });
+
   const getPercentagePos = (e: React.MouseEvent | React.DragEvent) => {
     if (!canvasRef.current) return { x: 0, y: 0 };
     const rect = canvasRef.current.getBoundingClientRect();
@@ -75,6 +79,20 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = ({
           return p;
         }),
       );
+    } else if (isResizing && selectedPanelId) {
+      const pos = getPercentagePos(e);
+      setPanels((prev) =>
+        prev.map((p) => {
+          if (p.id === selectedPanelId) {
+            return {
+              ...p,
+              width: Math.max(5, pos.x - p.x),
+              height: Math.max(5, pos.y - p.y),
+            };
+          }
+          return p;
+        }),
+      );
     }
   };
 
@@ -105,6 +123,10 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = ({
 
     if (isDragging) {
       setIsDragging(false);
+    }
+
+    if (isResizing) {
+      setIsResizing(false);
     }
   };
 
@@ -188,6 +210,12 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = ({
             panel={panel}
             isSelected={selectedPanelId === panel.id}
             onSelect={(e) => handlePanelMouseDown(e, panel.id)}
+            onResizeStart={(e) => {
+              if (toolMode === 'select') {
+                setIsResizing(true);
+                setResizeStartSize({ width: panel.width, height: panel.height });
+              }
+            }}
           />
         ))}
 

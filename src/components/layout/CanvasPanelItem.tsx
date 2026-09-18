@@ -6,6 +6,7 @@ interface CanvasPanelItemProps {
   panel: PanelItem;
   isSelected: boolean;
   onSelect: (e: React.MouseEvent) => void;
+  onResizeStart: (e: React.MouseEvent) => void;
 }
 
 const STAGE_COLORS: Record<string, { bg: string; text: string; border: string }> = {
@@ -22,6 +23,7 @@ export const CanvasPanelItem: React.FC<CanvasPanelItemProps> = ({
   panel,
   isSelected,
   onSelect,
+  onResizeStart,
 }) => {
   const stageColor = STAGE_COLORS[panel.stage] || STAGE_COLORS['thumbnail'];
   const hasArtwork = panel.versions.length > 0;
@@ -74,7 +76,10 @@ export const CanvasPanelItem: React.FC<CanvasPanelItemProps> = ({
           <div className='absolute -top-1.5 -left-1.5 w-3 h-3 bg-white border-2 border-[#F97316]'></div>
           <div className='absolute -top-1.5 -right-1.5 w-3 h-3 bg-white border-2 border-[#F97316]'></div>
           <div className='absolute -bottom-1.5 -left-1.5 w-3 h-3 bg-white border-2 border-[#F97316]'></div>
-          <div className='absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-white border-2 border-[#F97316] cursor-se-resize'></div>
+          <div 
+            className='absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-white border-2 border-[#F97316] cursor-se-resize'
+            onMouseDown={(e) => { e.stopPropagation(); onResizeStart(e); }}
+          ></div>
         </>
       )}
     </div>
