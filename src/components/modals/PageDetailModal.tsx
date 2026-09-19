@@ -37,14 +37,14 @@ export const PageDetailModal: React.FC<PageDetailModalProps> = ({
   onUpdateStage,
   onShowToast,
 }) => {
-  if (!card) return null;
-
   const [noteText, setNoteText] = useState('');
-  const [comments, setComments] = useState<string[]>([
-    card.editorialNote
+  const [comments, setComments] = useState<string[]>(() => [
+    card?.editorialNote
       ? `Editor note: ${card.editorialNote}`
       : 'Initial cut storyboard registered.',
   ]);
+
+  if (!card) return null;
 
   const handleAddComment = () => {
     if (!noteText.trim()) return;

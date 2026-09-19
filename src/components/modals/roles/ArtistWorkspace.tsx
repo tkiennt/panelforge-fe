@@ -1,126 +1,247 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import {
-  UploadCloud, ShieldCheck, Cpu, User as UserIcon, ImageIcon, GripHorizontal, 
-  ChevronRight, MousePointer2, Pencil, Eraser, PaintBucket
+  UploadCloud,
+  Clock,
+  LayoutTemplate,
+  ShieldCheck,
+  History,
+  Image as ImageIcon,
+  Check,
+  FileImage,
+  AlertCircle,
 } from 'lucide-react';
 
-const MOCK_PROVENANCE = [
-  { id: 'a1', name: 'panel3_lineart.psd', type: 'Human', hash: 'CAS-8F92...3A1', time: '10:45 AM' },
-  { id: 'a2', name: 'bg_ref_gen.png', type: 'AI', hash: 'CAS-1B44...9C2', time: '09:12 AM' },
+// Mock data cho danh sách task của Họa sĩ
+const ASSIGNED_TASKS = [
+  {
+    id: 't1',
+    page: 'PAGE 12',
+    stage: 'Pencil',
+    due: 'Hôm nay, 17:00',
+    status: 'In Progress',
+    urgent: true,
+  },
+  {
+    id: 't2',
+    page: 'PAGE 14',
+    stage: 'Ink',
+    due: 'Ngày mai, 10:00',
+    status: 'To Do',
+    urgent: false,
+  },
+  {
+    id: 't3',
+    page: 'PAGE 15',
+    stage: 'Thumbnail',
+    due: '20/10/2026',
+    status: 'To Do',
+    urgent: false,
+  },
 ];
 
 export default function ArtistWorkspace() {
-  const [isDragging, setIsDragging] = useState(false);
-  const [uploadedAssets, setUploadedAssets] = useState(MOCK_PROVENANCE);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [activeTask, setActiveTask] = useState(ASSIGNED_TASKS[0]);
+  const [isUploading, setIsUploading] = useState(false);
 
-  const [activeTool, setActiveTool] = useState<'select' | 'brush' | 'eraser' | 'fill'>('brush');
-  const [brushSize, setBrushSize] = useState(5);
-  const [brushColor, setBrushColor] = useState('#171717');
-  const [showBrushSettings, setShowBrushSettings] = useState(false);
-
-  const mockUpload = (fileName: string) => {
-    const newAsset = {
-      id: `a${Date.now()}`, name: fileName, type: 'Human',
-      hash: `CAS-${Math.random().toString(36).substring(2, 8).toUpperCase()}...`,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    };
-    setUploadedAssets([newAsset, ...uploadedAssets]);
+  // Giả lập hành động tải file
+  const handleUpload = () => {
+    setIsUploading(true);
+    setTimeout(() => setIsUploading(false), 1500);
   };
 
   return (
-    <div className='flex h-full w-full bg-[#FAF8F4] text-[#171717] font-sans overflow-hidden'>
-      
-      {/* KHÔNG CÒN LEFT SIDEBAR Ở ĐÂY NỮA */}
-
-      {/* 1. CENTER CANVAS AREA */}
-      <main className='flex-1 flex flex-col bg-[#E5E5E5] relative min-w-0'>
-        <div className='h-12 bg-white border-b border-[#E7E7E7] flex items-center justify-between px-4 shadow-sm z-10 shrink-0'>
-          <div className='flex items-center gap-2 text-[11px] font-semibold truncate'>
-            <span className='text-[#888888]'>Ch.5</span><ChevronRight className='w-3 h-3 text-[#CCCCCC]' />
-            <span className='text-[#888888]'>Page 2</span><ChevronRight className='w-3 h-3 text-[#CCCCCC]' />
-            <span className='text-[#171717] bg-[#F3F1EB] px-2 py-1 rounded truncate'>Interactive Canvas</span>
-          </div>
-          <div className='flex items-center gap-1.5 shrink-0'>
-            <button className='px-2 py-1 text-[10px] font-semibold bg-white border border-[#E7E7E7] rounded hover:bg-[#F8F6F0]'>Grid Snap</button>
-          </div>
+    <div className='flex flex-col h-full bg-[#F8F6F0] text-[#171717] font-sans'>
+      {/* --- HEADER --- */}
+      <div className='flex justify-between items-center px-6 py-4 border-b border-[#E7E7E7] bg-white shrink-0 shadow-xs'>
+        <div>
+          <h2 className='text-xl font-bold font-display tracking-tight text-[#171717]'>
+            Artist Workspace
+          </h2>
+          <p className='text-xs text-[#888888] font-mono mt-0.5'>Studio Inking & Asset Upload</p>
         </div>
+        <button className='px-4 py-2 bg-[#F97316] text-white font-semibold rounded-lg text-sm flex items-center gap-2 hover:bg-[#EA580C] transition-all shadow-sm cursor-pointer active:scale-95'>
+          <Check className='w-4 h-4' />
+          <span>Hoàn thành Task</span>
+        </button>
+      </div>
 
-        {/* Floating Toolbar */}
-        <div className='absolute left-2 top-16 z-20 bg-white border border-[#E7E7E7] rounded-xl shadow-lg flex flex-col p-1 gap-1 items-center'>
-          <button onClick={() => setActiveTool('select')} className={`w-8 h-8 rounded-lg flex justify-center items-center ${activeTool === 'select' ? 'bg-[#FFF7ED] text-[#F97316]' : 'text-[#555555] hover:bg-[#F3F1EB]'}`}><MousePointer2 className='w-4 h-4' /></button>
-          <div className='relative group'>
-            <button onClick={() => { setActiveTool('brush'); setShowBrushSettings(!showBrushSettings); }} className={`w-8 h-8 rounded-lg flex justify-center items-center ${activeTool === 'brush' ? 'bg-[#FFF7ED] text-[#F97316]' : 'text-[#555555] hover:bg-[#F3F1EB]'}`}><Pencil className='w-4 h-4' /></button>
-            {activeTool === 'brush' && showBrushSettings && (
-              <div className='absolute left-full ml-2 top-0 bg-white border border-[#E7E7E7] rounded-lg shadow-xl p-2 w-40 z-30 flex flex-col gap-2'>
-                <div className='flex justify-between'><span className='text-[10px] font-bold text-[#888888]'>SIZE</span><span className='text-[10px] font-mono font-bold'>{brushSize}px</span></div>
-                <input type="range" min="1" max="100" value={brushSize} onChange={(e) => setBrushSize(Number(e.target.value))} className="w-full h-1 bg-[#E5E5E5] rounded-lg appearance-none accent-[#F97316]" />
-              </div>
-            )}
+      {/* --- MAIN CONTENT (3 COLUMNS) --- */}
+      <div className='flex flex-1 overflow-hidden p-4 md:p-6 gap-5'>
+        {/* COL 1: MY ASSIGNED TASKS BOARD */}
+        <div className='w-1/4 flex flex-col bg-white rounded-xl border border-[#E7E7E7] shadow-sm overflow-hidden flex-shrink-0'>
+          <div className='px-4 py-3 bg-[#FAF8F4] border-b border-[#E7E7E7]'>
+            <h3 className='font-bold text-sm text-[#171717] flex items-center gap-2'>
+              <Clock className='w-4 h-4 text-[#F97316]' />
+              My Assigned Tasks
+            </h3>
           </div>
-          <button onClick={() => setActiveTool('eraser')} className={`w-8 h-8 rounded-lg flex justify-center items-center ${activeTool === 'eraser' ? 'bg-[#FFF7ED] text-[#F97316]' : 'text-[#555555] hover:bg-[#F3F1EB]'}`}><Eraser className='w-4 h-4' /></button>
-          <button onClick={() => setActiveTool('fill')} className={`w-8 h-8 rounded-lg flex justify-center items-center ${activeTool === 'fill' ? 'bg-[#FFF7ED] text-[#F97316]' : 'text-[#555555] hover:bg-[#F3F1EB]'}`}><PaintBucket className='w-4 h-4' /></button>
-          <div className='w-5 h-px bg-[#E7E7E7] my-0.5' />
-          <label className='w-8 h-8 rounded-lg flex items-center justify-center hover:bg-[#F3F1EB] cursor-pointer'>
-            <div className='w-4 h-4 rounded-full border border-gray-300 overflow-hidden flex items-center justify-center'><input type="color" value={brushColor} onChange={(e) => setBrushColor(e.target.value)} className="w-6 h-6 -m-2 cursor-pointer" /></div>
-          </label>
-        </div>
-
-        {/* MOCK CANVAS - RESPONSIVE */}
-        <div className='flex-1 overflow-auto flex items-center justify-center p-4 min-w-0 custom-scrollbar'>
-          <div className='w-full max-w-[600px] min-w-[300px] aspect-[1/1.414] bg-white shadow-2xl relative border border-[#E7E7E7] shrink-0'>
-            <div className='absolute top-[3%] left-[4%] right-[4%] h-[28%] border-2 border-[#171717] hover:border-[#F97316] group cursor-move'>
-               <div className='absolute -top-3 left-2 bg-white px-1 text-[9px] font-bold text-[#888888] flex gap-1 group-hover:text-[#F97316]'><GripHorizontal className='w-2.5 h-2.5' /> P1 (Ink)</div>
-               <div className='w-full h-full bg-gray-50 flex items-center justify-center text-[#CCCCCC]'><ImageIcon className='w-8 h-8 opacity-50' /></div>
-            </div>
-            <div className='absolute top-[34%] left-[4%] w-[44%] h-[30%] border-2 border-[#171717] hover:border-[#F97316] group cursor-move'>
-               <div className='absolute -top-3 left-2 bg-white px-1 text-[9px] font-bold text-[#888888] flex gap-1 group-hover:text-[#F97316]'><GripHorizontal className='w-2.5 h-2.5' /> P2</div>
-            </div>
-            <div className='absolute top-[34%] right-[4%] w-[45%] h-[40%] border-[3px] border-[#F97316] bg-[#FFF7ED]/30 group cursor-move shadow-[0_0_15px_rgba(249,115,22,0.15)]'>
-               <div className='absolute -top-3 left-2 bg-white px-1 text-[9px] font-bold text-[#F97316] flex gap-1'><GripHorizontal className='w-2.5 h-2.5' /> P3 (Active)</div>
-               <div className='absolute inset-0 flex items-center justify-center'><span className='text-[10px] font-semibold text-[#F97316] text-center'>Drop Artwork</span></div>
-            </div>
-          </div>
-        </div>
-      </main>
-
-      {/* 2. RIGHT SIDEBAR - ASSET PROVENANCE */}
-      <aside className='w-72 flex flex-col border-l border-[#E7E7E7] bg-white shrink-0'>
-        <div className='p-3 border-b border-[#E7E7E7]'>
-          <h2 className='text-xs font-bold font-display tracking-tight flex items-center gap-1.5'><ShieldCheck className='w-3.5 h-3.5 text-[#10B981]' /> Asset & Provenance</h2>
-        </div>
-        <div className='p-3 flex flex-col h-full'>
-          <div 
-            className={`border-2 border-dashed rounded-xl flex flex-col items-center justify-center p-4 text-center cursor-pointer mb-4 ${isDragging ? 'border-[#F97316] bg-[#FFF7ED]' : 'border-[#E7E7E7] hover:border-[#CCCCCC] bg-[#F8F6F0]'}`}
-            onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-            onDragLeave={() => setIsDragging(false)}
-            onDrop={(e) => { e.preventDefault(); setIsDragging(false); if(e.dataTransfer.files[0]) mockUpload(e.dataTransfer.files[0].name); }}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <UploadCloud className={`w-6 h-6 mb-1 ${isDragging ? 'text-[#F97316]' : 'text-[#888888]'}`} />
-            <span className='text-[11px] font-bold text-[#171717]'>Tải File Lên</span>
-            <input type="file" ref={fileInputRef} className="hidden" onChange={(e) => e.target.files && mockUpload(e.target.files[0].name)} />
-          </div>
-          <div className='flex-1 overflow-y-auto custom-scrollbar'>
-            <div className='space-y-2'>
-              {uploadedAssets.map((asset) => (
-                <div key={asset.id} className='p-2 bg-white border border-[#E7E7E7] rounded-lg'>
-                  <div className='flex justify-between items-start mb-1.5'>
-                    <span className='text-[10px] font-bold text-[#171717] truncate pr-1'>{asset.name}</span>
-                    <span className='text-[8px] text-[#888888] font-mono shrink-0'>{asset.time}</span>
-                  </div>
-                  <div className='flex gap-1.5 mb-1.5'>
-                    {asset.type === 'Human' ? <span className='flex items-center gap-1 text-[8px] font-semibold bg-blue-50 text-blue-700 px-1 rounded'><UserIcon className='w-2.5 h-2.5'/> Human</span>
-                    : <span className='flex items-center gap-1 text-[8px] font-semibold bg-purple-50 text-purple-700 px-1 rounded'><Cpu className='w-2.5 h-2.5'/> AI</span>}
-                  </div>
-                  <div className='flex items-center gap-1 text-[8px] text-[#888888] bg-[#F8F6F0] p-1 rounded font-mono'><ShieldCheck className='w-2.5 h-2.5 text-[#10B981]' /> <span className='truncate'>{asset.hash}</span></div>
+          <div className='flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar'>
+            {ASSIGNED_TASKS.map((task) => (
+              <div
+                key={task.id}
+                onClick={() => setActiveTask(task)}
+                className={`p-3 rounded-lg border transition-all cursor-pointer ${
+                  activeTask.id === task.id
+                    ? 'border-[#F97316] bg-[#FFF7ED] shadow-sm'
+                    : 'border-[#E7E7E7] bg-white hover:border-[#171717]'
+                }`}
+              >
+                <div className='flex items-center justify-between mb-2'>
+                  <span
+                    className={`text-[11px] font-mono font-bold px-2 py-0.5 rounded ${
+                      activeTask.id === task.id
+                        ? 'bg-[#F97316] text-white'
+                        : 'bg-[#171717] text-white'
+                    }`}
+                  >
+                    {task.page}
+                  </span>
+                  <span className='text-[10px] font-mono font-bold text-[#888888] uppercase'>
+                    {task.stage}
+                  </span>
                 </div>
-              ))}
+                <div className='flex items-center gap-1.5 text-xs font-medium text-[#555555]'>
+                  <AlertCircle
+                    className={`w-3.5 h-3.5 ${task.urgent ? 'text-[#DC2626]' : 'text-[#888888]'}`}
+                  />
+                  <span className={task.urgent ? 'text-[#DC2626]' : ''}>Due: {task.due}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* COL 2: INTERACTIVE PANEL CANVAS & SCRIPT */}
+        <div className='w-2/4 flex flex-col bg-white rounded-xl border border-[#E7E7E7] shadow-sm overflow-hidden flex-shrink-0'>
+          <div className='px-4 py-3 bg-[#FAF8F4] border-b border-[#E7E7E7] flex justify-between items-center'>
+            <h3 className='font-bold text-sm text-[#171717] flex items-center gap-2'>
+              <LayoutTemplate className='w-4 h-4 text-[#0EA5E9]' />
+              Interactive Panel Canvas
+            </h3>
+            <span className='text-[10px] font-mono bg-white px-2 py-0.5 rounded border border-[#E7E7E7] text-[#888888]'>
+              B5 Layout (600 DPI)
+            </span>
+          </div>
+
+          <div className='flex flex-col flex-1 overflow-hidden p-4 bg-[#F3F1EB]'>
+            {/* Script Reference Block */}
+            <div className='mb-4 p-3 bg-white border border-[#E7E7E7] border-l-4 border-l-[#171717] rounded shadow-xs'>
+              <h4 className='text-[10px] font-mono font-bold text-[#888888] mb-1 uppercase tracking-wider'>
+                Script Reference
+              </h4>
+              <p className='text-sm text-[#171717] leading-relaxed'>
+                <strong>Panel 1:</strong> Con thú ngoài thân kim quang lấp lánh, hình thể cuồng
+                trướng. <br />
+                <em className='text-[#555555] text-xs'>
+                  *Ghi chú: Đánh bóng nét Ink dày ở phần sừng, tham khảo Series Bible (Mã V-4).
+                </em>
+              </p>
+            </div>
+
+            {/* Visual Canvas Area (Mock) */}
+            <div className='flex-1 border-2 border-dashed border-[#AAAAAA] rounded-lg bg-white relative flex items-center justify-center overflow-hidden group'>
+              {/* Giả lập bố cục Layout */}
+              <div className='absolute inset-4 grid grid-cols-2 grid-rows-3 gap-2 opacity-20 pointer-events-none'>
+                <div className='col-span-2 row-span-1 border-2 border-[#171717] bg-[#F8F6F0]'></div>
+                <div className='col-span-1 row-span-2 border-2 border-[#171717] bg-[#F8F6F0]'></div>
+                <div className='col-span-1 row-span-1 border-2 border-[#171717] bg-[#F8F6F0]'></div>
+                <div className='col-span-1 row-span-1 border-2 border-[#171717] bg-[#F8F6F0]'></div>
+              </div>
+
+              <div className='text-center z-10'>
+                <ImageIcon className='w-12 h-12 text-[#E7E7E7] mx-auto mb-2 group-hover:text-[#F97316] transition-colors' />
+                <p className='text-sm font-semibold text-[#888888]'>HTML5 Canvas Planner</p>
+                <p className='text-xs text-[#AAAAAA] mt-1'>(Khu vực vẽ / thao tác bố cục)</p>
+              </div>
             </div>
           </div>
-          <button className='w-full py-2 bg-[#171717] text-white rounded-lg text-[11px] font-bold mt-2 shadow-md hover:bg-gray-800 transition-colors'>Xác nhận Task</button>
         </div>
-      </aside>
+
+        {/* COL 3: ASSET UPLOAD & PROVENANCE MODAL */}
+        <div className='w-1/4 flex flex-col bg-white rounded-xl border border-[#E7E7E7] shadow-sm overflow-hidden flex-shrink-0'>
+          <div className='px-4 py-3 bg-[#FAF8F4] border-b border-[#E7E7E7]'>
+            <h3 className='font-bold text-sm text-[#171717] flex items-center gap-2'>
+              <UploadCloud className='w-4 h-4 text-[#10B981]' />
+              Asset & Provenance
+            </h3>
+          </div>
+
+          <div className='flex-1 overflow-y-auto p-4 custom-scrollbar flex flex-col gap-4'>
+            {/* Uploader Box */}
+            <div
+              onClick={handleUpload}
+              className={`border-2 border-dashed rounded-xl flex flex-col items-center justify-center p-6 text-center cursor-pointer transition-all ${
+                isUploading
+                  ? 'border-[#F97316] bg-[#FFF7ED]'
+                  : 'border-[#E7E7E7] hover:border-[#171717] hover:bg-[#FAF8F4]'
+              }`}
+            >
+              {isUploading ? (
+                <div className='animate-pulse text-[#F97316]'>
+                  <UploadCloud className='w-8 h-8 mx-auto mb-2' />
+                  <p className='text-xs font-bold font-mono'>Đang tải lên CAS...</p>
+                </div>
+              ) : (
+                <div className='text-[#888888]'>
+                  <FileImage className='w-8 h-8 mx-auto mb-2 text-[#AAAAAA]' />
+                  <p className='text-xs font-medium text-[#171717] mb-1'>Kéo thả hoặc Click</p>
+                  <p className='text-[10px] font-mono'>Hỗ trợ PSD, CLIP, PNG</p>
+                </div>
+              )}
+            </div>
+
+            {/* Provenance Tags (Bắt buộc theo nghiệp vụ ảnh 2) */}
+            <div className='p-3 bg-[#F8F6F0] rounded-lg border border-[#E7E7E7]'>
+              <h4 className='text-[10px] font-mono font-bold text-[#171717] mb-2 flex items-center gap-1.5 uppercase tracking-wider'>
+                <ShieldCheck className='w-3.5 h-3.5 text-[#10B981]' />
+                Provenance Tracking
+              </h4>
+              <div className='space-y-1.5'>
+                <div className='flex justify-between items-center bg-white px-2 py-1.5 rounded border border-[#E7E7E7]'>
+                  <span className='text-[10px] text-[#555555] font-semibold'>Tác giả (Human):</span>
+                  <span className='text-[10px] font-mono text-[#10B981] bg-[#ECFDF5] px-1.5 py-0.5 rounded'>
+                    100% Khớp
+                  </span>
+                </div>
+                <div className='flex justify-between items-center bg-white px-2 py-1.5 rounded border border-[#E7E7E7]'>
+                  <span className='text-[10px] text-[#555555] font-semibold'>AI Assist:</span>
+                  <span className='text-[10px] font-mono text-[#888888] bg-[#F3F1EB] px-1.5 py-0.5 rounded'>
+                    0% (None)
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Version Control */}
+            <div>
+              <h4 className='text-[10px] font-mono font-bold text-[#888888] mb-2 flex items-center gap-1.5 uppercase tracking-wider'>
+                <History className='w-3.5 h-3.5' />
+                Lịch sử phiên bản
+              </h4>
+              <div className='space-y-2'>
+                <div className='flex items-center justify-between p-2 bg-white rounded border border-[#E7E7E7] shadow-xs'>
+                  <div className='flex flex-col'>
+                    <span className='text-xs font-semibold text-[#171717]'>V2 - Inking Final</span>
+                    <span className='text-[9px] text-[#888888] font-mono'>10 phút trước</span>
+                  </div>
+                  <span className='px-1.5 py-0.5 text-[9px] font-bold text-white bg-[#10B981] rounded uppercase tracking-wider'>
+                    Đã lưu
+                  </span>
+                </div>
+                <div className='flex items-center justify-between p-2 bg-[#FAF8F4] rounded border border-[#E7E7E7]'>
+                  <div className='flex flex-col'>
+                    <span className='text-xs font-medium text-[#555555]'>V1 - Pencil Sketch</span>
+                    <span className='text-[9px] text-[#888888] font-mono'>Hôm qua, 14:30</span>
+                  </div>
+                  <span className='px-1.5 py-0.5 text-[9px] font-bold text-[#555555] bg-[#E7E7E7] rounded uppercase tracking-wider'>
+                    Bản nháp
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

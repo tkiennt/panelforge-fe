@@ -1,0 +1,37 @@
+name: Frontend CI
+
+on:
+  pull_request:
+    branches: [ "**" ]
+  push:
+    branches: [ "main", "develop", "tam", "trungkien" ]
+
+jobs:
+  quality-assurance:
+    name: Code Quality & Automated Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type Checking (TypeScript)
+        run: npm run typecheck
+
+      - name: Linting (ESLint)
+        run: npm run lint
+
+      - name: Automated Unit & Component Tests (Vitest)
+        run: npm run test:run
+
+      - name: Production Bundle Verification (Vite Build)
+        run: npm run build

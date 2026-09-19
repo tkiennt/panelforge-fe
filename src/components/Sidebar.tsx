@@ -9,12 +9,16 @@ import {
   HelpCircle,
   ChevronsUpDown,
   ArrowLeft,
-  CheckCircle2, // <--- Đã thêm CheckCircle2 vào đây
+  CheckCircle2,
+  Shield,
+  Cpu,
+  LogOut,
+  Type,
 } from 'lucide-react';
-import { ViewMode, MangaProject } from '../types';
+import { ViewMode, MangaProject, SystemRole } from '../types';
 
 interface SidebarProps {
-  currentView: ViewMode | string; // Thêm | string để không bị lỗi type
+  currentView: ViewMode | string;
   onSelectView: (view: any) => void;
   activeProject: MangaProject;
   projects: MangaProject[];
@@ -23,7 +27,8 @@ interface SidebarProps {
   onOpenSettings: () => void;
   onOpenHelp: () => void;
   onOpenStorageModal: () => void;
-  userRole: 'WRITER' | 'ARTIST' | 'EDITOR'; // <--- THÊM DÒNG NÀY
+  userRole?: SystemRole | string;
+  onLogout?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -37,6 +42,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onOpenHelp,
   onOpenStorageModal,
   userRole,
+  onLogout,
 }) => {
   const [projectMenuOpen, setProjectMenuOpen] = React.useState(false);
 
@@ -94,11 +100,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
             <div className='overflow-hidden'>
               <div className='text-xs font-semibold text-[#171717] truncate'>Tatsuki F.</div>
-              <div className='text-[10px] text-[#888888] truncate font-mono'>Lead Producer</div>
+              <div className='text-[10px] text-[#888888] truncate font-mono'>
+                {userRole === 'PRODUCER' ? 'Lead Producer' : userRole}
+              </div>
             </div>
           </div>
           <span className='text-[9px] font-mono font-semibold text-[#F97316] bg-[#FFF7ED] px-1.5 py-0.5 rounded border border-[#FDBA74]/40'>
-            LEAD
+            {userRole === 'PRODUCER' ? 'LEAD' : 'MEMBER'}
           </span>
         </div>
 
@@ -156,6 +164,39 @@ export const Sidebar: React.FC<SidebarProps> = ({
             Studio Workspace
           </div>
           <nav className='space-y-1'>
+            {/* MENU CHO PRODUCER (Nhà sản xuất) */}
+            {userRole === 'PRODUCER' && (
+              <>
+                <button
+                  onClick={() => onSelectView('dashboard')}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs transition-colors cursor-pointer ${currentView === 'dashboard' ? 'font-semibold bg-[#FFF7ED] text-[#F97316] border-l-4 border-[#F97316]' : 'font-medium text-[#555555] hover:text-[#171717] hover:bg-[#F3F1EB]'}`}
+                >
+                  <LayoutGrid
+                    className={`w-4 h-4 ${currentView === 'dashboard' ? 'text-[#F97316]' : 'text-[#888888]'}`}
+                  />
+                  <span>Dashboard Tổng quan</span>
+                </button>
+                <button
+                  onClick={() => onSelectView('workflow')}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs transition-colors cursor-pointer ${currentView === 'workflow' ? 'font-semibold bg-[#FFF7ED] text-[#F97316] border-l-4 border-[#F97316]' : 'font-medium text-[#555555] hover:text-[#171717] hover:bg-[#F3F1EB]'}`}
+                >
+                  <Kanban
+                    className={`w-4 h-4 ${currentView === 'workflow' ? 'text-[#F97316]' : 'text-[#888888]'}`}
+                  />
+                  <span>Production Pipeline</span>
+                </button>
+                <button
+                  onClick={() => onSelectView('members')}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs transition-colors cursor-pointer ${currentView === 'members' ? 'font-semibold bg-[#FFF7ED] text-[#F97316] border-l-4 border-[#F97316]' : 'font-medium text-[#555555] hover:text-[#171717] hover:bg-[#F3F1EB]'}`}
+                >
+                  <Users
+                    className={`w-4 h-4 ${currentView === 'members' ? 'text-[#F97316]' : 'text-[#888888]'}`}
+                  />
+                  <span>Members & Roles (RBAC)</span>
+                </button>
+              </>
+            )}
+
             {/* MENU CHO ARTIST (Họa sĩ) */}
             {userRole === 'ARTIST' && (
               <>
@@ -219,6 +260,79 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </>
             )}
 
+            {/* MENU CHO ADMIN (Quản trị viên) */}
+            {userRole === 'ADMINISTRATOR' && (
+              <>
+                <button
+                  onClick={() => onSelectView('admin-dash')}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs transition-colors cursor-pointer ${
+                    currentView === 'admin-dash'
+                      ? 'font-semibold bg-[#FFF7ED] text-[#F97316] border-l-4 border-[#F97316]'
+                      : 'font-medium text-[#555555] hover:text-[#171717] hover:bg-[#F3F1EB]'
+                  }`}
+                >
+                  <LayoutGrid
+                    className={`w-4 h-4 ${currentView === 'admin-dash' ? 'text-[#F97316]' : 'text-[#888888]'}`}
+                  />
+                  <span>Bảng Điều Khiển Admin</span>
+                </button>
+                <button
+                  onClick={() => onSelectView('users')}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs transition-colors cursor-pointer ${
+                    currentView === 'users' || currentView === 'roles'
+                      ? 'font-semibold bg-[#FFF7ED] text-[#F97316] border-l-4 border-[#F97316]'
+                      : 'font-medium text-[#555555] hover:text-[#171717] hover:bg-[#F3F1EB]'
+                  }`}
+                >
+                  <Users
+                    className={`w-4 h-4 ${currentView === 'users' || currentView === 'roles' ? 'text-[#F97316]' : 'text-[#888888]'}`}
+                  />
+                  <span>Quản Lý Người Dùng & RBAC</span>
+                </button>
+                <button
+                  onClick={() => onSelectView('ai-quota')}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs transition-colors cursor-pointer ${
+                    currentView === 'ai-quota' || currentView === 'storage'
+                      ? 'font-semibold bg-[#FFF7ED] text-[#F97316] border-l-4 border-[#F97316]'
+                      : 'font-medium text-[#555555] hover:text-[#171717] hover:bg-[#F3F1EB]'
+                  }`}
+                >
+                  <Cpu
+                    className={`w-4 h-4 ${currentView === 'ai-quota' || currentView === 'storage' ? 'text-[#F97316]' : 'text-[#888888]'}`}
+                  />
+                  <span>Hạn Ngạch AI & Cấu Hình</span>
+                </button>
+                <button
+                  onClick={() => onSelectView('audit')}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs transition-colors cursor-pointer ${
+                    currentView === 'audit'
+                      ? 'font-semibold bg-[#FFF7ED] text-[#F97316] border-l-4 border-[#F97316]'
+                      : 'font-medium text-[#555555] hover:text-[#171717] hover:bg-[#F3F1EB]'
+                  }`}
+                >
+                  <Shield
+                    className={`w-4 h-4 ${currentView === 'audit' ? 'text-[#F97316]' : 'text-[#888888]'}`}
+                  />
+                  <span>Nhật Ký Kiểm Toán (Audit)</span>
+                </button>
+              </>
+            )}
+
+            {/* MENU CHO LETTERER (Người lồng chữ) */}
+            {userRole === 'LETTERER' && (
+              <>
+                <button
+                  onClick={() => onSelectView('lettering')}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs transition-colors cursor-pointer ${currentView === 'lettering' ? 'font-semibold bg-[#FFF7ED] text-[#F97316] border-l-4 border-[#F97316]' : 'font-medium text-[#555555] hover:text-[#171717] hover:bg-[#F3F1EB]'}`}
+                >
+                  <Type
+                    className={`w-4 h-4 ${currentView === 'lettering' ? 'text-[#F97316]' : 'text-[#888888]'}`}
+                  />
+                  <span>Lồng chữ (Lettering)</span>
+                </button>
+              </>
+            )}
+
             {/* MENU CHUNG CHO MỌI ROLE */}
             <button
               onClick={() => onSelectView('bible')}
@@ -235,7 +349,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Sidebar Bottom Utilities */}
       <div className='p-3 border-t border-[#E7E7E7] bg-white/80 space-y-3'>
-        {/* Vault Usage Card */}
         <div
           onClick={onOpenStorageModal}
           className='p-3 bg-[#F8F6F0] hover:bg-[#F3F1EB] rounded-lg border border-[#E7E7E7] cursor-pointer transition-colors'
@@ -259,7 +372,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         </div>
 
-        <nav className='space-y-0.5'>
+        <nav className='space-y-0.5 border-b border-[#E7E7E7] pb-2 mb-2'>
           <button
             onClick={onOpenSettings}
             className='w-full flex items-center gap-2 px-3 py-1.5 rounded-md text-[11px] text-[#555555] hover:text-[#171717] hover:bg-[#F3F1EB] transition-colors text-left cursor-pointer'
@@ -275,6 +388,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <span>Help & Docs</span>
           </button>
         </nav>
+
+        {/* LOGOUT BUTTON */}
+        {onLogout && (
+          <button
+            onClick={onLogout}
+            className='w-full flex items-center gap-2 px-3 py-2 rounded-md text-xs font-semibold text-[#DC2626] hover:bg-[#FEE2E2] hover:text-[#B91C1C] transition-colors text-left cursor-pointer'
+          >
+            <LogOut className='w-4 h-4' />
+            <span>Đăng xuất</span>
+          </button>
+        )}
       </div>
     </aside>
   );
