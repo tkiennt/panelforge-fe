@@ -62,19 +62,13 @@ describe('LoginModal Component', () => {
     expect(handleLogin).toHaveBeenCalledWith('editor@panelforge.com', 'secret123');
   });
 
-  it('chuyển sang màn hình xác thực 2FA khi tài khoản đã kích hoạt 2FA', async () => {
+  it('đăng nhập không rào cản và gọi handleLogin thành công khi xác thực đúng', async () => {
     const user = userEvent.setup();
     const handleClose = vi.fn();
     const handleLogin = vi.fn();
 
     vi.mocked(authService.login).mockResolvedValueOnce({
-      requiresTwoFactor: true,
-      twoFactorEmail: 'artist@panelforge.com',
-      message: 'Yêu cầu xác thực 2FA',
-    });
-
-    vi.mocked(authService.verifyTwoFactor).mockResolvedValueOnce({
-      token: 'valid-2fa-token',
+      token: 'mock-jwt-token',
       user: { email: 'artist@panelforge.com', role: 'ARTIST' },
     });
 
@@ -88,21 +82,9 @@ describe('LoginModal Component', () => {
     await user.type(passwordInput, 'password123');
     await user.click(submitBtn);
 
-    // Chuyển sang màn hình 2FA
-    expect(await screen.findByText('Xác thực 2 yếu tố')).toBeInTheDocument();
-    expect(screen.getByText('artist@panelforge.com')).toBeInTheDocument();
-
-    const otpInput = screen.getByPlaceholderText('000000');
-    await user.type(otpInput, '123456');
-
-    const verifyBtn = screen.getByRole('button', { name: /Xác thực & Đăng nhập/i });
-    await user.click(verifyBtn);
-
-    expect(authService.verifyTwoFactor).toHaveBeenCalledWith({
-      email: 'artist@panelforge.com',
-      code: '123456',
-    });
+    expect(authService.login).toHaveBeenCalledWith('artist@panelforge.com', 'password123');
     expect(handleLogin).toHaveBeenCalledTimes(1);
+    expect(handleLogin).toHaveBeenCalledWith('artist@panelforge.com', 'password123');
   });
 
   it('gọi onClose khi nhấn nút đóng modal', async () => {

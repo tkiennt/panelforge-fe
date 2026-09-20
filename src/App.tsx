@@ -65,6 +65,7 @@ import { SystemRole, normalizeSystemRole } from './types';
 import { LoginModal } from './components/modals/LoginModal';
 import { RegisterModal } from './components/modals/RegisterModal';
 import { TwoFactorSetupModal } from './components/modals/TwoFactorSetupModal';
+import { ChangePasswordModal } from './components/modals/ChangePasswordModal';
 import { LandingPageView } from './views/LandingPageView';
 import { UserProfile } from './views/UserProfile';
 import { auth, onAuthStateChanged } from './firebase';
@@ -121,8 +122,10 @@ export default function App() {
     name: string;
     email: string;
     role: SystemRole;
+    isTwoFactorEnabled?: boolean;
   } | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
 
   const navigateRoleDefaultView = (role: SystemRole) => {
     switch (role) {
@@ -158,6 +161,23 @@ export default function App() {
     if (savedRole) {
       const role = normalizeSystemRole(savedRole);
       setCurrentRole(role);
+    }
+    const savedUser = localStorage.getItem('user');
+    if (savedUser) {
+      try {
+        const u = JSON.parse(savedUser);
+        const role = normalizeSystemRole(u.role);
+        setCurrentRole(role);
+        setCurrentUserInfo({
+          id: u.id,
+          name: u.fullName || u.username || u.email?.split('@')[0] || 'User',
+          email: u.email || '',
+          role,
+          isTwoFactorEnabled: !!u.isTwoFactorEnabled,
+        });
+      } catch {
+        // bỏ qua lỗi parse
+      }
     }
     const savedToken = localStorage.getItem('token');
     if (savedToken) {
@@ -423,7 +443,11 @@ export default function App() {
                     'User',
                   email: authResponse?.user?.email || '',
                   role,
+                  isTwoFactorEnabled: authResponse?.user?.isTwoFactorEnabled,
                 });
+                if (authResponse?.user) {
+                  localStorage.setItem('user', JSON.stringify(authResponse.user));
+                }
                 localStorage.setItem('userRole', role);
                 setViewScope('project');
                 navigateRoleDefaultView(role);
@@ -511,6 +535,7 @@ export default function App() {
               onLogout={handleLogout}
               onLeaveFeedback={() => showToast('Feedback', 'Thanks for your feedback!')}
               onOpenTwoFactor={() => setIsTwoFactorModalOpen(true)}
+              onOpenChangePassword={() => setIsChangePasswordModalOpen(true)}
             >
               <div className='w-full min-h-full flex-1 relative flex flex-col'>
                 {/* 1. PRODUCER: WORKSPACES & PIPELINE */}
@@ -662,6 +687,30 @@ export default function App() {
               showToast(
                 'Bảo mật 2FA',
                 'Đã kích hoạt thành công Google Authenticator cho tài khoản!',
+              );
+              setCurrentUserInfo((prev) => (prev ? { ...prev, isTwoFactorEnabled: true } : prev));
+              const savedUser = localStorage.getItem('user');
+              if (savedUser) {
+                try {
+                  const parsed = JSON.parse(savedUser);
+                  parsed.isTwoFactorEnabled = true;
+                  localStorage.setItem('user', JSON.stringify(parsed));
+                } catch {
+                  // bỏ qua
+                }
+              }
+            }}
+          />
+          <ChangePasswordModal
+            isOpen={isChangePasswordModalOpen}
+            onClose={() => setIsChangePasswordModalOpen(false)}
+            twoFactorEnabled={currentUserInfo?.isTwoFactorEnabled ?? false}
+            isTwoFactorEnabled={currentUserInfo?.isTwoFactorEnabled ?? false}
+            token={localStorage.getItem('token') || ''}
+            onSuccess={() => {
+              showToast(
+                'Change Password',
+                'Account password updated successfully!',
               );
             }}
           />

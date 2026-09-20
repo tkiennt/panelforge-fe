@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { User, signOut } from 'firebase/auth';
 import { auth } from '../firebase';
-import { LogOut, User as UserIcon, ShieldCheck, Key } from 'lucide-react';
+import { LogOut, User as UserIcon, ShieldCheck, Key, KeyRound } from 'lucide-react';
 import { TwoFactorSetupModal } from '../components/modals/TwoFactorSetupModal';
+import { ChangePasswordModal } from '../components/modals/ChangePasswordModal';
 import { authService } from '../services/auth.service';
 
 interface UserProfileProps {
@@ -13,6 +14,7 @@ interface UserProfileProps {
 
 export const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout, onOpenTwoFactor }) => {
   const [isTwoFactorOpen, setIsTwoFactorOpen] = useState(false);
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [activeJwtToken, setActiveJwtToken] = useState<string>('');
 
   const handleLogout = async () => {
@@ -96,6 +98,18 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout, onOpen
                 <Key className='w-3.5 h-3.5 text-[#F97316]' />
                 Cài đặt Google Authenticator (2FA)
               </button>
+              <button
+                type='button'
+                onClick={() => {
+                  const token = localStorage.getItem('token') || '';
+                  setActiveJwtToken(token);
+                  setIsChangePasswordOpen(true);
+                }}
+                className='mt-2 w-full bg-white hover:bg-[#FAF8F5] text-[#171717] hover:text-[#F97316] border border-[#E7E7E7] hover:border-[#F97316] text-xs font-semibold py-2 px-3 rounded-lg shadow-2xs transition-all flex items-center justify-center gap-2 cursor-pointer'
+              >
+                <KeyRound className='w-3.5 h-3.5 text-[#F97316]' />
+                Change Password
+              </button>
             </div>
           </div>
         </div>
@@ -115,6 +129,20 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout, onOpen
         isOpen={isTwoFactorOpen}
         token={activeJwtToken}
         onClose={() => setIsTwoFactorOpen(false)}
+      />
+
+      <ChangePasswordModal
+        isOpen={isChangePasswordOpen}
+        token={activeJwtToken}
+        twoFactorEnabled={(() => {
+          try {
+            const savedUser = localStorage.getItem('user');
+            return savedUser ? Boolean(JSON.parse(savedUser).isTwoFactorEnabled) : false;
+          } catch {
+            return false;
+          }
+        })()}
+        onClose={() => setIsChangePasswordOpen(false)}
       />
     </div>
   );

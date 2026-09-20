@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { MangaProject } from '../types';
 import {
   LayoutDashboard,
@@ -38,6 +38,7 @@ import {
   Eye,
   Layers,
   LogOut,
+  KeyRound,
 } from 'lucide-react';
 
 export interface CurrentUser {
@@ -55,6 +56,7 @@ interface GlobalAppShellProps {
   onLogout?: () => void;
   onLeaveFeedback?: () => void;
   onOpenTwoFactor?: () => void;
+  onOpenChangePassword?: () => void;
 }
 
 // Map roles to their specific navigation configurations
@@ -201,7 +203,9 @@ export function GlobalAppShell({
   onLogout,
   onLeaveFeedback,
   onOpenTwoFactor,
+  onOpenChangePassword,
 }: GlobalAppShellProps) {
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const isReader = currentUser.role === 'READER';
   const navSections = NAV_CONFIG[currentUser.role] || NAV_CONFIG['PRODUCER'] || [];
 
@@ -386,6 +390,13 @@ export function GlobalAppShell({
                 <span className='font-medium text-xs'>Profile & Security (2FA)</span>
               </button>
               <button
+                onClick={onOpenChangePassword}
+                className='w-full text-left flex items-center gap-2 text-sm text-[#555555] hover:text-[#171717] hover:bg-[#E7E7E7]/40 px-2 py-1.5 rounded-md transition-colors group cursor-pointer'
+              >
+                <KeyRound className='w-4 h-4 text-[#555555] group-hover:text-[#F97316] stroke-[2]' />
+                <span className='font-medium text-xs'>Change Password</span>
+              </button>
+              <button
                 onClick={onLogout}
                 className='w-full text-left flex items-center gap-2 text-sm text-[#555555] hover:text-red-600 hover:bg-red-50 px-2 py-1.5 rounded-md transition-colors group mt-2'
               >
@@ -497,22 +508,75 @@ export function GlobalAppShell({
 
             <div className='h-5 w-px bg-[#E7E7E7]'></div>
 
-            <div
-              onClick={onOpenTwoFactor}
-              className='flex items-center gap-2.5 cursor-pointer hover:opacity-80 transition-opacity'
-              title='User Profile & Security (2FA)'
-            >
-              <div className='w-8 h-8 rounded-full bg-[#171717] text-[#FFFFFF] font-heading font-semibold text-xs flex items-center justify-center shadow-xs ring-1 ring-[#E7E7E7]'>
-                {currentUser.avatarInitials}
-              </div>
-              <div className='hidden md:flex flex-col text-left'>
-                <span className='text-xs font-medium text-[#171717] leading-tight'>
-                  {currentUser.name}
-                </span>
-                <span className='text-[10px] text-[#555555] font-mono leading-none'>
-                  {currentUser.role}
-                </span>
-              </div>
+            <div className='relative'>
+              <button
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                className='flex items-center gap-2.5 cursor-pointer hover:opacity-80 transition-opacity text-left'
+                title='User Profile & Security'
+              >
+                <div className='w-8 h-8 rounded-full bg-[#171717] text-[#FFFFFF] font-heading font-semibold text-xs flex items-center justify-center shadow-xs ring-1 ring-[#E7E7E7]'>
+                  {currentUser.avatarInitials}
+                </div>
+                <div className='hidden md:flex flex-col text-left'>
+                  <span className='text-xs font-medium text-[#171717] leading-tight'>
+                    {currentUser.name}
+                  </span>
+                  <span className='text-[10px] text-[#555555] font-mono leading-none'>
+                    {currentUser.role}
+                  </span>
+                </div>
+                <ChevronDown className='w-3 h-3 text-[#888888]' />
+              </button>
+
+              {userMenuOpen && (
+                <>
+                  <div
+                    className='fixed inset-0 z-40'
+                    onClick={() => setUserMenuOpen(false)}
+                  />
+                  <div className='absolute right-0 top-11 w-56 bg-white border border-[#E7E7E7] rounded-xl shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-150'>
+                    <div className='px-3 py-2 border-b border-[#E7E7E7] mb-1'>
+                      <p className='text-xs font-bold text-[#171717] truncate'>{currentUser.name}</p>
+                      <p className='text-[10px] text-[#888888] font-mono'>{currentUser.role}</p>
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        setUserMenuOpen(false);
+                        onOpenTwoFactor?.();
+                      }}
+                      className='w-full text-left flex items-center gap-2 text-xs text-[#555555] hover:text-[#171717] hover:bg-[#F8F6F0] px-3 py-2 rounded-lg transition-colors cursor-pointer'
+                    >
+                      <ShieldCheck className='w-3.5 h-3.5 text-[#F97316]' />
+                      <span>Two-Factor Auth (2FA)</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setUserMenuOpen(false);
+                        onOpenChangePassword?.();
+                      }}
+                      className='w-full text-left flex items-center gap-2 text-xs text-[#555555] hover:text-[#171717] hover:bg-[#F8F6F0] px-3 py-2 rounded-lg transition-colors cursor-pointer'
+                    >
+                      <KeyRound className='w-3.5 h-3.5 text-[#F97316]' />
+                      <span className='font-medium text-[#171717]'>Change Password</span>
+                    </button>
+
+                    <div className='my-1 border-t border-[#E7E7E7]' />
+
+                    <button
+                      onClick={() => {
+                        setUserMenuOpen(false);
+                        onLogout?.();
+                      }}
+                      className='w-full text-left flex items-center gap-2 text-xs text-red-600 hover:bg-red-50 px-3 py-2 rounded-lg transition-colors cursor-pointer'
+                    >
+                      <LogOut className='w-3.5 h-3.5 text-red-500' />
+                      <span>Logout</span>
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
 
             {['PRODUCER', 'ADMINISTRATOR', 'ARTIST'].includes(currentUser.role) && (

@@ -1,6 +1,20 @@
 // src/services/auth.service.ts
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5044';
 
+export interface VerifyTwoFactorPayload {
+  code: string;
+  email?: string;
+  rememberDevice?: boolean;
+  deviceName?: string;
+}
+
+export interface ChangePasswordPayload {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword?: string;
+  otpCode?: string;
+}
+
 async function parseErrorResponse(response: Response, defaultMessage: string): Promise<string> {
   try {
     if (typeof response.json === 'function') {
@@ -26,6 +40,7 @@ export const authService = {
   login: async (email: string, password: string) => {
     const response = await fetch(`${API_URL}/api/Auth/login`, {
       method: 'POST',
+      credentials: 'include', // Bắt buộc để trình duyệt gửi & lưu HTTP-Only Cookie
       headers: {
         'Content-Type': 'application/json',
       },
@@ -42,6 +57,7 @@ export const authService = {
   externalLogin: async (idToken: string) => {
     const response = await fetch(`${API_URL}/api/Auth/external-login`, {
       method: 'POST',
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
       },
@@ -107,6 +123,7 @@ export const authService = {
   enableTwoFactor: async (token: string) => {
     const response = await fetch(`${API_URL}/api/Auth/enable-2fa`, {
       method: 'POST',
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
@@ -120,7 +137,7 @@ export const authService = {
     return response.json();
   },
 
-  verifyTwoFactor: async (data: { code: string; email?: string }, token?: string) => {
+  verifyTwoFactor: async (data: VerifyTwoFactorPayload, token?: string) => {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
@@ -131,6 +148,7 @@ export const authService = {
 
     const response = await fetch(`${API_URL}/api/Auth/verify-2fa`, {
       method: 'POST',
+      credentials: 'include', // Bắt buộc để trình duyệt nhận Set-Cookie pf_remember_device
       headers,
       body: JSON.stringify(data),
     });
@@ -139,6 +157,36 @@ export const authService = {
       throw new Error(
         await parseErrorResponse(response, 'Mã xác thực 2FA không chính xác hoặc đã hết hạn'),
       );
+    }
+
+    return response.json();
+  },
+
+  forgetDevice: async () => {
+    const response = await fetch(`${API_URL}/api/Auth/forget-device`, {
+      method: 'POST',
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      throw new Error(await parseErrorResponse(response, 'Không thể xóa thiết bị tin cậy'));
+    }
+
+    return response.json();
+  },
+
+  changePassword: async (data: ChangePasswordPayload, token: string) => {
+    const response = await fetch(`${API_URL}/api/Auth/change-password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      throw new Error(await parseErrorResponse(response, 'Failed to change password'));
     }
 
     return response.json();

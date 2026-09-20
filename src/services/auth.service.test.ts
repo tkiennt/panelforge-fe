@@ -114,9 +114,41 @@ describe('authService', () => {
     const [url, options] = fetchMock.mock.calls[0];
     expect(url).toContain('/api/Auth/verify-2fa');
     expect(options.method).toBe('POST');
+    expect(options.credentials).toBe('include');
     expect(JSON.parse(options.body)).toEqual({
       code: '123456',
       email: 'artist@panelforge.studio',
+    });
+    expect(result).toEqual(mockVerifyResponse);
+  });
+
+  it('gọi verifyTwoFactor kèm cờ rememberDevice và credentials: include', async () => {
+    const mockVerifyResponse = {
+      token: 'jwt-with-remember-device',
+      user: { email: 'artist@panelforge.studio' },
+    };
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(mockVerifyResponse),
+    });
+    globalThis.fetch = fetchMock;
+
+    const result = await authService.verifyTwoFactor({
+      code: '654321',
+      email: 'artist@panelforge.studio',
+      rememberDevice: true,
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, options] = fetchMock.mock.calls[0];
+    expect(url).toContain('/api/Auth/verify-2fa');
+    expect(options.method).toBe('POST');
+    expect(options.credentials).toBe('include');
+    expect(JSON.parse(options.body)).toEqual({
+      code: '654321',
+      email: 'artist@panelforge.studio',
+      rememberDevice: true,
     });
     expect(result).toEqual(mockVerifyResponse);
   });
