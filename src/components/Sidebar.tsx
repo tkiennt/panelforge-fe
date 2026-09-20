@@ -49,7 +49,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Brand Logo Header */}
         <div
           className='h-16 px-5 border-b border-[#E7E7E7] flex items-center justify-between bg-white cursor-pointer'
-          onClick={() => onSelectView('dashboard')}
+          onClick={() => onSelectView('my-projects')}
         >
           <div className='flex items-center gap-2.5'>
             <div className='w-8 h-8 rounded-lg bg-[#171717] flex items-center justify-center text-white font-bold text-sm tracking-tighter shadow-xs'>
@@ -156,31 +156,90 @@ export const Sidebar: React.FC<SidebarProps> = ({
             Studio Workspace
           </div>
           <nav className='space-y-1'>
+<<<<<<< Updated upstream
             {/* MENU CHO ARTIST (Họa sĩ) */}
+=======
+            {/* ---> CẬP NHẬT MENU CHO PRODUCER <--- */}
+            {userRole === 'PRODUCER' && (
+              <>
+                <button
+                  onClick={() => onSelectView('my-projects')}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs transition-colors cursor-pointer ${
+                    currentView === 'my-projects' || currentView === 'project-detail'
+                      ? 'font-semibold bg-[#FFF7ED] text-[#F97316] border-l-4 border-[#F97316]'
+                      : 'font-medium text-[#555555] hover:text-[#171717] hover:bg-[#F3F1EB]'
+                  }`}
+                >
+                  <LayoutGrid
+                    className={`w-4 h-4 ${
+                      currentView === 'my-projects' || currentView === 'project-detail'
+                        ? 'text-[#F97316]'
+                        : 'text-[#888888]'
+                    }`}
+                  />
+                  <span>Dự án của tôi</span>
+                </button>
+
+                <button
+                  onClick={() => onSelectView('project-members')}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs transition-colors cursor-pointer ${
+                    currentView === 'project-members'
+                      ? 'font-semibold bg-[#FFF7ED] text-[#F97316] border-l-4 border-[#F97316]'
+                      : 'font-medium text-[#555555] hover:text-[#171717] hover:bg-[#F3F1EB]'
+                  }`}
+                >
+                  <Users
+                    className={`w-4 h-4 ${
+                      currentView === 'project-members' ? 'text-[#F97316]' : 'text-[#888888]'
+                    }`}
+                  />
+                  <span>Thành viên dự án</span>
+                </button>
+
+                <button
+                  onClick={() => onSelectView('publishing')}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs transition-colors cursor-pointer ${
+                    currentView === 'publishing'
+                      ? 'font-semibold bg-[#FFF7ED] text-[#F97316] border-l-4 border-[#F97316]'
+                      : 'font-medium text-[#555555] hover:text-[#171717] hover:bg-[#F3F1EB]'
+                  }`}
+                >
+                  <BookOpen
+                    className={`w-4 h-4 ${
+                      currentView === 'publishing' ? 'text-[#F97316]' : 'text-[#888888]'
+                    }`}
+                  />
+                  <span>Xuất bản truyện</span>
+                </button>
+              </>
+            )}
+
+            {/* MENU CHO ARTIST */}
+>>>>>>> Stashed changes
             {userRole === 'ARTIST' && (
               <>
                 <button
-                  onClick={() => onSelectView('dashboard')}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs transition-colors cursor-pointer ${currentView === 'dashboard' ? 'font-semibold bg-[#FFF7ED] text-[#F97316] border-l-4 border-[#F97316]' : 'font-medium text-[#555555] hover:text-[#171717] hover:bg-[#F3F1EB]'}`}
+                  onClick={() => onSelectView('layout')}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs transition-colors cursor-pointer ${currentView === 'layout' ? 'font-semibold bg-[#FFF7ED] text-[#F97316] border-l-4 border-[#F97316]' : 'font-medium text-[#555555] hover:text-[#171717] hover:bg-[#F3F1EB]'}`}
                 >
                   <LayoutGrid
-                    className={`w-4 h-4 ${currentView === 'dashboard' ? 'text-[#F97316]' : 'text-[#888888]'}`}
+                    className={`w-4 h-4 ${currentView === 'layout' ? 'text-[#F97316]' : 'text-[#888888]'}`}
                   />
                   <span>Dashboard (Họa sĩ)</span>
                 </button>
                 <button
-                  onClick={() => onSelectView('workflow')}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs transition-colors cursor-pointer ${currentView === 'workflow' ? 'font-semibold bg-[#FFF7ED] text-[#F97316] border-l-4 border-[#F97316]' : 'font-medium text-[#555555] hover:text-[#171717] hover:bg-[#F3F1EB]'}`}
+                  onClick={() => onSelectView('queue')}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs transition-colors cursor-pointer ${currentView === 'queue' ? 'font-semibold bg-[#FFF7ED] text-[#F97316] border-l-4 border-[#F97316]' : 'font-medium text-[#555555] hover:text-[#171717] hover:bg-[#F3F1EB]'}`}
                 >
                   <Kanban
-                    className={`w-4 h-4 ${currentView === 'workflow' ? 'text-[#F97316]' : 'text-[#888888]'}`}
+                    className={`w-4 h-4 ${currentView === 'queue' ? 'text-[#F97316]' : 'text-[#888888]'}`}
                   />
                   <span>Workflow Board</span>
                 </button>
               </>
             )}
 
-            {/* MENU CHO WRITER (Biên kịch) */}
+            {/* MENU CHO WRITER */}
             {userRole === 'WRITER' && (
               <>
                 <button
@@ -195,7 +254,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </>
             )}
 
-            {/* MENU CHO EDITOR (Biên tập viên) */}
+            {/* MENU CHO EDITOR */}
             {userRole === 'EDITOR' && (
               <>
                 <button
@@ -207,18 +266,85 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   />
                   <span>Trung tâm Phê duyệt</span>
                 </button>
+              </>
+            )}
+
+<<<<<<< Updated upstream
+=======
+            {/* MENU CHO ADMIN */}
+            {userRole === 'ADMINISTRATOR' && (
+              <>
                 <button
-                  onClick={() => onSelectView('members')}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs transition-colors cursor-pointer ${currentView === 'members' ? 'font-semibold bg-[#FFF7ED] text-[#F97316] border-l-4 border-[#F97316]' : 'font-medium text-[#555555] hover:text-[#171717] hover:bg-[#F3F1EB]'}`}
+                  onClick={() => onSelectView('admin-dash')}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs transition-colors cursor-pointer ${
+                    currentView === 'admin-dash'
+                      ? 'font-semibold bg-[#FFF7ED] text-[#F97316] border-l-4 border-[#F97316]'
+                      : 'font-medium text-[#555555] hover:text-[#171717] hover:bg-[#F3F1EB]'
+                  }`}
+                >
+                  <LayoutGrid
+                    className={`w-4 h-4 ${currentView === 'admin-dash' ? 'text-[#F97316]' : 'text-[#888888]'}`}
+                  />
+                  <span>Bảng Điều Khiển Admin</span>
+                </button>
+                <button
+                  onClick={() => onSelectView('users')}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs transition-colors cursor-pointer ${
+                    currentView === 'users' || currentView === 'roles'
+                      ? 'font-semibold bg-[#FFF7ED] text-[#F97316] border-l-4 border-[#F97316]'
+                      : 'font-medium text-[#555555] hover:text-[#171717] hover:bg-[#F3F1EB]'
+                  }`}
                 >
                   <Users
-                    className={`w-4 h-4 ${currentView === 'members' ? 'text-[#F97316]' : 'text-[#888888]'}`}
+                    className={`w-4 h-4 ${currentView === 'users' || currentView === 'roles' ? 'text-[#F97316]' : 'text-[#888888]'}`}
                   />
-                  <span>Quản lý Nhân sự</span>
+                  <span>Quản Lý Người Dùng</span>
+                </button>
+                <button
+                  onClick={() => onSelectView('ai-quota')}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs transition-colors cursor-pointer ${
+                    currentView === 'ai-quota' || currentView === 'storage'
+                      ? 'font-semibold bg-[#FFF7ED] text-[#F97316] border-l-4 border-[#F97316]'
+                      : 'font-medium text-[#555555] hover:text-[#171717] hover:bg-[#F3F1EB]'
+                  }`}
+                >
+                  <Cpu
+                    className={`w-4 h-4 ${currentView === 'ai-quota' || currentView === 'storage' ? 'text-[#F97316]' : 'text-[#888888]'}`}
+                  />
+                  <span>Hạn Ngạch AI & Cấu Hình</span>
+                </button>
+                <button
+                  onClick={() => onSelectView('audit')}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs transition-colors cursor-pointer ${
+                    currentView === 'audit'
+                      ? 'font-semibold bg-[#FFF7ED] text-[#F97316] border-l-4 border-[#F97316]'
+                      : 'font-medium text-[#555555] hover:text-[#171717] hover:bg-[#F3F1EB]'
+                  }`}
+                >
+                  <Shield
+                    className={`w-4 h-4 ${currentView === 'audit' ? 'text-[#F97316]' : 'text-[#888888]'}`}
+                  />
+                  <span>Nhật Ký Kiểm Toán (Audit)</span>
                 </button>
               </>
             )}
 
+            {/* MENU CHO LETTERER */}
+            {userRole === 'LETTERER' && (
+              <>
+                <button
+                  onClick={() => onSelectView('canvas')}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs transition-colors cursor-pointer ${currentView === 'canvas' ? 'font-semibold bg-[#FFF7ED] text-[#F97316] border-l-4 border-[#F97316]' : 'font-medium text-[#555555] hover:text-[#171717] hover:bg-[#F3F1EB]'}`}
+                >
+                  <Type
+                    className={`w-4 h-4 ${currentView === 'canvas' ? 'text-[#F97316]' : 'text-[#888888]'}`}
+                  />
+                  <span>Lồng chữ (Lettering)</span>
+                </button>
+              </>
+            )}
+
+>>>>>>> Stashed changes
             {/* MENU CHUNG CHO MỌI ROLE */}
             <button
               onClick={() => onSelectView('bible')}

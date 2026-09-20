@@ -53,6 +53,20 @@ import ArtistWorkspace from './components/modals/roles/ArtistWorkspace';
 
 import { MockRoleWorkspaceView } from './views/MockRoleWorkspaceView';
 
+<<<<<<< Updated upstream
+=======
+// Import các trang mới của Producer
+import { MyProjectsView } from './views/producer/MyProjectsView';
+import { ProjectDetailView } from './views/producer/ProjectDetailView';
+
+import { ArtistDeskView } from './views/artist';
+import { LettererCanvasView } from './views/letterer';
+import { WriterStudioView } from './views/writer';
+import { EditorDeskView } from './views/editor';
+import { ReaderPortalView } from './views/reader';
+
+import { SystemRole, normalizeSystemRole } from './types';
+>>>>>>> Stashed changes
 import { LoginModal } from './components/modals/LoginModal';
 import { LandingPageView } from './views/LandingPageView';
 import { UserProfile } from './views/UserProfile';
@@ -80,6 +94,21 @@ export default function App() {
       setFirebaseUser(user);
       if (user) {
         setIsAuthenticated(true);
+<<<<<<< Updated upstream
+=======
+        const existingToken = localStorage.getItem('token');
+        if (!existingToken) {
+          try {
+            const idToken = await user.getIdToken();
+            const res = await authService.externalLogin(idToken);
+            if (res?.token) {
+              localStorage.setItem('token', res.token);
+            }
+          } catch (err) {
+            console.warn('Không thể đồng bộ token backend từ Firebase session:', err);
+          }
+        }
+>>>>>>> Stashed changes
       } else {
         setIsAuthenticated(false);
       }
@@ -90,9 +119,73 @@ export default function App() {
   // Navigation & Data State
   const [viewScope, setViewScope] = useState<'hub' | 'project'>('hub');
   const [currentView, setCurrentView] = useState<ViewMode | string>('dashboard');
+<<<<<<< Updated upstream
   const [currentRole, setCurrentRole] = useState<'WRITER' | 'ARTIST' | 'EDITOR' | 'PRODUCER'>(
     'ARTIST',
   );
+=======
+  const [currentRole, setCurrentRole] = useState<SystemRole>('ARTIST');
+  const [currentUserInfo, setCurrentUserInfo] = useState<{
+    id?: string;
+    name: string;
+    email: string;
+    role: SystemRole;
+  } | null>(null);
+
+  const navigateRoleDefaultView = (role: SystemRole) => {
+    switch (role) {
+      case 'ADMINISTRATOR':
+        setCurrentView('admin-dash');
+        break;
+      case 'PRODUCER':
+        setCurrentView('dashboard'); // <-- TRẢ LẠI THÀNH 'dashboard' ĐỂ KHỚP VỚI MENU
+        break;
+      case 'WRITER':
+        setCurrentView('script');
+        break;
+      case 'ARTIST':
+        setCurrentView('layout');
+        break;
+      case 'LETTERER':
+        setCurrentView('canvas');
+        break;
+      case 'EDITOR':
+        setCurrentView('review');
+        break;
+      case 'READER':
+        setCurrentView('reader');
+        break;
+      default:
+        setCurrentView('dashboard');
+    }
+  };
+
+  useEffect(() => {
+    const savedRole = localStorage.getItem('userRole');
+    if (savedRole) {
+      const role = normalizeSystemRole(savedRole);
+      setCurrentRole(role);
+    }
+    const savedToken = localStorage.getItem('token');
+    if (savedToken) {
+      try {
+        const parts = savedToken.split('.');
+        if (parts.length === 3) {
+          const payload = JSON.parse(atob(parts[1]));
+          const roleClaim =
+            payload.role || payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'];
+          if (roleClaim) {
+            const role = normalizeSystemRole(roleClaim);
+            setCurrentRole(role);
+            localStorage.setItem('userRole', role);
+          }
+        }
+      } catch {
+        // bỏ qua lỗi giải mã
+      }
+    }
+  }, []);
+>>>>>>> Stashed changes
 
   useEffect(() => {
     if (viewScope === 'project') {
@@ -118,7 +211,6 @@ export default function App() {
   const [entities, setEntities] = useState<BibleEntity[]>(INITIAL_BIBLE_ENTITIES);
   const [members, setMembers] = useState<StudioMember[]>(INITIAL_MEMBERS);
   const [provenanceLogs, setProvenanceLogs] = useState(INITIAL_PROVENANCE_LOGS);
-  const [assistants] = useState(INITIAL_ASSISTANTS);
 
   // Modals
   const [spreadModalOpen, setSpreadModalOpen] = useState(false);
@@ -143,10 +235,9 @@ export default function App() {
     }, 4000);
   };
 
-  // Keyboard shortcut for Command Palette
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (!isAuthenticated) return; // Không cho mở Command Palette nếu chưa đăng nhập
+      if (!isAuthenticated) return;
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         setCommandPaletteOpen((prev) => !prev);
@@ -156,7 +247,6 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isAuthenticated]);
 
-  // Các hàm tiện ích
   const handleUpdateCardStage = (cardId: string, newStage: KanbanStageKey) => {
     setCards((prev) => prev.map((c) => (c.id === cardId ? { ...c, stage: newStage } : c)));
     if (selectedCardForDetail && selectedCardForDetail.id === cardId) {
@@ -223,13 +313,30 @@ export default function App() {
     }
     setDemoRole(role);
     setIsDemoMode(true);
+<<<<<<< Updated upstream
     setCurrentRole(role.toUpperCase() as any);
     setViewScope('project'); // Always enter project to show App Shell
+=======
+    setCurrentRole(mappedRole);
+    setViewScope('project');
+    navigateRoleDefaultView(mappedRole);
+    showToast('Chế độ Demo Role', `Đang xem giao diện với quyền ${mappedRole}`);
+  };
+
+  const handleLogout = () => {
+    auth.signOut();
+    localStorage.removeItem('token');
+    localStorage.removeItem('userRole');
+    setFirebaseUser(null);
+    setCurrentUserInfo(null);
+    setIsAuthenticated(false);
+    setIsDemoMode(false);
+    showToast('Đăng xuất', 'Đã đăng xuất khỏi phiên làm việc.');
+>>>>>>> Stashed changes
   };
 
   return (
     <div className='min-h-screen bg-[#F8F6F0] text-[#171717] font-sans antialiased selection:bg-[#F97316]/20 selection:text-[#EA580C] relative'>
-      {/* ---> KHU VỰC BÊN NGOÀI (CHƯA ĐĂNG NHẬP HOẶC KHÔNG PHẢI DEMO) <--- */}
       {!isAuthenticated && !isDemoMode ? (
         <>
           {authMode === 'landing' && (
@@ -243,13 +350,17 @@ export default function App() {
             <LoginModal
               onClose={() => setIsLoginModalOpen(false)}
               onLogin={(username, password) => {
+<<<<<<< Updated upstream
                 const mockAccounts: Record<string, 'WRITER' | 'ARTIST' | 'EDITOR'> = {
+=======
+                const mockAccounts: Record<string, SystemRole> = {
+                  admin: 'ADMINISTRATOR',
+                  producer: 'PRODUCER',
+>>>>>>> Stashed changes
                   writer: 'WRITER',
                   artist: 'ARTIST',
                   editor: 'EDITOR',
                 };
-
-                // Trích xuất tên người dùng từ email
                 const name = username.split('@')[0].toLowerCase();
                 const roleMatched = mockAccounts[name] || mockAccounts[username.toLowerCase()];
 
@@ -275,15 +386,42 @@ export default function App() {
                     `Chào mừng bạn trở lại với vai trò ${roleMatched}.`,
                   );
                 } else {
+<<<<<<< Updated upstream
                   showToast(
                     'Lỗi xác thực',
                     'Tài khoản không tồn tại hoặc sai mật khẩu. Hãy thử: writer, artist, editor.',
                   );
+=======
+                  showToast('Lỗi xác thực', 'Tài khoản không tồn tại hoặc sai mật khẩu.');
+>>>>>>> Stashed changes
                 }
               }}
               onGoogleLogin={(user) => {
                 setIsLoginModalOpen(false);
+<<<<<<< Updated upstream
                 showToast('Đăng nhập thành công', `Chào mừng ${user.displayName || user.email}`);
+=======
+                setIsRegisterModalOpen(true);
+              }}
+              onGoogleLogin={(res) => {
+                /* Xử lý google login */
+              }}
+              onApiLoginSuccess={(authResponse) => {
+                /* Xử lý API login */
+              }}
+            />
+          )}
+
+          {isRegisterModalOpen && (
+            <RegisterModal
+              onClose={() => setIsRegisterModalOpen(false)}
+              onSwitchToLogin={() => {
+                setIsRegisterModalOpen(false);
+                setIsLoginModalOpen(true);
+              }}
+              onSuccess={(authResponse) => {
+                /* Xử lý đăng ký thành công */
+>>>>>>> Stashed changes
               }}
             />
           )}
@@ -291,7 +429,10 @@ export default function App() {
       ) : firebaseUser ? (
         <UserProfile user={firebaseUser} onLogout={() => setFirebaseUser(null)} />
       ) : (
+<<<<<<< Updated upstream
         /* ---> KHU VỰC BÊN TRONG HỆ THỐNG (ĐÃ ĐĂNG NHẬP DEMO TRUYỀN THỐNG) <--- */
+=======
+>>>>>>> Stashed changes
         <>
           {viewScope === 'hub' ? (
             <div className='h-screen w-full overflow-y-auto custom-scrollbar bg-[#FAF8F4]'>
@@ -307,6 +448,7 @@ export default function App() {
           ) : (
             <GlobalAppShell
               currentUser={{
+<<<<<<< Updated upstream
                 name: firebaseUser
                   ? firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User'
                   : 'Tatsuki F.',
@@ -314,6 +456,13 @@ export default function App() {
                 avatarInitials: firebaseUser
                   ? (firebaseUser.displayName || firebaseUser.email || 'U').charAt(0).toUpperCase()
                   : 'TF',
+=======
+                name: currentUserInfo?.name || firebaseUser?.displayName || 'Tatsuki F.',
+                role: currentRole,
+                avatarInitials: (currentUserInfo?.name || currentRole || 'U')
+                  .charAt(0)
+                  .toUpperCase(),
+>>>>>>> Stashed changes
               }}
               activeSeries={activeProject}
               aiState='active'
@@ -328,6 +477,7 @@ export default function App() {
               }}
               onLeaveFeedback={() => showToast('Feedback', 'Thanks for your feedback!')}
             >
+<<<<<<< Updated upstream
               <div className='w-full h-full relative overflow-hidden'>
                 
                 {/* --- RENDER THEO ROLE Ở ĐÂY --- */}
@@ -353,6 +503,99 @@ export default function App() {
                 )}
                 {/* ------------------------------- */}
                 
+=======
+              <div className='w-full min-h-full flex-1 relative flex flex-col'>
+                {/* ---> CÁC TRANG DÀNH CHO PRODUCER <--- */}
+                {currentView === 'dashboard' && (
+                  <MyProjectsView
+                    projects={projects}
+                    onNavigateToDetail={(proj) => {
+                      setActiveProject(proj);
+                      setCurrentView('project-detail');
+                    }}
+                  />
+                )}
+
+                {currentView === 'project-detail' && (
+                  <ProjectDetailView
+                    project={activeProject}
+                    onBack={() => setCurrentView('dashboard')}
+                  />
+                )}
+
+                {currentView === 'members' && (
+                  <MembersRolesView
+                    activeProject={activeProject}
+                    members={members}
+                    onInviteMember={() => setInviteMemberOpen(true)}
+                    onUpdateMemberRole={(memberId, newRole) => {
+                      setMembers((prev) =>
+                        prev.map((m) => (m.id === memberId ? { ...m, role: newRole } : m)),
+                      );
+                      showToast('Cập nhật quyền', `Đã phân quyền ${newRole} cho thành viên`);
+                    }}
+                    onShowToast={showToast}
+                  />
+                )}
+
+                {currentView === 'publishing' && (
+                  <div className='flex-1 flex flex-col items-center justify-center text-[#888888] p-8'>
+                    <BookOpen className='w-16 h-16 mb-4 text-[#E7E7E7]' />
+                    <h2 className='text-xl font-bold text-[#171717] mb-2'>Xuất bản truyện</h2>
+                    <p className='text-sm'>Tính năng xuất bản và phân phối đang được phát triển.</p>
+                  </div>
+                )}
+
+                {/* 2. WRITER: SCRIPT STUDIO & AI BREAKDOWN */}
+                {(currentView === 'script' ||
+                  currentView === 'ai-breakdown' ||
+                  currentView === 'compare') && <WriterStudioView onShowToast={showToast} />}
+
+                {/* 3. ARTIST: PAGES DESK & CANVAS */}
+                {(currentView === 'layout' ||
+                  currentView === 'queue' ||
+                  currentView === 'upload' ||
+                  currentView === 'requests') && <ArtistDeskView />}
+
+                {/* 4. LETTERER: PANEL CANVAS & ELEMENTS */}
+                {(currentView === 'canvas' ||
+                  currentView === 'warnings' ||
+                  currentView === 'presets') && <LettererCanvasView />}
+
+                {/* 5. EDITOR: REVIEW & CONSISTENCY CHECK */}
+                {(currentView === 'review' || currentView === 'check') && <EditorDeskView />}
+
+                {/* 6. READER: PREVIEW PORTAL */}
+                {currentView === 'reader' && <ReaderPortalView />}
+
+                {/* 7. SERIES BIBLE REPOSITORY (CHO MỌI ROLE) */}
+                {currentView === 'bible' && (
+                  <SeriesBibleView
+                    activeProject={activeProject}
+                    entities={entities}
+                    onAddEntity={() => setAddEntityOpen(true)}
+                    onViewVectorStatus={() => setVectorStatusOpen(true)}
+                    onEditEntity={(e) => showToast('Series Bible', `Mở chi tiết ${e.name}`)}
+                    onShowToast={showToast}
+                  />
+                )}
+
+                {/* 9. SYSTEM ADMIN SCREENS (ADMINISTRATOR) */}
+                {currentView === 'admin-dash' && (
+                  <AdminDashboardView
+                    onNavigateToUsers={() => setCurrentView('users')}
+                    onNavigateToSettings={() => setCurrentView('ai-quota')}
+                    onNavigateToAudit={() => setCurrentView('audit')}
+                  />
+                )}
+                {(currentView === 'users' || currentView === 'roles') && (
+                  <AdminUserManagementView />
+                )}
+                {(currentView === 'ai-quota' ||
+                  currentView === 'storage' ||
+                  currentView === 'master-data') && <AdminSystemSettingsView />}
+                {currentView === 'audit' && <AdminAuditLogView />}
+>>>>>>> Stashed changes
               </div>
             </GlobalAppShell>
           )}
@@ -420,7 +663,7 @@ export default function App() {
         </>
       )}
 
-      {/* ===== GLOBAL FLOATING PREVIEW WIDGET (visible on all pages) ===== */}
+      {/* ===== GLOBAL FLOATING PREVIEW WIDGET ===== */}
       {!isAuthenticated && (
         <div className='fixed bottom-6 right-6 z-[200]'>
           <div className='glass rounded-full shadow-[0_8px_30px_rgba(0,0,0,0.14)] border border-[#e7e7e7]/80 p-1.5 flex items-center gap-1'>
@@ -447,12 +690,7 @@ export default function App() {
                 <div key={roleKey} className='relative group'>
                   <button
                     onClick={() => handleEnterDemo(roleKey)}
-                    className={`w-9 h-9 rounded-full transition flex items-center justify-center text-sm cursor-pointer ${
-                      isActive
-                        ? 'bg-[#171717] text-white'
-                        : 'text-[#404040] hover:text-[#f97316] hover:bg-[#fff7ed]'
-                    }`}
-                    aria-label={`Preview as ${label}`}
+                    className={`w-9 h-9 rounded-full transition flex items-center justify-center text-sm cursor-pointer ${isActive ? 'bg-[#171717] text-white' : 'text-[#404040] hover:text-[#f97316] hover:bg-[#fff7ed]'}`}
                   >
                     <Icon className='w-4 h-4' />
                   </button>

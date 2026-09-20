@@ -80,6 +80,7 @@ const NAV_CONFIG: Record<string, { section: string; items: any[] }[]> = {
     {
       section: 'WORKSPACE',
       items: [
+<<<<<<< Updated upstream
         { icon: LayoutDashboard, label: 'Dashboard', href: 'dashboard', isActive: true },
         {
           icon: Kanban,
@@ -109,6 +110,11 @@ const NAV_CONFIG: Record<string, { section: string; items: any[] }[]> = {
         { icon: FileText, label: 'B5 Pre-Press Specs', href: 'specs' },
         { icon: ShieldCheck, label: 'SHA-256 Provenance', href: 'sha' },
         { icon: Upload, label: 'Export / Publish', href: 'export' },
+=======
+        { icon: LayoutDashboard, label: 'Dự án của tôi', href: 'dashboard', isActive: true },
+        { icon: Users, label: 'Thành viên dự án', href: 'members' },
+        { icon: BookOpen, label: 'Xuất bản truyện', href: 'publishing' },
+>>>>>>> Stashed changes
       ],
     },
   ],
