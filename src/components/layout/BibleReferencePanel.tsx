@@ -15,11 +15,11 @@ export const BibleReferencePanel: React.FC = () => {
   const getFiltered = () => {
     switch (activeTab) {
       case 'character':
-        return INITIAL_BIBLE_ENTITIES.filter((e) => e.category === 'Character');
+        return INITIAL_BIBLE_ENTITIES.filter((e) => e.category === 'character');
       case 'location':
-        return INITIAL_BIBLE_ENTITIES.filter((e) => e.category === 'Location');
+        return INITIAL_BIBLE_ENTITIES.filter((e) => e.category === 'location');
       case 'prop':
-        return INITIAL_BIBLE_ENTITIES.filter((e) => e.category === 'Prop');
+        return INITIAL_BIBLE_ENTITIES.filter((e) => e.category === 'prop');
       case 'style':
         return []; // No mock style rules yet
       default:

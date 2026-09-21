@@ -77,7 +77,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
               <span>/</span>
               <span className='text-[#F97316] font-semibold'>PRODUCTION ARCHIVE</span>
             </div>
-            <h1 className='text-2xl lg:text-3xl font-bold font-display text-[#171717] tracking-tight'>
+            <h1 className='text-2xl lg:text-3xl font-bold font-serif text-[#171717] tracking-tight'>
               Series Bible Repository
             </h1>
             <p className='text-xs text-[#555555] mt-1'>
@@ -202,7 +202,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
               <div className='p-4 space-y-3'>
                 <div>
                   <h3
-                    className='text-base font-bold font-display text-[#171717] group-hover:text-[#F97316] transition-colors cursor-pointer'
+                    className='text-base font-bold font-serif text-[#171717] group-hover:text-[#F97316] transition-colors cursor-pointer'
                     onClick={() => setSelectedEntity(entity)}
                   >
                     {entity.name}
@@ -290,7 +290,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
             <div className='p-4 border-b border-[#E7E7E7] flex items-center justify-between bg-[#FAF8F4]'>
               <div className='flex items-center gap-2'>
                 <span className='w-2.5 h-2.5 rounded-full bg-[#10B981]'></span>
-                <h3 className='text-base font-bold font-display text-[#171717]'>
+                <h3 className='text-base font-bold font-serif text-[#171717]'>
                   Canon Spec Sheet: {selectedEntity.name}
                 </h3>
               </div>
@@ -316,7 +316,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
               </div>
 
               <div>
-                <h4 className='text-lg font-bold font-display text-[#171717]'>
+                <h4 className='text-lg font-bold font-serif text-[#171717]'>
                   {selectedEntity.name}
                 </h4>
                 <div className='text-xs font-mono text-[#F97316] font-semibold mt-0.5'>

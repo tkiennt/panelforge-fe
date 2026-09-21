@@ -21,7 +21,7 @@ export const ProductionPipelineView: React.FC<ProductionPipelineViewProps> = ({
         <div className='w-16 h-16 rounded-2xl bg-[#FEE2E2] border border-[#FECACA] flex items-center justify-center text-[#EF4444] mb-4'>
           <span className='font-bold text-xl'>!</span>
         </div>
-        <h2 className='text-xl font-heading font-semibold text-[#171717] mb-2'>Access Denied</h2>
+        <h2 className='text-xl font-serif font-semibold text-[#171717] mb-2'>Access Denied</h2>
         <p className='text-sm text-[#737373] max-w-md'>
           Bạn không có quyền truy cập khu vực sản xuất. Vui lòng quay lại màn hình xem ấn phẩm dành
           cho độc giả.
@@ -50,7 +50,7 @@ export const ProductionPipelineView: React.FC<ProductionPipelineViewProps> = ({
         <div className='flex items-center gap-6'>
           <div>
             <div className='flex items-center gap-2 mb-1'>
-              <h1 className='text-xl font-heading font-bold text-[#171717]'>
+              <h1 className='text-xl font-serif font-bold text-[#171717]'>
                 Chapter 5: The Awakening
               </h1>
               <span className='text-[10px] font-bold uppercase tracking-wider text-[#10B981] bg-[#D1FAE5] border border-[#A7F3D0] px-2 py-0.5 rounded-full'>

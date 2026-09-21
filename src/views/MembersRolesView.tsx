@@ -147,7 +147,7 @@ export const MembersRolesView: React.FC<MembersRolesViewProps> = ({
               <span>/</span>
               <span className='text-[#F97316] font-semibold'>PERMISSIONS ENGINE</span>
             </div>
-            <h1 className='text-2xl lg:text-3xl font-bold font-display text-[#171717] tracking-tight'>
+            <h1 className='text-2xl lg:text-3xl font-bold font-serif text-[#171717] tracking-tight'>
               Members &amp; Roles
             </h1>
             <p className='text-xs text-[#555555] mt-1'>
@@ -222,7 +222,7 @@ export const MembersRolesView: React.FC<MembersRolesViewProps> = ({
       {/* Members Grid / List */}
       <div className='bg-white border border-[#E7E7E7] rounded-xl overflow-hidden shadow-xs'>
         <div className='p-4 bg-[#FAF8F4] border-b border-[#E7E7E7] flex items-center justify-between'>
-          <h3 className='text-sm font-bold font-display text-[#171717]'>
+          <h3 className='text-sm font-bold font-serif text-[#171717]'>
             Active Studio Production Members ({filteredMembers.length})
           </h3>
           <span className='text-xs font-mono text-[#888888]'>
@@ -252,7 +252,7 @@ export const MembersRolesView: React.FC<MembersRolesViewProps> = ({
 
                   <div>
                     <div className='flex flex-wrap items-center gap-2'>
-                      <h4 className='text-sm font-bold text-[#171717] font-display'>
+                      <h4 className='text-sm font-bold text-[#171717] font-serif'>
                         {member.name}
                       </h4>
                       <span className='px-2 py-0.5 rounded bg-[#171717] text-white text-[10px] font-mono font-bold tracking-wider'>
@@ -342,7 +342,7 @@ export const MembersRolesView: React.FC<MembersRolesViewProps> = ({
       <div className='bg-white border border-[#E7E7E7] rounded-xl p-5 shadow-xs'>
         <div className='flex items-center justify-between mb-4'>
           <div>
-            <h3 className='text-base font-bold font-display text-[#171717] flex items-center gap-2'>
+            <h3 className='text-base font-bold font-serif text-[#171717] flex items-center gap-2'>
               <Shield className='w-4 h-4 text-[#F97316]' />
               Role-Based Access Control (RBAC) Matrix
             </h3>
@@ -464,7 +464,7 @@ export const MembersRolesView: React.FC<MembersRolesViewProps> = ({
             <div className='p-4 bg-[#FAF8F4] border-b border-[#E7E7E7] flex items-center justify-between'>
               <div className='flex items-center gap-2'>
                 <Shield className='w-4 h-4 text-[#F97316]' />
-                <h3 className='font-display font-bold text-base text-[#171717]'>
+                <h3 className='font-serif font-bold text-base text-[#171717]'>
                   Edit Access Policies: {editingMember.name}
                 </h3>
               </div>

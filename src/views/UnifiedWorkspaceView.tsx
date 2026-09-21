@@ -59,7 +59,7 @@ export function UnifiedWorkspaceView({ activeRoles, onShowToast }: UnifiedWorksp
   return (
     <div className="w-full h-full flex flex-col bg-[#FAF8F4]">
       {/* Role Switcher Tabs */}
-      <div className="flex bg-white border-b border-[#E5E5E5] p-2 px-6 gap-2 shrink-0 items-center shadow-sm z-10">
+      <div className="flex bg-white border-b-[1.5px] border-[#171717] shadow-none p-2 px-6 gap-2 shrink-0 items-center z-10">
         <span className="text-xs font-bold text-gray-500 uppercase tracking-widest mr-4">Context Switcher:</span>
         {safeRoles.map(role => (
           <button
@@ -67,7 +67,7 @@ export function UnifiedWorkspaceView({ activeRoles, onShowToast }: UnifiedWorksp
             onClick={() => setActiveTab(role)}
             className={`px-4 py-1.5 text-sm font-medium rounded-full transition-all ${
               activeTab === role 
-                ? 'bg-[#171717] text-white shadow-md' 
+                ? 'bg-[#171717] text-white shadow-none' 
                 : 'text-gray-600 hover:bg-gray-100'
             }`}
           >
@@ -78,7 +78,10 @@ export function UnifiedWorkspaceView({ activeRoles, onShowToast }: UnifiedWorksp
       
       {/* Active Role Content */}
       <div className="flex-1 relative overflow-hidden">
-        {renderActiveTabContent()}
+        <div className='absolute inset-0 pointer-events-none opacity-[0.03] bg-[radial-gradient(#171717_1px,transparent_1px)] bg-[size:16px_16px] z-0'></div>
+        <div className="relative z-10 w-full h-full">
+          {renderActiveTabContent()}
+        </div>
       </div>
     </div>
   );

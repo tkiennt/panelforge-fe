@@ -93,7 +93,7 @@ export const ContentHubView: React.FC<ContentHubViewProps> = ({
             <span className='w-2.5 h-2.5 rounded-full bg-[#EF4444] inline-block'></span>
             <span className='w-2.5 h-2.5 rounded-full bg-[#F59E0B] inline-block'></span>
             <span className='w-2.5 h-2.5 rounded-full bg-[#10B981] inline-block'></span>
-            <span className='ml-2 font-display font-semibold text-white tracking-tight flex items-center gap-1.5'>
+            <span className='ml-2 font-serif font-semibold text-white tracking-tight flex items-center gap-1.5'>
               <span className='px-1 py-0.2 bg-white/20 text-white rounded text-[9px]'>PF</span>
               PanelForge - Studio Content Hub
             </span>
@@ -112,7 +112,7 @@ export const ContentHubView: React.FC<ContentHubViewProps> = ({
             PF
           </div>
           <div>
-            <div className='font-bold text-sm tracking-tight text-[#171717] flex items-center gap-1.5 font-display'>
+            <div className='font-bold text-sm tracking-tight text-[#171717] flex items-center gap-1.5 font-serif'>
               PANELFORGE
             </div>
             <div className='text-[10px] text-[#888888] tracking-wide font-mono'>
@@ -172,7 +172,7 @@ export const ContentHubView: React.FC<ContentHubViewProps> = ({
               <span className='text-[#888888]'>/</span>
               <span className='text-[#EA580C] font-semibold'>CONTENT DIRECTORY</span>
             </div>
-            <h1 className='text-2xl lg:text-3xl font-bold font-display text-[#171717] tracking-tight'>
+            <h1 className='text-2xl lg:text-3xl font-bold font-serif text-[#171717] tracking-tight'>
               Manga Series &amp; Publications
             </h1>
             <p className='text-xs text-[#666666] mt-0.5'>
@@ -196,7 +196,7 @@ export const ContentHubView: React.FC<ContentHubViewProps> = ({
             <div className='text-[10px] font-mono font-bold uppercase tracking-wider text-[#888888] mb-1'>
               Active Series
             </div>
-            <div className='text-2xl font-bold font-display text-[#171717]'>
+            <div className='text-2xl font-bold font-serif text-[#171717]'>
               {activeSeriesCount} Running
             </div>
             <div className='flex items-center gap-1 text-[11px] font-mono text-[#10B981] font-semibold mt-1'>
@@ -210,7 +210,7 @@ export const ContentHubView: React.FC<ContentHubViewProps> = ({
             <div className='text-[10px] font-mono font-bold uppercase tracking-wider text-[#888888] mb-1'>
               Master Inked Pages
             </div>
-            <div className='text-2xl font-bold font-display text-[#171717]'>128 / 184 Pages</div>
+            <div className='text-2xl font-bold font-serif text-[#171717]'>128 / 184 Pages</div>
             <div className='text-[11px] font-mono text-[#888888] mt-1'>
               {completionRate}% completion rate
             </div>
@@ -221,7 +221,7 @@ export const ContentHubView: React.FC<ContentHubViewProps> = ({
             <div className='text-[10px] font-mono font-bold uppercase tracking-wider text-[#888888] mb-1'>
               AI Layering Velocity
             </div>
-            <div className='text-2xl font-bold font-display text-[#171717]'>+34% Pacing</div>
+            <div className='text-2xl font-bold font-serif text-[#171717]'>+34% Pacing</div>
             <div className='text-[11px] font-mono text-[#7C3AED] font-semibold mt-1'>
               Est. release on track
             </div>
@@ -232,7 +232,7 @@ export const ContentHubView: React.FC<ContentHubViewProps> = ({
             <div className='text-[10px] font-mono font-bold uppercase tracking-wider text-[#888888] mb-1'>
               Next Release Gate
             </div>
-            <div className='text-2xl font-bold font-display text-[#171717]'>4 Days Left</div>
+            <div className='text-2xl font-bold font-serif text-[#171717]'>4 Days Left</div>
             <div className='text-[11px] font-mono text-[#888888] mt-1'>Nov 28 Tankōbon Drop</div>
           </div>
         </div>
@@ -354,7 +354,7 @@ export const ContentHubView: React.FC<ContentHubViewProps> = ({
 
                     {/* Center Typography Box */}
                     <div className='relative z-10 my-auto text-center py-2 px-3 border border-white/15 rounded-lg bg-black/40 backdrop-blur-2xs'>
-                      <div className='text-base font-black font-display text-white tracking-wider uppercase drop-shadow-sm'>
+                      <div className='text-base font-black font-serif text-white tracking-wider uppercase drop-shadow-sm'>
                         {project.coverText || project.title}
                       </div>
                       <div className='text-[9px] font-mono text-[#D4D4D4] tracking-wider mt-0.5 uppercase'>
@@ -374,7 +374,7 @@ export const ContentHubView: React.FC<ContentHubViewProps> = ({
                     <div>
                       <h3
                         onClick={() => onEnterProject(project, 'dashboard')}
-                        className='font-bold text-sm text-[#171717] font-display hover:text-[#EA580C] cursor-pointer transition-colors'
+                        className='font-bold text-sm text-[#171717] font-serif hover:text-[#EA580C] cursor-pointer transition-colors'
                       >
                         {project.title}
                       </h3>
@@ -508,7 +508,7 @@ export const ContentHubView: React.FC<ContentHubViewProps> = ({
               <LayoutGrid className='w-5 h-5' />
             </div>
             <div>
-              <div className='font-bold text-sm text-[#171717] font-display'>
+              <div className='font-bold text-sm text-[#171717] font-serif'>
                 Need to launch an anthology or collaborative one-shot?
               </div>
               <div className='text-xs text-[#666666] mt-0.5'>

@@ -76,7 +76,7 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className='h-16 bg-white border-b border-[#E7E7E7] px-6 md:px-8 flex items-center justify-between shrink-0 z-20 sticky top-0 shadow-2xs'>
+    <header className='h-16 bg-white border-b-[1.5px] border-[#171717] shadow-none px-6 md:px-8 flex items-center justify-between shrink-0 z-20 sticky top-0'>
       {/* Return Button & Breadcrumbs */}
       <div className='flex items-center gap-3 md:gap-4'>
         {/* Prominent Return Button */}

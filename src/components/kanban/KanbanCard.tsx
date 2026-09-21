@@ -54,7 +54,7 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
     <div
       ref={setNodeRef}
       style={style}
-      className={`relative bg-white rounded-xl border border-[#E7E7E7] p-3 shadow-2xs hover:shadow-xs hover:border-[#D4D4D4] transition-all cursor-grab active:cursor-grabbing group ${isLocked ? 'opacity-70 bg-[#F9F9F9]' : ''}`}
+      className={`relative bg-white rounded-sm border-[1.5px] border-[#171717] p-3 shadow-none hover:shadow-none hover:border-black transition-all cursor-grab active:cursor-grabbing group ${isLocked ? 'opacity-70 bg-[#F9F9F9]' : ''}`}
       {...attributes}
       {...listeners}
       onClick={(e) => {
