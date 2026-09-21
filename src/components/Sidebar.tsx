@@ -396,7 +396,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             className='w-full flex items-center gap-2 px-3 py-2 rounded-md text-xs font-semibold text-[#DC2626] hover:bg-[#FEE2E2] hover:text-[#B91C1C] transition-colors text-left cursor-pointer'
           >
             <LogOut className='w-4 h-4' />
-            <span>Đăng xuất</span>
+            <span>Logout</span>
           </button>
         )}
       </div>
