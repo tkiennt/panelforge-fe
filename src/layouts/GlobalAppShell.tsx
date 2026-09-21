@@ -34,7 +34,6 @@ import {
   Bell,
   Search,
   UserCircle,
-  Eye,
   Layers,
   LogOut,
 } from 'lucide-react';
@@ -78,8 +77,9 @@ const NAV_CONFIG: Record<string, { section: string; items: any[] }[]> = {
   ],
   PRODUCER: [
     {
-      section: 'WORKSPACE',
+      section: 'QUẢN LÝ STUDIO',
       items: [
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
         { icon: LayoutDashboard, label: 'Dashboard', href: 'dashboard', isActive: true },
         {
@@ -114,6 +114,11 @@ const NAV_CONFIG: Record<string, { section: string; items: any[] }[]> = {
         { icon: LayoutDashboard, label: 'Dự án của tôi', href: 'dashboard', isActive: true },
         { icon: Users, label: 'Thành viên dự án', href: 'members' },
         { icon: BookOpen, label: 'Xuất bản truyện', href: 'publishing' },
+>>>>>>> Stashed changes
+=======
+        { icon: LayoutDashboard, label: 'Dự án của tôi', href: 'my-projects' },
+        { icon: Users, label: 'Thành viên dự án', href: 'project-members' },
+        { icon: Upload, label: 'Xuất bản truyện', href: 'publish-manga' },
 >>>>>>> Stashed changes
       ],
     },

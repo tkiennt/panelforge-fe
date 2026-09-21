@@ -51,6 +51,10 @@ import WriterWorkspace from './components/modals/roles/WriterWorkspace';
 import ArtistWorkspace from './components/modals/roles/ArtistWorkspace';
 // ----------------------------------------------------------------
 
+// Import các màn hình mới
+import { MyProjectsView } from './views/producer/MyProjectsView';
+import { ProjectMembersView } from './views/producer/ProjectMembersView';
+
 import { MockRoleWorkspaceView } from './views/MockRoleWorkspaceView';
 
 <<<<<<< Updated upstream
@@ -138,7 +142,11 @@ export default function App() {
         setCurrentView('admin-dash');
         break;
       case 'PRODUCER':
+<<<<<<< Updated upstream
         setCurrentView('dashboard'); // <-- TRẢ LẠI THÀNH 'dashboard' ĐỂ KHỚP VỚI MENU
+=======
+        setCurrentView('my-projects'); // Cập nhật màn hình mặc định mới cho Producer
+>>>>>>> Stashed changes
         break;
       case 'WRITER':
         setCurrentView('script');
@@ -478,6 +486,7 @@ export default function App() {
               onLeaveFeedback={() => showToast('Feedback', 'Thanks for your feedback!')}
             >
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
               <div className='w-full h-full relative overflow-hidden'>
                 
                 {/* --- RENDER THEO ROLE Ở ĐÂY --- */}
@@ -491,12 +500,25 @@ export default function App() {
 
                 {/* Render bảng Pipeline tổng quan cho các role khác (như PRODUCER, READER...) */}
                 {currentView === 'dashboard' && currentRole !== 'ARTIST' && (
+=======
+              <div className='w-full min-h-full flex-1 relative flex flex-col'>
+                {/* ---> 1. PRODUCER: QUẢN LÝ STUDIO (GIAO DIỆN MỚI) <--- */}
+                {currentView === 'my-projects' && <MyProjectsView />}
+                {currentView === 'project-members' && <ProjectMembersView />}
+                {currentView === 'publish-manga' && (
+                  <div className='p-6 text-[#171717]'>Giao diện Xuất bản truyện sẽ đặt ở đây</div>
+                )}
+
+                {/* Giữ lại fallback giao diện Workflow (nếu có routing đến từ chỗ khác) */}
+                {(currentView === 'dashboard' || currentView === 'workflow') && (
+>>>>>>> Stashed changes
                   <ProductionPipelineView
                     currentUserRole={currentRole as any}
                     onShowToast={showToast}
                     isReaderMode={currentRole === 'READER'}
                   />
                 )}
+                {currentView === 'workspaces' && <ProducerWorkspaceView />}
 
                 {currentView === 'review' && (
                   <div className='p-4'>Editor Workspace (Placeholder)</div>
@@ -523,6 +545,10 @@ export default function App() {
                   />
                 )}
 
+<<<<<<< Updated upstream
+=======
+                {/* 8. MEMBERS & STUDIO ROLES */}
+>>>>>>> Stashed changes
                 {currentView === 'members' && (
                   <MembersRolesView
                     activeProject={activeProject}
