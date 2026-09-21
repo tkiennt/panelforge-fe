@@ -2,11 +2,13 @@ import React from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { Clock, Sparkles, Lock, CheckCircle, XCircle } from 'lucide-react';
+import { MessageSquare, Paperclip, MoreVertical, Eye, FileSignature } from 'lucide-react';
+import { usePermissions } from '../../lib/permissions';
 import { PipelineCard, PIPELINE_MEMBERS } from '../../data/mockPipelineData';
 
 interface KanbanCardProps {
   card: PipelineCard;
-  currentUserRole: string;
+  userRoles: string[];
   onClick: (card: PipelineCard) => void;
   isLocked: boolean;
   canDrag: boolean;
@@ -14,11 +16,12 @@ interface KanbanCardProps {
 
 export const KanbanCard: React.FC<KanbanCardProps> = ({
   card,
-  currentUserRole,
+  userRoles,
   onClick,
   isLocked,
   canDrag,
 }) => {
+  const { hasPermission } = usePermissions(userRoles);
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: card.id,
     data: {
@@ -48,7 +51,8 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
   }
 
   // Quick actions for Editor
-  const showEditorActions = currentUserRole === 'EDITOR' && card.stage === 'review';
+  const showEditorActions = card.stage === 'review';
+  const canReview = hasPermission('review_card');
 
   return (
     <div
@@ -126,19 +130,46 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
         </div>
       </div>
 
+      {showEditorActions && (
+        <div className='flex gap-2 pt-2 border-t border-[#E7E7E7]'>
+          <button
+            disabled={!canReview}
+            title={!canReview ? "Chỉ Editor/Admin mới có quyền duyệt" : "Yêu cầu sửa lại"}
+            className='flex-1 py-1.5 bg-[#FEF2F2] hover:bg-[#FEE2E2] text-[#DC2626] text-[10px] font-bold uppercase rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+            onClick={(e) => {
+              e.stopPropagation();
+            }}
+          >
+            Revisions
+          </button>
+          <button
+            disabled={!canReview}
+            title={!canReview ? "Chỉ Editor/Admin mới có quyền duyệt" : "Duyệt"}
+            className='flex-1 py-1.5 bg-[#F0FDF4] hover:bg-[#DCFCE7] text-[#16A34A] text-[10px] font-bold uppercase rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+            onClick={(e) => {
+              e.stopPropagation();
+            }}
+          >
+            Approve
+          </button>
+        </div>
+      )}
+
       {/* Editor Quick Actions overlay */}
       {showEditorActions && (
         <div className='absolute inset-0 bg-white/90 backdrop-blur-[1px] rounded-xl flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-10'>
           <button
-            className='w-8 h-8 rounded-full bg-[#10B981]/10 text-[#10B981] flex items-center justify-center hover:bg-[#10B981] hover:text-white transition-colors'
-            title='Approve'
+            disabled={!canReview}
+            className='w-8 h-8 rounded-full bg-[#10B981]/10 text-[#10B981] flex items-center justify-center hover:bg-[#10B981] hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+            title={!canReview ? "Chỉ Editor/Admin mới có quyền duyệt" : "Approve"}
             onClick={() => alert('Approved card: ' + card.id)}
           >
             <CheckCircle className='w-4 h-4' />
           </button>
           <button
-            className='w-8 h-8 rounded-full bg-[#EF4444]/10 text-[#EF4444] flex items-center justify-center hover:bg-[#EF4444] hover:text-white transition-colors'
-            title='Reject (Needs Revision)'
+            disabled={!canReview}
+            className='w-8 h-8 rounded-full bg-[#EF4444]/10 text-[#EF4444] flex items-center justify-center hover:bg-[#EF4444] hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+            title={!canReview ? "Chỉ Editor/Admin mới có quyền duyệt" : "Reject (Needs Revision)"}
             onClick={() => alert('Rejected card: ' + card.id)}
           >
             <XCircle className='w-4 h-4' />

@@ -1,14 +1,15 @@
 import React, { useRef } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { PipelineStage, PipelineCard, RoleKey } from '../../data/mockPipelineData';
+import { PipelineStage, PipelineCard } from '../../data/mockPipelineData';
 import { KanbanCard } from './KanbanCard';
 import { MoreHorizontal } from 'lucide-react';
+import { usePermissions } from '../../lib/permissions';
 
 interface KanbanColumnProps {
   stage: PipelineStage;
   cards: PipelineCard[];
-  currentUserRole: RoleKey;
+  userRoles: string[];
   onCardClick: (card: PipelineCard) => void;
   checkIsLocked: (card: PipelineCard) => boolean;
   canDragCard: (card: PipelineCard) => boolean;
@@ -17,11 +18,12 @@ interface KanbanColumnProps {
 export const KanbanColumn: React.FC<KanbanColumnProps> = ({
   stage,
   cards,
-  currentUserRole,
+  userRoles,
   onCardClick,
   checkIsLocked,
   canDragCard,
 }) => {
+  const { hasPermission } = usePermissions(userRoles);
   const { setNodeRef, isOver } = useDroppable({
     id: stage.id,
   });
@@ -30,25 +32,23 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
   let isDimmed = false;
   let isHighlighted = false;
 
-  switch (currentUserRole) {
-    case 'WRITER':
-      isDimmed = stage.id !== 'script';
-      isHighlighted = stage.id === 'script';
-      break;
-    case 'ARTIST': {
-      const artistStages = ['thumbnail', 'pencil', 'ink', 'color'];
-      isDimmed = !artistStages.includes(stage.id);
-      isHighlighted = artistStages.includes(stage.id);
-      break;
-    }
-    case 'LETTERER':
-      isDimmed = stage.id !== 'letter';
-      isHighlighted = stage.id === 'letter';
-      break;
-    case 'EDITOR':
-      isHighlighted = stage.id === 'review';
-      break;
-    // PRODUCER and ADMINISTRATOR see everything equally
+  // We map permissions to stages for highlighting
+  // e.g. edit_script -> script stage
+  // edit_art -> thumbnail, pencil, ink, color
+  // review_card -> review
+  
+  if (hasPermission('edit_script') && stage.id === 'script') {
+    isHighlighted = true;
+  } else if (hasPermission('edit_art') && ['thumbnail', 'pencil', 'ink', 'color'].includes(stage.id)) {
+    isHighlighted = true;
+  } else if (hasPermission('upload_layer') && stage.id === 'letter') {
+    isHighlighted = true;
+  } else if (hasPermission('review_card') && stage.id === 'review') {
+    isHighlighted = true;
+  } else if (hasPermission('create_card')) {
+    // Admin/Producer see all equally
+  } else {
+    isDimmed = true;
   }
 
   const columnClasses = [
@@ -113,7 +113,7 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
               >
                 <KanbanCard
                   card={card}
-                  currentUserRole={currentUserRole}
+                  userRoles={userRoles}
                   onClick={onCardClick}
                   isLocked={checkIsLocked(card)}
                   canDrag={canDragCard(card)}

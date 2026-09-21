@@ -16,21 +16,22 @@ import {
   PIPELINE_STAGES,
   MOCK_CARDS,
   PipelineCard,
-  RoleKey,
   StageKey,
 } from '../../data/mockPipelineData';
+import { usePermissions } from '../../lib/permissions';
 
 interface KanbanBoardProps {
-  currentUserRole: RoleKey;
+  userRoles: string[];
   currentUserId?: string; // For assignee checks
   onShowToast: (title: string, desc: string) => void;
 }
 
 export const KanbanBoard: React.FC<KanbanBoardProps> = ({
-  currentUserRole,
+  userRoles,
   currentUserId = 'user-1',
   onShowToast,
 }) => {
+  const { hasPermission } = usePermissions(userRoles);
   const [cards, setCards] = useState<PipelineCard[]>(MOCK_CARDS);
   const [activeCard, setActiveCard] = useState<PipelineCard | null>(null);
   const [drawerCard, setDrawerCard] = useState<PipelineCard | null>(null);
@@ -56,15 +57,15 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   };
 
   const canDragCard = (card: PipelineCard) => {
-    // Producer & Editor can move anything
-    if (
-      currentUserRole === 'PRODUCER' ||
-      currentUserRole === 'EDITOR' ||
-      currentUserRole === 'ADMINISTRATOR'
-    )
+    // Producer & Editor can move anything. We check if they have review_card or create_card as a proxy for admin roles for now.
+    if (hasPermission('create_card') || hasPermission('review_card')) {
       return true;
-    // Others can only move their own assigned cards
-    return card.assigneeId === currentUserId;
+    }
+    // Others can only move their own assigned cards if they have drag_card
+    if (hasPermission('drag_card')) {
+      return card.assigneeId === currentUserId;
+    }
+    return false;
   };
 
   // --- DND HANDLERS ---
@@ -126,7 +127,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                 key={stage.id}
                 stage={stage}
                 cards={cards.filter((c) => c.stage === stage.id)}
-                currentUserRole={currentUserRole}
+                userRoles={userRoles}
                 onCardClick={setDrawerCard}
                 checkIsLocked={checkIsLocked}
                 canDragCard={canDragCard}
@@ -146,7 +147,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
             <div className='rotate-3 scale-105 opacity-90 shadow-2xl'>
               <KanbanCard
                 card={activeCard}
-                currentUserRole={currentUserRole}
+                userRoles={userRoles}
                 onClick={() => {}}
                 isLocked={false}
                 canDrag={true}
@@ -160,7 +161,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
         isOpen={!!drawerCard}
         onClose={() => setDrawerCard(null)}
         card={drawerCard}
-        currentUserRole={currentUserRole}
+        userRoles={userRoles}
       />
     </div>
   );
