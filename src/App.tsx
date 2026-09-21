@@ -57,8 +57,6 @@ import { ProjectMembersView } from './views/producer/ProjectMembersView';
 
 import { MockRoleWorkspaceView } from './views/MockRoleWorkspaceView';
 
-<<<<<<< Updated upstream
-=======
 // Import các trang mới của Producer
 import { MyProjectsView } from './views/producer/MyProjectsView';
 import { ProjectDetailView } from './views/producer/ProjectDetailView';
@@ -70,7 +68,6 @@ import { EditorDeskView } from './views/editor';
 import { ReaderPortalView } from './views/reader';
 
 import { SystemRole, normalizeSystemRole } from './types';
->>>>>>> Stashed changes
 import { LoginModal } from './components/modals/LoginModal';
 import { LandingPageView } from './views/LandingPageView';
 import { UserProfile } from './views/UserProfile';
@@ -98,8 +95,6 @@ export default function App() {
       setFirebaseUser(user);
       if (user) {
         setIsAuthenticated(true);
-<<<<<<< Updated upstream
-=======
         const existingToken = localStorage.getItem('token');
         if (!existingToken) {
           try {
@@ -112,7 +107,6 @@ export default function App() {
             console.warn('Không thể đồng bộ token backend từ Firebase session:', err);
           }
         }
->>>>>>> Stashed changes
       } else {
         setIsAuthenticated(false);
       }
