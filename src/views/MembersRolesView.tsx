@@ -480,18 +480,49 @@ export const MembersRolesView: React.FC<MembersRolesViewProps> = ({
             <div className='p-6 space-y-4 text-xs'>
               <div>
                 <label className='block font-mono font-bold uppercase tracking-wider text-[#888888] mb-1.5 text-[10px]'>
-                  Assigned Production Role
+                  Assigned Production Roles
                 </label>
-                <select
-                  value={editRole}
-                  onChange={(e) => setEditRole(e.target.value)}
-                  className='w-full px-3 py-2 bg-[#FAF8F4] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-[#171717] font-semibold focus:outline-none focus:border-[#F97316] cursor-pointer'
-                >
-                  <option value='Lead Producer'>Lead Producer</option>
-                  <option value='Artist / Inker'>Artist / Inker</option>
-                  <option value='Writer'>Writer</option>
-                  <option value='Reviewer / Editor'>Reviewer / Editor</option>
-                </select>
+                <div className='flex flex-wrap gap-2 mt-1'>
+                  {['PRODUCER', 'ARTIST', 'WRITER', 'LETTERER', 'EDITOR', 'READER'].map((roleKey) => {
+                    // Check if editRole (which might be comma separated or a single string) contains this role
+                    const isActive = editRole.toUpperCase().includes(roleKey);
+                    return (
+                      <label
+                        key={roleKey}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[10px] font-bold tracking-wider cursor-pointer transition-colors ${
+                          isActive
+                            ? 'bg-[#171717] text-white border-[#171717]'
+                            : 'bg-white text-[#555555] border-[#E7E7E7] hover:bg-[#FAF8F4]'
+                        }`}
+                      >
+                        <input
+                          type='checkbox'
+                          className='hidden'
+                          checked={isActive}
+                          onChange={(e) => {
+                            let currentRoles = editRole
+                              .split(',')
+                              .map((r) => r.trim().toUpperCase())
+                              .filter(Boolean);
+                            
+                            // Map some old string roles to standard keys
+                            if (currentRoles.includes('LEAD PRODUCER')) currentRoles = ['PRODUCER'];
+                            if (currentRoles.includes('ARTIST / INKER')) currentRoles = ['ARTIST'];
+                            if (currentRoles.includes('REVIEWER / EDITOR')) currentRoles = ['EDITOR'];
+
+                            if (e.target.checked) {
+                              if (!currentRoles.includes(roleKey)) currentRoles.push(roleKey);
+                            } else {
+                              currentRoles = currentRoles.filter((r) => r !== roleKey);
+                            }
+                            setEditRole(currentRoles.join(', '));
+                          }}
+                        />
+                        {roleKey}
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
 
               <div>

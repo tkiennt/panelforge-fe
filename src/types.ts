@@ -117,6 +117,13 @@ export type RoleKey = 'producer' | 'artist' | 'writer' | 'reviewer';
 export type SystemRole =
   'ADMINISTRATOR' | 'PRODUCER' | 'WRITER' | 'ARTIST' | 'LETTERER' | 'EDITOR' | 'READER';
 
+export interface ProjectMembership {
+  id: string;
+  projectId: string;
+  userId: string;
+  roles: SystemRole[];
+}
+
 export function normalizeSystemRole(role: any): SystemRole {
   if (!role) return 'ARTIST';
   const r = String(role).trim().toUpperCase();

@@ -92,7 +92,7 @@ export const AdminUserManagementView: React.FC = () => {
 
   // Modals
   const [assigningUser, setAssigningUser] = useState<AdminUserItem | null>(null);
-  const [selectedNewRole, setSelectedNewRole] = useState<string>('Writer');
+  const [selectedNewRoles, setSelectedNewRoles] = useState<string[]>(['Writer']);
   const [isSubmittingRole, setIsSubmittingRole] = useState(false);
 
   const [inspectUser, setInspectUser] = useState<AdminUserItem | null>(null);
@@ -135,19 +135,26 @@ export const AdminUserManagementView: React.FC = () => {
     try {
       const result = await adminService.assignRole({
         userId: assigningUser.id,
-        newRole: selectedNewRole,
+        newRole: selectedNewRoles.join(', '),
       });
 
       // Optimistic update local state
       setUsers((prev) =>
-        prev.map((u) =>
-          u.id === assigningUser.id ? { ...u, role: result.newRole || selectedNewRole } : u,
-        ),
+        prev.map((u) => {
+          if (u.id === assigningUser.id) {
+            return {
+              ...u,
+              role: result.newRole || selectedNewRoles.join(', '),
+              projectRoles: [{ projectId: 'proj-1', roles: selectedNewRoles }],
+            };
+          }
+          return u;
+        }),
       );
 
       showToast(
         'Phân quyền thành công',
-        result.message || `Đã đổi vai trò của ${assigningUser.email} thành ${selectedNewRole}.`,
+        result.message || `Đã đổi vai trò của ${assigningUser.email} thành ${selectedNewRoles.join(', ')}.`,
       );
       setAssigningUser(null);
     } catch (err: any) {
@@ -194,6 +201,23 @@ export const AdminUserManagementView: React.FC = () => {
         {roleName}
       </span>
     );
+  };
+
+  const renderProjectRoles = (user: AdminUserItem) => {
+    if (user.projectRoles && user.projectRoles.length > 0) {
+      return (
+        <div className="flex flex-col gap-1">
+          {user.projectRoles.map((pr, idx) => (
+            <div key={idx} className="flex flex-wrap gap-1">
+              {pr.roles.map((role) => (
+                <span key={role}>{getRoleBadge(role)}</span>
+              ))}
+            </div>
+          ))}
+        </div>
+      );
+    }
+    return getRoleBadge(user.role);
   };
 
   return (
@@ -350,7 +374,7 @@ export const AdminUserManagementView: React.FC = () => {
                     </td>
 
                     {/* Role */}
-                    <td className='py-3.5 px-4'>{getRoleBadge(user.role)}</td>
+                    <td className='py-3.5 px-4'>{renderProjectRoles(user)}</td>
 
                     {/* 2FA Status */}
                     <td className='py-3.5 px-4'>
@@ -389,7 +413,7 @@ export const AdminUserManagementView: React.FC = () => {
                       <button
                         onClick={() => {
                           setAssigningUser(user);
-                          setSelectedNewRole(user.role || 'Writer');
+                          setSelectedNewRoles(user.projectRoles?.[0]?.roles || [user.role || 'Writer']);
                         }}
                         className='inline-flex items-center gap-1 px-2.5 py-1 rounded bg-[#F8F6F0] hover:bg-[#EAE6DF] text-[#171717] border border-[#E7E7E7] font-semibold text-[11px] transition-colors cursor-pointer'
                         title='Phân quyền lại vai trò người dùng này'
@@ -468,32 +492,41 @@ export const AdminUserManagementView: React.FC = () => {
             <form onSubmit={handleAssignRoleSubmit} className='space-y-4'>
               <div>
                 <label className='block text-xs font-bold text-[#171717] mb-2'>
-                  Chọn vai trò mới (New Role):
+                  Chọn vai trò hệ thống / dự án:
                 </label>
                 <div className='grid grid-cols-1 gap-2 max-h-60 overflow-y-auto p-1'>
-                  {ALL_ROLES.map((r) => (
-                    <label
-                      key={r.key}
-                      onClick={() => setSelectedNewRole(r.key)}
-                      className={`flex items-center justify-between p-2.5 rounded-lg border text-xs cursor-pointer transition-all ${
-                        selectedNewRole === r.key
-                          ? 'border-[#F97316] bg-[#FFF7ED] font-bold text-[#171717]'
-                          : 'border-[#E7E7E7] hover:bg-[#FAF8F5] text-[#555555]'
-                      }`}
-                    >
-                      <div className='flex items-center gap-2'>
-                        <span
-                          className={`w-2 h-2 rounded-full ${
-                            selectedNewRole === r.key ? 'bg-[#F97316]' : 'bg-[#CCCCCC]'
-                          }`}
-                        ></span>
-                        <span>{r.label}</span>
-                      </div>
-                      <span className='font-mono text-[10px] text-[#888888] uppercase'>
-                        {r.key}
-                      </span>
-                    </label>
-                  ))}
+                  {ALL_ROLES.map((r) => {
+                    const isSelected = selectedNewRoles.includes(r.key) || selectedNewRoles.includes(r.key.toUpperCase());
+                    return (
+                      <label
+                        key={r.key}
+                        className={`flex items-center justify-between p-2.5 rounded-lg border text-xs cursor-pointer transition-all ${
+                          isSelected
+                            ? 'border-[#F97316] bg-[#FFF7ED] font-bold text-[#171717]'
+                            : 'border-[#E7E7E7] hover:bg-[#FAF8F5] text-[#555555]'
+                        }`}
+                      >
+                        <div className='flex items-center gap-2'>
+                          <input
+                            type='checkbox'
+                            className='w-3.5 h-3.5 accent-[#F97316] cursor-pointer'
+                            checked={isSelected}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedNewRoles((prev) => [...prev, r.key]);
+                              } else {
+                                setSelectedNewRoles((prev) => prev.filter((role) => role !== r.key && role !== r.key.toUpperCase()));
+                              }
+                            }}
+                          />
+                          <span>{r.label}</span>
+                        </div>
+                        <span className='font-mono text-[10px] text-[#888888] uppercase'>
+                          {r.key}
+                        </span>
+                      </label>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -570,9 +603,9 @@ export const AdminUserManagementView: React.FC = () => {
               </div>
               <div>
                 <span className='text-[#888888] block text-[10px] uppercase font-mono'>
-                  Vai trò
+                  Vai trò (Dự án)
                 </span>
-                <div className='mt-1'>{getRoleBadge(inspectUser.role)}</div>
+                <div className='mt-1'>{renderProjectRoles(inspectUser)}</div>
               </div>
               <div>
                 <span className='text-[#888888] block text-[10px] uppercase font-mono'>

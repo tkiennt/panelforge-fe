@@ -42,7 +42,8 @@ import {
 
 export interface CurrentUser {
   name: string;
-  role: 'ADMINISTRATOR' | 'PRODUCER' | 'WRITER' | 'ARTIST' | 'LETTERER' | 'EDITOR' | 'READER';
+  role: string;
+  activeRoles?: string[];
   avatarInitials: string;
 }
 
@@ -202,8 +203,29 @@ export function GlobalAppShell({
   onLeaveFeedback,
   onOpenTwoFactor,
 }: GlobalAppShellProps) {
-  const isReader = currentUser.role === 'READER';
-  const navSections = NAV_CONFIG[currentUser.role] || NAV_CONFIG['PRODUCER'] || [];
+  const isReader = currentUser.activeRoles?.includes('READER') || currentUser.role === 'READER';
+  
+  const activeRoles = currentUser.activeRoles || [currentUser.role];
+  const navSections = activeRoles.reduce((acc: any[], role) => {
+    const config = NAV_CONFIG[role] || [];
+    config.forEach(section => {
+      const existing = acc.find(s => s.section === section.section);
+      if (existing) {
+        section.items.forEach(item => {
+          if (!existing.items.find((i: any) => i.label === item.label)) {
+            existing.items.push(item);
+          }
+        });
+      } else {
+        acc.push({ section: section.section, items: [...section.items] });
+      }
+    });
+    return acc;
+  }, []);
+  
+  if (navSections.length === 0) {
+    navSections.push(...(NAV_CONFIG['PRODUCER'] || []));
+  }
 
   const handleNavClick = (e: React.MouseEvent, href: string) => {
     e.preventDefault();
@@ -291,7 +313,7 @@ export function GlobalAppShell({
           </div>
 
           <div className='mx-4 mt-3'>
-            {currentUser.role === 'ADMINISTRATOR' ? (
+            {currentUser.activeRoles?.includes('ADMINISTRATOR') ? (
               <div className='bg-[#FFFFFF] border border-[#E7E7E7] rounded-lg p-2.5 flex items-center justify-between shadow-xs'>
                 <div className='flex items-center gap-2.5 min-w-0'>
                   <div className='w-6 h-6 rounded bg-[#171717] flex items-center justify-center shrink-0 text-white'>
@@ -437,8 +459,8 @@ export function GlobalAppShell({
                 </span>
                 <span className='mx-2 text-[#B8B8B8] font-normal select-none'>/</span>
                 <span className='text-[#171717] font-semibold truncate flex items-center gap-1.5'>
-                  {currentUser.role === 'ADMINISTRATOR' ? 'Global Settings' : 'Workspace'}
-                  {!['ADMINISTRATOR', 'READER'].includes(currentUser.role) && (
+                  {currentUser.activeRoles?.includes('ADMINISTRATOR') ? 'Global Settings' : 'Workspace'}
+                  {!currentUser.activeRoles?.includes('ADMINISTRATOR') && !currentUser.activeRoles?.includes('READER') && (
                     <span className='inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-[#FFFBEB] text-[#D97706] border border-[#FDE68A]'>
                       In Review
                     </span>
@@ -515,14 +537,14 @@ export function GlobalAppShell({
               </div>
             </div>
 
-            {['PRODUCER', 'ADMINISTRATOR', 'ARTIST'].includes(currentUser.role) && (
+            {currentUser.activeRoles?.some(r => ['PRODUCER', 'ADMINISTRATOR', 'ARTIST'].includes(r)) && (
               <button className='bg-[#F97316] text-white px-4 py-1.5 rounded-md text-sm font-medium hover:bg-[#EA580C] active:scale-[0.98] transition-all flex items-center gap-1.5 shadow-sm'>
-                {currentUser.role === 'ARTIST' ? (
+                {currentUser.activeRoles?.includes('ARTIST') ? (
                   <UploadCloud className='w-3.5 h-3.5 stroke-[2.5]' />
                 ) : (
                   <Upload className='w-3.5 h-3.5 stroke-[2.5]' />
                 )}
-                <span>{currentUser.role === 'ARTIST' ? 'Submit' : 'Export'}</span>
+                <span>{currentUser.activeRoles?.includes('ARTIST') ? 'Submit' : 'Export'}</span>
               </button>
             )}
 

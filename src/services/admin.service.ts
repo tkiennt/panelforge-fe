@@ -11,6 +11,7 @@ export interface AdminUserItem {
   isEmailConfirmed: boolean;
   twoFactorEnabled: boolean;
   createdAt: string;
+  projectRoles?: { projectId: string; roles: string[] }[];
 }
 
 export interface AdminUsersResponse {
@@ -83,6 +84,7 @@ export const MOCK_ADMIN_USERS: AdminUserItem[] = [
     isEmailConfirmed: true,
     twoFactorEnabled: true,
     createdAt: '2026-01-01T08:00:00Z',
+    projectRoles: [{ projectId: 'proj-1', roles: ['ADMINISTRATOR'] }],
   },
   {
     id: '22222222-2222-2222-2222-222222222222',
@@ -94,6 +96,7 @@ export const MOCK_ADMIN_USERS: AdminUserItem[] = [
     isEmailConfirmed: true,
     twoFactorEnabled: true,
     createdAt: '2026-01-15T09:30:00Z',
+    projectRoles: [{ projectId: 'proj-1', roles: ['PRODUCER'] }],
   },
   {
     id: '33333333-3333-3333-3333-333333333333',
@@ -105,6 +108,7 @@ export const MOCK_ADMIN_USERS: AdminUserItem[] = [
     isEmailConfirmed: true,
     twoFactorEnabled: false,
     createdAt: '2026-02-01T10:15:00Z',
+    projectRoles: [{ projectId: 'proj-1', roles: ['WRITER'] }],
   },
   {
     id: '44444444-4444-4444-4444-444444444444',
@@ -116,6 +120,7 @@ export const MOCK_ADMIN_USERS: AdminUserItem[] = [
     isEmailConfirmed: true,
     twoFactorEnabled: true,
     createdAt: '2026-02-10T14:20:00Z',
+    projectRoles: [{ projectId: 'proj-1', roles: ['ARTIST'] }],
   },
   {
     id: '55555555-5555-5555-5555-555555555555',
@@ -127,6 +132,7 @@ export const MOCK_ADMIN_USERS: AdminUserItem[] = [
     isEmailConfirmed: true,
     twoFactorEnabled: false,
     createdAt: '2026-02-20T11:00:00Z',
+    projectRoles: [{ projectId: 'proj-1', roles: ['LETTERER'] }],
   },
   {
     id: '66666666-6666-6666-6666-666666666666',
@@ -138,6 +144,7 @@ export const MOCK_ADMIN_USERS: AdminUserItem[] = [
     isEmailConfirmed: true,
     twoFactorEnabled: true,
     createdAt: '2026-03-01T08:45:00Z',
+    projectRoles: [{ projectId: 'proj-1', roles: ['EDITOR'] }],
   },
   {
     id: '77777777-7777-7777-7777-777777777777',
@@ -149,6 +156,7 @@ export const MOCK_ADMIN_USERS: AdminUserItem[] = [
     isEmailConfirmed: true,
     twoFactorEnabled: false,
     createdAt: '2026-03-10T16:30:00Z',
+    projectRoles: [{ projectId: 'proj-1', roles: ['READER'] }],
   },
 ];
 

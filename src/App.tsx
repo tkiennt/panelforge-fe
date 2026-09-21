@@ -14,6 +14,7 @@ import {
   INITIAL_MEMBERS,
   INITIAL_PROVENANCE_LOGS,
   INITIAL_ASSISTANTS,
+  INITIAL_PROJECT_MEMBERSHIPS,
 } from './data/mockData';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
@@ -45,6 +46,7 @@ import {
 import { GlobalAppShell } from './layouts/GlobalAppShell';
 import { ProductionPipelineView } from './views/ProductionPipelineView';
 import { ScriptEditorView } from './views/ScriptEditorView';
+import { UnifiedWorkspaceView } from './views/UnifiedWorkspaceView';
 
 import { MockRoleWorkspaceView } from './views/MockRoleWorkspaceView';
 import {
@@ -115,7 +117,7 @@ export default function App() {
   // Navigation & Data State
   const [viewScope, setViewScope] = useState<'hub' | 'project'>('hub');
   const [currentView, setCurrentView] = useState<ViewMode | string>('dashboard');
-  const [currentRole, setCurrentRole] = useState<SystemRole>('ARTIST');
+  const [activeProjectRoles, setActiveProjectRoles] = useState<SystemRole[]>(['ARTIST']);
   const [currentUserInfo, setCurrentUserInfo] = useState<{
     id?: string;
     name: string;
@@ -157,7 +159,7 @@ export default function App() {
     const savedRole = localStorage.getItem('userRole');
     if (savedRole) {
       const role = normalizeSystemRole(savedRole);
-      setCurrentRole(role);
+      // Removed setCurrentRole(role) as we are using activeProjectRoles
     }
     const savedToken = localStorage.getItem('token');
     if (savedToken) {
@@ -169,7 +171,7 @@ export default function App() {
             payload.role || payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'];
           if (roleClaim) {
             const role = normalizeSystemRole(roleClaim);
-            setCurrentRole(role);
+            // Removed setCurrentRole(role)
             localStorage.setItem('userRole', role);
           }
         }
@@ -181,9 +183,13 @@ export default function App() {
 
   useEffect(() => {
     if (viewScope === 'project') {
-      navigateRoleDefaultView(currentRole);
+      if (activeProjectRoles.includes('ADMINISTRATOR')) {
+         setCurrentView('admin-dash');
+      } else {
+         setCurrentView('workspace');
+      }
     }
-  }, [currentRole, viewScope]);
+  }, [activeProjectRoles, viewScope]);
 
   const [projects, setProjects] = useState<MangaProject[]>(INITIAL_PROJECTS);
   const [activeProject, setActiveProject] = useState<MangaProject>(INITIAL_PROJECTS[0]);
@@ -281,8 +287,20 @@ export default function App() {
     showToast('Serialization Created', `Added "${newProj.title}" to Publications Catalog.`);
   };
 
-  const handleEnterProject = (proj: MangaProject, targetView: ViewMode | string = 'dashboard') => {
+  const handleEnterProject = (proj: MangaProject, targetView: ViewMode | string = 'workspace') => {
     setActiveProject(proj);
+    
+    // Find roles for the current user in this project
+    const userId = currentUserInfo?.id || 'member-tf'; // default to TF for testing
+    const membership = INITIAL_PROJECT_MEMBERSHIPS.find(m => m.projectId === proj.id && m.userId === userId);
+    
+    if (membership && membership.roles.length > 0) {
+      setActiveProjectRoles(membership.roles);
+    } else {
+      // Default fallback
+      setActiveProjectRoles(['READER']);
+    }
+
     setCurrentView(targetView);
     setViewScope('project');
     showToast('Entered Studio Workspace', `Active workspace: ${proj.title}`);
@@ -302,9 +320,9 @@ export default function App() {
     const mappedRole = normalizeSystemRole(role);
     setDemoRole(role);
     setIsDemoMode(true);
-    setCurrentRole(mappedRole);
+    setActiveProjectRoles([mappedRole]);
     setViewScope('project'); // Always enter project to show App Shell
-    navigateRoleDefaultView(mappedRole);
+    setCurrentView(mappedRole === 'ADMINISTRATOR' ? 'admin-dash' : 'workspace');
     showToast('Chế độ Demo Role', `Đang xem giao diện với quyền ${mappedRole}`);
   };
 
@@ -353,16 +371,15 @@ export default function App() {
 
                 if (roleMatched && password === '123456') {
                   setIsAuthenticated(true);
-                  setCurrentRole(roleMatched);
+                  setActiveProjectRoles([roleMatched]);
                   setCurrentUserInfo({
                     name: username.split('@')[0],
                     email: username,
                     role: roleMatched,
                   });
                   localStorage.setItem('userRole', roleMatched);
-                  setViewScope('project');
+                  setViewScope('hub'); // Instead of jumping to project, let them pick a project
                   setIsLoginModalOpen(false);
-                  navigateRoleDefaultView(roleMatched);
                   showToast(
                     'Đăng nhập thành công',
                     `Chào mừng bạn trở lại với vai trò ${roleMatched}.`,
@@ -385,7 +402,7 @@ export default function App() {
                   localStorage.setItem('token', res.token);
                 }
                 const role = normalizeSystemRole(res?.user?.role);
-                setCurrentRole(role);
+                // Removed setCurrentRole(role);
                 setCurrentUserInfo({
                   id: res?.user?.id,
                   name:
@@ -397,8 +414,7 @@ export default function App() {
                   role,
                 });
                 localStorage.setItem('userRole', role);
-                setViewScope('project');
-                navigateRoleDefaultView(role);
+                setViewScope('hub');
                 const displayName =
                   res?.user?.fullName ||
                   res?.user?.email ||
@@ -414,7 +430,7 @@ export default function App() {
                   localStorage.setItem('token', authResponse.token);
                 }
                 const role = normalizeSystemRole(authResponse?.user?.role);
-                setCurrentRole(role);
+                // Removed setCurrentRole(role);
                 setCurrentUserInfo({
                   id: authResponse?.user?.id,
                   name:
@@ -425,8 +441,7 @@ export default function App() {
                   role,
                 });
                 localStorage.setItem('userRole', role);
-                setViewScope('project');
-                navigateRoleDefaultView(role);
+                setViewScope('hub');
                 showToast(
                   'Đăng nhập thành công',
                   `Chào mừng ${authResponse?.user?.fullName || 'bạn'} (Vai trò: ${role})!`,
@@ -449,7 +464,7 @@ export default function App() {
                   localStorage.setItem('token', authResponse.token);
                 }
                 const role = normalizeSystemRole(authResponse?.user?.role);
-                setCurrentRole(role);
+                // Removed setCurrentRole(role);
                 setCurrentUserInfo({
                   id: authResponse?.user?.id,
                   name:
@@ -460,8 +475,7 @@ export default function App() {
                   role,
                 });
                 localStorage.setItem('userRole', role);
-                setViewScope('project');
-                navigateRoleDefaultView(role);
+                setViewScope('hub');
                 showToast(
                   'Kích hoạt thành công',
                   `Chào mừng ${authResponse?.user?.fullName || 'bạn'} (Vai trò: ${role})!`,
@@ -492,11 +506,12 @@ export default function App() {
                   firebaseUser?.displayName ||
                   firebaseUser?.email?.split('@')[0] ||
                   'Tatsuki F.',
-                role: currentRole,
+                role: activeProjectRoles.join(', ') as any,
+                activeRoles: activeProjectRoles,
                 avatarInitials: (
                   currentUserInfo?.name ||
                   firebaseUser?.displayName ||
-                  currentRole ||
+                  activeProjectRoles[0] ||
                   'U'
                 )
                   .charAt(0)
@@ -513,37 +528,13 @@ export default function App() {
               onOpenTwoFactor={() => setIsTwoFactorModalOpen(true)}
             >
               <div className='w-full min-h-full flex-1 relative flex flex-col'>
-                {/* 1. PRODUCER: WORKSPACES & PIPELINE */}
-                {currentView === 'workspaces' && <ProducerWorkspaceView />}
-                {(currentView === 'dashboard' || currentView === 'workflow') && (
-                  <ProductionPipelineView
-                    currentUserRole={currentRole as any}
-                    onShowToast={showToast}
-                    isReaderMode={currentRole === 'READER'}
+                {/* UNIFIED WORKSPACE VIEW FOR PROJECT ROLES */}
+                {currentView === 'workspace' && (
+                  <UnifiedWorkspaceView 
+                    activeRoles={activeProjectRoles}
+                    onShowToast={showToast} 
                   />
                 )}
-
-                {/* 2. WRITER: SCRIPT STUDIO & AI BREAKDOWN */}
-                {(currentView === 'script' ||
-                  currentView === 'ai-breakdown' ||
-                  currentView === 'compare') && <WriterStudioView onShowToast={showToast} />}
-
-                {/* 3. ARTIST: PAGES DESK & CANVAS (PagesController) */}
-                {(currentView === 'layout' ||
-                  currentView === 'queue' ||
-                  currentView === 'upload' ||
-                  currentView === 'requests') && <ArtistDeskView />}
-
-                {/* 4. LETTERER: PANEL CANVAS & ELEMENTS (ElementsController) */}
-                {(currentView === 'canvas' ||
-                  currentView === 'warnings' ||
-                  currentView === 'presets') && <LettererCanvasView />}
-
-                {/* 5. EDITOR: REVIEW & CONSISTENCY CHECK */}
-                {(currentView === 'review' || currentView === 'check') && <EditorDeskView />}
-
-                {/* 6. READER: PREVIEW PORTAL */}
-                {currentView === 'reader' && <ReaderPortalView />}
 
                 {/* 7. SERIES BIBLE REPOSITORY */}
                 {currentView === 'bible' && (
@@ -600,7 +591,7 @@ export default function App() {
             isOpen={spreadModalOpen}
             onClose={() => setSpreadModalOpen(false)}
             onShowToast={showToast}
-            userRole={currentRole}
+            userRole={activeProjectRoles[0] || 'ARTIST'}
           />
           <PageDetailModal
             card={selectedCardForDetail}
