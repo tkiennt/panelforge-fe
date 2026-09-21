@@ -59,140 +59,25 @@ interface GlobalAppShellProps {
   onOpenTwoFactor?: () => void;
 }
 
-// Map roles to their specific navigation configurations
-const NAV_CONFIG: Record<string, { section: string; items: any[] }[]> = {
-  ADMINISTRATOR: [
-    {
-      section: 'SYSTEM ADMIN',
-      items: [
-        { icon: LayoutDashboard, label: 'System Dashboard', href: 'admin-dash' },
-        { icon: Users, label: 'Users & Workspaces', href: 'users' },
-        { icon: Shield, label: 'Roles & Permissions', href: 'roles' },
-        {
-          icon: Cpu,
-          label: 'AI Provider & Quota',
-          href: 'ai-quota',
-          badge: { type: 'dot', color: 'bg-emerald-500' },
-        },
-        { icon: Database, label: 'Storage & Backup', href: 'storage' },
-        { icon: List, label: 'Global Audit Log', href: 'audit' },
-        { icon: Settings, label: 'Master Data', href: 'master-data' },
-      ],
-    },
-  ],
-  PRODUCER: [
-    {
-      section: 'WORKSPACE',
-      items: [
-        { icon: LayoutDashboard, label: 'Dashboard', href: 'dashboard', isActive: true },
-        { icon: Briefcase, label: 'Studio Workspaces', href: 'workspaces' },
-        {
-          icon: Kanban,
-          label: 'Production Pipeline',
-          href: 'workflow',
-          badge: { type: 'text', text: 'Ch. 5', color: 'bg-[#F97316]/10 text-[#F97316]' },
-        },
-        {
-          icon: BookMarked,
-          label: 'Series Bible',
-          href: 'bible',
-          badge: { type: 'dot', color: 'bg-[#8B5CF6]' },
-        },
-        {
-          icon: Users,
-          label: 'Members & Roles',
-          href: 'members',
-          badge: { type: 'text', text: '6', color: 'text-[#555555]' },
-        },
-        { icon: Calendar, label: 'Release Calendar', href: 'calendar' },
-        { icon: History, label: 'Provenance / Restore', href: 'provenance' },
-      ],
-    },
-    {
-      section: 'PUBLISHING',
-      items: [
-        { icon: FileText, label: 'B5 Pre-Press Specs', href: 'specs' },
-        { icon: ShieldCheck, label: 'SHA-256 Provenance', href: 'sha' },
-        { icon: Upload, label: 'Export / Publish', href: 'export' },
-      ],
-    },
-  ],
-  WRITER: [
-    {
-      section: 'WRITING',
-      items: [
-        { icon: FileEdit, label: 'My Scripts', href: 'script', isActive: true },
-        {
-          icon: Sparkles,
-          label: 'AI Breakdown Requests',
-          href: 'ai-breakdown',
-          badge: { type: 'text', text: '2 Pending', color: 'bg-[#F3E8FF] text-[#6D28D9]' },
-        },
-        { icon: BookMarked, label: 'Series Bible (Link Mode)', href: 'bible' },
-        { icon: Split, label: 'Script Version Compare', href: 'compare' },
-      ],
-    },
-  ],
-  ARTIST: [
-    {
-      section: 'STUDIO DESK',
-      items: [
-        {
-          icon: Inbox,
-          label: 'My Task Queue',
-          href: 'queue',
-          badge: { type: 'text', text: '12', color: 'bg-[#F97316] text-white rounded-full px-2' },
-        },
-        { icon: LayoutTemplate, label: 'Layout & Thumbnail', href: 'layout', isActive: true },
-        { icon: UploadCloud, label: 'Upload Artwork', href: 'upload' },
-        { icon: BookMarked, label: 'Series Bible & Assets', href: 'bible' },
-        {
-          icon: AlertCircle,
-          label: 'Change Requests',
-          href: 'requests',
-          badge: { type: 'dot', color: 'bg-red-500' },
-        },
-      ],
-    },
-  ],
-  LETTERER: [
-    {
-      section: 'LETTERING',
-      items: [
-        { icon: Type, label: 'Panel Canvas', href: 'canvas', isActive: true },
-        {
-          icon: AlertTriangle,
-          label: 'Overflow Warnings',
-          href: 'warnings',
-          badge: { type: 'text', text: '3', color: 'bg-yellow-100 text-yellow-700' },
-        },
-        { icon: Settings2, label: 'Typography Presets', href: 'presets' },
-      ],
-    },
-  ],
-  EDITOR: [
-    {
-      section: 'EDITORIAL',
-      items: [
-        {
-          icon: Inbox,
-          label: 'Review Queue',
-          href: 'review',
-          isActive: true,
-          badge: {
-            type: 'text',
-            text: 'In Review',
-            color: 'bg-[#FFFBEB] text-[#D97706] border border-[#FDE68A]',
-          },
-        },
-        { icon: Columns, label: 'Side-by-side Compare', href: 'compare' },
-        { icon: CheckSquare, label: 'Consistency Check', href: 'check' },
-        { icon: MessageSquare, label: 'Change Requests', href: 'requests' },
-      ],
-    },
-  ],
-  READER: [],
-};
+const UNIFIED_NAV_CONFIG = [
+  {
+    section: 'STUDIO WORKSPACE',
+    items: [
+      { icon: LayoutDashboard, label: 'Dashboard', href: 'dashboard' },
+      { icon: Kanban, label: 'Production Pipeline', href: 'pipeline' },
+      { icon: Split, label: 'Panel Workspace', href: 'workspace' },
+      { icon: BookMarked, label: 'Series Bible', href: 'bible' },
+      { icon: Users, label: 'Members & Roles', href: 'members' },
+    ],
+  },
+  {
+    section: 'PUBLISHING & AUDIT',
+    items: [
+      { icon: History, label: 'Provenance / Restore', href: 'provenance' },
+      { icon: Upload, label: 'Export / Publish', href: 'export' },
+    ],
+  },
+];
 
 export function GlobalAppShell({
   currentUser,
@@ -205,27 +90,19 @@ export function GlobalAppShell({
   onOpenTwoFactor,
 }: GlobalAppShellProps) {
   const isReader = currentUser.activeRoles?.includes('READER') || currentUser.role === 'READER';
+  // We use unified config for everyone. Admin gets extra items appended.
+  const navSections = [...UNIFIED_NAV_CONFIG];
   
-  const activeRoles = currentUser.activeRoles || [currentUser.role];
-  const navSections = activeRoles.reduce((acc: any[], role) => {
-    const config = NAV_CONFIG[role] || [];
-    config.forEach(section => {
-      const existing = acc.find(s => s.section === section.section);
-      if (existing) {
-        section.items.forEach(item => {
-          if (!existing.items.find((i: any) => i.label === item.label)) {
-            existing.items.push(item);
-          }
-        });
-      } else {
-        acc.push({ section: section.section, items: [...section.items] });
-      }
+  if (currentUser.activeRoles?.includes('ADMINISTRATOR')) {
+    navSections.push({
+      section: 'SYSTEM ADMIN',
+      items: [
+        { icon: LayoutDashboard, label: 'System Dashboard', href: 'admin-dash' },
+        { icon: Users, label: 'Users & Workspaces', href: 'users' },
+        { icon: Cpu, label: 'AI Provider & Quota', href: 'ai-quota' },
+        { icon: List, label: 'Global Audit Log', href: 'audit' },
+      ],
     });
-    return acc;
-  }, []);
-  
-  if (navSections.length === 0) {
-    navSections.push(...(NAV_CONFIG['PRODUCER'] || []));
   }
 
   const handleNavClick = (e: React.MouseEvent, href: string) => {

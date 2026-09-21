@@ -59,41 +59,30 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
       </div>
 
       <div className='mx-4 mt-3'>
-        {currentUser.activeRoles?.includes('ADMINISTRATOR') ? (
-          <div className='bg-[#FFFFFF] border border-[#E7E7E7] rounded-lg p-2.5 flex items-center justify-between shadow-xs'>
-            <div className='flex items-center gap-2.5 min-w-0'>
-              <div className='w-6 h-6 rounded bg-[#171717] flex items-center justify-center shrink-0 text-white'>
-                <Server className='w-3.5 h-3.5' />
-              </div>
-              <div className='min-w-0'>
-                <p className='text-xs font-semibold text-[#171717] truncate leading-tight'>
-                  System Global
-                </p>
-                <p className='text-[10px] text-[#555555] font-mono truncate'>Admin Zone</p>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div
-            className='group bg-[#FFFFFF] border border-[#E7E7E7] hover:border-[#B8B8B8] transition-all rounded-lg p-2.5 flex items-center justify-between cursor-pointer shadow-xs'
-            title='Switch active manga serialization'
-          >
-            <div className='flex items-center gap-2.5 min-w-0'>
-              <div className='w-6 h-6 rounded bg-[#FFF7ED] border border-[#FDBA74]/50 flex items-center justify-center shrink-0 text-[#F97316]'>
-                <BookOpen className='w-3.5 h-3.5 stroke-[2.2]' />
-              </div>
-              <div className='min-w-0'>
-                <p className='text-xs font-semibold text-[#171717] truncate leading-tight'>
-                  {activeSeries.title}
-                </p>
-                <p className='text-[10px] text-[#555555] font-mono truncate'>
-                  {activeSeries.subtitle || 'Volume 01'}
-                </p>
-              </div>
-            </div>
-            <ChevronDown className='w-4 h-4 text-[#555555] group-hover:text-[#171717] transition-colors shrink-0 stroke-[2]' />
+        {currentUser.activeRoles?.includes('ADMINISTRATOR') && (
+          <div className='flex items-center gap-2 px-1 mb-4 text-[#171717]'>
+            <Server className='w-3.5 h-3.5 text-[#555555]' />
+            <span className='text-xs font-bold'>System Admin Zone</span>
           </div>
         )}
+        
+        <div
+          className='group flex items-center justify-between cursor-pointer px-1 py-1 rounded-md hover:bg-[#E7E7E7]/40 transition-colors'
+          title='Switch active manga serialization'
+        >
+          <div className='flex items-center gap-2.5 min-w-0'>
+            <BookOpen className='w-4 h-4 stroke-[2] text-[#171717]' />
+            <div className='min-w-0'>
+              <p className='text-xs font-bold text-[#171717] truncate leading-tight'>
+                {activeSeries.title}
+              </p>
+              <p className='text-[10px] text-[#555555] font-mono truncate'>
+                {activeSeries.subtitle || 'Volume 01'}
+              </p>
+            </div>
+          </div>
+          <ChevronDown className='w-3.5 h-3.5 text-[#555555] group-hover:text-[#171717] transition-colors shrink-0' />
+        </div>
       </div>
 
       <nav className='mt-5 flex-1 overflow-y-auto px-2 space-y-4'>
@@ -107,10 +96,10 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
                 const baseClass =
                   'group flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ';
                 const activeClass = item.isActive
-                  ? 'bg-[#FFF7ED] text-[#F97316] border-l-4 border-[#F97316] shadow-2xs rounded-r-md rounded-l-none'
-                  : 'text-[#555555] hover:bg-[#E7E7E7]/50 hover:text-[#171717] cursor-pointer';
+                  ? 'bg-[#E7E7E7]/60 text-[#171717] font-bold'
+                  : 'text-[#555555] hover:bg-[#E7E7E7]/30 hover:text-[#171717] cursor-pointer';
 
-                const iconClass = `w-4 h-4 transition-colors ${item.isActive ? 'text-[#F97316] stroke-[2.2]' : 'text-[#555555] group-hover:text-[#171717] stroke-[2]'}`;
+                const iconClass = `w-4 h-4 transition-colors ${item.isActive ? 'text-[#171717] stroke-[2.2]' : 'text-[#555555] group-hover:text-[#171717] stroke-[2]'}`;
                 const IconComp = item.icon;
 
                 return (

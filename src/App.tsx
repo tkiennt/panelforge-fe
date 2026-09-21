@@ -536,6 +536,14 @@ export default function App() {
                   />
                 )}
 
+                {/* PRODUCTION PIPELINE (KANBAN BOARD) */}
+                {currentView === 'pipeline' && (
+                  <ProductionPipelineView 
+                    userRoles={activeProjectRoles}
+                    onShowToast={showToast} 
+                  />
+                )}
+
                 {/* 7. SERIES BIBLE REPOSITORY */}
                 {currentView === 'bible' && (
                   <SeriesBibleView
