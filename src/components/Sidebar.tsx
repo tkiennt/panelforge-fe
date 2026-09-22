@@ -9,12 +9,16 @@ import {
   HelpCircle,
   ChevronsUpDown,
   ArrowLeft,
-  CheckCircle2, // <--- Đã thêm CheckCircle2 vào đây
+  CheckCircle2,
+  Shield,
+  Cpu,
+  LogOut,
+  Type,
 } from 'lucide-react';
-import { ViewMode, MangaProject } from '../types';
+import { ViewMode, MangaProject, SystemRole } from '../types';
 
 interface SidebarProps {
-  currentView: ViewMode | string; // Thêm | string để không bị lỗi type
+  currentView: ViewMode | string;
   onSelectView: (view: any) => void;
   activeProject: MangaProject;
   projects: MangaProject[];
@@ -23,7 +27,8 @@ interface SidebarProps {
   onOpenSettings: () => void;
   onOpenHelp: () => void;
   onOpenStorageModal: () => void;
-  userRole: 'WRITER' | 'ARTIST' | 'EDITOR'; // <--- THÊM DÒNG NÀY
+  userRole?: SystemRole | string;
+  onLogout?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -37,6 +42,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onOpenHelp,
   onOpenStorageModal,
   userRole,
+  onLogout,
 }) => {
   const [projectMenuOpen, setProjectMenuOpen] = React.useState(false);
 
@@ -94,11 +100,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
             <div className='overflow-hidden'>
               <div className='text-xs font-semibold text-[#171717] truncate'>Tatsuki F.</div>
-              <div className='text-[10px] text-[#888888] truncate font-mono'>Lead Producer</div>
+              <div className='text-[10px] text-[#888888] truncate font-mono'>
+                {userRole === 'PRODUCER' ? 'Lead Producer' : userRole}
+              </div>
             </div>
           </div>
           <span className='text-[9px] font-mono font-semibold text-[#F97316] bg-[#FFF7ED] px-1.5 py-0.5 rounded border border-[#FDBA74]/40'>
-            LEAD
+            {userRole === 'PRODUCER' ? 'LEAD' : 'MEMBER'}
           </span>
         </div>
 
@@ -156,9 +164,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
             Studio Workspace
           </div>
           <nav className='space-y-1'>
-<<<<<<< Updated upstream
-            {/* MENU CHO ARTIST (Họa sĩ) */}
-=======
             {/* ---> CẬP NHẬT MENU CHO PRODUCER <--- */}
             {userRole === 'PRODUCER' && (
               <>
@@ -215,7 +220,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
             )}
 
             {/* MENU CHO ARTIST */}
->>>>>>> Stashed changes
             {userRole === 'ARTIST' && (
               <>
                 <button
@@ -269,8 +273,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </>
             )}
 
-<<<<<<< Updated upstream
-=======
             {/* MENU CHO ADMIN */}
             {userRole === 'ADMINISTRATOR' && (
               <>
@@ -344,7 +346,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </>
             )}
 
->>>>>>> Stashed changes
             {/* MENU CHUNG CHO MỌI ROLE */}
             <button
               onClick={() => onSelectView('bible')}
@@ -361,7 +362,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Sidebar Bottom Utilities */}
       <div className='p-3 border-t border-[#E7E7E7] bg-white/80 space-y-3'>
-        {/* Vault Usage Card */}
         <div
           onClick={onOpenStorageModal}
           className='p-3 bg-[#F8F6F0] hover:bg-[#F3F1EB] rounded-lg border border-[#E7E7E7] cursor-pointer transition-colors'
@@ -385,7 +385,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         </div>
 
-        <nav className='space-y-0.5'>
+        <nav className='space-y-0.5 border-b border-[#E7E7E7] pb-2 mb-2'>
           <button
             onClick={onOpenSettings}
             className='w-full flex items-center gap-2 px-3 py-1.5 rounded-md text-[11px] text-[#555555] hover:text-[#171717] hover:bg-[#F3F1EB] transition-colors text-left cursor-pointer'
@@ -401,6 +401,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <span>Help & Docs</span>
           </button>
         </nav>
+
+        {/* LOGOUT BUTTON */}
+        {onLogout && (
+          <button
+            onClick={onLogout}
+            className='w-full flex items-center gap-2 px-3 py-2 rounded-md text-xs font-semibold text-[#DC2626] hover:bg-[#FEE2E2] hover:text-[#B91C1C] transition-colors text-left cursor-pointer'
+          >
+            <LogOut className='w-4 h-4' />
+            <span>Đăng xuất</span>
+          </button>
+        )}
       </div>
     </aside>
   );

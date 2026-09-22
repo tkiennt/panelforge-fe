@@ -6,6 +6,12 @@ interface MockRoleWorkspaceViewProps {
 }
 
 const roleBadges: Record<string, { title: string; color: string; bg: string }> = {
+  administrator: {
+    title: 'Administrator // System Ops',
+    color: 'bg-neutral-900',
+    bg: '#171717',
+  },
+  producer: { title: 'Lead Producer // Studio Command', color: 'bg-orange-600', bg: '#ea580c' },
   writer: { title: 'Writer // Story Architect', color: 'bg-indigo-600', bg: '#4f46e5' },
   artist: { title: 'Line Artist // Genga Studio', color: 'bg-blue-500', bg: '#3b82f6' },
   letterer: { title: 'Letterer // Typesetting', color: 'bg-emerald-600', bg: '#059669' },
@@ -14,6 +20,8 @@ const roleBadges: Record<string, { title: string; color: string; bg: string }> =
 };
 
 const roleConsole: Record<string, string> = {
+  administrator: 'system telemetry loaded • RBAC cluster synchronized • audit stream live',
+  producer: 'production timeline synced • tankōbon milestone tracking enabled',
   writer: 'pgvector lore-check enabled • AI script assistant ready',
   artist: 'canvas integrations loaded • 3D pose library synced',
   letterer: 'font library loaded • balloon templates ready',

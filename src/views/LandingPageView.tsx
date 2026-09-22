@@ -28,9 +28,14 @@ import {
 interface LandingPageViewProps {
   onEnterDemo: (role: string) => void;
   onOpenLogin: () => void;
+  onOpenRegister?: () => void;
 }
 
-export const LandingPageView: React.FC<LandingPageViewProps> = ({ onEnterDemo, onOpenLogin }) => {
+export const LandingPageView: React.FC<LandingPageViewProps> = ({
+  onEnterDemo,
+  onOpenLogin,
+  onOpenRegister,
+}) => {
   const observerRef = useRef<IntersectionObserver | null>(null);
 
   useEffect(() => {
@@ -102,7 +107,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onEnterDemo, o
               Sign in
             </button>
             <button
-              onClick={() => onEnterDemo('producer')}
+              onClick={() => (onOpenRegister ? onOpenRegister() : onEnterDemo('producer'))}
               className='inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#171717] text-white text-sm font-medium hover:bg-[#404040] transition soft-shadow cursor-pointer'
             >
               Onboard Studio

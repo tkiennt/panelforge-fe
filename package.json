@@ -10,6 +10,11 @@
     "clean": "rm -rf dist server.js",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "format": "prettier --write \"src/**/*.{ts,tsx,css,json}\"",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "quality": "npm run typecheck && npm run lint && npm run test:run",
     "prepare": "husky install"
   },
   "dependencies": {
@@ -24,11 +29,15 @@
     "firebase": "^12.19.0",
     "lucide-react": "^0.546.0",
     "motion": "^12.23.24",
+    "qrcode.react": "^4.2.0",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
     "vite": "^6.2.3"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.7",
     "@types/express": "^4.17.21",
     "@types/node": "^22.14.0",
     "@typescript-eslint/eslint-plugin": "^8.70.0",
@@ -43,11 +52,13 @@
     "eslint-plugin-react-refresh": "^0.4.14",
     "globals": "^17.12.0",
     "husky": "^9.1.7",
+    "jsdom": "^29.1.1",
     "lint-staged": "^16.4.0",
     "prettier": "^3.9.6",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",
-    "vite": "^6.2.3"
+    "vite": "^6.2.3",
+    "vitest": "^5.0.1"
   }
 }

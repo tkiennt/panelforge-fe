@@ -21,9 +21,11 @@ export const VersionCompareView: React.FC<VersionCompareViewProps> = ({
 
   return (
     <>
-      <div className="absolute inset-0 bg-[#171717]/40 backdrop-blur-sm z-[100]" onClick={onClose} />
-      <div className="absolute inset-4 md:inset-10 bg-[#F8F6F0] rounded-2xl shadow-2xl z-[110] flex flex-col overflow-hidden border border-[#E7E7E7] animate-in slide-in-from-bottom-10 duration-300">
-        
+      <div
+        className='absolute inset-0 bg-[#171717]/40 backdrop-blur-sm z-[100]'
+        onClick={onClose}
+      />
+      <div className='absolute inset-4 md:inset-10 bg-[#F8F6F0] rounded-2xl shadow-2xl z-[110] flex flex-col overflow-hidden border border-[#E7E7E7] animate-in slide-in-from-bottom-10 duration-300'>
         {/* Header */}
         <div className='p-4 border-b border-[#E7E7E7] bg-white flex items-center justify-between shrink-0'>
           <div className='flex items-center gap-3'>

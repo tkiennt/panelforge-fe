@@ -36,10 +36,38 @@ export const Header: React.FC<HeaderProps> = ({
         return 'Chapter 5 Pipeline';
       case 'workflow':
         return 'Chapter 5 Pipeline';
+      case 'script':
+        return 'Script & Dialogue Studio';
+      case 'layout':
+      case 'queue':
+      case 'upload':
+        return 'Artist Studio & Layout';
+      case 'canvas':
+      case 'warnings':
+      case 'presets':
+        return 'Letterer Panel Canvas';
+      case 'review':
+      case 'check':
+        return 'Editorial QC & Review Desk';
+      case 'reader':
+        return 'Reader Preview Portal';
       case 'bible':
         return 'Series Bible Repository';
-      case 'members':
-        return 'Members & RBAC Control';
+      case 'workspaces':
+        return 'Studio Workspaces & Quotas';
+      case 'users':
+      case 'roles':
+        return 'Quản Trị Người Dùng & Phân Quyền (RBAC)';
+      case 'admin-dash':
+        return 'System Administration Console';
+      case 'ai-quota':
+        return 'AI Provider Quota & Continuity Config';
+      case 'storage':
+        return 'Cloud Storage & Database Backup';
+      case 'audit':
+        return 'Global Security & Audit Log';
+      case 'master-data':
+        return 'Master Data & System Settings';
       case 'publications':
         return 'Manga Series & Publications';
       default:
