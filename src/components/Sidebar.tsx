@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   LayoutGrid,
   Kanban,
@@ -44,17 +44,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
   userRole,
   onLogout,
 }) => {
-  const [projectMenuOpen, setProjectMenuOpen] = React.useState(false);
+  const [projectMenuOpen, setProjectMenuOpen] = useState(false);
 
   return (
     <aside
       className='w-64 bg-[#F8F6F0] border-r border-[#E7E7E7] flex flex-col justify-between shrink-0 z-30 select-none h-screen'
       style={{ backgroundColor: '#FAF8F4' }}
     >
-      <div className='flex flex-col'>
+      <div className='flex flex-col overflow-y-auto custom-scrollbar h-full'>
         {/* Brand Logo Header */}
         <div
-          className='h-16 px-5 border-b border-[#E7E7E7] flex items-center justify-between bg-white cursor-pointer'
+          className='h-16 px-5 border-b border-[#E7E7E7] flex items-center justify-between bg-white cursor-pointer shrink-0'
           onClick={() => onSelectView('my-projects')}
         >
           <div className='flex items-center gap-2.5'>
@@ -76,7 +76,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Prominent Return to Publications Hub Button */}
-        <div className='px-3 pt-3'>
+        <div className='px-3 pt-3 shrink-0'>
           <button
             onClick={onReturnToHub}
             className='w-full px-3 py-2 bg-white hover:bg-[#F3F1EB] rounded-xl border border-[#E7E7E7] text-xs font-semibold text-[#171717] flex items-center justify-between group cursor-pointer shadow-2xs transition-all hover:border-[#F97316]'
@@ -93,7 +93,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* User / Lead Profile Badge */}
-        <div className='p-3 mx-3 my-2 bg-white rounded-xl border border-[#E7E7E7] shadow-xs flex items-center justify-between'>
+        <div className='p-3 mx-3 my-2 bg-white rounded-xl border border-[#E7E7E7] shadow-xs flex items-center justify-between shrink-0'>
           <div className='flex items-center gap-2.5'>
             <div className='w-8 h-8 rounded-full bg-[#171717] text-white font-semibold text-xs flex items-center justify-center ring-2 ring-[#F97316]/30'>
               TF
@@ -111,7 +111,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Project Context Selector */}
-        <div className='px-3 mb-3 relative'>
+        <div className='px-3 mb-3 relative shrink-0'>
           <button
             onClick={() => setProjectMenuOpen(!projectMenuOpen)}
             className='w-full text-left px-3 py-2.5 bg-white hover:bg-[#FFFEFA] rounded-xl border border-[#E7E7E7] shadow-xs transition-colors flex items-center justify-between group cursor-pointer'
@@ -119,9 +119,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div className='overflow-hidden'>
               <div className='text-xs font-bold text-[#171717] flex items-center gap-1.5 truncate'>
                 <span className='w-2 h-2 rounded-full bg-[#F97316] animate-pulse shrink-0'></span>
-                <span className='truncate'>{activeProject.title}</span>
+                <span className='truncate'>{activeProject?.title || 'No Project'}</span>
               </div>
-              <div className='text-[10px] text-[#888888] truncate'>{activeProject.subtitle}</div>
+              <div className='text-[10px] text-[#888888] truncate'>{activeProject?.subtitle}</div>
             </div>
             <ChevronsUpDown className='w-3.5 h-3.5 text-[#888888] group-hover:text-[#171717] transition-colors shrink-0 ml-1' />
           </button>
@@ -140,7 +140,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     setProjectMenuOpen(false);
                   }}
                   className={`w-full text-left px-2.5 py-2 rounded-lg text-xs transition-all flex items-center justify-between ${
-                    p.id === activeProject.id
+                    p.id === activeProject?.id
                       ? 'bg-[#FFF7ED] text-[#F97316] font-semibold'
                       : 'text-[#555555] hover:bg-[#F3F1EB] hover:text-[#171717]'
                   }`}
@@ -159,7 +159,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Navigation Section */}
-        <div className='px-3'>
+        <div className='px-3 flex-1'>
           <div className='text-[10px] font-bold text-[#888888] uppercase tracking-wider px-3 mb-1.5'>
             Studio Workspace
           </div>
@@ -361,7 +361,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* Sidebar Bottom Utilities */}
-      <div className='p-3 border-t border-[#E7E7E7] bg-white/80 space-y-3'>
+      <div className='p-3 border-t border-[#E7E7E7] bg-white/80 space-y-3 shrink-0'>
         <div
           onClick={onOpenStorageModal}
           className='p-3 bg-[#F8F6F0] hover:bg-[#F3F1EB] rounded-lg border border-[#E7E7E7] cursor-pointer transition-colors'

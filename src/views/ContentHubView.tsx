@@ -15,7 +15,7 @@ import {
   ArrowUpRight,
 } from 'lucide-react';
 import { MangaProject, ViewMode } from '../types';
-import { CreateProjectModal } from '../components/CreateProjectModal';
+import { CreateProjectModal } from './producer/CreateProjectModal';
 
 interface ContentHubViewProps {
   projects: MangaProject[];

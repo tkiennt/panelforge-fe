@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Plus, BookOpen } from 'lucide-react';
-import { MangaProject } from '../../types'; // Đã sửa đường dẫn types
-import { CreateProjectModal } from './CreateProjectModal'; // Đã sửa đường dẫn import modal
+import { Plus, Search, FolderKanban } from 'lucide-react';
+import { MangaProject } from '../../types';
+import { CreateProjectModal } from './CreateProjectModal';
 
 interface MyProjectsViewProps {
   projects: MangaProject[];
@@ -10,65 +10,81 @@ interface MyProjectsViewProps {
 
 export const MyProjectsView: React.FC<MyProjectsViewProps> = ({ projects, onNavigateToDetail }) => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredProjects = projects.filter((p) =>
+    p.title.toLowerCase().includes(searchQuery.toLowerCase()),
+  );
 
   return (
-    <div className='flex-1 bg-[#FAF8F5] min-h-screen p-6 md:p-8 space-y-6'>
-      {/* Header */}
-      <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-[#E7E7E7] shadow-xs'>
+    <div className='p-6 h-full flex flex-col bg-[#FAF8F4]'>
+      <div className='flex justify-between items-center mb-6'>
         <div>
-          <h1 className='text-2xl font-serif font-bold text-[#171717] tracking-tight'>
-            Dự án của tôi
-          </h1>
-          <p className='text-xs text-[#737373]'>
-            Quản lý tiến độ và danh sách các bộ truyện đang thực hiện.
-          </p>
+          <h1 className='text-2xl font-bold text-[#171717]'>Dự án của tôi</h1>
+          <p className='text-sm text-gray-500 mt-1'>Quản lý và theo dõi tiến độ các ấn phẩm</p>
         </div>
         <button
           onClick={() => setIsCreateModalOpen(true)}
-          className='inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-[#F97316] hover:bg-[#EA580C] rounded-xl shadow-xs transition-all cursor-pointer'
+          className='flex items-center gap-2 bg-[#171717] text-white px-4 py-2 rounded-lg hover:bg-black transition'
         >
           <Plus className='w-4 h-4' />
-          <span>Thêm bộ truyện mới</span>
+          <span>Dự án mới</span>
         </button>
       </div>
 
-      {/* Project Grid */}
-      <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5'>
-        {projects.map((proj) => (
+      <div className='relative mb-6'>
+        <Search className='w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400' />
+        <input
+          type='text'
+          placeholder='Tìm kiếm dự án...'
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className='w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-[#F97316]'
+        />
+      </div>
+
+      <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 overflow-y-auto custom-scrollbar'>
+        {filteredProjects.map((project) => (
           <div
-            key={proj.id}
-            onClick={() => onNavigateToDetail(proj)}
-            className='bg-white p-5 rounded-2xl border border-[#E7E7E7] hover:border-[#F97316]/50 hover:shadow-md transition-all cursor-pointer group'
+            key={project.id}
+            onClick={() => onNavigateToDetail(project)}
+            className='bg-white p-5 rounded-xl shadow-sm border border-gray-100 cursor-pointer hover:shadow-md transition'
           >
-            <div className='flex items-start justify-between mb-3'>
-              <div className='w-10 h-10 bg-[#F8F6F0] rounded-xl flex items-center justify-center text-[#F97316] group-hover:bg-[#F97316] group-hover:text-white transition-colors'>
-                <BookOpen className='w-5 h-5' />
+            <div className='flex items-start justify-between mb-4'>
+              <div className='w-10 h-10 bg-[#FFF7ED] text-[#F97316] rounded-lg flex items-center justify-center'>
+                <FolderKanban className='w-5 h-5' />
               </div>
-              <span className='text-[10px] font-mono font-bold bg-[#FFF7ED] text-[#F97316] px-2 py-1 rounded-md'>
-                {proj.status}
+              <span className='text-xs font-medium bg-gray-100 px-2 py-1 rounded text-gray-600'>
+                {project.status}
               </span>
             </div>
-            <h3 className='text-base font-bold text-[#171717] mb-1 truncate'>{proj.title}</h3>
-            <p className='text-xs text-[#737373] mb-4 truncate'>{proj.genres?.join(', ')}</p>
+            <h3 className='font-bold text-[#171717] mb-1'>{project.title}</h3>
+            <p className='text-sm text-gray-500 line-clamp-1'>{project.subtitle}</p>
 
-            {/* Progress Bar */}
-            <div className='space-y-1.5'>
-              <div className='flex justify-between text-[11px] font-semibold text-[#555555]'>
-                <span>Tiến độ</span>
-                <span>{proj.progressPercent}%</span>
+            <div className='mt-4 pt-4 border-t border-gray-50'>
+              <div className='flex justify-between text-sm mb-1'>
+                <span className='text-gray-500'>Tiến độ</span>
+                <span className='font-medium'>{project.progressPercent}%</span>
               </div>
-              <div className='w-full bg-[#FAF8F5] h-1.5 rounded-full overflow-hidden border border-[#E7E7E7]'>
+              <div className='w-full bg-gray-100 rounded-full h-1.5'>
                 <div
-                  className='bg-[#F97316] h-full rounded-full'
-                  style={{ width: `${proj.progressPercent}%` }}
-                ></div>
+                  className='bg-[#F97316] h-1.5 rounded-full'
+                  style={{ width: `${project.progressPercent}%` }}
+                />
               </div>
             </div>
           </div>
         ))}
       </div>
 
-      <CreateProjectModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
+      <CreateProjectModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onCreateProject={(data) => {
+          console.log('Dữ liệu dự án mới:', data);
+          setIsCreateModalOpen(false);
+        }}
+      />
     </div>
   );
 };
