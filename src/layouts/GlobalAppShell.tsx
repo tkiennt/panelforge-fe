@@ -8,6 +8,7 @@ import {
   Database,
   List,
   Settings,
+  Briefcase,
   Kanban,
   BookMarked,
   Calendar,
@@ -34,6 +35,7 @@ import {
   Bell,
   Search,
   UserCircle,
+  Eye,
   Layers,
   LogOut,
 } from 'lucide-react';
@@ -52,6 +54,7 @@ interface GlobalAppShellProps {
   onNavigate?: (href: string) => void;
   onLogout?: () => void;
   onLeaveFeedback?: () => void;
+  onOpenTwoFactor?: () => void;
 }
 
 // Map roles to their specific navigation configurations
@@ -77,11 +80,10 @@ const NAV_CONFIG: Record<string, { section: string; items: any[] }[]> = {
   ],
   PRODUCER: [
     {
-      section: 'QUẢN LÝ STUDIO',
+      section: 'WORKSPACE',
       items: [
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
         { icon: LayoutDashboard, label: 'Dashboard', href: 'dashboard', isActive: true },
+        { icon: Briefcase, label: 'Studio Workspaces', href: 'workspaces' },
         {
           icon: Kanban,
           label: 'Production Pipeline',
@@ -110,16 +112,6 @@ const NAV_CONFIG: Record<string, { section: string; items: any[] }[]> = {
         { icon: FileText, label: 'B5 Pre-Press Specs', href: 'specs' },
         { icon: ShieldCheck, label: 'SHA-256 Provenance', href: 'sha' },
         { icon: Upload, label: 'Export / Publish', href: 'export' },
-=======
-        { icon: LayoutDashboard, label: 'Dự án của tôi', href: 'dashboard', isActive: true },
-        { icon: Users, label: 'Thành viên dự án', href: 'members' },
-        { icon: BookOpen, label: 'Xuất bản truyện', href: 'publishing' },
->>>>>>> Stashed changes
-=======
-        { icon: LayoutDashboard, label: 'Dự án của tôi', href: 'my-projects' },
-        { icon: Users, label: 'Thành viên dự án', href: 'project-members' },
-        { icon: Upload, label: 'Xuất bản truyện', href: 'publish-manga' },
->>>>>>> Stashed changes
       ],
     },
   ],
@@ -208,6 +200,7 @@ export function GlobalAppShell({
   onNavigate,
   onLogout,
   onLeaveFeedback,
+  onOpenTwoFactor,
 }: GlobalAppShellProps) {
   const isReader = currentUser.role === 'READER';
   const navSections = NAV_CONFIG[currentUser.role] || NAV_CONFIG['PRODUCER'] || [];
@@ -385,9 +378,12 @@ export function GlobalAppShell({
                 <History className='w-4 h-4 text-[#555555] group-hover:text-[#171717] stroke-[2]' />
                 <span className='font-medium text-xs'>My Activity / History</span>
               </button>
-              <button className='w-full text-left flex items-center gap-2 text-sm text-[#555555] hover:text-[#171717] hover:bg-[#E7E7E7]/40 px-2 py-1.5 rounded-md transition-colors group'>
+              <button
+                onClick={onOpenTwoFactor}
+                className='w-full text-left flex items-center gap-2 text-sm text-[#555555] hover:text-[#171717] hover:bg-[#E7E7E7]/40 px-2 py-1.5 rounded-md transition-colors group cursor-pointer'
+              >
                 <UserCircle className='w-4 h-4 text-[#555555] group-hover:text-[#171717] stroke-[2]' />
-                <span className='font-medium text-xs'>Profile & Settings</span>
+                <span className='font-medium text-xs'>Profile & Security (2FA)</span>
               </button>
               <button
                 onClick={onLogout}
@@ -502,8 +498,9 @@ export function GlobalAppShell({
             <div className='h-5 w-px bg-[#E7E7E7]'></div>
 
             <div
+              onClick={onOpenTwoFactor}
               className='flex items-center gap-2.5 cursor-pointer hover:opacity-80 transition-opacity'
-              title='User Profile'
+              title='User Profile & Security (2FA)'
             >
               <div className='w-8 h-8 rounded-full bg-[#171717] text-[#FFFFFF] font-heading font-semibold text-xs flex items-center justify-center shadow-xs ring-1 ring-[#E7E7E7]'>
                 {currentUser.avatarInitials}
@@ -555,7 +552,7 @@ export function GlobalAppShell({
             </div>
           )}
 
-          <div className='relative z-10 w-full h-full flex flex-col'>{children}</div>
+          <div className='relative z-10 w-full min-h-full flex-1 flex flex-col'>{children}</div>
         </main>
       </div>
     </div>
