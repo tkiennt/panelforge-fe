@@ -48,12 +48,12 @@ import {
   AdminAuditLogView,
 } from './views/admin';
 
-import { ProducerWorkspaceView } from './views/producer';
-import { ArtistDeskView } from './views/artist';
-import { LettererCanvasView } from './views/letterer';
-import { WriterStudioView } from './views/writer';
-import { EditorDeskView } from './views/editor';
-import { ReaderPortalView } from './views/reader';
+import { ProducerWorkspaceView } from './views/ProducerWorkspaceView';
+import { ArtistDeskView } from './views/ArtistDeskView';
+import { LettererCanvasView } from './views/LettererCanvasView';
+import { WriterStudioView } from './views/WriterStudioView';
+import { EditorDeskView } from './views/EditorDeskView';
+import { ReaderPortalView } from './views/ReaderPortalView';
 
 import { SystemRole, normalizeSystemRole } from './types';
 import { LoginModal } from './components/modals/LoginModal';

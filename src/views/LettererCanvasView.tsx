@@ -22,7 +22,7 @@ import {
   PageSnapshotDto,
   MOCK_ELEMENTS,
   DEFAULT_PAGE_ID,
-} from '../../services/element.service';
+} from '../services/element.service';
 
 export const LettererCanvasView: React.FC = () => {
   const [elements, setElements] = useState<ElementSnapshotDto[]>(MOCK_ELEMENTS);

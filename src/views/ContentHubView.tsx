@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Folder,
   Plus,
@@ -43,36 +43,38 @@ export const ContentHubView: React.FC<ContentHubViewProps> = ({
   const [exportModalOpen, setExportModalOpen] = useState(false);
 
   // Filter projects according to tab, format, and search/tag
-  const filteredProjects = projects.filter((p) => {
-    const q = searchQuery.toLowerCase().trim();
-    const tagQ = tagFilter.toLowerCase().trim();
+  const filteredProjects = useMemo(() => {
+    return projects.filter((p) => {
+      const q = searchQuery.toLowerCase().trim();
+      const tagQ = tagFilter.toLowerCase().trim();
 
-    const matchesSearch =
-      !q ||
-      p.title.toLowerCase().includes(q) ||
-      p.subtitle.toLowerCase().includes(q) ||
-      p.arc.toLowerCase().includes(q) ||
-      (p.tagline && p.tagline.toLowerCase().includes(q));
+      const matchesSearch =
+        !q ||
+        p.title.toLowerCase().includes(q) ||
+        p.subtitle.toLowerCase().includes(q) ||
+        p.arc.toLowerCase().includes(q) ||
+        (p.tagline && p.tagline.toLowerCase().includes(q));
 
-    const matchesTag =
-      !tagQ ||
-      p.genres?.some((g) => g.toLowerCase().includes(tagQ)) ||
-      p.arc.toLowerCase().includes(tagQ);
+      const matchesTag =
+        !tagQ ||
+        p.genres?.some((g) => g.toLowerCase().includes(tagQ)) ||
+        p.arc.toLowerCase().includes(tagQ);
 
-    let matchesFilter = true;
-    if (filter === 'ACTIVE') {
-      matchesFilter = p.progressPercent < 100;
-    } else if (filter === 'COMPLETED') {
-      matchesFilter = p.progressPercent >= 100 || p.status.toLowerCase().includes('completed');
-    }
+      let matchesFilter = true;
+      if (filter === 'ACTIVE') {
+        matchesFilter = p.progressPercent < 100;
+      } else if (filter === 'COMPLETED') {
+        matchesFilter = p.progressPercent >= 100 || p.status.toLowerCase().includes('completed');
+      }
 
-    let matchesFormat = true;
-    if (formatFilter !== 'ALL') {
-      matchesFormat = p.format.toLowerCase().includes(formatFilter.toLowerCase());
-    }
+      let matchesFormat = true;
+      if (formatFilter !== 'ALL') {
+        matchesFormat = p.format.toLowerCase().includes(formatFilter.toLowerCase());
+      }
 
-    return matchesSearch && matchesTag && matchesFilter && matchesFormat;
-  });
+      return matchesSearch && matchesTag && matchesFilter && matchesFormat;
+    });
+  }, [projects, searchQuery, tagFilter, filter, formatFilter]);
 
   // Calculate high-level summary KPIs matching the screenshot
   const activeSeriesCount = projects.filter((p) => p.progressPercent < 100).length;

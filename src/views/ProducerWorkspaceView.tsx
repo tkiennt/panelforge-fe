@@ -20,7 +20,7 @@ import {
   WorkspaceMemberDto,
   MOCK_WORKSPACES,
   MOCK_WORKSPACE_MEMBERS,
-} from '../../services/workspace.service';
+} from '../services/workspace.service';
 
 export const ProducerWorkspaceView: React.FC = () => {
   const [workspaces, setWorkspaces] = useState<WorkspaceDto[]>(MOCK_WORKSPACES);

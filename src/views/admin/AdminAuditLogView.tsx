@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   List,
   Shield,
@@ -78,47 +78,49 @@ const MOCK_AUDIT_LOGS: AuditLogEntry[] = [
   },
 ];
 
+const SeverityBadge: React.FC<{ severity: string }> = ({ severity }) => {
+  switch (severity) {
+    case 'CRITICAL':
+      return (
+        <span className='inline-flex items-center gap-1 text-[10px] font-bold text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded'>
+          <AlertTriangle className='w-3 h-3' /> CRITICAL
+        </span>
+      );
+    case 'WARNING':
+      return (
+        <span className='inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded'>
+          <AlertTriangle className='w-3 h-3' /> WARNING
+        </span>
+      );
+    default:
+      return (
+        <span className='inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded'>
+          <Info className='w-3 h-3' /> INFO
+        </span>
+      );
+  }
+};
+
 export const AdminAuditLogView: React.FC = () => {
   const [logs] = useState<AuditLogEntry[]>(MOCK_AUDIT_LOGS);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
 
-  const filteredLogs = logs.filter((log) => {
+  const filteredLogs = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
-    const matchesSearch =
-      !q ||
-      log.actor.toLowerCase().includes(q) ||
-      log.action.toLowerCase().includes(q) ||
-      log.details.toLowerCase().includes(q) ||
-      log.ipAddress.includes(q);
+    return logs.filter((log) => {
+      const matchesSearch =
+        !q ||
+        log.actor.toLowerCase().includes(q) ||
+        log.action.toLowerCase().includes(q) ||
+        log.details.toLowerCase().includes(q) ||
+        log.ipAddress.includes(q);
 
-    const matchesCategory = categoryFilter === 'ALL' || log.category === categoryFilter;
+      const matchesCategory = categoryFilter === 'ALL' || log.category === categoryFilter;
 
-    return matchesSearch && matchesCategory;
-  });
-
-  const getSeverityBadge = (severity: string) => {
-    switch (severity) {
-      case 'CRITICAL':
-        return (
-          <span className='inline-flex items-center gap-1 text-[10px] font-bold text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded'>
-            <AlertTriangle className='w-3 h-3' /> CRITICAL
-          </span>
-        );
-      case 'WARNING':
-        return (
-          <span className='inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded'>
-            <AlertTriangle className='w-3 h-3' /> WARNING
-          </span>
-        );
-      default:
-        return (
-          <span className='inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded'>
-            <Info className='w-3 h-3' /> INFO
-          </span>
-        );
-    }
-  };
+      return matchesSearch && matchesCategory;
+    });
+  }, [logs, searchQuery, categoryFilter]);
 
   return (
     <div className='flex-1 bg-[#FAF8F5] min-h-screen p-6 md:p-8 space-y-6'>
@@ -195,7 +197,7 @@ export const AdminAuditLogView: React.FC = () => {
                   </td>
                   <td className='py-3 px-4 font-semibold text-[#171717]'>{log.actor}</td>
                   <td className='py-3 px-4 font-mono font-medium text-[#F97316]'>{log.action}</td>
-                  <td className='py-3 px-4'>{getSeverityBadge(log.severity)}</td>
+                  <td className='py-3 px-4'><SeverityBadge severity={log.severity} /></td>
                   <td className='py-3 px-4 text-[#555555]'>{log.details}</td>
                   <td className='py-3 px-4 font-mono text-[11px] text-[#888888]'>
                     {log.ipAddress}

@@ -1,6 +1,6 @@
 import React from 'react';
-import WriterWorkspace from '../../components/modals/roles/WriterWorkspace';
-import { ScriptEditorView } from '../ScriptEditorView';
+import WriterWorkspace from '../components/modals/roles/WriterWorkspace';
+import { ScriptEditorView } from './ScriptEditorView';
 
 interface WriterStudioViewProps {
   onShowToast?: (title: string, desc: string) => void;

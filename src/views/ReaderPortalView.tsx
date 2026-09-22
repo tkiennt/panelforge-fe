@@ -1,5 +1,5 @@
 import React from 'react';
-import ReaderWorkspace from '../../components/modals/roles/ReaderWorkspace';
+import ReaderWorkspace from '../components/modals/roles/ReaderWorkspace';
 
 export const ReaderPortalView: React.FC = () => {
   return (

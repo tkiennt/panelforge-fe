@@ -1,5 +1,5 @@
 import React from 'react';
-import EditorWorkspace from '../../components/modals/roles/EditorWorkspace';
+import EditorWorkspace from '../components/modals/roles/EditorWorkspace';
 
 export const EditorDeskView: React.FC = () => {
   return (
