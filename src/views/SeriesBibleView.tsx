@@ -18,12 +18,13 @@ import {
   X,
 } from 'lucide-react';
 import { BibleEntity, BibleCategory, MangaProject } from '../types';
+import { AddEntityModal } from '../components/modals/AddEntityModal';
+import { VectorStatusModal } from '../components/modals/VectorStatusModal';
 
 interface SeriesBibleViewProps {
   activeProject: MangaProject;
   entities: BibleEntity[];
-  onAddEntity: () => void;
-  onViewVectorStatus: () => void;
+  onAddEntity: (entity: BibleEntity) => void;
   onEditEntity: (entity: BibleEntity) => void;
   onShowToast: (title: string, desc: string) => void;
 }
@@ -40,7 +41,6 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
   activeProject,
   entities,
   onAddEntity,
-  onViewVectorStatus,
   onEditEntity,
   onShowToast,
 }) => {
@@ -48,6 +48,9 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [selectedEntity, setSelectedEntity] = useState<BibleEntity | null>(null);
+  
+  const [addEntityOpen, setAddEntityOpen] = useState(false);
+  const [vectorStatusOpen, setVectorStatusOpen] = useState(false);
 
   const filteredEntities = useMemo(() => {
     return entities.filter((item) => {
@@ -89,7 +92,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
           <div className='flex flex-wrap items-center gap-2.5'>
             {/* Vector Index Pill */}
             <button
-              onClick={onViewVectorStatus}
+              onClick={() => setVectorStatusOpen(true)}
               className='px-3 py-1.5 rounded-lg bg-[#ECFDF5] border border-[#10B981]/30 text-[#059669] text-xs font-semibold font-mono flex items-center gap-1.5 cursor-pointer hover:bg-[#10B981]/15 transition-colors'
               title='Click to view Vector Index status and embedding models'
             >
@@ -99,7 +102,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
 
             {/* Add Entity Button */}
             <button
-              onClick={onAddEntity}
+              onClick={() => setAddEntityOpen(true)}
               className='px-3.5 py-2 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer active:scale-95'
             >
               <Plus className='w-3.5 h-3.5' />
@@ -390,6 +393,19 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
           </div>
         </div>
       )}
+
+      {/* Modals local to SeriesBibleView */}
+      <AddEntityModal
+        isOpen={addEntityOpen}
+        onClose={() => setAddEntityOpen(false)}
+        onAdd={onAddEntity}
+        onShowToast={onShowToast}
+      />
+      <VectorStatusModal
+        isOpen={vectorStatusOpen}
+        onClose={() => setVectorStatusOpen(false)}
+        onShowToast={onShowToast}
+      />
     </div>
   );
 };

@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { MangaProject, ViewMode } from '../types';
 import { CreateProjectModal } from '../components/CreateProjectModal';
+import { ExportDeliveryModal } from '../components/modals/ExportDeliveryModal';
 
 interface ContentHubViewProps {
   projects: MangaProject[];
@@ -23,7 +24,7 @@ interface ContentHubViewProps {
   onNavigateView?: (view: ViewMode) => void;
   onEnterProject: (proj: MangaProject, targetView?: ViewMode) => void;
   onCreateNewProject: (project?: MangaProject) => void;
-  onOpenExportModal: () => void;
+  onOpenExportModal?: () => void;
   isRootView?: boolean;
 }
 
@@ -39,6 +40,7 @@ export const ContentHubView: React.FC<ContentHubViewProps> = ({
   const [formatFilter, setFormatFilter] = useState<string>('ALL');
   const [tagFilter, setTagFilter] = useState<string>('');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [exportModalOpen, setExportModalOpen] = useState(false);
 
   // Filter projects according to tab, format, and search/tag
   const filteredProjects = projects.filter((p) => {
@@ -538,6 +540,14 @@ export const ContentHubView: React.FC<ContentHubViewProps> = ({
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onCreateProject={handleCreateSubmit}
+      />
+
+      {/* Export & Delivery Modal */}
+      <ExportDeliveryModal
+        isOpen={exportModalOpen}
+        onClose={() => setExportModalOpen(false)}
+        activeProject={projects[0]} // You might want to pass the correct active project here
+        onShowToast={(title, desc) => console.log(title, desc)} // or pass onShowToast prop
       />
     </div>
   );

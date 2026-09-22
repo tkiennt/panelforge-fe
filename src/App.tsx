@@ -23,15 +23,7 @@ import { WorkflowBoardView } from './views/WorkflowBoardView';
 import { SeriesBibleView } from './views/SeriesBibleView';
 import { MembersRolesView } from './views/MembersRolesView';
 import { ContentHubView } from './views/ContentHubView';
-import { SpreadWorkbenchModal } from './components/modals/SpreadWorkbenchModal';
-import { PageDetailModal } from './components/modals/PageDetailModal';
-import { ExportDeliveryModal } from './components/modals/ExportDeliveryModal';
-import { CommandPaletteModal } from './components/modals/CommandPaletteModal';
-import { VectorStatusModal } from './components/modals/VectorStatusModal';
-import { AuditLogModal } from './components/modals/AuditLogModal';
-import { InviteMemberModal } from './components/modals/InviteMemberModal';
-import { AddEntityModal } from './components/modals/AddEntityModal';
-import { NewPageCardModal } from './components/modals/NewPageCardModal';
+import { GlobalModals } from './components/GlobalModals';
 import {
   CheckCircle2,
   Home,
@@ -220,12 +212,8 @@ export default function App() {
 
   // Modals
   const [spreadModalOpen, setSpreadModalOpen] = useState(false);
-  const [exportModalOpen, setExportModalOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
-  const [vectorStatusOpen, setVectorStatusOpen] = useState(false);
   const [auditLogOpen, setAuditLogOpen] = useState(false);
-  const [inviteMemberOpen, setInviteMemberOpen] = useState(false);
-  const [addEntityOpen, setAddEntityOpen] = useState(false);
   const [newCardOpen, setNewCardOpen] = useState(false);
   const [selectedCardForDetail, setSelectedCardForDetail] = useState<KanbanCard | null>(null);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -520,7 +508,6 @@ export default function App() {
                 onSelectProject={(proj) => setActiveProject(proj)}
                 onEnterProject={handleEnterProject}
                 onCreateNewProject={handleCreateNewProject}
-                onOpenExportModal={() => setExportModalOpen(true)}
                 isRootView={true}
               />
             </div>
@@ -570,8 +557,7 @@ export default function App() {
                   <SeriesBibleView
                     activeProject={activeProject}
                     entities={entities}
-                    onAddEntity={() => setAddEntityOpen(true)}
-                    onViewVectorStatus={() => setVectorStatusOpen(true)}
+                    onAddEntity={handleAddEntity}
                     onEditEntity={(e) => showToast('Series Bible', `Mở chi tiết ${e.name}`)}
                     onShowToast={showToast}
                   />
@@ -582,7 +568,7 @@ export default function App() {
                   <MembersRolesView
                     activeProject={activeProject}
                     members={members}
-                    onInviteMember={() => setInviteMemberOpen(true)}
+                    onInviteMember={handleInviteMember}
                     onUpdateMemberRole={(memberId, newRole) => {
                       setMembers((prev) =>
                         prev.map((m) => (m.id === memberId ? { ...m, role: newRole } : m)),
@@ -615,65 +601,26 @@ export default function App() {
             </GlobalAppShell>
           )}
 
-          {/* Các Modals */}
-          <SpreadWorkbenchModal
-            isOpen={spreadModalOpen}
-            onClose={() => setSpreadModalOpen(false)}
-            onShowToast={showToast}
-            userRole={activeProjectRoles[0] || 'ARTIST'}
-          />
-          <PageDetailModal
-            card={selectedCardForDetail}
-            onClose={() => setSelectedCardForDetail(null)}
-            onUpdateStage={handleUpdateCardStage}
-            onShowToast={showToast}
-          />
-          <ExportDeliveryModal
-            isOpen={exportModalOpen}
-            onClose={() => setExportModalOpen(false)}
-            activeProject={activeProject}
-            onShowToast={showToast}
-          />
-          <CommandPaletteModal
-            isOpen={commandPaletteOpen}
-            onClose={() => setCommandPaletteOpen(false)}
-            onNavigateView={setCurrentView}
-            onSelectCard={(c) => setSelectedCardForDetail(c)}
-            onSelectEntity={(e) => {
-              setCurrentView('bible');
-              showToast('Entity Selected', `Navigated to ${e.name}`);
-            }}
+          {/* Các Modals dùng chung */}
+          <GlobalModals 
+            commandPaletteOpen={commandPaletteOpen}
+            setCommandPaletteOpen={setCommandPaletteOpen}
+            spreadModalOpen={spreadModalOpen}
+            setSpreadModalOpen={setSpreadModalOpen}
+            auditLogOpen={auditLogOpen}
+            setAuditLogOpen={setAuditLogOpen}
+            newCardOpen={newCardOpen}
+            setNewCardOpen={setNewCardOpen}
+            selectedCardForDetail={selectedCardForDetail}
+            setSelectedCardForDetail={setSelectedCardForDetail}
             cards={cards}
             entities={entities}
-          />
-          <VectorStatusModal
-            isOpen={vectorStatusOpen}
-            onClose={() => setVectorStatusOpen(false)}
-            onShowToast={showToast}
-          />
-          <AuditLogModal
-            isOpen={auditLogOpen}
-            onClose={() => setAuditLogOpen(false)}
-            logs={provenanceLogs}
-            onShowToast={showToast}
-          />
-          <InviteMemberModal
-            isOpen={inviteMemberOpen}
-            onClose={() => setInviteMemberOpen(false)}
-            onInvite={handleInviteMember}
-            onShowToast={showToast}
-          />
-          <AddEntityModal
-            isOpen={addEntityOpen}
-            onClose={() => setAddEntityOpen(false)}
-            onAdd={handleAddEntity}
-            onShowToast={showToast}
-          />
-          <NewPageCardModal
-            isOpen={newCardOpen}
-            onClose={() => setNewCardOpen(false)}
-            onAddCard={handleAddCard}
-            onShowToast={showToast}
+            provenanceLogs={provenanceLogs}
+            activeProjectRoles={activeProjectRoles}
+            setCurrentView={setCurrentView}
+            showToast={showToast}
+            handleUpdateCardStage={handleUpdateCardStage}
+            handleAddCard={handleAddCard}
           />
           <TwoFactorSetupModal
             isOpen={isTwoFactorModalOpen}

@@ -18,11 +18,12 @@ import {
   Edit3,
 } from 'lucide-react';
 import { StudioMember, MangaProject } from '../types';
+import { InviteMemberModal } from '../components/modals/InviteMemberModal';
 
 interface MembersRolesViewProps {
   activeProject: MangaProject;
   members: StudioMember[];
-  onInviteMember: () => void;
+  onInviteMember: (newMember: StudioMember) => void;
   onUpdateMemberRole: (memberId: string, newRole: string, updatedPermissions?: string[]) => void;
   onShowToast: (title: string, desc: string) => void;
 }
@@ -49,6 +50,7 @@ export const MembersRolesView: React.FC<MembersRolesViewProps> = ({
     'ALL',
   );
   const [searchQuery, setSearchQuery] = useState('');
+  const [inviteMemberOpen, setInviteMemberOpen] = useState(false);
 
   // Edit Access Modal State
   const [editingMember, setEditingMember] = useState<StudioMember | null>(null);
@@ -165,7 +167,7 @@ export const MembersRolesView: React.FC<MembersRolesViewProps> = ({
 
             {/* Invite Button */}
             <button
-              onClick={onInviteMember}
+              onClick={() => setInviteMemberOpen(true)}
               className='px-3.5 py-2 rounded-lg bg-[#171717] hover:bg-black text-white text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer active:scale-95'
             >
               <UserPlus className='w-3.5 h-3.5' />
@@ -587,6 +589,14 @@ export const MembersRolesView: React.FC<MembersRolesViewProps> = ({
           </div>
         </div>
       )}
+
+      {/* Invite Member Modal */}
+      <InviteMemberModal
+        isOpen={inviteMemberOpen}
+        onClose={() => setInviteMemberOpen(false)}
+        onInvite={onInviteMember}
+        onShowToast={onShowToast}
+      />
     </div>
   );
 };
