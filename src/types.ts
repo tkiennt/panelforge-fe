@@ -55,13 +55,7 @@ export interface KanbanCard {
 }
 
 export type EntityCategory = 'character' | 'location' | 'prop' | 'rule';
-export type BibleCategory =
-  | 'all'
-  | 'characters'
-  | 'locations'
-  | 'cyberware'
-  | 'lore'
-  | 'style'
+export type BibleCategory = | 'all' | 'characters' | 'locations' | 'terminology' | 'style'
   | 'character'
   | 'location'
   | 'prop'

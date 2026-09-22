@@ -32,9 +32,8 @@ interface SeriesBibleViewProps {
 const CATEGORIES: { key: BibleCategory; label: string; count: number }[] = [
   { key: 'characters', label: 'Characters', count: 14 },
   { key: 'locations', label: 'Locations', count: 8 },
-  { key: 'cyberware', label: 'Cyberware & Props', count: 22 },
-  { key: 'lore', label: 'Lore & Factions', count: 6 },
-  { key: 'style', label: 'Style Guide', count: 4 },
+  { key: 'terminology', label: 'Terminology', count: 28 },
+  { key: 'style', label: 'Style Rules', count: 4 },
 ];
 
 export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({

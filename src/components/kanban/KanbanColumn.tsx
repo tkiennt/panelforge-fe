@@ -2,7 +2,7 @@ import React, { useRef } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { PipelineStage, PipelineCard } from '../../data/mockPipelineData';
-import { KanbanCard } from './KanbanCard';
+import { TaskCard } from './TaskCard';
 import { MoreHorizontal } from 'lucide-react';
 import { usePermissions } from '../../lib/permissions';
 
@@ -111,7 +111,7 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
                   paddingBottom: '12px', // gap spacing
                 }}
               >
-                <KanbanCard
+                <TaskCard
                   card={card}
                   userRoles={userRoles}
                   onClick={onCardClick}

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { KanbanBoard } from '../components/kanban/KanbanBoard';
 import { RoleKey, MOCK_CARDS } from '../data/mockPipelineData';
 import { Filter, Users, LayoutTemplate, Plus } from 'lucide-react';
@@ -6,18 +6,19 @@ import { Filter, Users, LayoutTemplate, Plus } from 'lucide-react';
 import { usePermissions } from '../lib/permissions';
 import { Button } from '../components/ui/Button';
 
-interface ProductionPipelineViewProps {
+interface WorkspaceViewProps {
   userRoles: string[];
   onShowToast: (title: string, desc: string) => void;
   isReaderMode?: boolean;
 }
 
-export const ProductionPipelineView: React.FC<ProductionPipelineViewProps> = ({
+export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
   userRoles,
   onShowToast,
   isReaderMode = false,
 }) => {
   const { hasPermission } = usePermissions(userRoles);
+  const [filterType, setFilterType] = useState<'all' | 'my-tasks' | 'overdue'>('all');
   const isReaderOnly = userRoles.length === 1 && userRoles[0] === 'READER';
 
   // If reader accidentally gets here, block them
@@ -100,17 +101,28 @@ export const ProductionPipelineView: React.FC<ProductionPipelineViewProps> = ({
 
         {/* Right: Actions */}
         <div className='flex items-center gap-3'>
+          
           <div className='flex items-center bg-[#F3F3F3] p-1 rounded-lg border border-[#E7E7E7]'>
-            <button className='px-3 py-1 text-xs font-semibold rounded bg-white shadow-2xs text-[#171717]'>
-              Kanban
+            <button 
+              onClick={() => setFilterType('all')}
+              className={`px-3 py-1 text-xs font-semibold rounded ${filterType === 'all' ? 'bg-white shadow-2xs text-[#171717]' : 'text-[#737373] hover:text-[#171717]'}`}
+            >
+              All Tasks
             </button>
-            <button className='px-3 py-1 text-xs font-semibold rounded text-[#737373] hover:text-[#171717]'>
-              List
+            <button 
+              onClick={() => setFilterType('my-tasks')}
+              className={`px-3 py-1 text-xs font-semibold rounded ${filterType === 'my-tasks' ? 'bg-white shadow-2xs text-[#171717]' : 'text-[#737373] hover:text-[#171717]'}`}
+            >
+              My Tasks
             </button>
-            <button className='px-3 py-1 text-xs font-semibold rounded text-[#737373] hover:text-[#171717]'>
-              Burndown
+            <button 
+              onClick={() => setFilterType('overdue')}
+              className={`px-3 py-1 text-xs font-semibold rounded ${filterType === 'overdue' ? 'bg-white shadow-2xs text-[#171717]' : 'text-[#737373] hover:text-[#171717]'}`}
+            >
+              Overdue
             </button>
           </div>
+
 
           <button
             className='w-8 h-8 rounded-lg border border-[#E7E7E7] flex items-center justify-center text-[#737373] hover:bg-[#F3F3F3] hover:text-[#171717] transition-colors bg-white shadow-2xs'
@@ -138,7 +150,7 @@ export const ProductionPipelineView: React.FC<ProductionPipelineViewProps> = ({
       </div>
 
       {/* Board Area */}
-      <KanbanBoard userRoles={userRoles} onShowToast={onShowToast} />
+      <KanbanBoard userRoles={userRoles} onShowToast={onShowToast} filterType={filterType} />
     </div>
   );
 };

@@ -64,20 +64,20 @@ const UNIFIED_NAV_CONFIG = [
   {
     section: 'STUDIO WORKSPACE',
     items: [
-      { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
+      // { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
       { icon: Kanban, label: 'Production Pipeline', href: '/workspace' },
-      { icon: Split, label: 'Panel Workspace', href: '/workspace/task/default' },
-      { icon: BookMarked, label: 'Series Bible', href: '/bible' },
-      { icon: Users, label: 'Members & Roles', href: '/members' },
+      // { icon: Split, label: 'Panel Workspace', href: '/workspace/task/default' },
+      // { icon: BookMarked, label: 'Series Bible', href: '/bible' },
+      // { icon: Users, label: 'Members & Roles', href: '/members' },
     ],
   },
-  {
-    section: 'PUBLISHING & AUDIT',
-    items: [
-      { icon: History, label: 'Provenance / Restore', href: '/provenance' },
-      { icon: Upload, label: 'Export / Publish', href: '/export' },
-    ],
-  },
+  // {
+  //   section: 'PUBLISHING & AUDIT',
+  //   items: [
+  //     { icon: History, label: 'Provenance / Restore', href: '/provenance' },
+  //     { icon: Upload, label: 'Export / Publish', href: '/export' },
+  //   ],
+  // },
 ];
 
 export function GlobalAppShell({
@@ -97,15 +97,15 @@ export function GlobalAppShell({
   const navSections = [...UNIFIED_NAV_CONFIG];
   
   if (currentUser.activeRoles?.includes('ADMINISTRATOR')) {
-    navSections.push({
-      section: 'SYSTEM ADMIN',
-      items: [
-        { icon: LayoutDashboard, label: 'System Dashboard', href: '/admin' },
-        { icon: Users, label: 'Users & Workspaces', href: '/users' },
-        { icon: Cpu, label: 'AI Provider & Quota', href: '/ai-quota' },
-        { icon: List, label: 'Global Audit Log', href: '/audit-log' },
-      ],
-    });
+    // navSections.push({
+    //   section: 'SYSTEM ADMIN',
+    //   items: [
+    //     { icon: LayoutDashboard, label: 'System Dashboard', href: '/admin' },
+    //     { icon: Users, label: 'Users & Workspaces', href: '/users' },
+    //     { icon: Cpu, label: 'AI Provider & Quota', href: '/ai-quota' },
+    //     { icon: List, label: 'Global Audit Log', href: '/audit-log' },
+    //   ],
+    // });
   }
 
   const handleNavClick = (e: React.MouseEvent, href: string) => {

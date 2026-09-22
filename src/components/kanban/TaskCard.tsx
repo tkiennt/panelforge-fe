@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import React from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
@@ -6,22 +7,21 @@ import { MessageSquare, Paperclip, MoreVertical, Eye, FileSignature } from 'luci
 import { usePermissions } from '../../lib/permissions';
 import { PipelineCard, PIPELINE_MEMBERS } from '../../data/mockPipelineData';
 
-interface KanbanCardProps {
+interface TaskCardProps {
   card: PipelineCard;
   userRoles: string[];
-  onClick: (card: PipelineCard) => void;
   isLocked: boolean;
   canDrag: boolean;
 }
 
-export const KanbanCard: React.FC<KanbanCardProps> = ({
+export const TaskCard: React.FC<TaskCardProps> = ({
   card,
   userRoles,
-  onClick,
   isLocked,
   canDrag,
 }) => {
   const { hasPermission } = usePermissions(userRoles);
+  const navigate = useNavigate();
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: card.id,
     data: {
@@ -64,7 +64,7 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
       onClick={(e) => {
         // Prevent click if we are clicking a button
         if ((e.target as HTMLElement).closest('button')) return;
-        onClick(card);
+        navigate(`/workspace/task/${card.id}`);
       }}
     >
       {/* Dependency Lock */}
@@ -79,9 +79,21 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
 
       {/* Header: ID and AI Badge */}
       <div className='flex items-center justify-between mb-2'>
-        <span className='text-[10px] font-mono font-medium text-[#737373] bg-[#F3F3F3] px-1.5 py-0.5 rounded'>
-          {card.identifier}
-        </span>
+        <div className='flex gap-1 items-center'>
+          {card.priority && (
+            <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
+              card.priority === 'High' ? 'text-[#EF4444] bg-[#FEE2E2]' :
+              card.priority === 'Medium' ? 'text-[#F59E0B] bg-[#FEF3C7]' :
+              'text-[#10B981] bg-[#D1FAE5]'
+            }`}>
+              {card.priority}
+            </span>
+          )}
+          <span className='text-[10px] font-mono font-medium text-[#737373] bg-[#F3F3F3] px-1.5 py-0.5 rounded'>
+            {card.identifier}
+          </span>
+        </div>
+        
         {card.isAIAssisted && (
           <div
             className='flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-[#8B5CF6] bg-[#F5F3FF] border border-[#DDD6FE] px-1.5 py-0.5 rounded'

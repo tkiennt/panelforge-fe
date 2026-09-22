@@ -38,9 +38,10 @@ import {
   BookOpen,
 } from 'lucide-react';
 import { GlobalAppShell } from './layouts/GlobalAppShell';
-import { ProductionPipelineView } from './views/ProductionPipelineView';
+import { WorkspaceView } from './views/WorkspaceView';
 import { ScriptEditorView } from './views/ScriptEditorView';
 import { UnifiedWorkspaceView } from './views/UnifiedWorkspaceView';
+import { TaskEditor } from './views/TaskEditor';
 
 import { MockRoleWorkspaceView } from './views/MockRoleWorkspaceView';
 import {
@@ -408,8 +409,8 @@ function AppContent() {
               onOpenChangePassword={() => setIsChangePasswordModalOpen(true)}
             />
           }>
-            <Route path="workspace" element={<ProductionPipelineView userRoles={activeProjectRoles} onShowToast={showToast} />} />
-            <Route path="workspace/task/:taskId" element={<UnifiedWorkspaceView activeRoles={activeProjectRoles} onShowToast={showToast} />} />
+            <Route path="workspace" element={<WorkspaceView userRoles={activeProjectRoles} onShowToast={showToast} />} />
+            <Route path="workspace/task/:taskId" element={<TaskEditor activeRoles={activeProjectRoles} onShowToast={showToast} />} />
             <Route path="bible" element={
               <SeriesBibleView activeProject={activeProject} entities={entities} onAddEntity={handleAddEntity} onEditEntity={(e) => showToast('Series Bible', `Mở chi tiết ${e.name}`)} onShowToast={showToast} />
             } />
@@ -490,6 +491,8 @@ function AppContent() {
           />
 
       {/* ===== GLOBAL FLOATING PREVIEW WIDGET (visible on all pages) ===== */}
+      {/* 
+
       {!isAuthenticated && (
         <div className='fixed bottom-6 right-6 z-[200]'>
           <div className='glass rounded-full shadow-[0_8px_30px_rgba(0,0,0,0.14)] border border-[#e7e7e7]/80 p-1.5 flex items-center gap-1'>
@@ -536,6 +539,7 @@ function AppContent() {
           </div>
         </div>
       )}
+      */}
 
       {/* Floating Toast Notification Stack */}
       <div className='fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none'>
