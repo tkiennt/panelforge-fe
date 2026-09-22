@@ -1,4 +1,4 @@
-// src/services/auth.service.ts
+﻿// src/services/auth.service.ts
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5044';
 
 export interface VerifyTwoFactorPayload {
@@ -12,7 +12,15 @@ export interface ChangePasswordPayload {
   currentPassword: string;
   newPassword: string;
   confirmPassword?: string;
+  emailOtp: string;
   otpCode?: string;
+}
+
+export interface ResetPasswordPayload {
+  email: string;
+  token: string;
+  newPassword: string;
+  confirmPassword: string;
 }
 
 async function parseErrorResponse(response: Response, defaultMessage: string): Promise<string> {
@@ -24,7 +32,7 @@ async function parseErrorResponse(response: Response, defaultMessage: string): P
       }
     }
   } catch {
-    // Không thể parse JSON (ví dụ: HTTP 401/403 trả về body rỗng)
+    // Khong the parse JSON
   }
 
   if (response.status === 401) {
@@ -37,14 +45,23 @@ async function parseErrorResponse(response: Response, defaultMessage: string): P
 }
 
 export const authService = {
-  login: async (email: string, password: string) => {
+  login: async (email: string, password: string, rememberDeviceToken?: string) => {
+    const tokenToSend =
+      rememberDeviceToken ||
+      (typeof window !== 'undefined' ? localStorage.getItem('pf_remember_device') || undefined : undefined);
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (tokenToSend) {
+      headers['X-Remember-Device-Token'] = tokenToSend;
+    }
+
     const response = await fetch(`${API_URL}/api/Auth/login`, {
       method: 'POST',
       credentials: 'include', // Bắt buộc để trình duyệt gửi & lưu HTTP-Only Cookie
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email, password }),
+      headers,
+      body: JSON.stringify({ email, password, rememberDeviceToken: tokenToSend }),
     });
 
     if (!response.ok) {
@@ -61,7 +78,6 @@ export const authService = {
       headers: {
         'Content-Type': 'application/json',
       },
-      // Backend mong đợi object có field idToken như bạn đã định nghĩa ở DTO
       body: JSON.stringify({ idToken }),
     });
 
@@ -175,6 +191,22 @@ export const authService = {
     return response.json();
   },
 
+  sendChangePasswordOtp: async (token: string) => {
+    const response = await fetch(`${API_URL}/api/Auth/send-change-password-otp`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(await parseErrorResponse(response, 'Gửi mã xác thực OTP thất bại'));
+    }
+
+    return response.json();
+  },
+
   changePassword: async (data: ChangePasswordPayload, token: string) => {
     const response = await fetch(`${API_URL}/api/Auth/change-password`, {
       method: 'POST',
@@ -187,6 +219,38 @@ export const authService = {
 
     if (!response.ok) {
       throw new Error(await parseErrorResponse(response, 'Failed to change password'));
+    }
+
+    return response.json();
+  },
+
+  forgotPassword: async (email: string) => {
+    const response = await fetch(`${API_URL}/api/Auth/forgot-password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email }),
+    });
+
+    if (!response.ok) {
+      throw new Error(await parseErrorResponse(response, 'Yêu cầu đặt lại mật khẩu thất bại'));
+    }
+
+    return response.json();
+  },
+
+  resetPassword: async (data: ResetPasswordPayload) => {
+    const response = await fetch(`${API_URL}/api/Auth/reset-password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      throw new Error(await parseErrorResponse(response, 'Đặt lại mật khẩu thất bại'));
     }
 
     return response.json();

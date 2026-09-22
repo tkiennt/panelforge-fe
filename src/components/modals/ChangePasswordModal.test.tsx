@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -8,6 +8,7 @@ import { authService } from '../../services/auth.service';
 vi.mock('../../services/auth.service', () => ({
   authService: {
     changePassword: vi.fn(),
+    sendChangePasswordOtp: vi.fn(),
   },
 }));
 
@@ -33,6 +34,7 @@ describe('ChangePasswordModal Component', () => {
     expect(screen.getByText('Current Password')).toBeInTheDocument();
     expect(screen.getByText('New Password')).toBeInTheDocument();
     expect(screen.getByText('Confirm New Password')).toBeInTheDocument();
+    expect(screen.getByText('Email OTP Code')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Cancel/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Save Changes/i })).toBeInTheDocument();
 
@@ -58,7 +60,7 @@ describe('ChangePasswordModal Component', () => {
     expect(screen.getByText('Authenticator Code (6 digits)')).toBeInTheDocument();
   });
 
-  it('submits form with currentPassword, newPassword, confirmPassword and otpCode', async () => {
+  it('submits form with currentPassword, newPassword, confirmPassword, emailOtp and otpCode', async () => {
     const user = userEvent.setup();
     vi.mocked(authService.changePassword).mockResolvedValueOnce({
       success: true,
@@ -78,12 +80,14 @@ describe('ChangePasswordModal Component', () => {
     const currentPassInput = inputs[0];
     const newPassInput = inputs[1];
     const confirmPassInput = inputs[2];
+    const emailOtpInput = screen.getByPlaceholderText('Enter 6-digit email OTP');
     const otpInput = screen.getByPlaceholderText('000000');
     const submitBtn = screen.getByRole('button', { name: /Save Changes/i });
 
     await user.type(currentPassInput, 'OldPass123!');
     await user.type(newPassInput, 'NewPass123!');
     await user.type(confirmPassInput, 'NewPass123!');
+    await user.type(emailOtpInput, '654321');
     await user.type(otpInput, '123456');
 
     await user.click(submitBtn);
@@ -93,6 +97,7 @@ describe('ChangePasswordModal Component', () => {
         currentPassword: 'OldPass123!',
         newPassword: 'NewPass123!',
         confirmPassword: 'NewPass123!',
+        emailOtp: '654321',
         otpCode: '123456',
       },
       'mock-token-xyz'

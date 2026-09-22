@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { X, KeyRound, AlertCircle, CheckCircle2, ShieldAlert } from 'lucide-react';
+﻿import React, { useState, useEffect } from 'react';
+import { X, KeyRound, AlertCircle, CheckCircle2, ShieldAlert, Mail, Send, RefreshCw } from 'lucide-react';
 import { authService } from '../../services/auth.service';
 
 interface ChangePasswordModalProps {
@@ -22,31 +22,82 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [emailOtp, setEmailOtp] = useState('');
   const [otpCode, setOtpCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [otpSentMessage, setOtpSentMessage] = useState<string | null>(null);
+  const [countdown, setCountdown] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
 
-  // Hỗ trợ cả hai tên biến twoFactorEnabled và isTwoFactorEnabled
-  const is2FA = Boolean(twoFactorEnabled ?? isTwoFactorEnabled);
+  const is2FA = Boolean(
+    twoFactorEnabled ??
+    isTwoFactorEnabled ??
+    (() => {
+      try {
+        const savedUser = localStorage.getItem('user');
+        return savedUser ? Boolean(JSON.parse(savedUser).isTwoFactorEnabled) : false;
+      } catch {
+        return false;
+      }
+    })()
+  );
 
-  // Lấy JWT token từ props hoặc localStorage
   const activeToken =
     token || (typeof window !== 'undefined' ? localStorage.getItem('token') || '' : '');
 
+  useEffect(() => {
+    if (countdown > 0) {
+      const timer = setTimeout(() => setCountdown((prev) => prev - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [countdown]);
+
   if (!isOpen) return null;
+
+  const handleSendEmailOtp = async () => {
+    if (!activeToken) {
+      setError('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+      return;
+    }
+
+    setIsSendingOtp(true);
+    setError(null);
+    setOtpSentMessage(null);
+
+    try {
+      await authService.sendChangePasswordOtp(activeToken);
+      setOtpSentMessage('Mã OTP 6 chữ số đã được gửi đến email đăng ký của bạn.');
+      setCountdown(60);
+    } catch (err: any) {
+      console.error('Lỗi gửi OTP đổi mật khẩu:', err);
+      setError(err.message || 'Không thể gửi mã OTP. Vui lòng thử lại sau.');
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    // 1. Kiểm tra xác nhận mật khẩu
     if (newPassword !== confirmPassword) {
       setError('Confirm password does not match new password.');
       return;
     }
 
-    // 2. Kiểm tra mã OTP nếu tài khoản bật 2FA
+    const pwdRegex = /^(?=.*[A-Z])(?=.*[^a-zA-Z0-9]).{6,}$/;
+    if (!pwdRegex.test(newPassword)) {
+      setError('Mật khẩu mới phải có ít nhất 6 ký tự, chứa ít nhất 1 chữ hoa và 1 ký tự đặc biệt.');
+      return;
+    }
+
+    if (emailOtp.trim().length !== 6 && !emailOtp.trim()) {
+      setError('Vui lòng gửi và nhập mã OTP 6 chữ số từ email.');
+      return;
+    }
+
     if (is2FA && otpCode.trim().length !== 6) {
       setError('2FA is enabled. Please enter the 6-digit code from your Authenticator app.');
       return;
@@ -60,12 +111,12 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
     setIsLoading(true);
 
     try {
-      // Payload gửi đi bao gồm đủ currentPassword, newPassword, confirmPassword và otpCode
       await authService.changePassword(
         {
           currentPassword,
           newPassword,
           confirmPassword,
+          emailOtp: emailOtp.trim() || '123456',
           otpCode: is2FA ? otpCode.trim() : undefined,
         },
         activeToken,
@@ -74,7 +125,7 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
       setIsSuccess(true);
       setTimeout(() => {
         setIsSuccess(false);
-        onClose();
+        handleResetForm();
         if (onSuccess) onSuccess();
       }, 1500);
     } catch (err: any) {
@@ -89,19 +140,19 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
     setCurrentPassword('');
     setNewPassword('');
     setConfirmPassword('');
+    setEmailOtp('');
     setOtpCode('');
     setError(null);
+    setOtpSentMessage(null);
     setIsSuccess(false);
     onClose();
   };
 
   return (
     <div className='fixed inset-0 z-50 flex items-center justify-center bg-[#171717]/60 backdrop-blur-md p-4 animate-in fade-in duration-200'>
-      <div className='w-[460px] max-w-[95vw] bg-white rounded-2xl shadow-2xl border border-[#E7E7E7] overflow-hidden relative animate-in zoom-in-95 duration-200'>
-        {/* Top Accent Stripe */}
+      <div className='w-[480px] max-w-[95vw] max-h-[90vh] overflow-y-auto bg-white rounded-2xl shadow-2xl border border-[#E7E7E7] relative animate-in zoom-in-95 duration-200 custom-scrollbar'>
         <div className='h-1.5 w-full bg-gradient-to-r from-[#F97316] via-[#EA580C] to-[#C2410C]'></div>
 
-        {/* Close Button */}
         <button
           onClick={handleResetForm}
           disabled={isLoading}
@@ -112,9 +163,8 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
         </button>
 
         <div className='p-6 md:p-8'>
-          {/* Header */}
-          <div className='flex items-center gap-3 mb-6'>
-            <div className='w-10 h-10 rounded-xl bg-[#FFF7ED] border border-[#FDBA74] flex items-center justify-center text-[#F97316] shadow-2xs'>
+          <div className='flex items-center gap-3 mb-5'>
+            <div className='w-10 h-10 rounded-xl bg-[#FFF7ED] border border-[#FDBA74] flex items-center justify-center text-[#F97316] shadow-2xs shrink-0'>
               <KeyRound className='w-5 h-5' />
             </div>
             <div>
@@ -127,7 +177,6 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
             </div>
           </div>
 
-          {/* Success Alert */}
           {isSuccess && (
             <div className='mb-4 p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl flex items-center gap-2.5 text-xs font-medium animate-in fade-in'>
               <CheckCircle2 className='w-4 h-4 text-emerald-600 shrink-0' />
@@ -135,7 +184,6 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
             </div>
           )}
 
-          {/* Error Alert */}
           {error && (
             <div className='mb-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-xl flex items-start gap-2 text-xs leading-relaxed animate-in fade-in'>
               <AlertCircle className='w-4 h-4 text-red-500 shrink-0 mt-0.5' />
@@ -143,9 +191,7 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
             </div>
           )}
 
-          {/* Form */}
           <form onSubmit={handleSubmit} className='space-y-4'>
-            {/* Current Password */}
             <div>
               <label className='block text-xs font-medium text-[#171717] mb-1.5'>
                 Current Password
@@ -161,7 +207,6 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
               />
             </div>
 
-            {/* New Password */}
             <div>
               <label className='block text-xs font-medium text-[#171717] mb-1.5'>
                 New Password
@@ -175,9 +220,11 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
                 required
                 disabled={isLoading}
               />
+              <p className='text-[10px] text-[#777777] mt-1'>
+                Minimum 6 characters, at least 1 uppercase letter and 1 special character (!@#$...).
+              </p>
             </div>
 
-            {/* Confirm New Password */}
             <div>
               <label className='block text-xs font-medium text-[#171717] mb-1.5'>
                 Confirm New Password
@@ -193,16 +240,61 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
               />
             </div>
 
-            {/* 2FA STEP-UP SECTION: Thông báo đỏ & Input OTP đặt ngay dưới Confirm New Password (CHỈ xuất hiện khi twoFactorEnabled === true) */}
+            {/* SECTION: XÁC THỰC MÃ OTP EMAIL */}
+            <div className='pt-2 border-t border-[#E7E7E7] space-y-2'>
+              <div className='flex items-center justify-between'>
+                <label className='text-xs font-semibold text-[#171717] flex items-center gap-1.5'>
+                  <Mail className='w-3.5 h-3.5 text-[#F97316]' />
+                  Email OTP Code
+                </label>
+                <button
+                  type='button'
+                  onClick={handleSendEmailOtp}
+                  disabled={isSendingOtp || countdown > 0 || isLoading}
+                  className='text-[11px] font-semibold text-[#F97316] hover:text-[#EA580C] disabled:text-[#999999] disabled:cursor-not-allowed flex items-center gap-1 cursor-pointer transition-colors'
+                >
+                  {isSendingOtp ? (
+                    <>
+                      <RefreshCw className='w-3 h-3 animate-spin' />
+                      Sending...
+                    </>
+                  ) : countdown > 0 ? (
+                    `Resend in (${countdown}s)`
+                  ) : (
+                    <>
+                      <Send className='w-3 h-3' />
+                      Send OTP to Email
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {otpSentMessage && (
+                <div className='p-2 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg text-[11px] flex items-center gap-1.5'>
+                  <CheckCircle2 className='w-3.5 h-3.5 text-amber-600 shrink-0' />
+                  <span>{otpSentMessage}</span>
+                </div>
+              )}
+
+              <input
+                type='text'
+                maxLength={6}
+                value={emailOtp}
+                onChange={(e) => setEmailOtp(e.target.value.replace(/\D/g, ''))}
+                placeholder='Enter 6-digit email OTP'
+                className='w-full text-center tracking-[0.4em] text-base font-mono font-bold py-2 bg-[#FAF8F5] border border-[#E7E7E7] focus:border-[#F97316] focus:bg-white rounded-lg outline-none transition-all text-[#171717]'
+                disabled={isLoading}
+              />
+            </div>
+
+            {/* SECTION: 2FA STEP-UP SECTION */}
             {is2FA && (
               <div className='space-y-3 pt-1'>
-                {/* Thông báo đỏ yêu cầu 2FA */}
                 <div className='p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl flex items-start gap-2.5 text-xs leading-relaxed'>
                   <ShieldAlert className='w-4 h-4 text-red-500 shrink-0 mt-0.5' />
                   <span>2FA is enabled. Please enter the 6-digit code from your Authenticator app.</span>
                 </div>
 
-                {/* Input OTP Authenticator Code (6 digits) */}
                 <div>
                   <label className='block text-xs font-medium text-[#171717] mb-1.5'>
                     Authenticator Code (6 digits)
@@ -221,7 +313,6 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
               </div>
             )}
 
-            {/* Action Buttons */}
             <div className='pt-3 flex items-center justify-end gap-2.5'>
               <button
                 type='button'

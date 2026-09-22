@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import {
   X,
   ShieldCheck,
@@ -9,6 +9,7 @@ import {
   AlertCircle,
   RefreshCw,
   Lock,
+  Trash2,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { authService } from '../../services/auth.service';
@@ -16,6 +17,8 @@ import { authService } from '../../services/auth.service';
 interface TwoFactorSetupModalProps {
   isOpen: boolean;
   onClose: () => void;
+  twoFactorEnabled?: boolean;
+  isTwoFactorEnabled?: boolean;
   token?: string;
   onSuccess?: () => void;
 }
@@ -23,10 +26,12 @@ interface TwoFactorSetupModalProps {
 export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
   isOpen,
   onClose,
+  twoFactorEnabled,
+  isTwoFactorEnabled,
   token,
   onSuccess,
 }) => {
-  const [step, setStep] = useState<'loading' | 'setup' | 'success' | 'error'>('loading');
+  const [step, setStep] = useState<'status' | 'loading' | 'setup' | 'success' | 'error'>('loading');
   const [qrUri, setQrUri] = useState('');
   const [backupKey, setBackupKey] = useState('');
   const [formattedKey, setFormattedKey] = useState('');
@@ -34,10 +39,25 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
   const [isVerifying, setIsVerifying] = useState(false);
   const [copied, setCopied] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
-  // Lấy token từ props hoặc localStorage
+  // Lay token tu props hoac localStorage
   const activeToken =
     token || (typeof window !== 'undefined' ? localStorage.getItem('token') || '' : '');
+
+  // Kiem tra trang thai da kich hoat 2FA hay chua
+  const is2faActive = Boolean(
+    twoFactorEnabled ??
+    isTwoFactorEnabled ??
+    (() => {
+      try {
+        const savedUser = localStorage.getItem('user');
+        return savedUser ? Boolean(JSON.parse(savedUser).isTwoFactorEnabled) : false;
+      } catch {
+        return false;
+      }
+    })()
+  );
 
   const loadTwoFactorData = useCallback(async () => {
     setStep('loading');
@@ -46,7 +66,7 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
 
     try {
       if (!activeToken) {
-        // Mock data nếu đang chạy demo offline không có token JWT thật
+        // Mock data neu chay demo offline khong co JWT that
         setTimeout(() => {
           const mockKey = 'JBSWY3DPEHPK3PXP';
           setBackupKey(mockKey);
@@ -73,15 +93,31 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      loadTwoFactorData();
+      setStatusMessage(null);
+      setErrorMessage(null);
+      if (is2faActive) {
+        setStep('status');
+      } else {
+        loadTwoFactorData();
+      }
     }
-  }, [isOpen, loadTwoFactorData]);
+  }, [isOpen, is2faActive, loadTwoFactorData]);
 
   const handleCopyKey = () => {
     if (!backupKey) return;
     navigator.clipboard.writeText(backupKey);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleForgetCurrentDevice = async () => {
+    try {
+      await authService.forgetDevice();
+      localStorage.removeItem('pf_remember_device');
+      setStatusMessage('Đã xóa thiết bị tin cậy khỏi máy này. Lần đăng nhập tới hệ thống sẽ yêu cầu nhập mã 2FA.');
+    } catch (err: any) {
+      setStatusMessage('Không thể xóa thiết bị: ' + (err.message || 'Lỗi không xác định'));
+    }
   };
 
   const handleVerify = async (e: React.FormEvent) => {
@@ -96,7 +132,6 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
 
     try {
       if (!activeToken) {
-        // Mock verify nếu chạy offline demo
         await new Promise((resolve) => setTimeout(resolve, 600));
         setStep('success');
         if (onSuccess) onSuccess();
@@ -118,75 +153,141 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
 
   return (
     <div className='fixed inset-0 z-50 flex items-center justify-center bg-[#171717]/60 backdrop-blur-md p-4'>
-      <div className='w-[650px] max-w-[95vw] bg-white rounded-2xl shadow-2xl border border-[#E7E7E7] flex flex-col overflow-hidden relative animate-in fade-in zoom-in-95 duration-200'>
+      <div className='w-[540px] max-w-[95vw] bg-white rounded-2xl shadow-2xl border border-[#E7E7E7] overflow-hidden relative animate-in zoom-in-95 duration-200'>
         {/* Top Accent Stripe */}
-        <div className='h-1.5 w-full bg-gradient-to-r from-[#F97316] via-[#EA580C] to-[#C2410C]'></div>
+        <div className='h-1.5 w-full bg-gradient-to-r from-[#F97316] to-[#E11D48]'></div>
 
         {/* Close Button */}
         <button
           onClick={onClose}
-          disabled={isVerifying}
-          className='absolute top-4 right-4 z-20 text-[#555555] hover:text-[#171717] bg-[#FAF8F5] hover:bg-[#E7E7E7] rounded-full p-1.5 transition-colors cursor-pointer disabled:opacity-50'
+          className='absolute top-4 right-4 z-20 text-[#555555] hover:text-[#171717] bg-[#FAF8F5] hover:bg-[#E7E7E7] rounded-full p-1.5 transition-colors cursor-pointer'
           title='Đóng'
         >
-          <X className='w-5 h-5' />
+          <X className='w-4 h-4' />
         </button>
 
-        {/* Modal Header */}
-        <div className='px-8 pt-6 pb-4 border-b border-[#E7E7E7] flex items-center gap-3.5 bg-[#FAF8F5]/80'>
-          <div className='w-10 h-10 rounded-xl bg-[#FFF7ED] border border-[#FDBA74] flex items-center justify-center text-[#F97316] shadow-xs'>
-            <ShieldCheck className='w-5 h-5' />
-          </div>
-          <div>
-            <div className='flex items-center gap-2'>
-              <h2 className='text-xl font-bold font-serif text-[#171717]'>
-                Xác thực 2 yếu tố (2FA)
-              </h2>
-              <span className='text-[10px] font-mono font-bold bg-[#171717] text-white px-2 py-0.5 rounded'>
-                RFC 6238 TOTP
-              </span>
+        <div className='p-6 md:p-8'>
+          {/* Header */}
+          <div className='flex items-center gap-3 mb-6'>
+            <div className='w-10 h-10 rounded-xl bg-[#FFF7ED] border border-[#FDBA74] flex items-center justify-center text-[#F97316] shadow-2xs'>
+              <ShieldCheck className='w-5 h-5' />
             </div>
-            <p className='text-xs text-[#555555] mt-0.5'>
-              Bảo vệ tài khoản và bản thảo manga với Google Authenticator hoặc Microsoft
-              Authenticator
-            </p>
-          </div>
-        </div>
-
-        {/* Modal Body */}
-        <div className='p-8 overflow-y-auto max-h-[75vh]'>
-          {step === 'loading' && (
-            <div className='py-16 flex flex-col items-center justify-center gap-3'>
-              <RefreshCw className='w-8 h-8 text-[#F97316] animate-spin' />
-              <p className='text-sm font-medium text-[#555555]'>
-                Đang tạo mã bí mật và QR Code bảo mật...
+            <div>
+              <h3 className='font-serif text-xl font-bold text-[#171717] leading-tight'>
+                Bảo Mật 2 Lớp (2FA Authenticator)
+              </h3>
+              <p className='text-xs text-[#555555] mt-0.5'>
+                Bảo vệ tài khoản và tài sản studio theo tiêu chuẩn RFC 6238 TOTP.
               </p>
+            </div>
+          </div>
+
+          {/* TRƯỜNG HỢP 1: ĐÃ KÍCH HOẠT 2FA - HIỂN THỊ TRẠNG THÁI ACTIVE */}
+          {step === 'status' && (
+            <div className='space-y-5 animate-in fade-in duration-300'>
+              <div className='p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-start gap-3'>
+                <div className='w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center shrink-0 mt-0.5'>
+                  <ShieldCheck className='w-5 h-5 text-emerald-600' />
+                </div>
+                <div>
+                  <h4 className='text-sm font-bold text-emerald-900'>
+                    2FA đang hoạt động và bảo vệ tài khoản
+                  </h4>
+                  <p className='text-xs text-emerald-700 mt-1 leading-relaxed'>
+                    Tài khoản của bạn đã được liên kết với ứng dụng Google / Microsoft Authenticator. 
+                    Mỗi khi đăng nhập trên thiết bị mới, bạn sẽ được yêu cầu mã 6 số từ ứng dụng.
+                  </p>
+                </div>
+              </div>
+
+              {statusMessage && (
+                <div className='p-3 bg-blue-50 border border-blue-200 text-blue-800 rounded-lg text-xs flex items-center gap-2'>
+                  <Check className='w-4 h-4 text-blue-600 shrink-0' />
+                  <span>{statusMessage}</span>
+                </div>
+              )}
+
+              <div className='bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl p-4 space-y-2.5 text-xs text-[#555555]'>
+                <div className='flex items-center justify-between py-1 border-b border-[#E7E7E7]'>
+                  <span className='font-medium text-[#171717]'>Trạng thái bảo mật:</span>
+                  <span className='inline-flex items-center gap-1 font-semibold text-emerald-600'>
+                    <span className='w-2 h-2 rounded-full bg-emerald-500'></span>
+                    Đang bật (Active)
+                  </span>
+                </div>
+                <div className='flex items-center justify-between py-1 border-b border-[#E7E7E7]'>
+                  <span className='font-medium text-[#171717]'>Ghi nhớ thiết bị tin cậy:</span>
+                  <span className='font-medium text-[#171717]'>30 ngày (1 tháng)</span>
+                </div>
+                <div className='flex items-center justify-between py-1'>
+                  <span className='font-medium text-[#171717]'>Ứng dụng hỗ trợ:</span>
+                  <span className='text-[#555555]'>Google / Microsoft Authenticator</span>
+                </div>
+              </div>
+
+              <div className='pt-2 flex flex-col sm:flex-row items-center justify-between gap-3'>
+                <div className='flex items-center gap-2 w-full sm:w-auto'>
+                  <button
+                    type='button'
+                    onClick={handleForgetCurrentDevice}
+                    className='w-full sm:w-auto px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-red-200 flex items-center justify-center gap-1.5 cursor-pointer'
+                  >
+                    <Trash2 className='w-3.5 h-3.5' />
+                    Quên thiết bị này
+                  </button>
+                  <button
+                    type='button'
+                    onClick={() => loadTwoFactorData()}
+                    className='w-full sm:w-auto px-3 py-2 text-xs font-medium text-[#555555] hover:text-[#171717] hover:bg-gray-100 rounded-lg transition-colors border border-[#E7E7E7] flex items-center justify-center gap-1.5 cursor-pointer'
+                  >
+                    <RefreshCw className='w-3.5 h-3.5' />
+                    Quét lại mã QR mới
+                  </button>
+                </div>
+                <button
+                  type='button'
+                  onClick={onClose}
+                  className='w-full sm:w-auto bg-[#171717] hover:bg-[#262626] text-white text-xs font-semibold px-6 py-2 rounded-lg transition-colors cursor-pointer'
+                >
+                  Đóng
+                </button>
+              </div>
             </div>
           )}
 
+          {/* Loading */}
+          {step === 'loading' && (
+            <div className='py-12 flex flex-col items-center justify-center gap-3 text-[#555555]'>
+              <RefreshCw className='w-8 h-8 text-[#F97316] animate-spin' />
+              <p className='text-xs font-medium'>Đang chuẩn bị khóa bảo mật 2FA...</p>
+            </div>
+          )}
+
+          {/* Error */}
           {step === 'error' && (
             <div className='py-8 text-center space-y-4'>
-              <div className='w-12 h-12 rounded-full bg-red-50 text-red-600 flex items-center justify-center mx-auto border border-red-200'>
+              <div className='w-12 h-12 rounded-full bg-red-50 text-red-600 flex items-center justify-center mx-auto'>
                 <AlertCircle className='w-6 h-6' />
               </div>
               <div>
-                <h3 className='text-base font-bold text-[#171717]'>Không thể kích hoạt 2FA</h3>
-                <p className='text-sm text-red-600 mt-1 max-w-sm mx-auto'>{errorMessage}</p>
+                <h4 className='font-bold text-sm text-[#171717]'>Không thể tạo mã 2FA</h4>
+                <p className='text-xs text-red-600 mt-1'>{errorMessage}</p>
               </div>
               <button
+                type='button'
                 onClick={loadTwoFactorData}
-                className='px-5 py-2.5 rounded-lg bg-[#171717] text-white text-sm font-medium hover:bg-[#262626] transition-colors inline-flex items-center gap-2 cursor-pointer'
+                className='px-4 py-2 bg-[#171717] text-white rounded-lg text-xs font-medium hover:bg-[#262626] transition-colors cursor-pointer'
               >
-                <RefreshCw className='w-4 h-4' /> Thử lại
+                Thử lại
               </button>
             </div>
           )}
 
+          {/* Setup (Quét QR + Nhập mã) */}
           {step === 'setup' && (
-            <div className='space-y-6'>
-              {/* Báo lỗi nếu nhập sai OTP */}
+            <div className='space-y-6 animate-in fade-in duration-300'>
               {errorMessage && (
-                <div className='p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-xs flex items-center gap-2'>
+                <div className='p-3 bg-red-50 border border-red-200 text-red-600 text-xs rounded-lg flex items-center gap-2'>
                   <AlertCircle className='w-4 h-4 shrink-0' />
                   <span>{errorMessage}</span>
                 </div>
@@ -314,9 +415,7 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
                   Đã kích hoạt 2FA thành công!
                 </h3>
                 <p className='text-xs text-[#555555] mt-2 max-w-md mx-auto leading-relaxed'>
-                  Tài khoản của bạn hiện đã được bảo vệ với tiêu chuẩn quốc tế RFC 6238 TOTP. Từ lần
-                  đăng nhập tới, hệ thống sẽ yêu cầu mã xác nhận 6 chữ số trên ứng dụng
-                  Authenticator của bạn.
+                  Tài khoản của bạn hiện đã được bảo vệ với tiêu chuẩn quốc tế RFC 6238 TOTP. Thiết bị này sẽ được ghi nhớ trong vòng 30 ngày (1 tháng) trước khi cần nhập lại mã 2FA.
                 </p>
               </div>
 

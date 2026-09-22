@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { User, signOut } from 'firebase/auth';
 import { auth } from '../firebase';
 import { LogOut, User as UserIcon, ShieldCheck, Key, KeyRound } from 'lucide-react';
@@ -128,6 +128,8 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout, onOpen
       <TwoFactorSetupModal
         isOpen={isTwoFactorOpen}
         token={activeJwtToken}
+        twoFactorEnabled={is2faActive}
+        isTwoFactorEnabled={is2faActive}
         onClose={() => setIsTwoFactorOpen(false)}
       />
 

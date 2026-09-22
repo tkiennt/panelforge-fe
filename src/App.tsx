@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
   ViewMode,
   MangaProject,
@@ -683,6 +683,9 @@ export default function App() {
           <TwoFactorSetupModal
             isOpen={isTwoFactorModalOpen}
             onClose={() => setIsTwoFactorModalOpen(false)}
+            twoFactorEnabled={currentUserInfo?.isTwoFactorEnabled ?? false}
+            isTwoFactorEnabled={currentUserInfo?.isTwoFactorEnabled ?? false}
+            token={localStorage.getItem('token') || ''}
             onSuccess={() => {
               showToast(
                 'Bảo mật 2FA',
