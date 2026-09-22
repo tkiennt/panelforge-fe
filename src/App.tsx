@@ -203,9 +203,9 @@ export default function App() {
   useEffect(() => {
     if (viewScope === 'project') {
       if (activeProjectRoles.includes('ADMINISTRATOR')) {
-         setCurrentView('admin-dash');
+        setCurrentView('admin-dash');
       } else {
-         setCurrentView('workspace');
+        setCurrentView('workspace');
       }
     }
   }, [activeProjectRoles, viewScope]);
@@ -311,8 +311,10 @@ export default function App() {
     
     // Find roles for the current user in this project
     const userId = currentUserInfo?.id || 'member-tf'; // default to TF for testing
-    const membership = INITIAL_PROJECT_MEMBERSHIPS.find(m => m.projectId === proj.id && m.userId === userId);
-    
+    const membership = INITIAL_PROJECT_MEMBERSHIPS.find(
+      (m) => m.projectId === proj.id && m.userId === userId,
+    );
+
     if (membership && membership.roles.length > 0) {
       setActiveProjectRoles(membership.roles);
     } else {
@@ -336,13 +338,14 @@ export default function App() {
       setIsDemoMode(false);
       return;
     }
-    const mappedRole = normalizeSystemRole(role);
+    const isDev = role === 'dev';
+    const mappedRole = normalizeSystemRole(isDev ? 'ADMINISTRATOR' : role);
     setDemoRole(role);
     setIsDemoMode(true);
     setActiveProjectRoles([mappedRole]);
     setViewScope('project'); // Always enter project to show App Shell
-    setCurrentView(mappedRole === 'ADMINISTRATOR' ? 'admin-dash' : 'workspace');
-    showToast('Chế độ Demo Role', `Đang xem giao diện với quyền ${mappedRole}`);
+    setCurrentView(isDev ? 'workspace' : (mappedRole === 'ADMINISTRATOR' ? 'admin-dash' : 'workspace'));
+    showToast(isDev ? 'Chế độ Dev Mode' : 'Chế độ Demo Role', `Đang xem giao diện với quyền ${mappedRole}`);
   };
 
   const handleLogout = () => {
@@ -554,18 +557,12 @@ export default function App() {
               <div className='w-full min-h-full flex-1 relative flex flex-col'>
                 {/* UNIFIED WORKSPACE VIEW FOR PROJECT ROLES */}
                 {currentView === 'workspace' && (
-                  <UnifiedWorkspaceView 
-                    activeRoles={activeProjectRoles}
-                    onShowToast={showToast} 
-                  />
+                  <UnifiedWorkspaceView activeRoles={activeProjectRoles} onShowToast={showToast} />
                 )}
 
                 {/* PRODUCTION PIPELINE (KANBAN BOARD) */}
                 {currentView === 'pipeline' && (
-                  <ProductionPipelineView 
-                    userRoles={activeProjectRoles}
-                    onShowToast={showToast} 
-                  />
+                  <ProductionPipelineView userRoles={activeProjectRoles} onShowToast={showToast} />
                 )}
 
                 {/* 7. SERIES BIBLE REPOSITORY */}
@@ -706,10 +703,7 @@ export default function App() {
             isTwoFactorEnabled={currentUserInfo?.isTwoFactorEnabled ?? false}
             token={localStorage.getItem('token') || ''}
             onSuccess={() => {
-              showToast(
-                'Change Password',
-                'Account password updated successfully!',
-              );
+              showToast('Change Password', 'Account password updated successfully!');
             }}
           />
         </>
@@ -728,6 +722,7 @@ export default function App() {
             <div className='hidden sm:block w-px h-5 bg-[#e7e7e7] mx-0.5'></div>
             {[
               { label: 'Landing', Icon: Home, roleKey: 'landing' },
+              { label: 'Dev Mode (Workspace)', Icon: CheckCircle2, roleKey: 'dev' },
               { label: 'Admin', Icon: Shield, roleKey: 'administrator' },
               { label: 'Producer', Icon: Briefcase, roleKey: 'producer' },
               { label: 'Writer', Icon: PenLine, roleKey: 'writer' },

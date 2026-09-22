@@ -1,6 +1,7 @@
 import React from 'react';
 import { Button, ButtonProps } from './Button';
 import { useProjectPermission, Permission } from '../../lib/permissions';
+import { Lock } from 'lucide-react';
 
 interface PermissionButtonProps extends ButtonProps {
   userRoles: string[];
@@ -14,6 +15,8 @@ export const PermissionButton: React.FC<PermissionButtonProps> = ({
   fallbackTitle = "Bạn không có quyền thực hiện thao tác này",
   disabled,
   title,
+  children,
+  className = '',
   ...props
 }) => {
   const hasPerm = useProjectPermission(userRoles, permissionKey);
@@ -24,7 +27,13 @@ export const PermissionButton: React.FC<PermissionButtonProps> = ({
     <Button
       disabled={isDisabled}
       title={tooltip}
+      className={!hasPerm ? `${className} opacity-60 relative` : className}
       {...props}
-    />
+    >
+      {children}
+      {!hasPerm && (
+        <Lock className="w-3.5 h-3.5 ml-1.5 opacity-70 inline-block" />
+      )}
+    </Button>
   );
 };

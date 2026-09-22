@@ -25,7 +25,7 @@ export const PermissionField: React.FC<PermissionFieldProps> = ({
 
   if (!hasPerm) {
     return (
-      <div className={cn("p-2 bg-gray-100 text-gray-700 rounded text-sm border border-transparent whitespace-pre-wrap", className)}>
+      <div className={cn("p-2 bg-[#F3F3F3] text-[#555555] rounded text-sm border border-transparent whitespace-pre-wrap", className)}>
         {value || placeholder}
       </div>
     );

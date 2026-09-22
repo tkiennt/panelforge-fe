@@ -12,12 +12,7 @@ import {
 import { KanbanColumn } from './KanbanColumn';
 import { KanbanCard } from './KanbanCard';
 import { SideDrawer } from './SideDrawer';
-import {
-  PIPELINE_STAGES,
-  MOCK_CARDS,
-  PipelineCard,
-  StageKey,
-} from '../../data/mockPipelineData';
+import { PIPELINE_STAGES, MOCK_CARDS, PipelineCard, StageKey } from '../../data/mockPipelineData';
 import { usePermissions } from '../../lib/permissions';
 
 interface KanbanBoardProps {

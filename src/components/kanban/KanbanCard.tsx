@@ -134,7 +134,7 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
         <div className='flex gap-2 pt-2 border-t border-[#E7E7E7]'>
           <button
             disabled={!canReview}
-            title={!canReview ? "Chỉ Editor/Admin mới có quyền duyệt" : "Yêu cầu sửa lại"}
+            title={!canReview ? 'Chỉ Editor/Admin mới có quyền duyệt' : 'Yêu cầu sửa lại'}
             className='flex-1 py-1.5 bg-[#FEF2F2] hover:bg-[#FEE2E2] text-[#DC2626] text-[10px] font-bold uppercase rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
             onClick={(e) => {
               e.stopPropagation();

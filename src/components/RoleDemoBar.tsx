@@ -1,6 +1,6 @@
 import React from 'react';
 
-export type DemoRole = 'producer' | 'writer' | 'artist' | 'letterer' | 'editor' | 'reader';
+export type DemoRole = 'producer' | 'writer' | 'artist' | 'letterer' | 'editor' | 'reader' | 'administrator';
 
 interface RoleDemoBarProps {
   activeRole: DemoRole | null;
@@ -15,6 +15,7 @@ export const RoleDemoBar: React.FC<RoleDemoBarProps> = ({
 }) => {
   const roles = [
     { id: 'landing', label: 'Landing Page', color: 'bg-gray-100 hover:bg-gray-200 text-gray-800' },
+    { id: 'administrator', label: 'Dev Mode (All Access)', color: 'bg-yellow-400 hover:bg-yellow-500 text-black border-yellow-600 shadow-[0_0_8px_rgba(250,204,21,0.6)]' },
     { id: 'producer', label: 'Producer', color: 'bg-[#F97316] hover:bg-[#EA580C] text-white' },
     { id: 'writer', label: 'Writer', color: 'bg-indigo-600 hover:bg-indigo-700 text-white' },
     { id: 'artist', label: 'Line Artist', color: 'bg-blue-500 hover:bg-blue-600 text-white' },

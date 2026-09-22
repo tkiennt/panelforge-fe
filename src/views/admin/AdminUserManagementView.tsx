@@ -3,7 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Search, Shield, CheckCircle2, X, Check, Filter, RefreshCw } from 'lucide-react';
 import { adminService, AdminUserItem } from '../../services/admin.service';
 import { AdminUserTable } from './components/AdminUserTable';
-import { AdminAssignRoleModal, ALL_ROLES } from './components/AdminAssignRoleModal';
+import { AdminAssignRoleModal } from './components/AdminAssignRoleModal';
+import { ALL_ROLES } from './constants';
 import { AdminUserDetailsModal } from './components/AdminUserDetailsModal';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -38,7 +39,7 @@ export const AdminUserManagementView: React.FC = () => {
     queryFn: () => adminService.getAllUsers(page, pageSize),
   });
 
-  const users = data?.items || [];
+  const users = useMemo(() => data?.items || [], [data?.items]);
   const total = data?.total || 0;
 
   // --- React Query for Mutation ---

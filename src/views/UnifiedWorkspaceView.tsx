@@ -17,6 +17,8 @@ import { PermissionButton } from '../components/ui/PermissionButton';
 import { PermissionField } from '../components/ui/PermissionField';
 import { PermissionGuard } from '../components/ui/PermissionGuard';
 import { usePermissions, useProjectPermission } from '../lib/permissions';
+import { CanvasEditor } from '../components/layout/CanvasEditor';
+import { MOCK_PAGE_PANELS, MOCK_BIBLE_OVERLAYS } from '../data/mockLayoutData';
 
 interface UnifiedWorkspaceViewProps {
   activeRoles: SystemRole[];
@@ -34,8 +36,13 @@ const PIPELINE_STEPS = [
 ];
 
 export function UnifiedWorkspaceView({ activeRoles, onShowToast }: UnifiedWorkspaceViewProps) {
-  const [activeTab, setActiveTab] = useState<'bible' | 'audit'>('bible');
+  const [activeTab, setActiveTab] = useState<'bible' | 'ai' | 'audit'>('bible');
   const [scriptText, setScriptText] = useState('EXT. NEO-TOKYO STREET - NIGHT\n\nRain pours down on the neon-lit streets. Akira stands at the corner, looking up at the holographic billboards.');
+  
+  // Canvas State
+  const [panels, setPanels] = useState(MOCK_PAGE_PANELS);
+  const [overlays, setOverlays] = useState(MOCK_BIBLE_OVERLAYS);
+  const [selectedPanelId, setSelectedPanelId] = useState<string | null>(null);
 
   // Simulated current stage
   const currentStage = 'ink';
@@ -55,9 +62,9 @@ export function UnifiedWorkspaceView({ activeRoles, onShowToast }: UnifiedWorksp
       {/* HEADER */}
       <div className="shrink-0 h-14 bg-white border-b border-[#E7E7E7] px-6 flex items-center justify-between z-10">
         <div className="flex items-center gap-2 text-sm font-semibold text-[#171717]">
-          <span className="text-[#A3A3A3]">Neon Genesis</span>
+          <span className="text-[#A3A3A3]">Series: Cyberpunk Manga</span>
           <ChevronRight className="w-4 h-4 text-[#D4D4D4]" />
-          <span className="text-[#A3A3A3]">Chapter 5</span>
+          <span className="text-[#A3A3A3]">Chapter 03</span>
           <ChevronRight className="w-4 h-4 text-[#D4D4D4]" />
           <span>Page 12</span>
         </div>
@@ -176,20 +183,19 @@ export function UnifiedWorkspaceView({ activeRoles, onShowToast }: UnifiedWorksp
           </div>
 
           {/* Canvas Area */}
-          <div className="flex-1 flex items-center justify-center overflow-auto p-8">
-            <PermissionGuard
-              userRoles={userRolesString}
-              permissionKey="edit_art"
-              fallbackMessage="Canvas đang bị khóa (Read-only)"
-            >
-              <div className="w-[600px] h-[800px] bg-white shadow-md border border-[#D4D4D4] flex items-center justify-center relative overflow-hidden">
-                <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#171717_1px,transparent_1px)] bg-[size:20px_20px]" />
-                <div className="text-[#A3A3A3] flex flex-col items-center gap-2">
-                  <LayoutTemplate className="w-12 h-12 stroke-[1]" />
-                  <span className="font-mono text-sm">Artwork Viewer</span>
-                </div>
-              </div>
-            </PermissionGuard>
+          <div className="flex-1 flex items-center justify-center overflow-auto p-8 relative">
+            <div className="w-[800px] h-[1000px] bg-white shadow-md border border-[#D4D4D4] relative">
+              <CanvasEditor
+                panels={panels}
+                setPanels={setPanels}
+                overlays={overlays}
+                setOverlays={setOverlays}
+                selectedPanelId={selectedPanelId}
+                setSelectedPanelId={setSelectedPanelId}
+                showOverlays={activeTab === 'bible'}
+                toolMode={'select'}
+              />
+            </div>
           </div>
         </div>
 
@@ -197,16 +203,25 @@ export function UnifiedWorkspaceView({ activeRoles, onShowToast }: UnifiedWorksp
         <div className="w-[320px] shrink-0 bg-white border-l border-[#E7E7E7] flex flex-col h-full z-10">
           <div className="flex border-b border-[#E7E7E7]">
             <button
-              className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-colors ${
+              className={`flex-1 py-3 text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors ${
                 activeTab === 'bible' ? 'text-[#171717] border-b-2 border-[#171717]' : 'text-[#A3A3A3] hover:text-[#171717] bg-[#FAF8F4]'
               }`}
               onClick={() => setActiveTab('bible')}
             >
               <BookOpen className="w-3.5 h-3.5" />
-              Series Bible
+              Bible
             </button>
             <button
-              className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-colors ${
+              className={`flex-1 py-3 text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors ${
+                activeTab === 'ai' ? 'text-[#8B5CF6] border-b-2 border-[#8B5CF6]' : 'text-[#A3A3A3] hover:text-[#8B5CF6] bg-[#FAF8F4]'
+              }`}
+              onClick={() => setActiveTab('ai')}
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              AI Assist
+            </button>
+            <button
+              className={`flex-1 py-3 text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors ${
                 activeTab === 'audit' ? 'text-[#171717] border-b-2 border-[#171717]' : 'text-[#A3A3A3] hover:text-[#171717] bg-[#FAF8F4]'
               }`}
               onClick={() => setActiveTab('audit')}
@@ -217,11 +232,26 @@ export function UnifiedWorkspaceView({ activeRoles, onShowToast }: UnifiedWorksp
           </div>
 
           <div className="flex-1 overflow-y-auto custom-scrollbar">
-            {activeTab === 'bible' ? (
+            {activeTab === 'bible' && (
+              <div className="p-4 space-y-6">
+                <div>
+                  <h4 className="text-xs font-bold text-[#737373] uppercase mb-3">Active Characters</h4>
+                  <div className="flex items-center gap-3 p-3 border border-[#E7E7E7] rounded-lg hover:border-[#171717] cursor-pointer transition-colors">
+                    <div className="w-10 h-10 bg-[#E7E7E7] rounded-full flex items-center justify-center font-bold text-[#A3A3A3]">AK</div>
+                    <div>
+                      <div className="text-sm font-bold text-[#171717]">Akira</div>
+                      <div className="text-[10px] text-[#737373] uppercase tracking-wider">Protagonist</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {activeTab === 'ai' && (
               <div className="p-4 space-y-6">
                 <div className="p-3 bg-[#F5F3FF] border border-[#DDD6FE] rounded-lg">
                   <h4 className="flex items-center gap-2 text-sm font-bold text-[#8B5CF6] mb-2">
-                    <Sparkles className="w-4 h-4" /> AI Suggestion
+                    <Sparkles className="w-4 h-4" /> Composition AI
                   </h4>
                   <p className="text-xs text-[#525252] leading-relaxed mb-3">
                     Based on the script, consider adding rain effects to the background layer to enhance the neo-tokyo atmosphere.
@@ -236,19 +266,10 @@ export function UnifiedWorkspaceView({ activeRoles, onShowToast }: UnifiedWorksp
                     Apply AI Suggestion
                   </PermissionButton>
                 </div>
-
-                <div>
-                  <h4 className="text-xs font-bold text-[#737373] uppercase mb-3">Active Characters</h4>
-                  <div className="flex items-center gap-3 p-3 border border-[#E7E7E7] rounded-lg hover:border-[#171717] cursor-pointer transition-colors">
-                    <div className="w-10 h-10 bg-[#E7E7E7] rounded-full flex items-center justify-center font-bold text-[#A3A3A3]">AK</div>
-                    <div>
-                      <div className="text-sm font-bold text-[#171717]">Akira</div>
-                      <div className="text-[10px] text-[#737373] uppercase tracking-wider">Protagonist</div>
-                    </div>
-                  </div>
-                </div>
               </div>
-            ) : (
+            )}
+
+            {activeTab === 'audit' && (
               <div className="p-4 space-y-4">
                 <h4 className="text-xs font-bold text-[#737373] uppercase mb-1">Version History</h4>
                 
