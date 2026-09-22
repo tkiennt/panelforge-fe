@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { MangaProject } from '../types';
 import {
   LayoutDashboard,
@@ -53,8 +54,6 @@ interface GlobalAppShellProps {
   currentUser: CurrentUser;
   activeSeries: MangaProject | { title: string; subtitle: string };
   aiState?: 'active' | 'degraded' | 'unavailable';
-  children: React.ReactNode;
-  onNavigate?: (href: string) => void;
   onLogout?: () => void;
   onLeaveFeedback?: () => void;
   onOpenTwoFactor?: () => void;
@@ -65,18 +64,18 @@ const UNIFIED_NAV_CONFIG = [
   {
     section: 'STUDIO WORKSPACE',
     items: [
-      { icon: LayoutDashboard, label: 'Dashboard', href: 'dashboard' },
-      { icon: Kanban, label: 'Production Pipeline', href: 'pipeline' },
-      { icon: Split, label: 'Panel Workspace', href: 'workspace' },
-      { icon: BookMarked, label: 'Series Bible', href: 'bible' },
-      { icon: Users, label: 'Members & Roles', href: 'members' },
+      { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
+      { icon: Kanban, label: 'Production Pipeline', href: '/workspace' },
+      { icon: Split, label: 'Panel Workspace', href: '/workspace/task/default' },
+      { icon: BookMarked, label: 'Series Bible', href: '/bible' },
+      { icon: Users, label: 'Members & Roles', href: '/members' },
     ],
   },
   {
     section: 'PUBLISHING & AUDIT',
     items: [
-      { icon: History, label: 'Provenance / Restore', href: 'provenance' },
-      { icon: Upload, label: 'Export / Publish', href: 'export' },
+      { icon: History, label: 'Provenance / Restore', href: '/provenance' },
+      { icon: Upload, label: 'Export / Publish', href: '/export' },
     ],
   },
 ];
@@ -85,13 +84,13 @@ export function GlobalAppShell({
   currentUser,
   activeSeries,
   aiState = 'active',
-  children,
-  onNavigate,
   onLogout,
   onLeaveFeedback,
   onOpenTwoFactor,
   onOpenChangePassword,
 }: GlobalAppShellProps) {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const isReader = currentUser.activeRoles?.includes('READER') || currentUser.role === 'READER';
   // We use unified config for everyone. Admin gets extra items appended.
@@ -101,20 +100,25 @@ export function GlobalAppShell({
     navSections.push({
       section: 'SYSTEM ADMIN',
       items: [
-        { icon: LayoutDashboard, label: 'System Dashboard', href: 'admin-dash' },
-        { icon: Users, label: 'Users & Workspaces', href: 'users' },
-        { icon: Cpu, label: 'AI Provider & Quota', href: 'ai-quota' },
-        { icon: List, label: 'Global Audit Log', href: 'audit' },
+        { icon: LayoutDashboard, label: 'System Dashboard', href: '/admin' },
+        { icon: Users, label: 'Users & Workspaces', href: '/users' },
+        { icon: Cpu, label: 'AI Provider & Quota', href: '/ai-quota' },
+        { icon: List, label: 'Global Audit Log', href: '/audit-log' },
       ],
     });
   }
 
   const handleNavClick = (e: React.MouseEvent, href: string) => {
     e.preventDefault();
-    if (onNavigate) {
-      onNavigate(href);
-    }
+    navigate(href);
   };
+  
+  // Set isActive based on location pathname
+  navSections.forEach(section => {
+    section.items.forEach((item: any) => {
+      item.isActive = location.pathname.startsWith(item.href);
+    });
+  });
 
   const renderBadge = (badge: any) => {
     if (!badge) return null;
@@ -207,7 +211,7 @@ export function GlobalAppShell({
               <nav className='flex items-center text-sm font-medium text-[#555555] truncate'>
                 <span
                   className='hover:text-[#171717] cursor-pointer transition-colors'
-                  onClick={(e) => handleNavClick(e, 'publications')}
+                  onClick={() => navigate('/projects')}
                 >
                   Projects
                 </span>
@@ -385,7 +389,7 @@ export function GlobalAppShell({
             </div>
           )}
 
-          <div className='relative z-10 w-full min-h-full flex-1 flex flex-col'>{children}</div>
+          <div className='relative z-10 w-full min-h-full flex-1 flex flex-col'><Outlet /></div>
         </main>
       </div>
     </div>
