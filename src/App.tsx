@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { RoleDemoBar, DemoRole } from './components/RoleDemoBar';
+import { DevFloatingMenu } from './components/DevFloatingMenu';
 import {
   ViewMode,
   MangaProject,
@@ -40,10 +42,10 @@ import {
 import { GlobalAppShell } from './layouts/GlobalAppShell';
 import { WorkspaceView } from './views/WorkspaceView';
 import { ScriptEditorView } from './views/ScriptEditorView';
-import { UnifiedWorkspaceView } from './views/UnifiedWorkspaceView';
 import { TaskEditor } from './views/TaskEditor';
+import { ExportView } from './views/ExportView';
 
-import { MockRoleWorkspaceView } from './views/MockRoleWorkspaceView';
+
 import {
   AdminDashboardView,
   AdminUserManagementView,
@@ -51,11 +53,11 @@ import {
   AdminAuditLogView,
 } from './views/admin';
 
-import { ProducerWorkspaceView } from './views/ProducerWorkspaceView';
-import { ArtistDeskView } from './views/ArtistDeskView';
-import { LettererCanvasView } from './views/LettererCanvasView';
-import { WriterStudioView } from './views/WriterStudioView';
-import { EditorDeskView } from './views/EditorDeskView';
+
+
+
+
+
 import { ReaderPortalView } from './views/ReaderPortalView';
 
 import { SystemRole, normalizeSystemRole } from './types';
@@ -88,6 +90,8 @@ const AdminRoute = ({ activeRoles, children }: { activeRoles: any[], children: R
   }
   return <>{children}</>;
 };
+
+const IS_DEV_MODE = import.meta.env.VITE_DEV_MODE === 'true';
 
 function AppContent() {
   const navigate = useNavigate();
@@ -365,6 +369,18 @@ function AppContent() {
 
   return (
     <div className='min-h-screen bg-[#F8F6F0] text-[#171717] font-sans antialiased selection:bg-[#F97316]/20 selection:text-[#EA580C] relative'>
+      {IS_DEV_MODE && <DevFloatingMenu />}
+      <RoleDemoBar
+        activeRole={demoRole as DemoRole}
+        onRoleSelect={(role) => handleEnterDemo(role)}
+        onExitDemo={() => {
+          setIsDemoMode(false);
+          setDemoRole(null);
+          localStorage.removeItem('demoRole');
+          localStorage.setItem('isDemoMode', 'false');
+        }}
+      />
+
             <Routes>
         <Route path="/login" element={
           !isAuthenticated && !isDemoMode ? (
@@ -409,8 +425,16 @@ function AppContent() {
               onOpenChangePassword={() => setIsChangePasswordModalOpen(true)}
             />
           }>
+            <Route path="dashboard" element={
+              <DashboardView 
+                activeProject={activeProject}
+                assistants={assistants}
+                provenanceLogs={provenanceLogs}
+                onShowToast={showToast}
+              />
+            } />
             <Route path="workspace" element={<WorkspaceView userRoles={activeProjectRoles} onShowToast={showToast} />} />
-            <Route path="workspace/task/:taskId" element={<TaskEditor activeRoles={activeProjectRoles} onShowToast={showToast} />} />
+            <Route path="workspace/task/:taskId" element={<TaskEditor activeRoles={activeProjectRoles} onShowToast={showToast} isDevMode={IS_DEV_MODE} />} />
             <Route path="bible" element={
               <SeriesBibleView activeProject={activeProject} entities={entities} onAddEntity={handleAddEntity} onEditEntity={(e) => showToast('Series Bible', `Mở chi tiết ${e.name}`)} onShowToast={showToast} />
             } />
@@ -418,7 +442,13 @@ function AppContent() {
               <MembersRolesView activeProject={activeProject} members={members} onInviteMember={handleInviteMember} onUpdateMemberRole={(memberId, newRole) => { setMembers((prev) => prev.map((m) => (m.id === memberId ? { ...m, role: newRole } : m))); showToast('Cập nhật quyền', `Đã phân quyền ${newRole} cho thành viên`); }} onShowToast={showToast} />
             } />
             
-            <Route path="review/:taskId" element={<ReviewView />} />
+            <Route path="review/:taskId" element={<ReviewView activeRoles={activeProjectRoles} onShowToast={showToast} isDevMode={IS_DEV_MODE} />} />
+
+            <Route path="projects/:projectId/export" element={
+              <AdminRoute activeRoles={activeProjectRoles}>
+                <ExportView onShowToast={showToast} />
+              </AdminRoute>
+            } />
 
             <Route path="admin" element={
               <AdminRoute activeRoles={activeProjectRoles}>
@@ -458,6 +488,33 @@ function AppContent() {
             handleUpdateCardStage={handleUpdateCardStage}
             handleAddCard={handleAddCard}
           />
+          
+          {isLoginModalOpen && (
+          <LoginModal
+            onClose={() => setIsLoginModalOpen(false)}
+            onLoginSuccess={() => {
+              setIsLoginModalOpen(false);
+              showToast('Đăng nhập', 'Đăng nhập hệ thống thành công.');
+            }}
+            onSwitchToRegister={() => {
+              setIsLoginModalOpen(false);
+              setIsRegisterModalOpen(true);
+            }}
+          />
+        )}
+          {isRegisterModalOpen && (
+          <RegisterModal
+            onClose={() => setIsRegisterModalOpen(false)}
+            onRegisterSuccess={() => {
+              setIsRegisterModalOpen(false);
+              showToast('Đăng ký', 'Tạo tài khoản mới thành công.');
+            }}
+            onSwitchToLogin={() => {
+              setIsRegisterModalOpen(false);
+              setIsLoginModalOpen(true);
+            }}
+          />
+        )}
           <TwoFactorSetupModal
             isOpen={isTwoFactorModalOpen}
             onClose={() => setIsTwoFactorModalOpen(false)}
