@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import {
   X,
   Sparkles,
@@ -209,6 +209,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         onGoogleLogin(backendResponse);
       }
     } catch (err: any) {
+      if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
+        return;
+      }
       console.error('Google Sign In Error:', err);
       setError(err.message || 'Lỗi đăng nhập Google.');
     } finally {

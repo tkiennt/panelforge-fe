@@ -143,6 +143,9 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
       const backendResponse = await authService.externalLogin(idToken);
       onSuccess(backendResponse);
     } catch (err: any) {
+      if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
+        return;
+      }
       console.error('Google Sign In Error:', err);
       setError(err.message || 'Lỗi đăng nhập qua Google.');
     } finally {
