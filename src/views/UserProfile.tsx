@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { User, signOut } from 'firebase/auth';
 import { auth } from '../firebase';
 import { LogOut, User as UserIcon, ShieldCheck, Key, KeyRound } from 'lucide-react';
@@ -51,6 +51,15 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout, onOpen
       setIsTwoFactorOpen(true);
     }
   };
+
+  const is2faActive = (() => {
+    try {
+      const savedUser = localStorage.getItem('user');
+      return savedUser ? Boolean(JSON.parse(savedUser).isTwoFactorEnabled) : false;
+    } catch {
+      return false;
+    }
+  })();
 
   return (
     <div className='flex flex-col items-center justify-center min-h-screen bg-[#F8F6F0] p-6'>

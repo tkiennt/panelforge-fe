@@ -44,12 +44,24 @@ export interface UpdateMemberRoleRequest {
   newRole: string | number;
 }
 
+function getActiveToken(customToken?: string): string | null {
+  if (customToken) return customToken;
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('token');
+  }
+  return null;
+}
+
+function isMockOrUnauthenticated(token: string | null): boolean {
+  return !token || token.startsWith('mock-');
+}
+
 function getAuthHeaders(customToken?: string): Record<string, string> {
-  const token = customToken || localStorage.getItem('token') || '';
+  const token = getActiveToken(customToken) || '';
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
-  if (token) {
+  if (token && !token.startsWith('mock-')) {
     headers['Authorization'] = `Bearer ${token}`;
   }
   return headers;
@@ -70,62 +82,9 @@ async function parseErrorResponse(response: Response, defaultMsg: string): Promi
   return defaultMsg;
 }
 
-// Mock fallback for workspaces
-export const MOCK_WORKSPACES: WorkspaceDto[] = [
-  {
-    id: 'w-1111-2222-3333-4444',
-    name: 'Chronicles of Aria Main Studio',
-    ownerId: 'u-admin-1',
-    ownerName: 'Tatsuki Fujimoto',
-    ownerEmail: 'producer@panelforge.com',
-    storageQuotaBytes: 10 * 1024 * 1024 * 1024,
-    usedStorageBytes: 3.4 * 1024 * 1024 * 1024,
-    createdAt: '2026-01-15T09:00:00Z',
-    isOwner: true,
-    currentUserRole: 'Producer',
-    memberCount: 8,
-  },
-  {
-    id: 'w-5555-6666-7777-8888',
-    name: 'Ghost Protocol Cyberpunk Desk',
-    ownerId: 'u-admin-2',
-    ownerName: 'Kenji Sato',
-    ownerEmail: 'kenji@panelforge.com',
-    storageQuotaBytes: 5 * 1024 * 1024 * 1024,
-    usedStorageBytes: 1.2 * 1024 * 1024 * 1024,
-    createdAt: '2026-02-01T14:30:00Z',
-    isOwner: false,
-    currentUserRole: 'Editor',
-    memberCount: 4,
-  },
-];
-
-export const MOCK_WORKSPACE_MEMBERS: WorkspaceMemberDto[] = [
-  {
-    userId: 'u-01',
-    fullName: 'Tatsuki Fujimoto',
-    email: 'producer@panelforge.com',
-    role: 'Producer',
-    isOwner: true,
-    joinedAt: '2026-01-15T09:00:00Z',
-  },
-  {
-    userId: 'u-02',
-    fullName: 'Gen Urobuchi',
-    email: 'writer@panelforge.com',
-    role: 'Reviewer',
-    isOwner: false,
-    joinedAt: '2026-01-20T10:00:00Z',
-  },
-  {
-    userId: 'u-03',
-    fullName: 'Yusuke Murata',
-    email: 'artist@panelforge.com',
-    role: 'Reviewer',
-    isOwner: false,
-    joinedAt: '2026-02-01T11:15:00Z',
-  },
-];
+// Danh sách rỗng mặc định khi chưa có dữ liệu thật từ API
+export const MOCK_WORKSPACES: WorkspaceDto[] = [];
+export const MOCK_WORKSPACE_MEMBERS: WorkspaceMemberDto[] = [];
 
 export const workspaceService = {
   createWorkspace: async (
@@ -137,6 +96,10 @@ export const workspaceService = {
       headers: getAuthHeaders(token),
       body: JSON.stringify(request),
     });
+    if (response.status === 401) {
+      if (typeof window !== 'undefined') localStorage.removeItem('token');
+      throw new Error('Phiên đăng nhập đã hết hạn (401). Vui lòng đăng nhập lại.');
+    }
     if (!response.ok) {
       throw new Error(await parseErrorResponse(response, 'Tạo Workspace thất bại.'));
     }
@@ -144,35 +107,46 @@ export const workspaceService = {
   },
 
   getMyWorkspaces: async (token?: string): Promise<WorkspaceDto[]> => {
+    const activeToken = getActiveToken(token);
+    if (!activeToken) {
+      return [];
+    }
+
     try {
       const response = await fetch(`${API_URL}/api/Workspaces`, {
         method: 'GET',
-        headers: getAuthHeaders(token),
+        headers: getAuthHeaders(activeToken),
       });
+      if (response.status === 401) {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('token');
+        }
+        return [];
+      }
       if (!response.ok) {
         throw new Error(await parseErrorResponse(response, 'Không thể lấy danh sách Workspaces.'));
       }
       return await response.json();
     } catch (err: any) {
-      console.warn('workspaceService.getMyWorkspaces fallback:', err.message);
-      return MOCK_WORKSPACES;
+      console.warn('workspaceService.getMyWorkspaces error:', err.message);
+      return [];
     }
   },
 
   getWorkspaceById: async (id: string, token?: string): Promise<WorkspaceDto> => {
-    try {
-      const response = await fetch(`${API_URL}/api/Workspaces/${id}`, {
-        method: 'GET',
-        headers: getAuthHeaders(token),
-      });
-      if (!response.ok) {
-        throw new Error(await parseErrorResponse(response, 'Không thể lấy thông tin Workspace.'));
-      }
-      return await response.json();
-    } catch (err: any) {
-      console.warn('workspaceService.getWorkspaceById fallback:', err.message);
-      return MOCK_WORKSPACES.find((w) => w.id === id) || MOCK_WORKSPACES[0];
+    const activeToken = getActiveToken(token);
+    const response = await fetch(`${API_URL}/api/Workspaces/${id}`, {
+      method: 'GET',
+      headers: getAuthHeaders(activeToken),
+    });
+    if (response.status === 401) {
+      if (typeof window !== 'undefined') localStorage.removeItem('token');
+      throw new Error('Phiên đăng nhập đã hết hạn (401). Vui lòng đăng nhập lại.');
     }
+    if (!response.ok) {
+      throw new Error(await parseErrorResponse(response, 'Không thể lấy thông tin Workspace.'));
+    }
+    return await response.json();
   },
 
   updateWorkspace: async (
@@ -180,11 +154,16 @@ export const workspaceService = {
     request: UpdateWorkspaceRequest,
     token?: string,
   ): Promise<WorkspaceDto> => {
+    const activeToken = getActiveToken(token);
     const response = await fetch(`${API_URL}/api/Workspaces/${id}`, {
       method: 'PUT',
-      headers: getAuthHeaders(token),
+      headers: getAuthHeaders(activeToken),
       body: JSON.stringify(request),
     });
+    if (response.status === 401) {
+      if (typeof window !== 'undefined') localStorage.removeItem('token');
+      throw new Error('Phiên đăng nhập đã hết hạn (401). Vui lòng đăng nhập lại.');
+    }
     if (!response.ok) {
       throw new Error(await parseErrorResponse(response, 'Cập nhật Workspace thất bại.'));
     }
@@ -192,10 +171,15 @@ export const workspaceService = {
   },
 
   deleteWorkspace: async (id: string, token?: string): Promise<{ message: string }> => {
+    const activeToken = getActiveToken(token);
     const response = await fetch(`${API_URL}/api/Workspaces/${id}`, {
       method: 'DELETE',
-      headers: getAuthHeaders(token),
+      headers: getAuthHeaders(activeToken),
     });
+    if (response.status === 401) {
+      if (typeof window !== 'undefined') localStorage.removeItem('token');
+      throw new Error('Phiên đăng nhập đã hết hạn (401). Vui lòng đăng nhập lại.');
+    }
     if (!response.ok) {
       throw new Error(await parseErrorResponse(response, 'Xóa Workspace thất bại.'));
     }
@@ -203,18 +187,25 @@ export const workspaceService = {
   },
 
   getMembers: async (id: string, token?: string): Promise<WorkspaceMemberDto[]> => {
+    const activeToken = getActiveToken(token);
+    if (!activeToken) return [];
+
     try {
       const response = await fetch(`${API_URL}/api/Workspaces/${id}/members`, {
         method: 'GET',
-        headers: getAuthHeaders(token),
+        headers: getAuthHeaders(activeToken),
       });
+      if (response.status === 401) {
+        if (typeof window !== 'undefined') localStorage.removeItem('token');
+        return [];
+      }
       if (!response.ok) {
         throw new Error(await parseErrorResponse(response, 'Không thể lấy danh sách thành viên.'));
       }
       return await response.json();
     } catch (err: any) {
-      console.warn('workspaceService.getMembers fallback:', err.message);
-      return MOCK_WORKSPACE_MEMBERS;
+      console.warn('workspaceService.getMembers error:', err.message);
+      return [];
     }
   },
 
@@ -223,11 +214,16 @@ export const workspaceService = {
     request: AddWorkspaceMemberRequest,
     token?: string,
   ): Promise<WorkspaceMemberDto> => {
+    const activeToken = getActiveToken(token);
     const response = await fetch(`${API_URL}/api/Workspaces/${id}/members`, {
       method: 'POST',
-      headers: getAuthHeaders(token),
+      headers: getAuthHeaders(activeToken),
       body: JSON.stringify(request),
     });
+    if (response.status === 401) {
+      if (typeof window !== 'undefined') localStorage.removeItem('token');
+      throw new Error('Phiên đăng nhập đã hết hạn (401). Vui lòng đăng nhập lại.');
+    }
     if (!response.ok) {
       throw new Error(await parseErrorResponse(response, 'Thêm thành viên thất bại.'));
     }
@@ -240,11 +236,16 @@ export const workspaceService = {
     request: UpdateMemberRoleRequest,
     token?: string,
   ): Promise<WorkspaceMemberDto> => {
+    const activeToken = getActiveToken(token);
     const response = await fetch(`${API_URL}/api/Workspaces/${id}/members/${userId}`, {
       method: 'PUT',
-      headers: getAuthHeaders(token),
+      headers: getAuthHeaders(activeToken),
       body: JSON.stringify(request),
     });
+    if (response.status === 401) {
+      if (typeof window !== 'undefined') localStorage.removeItem('token');
+      throw new Error('Phiên đăng nhập đã hết hạn (401). Vui lòng đăng nhập lại.');
+    }
     if (!response.ok) {
       throw new Error(await parseErrorResponse(response, 'Cập nhật vai trò thành viên thất bại.'));
     }
@@ -256,10 +257,15 @@ export const workspaceService = {
     userId: string,
     token?: string,
   ): Promise<{ message: string }> => {
+    const activeToken = getActiveToken(token);
     const response = await fetch(`${API_URL}/api/Workspaces/${id}/members/${userId}`, {
       method: 'DELETE',
-      headers: getAuthHeaders(token),
+      headers: getAuthHeaders(activeToken),
     });
+    if (response.status === 401) {
+      if (typeof window !== 'undefined') localStorage.removeItem('token');
+      throw new Error('Phiên đăng nhập đã hết hạn (401). Vui lòng đăng nhập lại.');
+    }
     if (!response.ok) {
       throw new Error(
         await parseErrorResponse(response, 'Xóa thành viên khỏi Workspace thất bại.'),

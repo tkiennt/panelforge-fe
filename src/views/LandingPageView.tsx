@@ -865,13 +865,13 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 {
                   step: '03',
                   title: 'Review',
-                  role: 'Reviewer',
+                  role: 'Editor',
                   Icon: Eye,
                   color: 'text-[#F59E0B]',
                   bgGlow: 'bg-[#F59E0B]/15',
                   borderClass: 'border-[#F59E0B]/30',
                   badgeClass: 'bg-[#F59E0B]',
-                  desc: 'Reviewers approve against the bible. AI surfaces continuity flags before humans need to.',
+                  desc: 'Editors approve against the bible. AI surfaces continuity flags before humans need to.',
                 },
                 {
                   step: '04',
@@ -937,7 +937,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               Every role, <em className='font-normal text-[#737373]'>one</em> canvas.
             </h2>
             <p className='mt-6 text-lg text-[#737373] leading-relaxed'>
-              Writers, artists, reviewers, and producers working from the same structured source of
+              Writers, artists, editors, and producers working from the same structured source of
               truth — in real time.
             </p>
           </div>
@@ -1308,7 +1308,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             { label: 'Producer', Icon: Briefcase, role: 'producer' },
             { label: 'Writer', Icon: PenLine, role: 'writer' },
             { label: 'Artist', Icon: Layers, role: 'artist' },
-            { label: 'Reviewer', Icon: CheckCheck, role: 'editor' },
+            { label: 'Editor', Icon: CheckCheck, role: 'editor' },
           ].map(({ label, Icon, role }) => (
             <div key={role} className='relative group'>
               <button

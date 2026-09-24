@@ -22,13 +22,7 @@ describe('ChangePasswordModal Component', () => {
   });
 
   it('renders all fields in English when 2FA is disabled', () => {
-    render(
-      <ChangePasswordModal
-        isOpen={true}
-        onClose={mockOnClose}
-        twoFactorEnabled={false}
-      />
-    );
+    render(<ChangePasswordModal isOpen={true} onClose={mockOnClose} twoFactorEnabled={false} />);
 
     expect(screen.getByText('Change Password')).toBeInTheDocument();
     expect(screen.getByText('Current Password')).toBeInTheDocument();
@@ -40,22 +34,20 @@ describe('ChangePasswordModal Component', () => {
 
     // 2FA warning and OTP input should NOT be present
     expect(
-      screen.queryByText('2FA is enabled. Please enter the 6-digit code from your Authenticator app.')
+      screen.queryByText(
+        '2FA is enabled. Please enter the 6-digit code from your Authenticator app.',
+      ),
     ).not.toBeInTheDocument();
     expect(screen.queryByText('Authenticator Code (6 digits)')).not.toBeInTheDocument();
   });
 
   it('renders 2FA red warning and OTP input when twoFactorEnabled is true', () => {
-    render(
-      <ChangePasswordModal
-        isOpen={true}
-        onClose={mockOnClose}
-        twoFactorEnabled={true}
-      />
-    );
+    render(<ChangePasswordModal isOpen={true} onClose={mockOnClose} twoFactorEnabled={true} />);
 
     expect(
-      screen.getByText('2FA is enabled. Please enter the 6-digit code from your Authenticator app.')
+      screen.getByText(
+        '2FA is enabled. Please enter the 6-digit code from your Authenticator app.',
+      ),
     ).toBeInTheDocument();
     expect(screen.getByText('Authenticator Code (6 digits)')).toBeInTheDocument();
   });
@@ -73,7 +65,7 @@ describe('ChangePasswordModal Component', () => {
         onClose={mockOnClose}
         onSuccess={mockOnSuccess}
         twoFactorEnabled={true}
-      />
+      />,
     );
 
     const inputs = screen.getAllByPlaceholderText('••••••••');
@@ -100,7 +92,7 @@ describe('ChangePasswordModal Component', () => {
         emailOtp: '654321',
         otpCode: '123456',
       },
-      'mock-token-xyz'
+      'mock-token-xyz',
     );
   });
 });

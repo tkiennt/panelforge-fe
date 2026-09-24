@@ -6,7 +6,7 @@ import {
   Cpu,
   Database,
   Activity,
-  UserCheck,
+  Layers,
   RefreshCw,
   Clock,
   ArrowUpRight,
@@ -127,21 +127,23 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
           <p className='text-[11px] text-[#888888] mt-1'>Đặc quyền toàn diện hệ thống</p>
         </div>
 
-        {/* Moderators */}
-        <div className='bg-white p-5 rounded-xl border border-[#E7E7E7] shadow-xs relative overflow-hidden group hover:border-indigo-400 transition-all'>
+        {/* Studio Workspaces */}
+        <div className='bg-white p-5 rounded-xl border border-[#E7E7E7] shadow-xs relative overflow-hidden group hover:border-violet-400 transition-all'>
           <div className='flex items-center justify-between'>
-            <span className='text-xs font-medium text-[#737373]'>Điều phối viên (Moderator)</span>
-            <div className='w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center'>
-              <UserCheck className='w-4 h-4' />
+            <span className='text-xs font-medium text-[#737373]'>Studio Workspaces</span>
+            <div className='w-8 h-8 rounded-lg bg-violet-50 text-violet-600 flex items-center justify-center'>
+              <Layers className='w-4 h-4' />
             </div>
           </div>
           <div className='mt-3 flex items-baseline gap-2'>
             <span className='text-2xl font-serif font-bold text-[#171717]'>
-              {stats ? stats.moderators : '—'}
+              {stats ? stats.totalWorkspaces : '—'}
             </span>
-            <span className='text-[10px] font-mono text-indigo-600 font-semibold'>Editorial</span>
+            <span className='text-[10px] font-mono text-violet-600 font-semibold'>
+              {stats ? `${stats.totalWorkspaceMembers} members` : ''}
+            </span>
           </div>
-          <p className='text-[11px] text-[#888888] mt-1'>Kiểm duyệt nội dung & phản hồi</p>
+          <p className='text-[11px] text-[#888888] mt-1'>Studio đang hoạt động trong hệ thống</p>
         </div>
 
         {/* Server Time & Status */}

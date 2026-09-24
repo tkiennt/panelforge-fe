@@ -40,10 +40,12 @@ import {
   LogOut,
   KeyRound,
 } from 'lucide-react';
+import { SystemRole, WorkspaceRole } from '../types';
 
 export interface CurrentUser {
   name: string;
-  role: 'ADMINISTRATOR' | 'PRODUCER' | 'WRITER' | 'ARTIST' | 'LETTERER' | 'EDITOR' | 'READER';
+  role: SystemRole;
+  workspaceRole?: WorkspaceRole | null;
   avatarInitials: string;
 }
 
@@ -206,8 +208,13 @@ export function GlobalAppShell({
   onOpenChangePassword,
 }: GlobalAppShellProps) {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const isReader = currentUser.role === 'READER';
-  const navSections = NAV_CONFIG[currentUser.role] || NAV_CONFIG['PRODUCER'] || [];
+  const isReader = false;
+  const navSections =
+    currentUser.role === 'ADMINISTRATOR'
+      ? NAV_CONFIG['ADMINISTRATOR'] || []
+      : currentUser.workspaceRole
+        ? NAV_CONFIG[currentUser.workspaceRole] || []
+        : [];
 
   const handleNavClick = (e: React.MouseEvent, href: string) => {
     e.preventDefault();
@@ -311,8 +318,10 @@ export function GlobalAppShell({
               </div>
             ) : (
               <div
-                className='group bg-[#FFFFFF] border border-[#E7E7E7] hover:border-[#B8B8B8] transition-all rounded-lg p-2.5 flex items-center justify-between cursor-pointer shadow-xs'
-                title='Switch active manga serialization'
+                data-testid='sidebar-workspace-switcher'
+                onClick={(e) => handleNavClick(e, 'workspaces')}
+                className='group bg-[#FFFFFF] border border-[#E7E7E7] hover:border-[#F97316] transition-all rounded-lg p-2.5 flex items-center justify-between cursor-pointer shadow-xs active:scale-[0.99]'
+                title='Đổi Workspace / Quay lại danh sách Workspace'
               >
                 <div className='flex items-center gap-2.5 min-w-0'>
                   <div className='w-6 h-6 rounded bg-[#FFF7ED] border border-[#FDBA74]/50 flex items-center justify-center shrink-0 text-[#F97316]'>
@@ -327,7 +336,7 @@ export function GlobalAppShell({
                     </p>
                   </div>
                 </div>
-                <ChevronDown className='w-4 h-4 text-[#555555] group-hover:text-[#171717] transition-colors shrink-0 stroke-[2]' />
+                <ChevronDown className='w-4 h-4 text-[#555555] group-hover:text-[#F97316] transition-colors shrink-0 stroke-[2]' />
               </div>
             )}
           </div>
@@ -436,12 +445,16 @@ export function GlobalAppShell({
               </div>
             ) : (
               <nav className='flex items-center text-sm font-medium text-[#555555] truncate'>
-                <span
-                  className='hover:text-[#171717] cursor-pointer transition-colors'
-                  onClick={(e) => handleNavClick(e, 'publications')}
+                <button
+                  type='button'
+                  data-testid='back-to-workspaces-breadcrumb'
+                  className='hover:text-[#171717] cursor-pointer transition-colors flex items-center gap-1.5'
+                  onClick={(e) => handleNavClick(e, 'workspaces')}
+                  title='Quay lại danh sách Workspace'
                 >
-                  Projects
-                </span>
+                  <Briefcase className='w-3.5 h-3.5 text-[#F97316]' />
+                  <span>Workspaces</span>
+                </button>
                 <span className='mx-2 text-[#B8B8B8] font-normal select-none'>/</span>
                 <span className='hover:text-[#171717] cursor-pointer transition-colors truncate'>
                   {activeSeries.title}
@@ -449,9 +462,9 @@ export function GlobalAppShell({
                 <span className='mx-2 text-[#B8B8B8] font-normal select-none'>/</span>
                 <span className='text-[#171717] font-semibold truncate flex items-center gap-1.5'>
                   {currentUser.role === 'ADMINISTRATOR' ? 'Global Settings' : 'Workspace'}
-                  {!['ADMINISTRATOR', 'READER'].includes(currentUser.role) && (
+                  {currentUser.role !== 'ADMINISTRATOR' && currentUser.workspaceRole && (
                     <span className='inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-[#FFFBEB] text-[#D97706] border border-[#FDE68A]'>
-                      In Review
+                      {currentUser.workspaceRole}
                     </span>
                   )}
                 </span>
@@ -522,7 +535,9 @@ export function GlobalAppShell({
                     {currentUser.name}
                   </span>
                   <span className='text-[10px] text-[#555555] font-mono leading-none'>
-                    {currentUser.role}
+                    {currentUser.role === 'ADMINISTRATOR'
+                      ? 'ADMIN'
+                      : currentUser.workspaceRole || 'USER'}
                   </span>
                 </div>
                 <ChevronDown className='w-3 h-3 text-[#888888]' />
@@ -530,14 +545,17 @@ export function GlobalAppShell({
 
               {userMenuOpen && (
                 <>
-                  <div
-                    className='fixed inset-0 z-40'
-                    onClick={() => setUserMenuOpen(false)}
-                  />
+                  <div className='fixed inset-0 z-40' onClick={() => setUserMenuOpen(false)} />
                   <div className='absolute right-0 top-11 w-56 bg-white border border-[#E7E7E7] rounded-xl shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-150'>
                     <div className='px-3 py-2 border-b border-[#E7E7E7] mb-1'>
-                      <p className='text-xs font-bold text-[#171717] truncate'>{currentUser.name}</p>
-                      <p className='text-[10px] text-[#888888] font-mono'>{currentUser.role}</p>
+                      <p className='text-xs font-bold text-[#171717] truncate'>
+                        {currentUser.name}
+                      </p>
+                      <p className='text-[10px] text-[#888888] font-mono'>
+                        {currentUser.role === 'ADMINISTRATOR'
+                          ? 'System Administrator'
+                          : `Workspace: ${currentUser.workspaceRole || 'Member'}`}
+                      </p>
                     </div>
 
                     <button
@@ -562,6 +580,18 @@ export function GlobalAppShell({
                       <span className='font-medium text-[#171717]'>Change Password</span>
                     </button>
 
+                    <button
+                      data-testid='user-menu-switch-workspace'
+                      onClick={() => {
+                        setUserMenuOpen(false);
+                        onNavigate?.('workspaces');
+                      }}
+                      className='w-full text-left flex items-center gap-2 text-xs text-[#555555] hover:text-[#171717] hover:bg-[#F8F6F0] px-3 py-2 rounded-lg transition-colors cursor-pointer'
+                    >
+                      <Briefcase className='w-3.5 h-3.5 text-[#F97316]' />
+                      <span>Đổi Workspace (Workspaces)</span>
+                    </button>
+
                     <div className='my-1 border-t border-[#E7E7E7]' />
 
                     <button
@@ -579,14 +609,15 @@ export function GlobalAppShell({
               )}
             </div>
 
-            {['PRODUCER', 'ADMINISTRATOR', 'ARTIST'].includes(currentUser.role) && (
+            {(currentUser.role === 'ADMINISTRATOR' ||
+              ['PRODUCER', 'ARTIST'].includes(currentUser.workspaceRole as string)) && (
               <button className='bg-[#F97316] text-white px-4 py-1.5 rounded-md text-sm font-medium hover:bg-[#EA580C] active:scale-[0.98] transition-all flex items-center gap-1.5 shadow-sm'>
-                {currentUser.role === 'ARTIST' ? (
+                {currentUser.workspaceRole === 'ARTIST' ? (
                   <UploadCloud className='w-3.5 h-3.5 stroke-[2.5]' />
                 ) : (
                   <Upload className='w-3.5 h-3.5 stroke-[2.5]' />
                 )}
-                <span>{currentUser.role === 'ARTIST' ? 'Submit' : 'Export'}</span>
+                <span>{currentUser.workspaceRole === 'ARTIST' ? 'Submit' : 'Export'}</span>
               </button>
             )}
 

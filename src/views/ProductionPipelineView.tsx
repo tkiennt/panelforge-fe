@@ -1,21 +1,24 @@
 import React from 'react';
 import { KanbanBoard } from '../components/kanban/KanbanBoard';
-import { RoleKey, MOCK_CARDS } from '../data/mockPipelineData';
+import { MOCK_CARDS } from '../data/mockPipelineData';
+import { SystemRole, WorkspaceRole } from '../types';
 import { Filter, Users, LayoutTemplate, Plus } from 'lucide-react';
 
 interface ProductionPipelineViewProps {
-  currentUserRole: RoleKey;
+  currentUserRole?: WorkspaceRole | null;
+  systemRole?: SystemRole;
   onShowToast: (title: string, desc: string) => void;
   isReaderMode?: boolean;
 }
 
 export const ProductionPipelineView: React.FC<ProductionPipelineViewProps> = ({
   currentUserRole,
+  systemRole,
   onShowToast,
   isReaderMode = false,
 }) => {
   // If reader accidentally gets here, block them
-  if (isReaderMode || currentUserRole === 'READER') {
+  if (isReaderMode) {
     return (
       <div className='w-full h-full flex flex-col items-center justify-center p-8 text-center'>
         <div className='w-16 h-16 rounded-2xl bg-[#FEE2E2] border border-[#FECACA] flex items-center justify-center text-[#EF4444] mb-4'>
@@ -119,7 +122,7 @@ export const ProductionPipelineView: React.FC<ProductionPipelineViewProps> = ({
             <LayoutTemplate className='w-4 h-4' />
           </button>
 
-          {(currentUserRole === 'PRODUCER' || currentUserRole === 'ADMINISTRATOR') && (
+          {(currentUserRole === 'PRODUCER' || systemRole === 'ADMINISTRATOR') && (
             <button className='h-8 px-3 rounded-lg bg-[#F97316] text-white flex items-center justify-center gap-1.5 text-xs font-semibold hover:bg-[#EA580C] shadow-2xs transition-colors ml-2'>
               <Plus className='w-4 h-4' />
               New Page
@@ -129,7 +132,11 @@ export const ProductionPipelineView: React.FC<ProductionPipelineViewProps> = ({
       </div>
 
       {/* Board Area */}
-      <KanbanBoard currentUserRole={currentUserRole} onShowToast={onShowToast} />
+      <KanbanBoard
+        currentUserRole={currentUserRole}
+        systemRole={systemRole}
+        onShowToast={onShowToast}
+      />
     </div>
   );
 };

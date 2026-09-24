@@ -12,22 +12,19 @@ import {
 import { KanbanColumn } from './KanbanColumn';
 import { KanbanCard } from './KanbanCard';
 import { SideDrawer } from './SideDrawer';
-import {
-  PIPELINE_STAGES,
-  MOCK_CARDS,
-  PipelineCard,
-  RoleKey,
-  StageKey,
-} from '../../data/mockPipelineData';
+import { PIPELINE_STAGES, MOCK_CARDS, PipelineCard, StageKey } from '../../data/mockPipelineData';
+import { SystemRole, WorkspaceRole } from '../../types';
 
 interface KanbanBoardProps {
-  currentUserRole: RoleKey;
+  currentUserRole?: WorkspaceRole | null;
+  systemRole?: SystemRole;
   currentUserId?: string; // For assignee checks
   onShowToast: (title: string, desc: string) => void;
 }
 
 export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   currentUserRole,
+  systemRole,
   currentUserId = 'user-1',
   onShowToast,
 }) => {
@@ -56,11 +53,11 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   };
 
   const canDragCard = (card: PipelineCard) => {
-    // Producer & Editor can move anything
+    // Producer & Editor can move anything. Administrator also can.
     if (
+      systemRole === 'ADMINISTRATOR' ||
       currentUserRole === 'PRODUCER' ||
-      currentUserRole === 'EDITOR' ||
-      currentUserRole === 'ADMINISTRATOR'
+      currentUserRole === 'EDITOR'
     )
       return true;
     // Others can only move their own assigned cards

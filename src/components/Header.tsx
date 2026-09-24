@@ -174,7 +174,7 @@ export const Header: React.FC<HeaderProps> = ({
 
                 <div className='p-2 rounded-lg bg-[#F8F6F0] hover:bg-white border border-[#E7E7E7] transition-colors'>
                   <div className='flex items-center justify-between text-[10px] text-[#888888] font-mono'>
-                    <span className='text-[#F97316] font-semibold'>Inker Submission</span>
+                    <span className='text-[#F97316] font-semibold'>Artist Submission</span>
                     <span>25m ago</span>
                   </div>
                   <p className='text-[#171717] font-medium text-[11px] mt-0.5'>

@@ -1,6 +1,5 @@
 // src/services/admin.service.ts
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5044';
-
+const API_URL = import.meta.env.VITE_APP_URL;
 export interface AdminUserItem {
   id: string;
   email: string;
@@ -34,9 +33,26 @@ export interface AssignRoleResponse {
 export interface SystemStatsResponse {
   totalUsers: number;
   admins: number;
-  moderators: number;
-  standardUsers: number;
+  registeredUsers: number;
+  totalWorkspaces: number;
+  totalWorkspaceMembers: number;
   serverTimeUtc: string;
+}
+
+export interface CreateUserPayload {
+  email: string;
+  fullName: string;
+  password: string;
+  phoneNumber?: string;
+  role: string;
+  isActive?: boolean;
+}
+
+export interface UpdateUserPayload {
+  fullName: string;
+  phoneNumber?: string;
+  role: string;
+  isActive: boolean;
 }
 
 async function parseErrorResponse(response: Response, defaultMessage: string): Promise<string> {
@@ -72,91 +88,23 @@ function getAuthHeaders(customToken?: string): Record<string, string> {
 }
 
 // Fallback Mock Users when offline or demo
-export const MOCK_ADMIN_USERS: AdminUserItem[] = [
-  {
-    id: '11111111-1111-1111-1111-111111111111',
-    email: 'admin@panelforge.com',
-    fullName: 'System Super Admin',
-    phoneNumber: '+84 901 000 001',
-    role: 'Admin',
-    isActive: true,
-    isEmailConfirmed: true,
-    twoFactorEnabled: true,
-    createdAt: '2026-01-01T08:00:00Z',
-  },
-  {
-    id: '22222222-2222-2222-2222-222222222222',
-    email: 'producer@panelforge.com',
-    fullName: 'Tatsuki Fujimoto',
-    phoneNumber: '+84 901 000 002',
-    role: 'Producer',
-    isActive: true,
-    isEmailConfirmed: true,
-    twoFactorEnabled: true,
-    createdAt: '2026-01-15T09:30:00Z',
-  },
-  {
-    id: '33333333-3333-3333-3333-333333333333',
-    email: 'writer@panelforge.com',
-    fullName: 'Gen Urobuchi',
-    phoneNumber: '+84 901 000 003',
-    role: 'Writer',
-    isActive: true,
-    isEmailConfirmed: true,
-    twoFactorEnabled: false,
-    createdAt: '2026-02-01T10:15:00Z',
-  },
-  {
-    id: '44444444-4444-4444-4444-444444444444',
-    email: 'artist@panelforge.com',
-    fullName: 'Yusuke Murata',
-    phoneNumber: '+84 901 000 004',
-    role: 'Artist',
-    isActive: true,
-    isEmailConfirmed: true,
-    twoFactorEnabled: true,
-    createdAt: '2026-02-10T14:20:00Z',
-  },
-  {
-    id: '55555555-5555-5555-5555-555555555555',
-    email: 'letterer@panelforge.com',
-    fullName: 'Stan Sakai',
-    phoneNumber: '+84 901 000 005',
-    role: 'Letterer',
-    isActive: true,
-    isEmailConfirmed: true,
-    twoFactorEnabled: false,
-    createdAt: '2026-02-20T11:00:00Z',
-  },
-  {
-    id: '66666666-6666-6666-6666-666666666666',
-    email: 'editor@panelforge.com',
-    fullName: 'Kazuhiko Torishima',
-    phoneNumber: '+84 901 000 006',
-    role: 'Editor',
-    isActive: true,
-    isEmailConfirmed: true,
-    twoFactorEnabled: true,
-    createdAt: '2026-03-01T08:45:00Z',
-  },
-  {
-    id: '77777777-7777-7777-7777-777777777777',
-    email: 'reader@panelforge.com',
-    fullName: 'Early Access Fan Reader',
-    phoneNumber: '+84 901 000 007',
-    role: 'Reader',
-    isActive: true,
-    isEmailConfirmed: true,
-    twoFactorEnabled: false,
-    createdAt: '2026-03-10T16:30:00Z',
-  },
-];
+export const MOCK_ADMIN_USERS: AdminUserItem[] = [];
 
 export const adminService = {
   /**
    * Lấy danh sách toàn bộ người dùng có phân trang (GET /api/Admin/users?page=&pageSize=)
    */
   getAllUsers: async (page = 1, pageSize = 20, token?: string): Promise<AdminUsersResponse> => {
+    // Chỉ gọi API Admin nếu là vai trò ADMINISTRATOR/ADMIN
+    const currentRole = localStorage.getItem('userRole');
+    if (
+      currentRole &&
+      currentRole.toUpperCase() !== 'ADMINISTRATOR' &&
+      currentRole.toUpperCase() !== 'ADMIN'
+    ) {
+      return { total: 0, page, pageSize, items: [] };
+    }
+
     try {
       const response = await fetch(`${API_URL}/api/Admin/users?page=${page}&pageSize=${pageSize}`, {
         method: 'GET',
@@ -169,13 +117,12 @@ export const adminService = {
 
       return await response.json();
     } catch (err: any) {
-      // Nếu là lỗi phân quyền hoặc network offline trong môi trường dev/demo, cho phép fallback
-      console.warn('adminService.getAllUsers error, using mock fallback:', err.message);
+      console.warn('adminService.getAllUsers error:', err.message);
       return {
-        total: MOCK_ADMIN_USERS.length,
+        total: 0,
         page,
         pageSize,
-        items: MOCK_ADMIN_USERS,
+        items: [],
       };
     }
   },
@@ -201,6 +148,23 @@ export const adminService = {
    * Lấy thống kê tổng quan hệ thống (GET /api/Admin/system-stats)
    */
   getSystemStats: async (token?: string): Promise<SystemStatsResponse> => {
+    // Chỉ gọi API Admin nếu là vai trò ADMINISTRATOR/ADMIN
+    const currentRole = localStorage.getItem('userRole');
+    if (
+      currentRole &&
+      currentRole.toUpperCase() !== 'ADMINISTRATOR' &&
+      currentRole.toUpperCase() !== 'ADMIN'
+    ) {
+      return {
+        totalUsers: 0,
+        admins: 0,
+        registeredUsers: 0,
+        totalWorkspaces: 0,
+        totalWorkspaceMembers: 0,
+        serverTimeUtc: new Date().toISOString(),
+      };
+    }
+
     try {
       const response = await fetch(`${API_URL}/api/Admin/system-stats`, {
         method: 'GET',
@@ -213,14 +177,106 @@ export const adminService = {
 
       return await response.json();
     } catch (err: any) {
-      console.warn('adminService.getSystemStats error, using mock fallback:', err.message);
+      console.warn('adminService.getSystemStats error:', err.message);
       return {
-        totalUsers: 148,
-        admins: 3,
-        moderators: 8,
-        standardUsers: 137,
+        totalUsers: 0,
+        admins: 0,
+        registeredUsers: 0,
+        totalWorkspaces: 0,
+        totalWorkspaceMembers: 0,
         serverTimeUtc: new Date().toISOString(),
       };
     }
+  },
+
+  /**
+   * Tra cứu Audit Log toàn hệ thống (GET /api/Admin/audit-logs) (UC-15, BR-18)
+   */
+  getAuditLogs: async (
+    workspaceId?: string,
+    action?: string,
+    page = 1,
+    pageSize = 30,
+    token?: string,
+  ): Promise<{ totalCount: number; page: number; pageSize: number; items: any[] }> => {
+    const url = new URL(`${API_URL}/api/Admin/audit-logs`);
+    if (workspaceId) url.searchParams.set('workspaceId', workspaceId);
+    if (action) url.searchParams.set('action', action);
+    url.searchParams.set('page', page.toString());
+    url.searchParams.set('pageSize', pageSize.toString());
+
+    const response = await fetch(url.toString(), {
+      method: 'GET',
+      headers: getAuthHeaders(token),
+    });
+
+    if (!response.ok) {
+      throw new Error(await parseErrorResponse(response, 'Không thể tải danh sách Audit Log.'));
+    }
+
+    return await response.json();
+  },
+
+  /**
+   * Thống kê mức độ sử dụng AI Token theo Workspace (GET /api/Admin/ai-usage) (UC-15)
+   */
+  getAiUsage: async (token?: string): Promise<any[]> => {
+    const response = await fetch(`${API_URL}/api/Admin/ai-usage`, {
+      method: 'GET',
+      headers: getAuthHeaders(token),
+    });
+
+    if (!response.ok) {
+      throw new Error(await parseErrorResponse(response, 'Không thể tải thống kê AI Usage.'));
+    }
+
+    return await response.json();
+  },
+
+  /**
+   * Lấy cấu hình AI Provider theo Workspace (GET /api/workspaces/{id}/ai-config) (UC-02)
+   */
+  getWorkspaceAiConfig: async (workspaceId: string, token?: string): Promise<any> => {
+    const response = await fetch(`${API_URL}/api/workspaces/${workspaceId}/ai-config`, {
+      method: 'GET',
+      headers: getAuthHeaders(token),
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        await parseErrorResponse(response, 'Không thể tải cấu hình AI của Workspace.'),
+      );
+    }
+
+    return await response.json();
+  },
+
+  /**
+   * Cập nhật AI Provider & Quota theo Workspace (PUT /api/workspaces/{id}/ai-config) (UC-02)
+   */
+  updateWorkspaceAiConfig: async (
+    workspaceId: string,
+    data: {
+      provider: string;
+      apiKey?: string;
+      isEnabled: boolean;
+      monthlyTokenQuota: number;
+      allowedModels: string[];
+    },
+    token?: string,
+  ): Promise<any> => {
+    const response = await fetch(`${API_URL}/api/workspaces/${workspaceId}/ai-config`, {
+      method: 'PUT',
+      headers: getAuthHeaders(token),
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        await parseErrorResponse(response, 'Không thể lưu cấu hình AI của Workspace.'),
+      );
+    }
+
+    return await response.json();
   },
 };

@@ -111,23 +111,50 @@ export interface BibleEntity {
   colors?: string[];
 }
 
-export type StudioRole = 'Lead Producer' | 'Artist / Inker' | 'Writer' | 'Reviewer / Editor';
-export type RoleKey = 'producer' | 'artist' | 'writer' | 'reviewer';
+export type StudioRole = 'Lead Producer' | 'Artist' | 'Writer' | 'Editor' | 'Letterer';
+export type RoleKey = 'producer' | 'artist' | 'writer' | 'editor' | 'letterer';
 
-export type SystemRole =
-  'ADMINISTRATOR' | 'PRODUCER' | 'WRITER' | 'ARTIST' | 'LETTERER' | 'EDITOR' | 'READER';
+export type SystemRole = 'ADMINISTRATOR' | 'USER';
 
+export type WorkspaceRole = 'PRODUCER' | 'WRITER' | 'ARTIST' | 'LETTERER' | 'EDITOR';
+
+/**
+ * Chuẩn hóa SystemRole (chỉ có 2 giá trị toàn cục: ADMINISTRATOR hoặc USER).
+ */
 export function normalizeSystemRole(role: any): SystemRole {
-  if (!role) return 'ARTIST';
+  if (!role && role !== 0) return 'USER';
   const r = String(role).trim().toUpperCase();
-  if (r === '0' || r === 'ADMIN' || r === 'ADMINISTRATOR') return 'ADMINISTRATOR';
-  if (r === '1' || r === 'PRODUCER') return 'PRODUCER';
-  if (r === '2' || r === 'WRITER') return 'WRITER';
-  if (r === '3' || r === 'ARTIST') return 'ARTIST';
-  if (r === '4' || r === 'LETTERER') return 'LETTERER';
-  if (r === '5' || r === 'EDITOR') return 'EDITOR';
-  if (r === '6' || r === 'READER') return 'READER';
-  return 'ARTIST';
+  if (r === 'ADMIN' || r === 'ADMINISTRATOR' || r === '1') return 'ADMINISTRATOR';
+  return 'USER';
+}
+
+/**
+ * Chuẩn hóa WorkspaceRole (5 role sản xuất trong Workspace theo Entity E-11).
+ */
+export function normalizeWorkspaceRole(role: any): WorkspaceRole | null {
+  if (!role && role !== 0) return null;
+  const r = String(role).trim().toUpperCase();
+  if (r === 'PRODUCER' || r === '0') return 'PRODUCER';
+  if (r === 'WRITER' || r === '1') return 'WRITER';
+  if (r === 'ARTIST' || r === '2') return 'ARTIST';
+  if (r === 'LETTERER' || r === '3') return 'LETTERER';
+  if (r === 'EDITOR' || r === '4') return 'EDITOR';
+  return null;
+}
+
+export interface WorkspaceDto {
+  id: string;
+  name: string;
+  ownerId: string;
+  ownerName: string;
+  ownerEmail: string;
+  storageQuotaBytes: number;
+  usedStorageBytes: number;
+  createdAt: string;
+  isOwner: boolean;
+  currentUserRole?: WorkspaceRole | null;
+  memberCount: number;
+  pendingTasks: number;
 }
 
 export interface StudioMember {

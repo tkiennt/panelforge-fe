@@ -35,7 +35,7 @@ export const NewPageCardModal: React.FC<NewPageCardModalProps> = ({
       stage: stage,
       title: title.trim(),
       assignee: assignee,
-      assigneeRole: 'Key Inker',
+      assigneeRole: 'Artist',
       assigneeInitials:
         assignee
           .split(' ')
@@ -152,11 +152,11 @@ export const NewPageCardModal: React.FC<NewPageCardModalProps> = ({
                 onChange={(e) => setAssignee(e.target.value)}
                 className='w-full px-3 py-2 bg-[#FAF8F4] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-[#171717] focus:outline-none focus:border-[#F97316] font-semibold cursor-pointer'
               >
-                <option value='Kenji S.'>Kenji S. (Key Inker)</option>
-                <option value='Arata M.'>Arata M. (Storyboard)</option>
-                <option value='Mei L.'>Mei L. (Tone &amp; BG)</option>
-                <option value='Yuto T.'>Yuto T. (Colorist)</option>
-                <option value='Tatsuki F.'>Tatsuki F. (Lead)</option>
+                <option value='Kenji S.'>Kenji S. (Artist)</option>
+                <option value='Arata M.'>Arata M. (Writer)</option>
+                <option value='Mei L.'>Mei L. (Artist)</option>
+                <option value='Yuto T.'>Yuto T. (Artist)</option>
+                <option value='Tatsuki F.'>Tatsuki F. (Producer)</option>
               </select>
             </div>
           </div>

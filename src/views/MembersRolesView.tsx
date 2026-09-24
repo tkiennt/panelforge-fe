@@ -45,7 +45,7 @@ export const MembersRolesView: React.FC<MembersRolesViewProps> = ({
   onUpdateMemberRole,
   onShowToast,
 }) => {
-  const [activeTab, setActiveTab] = useState<'ALL' | 'LEAD' | 'ARTIST' | 'WRITER' | 'REVIEWER'>(
+  const [activeTab, setActiveTab] = useState<'ALL' | 'LEAD' | 'ARTIST' | 'WRITER' | 'EDITOR'>(
     'ALL',
   );
   const [searchQuery, setSearchQuery] = useState('');
@@ -71,10 +71,9 @@ export const MembersRolesView: React.FC<MembersRolesViewProps> = ({
       const matchesTab =
         activeTab === 'ALL' ||
         (activeTab === 'LEAD' && (roleStr.includes('lead') || roleStr.includes('producer'))) ||
-        (activeTab === 'ARTIST' &&
-          (roleStr.includes('artist') || roleStr.includes('inker') || roleStr.includes('line'))) ||
+        (activeTab === 'ARTIST' && (roleStr.includes('artist') || roleStr.includes('line'))) ||
         (activeTab === 'WRITER' && (roleStr.includes('writer') || roleStr.includes('script'))) ||
-        (activeTab === 'REVIEWER' && (roleStr.includes('reviewer') || roleStr.includes('editor')));
+        (activeTab === 'EDITOR' && roleStr.includes('editor'));
 
       return matchesSearch && matchesTab;
     });
@@ -89,17 +88,9 @@ export const MembersRolesView: React.FC<MembersRolesViewProps> = ({
           (m.role || '').toLowerCase().includes('lead') ||
           (m.role || '').toLowerCase().includes('producer'),
       ).length,
-      ARTIST: members.filter(
-        (m) =>
-          (m.role || '').toLowerCase().includes('artist') ||
-          (m.role || '').toLowerCase().includes('inker'),
-      ).length,
+      ARTIST: members.filter((m) => (m.role || '').toLowerCase().includes('artist')).length,
       WRITER: members.filter((m) => (m.role || '').toLowerCase().includes('writer')).length,
-      REVIEWER: members.filter(
-        (m) =>
-          (m.role || '').toLowerCase().includes('reviewer') ||
-          (m.role || '').toLowerCase().includes('editor'),
-      ).length,
+      EDITOR: members.filter((m) => (m.role || '').toLowerCase().includes('editor')).length,
     };
   }, [members]);
 
@@ -180,9 +171,9 @@ export const MembersRolesView: React.FC<MembersRolesViewProps> = ({
             {[
               { key: 'ALL', label: 'All Members', count: tabCounts.ALL },
               { key: 'LEAD', label: 'Lead Producers', count: tabCounts.LEAD },
-              { key: 'ARTIST', label: 'Artists & Inkers', count: tabCounts.ARTIST },
+              { key: 'ARTIST', label: 'Artists', count: tabCounts.ARTIST },
               { key: 'WRITER', label: 'Writers & Storyboard', count: tabCounts.WRITER },
-              { key: 'REVIEWER', label: 'Reviewers & Editorial', count: tabCounts.REVIEWER },
+              { key: 'EDITOR', label: 'Editors & Editorial', count: tabCounts.EDITOR },
             ].map((tab) => (
               <button
                 key={tab.key}
@@ -361,7 +352,7 @@ export const MembersRolesView: React.FC<MembersRolesViewProps> = ({
               <tr>
                 <th className='p-3'>Capability Privilege</th>
                 <th className='p-3 text-center'>Lead Producer</th>
-                <th className='p-3 text-center'>Key Inker</th>
+                <th className='p-3 text-center'>Key Artist</th>
                 <th className='p-3 text-center'>Writer / SFX</th>
                 <th className='p-3 text-center'>Chief Editor</th>
               </tr>
@@ -488,9 +479,9 @@ export const MembersRolesView: React.FC<MembersRolesViewProps> = ({
                   className='w-full px-3 py-2 bg-[#FAF8F4] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-[#171717] font-semibold focus:outline-none focus:border-[#F97316] cursor-pointer'
                 >
                   <option value='Lead Producer'>Lead Producer</option>
-                  <option value='Artist / Inker'>Artist / Inker</option>
+                  <option value='Artist'>Artist</option>
                   <option value='Writer'>Writer</option>
-                  <option value='Reviewer / Editor'>Reviewer / Editor</option>
+                  <option value='Editor'>Editor</option>
                 </select>
               </div>
 

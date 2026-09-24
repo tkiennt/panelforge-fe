@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   List,
   Shield,
@@ -25,63 +25,46 @@ interface AuditLogEntry {
   ipAddress: string;
 }
 
-const MOCK_AUDIT_LOGS: AuditLogEntry[] = [
-  {
-    id: 'log-001',
-    timestamp: '2026-09-18T05:40:12Z',
-    actor: 'admin@panelforge.com',
-    action: 'ASSIGN_ROLE',
-    category: 'RBAC',
-    severity: 'WARNING',
-    details: 'Đã phân quyền tài khoản editor@panelforge.com sang vai trò Editor.',
-    ipAddress: '192.168.1.10',
-  },
-  {
-    id: 'log-002',
-    timestamp: '2026-09-18T05:32:00Z',
-    actor: 'artist@panelforge.com',
-    action: 'ENABLE_2FA',
-    category: 'SECURITY',
-    severity: 'INFO',
-    details: 'Người dùng kích hoạt thành công RFC 6238 Google Authenticator TOTP.',
-    ipAddress: '118.69.182.45',
-  },
-  {
-    id: 'log-003',
-    timestamp: '2026-09-18T05:15:20Z',
-    actor: 'writer@panelforge.com',
-    action: 'LOGIN_SUCCESS',
-    category: 'AUTH',
-    severity: 'INFO',
-    details: 'Đăng nhập thành công với mã PIN xác thực email.',
-    ipAddress: '14.161.22.8',
-  },
-  {
-    id: 'log-004',
-    timestamp: '2026-09-18T04:50:11Z',
-    actor: 'System.Cron',
-    action: 'BACKUP_SNAPSHOT',
-    category: 'SYSTEM',
-    severity: 'INFO',
-    details: 'Tạo bản sao lưu cơ sở dữ liệu PostgreSQL định kỳ tự động.',
-    ipAddress: '127.0.0.1',
-  },
-  {
-    id: 'log-005',
-    timestamp: '2026-09-18T03:12:44Z',
-    actor: 'unknown@external.net',
-    action: 'FAILED_LOGIN_ATTEMPT',
-    category: 'AUTH',
-    severity: 'CRITICAL',
-    details: 'Phát hiện 5 lần nhập sai mật khẩu liên tiếp vào tài khoản admin.',
-    ipAddress: '203.113.152.9',
-  },
-];
+const MOCK_AUDIT_LOGS: AuditLogEntry[] = [];
+
+import { adminService } from '../../services/admin.service';
 
 export const AdminAuditLogView: React.FC = () => {
-  const [logs] = useState<AuditLogEntry[]>(MOCK_AUDIT_LOGS);
+  const [logs, setLogs] = useState<AuditLogEntry[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchLogs = async () => {
+      setLoading(true);
+      try {
+        const res = await adminService.getAuditLogs();
+        if (res && res.items && res.items.length > 0) {
+          const mapped: AuditLogEntry[] = res.items.map((item: any) => ({
+            id: item.id,
+            timestamp: item.timestampUtc,
+            actor: item.userEmail || item.userId || 'System',
+            action: item.action,
+            category: item.action.includes('ROLE')
+              ? 'RBAC'
+              : item.action.includes('AUTH')
+                ? 'AUTH'
+                : 'SYSTEM',
+            severity: item.action.includes('DELETE') ? 'WARNING' : 'INFO',
+            details: item.details || `${item.action} on ${item.entityName} (${item.entityId})`,
+            ipAddress: item.ipAddress || '127.0.0.1',
+          }));
+          setLogs(mapped);
+        }
+      } catch (err) {
+        console.warn('Cannot fetch real audit logs, using mock logs:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchLogs();
+  }, []);
 
   const filteredLogs = logs.filter((log) => {
     const q = searchQuery.toLowerCase().trim();

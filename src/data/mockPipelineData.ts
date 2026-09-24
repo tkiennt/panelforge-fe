@@ -17,8 +17,9 @@ export const PIPELINE_STAGES: PipelineStage[] = [
   { id: 'approved', label: 'Approved' },
 ];
 
-export type RoleKey =
-  'ADMINISTRATOR' | 'PRODUCER' | 'WRITER' | 'ARTIST' | 'LETTERER' | 'EDITOR' | 'READER';
+import { WorkspaceRole } from '../types';
+
+export type RoleKey = WorkspaceRole;
 
 export interface PipelineMember {
   id: string;

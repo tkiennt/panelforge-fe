@@ -1,5 +1,5 @@
 ﻿// src/services/auth.service.ts
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5044';
+const API_URL = import.meta.env.VITE_APP_URL;
 
 export interface VerifyTwoFactorPayload {
   code: string;
@@ -48,7 +48,9 @@ export const authService = {
   login: async (email: string, password: string, rememberDeviceToken?: string) => {
     const tokenToSend =
       rememberDeviceToken ||
-      (typeof window !== 'undefined' ? localStorage.getItem('pf_remember_device') || undefined : undefined);
+      (typeof window !== 'undefined'
+        ? localStorage.getItem('pf_remember_device') || undefined
+        : undefined);
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',

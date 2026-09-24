@@ -78,8 +78,9 @@ describe('adminService', () => {
     const mockStats = {
       totalUsers: 100,
       admins: 2,
-      moderators: 5,
-      standardUsers: 93,
+      registeredUsers: 98,
+      totalWorkspaces: 8,
+      totalWorkspaceMembers: 32,
       serverTimeUtc: '2026-09-18T05:00:00Z',
     };
 
@@ -99,13 +100,14 @@ describe('adminService', () => {
   });
 
   it('fallback an toàn khi server trả về lỗi hoặc offline', async () => {
+    localStorage.setItem('userRole', 'ADMINISTRATOR');
     const fetchMock = vi.fn().mockRejectedValue(new Error('Network error'));
     globalThis.fetch = fetchMock;
 
     const usersResult = await adminService.getAllUsers(1, 20);
-    expect(usersResult.items.length).toBe(MOCK_ADMIN_USERS.length);
+    expect(usersResult.items).toEqual([]);
 
     const statsResult = await adminService.getSystemStats();
-    expect(statsResult.totalUsers).toBeGreaterThan(0);
+    expect(statsResult.totalUsers).toBe(0);
   });
 });

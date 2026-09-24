@@ -1,13 +1,14 @@
 import React from 'react';
 import { useDroppable } from '@dnd-kit/core';
-import { PipelineStage, PipelineCard, RoleKey } from '../../data/mockPipelineData';
+import { PipelineStage, PipelineCard } from '../../data/mockPipelineData';
+import { WorkspaceRole } from '../../types';
 import { KanbanCard } from './KanbanCard';
 import { MoreHorizontal } from 'lucide-react';
 
 interface KanbanColumnProps {
   stage: PipelineStage;
   cards: PipelineCard[];
-  currentUserRole: RoleKey;
+  currentUserRole?: WorkspaceRole | null;
   onCardClick: (card: PipelineCard) => void;
   checkIsLocked: (card: PipelineCard) => boolean;
   canDragCard: (card: PipelineCard) => boolean;

@@ -1,6 +1,5 @@
 // src/services/page.service.ts
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5044';
-
+const API_URL = import.meta.env.VITE_APP_URL;
 export interface CreatePageRequestBody {
   pageNumber?: number;
   layoutFormat?: string;

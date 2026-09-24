@@ -240,8 +240,8 @@ export const WorkflowBoardView: React.FC<WorkflowBoardViewProps> = ({
                 <option value='ALL'>Assignee: All Members</option>
                 <option value='Kenji'>Kenji (Artist)</option>
                 <option value='Arata'>Arata (Writer)</option>
-                <option value='Mei'>Mei (Inker)</option>
-                <option value='Yuto'>Yuto (Colorist)</option>
+                <option value='Mei'>Mei (Artist)</option>
+                <option value='Yuto'>Yuto (Artist)</option>
                 <option value='Tatsuki'>Tatsuki F. (Lead)</option>
               </select>
               <ChevronDown className='w-3.5 h-3.5 text-[#888888] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none' />

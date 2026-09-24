@@ -56,7 +56,7 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
       } catch {
         return false;
       }
-    })()
+    })(),
   );
 
   const loadTwoFactorData = useCallback(async () => {
@@ -114,7 +114,9 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
     try {
       await authService.forgetDevice();
       localStorage.removeItem('pf_remember_device');
-      setStatusMessage('Đã xóa thiết bị tin cậy khỏi máy này. Lần đăng nhập tới hệ thống sẽ yêu cầu nhập mã 2FA.');
+      setStatusMessage(
+        'Đã xóa thiết bị tin cậy khỏi máy này. Lần đăng nhập tới hệ thống sẽ yêu cầu nhập mã 2FA.',
+      );
     } catch (err: any) {
       setStatusMessage('Không thể xóa thiết bị: ' + (err.message || 'Lỗi không xác định'));
     }
@@ -194,8 +196,9 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
                     2FA đang hoạt động và bảo vệ tài khoản
                   </h4>
                   <p className='text-xs text-emerald-700 mt-1 leading-relaxed'>
-                    Tài khoản của bạn đã được liên kết với ứng dụng Google / Microsoft Authenticator. 
-                    Mỗi khi đăng nhập trên thiết bị mới, bạn sẽ được yêu cầu mã 6 số từ ứng dụng.
+                    Tài khoản của bạn đã được liên kết với ứng dụng Google / Microsoft
+                    Authenticator. Mỗi khi đăng nhập trên thiết bị mới, bạn sẽ được yêu cầu mã 6 số
+                    từ ứng dụng.
                   </p>
                 </div>
               </div>
@@ -415,7 +418,8 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
                   Đã kích hoạt 2FA thành công!
                 </h3>
                 <p className='text-xs text-[#555555] mt-2 max-w-md mx-auto leading-relaxed'>
-                  Tài khoản của bạn hiện đã được bảo vệ với tiêu chuẩn quốc tế RFC 6238 TOTP. Thiết bị này sẽ được ghi nhớ trong vòng 30 ngày (1 tháng) trước khi cần nhập lại mã 2FA.
+                  Tài khoản của bạn hiện đã được bảo vệ với tiêu chuẩn quốc tế RFC 6238 TOTP. Thiết
+                  bị này sẽ được ghi nhớ trong vòng 30 ngày (1 tháng) trước khi cần nhập lại mã 2FA.
                 </p>
               </div>
 

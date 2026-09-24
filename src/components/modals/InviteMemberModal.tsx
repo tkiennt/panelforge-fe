@@ -17,7 +17,7 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
 }) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [role, setRole] = useState('Key Inker & Line Artist');
+  const [role, setRole] = useState('Artist');
 
   if (!isOpen) return null;
 
@@ -111,11 +111,11 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
               onChange={(e) => setRole(e.target.value)}
               className='w-full px-3 py-2 bg-[#FAF8F4] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-[#171717] focus:outline-none focus:border-[#F97316] font-semibold cursor-pointer'
             >
-              <option>Key Inker &amp; Line Artist</option>
-              <option>Storyboard &amp; Screenplay</option>
-              <option>Screentone &amp; Backgrounds</option>
-              <option>Colorist &amp; Lettering FX</option>
-              <option>Chief Editorial &amp; Compliance</option>
+              <option>Artist</option>
+              <option>Writer</option>
+              <option>Letterer</option>
+              <option>Editor</option>
+              <option>Producer</option>
             </select>
           </div>
 

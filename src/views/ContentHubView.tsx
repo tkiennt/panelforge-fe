@@ -513,7 +513,7 @@ export const ContentHubView: React.FC<ContentHubViewProps> = ({
               </div>
               <div className='text-xs text-[#666666] mt-0.5'>
                 Quickly import scripts from Final Draft, setup AI character consistency models, and
-                invite inkers.
+                invite artists.
               </div>
             </div>
           </div>

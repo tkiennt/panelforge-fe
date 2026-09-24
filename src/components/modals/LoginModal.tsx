@@ -109,7 +109,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         email: twoFactorEmail || email,
         code: twoFactorCode.trim(),
         rememberDevice: rememberDevice,
-        deviceName: typeof navigator !== 'undefined' ? navigator.userAgent.substring(0, 100) : 'Browser',
+        deviceName:
+          typeof navigator !== 'undefined' ? navigator.userAgent.substring(0, 100) : 'Browser',
       });
 
       // Lưu token ghi nhớ thiết bị vào localStorage
@@ -143,7 +144,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     try {
       await authService.forgotPassword(forgotEmail.trim());
       setStep('reset');
-      setSuccessNotice(`Mã OTP 6 chữ số đã được gửi đến email ${forgotEmail.trim()}. Vui lòng kiểm tra hộp thư.`);
+      setSuccessNotice(
+        `Mã OTP 6 chữ số đã được gửi đến email ${forgotEmail.trim()}. Vui lòng kiểm tra hộp thư.`,
+      );
     } catch (err: any) {
       console.error('Forgot Password Error:', err);
       setError(err.message || 'Không thể gửi yêu cầu đặt lại mật khẩu.');
@@ -453,7 +456,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 <div className='w-10 h-10 rounded-xl bg-[#FFF7ED] border border-[#FDBA74] flex items-center justify-center text-[#F97316] shadow-2xs mb-4'>
                   <ShieldCheck className='w-5 h-5' />
                 </div>
-                <h2 className='font-serif text-2xl font-bold text-[#171717]'>Xác thực 2 bước (2FA)</h2>
+                <h2 className='font-serif text-2xl font-bold text-[#171717]'>
+                  Xác thực 2 bước (2FA)
+                </h2>
                 <p className='text-[#555555] text-xs mt-1.5 leading-relaxed'>
                   Nhập mã 6 chữ số từ ứng dụng Google Authenticator cho tài khoản{' '}
                   <strong>{twoFactorEmail}</strong>.
@@ -484,7 +489,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                       onChange={(e) => setRememberDevice(e.target.checked)}
                       className='w-4 h-4 rounded border-gray-300 text-[#F97316] focus:ring-[#F97316] cursor-pointer'
                     />
-                    <label htmlFor='rememberDevice' className='text-xs text-[#555555] cursor-pointer select-none'>
+                    <label
+                      htmlFor='rememberDevice'
+                      className='text-xs text-[#555555] cursor-pointer select-none'
+                    >
                       Ghi nhớ thiết bị này trong <strong>30 ngày (1 tháng)</strong>
                     </label>
                   </div>
@@ -587,7 +595,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 </div>
                 <h2 className='font-serif text-2xl font-bold text-[#171717]'>Tạo mật khẩu mới</h2>
                 <p className='text-[#555555] text-xs mt-1.5 leading-relaxed'>
-                  Nhập mã OTP 6 số đã nhận qua email <strong>{forgotEmail}</strong> và đặt mật khẩu mới.
+                  Nhập mã OTP 6 số đã nhận qua email <strong>{forgotEmail}</strong> và đặt mật khẩu
+                  mới.
                 </p>
 
                 <form onSubmit={handleResetPasswordSubmit} className='mt-6 space-y-3.5'>

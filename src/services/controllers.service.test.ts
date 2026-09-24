@@ -10,19 +10,31 @@ describe('Workspaces, Pages, and Elements Services', () => {
   });
 
   describe('workspaceService', () => {
-    it('lấy danh sách Workspaces thành công', async () => {
+    it('lấy danh sách Workspaces thành công từ API khi có token', async () => {
+      const sampleWorkspaces = [
+        { id: 'w-1', name: 'Alpha Studio', currentUserRole: 'PRODUCER' },
+      ];
       const fetchMock = vi.fn().mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve(MOCK_WORKSPACES),
+        json: () => Promise.resolve(sampleWorkspaces),
       });
       globalThis.fetch = fetchMock;
 
-      const result = await workspaceService.getMyWorkspaces();
-      expect(result.length).toBeGreaterThan(0);
+      const result = await workspaceService.getMyWorkspaces('valid-jwt-token');
+      expect(result.length).toBe(1);
       expect(fetchMock).toHaveBeenCalledWith(
         expect.stringContaining('/api/Workspaces'),
         expect.objectContaining({ method: 'GET' }),
       );
+    });
+
+    it('trả về danh sách rỗng an toàn khi không có token mà không gọi API (tránh 401)', async () => {
+      const fetchMock = vi.fn();
+      globalThis.fetch = fetchMock;
+
+      const result = await workspaceService.getMyWorkspaces();
+      expect(result).toEqual([]);
+      expect(fetchMock).not.toHaveBeenCalled();
     });
 
     it('tạo Workspace mới thành công', async () => {

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ViewMode,
   MangaProject,
@@ -61,12 +61,19 @@ import { WriterStudioView } from './views/writer';
 import { EditorDeskView } from './views/editor';
 import { ReaderPortalView } from './views/reader';
 
-import { SystemRole, normalizeSystemRole } from './types';
+import {
+  SystemRole,
+  WorkspaceRole,
+  WorkspaceDto,
+  normalizeSystemRole,
+  normalizeWorkspaceRole,
+} from './types';
 import { LoginModal } from './components/modals/LoginModal';
 import { RegisterModal } from './components/modals/RegisterModal';
 import { TwoFactorSetupModal } from './components/modals/TwoFactorSetupModal';
 import { ChangePasswordModal } from './components/modals/ChangePasswordModal';
 import { LandingPageView } from './views/LandingPageView';
+import { WorkspaceListView } from './views/WorkspaceListView';
 import { UserProfile } from './views/UserProfile';
 import { auth, onAuthStateChanged } from './firebase';
 import { User } from 'firebase/auth';
@@ -88,35 +95,11 @@ export default function App() {
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [demoRole, setDemoRole] = useState<string | null>(null);
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setFirebaseUser(user);
-      if (user) {
-        setIsAuthenticated(true);
-        // Tự động đồng bộ JWT token backend nếu chưa có trong localStorage
-        const existingToken = localStorage.getItem('token');
-        if (!existingToken) {
-          try {
-            const idToken = await user.getIdToken();
-            const res = await authService.externalLogin(idToken);
-            if (res?.token) {
-              localStorage.setItem('token', res.token);
-            }
-          } catch (err) {
-            console.warn('Không thể đồng bộ token backend từ Firebase session:', err);
-          }
-        }
-      } else {
-        setIsAuthenticated(false);
-      }
-    });
-    return () => unsubscribe();
-  }, []);
-
   // Navigation & Data State
   const [viewScope, setViewScope] = useState<'hub' | 'project'>('hub');
-  const [currentView, setCurrentView] = useState<ViewMode | string>('dashboard');
-  const [currentRole, setCurrentRole] = useState<SystemRole>('ARTIST');
+  const [currentView, setCurrentView] = useState<ViewMode | string>('workspaces');
+  const [currentRole, setCurrentRole] = useState<SystemRole>('USER');
+  const [currentWorkspaceRole, setCurrentWorkspaceRole] = useState<WorkspaceRole | null>(null);
   const [currentUserInfo, setCurrentUserInfo] = useState<{
     id?: string;
     name: string;
@@ -127,11 +110,60 @@ export default function App() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
 
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      setFirebaseUser(user);
+      if (user) {
+        setIsAuthenticated(true);
+        // Luôn đồng bộ JWT token từ backend để đảm bảo role luôn được cập nhật mới nhất
+        // (tránh trường hợp token cũ có role sai sau khi admin đổi role user)
+        try {
+          const idToken = await user.getIdToken();
+          const res = await authService.externalLogin(idToken);
+          if (res?.token) {
+            localStorage.setItem('token', res.token);
+          }
+          if (res?.user?.role) {
+            const role = normalizeSystemRole(res.user.role);
+            setCurrentRole(role);
+            localStorage.setItem('userRole', role);
+            setCurrentUserInfo({
+              id: res.user.id,
+              name: res.user.fullName || user.displayName || user.email?.split('@')[0] || 'User',
+              email: res.user.email || user.email || '',
+              role,
+              isTwoFactorEnabled: !!res.user.twoFactorEnabled,
+            });
+            localStorage.setItem('user', JSON.stringify(res.user));
+            navigateRoleDefaultView(role);
+          }
+        } catch (err) {
+          console.warn('Không thể đồng bộ token backend từ Firebase session:', err);
+          // Fallback: đọc từ localStorage nếu có
+        }
+      } else {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          setIsAuthenticated(false);
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
   const navigateRoleDefaultView = (role: SystemRole) => {
+    if (role === 'ADMINISTRATOR') {
+      setViewScope('project');
+      setCurrentView('admin-dash');
+    } else {
+      setCurrentWorkspaceRole(null);
+      setViewScope('hub');
+      setCurrentView('workspaces');
+    }
+  };
+
+  const navigateToWorkspaceRoleView = (role: WorkspaceRole) => {
     switch (role) {
-      case 'ADMINISTRATOR':
-        setCurrentView('admin-dash');
-        break;
       case 'PRODUCER':
         setCurrentView('dashboard');
         break;
@@ -147,12 +179,18 @@ export default function App() {
       case 'EDITOR':
         setCurrentView('review');
         break;
-      case 'READER':
-        setCurrentView('reader');
-        break;
       default:
         setCurrentView('dashboard');
     }
+  };
+
+  const handleSelectWorkspace = (ws: WorkspaceDto) => {
+    const wsRole =
+      normalizeWorkspaceRole(ws.currentUserRole) ||
+      (currentRole === 'ADMINISTRATOR' ? 'PRODUCER' : 'ARTIST');
+    setCurrentWorkspaceRole(wsRole);
+    setViewScope('project');
+    navigateToWorkspaceRoleView(wsRole);
   };
 
   // Khôi phục vai trò từ localStorage hoặc giải mã JWT token khi tải lại trang
@@ -181,29 +219,46 @@ export default function App() {
     }
     const savedToken = localStorage.getItem('token');
     if (savedToken) {
-      try {
-        const parts = savedToken.split('.');
-        if (parts.length === 3) {
-          const payload = JSON.parse(atob(parts[1]));
-          const roleClaim =
-            payload.role || payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'];
-          if (roleClaim) {
-            const role = normalizeSystemRole(roleClaim);
-            setCurrentRole(role);
-            localStorage.setItem('userRole', role);
+      if (savedToken.startsWith('mock-')) {
+        setIsAuthenticated(true);
+      } else {
+        try {
+          const parts = savedToken.split('.');
+          if (parts.length === 3) {
+            const payload = JSON.parse(atob(parts[1]));
+            const exp = payload.exp;
+            if (exp && Date.now() >= exp * 1000) {
+              localStorage.removeItem('token');
+              localStorage.removeItem('user');
+              localStorage.removeItem('userRole');
+              setIsAuthenticated(false);
+            } else {
+              setIsAuthenticated(true);
+              const roleClaim =
+                payload.role ||
+                payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'];
+              if (roleClaim) {
+                const role = normalizeSystemRole(roleClaim);
+                setCurrentRole(role);
+                localStorage.setItem('userRole', role);
+              }
+            }
           }
+        } catch {
+          // bỏ qua lỗi giải mã
         }
-      } catch {
-        // bỏ qua lỗi giải mã
       }
     }
   }, []);
 
   useEffect(() => {
-    if (viewScope === 'project') {
-      navigateRoleDefaultView(currentRole);
+    if (viewScope === 'project' && currentRole === 'ADMINISTRATOR') {
+      setCurrentView('admin-dash');
+    } else if (currentRole !== 'ADMINISTRATOR' && currentView === 'admin-dash') {
+      setViewScope('hub');
+      setCurrentView('workspaces');
     }
-  }, [currentRole, viewScope]);
+  }, [currentRole, viewScope, currentView]);
 
   const [projects, setProjects] = useState<MangaProject[]>(INITIAL_PROJECTS);
   const [activeProject, setActiveProject] = useState<MangaProject>(INITIAL_PROJECTS[0]);
@@ -309,8 +364,10 @@ export default function App() {
   };
 
   const handleReturnToHub = () => {
+    setCurrentWorkspaceRole(null);
     setViewScope('hub');
-    showToast('Returned to Hub', 'Back to Publications Catalog.');
+    setCurrentView('workspaces');
+    showToast('Returned to Workspaces', 'Back to Workspace Catalog.');
   };
 
   const handleEnterDemo = (role: string) => {
@@ -319,19 +376,35 @@ export default function App() {
       setIsDemoMode(false);
       return;
     }
-    const mappedRole = normalizeSystemRole(role);
+    if (role === 'administrator') {
+      setDemoRole(role);
+      setIsDemoMode(true);
+      setCurrentRole('ADMINISTRATOR');
+      setCurrentWorkspaceRole(null);
+      localStorage.setItem('userRole', 'ADMINISTRATOR');
+      localStorage.setItem('token', 'mock-admin-token');
+      setViewScope('project');
+      setCurrentView('admin-dash');
+      showToast('Chế độ Demo Role', 'Đang xem giao diện với quyền Administrator');
+      return;
+    }
+    const wsRole = role.toUpperCase() as WorkspaceRole;
     setDemoRole(role);
     setIsDemoMode(true);
-    setCurrentRole(mappedRole);
-    setViewScope('project'); // Always enter project to show App Shell
-    navigateRoleDefaultView(mappedRole);
-    showToast('Chế độ Demo Role', `Đang xem giao diện với quyền ${mappedRole}`);
+    setCurrentRole('USER');
+    setCurrentWorkspaceRole(wsRole);
+    localStorage.setItem('userRole', 'USER');
+    localStorage.setItem('token', 'mock-demo-token');
+    setViewScope('project');
+    navigateToWorkspaceRoleView(wsRole);
+    showToast('Chế độ Demo Role', `Đang xem giao diện Workspace với vai trò ${wsRole}`);
   };
 
   const handleLogout = () => {
     auth.signOut();
     localStorage.removeItem('token');
     localStorage.removeItem('userRole');
+    localStorage.removeItem('user');
     setFirebaseUser(null);
     setCurrentUserInfo(null);
     setIsAuthenticated(false);
@@ -356,41 +429,40 @@ export default function App() {
             <LoginModal
               onClose={() => setIsLoginModalOpen(false)}
               onLogin={(username, password) => {
-                const mockAccounts: Record<string, SystemRole> = {
-                  admin: 'ADMINISTRATOR',
-                  administrator: 'ADMINISTRATOR',
-                  producer: 'PRODUCER',
-                  writer: 'WRITER',
-                  artist: 'ARTIST',
-                  letterer: 'LETTERER',
-                  editor: 'EDITOR',
-                  reader: 'READER',
-                };
-
-                // Trích xuất tên người dùng từ email
                 const name = username.split('@')[0].toLowerCase();
-                const roleMatched = mockAccounts[name] || mockAccounts[username.toLowerCase()];
-
-                if (roleMatched && password === '123456') {
+                if (name === 'admin' || name === 'administrator') {
                   setIsAuthenticated(true);
-                  setCurrentRole(roleMatched);
+                  setCurrentRole('ADMINISTRATOR');
+                  setCurrentWorkspaceRole(null);
+                  setCurrentUserInfo({
+                    name: 'Administrator',
+                    email: username,
+                    role: 'ADMINISTRATOR',
+                  });
+                  localStorage.setItem('userRole', 'ADMINISTRATOR');
+                  localStorage.setItem('token', 'mock-admin-token');
+                  setViewScope('project');
+                  setIsLoginModalOpen(false);
+                  setCurrentView('admin-dash');
+                  showToast('Đăng nhập thành công', 'Chào mừng Quản trị viên hệ thống!');
+                } else if (password === '123456') {
+                  setIsAuthenticated(true);
+                  setCurrentRole('USER');
+                  setCurrentWorkspaceRole(null);
                   setCurrentUserInfo({
                     name: username.split('@')[0],
                     email: username,
-                    role: roleMatched,
+                    role: 'USER',
                   });
-                  localStorage.setItem('userRole', roleMatched);
-                  setViewScope('project');
+                  localStorage.setItem('userRole', 'USER');
+                  localStorage.setItem('token', 'mock-user-token');
                   setIsLoginModalOpen(false);
-                  navigateRoleDefaultView(roleMatched);
-                  showToast(
-                    'Đăng nhập thành công',
-                    `Chào mừng bạn trở lại với vai trò ${roleMatched}.`,
-                  );
+                  navigateRoleDefaultView('USER');
+                  showToast('Đăng nhập thành công', `Chào mừng ${username.split('@')[0]}!`);
                 } else {
                   showToast(
                     'Lỗi xác thực',
-                    'Tài khoản không tồn tại hoặc sai mật khẩu. Hãy thử: writer, artist, editor, producer, admin, letterer, reader (mật khẩu: 123456).',
+                    'Tài khoản không tồn tại hoặc sai mật khẩu. Hãy thử: writer, artist, editor, producer, admin (mật khẩu: 123456).',
                   );
                 }
               }}
@@ -417,7 +489,6 @@ export default function App() {
                   role,
                 });
                 localStorage.setItem('userRole', role);
-                setViewScope('project');
                 navigateRoleDefaultView(role);
                 const displayName =
                   res?.user?.fullName ||
@@ -449,7 +520,6 @@ export default function App() {
                   localStorage.setItem('user', JSON.stringify(authResponse.user));
                 }
                 localStorage.setItem('userRole', role);
-                setViewScope('project');
                 navigateRoleDefaultView(role);
                 showToast(
                   'Đăng nhập thành công',
@@ -484,7 +554,6 @@ export default function App() {
                   role,
                 });
                 localStorage.setItem('userRole', role);
-                setViewScope('project');
                 navigateRoleDefaultView(role);
                 showToast(
                   'Kích hoạt thành công',
@@ -499,14 +568,31 @@ export default function App() {
         <>
           {viewScope === 'hub' ? (
             <div className='h-screen w-full overflow-y-auto custom-scrollbar bg-[#FAF8F4]'>
-              <ContentHubView
-                projects={projects}
-                onSelectProject={(proj) => setActiveProject(proj)}
-                onEnterProject={handleEnterProject}
-                onCreateNewProject={handleCreateNewProject}
-                onOpenExportModal={() => setExportModalOpen(true)}
-                isRootView={true}
-              />
+              {currentView === 'workspaces' ? (
+                <WorkspaceListView
+                  onSelectWorkspace={handleSelectWorkspace}
+                  currentUser={{
+                    name:
+                      currentUserInfo?.name ||
+                      firebaseUser?.displayName ||
+                      firebaseUser?.email?.split('@')[0] ||
+                      'User',
+                    email: currentUserInfo?.email || firebaseUser?.email || '',
+                    role: currentRole,
+                    avatarUrl: firebaseUser?.photoURL,
+                  }}
+                  onLogout={handleLogout}
+                />
+              ) : (
+                <ContentHubView
+                  projects={projects}
+                  onSelectProject={(proj) => setActiveProject(proj)}
+                  onEnterProject={handleEnterProject}
+                  onCreateNewProject={handleCreateNewProject}
+                  onOpenExportModal={() => setExportModalOpen(true)}
+                  isRootView={true}
+                />
+              )}
             </div>
           ) : (
             <GlobalAppShell
@@ -517,6 +603,7 @@ export default function App() {
                   firebaseUser?.email?.split('@')[0] ||
                   'Tatsuki F.',
                 role: currentRole,
+                workspaceRole: currentWorkspaceRole,
                 avatarInitials: (
                   currentUserInfo?.name ||
                   firebaseUser?.displayName ||
@@ -529,7 +616,7 @@ export default function App() {
               activeSeries={activeProject}
               aiState='active'
               onNavigate={(href) => {
-                if (href === 'publications') handleReturnToHub();
+                if (href === 'publications' || href === 'workspaces') handleReturnToHub();
                 else setCurrentView(href);
               }}
               onLogout={handleLogout}
@@ -538,13 +625,31 @@ export default function App() {
               onOpenChangePassword={() => setIsChangePasswordModalOpen(true)}
             >
               <div className='w-full min-h-full flex-1 relative flex flex-col'>
+                {/* 0. WORKSPACE LIST VIEW INSIDE APP SHELL */}
+                {currentView === 'workspaces' && (
+                  <WorkspaceListView
+                    onSelectWorkspace={handleSelectWorkspace}
+                    currentUser={{
+                      name:
+                        currentUserInfo?.name ||
+                        firebaseUser?.displayName ||
+                        firebaseUser?.email?.split('@')[0] ||
+                        'User',
+                      email: currentUserInfo?.email || firebaseUser?.email || '',
+                      role: currentRole,
+                      avatarUrl: firebaseUser?.photoURL,
+                    }}
+                    onLogout={handleLogout}
+                  />
+                )}
+
                 {/* 1. PRODUCER: WORKSPACES & PIPELINE */}
-                {currentView === 'workspaces' && <ProducerWorkspaceView />}
                 {(currentView === 'dashboard' || currentView === 'workflow') && (
                   <ProductionPipelineView
-                    currentUserRole={currentRole as any}
+                    currentUserRole={currentWorkspaceRole}
+                    systemRole={currentRole}
                     onShowToast={showToast}
-                    isReaderMode={currentRole === 'READER'}
+                    isReaderMode={false}
                   />
                 )}
 
@@ -598,24 +703,28 @@ export default function App() {
                   />
                 )}
 
-                {/* 9. SYSTEM ADMIN SCREENS (ADMINISTRATOR) */}
-                {currentView === 'admin-dash' && (
-                  <AdminDashboardView
-                    onNavigateToUsers={() => setCurrentView('users')}
-                    onNavigateToSettings={() => setCurrentView('ai-quota')}
-                    onNavigateToAudit={() => setCurrentView('audit')}
-                  />
+                {/* 9. SYSTEM ADMIN SCREENS (ADMINISTRATOR ONLY) */}
+                {currentRole === 'ADMINISTRATOR' && (
+                  <>
+                    {currentView === 'admin-dash' && (
+                      <AdminDashboardView
+                        onNavigateToUsers={() => setCurrentView('users')}
+                        onNavigateToSettings={() => setCurrentView('ai-quota')}
+                        onNavigateToAudit={() => setCurrentView('audit')}
+                      />
+                    )}
+
+                    {(currentView === 'users' || currentView === 'roles') && (
+                      <AdminUserManagementView />
+                    )}
+
+                    {(currentView === 'ai-quota' ||
+                      currentView === 'storage' ||
+                      currentView === 'master-data') && <AdminSystemSettingsView />}
+
+                    {currentView === 'audit' && <AdminAuditLogView />}
+                  </>
                 )}
-
-                {(currentView === 'users' || currentView === 'roles') && (
-                  <AdminUserManagementView />
-                )}
-
-                {(currentView === 'ai-quota' ||
-                  currentView === 'storage' ||
-                  currentView === 'master-data') && <AdminSystemSettingsView />}
-
-                {currentView === 'audit' && <AdminAuditLogView />}
               </div>
             </GlobalAppShell>
           )}
@@ -625,7 +734,7 @@ export default function App() {
             isOpen={spreadModalOpen}
             onClose={() => setSpreadModalOpen(false)}
             onShowToast={showToast}
-            userRole={currentRole}
+            userRole={(currentWorkspaceRole as any) || 'ARTIST'}
           />
           <PageDetailModal
             card={selectedCardForDetail}
@@ -711,10 +820,7 @@ export default function App() {
             isTwoFactorEnabled={currentUserInfo?.isTwoFactorEnabled ?? false}
             token={localStorage.getItem('token') || ''}
             onSuccess={() => {
-              showToast(
-                'Change Password',
-                'Account password updated successfully!',
-              );
+              showToast('Change Password', 'Account password updated successfully!');
             }}
           />
         </>

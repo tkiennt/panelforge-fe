@@ -1,5 +1,14 @@
 ﻿import React, { useState, useEffect } from 'react';
-import { X, KeyRound, AlertCircle, CheckCircle2, ShieldAlert, Mail, Send, RefreshCw } from 'lucide-react';
+import {
+  X,
+  KeyRound,
+  AlertCircle,
+  CheckCircle2,
+  ShieldAlert,
+  Mail,
+  Send,
+  RefreshCw,
+} from 'lucide-react';
 import { authService } from '../../services/auth.service';
 
 interface ChangePasswordModalProps {
@@ -41,7 +50,7 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
       } catch {
         return false;
       }
-    })()
+    })(),
   );
 
   const activeToken =
@@ -292,7 +301,9 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
               <div className='space-y-3 pt-1'>
                 <div className='p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl flex items-start gap-2.5 text-xs leading-relaxed'>
                   <ShieldAlert className='w-4 h-4 text-red-500 shrink-0 mt-0.5' />
-                  <span>2FA is enabled. Please enter the 6-digit code from your Authenticator app.</span>
+                  <span>
+                    2FA is enabled. Please enter the 6-digit code from your Authenticator app.
+                  </span>
                 </div>
 
                 <div>

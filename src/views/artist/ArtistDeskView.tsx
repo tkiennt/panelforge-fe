@@ -13,6 +13,9 @@ import {
   Layout,
   Sliders,
   Sparkles,
+  KanbanSquare,
+  Clock,
+  ArrowRight,
 } from 'lucide-react';
 import {
   pageService,
@@ -23,6 +26,57 @@ import {
 } from '../../services/page.service';
 
 export const ArtistDeskView: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<'queue' | 'pages'>('queue');
+
+  // Tasks Queue Mock Data
+  const [tasks, setTasks] = useState([
+    {
+      id: 'a-1',
+      entityType: 'Page',
+      targetEntityId: 'p-1',
+      pipelineStageId: 'Thumbnail',
+      brief: 'Draw rough thumbnails for Page 1',
+      status: 'Assigned',
+      dueDate: '2026-10-01',
+    },
+    {
+      id: 'a-2',
+      entityType: 'Page',
+      targetEntityId: 'p-2',
+      pipelineStageId: 'Pencil',
+      brief: 'Pencil line art for Page 2',
+      status: 'InProgress',
+      dueDate: '2026-10-02',
+    },
+    {
+      id: 'a-3',
+      entityType: 'Page',
+      targetEntityId: 'p-3',
+      pipelineStageId: 'Ink',
+      brief: 'Ink Page 3 based on approved pencils',
+      status: 'Assigned',
+      dueDate: '2026-10-03',
+    },
+    {
+      id: 'a-4',
+      entityType: 'Page',
+      targetEntityId: 'p-4',
+      pipelineStageId: 'Color',
+      brief: 'Flat and shade Page 4',
+      status: 'Assigned',
+      dueDate: '2026-10-04',
+    },
+  ]);
+
+  const groupedTasks = tasks.reduce(
+    (acc, task) => {
+      if (!acc[task.pipelineStageId]) acc[task.pipelineStageId] = [];
+      acc[task.pipelineStageId].push(task);
+      return acc;
+    },
+    {} as Record<string, typeof tasks>,
+  );
+
   const [pages, setPages] = useState<PageDto[]>(MOCK_PAGES);
   const [selectedPage, setSelectedPage] = useState<PageDto | null>(MOCK_PAGES[0]);
   const [pageDetail, setPageDetail] = useState<PageDetailDto | null>(null);
@@ -204,173 +258,180 @@ export const ArtistDeskView: React.FC = () => {
         </div>
       </div>
 
-      {/* Pages Thumbnails Carousel / Strip */}
-      <div className='bg-white p-5 rounded-2xl border border-[#E7E7E7] shadow-xs space-y-3'>
-        <div className='flex items-center justify-between text-xs font-bold text-[#171717]'>
-          <span className='flex items-center gap-2'>
-            <Layout className='w-4 h-4 text-blue-600' />
-            <span>Danh Sách Trang Bản Thảo (Chapter 5)</span>
-          </span>
-          <span className='font-mono text-[11px] text-[#888888]'>
-            Tổng cộng: {pages.length} trang
-          </span>
-        </div>
-
-        <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3'>
-          {pages.map((p) => {
-            const isSel = selectedPage?.id === p.id;
-            return (
-              <div
-                key={p.id}
-                onClick={() => handleSelectPage(p)}
-                className={`p-3 rounded-xl border transition-all cursor-pointer text-center relative ${
-                  isSel
-                    ? 'border-blue-600 bg-blue-50/40 ring-2 ring-blue-500/30'
-                    : 'border-[#E7E7E7] bg-[#FAF8F5] hover:bg-white hover:border-blue-400'
-                }`}
-              >
-                <div className='aspect-[2/3] bg-white border border-[#E7E7E7] rounded-lg flex flex-col items-center justify-center p-2 mb-2 relative overflow-hidden group shadow-2xs'>
-                  <FileImage className='w-8 h-8 text-blue-400 mb-1' />
-                  <span className='text-[10px] font-mono text-[#888888]'>
-                    {p.widthPx}x{p.heightPx}
-                  </span>
-                  <span className='text-[9px] font-mono font-bold text-blue-600 bg-blue-50 px-1 py-0.2 rounded mt-1'>
-                    {p.dpi} DPI
-                  </span>
-                </div>
-                <div className='text-xs font-bold text-[#171717]'>Trang {p.pageNumber}</div>
-                <div className='text-[10px] text-[#888888] font-mono truncate'>
-                  {p.layoutFormat}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Selected Page Workbench & Canvas Specs */}
-      {selectedPage && (
-        <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
-          {/* Canvas Preview Simulation */}
-          <div className='lg:col-span-2 bg-white p-6 rounded-2xl border border-[#E7E7E7] shadow-xs space-y-4'>
-            <div className='flex items-center justify-between border-b border-[#E7E7E7] pb-3'>
-              <div>
-                <h3 className='text-sm font-bold text-[#171717] flex items-center gap-2'>
-                  <Layers className='w-4 h-4 text-blue-600' />
-                  <span>Trang {selectedPage.pageNumber} — Genga Artwork Stage</span>
-                </h3>
-                <span className='text-[11px] font-mono text-[#888888]'>
-                  Khổ: {selectedPage.widthPx} x {selectedPage.heightPx} px • {selectedPage.dpi} DPI
-                  (B5 Tankōbon)
-                </span>
-              </div>
-
-              <div className='flex items-center gap-2'>
-                <button
-                  onClick={() => {
-                    setEditWidthPx(selectedPage.widthPx.toString());
-                    setEditHeightPx(selectedPage.heightPx.toString());
-                    setEditDpi(selectedPage.dpi.toString());
-                    setEditLayout(selectedPage.layoutFormat);
-                    setSettingsModalOpen(true);
-                  }}
-                  className='px-2.5 py-1 text-xs font-semibold text-[#555555] hover:text-[#171717] bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg flex items-center gap-1 cursor-pointer'
-                >
-                  <Settings className='w-3 h-3' />
-                  <span>Cài Đặt Canvas</span>
-                </button>
-                <button
-                  onClick={() => handleDeletePage(selectedPage.id)}
-                  className='p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg cursor-pointer'
-                  title='Xóa trang'
-                >
-                  <Trash2 className='w-3.5 h-3.5' />
-                </button>
-              </div>
+      {activeTab === 'pages' && (
+        <>
+          {/* Pages Thumbnails Carousel / Strip */}
+          <div className='bg-white p-5 rounded-2xl border border-[#E7E7E7] shadow-xs space-y-3'>
+            <div className='flex items-center justify-between text-xs font-bold text-[#171717]'>
+              <span className='flex items-center gap-2'>
+                <Layout className='w-4 h-4 text-blue-600' />
+                <span>Danh Sách Trang Bản Thảo (Chapter 5)</span>
+              </span>
+              <span className='font-mono text-[11px] text-[#888888]'>
+                Tổng cộng: {pages.length} trang
+              </span>
             </div>
 
-            {/* Canvas Mock Area */}
-            <div className='bg-[#F8F6F0] rounded-xl border border-dashed border-[#CCCCCC] p-8 flex flex-col items-center justify-center min-h-[350px] relative'>
-              <div
-                className='bg-white shadow-lg border border-[#E7E7E7] rounded p-6 flex flex-col items-center justify-center transition-all'
-                style={{
-                  width: '280px',
-                  height: '400px',
-                }}
-              >
-                <div className='border-2 border-dashed border-blue-200 w-full h-full rounded flex flex-col items-center justify-center text-center p-4 space-y-2'>
-                  <UploadCloud className='w-10 h-10 text-blue-500 animate-bounce' />
-                  <div className='text-xs font-bold text-[#171717]'>
-                    Tải Lên Bản Vẽ Genga (600 DPI)
+            <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3'>
+              {pages.map((p) => {
+                const isSel = selectedPage?.id === p.id;
+                return (
+                  <div
+                    key={p.id}
+                    onClick={() => handleSelectPage(p)}
+                    className={`p-3 rounded-xl border transition-all cursor-pointer text-center relative ${
+                      isSel
+                        ? 'border-blue-600 bg-blue-50/40 ring-2 ring-blue-500/30'
+                        : 'border-[#E7E7E7] bg-[#FAF8F5] hover:bg-white hover:border-blue-400'
+                    }`}
+                  >
+                    <div className='aspect-[2/3] bg-white border border-[#E7E7E7] rounded-lg flex flex-col items-center justify-center p-2 mb-2 relative overflow-hidden group shadow-2xs'>
+                      <FileImage className='w-8 h-8 text-blue-400 mb-1' />
+                      <span className='text-[10px] font-mono text-[#888888]'>
+                        {p.widthPx}x{p.heightPx}
+                      </span>
+                      <span className='text-[9px] font-mono font-bold text-blue-600 bg-blue-50 px-1 py-0.2 rounded mt-1'>
+                        {p.dpi} DPI
+                      </span>
+                    </div>
+                    <div className='text-xs font-bold text-[#171717]'>Trang {p.pageNumber}</div>
+                    <div className='text-[10px] text-[#888888] font-mono truncate'>
+                      {p.layoutFormat}
+                    </div>
                   </div>
-                  <p className='text-[10px] text-[#888888]'>
-                    Kéo thả tệp Clip Studio .clip, PSD hoặc TIFF vào đây
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Selected Page Workbench & Canvas Specs */}
+          {selectedPage && (
+            <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
+              {/* Canvas Preview Simulation */}
+              <div className='lg:col-span-2 bg-white p-6 rounded-2xl border border-[#E7E7E7] shadow-xs space-y-4'>
+                <div className='flex items-center justify-between border-b border-[#E7E7E7] pb-3'>
+                  <div>
+                    <h3 className='text-sm font-bold text-[#171717] flex items-center gap-2'>
+                      <Layers className='w-4 h-4 text-blue-600' />
+                      <span>Trang {selectedPage.pageNumber} — Genga Artwork Stage</span>
+                    </h3>
+                    <span className='text-[11px] font-mono text-[#888888]'>
+                      Khổ: {selectedPage.widthPx} x {selectedPage.heightPx} px • {selectedPage.dpi}{' '}
+                      DPI (B5 Tankōbon)
+                    </span>
+                  </div>
+
+                  <div className='flex items-center gap-2'>
+                    <button
+                      onClick={() => {
+                        setEditWidthPx(selectedPage.widthPx.toString());
+                        setEditHeightPx(selectedPage.heightPx.toString());
+                        setEditDpi(selectedPage.dpi.toString());
+                        setEditLayout(selectedPage.layoutFormat);
+                        setSettingsModalOpen(true);
+                      }}
+                      className='px-2.5 py-1 text-xs font-semibold text-[#555555] hover:text-[#171717] bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg flex items-center gap-1 cursor-pointer'
+                    >
+                      <Settings className='w-3 h-3' />
+                      <span>Cài Đặt Canvas</span>
+                    </button>
+                    <button
+                      onClick={() => handleDeletePage(selectedPage.id)}
+                      className='p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg cursor-pointer'
+                      title='Xóa trang'
+                    >
+                      <Trash2 className='w-3.5 h-3.5' />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Canvas Mock Area */}
+                <div className='bg-[#F8F6F0] rounded-xl border border-dashed border-[#CCCCCC] p-8 flex flex-col items-center justify-center min-h-[350px] relative'>
+                  <div
+                    className='bg-white shadow-lg border border-[#E7E7E7] rounded p-6 flex flex-col items-center justify-center transition-all'
+                    style={{
+                      width: '280px',
+                      height: '400px',
+                    }}
+                  >
+                    <div className='border-2 border-dashed border-blue-200 w-full h-full rounded flex flex-col items-center justify-center text-center p-4 space-y-2'>
+                      <UploadCloud className='w-10 h-10 text-blue-500 animate-bounce' />
+                      <div className='text-xs font-bold text-[#171717]'>
+                        Tải Lên Bản Vẽ Genga (600 DPI)
+                      </div>
+                      <p className='text-[10px] text-[#888888]'>
+                        Kéo thả tệp Clip Studio .clip, PSD hoặc TIFF vào đây
+                      </p>
+                      <button className='px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-[11px] font-semibold cursor-pointer'>
+                        Chọn Tệp Bản Thảo
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Info: Marten Event Store Stream Info */}
+              <div className='bg-white p-6 rounded-2xl border border-[#E7E7E7] shadow-xs space-y-4'>
+                <h3 className='text-sm font-bold text-[#171717] flex items-center gap-2 border-b border-[#E7E7E7] pb-3'>
+                  <Sparkles className='w-4 h-4 text-blue-600' />
+                  <span>Event Store &amp; Page Metadata</span>
+                </h3>
+
+                <div className='space-y-3 text-xs'>
+                  <div>
+                    <span className='text-[#888888] block text-[10px] uppercase font-mono'>
+                      Page Stream ID
+                    </span>
+                    <span className='font-mono font-medium text-[#171717] select-all'>
+                      {selectedPage.id}
+                    </span>
+                  </div>
+                  <div>
+                    <span className='text-[#888888] block text-[10px] uppercase font-mono'>
+                      Định dạng bố cục
+                    </span>
+                    <span className='font-semibold text-[#171717]'>
+                      {selectedPage.layoutFormat}
+                    </span>
+                  </div>
+                  <div>
+                    <span className='text-[#888888] block text-[10px] uppercase font-mono'>
+                      Độ phân giải DPI
+                    </span>
+                    <span className='font-mono text-blue-600 font-bold'>
+                      {selectedPage.dpi} DPI (Print-Ready)
+                    </span>
+                  </div>
+                  <div>
+                    <span className='text-[#888888] block text-[10px] uppercase font-mono'>
+                      Kích thước điểm ảnh
+                    </span>
+                    <span className='font-mono text-[#171717]'>
+                      {selectedPage.widthPx} × {selectedPage.heightPx} px
+                    </span>
+                  </div>
+                  <div>
+                    <span className='text-[#888888] block text-[10px] uppercase font-mono'>
+                      Phiên bản Marten Stream
+                    </span>
+                    <span className='font-mono text-emerald-600 font-semibold'>
+                      v{pageDetail?.version || 1} (Rebuilt from append-only stream)
+                    </span>
+                  </div>
+                </div>
+
+                <div className='p-3 bg-blue-50/50 rounded-xl border border-blue-200/60 text-[11px] text-[#555555] space-y-1 mt-4'>
+                  <div className='font-semibold text-blue-900'>Mô hình cấu trúc Manga</div>
+                  <p>
+                    Trang truyện được gắn liền với Stream ID trên Marten Event Store. Mọi thao tác
+                    vẽ, thêm khung tranh và bóng thoại đều được lưu trữ dạng event log không thể ghi
+                    đè.
                   </p>
-                  <button className='px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-[11px] font-semibold cursor-pointer'>
-                    Chọn Tệp Bản Thảo
-                  </button>
                 </div>
               </div>
             </div>
-          </div>
-
-          {/* Right Info: Marten Event Store Stream Info */}
-          <div className='bg-white p-6 rounded-2xl border border-[#E7E7E7] shadow-xs space-y-4'>
-            <h3 className='text-sm font-bold text-[#171717] flex items-center gap-2 border-b border-[#E7E7E7] pb-3'>
-              <Sparkles className='w-4 h-4 text-blue-600' />
-              <span>Event Store &amp; Page Metadata</span>
-            </h3>
-
-            <div className='space-y-3 text-xs'>
-              <div>
-                <span className='text-[#888888] block text-[10px] uppercase font-mono'>
-                  Page Stream ID
-                </span>
-                <span className='font-mono font-medium text-[#171717] select-all'>
-                  {selectedPage.id}
-                </span>
-              </div>
-              <div>
-                <span className='text-[#888888] block text-[10px] uppercase font-mono'>
-                  Định dạng bố cục
-                </span>
-                <span className='font-semibold text-[#171717]'>{selectedPage.layoutFormat}</span>
-              </div>
-              <div>
-                <span className='text-[#888888] block text-[10px] uppercase font-mono'>
-                  Độ phân giải DPI
-                </span>
-                <span className='font-mono text-blue-600 font-bold'>
-                  {selectedPage.dpi} DPI (Print-Ready)
-                </span>
-              </div>
-              <div>
-                <span className='text-[#888888] block text-[10px] uppercase font-mono'>
-                  Kích thước điểm ảnh
-                </span>
-                <span className='font-mono text-[#171717]'>
-                  {selectedPage.widthPx} × {selectedPage.heightPx} px
-                </span>
-              </div>
-              <div>
-                <span className='text-[#888888] block text-[10px] uppercase font-mono'>
-                  Phiên bản Marten Stream
-                </span>
-                <span className='font-mono text-emerald-600 font-semibold'>
-                  v{pageDetail?.version || 1} (Rebuilt from append-only stream)
-                </span>
-              </div>
-            </div>
-
-            <div className='p-3 bg-blue-50/50 rounded-xl border border-blue-200/60 text-[11px] text-[#555555] space-y-1 mt-4'>
-              <div className='font-semibold text-blue-900'>Mô hình cấu trúc Manga</div>
-              <p>
-                Trang truyện được gắn liền với Stream ID trên Marten Event Store. Mọi thao tác vẽ,
-                thêm khung tranh và bóng thoại đều được lưu trữ dạng event log không thể ghi đè.
-              </p>
-            </div>
-          </div>
-        </div>
+          )}
+        </>
       )}
 
       {/* Modal: Create Page */}
