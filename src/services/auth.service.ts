@@ -1,5 +1,5 @@
-﻿// src/services/auth.service.ts
-const API_URL = import.meta.env.VITE_APP_URL;
+// src/services/auth.service.ts
+import { API_URL } from '../config/env';
 
 export interface VerifyTwoFactorPayload {
   code: string;

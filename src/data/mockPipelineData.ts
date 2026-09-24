@@ -52,6 +52,7 @@ export interface PipelineCard {
   progress: number; // 0-100 (mainly for pages)
   thumbnailUrl?: string; // Optional image
   parentId?: string; // If this is a panel, ID of its parent page
+  priority?: 'High' | 'Medium' | 'Low';
 }
 
 export const MOCK_CARDS: PipelineCard[] = [
@@ -67,6 +68,7 @@ export const MOCK_CARDS: PipelineCard[] = [
     isAIAssisted: false,
     blockedBy: [],
     progress: 100,
+    priority: 'Low',
   },
 
   // Page 2 (Breakdown into panels)
@@ -81,6 +83,7 @@ export const MOCK_CARDS: PipelineCard[] = [
     isAIAssisted: false,
     blockedBy: [],
     progress: 60,
+    priority: 'Medium',
   },
   {
     id: 'panel-2-1',
@@ -94,6 +97,7 @@ export const MOCK_CARDS: PipelineCard[] = [
     isAIAssisted: true,
     blockedBy: [],
     progress: 100,
+    priority: 'Low',
   },
   {
     id: 'panel-2-2',
@@ -107,6 +111,7 @@ export const MOCK_CARDS: PipelineCard[] = [
     isAIAssisted: false,
     blockedBy: [], // Not blocked
     progress: 100,
+    priority: 'Low',
   },
   {
     id: 'panel-2-3',
@@ -120,6 +125,7 @@ export const MOCK_CARDS: PipelineCard[] = [
     isAIAssisted: false,
     blockedBy: ['panel-2-2'], // Blocked by Panel 2
     progress: 100,
+    priority: 'Low',
   },
 
   // Page 3
@@ -134,6 +140,7 @@ export const MOCK_CARDS: PipelineCard[] = [
     isAIAssisted: false,
     blockedBy: [],
     progress: 10,
+    priority: 'High',
   },
   {
     id: 'page-4',
@@ -146,5 +153,6 @@ export const MOCK_CARDS: PipelineCard[] = [
     isAIAssisted: true,
     blockedBy: [],
     progress: 90,
+    priority: 'High',
   },
 ];

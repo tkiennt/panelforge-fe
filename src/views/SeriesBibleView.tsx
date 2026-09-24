@@ -24,12 +24,13 @@ import {
 } from 'lucide-react';
 import { BibleEntity, BibleCategory, MangaProject } from '../types';
 import { bibleService, BibleEntryRevisionDto } from '../services/bible.service';
+import { AddEntityModal } from '../components/modals/AddEntityModal';
+import { VectorStatusModal } from '../components/modals/VectorStatusModal';
 
 interface SeriesBibleViewProps {
   activeProject: MangaProject;
   entities: BibleEntity[];
-  onAddEntity: () => void;
-  onViewVectorStatus: () => void;
+  onAddEntity: (entity: BibleEntity) => void;
   onEditEntity: (entity: BibleEntity) => void;
   onShowToast: (title: string, desc: string) => void;
 }
@@ -37,16 +38,14 @@ interface SeriesBibleViewProps {
 const CATEGORIES: { key: BibleCategory; label: string; count: number }[] = [
   { key: 'characters', label: 'Characters', count: 14 },
   { key: 'locations', label: 'Locations', count: 8 },
-  { key: 'cyberware', label: 'Cyberware & Props', count: 22 },
-  { key: 'lore', label: 'Lore & Factions', count: 6 },
-  { key: 'style', label: 'Style Guide', count: 4 },
+  { key: 'terminology', label: 'Terminology', count: 28 },
+  { key: 'style', label: 'Style Rules', count: 4 },
 ];
 
 export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
   activeProject,
   entities,
   onAddEntity,
-  onViewVectorStatus,
   onEditEntity,
   onShowToast,
 }) => {
@@ -54,6 +53,9 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [selectedEntity, setSelectedEntity] = useState<BibleEntity | null>(null);
+  
+  const [addEntityOpen, setAddEntityOpen] = useState(false);
+  const [vectorStatusOpen, setVectorStatusOpen] = useState(false);
 
   // BR-15: Chapter-Versioned State
   const [effectiveChapter, setEffectiveChapter] = useState<number | 'all'>('all');
@@ -101,7 +103,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
               <span>/</span>
               <span className='text-[#F97316] font-semibold'>PRODUCTION ARCHIVE</span>
             </div>
-            <h1 className='text-2xl lg:text-3xl font-bold font-display text-[#171717] tracking-tight'>
+            <h1 className='text-2xl lg:text-3xl font-bold font-serif text-[#171717] tracking-tight'>
               Series Bible Repository
             </h1>
             <p className='text-xs text-[#555555] mt-1'>
@@ -113,7 +115,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
           <div className='flex flex-wrap items-center gap-2.5'>
             {/* Vector Index Pill */}
             <button
-              onClick={onViewVectorStatus}
+              onClick={() => setVectorStatusOpen(true)}
               className='px-3 py-1.5 rounded-lg bg-[#ECFDF5] border border-[#10B981]/30 text-[#059669] text-xs font-semibold font-mono flex items-center gap-1.5 cursor-pointer hover:bg-[#10B981]/15 transition-colors'
               title='Click to view Vector Index status and embedding models'
             >
@@ -123,7 +125,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
 
             {/* Add Entity Button */}
             <button
-              onClick={onAddEntity}
+              onClick={() => setAddEntityOpen(true)}
               className='px-3.5 py-2 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer active:scale-95'
             >
               <Plus className='w-3.5 h-3.5' />
@@ -264,7 +266,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
               <div className='p-4 space-y-3'>
                 <div>
                   <h3
-                    className='text-base font-bold font-display text-[#171717] group-hover:text-[#F97316] transition-colors cursor-pointer'
+                    className='text-base font-bold font-serif text-[#171717] group-hover:text-[#F97316] transition-colors cursor-pointer'
                     onClick={() => setSelectedEntity(entity)}
                   >
                     {entity.name}
@@ -407,7 +409,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
             <div className='p-4 border-b border-[#E7E7E7] flex items-center justify-between bg-[#FAF8F4]'>
               <div className='flex items-center gap-2'>
                 <span className='w-2.5 h-2.5 rounded-full bg-[#10B981]'></span>
-                <h3 className='text-base font-bold font-display text-[#171717]'>
+                <h3 className='text-base font-bold font-serif text-[#171717]'>
                   Canon Spec Sheet: {selectedEntity.name}
                 </h3>
               </div>
@@ -433,7 +435,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
               </div>
 
               <div>
-                <h4 className='text-lg font-bold font-display text-[#171717]'>
+                <h4 className='text-lg font-bold font-serif text-[#171717]'>
                   {selectedEntity.name}
                 </h4>
                 <div className='text-xs font-mono text-[#F97316] font-semibold mt-0.5'>
@@ -682,6 +684,19 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
           </div>
         </div>
       )}
+
+      {/* Modals local to SeriesBibleView */}
+      <AddEntityModal
+        isOpen={addEntityOpen}
+        onClose={() => setAddEntityOpen(false)}
+        onAdd={onAddEntity}
+        onShowToast={onShowToast}
+      />
+      <VectorStatusModal
+        isOpen={vectorStatusOpen}
+        onClose={() => setVectorStatusOpen(false)}
+        onShowToast={onShowToast}
+      />
     </div>
   );
 };

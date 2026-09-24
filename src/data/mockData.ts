@@ -5,6 +5,7 @@ import {
   StudioMember,
   ProvenanceLogItem,
   AssistantRosterItem,
+  ProjectMembership,
 } from '../types';
 
 export const INITIAL_PROJECTS: MangaProject[] = [
@@ -813,5 +814,44 @@ export const INITIAL_ASSISTANTS: AssistantRosterItem[] = [
     initials: 'RM',
     avatarBg: '#F97316',
     status: 'active',
+  },
+];
+
+export const INITIAL_PROJECT_MEMBERSHIPS: ProjectMembership[] = [
+  {
+    id: 'pm-1',
+    projectId: 'cyberpunk-2077',
+    userId: 'member-tf',
+    roles: ['PRODUCER'],
+  },
+  {
+    id: 'pm-2',
+    projectId: 'cyberpunk-2077',
+    userId: 'member-ks',
+    roles: ['ARTIST'],
+  },
+  {
+    id: 'pm-3',
+    projectId: 'cyberpunk-2077',
+    userId: 'member-ak',
+    roles: ['WRITER', 'EDITOR'],
+  },
+  {
+    id: 'pm-4',
+    projectId: 'cyberpunk-2077',
+    userId: 'member-ym',
+    roles: ['EDITOR'],
+  },
+  {
+    id: 'pm-5',
+    projectId: 'neo-tokyo-drifters',
+    userId: 'member-ak',
+    roles: ['WRITER'],
+  },
+  {
+    id: 'pm-6',
+    projectId: 'neo-tokyo-drifters',
+    userId: 'member-ym',
+    roles: ['PRODUCER'],
   },
 ];

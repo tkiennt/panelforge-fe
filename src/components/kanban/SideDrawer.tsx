@@ -2,25 +2,29 @@ import React from 'react';
 import { X, Image as ImageIcon, History, MessageSquare, Sparkles, Clock } from 'lucide-react';
 import { PipelineCard, PIPELINE_MEMBERS } from '../../data/mockPipelineData';
 
+import { usePermissions } from '../../lib/permissions';
+
 interface SideDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   card: PipelineCard | null;
-  currentUserRole: string;
+  userRoles: string[];
 }
 
 export const SideDrawer: React.FC<SideDrawerProps> = ({
   isOpen,
   onClose,
   card,
-  currentUserRole,
+  userRoles,
 }) => {
+  const { hasPermission } = usePermissions(userRoles || []);
+
   if (!isOpen || !card) return null;
 
   const assignee = PIPELINE_MEMBERS[card.assigneeId];
 
-  // Show AI button only if Writer or Artist
-  const canRequestAI = currentUserRole === 'WRITER' || currentUserRole === 'ARTIST';
+  // AI button permission
+  const canRequestAI = hasPermission('request_ai');
 
   return (
     <>
@@ -142,19 +146,19 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
               Version History
             </button>
 
-            {canRequestAI && (
-              <button
-                onClick={() => {
-                  // TODO: Gọi AI Assistance Layer API
-                  console.log('AI Assistance Requested');
-                  alert('Requesting AI Assistance... (Placeholder)');
-                }}
-                className='w-full py-2.5 bg-[#F5F3FF] border border-[#DDD6FE] rounded-lg text-sm font-semibold text-[#8B5CF6] shadow-2xs hover:bg-[#EDE9FE] transition-colors flex items-center justify-center gap-2'
-              >
-                <Sparkles className='w-4 h-4' />
-                Yêu cầu AI hỗ trợ
-              </button>
-            )}
+            <button
+              disabled={!canRequestAI}
+              title={!canRequestAI ? "Bạn cần quyền tương tác với AI" : "Yêu cầu AI hỗ trợ"}
+              onClick={() => {
+                // TODO: Gọi AI Assistance Layer API
+                console.log('AI Assistance Requested');
+                alert('Requesting AI Assistance... (Placeholder)');
+              }}
+              className='w-full py-2.5 bg-[#F5F3FF] border border-[#DDD6FE] rounded-lg text-sm font-semibold text-[#8B5CF6] shadow-2xs hover:bg-[#EDE9FE] transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed'
+            >
+              <Sparkles className='w-4 h-4' />
+              Yêu cầu AI hỗ trợ
+            </button>
           </div>
 
           {/* Comments */}

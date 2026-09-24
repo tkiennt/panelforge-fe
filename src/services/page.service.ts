@@ -1,5 +1,5 @@
 // src/services/page.service.ts
-const API_URL = import.meta.env.VITE_APP_URL;
+import { API_URL } from '../config/env';
 export interface CreatePageRequestBody {
   pageNumber?: number;
   layoutFormat?: string;

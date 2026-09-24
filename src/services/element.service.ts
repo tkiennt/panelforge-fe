@@ -1,5 +1,5 @@
 // src/services/element.service.ts
-const API_URL = import.meta.env.VITE_APP_URL;
+import { API_URL } from '../config/env';
 export interface ElementSnapshotDto {
   elementId: string;
   elementType: string; // 'DialogueBalloon' | 'NarrationBox' | 'SoundEffect' | 'CharacterInstance' | 'ArtworkLayer'

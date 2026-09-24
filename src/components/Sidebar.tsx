@@ -48,7 +48,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <aside
-      className='w-64 bg-[#F8F6F0] border-r border-[#E7E7E7] flex flex-col justify-between shrink-0 z-30 select-none h-screen'
+      className='w-64 bg-[#F8F6F0] border-r-[1.5px] border-[#171717] shadow-none flex flex-col justify-between shrink-0 z-30 select-none h-screen'
       style={{ backgroundColor: '#FAF8F4' }}
     >
       <div className='flex flex-col'>

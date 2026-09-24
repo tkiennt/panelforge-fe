@@ -10,27 +10,37 @@ import {
   defaultDropAnimationSideEffects,
 } from '@dnd-kit/core';
 import { KanbanColumn } from './KanbanColumn';
-import { KanbanCard } from './KanbanCard';
-import { SideDrawer } from './SideDrawer';
+import { TaskCard } from './TaskCard';
 import { PIPELINE_STAGES, MOCK_CARDS, PipelineCard, StageKey } from '../../data/mockPipelineData';
+import { usePermissions } from '../../lib/permissions';
 import { SystemRole, WorkspaceRole } from '../../types';
 
 interface KanbanBoardProps {
   currentUserRole?: WorkspaceRole | null;
   systemRole?: SystemRole;
+  userRoles?: string[];
   currentUserId?: string; // For assignee checks
   onShowToast: (title: string, desc: string) => void;
+  filterType: 'all' | 'my-tasks' | 'overdue';
 }
 
 export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   currentUserRole,
   systemRole,
+  userRoles = [],
   currentUserId = 'user-1',
   onShowToast,
+  filterType,
 }) => {
+  const effectiveRoles = userRoles.length > 0
+    ? userRoles
+    : [
+        ...(systemRole ? [systemRole] : []),
+        ...(currentUserRole ? [currentUserRole] : []),
+      ];
+  const { hasPermission } = usePermissions(effectiveRoles);
   const [cards, setCards] = useState<PipelineCard[]>(MOCK_CARDS);
   const [activeCard, setActiveCard] = useState<PipelineCard | null>(null);
-  const [drawerCard, setDrawerCard] = useState<PipelineCard | null>(null);
 
   // Setup DnD Sensors (distinguish between click and drag)
   const sensors = useSensors(
@@ -57,11 +67,17 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
     if (
       systemRole === 'ADMINISTRATOR' ||
       currentUserRole === 'PRODUCER' ||
-      currentUserRole === 'EDITOR'
-    )
+      currentUserRole === 'EDITOR' ||
+      hasPermission('create_card') ||
+      hasPermission('review_card')
+    ) {
       return true;
-    // Others can only move their own assigned cards
-    return card.assigneeId === currentUserId;
+    }
+    // Others can only move their own assigned cards if they have drag_card
+    if (hasPermission('drag_card')) {
+      return card.assigneeId === currentUserId;
+    }
+    return false;
   };
 
   // --- DND HANDLERS ---
@@ -122,9 +138,16 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
               <KanbanColumn
                 key={stage.id}
                 stage={stage}
-                cards={cards.filter((c) => c.stage === stage.id)}
-                currentUserRole={currentUserRole}
-                onCardClick={setDrawerCard}
+                cards={cards.filter((c) => {
+                  if (c.stage !== stage.id) return false;
+                  if (filterType === 'my-tasks' && c.assigneeId !== currentUserId) return false;
+                  if (filterType === 'overdue') {
+                    const diffDays = Math.ceil((new Date(c.deadline).getTime() - new Date().getTime()) / (1000 * 3600 * 24));
+                    if (diffDays >= 0 && c.stage !== 'approved') return false;
+                  }
+                  return true;
+                })}
+                userRoles={effectiveRoles}
                 checkIsLocked={checkIsLocked}
                 canDragCard={canDragCard}
               />
@@ -141,10 +164,9 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
         >
           {activeCard ? (
             <div className='rotate-3 scale-105 opacity-90 shadow-2xl'>
-              <KanbanCard
+              <TaskCard
                 card={activeCard}
-                currentUserRole={currentUserRole}
-                onClick={() => {}}
+                userRoles={effectiveRoles}
                 isLocked={false}
                 canDrag={true}
               />
@@ -152,13 +174,6 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
           ) : null}
         </DragOverlay>
       </DndContext>
-
-      <SideDrawer
-        isOpen={!!drawerCard}
-        onClose={() => setDrawerCard(null)}
-        card={drawerCard}
-        currentUserRole={currentUserRole}
-      />
     </div>
   );
 };

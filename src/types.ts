@@ -55,13 +55,7 @@ export interface KanbanCard {
 }
 
 export type EntityCategory = 'character' | 'location' | 'prop' | 'rule';
-export type BibleCategory =
-  | 'all'
-  | 'characters'
-  | 'locations'
-  | 'cyberware'
-  | 'lore'
-  | 'style'
+export type BibleCategory = | 'all' | 'characters' | 'locations' | 'terminology' | 'style'
   | 'character'
   | 'location'
   | 'prop'
@@ -117,6 +111,13 @@ export type RoleKey = 'producer' | 'artist' | 'writer' | 'editor' | 'letterer';
 export type SystemRole = 'ADMINISTRATOR' | 'USER';
 
 export type WorkspaceRole = 'PRODUCER' | 'WRITER' | 'ARTIST' | 'LETTERER' | 'EDITOR';
+
+export interface ProjectMembership {
+  id: string;
+  projectId: string;
+  userId: string;
+  roles: SystemRole[];
+}
 
 /**
  * Chuẩn hóa SystemRole (chỉ có 2 giá trị toàn cục: ADMINISTRATOR hoặc USER).
