@@ -1,5 +1,5 @@
 // src/services/element.service.ts
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5044';
+import { API_URL } from '../config/env';
 
 export interface ElementSnapshotDto {
   elementId: string;
