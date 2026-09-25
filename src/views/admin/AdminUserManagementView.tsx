@@ -213,7 +213,7 @@ export const AdminUserManagementView: React.FC = () => {
           <span className="text-[11px] font-semibold text-[#888888] uppercase mr-1 flex items-center gap-1">
             <Filter className="w-3 h-3" /> Lọc:
           </span>
-          {['ALL', 'Admin', 'Producer', 'User', 'Writer', 'Artist', 'Editor'].map((role) => (
+          {['ALL', 'Admin', 'Producer', 'User'].map((role) => (
             <button
               key={role}
               onClick={() => setSelectedRoleFilter(role)}

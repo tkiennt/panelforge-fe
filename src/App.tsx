@@ -47,6 +47,7 @@ import { ExportView } from './views/ExportView';
 
 
 import {
+  AdminDashboard,
   AdminDashboardView,
   AdminUserManagementView,
   AdminSystemSettingsView,
@@ -668,43 +669,24 @@ function AppContent() {
             <Route path="producer" element={<ProducerWorkspaceView />} />
             <Route path="notifications" element={<NotificationCenterView />} />
 
-            <Route
-              path="admin"
-              element={
-                <AdminRoute activeRoles={activeProjectRoles} currentRole={currentRole}>
-                  <AdminDashboardView
-                    onNavigateToUsers={() => navigate('/users')}
-                    onNavigateToSettings={() => navigate('/ai-quota')}
-                    onNavigateToAudit={() => navigate('/audit-log')}
-                  />
-                </AdminRoute>
-              }
-            />
-            <Route
-              path="users"
-              element={
-                <AdminRoute activeRoles={activeProjectRoles} currentRole={currentRole}>
-                  <AdminUserManagementView />
-                </AdminRoute>
-              }
-            />
-            <Route
-              path="ai-quota"
-              element={
-                <AdminRoute activeRoles={activeProjectRoles} currentRole={currentRole}>
-                  <AdminSystemSettingsView />
-                </AdminRoute>
-              }
-            />
-            <Route
-              path="audit-log"
-              element={
-                <AdminRoute activeRoles={activeProjectRoles} currentRole={currentRole}>
-                  <AdminAuditLogView />
-                </AdminRoute>
-              }
-            />
           </Route>
+
+          {/* Standalone Global Admin Portal (Decoupled completely from GlobalAppShell) */}
+          <Route
+            path="admin"
+            element={
+              <AdminRoute activeRoles={activeProjectRoles} currentRole={currentRole}>
+                <AdminDashboard
+                  onLogout={handleLogout}
+                  currentUser={{
+                    name: currentUserInfo?.name || firebaseUser?.displayName || 'Administrator',
+                    email: currentUserInfo?.email || firebaseUser?.email || 'admin@panelforge.sys',
+                    role: currentRole,
+                  }}
+                />
+              </AdminRoute>
+            }
+          />
 
           <Route
             path="*"
