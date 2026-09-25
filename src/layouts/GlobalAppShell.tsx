@@ -314,10 +314,7 @@ export function GlobalAppShell({
                 </div>
                 <div>
                   <span className='text-[#171717] font-semibold text-sm'>
-                    Preview: {activeSeries.title}
-                  </span>
-                  <span className='ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-red-50 text-red-600 border border-red-200'>
-                    CONFIDENTIAL
+                    {activeSeries.title}
                   </span>
                 </div>
               </div>
@@ -521,20 +518,6 @@ export function GlobalAppShell({
         </header>
 
         <main className='flex-1 overflow-y-auto custom-scrollbar flex flex-col relative min-h-0 bg-[#F3F3F3]'>
-          {isReader && (
-            <div className='absolute inset-0 pointer-events-none flex flex-col items-center justify-center opacity-[0.03] rotate-[-30deg] z-0 overflow-hidden'>
-              <p className='text-6xl font-heading font-bold text-black whitespace-nowrap'>
-                CONFIDENTIAL PREVIEW DO NOT DISTRIBUTE
-              </p>
-              <p className='text-6xl font-heading font-bold text-black whitespace-nowrap mt-20'>
-                CONFIDENTIAL PREVIEW DO NOT DISTRIBUTE
-              </p>
-              <p className='text-6xl font-heading font-bold text-black whitespace-nowrap mt-20'>
-                CONFIDENTIAL PREVIEW DO NOT DISTRIBUTE
-              </p>
-            </div>
-          )}
-
           <div className='relative z-10 w-full min-h-full flex-1 flex flex-col'>
             {children || <Outlet />}
           </div>

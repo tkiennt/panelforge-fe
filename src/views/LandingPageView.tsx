@@ -1293,39 +1293,6 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
           </div>
         </div>
       </footer>
-
-      {/* ===== FLOATING ROLE WIDGET ===== */}
-      <div className='fixed bottom-6 right-6 z-50'>
-        <div className='glass rounded-full shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-[#e7e7e7] p-1.5 flex items-center gap-1'>
-          <div className='hidden sm:flex items-center gap-1.5 pl-2 pr-1.5 py-1'>
-            <span className='w-1.5 h-1.5 rounded-full bg-[#f97316] pulse-dot'></span>
-            <span className='text-[10px] font-semibold text-[#404040] uppercase tracking-[0.15em]'>
-              Preview
-            </span>
-          </div>
-          <div className='hidden sm:block w-px h-5 bg-[#e7e7e7] mx-0.5'></div>
-          {[
-            { label: 'Producer', Icon: Briefcase, role: 'producer' },
-            { label: 'Writer', Icon: PenLine, role: 'writer' },
-            { label: 'Artist', Icon: Layers, role: 'artist' },
-            { label: 'Editor', Icon: CheckCheck, role: 'editor' },
-          ].map(({ label, Icon, role }) => (
-            <div key={role} className='relative group'>
-              <button
-                onClick={() => onEnterDemo(role)}
-                className='w-9 h-9 rounded-full transition flex items-center justify-center text-[#404040] hover:text-[#f97316] hover:bg-[#fff7ed] cursor-pointer'
-                aria-label={`Preview as ${label}`}
-              >
-                <Icon className='w-4 h-4' />
-              </button>
-              <div className='absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-[#171717] text-white text-[10px] rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none'>
-                {label}
-                <div className='absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[#171717]'></div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   );
 };

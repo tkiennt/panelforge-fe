@@ -487,25 +487,6 @@ function AppContent() {
 
   return (
     <div className='min-h-screen bg-[#F8F6F0] text-[#171717] font-sans antialiased selection:bg-[#F97316]/20 selection:text-[#EA580C] relative'>
-      {IS_DEV_MODE && <DevFloatingMenu />}
-      <RoleDemoBar
-        activeRole={demoRole as DemoRole}
-        onRoleSelect={(role) => handleEnterDemo(role)}
-        onExitDemo={() => {
-          setIsDemoMode(false);
-          setDemoRole(null);
-          localStorage.removeItem('demoRole');
-          localStorage.setItem('isDemoMode', 'false');
-          const currentToken = localStorage.getItem('token');
-          if (currentToken && currentToken.startsWith('mock-')) {
-            localStorage.removeItem('token');
-            localStorage.removeItem('userRole');
-            localStorage.removeItem('user');
-            setIsAuthenticated(false);
-          }
-        }}
-      />
-
       <Routes>
         <Route
           path="/login"

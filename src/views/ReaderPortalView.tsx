@@ -12,12 +12,6 @@ export const ReaderPortalView = () => {
 
   return (
     <div className="w-full h-screen bg-[#171717] text-white flex flex-col overflow-hidden relative">
-      {/* Watermark */}
-      <div className="absolute inset-0 pointer-events-none flex items-center justify-center overflow-hidden opacity-5 z-50">
-        <div className="transform -rotate-45 text-[120px] font-black tracking-widest uppercase whitespace-nowrap">
-          PREVIEW ONLY - DO NOT DISTRIBUTE - JOHN DOE
-        </div>
-      </div>
 
       <div className="shrink-0 h-16 border-b border-[#333333] px-6 flex items-center justify-between z-10 bg-[#171717]/80 backdrop-blur-md">
         <div className="flex items-center gap-4">
