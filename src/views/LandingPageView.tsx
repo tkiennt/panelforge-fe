@@ -26,13 +26,11 @@ import {
 } from 'lucide-react';
 
 interface LandingPageViewProps {
-  onEnterDemo: (role: string) => void;
   onOpenLogin: () => void;
   onOpenRegister?: () => void;
 }
 
 export const LandingPageView: React.FC<LandingPageViewProps> = ({
-  onEnterDemo,
   onOpenLogin,
   onOpenRegister,
 }) => {
@@ -92,7 +90,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             <a href='#block-showcase' className='nav-link hover:text-[#171717] transition'>
               Showcase
             </a>
-            <a href='#block-social' className='nav-link hover:text-[#171717] transition'>
+            <a href='#block-[#171717]' className='nav-link hover:text-[#171717] transition'>
               Studios
             </a>
             <a href='#' className='nav-link hover:text-[#171717] transition'>
@@ -107,7 +105,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               Sign in
             </button>
             <button
-              onClick={() => (onOpenRegister ? onOpenRegister() : onEnterDemo('producer'))}
+              onClick={() => (onOpenRegister ? onOpenRegister() : onOpenLogin())}
               className='inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#171717] text-white text-sm font-medium hover:bg-[#404040] transition soft-shadow cursor-pointer'
             >
               Onboard Studio
@@ -119,49 +117,15 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
 
       {/* ===== HERO ===== */}
       <div className='relative w-full min-h-[90vh] bg-[#EAE6DF] overflow-hidden border-b-[1.5px] border-[#171717] flex items-center justify-center pt-16 pb-16'>
-        {/* Halftone / Dot Grid Pattern - Giả lập vân giấy truyện tranh */}
+        {/* Halftone / Dot Grid Pattern */}
         <div className='absolute inset-0 opacity-[0.03] bg-[radial-gradient(#171717_1px,transparent_1px)] [background-size:24px_24px]'></div>
 
-        {/* Drafting Crosshairs */}
-        <div className='absolute top-[15%] left-[10%] text-[#B8B8B8] font-mono text-[10px] opacity-40'>
-          +
-        </div>
-        <div className='absolute top-[25%] right-[15%] text-[#B8B8B8] font-mono text-[10px] opacity-40'>
-          +
-        </div>
-        <div className='absolute bottom-[20%] left-[20%] text-[#B8B8B8] font-mono text-[10px] opacity-40'>
-          +
-        </div>
-        <div className='absolute bottom-[30%] right-[8%] text-[#B8B8B8] font-mono text-[10px] opacity-40'>
-          +
-        </div>
-
-        {/* Tangerine Orange Accent / Focal Point */}
-        <div className='absolute right-[20%] top-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-[#f97316] rounded-full blur-[120px] opacity-10'></div>
-
-        {/* AI Violet Element */}
-        <div className='absolute left-[30%] bottom-10 w-[300px] h-[300px] bg-[#8B5CF6] rounded-full blur-[100px] opacity-10'></div>
-
-        {/* Foreground Content */}
         <div className='relative z-20 text-center flex flex-col items-center max-w-4xl px-6 animate-on-scroll'>
           <h1 className='font-serif text-6xl md:text-7xl lg:text-8xl font-bold text-[#171717] tracking-tight leading-[1.05]'>
             <span className='relative inline-block'>
               <em className='font-normal text-[#f97316] not-italic italic relative z-10'>
                 Architect
               </em>
-              <svg
-                className='absolute w-[110%] h-[12px] -bottom-1 -left-[5%] text-[#f97316] opacity-80 z-0'
-                viewBox='0 0 200 12'
-                preserveAspectRatio='none'
-              >
-                <path
-                  d='M 5,8 Q 50,2 100,6 T 195,5'
-                  fill='none'
-                  stroke='currentColor'
-                  strokeWidth='4'
-                  strokeLinecap='round'
-                />
-              </svg>
             </span>{' '}
             Your
             <br />
@@ -178,19 +142,12 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
 
           <div className='mt-10 flex flex-wrap items-center justify-center gap-5'>
             <button
-              onClick={() => onEnterDemo('producer')}
+              onClick={onOpenLogin}
               className='group inline-flex items-center gap-2 px-8 py-3.5 bg-[#f97316] border-[1.5px] border-[#171717] shadow-[6px_6px_0px_#171717] text-white font-bold text-sm uppercase tracking-wide hover:shadow-[2px_2px_0px_#171717] hover:translate-x-[4px] hover:translate-y-[4px] transition-all cursor-pointer rounded'
             >
-              Onboard Studio
+              Sign In to Studio
               <ArrowRight className='w-4 h-4 group-hover:translate-x-1 transition-transform' />
             </button>
-            <a
-              href='#block-workflow'
-              className='inline-flex items-center gap-2 px-8 py-3.5 bg-white border-[1.5px] border-[#171717] shadow-[6px_6px_0px_#171717] text-[#171717] font-bold text-sm uppercase tracking-wide hover:shadow-[2px_2px_0px_#171717] hover:translate-x-[4px] hover:translate-y-[4px] transition-all rounded cursor-pointer'
-            >
-              <Play className='w-3.5 h-3.5 text-[#f97316] fill-[#f97316]' />
-              See Workflow
-            </a>
           </div>
 
           <div className='mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-xs font-bold text-[#404040] uppercase tracking-wide'>
@@ -1182,14 +1139,14 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             </p>
             <div className='mt-10 flex flex-col sm:flex-row items-center justify-center gap-3'>
               <button
-                onClick={() => onEnterDemo('producer')}
+                onClick={onOpenLogin}
                 className='group inline-flex items-center gap-2 px-7 py-4 rounded-full tangerine-gradient text-white font-semibold text-base tangerine-shadow-lg hover:shadow-[0_18px_50px_rgba(249,115,22,0.45)] transition-all hover:-translate-y-0.5 cursor-pointer'
               >
                 Onboard Your Studio
                 <ArrowRight className='w-4 h-4 group-hover:translate-x-0.5 transition-transform' />
               </button>
               <button
-                onClick={() => onEnterDemo('producer')}
+                onClick={onOpenLogin}
                 className='inline-flex items-center gap-2 px-7 py-4 rounded-full bg-white border border-[#e7e7e7] text-[#171717] font-medium text-base hover:border-[#404040]/30 transition soft-shadow cursor-pointer'
               >
                 Talk to a specialist

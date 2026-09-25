@@ -87,23 +87,29 @@ interface Toast {
   desc: string;
 }
 
-const PrivateRoute = ({ isAuthenticated, isDemoMode, children }: { isAuthenticated: boolean, isDemoMode: boolean, children: React.ReactNode }) => {
-  if (!isAuthenticated && !isDemoMode) {
+const PrivateRoute = ({ isAuthenticated, children }: { isAuthenticated: boolean, children: React.ReactNode }) => {
+  if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
   return <>{children}</>;
 };
 
 const AdminRoute = ({
+  activeRoles,
+  currentRole,
   children,
 }: {
   activeRoles?: any[];
   currentRole?: any;
   children: React.ReactNode;
 }) => {
-  // Chỉ tin cậy duy nhất role từ JWT token thật đã được backend ký
+  // Lấy role xác thực từ Token JWT hoặc State/localStorage nếu vừa đăng nhập thành công
   const verifiedRole = getRoleFromToken();
-  const isAdmin = verifiedRole === 'ADMINISTRATOR';
+  const storedRole = typeof window !== 'undefined' ? localStorage.getItem('userRole') : null;
+  const isAdmin =
+    verifiedRole === 'ADMINISTRATOR' ||
+    currentRole === 'ADMINISTRATOR' ||
+    storedRole === 'ADMINISTRATOR';
 
   if (!isAdmin) {
     return <Navigate to="/workspaces" replace />;
@@ -116,23 +122,27 @@ const IS_DEV_MODE = import.meta.env.VITE_DEV_MODE === 'true';
 function AppContent() {
   const navigate = useNavigate();
   // ---> STATE QUẢN LÝ ĐĂNG NHẬP VÀ ĐIỀU HƯỚNG BÊN NGOÀI <---
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    return !!localStorage.getItem('token');
+  });
   const [authMode, setAuthMode] = useState<'landing' | 'login' | 'register'>('landing');
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
-
-  // ---> THÊM STATE CHO DEMO ROLE <---
-  const [isDemoMode, setIsDemoMode] = useState(false);
-  const [demoRole, setDemoRole] = useState<string | null>(null);
 
   // Navigation & Data State
   const [viewScope, setViewScope] = useState<'hub' | 'project'>('hub');
   const [currentView, setCurrentView] = useState<ViewMode | string>('workspaces');
   const [currentRole, setCurrentRole] = useState<SystemRole>(() => {
-    return getRoleFromToken() || 'USER';
+    const roleFromToken = getRoleFromToken();
+    if (roleFromToken) return roleFromToken;
+    const stored = localStorage.getItem('userRole');
+    return stored ? normalizeSystemRole(stored) : 'USER';
   });
   const [currentWorkspaceRole, setCurrentWorkspaceRole] = useState<WorkspaceRole | null>(null);
   const [activeProjectRoles, setActiveProjectRoles] = useState<string[]>(() => {
-    return getRoleFromToken() === 'ADMINISTRATOR' ? ['ADMINISTRATOR'] : ['ARTIST'];
+    const roleFromToken = getRoleFromToken();
+    const stored = localStorage.getItem('userRole');
+    const role = roleFromToken || (stored ? normalizeSystemRole(stored) : null);
+    return role === 'ADMINISTRATOR' ? ['ADMINISTRATOR'] : ['ARTIST'];
   });
   const [currentUserInfo, setCurrentUserInfo] = useState<{
     id?: string;
@@ -145,13 +155,29 @@ function AppContent() {
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
 
   useEffect(() => {
+    // Xóa sạch session/token khi chạy lại project (mỗi lần reload tab / restart app mới) trừ khi người dùng tích "Ghi nhớ thiết bị"
+    const sessionKey = 'pf_app_session_started';
+    const rememberDevice = localStorage.getItem('pf_remember_device');
+    if (!sessionStorage.getItem(sessionKey)) {
+      sessionStorage.setItem(sessionKey, 'true');
+      if (rememberDevice !== 'true') {
+        auth.signOut().catch(() => {});
+        localStorage.removeItem('token');
+        localStorage.removeItem('userRole');
+        localStorage.removeItem('user');
+        localStorage.removeItem('demoRole');
+        localStorage.removeItem('isDemoMode');
+        localStorage.removeItem('activeWorkspace');
+      }
+    }
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setFirebaseUser(user);
       if (user) {
         setIsAuthenticated(true);
-        // Luôn đồng bộ JWT token từ backend để đảm bảo role luôn được cập nhật mới nhất
+        // Bắt buộc làm mới Firebase ID Token (forceRefresh = true) và lấy lại JWT Backend mới nhất mỗi khi khởi chạy session
         try {
-          const idToken = await user.getIdToken();
+          const idToken = await user.getIdToken(true);
           const res = await authService.externalLogin(idToken);
           if (res?.token) {
             localStorage.setItem('token', res.token);
@@ -177,10 +203,13 @@ function AppContent() {
           console.warn('Không thể đồng bộ token backend từ Firebase session:', err);
         }
       } else {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          setIsAuthenticated(false);
-        }
+        // Xóa sạch các token cũ trong localStorage khi chưa đăng nhập
+        localStorage.removeItem('token');
+        localStorage.removeItem('userRole');
+        localStorage.removeItem('user');
+        localStorage.removeItem('demoRole');
+        localStorage.removeItem('isDemoMode');
+        setIsAuthenticated(false);
       }
     });
     return () => unsubscribe();
@@ -195,11 +224,13 @@ function AppContent() {
       setCurrentView('admin-dash');
       navigate('/admin');
     } else {
+      // Người dùng được cấp quyền Producer (hoặc USER) khi login sẽ vào thẳng màn hình Quản lý & Tạo Dự án (/projects)
       setCurrentRole('USER');
-      setCurrentWorkspaceRole(null);
+      setCurrentWorkspaceRole('PRODUCER');
+      setActiveProjectRoles(['PRODUCER']);
       setViewScope('hub');
-      setCurrentView('workspaces');
-      navigate('/workspaces');
+      setCurrentView('publications');
+      navigate('/projects');
     }
   };
 
@@ -431,69 +462,34 @@ function AppContent() {
     showToast('Returned to Workspaces', 'Back to Workspace Catalog.');
   };
 
-  const handleEnterDemo = (role: string) => {
-    if (role === 'landing') {
-      setDemoRole(null);
-      setIsDemoMode(false);
-      return;
-    }
-    const isDev = role === 'dev';
-    if (role === 'administrator' || isDev) {
-      setDemoRole(role);
-      setIsDemoMode(true);
-      setCurrentRole('ADMINISTRATOR');
-      setActiveProjectRoles(['ADMINISTRATOR']);
-      setCurrentWorkspaceRole(null);
-      localStorage.setItem('userRole', 'ADMINISTRATOR');
-      localStorage.setItem('token', 'mock-admin-token');
-      setViewScope('project');
-      navigate('/admin');
-      showToast(isDev ? 'Chế độ Dev Mode' : 'Chế độ Demo Role', 'Đang xem giao diện với quyền Administrator');
-      return;
-    }
-    const wsRole = role.toUpperCase() as WorkspaceRole;
-    setDemoRole(role);
-    setIsDemoMode(true);
-    setCurrentRole('USER');
-    setCurrentWorkspaceRole(wsRole);
-    setActiveProjectRoles([wsRole]);
-    localStorage.setItem('userRole', 'USER');
-    localStorage.setItem('token', 'mock-demo-token');
-    setViewScope('project');
-    navigate('/workspace');
-    showToast('Chế độ Demo Role', `Đang xem giao diện Workspace với vai trò ${wsRole}`);
-  };
-
   const handleLogout = () => {
     auth.signOut();
     localStorage.removeItem('token');
     localStorage.removeItem('userRole');
     localStorage.removeItem('user');
-    localStorage.removeItem('demoRole');
-    localStorage.removeItem('isDemoMode');
     localStorage.removeItem('pf_remember_device');
     setFirebaseUser(null);
     setCurrentUserInfo(null);
     setIsAuthenticated(false);
-    setIsDemoMode(false);
-    setDemoRole(null);
     setCurrentRole('USER');
     setCurrentWorkspaceRole(null);
     showToast('Đăng xuất', 'Đã đăng xuất khỏi phiên làm việc.');
   };
 
   const verifiedRole = getRoleFromToken();
-  const defaultRedirectPath = verifiedRole === 'ADMINISTRATOR' ? '/admin' : '/workspaces';
+  const defaultRedirectPath =
+    isAuthenticated && (verifiedRole === 'ADMINISTRATOR' || currentRole === 'ADMINISTRATOR')
+      ? '/admin'
+      : '/workspaces';
 
   return (
     <div className='min-h-screen bg-[#F8F6F0] text-[#171717] font-sans antialiased selection:bg-[#F97316]/20 selection:text-[#EA580C] relative'>
       <Routes>
         <Route
-          path="/login"
+          path="/"
           element={
-            !isAuthenticated && !isDemoMode ? (
+            !isAuthenticated ? (
               <LandingPageView
-                onEnterDemo={handleEnterDemo}
                 onOpenLogin={() => setIsLoginModalOpen(true)}
                 onOpenRegister={() => setIsRegisterModalOpen(true)}
               />
@@ -504,14 +500,26 @@ function AppContent() {
         />
 
         <Route
-          path="/"
+          path="/login"
           element={
-            <PrivateRoute isAuthenticated={isAuthenticated} isDemoMode={isDemoMode}>
+            !isAuthenticated ? (
+              <LandingPageView
+                onOpenLogin={() => setIsLoginModalOpen(true)}
+                onOpenRegister={() => setIsRegisterModalOpen(true)}
+              />
+            ) : (
+              <Navigate to={defaultRedirectPath} replace />
+            )
+          }
+        />
+
+        <Route
+          element={
+            <PrivateRoute isAuthenticated={isAuthenticated}>
               <Outlet />
             </PrivateRoute>
           }
         >
-          <Route index element={<Navigate to={defaultRedirectPath} replace />} />
 
           <Route
             path="workspaces"
@@ -774,10 +782,8 @@ function AppContent() {
           onGoogleLogin={(res) => {
             setIsLoginModalOpen(false);
             setIsAuthenticated(true);
-            setIsDemoMode(false);
-            setDemoRole(null);
             localStorage.removeItem('demoRole');
-            localStorage.setItem('isDemoMode', 'false');
+            localStorage.removeItem('isDemoMode');
             if (res?.token) {
               localStorage.setItem('token', res.token);
             }
@@ -794,22 +800,20 @@ function AppContent() {
               role,
             });
             localStorage.setItem('userRole', role);
-            navigate(role === 'ADMINISTRATOR' ? '/admin' : '/workspaces');
+            navigate(role === 'ADMINISTRATOR' ? '/admin' : '/projects');
             const displayName =
               res?.user?.fullName ||
               res?.user?.email ||
               res?.displayName ||
               res?.email ||
               'bạn';
-            showToast('Đăng nhập thành công', `Chào mừng ${displayName} (Vai trò: ${role})!`);
+            showToast('Đăng nhập thành công', `Chào mừng ${displayName} (Vai trò Producer)!`);
           }}
           onApiLoginSuccess={(authResponse) => {
             setIsLoginModalOpen(false);
             setIsAuthenticated(true);
-            setIsDemoMode(false);
-            setDemoRole(null);
             localStorage.removeItem('demoRole');
-            localStorage.setItem('isDemoMode', 'false');
+            localStorage.removeItem('isDemoMode');
             if (authResponse?.token) {
               localStorage.setItem('token', authResponse.token);
             }
@@ -829,7 +833,7 @@ function AppContent() {
               localStorage.setItem('user', JSON.stringify(authResponse.user));
             }
             localStorage.setItem('userRole', role);
-            navigate(role === 'ADMINISTRATOR' ? '/admin' : '/workspaces');
+            navigate(role === 'ADMINISTRATOR' ? '/admin' : '/projects');
             showToast(
               'Đăng nhập thành công',
               `Chào mừng ${authResponse?.user?.fullName || 'bạn'} (Vai trò: ${role})!`,

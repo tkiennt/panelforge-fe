@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search, Shield, CheckCircle2, X, Check, Filter, RefreshCw } from 'lucide-react';
+import { Search, Shield, CheckCircle2, X, Check, Filter, RefreshCw, UserCheck, ShieldAlert } from 'lucide-react';
 import { adminService, AdminUserItem } from '../../services/admin.service';
 import { AdminUserTable } from './components/AdminUserTable';
 import { AdminAssignRoleModal } from './components/AdminAssignRoleModal';
@@ -23,8 +23,7 @@ export const AdminUserManagementView: React.FC = () => {
 
   // Modals
   const [assigningUser, setAssigningUser] = useState<AdminUserItem | null>(null);
-  const [selectedNewRoles, setSelectedNewRoles] = useState<string[]>(['Writer']);
-  
+  const [selectedNewRoles, setSelectedNewRoles] = useState<string[]>(['Producer']);
   const [inspectUser, setInspectUser] = useState<AdminUserItem | null>(null);
   const [toastMessage, setToastMessage] = useState<{ title: string; desc: string } | null>(null);
 
@@ -33,7 +32,7 @@ export const AdminUserManagementView: React.FC = () => {
     setTimeout(() => setToastMessage(null), 4000);
   };
 
-  // --- React Query for Fetching ---
+  // --- React Query for Fetching Users ---
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ['adminUsers', page, pageSize],
     queryFn: () => adminService.getAllUsers(page, pageSize),
@@ -42,11 +41,11 @@ export const AdminUserManagementView: React.FC = () => {
   const users = useMemo(() => data?.items || [], [data?.items]);
   const total = data?.total || 0;
 
-  // --- React Query for Mutation ---
+  // --- React Query for Role Assignment Mutation ---
   const assignRoleMutation = useMutation({
-    mutationFn: (variables: { userId: string; newRole: string }) => adminService.assignRole(variables),
+    mutationFn: (variables: { userId: string; newRole: string }) =>
+      adminService.assignRole(variables),
     onSuccess: (result, variables) => {
-      // Optimistic update local state or invalidate
       queryClient.setQueryData(['adminUsers', page, pageSize], (oldData: any) => {
         if (!oldData || !oldData.items) return oldData;
         return {
@@ -56,7 +55,6 @@ export const AdminUserManagementView: React.FC = () => {
               return {
                 ...u,
                 role: result.newRole || variables.newRole,
-                projectRoles: [{ projectId: 'proj-1', roles: selectedNewRoles }],
               };
             }
             return u;
@@ -66,26 +64,25 @@ export const AdminUserManagementView: React.FC = () => {
 
       showToast(
         'Phân quyền thành công',
-        result.message || `Đã đổi vai trò thành ${variables.newRole}.`,
+        result.message || `Đã cập nhật vai trò hệ thống thành ${variables.newRole}.`,
       );
       setAssigningUser(null);
     },
     onError: (err: any) => {
-      showToast('Lỗi phân quyền', err.message || 'Không thể cập nhật vai trò');
-    }
+      showToast('Lỗi phân quyền', err.message || 'Không thể cập nhật vai trò người dùng');
+    },
   });
 
   const handleAssignRoleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!assigningUser) return;
-    
+
     assignRoleMutation.mutate({
       userId: assigningUser.id,
       newRole: selectedNewRoles.join(', '),
     });
   };
 
-  // Filter users locally if needed
   const filteredUsers = useMemo(() => {
     return users.filter((user) => {
       const q = searchQuery.toLowerCase().trim();
@@ -109,16 +106,10 @@ export const AdminUserManagementView: React.FC = () => {
   const getRoleBadge = (roleName: string) => {
     const r = ALL_ROLES.find((x) => x.key.toLowerCase() === (roleName || '').toLowerCase());
     if (r) {
-      return (
-        <Badge
-          className={`border ${r.color} ${r.border}`}
-        >
-          {r.key}
-        </Badge>
-      );
+      return <Badge className={`border ${r.color} ${r.border}`}>{r.key}</Badge>;
     }
     return (
-      <Badge variant="outline" className='bg-gray-100 text-gray-700 border-gray-300'>
+      <Badge variant="outline" className="bg-gray-100 text-gray-700 border-gray-300">
         {roleName}
       </Badge>
     );
@@ -142,40 +133,40 @@ export const AdminUserManagementView: React.FC = () => {
   };
 
   return (
-    <div className='flex-1 bg-[#FAF8F5] min-h-screen p-6 md:p-8 space-y-6 relative'>
+    <div className="flex-1 bg-[#F8F6F0] min-h-screen p-6 md:p-8 space-y-6 relative text-[#171717] font-sans">
       {/* Toast Alert */}
       {toastMessage && (
-        <div className='fixed top-6 right-6 z-50 bg-[#171717] text-white px-4 py-3 rounded-xl shadow-2xl border border-white/10 flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-200'>
-          <CheckCircle2 className='w-4 h-4 text-emerald-400 shrink-0' />
+        <div className="fixed top-6 right-6 z-50 bg-[#171717] text-white px-4 py-3 rounded-xl shadow-2xl border border-white/10 flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-200">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
           <div>
-            <div className='text-xs font-bold'>{toastMessage.title}</div>
-            <div className='text-[11px] text-[#A3A3A3]'>{toastMessage.desc}</div>
+            <div className="text-xs font-bold">{toastMessage.title}</div>
+            <div className="text-[11px] text-[#A3A3A3]">{toastMessage.desc}</div>
           </div>
           <button
             onClick={() => setToastMessage(null)}
-            className='ml-2 text-[#737373] hover:text-white cursor-pointer'
+            className="ml-2 text-[#737373] hover:text-white cursor-pointer"
           >
-            <X className='w-3.5 h-3.5' />
+            <X className="w-3.5 h-3.5" />
           </button>
         </div>
       )}
 
       {/* Header */}
-      <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-6 rounded-2xl border border-[#E7E7E7] shadow-xs'>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-6 rounded-2xl border border-[#E7E7E7] shadow-xs">
         <div>
-          <div className='flex items-center gap-2 mb-1'>
-            <span className='px-2 py-0.5 rounded bg-[#171717] text-white font-mono text-[10px] font-bold'>
-              ADMIN // USERS
+          <div className="flex items-center gap-2 mb-1">
+            <span className="px-2 py-0.5 rounded bg-[#171717] text-white font-mono text-[10px] font-bold">
+              ADMIN // USERS & PRODUCER ASSIGNMENT
             </span>
-            <span className='text-xs text-[#888888] font-mono'>
+            <span className="text-xs text-[#737373] font-mono">
               Total: {total} Registered Accounts
             </span>
           </div>
-          <h1 className='text-2xl font-serif font-bold text-[#171717] tracking-tight'>
+          <h1 className="text-2xl font-serif font-bold text-[#171717] tracking-tight">
             Quản Trị Người Dùng & Phân Quyền Hệ Thống
           </h1>
-          <p className='text-xs text-[#737373]'>
-            Trực tiếp gọi API qua React Query để cải thiện hiệu năng.
+          <p className="text-xs text-[#737373] mt-1">
+            Cấp quyền Producer để người dùng có thể tạo và quản lý các dự án Manga/Webtoon mới.
           </p>
         </div>
 
@@ -191,14 +182,14 @@ export const AdminUserManagementView: React.FC = () => {
       </div>
 
       {/* Filters Bar */}
-      <div className='bg-white p-4 rounded-xl border border-[#E7E7E7] shadow-xs space-y-3'>
-        <div className='flex flex-col md:flex-row md:items-center justify-between gap-3'>
-          <div className='relative flex-1 max-w-md'>
+      <div className="bg-white p-4 rounded-xl border border-[#E7E7E7] shadow-xs space-y-3">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div className="relative flex-1 max-w-md">
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder='Tìm kiếm theo tên, email, vai trò...'
-              icon={<Search className='w-4 h-4' />}
+              placeholder="Tìm kiếm theo tên, email, vai trò..."
+              icon={<Search className="w-4 h-4" />}
             />
           </div>
 
@@ -207,36 +198,34 @@ export const AdminUserManagementView: React.FC = () => {
             variant={filter2faOnly ? 'primary' : 'secondary'}
             className={cn(
               'gap-1.5',
-              filter2faOnly 
+              filter2faOnly
                 ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100 hover:border-emerald-300'
-                : 'text-[#555555] border-[#E7E7E7] hover:bg-[#FAF8F5]'
+                : 'text-[#555555] border-[#E7E7E7] hover:bg-[#FAF8F5]',
             )}
           >
-            <Shield className='w-3.5 h-3.5' />
+            <Shield className="w-3.5 h-3.5" />
             <span>Chỉ hiện đã bật 2FA</span>
-            {filter2faOnly && <Check className='w-3 h-3 text-emerald-600' />}
+            {filter2faOnly && <Check className="w-3 h-3 text-emerald-600" />}
           </Button>
         </div>
 
-        <div className='flex items-center gap-1.5 overflow-x-auto pb-1 text-xs'>
-          <span className='text-[11px] font-semibold text-[#888888] uppercase mr-1 flex items-center gap-1'>
-            <Filter className='w-3 h-3' /> Lọc:
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+          <span className="text-[11px] font-semibold text-[#888888] uppercase mr-1 flex items-center gap-1">
+            <Filter className="w-3 h-3" /> Lọc:
           </span>
-          {['ALL', 'Admin', 'Producer', 'Writer', 'Artist', 'Letterer', 'Editor', 'Reader'].map(
-            (role) => (
-              <button
-                key={role}
-                onClick={() => setSelectedRoleFilter(role)}
-                className={`px-3 py-1 rounded-md text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
-                  selectedRoleFilter === role
-                    ? 'bg-[#171717] text-white shadow-2xs'
-                    : 'bg-[#F8F6F0] text-[#737373] hover:text-[#171717] hover:bg-[#EAE6DF]'
-                }`}
-              >
-                {role}
-              </button>
-            ),
-          )}
+          {['ALL', 'Admin', 'Producer', 'User', 'Writer', 'Artist', 'Editor'].map((role) => (
+            <button
+              key={role}
+              onClick={() => setSelectedRoleFilter(role)}
+              className={`px-3 py-1 rounded-md text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
+                selectedRoleFilter === role
+                  ? 'bg-[#171717] text-white shadow-2xs'
+                  : 'bg-[#F8F6F0] text-[#737373] hover:text-[#171717] hover:bg-[#EAE6DF]'
+              }`}
+            >
+              {role}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -276,3 +265,6 @@ export const AdminUserManagementView: React.FC = () => {
     </div>
   );
 };
+
+// Export alias for UI Architecture compliance
+export const AdminUserManagement = AdminUserManagementView;

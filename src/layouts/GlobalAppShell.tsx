@@ -53,7 +53,7 @@ export interface CurrentUser {
 
 interface GlobalAppShellProps {
   currentUser: CurrentUser;
-  activeSeries: MangaProject | { title: string; subtitle: string };
+  activeSeries?: MangaProject | { title: string; subtitle: string } | null;
   aiState?: 'active' | 'degraded' | 'unavailable';
   children?: React.ReactNode;
   onNavigate?: (href: string) => void;
@@ -194,7 +194,7 @@ const ROLE_NAV_CONFIG: Record<string, { section: string; items: any[] }[]> = {
 
 export function GlobalAppShell({
   currentUser,
-  activeSeries,
+  activeSeries = { title: 'PanelForge Studio', subtitle: 'Global Console' },
   aiState = 'active',
   children,
   onNavigate,
@@ -314,7 +314,7 @@ export function GlobalAppShell({
                 </div>
                 <div>
                   <span className='text-[#171717] font-semibold text-sm'>
-                    {activeSeries.title}
+                    {activeSeries?.title || 'PanelForge Studio'}
                   </span>
                 </div>
               </div>
@@ -332,7 +332,7 @@ export function GlobalAppShell({
                 </button>
                 <span className='mx-2 text-[#B8B8B8] font-normal select-none'>/</span>
                 <span className='hover:text-[#171717] cursor-pointer transition-colors truncate'>
-                  {activeSeries.title}
+                  {activeSeries?.title || 'PanelForge Studio'}
                 </span>
                 <span className='mx-2 text-[#B8B8B8] font-normal select-none'>/</span>
                 <span className='text-[#171717] font-semibold truncate flex items-center gap-1.5'>

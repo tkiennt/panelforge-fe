@@ -76,10 +76,10 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
             <BookOpen className='w-4 h-4 stroke-[2] text-[#171717]' />
             <div className='min-w-0'>
               <p className='text-xs font-bold text-[#171717] truncate leading-tight'>
-                {activeSeries.title}
+                {activeSeries?.title || 'PanelForge Studio'}
               </p>
               <p className='text-[10px] text-[#555555] font-mono truncate'>
-                {activeSeries.subtitle || 'Volume 01'}
+                {activeSeries?.subtitle || 'Volume 01'}
               </p>
             </div>
           </div>

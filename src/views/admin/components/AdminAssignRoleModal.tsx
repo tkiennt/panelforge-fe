@@ -48,37 +48,40 @@ export const AdminAssignRoleModal: React.FC<AdminAssignRoleModalProps> = ({
             <label className='block text-xs font-bold text-[#171717] mb-2'>
               Chọn vai trò hệ thống / dự án:
             </label>
-            <div className='grid grid-cols-1 gap-2 max-h-60 overflow-y-auto p-1'>
-              {ALL_ROLES.map((r) => {
+            <div className='grid grid-cols-1 gap-2 p-1'>
+              {ALL_ROLES.filter((r) => r.key === 'Producer').map((r) => {
                 const isSelected = selectedNewRoles.includes(r.key) || selectedNewRoles.includes(r.key.toUpperCase());
                 return (
                   <label
                     key={r.key}
-                    className={`flex items-center justify-between p-2.5 rounded-lg border text-xs cursor-pointer transition-all ${
+                    className={`flex items-center justify-between p-3 rounded-xl border text-xs cursor-pointer transition-all ${
                       isSelected
-                        ? 'border-[#F97316] bg-[#FFF7ED] font-bold text-[#171717]'
+                        ? 'border-[#F97316] bg-[#FFF7ED] font-bold text-[#171717] shadow-xs'
                         : 'border-[#E7E7E7] hover:bg-[#FAF8F5] text-[#555555]'
                     }`}
                   >
-                    <div className='flex items-center gap-2'>
+                    <div className='flex items-center gap-2.5'>
                       <input
                         type='checkbox'
-                        className='w-3.5 h-3.5 accent-[#F97316] cursor-pointer'
+                        className='w-4 h-4 accent-[#F97316] cursor-pointer'
                         checked={isSelected}
                         onChange={(e) => {
                           if (e.target.checked) {
-                            setSelectedNewRoles((prev) => [...prev, r.key]);
+                            setSelectedNewRoles(['Producer']);
                           } else {
-                            setSelectedNewRoles((prev) =>
-                              prev.filter((role) => role !== r.key && role !== r.key.toUpperCase()),
-                            );
+                            setSelectedNewRoles([]);
                           }
                         }}
                       />
-                      <span>{r.label}</span>
+                      <div>
+                        <div className='font-bold text-[#171717]'>{r.label}</div>
+                        <div className='text-[11px] text-[#737373] font-normal mt-0.5'>
+                          Cho phép người dùng tạo, quản lý dự án truyện tranh & khởi tạo các phòng sản xuất (Workspace Series).
+                        </div>
+                      </div>
                     </div>
-                    <span className='font-mono text-[10px] text-[#888888] uppercase'>
-                      {r.key}
+                    <span className='font-mono text-[10px] bg-[#F97316] text-white px-2 py-0.5 rounded font-bold uppercase shrink-0'>
+                      PRODUCER ONLY
                     </span>
                   </label>
                 );
@@ -86,14 +89,13 @@ export const AdminAssignRoleModal: React.FC<AdminAssignRoleModalProps> = ({
             </div>
           </div>
 
-          <div className='p-3 bg-amber-50 rounded-xl border border-amber-200 text-[11px] text-amber-800 space-y-1'>
+          <div className='p-3 bg-blue-50 rounded-xl border border-blue-200 text-[11px] text-blue-900 space-y-1'>
             <div className='font-semibold flex items-center gap-1'>
-              <AlertCircle className='w-3.5 h-3.5 shrink-0' />
-              <span>Cảnh báo phân quyền</span>
+              <AlertCircle className='w-3.5 h-3.5 shrink-0 text-blue-600' />
+              <span>Chính sách phân quyền RBAC</span>
             </div>
             <p>
-              Gán quyền <strong>Administrator</strong> sẽ cấp toàn quyền truy cập bảng điều khiển
-              này và quyền chỉnh sửa tài khoản khác.
+              Quản trị viên (Admin) chỉ thực hiện cấp quyền <strong>Producer (Giám đốc sản xuất)</strong> cho người dùng đăng ký. Các vai trò sản xuất khác (Writer, Artist, Editor...) sẽ do chính Producer phân bổ trong từng dự án cụ thể.
             </p>
           </div>
 
