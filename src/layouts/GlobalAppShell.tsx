@@ -63,24 +63,134 @@ interface GlobalAppShellProps {
   onOpenChangePassword?: () => void;
 }
 
-const UNIFIED_NAV_CONFIG = [
-  {
-    section: 'STUDIO WORKSPACE',
-    items: [
-      { icon: Briefcase, label: 'Workspaces', href: '/workspaces' },
-      { icon: Kanban, label: 'Production Pipeline', href: '/workspace' },
-      { icon: BookMarked, label: 'Series Bible', href: '/bible' },
-      { icon: Users, label: 'Members & Roles', href: '/members' },
-    ],
-  },
-  {
-    section: 'PUBLISHING & AUDIT',
-    items: [
-      { icon: Upload, label: 'Export / Publish', href: '/export' },
-      { icon: List, label: 'Global Audit Log', href: '/audit-log' },
-    ],
-  },
-];
+const ROLE_NAV_CONFIG: Record<string, { section: string; items: any[] }[]> = {
+  ADMINISTRATOR: [
+    {
+      section: 'SYSTEM ADMIN',
+      items: [
+        { icon: LayoutDashboard, label: 'System Dashboard', href: '/admin' },
+        { icon: Users, label: 'Users & Roles', href: '/users' },
+        {
+          icon: Cpu,
+          label: 'AI Provider & Quota',
+          href: '/ai-quota',
+          badge: { type: 'dot', color: 'bg-emerald-500' },
+        },
+        { icon: List, label: 'Global Audit Log', href: '/audit-log' },
+      ],
+    },
+  ],
+  PRODUCER: [
+    {
+      section: 'WORKSPACE',
+      items: [
+        { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
+        { icon: Briefcase, label: 'Studio Workspaces', href: '/workspaces' },
+        {
+          icon: Kanban,
+          label: 'Production Pipeline',
+          href: '/workspace',
+          badge: { type: 'text', text: 'Ch. 5', color: 'bg-[#F97316]/10 text-[#F97316]' },
+        },
+        {
+          icon: BookMarked,
+          label: 'Series Bible',
+          href: '/bible',
+          badge: { type: 'dot', color: 'bg-[#8B5CF6]' },
+        },
+        {
+          icon: Users,
+          label: 'Members & Roles',
+          href: '/members',
+        },
+        { icon: Calendar, label: 'Release Calendar', href: '/calendar' },
+        { icon: History, label: 'Provenance / Restore', href: '/provenance' },
+      ],
+    },
+    {
+      section: 'PUBLISHING',
+      items: [
+        { icon: FileText, label: 'B5 Pre-Press Specs', href: '/specs' },
+        { icon: ShieldCheck, label: 'SHA-256 Provenance', href: '/sha' },
+        { icon: Upload, label: 'Export / Publish', href: '/export' },
+      ],
+    },
+  ],
+  WRITER: [
+    {
+      section: 'WRITING',
+      items: [
+        { icon: FileEdit, label: 'My Scripts', href: '/workspace' },
+        {
+          icon: Sparkles,
+          label: 'AI Breakdown Requests',
+          href: '/ai-breakdown',
+          badge: { type: 'text', text: '2 Pending', color: 'bg-[#F3E8FF] text-[#6D28D9]' },
+        },
+        { icon: BookMarked, label: 'Series Bible', href: '/bible' },
+        { icon: Split, label: 'Script Version Compare', href: '/compare' },
+      ],
+    },
+  ],
+  ARTIST: [
+    {
+      section: 'STUDIO DESK',
+      items: [
+        {
+          icon: Inbox,
+          label: 'My Task Queue',
+          href: '/workspace',
+          badge: { type: 'text', text: '12', color: 'bg-[#F97316] text-white rounded-full px-2' },
+        },
+        { icon: LayoutTemplate, label: 'Layout & Thumbnail', href: '/layout' },
+        { icon: UploadCloud, label: 'Upload Artwork', href: '/upload' },
+        { icon: BookMarked, label: 'Series Bible & Assets', href: '/bible' },
+        {
+          icon: AlertCircle,
+          label: 'Change Requests',
+          href: '/requests',
+          badge: { type: 'dot', color: 'bg-red-500' },
+        },
+      ],
+    },
+  ],
+  LETTERER: [
+    {
+      section: 'LETTERING',
+      items: [
+        { icon: Type, label: 'Panel Canvas', href: '/workspace' },
+        {
+          icon: AlertTriangle,
+          label: 'Overflow Warnings',
+          href: '/warnings',
+          badge: { type: 'text', text: '3', color: 'bg-yellow-100 text-yellow-700' },
+        },
+        { icon: Settings2, label: 'Typography Presets', href: '/presets' },
+      ],
+    },
+  ],
+  EDITOR: [
+    {
+      section: 'EDITORIAL',
+      items: [
+        {
+          icon: Inbox,
+          label: 'Review Queue',
+          href: '/workspace',
+          badge: {
+            type: 'text',
+            text: 'In Review',
+            color: 'bg-[#FFFBEB] text-[#D97706] border border-[#FDE68A]',
+          },
+        },
+        { icon: Columns, label: 'Side-by-side Compare', href: '/compare' },
+        { icon: CheckSquare, label: 'Consistency Check', href: '/check' },
+        { icon: MessageSquare, label: 'Change Requests', href: '/requests' },
+      ],
+    },
+  ],
+  READER: [],
+};
 
 export function GlobalAppShell({
   currentUser,
@@ -102,22 +212,21 @@ export function GlobalAppShell({
     currentUser.role === 'READER' ||
     currentUser.workspaceRole === ('READER' as any);
 
-  // We use unified config for everyone. Admin gets extra items appended.
-  const navSections = [...UNIFIED_NAV_CONFIG.map((sec) => ({ ...sec, items: [...sec.items] }))];
+  const effectiveRole = currentUser.workspaceRole
+    ? String(currentUser.workspaceRole).toUpperCase()
+    : currentUser.activeRoles && currentUser.activeRoles.length > 0
+      ? String(currentUser.activeRoles[0]).toUpperCase()
+      : 'PRODUCER';
 
-  if (
-    currentUser.activeRoles?.includes('ADMINISTRATOR') ||
-    currentUser.role === 'ADMINISTRATOR'
-  ) {
-    navSections.push({
-      section: 'SYSTEM ADMIN',
-      items: [
-        { icon: LayoutDashboard, label: 'System Dashboard', href: '/admin' },
-        { icon: Users, label: 'Users & Roles', href: '/users' },
-        { icon: List, label: 'Global Audit Log', href: '/audit-log' },
-      ],
-    });
-  }
+  const rawSections =
+    (currentUser.role === 'ADMINISTRATOR' || currentUser.activeRoles?.includes('ADMINISTRATOR')) && !currentUser.workspaceRole
+      ? ROLE_NAV_CONFIG['ADMINISTRATOR'] || []
+      : ROLE_NAV_CONFIG[effectiveRole] || ROLE_NAV_CONFIG['PRODUCER'] || [];
+
+  const navSections = rawSections.map((sec) => ({
+    ...sec,
+    items: sec.items.map((item) => ({ ...item })),
+  }));
 
   const handleNavClick = (e: React.MouseEvent, href: string) => {
     e.preventDefault();
@@ -271,6 +380,7 @@ export function GlobalAppShell({
             <div className='relative'>
               <button
                 type='button'
+                data-testid='header-user-menu-btn'
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
                 className='flex items-center gap-2.5 p-1 rounded-lg hover:bg-neutral-100 transition-colors cursor-pointer'
               >
@@ -336,10 +446,25 @@ export function GlobalAppShell({
                       <span>Bảo mật hai lớp (2FA)</span>
                     </button>
 
+                    <button
+                      type='button'
+                      data-testid='user-menu-switch-workspace'
+                      onClick={() => {
+                        setUserMenuOpen(false);
+                        if (onNavigate) onNavigate('/workspaces');
+                        navigate('/workspaces');
+                      }}
+                      className='w-full text-left flex items-center gap-2 text-xs text-[#555555] hover:text-[#171717] hover:bg-neutral-100 px-3 py-2 rounded-lg transition-colors cursor-pointer'
+                    >
+                      <Briefcase className='w-3.5 h-3.5 text-[#F97316]' />
+                      <span>Đổi Workspace (Workspaces)</span>
+                    </button>
+
                     <div className='my-1 border-t border-[#E7E7E7]' />
 
                     <button
                       type='button'
+                      data-testid='logout-btn'
                       onClick={() => {
                         setUserMenuOpen(false);
                         onLogout?.();

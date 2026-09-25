@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Users,
   UserPlus,
@@ -19,33 +19,64 @@ import {
 } from 'lucide-react';
 import { StudioMember, MangaProject } from '../types';
 import { InviteMemberModal } from '../components/modals/InviteMemberModal';
+import { workspaceService, WorkspaceMemberDto } from '../services/workspace.service';
 
 interface MembersRolesViewProps {
-  activeProject: MangaProject;
-  members: StudioMember[];
-  onInviteMember: (newMember: StudioMember) => void;
-  onUpdateMemberRole: (memberId: string, newRole: string, updatedPermissions?: string[]) => void;
+  activeProject?: MangaProject;
+  workspaceId?: string;
+  members?: StudioMember[];
+  onInviteMember?: (newMember: StudioMember) => void;
+  onUpdateMemberRole?: (memberId: string, newRole: string, updatedPermissions?: string[]) => void;
   onShowToast: (title: string, desc: string) => void;
 }
 
-const ALL_POSSIBLE_PERMISSIONS = [
-  'Master Commit & Tankōbon Lock',
-  'AI Vector Retraining & LoRA Anchoring',
-  '600 DPI TIFF & CMYK Production Export',
-  'Editorial Sign-off / Print Gate Release',
-  'Budget, Billing & Seat Allocation',
-  'Inking & Tone Separation',
-  'Script & Dialogue Versioning',
-  'Sound Effects (SFX) Placement',
-];
+const mapMemberDtoToStudioMember = (m: WorkspaceMemberDto): StudioMember => {
+  const roleStr =
+    typeof m.role === 'number'
+      ? m.role === 0
+        ? 'PRODUCER'
+        : m.role === 1
+        ? 'WRITER'
+        : m.role === 2
+        ? 'ARTIST'
+        : m.role === 3
+        ? 'LETTERER'
+        : 'EDITOR'
+      : String(m.role).toUpperCase();
+
+  const initials = m.fullName
+    ? m.fullName
+        .split(' ')
+        .map((p) => p[0])
+        .join('')
+        .substring(0, 2)
+        .toUpperCase()
+    : 'ME';
+
+  return {
+    id: m.userId,
+    name: m.fullName || m.email.split('@')[0],
+    email: m.email,
+    role: roleStr,
+    avatarBg: '#171717',
+    initials,
+    status: 'Active',
+    activeTask: 'Production',
+    cryptoKey: `ECDSA-P256 [0x${m.userId.substring(0, 4).toUpperCase()}...${m.userId.substring(m.userId.length - 3).toUpperCase()}]`,
+    permissions: ['Production Seat', roleStr],
+  };
+};
 
 export const MembersRolesView: React.FC<MembersRolesViewProps> = ({
   activeProject,
-  members,
+  workspaceId,
+  members = [],
   onInviteMember,
   onUpdateMemberRole,
   onShowToast,
 }) => {
+  const [localMembers, setLocalMembers] = useState<StudioMember[]>(members);
+  const [isLoadingMembers, setIsLoadingMembers] = useState(false);
   const [activeTab, setActiveTab] = useState<'ALL' | 'LEAD' | 'ARTIST' | 'WRITER' | 'EDITOR'>(
     'ALL',
   );
@@ -55,12 +86,50 @@ export const MembersRolesView: React.FC<MembersRolesViewProps> = ({
   // Edit Access Modal State
   const [editingMember, setEditingMember] = useState<StudioMember | null>(null);
   const [editRole, setEditRole] = useState('');
-  const [editPermissions, setEditPermissions] = useState<string[]>([]);
   const [editTask, setEditTask] = useState('');
+
+  const effectiveWorkspaceId =
+    workspaceId ||
+    (() => {
+      try {
+        const saved = localStorage.getItem('activeWorkspace');
+        return saved ? JSON.parse(saved)?.id : undefined;
+      } catch {
+        return undefined;
+      }
+    })();
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchMembers = async () => {
+      if (!effectiveWorkspaceId) return;
+      setIsLoadingMembers(true);
+      try {
+        const data = await workspaceService.getMembers(effectiveWorkspaceId);
+        if (isMounted && data && data.length > 0) {
+          setLocalMembers(data.map(mapMemberDtoToStudioMember));
+        } else if (isMounted && members && members.length > 0) {
+          setLocalMembers(members);
+        }
+      } catch (err) {
+        console.warn('Không thể tải thành viên từ API, fallback sang danh sách local:', err);
+        if (isMounted && members && members.length > 0) {
+          setLocalMembers(members);
+        }
+      } finally {
+        if (isMounted) setIsLoadingMembers(false);
+      }
+    };
+
+    fetchMembers();
+    return () => {
+      isMounted = false;
+    };
+  }, [effectiveWorkspaceId, members]);
 
   // Filtering members safely
   const filteredMembers = useMemo(() => {
-    return members.filter((m) => {
+    return localMembers.filter((m) => {
       const q = searchQuery.toLowerCase().trim();
       const matchesSearch =
         !q ||
@@ -79,43 +148,61 @@ export const MembersRolesView: React.FC<MembersRolesViewProps> = ({
 
       return matchesSearch && matchesTab;
     });
-  }, [members, searchQuery, activeTab]);
+  }, [localMembers, searchQuery, activeTab]);
 
   // Tab counts
   const tabCounts = useMemo(() => {
     return {
-      ALL: members.length,
-      LEAD: members.filter(
+      ALL: localMembers.length,
+      LEAD: localMembers.filter(
         (m) =>
           (m.role || '').toLowerCase().includes('lead') ||
           (m.role || '').toLowerCase().includes('producer'),
       ).length,
-      ARTIST: members.filter((m) => (m.role || '').toLowerCase().includes('artist')).length,
-      WRITER: members.filter((m) => (m.role || '').toLowerCase().includes('writer')).length,
-      EDITOR: members.filter((m) => (m.role || '').toLowerCase().includes('editor')).length,
+      ARTIST: localMembers.filter((m) => (m.role || '').toLowerCase().includes('artist')).length,
+      WRITER: localMembers.filter((m) => (m.role || '').toLowerCase().includes('writer')).length,
+      EDITOR: localMembers.filter((m) => (m.role || '').toLowerCase().includes('editor')).length,
     };
-  }, [members]);
+  }, [localMembers]);
 
   const handleOpenEditAccess = (member: StudioMember) => {
     setEditingMember(member);
     setEditRole(member.role);
-    setEditPermissions(
-      member.permissions || ['600 DPI TIFF & CMYK Production Export', 'Inking & Tone Separation'],
-    );
     setEditTask(member.activeTask || member.assignedChapterNote || 'Chapter 5 Production');
   };
 
-  const handleTogglePermission = (perm: string) => {
-    setEditPermissions((prev) =>
-      prev.includes(perm) ? prev.filter((p) => p !== perm) : [...prev, perm],
-    );
-  };
-
-  const handleSaveAccess = () => {
+  const handleSaveAccess = async () => {
     if (!editingMember) return;
-    onUpdateMemberRole(editingMember.id, editRole, editPermissions);
+    try {
+      if (effectiveWorkspaceId) {
+        await workspaceService.updateMemberRole(effectiveWorkspaceId, editingMember.id, {
+          newRole: editRole,
+        });
+      }
+    } catch (err: any) {
+      console.warn('Lỗi khi gọi workspaceService.updateMemberRole, cập nhật local:', err);
+    }
+    setLocalMembers((prev) =>
+      prev.map((m) => (m.id === editingMember.id ? { ...m, role: editRole } : m)),
+    );
+    if (onUpdateMemberRole) onUpdateMemberRole(editingMember.id, editRole);
     onShowToast('Permissions Saved', `Updated role & access policies for ${editingMember.name}.`);
     setEditingMember(null);
+  };
+
+  const handleInvite = async (newMember: StudioMember) => {
+    try {
+      if (effectiveWorkspaceId) {
+        await workspaceService.addMember(effectiveWorkspaceId, {
+          email: newMember.email,
+          role: newMember.role,
+        });
+      }
+    } catch (err: any) {
+      console.warn('Lỗi khi gọi workspaceService.addMember, cập nhật local:', err);
+    }
+    setLocalMembers((prev) => [newMember, ...prev]);
+    if (onInviteMember) onInviteMember(newMember);
   };
 
   const handleRotateKey = (member: StudioMember) => {
@@ -473,43 +560,29 @@ export const MembersRolesView: React.FC<MembersRolesViewProps> = ({
             <div className='p-6 space-y-4 text-xs'>
               <div>
                 <label className='block font-mono font-bold uppercase tracking-wider text-[#888888] mb-1.5 text-[10px]'>
-                  Assigned Production Roles
+                  Assigned Production Role (Single Role)
                 </label>
                 <div className='flex flex-wrap gap-2 mt-1'>
-                  {['PRODUCER', 'ARTIST', 'WRITER', 'LETTERER', 'EDITOR', 'READER'].map((roleKey) => {
-                    const isActive = editRole.toUpperCase().includes(roleKey);
+                  {(['PRODUCER', 'ARTIST', 'WRITER', 'LETTERER', 'EDITOR'] as const).map((roleKey) => {
+                    const isSelected = editRole.toUpperCase() === roleKey;
                     return (
                       <label
                         key={roleKey}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[10px] font-bold tracking-wider cursor-pointer transition-colors ${
-                          isActive
-                            ? 'bg-[#171717] text-white border-[#171717]'
+                        className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border text-[11px] font-bold tracking-wider cursor-pointer transition-colors ${
+                          isSelected
+                            ? 'bg-[#171717] text-white border-[#171717] shadow-xs'
                             : 'bg-white text-[#555555] border-[#E7E7E7] hover:bg-[#FAF8F4]'
                         }`}
                       >
                         <input
-                          type='checkbox'
+                          type='radio'
+                          name='memberRole'
+                          value={roleKey}
                           className='hidden'
-                          checked={isActive}
-                          onChange={(e) => {
-                            let currentRoles = editRole
-                              .split(',')
-                              .map((r) => r.trim().toUpperCase())
-                              .filter(Boolean);
-                            
-                            if (currentRoles.includes('LEAD PRODUCER')) currentRoles = ['PRODUCER'];
-                            if (currentRoles.includes('ARTIST / INKER')) currentRoles = ['ARTIST'];
-                            if (currentRoles.includes('REVIEWER / EDITOR')) currentRoles = ['EDITOR'];
-
-                            if (e.target.checked) {
-                              if (!currentRoles.includes(roleKey)) currentRoles.push(roleKey);
-                            } else {
-                              currentRoles = currentRoles.filter((r) => r !== roleKey);
-                            }
-                            setEditRole(currentRoles.join(', '));
-                          }}
+                          checked={isSelected}
+                          onChange={() => setEditRole(roleKey)}
                         />
-                        {roleKey}
+                        <span>{roleKey}</span>
                       </label>
                     );
                   })}
@@ -526,35 +599,6 @@ export const MembersRolesView: React.FC<MembersRolesViewProps> = ({
                   onChange={(e) => setEditTask(e.target.value)}
                   className='w-full px-3 py-2 bg-[#FAF8F4] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-[#171717] focus:outline-none focus:border-[#F97316]'
                 />
-              </div>
-
-              <div>
-                <label className='block font-mono font-bold uppercase tracking-wider text-[#888888] mb-2 text-[10px]'>
-                  Grant Granular Capabilities
-                </label>
-                <div className='space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar p-2 bg-[#FAF8F4] rounded-xl border border-[#E7E7E7]'>
-                  {ALL_POSSIBLE_PERMISSIONS.map((perm) => {
-                    const isChecked = editPermissions.includes(perm);
-                    return (
-                      <label
-                        key={perm}
-                        className='flex items-center gap-2 p-1.5 rounded hover:bg-white transition-colors cursor-pointer'
-                      >
-                        <input
-                          type='checkbox'
-                          checked={isChecked}
-                          onChange={() => handleTogglePermission(perm)}
-                          className='accent-[#F97316] rounded'
-                        />
-                        <span
-                          className={`text-[11px] font-mono ${isChecked ? 'text-[#171717] font-semibold' : 'text-[#888888]'}`}
-                        >
-                          {perm}
-                        </span>
-                      </label>
-                    );
-                  })}
-                </div>
               </div>
             </div>
 
@@ -583,7 +627,7 @@ export const MembersRolesView: React.FC<MembersRolesViewProps> = ({
       <InviteMemberModal
         isOpen={inviteMemberOpen}
         onClose={() => setInviteMemberOpen(false)}
-        onInvite={onInviteMember}
+        onInvite={handleInvite}
         onShowToast={onShowToast}
       />
     </div>

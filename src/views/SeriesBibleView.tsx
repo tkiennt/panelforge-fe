@@ -23,15 +23,15 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { BibleEntity, BibleCategory, MangaProject } from '../types';
-import { bibleService, BibleEntryRevisionDto } from '../services/bible.service';
+import { bibleService, BibleEntryRevisionDto, BibleEntryDto } from '../services/bible.service';
 import { AddEntityModal } from '../components/modals/AddEntityModal';
 import { VectorStatusModal } from '../components/modals/VectorStatusModal';
 
 interface SeriesBibleViewProps {
   activeProject: MangaProject;
-  entities: BibleEntity[];
-  onAddEntity: (entity: BibleEntity) => void;
-  onEditEntity: (entity: BibleEntity) => void;
+  entities?: BibleEntity[];
+  onAddEntity?: (entity: BibleEntity) => void;
+  onEditEntity?: (entity: BibleEntity) => void;
   onShowToast: (title: string, desc: string) => void;
 }
 
@@ -42,13 +42,53 @@ const CATEGORIES: { key: BibleCategory; label: string; count: number }[] = [
   { key: 'style', label: 'Style Rules', count: 4 },
 ];
 
+const mapCategoryToTab = (cat: number): BibleCategory => {
+  switch (cat) {
+    case 0:
+      return 'characters';
+    case 1:
+      return 'locations';
+    case 2:
+    case 3:
+    case 5:
+      return 'terminology';
+    case 4:
+      return 'style';
+    default:
+      return 'characters';
+  }
+};
+
+const mapEntryToBibleEntity = (entry: BibleEntryDto): BibleEntity => {
+  return {
+    id: entry.id,
+    code: entry.code || `#ENT-${entry.id.substring(0, 4)}`,
+    name: entry.name,
+    subtitle: entry.subtitle || 'Canon Spec Entity',
+    category: mapCategoryToTab(entry.category),
+    description: entry.description || '',
+    tags: ['CANON', entry.code || 'BIBLE'],
+    referencesCount: 1,
+    loraWeight: 0.85,
+    modelVersion: 'LoRA v4.2',
+    continuityMatch: 99.2,
+    imageUrl:
+      entry.referenceImageUrl ||
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuBRF-X_pK-VNA-EDpW2TbENZXn5jBdsCJEViFUEfD1-cL_s6PpvrNV7Br-yvSJJP7XpLx-Q6po_dSRvBycNhUkNoZrpxI6pCLfmSiu3GY9sfOpdOlnvjkYYCL0y61ttCJ5fLSmT1ICs8y7G9Q6Y5MOdvUJxx1VFnqyY8qN7YBUINiyVOxDKYSL905nG_GxVijlasleWGD3OZipKscljZThMLHG09TocsEdeAvvhlPimteBhQD9Wacq_qA',
+    status: entry.isActive ? 'Verified' : 'Draft',
+    colors: ['#171717', '#F97316', '#FFFFFF'],
+  };
+};
+
 export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
   activeProject,
-  entities,
+  entities = [],
   onAddEntity,
   onEditEntity,
   onShowToast,
 }) => {
+  const [localEntities, setLocalEntities] = useState<BibleEntity[]>(entities);
+  const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<BibleCategory>('characters');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -75,8 +115,61 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
   );
   const [savingRevision, setSavingRevision] = useState(false);
 
+  // Fetch Series Bible from backend API on mount or when activeProject changes
+  useEffect(() => {
+    let isMounted = true;
+    const fetchBible = async () => {
+      if (!activeProject?.id) return;
+      setIsLoading(true);
+      try {
+        const bibleData = await bibleService.getSeriesBible(activeProject.id);
+        if (isMounted && bibleData?.entries && bibleData.entries.length > 0) {
+          setLocalEntities(bibleData.entries.map(mapEntryToBibleEntity));
+        } else if (isMounted && entities && entities.length > 0) {
+          setLocalEntities(entities);
+        }
+      } catch (err) {
+        console.warn('Không thể tải Series Bible từ backend, fallback sang dữ liệu bộ nhớ:', err);
+        if (isMounted && entities && entities.length > 0) {
+          setLocalEntities(entities);
+        }
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+
+    fetchBible();
+    return () => {
+      isMounted = false;
+    };
+  }, [activeProject?.id, entities]);
+
+  const handleCreateEntity = async (newEntity: BibleEntity) => {
+    try {
+      if (activeProject?.id) {
+        let catNum: any = 0;
+        if (newEntity.category === 'locations') catNum = 1;
+        else if (newEntity.category === 'terminology') catNum = 3;
+        else if (newEntity.category === 'style') catNum = 4;
+
+        await bibleService.createBibleEntry(activeProject.id, {
+          category: catNum,
+          code: newEntity.code,
+          name: newEntity.name,
+          subtitle: newEntity.subtitle,
+          description: newEntity.description,
+          referenceImageUrl: newEntity.imageUrl,
+        });
+      }
+    } catch (err: any) {
+      console.warn('Lỗi khi gọi bibleService.createBibleEntry, lưu local:', err);
+    }
+    setLocalEntities((prev) => [newEntity, ...prev]);
+    if (onAddEntity) onAddEntity(newEntity);
+  };
+
   const filteredEntities = useMemo(() => {
-    return entities.filter((item) => {
+    return localEntities.filter((item) => {
       const matchesTab = activeTab === 'all' || item.category === activeTab;
       const matchesSearch =
         !searchQuery ||
@@ -84,11 +177,11 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
         item.subtitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.description.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesStatus =
-        statusFilter === 'ALL' || item.status.toLowerCase() === statusFilter.toLowerCase();
+        statusFilter === 'ALL' || (item.status && item.status.toLowerCase() === statusFilter.toLowerCase());
 
       return matchesTab && matchesSearch && matchesStatus;
     });
-  }, [entities, activeTab, searchQuery, statusFilter]);
+  }, [localEntities, activeTab, searchQuery, statusFilter]);
 
   return (
     <div className='max-w-7xl mx-auto space-y-6 pb-12'>
@@ -689,7 +782,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
       <AddEntityModal
         isOpen={addEntityOpen}
         onClose={() => setAddEntityOpen(false)}
-        onAdd={onAddEntity}
+        onAdd={handleCreateEntity}
         onShowToast={onShowToast}
       />
       <VectorStatusModal

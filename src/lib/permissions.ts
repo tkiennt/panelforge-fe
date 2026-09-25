@@ -23,10 +23,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
   'LETTERER': ['view_pipeline', 'drag_card', 'upload_layer', 'letter:write'],
   'EDITOR': ['view_pipeline', 'review_card', 'stage:approve'],
   'PRODUCER': ['view_pipeline', 'create_card', 'drag_card', 'review_card', 'stage:approve'],
-  'ADMINISTRATOR': [
-    'view_pipeline', 'create_card', 'drag_card', 'edit_script', 'edit_art', 'review_card', 'request_ai', 'upload_layer',
-    'script:write', 'sketch:write', 'color:write', 'letter:write', 'stage:approve'
-  ],
+  'ADMINISTRATOR': [],
 };
 
 export function resolvePermissions(roles: string[]): Permission[] {

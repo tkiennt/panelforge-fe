@@ -67,8 +67,10 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
         )}
         
         <div
+          data-testid='sidebar-workspace-switcher'
+          onClick={(e) => handleNavClick(e, '/workspaces')}
           className='group flex items-center justify-between cursor-pointer px-1 py-1 rounded-md hover:bg-[#E7E7E7]/40 transition-colors'
-          title='Switch active manga serialization'
+          title='Switch active workspace'
         >
           <div className='flex items-center gap-2.5 min-w-0'>
             <BookOpen className='w-4 h-4 stroke-[2] text-[#171717]' />

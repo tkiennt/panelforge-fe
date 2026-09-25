@@ -18,7 +18,7 @@ import {
   INITIAL_ASSISTANTS,
   INITIAL_PROJECT_MEMBERSHIPS,
 } from './data/mockData';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate, Outlet } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { ReviewView } from './views/ReviewView';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
@@ -68,6 +68,7 @@ import {
   WorkspaceDto,
   normalizeSystemRole,
   normalizeWorkspaceRole,
+  getRoleFromToken,
 } from './types';
 import { LoginModal } from './components/modals/LoginModal';
 import { RegisterModal } from './components/modals/RegisterModal';
@@ -94,20 +95,18 @@ const PrivateRoute = ({ isAuthenticated, isDemoMode, children }: { isAuthenticat
 };
 
 const AdminRoute = ({
-  activeRoles,
-  currentRole,
   children,
 }: {
   activeRoles?: any[];
   currentRole?: any;
   children: React.ReactNode;
 }) => {
-  const isAdmin =
-    activeRoles?.includes('ADMINISTRATOR') ||
-    currentRole === 'ADMINISTRATOR' ||
-    localStorage.getItem('userRole') === 'ADMINISTRATOR';
+  // Chỉ tin cậy duy nhất role từ JWT token thật đã được backend ký
+  const verifiedRole = getRoleFromToken();
+  const isAdmin = verifiedRole === 'ADMINISTRATOR';
+
   if (!isAdmin) {
-    return <Navigate to="/workspace" replace />;
+    return <Navigate to="/workspaces" replace />;
   }
   return <>{children}</>;
 };
@@ -128,9 +127,13 @@ function AppContent() {
   // Navigation & Data State
   const [viewScope, setViewScope] = useState<'hub' | 'project'>('hub');
   const [currentView, setCurrentView] = useState<ViewMode | string>('workspaces');
-  const [currentRole, setCurrentRole] = useState<SystemRole>('USER');
+  const [currentRole, setCurrentRole] = useState<SystemRole>(() => {
+    return getRoleFromToken() || 'USER';
+  });
   const [currentWorkspaceRole, setCurrentWorkspaceRole] = useState<WorkspaceRole | null>(null);
-  const [activeProjectRoles, setActiveProjectRoles] = useState<string[]>(['ARTIST']);
+  const [activeProjectRoles, setActiveProjectRoles] = useState<string[]>(() => {
+    return getRoleFromToken() === 'ADMINISTRATOR' ? ['ADMINISTRATOR'] : ['ARTIST'];
+  });
   const [currentUserInfo, setCurrentUserInfo] = useState<{
     id?: string;
     name: string;
@@ -147,7 +150,6 @@ function AppContent() {
       if (user) {
         setIsAuthenticated(true);
         // Luôn đồng bộ JWT token từ backend để đảm bảo role luôn được cập nhật mới nhất
-        // (tránh trường hợp token cũ có role sai sau khi admin đổi role user)
         try {
           const idToken = await user.getIdToken();
           const res = await authService.externalLogin(idToken);
@@ -158,6 +160,9 @@ function AppContent() {
             const role = normalizeSystemRole(res.user.role);
             setCurrentRole(role);
             localStorage.setItem('userRole', role);
+            if (role === 'ADMINISTRATOR') {
+              setActiveProjectRoles(['ADMINISTRATOR']);
+            }
             setCurrentUserInfo({
               id: res.user.id,
               name: res.user.fullName || user.displayName || user.email?.split('@')[0] || 'User',
@@ -170,7 +175,6 @@ function AppContent() {
           }
         } catch (err) {
           console.warn('Không thể đồng bộ token backend từ Firebase session:', err);
-          // Fallback: đọc từ localStorage nếu có
         }
       } else {
         const token = localStorage.getItem('token');
@@ -184,12 +188,18 @@ function AppContent() {
 
   const navigateRoleDefaultView = (role: SystemRole) => {
     if (role === 'ADMINISTRATOR') {
+      setCurrentRole('ADMINISTRATOR');
+      setActiveProjectRoles(['ADMINISTRATOR']);
+      setCurrentWorkspaceRole(null);
       setViewScope('project');
       setCurrentView('admin-dash');
+      navigate('/admin');
     } else {
+      setCurrentRole('USER');
       setCurrentWorkspaceRole(null);
       setViewScope('hub');
       setCurrentView('workspaces');
+      navigate('/workspaces');
     }
   };
 
@@ -215,27 +225,69 @@ function AppContent() {
     }
   };
 
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.pathname === '/workspaces' || location.pathname === '/') {
+      setCurrentWorkspaceRole(null);
+    }
+  }, [location.pathname]);
+
+  const [activeWorkspace, setActiveWorkspace] = useState<WorkspaceDto | null>(() => {
+    try {
+      const saved = localStorage.getItem('activeWorkspace');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
   const handleSelectWorkspace = (ws: WorkspaceDto) => {
+    setActiveWorkspace(ws);
+    try {
+      localStorage.setItem('activeWorkspace', JSON.stringify(ws));
+    } catch {}
     const wsRole =
       normalizeWorkspaceRole(ws.currentUserRole) ||
       (currentRole === 'ADMINISTRATOR' ? 'PRODUCER' : 'ARTIST');
     setCurrentWorkspaceRole(wsRole);
+    setActiveProjectRoles([wsRole]);
     setViewScope('project');
     navigateToWorkspaceRoleView(wsRole);
+    navigate('/workspace');
   };
 
-  // Khôi phục vai trò từ localStorage hoặc giải mã JWT token khi tải lại trang
+  // Khôi phục vai trò và phiên làm việc từ JWT token (Single Source of Truth) khi tải lại trang
   useEffect(() => {
-    const savedRole = localStorage.getItem('userRole');
-    if (savedRole) {
-      const role = normalizeSystemRole(savedRole);
-      // Removed setCurrentRole(role) as we are using activeProjectRoles
+    const verifiedRole = getRoleFromToken();
+    if (verifiedRole) {
+      setIsAuthenticated(true);
+      setCurrentRole(verifiedRole);
+      localStorage.setItem('userRole', verifiedRole); // Luôn ghi đè đồng bộ đúng role từ token
+      if (verifiedRole === 'ADMINISTRATOR') {
+        setActiveProjectRoles(['ADMINISTRATOR']);
+        setCurrentWorkspaceRole(null);
+      } else {
+        if (activeProjectRoles.includes('ADMINISTRATOR')) {
+          setActiveProjectRoles(['ARTIST']);
+        }
+      }
+    } else {
+      const savedToken = localStorage.getItem('token');
+      if (savedToken && !savedToken.startsWith('mock-')) {
+        // Token hết hạn hoặc không hợp lệ -> xóa sạch
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('userRole');
+        setIsAuthenticated(false);
+      }
     }
+
     const savedUser = localStorage.getItem('user');
     if (savedUser) {
       try {
         const u = JSON.parse(savedUser);
-        const role = normalizeSystemRole(u.role);
+        const role = verifiedRole || normalizeSystemRole(u.role);
         setCurrentUserInfo({
           id: u.id,
           name: u.fullName || u.username || u.email?.split('@')[0] || 'User',
@@ -245,38 +297,6 @@ function AppContent() {
         });
       } catch {
         // bỏ qua lỗi parse
-      }
-    }
-    const savedToken = localStorage.getItem('token');
-    if (savedToken) {
-      if (savedToken.startsWith('mock-')) {
-        setIsAuthenticated(true);
-      } else {
-        try {
-          const parts = savedToken.split('.');
-          if (parts.length === 3) {
-            const payload = JSON.parse(atob(parts[1]));
-            const exp = payload.exp;
-            if (exp && Date.now() >= exp * 1000) {
-              localStorage.removeItem('token');
-              localStorage.removeItem('user');
-              localStorage.removeItem('userRole');
-              setIsAuthenticated(false);
-            } else {
-              setIsAuthenticated(true);
-              const roleClaim =
-                payload.role ||
-                payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'];
-              if (roleClaim) {
-                const role = normalizeSystemRole(roleClaim);
-                setCurrentRole(role);
-                localStorage.setItem('userRole', role);
-              }
-            }
-          }
-        } catch {
-          // bỏ qua lỗi giải mã
-        }
       }
     }
   }, []);
@@ -449,12 +469,21 @@ function AppContent() {
     localStorage.removeItem('token');
     localStorage.removeItem('userRole');
     localStorage.removeItem('user');
+    localStorage.removeItem('demoRole');
+    localStorage.removeItem('isDemoMode');
+    localStorage.removeItem('pf_remember_device');
     setFirebaseUser(null);
     setCurrentUserInfo(null);
     setIsAuthenticated(false);
     setIsDemoMode(false);
+    setDemoRole(null);
+    setCurrentRole('USER');
+    setCurrentWorkspaceRole(null);
     showToast('Đăng xuất', 'Đã đăng xuất khỏi phiên làm việc.');
   };
+
+  const verifiedRole = getRoleFromToken();
+  const defaultRedirectPath = verifiedRole === 'ADMINISTRATOR' ? '/admin' : '/workspaces';
 
   return (
     <div className='min-h-screen bg-[#F8F6F0] text-[#171717] font-sans antialiased selection:bg-[#F97316]/20 selection:text-[#EA580C] relative'>
@@ -467,6 +496,13 @@ function AppContent() {
           setDemoRole(null);
           localStorage.removeItem('demoRole');
           localStorage.setItem('isDemoMode', 'false');
+          const currentToken = localStorage.getItem('token');
+          if (currentToken && currentToken.startsWith('mock-')) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('userRole');
+            localStorage.removeItem('user');
+            setIsAuthenticated(false);
+          }
         }}
       />
 
@@ -481,7 +517,7 @@ function AppContent() {
                 onOpenRegister={() => setIsRegisterModalOpen(true)}
               />
             ) : (
-              <Navigate to="/workspaces" replace />
+              <Navigate to={defaultRedirectPath} replace />
             )
           }
         />
@@ -494,7 +530,7 @@ function AppContent() {
             </PrivateRoute>
           }
         >
-          <Route index element={<Navigate to="/workspaces" replace />} />
+          <Route index element={<Navigate to={defaultRedirectPath} replace />} />
 
           <Route
             path="workspaces"
@@ -523,6 +559,7 @@ function AppContent() {
             element={
               <div className='h-screen w-full overflow-y-auto custom-scrollbar bg-[#FAF8F4]'>
                 <ContentHubView
+                  workspaceId={activeWorkspace?.id}
                   projects={projects}
                   onSelectProject={(proj) => setActiveProject(proj)}
                   onEnterProject={handleEnterProject}
@@ -600,7 +637,6 @@ function AppContent() {
               element={
                 <SeriesBibleView
                   activeProject={activeProject}
-                  entities={entities}
                   onAddEntity={handleAddEntity}
                   onEditEntity={(e) => showToast('Series Bible', `Mở chi tiết ${e.name}`)}
                   onShowToast={showToast}
@@ -612,6 +648,7 @@ function AppContent() {
               element={
                 <MembersRolesView
                   activeProject={activeProject}
+                  workspaceId={activeWorkspace?.id}
                   members={members}
                   onInviteMember={handleInviteMember}
                   onUpdateMemberRole={(memberId, newRole) => {
@@ -679,6 +716,11 @@ function AppContent() {
               }
             />
           </Route>
+
+          <Route
+            path="*"
+            element={<Navigate to={defaultRedirectPath} replace />}
+          />
         </Route>
       </Routes>
 
@@ -751,6 +793,10 @@ function AppContent() {
           onGoogleLogin={(res) => {
             setIsLoginModalOpen(false);
             setIsAuthenticated(true);
+            setIsDemoMode(false);
+            setDemoRole(null);
+            localStorage.removeItem('demoRole');
+            localStorage.setItem('isDemoMode', 'false');
             if (res?.token) {
               localStorage.setItem('token', res.token);
             }
@@ -779,6 +825,10 @@ function AppContent() {
           onApiLoginSuccess={(authResponse) => {
             setIsLoginModalOpen(false);
             setIsAuthenticated(true);
+            setIsDemoMode(false);
+            setDemoRole(null);
+            localStorage.removeItem('demoRole');
+            localStorage.setItem('isDemoMode', 'false');
             if (authResponse?.token) {
               localStorage.setItem('token', authResponse.token);
             }

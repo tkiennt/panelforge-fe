@@ -84,7 +84,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       }
     } catch (err: any) {
       console.error('Login Error:', err);
-      if (mockAccounts.includes(lowerEmail) || password === '123456') {
+      // Khi đăng nhập bằng email, nếu backend báo lỗi (sai mật khẩu, 401...), phải hiển thị lỗi rõ ràng
+      // Tuyệt đối không được âm thầm nuốt lỗi và tự động gán token mock vào session
+      if (!lowerEmail.includes('@') && mockAccounts.includes(lowerEmail)) {
         onLogin(email, password);
       } else {
         setError(err.message || 'Đăng nhập thất bại. Vui lòng thử lại.');

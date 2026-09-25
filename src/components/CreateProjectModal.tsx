@@ -10,17 +10,20 @@ import {
   Check,
 } from 'lucide-react';
 import { MangaProject } from '../types';
+import { seriesService } from '../services/series.service';
 
 interface CreateProjectModalProps {
   isOpen: boolean;
   onClose: () => void;
   onCreateProject: (newProject: MangaProject) => void;
+  workspaceId?: string;
 }
 
 export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
   isOpen,
   onClose,
   onCreateProject,
+  workspaceId,
 }) => {
   const [title, setTitle] = useState('Cyberpunk 2077: Edgerunners');
   const [format, setFormat] = useState('B5 Tankōbon (600 DPI)');
@@ -77,12 +80,46 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim()) return;
+    if (!title.trim() || isSubmitting) return;
+
+    setIsSubmitting(true);
+    let createdId = `project-${Date.now()}`;
+
+    try {
+      const effectiveWsId =
+        workspaceId ||
+        (() => {
+          try {
+            const saved = localStorage.getItem('activeWorkspace');
+            return saved ? JSON.parse(saved)?.id : undefined;
+          } catch {
+            return undefined;
+          }
+        })();
+
+      if (effectiveWsId) {
+        const created = await seriesService.createSeries(effectiveWsId, {
+          title: title.trim(),
+          synopsis: 'High-octane serialized manga production initialized via PanelForge AI Studio.',
+          genre: tags.join(', '),
+          format,
+        });
+        if (created?.id) {
+          createdId = created.id;
+        }
+      }
+    } catch (err) {
+      console.warn('Lỗi khi gọi seriesService.createSeries, fallback sang local:', err);
+    } finally {
+      setIsSubmitting(false);
+    }
 
     const newProject: MangaProject = {
-      id: `project-${Date.now()}`,
+      id: createdId,
       title: title.trim(),
       subtitle: `Studio Mappa • Arc 01 Pilot Episode`,
       arc: 'Arc 01: Pilot Edition',

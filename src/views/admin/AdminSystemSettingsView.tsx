@@ -12,7 +12,9 @@ import {
   Server,
   ToggleLeft,
   ToggleRight,
+  Loader2,
 } from 'lucide-react';
+import { adminService } from '../../services/admin.service';
 
 export const AdminSystemSettingsView: React.FC = () => {
   const [geminiQuota, setGeminiQuota] = useState('500000');
@@ -21,11 +23,48 @@ export const AdminSystemSettingsView: React.FC = () => {
   const [enforce2FAForAdmin, setEnforce2FAForAdmin] = useState(true);
   const [maintenanceMode, setMaintenanceMode] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [aiWorkspaces, setAiWorkspaces] = useState<any[]>([]);
+  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>('');
 
-  const handleSave = (e: React.FormEvent) => {
+  React.useEffect(() => {
+    const fetchAiConfigs = async () => {
+      try {
+        const usageList = await adminService.getAiUsage();
+        if (usageList && usageList.length > 0) {
+          setAiWorkspaces(usageList);
+          const first = usageList[0];
+          setSelectedWorkspaceId(first.workspaceId);
+          if (first.monthlyTokenQuota) {
+            setGeminiQuota(String(first.monthlyTokenQuota));
+          }
+        }
+      } catch (err) {
+        console.warn('Không thể tải AI usage configs từ API:', err);
+      }
+    };
+    fetchAiConfigs();
+  }, []);
+
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSavedSuccess(true);
-    setTimeout(() => setSavedSuccess(false), 3000);
+    setIsSaving(true);
+    try {
+      if (selectedWorkspaceId) {
+        await adminService.updateWorkspaceAiConfig(selectedWorkspaceId, {
+          provider: 'Google Gemini',
+          monthlyTokenQuota: parseInt(geminiQuota, 10) || 500000,
+          isEnabled: true,
+          allowedModels: ['gemini-1.5-pro', 'gemini-1.5-flash'],
+        });
+      }
+      setSavedSuccess(true);
+      setTimeout(() => setSavedSuccess(false), 3000);
+    } catch (err: any) {
+      console.error('Lỗi lưu cấu hình AI:', err);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -73,6 +112,31 @@ export const AdminSystemSettingsView: React.FC = () => {
               </p>
             </div>
           </div>
+
+          {aiWorkspaces.length > 0 && (
+            <div>
+              <label className='block text-xs font-semibold text-[#171717] mb-1'>
+                Studio Workspace áp dụng hạn ngạch
+              </label>
+              <select
+                value={selectedWorkspaceId}
+                onChange={(e) => {
+                  setSelectedWorkspaceId(e.target.value);
+                  const found = aiWorkspaces.find((w) => w.workspaceId === e.target.value);
+                  if (found && found.monthlyTokenQuota) {
+                    setGeminiQuota(String(found.monthlyTokenQuota));
+                  }
+                }}
+                className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg text-xs font-mono text-[#171717] focus:outline-none focus:border-[#F97316]'
+              >
+                {aiWorkspaces.map((ws) => (
+                  <option key={ws.workspaceId} value={ws.workspaceId}>
+                    {ws.workspaceName || ws.workspaceId} ({ws.usedTokensCurrentMonth?.toLocaleString() || 0} / {ws.monthlyTokenQuota?.toLocaleString() || 0} tokens)
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
             <div>

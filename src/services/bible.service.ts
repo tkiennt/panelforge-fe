@@ -75,7 +75,7 @@ function getAuthHeaders(): Record<string, string> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
-  if (token) {
+  if (token && !token.startsWith('mock-')) {
     headers['Authorization'] = `Bearer ${token}`;
   }
   return headers;

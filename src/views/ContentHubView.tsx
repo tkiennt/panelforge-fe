@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Folder,
   Plus,
@@ -17,8 +17,10 @@ import {
 import { MangaProject, ViewMode } from '../types';
 import { CreateProjectModal } from '../components/CreateProjectModal';
 import { ExportDeliveryModal } from '../components/modals/ExportDeliveryModal';
+import { seriesService, SeriesDto } from '../services/series.service';
 
 interface ContentHubViewProps {
+  workspaceId?: string;
   projects: MangaProject[];
   onSelectProject: (proj: MangaProject) => void;
   onNavigateView?: (view: ViewMode) => void;
@@ -28,13 +30,38 @@ interface ContentHubViewProps {
   isRootView?: boolean;
 }
 
+const mapSeriesDtoToMangaProject = (s: SeriesDto): MangaProject => {
+  return {
+    id: s.id,
+    title: s.title,
+    subtitle: s.synopsis || 'Studio Production Serial',
+    arc: 'Arc 01: Pilot Edition',
+    chapter: s.chaptersCount || 1,
+    format: s.format || 'B5 Tankōbon (600 DPI)',
+    status: 'In Production (0%)',
+    progressPercent: 0,
+    completedPages: 0,
+    totalPages: 32,
+    dueDate: 'Dec 2026',
+    daysLeft: 12,
+    genres: s.genre ? s.genre.split(',').map((g) => g.trim()) : ['Action', 'Sci-Fi'],
+    coverStyle: 'halftone-cyber',
+    coverText: s.title.toUpperCase(),
+    tagline: s.synopsis || 'High-octane serialized manga production initialized via PanelForge AI Studio.',
+    lastUpdated: s.updatedAt || s.createdAt || 'Just now',
+  };
+};
+
 export const ContentHubView: React.FC<ContentHubViewProps> = ({
+  workspaceId,
   projects,
   onSelectProject,
   onEnterProject,
   onCreateNewProject,
   isRootView = true,
 }) => {
+  const [localProjects, setLocalProjects] = useState<MangaProject[]>(projects);
+  const [isLoadingSeries, setIsLoadingSeries] = useState(false);
   const [filter, setFilter] = useState<'ALL' | 'ACTIVE' | 'COMPLETED'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [formatFilter, setFormatFilter] = useState<string>('ALL');
@@ -42,9 +69,48 @@ export const ContentHubView: React.FC<ContentHubViewProps> = ({
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [exportModalOpen, setExportModalOpen] = useState(false);
 
+  const effectiveWorkspaceId =
+    workspaceId ||
+    (() => {
+      try {
+        const saved = localStorage.getItem('activeWorkspace');
+        return saved ? JSON.parse(saved)?.id : undefined;
+      } catch {
+        return undefined;
+      }
+    })();
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchSeries = async () => {
+      if (!effectiveWorkspaceId) return;
+      setIsLoadingSeries(true);
+      try {
+        const data = await seriesService.getSeriesList(effectiveWorkspaceId);
+        if (isMounted && data && data.length > 0) {
+          setLocalProjects(data.map(mapSeriesDtoToMangaProject));
+        } else if (isMounted && projects && projects.length > 0) {
+          setLocalProjects(projects);
+        }
+      } catch (err) {
+        console.warn('Không thể tải Series từ API, fallback sang danh sách local:', err);
+        if (isMounted && projects && projects.length > 0) {
+          setLocalProjects(projects);
+        }
+      } finally {
+        if (isMounted) setIsLoadingSeries(false);
+      }
+    };
+
+    fetchSeries();
+    return () => {
+      isMounted = false;
+    };
+  }, [effectiveWorkspaceId, projects]);
+
   // Filter projects according to tab, format, and search/tag
   const filteredProjects = useMemo(() => {
-    return projects.filter((p) => {
+    return localProjects.filter((p) => {
       const q = searchQuery.toLowerCase().trim();
       const tagQ = tagFilter.toLowerCase().trim();
 
@@ -74,16 +140,17 @@ export const ContentHubView: React.FC<ContentHubViewProps> = ({
 
       return matchesSearch && matchesTag && matchesFilter && matchesFormat;
     });
-  }, [projects, searchQuery, tagFilter, filter, formatFilter]);
+  }, [localProjects, searchQuery, tagFilter, filter, formatFilter]);
 
   // Calculate high-level summary KPIs matching the screenshot
-  const activeSeriesCount = projects.filter((p) => p.progressPercent < 100).length;
-  const totalCompletedPages = projects.reduce((acc, p) => acc + (p.completedPages || 0), 0);
-  const totalTargetPages = projects.reduce((acc, p) => acc + (p.totalPages || 0), 0);
+  const activeSeriesCount = localProjects.filter((p) => p.progressPercent < 100).length;
+  const totalCompletedPages = localProjects.reduce((acc, p) => acc + (p.completedPages || 0), 0);
+  const totalTargetPages = localProjects.reduce((acc, p) => acc + (p.totalPages || 0), 0);
   const completionRate =
     totalTargetPages > 0 ? ((totalCompletedPages / totalTargetPages) * 100).toFixed(1) : '69.5';
 
   const handleCreateSubmit = (newProject: MangaProject) => {
+    setLocalProjects((prev) => [newProject, ...prev]);
     onCreateNewProject(newProject);
     setIsCreateModalOpen(false);
   };
@@ -542,6 +609,7 @@ export const ContentHubView: React.FC<ContentHubViewProps> = ({
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onCreateProject={handleCreateSubmit}
+        workspaceId={effectiveWorkspaceId}
       />
 
       {/* Export & Delivery Modal */}
