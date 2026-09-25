@@ -49,8 +49,8 @@ export const AdminAssignRoleModal: React.FC<AdminAssignRoleModalProps> = ({
               Chọn vai trò hệ thống / dự án:
             </label>
             <div className='grid grid-cols-1 gap-2 p-1'>
-              {ALL_ROLES.filter((r) => r.key === 'Producer').map((r) => {
-                const isSelected = selectedNewRoles.includes(r.key) || selectedNewRoles.includes(r.key.toUpperCase());
+              {ALL_ROLES.filter((r) => r.key === 'Producer' || r.key === 'User').map((r) => {
+                const isSelected = selectedNewRoles.includes(r.key);
                 return (
                   <label
                     key={r.key}
@@ -62,26 +62,27 @@ export const AdminAssignRoleModal: React.FC<AdminAssignRoleModalProps> = ({
                   >
                     <div className='flex items-center gap-2.5'>
                       <input
-                        type='checkbox'
+                        type='radio'
+                        name='roleOption'
                         className='w-4 h-4 accent-[#F97316] cursor-pointer'
                         checked={isSelected}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedNewRoles(['Producer']);
-                          } else {
-                            setSelectedNewRoles([]);
-                          }
+                        onChange={() => {
+                          setSelectedNewRoles([r.key]);
                         }}
                       />
                       <div>
                         <div className='font-bold text-[#171717]'>{r.label}</div>
                         <div className='text-[11px] text-[#737373] font-normal mt-0.5'>
-                          Cho phép người dùng tạo, quản lý dự án truyện tranh & khởi tạo các phòng sản xuất (Workspace Series).
+                          {r.key === 'Producer'
+                            ? 'Cho phép người dùng tạo, quản lý dự án truyện tranh & khởi tạo các phòng sản xuất (Workspace Series).'
+                            : 'Tài khoản người dùng thông thường, xem và tham gia workspace được mời.'}
                         </div>
                       </div>
                     </div>
-                    <span className='font-mono text-[10px] bg-[#F97316] text-white px-2 py-0.5 rounded font-bold uppercase shrink-0'>
-                      PRODUCER ONLY
+                    <span className={`font-mono text-[10px] px-2 py-0.5 rounded font-bold uppercase shrink-0 ${
+                      r.key === 'Producer' ? 'bg-[#F97316] text-white' : 'bg-stone-200 text-stone-700'
+                    }`}>
+                      {r.key}
                     </span>
                   </label>
                 );

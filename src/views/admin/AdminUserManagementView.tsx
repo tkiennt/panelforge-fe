@@ -44,23 +44,9 @@ export const AdminUserManagementView: React.FC = () => {
   // --- React Query for Role Assignment Mutation ---
   const assignRoleMutation = useMutation({
     mutationFn: (variables: { userId: string; newRole: string }) =>
-      adminService.assignRole(variables),
+      adminService.assignProducer(variables),
     onSuccess: (result, variables) => {
-      queryClient.setQueryData(['adminUsers', page, pageSize], (oldData: any) => {
-        if (!oldData || !oldData.items) return oldData;
-        return {
-          ...oldData,
-          items: oldData.items.map((u: AdminUserItem) => {
-            if (u.id === variables.userId) {
-              return {
-                ...u,
-                role: result.newRole || variables.newRole,
-              };
-            }
-            return u;
-          }),
-        };
-      });
+      queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
 
       showToast(
         'Phân quyền thành công',

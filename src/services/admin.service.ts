@@ -6,6 +6,7 @@ export interface AdminUserItem {
   fullName: string | null;
   phoneNumber: string | null;
   role: string;
+  canCreateStudio?: boolean;
   isActive: boolean;
   isEmailConfirmed: boolean;
   twoFactorEnabled: boolean;
@@ -129,10 +130,24 @@ export const adminService = {
   },
 
   /**
-   * Phân quyền vai trò mới cho người dùng (POST /api/Admin/assign-role)
+   * Phân quyền Producer / SystemRole cho người dùng (POST /api/Admin/assign-producer)
    */
+  assignProducer: async (request: AssignRoleRequest, token?: string): Promise<AssignRoleResponse> => {
+    const response = await fetch(`${API_URL}/api/Admin/assign-producer`, {
+      method: 'POST',
+      headers: getAuthHeaders(token),
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      throw new Error(await parseErrorResponse(response, 'Không thể phân quyền cho người dùng.'));
+    }
+
+    return await response.json();
+  },
+
   assignRole: async (request: AssignRoleRequest, token?: string): Promise<AssignRoleResponse> => {
-    const response = await fetch(`${API_URL}/api/Admin/assign-role`, {
+    const response = await fetch(`${API_URL}/api/Admin/assign-producer`, {
       method: 'POST',
       headers: getAuthHeaders(token),
       body: JSON.stringify(request),

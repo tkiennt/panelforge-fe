@@ -176,29 +176,31 @@ function AppContent() {
       setFirebaseUser(user);
       if (user) {
         setIsAuthenticated(true);
-        // Bắt buộc làm mới Firebase ID Token (forceRefresh = true) và lấy lại JWT Backend mới nhất mỗi khi khởi chạy session
         try {
-          const idToken = await user.getIdToken(true);
-          const res = await authService.externalLogin(idToken);
-          if (res?.token) {
-            localStorage.setItem('token', res.token);
-          }
-          if (res?.user?.role) {
-            const role = normalizeSystemRole(res.user.role);
-            setCurrentRole(role);
-            localStorage.setItem('userRole', role);
-            if (role === 'ADMINISTRATOR') {
-              setActiveProjectRoles(['ADMINISTRATOR']);
+          const existingToken = localStorage.getItem('token');
+          if (!existingToken) {
+            const idToken = await user.getIdToken();
+            const res = await authService.externalLogin(idToken);
+            if (res?.token) {
+              localStorage.setItem('token', res.token);
             }
-            setCurrentUserInfo({
-              id: res.user.id,
-              name: res.user.fullName || user.displayName || user.email?.split('@')[0] || 'User',
-              email: res.user.email || user.email || '',
-              role,
-              isTwoFactorEnabled: !!res.user.twoFactorEnabled,
-            });
-            localStorage.setItem('user', JSON.stringify(res.user));
-            navigateRoleDefaultView(role);
+            if (res?.user?.role) {
+              const role = normalizeSystemRole(res.user.role);
+              setCurrentRole(role);
+              localStorage.setItem('userRole', role);
+              if (role === 'ADMINISTRATOR') {
+                setActiveProjectRoles(['ADMINISTRATOR']);
+              }
+              setCurrentUserInfo({
+                id: res.user.id,
+                name: res.user.fullName || user.displayName || user.email?.split('@')[0] || 'User',
+                email: res.user.email || user.email || '',
+                role,
+                isTwoFactorEnabled: !!res.user.twoFactorEnabled,
+              });
+              localStorage.setItem('user', JSON.stringify(res.user));
+              navigateRoleDefaultView(role);
+            }
           }
         } catch (err) {
           console.warn('Không thể đồng bộ token backend từ Firebase session:', err);
