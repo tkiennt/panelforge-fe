@@ -83,39 +83,8 @@ export const toValidPageGuid = (id?: string): string => {
   return DEFAULT_PAGE_ID;
 };
 
-// Fallback mock pages
-export const MOCK_PAGES: PageDto[] = [
-  {
-    id: DEFAULT_PAGE_ID,
-    chapterId: DEFAULT_CHAPTER_ID,
-    pageNumber: 1,
-    layoutFormat: 'StandardPage',
-    widthPx: 1200,
-    heightPx: 1800,
-    dpi: 600,
-    elementsCount: 5,
-  },
-  {
-    id: '813ad7b2-3570-4def-8321-c6603a11c451',
-    chapterId: DEFAULT_CHAPTER_ID,
-    pageNumber: 2,
-    layoutFormat: 'SpreadLeft',
-    widthPx: 2400,
-    heightPx: 1800,
-    dpi: 600,
-    elementsCount: 8,
-  },
-  {
-    id: '813ad7b2-3570-4def-8321-c6603a11c452',
-    chapterId: DEFAULT_CHAPTER_ID,
-    pageNumber: 3,
-    layoutFormat: 'StandardPage',
-    widthPx: 1200,
-    heightPx: 1800,
-    dpi: 600,
-    elementsCount: 4,
-  },
-];
+// Fallback mock pages (empty)
+export const MOCK_PAGES: PageDto[] = [];
 
 export const pageService = {
   createPage: async (

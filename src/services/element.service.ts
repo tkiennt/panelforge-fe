@@ -81,41 +81,7 @@ export const toValidElementGuid = (id?: string): string => {
   return '99999999-9999-9999-9999-' + Math.floor(Math.random() * 899999999999 + 100000000000);
 };
 
-export const MOCK_ELEMENTS: ElementSnapshotDto[] = [
-  {
-    elementId: '99999999-9999-9999-9999-999999999901',
-    elementType: 'DialogueBalloon',
-    zIndex: 1,
-    x: 60,
-    y: 80,
-    width: 220,
-    height: 100,
-    content: 'Tôi sẽ không bao giờ bỏ cuộc!',
-    isRemoved: false,
-  },
-  {
-    elementId: '99999999-9999-9999-9999-999999999902',
-    elementType: 'SoundEffect',
-    zIndex: 2,
-    x: 320,
-    y: 200,
-    width: 140,
-    height: 80,
-    content: 'DODODODO (ドドドド)',
-    isRemoved: false,
-  },
-  {
-    elementId: '99999999-9999-9999-9999-999999999903',
-    elementType: 'NarrationBox',
-    zIndex: 3,
-    x: 50,
-    y: 400,
-    width: 280,
-    height: 70,
-    content: 'Năm 2084, khi ánh đèn neo-Tokyo bắt đầu lụi tàn...',
-    isRemoved: false,
-  },
-];
+export const MOCK_ELEMENTS: ElementSnapshotDto[] = [];
 
 export const elementService = {
   getPageSnapshot: async (
