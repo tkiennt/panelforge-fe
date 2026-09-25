@@ -32,7 +32,7 @@ export interface CreateSeriesRequest {
   title: string;
   synopsis?: string;
   readingDirection?: number | string;
-  pipelineDefinitionId?: string;
+  pipelineTemplateId?: string;
   genre?: string;
   format?: string;
   releaseScheduleJson?: string;

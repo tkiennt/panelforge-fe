@@ -320,10 +320,10 @@ export const adminService = {
   },
 
   /**
-   * Lấy cấu hình AI Provider theo Workspace (GET /api/workspaces/{id}/ai-config) (UC-02)
+   * Lấy cấu hình AI Provider theo Workspace (GET /api/Admin/workspaces/{workspaceId}/ai-config) (UC-02)
    */
   getWorkspaceAiConfig: async (workspaceId: string, token?: string): Promise<any> => {
-    const response = await fetch(`${API_URL}/api/workspaces/${workspaceId}/ai-config`, {
+    const response = await fetch(`${API_URL}/api/Admin/workspaces/${workspaceId}/ai-config`, {
       method: 'GET',
       headers: getAuthHeaders(token),
     });
@@ -338,7 +338,7 @@ export const adminService = {
   },
 
   /**
-   * Cập nhật AI Provider & Quota theo Workspace (PUT /api/workspaces/{id}/ai-config) (UC-02)
+   * Cập nhật AI Provider & Quota theo Workspace (PUT /api/Admin/workspaces/{workspaceId}/ai-config) (UC-02)
    */
   updateWorkspaceAiConfig: async (
     workspaceId: string,
@@ -351,7 +351,7 @@ export const adminService = {
     },
     token?: string,
   ): Promise<any> => {
-    const response = await fetch(`${API_URL}/api/workspaces/${workspaceId}/ai-config`, {
+    const response = await fetch(`${API_URL}/api/Admin/workspaces/${workspaceId}/ai-config`, {
       method: 'PUT',
       headers: getAuthHeaders(token),
       body: JSON.stringify(data),
