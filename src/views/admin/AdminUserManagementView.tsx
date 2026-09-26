@@ -50,7 +50,10 @@ export const AdminUserManagementView: React.FC = () => {
 
       showToast(
         'Phân quyền thành công',
-        result.message || `Đã cập nhật vai trò hệ thống thành ${variables.newRole}.`,
+        result.message ||
+          (result.canCreateStudio
+            ? 'Đã cấp quyền Producer (Tạo Studio).'
+            : `Đã cập nhật vai trò hệ thống thành ${result.newRole || variables.newRole}.`),
       );
       setAssigningUser(null);
     },
@@ -72,16 +75,29 @@ export const AdminUserManagementView: React.FC = () => {
   const filteredUsers = useMemo(() => {
     return users.filter((user) => {
       const q = searchQuery.toLowerCase().trim();
+      const isProducer = user.canCreateStudio === true && user.role.toLowerCase() !== 'admin';
+      const roleDisplayName = isProducer ? 'producer' : user.role.toLowerCase();
       const matchesQuery =
         !q ||
         user.email.toLowerCase().includes(q) ||
         (user.fullName && user.fullName.toLowerCase().includes(q)) ||
         (user.phoneNumber && user.phoneNumber.includes(q)) ||
-        user.role.toLowerCase().includes(q);
+        user.role.toLowerCase().includes(q) ||
+        roleDisplayName.includes(q);
 
-      const matchesRole =
-        selectedRoleFilter === 'ALL' ||
-        user.role.toLowerCase() === selectedRoleFilter.toLowerCase();
+      let matchesRole = false;
+      if (selectedRoleFilter === 'ALL') {
+        matchesRole = true;
+      } else if (selectedRoleFilter === 'Producer') {
+        matchesRole = isProducer;
+      } else if (selectedRoleFilter === 'Admin') {
+        matchesRole =
+          user.role.toLowerCase() === 'admin' || user.role.toLowerCase() === 'administrator';
+      } else if (selectedRoleFilter === 'User') {
+        matchesRole = user.role.toLowerCase() === 'user' && !isProducer;
+      } else {
+        matchesRole = user.role.toLowerCase() === selectedRoleFilter.toLowerCase();
+      }
 
       const matches2fa = !filter2faOnly || user.twoFactorEnabled;
 
@@ -112,6 +128,15 @@ export const AdminUserManagementView: React.FC = () => {
               ))}
             </div>
           ))}
+        </div>
+      );
+    }
+    // BR-07: Nếu role là User nhưng có canCreateStudio = true, hiển thị Producer badge
+    if (user.canCreateStudio && user.role.toLowerCase() !== 'admin') {
+      return (
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {getRoleBadge('Producer')}
+          <span className="text-[10px] text-gray-500 font-mono">(User + Studio Creator)</span>
         </div>
       );
     }

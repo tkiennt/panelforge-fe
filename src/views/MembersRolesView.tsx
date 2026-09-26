@@ -179,15 +179,15 @@ export const MembersRolesView: React.FC<MembersRolesViewProps> = ({
           newRole: editRole,
         });
       }
+      setLocalMembers((prev) =>
+        prev.map((m) => (m.id === editingMember.id ? { ...m, role: editRole } : m)),
+      );
+      if (onUpdateMemberRole) onUpdateMemberRole(editingMember.id, editRole);
+      onShowToast('Permissions Saved', `Updated role & access policies for ${editingMember.name}.`);
+      setEditingMember(null);
     } catch (err: any) {
-      console.warn('Lỗi khi gọi workspaceService.updateMemberRole, cập nhật local:', err);
+      onShowToast('Lỗi cập nhật vai trò', err.message || 'Không thể cập nhật vai trò thành viên.');
     }
-    setLocalMembers((prev) =>
-      prev.map((m) => (m.id === editingMember.id ? { ...m, role: editRole } : m)),
-    );
-    if (onUpdateMemberRole) onUpdateMemberRole(editingMember.id, editRole);
-    onShowToast('Permissions Saved', `Updated role & access policies for ${editingMember.name}.`);
-    setEditingMember(null);
   };
 
   const handleInvite = async (newMember: StudioMember) => {
@@ -198,11 +198,12 @@ export const MembersRolesView: React.FC<MembersRolesViewProps> = ({
           role: newMember.role,
         });
       }
+      setLocalMembers((prev) => [newMember, ...prev]);
+      if (onInviteMember) onInviteMember(newMember);
+      onShowToast('Mời thành viên', `Đã gửi lời mời tới ${newMember.email}.`);
     } catch (err: any) {
-      console.warn('Lỗi khi gọi workspaceService.addMember, cập nhật local:', err);
+      onShowToast('Lỗi mời thành viên', err.message || 'Không thể thêm thành viên vào Workspace.');
     }
-    setLocalMembers((prev) => [newMember, ...prev]);
-    if (onInviteMember) onInviteMember(newMember);
   };
 
   const handleRotateKey = (member: StudioMember) => {

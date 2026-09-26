@@ -106,7 +106,11 @@ export const AdminUserTable: React.FC<AdminUserTableProps> = ({
                     <button
                       onClick={() => {
                         setAssigningUser(user);
-                        setSelectedNewRoles(user.projectRoles?.[0]?.roles || [user.role || 'Writer']);
+                        setSelectedNewRoles(
+                          user.canCreateStudio && user.role.toLowerCase() !== 'admin'
+                            ? ['Producer']
+                            : [user.role || 'User'],
+                        );
                       }}
                       className='inline-flex items-center gap-1 px-2.5 py-1 rounded bg-[#F8F6F0] hover:bg-[#EAE6DF] text-[#171717] border border-[#E7E7E7] font-semibold text-[11px] transition-colors cursor-pointer'
                       title='Phân quyền lại vai trò người dùng này'

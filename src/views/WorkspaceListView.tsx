@@ -12,6 +12,7 @@ interface WorkspaceListViewProps {
     email: string;
     role: string;
     avatarUrl?: string | null;
+    canCreateStudio?: boolean;
   } | null;
   onLogout?: () => void;
 }
@@ -25,6 +26,10 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
   const [workspaces, setWorkspaces] = useState<WorkspaceDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const isAdmin =
+    currentUser?.role?.toUpperCase() === 'ADMINISTRATOR' ||
+    currentUser?.role?.toUpperCase() === 'ADMIN';
 
   // Gọi API thật lấy danh sách Workspace của user hiện tại từ database
   const fetchWorkspaces = async () => {
@@ -50,6 +55,18 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
   }, []);
 
   const handleOpenCreate = () => {
+    if (isAdmin) {
+      alert(
+        'Tài khoản Administrator không thể tạo hoặc sở hữu Studio Workspace (BR-07). Vui lòng sử dụng trang Quản trị hệ thống.',
+      );
+      return;
+    }
+    if (!currentUser?.canCreateStudio) {
+      alert(
+        'Tài khoản của bạn chưa được cấp quyền Producer để tạo Studio. Vui lòng liên hệ Quản trị viên để được cấp quyền (BR-07).',
+      );
+      return;
+    }
     if (onCreateWorkspace) {
       onCreateWorkspace();
     } else {
@@ -187,7 +204,9 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                 <button
                   onClick={handleOpenCreate}
                   aria-label='Create Workspace'
-                  className='w-full bg-[#171717] hover:bg-[#2A2A2A] text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer shadow-xs hover:shadow-md'
+                  disabled={isAdmin}
+                  title={isAdmin ? 'Quản trị viên không thể tạo Studio (BR-07)' : 'Create Workspace'}
+                  className='w-full bg-[#171717] hover:bg-[#2A2A2A] disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer shadow-xs hover:shadow-md'
                 >
                   <Plus className='w-5 h-5' />
                   <span>Create Workspace (Tạo Studio Mới)</span>
@@ -209,7 +228,9 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                 <button
                   onClick={handleOpenCreate}
                   aria-label='Create Workspace'
-                  className='self-start sm:self-auto flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#171717] hover:bg-[#2A2A2A] text-white text-sm font-semibold transition-all shadow-xs hover:shadow-md cursor-pointer'
+                  disabled={isAdmin}
+                  title={isAdmin ? 'Quản trị viên không thể tạo Studio (BR-07)' : 'Tạo Studio Mới'}
+                  className='self-start sm:self-auto flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#171717] hover:bg-[#2A2A2A] disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold transition-all shadow-xs hover:shadow-md cursor-pointer'
                 >
                   <Plus className='w-4 h-4' />
                   <span>Tạo Studio Mới</span>

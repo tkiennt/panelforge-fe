@@ -24,22 +24,26 @@ import {
 } from 'lucide-react';
 import { BibleEntity, BibleCategory, MangaProject } from '../types';
 import { bibleService, BibleEntryRevisionDto, BibleEntryDto } from '../services/bible.service';
+import { seriesService } from '../services/series.service';
+import { chapterService, ChapterDto } from '../services/chapter.service';
 import { AddEntityModal } from '../components/modals/AddEntityModal';
 import { VectorStatusModal } from '../components/modals/VectorStatusModal';
 
 interface SeriesBibleViewProps {
-  activeProject: MangaProject;
+  activeProject?: MangaProject;
+  workspaceId?: string;
   entities?: BibleEntity[];
   onAddEntity?: (entity: BibleEntity) => void;
   onEditEntity?: (entity: BibleEntity) => void;
+  onSelectSeries?: (project: MangaProject) => void;
   onShowToast: (title: string, desc: string) => void;
 }
 
-const CATEGORIES: { key: BibleCategory; label: string; count: number }[] = [
-  { key: 'characters', label: 'Characters', count: 14 },
-  { key: 'locations', label: 'Locations', count: 8 },
-  { key: 'terminology', label: 'Terminology', count: 28 },
-  { key: 'style', label: 'Style Rules', count: 4 },
+const CATEGORIES: { key: BibleCategory; label: string }[] = [
+  { key: 'characters', label: 'Characters' },
+  { key: 'locations', label: 'Locations' },
+  { key: 'terminology', label: 'Terminology & Lore' },
+  { key: 'style', label: 'Style Rules' },
 ];
 
 const mapCategoryToTab = (cat: number): BibleCategory => {
@@ -62,7 +66,7 @@ const mapCategoryToTab = (cat: number): BibleCategory => {
 const mapEntryToBibleEntity = (entry: BibleEntryDto): BibleEntity => {
   return {
     id: entry.id,
-    code: entry.code || `#ENT-${entry.id.substring(0, 4)}`,
+    code: entry.code || `ENT-${entry.id.substring(0, 4)}`,
     name: entry.name,
     subtitle: entry.subtitle || 'Canon Spec Entity',
     category: mapCategoryToTab(entry.category),
@@ -72,9 +76,7 @@ const mapEntryToBibleEntity = (entry: BibleEntryDto): BibleEntity => {
     loraWeight: 0.85,
     modelVersion: 'LoRA v4.2',
     continuityMatch: 99.2,
-    imageUrl:
-      entry.referenceImageUrl ||
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuBRF-X_pK-VNA-EDpW2TbENZXn5jBdsCJEViFUEfD1-cL_s6PpvrNV7Br-yvSJJP7XpLx-Q6po_dSRvBycNhUkNoZrpxI6pCLfmSiu3GY9sfOpdOlnvjkYYCL0y61ttCJ5fLSmT1ICs8y7G9Q6Y5MOdvUJxx1VFnqyY8qN7YBUINiyVOxDKYSL905nG_GxVijlasleWGD3OZipKscljZThMLHG09TocsEdeAvvhlPimteBhQD9Wacq_qA',
+    imageUrl: entry.referenceImageUrl || '',
     status: entry.isActive ? 'Verified' : 'Draft',
     colors: ['#171717', '#F97316', '#FFFFFF'],
   };
@@ -82,9 +84,11 @@ const mapEntryToBibleEntity = (entry: BibleEntryDto): BibleEntity => {
 
 export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
   activeProject,
+  workspaceId,
   entities = [],
   onAddEntity,
   onEditEntity,
+  onSelectSeries,
   onShowToast,
 }) => {
   const [localEntities, setLocalEntities] = useState<BibleEntity[]>(entities);
@@ -97,8 +101,83 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
   const [addEntityOpen, setAddEntityOpen] = useState(false);
   const [vectorStatusOpen, setVectorStatusOpen] = useState(false);
 
+  // Dynamic Workspace Series resolution
+  const [availableSeries, setAvailableSeries] = useState<MangaProject[]>([]);
+  const [selectedSeriesId, setSelectedSeriesId] = useState<string>(activeProject?.id || '');
+
+  useEffect(() => {
+    const loadSeries = async () => {
+      try {
+        const rawWs = localStorage.getItem('activeWorkspace');
+        const ws = rawWs ? JSON.parse(rawWs) : null;
+        const targetWsId = workspaceId || ws?.id;
+        if (targetWsId) {
+          const list = await seriesService.getSeriesList(targetWsId);
+          const mapped: MangaProject[] = list.map((s) => ({
+            id: s.id,
+            title: s.title,
+            subtitle: s.synopsis || 'Studio Production Serial',
+            arc: 'Arc 01',
+            chapter: s.chaptersCount || 1,
+            format: s.format || 'B5 Tankōbon',
+            status: 'In Production',
+            progressPercent: 0,
+            completedPages: 0,
+            totalPages: 32,
+            dueDate: 'Dec 2026',
+            daysLeft: 12,
+            genres: s.genre ? s.genre.split(',').map((g) => g.trim()) : ['Manga'],
+            coverStyle: 'halftone-cyber',
+            coverText: s.title.toUpperCase(),
+            tagline: s.synopsis || '',
+            lastUpdated: s.updatedAt || s.createdAt || 'Just now',
+          }));
+          setAvailableSeries(mapped);
+          if (!activeProject?.id && mapped.length > 0) {
+            setSelectedSeriesId(mapped[0].id);
+            if (onSelectSeries) onSelectSeries(mapped[0]);
+          }
+        }
+      } catch (err) {
+        console.warn('Lỗi tải danh sách Series cho Bible:', err);
+      }
+    };
+    loadSeries();
+  }, [workspaceId, activeProject?.id]);
+
+  useEffect(() => {
+    if (activeProject?.id) {
+      setSelectedSeriesId(activeProject.id);
+    }
+  }, [activeProject?.id]);
+
+  const effectiveSeries = useMemo(() => {
+    if (activeProject && (!selectedSeriesId || activeProject.id === selectedSeriesId)) {
+      return activeProject;
+    }
+    return availableSeries.find((s) => s.id === selectedSeriesId) || activeProject;
+  }, [activeProject, selectedSeriesId, availableSeries]);
+
   // BR-15: Chapter-Versioned State
   const [effectiveChapter, setEffectiveChapter] = useState<number | 'all'>('all');
+  const [seriesChapters, setSeriesChapters] = useState<ChapterDto[]>([]);
+
+  useEffect(() => {
+    if (!effectiveSeries?.id) {
+      setSeriesChapters([]);
+      return;
+    }
+    const loadChapters = async () => {
+      try {
+        const res = await chapterService.getChaptersBySeries(effectiveSeries.id, 1, 100);
+        setSeriesChapters(res.items || []);
+      } catch (err) {
+        console.warn('Lỗi tải Chapters cho Series Bible:', err);
+        setSeriesChapters([]);
+      }
+    };
+    loadChapters();
+  }, [effectiveSeries?.id]);
 
   // BR-18: Revision History Modal State
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
@@ -106,32 +185,73 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
   const [historyEntityName, setHistoryEntityName] = useState('');
   const [loadingHistory, setLoadingHistory] = useState(false);
 
-  // BR-01 & BR-15: Add Revision Modal State
+  // BR-01 & BR-15 & UC-04: Add Revision Modal State with Concurrency Control
   const [addRevModalOpen, setAddRevModalOpen] = useState(false);
   const [revisionTarget, setRevisionTarget] = useState<BibleEntity | null>(null);
   const [revisionSummary, setRevisionSummary] = useState('');
+  const [revisionName, setRevisionName] = useState('');
+  const [revisionSubtitle, setRevisionSubtitle] = useState('');
+  const [revisionDescription, setRevisionDescription] = useState('');
   const [revisionEffectiveChapter, setRevisionEffectiveChapter] = useState(
-    activeProject?.chapter || 1,
+    effectiveSeries?.chapter || 1,
   );
+  const [expectedVersionNumber, setExpectedVersionNumber] = useState<number | null>(null);
+  const [fetchingBaseVersion, setFetchingBaseVersion] = useState(false);
   const [savingRevision, setSavingRevision] = useState(false);
 
-  // Fetch Series Bible from backend API on mount or when activeProject changes
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  const handleOpenAddRevision = async (entity: BibleEntity) => {
+    setRevisionTarget(entity);
+    setRevisionSummary('');
+    setRevisionName(entity.name);
+    setRevisionSubtitle(entity.subtitle || '');
+    setRevisionDescription(entity.description || '');
+    setRevisionEffectiveChapter(
+      typeof effectiveChapter === 'number' ? effectiveChapter : (effectiveSeries?.chapter || 1),
+    );
+    setExpectedVersionNumber(1);
+    setAddRevModalOpen(true);
+
+    if (effectiveSeries?.id) {
+      setFetchingBaseVersion(true);
+      try {
+        const history = await bibleService.getEntryHistory(effectiveSeries.id, entity.id);
+        if (history && history.length > 0) {
+          const maxVer = Math.max(...history.map((h) => h.versionNumber));
+          setExpectedVersionNumber(maxVer);
+        }
+      } catch (err) {
+        console.warn('Cannot fetch history for version tracking:', err);
+      } finally {
+        setFetchingBaseVersion(false);
+      }
+    }
+  };
+
+  // Fetch Series Bible from backend API on mount or when effectiveSeries / effectiveChapter changes (BR-15)
   useEffect(() => {
     let isMounted = true;
     const fetchBible = async () => {
-      if (!activeProject?.id) return;
+      if (!effectiveSeries?.id) {
+        setLocalEntities([]);
+        return;
+      }
       setIsLoading(true);
       try {
-        const bibleData = await bibleService.getSeriesBible(activeProject.id);
-        if (isMounted && bibleData?.entries && bibleData.entries.length > 0) {
+        const bibleData =
+          effectiveChapter === 'all'
+            ? await bibleService.getSeriesBible(effectiveSeries.id)
+            : await bibleService.getSeriesBibleAtChapter(effectiveSeries.id, effectiveChapter);
+        if (isMounted && bibleData?.entries) {
           setLocalEntities(bibleData.entries.map(mapEntryToBibleEntity));
-        } else if (isMounted && entities && entities.length > 0) {
-          setLocalEntities(entities);
+        } else if (isMounted) {
+          setLocalEntities([]);
         }
       } catch (err) {
-        console.warn('Không thể tải Series Bible từ backend, fallback sang dữ liệu bộ nhớ:', err);
-        if (isMounted && entities && entities.length > 0) {
-          setLocalEntities(entities);
+        console.warn('Không thể tải Series Bible từ backend:', err);
+        if (isMounted) {
+          setLocalEntities([]);
         }
       } finally {
         if (isMounted) setIsLoading(false);
@@ -142,31 +262,60 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [activeProject?.id, entities]);
+  }, [effectiveSeries?.id, effectiveChapter, refreshTrigger]);
 
   const handleCreateEntity = async (newEntity: BibleEntity) => {
-    try {
-      if (activeProject?.id) {
-        let catNum: any = 0;
-        if (newEntity.category === 'locations') catNum = 1;
-        else if (newEntity.category === 'terminology') catNum = 3;
-        else if (newEntity.category === 'style') catNum = 4;
-
-        await bibleService.createBibleEntry(activeProject.id, {
-          category: catNum,
-          code: newEntity.code,
-          name: newEntity.name,
-          subtitle: newEntity.subtitle,
-          description: newEntity.description,
-          referenceImageUrl: newEntity.imageUrl,
-        });
-      }
-    } catch (err: any) {
-      console.warn('Lỗi khi gọi bibleService.createBibleEntry, lưu local:', err);
+    if (!effectiveSeries?.id) {
+      onShowToast('Chưa chọn Series', 'Vui lòng chọn một Series trước khi thêm thực thể.');
+      return;
     }
-    setLocalEntities((prev) => [newEntity, ...prev]);
-    if (onAddEntity) onAddEntity(newEntity);
+
+    try {
+      let catNum: any = 0;
+      if (newEntity.category === 'locations') catNum = 1;
+      else if (newEntity.category === 'cyberware') catNum = 2;
+      else if (newEntity.category === 'terminology' || newEntity.category === 'lore') catNum = 3;
+      else if (newEntity.category === 'style') catNum = 4;
+
+      const created = await bibleService.createBibleEntry(effectiveSeries.id, {
+        category: catNum,
+        code: newEntity.code,
+        name: newEntity.name,
+        subtitle: newEntity.subtitle,
+        description: newEntity.description,
+        referenceImageUrl: newEntity.imageUrl || undefined,
+        priority: 1,
+        strictCheck: true,
+        effectiveFromChapterNumber:
+          typeof effectiveChapter === 'number' ? effectiveChapter : (effectiveSeries.chapter || 1),
+      });
+
+      setRefreshTrigger((prev) => prev + 1);
+      const mapped = mapEntryToBibleEntity(created);
+      if (onAddEntity) onAddEntity(mapped);
+      onShowToast(
+        'Đã lưu thực thể vào Database',
+        `Đã tạo thành công "${created.name}" (${created.code}) trong bảng bible_entries & revision v1.`,
+      );
+    } catch (err: any) {
+      onShowToast('Lỗi thêm thực thể Bible', err.message || 'Không thể tạo bản ghi Series Bible.');
+    }
   };
+
+  const categoryCounts = useMemo(() => {
+    const counts: Record<BibleCategory, number> = {
+      characters: 0,
+      locations: 0,
+      terminology: 0,
+      style: 0,
+    };
+    localEntities.forEach((item) => {
+      if (counts[item.category] !== undefined) {
+        counts[item.category]++;
+      }
+    });
+    return counts;
+  }, [localEntities]);
 
   const filteredEntities = useMemo(() => {
     return localEntities.filter((item) => {
@@ -185,14 +334,48 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
 
   return (
     <div className='max-w-7xl mx-auto space-y-6 pb-12'>
+      {!effectiveSeries && (
+        <div className='p-4 bg-[#FFFBEB] border border-[#FDE68A] text-[#92400E] rounded-xl flex items-center justify-between text-xs'>
+          <div className='flex items-center gap-2.5'>
+            <AlertCircle className='w-4 h-4 text-[#D97706] shrink-0' />
+            <span>
+              Chưa có Series nào trong Workspace. Hãy vào <strong>Content Hub</strong> hoặc <strong>Producer Studio</strong> để tạo một Series trước khi quản lý Series Bible.
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Top Breadcrumb & Header Section */}
       <div className='bg-white border border-[#E7E7E7] rounded-xl p-5 shadow-xs'>
         <div className='flex flex-col lg:flex-row lg:items-center justify-between gap-4'>
           <div>
             <div className='flex items-center gap-2 text-[11px] font-mono text-[#888888] mb-1'>
-              <span className='font-semibold text-[#171717]'>
-                {activeProject.title.toUpperCase()}
-              </span>
+              {availableSeries.length > 1 ? (
+                <div className='flex items-center gap-1.5'>
+                  <span className='font-semibold text-[#555555]'>SERIES:</span>
+                  <select
+                    value={effectiveSeries?.id || ''}
+                    onChange={(e) => {
+                      const found = availableSeries.find((s) => s.id === e.target.value);
+                      if (found) {
+                        setSelectedSeriesId(found.id);
+                        if (onSelectSeries) onSelectSeries(found);
+                      }
+                    }}
+                    className='px-2 py-0.5 bg-[#FAF8F4] border border-[#D4D4D4] rounded font-semibold text-xs text-[#171717] focus:outline-none focus:border-[#F97316] cursor-pointer'
+                  >
+                    {availableSeries.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.title.toUpperCase()}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <span className='font-semibold text-[#171717]'>
+                  {(effectiveSeries?.title || 'PANELFORGE SERIES').toUpperCase()}
+                </span>
+              )}
               <span>/</span>
               <span className='text-[#F97316] font-semibold'>PRODUCTION ARCHIVE</span>
             </div>
@@ -213,7 +396,9 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
               title='Click to view Vector Index status and embedding models'
             >
               <span className='w-2 h-2 rounded-full bg-[#10B981] animate-pulse'></span>
-              <span>Vector Index: Synchronized (1,248 Nodes)</span>
+              <span>
+                Vector Index: {localEntities.length > 0 ? `Đã đồng bộ (${localEntities.length} Nodes)` : 'Sẵn sàng (0 Nodes)'}
+              </span>
             </button>
 
             {/* Add Entity Button */}
@@ -256,11 +441,14 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
               className='px-2.5 py-1 bg-white border border-[#D4D4D4] rounded-lg font-mono text-xs text-[#171717] focus:outline-none focus:border-[#F97316]'
             >
               <option value='all'>Tất cả (Mới nhất)</option>
-              <option value={1}>Chương 1 (Initial Setup)</option>
-              <option value={2}>Chương 2</option>
-              <option value={3}>Chương 3</option>
-              <option value={4}>Chương 4</option>
-              <option value={5}>Chương 5 (Current Production)</option>
+              {seriesChapters.map((ch) => (
+                <option key={ch.id} value={ch.chapterNumber}>
+                  Chương {ch.chapterNumber}{ch.title ? ` - ${ch.title}` : ''}
+                </option>
+              ))}
+              {seriesChapters.length === 0 && effectiveSeries?.chapter && (
+                <option value={effectiveSeries.chapter}>Chương {effectiveSeries.chapter} (Mặc định)</option>
+              )}
             </select>
           </div>
         </div>
@@ -285,7 +473,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                     activeTab === cat.key ? 'bg-white/20 text-white' : 'bg-[#EAE8E0] text-[#555555]'
                   }`}
                 >
-                  {cat.count}
+                  {categoryCounts[cat.key] || 0}
                 </span>
               </button>
             ))}
@@ -331,14 +519,21 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
             <div>
               {/* Card Image Banner */}
               <div
-                className='relative w-full h-44 bg-[#171717] overflow-hidden cursor-pointer'
+                className='relative w-full h-44 bg-[#171717] overflow-hidden cursor-pointer flex items-center justify-center'
                 onClick={() => setSelectedEntity(entity)}
               >
-                <img
-                  src={entity.imageUrl}
-                  alt={entity.name}
-                  className='w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 opacity-90'
-                />
+                {entity.imageUrl ? (
+                  <img
+                    src={entity.imageUrl}
+                    alt={entity.name}
+                    className='w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 opacity-90'
+                  />
+                ) : (
+                  <div className='w-full h-full flex flex-col items-center justify-center bg-[#262626] text-[#737373]'>
+                    <BookOpen className='w-10 h-10 mb-2 opacity-50' />
+                    <span className='text-[10px] font-mono uppercase tracking-wider text-[#A3A3A3]'>Canon Spec Sheet</span>
+                  </div>
+                )}
                 <div className='absolute top-2.5 left-2.5 flex flex-wrap items-center gap-1.5'>
                   {entity.tags.map((tag, i) => (
                     <span
@@ -410,41 +605,17 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                     setHistoryModalOpen(true);
                     setLoadingHistory(true);
                     try {
-                      if (activeProject?.id) {
+                      if (effectiveSeries?.id) {
                         const history = await bibleService.getEntryHistory(
-                          activeProject.id,
+                          effectiveSeries.id,
                           entity.id,
                         );
-                        setHistoryRevisions(history);
+                        setHistoryRevisions(history || []);
                       } else {
-                        setHistoryRevisions([
-                          {
-                            id: 'rev-1',
-                            bibleEntryId: entity.id,
-                            versionNumber: 1,
-                            summary: `Khởi tạo mục ${entity.name} (BR-18 initial version)`,
-                            snapshotJson: '{}',
-                            contentHash: 'SHA256:7b1e...v1',
-                            effectiveFromChapterNumber: 1,
-                            isInitialVersion: true,
-                            createdAt: new Date().toISOString(),
-                          },
-                        ]);
+                        setHistoryRevisions([]);
                       }
                     } catch {
-                      setHistoryRevisions([
-                        {
-                          id: 'rev-1',
-                          bibleEntryId: entity.id,
-                          versionNumber: 1,
-                          summary: `Khởi tạo mục ${entity.name} (BR-18 initial version)`,
-                          snapshotJson: '{}',
-                          contentHash: 'SHA256:7b1e...v1',
-                          effectiveFromChapterNumber: 1,
-                          isInitialVersion: true,
-                          createdAt: new Date().toISOString(),
-                        },
-                      ]);
+                      setHistoryRevisions([]);
                     } finally {
                       setLoadingHistory(false);
                     }
@@ -456,16 +627,9 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                   <span>Lịch sử (BR-18)</span>
                 </button>
                 <button
-                  onClick={() => {
-                    setRevisionTarget(entity);
-                    setRevisionSummary('');
-                    setRevisionEffectiveChapter(
-                      typeof effectiveChapter === 'number' ? effectiveChapter : 2,
-                    );
-                    setAddRevModalOpen(true);
-                  }}
+                  onClick={() => handleOpenAddRevision(entity)}
                   className='px-2 py-1 bg-white hover:bg-[#F3F1EB] border border-[#E7E7E7] rounded text-[11px] font-semibold text-[#059669] flex items-center gap-1 transition-colors cursor-pointer'
-                  title='Tạo phiên bản sửa đổi mới có hiệu lực từ một Chương (BR-15, BR-01)'
+                  title='Tạo phiên bản sửa đổi mới có hiệu lực từ một Chương (BR-15, UC-04 Concurrency)'
                 >
                   <GitCommit className='w-3 h-3' />
                   <span>+ Version (BR-15)</span>
@@ -681,10 +845,10 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
         </div>
       )}
 
-      {/* BR-01 & BR-15: Add Revision Modal */}
+      {/* BR-01 & BR-15 & UC-04: Add Revision Modal */}
       {addRevModalOpen && revisionTarget && (
         <div className='fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4'>
-          <div className='bg-white border border-[#E7E7E7] rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl animate-in fade-in zoom-in-95 duration-150'>
+          <div className='bg-white border border-[#E7E7E7] rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 space-y-4 shadow-2xl animate-in fade-in zoom-in-95 duration-150'>
             <div className='flex items-center justify-between border-b border-[#E7E7E7] pb-3'>
               <div className='flex items-center gap-2'>
                 <GitCommit className='w-4 h-4 text-[#059669]' />
@@ -700,10 +864,25 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
               </button>
             </div>
 
-            <div className='text-xs text-[#737373] bg-[#FAF8F5] p-3 rounded-lg border border-[#E7E7E7]'>
-              <strong>Lưu ý nghiệp vụ (BR-01 &amp; BR-15):</strong> Phiên bản cũ sẽ được bảo toàn
-              vĩnh viễn không bị xóa. Phiên bản mới này sẽ chỉ có hiệu lực từ Chương được chỉ định
-              trở đi.
+            {/* UC-04 Concurrency Notice */}
+            <div className='flex items-center justify-between text-xs p-2.5 bg-[#FAF8F5] rounded-xl border border-[#E7E7E7]'>
+              <div className='flex items-center gap-2'>
+                <span className='px-2 py-0.5 rounded bg-[#171717] text-white font-mono text-[10px] font-bold'>
+                  UC-04 // CONCURRENCY LOCK
+                </span>
+                <span className='text-[#737373]'>Phiên bản cơ sở:</span>
+              </div>
+              <span className='font-mono font-bold text-[#059669] bg-[#ECFDF5] border border-[#10B981]/30 px-2 py-0.5 rounded text-[11px] flex items-center gap-1'>
+                {fetchingBaseVersion ? (
+                  <span className='animate-pulse text-[#888888]'>Đang kiểm tra...</span>
+                ) : (
+                  <>Version v{expectedVersionNumber ?? 1}</>
+                )}
+              </span>
+            </div>
+
+            <div className='text-xs text-[#737373] bg-[#FAF8F5] p-3 rounded-lg border border-[#E7E7E7] leading-relaxed'>
+              <strong>Lưu ý nghiệp vụ (BR-01 &amp; UC-04):</strong> Phiên bản cũ được bảo toàn vĩnh viễn (Append-only). Hệ thống tự động phát hiện nếu có thành viên khác sửa đổi đồng thời và yêu cầu đối chiếu trước khi ghi đè.
             </div>
 
             <div className='space-y-3'>
@@ -724,6 +903,30 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
 
               <div>
                 <label className='block text-xs font-semibold text-[#171717] mb-1'>
+                  Tên mục (Entity Name) *
+                </label>
+                <input
+                  type='text'
+                  value={revisionName}
+                  onChange={(e) => setRevisionName(e.target.value)}
+                  className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg text-xs text-[#171717] focus:outline-none focus:border-[#F97316]'
+                />
+              </div>
+
+              <div>
+                <label className='block text-xs font-semibold text-[#171717] mb-1'>
+                  Phụ đề / Vai trò (Subtitle)
+                </label>
+                <input
+                  type='text'
+                  value={revisionSubtitle}
+                  onChange={(e) => setRevisionSubtitle(e.target.value)}
+                  className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg text-xs text-[#171717] focus:outline-none focus:border-[#F97316]'
+                />
+              </div>
+
+              <div>
+                <label className='block text-xs font-semibold text-[#171717] mb-1'>
                   Lý do thay đổi / Tóm tắt phiên bản mới (Summary) *
                 </label>
                 <input
@@ -734,36 +937,75 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                   className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg text-xs text-[#171717] focus:outline-none focus:border-[#F97316]'
                 />
               </div>
+
+              <div>
+                <label className='block text-xs font-semibold text-[#171717] mb-1'>
+                  Mô tả chi tiết phiên bản (Description)
+                </label>
+                <textarea
+                  rows={3}
+                  value={revisionDescription}
+                  onChange={(e) => setRevisionDescription(e.target.value)}
+                  className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg text-xs text-[#171717] focus:outline-none focus:border-[#F97316] resize-none'
+                />
+              </div>
             </div>
 
             <div className='pt-3 border-t border-[#E7E7E7] flex items-center justify-end gap-2'>
               <button
+                type='button'
                 onClick={() => setAddRevModalOpen(false)}
                 className='px-3 py-1.5 border border-[#E7E7E7] rounded-lg text-xs font-semibold text-[#555555] hover:bg-[#F3F1EB]'
               >
                 Hủy
               </button>
               <button
+                type='button'
                 disabled={!revisionSummary.trim() || savingRevision}
                 onClick={async () => {
                   setSavingRevision(true);
                   try {
-                    if (activeProject?.id) {
-                      await bibleService.addRevision(activeProject.id, revisionTarget.id, {
+                    if (effectiveSeries?.id) {
+                      await bibleService.addRevision(effectiveSeries.id, revisionTarget.id, {
+                        expectedVersionNumber: expectedVersionNumber ?? undefined,
                         summary: revisionSummary.trim(),
-                        name: revisionTarget.name,
-                        description: revisionTarget.description,
-                        subtitle: revisionTarget.subtitle,
+                        name: revisionName.trim() || revisionTarget.name,
+                        subtitle: revisionSubtitle.trim() || revisionTarget.subtitle,
+                        description: revisionDescription.trim() || revisionTarget.description,
                         effectiveFromChapterNumber: revisionEffectiveChapter,
                       });
                     }
                     onShowToast(
                       'Tạo phiên bản thành công (BR-15)',
-                      `Đã ghi nhận phiên bản mới cho ${revisionTarget.name} có hiệu lực từ Chương ${revisionEffectiveChapter}.`,
+                      `Đã ghi nhận phiên bản mới cho ${revisionName || revisionTarget.name} có hiệu lực từ Chương ${revisionEffectiveChapter}.`,
                     );
+                    setRefreshTrigger((prev) => prev + 1);
                     setAddRevModalOpen(false);
                   } catch (err: any) {
-                    onShowToast('Lỗi tạo phiên bản', err.message);
+                    if (err.code === 'CONFLICT' || err.status === 409) {
+                      onShowToast(
+                        'Xung đột phiên bản (409 CONFLICT)',
+                        'Đã có người khác sửa đổi mục này cùng lúc! Hệ thống tự động mở Lịch sử để bạn đối chiếu phiên bản mới nhất.',
+                      );
+                      setAddRevModalOpen(false);
+                      // Auto open history modal to compare
+                      setHistoryEntityName(revisionTarget.name);
+                      setHistoryModalOpen(true);
+                      setLoadingHistory(true);
+                      try {
+                        if (effectiveSeries?.id) {
+                          const history = await bibleService.getEntryHistory(effectiveSeries.id, revisionTarget.id);
+                          setHistoryRevisions(history);
+                        }
+                      } catch (hErr) {
+                        console.error('Failed to load history on conflict:', hErr);
+                      } finally {
+                        setLoadingHistory(false);
+                        setRefreshTrigger((prev) => prev + 1);
+                      }
+                    } else {
+                      onShowToast('Lỗi tạo phiên bản', err.message);
+                    }
                   } finally {
                     setSavingRevision(false);
                   }

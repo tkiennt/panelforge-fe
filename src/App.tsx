@@ -62,6 +62,8 @@ import { ArtistDeskView } from './views/artist/ArtistDeskView';
 import { ProducerWorkspaceView } from './views/producer/ProducerWorkspaceView';
 import { NotificationCenterView } from './views/NotificationCenterView';
 import { ReaderPortalView } from './views/ReaderPortalView';
+import { PublicCatalogView } from './views/catalog/PublicCatalogView';
+import { authService } from './services/auth.service';
 
 import {
   SystemRole,
@@ -80,7 +82,6 @@ import { WorkspaceListView } from './views/WorkspaceListView';
 import { UserProfile } from './views/UserProfile';
 import { auth, onAuthStateChanged } from './firebase';
 import { User } from 'firebase/auth';
-import { authService } from './services/auth.service';
 
 interface Toast {
   id: string;
@@ -150,6 +151,7 @@ function AppContent() {
     name: string;
     email: string;
     role: SystemRole;
+    canCreateStudio?: boolean;
     isTwoFactorEnabled?: boolean;
   } | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -161,7 +163,7 @@ function AppContent() {
     const rememberDevice = localStorage.getItem('pf_remember_device');
     if (!sessionStorage.getItem(sessionKey)) {
       sessionStorage.setItem(sessionKey, 'true');
-      if (rememberDevice !== 'true') {
+      if (!rememberDevice || rememberDevice === 'false') {
         auth.signOut().catch(() => {});
         localStorage.removeItem('token');
         localStorage.removeItem('userRole');
@@ -327,6 +329,7 @@ function AppContent() {
           name: u.fullName || u.username || u.email?.split('@')[0] || 'User',
           email: u.email || '',
           role,
+          canCreateStudio: !!u.canCreateStudio,
           isTwoFactorEnabled: !!u.isTwoFactorEnabled,
         });
       } catch {
@@ -346,7 +349,7 @@ function AppContent() {
   }, [currentRole, activeProjectRoles, viewScope]);
 
   const [projects, setProjects] = useState<MangaProject[]>(INITIAL_PROJECTS);
-  const [activeProject, setActiveProject] = useState<MangaProject>(INITIAL_PROJECTS[0]);
+  const [activeProject, setActiveProject] = useState<MangaProject | undefined>(INITIAL_PROJECTS[0]);
   const [cards, setCards] = useState<KanbanCard[]>(INITIAL_KANBAN_CARDS);
   const [entities, setEntities] = useState<BibleEntity[]>(INITIAL_BIBLE_ENTITIES);
   const [members, setMembers] = useState<StudioMember[]>(INITIAL_MEMBERS);
@@ -367,7 +370,7 @@ function AppContent() {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const showToast = (title: string, desc: string) => {
-    const id = `toast-${Date.now()}`;
+    const id = `toast-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
     setToasts((prev) => [...prev, { id, title, desc }]);
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
@@ -539,6 +542,7 @@ function AppContent() {
                     email: currentUserInfo?.email || firebaseUser?.email || '',
                     role: currentRole,
                     avatarUrl: firebaseUser?.photoURL,
+                    canCreateStudio: currentUserInfo?.canCreateStudio,
                   }}
                   onLogout={handleLogout}
                 />
@@ -630,6 +634,7 @@ function AppContent() {
                 <SeriesBibleView
                   activeProject={activeProject}
                   onAddEntity={handleAddEntity}
+                  onSelectSeries={(p) => setActiveProject(p)}
                   onEditEntity={(e) => showToast('Series Bible', `Mở chi tiết ${e.name}`)}
                   onShowToast={showToast}
                 />
@@ -669,6 +674,7 @@ function AppContent() {
             <Route path="profile" element={<UserProfile />} />
             <Route path="artist" element={<ArtistDeskView />} />
             <Route path="producer" element={<ProducerWorkspaceView />} />
+            <Route path="catalog" element={<PublicCatalogView onBackToWorkspaces={() => navigate('/workspaces')} />} />
             <Route path="notifications" element={<NotificationCenterView />} />
 
           </Route>
@@ -791,7 +797,8 @@ function AppContent() {
               res?.displayName ||
               res?.email ||
               'bạn';
-            showToast('Đăng nhập thành công', `Chào mừng ${displayName} (Vai trò Producer)!`);
+            const roleLabel = role === 'ADMINISTRATOR' ? 'Administrator' : 'User';
+            showToast('Đăng nhập thành công', `Chào mừng ${displayName} (Vai trò: ${roleLabel})!`);
           }}
           onApiLoginSuccess={(authResponse) => {
             setIsLoginModalOpen(false);
@@ -811,13 +818,34 @@ function AppContent() {
                 'User',
               email: authResponse?.user?.email || '',
               role,
+              canCreateStudio: authResponse?.user?.canCreateStudio,
               isTwoFactorEnabled: authResponse?.user?.isTwoFactorEnabled,
             });
             if (authResponse?.user) {
               localStorage.setItem('user', JSON.stringify(authResponse.user));
             }
             localStorage.setItem('userRole', role);
-            navigate(role === 'ADMINISTRATOR' ? '/admin' : '/projects');
+
+            // BR-23 / F3: Điều hướng theo suggestedLanding từ landing-context API
+            authService
+              .getLandingContext(authResponse?.token)
+              .then((landing) => {
+                if (landing?.suggestedLanding === 'AdminDashboard') {
+                  navigate('/admin');
+                } else if (landing?.suggestedLanding === 'YourWorkspaces') {
+                  navigate('/workspaces');
+                } else if (landing?.suggestedLanding === 'StudioCreation') {
+                  navigate(landing.canCreateStudio ? '/producer' : '/workspaces');
+                } else if (landing?.suggestedLanding === 'PublicCatalog') {
+                  navigate('/catalog');
+                } else {
+                  navigate(role === 'ADMINISTRATOR' ? '/admin' : '/projects');
+                }
+              })
+              .catch(() => {
+                navigate(role === 'ADMINISTRATOR' ? '/admin' : '/projects');
+              });
+
             showToast(
               'Đăng nhập thành công',
               `Chào mừng ${authResponse?.user?.fullName || 'bạn'} (Vai trò: ${role})!`,

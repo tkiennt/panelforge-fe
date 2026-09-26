@@ -27,8 +27,8 @@ import {
 import { KanbanCard, KanbanStageKey, WorkflowSubView, MangaProject } from '../types';
 
 interface WorkflowBoardViewProps {
-  activeProject: MangaProject;
-  cards: KanbanCard[];
+  activeProject?: MangaProject;
+  cards?: KanbanCard[];
   onUpdateCardStage: (cardId: string, newStage: KanbanStageKey) => void;
   onOpenCardDetails: (card: KanbanCard) => void;
   onOpenExportModal: () => void;
@@ -49,7 +49,7 @@ const STAGES: { key: KanbanStageKey; label: string; dotColor: string }[] = [
 
 export const WorkflowBoardView: React.FC<WorkflowBoardViewProps> = ({
   activeProject,
-  cards,
+  cards = [],
   onUpdateCardStage,
   onOpenCardDetails,
   onOpenExportModal,
@@ -143,21 +143,21 @@ export const WorkflowBoardView: React.FC<WorkflowBoardViewProps> = ({
                   ARC 02
                 </span>
                 <h1 className='text-xl lg:text-2xl font-bold font-display text-[#171717] tracking-tight'>
-                  Chapter {activeProject.chapter}: {activeProject.totalPages} Total Pages
+                  Chapter {activeProject?.chapter || '1'}: {activeProject?.totalPages || 0} Total Pages
                 </h1>
               </div>
               <div className='flex items-center gap-3 mt-1.5 text-xs'>
                 <span className='font-semibold text-[#171717]'>
-                  {activeProject.completedPages} / {activeProject.totalPages} Completed
+                  {activeProject?.completedPages || 0} / {activeProject?.totalPages || 0} Completed
                 </span>
                 <span className='text-[#888888] font-mono font-medium'>
-                  ({Math.round((activeProject.completedPages / activeProject.totalPages) * 100)}%)
+                  ({activeProject?.totalPages ? Math.round(((activeProject.completedPages || 0) / activeProject.totalPages) * 100) : 0}%)
                 </span>
                 <div className='w-40 sm:w-52 h-2 bg-[#F3F1EB] rounded-full overflow-hidden flex'>
                   <div
                     className='bg-[#F97316] h-full transition-all duration-500'
                     style={{
-                      width: `${(activeProject.completedPages / activeProject.totalPages) * 100}%`,
+                      width: `${activeProject?.totalPages ? ((activeProject.completedPages || 0) / activeProject.totalPages) * 100 : 0}%`,
                     }}
                   ></div>
                   <div className='bg-[#6D28D9]/30 h-full' style={{ width: '25%' }}></div>
@@ -630,7 +630,7 @@ export const WorkflowBoardView: React.FC<WorkflowBoardViewProps> = ({
                 <div className='flex items-center gap-3'>
                   <h3 className='text-base font-bold font-display text-[#171717] flex items-center gap-2'>
                     <Layers className='w-4 h-4 text-[#F97316]' />
-                    Production Sheet: Chapter {activeProject.chapter}
+                    Production Sheet: Chapter {activeProject?.chapter || '1'}
                   </h3>
                   <span className='px-2 py-0.5 bg-white border border-[#E7E7E7] rounded text-xs font-mono font-bold text-[#171717]'>
                     {filteredCards.length} Pages Listed

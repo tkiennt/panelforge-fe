@@ -48,8 +48,8 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ activeRoles = ['READER']
   const [showVersionHistory, setShowVersionHistory] = useState(false);
   const [showAIProvenance, setShowAIProvenance] = useState(false);
 
-  const isEditor = isDevMode || activeRoles.includes('EDITOR') || activeRoles.includes('ADMINISTRATOR') || activeRoles.includes('PRODUCER');
-  const isProducer = isDevMode || activeRoles.includes('PRODUCER') || activeRoles.includes('ADMINISTRATOR');
+  const isEditor = isDevMode || activeRoles.includes('EDITOR') || activeRoles.includes('PRODUCER');
+  const isProducer = isDevMode || activeRoles.includes('PRODUCER');
 
   const handleImageClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!isEditor) return; // Chỉ Editor được comment

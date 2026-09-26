@@ -63,9 +63,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   };
 
   const canDragCard = (card: PipelineCard) => {
-    // Producer & Editor can move anything. Administrator also can.
+    // Producer & Editor can move anything in workspace
     if (
-      systemRole === 'ADMINISTRATOR' ||
       currentUserRole === 'PRODUCER' ||
       currentUserRole === 'EDITOR' ||
       hasPermission('create_card') ||

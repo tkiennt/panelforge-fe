@@ -15,9 +15,11 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
   onAdd,
   onShowToast,
 }) => {
+  const [code, setCode] = useState('');
   const [name, setName] = useState('');
   const [subtitle, setSubtitle] = useState('');
   const [category, setCategory] = useState<BibleCategory>('characters');
+  const [imageUrl, setImageUrl] = useState('');
   const [description, setDescription] = useState('');
   const [loraWeight, setLoraWeight] = useState(0.85);
 
@@ -27,31 +29,31 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
     e.preventDefault();
     if (!name.trim() || !description.trim()) return;
 
+    const generatedCode = code.trim().toUpperCase() || `ENT-${Math.floor(1000 + Math.random() * 9000)}`;
+
     const newEntity: BibleEntity = {
       id: `entity-${Date.now()}`,
-      code: `#ENT-${Math.floor(1000 + Math.random() * 9000)}`,
+      code: generatedCode,
       name: name.trim(),
       subtitle: subtitle.trim() || 'Canon Spec Entity',
       category: category,
-      tags: ['CANON V4.2', category.toUpperCase(), 'CHAPTER 5'],
+      tags: ['CANON', category.toUpperCase()],
       description: description.trim(),
       referencesCount: 1,
       loraWeight: Number(loraWeight),
       modelVersion: 'LoRA v4.2',
       continuityMatch: 99.2,
-      imageUrl:
-        category === 'locations'
-          ? 'https://lh3.googleusercontent.com/aida-public/AB6AXuBRF-X_pK-VNA-EDpW2TbENZXn5jBdsCJEViFUEfD1-cL_s6PpvrNV7Br-yvSJJP7XpLx-Q6po_dSRvBycNhUkNoZrpxI6pCLfmSiu3GY9sfOpdOlnvjkYYCL0y61ttCJ5fLSmT1ICs8y7G9Q6Y5MOdvUJxx1VFnqyY8qN7YBUINiyVOxDKYSL905nG_GxVijlasleWGD3OZipKscljZThMLHG09TocsEdeAvvhlPimteBhQD9Wacq_qA'
-          : 'https://lh3.googleusercontent.com/aida-public/AB6AXuDEZ45g-B7n7a9w-eMhQz9J4z8aBw8a8fG6a7eA6b5c4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1',
+      imageUrl: imageUrl.trim() || '',
       status: 'Verified',
       colors: ['#171717', '#F97316', '#FFFFFF'],
     };
 
     onAdd(newEntity);
-    onShowToast(
-      'Entity Registered',
-      `${newEntity.name} added to Series Bible and LoRA continuity matrix.`,
-    );
+    setName('');
+    setCode('');
+    setSubtitle('');
+    setDescription('');
+    setImageUrl('');
     onClose();
   };
 
@@ -76,18 +78,32 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
 
         {/* Form */}
         <form onSubmit={handleSubmit} className='p-6 space-y-4'>
-          <div>
-            <label className='block text-xs font-mono font-bold uppercase tracking-wider text-[#888888] mb-1.5'>
-              Entity Name
-            </label>
-            <input
-              type='text'
-              required
-              placeholder='e.g. Zor (Cybernetic Renegade)'
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className='w-full px-3 py-2 bg-[#FAF8F4] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-[#171717] focus:outline-none focus:border-[#F97316]'
-            />
+          <div className='grid grid-cols-3 gap-3'>
+            <div className='col-span-1'>
+              <label className='block text-xs font-mono font-bold uppercase tracking-wider text-[#888888] mb-1.5'>
+                Entity Code
+              </label>
+              <input
+                type='text'
+                placeholder='CHR-01'
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                className='w-full px-3 py-2 bg-[#FAF8F4] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs font-mono font-semibold text-[#171717] focus:outline-none focus:border-[#F97316]'
+              />
+            </div>
+            <div className='col-span-2'>
+              <label className='block text-xs font-mono font-bold uppercase tracking-wider text-[#888888] mb-1.5'>
+                Entity Name *
+              </label>
+              <input
+                type='text'
+                required
+                placeholder='e.g. Zor (Cybernetic Renegade)'
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className='w-full px-3 py-2 bg-[#FAF8F4] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-[#171717] focus:outline-none focus:border-[#F97316]'
+              />
+            </div>
           </div>
 
           <div className='grid grid-cols-2 gap-3'>
@@ -116,10 +132,23 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
                 <option value='characters'>Characters</option>
                 <option value='locations'>Locations</option>
                 <option value='cyberware'>Cyberware &amp; Props</option>
-                <option value='lore'>Lore &amp; Factions</option>
+                <option value='lore'>Lore &amp; Terminology</option>
                 <option value='style'>Style Guide</option>
               </select>
             </div>
+          </div>
+
+          <div>
+            <label className='block text-xs font-mono font-bold uppercase tracking-wider text-[#888888] mb-1.5'>
+              Reference Image URL (Tùy chọn)
+            </label>
+            <input
+              type='url'
+              placeholder='https://...'
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+              className='w-full px-3 py-2 bg-[#FAF8F4] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-[#171717] focus:outline-none focus:border-[#F97316]'
+            />
           </div>
 
           <div>

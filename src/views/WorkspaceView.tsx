@@ -150,17 +150,15 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
             disabled={
               !(
                 currentUserRole === 'PRODUCER' ||
-                systemRole === 'ADMINISTRATOR' ||
                 hasPermission('create_card')
               )
             }
             title={
               !(
                 currentUserRole === 'PRODUCER' ||
-                systemRole === 'ADMINISTRATOR' ||
                 hasPermission('create_card')
               )
-                ? 'Bạn cần quyền quản trị để tạo trang mới'
+                ? 'Bạn cần quyền Producer hoặc quyền tạo trang để thực hiện thao tác này'
                 : 'Tạo trang mới'
             }
             className="h-8 px-3 ml-2 text-xs"
