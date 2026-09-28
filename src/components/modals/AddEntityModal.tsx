@@ -29,7 +29,8 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
     e.preventDefault();
     if (!name.trim() || !description.trim()) return;
 
-    const generatedCode = code.trim().toUpperCase() || `ENT-${Math.floor(1000 + Math.random() * 9000)}`;
+    const generatedCode =
+      code.trim().toUpperCase() || `ENT-${Math.floor(1000 + Math.random() * 9000)}`;
 
     const newEntity: BibleEntity = {
       id: `entity-${Date.now()}`,

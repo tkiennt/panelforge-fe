@@ -97,7 +97,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [selectedEntity, setSelectedEntity] = useState<BibleEntity | null>(null);
-  
+
   const [addEntityOpen, setAddEntityOpen] = useState(false);
   const [vectorStatusOpen, setVectorStatusOpen] = useState(false);
 
@@ -143,6 +143,8 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
       }
     };
     loadSeries();
+    // onSelectSeries do cha truyền vào (thường là hàm inline) — thêm vào deps sẽ gây tải lại liên tục.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workspaceId, activeProject?.id]);
 
   useEffect(() => {
@@ -208,7 +210,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
     setRevisionSubtitle(entity.subtitle || '');
     setRevisionDescription(entity.description || '');
     setRevisionEffectiveChapter(
-      typeof effectiveChapter === 'number' ? effectiveChapter : (effectiveSeries?.chapter || 1),
+      typeof effectiveChapter === 'number' ? effectiveChapter : effectiveSeries?.chapter || 1,
     );
     setExpectedVersionNumber(1);
     setAddRevModalOpen(true);
@@ -273,8 +275,8 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
     try {
       let catNum: any = 0;
       if (newEntity.category === 'locations') catNum = 1;
-      else if (newEntity.category === 'cyberware') catNum = 2;
-      else if (newEntity.category === 'terminology' || newEntity.category === 'lore') catNum = 3;
+      else if (newEntity.category === 'prop') catNum = 2;
+      else if (newEntity.category === 'terminology') catNum = 3;
       else if (newEntity.category === 'style') catNum = 4;
 
       const created = await bibleService.createBibleEntry(effectiveSeries.id, {
@@ -287,7 +289,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
         priority: 1,
         strictCheck: true,
         effectiveFromChapterNumber:
-          typeof effectiveChapter === 'number' ? effectiveChapter : (effectiveSeries.chapter || 1),
+          typeof effectiveChapter === 'number' ? effectiveChapter : effectiveSeries.chapter || 1,
       });
 
       setRefreshTrigger((prev) => prev + 1);
@@ -303,7 +305,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
   };
 
   const categoryCounts = useMemo(() => {
-    const counts: Record<BibleCategory, number> = {
+    const counts: Record<string, number> = {
       characters: 0,
       locations: 0,
       terminology: 0,
@@ -326,7 +328,8 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
         item.subtitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.description.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesStatus =
-        statusFilter === 'ALL' || (item.status && item.status.toLowerCase() === statusFilter.toLowerCase());
+        statusFilter === 'ALL' ||
+        (item.status && item.status.toLowerCase() === statusFilter.toLowerCase());
 
       return matchesTab && matchesSearch && matchesStatus;
     });
@@ -339,7 +342,8 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
           <div className='flex items-center gap-2.5'>
             <AlertCircle className='w-4 h-4 text-[#D97706] shrink-0' />
             <span>
-              Chưa có Series nào trong Workspace. Hãy vào <strong>Content Hub</strong> hoặc <strong>Producer Studio</strong> để tạo một Series trước khi quản lý Series Bible.
+              Chưa có Series nào trong Workspace. Hãy vào <strong>Content Hub</strong> hoặc{' '}
+              <strong>Producer Studio</strong> để tạo một Series trước khi quản lý Series Bible.
             </span>
           </div>
         </div>
@@ -397,7 +401,10 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
             >
               <span className='w-2 h-2 rounded-full bg-[#10B981] animate-pulse'></span>
               <span>
-                Vector Index: {localEntities.length > 0 ? `Đã đồng bộ (${localEntities.length} Nodes)` : 'Sẵn sàng (0 Nodes)'}
+                Vector Index:{' '}
+                {localEntities.length > 0
+                  ? `Đã đồng bộ (${localEntities.length} Nodes)`
+                  : 'Sẵn sàng (0 Nodes)'}
               </span>
             </button>
 
@@ -443,11 +450,14 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
               <option value='all'>Tất cả (Mới nhất)</option>
               {seriesChapters.map((ch) => (
                 <option key={ch.id} value={ch.chapterNumber}>
-                  Chương {ch.chapterNumber}{ch.title ? ` - ${ch.title}` : ''}
+                  Chương {ch.chapterNumber}
+                  {ch.title ? ` - ${ch.title}` : ''}
                 </option>
               ))}
               {seriesChapters.length === 0 && effectiveSeries?.chapter && (
-                <option value={effectiveSeries.chapter}>Chương {effectiveSeries.chapter} (Mặc định)</option>
+                <option value={effectiveSeries.chapter}>
+                  Chương {effectiveSeries.chapter} (Mặc định)
+                </option>
               )}
             </select>
           </div>
@@ -531,7 +541,9 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                 ) : (
                   <div className='w-full h-full flex flex-col items-center justify-center bg-[#262626] text-[#737373]'>
                     <BookOpen className='w-10 h-10 mb-2 opacity-50' />
-                    <span className='text-[10px] font-mono uppercase tracking-wider text-[#A3A3A3]'>Canon Spec Sheet</span>
+                    <span className='text-[10px] font-mono uppercase tracking-wider text-[#A3A3A3]'>
+                      Canon Spec Sheet
+                    </span>
                   </div>
                 )}
                 <div className='absolute top-2.5 left-2.5 flex flex-wrap items-center gap-1.5'>
@@ -882,7 +894,9 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
             </div>
 
             <div className='text-xs text-[#737373] bg-[#FAF8F5] p-3 rounded-lg border border-[#E7E7E7] leading-relaxed'>
-              <strong>Lưu ý nghiệp vụ (BR-01 &amp; UC-04):</strong> Phiên bản cũ được bảo toàn vĩnh viễn (Append-only). Hệ thống tự động phát hiện nếu có thành viên khác sửa đổi đồng thời và yêu cầu đối chiếu trước khi ghi đè.
+              <strong>Lưu ý nghiệp vụ (BR-01 &amp; UC-04):</strong> Phiên bản cũ được bảo toàn vĩnh
+              viễn (Append-only). Hệ thống tự động phát hiện nếu có thành viên khác sửa đổi đồng
+              thời và yêu cầu đối chiếu trước khi ghi đè.
             </div>
 
             <div className='space-y-3'>
@@ -994,7 +1008,10 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                       setLoadingHistory(true);
                       try {
                         if (effectiveSeries?.id) {
-                          const history = await bibleService.getEntryHistory(effectiveSeries.id, revisionTarget.id);
+                          const history = await bibleService.getEntryHistory(
+                            effectiveSeries.id,
+                            revisionTarget.id,
+                          );
                           setHistoryRevisions(history);
                         }
                       } catch (hErr) {

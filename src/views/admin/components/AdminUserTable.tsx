@@ -1,5 +1,13 @@
 import React from 'react';
-import { Shield, CheckCircle2, AlertCircle, Edit3, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
+import {
+  Shield,
+  CheckCircle2,
+  AlertCircle,
+  Edit3,
+  ChevronLeft,
+  ChevronRight,
+  RefreshCw,
+} from 'lucide-react';
 import { AdminUserItem } from '../../../services/admin.service';
 
 interface AdminUserTableProps {

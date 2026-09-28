@@ -84,7 +84,9 @@ export const catalogService = {
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
-      throw new Error(err.error || err.message || 'Không tìm thấy bộ truyện hoặc chưa có chương phát hành.');
+      throw new Error(
+        err.error || err.message || 'Không tìm thấy bộ truyện hoặc chưa có chương phát hành.',
+      );
     }
 
     return await response.json();

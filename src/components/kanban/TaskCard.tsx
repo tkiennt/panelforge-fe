@@ -14,12 +14,7 @@ interface TaskCardProps {
   canDrag: boolean;
 }
 
-export const TaskCard: React.FC<TaskCardProps> = ({
-  card,
-  userRoles,
-  isLocked,
-  canDrag,
-}) => {
+export const TaskCard: React.FC<TaskCardProps> = ({ card, userRoles, isLocked, canDrag }) => {
   const { hasPermission } = usePermissions(userRoles);
   const navigate = useNavigate();
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
@@ -81,11 +76,15 @@ export const TaskCard: React.FC<TaskCardProps> = ({
       <div className='flex items-center justify-between mb-2'>
         <div className='flex gap-1 items-center'>
           {card.priority && (
-            <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
-              card.priority === 'High' ? 'text-[#EF4444] bg-[#FEE2E2]' :
-              card.priority === 'Medium' ? 'text-[#F59E0B] bg-[#FEF3C7]' :
-              'text-[#10B981] bg-[#D1FAE5]'
-            }`}>
+            <span
+              className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
+                card.priority === 'High'
+                  ? 'text-[#EF4444] bg-[#FEE2E2]'
+                  : card.priority === 'Medium'
+                    ? 'text-[#F59E0B] bg-[#FEF3C7]'
+                    : 'text-[#10B981] bg-[#D1FAE5]'
+              }`}
+            >
               {card.priority}
             </span>
           )}
@@ -93,7 +92,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
             {card.identifier}
           </span>
         </div>
-        
+
         {card.isAIAssisted && (
           <div
             className='flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-[#8B5CF6] bg-[#F5F3FF] border border-[#DDD6FE] px-1.5 py-0.5 rounded'
@@ -156,7 +155,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
           </button>
           <button
             disabled={!canReview}
-            title={!canReview ? "Chỉ Editor/Admin mới có quyền duyệt" : "Duyệt"}
+            title={!canReview ? 'Chỉ Editor/Admin mới có quyền duyệt' : 'Duyệt'}
             className='flex-1 py-1.5 bg-[#F0FDF4] hover:bg-[#DCFCE7] text-[#16A34A] text-[10px] font-bold uppercase rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
             onClick={(e) => {
               e.stopPropagation();
@@ -173,7 +172,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
           <button
             disabled={!canReview}
             className='w-8 h-8 rounded-full bg-[#10B981]/10 text-[#10B981] flex items-center justify-center hover:bg-[#10B981] hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
-            title={!canReview ? "Chỉ Editor/Admin mới có quyền duyệt" : "Approve"}
+            title={!canReview ? 'Chỉ Editor/Admin mới có quyền duyệt' : 'Approve'}
             onClick={() => alert('Approved card: ' + card.id)}
           >
             <CheckCircle className='w-4 h-4' />
@@ -181,7 +180,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
           <button
             disabled={!canReview}
             className='w-8 h-8 rounded-full bg-[#EF4444]/10 text-[#EF4444] flex items-center justify-center hover:bg-[#EF4444] hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
-            title={!canReview ? "Chỉ Editor/Admin mới có quyền duyệt" : "Reject (Needs Revision)"}
+            title={!canReview ? 'Chỉ Editor/Admin mới có quyền duyệt' : 'Reject (Needs Revision)'}
             onClick={() => alert('Rejected card: ' + card.id)}
           >
             <XCircle className='w-4 h-4' />

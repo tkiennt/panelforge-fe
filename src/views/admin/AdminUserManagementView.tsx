@@ -1,6 +1,16 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search, Shield, CheckCircle2, X, Check, Filter, RefreshCw, UserCheck, ShieldAlert } from 'lucide-react';
+import {
+  Search,
+  Shield,
+  CheckCircle2,
+  X,
+  Check,
+  Filter,
+  RefreshCw,
+  UserCheck,
+  ShieldAlert,
+} from 'lucide-react';
 import { adminService, AdminUserItem } from '../../services/admin.service';
 import { AdminUserTable } from './components/AdminUserTable';
 import { AdminAssignRoleModal } from './components/AdminAssignRoleModal';
@@ -111,7 +121,7 @@ export const AdminUserManagementView: React.FC = () => {
       return <Badge className={`border ${r.color} ${r.border}`}>{r.key}</Badge>;
     }
     return (
-      <Badge variant="outline" className="bg-gray-100 text-gray-700 border-gray-300">
+      <Badge variant='outline' className='bg-gray-100 text-gray-700 border-gray-300'>
         {roleName}
       </Badge>
     );
@@ -120,9 +130,9 @@ export const AdminUserManagementView: React.FC = () => {
   const renderProjectRoles = (user: AdminUserItem) => {
     if (user.projectRoles && user.projectRoles.length > 0) {
       return (
-        <div className="flex flex-col gap-1">
+        <div className='flex flex-col gap-1'>
           {user.projectRoles.map((pr, idx) => (
-            <div key={idx} className="flex flex-wrap gap-1">
+            <div key={idx} className='flex flex-wrap gap-1'>
               {pr.roles.map((role) => (
                 <span key={role}>{getRoleBadge(role)}</span>
               ))}
@@ -134,9 +144,9 @@ export const AdminUserManagementView: React.FC = () => {
     // BR-07: Nếu role là User nhưng có canCreateStudio = true, hiển thị Producer badge
     if (user.canCreateStudio && user.role.toLowerCase() !== 'admin') {
       return (
-        <div className="flex items-center gap-1.5 flex-wrap">
+        <div className='flex items-center gap-1.5 flex-wrap'>
           {getRoleBadge('Producer')}
-          <span className="text-[10px] text-gray-500 font-mono">(User + Studio Creator)</span>
+          <span className='text-[10px] text-gray-500 font-mono'>(User + Studio Creator)</span>
         </div>
       );
     }
@@ -144,39 +154,39 @@ export const AdminUserManagementView: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 bg-[#F8F6F0] min-h-screen p-6 md:p-8 space-y-6 relative text-[#171717] font-sans">
+    <div className='flex-1 bg-[#F8F6F0] min-h-screen p-6 md:p-8 space-y-6 relative text-[#171717] font-sans'>
       {/* Toast Alert */}
       {toastMessage && (
-        <div className="fixed top-6 right-6 z-50 bg-[#171717] text-white px-4 py-3 rounded-xl shadow-2xl border border-white/10 flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-200">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+        <div className='fixed top-6 right-6 z-50 bg-[#171717] text-white px-4 py-3 rounded-xl shadow-2xl border border-white/10 flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-200'>
+          <CheckCircle2 className='w-4 h-4 text-emerald-400 shrink-0' />
           <div>
-            <div className="text-xs font-bold">{toastMessage.title}</div>
-            <div className="text-[11px] text-[#A3A3A3]">{toastMessage.desc}</div>
+            <div className='text-xs font-bold'>{toastMessage.title}</div>
+            <div className='text-[11px] text-[#A3A3A3]'>{toastMessage.desc}</div>
           </div>
           <button
             onClick={() => setToastMessage(null)}
-            className="ml-2 text-[#737373] hover:text-white cursor-pointer"
+            className='ml-2 text-[#737373] hover:text-white cursor-pointer'
           >
-            <X className="w-3.5 h-3.5" />
+            <X className='w-3.5 h-3.5' />
           </button>
         </div>
       )}
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-6 rounded-2xl border border-[#E7E7E7] shadow-xs">
+      <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-6 rounded-2xl border border-[#E7E7E7] shadow-xs'>
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="px-2 py-0.5 rounded bg-[#171717] text-white font-mono text-[10px] font-bold">
+          <div className='flex items-center gap-2 mb-1'>
+            <span className='px-2 py-0.5 rounded bg-[#171717] text-white font-mono text-[10px] font-bold'>
               ADMIN // USERS & PRODUCER ASSIGNMENT
             </span>
-            <span className="text-xs text-[#737373] font-mono">
+            <span className='text-xs text-[#737373] font-mono'>
               Total: {total} Registered Accounts
             </span>
           </div>
-          <h1 className="text-2xl font-serif font-bold text-[#171717] tracking-tight">
+          <h1 className='text-2xl font-serif font-bold text-[#171717] tracking-tight'>
             Quản Trị Người Dùng & Phân Quyền Hệ Thống
           </h1>
-          <p className="text-xs text-[#737373] mt-1">
+          <p className='text-xs text-[#737373] mt-1'>
             Cấp quyền Producer để người dùng có thể tạo và quản lý các dự án Manga/Webtoon mới.
           </p>
         </div>
@@ -184,8 +194,8 @@ export const AdminUserManagementView: React.FC = () => {
         <Button
           onClick={() => refetch()}
           isLoading={isFetching}
-          variant="secondary"
-          className="gap-2 shrink-0 bg-[#F8F6F0]"
+          variant='secondary'
+          className='gap-2 shrink-0 bg-[#F8F6F0]'
         >
           <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin' : ''}`} />
           <span>Làm mới dữ liệu</span>
@@ -193,14 +203,14 @@ export const AdminUserManagementView: React.FC = () => {
       </div>
 
       {/* Filters Bar */}
-      <div className="bg-white p-4 rounded-xl border border-[#E7E7E7] shadow-xs space-y-3">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-          <div className="relative flex-1 max-w-md">
+      <div className='bg-white p-4 rounded-xl border border-[#E7E7E7] shadow-xs space-y-3'>
+        <div className='flex flex-col md:flex-row md:items-center justify-between gap-3'>
+          <div className='relative flex-1 max-w-md'>
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Tìm kiếm theo tên, email, vai trò..."
-              icon={<Search className="w-4 h-4" />}
+              placeholder='Tìm kiếm theo tên, email, vai trò...'
+              icon={<Search className='w-4 h-4' />}
             />
           </div>
 
@@ -214,15 +224,15 @@ export const AdminUserManagementView: React.FC = () => {
                 : 'text-[#555555] border-[#E7E7E7] hover:bg-[#FAF8F5]',
             )}
           >
-            <Shield className="w-3.5 h-3.5" />
+            <Shield className='w-3.5 h-3.5' />
             <span>Chỉ hiện đã bật 2FA</span>
-            {filter2faOnly && <Check className="w-3 h-3 text-emerald-600" />}
+            {filter2faOnly && <Check className='w-3 h-3 text-emerald-600' />}
           </Button>
         </div>
 
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
-          <span className="text-[11px] font-semibold text-[#888888] uppercase mr-1 flex items-center gap-1">
-            <Filter className="w-3 h-3" /> Lọc:
+        <div className='flex items-center gap-1.5 overflow-x-auto pb-1 text-xs'>
+          <span className='text-[11px] font-semibold text-[#888888] uppercase mr-1 flex items-center gap-1'>
+            <Filter className='w-3 h-3' /> Lọc:
           </span>
           {['ALL', 'Admin', 'Producer', 'User'].map((role) => (
             <button

@@ -78,7 +78,10 @@ export const AIConfigurationView: React.FC = () => {
   const [dateError, setDateError] = useState<string | null>(null);
 
   // Toast feedback
-  const [toast, setToast] = useState<{ type: 'success' | 'warning' | 'error'; message: string } | null>(null);
+  const [toast, setToast] = useState<{
+    type: 'success' | 'warning' | 'error';
+    message: string;
+  } | null>(null);
 
   const showToast = (message: string, type: 'success' | 'warning' | 'error' = 'success') => {
     setToast({ type, message });
@@ -268,8 +271,8 @@ export const AIConfigurationView: React.FC = () => {
             toast.type === 'success'
               ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
               : toast.type === 'warning'
-              ? 'bg-amber-50 border-amber-200 text-amber-800'
-              : 'bg-red-50 border-red-200 text-red-800'
+                ? 'bg-amber-50 border-amber-200 text-amber-800'
+                : 'bg-red-50 border-red-200 text-red-800'
           }`}
         >
           {toast.type === 'success' && <CheckCircle2 className='w-4 h-4 text-emerald-600' />}
@@ -299,7 +302,8 @@ export const AIConfigurationView: React.FC = () => {
               Quản Trị AI Engine, Quotas &amp; Báo Cáo Tiêu Thụ
             </h1>
             <p className='text-xs text-[#737373] mt-1'>
-              Quản lý API Key nhà cung cấp (Gemini, Claude, OpenAI), phân bổ hạn ngạch token và báo cáo chi phí gọi AI chi tiết (UC-15).
+              Quản lý API Key nhà cung cấp (Gemini, Claude, OpenAI), phân bổ hạn ngạch token và báo
+              cáo chi phí gọi AI chi tiết (UC-15).
             </p>
           </div>
 
@@ -344,7 +348,9 @@ export const AIConfigurationView: React.FC = () => {
               <div>
                 <label className='block font-bold text-[#171717] mb-1.5 flex items-center justify-between'>
                   <span>Google Gemini API Key (Default Engine)</span>
-                  <span className='text-emerald-600 font-mono text-[10px] font-bold'>Connected</span>
+                  <span className='text-emerald-600 font-mono text-[10px] font-bold'>
+                    Connected
+                  </span>
                 </label>
                 <Input
                   type='password'
@@ -357,7 +363,9 @@ export const AIConfigurationView: React.FC = () => {
               <div>
                 <label className='block font-bold text-[#171717] mb-1.5 flex items-center justify-between'>
                   <span>Anthropic Claude API Key (Script &amp; Dialogue Specialist)</span>
-                  <span className='text-emerald-600 font-mono text-[10px] font-bold'>Connected</span>
+                  <span className='text-emerald-600 font-mono text-[10px] font-bold'>
+                    Connected
+                  </span>
                 </label>
                 <Input
                   type='password'
@@ -370,7 +378,9 @@ export const AIConfigurationView: React.FC = () => {
               <div>
                 <label className='block font-bold text-[#171717] mb-1.5 flex items-center justify-between'>
                   <span>OpenAI API Key (Secondary Fallback)</span>
-                  <span className='text-emerald-600 font-mono text-[10px] font-bold'>Connected</span>
+                  <span className='text-emerald-600 font-mono text-[10px] font-bold'>
+                    Connected
+                  </span>
                 </label>
                 <Input
                   type='password'
@@ -396,9 +406,17 @@ export const AIConfigurationView: React.FC = () => {
                 </label>
                 <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5'>
                   {[
-                    { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', desc: 'Series Bible Grounding' },
+                    {
+                      id: 'gemini-1.5-pro',
+                      name: 'Gemini 1.5 Pro',
+                      desc: 'Series Bible Grounding',
+                    },
                     { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', desc: 'Fast Panel OCR' },
-                    { id: 'claude-3-5-sonnet', name: 'Claude 3.5 Sonnet', desc: 'Script Dialogue Writer' },
+                    {
+                      id: 'claude-3-5-sonnet',
+                      name: 'Claude 3.5 Sonnet',
+                      desc: 'Script Dialogue Writer',
+                    },
                     { id: 'gpt-4o', name: 'GPT-4o', desc: 'Multi-modal Vision' },
                   ].map((m) => {
                     const checked = allowedModels.includes(m.id);
@@ -414,7 +432,12 @@ export const AIConfigurationView: React.FC = () => {
                       >
                         <div className='flex items-center justify-between'>
                           <span className='font-bold text-xs'>{m.name}</span>
-                          <input type='checkbox' checked={checked} readOnly className='accent-[#F97316]' />
+                          <input
+                            type='checkbox'
+                            checked={checked}
+                            readOnly
+                            className='accent-[#F97316]'
+                          />
                         </div>
                         <div className='text-[10px] text-[#737373] mt-1'>{m.desc}</div>
                       </div>
@@ -454,40 +477,46 @@ export const AIConfigurationView: React.FC = () => {
           {/* Summary Cards */}
           <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4'>
             <div className='bg-white p-5 rounded-2xl border border-[#E7E7E7] shadow-xs space-y-1'>
-              <div className='text-[11px] font-mono text-[#737373] uppercase'>Tổng Cuộc Gọi AI (Calls)</div>
+              <div className='text-[11px] font-mono text-[#737373] uppercase'>
+                Tổng Cuộc Gọi AI (Calls)
+              </div>
               <div className='text-2xl font-bold font-serif text-[#171717]'>
                 {reports.reduce((acc, r) => acc + (r.callCount || 0), 0).toLocaleString()}
               </div>
               <div className='text-[10px] font-mono text-emerald-600 font-semibold'>
-                {reports.reduce((acc, r) => acc + (r.succeededCount || 0), 0).toLocaleString()} Thành công
+                {reports.reduce((acc, r) => acc + (r.succeededCount || 0), 0).toLocaleString()}{' '}
+                Thành công
               </div>
             </div>
 
             <div className='bg-white p-5 rounded-2xl border border-[#E7E7E7] shadow-xs space-y-1'>
-              <div className='text-[11px] font-mono text-[#737373] uppercase'>Tổng Tokens Đã Dùng</div>
+              <div className='text-[11px] font-mono text-[#737373] uppercase'>
+                Tổng Tokens Đã Dùng
+              </div>
               <div className='text-2xl font-bold font-serif text-[#171717]'>
                 {reports.reduce((acc, r) => acc + (r.totalTokens || 0), 0).toLocaleString()}
               </div>
               <div className='text-[10px] font-mono text-[#737373]'>
-                Hạn ngạch tháng: {reports.reduce((acc, r) => acc + (r.monthlyTokenQuota || 0), 0).toLocaleString()}
+                Hạn ngạch tháng:{' '}
+                {reports.reduce((acc, r) => acc + (r.monthlyTokenQuota || 0), 0).toLocaleString()}
               </div>
             </div>
 
             <div className='bg-white p-5 rounded-2xl border border-[#E7E7E7] shadow-xs space-y-1'>
-              <div className='text-[11px] font-mono text-[#737373] uppercase'>Chi Phí Ước Tính (USD)</div>
+              <div className='text-[11px] font-mono text-[#737373] uppercase'>
+                Chi Phí Ước Tính (USD)
+              </div>
               <div className='text-2xl font-bold font-serif text-[#171717] flex items-center'>
                 <DollarSign className='w-5 h-5 text-[#059669]' />
-                <span>
-                  {reports
-                    .reduce((acc, r) => acc + (r.totalCostUsd || 0), 0)
-                    .toFixed(4)}
-                </span>
+                <span>{reports.reduce((acc, r) => acc + (r.totalCostUsd || 0), 0).toFixed(4)}</span>
               </div>
               <div className='text-[10px] font-mono text-[#888888]'>Theo giá nhà cung cấp</div>
             </div>
 
             <div className='bg-white p-5 rounded-2xl border border-[#E7E7E7] shadow-xs space-y-1'>
-              <div className='text-[11px] font-mono text-[#737373] uppercase'>Tỷ Lệ Bị Chặn (Blocked)</div>
+              <div className='text-[11px] font-mono text-[#737373] uppercase'>
+                Tỷ Lệ Bị Chặn (Blocked)
+              </div>
               <div className='text-2xl font-bold font-serif text-amber-600'>
                 {reports.reduce((acc, r) => acc + (r.blockedCount || 0), 0).toLocaleString()}
               </div>
@@ -538,7 +567,9 @@ export const AIConfigurationView: React.FC = () => {
             <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs'>
               {/* Feature */}
               <div>
-                <label className='block font-semibold text-[#171717] mb-1'>Tính năng (Feature)</label>
+                <label className='block font-semibold text-[#171717] mb-1'>
+                  Tính năng (Feature)
+                </label>
                 <input
                   type='text'
                   placeholder='vd: BibleGrounding, OCR'
@@ -550,7 +581,9 @@ export const AIConfigurationView: React.FC = () => {
 
               {/* Status */}
               <div>
-                <label className='block font-semibold text-[#171717] mb-1'>Trạng thái (Status)</label>
+                <label className='block font-semibold text-[#171717] mb-1'>
+                  Trạng thái (Status)
+                </label>
                 <select
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value)}
@@ -661,13 +694,18 @@ export const AIConfigurationView: React.FC = () => {
 
                         <td className='py-3 px-4 font-mono text-[11px]'>
                           <div className='text-[#171717] font-bold'>{rec.provider}</div>
-                          <div className='text-[10px] text-[#888888]'>{rec.model || 'Standard'}</div>
+                          <div className='text-[10px] text-[#888888]'>
+                            {rec.model || 'Standard'}
+                          </div>
                         </td>
 
                         <td className='py-3 px-4 font-mono text-[11px]'>
-                          <span className='font-bold text-[#171717]'>{rec.totalTokens?.toLocaleString()}</span>
+                          <span className='font-bold text-[#171717]'>
+                            {rec.totalTokens?.toLocaleString()}
+                          </span>
                           <span className='text-[10px] text-[#888888] block'>
-                            ({rec.promptTokens?.toLocaleString()} in / {rec.completionTokens?.toLocaleString()} out)
+                            ({rec.promptTokens?.toLocaleString()} in /{' '}
+                            {rec.completionTokens?.toLocaleString()} out)
                           </span>
                         </td>
 
@@ -682,7 +720,10 @@ export const AIConfigurationView: React.FC = () => {
                         <td className='py-3 px-4 whitespace-nowrap'>
                           {renderStatusBadge(rec.status)}
                           {rec.errorMessage && (
-                            <div className='text-[10px] text-red-600 truncate max-w-xs' title={rec.errorMessage}>
+                            <div
+                              className='text-[10px] text-red-600 truncate max-w-xs'
+                              title={rec.errorMessage}
+                            >
                               {rec.errorMessage}
                             </div>
                           )}
@@ -698,8 +739,8 @@ export const AIConfigurationView: React.FC = () => {
             <div className='p-4 bg-[#FAF8F5] border-t border-[#E7E7E7] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs'>
               <div className='text-[#737373] font-mono'>
                 Hiển thị <span className='font-bold text-[#171717]'>{records.length}</span> / Tổng{' '}
-                <span className='font-bold text-[#171717]'>{totalRecords.toLocaleString()}</span> bản ghi
-                (Trang {page} / {totalPages})
+                <span className='font-bold text-[#171717]'>{totalRecords.toLocaleString()}</span>{' '}
+                bản ghi (Trang {page} / {totalPages})
               </div>
 
               <div className='flex items-center gap-2'>

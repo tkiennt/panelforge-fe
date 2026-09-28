@@ -121,7 +121,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <span className='w-2 h-2 rounded-full bg-[#F97316] animate-pulse shrink-0'></span>
                 <span className='truncate'>{activeProject?.title || 'Chưa chọn dự án'}</span>
               </div>
-              <div className='text-[10px] text-[#888888] truncate'>{activeProject?.subtitle || 'Vui lòng chọn hoặc tạo dự án'}</div>
+              <div className='text-[10px] text-[#888888] truncate'>
+                {activeProject?.subtitle || 'Vui lòng chọn hoặc tạo dự án'}
+              </div>
             </div>
             <ChevronsUpDown className='w-3.5 h-3.5 text-[#888888] group-hover:text-[#171717] transition-colors shrink-0 ml-1' />
           </button>

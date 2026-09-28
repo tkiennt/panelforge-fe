@@ -85,6 +85,8 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
     if (isOpen) {
       fetchPipeline();
     }
+    // Chỉ tải lại khi mở modal hoặc đổi Series; fetchPipeline được tạo lại mỗi render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, seriesId]);
 
   if (!isOpen) return null;
@@ -143,7 +145,8 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
           colorCode: stageColor || undefined,
           allowedRole: (stageRole as PipelineRole) || undefined,
           isApprovalGate,
-          estimatedDurationDays: typeof estimatedDuration === 'number' ? estimatedDuration : undefined,
+          estimatedDurationDays:
+            typeof estimatedDuration === 'number' ? estimatedDuration : undefined,
         };
         const updated = await pipelineService.addStage(seriesId, payload);
         setPipeline(updated);
@@ -265,27 +268,35 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
               {/* Pipeline Overview Banner */}
               <div className='grid grid-cols-2 sm:grid-cols-4 gap-3'>
                 <div className='bg-[#FAF8F5] p-3 rounded-xl border border-[#E7E7E7]'>
-                  <div className='text-[10px] text-[#888888] uppercase font-mono'>Tổng số Stage</div>
+                  <div className='text-[10px] text-[#888888] uppercase font-mono'>
+                    Tổng số Stage
+                  </div>
                   <div className='text-lg font-bold text-[#171717] mt-0.5'>
                     {pipeline.stages.length} công đoạn
                   </div>
                 </div>
                 <div className='bg-[#FAF8F5] p-3 rounded-xl border border-[#E7E7E7]'>
-                  <div className='text-[10px] text-[#888888] uppercase font-mono'>Cổng Phê Duyệt</div>
+                  <div className='text-[10px] text-[#888888] uppercase font-mono'>
+                    Cổng Phê Duyệt
+                  </div>
                   <div className='text-lg font-bold text-[#F97316] mt-0.5 flex items-center gap-1.5'>
                     <Shield className='w-4 h-4' />
                     <span>{pipeline.stages.filter((s) => s.isApprovalGate).length} Gate</span>
                   </div>
                 </div>
                 <div className='bg-[#FAF8F5] p-3 rounded-xl border border-[#E7E7E7]'>
-                  <div className='text-[10px] text-[#888888] uppercase font-mono'>Bước Chuyển (Transitions)</div>
+                  <div className='text-[10px] text-[#888888] uppercase font-mono'>
+                    Bước Chuyển (Transitions)
+                  </div>
                   <div className='text-lg font-bold text-[#059669] mt-0.5 flex items-center gap-1.5'>
                     <ArrowRight className='w-4 h-4' />
                     <span>{pipeline.transitions.length} luồng</span>
                   </div>
                 </div>
                 <div className='bg-[#FAF8F5] p-3 rounded-xl border border-[#E7E7E7]'>
-                  <div className='text-[10px] text-[#888888] uppercase font-mono'>Tự Động Sinh Transition</div>
+                  <div className='text-[10px] text-[#888888] uppercase font-mono'>
+                    Tự Động Sinh Transition
+                  </div>
                   <div className='text-xs font-semibold text-emerald-700 mt-1 flex items-center gap-1'>
                     <CheckCircle2 className='w-3.5 h-3.5 text-emerald-600' />
                     <span>Active (Backend Engine)</span>
@@ -322,7 +333,9 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
                   <div className='flex items-center justify-between border-b border-[#FDBA74]/50 pb-2'>
                     <span className='font-bold text-xs text-[#171717] flex items-center gap-1.5'>
                       <Sparkles className='w-3.5 h-3.5 text-[#F97316]' />
-                      {isEditing ? `Chỉnh sửa công đoạn: ${stageName}` : 'Thêm công đoạn mới vào Pipeline'}
+                      {isEditing
+                        ? `Chỉnh sửa công đoạn: ${stageName}`
+                        : 'Thêm công đoạn mới vào Pipeline'}
                     </span>
                     <button
                       type='button'
@@ -335,7 +348,9 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
 
                   <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3'>
                     <div>
-                      <label className='block font-semibold text-[#171717] mb-1'>Tên công đoạn *</label>
+                      <label className='block font-semibold text-[#171717] mb-1'>
+                        Tên công đoạn *
+                      </label>
                       <input
                         type='text'
                         required
@@ -380,7 +395,9 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
                     </div>
 
                     <div>
-                      <label className='block font-semibold text-[#171717] mb-1'>Mã màu (Hex Code)</label>
+                      <label className='block font-semibold text-[#171717] mb-1'>
+                        Mã màu (Hex Code)
+                      </label>
                       <div className='flex items-center gap-2'>
                         <input
                           type='color'
@@ -519,7 +536,9 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
                               Phụ trách: {stage.allowedRole}
                             </span>
                           ) : (
-                            <span className='text-[#888888] text-[10px] font-mono'>Mọi vai trò</span>
+                            <span className='text-[#888888] text-[10px] font-mono'>
+                              Mọi vai trò
+                            </span>
                           )}
 
                           {stage.isApprovalGate && (
@@ -571,10 +590,15 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
               <div className='mt-6 p-4 bg-[#FAF8F5] rounded-xl border border-[#E7E7E7] space-y-3'>
                 <h4 className='font-bold text-xs text-[#171717] flex items-center gap-1.5'>
                   <RotateCcw className='w-3.5 h-3.5 text-[#F97316]' />
-                  <span>Luồng Chuyển Giao Tự Động (Transitions Matrix - {pipeline.transitions.length} quy tắc)</span>
+                  <span>
+                    Luồng Chuyển Giao Tự Động (Transitions Matrix - {pipeline.transitions.length}{' '}
+                    quy tắc)
+                  </span>
                 </h4>
                 <p className='text-[11px] text-[#737373]'>
-                  Backend tự động dựng luồng tiến tuần tự giữa các stage và sinh nhánh Từ Chối (Reject - yêu cầu kèm lý do) từ các công đoạn là Approval Gate về các bước trước đó.
+                  Backend tự động dựng luồng tiến tuần tự giữa các stage và sinh nhánh Từ Chối
+                  (Reject - yêu cầu kèm lý do) từ các công đoạn là Approval Gate về các bước trước
+                  đó.
                 </p>
 
                 <div className='grid grid-cols-1 md:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1'>
@@ -596,7 +620,9 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
                           </span>
                           <ArrowRight
                             className={`w-3 h-3 shrink-0 ${
-                              tr.isBackwardTransition ? 'text-rose-500 rotate-180' : 'text-emerald-500'
+                              tr.isBackwardTransition
+                                ? 'text-rose-500 rotate-180'
+                                : 'text-emerald-500'
                             }`}
                           />
                           <span className='font-bold truncate max-w-[90px]'>

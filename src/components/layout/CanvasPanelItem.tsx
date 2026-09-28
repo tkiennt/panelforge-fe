@@ -76,9 +76,12 @@ export const CanvasPanelItem: React.FC<CanvasPanelItemProps> = ({
           <div className='absolute -top-1.5 -left-1.5 w-3 h-3 bg-white border-2 border-[#F97316]'></div>
           <div className='absolute -top-1.5 -right-1.5 w-3 h-3 bg-white border-2 border-[#F97316]'></div>
           <div className='absolute -bottom-1.5 -left-1.5 w-3 h-3 bg-white border-2 border-[#F97316]'></div>
-          <div 
+          <div
             className='absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-white border-2 border-[#F97316] cursor-se-resize'
-            onMouseDown={(e) => { e.stopPropagation(); onResizeStart(e); }}
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              onResizeStart(e);
+            }}
           ></div>
         </>
       )}

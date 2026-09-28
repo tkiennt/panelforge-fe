@@ -81,7 +81,8 @@ export interface ReorderPipelineStagesRequest {
 }
 
 function getAuthHeaders(customToken?: string): Record<string, string> {
-  const token = customToken || (typeof window !== 'undefined' ? localStorage.getItem('token') : null) || '';
+  const token =
+    customToken || (typeof window !== 'undefined' ? localStorage.getItem('token') : null) || '';
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
@@ -91,7 +92,10 @@ function getAuthHeaders(customToken?: string): Record<string, string> {
   return headers;
 }
 
-async function handlePipelineResponse(response: Response, defaultError: string): Promise<SeriesPipelineDto> {
+async function handlePipelineResponse<T = SeriesPipelineDto>(
+  response: Response,
+  defaultError: string,
+): Promise<T> {
   if (response.ok) {
     return await response.json();
   }
@@ -170,7 +174,10 @@ export const pipelineService = {
       headers: getAuthHeaders(token),
       body: JSON.stringify({ stageIds }),
     });
-    return await handlePipelineResponse(response, 'Không thể sắp xếp lại thứ tự công đoạn Pipeline.');
+    return await handlePipelineResponse(
+      response,
+      'Không thể sắp xếp lại thứ tự công đoạn Pipeline.',
+    );
   },
 
   /**
@@ -197,9 +204,9 @@ export const pipelineService = {
       method: 'GET',
       headers: getAuthHeaders(token),
     });
-    if (!response.ok) {
-      throw new Error(await parseErrorResponse(response, 'Không thể tải danh sách mẫu quy trình Pipeline.'));
-    }
-    return await response.json();
+    return await handlePipelineResponse<PipelineTemplateDto[]>(
+      response,
+      'Không thể tải danh sách mẫu quy trình Pipeline.',
+    );
   },
 };

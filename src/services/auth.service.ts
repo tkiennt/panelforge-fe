@@ -263,9 +263,7 @@ export const authService = {
    */
   getLandingContext: async (customToken?: string): Promise<LandingContextDto> => {
     const token =
-      customToken ||
-      (typeof window !== 'undefined' ? localStorage.getItem('token') : null) ||
-      '';
+      customToken || (typeof window !== 'undefined' ? localStorage.getItem('token') : null) || '';
     const response = await fetch(`${API_URL}/api/Auth/me/landing-context`, {
       method: 'GET',
       headers: {

@@ -210,7 +210,9 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
       return (
         <span className='px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1'>
           <Calendar className='w-3 h-3 text-blue-600' />
-          <span>Còn {diffDays} ngày ({dateStr})</span>
+          <span>
+            Còn {diffDays} ngày ({dateStr})
+          </span>
         </span>
       );
     }
@@ -223,7 +225,9 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
         return (
           <span className='px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-purple-50 text-purple-700 border border-purple-200 flex items-center gap-1'>
             <Sparkles className='w-3 h-3 text-purple-600' />
-            <span>Xuất bản {publishedAt ? `(${new Date(publishedAt).toLocaleDateString('vi-VN')})` : ''}</span>
+            <span>
+              Xuất bản {publishedAt ? `(${new Date(publishedAt).toLocaleDateString('vi-VN')})` : ''}
+            </span>
           </span>
         );
       case 'Approved':
@@ -293,8 +297,8 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
           {/* Action bar */}
           <div className='flex items-center justify-between'>
             <div className='text-xs text-[#737373]'>
-              Tổng số:{' '}
-              <strong className='text-[#171717] font-mono'>{totalCount}</strong> chương đã khởi tạo.
+              Tổng số: <strong className='text-[#171717] font-mono'>{totalCount}</strong> chương đã
+              khởi tạo.
             </div>
 
             <button
@@ -372,7 +376,11 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                   disabled={actionLoading}
                   className='px-3.5 py-1 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white font-semibold flex items-center gap-1.5 disabled:opacity-50'
                 >
-                  {actionLoading ? <Loader2 className='w-3 h-3 animate-spin' /> : <Plus className='w-3 h-3' />}
+                  {actionLoading ? (
+                    <Loader2 className='w-3 h-3 animate-spin' />
+                  ) : (
+                    <Plus className='w-3 h-3' />
+                  )}
                   <span>Thêm Chương</span>
                 </button>
               </div>
@@ -436,7 +444,11 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                   disabled={actionLoading}
                   className='px-3.5 py-1 rounded-lg bg-[#171717] hover:bg-black text-white font-semibold flex items-center gap-1.5 disabled:opacity-50'
                 >
-                  {actionLoading ? <Loader2 className='w-3 h-3 animate-spin' /> : <Save className='w-3 h-3' />}
+                  {actionLoading ? (
+                    <Loader2 className='w-3 h-3 animate-spin' />
+                  ) : (
+                    <Save className='w-3 h-3' />
+                  )}
                   <span>Lưu Thay Đổi</span>
                 </button>
               </div>
@@ -486,7 +498,9 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
 
                       <td className='py-3 px-3'>
                         <div className='font-semibold text-[#171717]'>
-                          {chap.title || <span className='text-[#888888] italic'>Chưa đặt tên</span>}
+                          {chap.title || (
+                            <span className='text-[#888888] italic'>Chưa đặt tên</span>
+                          )}
                         </div>
                         <div className='text-[10px] text-[#888888] font-mono'>
                           Tạo ngày: {new Date(chap.createdAt).toLocaleDateString('vi-VN')}
@@ -565,7 +579,8 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
         {/* Footer */}
         <div className='p-4 bg-[#FAF8F5] border-t border-[#E7E7E7] rounded-b-2xl flex items-center justify-between text-xs'>
           <div className='text-[11px] text-[#737373]'>
-            * TargetReleaseDate hỗ trợ quản lý lịch phát hành cho Producer &amp; Editor (UC-03 Phase 3).
+            * TargetReleaseDate hỗ trợ quản lý lịch phát hành cho Producer &amp; Editor (UC-03 Phase
+            3).
           </div>
           <button
             type='button'

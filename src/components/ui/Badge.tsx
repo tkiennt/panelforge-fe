@@ -17,11 +17,11 @@ export const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(
           variant === 'warning' && 'bg-[#FFF7ED] text-[#F97316] border-[#FDBA74]',
           variant === 'danger' && 'bg-red-50 text-red-700 border-red-300',
           variant === 'outline' && 'bg-transparent text-[#171717] border-[#171717]',
-          className
+          className,
         )}
         {...props}
       />
     );
-  }
+  },
 );
 Badge.displayName = 'Badge';

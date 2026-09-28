@@ -4,7 +4,7 @@ import { ROLE_PERMISSIONS, resolvePermissions } from './permissions';
 describe('Permissions Security Test', () => {
   it('ADMINISTRATOR tuyệt đối không có bất kỳ quyền sáng tạo nội dung nào trong workspace', () => {
     const adminPermissions = resolvePermissions(['ADMINISTRATOR']);
-    
+
     // Danh sách các quyền sáng tạo nội dung trong Workspace
     const creativePermissions = [
       'edit_script',

@@ -32,12 +32,10 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   onShowToast,
   filterType,
 }) => {
-  const effectiveRoles = userRoles.length > 0
-    ? userRoles
-    : [
-        ...(systemRole ? [systemRole] : []),
-        ...(currentUserRole ? [currentUserRole] : []),
-      ];
+  const effectiveRoles =
+    userRoles.length > 0
+      ? userRoles
+      : [...(systemRole ? [systemRole] : []), ...(currentUserRole ? [currentUserRole] : [])];
   const { hasPermission } = usePermissions(effectiveRoles);
   const [cards, setCards] = useState<PipelineCard[]>(MOCK_CARDS);
   const [activeCard, setActiveCard] = useState<PipelineCard | null>(null);
@@ -141,7 +139,9 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                   if (c.stage !== stage.id) return false;
                   if (filterType === 'my-tasks' && c.assigneeId !== currentUserId) return false;
                   if (filterType === 'overdue') {
-                    const diffDays = Math.ceil((new Date(c.deadline).getTime() - new Date().getTime()) / (1000 * 3600 * 24));
+                    const diffDays = Math.ceil(
+                      (new Date(c.deadline).getTime() - new Date().getTime()) / (1000 * 3600 * 24),
+                    );
                     if (diffDays >= 0 && c.stage !== 'approved') return false;
                   }
                   return true;

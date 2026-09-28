@@ -89,7 +89,7 @@ export interface AuditLogFilterParams {
   entityId?: string;
   action?: string;
   from?: string; // ISO 8601 UTC
-  to?: string;   // ISO 8601 UTC
+  to?: string; // ISO 8601 UTC
   page?: number;
   pageSize?: number;
 }
@@ -161,7 +161,7 @@ export interface AiUsageRecordsFilterParams {
   feature?: string;
   status?: string;
   from?: string; // ISO 8601 UTC
-  to?: string;   // ISO 8601 UTC
+  to?: string; // ISO 8601 UTC
   page?: number;
   pageSize?: number;
 }
@@ -248,7 +248,10 @@ export const adminService = {
   /**
    * Phân quyền Producer / SystemRole cho người dùng (POST /api/Admin/assign-producer)
    */
-  assignProducer: async (request: AssignRoleRequest, token?: string): Promise<AssignRoleResponse> => {
+  assignProducer: async (
+    request: AssignRoleRequest,
+    token?: string,
+  ): Promise<AssignRoleResponse> => {
     const response = await fetch(`${API_URL}/api/Admin/assign-producer`, {
       method: 'POST',
       headers: getAuthHeaders(token),
@@ -296,7 +299,11 @@ export const adminService = {
   /**
    * Cập nhật thông tin người dùng từ trang quản trị (PUT /api/Admin/users/{id})
    */
-  updateUser: async (id: string, payload: UpdateUserPayload, token?: string): Promise<AdminUserItem> => {
+  updateUser: async (
+    id: string,
+    payload: UpdateUserPayload,
+    token?: string,
+  ): Promise<AdminUserItem> => {
     const response = await fetch(`${API_URL}/api/Admin/users/${id}`, {
       method: 'PUT',
       headers: getAuthHeaders(token),
@@ -304,7 +311,9 @@ export const adminService = {
     });
 
     if (!response.ok) {
-      throw new Error(await parseErrorResponse(response, 'Không thể cập nhật thông tin người dùng.'));
+      throw new Error(
+        await parseErrorResponse(response, 'Không thể cập nhật thông tin người dùng.'),
+      );
     }
 
     return await response.json();
@@ -370,7 +379,7 @@ export const adminService = {
       params = workspaceIdOrParams;
     } else {
       params = {
-        workspaceId: workspaceIdOrParams,
+        workspaceId: typeof workspaceIdOrParams === 'string' ? workspaceIdOrParams : undefined,
         action,
         page,
         pageSize,

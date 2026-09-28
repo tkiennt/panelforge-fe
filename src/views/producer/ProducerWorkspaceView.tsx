@@ -39,9 +39,18 @@ export const ProducerWorkspaceView: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   // Selected series for UC-03 Modals
-  const [selectedPipelineSeries, setSelectedPipelineSeries] = useState<{ id: string; title: string } | null>(null);
-  const [selectedChapterSeries, setSelectedChapterSeries] = useState<{ id: string; title: string } | null>(null);
-  const [selectedPresetsSeries, setSelectedPresetsSeries] = useState<{ id: string; title: string } | null>(null);
+  const [selectedPipelineSeries, setSelectedPipelineSeries] = useState<{
+    id: string;
+    title: string;
+  } | null>(null);
+  const [selectedChapterSeries, setSelectedChapterSeries] = useState<{
+    id: string;
+    title: string;
+  } | null>(null);
+  const [selectedPresetsSeries, setSelectedPresetsSeries] = useState<{
+    id: string;
+    title: string;
+  } | null>(null);
 
   // Modals
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -243,8 +252,8 @@ export const ProducerWorkspaceView: React.FC = () => {
       typeof s.readingDirection === 'number'
         ? s.readingDirection
         : s.readingDirection === 'RightToLeft'
-        ? 1
-        : 0,
+          ? 1
+          : 0,
     );
     setEditSeriesSchedule(s.releaseScheduleJson || '');
   };
@@ -434,7 +443,8 @@ export const ProducerWorkspaceView: React.FC = () => {
           <Briefcase className='w-10 h-10 text-[#888888] mx-auto' />
           <h3 className='text-base font-bold text-[#171717]'>Chưa có Studio Workspace nào</h3>
           <p className='text-xs text-[#555555] max-w-sm mx-auto'>
-            Bạn chưa tạo Workspace nào. Bấm nút &quot;Tạo Workspace Mới&quot; để thiết lập studio làm việc cho Producer.
+            Bạn chưa tạo Workspace nào. Bấm nút &quot;Tạo Workspace Mới&quot; để thiết lập studio
+            làm việc cho Producer.
           </p>
           <button
             onClick={() => setCreateModalOpen(true)}
@@ -527,7 +537,10 @@ export const ProducerWorkspaceView: React.FC = () => {
             </div>
             <h2 className='text-lg font-bold text-[#171717] flex items-center gap-2'>
               <BookOpen className='w-5 h-5 text-[#F97316]' />
-              <span>Dự Án Truyện Tranh (Series) Trong Workspace: {activeWorkspace?.name || 'Chưa chọn Studio'}</span>
+              <span>
+                Dự Án Truyện Tranh (Series) Trong Workspace:{' '}
+                {activeWorkspace?.name || 'Chưa chọn Studio'}
+              </span>
             </h2>
             <p className='text-xs text-[#737373]'>
               Thiết lập thể loại, định dạng đọc, quy trình Kanban 8 công đoạn, Series Bible có
@@ -668,7 +681,9 @@ export const ProducerWorkspaceView: React.FC = () => {
           <div>
             <h2 className='text-lg font-bold text-[#171717] flex items-center gap-2'>
               <Users className='w-5 h-5 text-[#F97316]' />
-              <span>Thành Viên Trong Studio Workspace: {activeWorkspace?.name || 'Chưa chọn Studio'}</span>
+              <span>
+                Thành Viên Trong Studio Workspace: {activeWorkspace?.name || 'Chưa chọn Studio'}
+              </span>
             </h2>
             <p className='text-xs text-[#737373]'>
               Phân quyền và phân công nhiệm vụ cho Writer, Artist, Letterer và Editor.
@@ -836,7 +851,8 @@ export const ProducerWorkspaceView: React.FC = () => {
               </div>
               <div className='p-2.5 bg-[#FAF8F5] rounded-lg border border-[#E7E7E7] text-[11px] text-[#737373] space-y-1'>
                 <p>
-                  <strong>Lưu ý:</strong> Nếu email chưa có tài khoản, hệ thống sẽ gửi email kèm mã OTP 6 số (hạn 15 phút) để thành viên kích hoạt tài khoản và tự tạo mật khẩu.
+                  <strong>Lưu ý:</strong> Nếu email chưa có tài khoản, hệ thống sẽ gửi email kèm mã
+                  OTP 6 số (hạn 15 phút) để thành viên kích hoạt tài khoản và tự tạo mật khẩu.
                 </p>
               </div>
               <div className='flex justify-end gap-2 pt-2'>
@@ -980,11 +996,14 @@ export const ProducerWorkspaceView: React.FC = () => {
                   className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg focus:outline-none focus:border-[#F97316]'
                 >
                   {pipelineTemplates.length === 0 ? (
-                    <option value=''>Manga Standard (8 công đoạn: Script → Approved) [Mặc định]</option>
+                    <option value=''>
+                      Manga Standard (8 công đoạn: Script → Approved) [Mặc định]
+                    </option>
                   ) : (
                     pipelineTemplates.map((t) => (
                       <option key={t.id} value={t.id}>
-                        {t.name} {t.isDefault ? ' [Khuyên dùng mặc định]' : ''} ({t.stages?.length || 0} công đoạn)
+                        {t.name} {t.isDefault ? ' [Khuyên dùng mặc định]' : ''} (
+                        {t.stages?.length || 0} công đoạn)
                       </option>
                     ))
                   )}
@@ -1092,7 +1111,9 @@ export const ProducerWorkspaceView: React.FC = () => {
 
             <form onSubmit={handleUpdateSeries} className='space-y-3.5 text-xs'>
               <div>
-                <label className='block font-semibold text-[#171717] mb-1'>Tên Dự Án (Title) *</label>
+                <label className='block font-semibold text-[#171717] mb-1'>
+                  Tên Dự Án (Title) *
+                </label>
                 <input
                   type='text'
                   value={editSeriesTitle}
@@ -1103,7 +1124,9 @@ export const ProducerWorkspaceView: React.FC = () => {
               </div>
 
               <div>
-                <label className='block font-semibold text-[#171717] mb-1'>Tóm Tắt Cốt Truyện (Synopsis)</label>
+                <label className='block font-semibold text-[#171717] mb-1'>
+                  Tóm Tắt Cốt Truyện (Synopsis)
+                </label>
                 <textarea
                   rows={2}
                   value={editSeriesSynopsis}
@@ -1114,7 +1137,9 @@ export const ProducerWorkspaceView: React.FC = () => {
 
               <div className='grid grid-cols-2 gap-3'>
                 <div>
-                  <label className='block font-semibold text-[#171717] mb-1'>Thể Loại (Genre)</label>
+                  <label className='block font-semibold text-[#171717] mb-1'>
+                    Thể Loại (Genre)
+                  </label>
                   <select
                     value={editSeriesGenre}
                     onChange={(e) => setEditSeriesGenre(e.target.value)}
@@ -1129,7 +1154,9 @@ export const ProducerWorkspaceView: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className='block font-semibold text-[#171717] mb-1'>Định Dạng (Format)</label>
+                  <label className='block font-semibold text-[#171717] mb-1'>
+                    Định Dạng (Format)
+                  </label>
                   <select
                     value={editSeriesFormat}
                     onChange={(e) => setEditSeriesFormat(e.target.value)}
@@ -1198,12 +1225,15 @@ export const ProducerWorkspaceView: React.FC = () => {
               </div>
               <div>
                 <h3 className='text-sm font-bold text-[#171717]'>Xác nhận xóa Series</h3>
-                <p className='text-xs text-[#737373]'>Thao tác này sẽ xóa Series và toàn bộ dữ liệu liên quan.</p>
+                <p className='text-xs text-[#737373]'>
+                  Thao tác này sẽ xóa Series và toàn bộ dữ liệu liên quan.
+                </p>
               </div>
             </div>
 
             <p className='text-xs text-[#555555] p-3 bg-red-50 rounded-xl border border-red-200'>
-              Bạn có chắc chắn muốn xóa bộ truyện <strong>&quot;{deleteSeriesModal.title}&quot;</strong>?
+              Bạn có chắc chắn muốn xóa bộ truyện{' '}
+              <strong>&quot;{deleteSeriesModal.title}&quot;</strong>?
             </p>
 
             <div className='flex justify-end gap-2 pt-2'>
@@ -1306,8 +1336,8 @@ export const ProducerWorkspaceView: React.FC = () => {
                               log.action?.includes('CREATE')
                                 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                                 : log.action?.includes('DELETE')
-                                ? 'bg-red-50 text-red-700 border border-red-200'
-                                : 'bg-blue-50 text-blue-700 border border-blue-200'
+                                  ? 'bg-red-50 text-red-700 border border-red-200'
+                                  : 'bg-blue-50 text-blue-700 border border-blue-200'
                             }`}
                           >
                             {log.action}

@@ -40,7 +40,8 @@ export interface UpdateChapterRequest {
 }
 
 function getAuthHeaders(customToken?: string): Record<string, string> {
-  const token = customToken || (typeof window !== 'undefined' ? localStorage.getItem('token') : null) || '';
+  const token =
+    customToken || (typeof window !== 'undefined' ? localStorage.getItem('token') : null) || '';
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };

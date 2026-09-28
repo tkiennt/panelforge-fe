@@ -36,12 +36,12 @@ const mapMemberDtoToStudioMember = (m: WorkspaceMemberDto): StudioMember => {
       ? m.role === 0
         ? 'PRODUCER'
         : m.role === 1
-        ? 'WRITER'
-        : m.role === 2
-        ? 'ARTIST'
-        : m.role === 3
-        ? 'LETTERER'
-        : 'EDITOR'
+          ? 'WRITER'
+          : m.role === 2
+            ? 'ARTIST'
+            : m.role === 3
+              ? 'LETTERER'
+              : 'EDITOR'
       : String(m.role).toUpperCase();
 
   const initials = m.fullName
@@ -333,9 +333,7 @@ export const MembersRolesView: React.FC<MembersRolesViewProps> = ({
 
                   <div>
                     <div className='flex flex-wrap items-center gap-2'>
-                      <h4 className='text-sm font-bold text-[#171717] font-serif'>
-                        {member.name}
-                      </h4>
+                      <h4 className='text-sm font-bold text-[#171717] font-serif'>{member.name}</h4>
                       <span className='px-2 py-0.5 rounded bg-[#171717] text-white text-[10px] font-mono font-bold tracking-wider'>
                         {(member.role || 'MEMBER').toUpperCase()}
                       </span>
@@ -564,29 +562,31 @@ export const MembersRolesView: React.FC<MembersRolesViewProps> = ({
                   Assigned Production Role (Single Role)
                 </label>
                 <div className='flex flex-wrap gap-2 mt-1'>
-                  {(['PRODUCER', 'ARTIST', 'WRITER', 'LETTERER', 'EDITOR'] as const).map((roleKey) => {
-                    const isSelected = editRole.toUpperCase() === roleKey;
-                    return (
-                      <label
-                        key={roleKey}
-                        className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border text-[11px] font-bold tracking-wider cursor-pointer transition-colors ${
-                          isSelected
-                            ? 'bg-[#171717] text-white border-[#171717] shadow-xs'
-                            : 'bg-white text-[#555555] border-[#E7E7E7] hover:bg-[#FAF8F4]'
-                        }`}
-                      >
-                        <input
-                          type='radio'
-                          name='memberRole'
-                          value={roleKey}
-                          className='hidden'
-                          checked={isSelected}
-                          onChange={() => setEditRole(roleKey)}
-                        />
-                        <span>{roleKey}</span>
-                      </label>
-                    );
-                  })}
+                  {(['PRODUCER', 'ARTIST', 'WRITER', 'LETTERER', 'EDITOR'] as const).map(
+                    (roleKey) => {
+                      const isSelected = editRole.toUpperCase() === roleKey;
+                      return (
+                        <label
+                          key={roleKey}
+                          className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border text-[11px] font-bold tracking-wider cursor-pointer transition-colors ${
+                            isSelected
+                              ? 'bg-[#171717] text-white border-[#171717] shadow-xs'
+                              : 'bg-white text-[#555555] border-[#E7E7E7] hover:bg-[#FAF8F4]'
+                          }`}
+                        >
+                          <input
+                            type='radio'
+                            name='memberRole'
+                            value={roleKey}
+                            className='hidden'
+                            checked={isSelected}
+                            onChange={() => setEditRole(roleKey)}
+                          />
+                          <span>{roleKey}</span>
+                        </label>
+                      );
+                    },
+                  )}
                 </div>
               </div>
 

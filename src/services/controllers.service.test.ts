@@ -11,9 +11,7 @@ describe('Workspaces, Pages, and Elements Services', () => {
 
   describe('workspaceService', () => {
     it('lấy danh sách Workspaces thành công từ API khi có token', async () => {
-      const sampleWorkspaces = [
-        { id: 'w-1', name: 'Alpha Studio', currentUserRole: 'PRODUCER' },
-      ];
+      const sampleWorkspaces = [{ id: 'w-1', name: 'Alpha Studio', currentUserRole: 'PRODUCER' }];
       const fetchMock = vi.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve(sampleWorkspaces),

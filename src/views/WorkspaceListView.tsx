@@ -198,14 +198,17 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                   Welcome to PanelForge
                 </h2>
                 <p className='text-sm text-[#555555] mb-8 leading-relaxed'>
-                  You currently don't belong to any active Workspaces. Bạn chưa có Workspace nào trong hệ thống. Hãy khởi tạo một Studio mới để bắt đầu
-                  hoặc nhờ Studio Producer gửi lời mời tham gia qua email của bạn.
+                  You currently don't belong to any active Workspaces. Bạn chưa có Workspace nào
+                  trong hệ thống. Hãy khởi tạo một Studio mới để bắt đầu hoặc nhờ Studio Producer
+                  gửi lời mời tham gia qua email của bạn.
                 </p>
                 <button
                   onClick={handleOpenCreate}
                   aria-label='Create Workspace'
                   disabled={isAdmin}
-                  title={isAdmin ? 'Quản trị viên không thể tạo Studio (BR-07)' : 'Create Workspace'}
+                  title={
+                    isAdmin ? 'Quản trị viên không thể tạo Studio (BR-07)' : 'Create Workspace'
+                  }
                   className='w-full bg-[#171717] hover:bg-[#2A2A2A] disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer shadow-xs hover:shadow-md'
                 >
                   <Plus className='w-5 h-5' />

@@ -146,7 +146,9 @@ export const bibleService = {
     );
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      const error: any = new Error(err.error || err.message || 'Không thể tạo phiên bản mới cho mục Bible.');
+      const error: any = new Error(
+        err.error || err.message || 'Không thể tạo phiên bản mới cho mục Bible.',
+      );
       error.code = err.code || (res.status === 409 ? 'CONFLICT' : undefined);
       error.status = res.status;
       throw error;

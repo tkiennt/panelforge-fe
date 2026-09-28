@@ -194,7 +194,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       setEmail(forgotEmail.trim());
       setPassword('');
       setStep('login');
-      setSuccessNotice('Kích hoạt tài khoản / Đặt lại mật khẩu thành công! Bạn có thể đăng nhập ngay với mật khẩu mới.');
+      setSuccessNotice(
+        'Kích hoạt tài khoản / Đặt lại mật khẩu thành công! Bạn có thể đăng nhập ngay với mật khẩu mới.',
+      );
     } catch (err: any) {
       console.error('Reset Password Error:', err);
       setError(err.message || 'Đặt lại mật khẩu thất bại. Vui lòng kiểm tra lại mã OTP.');
@@ -623,7 +625,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                   Kích hoạt tài khoản & Tạo mật khẩu mới
                 </h2>
                 <p className='text-[#555555] text-xs mt-1.5 leading-relaxed'>
-                  Nhập email, mã OTP 6 số (từ email mời Workspace hoặc email đặt lại mật khẩu) và mật khẩu mới để đăng nhập.
+                  Nhập email, mã OTP 6 số (từ email mời Workspace hoặc email đặt lại mật khẩu) và
+                  mật khẩu mới để đăng nhập.
                 </p>
 
                 <form onSubmit={handleResetPasswordSubmit} className='mt-6 space-y-3.5'>

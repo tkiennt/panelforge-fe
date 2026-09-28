@@ -69,6 +69,8 @@ export const PublicCatalogView: React.FC<PublicCatalogViewProps> = ({
 
   useEffect(() => {
     fetchCatalog();
+    // Cố ý không theo dõi `search`: tìm kiếm chỉ chạy khi submit form (handleSearchSubmit).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedGenre, pageIndex]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -155,7 +157,8 @@ export const PublicCatalogView: React.FC<PublicCatalogViewProps> = ({
                 Thư Viện Truyện Tranh Xuất Bản
               </h1>
               <p className='text-xs text-[#737373]'>
-                Khám phá các tác phẩm Manga, Webtoon và Comic chất lượng cao được sản xuất trên nền tảng PanelForge.
+                Khám phá các tác phẩm Manga, Webtoon và Comic chất lượng cao được sản xuất trên nền
+                tảng PanelForge.
               </p>
             </div>
 
@@ -224,7 +227,9 @@ export const PublicCatalogView: React.FC<PublicCatalogViewProps> = ({
                 Chưa có Series nào được phát hành công khai
               </h3>
               <p className='text-xs text-[#737373] max-w-md mx-auto leading-relaxed'>
-                Hiện tại các dự án truyện tranh đang trong giai đoạn sản xuất tại Studio Desk. Sau khi các chương được Biên tập viên duyệt (Approved) và xuất bản chính thức (Published), chúng sẽ xuất hiện tại đây cho độc giả thưởng thức.
+                Hiện tại các dự án truyện tranh đang trong giai đoạn sản xuất tại Studio Desk. Sau
+                khi các chương được Biên tập viên duyệt (Approved) và xuất bản chính thức
+                (Published), chúng sẽ xuất hiện tại đây cho độc giả thưởng thức.
               </p>
             </div>
             {onBackToWorkspaces && (

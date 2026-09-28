@@ -22,12 +22,12 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             'focus:outline-none focus:border-[#F97316] transition-colors',
             'disabled:opacity-50 disabled:cursor-not-allowed',
             icon ? 'pl-9 pr-4' : 'px-4',
-            className
+            className,
           )}
           {...props}
         />
       </div>
     );
-  }
+  },
 );
 Input.displayName = 'Input';

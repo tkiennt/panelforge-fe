@@ -131,7 +131,9 @@ export const AdminSystemSettingsView: React.FC = () => {
               >
                 {aiWorkspaces.map((ws) => (
                   <option key={ws.workspaceId} value={ws.workspaceId}>
-                    {ws.workspaceName || ws.workspaceId} ({ws.usedTokensCurrentMonth?.toLocaleString() || 0} / {ws.monthlyTokenQuota?.toLocaleString() || 0} tokens)
+                    {ws.workspaceName || ws.workspaceId} (
+                    {ws.usedTokensCurrentMonth?.toLocaleString() || 0} /{' '}
+                    {ws.monthlyTokenQuota?.toLocaleString() || 0} tokens)
                   </option>
                 ))}
               </select>

@@ -308,7 +308,9 @@ export const workspaceService = {
       headers: getAuthHeaders(activeToken),
     });
     if (!response.ok) {
-      throw new Error(await parseErrorResponse(response, 'Không thể tải lịch sử Audit của Workspace.'));
+      throw new Error(
+        await parseErrorResponse(response, 'Không thể tải lịch sử Audit của Workspace.'),
+      );
     }
     return await response.json();
   },

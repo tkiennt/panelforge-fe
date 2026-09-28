@@ -311,7 +311,9 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
                 <span className='px-2 py-0.5 rounded bg-[#171717] text-white font-mono text-[9px] font-bold'>
                   NFR-08 // PRESETS &amp; RULES
                 </span>
-                <span className='text-[10px] text-[#888888] font-mono'>Lettering &amp; Consistency</span>
+                <span className='text-[10px] text-[#888888] font-mono'>
+                  Lettering &amp; Consistency
+                </span>
               </div>
               <h2 className='text-base font-bold text-[#171717] mt-0.5'>
                 Cấu Hình Presets &amp; Rules: {seriesTitle}
@@ -367,7 +369,8 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
             <div className='space-y-4'>
               <div className='flex items-center justify-between'>
                 <p className='text-[#737373]'>
-                  Định nghĩa các mẫu kiểu chữ thoại (Font, Size, Style) để Letterer áp dụng nhanh vào các bóng thoại (UC-08).
+                  Định nghĩa các mẫu kiểu chữ thoại (Font, Size, Style) để Letterer áp dụng nhanh
+                  vào các bóng thoại (UC-08).
                 </p>
                 <button
                   onClick={() => {
@@ -390,12 +393,18 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
                 >
                   <div className='font-bold text-xs text-[#171717] flex items-center gap-1.5'>
                     <Sparkles className='w-3.5 h-3.5 text-[#F97316]' />
-                    <span>{editingPreset ? `Sửa Preset: ${editingPreset.name}` : 'Tạo Preset Typography Mới'}</span>
+                    <span>
+                      {editingPreset
+                        ? `Sửa Preset: ${editingPreset.name}`
+                        : 'Tạo Preset Typography Mới'}
+                    </span>
                   </div>
 
                   <div className='grid grid-cols-1 sm:grid-cols-3 gap-3'>
                     <div>
-                      <label className='block font-semibold text-[#171717] mb-1'>Tên Preset *</label>
+                      <label className='block font-semibold text-[#171717] mb-1'>
+                        Tên Preset *
+                      </label>
                       <input
                         type='text'
                         required
@@ -422,7 +431,9 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
                     </div>
 
                     <div>
-                      <label className='block font-semibold text-[#171717] mb-1'>Mục đích sử dụng (Usage)</label>
+                      <label className='block font-semibold text-[#171717] mb-1'>
+                        Mục đích sử dụng (Usage)
+                      </label>
                       <select
                         value={usageType}
                         onChange={(e) => setUsageType(e.target.value)}
@@ -449,7 +460,9 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
                     </div>
 
                     <div>
-                      <label className='block font-semibold text-[#171717] mb-1'>Độ dày (Weight)</label>
+                      <label className='block font-semibold text-[#171717] mb-1'>
+                        Độ dày (Weight)
+                      </label>
                       <select
                         value={fontWeight}
                         onChange={(e) => setFontWeight(parseInt(e.target.value, 10) || 400)}
@@ -463,7 +476,9 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
                     </div>
 
                     <div>
-                      <label className='block font-semibold text-[#171717] mb-1'>Căn lề (Align)</label>
+                      <label className='block font-semibold text-[#171717] mb-1'>
+                        Căn lề (Align)
+                      </label>
                       <select
                         value={textAlign}
                         onChange={(e) => setTextAlign(e.target.value)}
@@ -484,7 +499,10 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
                       onChange={(e) => setIsDefault(e.target.checked)}
                       className='rounded accent-[#F97316]'
                     />
-                    <label htmlFor='isDefaultCheck' className='text-xs text-[#171717] cursor-pointer'>
+                    <label
+                      htmlFor='isDefaultCheck'
+                      className='text-xs text-[#171717] cursor-pointer'
+                    >
                       Đặt làm kiểu chữ mặc định cho Series này
                     </label>
                   </div>
@@ -519,7 +537,11 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
                       disabled={actionLoading}
                       className='px-3.5 py-1 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white font-semibold flex items-center gap-1.5'
                     >
-                      {actionLoading ? <Loader2 className='w-3 h-3 animate-spin' /> : <Save className='w-3 h-3' />}
+                      {actionLoading ? (
+                        <Loader2 className='w-3 h-3 animate-spin' />
+                      ) : (
+                        <Save className='w-3 h-3' />
+                      )}
                       <span>Lưu Preset</span>
                     </button>
                   </div>
@@ -604,7 +626,8 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
             <div className='space-y-4'>
               <div className='flex items-center justify-between'>
                 <p className='text-[#737373]'>
-                  Các quy tắc kiểm tra tính nhất quán cốt truyện, ngoại hình nhân vật và thuật ngữ trước khi phê duyệt (UC-10, BR-21).
+                  Các quy tắc kiểm tra tính nhất quán cốt truyện, ngoại hình nhân vật và thuật ngữ
+                  trước khi phê duyệt (UC-10, BR-21).
                 </p>
                 <button
                   onClick={() => {
@@ -627,12 +650,18 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
                 >
                   <div className='font-bold text-xs text-[#171717] flex items-center gap-1.5'>
                     <Sparkles className='w-3.5 h-3.5 text-[#F97316]' />
-                    <span>{editingRule ? `Sửa Quy Tắc: ${editingRule.name}` : 'Tạo Quy Tắc Nhất Quán Mới'}</span>
+                    <span>
+                      {editingRule
+                        ? `Sửa Quy Tắc: ${editingRule.name}`
+                        : 'Tạo Quy Tắc Nhất Quán Mới'}
+                    </span>
                   </div>
 
                   <div className='grid grid-cols-1 sm:grid-cols-3 gap-3'>
                     <div>
-                      <label className='block font-semibold text-[#171717] mb-1'>Tên Quy Tắc *</label>
+                      <label className='block font-semibold text-[#171717] mb-1'>
+                        Tên Quy Tắc *
+                      </label>
                       <input
                         type='text'
                         required
@@ -644,7 +673,9 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
                     </div>
 
                     <div>
-                      <label className='block font-semibold text-[#171717] mb-1'>Loại Quy Tắc (Type)</label>
+                      <label className='block font-semibold text-[#171717] mb-1'>
+                        Loại Quy Tắc (Type)
+                      </label>
                       <select
                         value={ruleType}
                         onChange={(e) => setRuleType(e.target.value)}
@@ -659,7 +690,9 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
                     </div>
 
                     <div>
-                      <label className='block font-semibold text-[#171717] mb-1'>Mức Độ Cảnh Báo (Severity)</label>
+                      <label className='block font-semibold text-[#171717] mb-1'>
+                        Mức Độ Cảnh Báo (Severity)
+                      </label>
                       <select
                         value={ruleSeverity}
                         onChange={(e) => setRuleSeverity(e.target.value)}
@@ -693,7 +726,10 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
                       onChange={(e) => setRuleIsEnabled(e.target.checked)}
                       className='rounded accent-[#F97316]'
                     />
-                    <label htmlFor='ruleEnabledCheck' className='text-xs text-[#171717] cursor-pointer'>
+                    <label
+                      htmlFor='ruleEnabledCheck'
+                      className='text-xs text-[#171717] cursor-pointer'
+                    >
                       Kích hoạt kiểm tra tự động quy tắc này
                     </label>
                   </div>
@@ -711,7 +747,11 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
                       disabled={actionLoading}
                       className='px-3.5 py-1 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white font-semibold flex items-center gap-1.5'
                     >
-                      {actionLoading ? <Loader2 className='w-3 h-3 animate-spin' /> : <Save className='w-3 h-3' />}
+                      {actionLoading ? (
+                        <Loader2 className='w-3 h-3 animate-spin' />
+                      ) : (
+                        <Save className='w-3 h-3' />
+                      )}
                       <span>Lưu Quy Tắc</span>
                     </button>
                   </div>
@@ -743,8 +783,8 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
                               r.severity === 'Error'
                                 ? 'bg-red-50 text-red-700 border border-red-200'
                                 : r.severity === 'Warning'
-                                ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                                : 'bg-blue-50 text-blue-700 border border-blue-200'
+                                  ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                                  : 'bg-blue-50 text-blue-700 border border-blue-200'
                             }`}
                           >
                             {r.severity}
@@ -763,7 +803,9 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
                           type='button'
                           onClick={() => handleToggleRuleStatus(r)}
                           className='p-1 text-[#888888] hover:text-[#171717]'
-                          title={r.isEnabled ? 'Đang bật - Click để tắt' : 'Đang tắt - Click để bật'}
+                          title={
+                            r.isEnabled ? 'Đang bật - Click để tắt' : 'Đang tắt - Click để bật'
+                          }
                         >
                           {r.isEnabled ? (
                             <ToggleRight className='w-6 h-6 text-[#10B981]' />

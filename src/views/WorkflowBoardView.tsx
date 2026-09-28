@@ -143,7 +143,8 @@ export const WorkflowBoardView: React.FC<WorkflowBoardViewProps> = ({
                   ARC 02
                 </span>
                 <h1 className='text-xl lg:text-2xl font-bold font-display text-[#171717] tracking-tight'>
-                  Chapter {activeProject?.chapter || '1'}: {activeProject?.totalPages || 0} Total Pages
+                  Chapter {activeProject?.chapter || '1'}: {activeProject?.totalPages || 0} Total
+                  Pages
                 </h1>
               </div>
               <div className='flex items-center gap-3 mt-1.5 text-xs'>
@@ -151,7 +152,13 @@ export const WorkflowBoardView: React.FC<WorkflowBoardViewProps> = ({
                   {activeProject?.completedPages || 0} / {activeProject?.totalPages || 0} Completed
                 </span>
                 <span className='text-[#888888] font-mono font-medium'>
-                  ({activeProject?.totalPages ? Math.round(((activeProject.completedPages || 0) / activeProject.totalPages) * 100) : 0}%)
+                  (
+                  {activeProject?.totalPages
+                    ? Math.round(
+                        ((activeProject.completedPages || 0) / activeProject.totalPages) * 100,
+                      )
+                    : 0}
+                  %)
                 </span>
                 <div className='w-40 sm:w-52 h-2 bg-[#F3F1EB] rounded-full overflow-hidden flex'>
                   <div

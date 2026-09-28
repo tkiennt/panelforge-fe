@@ -25,7 +25,12 @@ export const PermissionField: React.FC<PermissionFieldProps> = ({
 
   if (!hasPerm) {
     return (
-      <div className={cn("p-2 bg-[#F3F3F3] text-[#555555] rounded text-sm border border-transparent whitespace-pre-wrap", className)}>
+      <div
+        className={cn(
+          'p-2 bg-[#F3F3F3] text-[#555555] rounded text-sm border border-transparent whitespace-pre-wrap',
+          className,
+        )}
+      >
         {value || placeholder}
       </div>
     );
@@ -34,7 +39,10 @@ export const PermissionField: React.FC<PermissionFieldProps> = ({
   if (type === 'textarea') {
     return (
       <textarea
-        className={cn("w-full p-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-[#F97316]", className)}
+        className={cn(
+          'w-full p-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-[#F97316]',
+          className,
+        )}
         value={value}
         onChange={(e) => onChange?.(e.target.value)}
         placeholder={placeholder}
@@ -44,8 +52,11 @@ export const PermissionField: React.FC<PermissionFieldProps> = ({
 
   return (
     <input
-      type="text"
-      className={cn("w-full p-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-[#F97316]", className)}
+      type='text'
+      className={cn(
+        'w-full p-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-[#F97316]',
+        className,
+      )}
       value={value}
       onChange={(e) => onChange?.(e.target.value)}
       placeholder={placeholder}

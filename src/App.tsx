@@ -18,7 +18,15 @@ import {
   INITIAL_ASSISTANTS,
   INITIAL_PROJECT_MEMBERSHIPS,
 } from './data/mockData';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation, Outlet } from 'react-router-dom';
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useNavigate,
+  useLocation,
+  Outlet,
+} from 'react-router-dom';
 import { ReviewView } from './views/ReviewView';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
@@ -44,7 +52,6 @@ import { ScriptEditorView } from './views/ScriptEditorView';
 import { TaskEditor } from './views/TaskEditor';
 import { ExportView } from './views/ExportView';
 
-
 import {
   AdminDashboard,
   AdminDashboardView,
@@ -52,10 +59,6 @@ import {
   AdminSystemSettingsView,
   AdminAuditLogView,
 } from './views/admin';
-
-
-
-
 
 import { ArtistDeskView } from './views/artist/ArtistDeskView';
 import { ProducerWorkspaceView } from './views/producer/ProducerWorkspaceView';
@@ -88,9 +91,15 @@ interface Toast {
   desc: string;
 }
 
-const PrivateRoute = ({ isAuthenticated, children }: { isAuthenticated: boolean, children: React.ReactNode }) => {
+const PrivateRoute = ({
+  isAuthenticated,
+  children,
+}: {
+  isAuthenticated: boolean;
+  children: React.ReactNode;
+}) => {
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to='/login' replace />;
   }
   return <>{children}</>;
 };
@@ -113,7 +122,7 @@ const AdminRoute = ({
     storedRole === 'ADMINISTRATOR';
 
   if (!isAdmin) {
-    return <Navigate to="/workspaces" replace />;
+    return <Navigate to='/workspaces' replace />;
   }
   return <>{children}</>;
 };
@@ -155,6 +164,24 @@ function AppContent() {
   } | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
+
+  const navigateRoleDefaultView = (role: SystemRole) => {
+    if (role === 'ADMINISTRATOR') {
+      setCurrentRole('ADMINISTRATOR');
+      setActiveProjectRoles(['ADMINISTRATOR']);
+      setCurrentWorkspaceRole(null);
+      setViewScope('project');
+      setCurrentView('admin-dash');
+      navigate('/admin');
+    } else {
+      setCurrentRole('USER');
+      setCurrentWorkspaceRole(null);
+      setActiveProjectRoles(['ARTIST']);
+      setViewScope('hub');
+      setCurrentView('workspaces');
+      navigate('/workspaces');
+    }
+  };
 
   useEffect(() => {
     // Xóa sạch session/token khi chạy lại project (mỗi lần reload tab / restart app mới) trừ khi người dùng tích "Ghi nhớ thiết bị"
@@ -213,25 +240,9 @@ function AppContent() {
       }
     });
     return () => unsubscribe();
+    // Chỉ đăng ký listener Firebase một lần khi mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const navigateRoleDefaultView = (role: SystemRole) => {
-    if (role === 'ADMINISTRATOR') {
-      setCurrentRole('ADMINISTRATOR');
-      setActiveProjectRoles(['ADMINISTRATOR']);
-      setCurrentWorkspaceRole(null);
-      setViewScope('project');
-      setCurrentView('admin-dash');
-      navigate('/admin');
-    } else {
-      setCurrentRole('USER');
-      setCurrentWorkspaceRole(null);
-      setActiveProjectRoles(['ARTIST']);
-      setViewScope('hub');
-      setCurrentView('workspaces');
-      navigate('/workspaces');
-    }
-  };
 
   const navigateToWorkspaceRoleView = (role: WorkspaceRole) => {
     switch (role) {
@@ -276,7 +287,9 @@ function AppContent() {
     setActiveWorkspace(ws);
     try {
       localStorage.setItem('activeWorkspace', JSON.stringify(ws));
-    } catch {}
+    } catch {
+      // localStorage không khả dụng (private mode...) — bỏ qua, state vẫn đúng trong phiên
+    }
     const wsRole =
       normalizeWorkspaceRole(ws.currentUserRole) ||
       (currentRole === 'ADMINISTRATOR' ? 'PRODUCER' : 'ARTIST');
@@ -330,6 +343,8 @@ function AppContent() {
         // bỏ qua lỗi parse
       }
     }
+    // Chỉ khôi phục phiên một lần khi mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -436,7 +451,7 @@ function AppContent() {
 
   const handleEnterProject = (proj: MangaProject, targetView: ViewMode | string = 'workspace') => {
     setActiveProject(proj);
-    
+
     // Find roles for the current user in this project
     const userId = currentUserInfo?.id || 'member-tf'; // default to TF for testing
     const membership = INITIAL_PROJECT_MEMBERSHIPS.find(
@@ -468,6 +483,9 @@ function AppContent() {
     localStorage.removeItem('userRole');
     localStorage.removeItem('user');
     localStorage.removeItem('pf_remember_device');
+    localStorage.removeItem('demoRole');
+    localStorage.removeItem('isDemoMode');
+    localStorage.removeItem('activeWorkspace');
     setFirebaseUser(null);
     setCurrentUserInfo(null);
     setIsAuthenticated(false);
@@ -486,7 +504,7 @@ function AppContent() {
     <div className='min-h-screen bg-[#F8F6F0] text-[#171717] font-sans antialiased selection:bg-[#F97316]/20 selection:text-[#EA580C] relative'>
       <Routes>
         <Route
-          path="/"
+          path='/'
           element={
             !isAuthenticated ? (
               <LandingPageView
@@ -500,7 +518,7 @@ function AppContent() {
         />
 
         <Route
-          path="/login"
+          path='/login'
           element={
             !isAuthenticated ? (
               <LandingPageView
@@ -520,9 +538,8 @@ function AppContent() {
             </PrivateRoute>
           }
         >
-
           <Route
-            path="workspaces"
+            path='workspaces'
             element={
               <div className='h-screen w-full overflow-y-auto custom-scrollbar bg-[#FAF8F4]'>
                 <WorkspaceListView
@@ -544,7 +561,7 @@ function AppContent() {
             }
           />
 
-          <Route path="projects" element={<Navigate to="/workspaces" replace />} />
+          <Route path='projects' element={<Navigate to='/workspaces' replace />} />
 
           <Route
             element={
@@ -577,7 +594,7 @@ function AppContent() {
             }
           >
             <Route
-              path="dashboard"
+              path='dashboard'
               element={
                 <DashboardView
                   activeProject={activeProject}
@@ -588,7 +605,7 @@ function AppContent() {
               }
             />
             <Route
-              path="workspace"
+              path='workspace'
               element={
                 <WorkspaceView
                   currentUserRole={currentWorkspaceRole}
@@ -599,7 +616,7 @@ function AppContent() {
               }
             />
             <Route
-              path="workspace/task/:taskId"
+              path='workspace/task/:taskId'
               element={
                 <TaskEditor
                   activeRoles={activeProjectRoles}
@@ -609,7 +626,7 @@ function AppContent() {
               }
             />
             <Route
-              path="bible"
+              path='bible'
               element={
                 <SeriesBibleView
                   activeProject={activeProject}
@@ -621,7 +638,7 @@ function AppContent() {
               }
             />
             <Route
-              path="members"
+              path='members'
               element={
                 <MembersRolesView
                   activeProject={activeProject}
@@ -639,7 +656,7 @@ function AppContent() {
               }
             />
             <Route
-              path="review/:taskId"
+              path='review/:taskId'
               element={
                 <ReviewView
                   activeRoles={activeProjectRoles}
@@ -648,20 +665,25 @@ function AppContent() {
                 />
               }
             />
-            <Route path="export" element={<ExportView onShowToast={showToast} />} />
-            <Route path="projects/:projectId/export" element={<ExportView onShowToast={showToast} />} />
-            <Route path="reader" element={<ReaderPortalView />} />
-            <Route path="profile" element={<UserProfile />} />
-            <Route path="artist" element={<ArtistDeskView />} />
-            <Route path="producer" element={<ProducerWorkspaceView />} />
-            <Route path="catalog" element={<PublicCatalogView onBackToWorkspaces={() => navigate('/workspaces')} />} />
-            <Route path="notifications" element={<NotificationCenterView />} />
-
+            <Route path='export' element={<ExportView onShowToast={showToast} />} />
+            <Route
+              path='projects/:projectId/export'
+              element={<ExportView onShowToast={showToast} />}
+            />
+            <Route path='reader' element={<ReaderPortalView />} />
+            <Route path='profile' element={<UserProfile />} />
+            <Route path='artist' element={<ArtistDeskView />} />
+            <Route path='producer' element={<ProducerWorkspaceView />} />
+            <Route
+              path='catalog'
+              element={<PublicCatalogView onBackToWorkspaces={() => navigate('/workspaces')} />}
+            />
+            <Route path='notifications' element={<NotificationCenterView />} />
           </Route>
 
           {/* Standalone Global Admin Portal (Decoupled completely from GlobalAppShell) */}
           <Route
-            path="admin"
+            path='admin'
             element={
               <AdminRoute activeRoles={activeProjectRoles} currentRole={currentRole}>
                 <AdminDashboard
@@ -676,10 +698,7 @@ function AppContent() {
             }
           />
 
-          <Route
-            path="*"
-            element={<Navigate to={defaultRedirectPath} replace />}
-          />
+          <Route path='*' element={<Navigate to={defaultRedirectPath} replace />} />
         </Route>
       </Routes>
 
@@ -772,11 +791,7 @@ function AppContent() {
             localStorage.setItem('userRole', role);
             navigate(role === 'ADMINISTRATOR' ? '/admin' : '/workspaces');
             const displayName =
-              res?.user?.fullName ||
-              res?.user?.email ||
-              res?.displayName ||
-              res?.email ||
-              'bạn';
+              res?.user?.fullName || res?.user?.email || res?.displayName || res?.email || 'bạn';
             const roleLabel = role === 'ADMINISTRATOR' ? 'Administrator' : 'User';
             showToast('Đăng nhập thành công', `Chào mừng ${displayName} (Vai trò: ${roleLabel})!`);
           }}
@@ -793,9 +808,7 @@ function AppContent() {
             setCurrentUserInfo({
               id: authResponse?.user?.id,
               name:
-                authResponse?.user?.fullName ||
-                authResponse?.user?.email?.split('@')[0] ||
-                'User',
+                authResponse?.user?.fullName || authResponse?.user?.email?.split('@')[0] || 'User',
               email: authResponse?.user?.email || '',
               role,
               canCreateStudio: authResponse?.user?.canCreateStudio,
@@ -852,9 +865,7 @@ function AppContent() {
             setCurrentUserInfo({
               id: authResponse?.user?.id,
               name:
-                authResponse?.user?.fullName ||
-                authResponse?.user?.email?.split('@')[0] ||
-                'User',
+                authResponse?.user?.fullName || authResponse?.user?.email?.split('@')[0] || 'User',
               email: authResponse?.user?.email || '',
               role,
             });
@@ -875,10 +886,7 @@ function AppContent() {
         isTwoFactorEnabled={currentUserInfo?.isTwoFactorEnabled ?? false}
         token={localStorage.getItem('token') || ''}
         onSuccess={() => {
-          showToast(
-            'Bảo mật 2FA',
-            'Đã kích hoạt thành công Google Authenticator cho tài khoản!',
-          );
+          showToast('Bảo mật 2FA', 'Đã kích hoạt thành công Google Authenticator cho tài khoản!');
           setCurrentUserInfo((prev) => (prev ? { ...prev, isTwoFactorEnabled: true } : prev));
           const savedUser = localStorage.getItem('user');
           if (savedUser) {
@@ -904,7 +912,7 @@ function AppContent() {
         }}
       />
 
-{/* ===== GLOBAL FLOATING PREVIEW WIDGET (visible on all pages) ===== */}
+      {/* ===== GLOBAL FLOATING PREVIEW WIDGET (visible on all pages) ===== */}
       {/* 
 
       {!isAuthenticated && (
