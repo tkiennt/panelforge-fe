@@ -26,7 +26,6 @@ import { DashboardView } from './views/DashboardView';
 import { WorkflowBoardView } from './views/WorkflowBoardView';
 import { SeriesBibleView } from './views/SeriesBibleView';
 import { MembersRolesView } from './views/MembersRolesView';
-import { ContentHubView } from './views/ContentHubView';
 import { GlobalModals } from './components/GlobalModals';
 import {
   CheckCircle2,
@@ -208,13 +207,9 @@ function AppContent() {
           console.warn('Không thể đồng bộ token backend từ Firebase session:', err);
         }
       } else {
-        // Xóa sạch các token cũ trong localStorage khi chưa đăng nhập
-        localStorage.removeItem('token');
-        localStorage.removeItem('userRole');
-        localStorage.removeItem('user');
-        localStorage.removeItem('demoRole');
-        localStorage.removeItem('isDemoMode');
-        setIsAuthenticated(false);
+        // Không có phiên Firebase (vd. đăng nhập email/mật khẩu qua backend): giữ JWT backend,
+        // chỉ coi là chưa đăng nhập khi không còn token. Đăng xuất do handleLogout xoá token.
+        setIsAuthenticated(!!localStorage.getItem('token'));
       }
     });
     return () => unsubscribe();
@@ -229,13 +224,12 @@ function AppContent() {
       setCurrentView('admin-dash');
       navigate('/admin');
     } else {
-      // Người dùng được cấp quyền Producer (hoặc USER) khi login sẽ vào thẳng màn hình Quản lý & Tạo Dự án (/projects)
       setCurrentRole('USER');
-      setCurrentWorkspaceRole('PRODUCER');
-      setActiveProjectRoles(['PRODUCER']);
+      setCurrentWorkspaceRole(null);
+      setActiveProjectRoles(['ARTIST']);
       setViewScope('hub');
-      setCurrentView('publications');
-      navigate('/projects');
+      setCurrentView('workspaces');
+      navigate('/workspaces');
     }
   };
 
@@ -550,21 +544,7 @@ function AppContent() {
             }
           />
 
-          <Route
-            path="projects"
-            element={
-              <div className='h-screen w-full overflow-y-auto custom-scrollbar bg-[#FAF8F4]'>
-                <ContentHubView
-                  workspaceId={activeWorkspace?.id}
-                  projects={projects}
-                  onSelectProject={(proj) => setActiveProject(proj)}
-                  onEnterProject={handleEnterProject}
-                  onCreateNewProject={handleCreateNewProject}
-                  isRootView={true}
-                />
-              </div>
-            }
-          />
+          <Route path="projects" element={<Navigate to="/workspaces" replace />} />
 
           <Route
             element={
@@ -790,7 +770,7 @@ function AppContent() {
               role,
             });
             localStorage.setItem('userRole', role);
-            navigate(role === 'ADMINISTRATOR' ? '/admin' : '/projects');
+            navigate(role === 'ADMINISTRATOR' ? '/admin' : '/workspaces');
             const displayName =
               res?.user?.fullName ||
               res?.user?.email ||
@@ -839,11 +819,11 @@ function AppContent() {
                 } else if (landing?.suggestedLanding === 'PublicCatalog') {
                   navigate('/catalog');
                 } else {
-                  navigate(role === 'ADMINISTRATOR' ? '/admin' : '/projects');
+                  navigate(role === 'ADMINISTRATOR' ? '/admin' : '/workspaces');
                 }
               })
               .catch(() => {
-                navigate(role === 'ADMINISTRATOR' ? '/admin' : '/projects');
+                navigate(role === 'ADMINISTRATOR' ? '/admin' : '/workspaces');
               });
 
             showToast(

@@ -16,7 +16,7 @@ export const ReaderPortalView = () => {
       <div className="shrink-0 h-16 border-b border-[#333333] px-6 flex items-center justify-between z-10 bg-[#171717]/80 backdrop-blur-md">
         <div className="flex items-center gap-4">
           <button 
-            onClick={() => navigate('/projects')}
+            onClick={() => navigate('/workspaces')}
             className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#333333] transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />

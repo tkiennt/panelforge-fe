@@ -44,3 +44,6 @@ coverage
 .cache
 .parcel-cache
 .evn
+
+# Claude Code personal settings (agent config in .claude/ is shared)
+.claude/settings.local.json
