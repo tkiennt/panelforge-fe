@@ -85,7 +85,7 @@ Installed as a Claude Code plugin at project scope (`.claude/settings.json`, mar
 
 ## Agent configuration files
 
-- `.claude/skills/` – 16 upstream skills (addyosmani/agent-skills, MIT) + 6 `panelforge-*` skills. Upstream copies are unmodified; to update, re-copy from `../../agent-tools/agent-skills/skills/<name>`.
+- `.claude/skills/` – 16 upstream skills (addyosmani/agent-skills, MIT) + 6 `panelforge-*` skills. Upstream copies are unmodified; to update, re-copy from https://github.com/addyosmani/agent-skills (`skills/<name>`); a local clone lives in `../../Backend/PanelForge_FA26SE251/agent-tools/agent-skills` (git-ignored).
 - `.claude/references/` – checklists referenced by upstream skills as `../../references/*.md`.
 - `.claude/settings.json` – shared: Ponytail plugin, `PONYTAIL_DEFAULT_MODE`, deny rules for reading secret files.
 - `.agents/skills/` – existing skills used by the Antigravity agent; left unchanged.
