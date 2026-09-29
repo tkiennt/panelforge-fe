@@ -28,7 +28,6 @@ import {
   Outlet,
 } from 'react-router-dom';
 import { ReviewView } from './views/ReviewView';
-import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { DashboardView } from './views/DashboardView';
 import { WorkflowBoardView } from './views/WorkflowBoardView';
@@ -647,6 +646,7 @@ function AppContent() {
                     .charAt(0)
                     .toUpperCase(),
                 }}
+                activeWorkspace={activeWorkspace}
                 activeSeries={activeProject}
                 aiState='active'
                 onLogout={handleLogout}

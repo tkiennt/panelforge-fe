@@ -53,6 +53,7 @@ export interface CurrentUser {
 
 interface GlobalAppShellProps {
   currentUser: CurrentUser;
+  activeWorkspace?: { name: string } | null;
   activeSeries?: MangaProject | { title: string; subtitle: string } | null;
   aiState?: 'active' | 'degraded' | 'unavailable';
   children?: React.ReactNode;
@@ -194,6 +195,7 @@ const ROLE_NAV_CONFIG: Record<string, { section: string; items: any[] }[]> = {
 
 export function GlobalAppShell({
   currentUser,
+  activeWorkspace,
   activeSeries = { title: 'PanelForge Studio', subtitle: 'Global Console' },
   aiState = 'active',
   children,
@@ -220,6 +222,9 @@ export function GlobalAppShell({
       : 'PRODUCER';
 
   const isSeriesContext = !!seriesId;
+  const effectiveActiveSeries = isSeriesContext
+    ? activeSeries
+    : { title: activeWorkspace?.name || 'Studio Workspace', subtitle: 'Overview' };
 
   // Dynamic configuration based on context
   const getNavSections = () => {
@@ -330,7 +335,7 @@ export function GlobalAppShell({
       {/* --- SIDEBAR --- */}
       <AppShellSidebar
         currentUser={currentUser}
-        activeSeries={activeSeries}
+        activeSeries={effectiveActiveSeries as any}
         isReader={isReader}
         navSections={navSections}
         handleNavClick={handleNavClick}
@@ -376,7 +381,7 @@ export function GlobalAppShell({
                   title='Mở Studio Workspace'
                 >
                   <Briefcase className='w-3.5 h-3.5 text-[#8B5CF6]' />
-                  <span className='truncate'>Studio Workspace</span>
+                  <span className='truncate'>{activeWorkspace?.name || 'Studio Workspace'}</span>
                 </button>
                 {isSeriesContext && (
                   <>
