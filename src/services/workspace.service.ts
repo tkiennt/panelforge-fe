@@ -273,4 +273,45 @@ export const workspaceService = {
     }
     return await response.json();
   },
+
+  /**
+   * Tra cứu Audit Log của Workspace cho Producer (GET /api/workspaces/{id}/audit-logs) (UC-15, BR-18)
+   */
+  getWorkspaceAuditLogs: async (
+    workspaceId: string,
+    params?: {
+      action?: string;
+      userId?: string;
+      entityName?: string;
+      entityId?: string;
+      from?: string;
+      to?: string;
+      page?: number;
+      pageSize?: number;
+    },
+    token?: string,
+  ): Promise<any> => {
+    const activeToken = getActiveToken(token);
+    const url = new URL(`${API_URL}/api/workspaces/${workspaceId}/audit-logs`);
+    if (params) {
+      if (params.action) url.searchParams.set('action', params.action);
+      if (params.userId) url.searchParams.set('userId', params.userId);
+      if (params.entityName) url.searchParams.set('entityName', params.entityName);
+      if (params.entityId) url.searchParams.set('entityId', params.entityId);
+      if (params.from) url.searchParams.set('from', params.from);
+      if (params.to) url.searchParams.set('to', params.to);
+      if (params.page) url.searchParams.set('page', params.page.toString());
+      if (params.pageSize) url.searchParams.set('pageSize', params.pageSize.toString());
+    }
+    const response = await fetch(url.toString(), {
+      method: 'GET',
+      headers: getAuthHeaders(activeToken),
+    });
+    if (!response.ok) {
+      throw new Error(
+        await parseErrorResponse(response, 'Không thể tải lịch sử Audit của Workspace.'),
+      );
+    }
+    return await response.json();
+  },
 };

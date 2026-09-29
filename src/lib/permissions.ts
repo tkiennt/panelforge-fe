@@ -17,13 +17,21 @@ export type Permission =
   | 'stage:approve';
 
 export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
-  'READER': [],
-  'WRITER': ['view_pipeline', 'drag_card', 'edit_script', 'request_ai', 'script:write'],
-  'ARTIST': ['view_pipeline', 'drag_card', 'edit_art', 'request_ai', 'upload_layer', 'sketch:write', 'color:write'],
-  'LETTERER': ['view_pipeline', 'drag_card', 'upload_layer', 'letter:write'],
-  'EDITOR': ['view_pipeline', 'review_card', 'stage:approve'],
-  'PRODUCER': ['view_pipeline', 'create_card', 'drag_card', 'review_card', 'stage:approve'],
-  'ADMINISTRATOR': [],
+  READER: [],
+  WRITER: ['view_pipeline', 'drag_card', 'edit_script', 'request_ai', 'script:write'],
+  ARTIST: [
+    'view_pipeline',
+    'drag_card',
+    'edit_art',
+    'request_ai',
+    'upload_layer',
+    'sketch:write',
+    'color:write',
+  ],
+  LETTERER: ['view_pipeline', 'drag_card', 'upload_layer', 'letter:write'],
+  EDITOR: ['view_pipeline', 'review_card', 'stage:approve'],
+  PRODUCER: ['view_pipeline', 'create_card', 'drag_card', 'review_card', 'stage:approve'],
+  ADMINISTRATOR: [],
 };
 
 export function resolvePermissions(roles: string[]): Permission[] {

@@ -1,5 +1,14 @@
 import React, { useState } from 'react';
-import { Sliders, Plus, Trash2, CheckCircle2, Save, Layers, Layout, FileOutput } from 'lucide-react';
+import {
+  Sliders,
+  Plus,
+  Trash2,
+  CheckCircle2,
+  Save,
+  Layers,
+  Layout,
+  FileOutput,
+} from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 
@@ -63,7 +72,8 @@ export const MasterDataSettings: React.FC = () => {
             Master Data & Pipeline Templates
           </h1>
           <p className='text-xs text-[#737373]'>
-            Cấu hình mẫu quy trình sản xuất Manga, phân loại Series Bible và chuẩn xuất bản toàn hệ thống.
+            Cấu hình mẫu quy trình sản xuất Manga, phân loại Series Bible và chuẩn xuất bản toàn hệ
+            thống.
           </p>
         </div>
 
@@ -178,13 +188,23 @@ export const MasterDataSettings: React.FC = () => {
           <div className='grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs'>
             <div className='p-4 rounded-xl border border-[#E7E7E7] bg-[#FAF8F5] space-y-1.5'>
               <div className='font-bold text-[#171717] text-sm'>B5 Tankōbon Master Print</div>
-              <div className='text-[#737373] text-[11px]'>600 DPI Greyscale + Halftone Screentone Layering</div>
-              <div className='text-emerald-700 font-mono font-bold text-[10px]'>Default Active Preset</div>
+              <div className='text-[#737373] text-[11px]'>
+                600 DPI Greyscale + Halftone Screentone Layering
+              </div>
+              <div className='text-emerald-700 font-mono font-bold text-[10px]'>
+                Default Active Preset
+              </div>
             </div>
             <div className='p-4 rounded-xl border border-[#E7E7E7] bg-[#FAF8F5] space-y-1.5'>
-              <div className='font-bold text-[#171717] text-sm'>Digital Webtoon Vertical Scroll</div>
-              <div className='text-[#737373] text-[11px]'>RGB Color Space 800px Width Continuous Canvas</div>
-              <div className='text-[#F97316] font-mono font-bold text-[10px]'>Digital Serialization</div>
+              <div className='font-bold text-[#171717] text-sm'>
+                Digital Webtoon Vertical Scroll
+              </div>
+              <div className='text-[#737373] text-[11px]'>
+                RGB Color Space 800px Width Continuous Canvas
+              </div>
+              <div className='text-[#F97316] font-mono font-bold text-[10px]'>
+                Digital Serialization
+              </div>
             </div>
           </div>
         </div>

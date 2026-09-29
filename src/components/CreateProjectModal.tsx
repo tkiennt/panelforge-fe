@@ -34,6 +34,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
   const [selectedDay, setSelectedDay] = useState(28);
   const [currentMonth, setCurrentMonth] = useState('November 2025');
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen) return null;
@@ -79,8 +80,6 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
       reader.readAsDataURL(file);
     }
   };
-
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -159,6 +159,11 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
   const handleResetPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!forgotEmail.trim()) {
+      setError('Vui lòng nhập email tài khoản.');
+      return;
+    }
+
     if (resetOtp.trim().length !== 6) {
       setError('Mã OTP phải gồm đúng 6 chữ số.');
       return;
@@ -189,7 +194,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       setEmail(forgotEmail.trim());
       setPassword('');
       setStep('login');
-      setSuccessNotice('Đặt lại mật khẩu thành công! Bạn có thể đăng nhập ngay với mật khẩu mới.');
+      setSuccessNotice(
+        'Kích hoạt tài khoản / Đặt lại mật khẩu thành công! Bạn có thể đăng nhập ngay với mật khẩu mới.',
+      );
     } catch (err: any) {
       console.error('Reset Password Error:', err);
       setError(err.message || 'Đặt lại mật khẩu thất bại. Vui lòng kiểm tra lại mã OTP.');
@@ -361,18 +368,34 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                   <div>
                     <div className='flex items-center justify-between mb-1.5'>
                       <label className='block text-sm font-medium text-[#171717]'>Password</label>
-                      <button
-                        type='button'
-                        onClick={() => {
-                          setForgotEmail(email);
-                          setError(null);
-                          setSuccessNotice(null);
-                          setStep('forgot');
-                        }}
-                        className='text-xs font-semibold text-[#F97316] hover:text-[#EA580C] cursor-pointer'
-                      >
-                        Forgot Password?
-                      </button>
+                      <div className='flex items-center gap-1.5'>
+                        <button
+                          type='button'
+                          onClick={() => {
+                            setForgotEmail(email);
+                            setError(null);
+                            setSuccessNotice(null);
+                            setStep('reset');
+                          }}
+                          className='text-xs font-semibold text-emerald-600 hover:text-emerald-700 cursor-pointer'
+                          title='Kích hoạt tài khoản nhận được lời mời qua email bằng mã OTP 6 số'
+                        >
+                          Kích hoạt tài khoản mời?
+                        </button>
+                        <span className='text-xs text-gray-300'>•</span>
+                        <button
+                          type='button'
+                          onClick={() => {
+                            setForgotEmail(email);
+                            setError(null);
+                            setSuccessNotice(null);
+                            setStep('forgot');
+                          }}
+                          className='text-xs font-semibold text-[#F97316] hover:text-[#EA580C] cursor-pointer'
+                        >
+                          Quên mật khẩu?
+                        </button>
+                      </div>
                     </div>
                     <input
                       type='password'
@@ -598,16 +621,32 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 <div className='w-10 h-10 rounded-xl bg-[#FFF7ED] border border-[#FDBA74] flex items-center justify-center text-[#F97316] shadow-2xs mb-4'>
                   <Lock className='w-5 h-5' />
                 </div>
-                <h2 className='font-serif text-2xl font-bold text-[#171717]'>Tạo mật khẩu mới</h2>
+                <h2 className='font-serif text-2xl font-bold text-[#171717]'>
+                  Kích hoạt tài khoản & Tạo mật khẩu mới
+                </h2>
                 <p className='text-[#555555] text-xs mt-1.5 leading-relaxed'>
-                  Nhập mã OTP 6 số đã nhận qua email <strong>{forgotEmail}</strong> và đặt mật khẩu
-                  mới.
+                  Nhập email, mã OTP 6 số (từ email mời Workspace hoặc email đặt lại mật khẩu) và
+                  mật khẩu mới để đăng nhập.
                 </p>
 
                 <form onSubmit={handleResetPasswordSubmit} className='mt-6 space-y-3.5'>
                   <div>
                     <label className='block text-xs font-semibold text-[#171717] mb-1'>
-                      Mã OTP 6 số từ Email
+                      Email tài khoản
+                    </label>
+                    <input
+                      type='email'
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
+                      placeholder='your-email@studio.com'
+                      className='w-full border border-[#E7E7E7] rounded-lg px-3.5 py-2 text-sm focus:border-[#F97316] outline-none transition-all'
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className='block text-xs font-semibold text-[#171717] mb-1'>
+                      Mã OTP 6 số từ Email (hạn 15 phút)
                     </label>
                     <input
                       type='text'

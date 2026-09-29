@@ -11,12 +11,7 @@ interface SideDrawerProps {
   userRoles: string[];
 }
 
-export const SideDrawer: React.FC<SideDrawerProps> = ({
-  isOpen,
-  onClose,
-  card,
-  userRoles,
-}) => {
+export const SideDrawer: React.FC<SideDrawerProps> = ({ isOpen, onClose, card, userRoles }) => {
   const { hasPermission } = usePermissions(userRoles || []);
 
   if (!isOpen || !card) return null;
@@ -148,7 +143,7 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
 
             <button
               disabled={!canRequestAI}
-              title={!canRequestAI ? "Bạn cần quyền tương tác với AI" : "Yêu cầu AI hỗ trợ"}
+              title={!canRequestAI ? 'Bạn cần quyền tương tác với AI' : 'Yêu cầu AI hỗ trợ'}
               onClick={() => {
                 // TODO: Gọi AI Assistance Layer API
                 console.log('AI Assistance Requested');

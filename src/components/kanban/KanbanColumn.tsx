@@ -26,7 +26,8 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
   checkIsLocked,
   canDragCard,
 }) => {
-  const effectiveRoles = userRoles.length > 0 ? userRoles : (currentUserRole ? [currentUserRole] : []);
+  const effectiveRoles =
+    userRoles.length > 0 ? userRoles : currentUserRole ? [currentUserRole] : [];
   const { hasPermission } = usePermissions(effectiveRoles);
   const { setNodeRef, isOver } = useDroppable({
     id: stage.id,
@@ -40,10 +41,13 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
   // e.g. edit_script -> script stage
   // edit_art -> thumbnail, pencil, ink, color
   // review_card -> review
-  
+
   if (hasPermission('edit_script') && stage.id === 'script') {
     isHighlighted = true;
-  } else if (hasPermission('edit_art') && ['thumbnail', 'pencil', 'ink', 'color'].includes(stage.id)) {
+  } else if (
+    hasPermission('edit_art') &&
+    ['thumbnail', 'pencil', 'ink', 'color'].includes(stage.id)
+  ) {
     isHighlighted = true;
   } else if (hasPermission('upload_layer') && stage.id === 'letter') {
     isHighlighted = true;
@@ -65,7 +69,9 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
     .join(' ');
 
   const parentRef = useRef<HTMLDivElement>(null);
-  
+
+  // TanStack Virtual chưa tương thích React Compiler; component này không cần memo hoá tự động.
+  // eslint-disable-next-line react-hooks/incompatible-library
   const rowVirtualizer = useVirtualizer({
     count: cards.length,
     getScrollElement: () => parentRef.current,
@@ -89,8 +95,8 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
       </div>
 
       {/* Cards List */}
-      <div 
-        ref={parentRef} 
+      <div
+        ref={parentRef}
         className='flex-1 p-3 overflow-y-auto custom-scrollbar min-h-[150px] bg-[#F9F9F9]/50'
       >
         <div

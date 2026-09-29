@@ -15,7 +15,7 @@ import { MangaProject } from '../../types';
 interface ExportDeliveryModalProps {
   isOpen: boolean;
   onClose: () => void;
-  activeProject: MangaProject;
+  activeProject?: MangaProject;
   onShowToast: (title: string, desc: string) => void;
 }
 
@@ -43,7 +43,7 @@ export const ExportDeliveryModal: React.FC<ExportDeliveryModalProps> = ({
           setExporting(false);
           onShowToast(
             'Export Complete',
-            `${activeProject.title} exported as ${selectedFormat.toUpperCase()} package.`,
+            `${activeProject?.title || 'Project'} exported as ${selectedFormat.toUpperCase()} package.`,
           );
           onClose();
           return 100;

@@ -21,12 +21,10 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
   onShowToast,
   isReaderMode = false,
 }) => {
-  const effectiveRoles = userRoles.length > 0
-    ? userRoles
-    : [
-        ...(systemRole ? [systemRole] : []),
-        ...(currentUserRole ? [currentUserRole] : []),
-      ];
+  const effectiveRoles =
+    userRoles.length > 0
+      ? userRoles
+      : [...(systemRole ? [systemRole] : []), ...(currentUserRole ? [currentUserRole] : [])];
   const { hasPermission } = usePermissions(effectiveRoles);
   const [filterType, setFilterType] = useState<'all' | 'my-tasks' | 'overdue'>('all');
   const isReaderOnly = effectiveRoles.length === 1 && effectiveRoles[0] === 'READER';
@@ -112,19 +110,19 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
         {/* Right: Actions */}
         <div className='flex items-center gap-3'>
           <div className='flex items-center bg-[#F3F3F3] p-1 rounded-lg border border-[#E7E7E7]'>
-            <button 
+            <button
               onClick={() => setFilterType('all')}
               className={`px-3 py-1 text-xs font-semibold rounded ${filterType === 'all' ? 'bg-white shadow-2xs text-[#171717]' : 'text-[#737373] hover:text-[#171717]'}`}
             >
               All Tasks
             </button>
-            <button 
+            <button
               onClick={() => setFilterType('my-tasks')}
               className={`px-3 py-1 text-xs font-semibold rounded ${filterType === 'my-tasks' ? 'bg-white shadow-2xs text-[#171717]' : 'text-[#737373] hover:text-[#171717]'}`}
             >
               My Tasks
             </button>
-            <button 
+            <button
               onClick={() => setFilterType('overdue')}
               className={`px-3 py-1 text-xs font-semibold rounded ${filterType === 'overdue' ? 'bg-white shadow-2xs text-[#171717]' : 'text-[#737373] hover:text-[#171717]'}`}
             >
@@ -146,24 +144,14 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
           </button>
 
           <Button
-            variant="primary"
-            disabled={
-              !(
-                currentUserRole === 'PRODUCER' ||
-                systemRole === 'ADMINISTRATOR' ||
-                hasPermission('create_card')
-              )
-            }
+            variant='primary'
+            disabled={!(currentUserRole === 'PRODUCER' || hasPermission('create_card'))}
             title={
-              !(
-                currentUserRole === 'PRODUCER' ||
-                systemRole === 'ADMINISTRATOR' ||
-                hasPermission('create_card')
-              )
-                ? 'Bạn cần quyền quản trị để tạo trang mới'
+              !(currentUserRole === 'PRODUCER' || hasPermission('create_card'))
+                ? 'Bạn cần quyền Producer hoặc quyền tạo trang để thực hiện thao tác này'
                 : 'Tạo trang mới'
             }
-            className="h-8 px-3 ml-2 text-xs"
+            className='h-8 px-3 ml-2 text-xs'
           >
             <Plus className='w-4 h-4 mr-1.5' />
             New Page

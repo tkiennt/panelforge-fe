@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Settings, X, ChevronUp, ChevronDown } from 'lucide-react';
 
-export type DemoRole = 'producer' | 'writer' | 'artist' | 'letterer' | 'editor' | 'reader' | 'administrator';
+export type DemoRole =
+  'producer' | 'writer' | 'artist' | 'letterer' | 'editor' | 'reader' | 'administrator';
 
 interface RoleDemoBarProps {
   activeRole: DemoRole | null;
@@ -17,7 +18,11 @@ export const RoleDemoBar: React.FC<RoleDemoBarProps> = ({
   const [isExpanded, setIsExpanded] = useState(false);
 
   const roles = [
-    { id: 'administrator', label: 'Dev Mode (All Access)', color: 'bg-yellow-400 hover:bg-yellow-500 text-black border-yellow-600' },
+    {
+      id: 'administrator',
+      label: 'Dev Mode (All Access)',
+      color: 'bg-yellow-400 hover:bg-yellow-500 text-black border-yellow-600',
+    },
     { id: 'producer', label: 'Producer', color: 'bg-[#F97316] hover:bg-[#EA580C] text-white' },
     { id: 'writer', label: 'Writer', color: 'bg-indigo-600 hover:bg-indigo-700 text-white' },
     { id: 'artist', label: 'Line Artist', color: 'bg-blue-500 hover:bg-blue-600 text-white' },
@@ -35,14 +40,14 @@ export const RoleDemoBar: React.FC<RoleDemoBarProps> = ({
               <div className='w-2 h-2 rounded-full bg-[#10B981] animate-pulse'></div>
               <span className='text-xs font-bold uppercase tracking-wider'>Dev Mode Panel</span>
             </div>
-            <button 
+            <button
               onClick={() => setIsExpanded(false)}
               className='text-[#A3A3A3] hover:text-[#171717] p-1 rounded hover:bg-[#F3F3F3] transition-colors'
             >
               <ChevronDown className='w-4 h-4' />
             </button>
           </div>
-          
+
           <div className='flex flex-col gap-1.5'>
             {roles.map((r) => {
               const isActive = activeRole === r.id;
@@ -51,7 +56,9 @@ export const RoleDemoBar: React.FC<RoleDemoBarProps> = ({
                   key={r.id}
                   onClick={() => onRoleSelect(r.id as DemoRole)}
                   className={`w-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded border border-transparent transition-all text-left ${r.color} ${
-                    isActive ? 'ring-2 ring-offset-1 ring-[#171717] opacity-100 font-black scale-[1.02]' : 'opacity-80 hover:opacity-100 hover:scale-[1.02]'
+                    isActive
+                      ? 'ring-2 ring-offset-1 ring-[#171717] opacity-100 font-black scale-[1.02]'
+                      : 'opacity-80 hover:opacity-100 hover:scale-[1.02]'
                   }`}
                 >
                   {r.label}
@@ -73,12 +80,16 @@ export const RoleDemoBar: React.FC<RoleDemoBarProps> = ({
           </div>
         </div>
       ) : (
-        <button 
+        <button
           onClick={() => setIsExpanded(true)}
           className='bg-[#171717] hover:bg-black text-white rounded-full p-3 shadow-lg flex items-center justify-center gap-2 group transition-transform hover:scale-105 active:scale-95'
         >
           <Settings className='w-5 h-5 group-hover:rotate-45 transition-transform duration-300' />
-          {activeRole && <span className='text-[10px] font-bold uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-full'>{activeRole}</span>}
+          {activeRole && (
+            <span className='text-[10px] font-bold uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-full'>
+              {activeRole}
+            </span>
+          )}
         </button>
       )}
     </div>

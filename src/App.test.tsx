@@ -12,13 +12,18 @@ vi.mock('./firebase', () => ({
     callback(null);
     return () => {};
   }),
-  auth: { signOut: vi.fn() },
+  auth: { signOut: vi.fn(() => Promise.resolve()) },
   googleProvider: {},
 }));
 
 describe('App Integration Smoke Test', () => {
   beforeEach(() => {
     localStorage.clear();
+    // Mỗi test giả lập "tải lại trang trong cùng phiên": bắt đầu từ "/" và bỏ qua bước dọn phiên mới
+    // (App xoá token khi mở tab/phiên mới nếu không ghi nhớ thiết bị).
+    sessionStorage.clear();
+    sessionStorage.setItem('pf_app_session_started', 'true');
+    window.history.pushState({}, '', '/');
     vi.restoreAllMocks();
   });
 
@@ -150,13 +155,13 @@ describe('App Integration Smoke Test', () => {
 
     // Phải render Admin Console và System Admin Zone
     await waitFor(() => {
-      expect(screen.getByText('System Admin Zone')).toBeInTheDocument();
+      expect(screen.getByText('Global System Admin')).toBeInTheDocument();
       expect(screen.getByText('PanelForge System Administration Console')).toBeInTheDocument();
       // Menu của Admin phải hiện đầy đủ
-      expect(screen.getByText('System Dashboard')).toBeInTheDocument();
-      expect(screen.getByText('Users & Roles')).toBeInTheDocument();
-      expect(screen.getByText('AI Provider & Quota')).toBeInTheDocument();
-      expect(screen.getByText('Global Audit Log')).toBeInTheDocument();
+      expect(screen.getByText('Overview & Health')).toBeInTheDocument();
+      expect(screen.getByText('Global User Management')).toBeInTheDocument();
+      expect(screen.getByText('AI Credentials & Quotas')).toBeInTheDocument();
+      expect(screen.getByText('System Audit Log')).toBeInTheDocument();
       // TUYỆT ĐỐI KHÔNG bị redirect về màn hình danh sách Workspace
       expect(screen.queryByText('Active Studio Workspaces')).not.toBeInTheDocument();
     });
@@ -184,7 +189,9 @@ describe('App Integration Smoke Test', () => {
       expect(screen.getByText('Production Workspace Catalog')).toBeInTheDocument();
       // TUYỆT ĐỐI KHÔNG hiển thị System Admin Zone
       expect(screen.queryByText('System Admin Zone')).not.toBeInTheDocument();
-      expect(screen.queryByText('PanelForge System Administration Console')).not.toBeInTheDocument();
+      expect(
+        screen.queryByText('PanelForge System Administration Console'),
+      ).not.toBeInTheDocument();
     });
   });
 
@@ -221,7 +228,9 @@ describe('App Integration Smoke Test', () => {
     // Sau khi đã vá: Hệ thống giải mã token JWT thật ra claim USER,
     // TUYỆT ĐỐI KHÔNG render Admin Console, tự động chuyển về /workspaces và ghi đè lại userRole = 'USER'
     await waitFor(() => {
-      expect(screen.queryByText('PanelForge System Administration Console')).not.toBeInTheDocument();
+      expect(
+        screen.queryByText('PanelForge System Administration Console'),
+      ).not.toBeInTheDocument();
       expect(screen.queryByText('System Admin Zone')).not.toBeInTheDocument();
       expect(screen.getByText('Production Workspace Catalog')).toBeInTheDocument();
       expect(localStorage.getItem('userRole')).toBe('USER');
@@ -320,12 +329,8 @@ describe('App Integration Smoke Test', () => {
       expect(screen.getByText('PanelForge System Administration Console')).toBeInTheDocument();
     });
 
-    // Mở menu người dùng ở header và nhấn Logout
-    const userMenuBtn = screen.getByTestId('header-user-menu-btn');
-    fireEvent.click(userMenuBtn);
-
-    const logoutBtn = screen.getByTestId('logout-btn');
-    fireEvent.click(logoutBtn);
+    // Trang Admin có nút Đăng xuất riêng ở chân sidebar
+    fireEvent.click(screen.getByRole('button', { name: /Đăng xuất System Root/i }));
 
     // Xác nhận toàn bộ localStorage liên quan đến auth đã được dọn sạch 100%
     await waitFor(() => {
@@ -338,4 +343,3 @@ describe('App Integration Smoke Test', () => {
     });
   });
 });
-

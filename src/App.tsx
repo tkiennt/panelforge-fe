@@ -18,7 +18,15 @@ import {
   INITIAL_ASSISTANTS,
   INITIAL_PROJECT_MEMBERSHIPS,
 } from './data/mockData';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation, Outlet } from 'react-router-dom';
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useNavigate,
+  useLocation,
+  Outlet,
+} from 'react-router-dom';
 import { ReviewView } from './views/ReviewView';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
@@ -26,7 +34,6 @@ import { DashboardView } from './views/DashboardView';
 import { WorkflowBoardView } from './views/WorkflowBoardView';
 import { SeriesBibleView } from './views/SeriesBibleView';
 import { MembersRolesView } from './views/MembersRolesView';
-import { ContentHubView } from './views/ContentHubView';
 import { GlobalModals } from './components/GlobalModals';
 import {
   CheckCircle2,
@@ -45,7 +52,6 @@ import { ScriptEditorView } from './views/ScriptEditorView';
 import { TaskEditor } from './views/TaskEditor';
 import { ExportView } from './views/ExportView';
 
-
 import {
   AdminDashboard,
   AdminDashboardView,
@@ -54,14 +60,12 @@ import {
   AdminAuditLogView,
 } from './views/admin';
 
-
-
-
-
 import { ArtistDeskView } from './views/artist/ArtistDeskView';
 import { ProducerWorkspaceView } from './views/producer/ProducerWorkspaceView';
 import { NotificationCenterView } from './views/NotificationCenterView';
 import { ReaderPortalView } from './views/ReaderPortalView';
+import { PublicCatalogView } from './views/catalog/PublicCatalogView';
+import { authService } from './services/auth.service';
 
 import {
   SystemRole,
@@ -80,7 +84,6 @@ import { WorkspaceListView } from './views/WorkspaceListView';
 import { UserProfile } from './views/UserProfile';
 import { auth, onAuthStateChanged } from './firebase';
 import { User } from 'firebase/auth';
-import { authService } from './services/auth.service';
 
 interface Toast {
   id: string;
@@ -88,9 +91,15 @@ interface Toast {
   desc: string;
 }
 
-const PrivateRoute = ({ isAuthenticated, children }: { isAuthenticated: boolean, children: React.ReactNode }) => {
+const PrivateRoute = ({
+  isAuthenticated,
+  children,
+}: {
+  isAuthenticated: boolean;
+  children: React.ReactNode;
+}) => {
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to='/login' replace />;
   }
   return <>{children}</>;
 };
@@ -113,7 +122,7 @@ const AdminRoute = ({
     storedRole === 'ADMINISTRATOR';
 
   if (!isAdmin) {
-    return <Navigate to="/workspaces" replace />;
+    return <Navigate to='/workspaces' replace />;
   }
   return <>{children}</>;
 };
@@ -150,10 +159,29 @@ function AppContent() {
     name: string;
     email: string;
     role: SystemRole;
+    canCreateStudio?: boolean;
     isTwoFactorEnabled?: boolean;
   } | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
+
+  const navigateRoleDefaultView = (role: SystemRole) => {
+    if (role === 'ADMINISTRATOR') {
+      setCurrentRole('ADMINISTRATOR');
+      setActiveProjectRoles(['ADMINISTRATOR']);
+      setCurrentWorkspaceRole(null);
+      setViewScope('project');
+      setCurrentView('admin-dash');
+      navigate('/admin');
+    } else {
+      setCurrentRole('USER');
+      setCurrentWorkspaceRole(null);
+      setActiveProjectRoles(['ARTIST']);
+      setViewScope('hub');
+      setCurrentView('workspaces');
+      navigate('/workspaces');
+    }
+  };
 
   useEffect(() => {
     // Xóa sạch session/token khi chạy lại project (mỗi lần reload tab / restart app mới) trừ khi người dùng tích "Ghi nhớ thiết bị"
@@ -161,7 +189,7 @@ function AppContent() {
     const rememberDevice = localStorage.getItem('pf_remember_device');
     if (!sessionStorage.getItem(sessionKey)) {
       sessionStorage.setItem(sessionKey, 'true');
-      if (rememberDevice !== 'true') {
+      if (!rememberDevice || rememberDevice === 'false') {
         auth.signOut().catch(() => {});
         localStorage.removeItem('token');
         localStorage.removeItem('userRole');
@@ -206,36 +234,15 @@ function AppContent() {
           console.warn('Không thể đồng bộ token backend từ Firebase session:', err);
         }
       } else {
-        // Xóa sạch các token cũ trong localStorage khi chưa đăng nhập
-        localStorage.removeItem('token');
-        localStorage.removeItem('userRole');
-        localStorage.removeItem('user');
-        localStorage.removeItem('demoRole');
-        localStorage.removeItem('isDemoMode');
-        setIsAuthenticated(false);
+        // Không có phiên Firebase (vd. đăng nhập email/mật khẩu qua backend): giữ JWT backend,
+        // chỉ coi là chưa đăng nhập khi không còn token. Đăng xuất do handleLogout xoá token.
+        setIsAuthenticated(!!localStorage.getItem('token'));
       }
     });
     return () => unsubscribe();
+    // Chỉ đăng ký listener Firebase một lần khi mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const navigateRoleDefaultView = (role: SystemRole) => {
-    if (role === 'ADMINISTRATOR') {
-      setCurrentRole('ADMINISTRATOR');
-      setActiveProjectRoles(['ADMINISTRATOR']);
-      setCurrentWorkspaceRole(null);
-      setViewScope('project');
-      setCurrentView('admin-dash');
-      navigate('/admin');
-    } else {
-      // Người dùng được cấp quyền Producer (hoặc USER) khi login sẽ vào thẳng màn hình Quản lý & Tạo Dự án (/projects)
-      setCurrentRole('USER');
-      setCurrentWorkspaceRole('PRODUCER');
-      setActiveProjectRoles(['PRODUCER']);
-      setViewScope('hub');
-      setCurrentView('publications');
-      navigate('/projects');
-    }
-  };
 
   const navigateToWorkspaceRoleView = (role: WorkspaceRole) => {
     switch (role) {
@@ -280,7 +287,9 @@ function AppContent() {
     setActiveWorkspace(ws);
     try {
       localStorage.setItem('activeWorkspace', JSON.stringify(ws));
-    } catch {}
+    } catch {
+      // localStorage không khả dụng (private mode...) — bỏ qua, state vẫn đúng trong phiên
+    }
     const wsRole =
       normalizeWorkspaceRole(ws.currentUserRole) ||
       (currentRole === 'ADMINISTRATOR' ? 'PRODUCER' : 'ARTIST');
@@ -327,12 +336,15 @@ function AppContent() {
           name: u.fullName || u.username || u.email?.split('@')[0] || 'User',
           email: u.email || '',
           role,
+          canCreateStudio: !!u.canCreateStudio,
           isTwoFactorEnabled: !!u.isTwoFactorEnabled,
         });
       } catch {
         // bỏ qua lỗi parse
       }
     }
+    // Chỉ khôi phục phiên một lần khi mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -346,7 +358,7 @@ function AppContent() {
   }, [currentRole, activeProjectRoles, viewScope]);
 
   const [projects, setProjects] = useState<MangaProject[]>(INITIAL_PROJECTS);
-  const [activeProject, setActiveProject] = useState<MangaProject>(INITIAL_PROJECTS[0]);
+  const [activeProject, setActiveProject] = useState<MangaProject | undefined>(INITIAL_PROJECTS[0]);
   const [cards, setCards] = useState<KanbanCard[]>(INITIAL_KANBAN_CARDS);
   const [entities, setEntities] = useState<BibleEntity[]>(INITIAL_BIBLE_ENTITIES);
   const [members, setMembers] = useState<StudioMember[]>(INITIAL_MEMBERS);
@@ -367,7 +379,7 @@ function AppContent() {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const showToast = (title: string, desc: string) => {
-    const id = `toast-${Date.now()}`;
+    const id = `toast-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
     setToasts((prev) => [...prev, { id, title, desc }]);
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
@@ -439,7 +451,7 @@ function AppContent() {
 
   const handleEnterProject = (proj: MangaProject, targetView: ViewMode | string = 'workspace') => {
     setActiveProject(proj);
-    
+
     // Find roles for the current user in this project
     const userId = currentUserInfo?.id || 'member-tf'; // default to TF for testing
     const membership = INITIAL_PROJECT_MEMBERSHIPS.find(
@@ -471,6 +483,9 @@ function AppContent() {
     localStorage.removeItem('userRole');
     localStorage.removeItem('user');
     localStorage.removeItem('pf_remember_device');
+    localStorage.removeItem('demoRole');
+    localStorage.removeItem('isDemoMode');
+    localStorage.removeItem('activeWorkspace');
     setFirebaseUser(null);
     setCurrentUserInfo(null);
     setIsAuthenticated(false);
@@ -489,7 +504,7 @@ function AppContent() {
     <div className='min-h-screen bg-[#F8F6F0] text-[#171717] font-sans antialiased selection:bg-[#F97316]/20 selection:text-[#EA580C] relative'>
       <Routes>
         <Route
-          path="/"
+          path='/'
           element={
             !isAuthenticated ? (
               <LandingPageView
@@ -503,7 +518,7 @@ function AppContent() {
         />
 
         <Route
-          path="/login"
+          path='/login'
           element={
             !isAuthenticated ? (
               <LandingPageView
@@ -523,9 +538,8 @@ function AppContent() {
             </PrivateRoute>
           }
         >
-
           <Route
-            path="workspaces"
+            path='workspaces'
             element={
               <div className='h-screen w-full overflow-y-auto custom-scrollbar bg-[#FAF8F4]'>
                 <WorkspaceListView
@@ -539,6 +553,7 @@ function AppContent() {
                     email: currentUserInfo?.email || firebaseUser?.email || '',
                     role: currentRole,
                     avatarUrl: firebaseUser?.photoURL,
+                    canCreateStudio: currentUserInfo?.canCreateStudio,
                   }}
                   onLogout={handleLogout}
                 />
@@ -546,21 +561,7 @@ function AppContent() {
             }
           />
 
-          <Route
-            path="projects"
-            element={
-              <div className='h-screen w-full overflow-y-auto custom-scrollbar bg-[#FAF8F4]'>
-                <ContentHubView
-                  workspaceId={activeWorkspace?.id}
-                  projects={projects}
-                  onSelectProject={(proj) => setActiveProject(proj)}
-                  onEnterProject={handleEnterProject}
-                  onCreateNewProject={handleCreateNewProject}
-                  isRootView={true}
-                />
-              </div>
-            }
-          />
+          <Route path='projects' element={<Navigate to='/workspaces' replace />} />
 
           <Route
             element={
@@ -593,7 +594,7 @@ function AppContent() {
             }
           >
             <Route
-              path="dashboard"
+              path='dashboard'
               element={
                 <DashboardView
                   activeProject={activeProject}
@@ -604,7 +605,7 @@ function AppContent() {
               }
             />
             <Route
-              path="workspace"
+              path='workspace'
               element={
                 <WorkspaceView
                   currentUserRole={currentWorkspaceRole}
@@ -615,7 +616,7 @@ function AppContent() {
               }
             />
             <Route
-              path="workspace/task/:taskId"
+              path='workspace/task/:taskId'
               element={
                 <TaskEditor
                   activeRoles={activeProjectRoles}
@@ -625,18 +626,19 @@ function AppContent() {
               }
             />
             <Route
-              path="bible"
+              path='bible'
               element={
                 <SeriesBibleView
                   activeProject={activeProject}
                   onAddEntity={handleAddEntity}
+                  onSelectSeries={(p) => setActiveProject(p)}
                   onEditEntity={(e) => showToast('Series Bible', `Mở chi tiết ${e.name}`)}
                   onShowToast={showToast}
                 />
               }
             />
             <Route
-              path="members"
+              path='members'
               element={
                 <MembersRolesView
                   activeProject={activeProject}
@@ -654,7 +656,7 @@ function AppContent() {
               }
             />
             <Route
-              path="review/:taskId"
+              path='review/:taskId'
               element={
                 <ReviewView
                   activeRoles={activeProjectRoles}
@@ -663,19 +665,25 @@ function AppContent() {
                 />
               }
             />
-            <Route path="export" element={<ExportView onShowToast={showToast} />} />
-            <Route path="projects/:projectId/export" element={<ExportView onShowToast={showToast} />} />
-            <Route path="reader" element={<ReaderPortalView />} />
-            <Route path="profile" element={<UserProfile />} />
-            <Route path="artist" element={<ArtistDeskView />} />
-            <Route path="producer" element={<ProducerWorkspaceView />} />
-            <Route path="notifications" element={<NotificationCenterView />} />
-
+            <Route path='export' element={<ExportView onShowToast={showToast} />} />
+            <Route
+              path='projects/:projectId/export'
+              element={<ExportView onShowToast={showToast} />}
+            />
+            <Route path='reader' element={<ReaderPortalView />} />
+            <Route path='profile' element={<UserProfile />} />
+            <Route path='artist' element={<ArtistDeskView />} />
+            <Route path='producer' element={<ProducerWorkspaceView />} />
+            <Route
+              path='catalog'
+              element={<PublicCatalogView onBackToWorkspaces={() => navigate('/workspaces')} />}
+            />
+            <Route path='notifications' element={<NotificationCenterView />} />
           </Route>
 
           {/* Standalone Global Admin Portal (Decoupled completely from GlobalAppShell) */}
           <Route
-            path="admin"
+            path='admin'
             element={
               <AdminRoute activeRoles={activeProjectRoles} currentRole={currentRole}>
                 <AdminDashboard
@@ -690,10 +698,7 @@ function AppContent() {
             }
           />
 
-          <Route
-            path="*"
-            element={<Navigate to={defaultRedirectPath} replace />}
-          />
+          <Route path='*' element={<Navigate to={defaultRedirectPath} replace />} />
         </Route>
       </Routes>
 
@@ -784,14 +789,11 @@ function AppContent() {
               role,
             });
             localStorage.setItem('userRole', role);
-            navigate(role === 'ADMINISTRATOR' ? '/admin' : '/projects');
+            navigate(role === 'ADMINISTRATOR' ? '/admin' : '/workspaces');
             const displayName =
-              res?.user?.fullName ||
-              res?.user?.email ||
-              res?.displayName ||
-              res?.email ||
-              'bạn';
-            showToast('Đăng nhập thành công', `Chào mừng ${displayName} (Vai trò Producer)!`);
+              res?.user?.fullName || res?.user?.email || res?.displayName || res?.email || 'bạn';
+            const roleLabel = role === 'ADMINISTRATOR' ? 'Administrator' : 'User';
+            showToast('Đăng nhập thành công', `Chào mừng ${displayName} (Vai trò: ${roleLabel})!`);
           }}
           onApiLoginSuccess={(authResponse) => {
             setIsLoginModalOpen(false);
@@ -806,18 +808,37 @@ function AppContent() {
             setCurrentUserInfo({
               id: authResponse?.user?.id,
               name:
-                authResponse?.user?.fullName ||
-                authResponse?.user?.email?.split('@')[0] ||
-                'User',
+                authResponse?.user?.fullName || authResponse?.user?.email?.split('@')[0] || 'User',
               email: authResponse?.user?.email || '',
               role,
+              canCreateStudio: authResponse?.user?.canCreateStudio,
               isTwoFactorEnabled: authResponse?.user?.isTwoFactorEnabled,
             });
             if (authResponse?.user) {
               localStorage.setItem('user', JSON.stringify(authResponse.user));
             }
             localStorage.setItem('userRole', role);
-            navigate(role === 'ADMINISTRATOR' ? '/admin' : '/projects');
+
+            // BR-23 / F3: Điều hướng theo suggestedLanding từ landing-context API
+            authService
+              .getLandingContext(authResponse?.token)
+              .then((landing) => {
+                if (landing?.suggestedLanding === 'AdminDashboard') {
+                  navigate('/admin');
+                } else if (landing?.suggestedLanding === 'YourWorkspaces') {
+                  navigate('/workspaces');
+                } else if (landing?.suggestedLanding === 'StudioCreation') {
+                  navigate(landing.canCreateStudio ? '/producer' : '/workspaces');
+                } else if (landing?.suggestedLanding === 'PublicCatalog') {
+                  navigate('/catalog');
+                } else {
+                  navigate(role === 'ADMINISTRATOR' ? '/admin' : '/workspaces');
+                }
+              })
+              .catch(() => {
+                navigate(role === 'ADMINISTRATOR' ? '/admin' : '/workspaces');
+              });
+
             showToast(
               'Đăng nhập thành công',
               `Chào mừng ${authResponse?.user?.fullName || 'bạn'} (Vai trò: ${role})!`,
@@ -844,9 +865,7 @@ function AppContent() {
             setCurrentUserInfo({
               id: authResponse?.user?.id,
               name:
-                authResponse?.user?.fullName ||
-                authResponse?.user?.email?.split('@')[0] ||
-                'User',
+                authResponse?.user?.fullName || authResponse?.user?.email?.split('@')[0] || 'User',
               email: authResponse?.user?.email || '',
               role,
             });
@@ -867,10 +886,7 @@ function AppContent() {
         isTwoFactorEnabled={currentUserInfo?.isTwoFactorEnabled ?? false}
         token={localStorage.getItem('token') || ''}
         onSuccess={() => {
-          showToast(
-            'Bảo mật 2FA',
-            'Đã kích hoạt thành công Google Authenticator cho tài khoản!',
-          );
+          showToast('Bảo mật 2FA', 'Đã kích hoạt thành công Google Authenticator cho tài khoản!');
           setCurrentUserInfo((prev) => (prev ? { ...prev, isTwoFactorEnabled: true } : prev));
           const savedUser = localStorage.getItem('user');
           if (savedUser) {
@@ -896,7 +912,7 @@ function AppContent() {
         }}
       />
 
-{/* ===== GLOBAL FLOATING PREVIEW WIDGET (visible on all pages) ===== */}
+      {/* ===== GLOBAL FLOATING PREVIEW WIDGET (visible on all pages) ===== */}
       {/* 
 
       {!isAuthenticated && (

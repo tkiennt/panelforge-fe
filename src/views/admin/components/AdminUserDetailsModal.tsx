@@ -19,7 +19,7 @@ export const AdminUserDetailsModal: React.FC<AdminUserDetailsModalProps> = ({
       <div className='bg-white rounded-2xl border border-[#E7E7E7] shadow-2xl max-w-md w-full p-6 space-y-4 animate-in zoom-in-95 duration-200'>
         <div className='flex items-center justify-between border-b border-[#E7E7E7] pb-3'>
           <h3 className='text-sm font-bold text-[#171717]'>Chi Tiết Tài Khoản</h3>
-          <Button onClick={onClose} variant="ghost" size="icon">
+          <Button onClick={onClose} variant='ghost' size='icon'>
             <X className='w-4 h-4' />
           </Button>
         </div>
@@ -68,9 +68,7 @@ export const AdminUserDetailsModal: React.FC<AdminUserDetailsModalProps> = ({
         </div>
 
         <div className='pt-3 border-t border-[#E7E7E7] text-right'>
-          <Button onClick={onClose}>
-            Đóng
-          </Button>
+          <Button onClick={onClose}>Đóng</Button>
         </div>
       </div>
     </div>

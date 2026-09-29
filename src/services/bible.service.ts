@@ -59,6 +59,7 @@ export interface CreateBibleEntryRequest {
 }
 
 export interface AddBibleEntryRevisionRequest {
+  expectedVersionNumber?: number;
   summary: string;
   name: string;
   description: string;
@@ -109,6 +110,14 @@ export const bibleService = {
     return res.json();
   },
 
+  async getSeriesBibleAtChapter(
+    seriesId: string,
+    chapterNumber: number,
+  ): Promise<{ entries: BibleEntryDto[] }> {
+    const entries = await this.getBibleEntriesAtChapter(seriesId, chapterNumber);
+    return { entries };
+  },
+
   async createBibleEntry(seriesId: string, data: CreateBibleEntryRequest): Promise<BibleEntryDto> {
     const res = await fetch(`${API_URL}/api/series/${seriesId}/bible/entries`, {
       method: 'POST',
@@ -137,7 +146,12 @@ export const bibleService = {
     );
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || err.message || 'Không thể tạo phiên bản mới cho mục Bible.');
+      const error: any = new Error(
+        err.error || err.message || 'Không thể tạo phiên bản mới cho mục Bible.',
+      );
+      error.code = err.code || (res.status === 409 ? 'CONFLICT' : undefined);
+      error.status = res.status;
+      throw error;
     }
     return res.json();
   },

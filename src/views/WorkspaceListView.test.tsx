@@ -58,7 +58,18 @@ describe('WorkspaceListView Component', () => {
 
     const onSelectMock = vi.fn();
     const onCreateMock = vi.fn();
-    render(<WorkspaceListView onSelectWorkspace={onSelectMock} onCreateWorkspace={onCreateMock} />);
+    render(
+      <WorkspaceListView
+        onSelectWorkspace={onSelectMock}
+        onCreateWorkspace={onCreateMock}
+        currentUser={{
+          name: 'Alex',
+          email: 'producer@panelforge.com',
+          role: 'USER',
+          canCreateStudio: true,
+        }}
+      />,
+    );
 
     await waitFor(() => {
       expect(screen.getByText('Welcome to PanelForge')).toBeInTheDocument();
@@ -70,5 +81,32 @@ describe('WorkspaceListView Component', () => {
     const createBtn = screen.getByRole('button', { name: /Create Workspace/i });
     fireEvent.click(createBtn);
     expect(onCreateMock).toHaveBeenCalled();
+  });
+
+  it('BR-22: user chưa được cấp canCreateStudio bấm Create Workspace -> không mở luồng tạo Studio', async () => {
+    vi.spyOn(workspaceService, 'getMyWorkspaces').mockResolvedValue([]);
+    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+
+    const onCreateMock = vi.fn();
+    render(
+      <WorkspaceListView
+        onSelectWorkspace={vi.fn()}
+        onCreateWorkspace={onCreateMock}
+        currentUser={{
+          name: 'Brian',
+          email: 'writer@panelforge.com',
+          role: 'USER',
+          canCreateStudio: false,
+        }}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Welcome to PanelForge')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /Create Workspace/i }));
+    expect(onCreateMock).not.toHaveBeenCalled();
+    expect(alertSpy).toHaveBeenCalled();
   });
 });

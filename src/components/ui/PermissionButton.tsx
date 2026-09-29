@@ -12,7 +12,7 @@ interface PermissionButtonProps extends ButtonProps {
 export const PermissionButton: React.FC<PermissionButtonProps> = ({
   userRoles,
   permissionKey,
-  fallbackTitle = "Bạn không có quyền thực hiện thao tác này",
+  fallbackTitle = 'Bạn không có quyền thực hiện thao tác này',
   disabled,
   title,
   children,
@@ -31,9 +31,7 @@ export const PermissionButton: React.FC<PermissionButtonProps> = ({
       {...props}
     >
       {children}
-      {!hasPerm && (
-        <Lock className="w-3.5 h-3.5 ml-1.5 opacity-70 inline-block" />
-      )}
+      {!hasPerm && <Lock className='w-3.5 h-3.5 ml-1.5 opacity-70 inline-block' />}
     </Button>
   );
 };

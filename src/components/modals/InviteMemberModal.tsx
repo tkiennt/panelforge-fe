@@ -120,10 +120,13 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
           </div>
 
           <div className='p-3 bg-[#FAF8F4] rounded-xl border border-[#E7E7E7] text-xs font-mono text-[#555555] space-y-1'>
-            <div className='text-[10px] text-[#888888] uppercase'>Security Notice</div>
+            <div className='text-[10px] text-[#888888] uppercase font-bold text-[#F97316]'>
+              Thông tin kích hoạt tài khoản
+            </div>
             <p className='text-[11px] leading-relaxed'>
-              Invited member will be automatically assigned an ECDSA cryptographic key for Tankōbon
-              audit verification.
+              Nếu email chưa có tài khoản trong hệ thống, PanelForge sẽ gửi email mời kèm mã OTP 6
+              số (hạn 15 phút). Người được mời dùng mã OTP này để tạo mật khẩu tại màn Kích hoạt tài
+              khoản / Đặt lại mật khẩu.
             </p>
           </div>
 

@@ -117,7 +117,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, curren
                 }`}
               >
                 <div className='flex items-center gap-3 min-w-0'>
-                  <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-[#737373]'}`} />
+                  <Icon
+                    className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-[#737373]'}`}
+                  />
                   <span className='truncate'>{item.label}</span>
                 </div>
                 {item.badge && (
@@ -172,7 +174,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, curren
               RBAC Scope Boundary Constraint:
             </span>
             <span className='text-[#E5E5E5] text-[11px] hidden sm:inline'>
-              Administrators possess global system control but cannot access or read individual project `/workspace` routes unless explicitly invited as a project member.
+              Administrators possess global system control but cannot access or read individual
+              project `/workspace` routes unless explicitly invited as a project member.
             </span>
           </div>
           <span className='text-[10px] font-mono text-[#737373] shrink-0 bg-[#262626] px-2 py-0.5 rounded border border-[#404040]'>

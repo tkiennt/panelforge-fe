@@ -10,7 +10,7 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   (
     { className, variant = 'primary', size = 'md', isLoading, children, disabled, ...props },
-    ref
+    ref,
   ) => {
     return (
       <button
@@ -20,7 +20,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           'inline-flex items-center justify-center font-semibold transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed',
           // Base style: Flat design, solid ink borders (Manga Aesthetic)
           'border-[1.5px] rounded-md shadow-none',
-          
+
           // Variants
           variant === 'primary' &&
             'bg-[#F97316] text-white border-[#F97316] hover:bg-[#EA580C] hover:border-[#EA580C]',
@@ -28,8 +28,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             'bg-[#FFFFFF] text-[#171717] border-[#171717] hover:bg-[#FAF8F5]',
           variant === 'ghost' &&
             'bg-transparent text-[#555555] border-transparent hover:text-[#171717] hover:bg-[#EAE6DF] hover:border-[#EAE6DF]',
-          variant === 'danger' &&
-            'bg-[#FEF2F2] text-[#DC2626] border-[#DC2626] hover:bg-[#FEE2E2]',
+          variant === 'danger' && 'bg-[#FEF2F2] text-[#DC2626] border-[#DC2626] hover:bg-[#FEE2E2]',
 
           // Sizes
           size === 'sm' && 'px-3 py-1.5 text-[11px]',
@@ -37,7 +36,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           size === 'lg' && 'px-5 py-2.5 text-sm',
           size === 'icon' && 'p-1.5',
 
-          className
+          className,
         )}
         {...props}
       >
@@ -66,6 +65,6 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         {children}
       </button>
     );
-  }
+  },
 );
 Button.displayName = 'Button';

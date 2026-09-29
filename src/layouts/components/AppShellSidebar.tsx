@@ -65,7 +65,7 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
             <span className='text-xs font-bold'>System Admin Zone</span>
           </div>
         )}
-        
+
         <div
           data-testid='sidebar-workspace-switcher'
           onClick={(e) => handleNavClick(e, '/workspaces')}

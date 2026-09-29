@@ -55,7 +55,12 @@ export interface KanbanCard {
 }
 
 export type EntityCategory = 'character' | 'location' | 'prop' | 'rule';
-export type BibleCategory = | 'all' | 'characters' | 'locations' | 'terminology' | 'style'
+export type BibleCategory =
+  | 'all'
+  | 'characters'
+  | 'locations'
+  | 'terminology'
+  | 'style'
   | 'character'
   | 'location'
   | 'prop'
@@ -156,8 +161,8 @@ export function getRoleFromToken(customToken?: string | null): SystemRole | null
     customToken !== undefined
       ? customToken
       : typeof window !== 'undefined'
-      ? localStorage.getItem('token')
-      : null;
+        ? localStorage.getItem('token')
+        : null;
 
   if (!token) return null;
 
@@ -174,8 +179,7 @@ export function getRoleFromToken(customToken?: string | null): SystemRole | null
         return null;
       }
       let roleClaim =
-        payload.role ||
-        payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'];
+        payload.role || payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'];
       // JWT có thể chứa mảng role khi backend thêm nhiều claim cùng type
       if (Array.isArray(roleClaim)) {
         roleClaim = roleClaim[0];

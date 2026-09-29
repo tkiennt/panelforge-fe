@@ -20,29 +20,31 @@ import {
 import { MangaProject, AssistantRosterItem, ProvenanceLogItem } from '../types';
 
 interface DashboardViewProps {
-  activeProject: MangaProject;
-  assistants: AssistantRosterItem[];
-  provenanceLogs: ProvenanceLogItem[];
-  onOpenSpreadModal: () => void;
-  onOpenCanvasModal: () => void;
-  onRunAiAudit: () => void;
-  onExportReport: () => void;
-  onConfigureAnchors: () => void;
-  onViewAuditLog: () => void;
-  onManageAssignments: () => void;
+  activeProject?: MangaProject;
+  assistants?: AssistantRosterItem[];
+  provenanceLogs?: ProvenanceLogItem[];
+  onOpenSpreadModal?: () => void;
+  onOpenCanvasModal?: () => void;
+  onRunAiAudit?: () => void;
+  onExportReport?: () => void;
+  onConfigureAnchors?: () => void;
+  onViewAuditLog?: () => void;
+  onManageAssignments?: () => void;
+  onShowToast?: (title: string, desc: string) => void;
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
   activeProject,
-  assistants,
-  provenanceLogs,
-  onOpenSpreadModal,
-  onOpenCanvasModal,
-  onRunAiAudit,
-  onExportReport,
-  onConfigureAnchors,
-  onViewAuditLog,
-  onManageAssignments,
+  assistants = [],
+  provenanceLogs = [],
+  onOpenSpreadModal = () => {},
+  onOpenCanvasModal = () => {},
+  onRunAiAudit = () => {},
+  onExportReport = () => {},
+  onConfigureAnchors = () => {},
+  onViewAuditLog = () => {},
+  onManageAssignments = () => {},
+  onShowToast = () => {},
 }) => {
   const [velocityTab, setVelocityTab] = useState<'7days' | 'arc02' | 'full'>('7days');
   const [selectedArc, setSelectedArc] = useState('Arc 02: Chapter 5 (Active)');
@@ -68,11 +70,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <span className='text-[#555555]'>B5 TANKŌBON SPEC (600 DPI)</span>
             </div>
             <h1 className='text-2xl lg:text-3xl font-bold font-display text-[#171717] tracking-tight'>
-              Project Dashboard: {activeProject.title.split(':')[0]}
+              Project Dashboard:{' '}
+              {activeProject?.title ? activeProject.title.split(':')[0] : 'PanelForge Overview'}
             </h1>
             <p className='text-xs text-[#555555] mt-1'>
               Real-time production metrics, AI model continuity, and velocity tracking across
-              Chapter {activeProject.chapter}.
+              Chapter {activeProject?.chapter || '1'}.
             </p>
           </div>
 

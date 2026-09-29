@@ -158,6 +158,8 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = ({
         const width = 15;
         const height = 10;
         const newOverlay: BibleOverlay = {
+          // Chạy trong handler drop (không phải lúc render), Date.now() ở đây là an toàn.
+          // eslint-disable-next-line react-hooks/purity
           id: `ref-${Date.now()}`,
           entityId: data.data.id,
           name: data.data.name,

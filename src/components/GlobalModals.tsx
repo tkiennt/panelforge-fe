@@ -22,13 +22,13 @@ interface GlobalModalsProps {
   setNewCardOpen: (open: boolean) => void;
   selectedCardForDetail: KanbanCard | null;
   setSelectedCardForDetail: (card: KanbanCard | null) => void;
-  
+
   // Data
   cards: KanbanCard[];
   entities: BibleEntity[];
   provenanceLogs: any[];
   activeProjectRoles: string[];
-  
+
   // Callbacks
   setCurrentView: (view: string) => void;
   showToast: (title: string, desc: string) => void;

@@ -33,6 +33,7 @@ export interface CreateSeriesRequest {
   synopsis?: string;
   readingDirection?: number | string;
   pipelineDefinitionId?: string;
+  pipelineTemplateId?: string;
   genre?: string;
   format?: string;
   releaseScheduleJson?: string;
@@ -43,9 +44,89 @@ export interface UpdateSeriesRequest {
   synopsis?: string;
   readingDirection: number | string;
   pipelineDefinitionId?: string;
+  pipelineTemplateId?: string;
   genre?: string;
   format?: string;
   releaseScheduleJson?: string;
+}
+
+// Typography Presets (NFR-08)
+export interface TypographyPresetDto {
+  id: string;
+  seriesId: string;
+  name: string;
+  fontFamily: string;
+  fontSize: number;
+  fontWeight: number;
+  fontStyle: string;
+  lineHeight: number;
+  letterSpacing: number;
+  textAlign: string;
+  usageType: string;
+  isDefault: boolean;
+  createdAt: string;
+  updatedAt?: string | null;
+}
+
+export interface CreateTypographyPresetRequest {
+  name: string;
+  fontFamily: string;
+  fontSize: number;
+  fontWeight?: number;
+  fontStyle?: string;
+  lineHeight?: number;
+  letterSpacing?: number;
+  textAlign?: string;
+  usageType?: string;
+  isDefault?: boolean;
+}
+
+export interface UpdateTypographyPresetRequest {
+  name: string;
+  fontFamily: string;
+  fontSize: number;
+  fontWeight?: number;
+  fontStyle?: string;
+  lineHeight?: number;
+  letterSpacing?: number;
+  textAlign?: string;
+  usageType?: string;
+  isDefault?: boolean;
+}
+
+// Consistency Rules (NFR-08)
+export interface ConsistencyRuleDto {
+  id: string;
+  seriesId: string;
+  name: string;
+  ruleType: string;
+  description?: string | null;
+  isEnabled: boolean;
+  pattern?: string | null;
+  severity: string;
+  configurationJson?: string | null;
+  createdAt: string;
+  updatedAt?: string | null;
+}
+
+export interface CreateConsistencyRuleRequest {
+  name: string;
+  ruleType: string;
+  description?: string;
+  isEnabled?: boolean;
+  pattern?: string;
+  severity?: string;
+  configurationJson?: string;
+}
+
+export interface UpdateConsistencyRuleRequest {
+  name: string;
+  ruleType: string;
+  description?: string;
+  isEnabled?: boolean;
+  pattern?: string;
+  severity?: string;
+  configurationJson?: string;
 }
 
 export interface SeriesPresetDto {
@@ -145,6 +226,17 @@ export const seriesService = {
     return res.json();
   },
 
+  async deleteSeries(seriesId: string): Promise<void> {
+    const res = await fetch(`${API_URL}/api/series/${seriesId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || err.message || 'Không thể xóa Series.');
+    }
+  },
+
   async getPresets(seriesId: string): Promise<SeriesPresetDto> {
     const res = await fetch(`${API_URL}/api/series/${seriesId}/presets`, {
       headers: getAuthHeaders(),
@@ -167,5 +259,117 @@ export const seriesService = {
       throw new Error(err.error || err.message || 'Không thể lưu cấu hình Presets.');
     }
     return res.json();
+  },
+
+  // ── Typography Presets CRUD (Task 8, NFR-08) ──
+  async getTypographyPresets(seriesId: string): Promise<TypographyPresetDto[]> {
+    const res = await fetch(`${API_URL}/api/series/${seriesId}/presets`, {
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || err.message || 'Không thể tải danh sách Typography Presets.');
+    }
+    return res.json();
+  },
+
+  async createTypographyPreset(
+    seriesId: string,
+    data: CreateTypographyPresetRequest,
+  ): Promise<TypographyPresetDto> {
+    const res = await fetch(`${API_URL}/api/series/${seriesId}/presets`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || err.message || 'Không thể tạo Typography Preset.');
+    }
+    return res.json();
+  },
+
+  async updateTypographyPreset(
+    seriesId: string,
+    presetId: string,
+    data: UpdateTypographyPresetRequest,
+  ): Promise<TypographyPresetDto> {
+    const res = await fetch(`${API_URL}/api/series/${seriesId}/presets/${presetId}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || err.message || 'Không thể cập nhật Typography Preset.');
+    }
+    return res.json();
+  },
+
+  async deleteTypographyPreset(seriesId: string, presetId: string): Promise<void> {
+    const res = await fetch(`${API_URL}/api/series/${seriesId}/presets/${presetId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || err.message || 'Không thể xóa Typography Preset.');
+    }
+  },
+
+  // ── Consistency Rules CRUD (Task 9, NFR-08) ──
+  async getConsistencyRules(seriesId: string): Promise<ConsistencyRuleDto[]> {
+    const res = await fetch(`${API_URL}/api/series/${seriesId}/consistency-rules`, {
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || err.message || 'Không thể tải danh sách Consistency Rules.');
+    }
+    return res.json();
+  },
+
+  async createConsistencyRule(
+    seriesId: string,
+    data: CreateConsistencyRuleRequest,
+  ): Promise<ConsistencyRuleDto> {
+    const res = await fetch(`${API_URL}/api/series/${seriesId}/consistency-rules`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || err.message || 'Không thể tạo Consistency Rule.');
+    }
+    return res.json();
+  },
+
+  async updateConsistencyRule(
+    seriesId: string,
+    ruleId: string,
+    data: UpdateConsistencyRuleRequest,
+  ): Promise<ConsistencyRuleDto> {
+    const res = await fetch(`${API_URL}/api/series/${seriesId}/consistency-rules/${ruleId}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || err.message || 'Không thể cập nhật Consistency Rule.');
+    }
+    return res.json();
+  },
+
+  async deleteConsistencyRule(seriesId: string, ruleId: string): Promise<void> {
+    const res = await fetch(`${API_URL}/api/series/${seriesId}/consistency-rules/${ruleId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || err.message || 'Không thể xóa Consistency Rule.');
+    }
   },
 };

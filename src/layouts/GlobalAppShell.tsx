@@ -219,7 +219,8 @@ export function GlobalAppShell({
       : 'PRODUCER';
 
   const rawSections =
-    (currentUser.role === 'ADMINISTRATOR' || currentUser.activeRoles?.includes('ADMINISTRATOR')) && !currentUser.workspaceRole
+    (currentUser.role === 'ADMINISTRATOR' || currentUser.activeRoles?.includes('ADMINISTRATOR')) &&
+    !currentUser.workspaceRole
       ? ROLE_NAV_CONFIG['ADMINISTRATOR'] || []
       : ROLE_NAV_CONFIG[effectiveRole] || ROLE_NAV_CONFIG['PRODUCER'] || [];
 
@@ -239,7 +240,8 @@ export function GlobalAppShell({
   // Set isActive based on location pathname
   navSections.forEach((section) => {
     section.items.forEach((item: any) => {
-      item.isActive = location.pathname === item.href || location.pathname.startsWith(`${item.href}/`);
+      item.isActive =
+        location.pathname === item.href || location.pathname.startsWith(`${item.href}/`);
     });
   });
 
@@ -336,7 +338,8 @@ export function GlobalAppShell({
                 </span>
                 <span className='mx-2 text-[#B8B8B8] font-normal select-none'>/</span>
                 <span className='text-[#171717] font-semibold truncate flex items-center gap-1.5'>
-                  {currentUser.role === 'ADMINISTRATOR' || currentUser.activeRoles?.includes('ADMINISTRATOR')
+                  {currentUser.role === 'ADMINISTRATOR' ||
+                  currentUser.activeRoles?.includes('ADMINISTRATOR')
                     ? 'Global Settings'
                     : 'Workspace'}
                   {currentUser.workspaceRole && (
@@ -397,10 +400,7 @@ export function GlobalAppShell({
 
               {userMenuOpen && (
                 <>
-                  <div
-                    className='fixed inset-0 z-40'
-                    onClick={() => setUserMenuOpen(false)}
-                  />
+                  <div className='fixed inset-0 z-40' onClick={() => setUserMenuOpen(false)} />
                   <div className='absolute right-0 mt-2 w-56 bg-white border border-[#E7E7E7] rounded-xl shadow-lg z-50 p-1.5 text-xs animate-in fade-in-50 zoom-in-95'>
                     <div className='px-3 py-2 border-b border-[#E7E7E7] mb-1'>
                       <p className='font-semibold text-[#171717]'>{currentUser.name}</p>
@@ -484,7 +484,10 @@ export function GlobalAppShell({
               currentUser.workspaceRole === 'ARTIST') && (
               <button
                 onClick={() => {
-                  if (currentUser.workspaceRole === 'ARTIST' || currentUser.activeRoles?.includes('ARTIST')) {
+                  if (
+                    currentUser.workspaceRole === 'ARTIST' ||
+                    currentUser.activeRoles?.includes('ARTIST')
+                  ) {
                     navigate('/workspace/task/default');
                   } else {
                     navigate('/export');
@@ -492,7 +495,8 @@ export function GlobalAppShell({
                 }}
                 className='bg-[#F97316] text-white px-4 py-1.5 rounded-md text-sm font-medium hover:bg-[#EA580C] active:scale-[0.98] transition-all flex items-center gap-1.5 shadow-sm'
               >
-                {currentUser.workspaceRole === 'ARTIST' || currentUser.activeRoles?.includes('ARTIST') ? (
+                {currentUser.workspaceRole === 'ARTIST' ||
+                currentUser.activeRoles?.includes('ARTIST') ? (
                   <>
                     <UploadCloud className='w-3.5 h-3.5 stroke-[2.5]' />
                     <span>Submit</span>

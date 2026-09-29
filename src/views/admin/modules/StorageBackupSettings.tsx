@@ -1,5 +1,14 @@
 import React, { useState } from 'react';
-import { HardDrive, Database, Clock, Save, CheckCircle2, RefreshCw, ShieldAlert, FileCheck } from 'lucide-react';
+import {
+  HardDrive,
+  Database,
+  Clock,
+  Save,
+  CheckCircle2,
+  RefreshCw,
+  ShieldAlert,
+  FileCheck,
+} from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 
@@ -29,7 +38,8 @@ export const StorageBackupSettings: React.FC = () => {
             Quản Lý Lưu Trữ, Hạn Ngạch & Lịch Sao Lưu (Backup)
           </h1>
           <p className='text-xs text-[#737373]'>
-            Thiết lập giới hạn dung lượng đĩa đệm, chính sách lưu giữ bản nháp truyện tranh và sao lưu định kỳ.
+            Thiết lập giới hạn dung lượng đĩa đệm, chính sách lưu giữ bản nháp truyện tranh và sao
+            lưu định kỳ.
           </p>
         </div>
 
@@ -74,11 +84,15 @@ export const StorageBackupSettings: React.FC = () => {
             <div className='p-4 rounded-xl border border-[#E7E7E7] bg-[#FAF8F5] flex items-center justify-between'>
               <div>
                 <div className='font-bold text-[#171717]'>Dung lượng đang sử dụng thực tế</div>
-                <div className='text-[#737373] text-[11px] mt-0.5'>Bao gồm Genga PSD, PNG Screentone & Continuity Vectors</div>
+                <div className='text-[#737373] text-[11px] mt-0.5'>
+                  Bao gồm Genga PSD, PNG Screentone & Continuity Vectors
+                </div>
               </div>
               <div className='text-right'>
                 <div className='text-xl font-serif font-bold text-[#171717]'>48.5 GB</div>
-                <div className='text-[10px] font-mono text-emerald-600 font-bold'>19.4% Quota Used</div>
+                <div className='text-[10px] font-mono text-emerald-600 font-bold'>
+                  19.4% Quota Used
+                </div>
               </div>
             </div>
           </div>
@@ -102,7 +116,9 @@ export const StorageBackupSettings: React.FC = () => {
                 onChange={(e) => setRetentionDays(e.target.value)}
                 className='h-9 font-mono text-xs'
               />
-              <p className='text-[10px] text-[#737373] mt-1'>Các bản nháp cũ quá số ngày này sẽ được lưu trữ tự động (Archive).</p>
+              <p className='text-[10px] text-[#737373] mt-1'>
+                Các bản nháp cũ quá số ngày này sẽ được lưu trữ tự động (Archive).
+              </p>
             </div>
 
             <div>
@@ -124,7 +140,9 @@ export const StorageBackupSettings: React.FC = () => {
           <div className='pt-2 border-t border-[#E7E7E7] flex items-center justify-between text-xs'>
             <div className='space-y-0.5'>
               <div className='font-bold text-[#171717]'>Tự động làm sạch file tạm cache</div>
-              <div className='text-[11px] text-[#737373]'>Xóa các file preview nén tạm thời để duy trì hiệu năng đĩa đệm.</div>
+              <div className='text-[11px] text-[#737373]'>
+                Xóa các file preview nén tạm thời để duy trì hiệu năng đĩa đệm.
+              </div>
             </div>
             <input
               type='checkbox'

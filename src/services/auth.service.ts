@@ -257,4 +257,41 @@ export const authService = {
 
     return response.json();
   },
+
+  /**
+   * BR-23: Lấy ngữ cảnh gợi ý màn hình đích sau đăng nhập (GET /api/Auth/me/landing-context)
+   */
+  getLandingContext: async (customToken?: string): Promise<LandingContextDto> => {
+    const token =
+      customToken || (typeof window !== 'undefined' ? localStorage.getItem('token') : null) || '';
+    const response = await fetch(`${API_URL}/api/Auth/me/landing-context`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        await parseErrorResponse(response, 'Không thể lấy ngữ cảnh điều hướng landing.'),
+      );
+    }
+
+    return response.json();
+  },
 };
+
+export interface LandingWorkspaceDto {
+  workspaceId: string;
+  name: string;
+  role: string;
+}
+
+export interface LandingContextDto {
+  userId: string;
+  systemRole: string;
+  canCreateStudio: boolean;
+  workspaces: LandingWorkspaceDto[];
+  suggestedLanding: 'AdminDashboard' | 'YourWorkspaces' | 'StudioCreation' | 'PublicCatalog';
+}

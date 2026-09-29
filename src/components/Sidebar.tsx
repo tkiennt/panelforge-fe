@@ -20,8 +20,8 @@ import { ViewMode, MangaProject, SystemRole } from '../types';
 interface SidebarProps {
   currentView: ViewMode | string;
   onSelectView: (view: any) => void;
-  activeProject: MangaProject;
-  projects: MangaProject[];
+  activeProject?: MangaProject;
+  projects?: MangaProject[];
   onSelectProject: (proj: MangaProject) => void;
   onReturnToHub: () => void;
   onOpenSettings: () => void;
@@ -35,7 +35,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   currentView,
   onSelectView,
   activeProject,
-  projects,
+  projects = [],
   onSelectProject,
   onReturnToHub,
   onOpenSettings,
@@ -119,9 +119,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div className='overflow-hidden'>
               <div className='text-xs font-bold text-[#171717] flex items-center gap-1.5 truncate'>
                 <span className='w-2 h-2 rounded-full bg-[#F97316] animate-pulse shrink-0'></span>
-                <span className='truncate'>{activeProject.title}</span>
+                <span className='truncate'>{activeProject?.title || 'Chưa chọn dự án'}</span>
               </div>
-              <div className='text-[10px] text-[#888888] truncate'>{activeProject.subtitle}</div>
+              <div className='text-[10px] text-[#888888] truncate'>
+                {activeProject?.subtitle || 'Vui lòng chọn hoặc tạo dự án'}
+              </div>
             </div>
             <ChevronsUpDown className='w-3.5 h-3.5 text-[#888888] group-hover:text-[#171717] transition-colors shrink-0 ml-1' />
           </button>
@@ -140,7 +142,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     setProjectMenuOpen(false);
                   }}
                   className={`w-full text-left px-2.5 py-2 rounded-lg text-xs transition-all flex items-center justify-between ${
-                    p.id === activeProject.id
+                    p.id === activeProject?.id
                       ? 'bg-[#FFF7ED] text-[#F97316] font-semibold'
                       : 'text-[#555555] hover:bg-[#F3F1EB] hover:text-[#171717]'
                   }`}

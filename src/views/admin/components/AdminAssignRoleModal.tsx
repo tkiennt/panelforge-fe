@@ -39,7 +39,14 @@ export const AdminAssignRoleModal: React.FC<AdminAssignRoleModalProps> = ({
           <div className='text-[#737373]'>Tài khoản áp dụng:</div>
           <div className='font-bold text-[#171717] text-sm'>{user.email}</div>
           <div className='text-[11px] text-[#888888] font-mono'>
-            Vai trò hiện tại: <strong className='text-[#171717]'>{user.role}</strong>
+            Vai trò hiện tại:{' '}
+            <strong className='text-[#171717]'>
+              {user.canCreateStudio && user.role.toLowerCase() !== 'admin'
+                ? 'Producer (User + Quyền tạo Studio)'
+                : user.role === 'Admin'
+                  ? 'Administrator'
+                  : 'User (Người dùng tiêu chuẩn)'}
+            </strong>
           </div>
         </div>
 
@@ -74,14 +81,18 @@ export const AdminAssignRoleModal: React.FC<AdminAssignRoleModalProps> = ({
                         <div className='font-bold text-[#171717]'>{r.label}</div>
                         <div className='text-[11px] text-[#737373] font-normal mt-0.5'>
                           {r.key === 'Producer'
-                            ? 'Cho phép người dùng tạo, quản lý dự án truyện tranh & khởi tạo các phòng sản xuất (Workspace Series).'
+                            ? 'Cấp quyền tạo Studio (CanCreateStudio = true) & quản lý các dự án Manga/Webtoon (BR-07).'
                             : 'Tài khoản người dùng thông thường, xem và tham gia workspace được mời.'}
                         </div>
                       </div>
                     </div>
-                    <span className={`font-mono text-[10px] px-2 py-0.5 rounded font-bold uppercase shrink-0 ${
-                      r.key === 'Producer' ? 'bg-[#F97316] text-white' : 'bg-stone-200 text-stone-700'
-                    }`}>
+                    <span
+                      className={`font-mono text-[10px] px-2 py-0.5 rounded font-bold uppercase shrink-0 ${
+                        r.key === 'Producer'
+                          ? 'bg-[#F97316] text-white'
+                          : 'bg-stone-200 text-stone-700'
+                      }`}
+                    >
                       {r.key}
                     </span>
                   </label>
@@ -93,26 +104,22 @@ export const AdminAssignRoleModal: React.FC<AdminAssignRoleModalProps> = ({
           <div className='p-3 bg-blue-50 rounded-xl border border-blue-200 text-[11px] text-blue-900 space-y-1'>
             <div className='font-semibold flex items-center gap-1'>
               <AlertCircle className='w-3.5 h-3.5 shrink-0 text-blue-600' />
-              <span>Chính sách phân quyền RBAC</span>
+              <span>Chính sách phân quyền RBAC (BR-07)</span>
             </div>
             <p>
-              Quản trị viên (Admin) chỉ thực hiện cấp quyền <strong>Producer (Giám đốc sản xuất)</strong> cho người dùng đăng ký. Các vai trò sản xuất khác (Writer, Artist, Editor...) sẽ do chính Producer phân bổ trong từng dự án cụ thể.
+              Quản trị viên (Admin) thực hiện cấp quyền{' '}
+              <strong>Producer (Giám đốc sản xuất)</strong> cho người dùng đăng ký. Khi cấp quyền
+              Producer, hệ thống cấp quyền tạo và sở hữu Studio (CanCreateStudio = true, SystemRole
+              là User). Các vai trò trong từng dự án cụ thể (Writer, Artist, Editor...) do chính
+              Producer quản lý trong Workspace.
             </p>
           </div>
 
           <div className='flex items-center justify-end gap-2.5 pt-2 border-t border-[#E7E7E7]'>
-            <Button
-              type='button'
-              onClick={onClose}
-              variant="ghost"
-              className="text-[#555555]"
-            >
+            <Button type='button' onClick={onClose} variant='ghost' className='text-[#555555]'>
               Hủy
             </Button>
-            <Button
-              type='submit'
-              isLoading={isSubmitting}
-            >
+            <Button type='submit' isLoading={isSubmitting}>
               Xác Nhận Cập Nhật
             </Button>
           </div>

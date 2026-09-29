@@ -13,7 +13,7 @@ import { ViewMode, MangaProject } from '../types';
 
 interface HeaderProps {
   currentView: ViewMode;
-  activeProject: MangaProject;
+  activeProject?: MangaProject;
   onReturnToHub: () => void;
   onOpenCommandPalette: () => void;
   onOpenAiEngineModal: () => void;
@@ -101,7 +101,7 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
           <span className='text-[#888888] font-mono'>/</span>
           <span className='font-display font-semibold text-[#171717] hover:text-[#F97316] cursor-pointer transition-colors truncate max-w-[140px] md:max-w-[200px]'>
-            {activeProject.title.split(':')[0]}
+            {activeProject?.title ? activeProject.title.split(':')[0] : 'PanelForge'}
           </span>
           <span className='text-[#888888] font-mono'>/</span>
           <span className='font-medium text-[#555555] hidden md:inline'>{getViewTitle()}</span>
@@ -114,7 +114,7 @@ export const Header: React.FC<HeaderProps> = ({
 
         <div className='hidden md:flex items-center gap-1.5 text-xs text-[#888888]'>
           <Calendar className='w-3.5 h-3.5 text-[#888888]' />
-          <span>Due {activeProject.dueDate.split(',')[0]}</span>
+          <span>Due {activeProject?.dueDate ? activeProject.dueDate.split(',')[0] : 'TBD'}</span>
         </div>
       </div>
 

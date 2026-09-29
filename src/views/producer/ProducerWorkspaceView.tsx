@@ -17,15 +17,19 @@ import {
   Calendar,
   Compass,
   Sparkles,
+  Sliders,
+  ListOrdered,
 } from 'lucide-react';
 import {
   workspaceService,
   WorkspaceDto,
   WorkspaceMemberDto,
-  MOCK_WORKSPACES,
-  MOCK_WORKSPACE_MEMBERS,
 } from '../../services/workspace.service';
-import { seriesService, SeriesDto } from '../../services/series.service';
+import { pipelineService, PipelineTemplateDto } from '../../services/pipeline.service';
+import { seriesService, SeriesDto, UpdateSeriesRequest } from '../../services/series.service';
+import { SeriesPipelineModal } from '../../components/modals/SeriesPipelineModal';
+import { SeriesChaptersModal } from '../../components/modals/SeriesChaptersModal';
+import { SeriesPresetsModal } from '../../components/modals/SeriesPresetsModal';
 
 export const ProducerWorkspaceView: React.FC = () => {
   const [workspaces, setWorkspaces] = useState<WorkspaceDto[]>([]);
@@ -33,6 +37,20 @@ export const ProducerWorkspaceView: React.FC = () => {
   const [members, setMembers] = useState<WorkspaceMemberDto[]>([]);
   const [seriesList, setSeriesList] = useState<SeriesDto[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // Selected series for UC-03 Modals
+  const [selectedPipelineSeries, setSelectedPipelineSeries] = useState<{
+    id: string;
+    title: string;
+  } | null>(null);
+  const [selectedChapterSeries, setSelectedChapterSeries] = useState<{
+    id: string;
+    title: string;
+  } | null>(null);
+  const [selectedPresetsSeries, setSelectedPresetsSeries] = useState<{
+    id: string;
+    title: string;
+  } | null>(null);
 
   // Modals
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -51,7 +69,41 @@ export const ProducerWorkspaceView: React.FC = () => {
   const [newSeriesFormat, setNewSeriesFormat] = useState('Manga (Standard)');
   const [newSeriesDirection, setNewSeriesDirection] = useState(1); // 1 = RightToLeft
   const [newSeriesSchedule, setNewSeriesSchedule] = useState('Hàng tuần vào Thứ Sáu');
+  const [newSeriesTemplateId, setNewSeriesTemplateId] = useState('');
   const [creatingSeries, setCreatingSeries] = useState(false);
+
+  // Pipeline Templates (B1 / UC-03)
+  const [pipelineTemplates, setPipelineTemplates] = useState<PipelineTemplateDto[]>([]);
+
+  // Edit Series Modal State (F5)
+  const [editingSeries, setEditingSeries] = useState<SeriesDto | null>(null);
+  const [editSeriesTitle, setEditSeriesTitle] = useState('');
+  const [editSeriesSynopsis, setEditSeriesSynopsis] = useState('');
+  const [editSeriesGenre, setEditSeriesGenre] = useState('Action / Sci-Fi');
+  const [editSeriesFormat, setEditSeriesFormat] = useState('Manga (Standard)');
+  const [editSeriesDirection, setEditSeriesDirection] = useState(1);
+  const [editSeriesSchedule, setEditSeriesSchedule] = useState('');
+  const [updatingSeries, setUpdatingSeries] = useState(false);
+
+  // Delete Series Confirm State (F5)
+  const [deleteSeriesModal, setDeleteSeriesModal] = useState<SeriesDto | null>(null);
+  const [deletingSeries, setDeletingSeries] = useState(false);
+
+  // Workspace Audit Modal State (F8)
+  const [auditModalOpen, setAuditModalOpen] = useState(false);
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [auditFilterEntity, setAuditFilterEntity] = useState('');
+
+  // CanCreateStudio check (B3 / F4)
+  const currentUser = React.useMemo(() => {
+    try {
+      return JSON.parse(localStorage.getItem('user') || '{}');
+    } catch {
+      return {};
+    }
+  }, []);
+  const canCreateStudio = currentUser?.canCreateStudio === true;
 
   const [toast, setToast] = useState<{ title: string; desc: string } | null>(null);
 
@@ -86,6 +138,7 @@ export const ProducerWorkspaceView: React.FC = () => {
       }
     } catch (err: any) {
       console.error(err);
+      showToast('Lỗi tải dữ liệu', err.message || 'Không thể kết nối máy chủ.');
     } finally {
       setLoading(false);
     }
@@ -95,6 +148,25 @@ export const ProducerWorkspaceView: React.FC = () => {
     loadData();
   }, [loadData]);
 
+  // Load Active Pipeline Templates from API (GET /api/pipeline-templates) (B1 / UC-03)
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      try {
+        const templates = await pipelineService.getActivePipelineTemplates();
+        setPipelineTemplates(templates);
+        const def = templates.find((t) => t.isDefault);
+        if (def) {
+          setNewSeriesTemplateId(def.id);
+        } else if (templates.length > 0) {
+          setNewSeriesTemplateId(templates[0].id);
+        }
+      } catch (err: any) {
+        console.warn('Lỗi tải danh sách template pipeline:', err);
+      }
+    };
+    fetchTemplates();
+  }, []);
+
   const handleSelectWorkspace = async (ws: WorkspaceDto) => {
     setActiveWorkspace(ws);
     try {
@@ -102,8 +174,9 @@ export const ProducerWorkspaceView: React.FC = () => {
       setMembers(memList);
       const sList = await seriesService.getSeriesList(ws.id);
       setSeriesList(sList);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      showToast('Lỗi tải dữ liệu Workspace', err.message || 'Không thể tải chi tiết Workspace.');
     }
   };
 
@@ -123,12 +196,14 @@ export const ProducerWorkspaceView: React.FC = () => {
         format: newSeriesFormat,
         readingDirection: newSeriesDirection,
         releaseScheduleJson: newSeriesSchedule,
+        pipelineTemplateId: newSeriesTemplateId ? newSeriesTemplateId : undefined,
       });
 
       setSeriesList((prev) => [created, ...prev]);
       setCreateSeriesModalOpen(false);
       setNewSeriesTitle('');
       setNewSeriesSynopsis('');
+      setNewSeriesTemplateId('');
       showToast(
         'Tạo Series thành công (UC-03)',
         `Đã tạo bộ truyện "${created.title}" kèm Series Bible và Presets mặc định sẵn sàng nhận việc.`,
@@ -142,6 +217,13 @@ export const ProducerWorkspaceView: React.FC = () => {
 
   const handleCreateWorkspace = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canCreateStudio) {
+      showToast(
+        'Từ chối quyền thao tác',
+        'Tài khoản chưa được Admin cấp quyền Producer (CanCreateStudio) để tạo Studio Workspace (BR-07).',
+      );
+      return;
+    }
     if (!newWsName.trim()) return;
     try {
       const quotaBytes = parseFloat(newWsQuotaGb) * 1024 * 1024 * 1024;
@@ -158,6 +240,88 @@ export const ProducerWorkspaceView: React.FC = () => {
       showToast('Lỗi tạo Workspace', err.message);
     }
   };
+
+  // Edit Series Handlers (F5)
+  const handleOpenEditSeries = (s: SeriesDto) => {
+    setEditingSeries(s);
+    setEditSeriesTitle(s.title);
+    setEditSeriesSynopsis(s.synopsis || '');
+    setEditSeriesGenre(s.genre || 'Action / Sci-Fi');
+    setEditSeriesFormat(s.format || 'Manga (Standard)');
+    setEditSeriesDirection(
+      typeof s.readingDirection === 'number'
+        ? s.readingDirection
+        : s.readingDirection === 'RightToLeft'
+          ? 1
+          : 0,
+    );
+    setEditSeriesSchedule(s.releaseScheduleJson || '');
+  };
+
+  const handleUpdateSeries = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingSeries) return;
+    setUpdatingSeries(true);
+    try {
+      const updated = await seriesService.updateSeries(editingSeries.id, {
+        title: editSeriesTitle.trim(),
+        synopsis: editSeriesSynopsis.trim() || undefined,
+        genre: editSeriesGenre || undefined,
+        format: editSeriesFormat || undefined,
+        readingDirection: editSeriesDirection,
+        releaseScheduleJson: editSeriesSchedule || undefined,
+      });
+      setSeriesList((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
+      setEditingSeries(null);
+      showToast('Cập nhật thành công', `Đã cập nhật thông tin Series "${updated.title}".`);
+    } catch (err: any) {
+      showToast('Lỗi cập nhật Series', err.message);
+    } finally {
+      setUpdatingSeries(false);
+    }
+  };
+
+  // Delete Series Handlers (F5)
+  const handleDeleteSeries = async () => {
+    if (!deleteSeriesModal) return;
+    setDeletingSeries(true);
+    try {
+      await seriesService.deleteSeries(deleteSeriesModal.id);
+      setSeriesList((prev) => prev.filter((s) => s.id !== deleteSeriesModal.id));
+      showToast(
+        'Đã xóa Series',
+        `Bộ truyện "${deleteSeriesModal.title}" đã được xóa khỏi Workspace.`,
+      );
+      setDeleteSeriesModal(null);
+    } catch (err: any) {
+      showToast('Lỗi xóa Series', err.message);
+    } finally {
+      setDeletingSeries(false);
+    }
+  };
+
+  // Workspace Audit Log Loader (F8)
+  const loadWorkspaceAudit = React.useCallback(async () => {
+    if (!activeWorkspace) return;
+    setAuditLoading(true);
+    try {
+      const res = await workspaceService.getWorkspaceAuditLogs(activeWorkspace.id, {
+        entityName: auditFilterEntity || undefined,
+        pageSize: 50,
+      });
+      setAuditLogs(res?.items || []);
+    } catch (err: any) {
+      showToast('Lỗi tải Audit Log', err.message);
+    } finally {
+      setAuditLoading(false);
+    }
+  }, [activeWorkspace, auditFilterEntity]);
+
+  useEffect(() => {
+    if (auditModalOpen) {
+      loadWorkspaceAudit();
+    }
+  }, [auditModalOpen, loadWorkspaceAudit]);
 
   const handleInviteMember = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -232,7 +396,7 @@ export const ProducerWorkspaceView: React.FC = () => {
           </p>
         </div>
 
-        <div className='flex items-center gap-2.5 shrink-0'>
+        <div className='flex items-center gap-2.5 shrink-0 flex-wrap'>
           <button
             onClick={loadData}
             disabled={loading}
@@ -241,13 +405,35 @@ export const ProducerWorkspaceView: React.FC = () => {
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             <span>Làm mới</span>
           </button>
-          <button
-            onClick={() => setCreateModalOpen(true)}
-            className='inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-[#F97316] hover:bg-[#EA580C] rounded-xl shadow-xs transition-all cursor-pointer'
-          >
-            <Plus className='w-3.5 h-3.5' />
-            <span>Tạo Workspace Mới</span>
-          </button>
+
+          {activeWorkspace && (
+            <button
+              onClick={() => setAuditModalOpen(true)}
+              className='inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-[#171717] bg-white hover:bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl transition-all cursor-pointer shadow-2xs'
+              title='Xem lịch sử Audit Log của Studio Workspace (BR-18 / UC-15)'
+            >
+              <Clock className='w-3.5 h-3.5 text-[#F97316]' />
+              <span>Audit Log Studio (F8)</span>
+            </button>
+          )}
+
+          {canCreateStudio ? (
+            <button
+              onClick={() => setCreateModalOpen(true)}
+              className='inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-[#F97316] hover:bg-[#EA580C] rounded-xl shadow-xs transition-all cursor-pointer'
+            >
+              <Plus className='w-3.5 h-3.5' />
+              <span>Tạo Workspace Mới</span>
+            </button>
+          ) : (
+            <span
+              className='inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-[#888888] bg-[#F1EFEA] border border-[#E7E7E7] rounded-xl cursor-not-allowed'
+              title='Tài khoản chưa được cấp quyền Producer để tạo Workspace mới (BR-07).'
+            >
+              <Shield className='w-3.5 h-3.5 text-[#888888]' />
+              <span>Chưa có quyền tạo Studio</span>
+            </span>
+          )}
         </div>
       </div>
 
@@ -257,7 +443,8 @@ export const ProducerWorkspaceView: React.FC = () => {
           <Briefcase className='w-10 h-10 text-[#888888] mx-auto' />
           <h3 className='text-base font-bold text-[#171717]'>Chưa có Studio Workspace nào</h3>
           <p className='text-xs text-[#555555] max-w-sm mx-auto'>
-            Bạn chưa tạo Workspace nào. Bấm nút &quot;Tạo Workspace Mới&quot; để thiết lập studio làm việc cho Producer.
+            Bạn chưa tạo Workspace nào. Bấm nút &quot;Tạo Workspace Mới&quot; để thiết lập studio
+            làm việc cho Producer.
           </p>
           <button
             onClick={() => setCreateModalOpen(true)}
@@ -350,7 +537,10 @@ export const ProducerWorkspaceView: React.FC = () => {
             </div>
             <h2 className='text-lg font-bold text-[#171717] flex items-center gap-2'>
               <BookOpen className='w-5 h-5 text-[#F97316]' />
-              <span>Dự Án Truyện Tranh (Series) Trong Workspace: {activeWorkspace?.name || 'Chưa chọn Studio'}</span>
+              <span>
+                Dự Án Truyện Tranh (Series) Trong Workspace:{' '}
+                {activeWorkspace?.name || 'Chưa chọn Studio'}
+              </span>
             </h2>
             <p className='text-xs text-[#737373]'>
               Thiết lập thể loại, định dạng đọc, quy trình Kanban 8 công đoạn, Series Bible có
@@ -395,9 +585,27 @@ export const ProducerWorkspaceView: React.FC = () => {
                       {s.title}
                     </h3>
                   </div>
-                  <span className='text-[10px] font-mono bg-white px-2 py-0.5 rounded border border-[#E7E7E7] text-[#555555]'>
-                    {s.format}
-                  </span>
+                  <div className='flex items-center gap-1.5'>
+                    <button
+                      type='button'
+                      onClick={() => handleOpenEditSeries(s)}
+                      className='p-1.5 rounded-lg hover:bg-white text-[#737373] hover:text-[#171717] border border-transparent hover:border-[#E7E7E7] transition-all cursor-pointer'
+                      title='Chỉnh sửa thông tin Series (F5)'
+                    >
+                      <Edit2 className='w-3.5 h-3.5' />
+                    </button>
+                    <button
+                      type='button'
+                      onClick={() => setDeleteSeriesModal(s)}
+                      className='p-1.5 rounded-lg hover:bg-red-50 text-[#888888] hover:text-red-600 border border-transparent hover:border-red-200 transition-all cursor-pointer'
+                      title='Xóa Series (F5)'
+                    >
+                      <Trash2 className='w-3.5 h-3.5' />
+                    </button>
+                    <span className='text-[10px] font-mono bg-white px-2 py-0.5 rounded border border-[#E7E7E7] text-[#555555]'>
+                      {s.format}
+                    </span>
+                  </div>
                 </div>
 
                 <p className='text-xs text-[#555555] line-clamp-2 leading-relaxed'>
@@ -431,6 +639,36 @@ export const ProducerWorkspaceView: React.FC = () => {
                   </span>
                   <span className='text-[#888888]'>{s.chaptersCount} Chương</span>
                 </div>
+
+                <div className='pt-2 border-t border-[#E7E7E7] grid grid-cols-3 gap-1.5'>
+                  <button
+                    type='button'
+                    onClick={() => setSelectedChapterSeries({ id: s.id, title: s.title })}
+                    className='inline-flex items-center justify-center gap-1 px-2 py-1.5 text-[11px] font-medium rounded-lg bg-white border border-[#E7E7E7] hover:border-[#F97316] text-[#171717] hover:text-[#F97316] transition-colors cursor-pointer shadow-2xs'
+                    title='Quản lý danh sách chương & Lịch phát hành (UC-03 Phase 3)'
+                  >
+                    <ListOrdered className='w-3 h-3 text-[#F97316]' />
+                    <span>Chương &amp; Lịch</span>
+                  </button>
+                  <button
+                    type='button'
+                    onClick={() => setSelectedPresetsSeries({ id: s.id, title: s.title })}
+                    className='inline-flex items-center justify-center gap-1 px-2 py-1.5 text-[11px] font-medium rounded-lg bg-white border border-[#E7E7E7] hover:border-[#3B82F6] text-[#171717] hover:text-[#3B82F6] transition-colors cursor-pointer shadow-2xs'
+                    title='Typography Presets & Consistency Rules (NFR-08)'
+                  >
+                    <Sliders className='w-3 h-3 text-[#3B82F6]' />
+                    <span>Presets</span>
+                  </button>
+                  <button
+                    type='button'
+                    onClick={() => setSelectedPipelineSeries({ id: s.id, title: s.title })}
+                    className='inline-flex items-center justify-center gap-1 px-2 py-1.5 text-[11px] font-medium rounded-lg bg-white border border-[#E7E7E7] hover:border-[#10B981] text-[#171717] hover:text-[#10B981] transition-colors cursor-pointer shadow-2xs'
+                    title='Cấu hình quy trình 8 công đoạn & Review Gate (UC-03 Phase 2)'
+                  >
+                    <Layers className='w-3 h-3 text-[#10B981]' />
+                    <span>Pipeline</span>
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -443,7 +681,9 @@ export const ProducerWorkspaceView: React.FC = () => {
           <div>
             <h2 className='text-lg font-bold text-[#171717] flex items-center gap-2'>
               <Users className='w-5 h-5 text-[#F97316]' />
-              <span>Thành Viên Trong Studio Workspace: {activeWorkspace?.name || 'Chưa chọn Studio'}</span>
+              <span>
+                Thành Viên Trong Studio Workspace: {activeWorkspace?.name || 'Chưa chọn Studio'}
+              </span>
             </h2>
             <p className='text-xs text-[#737373]'>
               Phân quyền và phân công nhiệm vụ cho Writer, Artist, Letterer và Editor.
@@ -609,6 +849,12 @@ export const ProducerWorkspaceView: React.FC = () => {
                   <option value='Artist'>Artist (Đóng góp / Họa sĩ / Biên kịch)</option>
                 </select>
               </div>
+              <div className='p-2.5 bg-[#FAF8F5] rounded-lg border border-[#E7E7E7] text-[11px] text-[#737373] space-y-1'>
+                <p>
+                  <strong>Lưu ý:</strong> Nếu email chưa có tài khoản, hệ thống sẽ gửi email kèm mã
+                  OTP 6 số (hạn 15 phút) để thành viên kích hoạt tài khoản và tự tạo mật khẩu.
+                </p>
+              </div>
               <div className='flex justify-end gap-2 pt-2'>
                 <button
                   type='button'
@@ -740,6 +986,33 @@ export const ProducerWorkspaceView: React.FC = () => {
                 </div>
               </div>
 
+              <div>
+                <label className='block font-semibold text-[#171717] mb-1'>
+                  Mẫu Quy Trình (Pipeline Template) (B1 / UC-03)
+                </label>
+                <select
+                  value={newSeriesTemplateId}
+                  onChange={(e) => setNewSeriesTemplateId(e.target.value)}
+                  className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg focus:outline-none focus:border-[#F97316]'
+                >
+                  {pipelineTemplates.length === 0 ? (
+                    <option value=''>
+                      Manga Standard (8 công đoạn: Script → Approved) [Mặc định]
+                    </option>
+                  ) : (
+                    pipelineTemplates.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name} {t.isDefault ? ' [Khuyên dùng mặc định]' : ''} (
+                        {t.stages?.length || 0} công đoạn)
+                      </option>
+                    ))
+                  )}
+                </select>
+                <p className='text-[10px] text-[#888888] mt-1'>
+                  Backend tự động nhân bản các công đoạn và gán quyền theo mẫu đã chọn.
+                </p>
+              </div>
+
               <div className='p-3 bg-[#FAF8F5] rounded-xl border border-[#E7E7E7] space-y-1 text-[11px] text-[#737373]'>
                 <div className='font-bold text-[#171717] flex items-center gap-1.5'>
                   <Sparkles className='w-3.5 h-3.5 text-[#F97316]' />
@@ -769,6 +1042,325 @@ export const ProducerWorkspaceView: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* UC-03: Series Pipeline Configuration Modal */}
+      {selectedPipelineSeries && (
+        <SeriesPipelineModal
+          isOpen={!!selectedPipelineSeries}
+          seriesId={selectedPipelineSeries.id}
+          seriesTitle={selectedPipelineSeries.title}
+          onClose={() => setSelectedPipelineSeries(null)}
+          onShowToast={showToast}
+        />
+      )}
+
+      {/* UC-03: Series Chapters & Release Calendar Modal */}
+      {selectedChapterSeries && (
+        <SeriesChaptersModal
+          isOpen={!!selectedChapterSeries}
+          seriesId={selectedChapterSeries.id}
+          seriesTitle={selectedChapterSeries.title}
+          onClose={() => setSelectedChapterSeries(null)}
+          onShowToast={showToast}
+          onChapterCountChange={(delta) => {
+            if (selectedChapterSeries) {
+              setSeriesList((prev) =>
+                prev.map((s) =>
+                  s.id === selectedChapterSeries.id
+                    ? { ...s, chaptersCount: Math.max(0, s.chaptersCount + delta) }
+                    : s,
+                ),
+              );
+            }
+          }}
+        />
+      )}
+
+      {/* NFR-08: Series Typography Presets & Consistency Rules Modal */}
+      {selectedPresetsSeries && (
+        <SeriesPresetsModal
+          isOpen={!!selectedPresetsSeries}
+          seriesId={selectedPresetsSeries.id}
+          seriesTitle={selectedPresetsSeries.title}
+          onClose={() => setSelectedPresetsSeries(null)}
+          onShowToast={showToast}
+        />
+      )}
+
+      {/* F5: Edit Series Modal */}
+      {editingSeries && (
+        <div className='fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4'>
+          <div className='bg-white rounded-2xl border border-[#E7E7E7] shadow-2xl max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto'>
+            <div className='flex items-center justify-between border-b border-[#E7E7E7] pb-3'>
+              <div className='flex items-center gap-2'>
+                <Edit2 className='w-4 h-4 text-[#F97316]' />
+                <h3 className='text-sm font-bold text-[#171717]'>
+                  Chỉnh Sửa Thông Tin Series (UC-03 / F5)
+                </h3>
+              </div>
+              <button
+                onClick={() => setEditingSeries(null)}
+                className='text-[#888888] hover:text-[#171717]'
+              >
+                <X className='w-4 h-4' />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateSeries} className='space-y-3.5 text-xs'>
+              <div>
+                <label className='block font-semibold text-[#171717] mb-1'>
+                  Tên Dự Án (Title) *
+                </label>
+                <input
+                  type='text'
+                  value={editSeriesTitle}
+                  onChange={(e) => setEditSeriesTitle(e.target.value)}
+                  className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg focus:outline-none focus:border-[#F97316]'
+                  required
+                />
+              </div>
+
+              <div>
+                <label className='block font-semibold text-[#171717] mb-1'>
+                  Tóm Tắt Cốt Truyện (Synopsis)
+                </label>
+                <textarea
+                  rows={2}
+                  value={editSeriesSynopsis}
+                  onChange={(e) => setEditSeriesSynopsis(e.target.value)}
+                  className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg focus:outline-none focus:border-[#F97316]'
+                />
+              </div>
+
+              <div className='grid grid-cols-2 gap-3'>
+                <div>
+                  <label className='block font-semibold text-[#171717] mb-1'>
+                    Thể Loại (Genre)
+                  </label>
+                  <select
+                    value={editSeriesGenre}
+                    onChange={(e) => setEditSeriesGenre(e.target.value)}
+                    className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg focus:outline-none focus:border-[#F97316]'
+                  >
+                    <option value='Action / Sci-Fi'>Action / Sci-Fi</option>
+                    <option value='Fantasy / Isekai'>Fantasy / Isekai</option>
+                    <option value='Mystery / Detective'>Mystery / Detective</option>
+                    <option value='Horror / Supernatural'>Horror / Supernatural</option>
+                    <option value='Slice of Life / Drama'>Slice of Life / Drama</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className='block font-semibold text-[#171717] mb-1'>
+                    Định Dạng (Format)
+                  </label>
+                  <select
+                    value={editSeriesFormat}
+                    onChange={(e) => setEditSeriesFormat(e.target.value)}
+                    className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg focus:outline-none focus:border-[#F97316]'
+                  >
+                    <option value='Manga (B&W Standard)'>Manga (B&W Standard)</option>
+                    <option value='Webtoon (Vertical Scroll)'>Webtoon (Vertical Scroll)</option>
+                    <option value='Comic (Color Format)'>Comic (Color Format)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className='grid grid-cols-2 gap-3'>
+                <div>
+                  <label className='block font-semibold text-[#171717] mb-1'>Hướng Đọc</label>
+                  <select
+                    value={editSeriesDirection}
+                    onChange={(e) => setEditSeriesDirection(parseInt(e.target.value, 10))}
+                    className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg focus:outline-none focus:border-[#F97316]'
+                  >
+                    <option value={1}>Phải sang Trái (RTL, Manga)</option>
+                    <option value={0}>Trái sang Phải (LTR)</option>
+                    <option value={2}>Cuộn dọc từ trên xuống (Webtoon)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className='block font-semibold text-[#171717] mb-1'>Lịch Phát Hành</label>
+                  <input
+                    type='text'
+                    value={editSeriesSchedule}
+                    onChange={(e) => setEditSeriesSchedule(e.target.value)}
+                    className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg focus:outline-none focus:border-[#F97316]'
+                  />
+                </div>
+              </div>
+
+              <div className='flex justify-end gap-2 pt-2 border-t border-[#E7E7E7]'>
+                <button
+                  type='button'
+                  onClick={() => setEditingSeries(null)}
+                  className='px-3 py-1.5 rounded-lg text-[#555555] hover:bg-[#F3F1EB]'
+                >
+                  Hủy
+                </button>
+                <button
+                  type='submit'
+                  disabled={updatingSeries || !editSeriesTitle.trim()}
+                  className='px-4 py-1.5 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white font-semibold disabled:opacity-50'
+                >
+                  {updatingSeries ? 'Đang lưu...' : 'Lưu Thay Đổi'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* F5: Delete Series Confirm Modal */}
+      {deleteSeriesModal && (
+        <div className='fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4'>
+          <div className='bg-white rounded-2xl border border-[#E7E7E7] shadow-2xl max-w-sm w-full p-6 space-y-4'>
+            <div className='flex items-center gap-3'>
+              <div className='w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center shrink-0'>
+                <Trash2 className='w-5 h-5' />
+              </div>
+              <div>
+                <h3 className='text-sm font-bold text-[#171717]'>Xác nhận xóa Series</h3>
+                <p className='text-xs text-[#737373]'>
+                  Thao tác này sẽ xóa Series và toàn bộ dữ liệu liên quan.
+                </p>
+              </div>
+            </div>
+
+            <p className='text-xs text-[#555555] p-3 bg-red-50 rounded-xl border border-red-200'>
+              Bạn có chắc chắn muốn xóa bộ truyện{' '}
+              <strong>&quot;{deleteSeriesModal.title}&quot;</strong>?
+            </p>
+
+            <div className='flex justify-end gap-2 pt-2'>
+              <button
+                type='button'
+                onClick={() => setDeleteSeriesModal(null)}
+                className='px-3 py-1.5 rounded-lg text-[#555555] hover:bg-[#F3F1EB] text-xs'
+              >
+                Hủy
+              </button>
+              <button
+                type='button'
+                onClick={handleDeleteSeries}
+                disabled={deletingSeries}
+                className='px-4 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold text-xs disabled:opacity-50'
+              >
+                {deletingSeries ? 'Đang xóa...' : 'Xóa Vĩnh Viễn'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* F8: Workspace Audit Log Modal */}
+      {auditModalOpen && (
+        <div className='fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4'>
+          <div className='bg-white rounded-2xl border border-[#E7E7E7] shadow-2xl max-w-4xl w-full max-h-[85vh] flex flex-col p-6 space-y-4'>
+            <div className='flex items-center justify-between border-b border-[#E7E7E7] pb-3'>
+              <div>
+                <div className='flex items-center gap-2 mb-0.5'>
+                  <span className='px-2 py-0.5 rounded bg-[#171717] text-white font-mono text-[10px] font-bold'>
+                    PRODUCER // AUDIT TRAIL
+                  </span>
+                  <span className='text-xs text-[#888888] font-mono'>
+                    BR-18 Provenance Guarantee
+                  </span>
+                </div>
+                <h3 className='text-sm font-bold text-[#171717]'>
+                  Lịch Sử Thay Đổi Studio: {activeWorkspace?.name}
+                </h3>
+              </div>
+              <button
+                onClick={() => setAuditModalOpen(false)}
+                className='text-[#888888] hover:text-[#171717]'
+              >
+                <X className='w-4 h-4' />
+              </button>
+            </div>
+
+            {/* Filter */}
+            <div className='flex items-center gap-3 text-xs'>
+              <input
+                type='text'
+                placeholder='Lọc theo Entity (Series, BibleEntry, PipelineStage...)'
+                value={auditFilterEntity}
+                onChange={(e) => setAuditFilterEntity(e.target.value)}
+                className='px-3 py-1.5 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg text-xs w-64 focus:outline-none focus:border-[#F97316]'
+              />
+              <button
+                onClick={loadWorkspaceAudit}
+                className='px-3 py-1.5 rounded-lg bg-[#FAF8F5] border border-[#E7E7E7] hover:bg-[#F3F1EB] font-semibold flex items-center gap-1.5'
+              >
+                <RefreshCw className={`w-3 h-3 ${auditLoading ? 'animate-spin' : ''}`} />
+                <span>Tìm kiếm</span>
+              </button>
+            </div>
+
+            {/* Audit Logs Table */}
+            <div className='overflow-y-auto flex-1 border border-[#E7E7E7] rounded-xl text-xs'>
+              <table className='w-full text-left'>
+                <thead className='bg-[#FAF8F5] border-b border-[#E7E7E7] font-mono text-[10px] text-[#737373] sticky top-0'>
+                  <tr>
+                    <th className='py-2.5 px-3'>Hành Động</th>
+                    <th className='py-2.5 px-3'>Thực Thể</th>
+                    <th className='py-2.5 px-3'>Người Thực Hiện</th>
+                    <th className='py-2.5 px-3'>Thời Gian (UTC)</th>
+                    <th className='py-2.5 px-3'>Chi Tiết Thay Đổi</th>
+                  </tr>
+                </thead>
+                <tbody className='divide-y divide-[#E7E7E7]'>
+                  {auditLoading ? (
+                    <tr>
+                      <td colSpan={5} className='py-8 text-center text-[#888888]'>
+                        <RefreshCw className='w-5 h-5 animate-spin mx-auto mb-1 text-[#F97316]' />
+                        <span>Đang tải lịch sử audit...</span>
+                      </td>
+                    </tr>
+                  ) : auditLogs.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className='py-8 text-center text-[#888888]'>
+                        Chưa có bản ghi audit nào trong Studio này.
+                      </td>
+                    </tr>
+                  ) : (
+                    auditLogs.map((log: any) => (
+                      <tr key={log.id} className='hover:bg-[#FAF8F5]'>
+                        <td className='py-2.5 px-3 font-mono font-semibold text-[#171717]'>
+                          <span
+                            className={`px-1.5 py-0.5 rounded text-[10px] ${
+                              log.action?.includes('CREATE')
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                : log.action?.includes('DELETE')
+                                  ? 'bg-red-50 text-red-700 border border-red-200'
+                                  : 'bg-blue-50 text-blue-700 border border-blue-200'
+                            }`}
+                          >
+                            {log.action}
+                          </span>
+                        </td>
+                        <td className='py-2.5 px-3 font-mono text-[11px] text-[#555555]'>
+                          {log.entityName} {log.entityId ? `#${log.entityId.substring(0, 6)}` : ''}
+                        </td>
+                        <td className='py-2.5 px-3 text-[#555555]'>
+                          {log.userEmail || log.userId || 'Hệ thống'}
+                        </td>
+                        <td className='py-2.5 px-3 font-mono text-[11px] text-[#888888] whitespace-nowrap'>
+                          {new Date(log.createdAtUtc).toLocaleString('vi-VN')}
+                        </td>
+                        <td className='py-2.5 px-3 font-mono text-[10px] text-[#737373] max-w-xs truncate'>
+                          {log.changesJson || log.details || '—'}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
