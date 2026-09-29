@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   Briefcase,
   Plus,
@@ -35,6 +35,7 @@ import { SeriesPresetsModal } from '../../components/modals/SeriesPresetsModal';
 
 export const ProducerWorkspaceView: React.FC = () => {
   const navigate = useNavigate();
+  const { workspaceId } = useParams();
   const [workspaces, setWorkspaces] = useState<WorkspaceDto[]>([]);
   const [activeWorkspace, setActiveWorkspace] = useState<WorkspaceDto | null>(() => {
     try {
@@ -124,7 +125,9 @@ export const ProducerWorkspaceView: React.FC = () => {
       const wsList = await workspaceService.getMyWorkspaces();
       if (wsList && wsList.length > 0) {
         setWorkspaces(wsList);
-        const cur = wsList.find((w) => w.id === activeWorkspace?.id) || wsList[0];
+        const cur = workspaceId 
+           ? wsList.find((w) => w.id === workspaceId) || wsList.find((w) => w.id === activeWorkspace?.id) || wsList[0]
+           : wsList.find((w) => w.id === activeWorkspace?.id) || wsList[0];
         setActiveWorkspace(cur);
         const memList = await workspaceService.getMembers(cur.id);
         setMembers(memList);
@@ -148,7 +151,7 @@ export const ProducerWorkspaceView: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [activeWorkspace?.id]);
+  }, [activeWorkspace?.id, workspaceId]);
 
   useEffect(() => {
     loadData();
@@ -515,7 +518,11 @@ export const ProducerWorkspaceView: React.FC = () => {
                         <span className='px-2 py-0.5 rounded bg-[#FFF7ED] text-[#F97316] font-mono text-[10px] font-bold border border-[#FDBA74]'>
                           {s.genre}
                         </span>
-                        <h3 className='text-sm font-bold text-[#171717] mt-1 group-hover:text-[#F97316] transition-colors'>
+                        <h3 
+                          className='text-sm font-bold text-[#171717] mt-1 group-hover:text-[#F97316] transition-colors cursor-pointer'
+                          onClick={() => navigate(`/workspaces/${activeWorkspace.id}/series/${s.id}/dashboard`)}
+                          title='Vào Series (Dashboard)'
+                        >
                           {s.title}
                         </h3>
                       </div>

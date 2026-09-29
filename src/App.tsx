@@ -148,12 +148,38 @@ function AppContent() {
     const stored = localStorage.getItem('userRole');
     return stored ? normalizeSystemRole(stored) : 'USER';
   });
-  const [currentWorkspaceRole, setCurrentWorkspaceRole] = useState<WorkspaceRole | null>(null);
+  const [currentWorkspaceRole, setCurrentWorkspaceRole] = useState<WorkspaceRole | null>(() => {
+    try {
+      const saved = localStorage.getItem('activeWorkspace');
+      if (saved) {
+        const ws = JSON.parse(saved);
+        const roleFromToken = getRoleFromToken();
+        const stored = localStorage.getItem('userRole');
+        const role = roleFromToken || (stored ? normalizeSystemRole(stored) : null);
+        return normalizeWorkspaceRole(ws.currentUserRole) || (role === 'ADMINISTRATOR' ? 'PRODUCER' : 'ARTIST');
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  });
+  
   const [activeProjectRoles, setActiveProjectRoles] = useState<string[]>(() => {
-    const roleFromToken = getRoleFromToken();
-    const stored = localStorage.getItem('userRole');
-    const role = roleFromToken || (stored ? normalizeSystemRole(stored) : null);
-    return role === 'ADMINISTRATOR' ? ['ADMINISTRATOR'] : ['ARTIST'];
+    try {
+      const roleFromToken = getRoleFromToken();
+      const stored = localStorage.getItem('userRole');
+      const role = roleFromToken || (stored ? normalizeSystemRole(stored) : null);
+
+      const saved = localStorage.getItem('activeWorkspace');
+      if (saved) {
+        const ws = JSON.parse(saved);
+        const wsRole = normalizeWorkspaceRole(ws.currentUserRole) || (role === 'ADMINISTRATOR' ? 'PRODUCER' : 'ARTIST');
+        return [wsRole];
+      }
+      return role === 'ADMINISTRATOR' ? ['ADMINISTRATOR'] : ['ARTIST'];
+    } catch {
+      return ['ARTIST'];
+    }
   });
   const [currentUserInfo, setCurrentUserInfo] = useState<{
     id?: string;
@@ -332,17 +358,10 @@ function AppContent() {
 
     // Smart Landing by Persona & Series Availability
     if (wsRole === 'PRODUCER' || currentRole === 'ADMINISTRATOR') {
-      if (!hasSeries) {
-        // Chưa có Series -> Điều hướng Producer vào Producer Desk (/producer) để khởi tạo Series (UC-03)
-        setCurrentView('producer');
-        navigate('/producer');
-      } else {
-        setCurrentView('dashboard');
-        navigate('/dashboard');
-      }
+      navigate(`/workspaces/${ws.id}/overview`);
     } else {
       navigateToWorkspaceRoleView(wsRole);
-      navigate('/workspace');
+      navigate(`/workspaces/${ws.id}/workspace`);
     }
   };
 
@@ -637,53 +656,10 @@ function AppContent() {
               />
             }
           >
-            <Route
-              path='dashboard'
-              element={
-                <DashboardView
-                  activeProject={activeProject}
-                  assistants={assistants}
-                  provenanceLogs={provenanceLogs}
-                  onShowToast={showToast}
-                />
-              }
-            />
-            <Route
-              path='workspace'
-              element={
-                <WorkspaceView
-                  currentUserRole={currentWorkspaceRole}
-                  systemRole={currentRole}
-                  userRoles={activeProjectRoles}
-                  onShowToast={showToast}
-                />
-              }
-            />
-            <Route
-              path='workspace/task/:taskId'
-              element={
-                <TaskEditor
-                  activeRoles={activeProjectRoles}
-                  onShowToast={showToast}
-                  isDevMode={IS_DEV_MODE}
-                />
-              }
-            />
-            <Route
-              path='bible'
-              element={
-                <SeriesBibleView
-                  activeProject={activeProject}
-                  onAddEntity={handleAddEntity}
-                  onSelectSeries={(p) => setActiveProject(p)}
-                  onEditEntity={(e) => showToast('Series Bible', `Mở chi tiết ${e.name}`)}
-                  onShowToast={showToast}
-                />
-              }
-            />
-            <Route
-              path='members'
-              element={
+            <Route path='workspaces/:workspaceId'>
+              <Route index element={<ProducerWorkspaceView />} />
+              <Route path='overview' element={<ProducerWorkspaceView />} />
+              <Route path='members' element={
                 <MembersRolesView
                   activeProject={activeProject}
                   workspaceId={activeWorkspace?.id}
@@ -697,31 +673,54 @@ function AppContent() {
                   }}
                   onShowToast={showToast}
                 />
-              }
-            />
-            <Route
-              path='review/:taskId'
-              element={
-                <ReviewView
-                  activeRoles={activeProjectRoles}
-                  onShowToast={showToast}
-                  isDevMode={IS_DEV_MODE}
-                />
-              }
-            />
-            <Route path='export' element={<ExportView onShowToast={showToast} />} />
-            <Route
-              path='projects/:projectId/export'
-              element={<ExportView onShowToast={showToast} />}
-            />
+              } />
+
+              <Route path='series/:seriesId'>
+                <Route path='dashboard' element={
+                  <DashboardView
+                    activeProject={activeProject}
+                    assistants={assistants}
+                    provenanceLogs={provenanceLogs}
+                    onShowToast={showToast}
+                  />
+                } />
+                <Route path='workspace' element={
+                  <WorkspaceView
+                    currentUserRole={currentWorkspaceRole}
+                    systemRole={currentRole}
+                    userRoles={activeProjectRoles}
+                    onShowToast={showToast}
+                  />
+                } />
+                <Route path='task/:taskId' element={
+                  <TaskEditor
+                    activeRoles={activeProjectRoles}
+                    onShowToast={showToast}
+                    isDevMode={IS_DEV_MODE}
+                  />
+                } />
+                <Route path='bible' element={
+                  <SeriesBibleView
+                    activeProject={activeProject}
+                    onAddEntity={handleAddEntity}
+                    onSelectSeries={(p) => setActiveProject(p)}
+                    onEditEntity={(e) => showToast('Series Bible', `Mở chi tiết ${e.name}`)}
+                    onShowToast={showToast}
+                  />
+                } />
+                <Route path='export' element={<ExportView onShowToast={showToast} />} />
+              </Route>
+            </Route>
+
+            {/* Flat routes for backward compatibility / other views */}
+            <Route path='producer' element={<ProducerWorkspaceView />} />
+            <Route path='review/:taskId' element={
+              <ReviewView activeRoles={activeProjectRoles} onShowToast={showToast} isDevMode={IS_DEV_MODE} />
+            } />
             <Route path='reader' element={<ReaderPortalView />} />
             <Route path='profile' element={<UserProfile />} />
             <Route path='artist' element={<ArtistDeskView />} />
-            <Route path='producer' element={<ProducerWorkspaceView />} />
-            <Route
-              path='catalog'
-              element={<PublicCatalogView onBackToWorkspaces={() => navigate('/workspaces')} />}
-            />
+            <Route path='catalog' element={<PublicCatalogView onBackToWorkspaces={() => navigate('/workspaces')} />} />
             <Route path='notifications' element={<NotificationCenterView />} />
           </Route>
 

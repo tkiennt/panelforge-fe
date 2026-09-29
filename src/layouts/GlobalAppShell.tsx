@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { Outlet, useNavigate, useLocation, useParams } from 'react-router-dom';
 import { MangaProject, SystemRole, WorkspaceRole } from '../types';
 import {
   LayoutDashboard,
@@ -205,6 +205,7 @@ export function GlobalAppShell({
 }: GlobalAppShellProps) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { workspaceId, seriesId } = useParams();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   const isReader =
@@ -218,11 +219,44 @@ export function GlobalAppShell({
       ? String(currentUser.activeRoles[0]).toUpperCase()
       : 'PRODUCER';
 
-  const rawSections =
-    (currentUser.role === 'ADMINISTRATOR' || currentUser.activeRoles?.includes('ADMINISTRATOR')) &&
-    !currentUser.workspaceRole
-      ? ROLE_NAV_CONFIG['ADMINISTRATOR'] || []
-      : ROLE_NAV_CONFIG[effectiveRole] || ROLE_NAV_CONFIG['PRODUCER'] || [];
+  const isSeriesContext = !!seriesId;
+
+  // Dynamic configuration based on context
+  const getNavSections = () => {
+    if ((currentUser.role === 'ADMINISTRATOR' || currentUser.activeRoles?.includes('ADMINISTRATOR')) && !currentUser.workspaceRole) {
+       return ROLE_NAV_CONFIG['ADMINISTRATOR'] || [];
+    }
+    
+    if (effectiveRole === 'PRODUCER') {
+       if (isSeriesContext) {
+         return [
+           {
+             section: 'SERIES MANAGEMENT',
+             items: [
+               { icon: LayoutDashboard, label: 'Series Dashboard', href: `/workspaces/${workspaceId}/series/${seriesId}/dashboard` },
+               { icon: Kanban, label: 'Production Pipeline', href: `/workspaces/${workspaceId}/series/${seriesId}/workspace`, badge: { type: 'text', text: 'Active', color: 'bg-[#F97316]/10 text-[#F97316]' } },
+               { icon: BookMarked, label: 'Series Bible', href: `/workspaces/${workspaceId}/series/${seriesId}/bible`, badge: { type: 'dot', color: 'bg-[#8B5CF6]' } },
+               { icon: Upload, label: 'Export / Publish', href: `/workspaces/${workspaceId}/series/${seriesId}/export` },
+             ]
+           }
+         ];
+       } else {
+         return [
+           {
+             section: 'STUDIO MANAGEMENT',
+             items: [
+               { icon: LayoutDashboard, label: 'Studio Workspaces', href: `/workspaces/${workspaceId}/overview` },
+               { icon: Users, label: 'Members & Roles', href: `/workspaces/${workspaceId}/members` },
+             ]
+           }
+         ];
+       }
+    }
+    
+    return ROLE_NAV_CONFIG[effectiveRole] || ROLE_NAV_CONFIG['PRODUCER'] || [];
+  };
+
+  const rawSections = getNavSections();
 
   const navSections = rawSections.map((sec) => ({
     ...sec,
@@ -337,35 +371,29 @@ export function GlobalAppShell({
                 {/* Studio / Series Name Segment */}
                 <button
                   type='button'
-                  onClick={() => navigate('/producer')}
+                  onClick={() => navigate(workspaceId ? `/workspaces/${workspaceId}/overview` : '/producer')}
                   className='hover:text-[#171717] cursor-pointer transition-colors truncate px-1.5 py-1 rounded hover:bg-[#FAF8F5] flex items-center gap-1 font-semibold text-[#171717]'
-                  title='Mở Studio Desk (/producer)'
+                  title='Mở Studio Workspace'
                 >
-                  <BookOpen className='w-3.5 h-3.5 text-[#8B5CF6]' />
-                  <span className='truncate'>{activeSeries?.title || 'PanelForge Studio'}</span>
+                  <Briefcase className='w-3.5 h-3.5 text-[#8B5CF6]' />
+                  <span className='truncate'>Studio Workspace</span>
                 </button>
-                <span className='mx-1.5 text-[#B8B8B8] font-normal select-none'>/</span>
-
-                {/* Stage / Active View Segment */}
-                <button
-                  type='button'
-                  onClick={() => navigate('/workspace')}
-                  className='text-[#171717] font-semibold truncate flex items-center gap-1.5 px-1.5 py-1 rounded hover:bg-[#FAF8F5] transition-colors cursor-pointer'
-                  title='Chuyển đến Bàn Làm Việc (Kanban Pipeline)'
-                >
-                  <Layers className='w-3.5 h-3.5 text-[#10B981]' />
-                  <span className='truncate'>
-                    {currentUser.role === 'ADMINISTRATOR' ||
-                    currentUser.activeRoles?.includes('ADMINISTRATOR')
-                      ? 'System Console'
-                      : 'Kanban Pipeline'}
-                  </span>
-                  {currentUser.workspaceRole && (
-                    <span className='inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-[#FFFBEB] text-[#D97706] border border-[#FDE68A]'>
-                      {currentUser.workspaceRole}
-                    </span>
-                  )}
-                </button>
+                {isSeriesContext && (
+                  <>
+                    <span className='mx-1.5 text-[#B8B8B8] font-normal select-none'>/</span>
+                    <button
+                      type='button'
+                      onClick={() => navigate(`/workspaces/${workspaceId}/series/${seriesId}/dashboard`)}
+                      className='text-[#171717] font-semibold truncate flex items-center gap-1.5 px-1.5 py-1 rounded hover:bg-[#FAF8F5] transition-colors cursor-pointer'
+                      title='Chuyển đến Series'
+                    >
+                      <BookOpen className='w-3.5 h-3.5 text-[#10B981]' />
+                      <span className='truncate'>
+                        {activeSeries?.title || 'Active Series'}
+                      </span>
+                    </button>
+                  </>
+                )}
               </nav>
             )}
           </div>
