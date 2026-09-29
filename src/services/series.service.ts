@@ -137,6 +137,27 @@ export interface UpdateSeriesPresetRequest {
   consistencyRulesJson: string;
 }
 
+// Series Members (UC-04 / RBAC)
+export interface SeriesMemberDto {
+  id: string;
+  seriesId: string;
+  userId: string;
+  fullName: string;
+  email: string;
+  studioRole: string;
+  seriesRole: string;
+  joinedAt: string;
+}
+
+export interface AddSeriesMemberRequest {
+  userId: string;
+  seriesRole: string;
+}
+
+export interface UpdateSeriesMemberRequest {
+  seriesRole: string;
+}
+
 function getActiveToken(): string | null {
   if (typeof window !== 'undefined') {
     return localStorage.getItem('token');
@@ -364,6 +385,55 @@ export const seriesService = {
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.error || err.message || 'Không thể xóa Consistency Rule.');
+    }
+  },
+
+  // Series Members APIs
+  async getSeriesMembers(workspaceId: string, seriesId: string): Promise<SeriesMemberDto[]> {
+    const res = await fetch(`${API_URL}/api/workspaces/${workspaceId}/series/${seriesId}/members`, {
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) {
+      if (res.status === 404) return [];
+      throw new Error(`Failed to fetch series members: ${res.statusText}`);
+    }
+    return res.json();
+  },
+
+  async addSeriesMember(workspaceId: string, seriesId: string, req: AddSeriesMemberRequest): Promise<SeriesMemberDto> {
+    const res = await fetch(`${API_URL}/api/workspaces/${workspaceId}/series/${seriesId}/members`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(req),
+    });
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Failed to add member to series: ${errText}`);
+    }
+    return res.json();
+  },
+
+  async updateSeriesMember(workspaceId: string, seriesId: string, memberId: string, req: UpdateSeriesMemberRequest): Promise<SeriesMemberDto> {
+    const res = await fetch(`${API_URL}/api/workspaces/${workspaceId}/series/${seriesId}/members/${memberId}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(req),
+    });
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Failed to update series member: ${errText}`);
+    }
+    return res.json();
+  },
+
+  async removeSeriesMember(workspaceId: string, seriesId: string, memberId: string): Promise<void> {
+    const res = await fetch(`${API_URL}/api/workspaces/${workspaceId}/series/${seriesId}/members/${memberId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Failed to remove series member: ${errText}`);
     }
   },
 };

@@ -33,6 +33,7 @@ import { DashboardView } from './views/DashboardView';
 import { WorkflowBoardView } from './views/WorkflowBoardView';
 import { SeriesBibleView } from './views/SeriesBibleView';
 import { MembersRolesView } from './views/MembersRolesView';
+import { SeriesMembersView } from './views/series/SeriesMembersView';
 import { GlobalModals } from './components/GlobalModals';
 import {
   CheckCircle2,
@@ -420,7 +421,54 @@ function AppContent() {
   }, [currentRole, viewScope]);
 
   const [projects, setProjects] = useState<MangaProject[]>(INITIAL_PROJECTS);
-  const [activeProject, setActiveProject] = useState<MangaProject | undefined>(INITIAL_PROJECTS[0]);
+  const [activeProject, setActiveProject] = useState<MangaProject | undefined>(() => {
+    try {
+      const saved = localStorage.getItem('activeProject');
+      return saved ? JSON.parse(saved) : INITIAL_PROJECTS[0];
+    } catch {
+      return INITIAL_PROJECTS[0];
+    }
+  });
+
+  useEffect(() => {
+    if (activeProject) {
+      localStorage.setItem('activeProject', JSON.stringify(activeProject));
+    }
+  }, [activeProject]);
+
+  useEffect(() => {
+    const match = location.pathname.match(/\/workspaces\/([^\/]+)\/series\/([^\/]+)/);
+    if (match && match[2]) {
+      const seriesId = match[2];
+      if (activeProject?.id !== seriesId) {
+        seriesService.getSeriesById(seriesId).then(firstSeries => {
+          const adaptedProject: MangaProject = {
+            id: firstSeries.id,
+            title: firstSeries.title,
+            subtitle: firstSeries.synopsis || 'N/A',
+            arc: 'Arc 01',
+            chapter: 1,
+            format: firstSeries.format || 'B5 Tankōbon Master (600 DPI)',
+            status: 'In Production',
+            progressPercent: 50,
+            completedPages: 16,
+            totalPages: 32,
+            dueDate: 'Dec 2026',
+            daysLeft: 30,
+            genres: [firstSeries.genre || 'Manga'],
+            coverStyle: 'halftone-cyber',
+            coverText: firstSeries.title,
+            tagline: firstSeries.synopsis || 'Studio Production',
+            lastUpdated: new Date(firstSeries.createdAt).toLocaleDateString(),
+          };
+          setActiveProject(adaptedProject);
+        }).catch(err => {
+          console.warn('Failed to load series for URL sync:', err);
+        });
+      }
+    }
+  }, [location.pathname, activeProject?.id]);
+
   const [cards, setCards] = useState<KanbanCard[]>(INITIAL_KANBAN_CARDS);
   const [entities, setEntities] = useState<BibleEntity[]>(INITIAL_BIBLE_ENTITIES);
   const [members, setMembers] = useState<StudioMember[]>(INITIAL_MEMBERS);
@@ -676,6 +724,7 @@ function AppContent() {
               } />
 
               <Route path='series/:seriesId'>
+                <Route path='members' element={<SeriesMembersView onShowToast={showToast} />} />
                 <Route path='dashboard' element={
                   <DashboardView
                     activeProject={activeProject}

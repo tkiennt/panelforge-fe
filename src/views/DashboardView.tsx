@@ -73,8 +73,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <span className='text-[#555555]'>B5 TANKŌBON SPEC (600 DPI)</span>
             </div>
             <h1 className='text-2xl lg:text-3xl font-bold font-display text-[#171717] tracking-tight'>
-              Project Dashboard:{' '}
-              {activeProject?.title ? activeProject.title.split(':')[0] : 'PanelForge Overview'}
+              Dashboard: {activeProject?.title || 'Overview'}
             </h1>
             <p className='text-xs text-[#555555] mt-1'>
               Real-time production metrics, AI model continuity, and velocity tracking across

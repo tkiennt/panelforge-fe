@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import {
   DndContext,
   DragEndEvent,
@@ -14,6 +15,7 @@ import { TaskCard } from './TaskCard';
 import { PIPELINE_STAGES, MOCK_CARDS, PipelineCard, StageKey } from '../../data/mockPipelineData';
 import { usePermissions } from '../../lib/permissions';
 import { SystemRole, WorkspaceRole } from '../../types';
+import { seriesService, SeriesMemberDto } from '../../services/series.service';
 
 interface KanbanBoardProps {
   currentUserRole?: WorkspaceRole | null;
@@ -39,6 +41,17 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   const { hasPermission } = usePermissions(effectiveRoles);
   const [cards, setCards] = useState<PipelineCard[]>(MOCK_CARDS);
   const [activeCard, setActiveCard] = useState<PipelineCard | null>(null);
+
+  const { workspaceId, seriesId } = useParams();
+  const [seriesMembers, setSeriesMembers] = useState<SeriesMemberDto[]>([]);
+
+  useEffect(() => {
+    if (workspaceId && seriesId) {
+      seriesService.getSeriesMembers(workspaceId, seriesId).then(data => {
+        setSeriesMembers(data || []);
+      }).catch(err => console.error(err));
+    }
+  }, [workspaceId, seriesId]);
 
   // Setup DnD Sensors (distinguish between click and drag)
   const sensors = useSensors(
@@ -149,6 +162,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                 userRoles={effectiveRoles}
                 checkIsLocked={checkIsLocked}
                 canDragCard={canDragCard}
+                seriesMembers={seriesMembers}
               />
             ))}
           </div>
@@ -168,6 +182,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                 userRoles={effectiveRoles}
                 isLocked={false}
                 canDrag={true}
+                seriesMembers={seriesMembers}
               />
             </div>
           ) : null}

@@ -6,6 +6,7 @@ import { Clock, Sparkles, Lock, CheckCircle, XCircle } from 'lucide-react';
 import { MessageSquare, Paperclip, MoreVertical, Eye, FileSignature } from 'lucide-react';
 import { usePermissions } from '../../lib/permissions';
 import { PipelineCard, PIPELINE_MEMBERS } from '../../data/mockPipelineData';
+import { SeriesMemberDto } from '../../services/series.service';
 
 interface TaskCardProps {
   card: PipelineCard;
@@ -13,6 +14,8 @@ interface TaskCardProps {
   isLocked: boolean;
   canDrag: boolean;
   onReassign?: (cardId: string, newAssigneeId: string) => void;
+  seriesMembers?: SeriesMemberDto[];
+  onClick?: (card: PipelineCard) => void;
 }
 
 export const TaskCard: React.FC<TaskCardProps> = ({
@@ -21,6 +24,8 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   isLocked,
   canDrag,
   onReassign,
+  seriesMembers = [],
+  onClick,
 }) => {
   const { hasPermission } = usePermissions(userRoles);
   const navigate = useNavigate();
@@ -78,7 +83,11 @@ export const TaskCard: React.FC<TaskCardProps> = ({
       onClick={(e) => {
         // Prevent click if we are clicking a button or select
         if ((e.target as HTMLElement).closest('button, select')) return;
-        navigate(`/workspace/task/${card.id}`);
+        if (onClick) {
+          onClick(card);
+        } else {
+          navigate(`/workspace/task/${card.id}`);
+        }
       }}
     >
       {/* Dependency Lock */}
@@ -160,10 +169,20 @@ export const TaskCard: React.FC<TaskCardProps> = ({
               className='text-[10px] font-mono font-medium text-[#171717] bg-[#FAF8F5] border border-[#E7E7E7] rounded px-1 py-0.5 hover:border-[#F97316] focus:outline-none focus:border-[#F97316] cursor-pointer'
               title='Đổi nhanh người giao việc (Producer Quick Reassign)'
             >
-              <option value='member-tf'>TF (Artist)</option>
-              <option value='member-sk'>SK (Writer)</option>
-              <option value='member-mo'>MO (Editor)</option>
-              <option value='member-al'>AL (Letterer)</option>
+              {seriesMembers.length > 0 ? (
+                seriesMembers.map((m) => (
+                  <option key={m.id} value={m.userId}>
+                    {m.fullName || m.email.split('@')[0]} ({m.seriesRole || 'Member'})
+                  </option>
+                ))
+              ) : (
+                <>
+                  <option value='member-tf'>TF (Artist)</option>
+                  <option value='member-sk'>SK (Writer)</option>
+                  <option value='member-mo'>MO (Editor)</option>
+                  <option value='member-al'>AL (Letterer)</option>
+                </>
+              )}
             </select>
           ) : (
             <span className='text-[10px] font-mono text-[#737373] truncate max-w-[70px]'>

@@ -239,6 +239,7 @@ export function GlobalAppShell({
              section: 'SERIES MANAGEMENT',
              items: [
                { icon: LayoutDashboard, label: 'Series Dashboard', href: `/workspaces/${workspaceId}/series/${seriesId}/dashboard` },
+               { icon: Users, label: 'Production Crew', href: `/workspaces/${workspaceId}/series/${seriesId}/members` },
                { icon: Kanban, label: 'Production Pipeline', href: `/workspaces/${workspaceId}/series/${seriesId}/workspace`, badge: { type: 'text', text: 'Active', color: 'bg-[#F97316]/10 text-[#F97316]' } },
                { icon: BookMarked, label: 'Series Bible', href: `/workspaces/${workspaceId}/series/${seriesId}/bible`, badge: { type: 'dot', color: 'bg-[#8B5CF6]' } },
                { icon: Upload, label: 'Export / Publish', href: `/workspaces/${workspaceId}/series/${seriesId}/export` },

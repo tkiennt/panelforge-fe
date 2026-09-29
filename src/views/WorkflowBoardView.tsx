@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import {
   Kanban,
   List,
@@ -25,6 +26,7 @@ import {
   Check,
 } from 'lucide-react';
 import { KanbanCard, KanbanStageKey, WorkflowSubView, MangaProject } from '../types';
+import { seriesService, SeriesMemberDto } from '../services/series.service';
 
 interface WorkflowBoardViewProps {
   activeProject?: MangaProject;
@@ -62,6 +64,17 @@ export const WorkflowBoardView: React.FC<WorkflowBoardViewProps> = ({
   const [stageFilter, setStageFilter] = useState('ALL');
   const [typeFilter, setTypeFilter] = useState('ALL');
   const [burndownOpen, setBurndownOpen] = useState(false);
+
+  const { seriesId } = useParams();
+  const [seriesMembers, setSeriesMembers] = useState<SeriesMemberDto[]>([]);
+
+  useEffect(() => {
+    if (seriesId) {
+      seriesService.getSeriesMembers(seriesId).then(data => {
+        setSeriesMembers(data || []);
+      }).catch(err => console.error(err));
+    }
+  }, [seriesId]);
 
   // Filtered Cards
   const filteredCards = useMemo(() => {
@@ -245,9 +258,17 @@ export const WorkflowBoardView: React.FC<WorkflowBoardViewProps> = ({
                 className='appearance-none bg-white border border-[#E7E7E7] pl-3 pr-8 py-1.5 rounded text-xs font-semibold text-[#171717] focus:outline-none focus:border-[#171717] cursor-pointer'
               >
                 <option value='ALL'>Assignee: All Members</option>
-                <option value='Kenji'>Kenji (Artist)</option>
-                <option value='Arata'>Arata (Writer)</option>
-                <option value='Mei'>Mei (Artist)</option>
+                {seriesMembers.length > 0 ? seriesMembers.map(m => (
+                  <option key={m.userId} value={m.fullName || m.email.split('@')[0]}>
+                    {m.fullName || m.email.split('@')[0]} ({m.seriesRole || 'Member'})
+                  </option>
+                )) : (
+                  <>
+                    <option value='Kenji'>Kenji (Artist)</option>
+                    <option value='Arata'>Arata (Writer)</option>
+                    <option value='Mei'>Mei (Artist)</option>
+                  </>
+                )}
                 <option value='Yuto'>Yuto (Artist)</option>
                 <option value='Tatsuki'>Tatsuki F. (Lead)</option>
               </select>
