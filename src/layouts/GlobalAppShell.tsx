@@ -321,33 +321,51 @@ export function GlobalAppShell({
                 </div>
               </div>
             ) : (
-              <nav className='flex items-center text-sm font-medium text-[#555555] truncate'>
+              <nav className='flex items-center text-xs font-medium text-[#555555] truncate'>
                 <button
                   type='button'
                   data-testid='back-to-workspaces-breadcrumb'
-                  className='hover:text-[#171717] cursor-pointer transition-colors flex items-center gap-1.5'
+                  className='hover:text-[#171717] cursor-pointer transition-colors flex items-center gap-1.5 px-1.5 py-1 rounded hover:bg-[#FAF8F5]'
                   onClick={() => navigate('/workspaces')}
-                  title='Quay lại danh sách Workspace'
+                  title='Quay lại danh sách Workspace (Workspaces Catalog)'
                 >
                   <Briefcase className='w-3.5 h-3.5 text-[#F97316]' />
-                  <span>Workspaces</span>
+                  <span className='font-semibold'>Workspaces</span>
                 </button>
-                <span className='mx-2 text-[#B8B8B8] font-normal select-none'>/</span>
-                <span className='hover:text-[#171717] cursor-pointer transition-colors truncate'>
-                  {activeSeries?.title || 'PanelForge Studio'}
-                </span>
-                <span className='mx-2 text-[#B8B8B8] font-normal select-none'>/</span>
-                <span className='text-[#171717] font-semibold truncate flex items-center gap-1.5'>
-                  {currentUser.role === 'ADMINISTRATOR' ||
-                  currentUser.activeRoles?.includes('ADMINISTRATOR')
-                    ? 'Global Settings'
-                    : 'Workspace'}
+                <span className='mx-1.5 text-[#B8B8B8] font-normal select-none'>/</span>
+
+                {/* Studio / Series Name Segment */}
+                <button
+                  type='button'
+                  onClick={() => navigate('/producer')}
+                  className='hover:text-[#171717] cursor-pointer transition-colors truncate px-1.5 py-1 rounded hover:bg-[#FAF8F5] flex items-center gap-1 font-semibold text-[#171717]'
+                  title='Mở Studio Desk (/producer)'
+                >
+                  <BookOpen className='w-3.5 h-3.5 text-[#8B5CF6]' />
+                  <span className='truncate'>{activeSeries?.title || 'PanelForge Studio'}</span>
+                </button>
+                <span className='mx-1.5 text-[#B8B8B8] font-normal select-none'>/</span>
+
+                {/* Stage / Active View Segment */}
+                <button
+                  type='button'
+                  onClick={() => navigate('/workspace')}
+                  className='text-[#171717] font-semibold truncate flex items-center gap-1.5 px-1.5 py-1 rounded hover:bg-[#FAF8F5] transition-colors cursor-pointer'
+                  title='Chuyển đến Bàn Làm Việc (Kanban Pipeline)'
+                >
+                  <Layers className='w-3.5 h-3.5 text-[#10B981]' />
+                  <span className='truncate'>
+                    {currentUser.role === 'ADMINISTRATOR' ||
+                    currentUser.activeRoles?.includes('ADMINISTRATOR')
+                      ? 'System Console'
+                      : 'Kanban Pipeline'}
+                  </span>
                   {currentUser.workspaceRole && (
                     <span className='inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-[#FFFBEB] text-[#D97706] border border-[#FDE68A]'>
                       {currentUser.workspaceRole}
                     </span>
                   )}
-                </span>
+                </button>
               </nav>
             )}
           </div>

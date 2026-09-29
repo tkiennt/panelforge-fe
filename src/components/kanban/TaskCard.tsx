@@ -12,11 +12,23 @@ interface TaskCardProps {
   userRoles: string[];
   isLocked: boolean;
   canDrag: boolean;
+  onReassign?: (cardId: string, newAssigneeId: string) => void;
 }
 
-export const TaskCard: React.FC<TaskCardProps> = ({ card, userRoles, isLocked, canDrag }) => {
+export const TaskCard: React.FC<TaskCardProps> = ({
+  card,
+  userRoles,
+  isLocked,
+  canDrag,
+  onReassign,
+}) => {
   const { hasPermission } = usePermissions(userRoles);
   const navigate = useNavigate();
+  const [currentAssigneeId, setCurrentAssigneeId] = React.useState(card.assigneeId);
+  const [assignMenuOpen, setAssignMenuOpen] = React.useState(false);
+
+  const isProducer = userRoles.includes('PRODUCER') || userRoles.includes('ADMINISTRATOR');
+
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: card.id,
     data: {
@@ -31,7 +43,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ card, userRoles, isLocked, c
     opacity: isDragging ? 0.4 : 1,
   };
 
-  const assignee = PIPELINE_MEMBERS[card.assigneeId];
+  const assignee = PIPELINE_MEMBERS[currentAssigneeId] || PIPELINE_MEMBERS[card.assigneeId];
 
   // Calculate deadline status
   const deadlineDate = new Date(card.deadline);
@@ -49,6 +61,13 @@ export const TaskCard: React.FC<TaskCardProps> = ({ card, userRoles, isLocked, c
   const showEditorActions = card.stage === 'review';
   const canReview = hasPermission('review_card');
 
+  const handleSelectAssignee = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    e.stopPropagation();
+    const newId = e.target.value;
+    setCurrentAssigneeId(newId);
+    onReassign?.(card.id, newId);
+  };
+
   return (
     <div
       ref={setNodeRef}
@@ -57,8 +76,8 @@ export const TaskCard: React.FC<TaskCardProps> = ({ card, userRoles, isLocked, c
       {...attributes}
       {...listeners}
       onClick={(e) => {
-        // Prevent click if we are clicking a button
-        if ((e.target as HTMLElement).closest('button')) return;
+        // Prevent click if we are clicking a button or select
+        if ((e.target as HTMLElement).closest('button, select')) return;
         navigate(`/workspace/task/${card.id}`);
       }}
     >
@@ -124,13 +143,33 @@ export const TaskCard: React.FC<TaskCardProps> = ({ card, userRoles, isLocked, c
 
       {/* Footer: Assignee and Deadline */}
       <div className='flex items-center justify-between pt-2 border-t border-[#F3F3F3]'>
-        <div className='flex items-center gap-1.5'>
+        <div className='flex items-center gap-1.5 relative'>
           <div
-            className='w-5 h-5 rounded-full bg-[#171717] text-white flex items-center justify-center text-[9px] font-bold'
-            title={assignee?.name}
+            className='w-5 h-5 rounded-full bg-[#171717] text-white flex items-center justify-center text-[9px] font-bold cursor-pointer'
+            title={assignee?.name ? `${assignee.name} (${assignee.role})` : 'Assignee'}
           >
-            {assignee?.avatarInitials}
+            {assignee?.avatarInitials || 'U'}
           </div>
+
+          {/* Inline Quick Assign Dropdown for Producer */}
+          {isProducer ? (
+            <select
+              value={currentAssigneeId}
+              onChange={handleSelectAssignee}
+              onClick={(e) => e.stopPropagation()}
+              className='text-[10px] font-mono font-medium text-[#171717] bg-[#FAF8F5] border border-[#E7E7E7] rounded px-1 py-0.5 hover:border-[#F97316] focus:outline-none focus:border-[#F97316] cursor-pointer'
+              title='Đổi nhanh người giao việc (Producer Quick Reassign)'
+            >
+              <option value='member-tf'>TF (Artist)</option>
+              <option value='member-sk'>SK (Writer)</option>
+              <option value='member-mo'>MO (Editor)</option>
+              <option value='member-al'>AL (Letterer)</option>
+            </select>
+          ) : (
+            <span className='text-[10px] font-mono text-[#737373] truncate max-w-[70px]'>
+              {assignee?.name || 'Unassigned'}
+            </span>
+          )}
         </div>
 
         <div

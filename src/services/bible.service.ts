@@ -1,5 +1,5 @@
 // src/services/bible.service.ts
-const API_URL = import.meta.env.VITE_APP_URL;
+import { API_URL } from '../config/env';
 export type BibleCategory = 0 | 1 | 2 | 3 | 4 | 5; // Character, Location, Prop, Terminology, StyleRule, PlotFact
 export type BiblePriority = 0 | 1 | 2 | 3; // Low, Standard, High, CanonCritical
 

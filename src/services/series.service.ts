@@ -1,5 +1,5 @@
 // src/services/series.service.ts
-const API_URL = import.meta.env.VITE_APP_URL;
+import { API_URL } from '../config/env';
 export interface SeriesDto {
   id: string;
   workspaceId: string;
@@ -30,13 +30,7 @@ export interface SeriesDetailDto extends SeriesDto {
 
 export interface CreateSeriesRequest {
   title: string;
-  synopsis?: string;
-  readingDirection?: number | string;
-  pipelineDefinitionId?: string;
-  pipelineTemplateId?: string;
-  genre?: string;
   format?: string;
-  releaseScheduleJson?: string;
 }
 
 export interface UpdateSeriesRequest {

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   TrendingUp,
   Calendar,
@@ -16,6 +17,7 @@ import {
   ArrowUpRight,
   GitBranch,
   Eye,
+  ArrowRight,
 } from 'lucide-react';
 import { MangaProject, AssistantRosterItem, ProvenanceLogItem } from '../types';
 
@@ -46,6 +48,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onManageAssignments = () => {},
   onShowToast = () => {},
 }) => {
+  const navigate = useNavigate();
   const [velocityTab, setVelocityTab] = useState<'7days' | 'arc02' | 'full'>('7days');
   const [selectedArc, setSelectedArc] = useState('Arc 02: Chapter 5 (Active)');
   const [auditRunning, setAuditRunning] = useState(false);
@@ -329,16 +332,22 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
             </div>
 
-            {/* 4 Core Stage Progress Cards */}
+            {/* 4 Core Stage Progress Cards with Deep Links to Kanban */}
             <div className='grid grid-cols-1 sm:grid-cols-2 gap-3.5 mb-6'>
               {/* Stage 1: Script & Dialogue */}
-              <div className='bg-[#FAF8F4] border border-[#E7E7E7] rounded-lg p-3.5 flex flex-col justify-between'>
+              <div
+                onClick={() => navigate('/workspace')}
+                className='bg-[#FAF8F4] hover:bg-white border border-[#E7E7E7] hover:border-[#171717] rounded-lg p-3.5 flex flex-col justify-between transition-all cursor-pointer group shadow-2xs'
+                title='Nhấn để xem chi tiết danh sách Script & Dialogue trên Kanban'
+              >
                 <div className='flex items-center justify-between mb-2'>
                   <div className='flex items-center gap-2'>
                     <span className='w-5 h-5 rounded-full bg-[#171717] text-white text-[10px] font-bold flex items-center justify-center font-mono'>
                       1
                     </span>
-                    <span className='text-xs font-bold text-[#171717]'>Script &amp; Dialogue</span>
+                    <span className='text-xs font-bold text-[#171717] group-hover:text-[#F97316] transition-colors'>
+                      Script &amp; Dialogue
+                    </span>
                   </div>
                   <span className='text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-[#ECFDF5] text-[#059669] border border-[#10B981]/30'>
                     100% DONE
@@ -349,18 +358,26 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 </div>
                 <div className='flex items-center justify-between text-[11px] text-[#555555]'>
                   <span>32 of 32 pages drafted</span>
-                  <span className='font-semibold text-[#171717]'>Final Locked</span>
+                  <span className='font-semibold text-[#171717] flex items-center gap-1 group-hover:text-[#F97316]'>
+                    View Tasks <ArrowRight className='w-3 h-3' />
+                  </span>
                 </div>
               </div>
 
               {/* Stage 2: Name / Storyboard */}
-              <div className='bg-[#FAF8F4] border border-[#E7E7E7] rounded-lg p-3.5 flex flex-col justify-between'>
+              <div
+                onClick={() => navigate('/workspace')}
+                className='bg-[#FAF8F4] hover:bg-white border border-[#E7E7E7] hover:border-[#0EA5E9] rounded-lg p-3.5 flex flex-col justify-between transition-all cursor-pointer group shadow-2xs'
+                title='Nhấn để xem chi tiết Cảnh Storyboard trên Kanban'
+              >
                 <div className='flex items-center justify-between mb-2'>
                   <div className='flex items-center gap-2'>
                     <span className='w-5 h-5 rounded-full bg-[#0EA5E9] text-white text-[10px] font-bold flex items-center justify-center font-mono'>
                       2
                     </span>
-                    <span className='text-xs font-bold text-[#171717]'>Name / Storyboard</span>
+                    <span className='text-xs font-bold text-[#171717] group-hover:text-[#0EA5E9] transition-colors'>
+                      Name / Storyboard
+                    </span>
                   </div>
                   <span className='text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-[#E0F2FE] text-[#0284C7] border border-[#0EA5E9]/30'>
                     90% PASS
@@ -371,18 +388,24 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 </div>
                 <div className='flex items-center justify-between text-[11px] text-[#555555]'>
                   <span>29 of 32 pages storyboarded</span>
-                  <span className='font-semibold text-[#0284C7]'>+3 pages today</span>
+                  <span className='font-semibold text-[#0284C7] flex items-center gap-1'>
+                    View Tasks <ArrowRight className='w-3 h-3' />
+                  </span>
                 </div>
               </div>
 
               {/* Stage 3: Rough Pencil & Layout */}
-              <div className='bg-[#FAF8F4] border border-[#E7E7E7] rounded-lg p-3.5 flex flex-col justify-between'>
+              <div
+                onClick={() => navigate('/workspace')}
+                className='bg-[#FAF8F4] hover:bg-white border border-[#E7E7E7] hover:border-[#8B5CF6] rounded-lg p-3.5 flex flex-col justify-between transition-all cursor-pointer group shadow-2xs'
+                title='Nhấn để mở danh sách 8 công việc trong hàng đợi Rough Pencil'
+              >
                 <div className='flex items-center justify-between mb-2'>
                   <div className='flex items-center gap-2'>
                     <span className='w-5 h-5 rounded-full bg-[#8B5CF6] text-white text-[10px] font-bold flex items-center justify-center font-mono'>
                       3
                     </span>
-                    <span className='text-xs font-bold text-[#171717]'>
+                    <span className='text-xs font-bold text-[#171717] group-hover:text-[#8B5CF6] transition-colors'>
                       Rough Pencil &amp; Layout
                     </span>
                   </div>
@@ -395,18 +418,24 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 </div>
                 <div className='flex items-center justify-between text-[11px] text-[#555555]'>
                   <span>24 of 32 pages positioned</span>
-                  <span className='font-semibold text-[#6D28D9]'>8 in queue</span>
+                  <span className='font-semibold text-[#6D28D9] flex items-center gap-1'>
+                    8 In Queue <ArrowRight className='w-3 h-3' />
+                  </span>
                 </div>
               </div>
 
               {/* Stage 4: Finished Ink & Screentone */}
-              <div className='bg-[#FAF8F4] border border-[#E7E7E7] rounded-lg p-3.5 flex flex-col justify-between'>
+              <div
+                onClick={() => navigate('/workspace')}
+                className='bg-[#FAF8F4] hover:bg-white border border-[#E7E7E7] hover:border-[#F97316] rounded-lg p-3.5 flex flex-col justify-between transition-all cursor-pointer group shadow-2xs'
+                title='Nhấn để nhảy tới công đoạn Inking & Screentone trên Kanban'
+              >
                 <div className='flex items-center justify-between mb-2'>
                   <div className='flex items-center gap-2'>
                     <span className='w-5 h-5 rounded-full bg-[#F97316] text-white text-[10px] font-bold flex items-center justify-center font-mono'>
                       4
                     </span>
-                    <span className='text-xs font-bold text-[#171717]'>
+                    <span className='text-xs font-bold text-[#171717] group-hover:text-[#F97316] transition-colors'>
                       Finished Ink &amp; Screentone
                     </span>
                   </div>
@@ -420,7 +449,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <div className='flex items-center justify-between text-[11px] text-[#555555]'>
                   <span>10 of 32 master sheets signed</span>
                   <span className='font-semibold text-[#F97316] flex items-center gap-1'>
-                    <Sparkles className='w-3 h-3' /> AI Assist
+                    Inking Tasks <ArrowRight className='w-3 h-3' />
                   </span>
                 </div>
               </div>

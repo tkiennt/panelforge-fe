@@ -66,6 +66,7 @@ import { NotificationCenterView } from './views/NotificationCenterView';
 import { ReaderPortalView } from './views/ReaderPortalView';
 import { PublicCatalogView } from './views/catalog/PublicCatalogView';
 import { authService } from './services/auth.service';
+import { seriesService } from './services/series.service';
 
 import {
   SystemRole,
@@ -283,7 +284,7 @@ function AppContent() {
     }
   });
 
-  const handleSelectWorkspace = (ws: WorkspaceDto) => {
+  const handleSelectWorkspace = async (ws: WorkspaceDto) => {
     setActiveWorkspace(ws);
     try {
       localStorage.setItem('activeWorkspace', JSON.stringify(ws));
@@ -296,8 +297,53 @@ function AppContent() {
     setCurrentWorkspaceRole(wsRole);
     setActiveProjectRoles([wsRole]);
     setViewScope('project');
-    navigateToWorkspaceRoleView(wsRole);
-    navigate('/workspace');
+
+    let hasSeries = false;
+    // Tải danh sách Series thật từ Backend API PostgreSQL cho Workspace này
+    try {
+      const realSeriesList = await seriesService.getSeriesList(ws.id);
+      if (realSeriesList && realSeriesList.length > 0) {
+        hasSeries = true;
+        const firstSeries = realSeriesList[0];
+        const adaptedProject: MangaProject = {
+          id: firstSeries.id,
+          title: firstSeries.title,
+          subtitle: firstSeries.synopsis || 'Studio Series',
+          arc: firstSeries.genre || 'Action / Manga',
+          chapter: firstSeries.chaptersCount || 1,
+          format: firstSeries.format || 'B5 Tankōbon Master (600 DPI)',
+          status: 'In Production',
+          progressPercent: 50,
+          completedPages: 16,
+          totalPages: 32,
+          dueDate: 'Dec 2026',
+          daysLeft: 30,
+          genres: [firstSeries.genre || 'Manga'],
+          coverStyle: 'halftone-cyber',
+          coverText: firstSeries.title,
+          tagline: firstSeries.synopsis || 'Studio Production',
+          lastUpdated: new Date(firstSeries.createdAt).toLocaleDateString(),
+        };
+        setActiveProject(adaptedProject);
+      }
+    } catch (err) {
+      console.warn('Không thể nạp Series thật cho Workspace:', err);
+    }
+
+    // Smart Landing by Persona & Series Availability
+    if (wsRole === 'PRODUCER' || currentRole === 'ADMINISTRATOR') {
+      if (!hasSeries) {
+        // Chưa có Series -> Điều hướng Producer vào Producer Desk (/producer) để khởi tạo Series (UC-03)
+        setCurrentView('producer');
+        navigate('/producer');
+      } else {
+        setCurrentView('dashboard');
+        navigate('/dashboard');
+      }
+    } else {
+      navigateToWorkspaceRoleView(wsRole);
+      navigate('/workspace');
+    }
   };
 
   // Khôi phục vai trò và phiên làm việc từ JWT token (Single Source of Truth) khi tải lại trang
@@ -349,13 +395,11 @@ function AppContent() {
 
   useEffect(() => {
     if (viewScope === 'project') {
-      if (currentRole === 'ADMINISTRATOR' || activeProjectRoles.includes('ADMINISTRATOR')) {
+      if (currentRole === 'ADMINISTRATOR') {
         setCurrentView('admin-dash');
-      } else {
-        setCurrentView('workspace');
       }
     }
-  }, [currentRole, activeProjectRoles, viewScope]);
+  }, [currentRole, viewScope]);
 
   const [projects, setProjects] = useState<MangaProject[]>(INITIAL_PROJECTS);
   const [activeProject, setActiveProject] = useState<MangaProject | undefined>(INITIAL_PROJECTS[0]);
@@ -538,6 +582,29 @@ function AppContent() {
             </PrivateRoute>
           }
         >
+          <Route
+            path='workspaces'
+            element={
+              <div className='h-screen w-full overflow-y-auto custom-scrollbar bg-[#FAF8F4]'>
+                <WorkspaceListView
+                  onSelectWorkspace={handleSelectWorkspace}
+                  currentUser={{
+                    name:
+                      currentUserInfo?.name ||
+                      firebaseUser?.displayName ||
+                      firebaseUser?.email?.split('@')[0] ||
+                      'User',
+                    email: currentUserInfo?.email || firebaseUser?.email || '',
+                    role: currentRole,
+                    avatarUrl: firebaseUser?.photoURL,
+                    canCreateStudio: currentUserInfo?.canCreateStudio,
+                  }}
+                  onLogout={handleLogout}
+                />
+              </div>
+            }
+          />
+
           <Route path='projects' element={<Navigate to='/workspaces' replace />} />
 
           <Route
@@ -570,28 +637,6 @@ function AppContent() {
               />
             }
           >
-            <Route
-              path='workspaces'
-              element={
-                <div className='h-full w-full overflow-y-auto custom-scrollbar bg-[#FAF8F4]'>
-                  <WorkspaceListView
-                    onSelectWorkspace={handleSelectWorkspace}
-                    currentUser={{
-                      name:
-                        currentUserInfo?.name ||
-                        firebaseUser?.displayName ||
-                        firebaseUser?.email?.split('@')[0] ||
-                        'User',
-                      email: currentUserInfo?.email || firebaseUser?.email || '',
-                      role: currentRole,
-                      avatarUrl: firebaseUser?.photoURL,
-                      canCreateStudio: currentUserInfo?.canCreateStudio,
-                    }}
-                    onLogout={handleLogout}
-                  />
-                </div>
-              }
-            />
             <Route
               path='dashboard'
               element={
