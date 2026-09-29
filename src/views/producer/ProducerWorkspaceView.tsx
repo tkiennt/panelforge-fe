@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Briefcase,
   Plus,
@@ -19,6 +20,7 @@ import {
   Sparkles,
   Sliders,
   ListOrdered,
+  Kanban,
 } from 'lucide-react';
 import {
   workspaceService,
@@ -32,6 +34,7 @@ import { SeriesChaptersModal } from '../../components/modals/SeriesChaptersModal
 import { SeriesPresetsModal } from '../../components/modals/SeriesPresetsModal';
 
 export const ProducerWorkspaceView: React.FC = () => {
+  const navigate = useNavigate();
   const [workspaces, setWorkspaces] = useState<WorkspaceDto[]>([]);
   const [activeWorkspace, setActiveWorkspace] = useState<WorkspaceDto | null>(null);
   const [members, setMembers] = useState<WorkspaceMemberDto[]>([]);
@@ -397,6 +400,26 @@ export const ProducerWorkspaceView: React.FC = () => {
         </div>
 
         <div className='flex items-center gap-2.5 shrink-0 flex-wrap'>
+          <button
+            onClick={() => navigate('/workspaces')}
+            className='inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-[#555555] bg-[#F8F6F0] hover:bg-[#EAE6DF] border border-[#E7E7E7] rounded-xl transition-all cursor-pointer'
+            title='Quay về danh sách Studio Workspaces'
+          >
+            <Briefcase className='w-3.5 h-3.5 text-[#F97316]' />
+            <span>Về Catalog Workspaces</span>
+          </button>
+
+          {activeWorkspace && (
+            <button
+              onClick={() => navigate('/workspace')}
+              className='inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-white bg-[#171717] hover:bg-black border border-[#171717] rounded-xl transition-all cursor-pointer shadow-xs'
+              title='Mở Kanban Workflow Board của Studio này'
+            >
+              <Kanban className='w-3.5 h-3.5 text-[#F97316]' />
+              <span>Vào Bàn Làm Việc (Kanban)</span>
+            </button>
+          )}
+
           <button
             onClick={loadData}
             disabled={loading}

@@ -85,7 +85,7 @@ const ROLE_NAV_CONFIG: Record<string, { section: string; items: any[] }[]> = {
       section: 'WORKSPACE',
       items: [
         { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
-        { icon: Briefcase, label: 'Studio Workspaces', href: '/workspaces' },
+        { icon: Briefcase, label: 'Studio Workspaces', href: '/producer' },
         {
           icon: Kanban,
           label: 'Production Pipeline',

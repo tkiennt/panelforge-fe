@@ -538,29 +538,6 @@ function AppContent() {
             </PrivateRoute>
           }
         >
-          <Route
-            path='workspaces'
-            element={
-              <div className='h-screen w-full overflow-y-auto custom-scrollbar bg-[#FAF8F4]'>
-                <WorkspaceListView
-                  onSelectWorkspace={handleSelectWorkspace}
-                  currentUser={{
-                    name:
-                      currentUserInfo?.name ||
-                      firebaseUser?.displayName ||
-                      firebaseUser?.email?.split('@')[0] ||
-                      'User',
-                    email: currentUserInfo?.email || firebaseUser?.email || '',
-                    role: currentRole,
-                    avatarUrl: firebaseUser?.photoURL,
-                    canCreateStudio: currentUserInfo?.canCreateStudio,
-                  }}
-                  onLogout={handleLogout}
-                />
-              </div>
-            }
-          />
-
           <Route path='projects' element={<Navigate to='/workspaces' replace />} />
 
           <Route
@@ -593,6 +570,28 @@ function AppContent() {
               />
             }
           >
+            <Route
+              path='workspaces'
+              element={
+                <div className='h-full w-full overflow-y-auto custom-scrollbar bg-[#FAF8F4]'>
+                  <WorkspaceListView
+                    onSelectWorkspace={handleSelectWorkspace}
+                    currentUser={{
+                      name:
+                        currentUserInfo?.name ||
+                        firebaseUser?.displayName ||
+                        firebaseUser?.email?.split('@')[0] ||
+                        'User',
+                      email: currentUserInfo?.email || firebaseUser?.email || '',
+                      role: currentRole,
+                      avatarUrl: firebaseUser?.photoURL,
+                      canCreateStudio: currentUserInfo?.canCreateStudio,
+                    }}
+                    onLogout={handleLogout}
+                  />
+                </div>
+              }
+            />
             <Route
               path='dashboard'
               element={
