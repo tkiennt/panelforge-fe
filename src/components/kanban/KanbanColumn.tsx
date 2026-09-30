@@ -6,6 +6,7 @@ import { TaskCard } from './TaskCard';
 import { MoreHorizontal } from 'lucide-react';
 import { usePermissions } from '../../lib/permissions';
 import { WorkspaceRole } from '../../types';
+import { SeriesMemberDto } from '../../services/series.service';
 
 interface KanbanColumnProps {
   stage: PipelineStage;
@@ -15,6 +16,7 @@ interface KanbanColumnProps {
   onCardClick?: (card: PipelineCard) => void;
   checkIsLocked: (card: PipelineCard) => boolean;
   canDragCard: (card: PipelineCard) => boolean;
+  seriesMembers?: SeriesMemberDto[];
 }
 
 export const KanbanColumn: React.FC<KanbanColumnProps> = ({
@@ -25,6 +27,7 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
   onCardClick,
   checkIsLocked,
   canDragCard,
+  seriesMembers = [],
 }) => {
   const effectiveRoles =
     userRoles.length > 0 ? userRoles : currentUserRole ? [currentUserRole] : [];
@@ -127,6 +130,7 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
                   onClick={onCardClick}
                   isLocked={checkIsLocked(card)}
                   canDrag={canDragCard(card)}
+                  seriesMembers={seriesMembers}
                 />
               </div>
             );

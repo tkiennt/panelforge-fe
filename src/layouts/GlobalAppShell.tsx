@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { Outlet, useNavigate, useLocation, useParams } from 'react-router-dom';
 import { MangaProject, SystemRole, WorkspaceRole } from '../types';
 import {
   LayoutDashboard,
@@ -53,6 +53,7 @@ export interface CurrentUser {
 
 interface GlobalAppShellProps {
   currentUser: CurrentUser;
+  activeWorkspace?: { name: string } | null;
   activeSeries?: MangaProject | { title: string; subtitle: string } | null;
   aiState?: 'active' | 'degraded' | 'unavailable';
   children?: React.ReactNode;
@@ -85,7 +86,7 @@ const ROLE_NAV_CONFIG: Record<string, { section: string; items: any[] }[]> = {
       section: 'WORKSPACE',
       items: [
         { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
-        { icon: Briefcase, label: 'Studio Workspaces', href: '/workspaces' },
+        { icon: Briefcase, label: 'Studio Workspaces', href: '/producer' },
         {
           icon: Kanban,
           label: 'Production Pipeline',
@@ -194,6 +195,7 @@ const ROLE_NAV_CONFIG: Record<string, { section: string; items: any[] }[]> = {
 
 export function GlobalAppShell({
   currentUser,
+  activeWorkspace,
   activeSeries = { title: 'PanelForge Studio', subtitle: 'Global Console' },
   aiState = 'active',
   children,
@@ -205,6 +207,7 @@ export function GlobalAppShell({
 }: GlobalAppShellProps) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { workspaceId, seriesId } = useParams();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   const isReader =
@@ -218,11 +221,48 @@ export function GlobalAppShell({
       ? String(currentUser.activeRoles[0]).toUpperCase()
       : 'PRODUCER';
 
-  const rawSections =
-    (currentUser.role === 'ADMINISTRATOR' || currentUser.activeRoles?.includes('ADMINISTRATOR')) &&
-    !currentUser.workspaceRole
-      ? ROLE_NAV_CONFIG['ADMINISTRATOR'] || []
-      : ROLE_NAV_CONFIG[effectiveRole] || ROLE_NAV_CONFIG['PRODUCER'] || [];
+  const isSeriesContext = !!seriesId;
+  const effectiveActiveSeries = isSeriesContext
+    ? activeSeries
+    : { title: activeWorkspace?.name || 'Studio Workspace', subtitle: 'Overview' };
+
+  // Dynamic configuration based on context
+  const getNavSections = () => {
+    if ((currentUser.role === 'ADMINISTRATOR' || currentUser.activeRoles?.includes('ADMINISTRATOR')) && !currentUser.workspaceRole) {
+       return ROLE_NAV_CONFIG['ADMINISTRATOR'] || [];
+    }
+    
+    if (effectiveRole === 'PRODUCER') {
+       if (isSeriesContext) {
+         return [
+           {
+             section: 'SERIES MANAGEMENT',
+             items: [
+               { icon: LayoutDashboard, label: 'Series Dashboard', href: `/workspaces/${workspaceId}/series/${seriesId}/dashboard` },
+               { icon: Users, label: 'Production Crew', href: `/workspaces/${workspaceId}/series/${seriesId}/members` },
+               { icon: Kanban, label: 'Production Pipeline', href: `/workspaces/${workspaceId}/series/${seriesId}/workspace`, badge: { type: 'text', text: 'Active', color: 'bg-[#F97316]/10 text-[#F97316]' } },
+               { icon: BookMarked, label: 'Series Bible', href: `/workspaces/${workspaceId}/series/${seriesId}/bible`, badge: { type: 'dot', color: 'bg-[#8B5CF6]' } },
+               { icon: Upload, label: 'Export / Publish', href: `/workspaces/${workspaceId}/series/${seriesId}/export` },
+             ]
+           }
+         ];
+       } else {
+         return [
+           {
+             section: 'STUDIO MANAGEMENT',
+             items: [
+               { icon: LayoutDashboard, label: 'Studio Workspaces', href: `/workspaces/${workspaceId}/overview` },
+               { icon: Users, label: 'Members & Roles', href: `/workspaces/${workspaceId}/members` },
+             ]
+           }
+         ];
+       }
+    }
+    
+    return ROLE_NAV_CONFIG[effectiveRole] || ROLE_NAV_CONFIG['PRODUCER'] || [];
+  };
+
+  const rawSections = getNavSections();
 
   const navSections = rawSections.map((sec) => ({
     ...sec,
@@ -296,7 +336,7 @@ export function GlobalAppShell({
       {/* --- SIDEBAR --- */}
       <AppShellSidebar
         currentUser={currentUser}
-        activeSeries={activeSeries}
+        activeSeries={effectiveActiveSeries as any}
         isReader={isReader}
         navSections={navSections}
         handleNavClick={handleNavClick}
@@ -321,33 +361,45 @@ export function GlobalAppShell({
                 </div>
               </div>
             ) : (
-              <nav className='flex items-center text-sm font-medium text-[#555555] truncate'>
+              <nav className='flex items-center text-xs font-medium text-[#555555] truncate'>
                 <button
                   type='button'
                   data-testid='back-to-workspaces-breadcrumb'
-                  className='hover:text-[#171717] cursor-pointer transition-colors flex items-center gap-1.5'
+                  className='hover:text-[#171717] cursor-pointer transition-colors flex items-center gap-1.5 px-1.5 py-1 rounded hover:bg-[#FAF8F5]'
                   onClick={() => navigate('/workspaces')}
-                  title='Quay lại danh sách Workspace'
+                  title='Quay lại danh sách Workspace (Workspaces Catalog)'
                 >
                   <Briefcase className='w-3.5 h-3.5 text-[#F97316]' />
-                  <span>Workspaces</span>
+                  <span className='font-semibold'>Workspaces</span>
                 </button>
-                <span className='mx-2 text-[#B8B8B8] font-normal select-none'>/</span>
-                <span className='hover:text-[#171717] cursor-pointer transition-colors truncate'>
-                  {activeSeries?.title || 'PanelForge Studio'}
-                </span>
-                <span className='mx-2 text-[#B8B8B8] font-normal select-none'>/</span>
-                <span className='text-[#171717] font-semibold truncate flex items-center gap-1.5'>
-                  {currentUser.role === 'ADMINISTRATOR' ||
-                  currentUser.activeRoles?.includes('ADMINISTRATOR')
-                    ? 'Global Settings'
-                    : 'Workspace'}
-                  {currentUser.workspaceRole && (
-                    <span className='inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-[#FFFBEB] text-[#D97706] border border-[#FDE68A]'>
-                      {currentUser.workspaceRole}
-                    </span>
-                  )}
-                </span>
+                <span className='mx-1.5 text-[#B8B8B8] font-normal select-none'>/</span>
+
+                {/* Studio / Series Name Segment */}
+                <button
+                  type='button'
+                  onClick={() => navigate(workspaceId ? `/workspaces/${workspaceId}/overview` : '/producer')}
+                  className='hover:text-[#171717] cursor-pointer transition-colors truncate px-1.5 py-1 rounded hover:bg-[#FAF8F5] flex items-center gap-1 font-semibold text-[#171717]'
+                  title='Mở Studio Workspace'
+                >
+                  <Briefcase className='w-3.5 h-3.5 text-[#8B5CF6]' />
+                  <span className='truncate'>{activeWorkspace?.name || 'Studio Workspace'}</span>
+                </button>
+                {isSeriesContext && (
+                  <>
+                    <span className='mx-1.5 text-[#B8B8B8] font-normal select-none'>/</span>
+                    <button
+                      type='button'
+                      onClick={() => navigate(`/workspaces/${workspaceId}/series/${seriesId}/dashboard`)}
+                      className='text-[#171717] font-semibold truncate flex items-center gap-1.5 px-1.5 py-1 rounded hover:bg-[#FAF8F5] transition-colors cursor-pointer'
+                      title='Chuyển đến Series'
+                    >
+                      <BookOpen className='w-3.5 h-3.5 text-[#10B981]' />
+                      <span className='truncate'>
+                        {activeSeries?.title || 'Active Series'}
+                      </span>
+                    </button>
+                  </>
+                )}
               </nav>
             )}
           </div>
