@@ -70,7 +70,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
       dueDate: 'TBD',
       daysLeft: 0,
       genres: ['General'],
-      coverStyle: 'default',
+      coverStyle: 'drifter',
       coverText: title.toUpperCase(),
       tagline: 'A new adventure begins.',
       lastUpdated: 'Just now',

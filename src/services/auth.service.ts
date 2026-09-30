@@ -1,5 +1,5 @@
 // src/services/auth.service.ts
-import { API_URL } from '../config/env';
+import axiosClient from '../api/axiosClient';
 
 export interface VerifyTwoFactorPayload {
   code: string;
@@ -23,265 +23,6 @@ export interface ResetPasswordPayload {
   confirmPassword: string;
 }
 
-async function parseErrorResponse(response: Response, defaultMessage: string): Promise<string> {
-  try {
-    if (typeof response.json === 'function') {
-      const data = await response.json();
-      if (data && typeof data === 'object' && data.message) {
-        return data.message;
-      }
-    }
-  } catch {
-    // Khong the parse JSON
-  }
-
-  if (response.status === 401) {
-    return 'Phiên đăng nhập đã hết hạn hoặc token không hợp lệ (401 Unauthorized). Vui lòng đăng nhập lại.';
-  }
-  if (response.status === 403) {
-    return 'Bạn không có quyền thực hiện thao tác này (403 Forbidden).';
-  }
-  return defaultMessage;
-}
-
-export const authService = {
-  login: async (email: string, password: string, rememberDeviceToken?: string) => {
-    const tokenToSend =
-      rememberDeviceToken ||
-      (typeof window !== 'undefined'
-        ? localStorage.getItem('pf_remember_device') || undefined
-        : undefined);
-
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
-    if (tokenToSend) {
-      headers['X-Remember-Device-Token'] = tokenToSend;
-    }
-
-    const response = await fetch(`${API_URL}/api/Auth/login`, {
-      method: 'POST',
-      credentials: 'include', // Bắt buộc để trình duyệt gửi & lưu HTTP-Only Cookie
-      headers,
-      body: JSON.stringify({ email, password, rememberDeviceToken: tokenToSend }),
-    });
-
-    if (!response.ok) {
-      throw new Error(await parseErrorResponse(response, 'Đăng nhập thất bại'));
-    }
-
-    return response.json();
-  },
-
-  externalLogin: async (idToken: string) => {
-    const response = await fetch(`${API_URL}/api/Auth/external-login`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ idToken }),
-    });
-
-    if (!response.ok) {
-      throw new Error(await parseErrorResponse(response, 'Đăng nhập bằng mạng xã hội thất bại'));
-    }
-
-    return response.json();
-  },
-
-  register: async (email: string, password: string, fullName: string, phoneNumber?: string) => {
-    const response = await fetch(`${API_URL}/api/Auth/register`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email, password, fullName, phoneNumber }),
-    });
-
-    if (!response.ok) {
-      throw new Error(await parseErrorResponse(response, 'Đăng ký thất bại'));
-    }
-
-    return response.json();
-  },
-
-  verifyEmail: async (email: string, token: string) => {
-    const response = await fetch(`${API_URL}/api/Auth/verify-email`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email, token }),
-    });
-
-    if (!response.ok) {
-      throw new Error(await parseErrorResponse(response, 'Xác thực mã PIN thất bại'));
-    }
-
-    return response.json();
-  },
-
-  resendVerification: async (email: string) => {
-    const response = await fetch(`${API_URL}/api/Auth/resend-verification`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email }),
-    });
-
-    if (!response.ok) {
-      throw new Error(await parseErrorResponse(response, 'Gửi lại mã xác thực thất bại'));
-    }
-
-    return response.json();
-  },
-
-  enableTwoFactor: async (token: string) => {
-    const response = await fetch(`${API_URL}/api/Auth/enable-2fa`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(await parseErrorResponse(response, 'Không thể tạo mã kích hoạt 2FA'));
-    }
-
-    return response.json();
-  },
-
-  verifyTwoFactor: async (data: VerifyTwoFactorPayload, token?: string) => {
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
-
-    if (token) {
-      headers.Authorization = `Bearer ${token}`;
-    }
-
-    const response = await fetch(`${API_URL}/api/Auth/verify-2fa`, {
-      method: 'POST',
-      credentials: 'include', // Bắt buộc để trình duyệt nhận Set-Cookie pf_remember_device
-      headers,
-      body: JSON.stringify(data),
-    });
-
-    if (!response.ok) {
-      throw new Error(
-        await parseErrorResponse(response, 'Mã xác thực 2FA không chính xác hoặc đã hết hạn'),
-      );
-    }
-
-    return response.json();
-  },
-
-  forgetDevice: async () => {
-    const response = await fetch(`${API_URL}/api/Auth/forget-device`, {
-      method: 'POST',
-      credentials: 'include',
-    });
-
-    if (!response.ok) {
-      throw new Error(await parseErrorResponse(response, 'Không thể xóa thiết bị tin cậy'));
-    }
-
-    return response.json();
-  },
-
-  sendChangePasswordOtp: async (token: string) => {
-    const response = await fetch(`${API_URL}/api/Auth/send-change-password-otp`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(await parseErrorResponse(response, 'Gửi mã xác thực OTP thất bại'));
-    }
-
-    return response.json();
-  },
-
-  changePassword: async (data: ChangePasswordPayload, token: string) => {
-    const response = await fetch(`${API_URL}/api/Auth/change-password`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(data),
-    });
-
-    if (!response.ok) {
-      throw new Error(await parseErrorResponse(response, 'Failed to change password'));
-    }
-
-    return response.json();
-  },
-
-  forgotPassword: async (email: string) => {
-    const response = await fetch(`${API_URL}/api/Auth/forgot-password`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email }),
-    });
-
-    if (!response.ok) {
-      throw new Error(await parseErrorResponse(response, 'Yêu cầu đặt lại mật khẩu thất bại'));
-    }
-
-    return response.json();
-  },
-
-  resetPassword: async (data: ResetPasswordPayload) => {
-    const response = await fetch(`${API_URL}/api/Auth/reset-password`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-    });
-
-    if (!response.ok) {
-      throw new Error(await parseErrorResponse(response, 'Đặt lại mật khẩu thất bại'));
-    }
-
-    return response.json();
-  },
-
-  /**
-   * BR-23: Lấy ngữ cảnh gợi ý màn hình đích sau đăng nhập (GET /api/Auth/me/landing-context)
-   */
-  getLandingContext: async (customToken?: string): Promise<LandingContextDto> => {
-    const token =
-      customToken || (typeof window !== 'undefined' ? localStorage.getItem('token') : null) || '';
-    const response = await fetch(`${API_URL}/api/Auth/me/landing-context`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(
-        await parseErrorResponse(response, 'Không thể lấy ngữ cảnh điều hướng landing.'),
-      );
-    }
-
-    return response.json();
-  },
-};
-
 export interface LandingWorkspaceDto {
   workspaceId: string;
   name: string;
@@ -295,3 +36,182 @@ export interface LandingContextDto {
   workspaces: LandingWorkspaceDto[];
   suggestedLanding: 'AdminDashboard' | 'YourWorkspaces' | 'StudioCreation' | 'PublicCatalog';
 }
+
+async function parseErrorResponse(error: any, defaultMessage: string): Promise<string> {
+  if (error.response) {
+    const { data, status } = error.response;
+    if (data && typeof data === 'object' && data.message) {
+      return data.message;
+    }
+    if (status === 401) {
+      return 'Phiên đăng nhập đã hết hạn hoặc token không hợp lệ (401 Unauthorized). Vui lòng đăng nhập lại.';
+    }
+    if (status === 403) {
+      return 'Bạn không có quyền thực hiện thao tác này (403 Forbidden).';
+    }
+  }
+  return defaultMessage;
+}
+
+export const authService = {
+  login: async (email: string, password: string, rememberDeviceToken?: string) => {
+    const tokenToSend =
+      rememberDeviceToken ||
+      (typeof window !== 'undefined'
+        ? localStorage.getItem('pf_remember_device') || undefined
+        : undefined);
+
+    const headers: Record<string, string> = {};
+    if (tokenToSend) {
+      headers['X-Remember-Device-Token'] = tokenToSend;
+    }
+
+    try {
+      const response = await axiosClient.post('/Auth/login', { email, password, rememberDeviceToken: tokenToSend }, {
+        withCredentials: true,
+        headers,
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(await parseErrorResponse(error, 'Đăng nhập thất bại'));
+    }
+  },
+
+  externalLogin: async (idToken: string) => {
+    try {
+      const response = await axiosClient.post('/Auth/external-login', { idToken }, {
+        withCredentials: true,
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(await parseErrorResponse(error, 'Đăng nhập bằng mạng xã hội thất bại'));
+    }
+  },
+
+  register: async (email: string, password: string, fullName: string, phoneNumber?: string) => {
+    try {
+      const response = await axiosClient.post('/Auth/register', { email, password, fullName, phoneNumber });
+      return response.data;
+    } catch (error) {
+      throw new Error(await parseErrorResponse(error, 'Đăng ký thất bại'));
+    }
+  },
+
+  verifyEmail: async (email: string, token: string) => {
+    try {
+      const response = await axiosClient.post('/Auth/verify-email', { email, token });
+      return response.data;
+    } catch (error) {
+      throw new Error(await parseErrorResponse(error, 'Xác thực mã PIN thất bại'));
+    }
+  },
+
+  resendVerification: async (email: string) => {
+    try {
+      const response = await axiosClient.post('/Auth/resend-verification', { email });
+      return response.data;
+    } catch (error) {
+      throw new Error(await parseErrorResponse(error, 'Gửi lại mã xác thực thất bại'));
+    }
+  },
+
+  enableTwoFactor: async (token: string) => {
+    try {
+      const response = await axiosClient.post('/Auth/enable-2fa', {}, {
+        withCredentials: true,
+        headers: {
+          Authorization: `Bearer ${token}`,
+        }
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(await parseErrorResponse(error, 'Không thể tạo mã kích hoạt 2FA'));
+    }
+  },
+
+  verifyTwoFactor: async (data: VerifyTwoFactorPayload, token?: string) => {
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    try {
+      const response = await axiosClient.post('/Auth/verify-2fa', data, {
+        withCredentials: true,
+        headers,
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(await parseErrorResponse(error, 'Mã xác thực 2FA không chính xác hoặc đã hết hạn'));
+    }
+  },
+
+  forgetDevice: async () => {
+    try {
+      const response = await axiosClient.post('/Auth/forget-device', {}, {
+        withCredentials: true,
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(await parseErrorResponse(error, 'Không thể xóa thiết bị tin cậy'));
+    }
+  },
+
+  sendChangePasswordOtp: async (token: string) => {
+    try {
+      const response = await axiosClient.post('/Auth/send-change-password-otp', {}, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        }
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(await parseErrorResponse(error, 'Gửi mã xác thực OTP thất bại'));
+    }
+  },
+
+  changePassword: async (data: ChangePasswordPayload, token: string) => {
+    try {
+      const response = await axiosClient.post('/Auth/change-password', data, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        }
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(await parseErrorResponse(error, 'Failed to change password'));
+    }
+  },
+
+  forgotPassword: async (email: string) => {
+    try {
+      const response = await axiosClient.post('/Auth/forgot-password', { email });
+      return response.data;
+    } catch (error) {
+      throw new Error(await parseErrorResponse(error, 'Yêu cầu đặt lại mật khẩu thất bại'));
+    }
+  },
+
+  resetPassword: async (data: ResetPasswordPayload) => {
+    try {
+      const response = await axiosClient.post('/Auth/reset-password', data);
+      return response.data;
+    } catch (error) {
+      throw new Error(await parseErrorResponse(error, 'Đặt lại mật khẩu thất bại'));
+    }
+  },
+
+  getLandingContext: async (customToken?: string): Promise<LandingContextDto> => {
+    const token =
+      customToken || (typeof window !== 'undefined' ? localStorage.getItem('token') : null) || '';
+    
+    try {
+      const response = await axiosClient.get('/Auth/me/landing-context', {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(await parseErrorResponse(error, 'Không thể lấy ngữ cảnh điều hướng landing.'));
+    }
+  },
+};

@@ -1,5 +1,5 @@
 // src/services/pipeline.service.ts
-import { API_URL } from '../config/env';
+import axiosClient from '../api/axiosClient';
 
 export type PipelineRole = 'Producer' | 'Writer' | 'Artist' | 'Letterer' | 'Editor';
 
@@ -80,52 +80,27 @@ export interface ReorderPipelineStagesRequest {
   stageIds: string[];
 }
 
-function getAuthHeaders(customToken?: string): Record<string, string> {
-  const token =
-    customToken || (typeof window !== 'undefined' ? localStorage.getItem('token') : null) || '';
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
-  if (token && !token.startsWith('mock-')) {
-    headers['Authorization'] = `Bearer ${token}`;
+function handlePipelineError(error: any, defaultError: string): never {
+  const message = error.response?.data?.error || error.response?.data?.message || defaultError;
+  const err: any = new Error(message);
+  if (error.response?.status === 409 || error.response?.data?.code === 'CONFLICT') {
+    err.code = 'CONFLICT';
   }
-  return headers;
-}
-
-async function handlePipelineResponse<T = SeriesPipelineDto>(
-  response: Response,
-  defaultError: string,
-): Promise<T> {
-  if (response.ok) {
-    return await response.json();
-  }
-
-  let errorData: any = {};
-  try {
-    errorData = await response.json();
-  } catch {
-    // Response not JSON
-  }
-
-  const message = errorData.error || errorData.message || defaultError;
-  const error: any = new Error(message);
-  if (response.status === 409 || errorData.code === 'CONFLICT') {
-    error.code = 'CONFLICT';
-  }
-  error.status = response.status;
-  throw error;
+  err.status = error.response?.status;
+  throw err;
 }
 
 export const pipelineService = {
   /**
    * Lấy cấu hình Pipeline của Series (GET /api/series/{seriesId}/pipeline)
    */
-  getSeriesPipeline: async (seriesId: string, token?: string): Promise<SeriesPipelineDto> => {
-    const response = await fetch(`${API_URL}/api/series/${seriesId}/pipeline`, {
-      method: 'GET',
-      headers: getAuthHeaders(token),
-    });
-    return await handlePipelineResponse(response, 'Không thể tải cấu hình Pipeline của Series.');
+  getSeriesPipeline: async (seriesId: string): Promise<SeriesPipelineDto> => {
+    try {
+      const response = await axiosClient.get(`/series/${seriesId}/pipeline`);
+      return response.data;
+    } catch (error) {
+      handlePipelineError(error, 'Không thể tải cấu hình Pipeline của Series.');
+    }
   },
 
   /**
@@ -134,14 +109,13 @@ export const pipelineService = {
   addStage: async (
     seriesId: string,
     data: AddPipelineStageRequest,
-    token?: string,
   ): Promise<SeriesPipelineDto> => {
-    const response = await fetch(`${API_URL}/api/series/${seriesId}/pipeline/stages`, {
-      method: 'POST',
-      headers: getAuthHeaders(token),
-      body: JSON.stringify(data),
-    });
-    return await handlePipelineResponse(response, 'Không thể thêm công đoạn mới vào Pipeline.');
+    try {
+      const response = await axiosClient.post(`/series/${seriesId}/pipeline/stages`, data);
+      return response.data;
+    } catch (error) {
+      handlePipelineError(error, 'Không thể thêm công đoạn mới vào Pipeline.');
+    }
   },
 
   /**
@@ -151,14 +125,13 @@ export const pipelineService = {
     seriesId: string,
     stageId: string,
     data: UpdatePipelineStageRequest,
-    token?: string,
   ): Promise<SeriesPipelineDto> => {
-    const response = await fetch(`${API_URL}/api/series/${seriesId}/pipeline/stages/${stageId}`, {
-      method: 'PUT',
-      headers: getAuthHeaders(token),
-      body: JSON.stringify(data),
-    });
-    return await handlePipelineResponse(response, 'Không thể cập nhật công đoạn Pipeline.');
+    try {
+      const response = await axiosClient.put(`/series/${seriesId}/pipeline/stages/${stageId}`, data);
+      return response.data;
+    } catch (error) {
+      handlePipelineError(error, 'Không thể cập nhật công đoạn Pipeline.');
+    }
   },
 
   /**
@@ -167,17 +140,13 @@ export const pipelineService = {
   reorderStages: async (
     seriesId: string,
     stageIds: string[],
-    token?: string,
   ): Promise<SeriesPipelineDto> => {
-    const response = await fetch(`${API_URL}/api/series/${seriesId}/pipeline/stages/order`, {
-      method: 'PUT',
-      headers: getAuthHeaders(token),
-      body: JSON.stringify({ stageIds }),
-    });
-    return await handlePipelineResponse(
-      response,
-      'Không thể sắp xếp lại thứ tự công đoạn Pipeline.',
-    );
+    try {
+      const response = await axiosClient.put(`/series/${seriesId}/pipeline/stages/order`, { stageIds });
+      return response.data;
+    } catch (error) {
+      handlePipelineError(error, 'Không thể sắp xếp lại thứ tự công đoạn Pipeline.');
+    }
   },
 
   /**
@@ -187,26 +156,24 @@ export const pipelineService = {
   deleteStage: async (
     seriesId: string,
     stageId: string,
-    token?: string,
   ): Promise<SeriesPipelineDto> => {
-    const response = await fetch(`${API_URL}/api/series/${seriesId}/pipeline/stages/${stageId}`, {
-      method: 'DELETE',
-      headers: getAuthHeaders(token),
-    });
-    return await handlePipelineResponse(response, 'Không thể xóa công đoạn Pipeline.');
+    try {
+      const response = await axiosClient.delete(`/series/${seriesId}/pipeline/stages/${stageId}`);
+      return response.data;
+    } catch (error) {
+      handlePipelineError(error, 'Không thể xóa công đoạn Pipeline.');
+    }
   },
 
   /**
    * Lấy danh sách PipelineTemplate đang hoạt động cho Producer (GET /api/pipeline-templates) (B1 / UC-03)
    */
-  getActivePipelineTemplates: async (token?: string): Promise<PipelineTemplateDto[]> => {
-    const response = await fetch(`${API_URL}/api/pipeline-templates`, {
-      method: 'GET',
-      headers: getAuthHeaders(token),
-    });
-    return await handlePipelineResponse<PipelineTemplateDto[]>(
-      response,
-      'Không thể tải danh sách mẫu quy trình Pipeline.',
-    );
+  getActivePipelineTemplates: async (): Promise<PipelineTemplateDto[]> => {
+    try {
+      const response = await axiosClient.get(`/pipeline-templates`);
+      return response.data;
+    } catch (error) {
+      handlePipelineError(error, 'Không thể tải danh sách mẫu quy trình Pipeline.');
+    }
   },
 };

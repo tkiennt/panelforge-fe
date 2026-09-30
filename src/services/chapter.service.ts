@@ -1,5 +1,5 @@
 // src/services/chapter.service.ts
-import { API_URL } from '../config/env';
+import axiosClient from '../api/axiosClient';
 
 export type ChapterStatus = 'InProduction' | 'Approved' | 'Locked' | 'Published';
 
@@ -39,16 +39,8 @@ export interface UpdateChapterRequest {
   incrementVersion?: boolean;
 }
 
-function getAuthHeaders(customToken?: string): Record<string, string> {
-  const token =
-    customToken || (typeof window !== 'undefined' ? localStorage.getItem('token') : null) || '';
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
-  if (token && !token.startsWith('mock-')) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-  return headers;
+function extractError(error: any, defaultMsg: string): string {
+  return error.response?.data?.error || error.response?.data?.message || defaultMsg;
 }
 
 export const chapterService = {
@@ -59,23 +51,15 @@ export const chapterService = {
     seriesId: string,
     pageIndex = 1,
     pageSize = 20,
-    token?: string,
   ): Promise<PagedResult<ChapterDto>> => {
-    const url = new URL(`${API_URL}/api/series/${seriesId}/chapters`);
-    url.searchParams.set('pageIndex', pageIndex.toString());
-    url.searchParams.set('pageSize', pageSize.toString());
-
-    const response = await fetch(url.toString(), {
-      method: 'GET',
-      headers: getAuthHeaders(token),
-    });
-
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      throw new Error(err.error || err.message || 'Không thể tải danh sách chương của Series.');
+    try {
+      const response = await axiosClient.get(`/series/${seriesId}/chapters`, {
+        params: { pageIndex, pageSize },
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(extractError(error, 'Không thể tải danh sách chương của Series.'));
     }
-
-    return await response.json();
   },
 
   /**
@@ -84,37 +68,25 @@ export const chapterService = {
   createChapter: async (
     seriesId: string,
     data: CreateChapterRequest,
-    token?: string,
   ): Promise<ChapterDto> => {
-    const response = await fetch(`${API_URL}/api/series/${seriesId}/chapters`, {
-      method: 'POST',
-      headers: getAuthHeaders(token),
-      body: JSON.stringify(data),
-    });
-
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      throw new Error(err.error || err.message || 'Không thể tạo chương mới.');
+    try {
+      const response = await axiosClient.post(`/series/${seriesId}/chapters`, data);
+      return response.data;
+    } catch (error) {
+      throw new Error(extractError(error, 'Không thể tạo chương mới.'));
     }
-
-    return await response.json();
   },
 
   /**
    * Lấy chi tiết chương (GET /api/chapters/{chapterId})
    */
-  getChapterById: async (chapterId: string, token?: string): Promise<any> => {
-    const response = await fetch(`${API_URL}/api/chapters/${chapterId}`, {
-      method: 'GET',
-      headers: getAuthHeaders(token),
-    });
-
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      throw new Error(err.error || err.message || 'Không thể lấy thông tin chi tiết chương.');
+  getChapterById: async (chapterId: string): Promise<any> => {
+    try {
+      const response = await axiosClient.get(`/chapters/${chapterId}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(extractError(error, 'Không thể lấy thông tin chi tiết chương.'));
     }
-
-    return await response.json();
   },
 
   /**
@@ -123,34 +95,23 @@ export const chapterService = {
   updateChapter: async (
     chapterId: string,
     data: UpdateChapterRequest,
-    token?: string,
   ): Promise<ChapterDto> => {
-    const response = await fetch(`${API_URL}/api/chapters/${chapterId}`, {
-      method: 'PUT',
-      headers: getAuthHeaders(token),
-      body: JSON.stringify(data),
-    });
-
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      throw new Error(err.error || err.message || 'Không thể cập nhật chương.');
+    try {
+      const response = await axiosClient.put(`/chapters/${chapterId}`, data);
+      return response.data;
+    } catch (error) {
+      throw new Error(extractError(error, 'Không thể cập nhật chương.'));
     }
-
-    return await response.json();
   },
 
   /**
    * Xóa mềm chương (DELETE /api/chapters/{chapterId})
    */
-  deleteChapter: async (chapterId: string, token?: string): Promise<void> => {
-    const response = await fetch(`${API_URL}/api/chapters/${chapterId}`, {
-      method: 'DELETE',
-      headers: getAuthHeaders(token),
-    });
-
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      throw new Error(err.error || err.message || 'Không thể xóa chương.');
+  deleteChapter: async (chapterId: string): Promise<void> => {
+    try {
+      await axiosClient.delete(`/chapters/${chapterId}`);
+    } catch (error) {
+      throw new Error(extractError(error, 'Không thể xóa chương.'));
     }
   },
 };

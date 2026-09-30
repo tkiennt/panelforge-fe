@@ -18,7 +18,7 @@ describe('Workspaces, Pages, and Elements Services', () => {
       });
       globalThis.fetch = fetchMock;
 
-      const result = await workspaceService.getMyWorkspaces('valid-jwt-token');
+      const result = await workspaceService.getMyWorkspaces();
       expect(result.length).toBe(1);
       expect(fetchMock).toHaveBeenCalledWith(
         expect.stringContaining('/api/Workspaces'),

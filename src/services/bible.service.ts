@@ -1,5 +1,6 @@
 // src/services/bible.service.ts
-import { API_URL } from '../config/env';
+import axiosClient from '../api/axiosClient';
+
 export type BibleCategory = 0 | 1 | 2 | 3 | 4 | 5; // Character, Location, Prop, Terminology, StyleRule, PlotFact
 export type BiblePriority = 0 | 1 | 2 | 3; // Low, Standard, High, CanonCritical
 
@@ -71,43 +72,34 @@ export interface AddBibleEntryRevisionRequest {
   effectiveFromChapterNumber?: number;
 }
 
-function getAuthHeaders(): Record<string, string> {
-  const token = localStorage.getItem('token') || '';
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
-  if (token && !token.startsWith('mock-')) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-  return headers;
+function extractError(error: any, defaultMsg: string): any {
+  const message = error.response?.data?.error || error.response?.data?.message || defaultMsg;
+  const err: any = new Error(message);
+  err.code = error.response?.data?.code || (error.response?.status === 409 ? 'CONFLICT' : undefined);
+  err.status = error.response?.status;
+  return err;
 }
 
 export const bibleService = {
   async getSeriesBible(seriesId: string): Promise<SeriesBibleDto> {
-    const res = await fetch(`${API_URL}/api/series/${seriesId}/bible`, {
-      headers: getAuthHeaders(),
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || err.message || 'Không thể tải Series Bible.');
+    try {
+      const response = await axiosClient.get(`/series/${seriesId}/bible`);
+      return response.data;
+    } catch (error) {
+      throw extractError(error, 'Không thể tải Series Bible.');
     }
-    return res.json();
   },
 
   async getBibleEntriesAtChapter(
     seriesId: string,
     chapterNumber: number,
   ): Promise<BibleEntryDto[]> {
-    const res = await fetch(`${API_URL}/api/series/${seriesId}/bible/at-chapter/${chapterNumber}`, {
-      headers: getAuthHeaders(),
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(
-        err.error || err.message || `Không thể tải Bible cho Chapter ${chapterNumber}.`,
-      );
+    try {
+      const response = await axiosClient.get(`/series/${seriesId}/bible/at-chapter/${chapterNumber}`);
+      return response.data;
+    } catch (error) {
+      throw extractError(error, `Không thể tải Bible cho Chapter ${chapterNumber}.`);
     }
-    return res.json();
   },
 
   async getSeriesBibleAtChapter(
@@ -119,16 +111,12 @@ export const bibleService = {
   },
 
   async createBibleEntry(seriesId: string, data: CreateBibleEntryRequest): Promise<BibleEntryDto> {
-    const res = await fetch(`${API_URL}/api/series/${seriesId}/bible/entries`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(data),
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || err.message || 'Không thể tạo mục Series Bible.');
+    try {
+      const response = await axiosClient.post(`/series/${seriesId}/bible/entries`, data);
+      return response.data;
+    } catch (error) {
+      throw extractError(error, 'Không thể tạo mục Series Bible.');
     }
-    return res.json();
   },
 
   async addRevision(
@@ -136,34 +124,20 @@ export const bibleService = {
     entryId: string,
     data: AddBibleEntryRevisionRequest,
   ): Promise<BibleEntryRevisionDto> {
-    const res = await fetch(
-      `${API_URL}/api/series/${seriesId}/bible/entries/${entryId}/revisions`,
-      {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(data),
-      },
-    );
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      const error: any = new Error(
-        err.error || err.message || 'Không thể tạo phiên bản mới cho mục Bible.',
-      );
-      error.code = err.code || (res.status === 409 ? 'CONFLICT' : undefined);
-      error.status = res.status;
-      throw error;
+    try {
+      const response = await axiosClient.post(`/series/${seriesId}/bible/entries/${entryId}/revisions`, data);
+      return response.data;
+    } catch (error) {
+      throw extractError(error, 'Không thể tạo phiên bản mới cho mục Bible.');
     }
-    return res.json();
   },
 
   async getEntryHistory(seriesId: string, entryId: string): Promise<BibleEntryRevisionDto[]> {
-    const res = await fetch(`${API_URL}/api/series/${seriesId}/bible/entries/${entryId}/history`, {
-      headers: getAuthHeaders(),
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || err.message || 'Không thể tải lịch sử phiên bản của mục.');
+    try {
+      const response = await axiosClient.get(`/series/${seriesId}/bible/entries/${entryId}/history`);
+      return response.data;
+    } catch (error) {
+      throw extractError(error, 'Không thể tải lịch sử phiên bản của mục.');
     }
-    return res.json();
   },
 };

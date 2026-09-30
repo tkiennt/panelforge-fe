@@ -82,6 +82,7 @@ export const ProducerWorkspaceView: React.FC = () => {
 
   // Pipeline Templates (B1 / UC-03)
   const [pipelineTemplates, setPipelineTemplates] = useState<PipelineTemplateDto[]>([]);
+  const [newSeriesTemplateId, setNewSeriesTemplateId] = useState('');
 
   // Edit Series Modal State (F5)
   const [editingSeries, setEditingSeries] = useState<SeriesDto | null>(null);

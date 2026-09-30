@@ -1,5 +1,5 @@
 // src/services/catalog.service.ts
-import { API_URL } from '../config/env';
+import axiosClient from '../api/axiosClient';
 
 export interface PublicSeriesDto {
   id: string;
@@ -39,6 +39,10 @@ export interface PublicCatalogPagedResult {
   totalPages: number;
 }
 
+function extractError(error: any, defaultMsg: string): string {
+  return error.response?.data?.error || error.response?.data?.message || defaultMsg;
+}
+
 export const catalogService = {
   /**
    * Lấy danh sách truyện đã xuất bản công khai (AllowAnonymous) (BR-23 / BR-24)
@@ -50,24 +54,12 @@ export const catalogService = {
     pageIndex?: number;
     pageSize?: number;
   }): Promise<PublicCatalogPagedResult> => {
-    const url = new URL(`${API_URL}/api/catalog/series`);
-    if (params?.search) url.searchParams.set('search', params.search);
-    if (params?.genre) url.searchParams.set('genre', params.genre);
-    if (params?.pageIndex) url.searchParams.set('pageIndex', params.pageIndex.toString());
-    if (params?.pageSize) url.searchParams.set('pageSize', params.pageSize.toString());
-
-    const response = await fetch(url.toString(), {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error('Không thể tải danh mục truyện công khai.');
+    try {
+      const response = await axiosClient.get('/catalog/series', { params });
+      return response.data;
+    } catch (error) {
+      throw new Error(extractError(error, 'Không thể tải danh mục truyện công khai.'));
     }
-
-    return await response.json();
   },
 
   /**
@@ -75,20 +67,11 @@ export const catalogService = {
    * GET /api/catalog/series/{seriesId}
    */
   getPublicSeriesDetail: async (seriesId: string): Promise<PublicSeriesDetailDto> => {
-    const response = await fetch(`${API_URL}/api/catalog/series/${seriesId}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      throw new Error(
-        err.error || err.message || 'Không tìm thấy bộ truyện hoặc chưa có chương phát hành.',
-      );
+    try {
+      const response = await axiosClient.get(`/catalog/series/${seriesId}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(extractError(error, 'Không tìm thấy bộ truyện hoặc chưa có chương phát hành.'));
     }
-
-    return await response.json();
   },
 };
