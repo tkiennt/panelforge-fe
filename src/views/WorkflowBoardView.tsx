@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { KanbanCard, KanbanStageKey, WorkflowSubView, MangaProject } from '../types';
 import { seriesService, SeriesMemberDto } from '../services/series.service';
+import { CreateChapterModal, ChapterFormData } from '../components/modals/CreateChapterModal';
 
 interface WorkflowBoardViewProps {
   activeProject?: MangaProject;
@@ -64,6 +65,16 @@ export const WorkflowBoardView: React.FC<WorkflowBoardViewProps> = ({
   const [stageFilter, setStageFilter] = useState('ALL');
   const [typeFilter, setTypeFilter] = useState('ALL');
   const [burndownOpen, setBurndownOpen] = useState(false);
+
+  // Chapter Modal State
+  const [isChapterModalOpen, setIsChapterModalOpen] = useState(false);
+
+  const handleCreateChapter = async (data: ChapterFormData) => {
+    // Mock API call simulation
+    await new Promise(resolve => setTimeout(resolve, 800));
+    onShowToast('Chapter Created', `${data.title || 'New Chapter'} has been created and the pipeline is initialized.`);
+    setIsChapterModalOpen(false);
+  };
 
   const { seriesId } = useParams();
   const [seriesMembers, setSeriesMembers] = useState<SeriesMemberDto[]>([]);
@@ -158,10 +169,22 @@ export const WorkflowBoardView: React.FC<WorkflowBoardViewProps> = ({
                 <span className='px-2 py-0.5 rounded bg-zinc-900 text-white  text-[10px] uppercase tracking-wider font-bold'>
                   ARC 02
                 </span>
-                <h1 className='text-xl lg:text-2xl font-bold  text-zinc-900 tracking-tight'>
-                  Chapter {activeProject?.chapter || '1'}: {activeProject?.totalPages || 0} Total
-                  Pages
-                </h1>
+                <div className='relative ml-2'>
+                  <select className='appearance-none bg-white border border-zinc-200 pl-3 pr-8 py-1.5 rounded-md text-lg font-bold text-zinc-900 focus:outline-none focus:border-orange-500 hover:bg-zinc-50 cursor-pointer shadow-sm'>
+                    <option>Chapter {activeProject?.chapter || '5'}: {activeProject?.title || 'The Awakening'}</option>
+                    <option>Chapter 4: Shadows</option>
+                    <option>Chapter 3: The Gathering</option>
+                  </select>
+                  <ChevronDown className='w-4 h-4 text-zinc-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none' />
+                </div>
+                
+                <button
+                  onClick={() => setIsChapterModalOpen(true)}
+                  className='ml-2 px-3 py-1.5 bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-700 text-xs font-bold rounded-md flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm'
+                >
+                  <Plus className='w-3.5 h-3.5' />
+                  New Chapter
+                </button>
               </div>
               <div className='flex items-center gap-3 mt-1.5 text-xs'>
                 <span className='font-semibold text-zinc-900'>
@@ -850,6 +873,13 @@ export const WorkflowBoardView: React.FC<WorkflowBoardViewProps> = ({
           </div>
         )}
       </div>
+
+      {/* New Chapter Modal */}
+      <CreateChapterModal
+        isOpen={isChapterModalOpen}
+        onClose={() => setIsChapterModalOpen(false)}
+        onSubmit={handleCreateChapter}
+      />
     </div>
   );
 };

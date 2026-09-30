@@ -63,10 +63,10 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
   }
 
   const columnClasses = [
-    'flex flex-col w-[300px] shrink-0 bg-white border-[1.5px] border-[#171717] rounded-sm overflow-hidden shadow-none transition-opacity duration-300',
+    'flex flex-col w-[300px] shrink-0 border border-dashed border-zinc-200 rounded-xl bg-zinc-50/50 overflow-hidden transition-all duration-300',
     isDimmed ? 'opacity-60 hover:opacity-100' : 'opacity-100',
-    isHighlighted ? 'border-t-4 border-t-[#F97316]' : '', // Top accent for highlighted columns
-    isOver ? 'ring-2 ring-[#F97316]/50 bg-[#FFF7ED]/30' : '',
+    isHighlighted ? 'border-t-2 border-t-orange-500' : '', // Top accent for highlighted columns
+    isOver ? 'ring-2 ring-orange-500/50 bg-orange-50/50' : '',
   ]
     .filter(Boolean)
     .join(' ');
@@ -85,14 +85,14 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
   return (
     <div ref={setNodeRef} className={columnClasses}>
       {/* Column Header */}
-      <div className='p-3 border-b border-[#E7E7E7] bg-[#FAF8F4] flex items-center justify-between sticky top-0 z-10'>
+      <div className='p-4 border-b border-zinc-200 flex items-center justify-between sticky top-0 z-10'>
         <div className='flex items-center gap-2'>
-          <h3 className='font-serif font-semibold text-[#171717]'>{stage.label}</h3>
-          <span className='bg-[#E7E7E7] text-[#525252] text-xs font-mono px-2 py-0.5 rounded-full'>
+          <h3 className='text-sm font-semibold text-zinc-800'>{stage.label}</h3>
+          <span className='bg-zinc-200 text-zinc-700 text-xs font-medium px-2 py-0.5 rounded-full'>
             {cards.length}
           </span>
         </div>
-        <button className='text-[#A3A3A3] hover:text-[#171717] transition-colors p-1 rounded hover:bg-[#E7E7E7]'>
+        <button className='text-zinc-400 hover:text-zinc-700 transition-colors p-1 rounded hover:bg-zinc-200'>
           <MoreHorizontal className='w-4 h-4' />
         </button>
       </div>

@@ -425,29 +425,29 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
             <span className='px-2 py-0.5 rounded bg-[#171717] text-white font-mono text-[10px] font-bold'>
               CHAPTER VERSIONING
             </span>
-            <span className='text-[#171717] font-semibold'>Phiên bản Bible có hiệu lực tại:</span>
+            <span className='text-[#171717] font-semibold'>Series Bible effective at:</span>
             <span className='text-[#059669] font-mono font-bold'>
               {effectiveChapter === 'all'
-                ? 'Tất cả các mục (Mới nhất)'
+                ? 'All Entities (Latest)'
                 : `Chapter ${effectiveChapter}`}
             </span>
           </div>
 
           <div className='flex items-center gap-2'>
-            <span className='text-[11px] text-[#737373]'>Mốc chương kiểm tra:</span>
+            <span className='text-[11px] text-[#737373]'>Chapter Milestone:</span>
             <select
               value={effectiveChapter}
               onChange={(e) => {
                 const val = e.target.value === 'all' ? 'all' : parseInt(e.target.value, 10);
                 setEffectiveChapter(val);
                 onShowToast(
-                  'Chuyển đổi phiên bản chương',
-                  `Displaying Series Bible effective at ${val === 'all' ? 'bản mới nhất' : `Chapter ${val}`}`,
+                  'Chapter Milestone Changed',
+                  `Displaying Series Bible effective at ${val === 'all' ? 'Latest Version' : `Chapter ${val}`}`,
                 );
               }}
               className='px-2.5 py-1 bg-white border border-[#D4D4D4] rounded-lg font-mono text-xs text-[#171717] focus:outline-none focus:border-[#F97316]'
             >
-              <option value='all'>Tất cả (Mới nhất)</option>
+              <option value='all'>All (Latest)</option>
               {seriesChapters.map((ch) => (
                 <option key={ch.id} value={ch.chapterNumber}>
                   Chapter {ch.chapterNumber}
@@ -456,7 +456,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
               ))}
               {seriesChapters.length === 0 && effectiveSeries?.chapter && (
                 <option value={effectiveSeries.chapter}>
-                  Chapter {effectiveSeries.chapter} (Mặc định)
+                  Chapter {effectiveSeries.chapter} (Default)
                 </option>
               )}
             </select>
@@ -991,15 +991,15 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                     }
                     onShowToast(
                       'Revision successfully created',
-                      `Đã ghi nhận phiên bản mới cho ${revisionName || revisionTarget.name} có hiệu lực từ Chapter ${revisionEffectiveChapter}.`,
+                      `Successfully recorded a new revision for ${revisionName || revisionTarget.name} effective from Chapter ${revisionEffectiveChapter}.`,
                     );
                     setRefreshTrigger((prev) => prev + 1);
                     setAddRevModalOpen(false);
                   } catch (err: any) {
                     if (err.code === 'CONFLICT' || err.status === 409) {
                       onShowToast(
-                        'Xung đột phiên bản (409 CONFLICT)',
-                        'Đã có người khác sửa đổi mục này cùng lúc! Hệ thống tự động mở History để bạn đối chiếu phiên bản mới nhất.',
+                        'Concurrency Conflict (409)',
+                        'Concurrent modification detected! Opening Version History to compare with the latest version.',
                       );
                       setAddRevModalOpen(false);
                       // Auto open history modal to compare
