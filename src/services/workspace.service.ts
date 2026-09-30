@@ -1,5 +1,5 @@
 // src/services/workspace.service.ts
-import { API_URL } from '../config/env';
+import axiosClient from '../api/axiosClient';
 
 export interface CreateWorkspaceRequest {
   name: string;
@@ -44,274 +44,117 @@ export interface UpdateMemberRoleRequest {
   newRole: string | number;
 }
 
-function getActiveToken(customToken?: string): string | null {
-  if (customToken) return customToken;
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('token');
-  }
-  return null;
-}
-
-function isMockOrUnauthenticated(token: string | null): boolean {
-  return !token || token.startsWith('mock-');
-}
-
-function getAuthHeaders(customToken?: string): Record<string, string> {
-  const token = getActiveToken(customToken) || '';
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
-  if (token && !token.startsWith('mock-')) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-  return headers;
-}
-
-async function parseErrorResponse(response: Response, defaultMsg: string): Promise<string> {
-  try {
-    const data = await response.json();
+// Xử lý lỗi từ Axios
+async function parseErrorResponse(error: any, defaultMsg: string): Promise<string> {
+  if (error.response) {
+    const data = error.response.data;
+    const status = error.response.status;
     if (data?.message) return data.message;
     if (data?.error) return data.error;
-  } catch {
-    // empty body
+
+    if (status === 401) return 'Chưa xác thực danh tính (401 Unauthorized).';
+    if (status === 403) return 'Bạn không có quyền thực hiện thao tác này (403 Forbidden).';
+    if (status === 404) return 'Không tìm thấy Workspace hoặc thành viên.';
   }
-  if (response.status === 401) return 'Chưa xác thực danh tính (401 Unauthorized).';
-  if (response.status === 403)
-    return 'Bạn không có quyền thực hiện thao tác này trong Workspace (403 Forbidden).';
-  if (response.status === 404) return 'Không tìm thấy Workspace hoặc thành viên.';
   return defaultMsg;
 }
 
-// Danh sách rỗng mặc định khi chưa có dữ liệu thật từ API
 export const MOCK_WORKSPACES: WorkspaceDto[] = [];
 export const MOCK_WORKSPACE_MEMBERS: WorkspaceMemberDto[] = [];
 
 export const workspaceService = {
-  createWorkspace: async (
-    request: CreateWorkspaceRequest,
-    token?: string,
-  ): Promise<WorkspaceDto> => {
-    const response = await fetch(`${API_URL}/api/Workspaces`, {
-      method: 'POST',
-      headers: getAuthHeaders(token),
-      body: JSON.stringify(request),
-    });
-    if (response.status === 401) {
-      if (typeof window !== 'undefined') localStorage.removeItem('token');
-      throw new Error('Phiên đăng nhập đã hết hạn (401). Vui lòng đăng nhập lại.');
-    }
-    if (!response.ok) {
-      throw new Error(await parseErrorResponse(response, 'Tạo Workspace thất bại.'));
-    }
-    return await response.json();
-  },
-
-  getMyWorkspaces: async (token?: string): Promise<WorkspaceDto[]> => {
-    const activeToken = getActiveToken(token);
-    if (!activeToken) {
-      return [];
-    }
-
+  createWorkspace: async (request: CreateWorkspaceRequest): Promise<WorkspaceDto> => {
     try {
-      const response = await fetch(`${API_URL}/api/Workspaces`, {
-        method: 'GET',
-        headers: getAuthHeaders(activeToken),
-      });
-      if (response.status === 401) {
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('token');
-        }
-        return [];
-      }
-      if (!response.ok) {
-        throw new Error(await parseErrorResponse(response, 'Không thể lấy danh sách Workspaces.'));
-      }
-      return await response.json();
-    } catch (err: any) {
-      console.warn('workspaceService.getMyWorkspaces error:', err.message);
-      return [];
+      const response = await axiosClient.post('/Workspaces', request);
+      return response.data;
+    } catch (error) {
+      throw new Error(await parseErrorResponse(error, 'Tạo Workspace thất bại.'));
     }
   },
 
-  getWorkspaceById: async (id: string, token?: string): Promise<WorkspaceDto> => {
-    const activeToken = getActiveToken(token);
-    const response = await fetch(`${API_URL}/api/Workspaces/${id}`, {
-      method: 'GET',
-      headers: getAuthHeaders(activeToken),
-    });
-    if (response.status === 401) {
-      if (typeof window !== 'undefined') localStorage.removeItem('token');
-      throw new Error('Phiên đăng nhập đã hết hạn (401). Vui lòng đăng nhập lại.');
-    }
-    if (!response.ok) {
-      throw new Error(await parseErrorResponse(response, 'Không thể lấy thông tin Workspace.'));
-    }
-    return await response.json();
-  },
-
-  updateWorkspace: async (
-    id: string,
-    request: UpdateWorkspaceRequest,
-    token?: string,
-  ): Promise<WorkspaceDto> => {
-    const activeToken = getActiveToken(token);
-    const response = await fetch(`${API_URL}/api/Workspaces/${id}`, {
-      method: 'PUT',
-      headers: getAuthHeaders(activeToken),
-      body: JSON.stringify(request),
-    });
-    if (response.status === 401) {
-      if (typeof window !== 'undefined') localStorage.removeItem('token');
-      throw new Error('Phiên đăng nhập đã hết hạn (401). Vui lòng đăng nhập lại.');
-    }
-    if (!response.ok) {
-      throw new Error(await parseErrorResponse(response, 'Cập nhật Workspace thất bại.'));
-    }
-    return await response.json();
-  },
-
-  deleteWorkspace: async (id: string, token?: string): Promise<{ message: string }> => {
-    const activeToken = getActiveToken(token);
-    const response = await fetch(`${API_URL}/api/Workspaces/${id}`, {
-      method: 'DELETE',
-      headers: getAuthHeaders(activeToken),
-    });
-    if (response.status === 401) {
-      if (typeof window !== 'undefined') localStorage.removeItem('token');
-      throw new Error('Phiên đăng nhập đã hết hạn (401). Vui lòng đăng nhập lại.');
-    }
-    if (!response.ok) {
-      throw new Error(await parseErrorResponse(response, 'Xóa Workspace thất bại.'));
-    }
-    return await response.json();
-  },
-
-  getMembers: async (id: string, token?: string): Promise<WorkspaceMemberDto[]> => {
-    const activeToken = getActiveToken(token);
-    if (!activeToken) return [];
-
+  getMyWorkspaces: async (): Promise<WorkspaceDto[]> => {
     try {
-      const response = await fetch(`${API_URL}/api/Workspaces/${id}/members`, {
-        method: 'GET',
-        headers: getAuthHeaders(activeToken),
-      });
-      if (response.status === 401) {
-        if (typeof window !== 'undefined') localStorage.removeItem('token');
-        return [];
-      }
-      if (!response.ok) {
-        throw new Error(await parseErrorResponse(response, 'Không thể lấy danh sách thành viên.'));
-      }
-      return await response.json();
-    } catch (err: any) {
-      console.warn('workspaceService.getMembers error:', err.message);
+      const response = await axiosClient.get('/Workspaces');
+      return response.data;
+    } catch (error) {
+      console.warn('workspaceService.getMyWorkspaces error:', error);
       return [];
     }
   },
 
-  addMember: async (
-    id: string,
-    request: AddWorkspaceMemberRequest,
-    token?: string,
-  ): Promise<WorkspaceMemberDto> => {
-    const activeToken = getActiveToken(token);
-    const response = await fetch(`${API_URL}/api/Workspaces/${id}/members`, {
-      method: 'POST',
-      headers: getAuthHeaders(activeToken),
-      body: JSON.stringify(request),
-    });
-    if (response.status === 401) {
-      if (typeof window !== 'undefined') localStorage.removeItem('token');
-      throw new Error('Phiên đăng nhập đã hết hạn (401). Vui lòng đăng nhập lại.');
+  getWorkspaceById: async (id: string): Promise<WorkspaceDto> => {
+    try {
+      const response = await axiosClient.get(`/Workspaces/${id}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(await parseErrorResponse(error, 'Không thể lấy thông tin Workspace.'));
     }
-    if (!response.ok) {
-      throw new Error(await parseErrorResponse(response, 'Thêm thành viên thất bại.'));
-    }
-    return await response.json();
   },
 
-  updateMemberRole: async (
-    id: string,
-    userId: string,
-    request: UpdateMemberRoleRequest,
-    token?: string,
-  ): Promise<WorkspaceMemberDto> => {
-    const activeToken = getActiveToken(token);
-    const response = await fetch(`${API_URL}/api/Workspaces/${id}/members/${userId}`, {
-      method: 'PUT',
-      headers: getAuthHeaders(activeToken),
-      body: JSON.stringify(request),
-    });
-    if (response.status === 401) {
-      if (typeof window !== 'undefined') localStorage.removeItem('token');
-      throw new Error('Phiên đăng nhập đã hết hạn (401). Vui lòng đăng nhập lại.');
+  updateWorkspace: async (id: string, request: UpdateWorkspaceRequest): Promise<WorkspaceDto> => {
+    try {
+      const response = await axiosClient.put(`/Workspaces/${id}`, request);
+      return response.data;
+    } catch (error) {
+      throw new Error(await parseErrorResponse(error, 'Cập nhật Workspace thất bại.'));
     }
-    if (!response.ok) {
-      throw new Error(await parseErrorResponse(response, 'Cập nhật vai trò thành viên thất bại.'));
-    }
-    return await response.json();
   },
 
-  removeMember: async (
-    id: string,
-    userId: string,
-    token?: string,
-  ): Promise<{ message: string }> => {
-    const activeToken = getActiveToken(token);
-    const response = await fetch(`${API_URL}/api/Workspaces/${id}/members/${userId}`, {
-      method: 'DELETE',
-      headers: getAuthHeaders(activeToken),
-    });
-    if (response.status === 401) {
-      if (typeof window !== 'undefined') localStorage.removeItem('token');
-      throw new Error('Phiên đăng nhập đã hết hạn (401). Vui lòng đăng nhập lại.');
+  deleteWorkspace: async (id: string): Promise<{ message: string }> => {
+    try {
+      const response = await axiosClient.delete(`/Workspaces/${id}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(await parseErrorResponse(error, 'Xóa Workspace thất bại.'));
     }
-    if (!response.ok) {
-      throw new Error(
-        await parseErrorResponse(response, 'Xóa thành viên khỏi Workspace thất bại.'),
-      );
-    }
-    return await response.json();
   },
 
-  /**
-   * Tra cứu Audit Log của Workspace cho Producer (GET /api/workspaces/{id}/audit-logs) (UC-15, BR-18)
-   */
+  getMembers: async (id: string): Promise<WorkspaceMemberDto[]> => {
+    try {
+      const response = await axiosClient.get(`/Workspaces/${id}/members`);
+      return response.data;
+    } catch (error) {
+      console.warn('workspaceService.getMembers error:', error);
+      return [];
+    }
+  },
+
+  addMember: async (id: string, request: AddWorkspaceMemberRequest): Promise<WorkspaceMemberDto> => {
+    try {
+      const response = await axiosClient.post(`/Workspaces/${id}/members`, request);
+      return response.data;
+    } catch (error) {
+      throw new Error(await parseErrorResponse(error, 'Thêm thành viên thất bại.'));
+    }
+  },
+
+  updateMemberRole: async (id: string, userId: string, request: UpdateMemberRoleRequest): Promise<WorkspaceMemberDto> => {
+    try {
+      const response = await axiosClient.put(`/Workspaces/${id}/members/${userId}`, request);
+      return response.data;
+    } catch (error) {
+      throw new Error(await parseErrorResponse(error, 'Cập nhật vai trò thành viên thất bại.'));
+    }
+  },
+
+  removeMember: async (id: string, userId: string): Promise<{ message: string }> => {
+    try {
+      const response = await axiosClient.delete(`/Workspaces/${id}/members/${userId}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(await parseErrorResponse(error, 'Xóa thành viên khỏi Workspace thất bại.'));
+    }
+  },
+
   getWorkspaceAuditLogs: async (
     workspaceId: string,
-    params?: {
-      action?: string;
-      userId?: string;
-      entityName?: string;
-      entityId?: string;
-      from?: string;
-      to?: string;
-      page?: number;
-      pageSize?: number;
-    },
-    token?: string,
+    params?: Record<string, any>
   ): Promise<any> => {
-    const activeToken = getActiveToken(token);
-    const url = new URL(`${API_URL}/api/workspaces/${workspaceId}/audit-logs`);
-    if (params) {
-      if (params.action) url.searchParams.set('action', params.action);
-      if (params.userId) url.searchParams.set('userId', params.userId);
-      if (params.entityName) url.searchParams.set('entityName', params.entityName);
-      if (params.entityId) url.searchParams.set('entityId', params.entityId);
-      if (params.from) url.searchParams.set('from', params.from);
-      if (params.to) url.searchParams.set('to', params.to);
-      if (params.page) url.searchParams.set('page', params.page.toString());
-      if (params.pageSize) url.searchParams.set('pageSize', params.pageSize.toString());
+    try {
+      const response = await axiosClient.get(`/workspaces/${workspaceId}/audit-logs`, { params });
+      return response.data;
+    } catch (error) {
+      throw new Error(await parseErrorResponse(error, 'Không thể tải lịch sử Audit của Workspace.'));
     }
-    const response = await fetch(url.toString(), {
-      method: 'GET',
-      headers: getAuthHeaders(activeToken),
-    });
-    if (!response.ok) {
-      throw new Error(
-        await parseErrorResponse(response, 'Không thể tải lịch sử Audit của Workspace.'),
-      );
-    }
-    return await response.json();
   },
 };

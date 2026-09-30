@@ -1,5 +1,6 @@
 // src/services/series.service.ts
-import { API_URL } from '../config/env';
+import axiosClient from '../api/axiosClient';
+
 export interface SeriesDto {
   id: string;
   workspaceId: string;
@@ -158,150 +159,95 @@ export interface UpdateSeriesMemberRequest {
   seriesRole: string;
 }
 
-function getActiveToken(): string | null {
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('token');
-  }
-  return null;
-}
-
-function getAuthHeaders(): Record<string, string> {
-  const token = getActiveToken() || '';
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
-  if (token && !token.startsWith('mock-')) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-  return headers;
+function extractError(err: any, defaultMsg: string): string {
+  return err.response?.data?.error || err.response?.data?.message || defaultMsg;
 }
 
 export const seriesService = {
   async getSeriesList(workspaceId: string, search?: string): Promise<SeriesDto[]> {
-    const token = getActiveToken();
-    if (!token || token.startsWith('mock-')) {
-      return [];
-    }
-
-    const url = new URL(`${API_URL}/api/workspaces/${workspaceId}/series`);
-    if (search) url.searchParams.set('search', search);
-
     try {
-      const res = await fetch(url.toString(), {
-        headers: getAuthHeaders(),
+      const res = await axiosClient.get(`/workspaces/${workspaceId}/series`, {
+        params: search ? { search } : undefined,
       });
-      if (res.status === 401) {
-        if (typeof window !== 'undefined') localStorage.removeItem('token');
-        return [];
-      }
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || err.message || 'Không thể lấy danh sách Series.');
-      }
-      return res.json();
+      return res.data;
     } catch {
       return [];
     }
   },
 
   async getSeriesById(seriesId: string): Promise<SeriesDetailDto> {
-    const res = await fetch(`${API_URL}/api/series/${seriesId}`, {
-      headers: getAuthHeaders(),
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || err.message || 'Không thể lấy thông tin Series.');
+    try {
+      const res = await axiosClient.get(`/series/${seriesId}`);
+      return res.data;
+    } catch (err: any) {
+      throw new Error(extractError(err, 'Không thể lấy thông tin Series.'));
     }
-    return res.json();
   },
 
   async createSeries(workspaceId: string, data: CreateSeriesRequest): Promise<SeriesDto> {
-    const res = await fetch(`${API_URL}/api/workspaces/${workspaceId}/series`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(data),
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || err.message || 'Không thể tạo Series mới.');
+    try {
+      const res = await axiosClient.post(`/workspaces/${workspaceId}/series`, data);
+      return res.data;
+    } catch (err: any) {
+      throw new Error(extractError(err, 'Không thể tạo Series mới.'));
     }
-    return res.json();
   },
 
   async updateSeries(seriesId: string, data: UpdateSeriesRequest): Promise<SeriesDto> {
-    const res = await fetch(`${API_URL}/api/series/${seriesId}`, {
-      method: 'PUT',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(data),
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || err.message || 'Không thể cập nhật Series.');
+    try {
+      const res = await axiosClient.put(`/series/${seriesId}`, data);
+      return res.data;
+    } catch (err: any) {
+      throw new Error(extractError(err, 'Không thể cập nhật Series.'));
     }
-    return res.json();
   },
 
   async deleteSeries(seriesId: string): Promise<void> {
-    const res = await fetch(`${API_URL}/api/series/${seriesId}`, {
-      method: 'DELETE',
-      headers: getAuthHeaders(),
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || err.message || 'Không thể xóa Series.');
+    try {
+      await axiosClient.delete(`/series/${seriesId}`);
+    } catch (err: any) {
+      throw new Error(extractError(err, 'Không thể xóa Series.'));
     }
   },
 
   async getPresets(seriesId: string): Promise<SeriesPresetDto> {
-    const res = await fetch(`${API_URL}/api/series/${seriesId}/presets`, {
-      headers: getAuthHeaders(),
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || err.message || 'Không thể tải cấu hình Presets của Series.');
+    try {
+      const res = await axiosClient.get(`/series/${seriesId}/presets`);
+      return res.data;
+    } catch (err: any) {
+      throw new Error(extractError(err, 'Không thể tải cấu hình Presets của Series.'));
     }
-    return res.json();
   },
 
   async updatePresets(seriesId: string, data: UpdateSeriesPresetRequest): Promise<SeriesPresetDto> {
-    const res = await fetch(`${API_URL}/api/series/${seriesId}/presets`, {
-      method: 'PUT',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(data),
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || err.message || 'Không thể lưu cấu hình Presets.');
+    try {
+      const res = await axiosClient.put(`/series/${seriesId}/presets`, data);
+      return res.data;
+    } catch (err: any) {
+      throw new Error(extractError(err, 'Không thể lưu cấu hình Presets.'));
     }
-    return res.json();
   },
 
   // ── Typography Presets CRUD (Task 8, NFR-08) ──
   async getTypographyPresets(seriesId: string): Promise<TypographyPresetDto[]> {
-    const res = await fetch(`${API_URL}/api/series/${seriesId}/presets`, {
-      headers: getAuthHeaders(),
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || err.message || 'Không thể tải danh sách Typography Presets.');
+    try {
+      const res = await axiosClient.get(`/series/${seriesId}/presets`);
+      return res.data;
+    } catch (err: any) {
+      throw new Error(extractError(err, 'Không thể tải danh sách Typography Presets.'));
     }
-    return res.json();
   },
 
   async createTypographyPreset(
     seriesId: string,
     data: CreateTypographyPresetRequest,
   ): Promise<TypographyPresetDto> {
-    const res = await fetch(`${API_URL}/api/series/${seriesId}/presets`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(data),
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || err.message || 'Không thể tạo Typography Preset.');
+    try {
+      const res = await axiosClient.post(`/series/${seriesId}/presets`, data);
+      return res.data;
+    } catch (err: any) {
+      throw new Error(extractError(err, 'Không thể tạo Typography Preset.'));
     }
-    return res.json();
   },
 
   async updateTypographyPreset(
@@ -309,55 +255,42 @@ export const seriesService = {
     presetId: string,
     data: UpdateTypographyPresetRequest,
   ): Promise<TypographyPresetDto> {
-    const res = await fetch(`${API_URL}/api/series/${seriesId}/presets/${presetId}`, {
-      method: 'PUT',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(data),
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || err.message || 'Không thể cập nhật Typography Preset.');
+    try {
+      const res = await axiosClient.put(`/series/${seriesId}/presets/${presetId}`, data);
+      return res.data;
+    } catch (err: any) {
+      throw new Error(extractError(err, 'Không thể cập nhật Typography Preset.'));
     }
-    return res.json();
   },
 
   async deleteTypographyPreset(seriesId: string, presetId: string): Promise<void> {
-    const res = await fetch(`${API_URL}/api/series/${seriesId}/presets/${presetId}`, {
-      method: 'DELETE',
-      headers: getAuthHeaders(),
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || err.message || 'Không thể xóa Typography Preset.');
+    try {
+      await axiosClient.delete(`/series/${seriesId}/presets/${presetId}`);
+    } catch (err: any) {
+      throw new Error(extractError(err, 'Không thể xóa Typography Preset.'));
     }
   },
 
   // ── Consistency Rules CRUD (Task 9, NFR-08) ──
   async getConsistencyRules(seriesId: string): Promise<ConsistencyRuleDto[]> {
-    const res = await fetch(`${API_URL}/api/series/${seriesId}/consistency-rules`, {
-      headers: getAuthHeaders(),
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || err.message || 'Không thể tải danh sách Consistency Rules.');
+    try {
+      const res = await axiosClient.get(`/series/${seriesId}/consistency-rules`);
+      return res.data;
+    } catch (err: any) {
+      throw new Error(extractError(err, 'Không thể tải danh sách Consistency Rules.'));
     }
-    return res.json();
   },
 
   async createConsistencyRule(
     seriesId: string,
     data: CreateConsistencyRuleRequest,
   ): Promise<ConsistencyRuleDto> {
-    const res = await fetch(`${API_URL}/api/series/${seriesId}/consistency-rules`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(data),
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || err.message || 'Không thể tạo Consistency Rule.');
+    try {
+      const res = await axiosClient.post(`/series/${seriesId}/consistency-rules`, data);
+      return res.data;
+    } catch (err: any) {
+      throw new Error(extractError(err, 'Không thể tạo Consistency Rule.'));
     }
-    return res.json();
   },
 
   async updateConsistencyRule(
@@ -365,75 +298,56 @@ export const seriesService = {
     ruleId: string,
     data: UpdateConsistencyRuleRequest,
   ): Promise<ConsistencyRuleDto> {
-    const res = await fetch(`${API_URL}/api/series/${seriesId}/consistency-rules/${ruleId}`, {
-      method: 'PUT',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(data),
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || err.message || 'Không thể cập nhật Consistency Rule.');
+    try {
+      const res = await axiosClient.put(`/series/${seriesId}/consistency-rules/${ruleId}`, data);
+      return res.data;
+    } catch (err: any) {
+      throw new Error(extractError(err, 'Không thể cập nhật Consistency Rule.'));
     }
-    return res.json();
   },
 
   async deleteConsistencyRule(seriesId: string, ruleId: string): Promise<void> {
-    const res = await fetch(`${API_URL}/api/series/${seriesId}/consistency-rules/${ruleId}`, {
-      method: 'DELETE',
-      headers: getAuthHeaders(),
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || err.message || 'Không thể xóa Consistency Rule.');
+    try {
+      await axiosClient.delete(`/series/${seriesId}/consistency-rules/${ruleId}`);
+    } catch (err: any) {
+      throw new Error(extractError(err, 'Không thể xóa Consistency Rule.'));
     }
   },
 
   // Series Members APIs
   async getSeriesMembers(workspaceId: string, seriesId: string): Promise<SeriesMemberDto[]> {
-    const res = await fetch(`${API_URL}/api/workspaces/${workspaceId}/series/${seriesId}/members`, {
-      headers: getAuthHeaders(),
-    });
-    if (!res.ok) {
-      if (res.status === 404) return [];
-      throw new Error(`Failed to fetch series members: ${res.statusText}`);
+    try {
+      const res = await axiosClient.get(`/workspaces/${workspaceId}/series/${seriesId}/members`);
+      return res.data;
+    } catch (err: any) {
+      if (err.response?.status === 404) return [];
+      throw new Error(`Failed to fetch series members: ${err.message}`);
     }
-    return res.json();
   },
 
   async addSeriesMember(workspaceId: string, seriesId: string, req: AddSeriesMemberRequest): Promise<SeriesMemberDto> {
-    const res = await fetch(`${API_URL}/api/workspaces/${workspaceId}/series/${seriesId}/members`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(req),
-    });
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`Failed to add member to series: ${errText}`);
+    try {
+      const res = await axiosClient.post(`/workspaces/${workspaceId}/series/${seriesId}/members`, req);
+      return res.data;
+    } catch (err: any) {
+      throw new Error(`Failed to add member to series: ${err.response?.data || err.message}`);
     }
-    return res.json();
   },
 
   async updateSeriesMember(workspaceId: string, seriesId: string, memberId: string, req: UpdateSeriesMemberRequest): Promise<SeriesMemberDto> {
-    const res = await fetch(`${API_URL}/api/workspaces/${workspaceId}/series/${seriesId}/members/${memberId}`, {
-      method: 'PUT',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(req),
-    });
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`Failed to update series member: ${errText}`);
+    try {
+      const res = await axiosClient.put(`/workspaces/${workspaceId}/series/${seriesId}/members/${memberId}`, req);
+      return res.data;
+    } catch (err: any) {
+      throw new Error(`Failed to update series member: ${err.response?.data || err.message}`);
     }
-    return res.json();
   },
 
   async removeSeriesMember(workspaceId: string, seriesId: string, memberId: string): Promise<void> {
-    const res = await fetch(`${API_URL}/api/workspaces/${workspaceId}/series/${seriesId}/members/${memberId}`, {
-      method: 'DELETE',
-      headers: getAuthHeaders(),
-    });
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`Failed to remove series member: ${errText}`);
+    try {
+      await axiosClient.delete(`/workspaces/${workspaceId}/series/${seriesId}/members/${memberId}`);
+    } catch (err: any) {
+      throw new Error(`Failed to remove series member: ${err.response?.data || err.message}`);
     }
   },
 };

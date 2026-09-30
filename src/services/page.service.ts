@@ -1,5 +1,6 @@
 // src/services/page.service.ts
-import { API_URL } from '../config/env';
+import axiosClient from '../api/axiosClient';
+
 export interface CreatePageRequestBody {
   pageNumber?: number;
   layoutFormat?: string;
@@ -41,26 +42,11 @@ export interface PageDetailDto {
   activeElementsCount: number;
 }
 
-function getAuthHeaders(customToken?: string): Record<string, string> {
-  const token = customToken || localStorage.getItem('token') || '';
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-  return headers;
-}
-
-async function parseErrorResponse(response: Response, defaultMsg: string): Promise<string> {
-  try {
-    const data = await response.json();
-    if (data?.error) return data.error;
-    if (data?.message) return data.message;
-  } catch {
-    // empty body
-  }
-  if (response.status === 404) return 'Không tìm thấy trang hoặc chapter yêu cầu.';
+async function parseErrorResponse(error: any, defaultMsg: string): Promise<string> {
+  const data = error.response?.data;
+  if (data?.error) return data.error;
+  if (data?.message) return data.message;
+  if (error.response?.status === 404) return 'Không tìm thấy trang hoặc chapter yêu cầu.';
   return defaultMsg;
 }
 
@@ -90,50 +76,34 @@ export const pageService = {
   createPage: async (
     chapterId: string,
     body: CreatePageRequestBody,
-    token?: string,
   ): Promise<PageDto> => {
     const validChapterId = toValidChapterGuid(chapterId);
-    const response = await fetch(`${API_URL}/api/chapters/${validChapterId}/pages`, {
-      method: 'POST',
-      headers: getAuthHeaders(token),
-      body: JSON.stringify(body),
-    });
-    if (!response.ok) {
-      throw new Error(await parseErrorResponse(response, 'Tạo trang mới thất bại.'));
+    try {
+      const response = await axiosClient.post(`/chapters/${validChapterId}/pages`, body);
+      return response.data;
+    } catch (error) {
+      throw new Error(await parseErrorResponse(error, 'Tạo trang mới thất bại.'));
     }
-    return await response.json();
   },
 
-  getPagesByChapter: async (chapterId: string, token?: string): Promise<PageDto[]> => {
+  getPagesByChapter: async (chapterId: string): Promise<PageDto[]> => {
     const validChapterId = toValidChapterGuid(chapterId);
     try {
-      const response = await fetch(`${API_URL}/api/chapters/${validChapterId}/pages`, {
-        method: 'GET',
-        headers: getAuthHeaders(token),
-      });
-      if (!response.ok) {
-        throw new Error(await parseErrorResponse(response, 'Không thể tải danh sách trang.'));
-      }
-      return await response.json();
-    } catch (err: any) {
-      console.warn('pageService.getPagesByChapter fallback:', err.message);
+      const response = await axiosClient.get(`/chapters/${validChapterId}/pages`);
+      return response.data;
+    } catch (error: any) {
+      console.warn('pageService.getPagesByChapter fallback:', error.message);
       return MOCK_PAGES;
     }
   },
 
-  getPageById: async (pageId: string, token?: string): Promise<PageDetailDto> => {
+  getPageById: async (pageId: string): Promise<PageDetailDto> => {
     const validPageId = toValidPageGuid(pageId);
     try {
-      const response = await fetch(`${API_URL}/api/pages/${validPageId}`, {
-        method: 'GET',
-        headers: getAuthHeaders(token),
-      });
-      if (!response.ok) {
-        throw new Error(await parseErrorResponse(response, 'Không thể tải chi tiết trang.'));
-      }
-      return await response.json();
-    } catch (err: any) {
-      console.warn('pageService.getPageById fallback:', err.message);
+      const response = await axiosClient.get(`/pages/${validPageId}`);
+      return response.data;
+    } catch (error: any) {
+      console.warn('pageService.getPageById fallback:', error.message);
       return {
         id: validPageId,
         chapterId: DEFAULT_CHAPTER_ID,
@@ -151,29 +121,23 @@ export const pageService = {
   updateCanvasSettings: async (
     pageId: string,
     body: UpdateCanvasRequestBody,
-    token?: string,
   ): Promise<{ message: string }> => {
     const validPageId = toValidPageGuid(pageId);
-    const response = await fetch(`${API_URL}/api/pages/${validPageId}/canvas-settings`, {
-      method: 'PUT',
-      headers: getAuthHeaders(token),
-      body: JSON.stringify(body),
-    });
-    if (!response.ok) {
-      throw new Error(await parseErrorResponse(response, 'Cập nhật canvas thất bại.'));
+    try {
+      const response = await axiosClient.put(`/pages/${validPageId}/canvas-settings`, body);
+      return response.data;
+    } catch (error) {
+      throw new Error(await parseErrorResponse(error, 'Cập nhật canvas thất bại.'));
     }
-    return await response.json();
   },
 
-  deletePage: async (pageId: string, token?: string): Promise<{ message: string }> => {
+  deletePage: async (pageId: string): Promise<{ message: string }> => {
     const validPageId = toValidPageGuid(pageId);
-    const response = await fetch(`${API_URL}/api/pages/${validPageId}`, {
-      method: 'DELETE',
-      headers: getAuthHeaders(token),
-    });
-    if (!response.ok) {
-      throw new Error(await parseErrorResponse(response, 'Xóa trang thất bại.'));
+    try {
+      const response = await axiosClient.delete(`/pages/${validPageId}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(await parseErrorResponse(error, 'Xóa trang thất bại.'));
     }
-    return await response.json();
   },
 };

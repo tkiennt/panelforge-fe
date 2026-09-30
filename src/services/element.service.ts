@@ -1,5 +1,6 @@
 // src/services/element.service.ts
-import { API_URL } from '../config/env';
+import axiosClient from '../api/axiosClient';
+
 export interface ElementSnapshotDto {
   elementId: string;
   elementType: string; // 'DialogueBalloon' | 'NarrationBox' | 'SoundEffect' | 'CharacterInstance' | 'ArtworkLayer'
@@ -39,27 +40,11 @@ export interface MoveElementRequest {
   expectedPageVersion: number;
 }
 
-function getAuthHeaders(customToken?: string): Record<string, string> {
-  const token = customToken || localStorage.getItem('token') || '';
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-  return headers;
-}
-
-async function parseErrorResponse(response: Response, defaultMsg: string): Promise<string> {
-  try {
-    const data = await response.json();
-    if (data?.message) return data.message;
-  } catch {
-    // empty body
-  }
-  if (response.status === 409)
-    return 'Xung đột phiên bản trang (409 Conflict). Vui lòng tải lại trang.';
-  if (response.status === 404) return 'Không tìm thấy Page hoặc Element.';
+function extractError(error: any, defaultMsg: string): string {
+  const data = error.response?.data;
+  if (data?.message) return data.message;
+  if (error.response?.status === 409) return 'Xung đột phiên bản trang (409 Conflict). Vui lòng tải lại trang.';
+  if (error.response?.status === 404) return 'Không tìm thấy Page hoặc Element.';
   return defaultMsg;
 }
 
@@ -87,25 +72,15 @@ export const elementService = {
   getPageSnapshot: async (
     pageId: string,
     includeRemoved = false,
-    token?: string,
   ): Promise<PageSnapshotDto> => {
     const validPageId = toValidPageGuid(pageId);
     try {
-      const response = await fetch(
-        `${API_URL}/api/pages/${validPageId}/elements?includeRemoved=${includeRemoved}`,
-        {
-          method: 'GET',
-          headers: getAuthHeaders(token),
-        },
-      );
-      if (!response.ok) {
-        throw new Error(
-          await parseErrorResponse(response, 'Không thể tải snapshot elements của trang.'),
-        );
-      }
-      return await response.json();
-    } catch (err: any) {
-      console.warn('elementService.getPageSnapshot fallback:', err.message);
+      const response = await axiosClient.get(`/pages/${validPageId}/elements`, {
+        params: { includeRemoved }
+      });
+      return response.data;
+    } catch (error: any) {
+      console.warn('elementService.getPageSnapshot fallback:', error.message);
       return {
         pageId: validPageId,
         version: 1,
@@ -115,59 +90,45 @@ export const elementService = {
     }
   },
 
-  addElement: async (pageId: string, request: AddElementRequest, token?: string): Promise<any> => {
+  addElement: async (pageId: string, request: AddElementRequest): Promise<any> => {
     const validPageId = toValidPageGuid(pageId);
-    const response = await fetch(`${API_URL}/api/pages/${validPageId}/elements`, {
-      method: 'POST',
-      headers: getAuthHeaders(token),
-      body: JSON.stringify(request),
-    });
-    if (!response.ok && response.status !== 202) {
-      throw new Error(await parseErrorResponse(response, 'Thêm Element thất bại.'));
+    try {
+      const response = await axiosClient.post(`/pages/${validPageId}/elements`, request);
+      return response.data;
+    } catch (error) {
+      throw new Error(extractError(error, 'Thêm Element thất bại.'));
     }
-    return await response.json();
   },
 
   moveElement: async (
     pageId: string,
     elementId: string,
     request: MoveElementRequest,
-    token?: string,
   ): Promise<{ message: string }> => {
     const validPageId = toValidPageGuid(pageId);
     const validElemId = toValidElementGuid(elementId);
-    const response = await fetch(
-      `${API_URL}/api/pages/${validPageId}/elements/${validElemId}/position`,
-      {
-        method: 'PUT',
-        headers: getAuthHeaders(token),
-        body: JSON.stringify(request),
-      },
-    );
-    if (!response.ok && response.status !== 202) {
-      throw new Error(await parseErrorResponse(response, 'Di chuyển Element thất bại.'));
+    try {
+      const response = await axiosClient.put(`/pages/${validPageId}/elements/${validElemId}/position`, request);
+      return response.data;
+    } catch (error) {
+      throw new Error(extractError(error, 'Di chuyển Element thất bại.'));
     }
-    return await response.json();
   },
 
   removeElement: async (
     pageId: string,
     elementId: string,
     reason = 'USER_DELETE',
-    token?: string,
   ): Promise<{ message: string; elementId: string; canRestore: boolean }> => {
     const validPageId = toValidPageGuid(pageId);
     const validElemId = toValidElementGuid(elementId);
-    const response = await fetch(
-      `${API_URL}/api/pages/${validPageId}/elements/${validElemId}?reason=${encodeURIComponent(reason)}`,
-      {
-        method: 'DELETE',
-        headers: getAuthHeaders(token),
-      },
-    );
-    if (!response.ok && response.status !== 202) {
-      throw new Error(await parseErrorResponse(response, 'Xóa Element thất bại.'));
+    try {
+      const response = await axiosClient.delete(`/pages/${validPageId}/elements/${validElemId}`, {
+        params: { reason }
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(extractError(error, 'Xóa Element thất bại.'));
     }
-    return await response.json();
   },
 };

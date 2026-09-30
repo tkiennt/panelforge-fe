@@ -70,9 +70,12 @@ export const WorkflowBoardView: React.FC<WorkflowBoardViewProps> = ({
 
   useEffect(() => {
     if (seriesId) {
-      seriesService.getSeriesMembers(seriesId).then(data => {
-        setSeriesMembers(data || []);
-      }).catch(err => console.error(err));
+      const workspaceId = JSON.parse(localStorage.getItem('activeWorkspace') || '{}').id;
+      if (workspaceId) {
+        seriesService.getSeriesMembers(workspaceId, seriesId).then(data => {
+          setSeriesMembers(data || []);
+        }).catch(err => console.error(err));
+      }
     }
   }, [seriesId]);
 

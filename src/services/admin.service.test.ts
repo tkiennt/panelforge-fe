@@ -58,8 +58,7 @@ describe('adminService', () => {
     globalThis.fetch = fetchMock;
 
     const result = await adminService.assignRole(
-      { userId: 'user-guid-xyz', newRole: 'Editor' },
-      'custom-token',
+      { userId: 'user-guid-xyz', newRole: 'Editor' }
     );
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
