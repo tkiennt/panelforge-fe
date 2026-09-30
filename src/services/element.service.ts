@@ -43,7 +43,8 @@ export interface MoveElementRequest {
 function extractError(error: any, defaultMsg: string): string {
   const data = error.response?.data;
   if (data?.message) return data.message;
-  if (error.response?.status === 409) return 'Xung đột phiên bản trang (409 Conflict). Vui lòng tải lại trang.';
+  if (error.response?.status === 409)
+    return 'Xung đột phiên bản trang (409 Conflict). Vui lòng tải lại trang.';
   if (error.response?.status === 404) return 'Không tìm thấy Page hoặc Element.';
   return defaultMsg;
 }
@@ -69,14 +70,11 @@ export const toValidElementGuid = (id?: string): string => {
 export const MOCK_ELEMENTS: ElementSnapshotDto[] = [];
 
 export const elementService = {
-  getPageSnapshot: async (
-    pageId: string,
-    includeRemoved = false,
-  ): Promise<PageSnapshotDto> => {
+  getPageSnapshot: async (pageId: string, includeRemoved = false): Promise<PageSnapshotDto> => {
     const validPageId = toValidPageGuid(pageId);
     try {
       const response = await axiosClient.get(`/pages/${validPageId}/elements`, {
-        params: { includeRemoved }
+        params: { includeRemoved },
       });
       return response.data;
     } catch (error: any) {
@@ -108,7 +106,10 @@ export const elementService = {
     const validPageId = toValidPageGuid(pageId);
     const validElemId = toValidElementGuid(elementId);
     try {
-      const response = await axiosClient.put(`/pages/${validPageId}/elements/${validElemId}/position`, request);
+      const response = await axiosClient.put(
+        `/pages/${validPageId}/elements/${validElemId}/position`,
+        request,
+      );
       return response.data;
     } catch (error) {
       throw new Error(extractError(error, 'Di chuyển Element thất bại.'));
@@ -124,7 +125,7 @@ export const elementService = {
     const validElemId = toValidElementGuid(elementId);
     try {
       const response = await axiosClient.delete(`/pages/${validPageId}/elements/${validElemId}`, {
-        params: { reason }
+        params: { reason },
       });
       return response.data;
     } catch (error) {

@@ -65,10 +65,7 @@ export const chapterService = {
   /**
    * Tạo chương mới kèm lịch phát hành mục tiêu (POST /api/series/{seriesId}/chapters) (UC-03)
    */
-  createChapter: async (
-    seriesId: string,
-    data: CreateChapterRequest,
-  ): Promise<ChapterDto> => {
+  createChapter: async (seriesId: string, data: CreateChapterRequest): Promise<ChapterDto> => {
     try {
       const response = await axiosClient.post(`/series/${seriesId}/chapters`, data);
       return response.data;
@@ -92,10 +89,7 @@ export const chapterService = {
   /**
    * Cập nhật thông tin chương & lịch phát hành TargetReleaseDate (PUT /api/chapters/{chapterId})
    */
-  updateChapter: async (
-    chapterId: string,
-    data: UpdateChapterRequest,
-  ): Promise<ChapterDto> => {
+  updateChapter: async (chapterId: string, data: UpdateChapterRequest): Promise<ChapterDto> => {
     try {
       const response = await axiosClient.put(`/chapters/${chapterId}`, data);
       return response.data;

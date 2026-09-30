@@ -106,10 +106,7 @@ export const pipelineService = {
   /**
    * Thêm stage mới vào Pipeline (POST /api/series/{seriesId}/pipeline/stages)
    */
-  addStage: async (
-    seriesId: string,
-    data: AddPipelineStageRequest,
-  ): Promise<SeriesPipelineDto> => {
+  addStage: async (seriesId: string, data: AddPipelineStageRequest): Promise<SeriesPipelineDto> => {
     try {
       const response = await axiosClient.post(`/series/${seriesId}/pipeline/stages`, data);
       return response.data;
@@ -127,7 +124,10 @@ export const pipelineService = {
     data: UpdatePipelineStageRequest,
   ): Promise<SeriesPipelineDto> => {
     try {
-      const response = await axiosClient.put(`/series/${seriesId}/pipeline/stages/${stageId}`, data);
+      const response = await axiosClient.put(
+        `/series/${seriesId}/pipeline/stages/${stageId}`,
+        data,
+      );
       return response.data;
     } catch (error) {
       handlePipelineError(error, 'Không thể cập nhật công đoạn Pipeline.');
@@ -137,12 +137,11 @@ export const pipelineService = {
   /**
    * Đổi thứ tự các stage trong Pipeline (PUT /api/series/{seriesId}/pipeline/stages/order)
    */
-  reorderStages: async (
-    seriesId: string,
-    stageIds: string[],
-  ): Promise<SeriesPipelineDto> => {
+  reorderStages: async (seriesId: string, stageIds: string[]): Promise<SeriesPipelineDto> => {
     try {
-      const response = await axiosClient.put(`/series/${seriesId}/pipeline/stages/order`, { stageIds });
+      const response = await axiosClient.put(`/series/${seriesId}/pipeline/stages/order`, {
+        stageIds,
+      });
       return response.data;
     } catch (error) {
       handlePipelineError(error, 'Không thể sắp xếp lại thứ tự công đoạn Pipeline.');
@@ -153,10 +152,7 @@ export const pipelineService = {
    * Xóa stage khỏi Pipeline (DELETE /api/series/{seriesId}/pipeline/stages/{stageId})
    * Chú ý: Trả 409 CONFLICT nếu stage đang có Page/Panel hoặc Assignment chưa Approved
    */
-  deleteStage: async (
-    seriesId: string,
-    stageId: string,
-  ): Promise<SeriesPipelineDto> => {
+  deleteStage: async (seriesId: string, stageId: string): Promise<SeriesPipelineDto> => {
     try {
       const response = await axiosClient.delete(`/series/${seriesId}/pipeline/stages/${stageId}`);
       return response.data;

@@ -67,10 +67,14 @@ export const authService = {
     }
 
     try {
-      const response = await axiosClient.post('/Auth/login', { email, password, rememberDeviceToken: tokenToSend }, {
-        withCredentials: true,
-        headers,
-      });
+      const response = await axiosClient.post(
+        '/Auth/login',
+        { email, password, rememberDeviceToken: tokenToSend },
+        {
+          withCredentials: true,
+          headers,
+        },
+      );
       return response.data;
     } catch (error) {
       throw new Error(await parseErrorResponse(error, 'Đăng nhập thất bại'));
@@ -79,9 +83,13 @@ export const authService = {
 
   externalLogin: async (idToken: string) => {
     try {
-      const response = await axiosClient.post('/Auth/external-login', { idToken }, {
-        withCredentials: true,
-      });
+      const response = await axiosClient.post(
+        '/Auth/external-login',
+        { idToken },
+        {
+          withCredentials: true,
+        },
+      );
       return response.data;
     } catch (error) {
       throw new Error(await parseErrorResponse(error, 'Đăng nhập bằng mạng xã hội thất bại'));
@@ -90,7 +98,12 @@ export const authService = {
 
   register: async (email: string, password: string, fullName: string, phoneNumber?: string) => {
     try {
-      const response = await axiosClient.post('/Auth/register', { email, password, fullName, phoneNumber });
+      const response = await axiosClient.post('/Auth/register', {
+        email,
+        password,
+        fullName,
+        phoneNumber,
+      });
       return response.data;
     } catch (error) {
       throw new Error(await parseErrorResponse(error, 'Đăng ký thất bại'));
@@ -117,12 +130,16 @@ export const authService = {
 
   enableTwoFactor: async (token: string) => {
     try {
-      const response = await axiosClient.post('/Auth/enable-2fa', {}, {
-        withCredentials: true,
-        headers: {
-          Authorization: `Bearer ${token}`,
-        }
-      });
+      const response = await axiosClient.post(
+        '/Auth/enable-2fa',
+        {},
+        {
+          withCredentials: true,
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
       return response.data;
     } catch (error) {
       throw new Error(await parseErrorResponse(error, 'Không thể tạo mã kích hoạt 2FA'));
@@ -142,15 +159,21 @@ export const authService = {
       });
       return response.data;
     } catch (error) {
-      throw new Error(await parseErrorResponse(error, 'Mã xác thực 2FA không chính xác hoặc đã hết hạn'));
+      throw new Error(
+        await parseErrorResponse(error, 'Mã xác thực 2FA không chính xác hoặc đã hết hạn'),
+      );
     }
   },
 
   forgetDevice: async () => {
     try {
-      const response = await axiosClient.post('/Auth/forget-device', {}, {
-        withCredentials: true,
-      });
+      const response = await axiosClient.post(
+        '/Auth/forget-device',
+        {},
+        {
+          withCredentials: true,
+        },
+      );
       return response.data;
     } catch (error) {
       throw new Error(await parseErrorResponse(error, 'Không thể xóa thiết bị tin cậy'));
@@ -159,11 +182,15 @@ export const authService = {
 
   sendChangePasswordOtp: async (token: string) => {
     try {
-      const response = await axiosClient.post('/Auth/send-change-password-otp', {}, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        }
-      });
+      const response = await axiosClient.post(
+        '/Auth/send-change-password-otp',
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
       return response.data;
     } catch (error) {
       throw new Error(await parseErrorResponse(error, 'Gửi mã xác thực OTP thất bại'));
@@ -175,7 +202,7 @@ export const authService = {
       const response = await axiosClient.post('/Auth/change-password', data, {
         headers: {
           Authorization: `Bearer ${token}`,
-        }
+        },
       });
       return response.data;
     } catch (error) {
@@ -204,14 +231,16 @@ export const authService = {
   getLandingContext: async (customToken?: string): Promise<LandingContextDto> => {
     const token =
       customToken || (typeof window !== 'undefined' ? localStorage.getItem('token') : null) || '';
-    
+
     try {
       const response = await axiosClient.get('/Auth/me/landing-context', {
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       });
       return response.data;
     } catch (error) {
-      throw new Error(await parseErrorResponse(error, 'Không thể lấy ngữ cảnh điều hướng landing.'));
+      throw new Error(
+        await parseErrorResponse(error, 'Không thể lấy ngữ cảnh điều hướng landing.'),
+      );
     }
   },
 };

@@ -108,7 +108,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
             {/* Series Name / Title */}
             <div>
               <label className='block text-xs font-bold text-zinc-900 mb-1.5'>
-                Series Title <span className="text-red-500">*</span>
+                Series Title <span className='text-red-500'>*</span>
               </label>
               <input
                 type='text'
@@ -122,9 +122,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
 
             {/* Format Dropdown */}
             <div>
-              <label className='block text-xs font-bold text-zinc-900 mb-1.5'>
-                Format
-              </label>
+              <label className='block text-xs font-bold text-zinc-900 mb-1.5'>Format</label>
               <div className='relative'>
                 <select
                   value={format}
@@ -163,4 +161,3 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
     </div>
   );
 };
-

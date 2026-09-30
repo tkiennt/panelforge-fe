@@ -100,7 +100,9 @@ export const ExportView: React.FC<ExportViewProps> = ({ onShowToast }) => {
                 className='w-4 h-4 rounded border-zinc-300 text-orange-600 focus:ring-orange-600'
               />
               <FileText className='w-4 h-4 text-zinc-500' />
-              <span className='text-sm font-medium text-zinc-700'>PDF Document (Print / Review)</span>
+              <span className='text-sm font-medium text-zinc-700'>
+                PDF Document (Print / Review)
+              </span>
             </label>
             <label className='flex items-center gap-3 cursor-pointer'>
               <input
@@ -120,7 +122,9 @@ export const ExportView: React.FC<ExportViewProps> = ({ onShowToast }) => {
                 className='w-4 h-4 rounded border-zinc-300 text-orange-600 focus:ring-orange-600'
               />
               <ImageIcon className='w-4 h-4 text-zinc-500' />
-              <span className='text-sm font-medium text-zinc-700'>Webtoon Scroll (Vertical slice)</span>
+              <span className='text-sm font-medium text-zinc-700'>
+                Webtoon Scroll (Vertical slice)
+              </span>
             </label>
             <label className='flex items-center gap-3 cursor-pointer'>
               <input
@@ -130,7 +134,9 @@ export const ExportView: React.FC<ExportViewProps> = ({ onShowToast }) => {
                 className='w-4 h-4 rounded border-zinc-300 text-orange-600 focus:ring-orange-600'
               />
               <Code className='w-4 h-4 text-zinc-500' />
-              <span className='text-sm font-medium text-zinc-700'>JSON Provenance (Audit History)</span>
+              <span className='text-sm font-medium text-zinc-700'>
+                JSON Provenance (Audit History)
+              </span>
             </label>
           </div>
 

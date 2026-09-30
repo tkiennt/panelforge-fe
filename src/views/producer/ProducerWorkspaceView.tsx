@@ -127,9 +127,11 @@ export const ProducerWorkspaceView: React.FC = () => {
       const wsList = await workspaceService.getMyWorkspaces();
       if (wsList && wsList.length > 0) {
         setWorkspaces(wsList);
-        const cur = workspaceId 
-           ? wsList.find((w) => w.id === workspaceId) || wsList.find((w) => w.id === activeWorkspace?.id) || wsList[0]
-           : wsList.find((w) => w.id === activeWorkspace?.id) || wsList[0];
+        const cur = workspaceId
+          ? wsList.find((w) => w.id === workspaceId) ||
+            wsList.find((w) => w.id === activeWorkspace?.id) ||
+            wsList[0]
+          : wsList.find((w) => w.id === activeWorkspace?.id) || wsList[0];
         setActiveWorkspace(cur);
         const memList = await workspaceService.getMembers(cur.id);
         setMembers(memList);
@@ -389,7 +391,8 @@ export const ProducerWorkspaceView: React.FC = () => {
               <span>{activeWorkspace?.name || 'Studio Workspace'}</span>
             </h1>
             <p className='text-xs text-zinc-500 mt-0.5'>
-              Bàn làm việc của Giám đốc Sản xuất: Quản lý các bộ truyện (Series), quy trình sản xuất và thành viên.
+              Bàn làm việc của Giám đốc Sản xuất: Quản lý các bộ truyện (Series), quy trình sản xuất
+              và thành viên.
             </p>
           </div>
         </div>
@@ -401,7 +404,8 @@ export const ProducerWorkspaceView: React.FC = () => {
               <HardDrive className='w-3.5 h-3.5 text-orange-500' />
               <span>Dung lượng lưu trữ:</span>
               <strong className='text-zinc-900'>
-                {formatGb(activeWorkspace.usedStorageBytes)} / {formatGb(activeWorkspace.storageQuotaBytes)} GB
+                {formatGb(activeWorkspace.usedStorageBytes)} /{' '}
+                {formatGb(activeWorkspace.storageQuotaBytes)} GB
               </strong>
             </div>
             <div className='w-36 bg-[#FAF8F5] h-1.5 rounded-full overflow-hidden border border-zinc-200 hidden sm:block'>
@@ -411,7 +415,9 @@ export const ProducerWorkspaceView: React.FC = () => {
                   width: `${Math.min(
                     100,
                     Math.round(
-                      (activeWorkspace.usedStorageBytes / (activeWorkspace.storageQuotaBytes || 1)) * 100,
+                      (activeWorkspace.usedStorageBytes /
+                        (activeWorkspace.storageQuotaBytes || 1)) *
+                        100,
                     ),
                   )}%`,
                 }}
@@ -483,9 +489,12 @@ export const ProducerWorkspaceView: React.FC = () => {
                 <div className='w-12 h-12 rounded-full bg-orange-50 text-orange-500 flex items-center justify-center mx-auto'>
                   <BookOpen className='w-6 h-6' />
                 </div>
-                <h3 className='text-sm font-bold text-zinc-900'>Chưa có Series nào trong Studio này</h3>
+                <h3 className='text-sm font-bold text-zinc-900'>
+                  Chưa có Series nào trong Studio này
+                </h3>
                 <p className='text-xs text-[#737373] leading-relaxed'>
-                  Khởi tạo Series mới để thiết lập thể loại, định dạng xuất bản, quy trình 8 công đoạn và kho tư liệu Series Bible.
+                  Khởi tạo Series mới để thiết lập thể loại, định dạng xuất bản, quy trình 8 công
+                  đoạn và kho tư liệu Series Bible.
                 </p>
                 <button
                   onClick={() => setCreateSeriesModalOpen(true)}
@@ -500,7 +509,9 @@ export const ProducerWorkspaceView: React.FC = () => {
                 {seriesList.map((s) => (
                   <div
                     key={s.id}
-                    onClick={() => navigate(`/workspaces/${activeWorkspace.id}/series/${s.id}/dashboard`)}
+                    onClick={() =>
+                      navigate(`/workspaces/${activeWorkspace.id}/series/${s.id}/dashboard`)
+                    }
                     className='p-5 bg-white hover:bg-zinc-50 rounded-xl border border-zinc-200 hover:border-orange-500/50 transition-all shadow-sm hover:shadow-md cursor-pointer group relative flex flex-col h-full'
                   >
                     <div className='flex items-start justify-between gap-2'>
@@ -515,7 +526,9 @@ export const ProducerWorkspaceView: React.FC = () => {
                       <div className='flex items-center gap-1 shrink-0 relative group/menu'>
                         <button
                           type='button'
-                          onClick={(e) => { e.stopPropagation(); }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                          }}
                           className='p-1.5 rounded-lg text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 transition-colors'
                           title='Tùy chọn'
                         >
@@ -524,14 +537,20 @@ export const ProducerWorkspaceView: React.FC = () => {
                         <div className='absolute right-0 top-full mt-1 w-32 bg-white rounded-lg shadow-xl border border-zinc-200 opacity-0 invisible group-hover/menu:opacity-100 group-hover/menu:visible transition-all z-10 py-1 overflow-hidden'>
                           <button
                             type='button'
-                            onClick={(e) => { e.stopPropagation(); handleOpenEditSeries(s); }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenEditSeries(s);
+                            }}
                             className='w-full text-left px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 flex items-center gap-2 transition-colors'
                           >
                             <Edit2 className='w-3 h-3' /> Chỉnh sửa
                           </button>
                           <button
                             type='button'
-                            onClick={(e) => { e.stopPropagation(); setDeleteSeriesModal(s); }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteSeriesModal(s);
+                            }}
                             className='w-full text-left px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors'
                           >
                             <Trash2 className='w-3 h-3' /> Xóa
@@ -763,9 +782,7 @@ export const ProducerWorkspaceView: React.FC = () => {
             <div className='flex items-center justify-between border-b border-zinc-200 pb-3'>
               <div className='flex items-center gap-2'>
                 <BookOpen className='w-4 h-4 text-orange-500' />
-                <h3 className='text-sm font-bold text-zinc-900'>
-                  Tạo Series Mới
-                </h3>
+                <h3 className='text-sm font-bold text-zinc-900'>Tạo Series Mới</h3>
               </div>
               <button
                 onClick={() => setCreateSeriesModalOpen(false)}
@@ -889,9 +906,7 @@ export const ProducerWorkspaceView: React.FC = () => {
             <div className='flex items-center justify-between border-b border-zinc-200 pb-3'>
               <div className='flex items-center gap-2'>
                 <Edit2 className='w-4 h-4 text-orange-500' />
-                <h3 className='text-sm font-bold text-zinc-900'>
-                  Chỉnh Sửa Series
-                </h3>
+                <h3 className='text-sm font-bold text-zinc-900'>Chỉnh Sửa Series</h3>
               </div>
               <button
                 onClick={() => setEditingSeries(null)}
@@ -929,9 +944,7 @@ export const ProducerWorkspaceView: React.FC = () => {
 
               <div className='grid grid-cols-2 gap-3'>
                 <div>
-                  <label className='block font-semibold text-zinc-900 mb-1'>
-                    Thể Loại (Genre)
-                  </label>
+                  <label className='block font-semibold text-zinc-900 mb-1'>Thể Loại (Genre)</label>
                   <select
                     value={editSeriesGenre}
                     onChange={(e) => setEditSeriesGenre(e.target.value)}

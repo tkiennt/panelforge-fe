@@ -52,7 +52,7 @@ export const CreateChapterModal: React.FC<CreateChapterModalProps> = ({
       setError('Chapter Number must be a positive integer.');
       return;
     }
-    
+
     setIsSubmitting(true);
     try {
       await onSubmit(formData);
@@ -110,9 +110,7 @@ export const CreateChapterModal: React.FC<CreateChapterModalProps> = ({
 
           <div className='flex gap-4'>
             <div className='w-1/3'>
-              <label className='block text-xs font-semibold text-zinc-700 mb-1.5'>
-                Number
-              </label>
+              <label className='block text-xs font-semibold text-zinc-700 mb-1.5'>Number</label>
               <input
                 type='number'
                 name='chapterNumber'
@@ -168,11 +166,7 @@ export const CreateChapterModal: React.FC<CreateChapterModalProps> = ({
               disabled={isSubmitting}
               className='flex items-center justify-center min-w-[140px] px-5 py-2.5 bg-orange-600 hover:bg-orange-700 text-white text-sm font-semibold rounded-xl shadow-sm transition-all disabled:opacity-70 disabled:cursor-not-allowed'
             >
-              {isSubmitting ? (
-                <Loader2 className='w-4 h-4 animate-spin' />
-              ) : (
-                'Initialize Chapter'
-              )}
+              {isSubmitting ? <Loader2 className='w-4 h-4 animate-spin' /> : 'Initialize Chapter'}
             </button>
           </div>
         </form>

@@ -1,7 +1,10 @@
 import axios from 'axios';
 
 const axiosClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || 'http://localhost:5044/api',
+  baseURL:
+    import.meta.env.VITE_API_URL ||
+    import.meta.env.VITE_API_BASE_URL ||
+    'http://localhost:5044/api',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -32,7 +35,7 @@ axiosClient.interceptors.response.use(
       window.dispatchEvent(new Event('auth:unauthorized'));
     }
     return Promise.reject(error);
-  }
+  },
 );
 
 export default axiosClient;

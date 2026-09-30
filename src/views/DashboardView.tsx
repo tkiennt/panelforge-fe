@@ -11,7 +11,7 @@ import {
   ArrowRight,
   Clock,
   CheckCircle2,
-  ListTodo
+  ListTodo,
 } from 'lucide-react';
 import { MangaProject, AssistantRosterItem, ProvenanceLogItem } from '../types';
 
@@ -106,10 +106,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         <div className='bg-white border border-zinc-200 rounded-xl p-6 shadow-sm'>
           <div className='flex items-center justify-between mb-4'>
             <span className='text-sm font-semibold text-zinc-600'>Pipeline Completion</span>
-            <span className='text-xs font-semibold px-2 py-1 bg-zinc-100 text-zinc-700 rounded-md'>56%</span>
+            <span className='text-xs font-semibold px-2 py-1 bg-zinc-100 text-zinc-700 rounded-md'>
+              56%
+            </span>
           </div>
           <div className='w-full bg-zinc-100 h-2 rounded-full overflow-hidden mb-3'>
-            <div className='bg-orange-500 h-full rounded-full transition-all duration-500' style={{ width: '56%' }}></div>
+            <div
+              className='bg-orange-500 h-full rounded-full transition-all duration-500'
+              style={{ width: '56%' }}
+            ></div>
           </div>
           <p className='text-sm font-medium text-zinc-500'>18 / 32 pages mastered (14 left)</p>
         </div>
@@ -150,7 +155,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               Active Work Bench
             </h2>
             <div className='flex flex-col sm:flex-row sm:items-center gap-4'>
-              <div 
+              <div
                 className='w-24 h-16 bg-zinc-100 rounded-lg overflow-hidden shrink-0 border border-zinc-200 cursor-pointer hover:opacity-90 transition-opacity'
                 onClick={onOpenSpreadModal}
               >
@@ -163,7 +168,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <div className='flex-1'>
                 <h3 className='text-sm font-bold text-zinc-900 mb-1'>Chapter 5 — Spread 18–19</h3>
                 <div className='flex flex-wrap items-center gap-2 text-xs font-medium text-zinc-500'>
-                  <span className='px-2 py-0.5 rounded bg-zinc-100 text-zinc-700'>Assignee: Kenji S.</span>
+                  <span className='px-2 py-0.5 rounded bg-zinc-100 text-zinc-700'>
+                    Assignee: Kenji S.
+                  </span>
                   <span>•</span>
                   <span>Task: Inking pass & alignment</span>
                 </div>
@@ -194,20 +201,27 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <div className='space-y-4'>
               {/* Stage 1 */}
               <div className='flex items-center gap-4'>
-                <div className='w-8 h-8 rounded-full bg-zinc-100 text-zinc-600 flex items-center justify-center font-bold text-sm shrink-0'>1</div>
+                <div className='w-8 h-8 rounded-full bg-zinc-100 text-zinc-600 flex items-center justify-center font-bold text-sm shrink-0'>
+                  1
+                </div>
                 <div className='flex-1'>
                   <div className='flex justify-between text-sm font-medium mb-1'>
                     <span className='text-zinc-900'>Script & Dialogue</span>
                     <span className='text-zinc-500'>100%</span>
                   </div>
                   <div className='w-full bg-zinc-100 h-1.5 rounded-full overflow-hidden'>
-                    <div className='bg-emerald-500 h-full rounded-full' style={{ width: '100%' }}></div>
+                    <div
+                      className='bg-emerald-500 h-full rounded-full'
+                      style={{ width: '100%' }}
+                    ></div>
                   </div>
                 </div>
               </div>
               {/* Stage 2 */}
               <div className='flex items-center gap-4'>
-                <div className='w-8 h-8 rounded-full bg-zinc-100 text-zinc-600 flex items-center justify-center font-bold text-sm shrink-0'>2</div>
+                <div className='w-8 h-8 rounded-full bg-zinc-100 text-zinc-600 flex items-center justify-center font-bold text-sm shrink-0'>
+                  2
+                </div>
                 <div className='flex-1'>
                   <div className='flex justify-between text-sm font-medium mb-1'>
                     <span className='text-zinc-900'>Storyboard</span>
@@ -220,27 +234,37 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
               {/* Stage 3 */}
               <div className='flex items-center gap-4'>
-                <div className='w-8 h-8 rounded-full bg-zinc-100 text-zinc-600 flex items-center justify-center font-bold text-sm shrink-0'>3</div>
+                <div className='w-8 h-8 rounded-full bg-zinc-100 text-zinc-600 flex items-center justify-center font-bold text-sm shrink-0'>
+                  3
+                </div>
                 <div className='flex-1'>
                   <div className='flex justify-between text-sm font-medium mb-1'>
                     <span className='text-zinc-900'>Rough Pencil & Layout</span>
                     <span className='text-zinc-500'>75%</span>
                   </div>
                   <div className='w-full bg-zinc-100 h-1.5 rounded-full overflow-hidden'>
-                    <div className='bg-purple-500 h-full rounded-full' style={{ width: '75%' }}></div>
+                    <div
+                      className='bg-purple-500 h-full rounded-full'
+                      style={{ width: '75%' }}
+                    ></div>
                   </div>
                 </div>
               </div>
               {/* Stage 4 */}
               <div className='flex items-center gap-4'>
-                <div className='w-8 h-8 rounded-full bg-zinc-100 text-zinc-600 flex items-center justify-center font-bold text-sm shrink-0'>4</div>
+                <div className='w-8 h-8 rounded-full bg-zinc-100 text-zinc-600 flex items-center justify-center font-bold text-sm shrink-0'>
+                  4
+                </div>
                 <div className='flex-1'>
                   <div className='flex justify-between text-sm font-medium mb-1'>
                     <span className='text-zinc-900'>Inking & Screentone</span>
                     <span className='text-zinc-500'>31%</span>
                   </div>
                   <div className='w-full bg-zinc-100 h-1.5 rounded-full overflow-hidden'>
-                    <div className='bg-orange-500 h-full rounded-full' style={{ width: '31%' }}></div>
+                    <div
+                      className='bg-orange-500 h-full rounded-full'
+                      style={{ width: '31%' }}
+                    ></div>
                   </div>
                 </div>
               </div>
@@ -264,7 +288,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <div className='space-y-3'>
               {assistants.length > 0 ? (
                 assistants.map((asst) => (
-                  <div key={asst.id} className='flex items-center gap-3 p-3 rounded-lg border border-zinc-100 bg-zinc-50'>
+                  <div
+                    key={asst.id}
+                    className='flex items-center gap-3 p-3 rounded-lg border border-zinc-100 bg-zinc-50'
+                  >
                     <div
                       className='w-8 h-8 rounded-full text-white font-semibold text-xs flex items-center justify-center shrink-0'
                       style={{ backgroundColor: asst.avatarBg || '#f97316' }}
@@ -275,7 +302,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       <div className='text-sm font-bold text-zinc-900 truncate'>{asst.name}</div>
                       <div className='text-xs font-medium text-zinc-500 truncate'>{asst.task}</div>
                     </div>
-                    <span className={`w-2 h-2 rounded-full shrink-0 ${asst.status === 'active' ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
+                    <span
+                      className={`w-2 h-2 rounded-full shrink-0 ${asst.status === 'active' ? 'bg-emerald-500' : 'bg-amber-500'}`}
+                    ></span>
                   </div>
                 ))
               ) : (

@@ -71,8 +71,11 @@ export const WorkflowBoardView: React.FC<WorkflowBoardViewProps> = ({
 
   const handleCreateChapter = async (data: ChapterFormData) => {
     // Mock API call simulation
-    await new Promise(resolve => setTimeout(resolve, 800));
-    onShowToast('Chapter Created', `${data.title || 'New Chapter'} has been created and the pipeline is initialized.`);
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    onShowToast(
+      'Chapter Created',
+      `${data.title || 'New Chapter'} has been created and the pipeline is initialized.`,
+    );
     setIsChapterModalOpen(false);
   };
 
@@ -83,9 +86,12 @@ export const WorkflowBoardView: React.FC<WorkflowBoardViewProps> = ({
     if (seriesId) {
       const workspaceId = JSON.parse(localStorage.getItem('activeWorkspace') || '{}').id;
       if (workspaceId) {
-        seriesService.getSeriesMembers(workspaceId, seriesId).then(data => {
-          setSeriesMembers(data || []);
-        }).catch(err => console.error(err));
+        seriesService
+          .getSeriesMembers(workspaceId, seriesId)
+          .then((data) => {
+            setSeriesMembers(data || []);
+          })
+          .catch((err) => console.error(err));
       }
     }
   }, [seriesId]);
@@ -171,13 +177,16 @@ export const WorkflowBoardView: React.FC<WorkflowBoardViewProps> = ({
                 </span>
                 <div className='relative ml-2'>
                   <select className='appearance-none bg-white border border-zinc-200 pl-3 pr-8 py-1.5 rounded-md text-lg font-bold text-zinc-900 focus:outline-none focus:border-orange-500 hover:bg-zinc-50 cursor-pointer shadow-sm'>
-                    <option>Chapter {activeProject?.chapter || '5'}: {activeProject?.title || 'The Awakening'}</option>
+                    <option>
+                      Chapter {activeProject?.chapter || '5'}:{' '}
+                      {activeProject?.title || 'The Awakening'}
+                    </option>
                     <option>Chapter 4: Shadows</option>
                     <option>Chapter 3: The Gathering</option>
                   </select>
                   <ChevronDown className='w-4 h-4 text-zinc-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none' />
                 </div>
-                
+
                 <button
                   onClick={() => setIsChapterModalOpen(true)}
                   className='ml-2 px-3 py-1.5 bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-700 text-xs font-bold rounded-md flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm'
@@ -284,11 +293,13 @@ export const WorkflowBoardView: React.FC<WorkflowBoardViewProps> = ({
                 className='appearance-none bg-white border border-zinc-200 pl-3 pr-8 py-1.5 rounded text-xs font-semibold text-zinc-900 focus:outline-none focus:border-zinc-900 cursor-pointer'
               >
                 <option value='ALL'>Assignee: All Members</option>
-                {seriesMembers.length > 0 ? seriesMembers.map(m => (
-                  <option key={m.userId} value={m.fullName || m.email.split('@')[0]}>
-                    {m.fullName || m.email.split('@')[0]} ({m.seriesRole || 'Member'})
-                  </option>
-                )) : (
+                {seriesMembers.length > 0 ? (
+                  seriesMembers.map((m) => (
+                    <option key={m.userId} value={m.fullName || m.email.split('@')[0]}>
+                      {m.fullName || m.email.split('@')[0]} ({m.seriesRole || 'Member'})
+                    </option>
+                  ))
+                ) : (
                   <>
                     <option value='Kenji'>Kenji (Artist)</option>
                     <option value='Arata'>Arata (Writer)</option>
@@ -419,9 +430,7 @@ export const WorkflowBoardView: React.FC<WorkflowBoardViewProps> = ({
                 <TrendingUp className='w-4 h-4 text-orange-600' />
               </div>
               <div className='text-xl font-bold text-zinc-900 '>5.0 pgs / day</div>
-              <p className='text-[11px] text-zinc-600 mt-1 '>
-                Remaining: 14 pages across 4 days
-              </p>
+              <p className='text-[11px] text-zinc-600 mt-1 '>Remaining: 14 pages across 4 days</p>
             </div>
 
             <div className='p-3.5 bg-zinc-50 rounded border border-zinc-200'>
@@ -441,9 +450,7 @@ export const WorkflowBoardView: React.FC<WorkflowBoardViewProps> = ({
                 <Clock className='w-4 h-4 text-amber-600' />
               </div>
               <div className='text-xl font-bold text-zinc-900 '>1.4 hrs avg</div>
-              <p className='text-[11px] text-zinc-600 mt-1 '>
-                Editorial sign-offs on schedule
-              </p>
+              <p className='text-[11px] text-zinc-600 mt-1 '>Editorial sign-offs on schedule</p>
             </div>
 
             <div className='p-3.5 bg-zinc-50 rounded border border-zinc-200'>
@@ -452,9 +459,7 @@ export const WorkflowBoardView: React.FC<WorkflowBoardViewProps> = ({
                 <CheckCircle className='w-4 h-4 text-emerald-500' />
               </div>
               <div className='text-xl font-bold text-zinc-900 '>11 / 32 Ready</div>
-              <p className='text-[11px] text-zinc-600 mt-1 '>
-                CMYK 600dpi separation verified
-              </p>
+              <p className='text-[11px] text-zinc-600 mt-1 '>CMYK 600dpi separation verified</p>
             </div>
           </div>
         </div>
@@ -516,9 +521,7 @@ export const WorkflowBoardView: React.FC<WorkflowBoardViewProps> = ({
                             <div className='flex items-center gap-1.5'>
                               <span
                                 className={`text-[10px]  font-bold px-1.5 py-0.5 rounded tracking-wider ${
-                                  isPage12
-                                    ? 'bg-zinc-900 text-white'
-                                    : 'bg-zinc-100 text-zinc-900'
+                                  isPage12 ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-zinc-900'
                                 }`}
                               >
                                 {card.pageNumber}
@@ -664,9 +667,7 @@ export const WorkflowBoardView: React.FC<WorkflowBoardViewProps> = ({
 
                     {stageCards.length === 0 && (
                       <div className='p-8 text-center border-2 border-dashed border-zinc-200 rounded-lg'>
-                        <span className='text-xs text-zinc-400 '>
-                          No pages in this stage
-                        </span>
+                        <span className='text-xs text-zinc-400 '>No pages in this stage</span>
                       </div>
                     )}
                   </div>
@@ -842,9 +843,7 @@ export const WorkflowBoardView: React.FC<WorkflowBoardViewProps> = ({
                       />
                     ) : (
                       <div className='w-full h-full flex flex-col items-center justify-center p-3 text-center bg-zinc-50'>
-                        <span className=' text-xs font-bold text-zinc-900'>
-                          {card.pageNumber}
-                        </span>
+                        <span className=' text-xs font-bold text-zinc-900'>{card.pageNumber}</span>
                         <span className='text-[10px] text-zinc-400 mt-1  uppercase'>
                           {card.stage}
                         </span>

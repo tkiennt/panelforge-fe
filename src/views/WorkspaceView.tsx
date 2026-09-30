@@ -30,16 +30,22 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
   const [filterType, setFilterType] = useState<'all' | 'my-tasks' | 'overdue'>('all');
   const [isChapterModalOpen, setIsChapterModalOpen] = useState(false);
   const [isChapterDropdownOpen, setIsChapterDropdownOpen] = useState(false);
-  const [selectedChapter, setSelectedChapter] = useState({ id: 'ch5', title: 'Chapter 5: The Awakening' });
+  const [selectedChapter, setSelectedChapter] = useState({
+    id: 'ch5',
+    title: 'Chapter 5: The Awakening',
+  });
   const chaptersList = [
     { id: 'ch5', title: 'Chapter 5: The Awakening' },
     { id: 'ch4', title: 'Chapter 4: Shadows' },
-    { id: 'ch3', title: 'Chapter 3: The Gathering' }
+    { id: 'ch3', title: 'Chapter 3: The Gathering' },
   ];
 
   const handleCreateChapter = async (data: ChapterFormData) => {
-    await new Promise(resolve => setTimeout(resolve, 800));
-    onShowToast('Chapter Created', `${data.title || 'New Chapter'} has been created and the pipeline is initialized.`);
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    onShowToast(
+      'Chapter Created',
+      `${data.title || 'New Chapter'} has been created and the pipeline is initialized.`,
+    );
     setIsChapterModalOpen(false);
   };
   const isReaderOnly = effectiveRoles.length === 1 && effectiveRoles[0] === 'READER';
@@ -87,13 +93,15 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                 >
                   <BookOpen className='w-4 h-4 text-orange-600' />
                   {selectedChapter.title}
-                  <ChevronDown className={`w-4 h-4 text-zinc-500 transition-transform ${isChapterDropdownOpen ? 'rotate-180' : ''}`} />
+                  <ChevronDown
+                    className={`w-4 h-4 text-zinc-500 transition-transform ${isChapterDropdownOpen ? 'rotate-180' : ''}`}
+                  />
                 </button>
 
                 {isChapterDropdownOpen && (
                   <div className='absolute top-full left-0 mt-2 w-64 bg-white border border-zinc-200 rounded-xl shadow-lg overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-150'>
                     <div className='p-1.5 flex flex-col'>
-                      {chaptersList.map(ch => (
+                      {chaptersList.map((ch) => (
                         <button
                           key={ch.id}
                           onClick={() => {
@@ -103,18 +111,20 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                           className={`flex items-center justify-between w-full px-3 py-2 text-sm font-bold rounded-md transition-colors ${selectedChapter.id === ch.id ? 'bg-orange-50 text-orange-600' : 'text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900'}`}
                         >
                           {ch.title}
-                          {selectedChapter.id === ch.id && <Check className='w-4 h-4 text-orange-600' />}
+                          {selectedChapter.id === ch.id && (
+                            <Check className='w-4 h-4 text-orange-600' />
+                          )}
                         </button>
                       ))}
                     </div>
                   </div>
                 )}
               </div>
-              
+
               {/* Overlay for closing dropdown when clicking outside */}
               {isChapterDropdownOpen && (
-                <div 
-                  className='fixed inset-0 z-40' 
+                <div
+                  className='fixed inset-0 z-40'
                   onClick={() => setIsChapterDropdownOpen(false)}
                 />
               )}
@@ -204,7 +214,12 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
             </button>
 
             <button
-              onClick={() => onShowToast('Chức năng đang phát triển', 'Form tạo thẻ (New Page) sẽ sớm được tích hợp hoàn chỉnh.')}
+              onClick={() =>
+                onShowToast(
+                  'Chức năng đang phát triển',
+                  'Form tạo thẻ (New Page) sẽ sớm được tích hợp hoàn chỉnh.',
+                )
+              }
               disabled={!(currentUserRole === 'PRODUCER' || hasPermission('create_card'))}
               title={
                 !(currentUserRole === 'PRODUCER' || hasPermission('create_card'))

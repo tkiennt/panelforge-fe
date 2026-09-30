@@ -427,9 +427,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
             </span>
             <span className='text-[#171717] font-semibold'>Series Bible effective at:</span>
             <span className='text-[#059669] font-mono font-bold'>
-              {effectiveChapter === 'all'
-                ? 'All Entities (Latest)'
-                : `Chapter ${effectiveChapter}`}
+              {effectiveChapter === 'all' ? 'All Entities (Latest)' : `Chapter ${effectiveChapter}`}
             </span>
           </div>
 
@@ -480,7 +478,9 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                 <span>{cat.label}</span>
                 <span
                   className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${
-                    activeTab === cat.key ? 'bg-orange-100 text-orange-700' : 'bg-zinc-200 text-zinc-600'
+                    activeTab === cat.key
+                      ? 'bg-orange-100 text-orange-700'
+                      : 'bg-zinc-200 text-zinc-600'
                   }`}
                 >
                   {categoryCounts[cat.key] || 0}
@@ -704,9 +704,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
               </div>
 
               <div>
-                <h4 className='text-lg font-bold text-zinc-900'>
-                  {selectedEntity.name}
-                </h4>
+                <h4 className='text-lg font-bold text-zinc-900'>{selectedEntity.name}</h4>
                 <div className='text-xs font-mono text-orange-600 font-semibold mt-0.5'>
                   {selectedEntity.subtitle}
                 </div>
@@ -799,8 +797,8 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
 
             <div className='p-6 overflow-y-auto space-y-4 flex-1'>
               <div className='text-xs text-zinc-500 font-medium'>
-                Dữ liệu lưu trữ bất biến. Mọi thay đổi đều sinh một version
-                mới gắn với mốc chương có hiệu lực và lưu trữ vết kiểm toán.
+                Dữ liệu lưu trữ bất biến. Mọi thay đổi đều sinh một version mới gắn với mốc chương
+                có hiệu lực và lưu trữ vết kiểm toán.
               </div>
 
               {loadingHistory ? (
@@ -894,9 +892,9 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
             </div>
 
             <div className='text-xs text-zinc-600 bg-zinc-50 p-3 rounded-lg border border-zinc-200 leading-relaxed'>
-              <strong>Lưu ý nghiệp vụ:</strong> Phiên bản cũ được bảo toàn vĩnh
-              viễn (Append-only). Hệ thống tự động phát hiện nếu có thành viên khác sửa đổi đồng
-              thời và yêu cầu đối chiếu trước khi ghi đè.
+              <strong>Lưu ý nghiệp vụ:</strong> Phiên bản cũ được bảo toàn vĩnh viễn (Append-only).
+              Hệ thống tự động phát hiện nếu có thành viên khác sửa đổi đồng thời và yêu cầu đối
+              chiếu trước khi ghi đè.
             </div>
 
             <div className='space-y-3'>

@@ -184,9 +184,7 @@ export const ProjectMembersView: React.FC<{ projectId?: string; seriesTitle?: st
             <div className='flex items-center justify-between border-b border-zinc-200 pb-3'>
               <div className='flex items-center gap-2'>
                 <UserPlus className='w-5 h-5 text-orange-600' />
-                <h3 className='text-sm font-bold text-zinc-900'>
-                  Add Member to Crew
-                </h3>
+                <h3 className='text-sm font-bold text-zinc-900'>Add Member to Crew</h3>
               </div>
               <button
                 onClick={() => setIsInviteModalOpen(false)}

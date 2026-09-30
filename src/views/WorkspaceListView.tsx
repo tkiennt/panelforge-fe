@@ -118,9 +118,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
             </div>
             <div>
               <div className='flex items-center gap-2'>
-                <span className='font-bold text-base text-zinc-900 tracking-tight'>
-                  PanelForge
-                </span>
+                <span className='font-bold text-base text-zinc-900 tracking-tight'>PanelForge</span>
                 <span className='text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-orange-50 text-orange-600 border border-orange-200/60 uppercase tracking-wider'>
                   Studio Hub
                 </span>
