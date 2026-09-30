@@ -55,21 +55,21 @@ export const CreateWorkspaceModal: React.FC<CreateWorkspaceModalProps> = ({
 
   return (
     <div className='fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200'>
-      <div className='relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-[#E7E7E7] overflow-hidden'>
+      <div className='relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-zinc-200 overflow-hidden'>
         {/* Header */}
-        <div className='flex items-center justify-between px-6 py-5 border-b border-[#E7E7E7] bg-[#FAF8F5]'>
+        <div className='flex items-center justify-between px-6 py-5 border-b border-zinc-200 bg-[#FAF8F5]'>
           <div className='flex items-center gap-3'>
-            <div className='w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center text-[#EA580C]'>
+            <div className='w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center text-orange-600'>
               <Layers className='w-5 h-5' />
             </div>
             <div>
-              <h3 className='font-bold text-lg text-[#171717]'>Tạo Studio / Workspace mới</h3>
-              <p className='text-xs text-[#888888]'>Khởi tạo không gian làm việc sản xuất truyện</p>
+              <h3 className='font-bold text-lg text-zinc-900'>Tạo Studio / Workspace mới</h3>
+              <p className='text-xs text-zinc-500'>Khởi tạo không gian làm việc sản xuất truyện</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className='w-8 h-8 rounded-lg flex items-center justify-center text-[#888888] hover:text-[#171717] hover:bg-black/5 transition-colors cursor-pointer'
+            className='w-8 h-8 rounded-lg flex items-center justify-center text-zinc-500 hover:text-zinc-900 hover:bg-black/5 transition-colors cursor-pointer'
           >
             <X className='w-5 h-5' />
           </button>
@@ -84,7 +84,7 @@ export const CreateWorkspaceModal: React.FC<CreateWorkspaceModalProps> = ({
           )}
 
           <div>
-            <label className='block text-xs font-bold text-[#171717] uppercase tracking-wider mb-2'>
+            <label className='block text-xs font-bold text-zinc-900 uppercase tracking-wider mb-2'>
               Tên Studio / Workspace <span className='text-red-500'>*</span>
             </label>
             <input
@@ -92,20 +92,20 @@ export const CreateWorkspaceModal: React.FC<CreateWorkspaceModalProps> = ({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder='Ví dụ: Tokyo Ghoul Production Studio'
-              className='w-full px-4 py-2.5 rounded-xl border border-[#D1D5DB] focus:border-[#EA580C] focus:ring-2 focus:ring-[#EA580C]/20 outline-hidden text-sm text-[#171717] transition-all'
+              className='w-full px-4 py-2.5 rounded-xl border border-[#D1D5DB] focus:border-[#EA580C] focus:ring-2 focus:ring-[#EA580C]/20 outline-hidden text-sm text-zinc-900 transition-all'
               autoFocus
               disabled={loading}
             />
           </div>
 
           <div>
-            <label className='block text-xs font-bold text-[#171717] uppercase tracking-wider mb-2'>
+            <label className='block text-xs font-bold text-zinc-900 uppercase tracking-wider mb-2'>
               Dung lượng lưu trữ ban đầu (GB)
             </label>
             <select
               value={quotaGb}
               onChange={(e) => setQuotaGb(e.target.value)}
-              className='w-full px-4 py-2.5 rounded-xl border border-[#D1D5DB] focus:border-[#EA580C] focus:ring-2 focus:ring-[#EA580C]/20 outline-hidden text-sm text-[#171717] transition-all bg-white'
+              className='w-full px-4 py-2.5 rounded-xl border border-[#D1D5DB] focus:border-[#EA580C] focus:ring-2 focus:ring-[#EA580C]/20 outline-hidden text-sm text-zinc-900 transition-all bg-white'
               disabled={loading}
             >
               <option value='5'>5 GB (Tiêu chuẩn)</option>
@@ -116,19 +116,19 @@ export const CreateWorkspaceModal: React.FC<CreateWorkspaceModalProps> = ({
           </div>
 
           {/* Action Buttons */}
-          <div className='flex items-center justify-end gap-3 pt-4 border-t border-[#E7E7E7]'>
+          <div className='flex items-center justify-end gap-3 pt-4 border-t border-zinc-200'>
             <button
               type='button'
               onClick={onClose}
               disabled={loading}
-              className='px-4 py-2.5 rounded-xl border border-[#D1D5DB] text-sm font-semibold text-[#555555] hover:bg-gray-50 transition-colors cursor-pointer'
+              className='px-4 py-2.5 rounded-xl border border-[#D1D5DB] text-sm font-semibold text-zinc-500 hover:bg-gray-50 transition-colors cursor-pointer'
             >
               Hủy
             </button>
             <button
               type='submit'
               disabled={loading || !name.trim()}
-              className='flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#171717] hover:bg-[#2A2A2A] text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'
+              className='flex items-center gap-2 px-5 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'
             >
               {loading ? (
                 <>

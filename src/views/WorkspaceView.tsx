@@ -33,11 +33,11 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
   if (isReaderMode || isReaderOnly) {
     return (
       <div className='w-full h-full flex flex-col items-center justify-center p-8 text-center'>
-        <div className='w-16 h-16 rounded-2xl bg-[#FEE2E2] border border-[#FECACA] flex items-center justify-center text-[#EF4444] mb-4'>
+        <div className='w-16 h-16 rounded-2xl bg-red-100 border border-red-200 flex items-center justify-center text-red-500 mb-4'>
           <span className='font-bold text-xl'>!</span>
         </div>
-        <h2 className='text-xl font-serif font-semibold text-[#171717] mb-2'>Access Denied</h2>
-        <p className='text-sm text-[#737373] max-w-md'>
+        <h2 className='text-xl font-bold text-zinc-900 tracking-tight mb-2'>Access Denied</h2>
+        <p className='text-sm font-medium text-zinc-500 max-w-md'>
           Bạn không có quyền truy cập khu vực sản xuất. Vui lòng quay lại màn hình xem ấn phẩm dành
           cho độc giả.
         </p>
@@ -60,84 +60,84 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
   return (
     <div className='w-full h-full flex flex-col bg-white'>
       {/* Sub-header / Board Controls */}
-      <div className='shrink-0 border-b border-[#E7E7E7] px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white z-20 shadow-sm'>
+      <div className='shrink-0 border-b border-zinc-200 px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white z-20 shadow-sm'>
         {/* Left: Title & KPIs */}
         <div className='flex items-center gap-6'>
           <div>
             <div className='flex items-center gap-2 mb-1'>
-              <h1 className='text-xl font-serif font-bold text-[#171717]'>
+              <h1 className='text-xl font-bold text-zinc-900 tracking-tight'>
                 Chapter 5: The Awakening
               </h1>
-              <span className='text-[10px] font-bold uppercase tracking-wider text-[#10B981] bg-[#D1FAE5] border border-[#A7F3D0] px-2 py-0.5 rounded-full'>
+              <span className='text-[10px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full'>
                 In Production
               </span>
             </div>
-            <div className='text-sm text-[#737373] font-medium flex items-center gap-4'>
+            <div className='text-sm text-zinc-500 font-medium flex items-center gap-4'>
               <span>Vol. 1</span>
-              <span className='w-1 h-1 rounded-full bg-[#D4D4D4]'></span>
+              <span className='w-1 h-1 rounded-full bg-zinc-300'></span>
               <span>Deadline: Oct 24, 2026</span>
             </div>
           </div>
 
-          <div className='hidden lg:flex items-center gap-3 pl-6 border-l border-[#E7E7E7]'>
+          <div className='hidden lg:flex items-center gap-3 pl-6 border-l border-zinc-200'>
             <div className='flex flex-col'>
-              <span className='text-[10px] text-[#737373] uppercase tracking-wider font-semibold'>
+              <span className='text-[10px] text-zinc-500 uppercase tracking-wider font-semibold'>
                 Completion
               </span>
-              <span className='text-sm font-mono font-bold text-[#171717]'>
+              <span className='text-sm font-mono font-bold text-zinc-900'>
                 {completionPercent}%
               </span>
             </div>
             <div className='flex flex-col'>
-              <span className='text-[10px] text-[#737373] uppercase tracking-wider font-semibold'>
+              <span className='text-[10px] text-zinc-500 uppercase tracking-wider font-semibold'>
                 Overdue
               </span>
               <span
-                className={`text-sm font-mono font-bold ${overdueCards > 0 ? 'text-[#EF4444]' : 'text-[#10B981]'}`}
+                className={`text-sm font-mono font-bold ${overdueCards > 0 ? 'text-red-500' : 'text-emerald-500'}`}
               >
                 {overdueCards}
               </span>
             </div>
             <div className='flex flex-col'>
-              <span className='text-[10px] text-[#737373] uppercase tracking-wider font-semibold'>
+              <span className='text-[10px] text-zinc-500 uppercase tracking-wider font-semibold'>
                 AI Pending
               </span>
-              <span className='text-sm font-mono font-bold text-[#8B5CF6]'>{aiAssistedCards}</span>
+              <span className='text-sm font-mono font-bold text-orange-600'>{aiAssistedCards}</span>
             </div>
           </div>
         </div>
 
         {/* Right: Actions */}
         <div className='flex items-center gap-3'>
-          <div className='flex items-center bg-[#F3F3F3] p-1 rounded-lg border border-[#E7E7E7]'>
+          <div className='flex items-center bg-zinc-50 p-1 rounded-lg border border-zinc-200'>
             <button
               onClick={() => setFilterType('all')}
-              className={`px-3 py-1 text-xs font-semibold rounded ${filterType === 'all' ? 'bg-white shadow-2xs text-[#171717]' : 'text-[#737373] hover:text-[#171717]'}`}
+              className={`px-3 py-1 text-xs font-medium rounded ${filterType === 'all' ? 'bg-white shadow-sm text-zinc-900 border border-zinc-200' : 'text-zinc-500 hover:text-zinc-900'}`}
             >
               All Tasks
             </button>
             <button
               onClick={() => setFilterType('my-tasks')}
-              className={`px-3 py-1 text-xs font-semibold rounded ${filterType === 'my-tasks' ? 'bg-white shadow-2xs text-[#171717]' : 'text-[#737373] hover:text-[#171717]'}`}
+              className={`px-3 py-1 text-xs font-medium rounded ${filterType === 'my-tasks' ? 'bg-white shadow-sm text-zinc-900 border border-zinc-200' : 'text-zinc-500 hover:text-zinc-900'}`}
             >
               My Tasks
             </button>
             <button
               onClick={() => setFilterType('overdue')}
-              className={`px-3 py-1 text-xs font-semibold rounded ${filterType === 'overdue' ? 'bg-white shadow-2xs text-[#171717]' : 'text-[#737373] hover:text-[#171717]'}`}
+              className={`px-3 py-1 text-xs font-medium rounded ${filterType === 'overdue' ? 'bg-white shadow-sm text-zinc-900 border border-zinc-200' : 'text-zinc-500 hover:text-zinc-900'}`}
             >
               Overdue
             </button>
           </div>
 
           <button
-            className='w-8 h-8 rounded-lg border border-[#E7E7E7] flex items-center justify-center text-[#737373] hover:bg-[#F3F3F3] hover:text-[#171717] transition-colors bg-white shadow-2xs'
+            className='w-8 h-8 rounded-lg border border-zinc-200 flex items-center justify-center text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900 transition-colors bg-white shadow-sm'
             title='Filter'
           >
             <Filter className='w-4 h-4' />
           </button>
           <button
-            className='w-8 h-8 rounded-lg border border-[#E7E7E7] flex items-center justify-center text-[#737373] hover:bg-[#F3F3F3] hover:text-[#171717] transition-colors bg-white shadow-2xs'
+            className='w-8 h-8 rounded-lg border border-zinc-200 flex items-center justify-center text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900 transition-colors bg-white shadow-sm'
             title='Group by'
           >
             <LayoutTemplate className='w-4 h-4' />

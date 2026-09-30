@@ -44,17 +44,17 @@ export const SeriesMembersView: React.FC<{ onShowToast: (title: string, desc: st
     <div className='max-w-6xl mx-auto space-y-6 pb-12 p-4'>
       <div className='bg-white border border-zinc-200 rounded-xl p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4'>
         <div>
-          <h1 className='text-2xl font-bold font-display text-zinc-900 flex items-center gap-2'>
-            <Users className='w-6 h-6 text-orange-500' />
+          <h1 className='text-xl font-bold text-zinc-900 tracking-tight flex items-center gap-2'>
+            <Users className='w-6 h-6 text-orange-600' />
             Production Crew
           </h1>
-          <p className='text-sm text-zinc-500 mt-1'>
+          <p className='text-sm font-medium text-zinc-500 mt-1'>
             Manage and assign the production crew dedicated to this series.
           </p>
         </div>
         <button
           onClick={() => setIsAddModalOpen(true)}
-          className='px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm active:scale-95'
+          className='px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-sm font-medium rounded-xl flex items-center justify-center gap-2 transition-colors shadow-sm'
         >
           <UserPlus className='w-4 h-4' />
           Add Member to Crew
@@ -69,13 +69,13 @@ export const SeriesMembersView: React.FC<{ onShowToast: (title: string, desc: st
             <div className='w-12 h-12 bg-white shadow-sm border border-zinc-100 rounded-full flex items-center justify-center mb-4'>
               <Users className='w-6 h-6 text-zinc-400' />
             </div>
-            <h3 className='text-base font-bold text-zinc-900'>No Crew Members Assigned</h3>
-            <p className='text-sm text-zinc-500 mt-1 max-w-sm mb-5 text-center'>
+            <h3 className='text-base font-semibold text-zinc-900'>No Crew Members Assigned</h3>
+            <p className='text-sm font-medium text-zinc-500 mt-1 max-w-sm mb-5 text-center'>
               The crew is currently empty. Add members from the Workspace to start assigning tasks on the Kanban board.
             </p>
             <button
               onClick={() => setIsAddModalOpen(true)}
-              className='px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold rounded-xl shadow-sm transition-all flex items-center gap-2'
+              className='px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-sm font-medium rounded-xl shadow-sm transition-colors flex items-center gap-2'
             >
               <UserPlus className='w-4 h-4' />
               Add Member to Crew
@@ -101,8 +101,8 @@ export const SeriesMembersView: React.FC<{ onShowToast: (title: string, desc: st
                           {(m.fullName || m.email || 'U').charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <p className='font-semibold text-zinc-900'>{m.fullName || m.email.split('@')[0]}</p>
-                          <p className='text-xs text-zinc-500'>{m.email}</p>
+                          <p className='font-semibold text-sm text-zinc-900'>{m.fullName || m.email.split('@')[0]}</p>
+                          <p className='text-xs font-medium text-zinc-500'>{m.email}</p>
                         </div>
                       </div>
                     </td>
@@ -221,9 +221,9 @@ const AddSeriesMemberModal: React.FC<{
 
   return (
     <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200'>
-      <div className='bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden'>
-        <div className='flex items-center justify-between p-5 border-b border-zinc-200'>
-          <h2 className='text-lg font-bold text-zinc-900'>Assign Crew Member</h2>
+      <div className='bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden border border-zinc-200'>
+        <div className='flex items-center justify-between p-6 border-b border-zinc-200'>
+          <h2 className='text-base font-semibold text-zinc-900'>Assign Crew Member</h2>
           <button onClick={onClose} className='p-1.5 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors'>
             <X className='w-5 h-5' />
           </button>
@@ -328,14 +328,14 @@ const AddSeriesMemberModal: React.FC<{
             <button
               type='button'
               onClick={onClose}
-              className='px-4 py-2 text-sm font-semibold text-zinc-600 hover:text-zinc-900 bg-zinc-100 hover:bg-zinc-200 rounded-xl transition-colors'
+              className='px-4 py-2 text-sm font-medium text-zinc-600 hover:text-zinc-900 bg-white border border-zinc-200 hover:bg-zinc-50 rounded-xl transition-colors shadow-sm'
             >
               Cancel
             </button>
             <button
               type='submit'
               disabled={isSubmitting || isLoading || !selectedUserId}
-              className='px-4 py-2 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-xl flex items-center justify-center min-w-[140px] shadow-sm transition-all'
+              className='px-4 py-2 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-xl flex items-center justify-center min-w-[140px] shadow-sm transition-colors'
             >
               {isSubmitting ? (
                 <span className='w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin'></span>
