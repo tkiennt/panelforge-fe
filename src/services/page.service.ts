@@ -73,10 +73,7 @@ export const toValidPageGuid = (id?: string): string => {
 export const MOCK_PAGES: PageDto[] = [];
 
 export const pageService = {
-  createPage: async (
-    chapterId: string,
-    body: CreatePageRequestBody,
-  ): Promise<PageDto> => {
+  createPage: async (chapterId: string, body: CreatePageRequestBody): Promise<PageDto> => {
     const validChapterId = toValidChapterGuid(chapterId);
     try {
       const response = await axiosClient.post(`/chapters/${validChapterId}/pages`, body);

@@ -325,18 +325,33 @@ export const seriesService = {
     }
   },
 
-  async addSeriesMember(workspaceId: string, seriesId: string, req: AddSeriesMemberRequest): Promise<SeriesMemberDto> {
+  async addSeriesMember(
+    workspaceId: string,
+    seriesId: string,
+    req: AddSeriesMemberRequest,
+  ): Promise<SeriesMemberDto> {
     try {
-      const res = await axiosClient.post(`/workspaces/${workspaceId}/series/${seriesId}/members`, req);
+      const res = await axiosClient.post(
+        `/workspaces/${workspaceId}/series/${seriesId}/members`,
+        req,
+      );
       return res.data;
     } catch (err: any) {
       throw new Error(`Failed to add member to series: ${err.response?.data || err.message}`);
     }
   },
 
-  async updateSeriesMember(workspaceId: string, seriesId: string, memberId: string, req: UpdateSeriesMemberRequest): Promise<SeriesMemberDto> {
+  async updateSeriesMember(
+    workspaceId: string,
+    seriesId: string,
+    memberId: string,
+    req: UpdateSeriesMemberRequest,
+  ): Promise<SeriesMemberDto> {
     try {
-      const res = await axiosClient.put(`/workspaces/${workspaceId}/series/${seriesId}/members/${memberId}`, req);
+      const res = await axiosClient.put(
+        `/workspaces/${workspaceId}/series/${seriesId}/members/${memberId}`,
+        req,
+      );
       return res.data;
     } catch (err: any) {
       throw new Error(`Failed to update series member: ${err.response?.data || err.message}`);

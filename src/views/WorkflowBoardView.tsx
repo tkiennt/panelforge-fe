@@ -72,9 +72,12 @@ export const WorkflowBoardView: React.FC<WorkflowBoardViewProps> = ({
     if (seriesId) {
       const workspaceId = JSON.parse(localStorage.getItem('activeWorkspace') || '{}').id;
       if (workspaceId) {
-        seriesService.getSeriesMembers(workspaceId, seriesId).then(data => {
-          setSeriesMembers(data || []);
-        }).catch(err => console.error(err));
+        seriesService
+          .getSeriesMembers(workspaceId, seriesId)
+          .then((data) => {
+            setSeriesMembers(data || []);
+          })
+          .catch((err) => console.error(err));
       }
     }
   }, [seriesId]);
@@ -261,11 +264,13 @@ export const WorkflowBoardView: React.FC<WorkflowBoardViewProps> = ({
                 className='appearance-none bg-white border border-[#E7E7E7] pl-3 pr-8 py-1.5 rounded text-xs font-semibold text-[#171717] focus:outline-none focus:border-[#171717] cursor-pointer'
               >
                 <option value='ALL'>Assignee: All Members</option>
-                {seriesMembers.length > 0 ? seriesMembers.map(m => (
-                  <option key={m.userId} value={m.fullName || m.email.split('@')[0]}>
-                    {m.fullName || m.email.split('@')[0]} ({m.seriesRole || 'Member'})
-                  </option>
-                )) : (
+                {seriesMembers.length > 0 ? (
+                  seriesMembers.map((m) => (
+                    <option key={m.userId} value={m.fullName || m.email.split('@')[0]}>
+                      {m.fullName || m.email.split('@')[0]} ({m.seriesRole || 'Member'})
+                    </option>
+                  ))
+                ) : (
                   <>
                     <option value='Kenji'>Kenji (Artist)</option>
                     <option value='Arata'>Arata (Writer)</option>

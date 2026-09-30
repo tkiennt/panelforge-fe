@@ -75,7 +75,8 @@ export interface AddBibleEntryRevisionRequest {
 function extractError(error: any, defaultMsg: string): any {
   const message = error.response?.data?.error || error.response?.data?.message || defaultMsg;
   const err: any = new Error(message);
-  err.code = error.response?.data?.code || (error.response?.status === 409 ? 'CONFLICT' : undefined);
+  err.code =
+    error.response?.data?.code || (error.response?.status === 409 ? 'CONFLICT' : undefined);
   err.status = error.response?.status;
   return err;
 }
@@ -95,7 +96,9 @@ export const bibleService = {
     chapterNumber: number,
   ): Promise<BibleEntryDto[]> {
     try {
-      const response = await axiosClient.get(`/series/${seriesId}/bible/at-chapter/${chapterNumber}`);
+      const response = await axiosClient.get(
+        `/series/${seriesId}/bible/at-chapter/${chapterNumber}`,
+      );
       return response.data;
     } catch (error) {
       throw extractError(error, `Không thể tải Bible cho Chapter ${chapterNumber}.`);
@@ -125,7 +128,10 @@ export const bibleService = {
     data: AddBibleEntryRevisionRequest,
   ): Promise<BibleEntryRevisionDto> {
     try {
-      const response = await axiosClient.post(`/series/${seriesId}/bible/entries/${entryId}/revisions`, data);
+      const response = await axiosClient.post(
+        `/series/${seriesId}/bible/entries/${entryId}/revisions`,
+        data,
+      );
       return response.data;
     } catch (error) {
       throw extractError(error, 'Không thể tạo phiên bản mới cho mục Bible.');
@@ -134,7 +140,9 @@ export const bibleService = {
 
   async getEntryHistory(seriesId: string, entryId: string): Promise<BibleEntryRevisionDto[]> {
     try {
-      const response = await axiosClient.get(`/series/${seriesId}/bible/entries/${entryId}/history`);
+      const response = await axiosClient.get(
+        `/series/${seriesId}/bible/entries/${entryId}/history`,
+      );
       return response.data;
     } catch (error) {
       throw extractError(error, 'Không thể tải lịch sử phiên bản của mục.');

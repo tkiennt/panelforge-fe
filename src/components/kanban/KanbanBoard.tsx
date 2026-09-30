@@ -47,9 +47,12 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
 
   useEffect(() => {
     if (workspaceId && seriesId) {
-      seriesService.getSeriesMembers(workspaceId, seriesId).then(data => {
-        setSeriesMembers(data || []);
-      }).catch(err => console.error(err));
+      seriesService
+        .getSeriesMembers(workspaceId, seriesId)
+        .then((data) => {
+          setSeriesMembers(data || []);
+        })
+        .catch((err) => console.error(err));
     }
   }, [workspaceId, seriesId]);
 

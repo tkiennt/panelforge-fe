@@ -176,8 +176,10 @@ function extractError(error: any, defaultMsg: string): string {
   const data = error.response?.data;
   if (data?.message) return data.message;
   if (data?.error) return data.error;
-  if (error.response?.status === 401) return 'Phiên đăng nhập đã hết hạn hoặc bạn chưa đăng nhập (401 Unauthorized).';
-  if (error.response?.status === 403) return 'Bạn không có quyền quản trị viên để thực hiện thao tác này (403 Forbidden).';
+  if (error.response?.status === 401)
+    return 'Phiên đăng nhập đã hết hạn hoặc bạn chưa đăng nhập (401 Unauthorized).';
+  if (error.response?.status === 403)
+    return 'Bạn không có quyền quản trị viên để thực hiện thao tác này (403 Forbidden).';
   return defaultMsg;
 }
 
@@ -247,7 +249,12 @@ export const adminService = {
       currentRole.toUpperCase() !== 'ADMIN'
     ) {
       return {
-        totalUsers: 0, admins: 0, registeredUsers: 0, totalWorkspaces: 0, totalWorkspaceMembers: 0, serverTimeUtc: new Date().toISOString(),
+        totalUsers: 0,
+        admins: 0,
+        registeredUsers: 0,
+        totalWorkspaces: 0,
+        totalWorkspaceMembers: 0,
+        serverTimeUtc: new Date().toISOString(),
       };
     }
 
@@ -257,7 +264,12 @@ export const adminService = {
     } catch (error: any) {
       console.warn('adminService.getSystemStats error:', error.message);
       return {
-        totalUsers: 0, admins: 0, registeredUsers: 0, totalWorkspaces: 0, totalWorkspaceMembers: 0, serverTimeUtc: new Date().toISOString(),
+        totalUsers: 0,
+        admins: 0,
+        registeredUsers: 0,
+        totalWorkspaces: 0,
+        totalWorkspaceMembers: 0,
+        serverTimeUtc: new Date().toISOString(),
       };
     }
   },
@@ -274,7 +286,9 @@ export const adminService = {
     } else {
       params = {
         workspaceId: typeof workspaceIdOrParams === 'string' ? workspaceIdOrParams : undefined,
-        action, page, pageSize,
+        action,
+        page,
+        pageSize,
       };
     }
 
@@ -290,7 +304,7 @@ export const adminService = {
     try {
       const response = await axiosClient.get('/Admin/audit-logs/export', {
         params,
-        responseType: 'blob'
+        responseType: 'blob',
       });
 
       const rowCountHeader = response.headers['x-export-row-count'];
@@ -340,7 +354,7 @@ export const adminService = {
     try {
       const response = await axiosClient.get('/Admin/ai-usage/export', {
         params,
-        responseType: 'blob'
+        responseType: 'blob',
       });
 
       const rowCountHeader = response.headers['x-export-row-count'];

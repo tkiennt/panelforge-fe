@@ -71,7 +71,9 @@ export const catalogService = {
       const response = await axiosClient.get(`/catalog/series/${seriesId}`);
       return response.data;
     } catch (error) {
-      throw new Error(extractError(error, 'Không tìm thấy bộ truyện hoặc chưa có chương phát hành.'));
+      throw new Error(
+        extractError(error, 'Không tìm thấy bộ truyện hoặc chưa có chương phát hành.'),
+      );
     }
   },
 };

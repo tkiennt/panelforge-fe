@@ -39,7 +39,11 @@ export const TaskEditor: React.FC<TaskEditorProps> = ({
           id: taskId,
           title: `Demo Task: ${taskId}`,
           pageNumber: 'Page 1',
-          stage: taskId.includes('letter') ? 'letter' : taskId.includes('script') ? 'script' : 'ink',
+          stage: taskId.includes('letter')
+            ? 'letter'
+            : taskId.includes('script')
+              ? 'script'
+              : 'ink',
           assignee: 'Test User',
           assigneeRole: '',
           assigneeInitials: 'TU',
