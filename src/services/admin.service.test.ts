@@ -1,14 +1,23 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { adminService, MOCK_ADMIN_USERS } from './admin.service';
+import axiosClient from '../api/axiosClient';
+import { adminService } from './admin.service';
+
+// Giả lập các method HTTP của axiosClient (Authorization do request interceptor gắn, được kiểm thử ở axiosClient.test.ts)
+vi.mock('../api/axiosClient', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../api/axiosClient')>();
+  return { ...actual, default: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() } };
+});
+
+const get = vi.mocked(axiosClient.get);
+const post = vi.mocked(axiosClient.post);
 
 describe('adminService', () => {
   beforeEach(() => {
-    vi.restoreAllMocks();
+    vi.resetAllMocks();
     localStorage.clear();
   });
 
-  it('gọi GET /api/Admin/users với page và pageSize và kèm Authorization header', async () => {
-    localStorage.setItem('token', 'admin-token-123');
+  it('gọi GET /Admin/users với page và pageSize', async () => {
     const mockResponse = {
       total: 1,
       page: 1,
@@ -27,53 +36,43 @@ describe('adminService', () => {
         },
       ],
     };
-
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(mockResponse),
-    });
-    globalThis.fetch = fetchMock;
+    get.mockResolvedValue({ data: mockResponse });
 
     const result = await adminService.getAllUsers(1, 10);
 
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    const [url, options] = fetchMock.mock.calls[0];
-    expect(url).toContain('/api/Admin/users?page=1&pageSize=10');
-    expect(options.method).toBe('GET');
-    expect(options.headers['Authorization']).toBe('Bearer admin-token-123');
+    expect(get).toHaveBeenCalledTimes(1);
+    expect(get).toHaveBeenCalledWith('/Admin/users', { params: { page: 1, pageSize: 10 } });
     expect(result).toEqual(mockResponse);
   });
 
-  it('gọi POST /api/Admin/assign-role và trả về kết quả thành công', async () => {
+  it('không gọi API khi vai trò hiện tại không phải Administrator', async () => {
+    localStorage.setItem('userRole', 'PRODUCER');
+
+    const result = await adminService.getAllUsers(1, 10);
+
+    expect(get).not.toHaveBeenCalled();
+    expect(result.items).toEqual([]);
+  });
+
+  it('gọi POST /Admin/assign-role và trả về kết quả thành công', async () => {
     const mockResponse = {
       message: 'Đã cập nhật vai trò thành công',
       userId: 'user-guid-xyz',
       newRole: 'Editor',
     };
+    post.mockResolvedValue({ data: mockResponse });
 
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(mockResponse),
-    });
-    globalThis.fetch = fetchMock;
+    const result = await adminService.assignRole({ userId: 'user-guid-xyz', newRole: 'Editor' });
 
-    const result = await adminService.assignRole(
-      { userId: 'user-guid-xyz', newRole: 'Editor' }
-    );
-
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    const [url, options] = fetchMock.mock.calls[0];
-    expect(url).toContain('/api/Admin/assign-role');
-    expect(options.method).toBe('POST');
-    expect(options.headers['Authorization']).toBe('Bearer custom-token');
-    expect(JSON.parse(options.body)).toEqual({
+    expect(post).toHaveBeenCalledTimes(1);
+    expect(post).toHaveBeenCalledWith('/Admin/assign-role', {
       userId: 'user-guid-xyz',
       newRole: 'Editor',
     });
     expect(result).toEqual(mockResponse);
   });
 
-  it('gọi GET /api/Admin/system-stats và trả về thống kê hệ thống', async () => {
+  it('gọi GET /Admin/system-stats và trả về thống kê hệ thống', async () => {
     const mockStats = {
       totalUsers: 100,
       admins: 2,
@@ -82,26 +81,18 @@ describe('adminService', () => {
       totalWorkspaceMembers: 32,
       serverTimeUtc: '2026-09-18T05:00:00Z',
     };
-
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(mockStats),
-    });
-    globalThis.fetch = fetchMock;
+    get.mockResolvedValue({ data: mockStats });
 
     const result = await adminService.getSystemStats();
 
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    const [url, options] = fetchMock.mock.calls[0];
-    expect(url).toContain('/api/Admin/system-stats');
-    expect(options.method).toBe('GET');
+    expect(get).toHaveBeenCalledTimes(1);
+    expect(get).toHaveBeenCalledWith('/Admin/system-stats');
     expect(result).toEqual(mockStats);
   });
 
   it('fallback an toàn khi server trả về lỗi hoặc offline', async () => {
     localStorage.setItem('userRole', 'ADMINISTRATOR');
-    const fetchMock = vi.fn().mockRejectedValue(new Error('Network error'));
-    globalThis.fetch = fetchMock;
+    get.mockRejectedValue(new Error('Network error'));
 
     const usersResult = await adminService.getAllUsers(1, 20);
     expect(usersResult.items).toEqual([]);

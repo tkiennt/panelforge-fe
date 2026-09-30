@@ -1,22 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { Users, UserPlus, Shield, X, Check, Trash2, Edit2 } from 'lucide-react';
 import { seriesService, SeriesMemberDto } from '../../services/series.service';
 import { workspaceService, WorkspaceMemberDto } from '../../services/workspace.service';
 
-export const SeriesMembersView: React.FC<{ onShowToast: (title: string, desc: string) => void }> = ({ onShowToast }) => {
+export const SeriesMembersView: React.FC<{
+  onShowToast: (title: string, desc: string) => void;
+}> = ({ onShowToast }) => {
   const { workspaceId, seriesId } = useParams();
   const [members, setMembers] = useState<SeriesMemberDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
-  useEffect(() => {
-    if (seriesId) {
-      loadMembers();
-    }
-  }, [seriesId]);
-
-  const loadMembers = async () => {
+  const loadMembers = useCallback(async () => {
     setIsLoading(true);
     try {
       const data = await seriesService.getSeriesMembers(workspaceId!, seriesId!);
@@ -28,7 +24,13 @@ export const SeriesMembersView: React.FC<{ onShowToast: (title: string, desc: st
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [workspaceId, seriesId]);
+
+  useEffect(() => {
+    if (seriesId) {
+      loadMembers();
+    }
+  }, [seriesId, loadMembers]);
 
   const handleRemove = async (memberId: string) => {
     try {
@@ -71,7 +73,8 @@ export const SeriesMembersView: React.FC<{ onShowToast: (title: string, desc: st
             </div>
             <h3 className='text-base font-bold text-zinc-900'>No Crew Members Assigned</h3>
             <p className='text-sm text-zinc-500 mt-1 max-w-sm mb-5 text-center'>
-              The crew is currently empty. Add members from the Workspace to start assigning tasks on the Kanban board.
+              The crew is currently empty. Add members from the Workspace to start assigning tasks
+              on the Kanban board.
             </p>
             <button
               onClick={() => setIsAddModalOpen(true)}
@@ -101,7 +104,9 @@ export const SeriesMembersView: React.FC<{ onShowToast: (title: string, desc: st
                           {(m.fullName || m.email || 'U').charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <p className='font-semibold text-zinc-900'>{m.fullName || m.email.split('@')[0]}</p>
+                          <p className='font-semibold text-zinc-900'>
+                            {m.fullName || m.email.split('@')[0]}
+                          </p>
                           <p className='text-xs text-zinc-500'>{m.email}</p>
                         </div>
                       </div>
@@ -112,14 +117,21 @@ export const SeriesMembersView: React.FC<{ onShowToast: (title: string, desc: st
                       </span>
                     </td>
                     <td className='py-4 px-6'>
-                      <span className={`px-2.5 py-1 rounded-md text-[11px] font-semibold border flex items-center gap-1 w-max ${
-                        m.seriesRole === 'PRODUCER' ? 'bg-amber-50 text-amber-600 border-amber-200' :
-                        m.seriesRole === 'WRITER' ? 'bg-indigo-50 text-indigo-600 border-indigo-200' :
-                        m.seriesRole === 'ARTIST' ? 'bg-violet-50 text-violet-600 border-violet-200' :
-                        m.seriesRole === 'LETTERER' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' :
-                        m.seriesRole === 'EDITOR' ? 'bg-rose-50 text-rose-600 border-rose-200' :
-                        'bg-zinc-100 text-zinc-600 border-zinc-200'
-                      }`}>
+                      <span
+                        className={`px-2.5 py-1 rounded-md text-[11px] font-semibold border flex items-center gap-1 w-max ${
+                          m.seriesRole === 'PRODUCER'
+                            ? 'bg-amber-50 text-amber-600 border-amber-200'
+                            : m.seriesRole === 'WRITER'
+                              ? 'bg-indigo-50 text-indigo-600 border-indigo-200'
+                              : m.seriesRole === 'ARTIST'
+                                ? 'bg-violet-50 text-violet-600 border-violet-200'
+                                : m.seriesRole === 'LETTERER'
+                                  ? 'bg-emerald-50 text-emerald-600 border-emerald-200'
+                                  : m.seriesRole === 'EDITOR'
+                                    ? 'bg-rose-50 text-rose-600 border-rose-200'
+                                    : 'bg-zinc-100 text-zinc-600 border-zinc-200'
+                        }`}
+                      >
                         <Shield className='w-3 h-3' />
                         {m.seriesRole || 'N/A'}
                       </span>
@@ -200,7 +212,7 @@ const AddSeriesMemberModal: React.FC<{
     } catch (err) {
       console.error(err);
       // Mock fallback if API not ready
-      const u = workspaceMembers.find(m => m.userId === selectedUserId);
+      const u = workspaceMembers.find((m) => m.userId === selectedUserId);
       onAdded({
         id: Math.random().toString(),
         seriesId,
@@ -209,7 +221,7 @@ const AddSeriesMemberModal: React.FC<{
         email: u?.email || '',
         studioRole: String(u?.role || 'Member'),
         seriesRole,
-        joinedAt: new Date().toISOString()
+        joinedAt: new Date().toISOString(),
       });
     } finally {
       setIsSubmitting(false);
@@ -224,25 +236,37 @@ const AddSeriesMemberModal: React.FC<{
       <div className='bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden'>
         <div className='flex items-center justify-between p-5 border-b border-zinc-200'>
           <h2 className='text-lg font-bold text-zinc-900'>Assign Crew Member</h2>
-          <button onClick={onClose} className='p-1.5 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors'>
+          <button
+            onClick={onClose}
+            className='p-1.5 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors'
+          >
             <X className='w-5 h-5' />
           </button>
         </div>
         <form onSubmit={handleSubmit} className='p-5 space-y-5'>
           {/* Custom Member Dropdown */}
           <div className='relative'>
-            <label className='block text-xs font-semibold text-zinc-500 mb-1.5'>Member (from Studio)</label>
-            <div 
+            <label className='block text-xs font-semibold text-zinc-500 mb-1.5'>
+              Member (from Studio)
+            </label>
+            <div
               className='w-full px-3 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-sm flex items-center justify-between cursor-pointer hover:bg-zinc-100 transition-colors'
               onClick={() => setIsMemberDropdownOpen(!isMemberDropdownOpen)}
             >
               {selectedUserId ? (
                 <div className='flex items-center gap-2'>
                   <div className='w-6 h-6 rounded-full bg-zinc-900 text-white flex items-center justify-center font-bold text-[10px]'>
-                    {(workspaceMembers.find(m => m.userId === selectedUserId)?.fullName || workspaceMembers.find(m => m.userId === selectedUserId)?.email || 'U').charAt(0).toUpperCase()}
+                    {(
+                      workspaceMembers.find((m) => m.userId === selectedUserId)?.fullName ||
+                      workspaceMembers.find((m) => m.userId === selectedUserId)?.email ||
+                      'U'
+                    )
+                      .charAt(0)
+                      .toUpperCase()}
                   </div>
                   <span className='font-semibold text-zinc-900'>
-                    {workspaceMembers.find(m => m.userId === selectedUserId)?.fullName || workspaceMembers.find(m => m.userId === selectedUserId)?.email}
+                    {workspaceMembers.find((m) => m.userId === selectedUserId)?.fullName ||
+                      workspaceMembers.find((m) => m.userId === selectedUserId)?.email}
                   </span>
                 </div>
               ) : (
@@ -250,14 +274,16 @@ const AddSeriesMemberModal: React.FC<{
               )}
               <div className='text-zinc-400'>▼</div>
             </div>
-            
+
             {isMemberDropdownOpen && (
               <div className='absolute top-full left-0 right-0 mt-2 max-h-48 overflow-y-auto bg-white border border-zinc-200 rounded-xl shadow-lg z-10 p-1 custom-scrollbar'>
                 {workspaceMembers.length === 0 ? (
-                  <div className='p-3 text-sm text-center text-zinc-500'>No available members found.</div>
+                  <div className='p-3 text-sm text-center text-zinc-500'>
+                    No available members found.
+                  </div>
                 ) : (
                   workspaceMembers.map((m) => (
-                    <div 
+                    <div
                       key={m.userId}
                       className='flex items-center gap-3 p-2 hover:bg-zinc-50 rounded-lg cursor-pointer transition-colors'
                       onClick={() => {
@@ -269,7 +295,9 @@ const AddSeriesMemberModal: React.FC<{
                         {(m.fullName || m.email || 'U').charAt(0).toUpperCase()}
                       </div>
                       <div className='flex flex-col'>
-                        <span className='font-semibold text-zinc-900 text-sm'>{m.fullName || m.email.split('@')[0]}</span>
+                        <span className='font-semibold text-zinc-900 text-sm'>
+                          {m.fullName || m.email.split('@')[0]}
+                        </span>
                         <span className='text-xs text-zinc-500'>{m.email}</span>
                       </div>
                     </div>
@@ -281,19 +309,27 @@ const AddSeriesMemberModal: React.FC<{
 
           {/* Custom Role Dropdown */}
           <div className='relative'>
-            <label className='block text-xs font-semibold text-zinc-500 mb-1.5'>Role in this Series</label>
-            <div 
+            <label className='block text-xs font-semibold text-zinc-500 mb-1.5'>
+              Role in this Series
+            </label>
+            <div
               className='w-full px-3 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-sm flex items-center justify-between cursor-pointer hover:bg-zinc-100 transition-colors'
               onClick={() => setIsRoleDropdownOpen(!isRoleDropdownOpen)}
             >
               <div className='flex items-center gap-2'>
-                <div className={`w-3 h-3 rounded-full ${
-                  seriesRole === 'PRODUCER' ? 'bg-amber-500' :
-                  seriesRole === 'WRITER' ? 'bg-indigo-500' :
-                  seriesRole === 'ARTIST' ? 'bg-violet-500' :
-                  seriesRole === 'LETTERER' ? 'bg-emerald-500' :
-                  'bg-rose-500'
-                }`} />
+                <div
+                  className={`w-3 h-3 rounded-full ${
+                    seriesRole === 'PRODUCER'
+                      ? 'bg-amber-500'
+                      : seriesRole === 'WRITER'
+                        ? 'bg-indigo-500'
+                        : seriesRole === 'ARTIST'
+                          ? 'bg-violet-500'
+                          : seriesRole === 'LETTERER'
+                            ? 'bg-emerald-500'
+                            : 'bg-rose-500'
+                  }`}
+                />
                 <span className='font-semibold text-zinc-900'>{seriesRole}</span>
               </div>
               <div className='text-zinc-400'>▼</div>
@@ -306,9 +342,9 @@ const AddSeriesMemberModal: React.FC<{
                   { id: 'WRITER', color: 'bg-indigo-500', label: 'Writer' },
                   { id: 'ARTIST', color: 'bg-violet-500', label: 'Artist' },
                   { id: 'LETTERER', color: 'bg-emerald-500', label: 'Letterer' },
-                  { id: 'EDITOR', color: 'bg-rose-500', label: 'Editor' }
+                  { id: 'EDITOR', color: 'bg-rose-500', label: 'Editor' },
                 ].map((role) => (
-                  <div 
+                  <div
                     key={role.id}
                     className='flex items-center gap-2 p-2.5 hover:bg-zinc-50 rounded-lg cursor-pointer transition-colors'
                     onClick={() => {
@@ -339,7 +375,9 @@ const AddSeriesMemberModal: React.FC<{
             >
               {isSubmitting ? (
                 <span className='w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin'></span>
-              ) : 'Save Assignment'}
+              ) : (
+                'Save Assignment'
+              )}
             </button>
           </div>
         </form>

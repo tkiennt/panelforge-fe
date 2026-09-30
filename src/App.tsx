@@ -66,6 +66,7 @@ import { NotificationCenterView } from './views/NotificationCenterView';
 import { ReaderPortalView } from './views/ReaderPortalView';
 import { PublicCatalogView } from './views/catalog/PublicCatalogView';
 import { authService } from './services/auth.service';
+import { refreshAccessToken } from './api/axiosClient';
 import { seriesService } from './services/series.service';
 
 import {
@@ -156,14 +157,17 @@ function AppContent() {
         const roleFromToken = getRoleFromToken();
         const stored = localStorage.getItem('userRole');
         const role = roleFromToken || (stored ? normalizeSystemRole(stored) : null);
-        return normalizeWorkspaceRole(ws.currentUserRole) || (role === 'ADMINISTRATOR' ? 'PRODUCER' : 'ARTIST');
+        return (
+          normalizeWorkspaceRole(ws.currentUserRole) ||
+          (role === 'ADMINISTRATOR' ? 'PRODUCER' : 'ARTIST')
+        );
       }
       return null;
     } catch {
       return null;
     }
   });
-  
+
   const [activeProjectRoles, setActiveProjectRoles] = useState<string[]>(() => {
     try {
       const roleFromToken = getRoleFromToken();
@@ -173,7 +177,9 @@ function AppContent() {
       const saved = localStorage.getItem('activeWorkspace');
       if (saved) {
         const ws = JSON.parse(saved);
-        const wsRole = normalizeWorkspaceRole(ws.currentUserRole) || (role === 'ADMINISTRATOR' ? 'PRODUCER' : 'ARTIST');
+        const wsRole =
+          normalizeWorkspaceRole(ws.currentUserRole) ||
+          (role === 'ADMINISTRATOR' ? 'PRODUCER' : 'ARTIST');
         return [wsRole];
       }
       return role === 'ADMINISTRATOR' ? ['ADMINISTRATOR'] : ['ARTIST'];
@@ -324,13 +330,13 @@ function AppContent() {
     setActiveProjectRoles([wsRole]);
     setViewScope('project');
 
-    let hasSeries = false;
+    let firstSeriesId: string | null = null;
     // Tải danh sách Series thật từ Backend API PostgreSQL cho Workspace này
     try {
       const realSeriesList = await seriesService.getSeriesList(ws.id);
       if (realSeriesList && realSeriesList.length > 0) {
-        hasSeries = true;
         const firstSeries = realSeriesList[0];
+        firstSeriesId = firstSeries.id;
         const adaptedProject: MangaProject = {
           id: firstSeries.id,
           title: firstSeries.title,
@@ -360,8 +366,13 @@ function AppContent() {
     if (wsRole === 'PRODUCER' || currentRole === 'ADMINISTRATOR') {
       navigate(`/workspaces/${ws.id}/overview`);
     } else {
+      // Vai trò khác vào thẳng bàn làm việc của Series đầu tiên; Workspace chưa có Series thì vào trang tổng quan
       navigateToWorkspaceRoleView(wsRole);
-      navigate(`/workspaces/${ws.id}/workspace`);
+      navigate(
+        firstSeriesId
+          ? `/workspaces/${ws.id}/series/${firstSeriesId}/workspace`
+          : `/workspaces/${ws.id}/overview`,
+      );
     }
   };
 
@@ -383,11 +394,19 @@ function AppContent() {
     } else {
       const savedToken = localStorage.getItem('token');
       if (savedToken && !savedToken.startsWith('mock-')) {
-        // Token hết hạn hoặc không hợp lệ -> xóa sạch
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        localStorage.removeItem('userRole');
-        setIsAuthenticated(false);
+        if (localStorage.getItem('refreshToken')) {
+          // Access token (30 phút) đã hết hạn nhưng còn refresh token → đổi token mới rồi nạp lại trang.
+          // Refresh bị từ chối thì axiosClient tự dọn phiên và phát 'auth:unauthorized'.
+          void refreshAccessToken().then((newToken) => {
+            if (newToken) window.location.reload();
+          });
+        } else {
+          // Token hết hạn hoặc không hợp lệ -> xóa sạch
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          localStorage.removeItem('userRole');
+          setIsAuthenticated(false);
+        }
       }
     }
 
@@ -437,34 +456,37 @@ function AppContent() {
   }, [activeProject]);
 
   useEffect(() => {
-    const match = location.pathname.match(/\/workspaces\/([^\/]+)\/series\/([^\/]+)/);
+    const match = location.pathname.match(/\/workspaces\/([^/]+)\/series\/([^/]+)/);
     if (match && match[2]) {
       const seriesId = match[2];
       if (activeProject?.id !== seriesId) {
-        seriesService.getSeriesById(seriesId).then(firstSeries => {
-          const adaptedProject: MangaProject = {
-            id: firstSeries.id,
-            title: firstSeries.title,
-            subtitle: firstSeries.synopsis || 'N/A',
-            arc: 'Arc 01',
-            chapter: 1,
-            format: firstSeries.format || 'B5 Tankōbon Master (600 DPI)',
-            status: 'In Production',
-            progressPercent: 50,
-            completedPages: 16,
-            totalPages: 32,
-            dueDate: 'Dec 2026',
-            daysLeft: 30,
-            genres: [firstSeries.genre || 'Manga'],
-            coverStyle: 'halftone-cyber',
-            coverText: firstSeries.title,
-            tagline: firstSeries.synopsis || 'Studio Production',
-            lastUpdated: new Date(firstSeries.createdAt).toLocaleDateString(),
-          };
-          setActiveProject(adaptedProject);
-        }).catch(err => {
-          console.warn('Failed to load series for URL sync:', err);
-        });
+        seriesService
+          .getSeriesById(seriesId)
+          .then((firstSeries) => {
+            const adaptedProject: MangaProject = {
+              id: firstSeries.id,
+              title: firstSeries.title,
+              subtitle: firstSeries.synopsis || 'N/A',
+              arc: 'Arc 01',
+              chapter: 1,
+              format: firstSeries.format || 'B5 Tankōbon Master (600 DPI)',
+              status: 'In Production',
+              progressPercent: 50,
+              completedPages: 16,
+              totalPages: 32,
+              dueDate: 'Dec 2026',
+              daysLeft: 30,
+              genres: [firstSeries.genre || 'Manga'],
+              coverStyle: 'halftone-cyber',
+              coverText: firstSeries.title,
+              tagline: firstSeries.synopsis || 'Studio Production',
+              lastUpdated: new Date(firstSeries.createdAt).toLocaleDateString(),
+            };
+            setActiveProject(adaptedProject);
+          })
+          .catch((err) => {
+            console.warn('Failed to load series for URL sync:', err);
+          });
       }
     }
   }, [location.pathname, activeProject?.id]);
@@ -495,6 +517,22 @@ function AppContent() {
       setToasts((prev) => prev.filter((t) => t.id !== id));
     }, 4000);
   };
+
+  // axiosClient phát 'auth:unauthorized' khi hết phiên (refresh token bị từ chối / 401 không phục hồi được)
+  useEffect(() => {
+    const onUnauthorized = () => {
+      localStorage.removeItem('user');
+      localStorage.removeItem('userRole');
+      localStorage.removeItem('activeWorkspace');
+      setCurrentUserInfo(null);
+      setIsAuthenticated(false);
+      setCurrentRole('USER');
+      setCurrentWorkspaceRole(null);
+      showToast('Phiên đăng nhập hết hạn', 'Vui lòng đăng nhập lại.');
+    };
+    window.addEventListener('auth:unauthorized', onUnauthorized);
+    return () => window.removeEventListener('auth:unauthorized', onUnauthorized);
+  }, []);
 
   // Keyboard shortcut for Command Palette
   useEffect(() => {
@@ -588,8 +626,10 @@ function AppContent() {
   };
 
   const handleLogout = () => {
+    void authService.logout(); // thu hồi refresh token trên BE (đọc token trước khi xoá bên dưới)
     auth.signOut();
     localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
     localStorage.removeItem('userRole');
     localStorage.removeItem('user');
     localStorage.removeItem('pf_remember_device');
@@ -707,72 +747,97 @@ function AppContent() {
             <Route path='workspaces/:workspaceId'>
               <Route index element={<ProducerWorkspaceView />} />
               <Route path='overview' element={<ProducerWorkspaceView />} />
-              <Route path='members' element={
-                <MembersRolesView
-                  activeProject={activeProject}
-                  workspaceId={activeWorkspace?.id}
-                  members={members}
-                  onInviteMember={handleInviteMember}
-                  onUpdateMemberRole={(memberId, newRole) => {
-                    setMembers((prev) =>
-                      prev.map((m) => (m.id === memberId ? { ...m, role: newRole } : m)),
-                    );
-                    showToast('Cập nhật quyền', `Đã phân quyền ${newRole} cho thành viên`);
-                  }}
-                  onShowToast={showToast}
-                />
-              } />
+              <Route
+                path='members'
+                element={
+                  <MembersRolesView
+                    activeProject={activeProject}
+                    workspaceId={activeWorkspace?.id}
+                    members={members}
+                    onInviteMember={handleInviteMember}
+                    onUpdateMemberRole={(memberId, newRole) => {
+                      setMembers((prev) =>
+                        prev.map((m) => (m.id === memberId ? { ...m, role: newRole } : m)),
+                      );
+                      showToast('Cập nhật quyền', `Đã phân quyền ${newRole} cho thành viên`);
+                    }}
+                    onShowToast={showToast}
+                  />
+                }
+              />
 
               <Route path='series/:seriesId'>
                 <Route path='members' element={<SeriesMembersView onShowToast={showToast} />} />
-                <Route path='dashboard' element={
-                  <DashboardView
-                    activeProject={activeProject}
-                    assistants={assistants}
-                    provenanceLogs={provenanceLogs}
-                    onShowToast={showToast}
-                  />
-                } />
-                <Route path='workspace' element={
-                  <WorkspaceView
-                    currentUserRole={currentWorkspaceRole}
-                    systemRole={currentRole}
-                    userRoles={activeProjectRoles}
-                    onShowToast={showToast}
-                  />
-                } />
-                <Route path='task/:taskId' element={
-                  <TaskEditor
-                    activeRoles={activeProjectRoles}
-                    onShowToast={showToast}
-                    isDevMode={IS_DEV_MODE}
-                  />
-                } />
-                <Route path='bible' element={
-                  <SeriesBibleView
-                    activeProject={activeProject}
-                    onAddEntity={handleAddEntity}
-                    onSelectSeries={(p) => setActiveProject(p)}
-                    onEditEntity={(e) => showToast('Series Bible', `Mở chi tiết ${e.name}`)}
-                    onShowToast={showToast}
-                  />
-                } />
+                <Route
+                  path='dashboard'
+                  element={
+                    <DashboardView
+                      activeProject={activeProject}
+                      assistants={assistants}
+                      provenanceLogs={provenanceLogs}
+                      onShowToast={showToast}
+                    />
+                  }
+                />
+                <Route
+                  path='workspace'
+                  element={
+                    <WorkspaceView
+                      currentUserRole={currentWorkspaceRole}
+                      systemRole={currentRole}
+                      userRoles={activeProjectRoles}
+                      onShowToast={showToast}
+                    />
+                  }
+                />
+                <Route
+                  path='task/:taskId'
+                  element={
+                    <TaskEditor
+                      activeRoles={activeProjectRoles}
+                      onShowToast={showToast}
+                      isDevMode={IS_DEV_MODE}
+                    />
+                  }
+                />
+                <Route
+                  path='bible'
+                  element={
+                    <SeriesBibleView
+                      activeProject={activeProject}
+                      onAddEntity={handleAddEntity}
+                      onSelectSeries={(p) => setActiveProject(p)}
+                      onEditEntity={(e) => showToast('Series Bible', `Mở chi tiết ${e.name}`)}
+                      onShowToast={showToast}
+                    />
+                  }
+                />
                 <Route path='export' element={<ExportView onShowToast={showToast} />} />
               </Route>
             </Route>
 
             {/* Flat routes for backward compatibility / other views */}
             <Route path='producer' element={<ProducerWorkspaceView />} />
-            <Route path='review/:taskId' element={
-              <ReviewView activeRoles={activeProjectRoles} onShowToast={showToast} isDevMode={IS_DEV_MODE} />
-            } />
+            <Route
+              path='review/:taskId'
+              element={
+                <ReviewView
+                  activeRoles={activeProjectRoles}
+                  onShowToast={showToast}
+                  isDevMode={IS_DEV_MODE}
+                />
+              }
+            />
             <Route path='reader' element={<ReaderPortalView />} />
             <Route
               path='profile'
               element={<UserProfile user={firebaseUser} onLogout={handleLogout} />}
             />
             <Route path='artist' element={<ArtistDeskView />} />
-            <Route path='catalog' element={<PublicCatalogView onBackToWorkspaces={() => navigate('/workspaces')} />} />
+            <Route
+              path='catalog'
+              element={<PublicCatalogView onBackToWorkspaces={() => navigate('/workspaces')} />}
+            />
             <Route path='notifications' element={<NotificationCenterView />} />
           </Route>
 

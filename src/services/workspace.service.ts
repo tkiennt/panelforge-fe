@@ -73,6 +73,8 @@ export const workspaceService = {
   },
 
   getMyWorkspaces: async (): Promise<WorkspaceDto[]> => {
+    // Chưa đăng nhập thì không gọi API (tránh 401 làm phát 'auth:unauthorized')
+    if (!localStorage.getItem('token') && !localStorage.getItem('jwt_token')) return [];
     try {
       const response = await axiosClient.get('/Workspaces');
       return response.data;
@@ -119,7 +121,10 @@ export const workspaceService = {
     }
   },
 
-  addMember: async (id: string, request: AddWorkspaceMemberRequest): Promise<WorkspaceMemberDto> => {
+  addMember: async (
+    id: string,
+    request: AddWorkspaceMemberRequest,
+  ): Promise<WorkspaceMemberDto> => {
     try {
       const response = await axiosClient.post(`/Workspaces/${id}/members`, request);
       return response.data;
@@ -128,7 +133,11 @@ export const workspaceService = {
     }
   },
 
-  updateMemberRole: async (id: string, userId: string, request: UpdateMemberRoleRequest): Promise<WorkspaceMemberDto> => {
+  updateMemberRole: async (
+    id: string,
+    userId: string,
+    request: UpdateMemberRoleRequest,
+  ): Promise<WorkspaceMemberDto> => {
     try {
       const response = await axiosClient.put(`/Workspaces/${id}/members/${userId}`, request);
       return response.data;
@@ -148,13 +157,15 @@ export const workspaceService = {
 
   getWorkspaceAuditLogs: async (
     workspaceId: string,
-    params?: Record<string, any>
+    params?: Record<string, any>,
   ): Promise<any> => {
     try {
       const response = await axiosClient.get(`/workspaces/${workspaceId}/audit-logs`, { params });
       return response.data;
     } catch (error) {
-      throw new Error(await parseErrorResponse(error, 'Không thể tải lịch sử Audit của Workspace.'));
+      throw new Error(
+        await parseErrorResponse(error, 'Không thể tải lịch sử Audit của Workspace.'),
+      );
     }
   },
 };
