@@ -38,15 +38,15 @@ export const TaskEditor: React.FC<TaskEditorProps> = ({
         setTask({
           id: taskId,
           title: `Demo Task: ${taskId}`,
-          projectId: 'cyberpunk-2077',
-          stage: taskId.includes('letter')
-            ? 'LETTER'
-            : taskId.includes('script')
-              ? 'SCRIPT'
-              : 'INK',
-          assignee: { name: 'Test User', avatarUrl: '' },
-          dueDate: new Date().toISOString(),
-          priority: 'HIGH',
+          pageNumber: 'Page 1',
+          stage: taskId.includes('letter') ? 'letter' : taskId.includes('script') ? 'script' : 'ink',
+          assignee: 'Test User',
+          assigneeRole: '',
+          assigneeInitials: 'TU',
+          avatarBg: '#E7E7E7',
+          pageType: 'Single',
+          dueText: '',
+          tags: [],
         });
       }
     }

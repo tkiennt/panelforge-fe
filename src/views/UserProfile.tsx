@@ -7,12 +7,25 @@ import { ChangePasswordModal } from '../components/modals/ChangePasswordModal';
 import { authService } from '../services/auth.service';
 
 interface UserProfileProps {
-  user: User;
+  // Firebase user chỉ có khi đăng nhập Google; đăng nhập email/mật khẩu dùng user backend trong localStorage.
+  user?: User | null;
   onLogout: () => void;
   onOpenTwoFactor?: () => void;
 }
 
+const readStoredUser = (): { fullName?: string; email?: string; avatarUrl?: string } => {
+  try {
+    return JSON.parse(localStorage.getItem('user') || '{}');
+  } catch {
+    return {};
+  }
+};
+
 export const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout, onOpenTwoFactor }) => {
+  const storedUser = readStoredUser();
+  const email = user?.email || storedUser.email || '';
+  const photoUrl = user?.photoURL || storedUser.avatarUrl;
+  const displayName = user?.displayName || storedUser.fullName || email.split('@')[0] || 'User';
   const [isTwoFactorOpen, setIsTwoFactorOpen] = useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [activeJwtToken, setActiveJwtToken] = useState<string>('');
@@ -65,9 +78,9 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout, onOpen
     <div className='flex flex-col items-center justify-center min-h-screen bg-[#F8F6F0] p-6'>
       <div className='bg-white rounded-2xl shadow-xl p-8 w-full max-w-md border border-[#e7e7e7] space-y-6'>
         <div className='flex flex-col items-center'>
-          {user.photoURL ? (
+          {photoUrl ? (
             <img
-              src={user.photoURL}
+              src={photoUrl}
               alt='Profile'
               className='w-24 h-24 rounded-full border-4 border-[#F97316] mb-4 shadow-lg object-cover'
             />
@@ -77,9 +90,9 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout, onOpen
             </div>
           )}
           <h2 className='text-2xl font-bold text-[#171717] mb-1 font-display'>
-            Hello, {user.displayName || user.email?.split('@')[0] || 'User'}!
+            Hello, {displayName}!
           </h2>
-          <p className='text-sm text-[#525252]'>{user.email}</p>
+          <p className='text-sm text-[#525252]'>{email}</p>
         </div>
 
         {/* 2FA Security Section */}

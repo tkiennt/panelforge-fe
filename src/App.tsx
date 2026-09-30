@@ -671,7 +671,10 @@ function AppContent() {
               element={<ExportView onShowToast={showToast} />}
             />
             <Route path='reader' element={<ReaderPortalView />} />
-            <Route path='profile' element={<UserProfile />} />
+            <Route
+              path='profile'
+              element={<UserProfile user={firebaseUser} onLogout={handleLogout} />}
+            />
             <Route path='artist' element={<ArtistDeskView />} />
             <Route path='producer' element={<ProducerWorkspaceView />} />
             <Route
