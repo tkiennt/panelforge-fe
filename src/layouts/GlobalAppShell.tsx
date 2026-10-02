@@ -265,6 +265,12 @@ export function GlobalAppShell({
                 badge: { type: 'dot', color: 'bg-[#8B5CF6]' },
               },
               {
+                icon: Sparkles,
+                label: 'AI Multi-Agent',
+                href: `/workspaces/${workspaceId}/series/${seriesId}/ai-agents`,
+                badge: { type: 'text', text: 'Demo', color: 'bg-[#F3E8FF] text-[#6D28D9]' },
+              },
+              {
                 icon: Upload,
                 label: 'Export / Publish',
                 href: `/workspaces/${workspaceId}/series/${seriesId}/export`,
@@ -289,7 +295,32 @@ export function GlobalAppShell({
       }
     }
 
-    return ROLE_NAV_CONFIG[effectiveRole] || ROLE_NAV_CONFIG['PRODUCER'] || [];
+    const base = ROLE_NAV_CONFIG[effectiveRole] || ROLE_NAV_CONFIG['PRODUCER'] || [];
+    // AI Multi-Agent: mọi vai trò làm nội dung (Writer/Artist/Letterer/Editor) vào được khi đang ở trong một Series;
+    // nhiệm vụ nào chạy được là do Backend quyết định theo vai trò/assignment.
+    if (
+      isSeriesContext &&
+      (effectiveRole === 'WRITER' ||
+        effectiveRole === 'EDITOR' ||
+        effectiveRole === 'ARTIST' ||
+        effectiveRole === 'LETTERER')
+    ) {
+      return [
+        ...base,
+        {
+          section: 'AI MULTI-AGENT',
+          items: [
+            {
+              icon: Sparkles,
+              label: 'AI Multi-Agent',
+              href: `/workspaces/${workspaceId}/series/${seriesId}/ai-agents`,
+              badge: { type: 'text', text: 'Demo', color: 'bg-[#F3E8FF] text-[#6D28D9]' },
+            },
+          ],
+        },
+      ];
+    }
+    return base;
   };
 
   const rawSections = getNavSections();

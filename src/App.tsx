@@ -32,6 +32,7 @@ import { Header } from './components/Header';
 import { DashboardView } from './views/DashboardView';
 import { WorkflowBoardView } from './views/WorkflowBoardView';
 import { SeriesBibleView } from './views/SeriesBibleView';
+import { AiMultiAgentView } from './views/ai/AiMultiAgentView';
 import { MembersRolesView } from './views/MembersRolesView';
 import { SeriesMembersView } from './views/series/SeriesMembersView';
 import { GlobalModals } from './components/GlobalModals';
@@ -812,6 +813,7 @@ function AppContent() {
                     />
                   }
                 />
+                <Route path='ai-agents' element={<AiMultiAgentView onShowToast={showToast} />} />
                 <Route path='export' element={<ExportView onShowToast={showToast} />} />
               </Route>
             </Route>
