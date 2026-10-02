@@ -73,6 +73,7 @@ export const workspaceService = {
   },
 
   getMyWorkspaces: async (): Promise<WorkspaceDto[]> => {
+    if (!localStorage.getItem('token') && !localStorage.getItem('jwt_token')) return [];
     try {
       const response = await axiosClient.get('/Workspaces');
       return response.data;

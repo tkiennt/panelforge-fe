@@ -716,6 +716,17 @@ function AppContent() {
               <Route index element={<ProducerWorkspaceView />} />
               <Route path='overview' element={<ProducerWorkspaceView />} />
               <Route
+                path='workspace'
+                element={
+                  <WorkspaceView
+                    currentUserRole={currentWorkspaceRole}
+                    systemRole={currentRole}
+                    userRoles={activeProjectRoles}
+                    onShowToast={showToast}
+                  />
+                }
+              />
+              <Route
                 path='members'
                 element={
                   <MembersRolesView

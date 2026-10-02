@@ -5,6 +5,7 @@ const axiosClient = axios.create({
     import.meta.env.VITE_API_URL ||
     import.meta.env.VITE_API_BASE_URL ||
     'http://localhost:5044/api',
+  adapter: 'fetch',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -12,7 +13,7 @@ const axiosClient = axios.create({
 
 // Interceptor để tự động gắn JWT Token vào mọi request
 axiosClient.interceptors.request.use(
-  (config) => {
+  (config) => { 
     // Lấy token từ localStorage (hoặc state management của bạn)
     const token = localStorage.getItem('token') || localStorage.getItem('jwt_token');
     if (token && config.headers) {

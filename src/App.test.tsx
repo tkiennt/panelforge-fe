@@ -96,9 +96,9 @@ describe('App Integration Smoke Test', () => {
 
     // 5. Xác nhận giao diện hiển thị đúng vai trò PRODUCER và các menu đặc thù Producer
     await waitFor(() => {
-      expect(screen.getAllByText('PRODUCER').length).toBeGreaterThanOrEqual(1);
-      expect(screen.getByText('Production Pipeline')).toBeInTheDocument();
-      expect(screen.getByText('Release Calendar')).toBeInTheDocument();
+      expect(screen.getAllByText(/PRODUCER/i).length).toBeGreaterThanOrEqual(1);
+      expect(screen.getByText('STUDIO MANAGEMENT', { exact: false })).toBeInTheDocument();
+      expect(screen.getByText('Studio Workspaces')).toBeInTheDocument();
       // Menu của Artist không được xuất hiện
       expect(screen.queryByText('My Task Queue')).not.toBeInTheDocument();
       expect(screen.queryByText('Layout & Thumbnail')).not.toBeInTheDocument();
@@ -114,8 +114,8 @@ describe('App Integration Smoke Test', () => {
       expect(screen.getByText('Workspace Alpha (Producer)')).toBeInTheDocument();
       expect(screen.getByText('Workspace Beta (Artist)')).toBeInTheDocument();
       // Các menu của Producer đã biến mất hoàn toàn
-      expect(screen.queryByText('Production Pipeline')).not.toBeInTheDocument();
-      expect(screen.queryByText('Release Calendar')).not.toBeInTheDocument();
+      expect(screen.queryByText('STUDIO MANAGEMENT', { exact: false })).not.toBeInTheDocument();
+      expect(screen.queryByText('Studio Workspaces')).not.toBeInTheDocument();
     });
 
     // 8. User chọn vào Workspace Beta (Artist)
@@ -124,15 +124,15 @@ describe('App Integration Smoke Test', () => {
     // 9. Xác nhận giao diện Workspace B hiển thị chuẩn vai trò ARTIST
     await waitFor(() => {
       // Role badge hiển thị ARTIST
-      expect(screen.getAllByText('ARTIST').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText(/ARTIST/i).length).toBeGreaterThanOrEqual(1);
       // Menu dành riêng cho Artist xuất hiện
       expect(screen.getByText('My Task Queue')).toBeInTheDocument();
       expect(screen.getByText('Layout & Thumbnail')).toBeInTheDocument();
       expect(screen.getByText('Upload Artwork')).toBeInTheDocument();
       // Menu và vai trò dành riêng cho Producer TUYỆT ĐỐI KHÔNG xuất hiện
-      expect(screen.queryByText('PRODUCER')).not.toBeInTheDocument();
-      expect(screen.queryByText('Production Pipeline')).not.toBeInTheDocument();
-      expect(screen.queryByText('Release Calendar')).not.toBeInTheDocument();
+      expect(screen.queryByText(/PRODUCER/i)).not.toBeInTheDocument();
+      expect(screen.queryByText('STUDIO MANAGEMENT', { exact: false })).not.toBeInTheDocument();
+      expect(screen.queryByText('Studio Workspaces')).not.toBeInTheDocument();
       expect(screen.queryByText('Provenance / Restore')).not.toBeInTheDocument();
       expect(screen.queryByText('B5 Pre-Press Specs')).not.toBeInTheDocument();
     });

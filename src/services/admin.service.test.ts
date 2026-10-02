@@ -45,6 +45,7 @@ describe('adminService', () => {
   });
 
   it('gọi POST /api/Admin/assign-role và trả về kết quả thành công', async () => {
+    localStorage.setItem('token', 'custom-token');
     const mockResponse = {
       message: 'Đã cập nhật vai trò thành công',
       userId: 'user-guid-xyz',
