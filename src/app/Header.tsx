@@ -9,7 +9,7 @@ import {
   CheckCircle,
   ArrowLeft,
 } from 'lucide-react';
-import { ViewMode, MangaProject } from '../types';
+import { ViewMode, MangaProject } from '@/types';
 
 interface HeaderProps {
   currentView: ViewMode;

@@ -11,8 +11,8 @@ import {
   Sparkles,
   AlertTriangle,
 } from 'lucide-react';
-import { CurrentUser } from '../GlobalAppShell';
-import { MangaProject } from '../../types';
+import { CurrentUser } from './AppShell';
+import { MangaProject } from '@/types';
 
 interface AppShellSidebarProps {
   currentUser: CurrentUser;

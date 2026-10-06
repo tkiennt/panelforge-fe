@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Outlet, useNavigate, useLocation, useParams } from 'react-router-dom';
-import { MangaProject, SystemRole, WorkspaceRole } from '../types';
+import { MangaProject, SystemRole, WorkspaceRole } from '@/types';
 import {
   LayoutDashboard,
   Users,
@@ -41,7 +41,7 @@ import {
   LogOut,
   KeyRound,
 } from 'lucide-react';
-import { AppShellSidebar } from './components/AppShellSidebar';
+import { AppShellSidebar } from './AppShellSidebar';
 
 export interface CurrentUser {
   name: string;
@@ -193,7 +193,7 @@ const ROLE_NAV_CONFIG: Record<string, { section: string; items: any[] }[]> = {
   READER: [],
 };
 
-export function GlobalAppShell({
+export function AppShell({
   currentUser,
   activeWorkspace,
   activeSeries = { title: 'PanelForge Studio', subtitle: 'Global Console' },
@@ -645,3 +645,5 @@ export function GlobalAppShell({
     </div>
   );
 }
+
+export const GlobalAppShell = AppShell;
