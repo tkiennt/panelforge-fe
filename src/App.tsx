@@ -27,7 +27,7 @@ import {
   useLocation,
   Outlet,
 } from 'react-router-dom';
-import { ReviewView } from './views/ReviewView';
+import { ReviewView } from '@/roles/editor/views/ReviewView';
 import { Header } from './components/Header';
 import { DashboardView } from '@/roles/producer/views/DashboardView';
 import { WorkflowBoardView } from './views/WorkflowBoardView';

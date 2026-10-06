@@ -1,7 +1,7 @@
 import React from 'react';
 import { X, ShieldCheck } from 'lucide-react';
 import WriterWorkspace from '@/roles/writer/views/WriterWorkspace';
-import EditorWorkspace from '@/components/modals/roles/EditorWorkspace';
+import EditorWorkspace from '@/roles/editor/views/EditorWorkspace';
 import ArtistWorkspace from '../views/ArtistWorkspace';
 
 interface SpreadWorkbenchModalProps {

@@ -13,8 +13,8 @@ import {
   Unlock,
   History,
 } from 'lucide-react';
-import { SystemRole } from '../types';
-import { VersionHistoryModal, AIProvenanceModal } from '../components/modals/ProvenanceModals';
+import { SystemRole } from '@/types';
+import { VersionHistoryModal, AIProvenanceModal } from '@/components/modals/ProvenanceModals';
 
 interface Annotation {
   id: string;
