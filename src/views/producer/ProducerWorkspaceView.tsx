@@ -22,11 +22,14 @@ import {
   ListOrdered,
   Kanban,
   MoreVertical,
+  Cpu,
+  Image as ImageIcon,
 } from 'lucide-react';
 import {
   workspaceService,
   WorkspaceDto,
   WorkspaceMemberDto,
+  WorkspaceUsageDto,
 } from '../../services/workspace.service';
 import { pipelineService, PipelineTemplateDto } from '../../services/pipeline.service';
 import { seriesService, SeriesDto, UpdateSeriesRequest } from '../../services/series.service';
@@ -88,6 +91,7 @@ export const ProducerWorkspaceView: React.FC = () => {
   const [editingSeries, setEditingSeries] = useState<SeriesDto | null>(null);
   const [editSeriesTitle, setEditSeriesTitle] = useState('');
   const [editSeriesSynopsis, setEditSeriesSynopsis] = useState('');
+  const [editSeriesStoryArc, setEditSeriesStoryArc] = useState('');
   const [editSeriesGenre, setEditSeriesGenre] = useState('Action / Sci-Fi');
   const [editSeriesFormat, setEditSeriesFormat] = useState('Manga (Standard)');
   const [editSeriesDirection, setEditSeriesDirection] = useState(1);
@@ -97,6 +101,9 @@ export const ProducerWorkspaceView: React.FC = () => {
   // Delete Series Confirm State (F5)
   const [deleteSeriesModal, setDeleteSeriesModal] = useState<SeriesDto | null>(null);
   const [deletingSeries, setDeletingSeries] = useState(false);
+
+  // Workspace Usage (NFR Resource Governance - Storage & AI Tokens)
+  const [workspaceUsage, setWorkspaceUsage] = useState<WorkspaceUsageDto | null>(null);
 
   // Workspace Audit Modal State (F8)
   const [auditModalOpen, setAuditModalOpen] = useState(false);
@@ -136,6 +143,14 @@ export const ProducerWorkspaceView: React.FC = () => {
         const memList = await workspaceService.getMembers(cur.id);
         setMembers(memList);
 
+        // Load Workspace Resource Usage (GET /api/workspaces/{id}/usage)
+        try {
+          const usage = await workspaceService.getWorkspaceUsage(cur.id);
+          setWorkspaceUsage(usage);
+        } catch {
+          setWorkspaceUsage(null);
+        }
+
         // Load Series in workspace (UC-03)
         try {
           const sList = await seriesService.getSeriesList(cur.id);
@@ -148,6 +163,7 @@ export const ProducerWorkspaceView: React.FC = () => {
         setActiveWorkspace(null);
         setMembers([]);
         setSeriesList([]);
+        setWorkspaceUsage(null);
       }
     } catch (err: any) {
       console.error(err);
@@ -252,6 +268,7 @@ export const ProducerWorkspaceView: React.FC = () => {
     setEditingSeries(s);
     setEditSeriesTitle(s.title);
     setEditSeriesSynopsis(s.synopsis || '');
+    setEditSeriesStoryArc(s.storyArc || '');
     setEditSeriesGenre(s.genre || 'Action / Sci-Fi');
     setEditSeriesFormat(s.format || 'Manga (Standard)');
     setEditSeriesDirection(
@@ -271,7 +288,8 @@ export const ProducerWorkspaceView: React.FC = () => {
     try {
       const updated = await seriesService.updateSeries(editingSeries.id, {
         title: editSeriesTitle.trim(),
-        synopsis: editSeriesSynopsis.trim() || undefined,
+        synopsis: editSeriesSynopsis.trim() === '' ? '' : editSeriesSynopsis.trim(),
+        storyArc: editSeriesStoryArc.trim() === '' ? '' : editSeriesStoryArc.trim(),
         genre: editSeriesGenre || undefined,
         format: editSeriesFormat || undefined,
         readingDirection: editSeriesDirection,
@@ -366,6 +384,18 @@ export const ProducerWorkspaceView: React.FC = () => {
     return (bytes / (1024 * 1024 * 1024)).toFixed(1);
   };
 
+  const formatBytes = (bytes: number) => {
+    if (!bytes || bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(i >= 3 ? 2 : 1)) + ' ' + sizes[i];
+  };
+
+  const formatTokens = (tokens: number) => {
+    return Number(tokens).toLocaleString('vi-VN');
+  };
+
   return (
     <div className='flex-1 bg-[#FAF8F5] min-h-screen p-6 md:p-8 space-y-6'>
       {/* Toast */}
@@ -397,31 +427,178 @@ export const ProducerWorkspaceView: React.FC = () => {
           </div>
         </div>
 
-        {/* Compact Storage Quota Indicator */}
+        {/* Workspace Governance & Resource Usage Meters (Storage, AI Tokens & Image Quota) */}
         {activeWorkspace && (
-          <div className='flex items-center justify-between gap-4 text-xs'>
-            <div className='flex items-center gap-2 text-[#555555] font-mono text-[11px]'>
-              <HardDrive className='w-3.5 h-3.5 text-[#F97316]' />
-              <span>Dung lượng lưu trữ:</span>
-              <strong className='text-[#171717]'>
-                {formatGb(activeWorkspace.usedStorageBytes)} /{' '}
-                {formatGb(activeWorkspace.storageQuotaBytes)} GB
-              </strong>
+          <div className='grid grid-cols-1 md:grid-cols-3 gap-3 pt-1'>
+            {/* Storage Meter */}
+            <div className='p-3.5 bg-[#FAF8F5] rounded-xl border border-[#E7E7E7] space-y-2'>
+              <div className='flex items-center justify-between text-xs'>
+                <div className='flex items-center gap-1.5 font-semibold text-[#171717]'>
+                  <HardDrive className='w-4 h-4 text-[#F97316]' />
+                  <span>Dung Lượng Lưu Trữ</span>
+                </div>
+                <div className='font-mono text-[11px] font-bold text-[#171717]'>
+                  {workspaceUsage
+                    ? `${formatBytes(workspaceUsage.storage.used)} / ${
+                        workspaceUsage.storage.isUnlimited
+                          ? 'Không giới hạn'
+                          : formatBytes(workspaceUsage.storage.quota)
+                      }`
+                    : `${formatGb(activeWorkspace.usedStorageBytes)} / ${formatGb(
+                        activeWorkspace.storageQuotaBytes,
+                      )} GB`}
+                </div>
+              </div>
+
+              <div className='w-full bg-[#E7E7E7] h-2 rounded-full overflow-hidden'>
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${
+                    (workspaceUsage?.storage.percentUsed ?? 0) >= 90
+                      ? 'bg-red-500'
+                      : (workspaceUsage?.storage.percentUsed ?? 0) >= 75
+                        ? 'bg-amber-500'
+                        : 'bg-[#F97316]'
+                  }`}
+                  style={{
+                    width: `${Math.min(
+                      100,
+                      workspaceUsage?.storage.percentUsed ??
+                        Math.round(
+                          (activeWorkspace.usedStorageBytes /
+                            (activeWorkspace.storageQuotaBytes || 1)) *
+                            100,
+                        ),
+                    )}%`,
+                  }}
+                />
+              </div>
+
+              <div className='flex items-center justify-between text-[10px] text-[#737373]'>
+                <span>
+                  {workspaceUsage?.storage.isUnlimited
+                    ? 'Không giới hạn dung lượng'
+                    : `Đã dùng ${workspaceUsage?.storage.percentUsed ?? 0}%`}
+                </span>
+                <span className='font-mono text-zinc-500'>Chặn khi chạm 100%</span>
+              </div>
             </div>
-            <div className='w-36 bg-[#FAF8F5] h-1.5 rounded-full overflow-hidden border border-[#E7E7E7] hidden sm:block'>
-              <div
-                className='bg-[#F97316] h-full rounded-full transition-all duration-500'
-                style={{
-                  width: `${Math.min(
-                    100,
-                    Math.round(
-                      (activeWorkspace.usedStorageBytes /
-                        (activeWorkspace.storageQuotaBytes || 1)) *
-                        100,
-                    ),
-                  )}%`,
-                }}
-              />
+
+            {/* AI Token Meter */}
+            <div className='p-3.5 bg-[#FAF8F5] rounded-xl border border-[#E7E7E7] space-y-2'>
+              <div className='flex items-center justify-between text-xs'>
+                <div className='flex items-center gap-1.5 font-semibold text-[#171717]'>
+                  <Cpu className='w-4 h-4 text-[#3B82F6]' />
+                  <span>Hạn Mức AI Tokens (Tháng này)</span>
+                </div>
+                {workspaceUsage?.aiTokens ? (
+                  <div className='font-mono text-[11px] font-bold text-[#171717]'>
+                    {formatTokens(workspaceUsage.aiTokens.used)} /{' '}
+                    {workspaceUsage.aiTokens.isUnlimited
+                      ? 'Không giới hạn'
+                      : `${formatTokens(workspaceUsage.aiTokens.quota)} Tokens`}
+                  </div>
+                ) : (
+                  <span className='text-[10px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 font-mono'>
+                    Chưa cấp quota
+                  </span>
+                )}
+              </div>
+
+              {workspaceUsage?.aiTokens ? (
+                <>
+                  <div className='w-full bg-[#E7E7E7] h-2 rounded-full overflow-hidden'>
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ${
+                        (workspaceUsage.aiTokens.percentUsed ?? 0) >= 90
+                          ? 'bg-red-500'
+                          : 'bg-[#3B82F6]'
+                      }`}
+                      style={{
+                        width: `${Math.min(100, workspaceUsage.aiTokens.percentUsed ?? 0)}%`,
+                      }}
+                    />
+                  </div>
+                  <div className='flex items-center justify-between text-[10px] text-[#737373]'>
+                    <span>
+                      {workspaceUsage.aiTokens.isUnlimited
+                        ? 'Token không giới hạn'
+                        : `Đã dùng ${workspaceUsage.aiTokens.percentUsed ?? 0}%`}
+                    </span>
+                    <span
+                      className={`font-semibold ${
+                        workspaceUsage.aiEnabled ? 'text-emerald-600' : 'text-zinc-400'
+                      }`}
+                    >
+                      {workspaceUsage.aiEnabled ? '● AI Đang bật' : '○ AI Đã tắt'}
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <div className='flex items-center justify-between text-[11px] text-[#737373] pt-1'>
+                  <span className='italic'>Liên hệ Admin để cấu hình quota AI Studio</span>
+                  <span className='text-[10px] font-mono text-zinc-400'>NFR Governance</span>
+                </div>
+              )}
+            </div>
+
+            {/* AI Image Generation Meter */}
+            <div className='p-3.5 bg-[#FAF8F5] rounded-xl border border-[#E7E7E7] space-y-2'>
+              <div className='flex items-center justify-between text-xs'>
+                <div className='flex items-center gap-1.5 font-semibold text-[#171717]'>
+                  <ImageIcon className='w-4 h-4 text-[#8B5CF6]' />
+                  <span>Hạn Mức Sinh Ảnh AI (Tháng này)</span>
+                </div>
+                {workspaceUsage?.images ? (
+                  <div className='font-mono text-[11px] font-bold text-[#171717]'>
+                    {workspaceUsage.images.used.toLocaleString()} /{' '}
+                    {workspaceUsage.images.isUnlimited
+                      ? 'Không giới hạn'
+                      : `${workspaceUsage.images.quota.toLocaleString()} ảnh`}
+                  </div>
+                ) : (
+                  <span className='text-[10px] text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200 font-mono'>
+                    Chưa cấp quota
+                  </span>
+                )}
+              </div>
+
+              {workspaceUsage?.images ? (
+                <>
+                  <div className='w-full bg-[#E7E7E7] h-2 rounded-full overflow-hidden'>
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ${
+                        (workspaceUsage.images.percentUsed ?? 0) >= 90
+                          ? 'bg-red-500'
+                          : (workspaceUsage.images.percentUsed ?? 0) >= 75
+                            ? 'bg-amber-500'
+                            : 'bg-[#8B5CF6]'
+                      }`}
+                      style={{
+                        width: `${Math.min(100, workspaceUsage.images.percentUsed ?? 0)}%`,
+                      }}
+                    />
+                  </div>
+                  <div className='flex items-center justify-between text-[10px] text-[#737373]'>
+                    <span>
+                      {workspaceUsage.images.isUnlimited
+                        ? 'Ảnh không giới hạn'
+                        : `Đã dùng ${workspaceUsage.images.percentUsed ?? 0}%`}
+                    </span>
+                    <span
+                      className={`font-semibold ${
+                        workspaceUsage.aiEnabled ? 'text-purple-600' : 'text-zinc-400'
+                      }`}
+                    >
+                      {workspaceUsage.aiEnabled ? '● Đang kích hoạt' : '○ AI Đã tắt'}
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <div className='flex items-center justify-between text-[11px] text-[#737373] pt-1'>
+                  <span className='italic'>Liên hệ Admin để cấp quota sinh ảnh</span>
+                  <span className='text-[10px] font-mono text-zinc-400'>NFR Governance</span>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -563,6 +740,17 @@ export const ProducerWorkspaceView: React.FC = () => {
                       <p className='text-xs text-zinc-500 line-clamp-2 leading-relaxed mt-2.5'>
                         {s.synopsis}
                       </p>
+                    )}
+
+                    {s.storyArc && (
+                      <div className='mt-2 px-2.5 py-1.5 bg-amber-50/70 border border-amber-200/60 rounded-lg'>
+                        <div className='flex items-center gap-1 text-[10px] font-semibold text-amber-700 font-mono uppercase tracking-wider mb-0.5'>
+                          <span>Story Arc</span>
+                        </div>
+                        <p className='text-[11px] text-amber-900 line-clamp-2 leading-relaxed'>
+                          {s.storyArc}
+                        </p>
+                      </div>
                     )}
 
                     <div className='mt-auto pt-4 flex flex-col gap-2.5'>
@@ -942,8 +1130,29 @@ export const ProducerWorkspaceView: React.FC = () => {
                   rows={2}
                   value={editSeriesSynopsis}
                   onChange={(e) => setEditSeriesSynopsis(e.target.value)}
+                  placeholder='Mô tả ngắn gọn nội dung cốt truyện...'
                   className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg focus:outline-none focus:border-[#F97316]'
                 />
+              </div>
+
+              <div>
+                <div className='flex items-center justify-between mb-1'>
+                  <label className='block font-semibold text-[#171717]'>
+                    Cung Truyện Tổng Thể (Story Arc)
+                  </label>
+                  <span className='text-[10px] text-[#888888] font-mono'>Đầu vào AI Writer</span>
+                </div>
+                <textarea
+                  rows={3}
+                  value={editSeriesStoryArc}
+                  onChange={(e) => setEditSeriesStoryArc(e.target.value)}
+                  placeholder='Tuyến truyện chính, các mốc xung đột và bước ngoặt xuyên suốt Series...'
+                  className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg focus:outline-none focus:border-[#F97316]'
+                />
+                <p className='text-[10px] text-[#737373] mt-1'>
+                  Story arc sẽ được chuyển vào snapshot và nạp vào prompt cho AI Writer Agent khi
+                  sinh kịch bản.
+                </p>
               </div>
 
               <div className='grid grid-cols-2 gap-3'>

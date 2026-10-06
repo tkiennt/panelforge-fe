@@ -48,6 +48,23 @@ describe('Workspaces, Pages, and Elements Services', () => {
       expect(result.name).toBe('New Studio');
       expect(post).toHaveBeenCalledWith('/Workspaces', { name: 'New Studio' });
     });
+
+    it('lấy thông tin Workspace Usage bao gồm storage, aiTokens và images', async () => {
+      const mockUsage = {
+        workspaceId: 'ws-123',
+        storage: { used: 1048576, quota: 10737418240, isUnlimited: false, percentUsed: 0.1 },
+        aiTokens: { used: 5000, quota: 500000, isUnlimited: false, percentUsed: 1.0 },
+        aiEnabled: true,
+        images: { used: 10, quota: 100, isUnlimited: false, percentUsed: 10.0 },
+      };
+      get.mockResolvedValue({ data: mockUsage });
+
+      const result = await workspaceService.getWorkspaceUsage('ws-123');
+
+      expect(result).toEqual(mockUsage);
+      expect(result.images?.used).toBe(10);
+      expect(get).toHaveBeenCalledWith('/workspaces/ws-123/usage');
+    });
   });
 
   describe('pageService', () => {

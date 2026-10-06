@@ -24,8 +24,10 @@ import { AdminAuditLogView } from './AdminAuditLogView';
 import { MasterDataSettings } from './modules/MasterDataSettings';
 import { AIConfigurationView } from './modules/AIConfigurationView';
 import { StorageBackupSettings } from './modules/StorageBackupSettings';
+import { SessionPolicySettings } from './modules/SessionPolicySettings';
 
-export type AdminTab = 'dashboard' | 'users' | 'master-data' | 'ai-config' | 'storage' | 'audit';
+export type AdminTab =
+  'dashboard' | 'users' | 'master-data' | 'ai-config' | 'storage' | 'session-policy' | 'audit';
 
 interface AdminDashboardProps {
   onLogout?: () => void;
@@ -66,6 +68,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, curren
       id: 'storage' as AdminTab,
       label: 'Storage & Backup',
       icon: HardDrive,
+    },
+    {
+      id: 'session-policy' as AdminTab,
+      label: 'Session & Auth Policy',
+      icon: Shield,
+      badge: 'V1.2',
     },
     {
       id: 'audit' as AdminTab,
@@ -190,6 +198,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, curren
               onNavigateToUsers={() => setActiveTab('users')}
               onNavigateToSettings={() => setActiveTab('ai-config')}
               onNavigateToAudit={() => setActiveTab('audit')}
+              onNavigateToSessionPolicy={() => setActiveTab('session-policy')}
             />
           )}
 
@@ -200,6 +209,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, curren
           {activeTab === 'ai-config' && <AIConfigurationView />}
 
           {activeTab === 'storage' && <StorageBackupSettings />}
+
+          {activeTab === 'session-policy' && <SessionPolicySettings />}
 
           {activeTab === 'audit' && <AdminAuditLogView />}
         </main>

@@ -10,6 +10,7 @@ vi.mock('../api/axiosClient', async (importOriginal) => {
 
 const get = vi.mocked(axiosClient.get);
 const post = vi.mocked(axiosClient.post);
+const put = vi.mocked(axiosClient.put);
 
 describe('adminService', () => {
   beforeEach(() => {
@@ -99,5 +100,124 @@ describe('adminService', () => {
 
     const statsResult = await adminService.getSystemStats();
     expect(statsResult.totalUsers).toBe(0);
+  });
+
+  describe('Workspace Session Policy (V1.2)', () => {
+    const workspaceId = 'ws-test-123';
+
+    it('gọi GET /Admin/workspaces/{workspaceId}/session-policy và trả về dữ liệu chính sách', async () => {
+      const mockPolicy = {
+        workspaceId,
+        sessionLifetimeMinutes: 1440,
+        idleTimeoutMinutes: 60,
+        maxConcurrentSessions: 3,
+      };
+      get.mockResolvedValueOnce({ data: mockPolicy });
+
+      const result = await adminService.getWorkspaceSessionPolicy(workspaceId);
+
+      expect(get).toHaveBeenCalledTimes(1);
+      expect(get).toHaveBeenCalledWith(`/Admin/workspaces/${workspaceId}/session-policy`);
+      expect(result).toEqual(mockPolicy);
+    });
+
+    it('gọi PUT /Admin/workspaces/{workspaceId}/session-policy và luôn gửi đủ 3 field (kể cả null)', async () => {
+      const mockUpdated = {
+        workspaceId,
+        sessionLifetimeMinutes: 480,
+        idleTimeoutMinutes: null,
+        maxConcurrentSessions: 2,
+      };
+      put.mockResolvedValueOnce({ data: mockUpdated });
+
+      const result = await adminService.updateWorkspaceSessionPolicy(workspaceId, {
+        sessionLifetimeMinutes: 480,
+        idleTimeoutMinutes: null,
+        maxConcurrentSessions: 2,
+      });
+
+      expect(put).toHaveBeenCalledTimes(1);
+      expect(put).toHaveBeenCalledWith(`/Admin/workspaces/${workspaceId}/session-policy`, {
+        sessionLifetimeMinutes: 480,
+        idleTimeoutMinutes: null,
+        maxConcurrentSessions: 2,
+      });
+      expect(result).toEqual(mockUpdated);
+    });
+
+    it('ném lỗi có thông điệp tiếng Việt khi PUT thất bại', async () => {
+      put.mockRejectedValueOnce({
+        response: {
+          status: 400,
+          data: { message: 'Thời gian sống phiên phải từ 5 đến 43200 phút.' },
+        },
+      });
+
+      await expect(
+        adminService.updateWorkspaceSessionPolicy(workspaceId, {
+          sessionLifetimeMinutes: 2,
+          idleTimeoutMinutes: null,
+          maxConcurrentSessions: null,
+        }),
+      ).rejects.toThrow('Thời gian sống phiên phải từ 5 đến 43200 phút.');
+    });
+  });
+
+  describe('Workspace AI Config & Image Quota', () => {
+    const workspaceId = 'ws-test-456';
+
+    it('lấy cấu hình AI của Workspace bao gồm monthlyImageQuota', async () => {
+      const mockConfig = {
+        id: 'cfg-1',
+        workspaceId,
+        provider: 'Google Gemini',
+        hasApiKey: true,
+        isEnabled: true,
+        monthlyTokenQuota: 500000,
+        usedTokensCurrentMonth: 12000,
+        allowedModels: ['gemini-1.5-pro'],
+        monthlyImageQuota: 100,
+        usedImagesCurrentMonth: 5,
+        createdAt: '2026-10-01T00:00:00Z',
+      };
+      get.mockResolvedValueOnce({ data: mockConfig });
+
+      const result = await adminService.getWorkspaceAiConfig(workspaceId);
+
+      expect(get).toHaveBeenCalledWith(`/Admin/workspaces/${workspaceId}/ai-config`);
+      expect(result).toEqual(mockConfig);
+      expect(result.monthlyImageQuota).toBe(100);
+      expect(result.usedImagesCurrentMonth).toBe(5);
+    });
+
+    it('cập nhật cấu hình AI của Workspace có monthlyImageQuota', async () => {
+      const mockUpdated = {
+        id: 'cfg-1',
+        workspaceId,
+        provider: 'Google Gemini',
+        hasApiKey: true,
+        isEnabled: true,
+        monthlyTokenQuota: 800000,
+        usedTokensCurrentMonth: 12000,
+        allowedModels: ['gemini-1.5-pro', 'gemini-1.5-flash'],
+        monthlyImageQuota: 250,
+        usedImagesCurrentMonth: 5,
+        createdAt: '2026-10-01T00:00:00Z',
+      };
+      put.mockResolvedValueOnce({ data: mockUpdated });
+
+      const payload = {
+        provider: 'Google Gemini',
+        isEnabled: true,
+        monthlyTokenQuota: 800000,
+        monthlyImageQuota: 250,
+        allowedModels: ['gemini-1.5-pro', 'gemini-1.5-flash'],
+      };
+
+      const result = await adminService.updateWorkspaceAiConfig(workspaceId, payload);
+
+      expect(put).toHaveBeenCalledWith(`/Admin/workspaces/${workspaceId}/ai-config`, payload);
+      expect(result.monthlyImageQuota).toBe(250);
+    });
   });
 });

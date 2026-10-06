@@ -21,8 +21,9 @@ import {
   Clock,
   CheckCircle2,
   AlertCircle,
+  Lock,
 } from 'lucide-react';
-import { BibleEntity, BibleCategory, MangaProject } from '../types';
+import { BibleEntity, BibleCategory, MangaProject, normalizeWorkspaceRole } from '../types';
 import { bibleService, BibleEntryRevisionDto, BibleEntryDto } from '../services/bible.service';
 import { seriesService } from '../services/series.service';
 import { chapterService, ChapterDto } from '../services/chapter.service';
@@ -79,6 +80,8 @@ const mapEntryToBibleEntity = (entry: BibleEntryDto): BibleEntity => {
     imageUrl: entry.referenceImageUrl || '',
     status: entry.isActive ? 'Verified' : 'Draft',
     colors: ['#171717', '#F97316', '#FFFFFF'],
+    isLocked: entry.effectiveRevision?.isLocked ?? false,
+    lockedAt: entry.effectiveRevision?.lockedAt ?? null,
   };
 };
 
@@ -184,10 +187,77 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
   // BR-18: Revision History Modal State
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
   const [historyRevisions, setHistoryRevisions] = useState<BibleEntryRevisionDto[]>([]);
+  const [historyEntity, setHistoryEntity] = useState<BibleEntity | null>(null);
   const [historyEntityName, setHistoryEntityName] = useState('');
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [lockingRevisionId, setLockingRevisionId] = useState<string | null>(null);
 
-  // BR-01 & BR-15 & UC-04: Add Revision Modal State with Concurrency Control
+  // Producer Role check (UC / BR-15 Việc 5: chỉ Producer mới có quyền khoá Character Sheet)
+  const isProducer = useMemo(() => {
+    try {
+      const rawWs = localStorage.getItem('activeWorkspace');
+      const ws = rawWs ? JSON.parse(rawWs) : null;
+      const role = normalizeWorkspaceRole(ws?.currentUserRole);
+      if (ws?.isOwner || role === 'PRODUCER') return true;
+
+      const rawUser = localStorage.getItem('user');
+      const user = rawUser ? JSON.parse(rawUser) : null;
+      if (
+        user?.role === 'ADMINISTRATOR' ||
+        user?.systemRole === 'ADMINISTRATOR' ||
+        user?.canCreateStudio
+      ) {
+        return true;
+      }
+    } catch {
+      // fallback
+    }
+    return false;
+  }, []);
+
+  const handleLockRevision = async (rev: BibleEntryRevisionDto) => {
+    if (!effectiveSeries?.id || !historyEntity) return;
+
+    if (historyEntity.category !== 'characters') {
+      onShowToast(
+        'Chỉ áp dụng cho Nhân vật',
+        'Theo quy tắc Việc 5 (BR-15 Canon), chỉ có thể khoá revision thuộc danh mục Character.',
+      );
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Bạn có chắc chắn muốn DUYỆT & KHOÁ phiên bản v${rev.versionNumber} của nhân vật "${historyEntity.name}" làm tham chiếu duy nhất?\n\n` +
+        'Lưu ý: Sau khi khoá, phiên bản này không thể chỉnh sửa trực tiếp hay mở khoá. ' +
+        'Các thay đổi sau này bắt buộc phải tạo revision mới bắt đầu từ một chương khác.',
+    );
+    if (!confirmed) return;
+
+    setLockingRevisionId(rev.id);
+    try {
+      const updatedRev = await bibleService.lockRevision(
+        effectiveSeries.id,
+        historyEntity.id,
+        rev.id,
+      );
+      onShowToast(
+        'Đã duyệt & khoá Character Sheet',
+        `Phiên bản v${rev.versionNumber} của "${historyEntity.name}" đã được khoá làm tham chiếu duy nhất thành công!`,
+      );
+      // Cập nhật trực tiếp danh sách lịch sử
+      setHistoryRevisions((prev) =>
+        prev.map((r) => (r.id === rev.id ? { ...r, ...updatedRev, isLocked: true } : r)),
+      );
+      // Tải lại Bible để cập nhật cờ isLocked trên entity
+      setRefreshTrigger((prev) => prev + 1);
+    } catch (err: any) {
+      onShowToast('Lỗi khoá phiên bản', err.message || 'Không thể khoá phiên bản này.');
+    } finally {
+      setLockingRevisionId(null);
+    }
+  };
+
+  // BR-01 & BR-15 & UC-04: Add Revision Modal State with Concurrency Control & Locked Chapters tracking
   const [addRevModalOpen, setAddRevModalOpen] = useState(false);
   const [revisionTarget, setRevisionTarget] = useState<BibleEntity | null>(null);
   const [revisionSummary, setRevisionSummary] = useState('');
@@ -198,6 +268,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
     effectiveSeries?.chapter || 1,
   );
   const [expectedVersionNumber, setExpectedVersionNumber] = useState<number | null>(null);
+  const [lockedChapterNumbers, setLockedChapterNumbers] = useState<number[]>([]);
   const [fetchingBaseVersion, setFetchingBaseVersion] = useState(false);
   const [savingRevision, setSavingRevision] = useState(false);
 
@@ -213,6 +284,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
       typeof effectiveChapter === 'number' ? effectiveChapter : effectiveSeries?.chapter || 1,
     );
     setExpectedVersionNumber(1);
+    setLockedChapterNumbers([]);
     setAddRevModalOpen(true);
 
     if (effectiveSeries?.id) {
@@ -222,6 +294,10 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
         if (history && history.length > 0) {
           const maxVer = Math.max(...history.map((h) => h.versionNumber));
           setExpectedVersionNumber(maxVer);
+          const lockedChs = history
+            .filter((h) => h.isLocked)
+            .map((h) => h.effectiveFromChapterNumber);
+          setLockedChapterNumbers(lockedChs);
         }
       } catch (err) {
         console.warn('Cannot fetch history for version tracking:', err);
@@ -555,6 +631,12 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                       {tag}
                     </span>
                   ))}
+                  {entity.isLocked && (
+                    <span className='px-2 py-0.5 rounded bg-amber-500/90 backdrop-blur-xs text-white text-[9px] font-mono font-bold uppercase tracking-wider flex items-center gap-1 shadow-sm'>
+                      <Lock className='w-2.5 h-2.5' />
+                      CANON LOCKED
+                    </span>
+                  )}
                 </div>
                 <div className='absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded bg-[#10B981] text-white text-[10px] font-mono font-bold flex items-center gap-1'>
                   <ShieldCheck className='w-3 h-3' />
@@ -573,6 +655,13 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                   </h3>
                   <div className='text-[11px] text-[#888888] font-mono'>{entity.subtitle}</div>
                 </div>
+
+                {entity.isLocked && (
+                  <div className='px-2.5 py-1 bg-amber-50 border border-amber-200/80 rounded-lg text-[10px] text-amber-800 flex items-center gap-1.5 font-medium'>
+                    <Lock className='w-3 h-3 text-amber-600 shrink-0' />
+                    <span>Character Sheet đã khoá tham chiếu (BR-15 Canon)</span>
+                  </div>
+                )}
 
                 <p className='text-xs text-[#555555] leading-relaxed line-clamp-2'>
                   {entity.description}
@@ -613,6 +702,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                 </button>
                 <button
                   onClick={async () => {
+                    setHistoryEntity(entity);
                     setHistoryEntityName(entity.name);
                     setHistoryModalOpen(true);
                     setLoadingHistory(true);
@@ -692,6 +782,28 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
 
             {/* Modal Body */}
             <div className='p-6 space-y-5'>
+              {selectedEntity.isLocked && (
+                <div className='p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between text-xs text-amber-900'>
+                  <div className='flex items-center gap-2'>
+                    <Lock className='w-4 h-4 text-amber-600 shrink-0' />
+                    <div>
+                      <span className='font-bold uppercase tracking-wide text-[10px] bg-amber-200 text-amber-900 px-1.5 py-0.5 rounded mr-1.5'>
+                        CANON LOCKED
+                      </span>
+                      <span>
+                        Character Sheet đã được Producer phê duyệt &amp; khoá làm tham chiếu duy
+                        nhất.
+                      </span>
+                    </div>
+                  </div>
+                  {selectedEntity.lockedAt && (
+                    <span className='text-[10px] font-mono text-amber-700 hidden sm:inline'>
+                      {new Date(selectedEntity.lockedAt).toLocaleDateString('vi-VN')}
+                    </span>
+                  )}
+                </div>
+              )}
+
               <div className='relative w-full h-64 bg-[#171717] rounded-xl overflow-hidden border border-[#E7E7E7]'>
                 <img
                   src={selectedEntity.imageUrl}
@@ -816,27 +928,56 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                   {historyRevisions.map((rev) => (
                     <div key={rev.id} className='relative group'>
                       <div className='absolute -left-6 top-1 w-3.5 h-3.5 rounded-full bg-white border-2 border-[#F97316] group-hover:scale-110 transition-transform'></div>
-                      <div className='bg-[#FAF8F5] p-3.5 rounded-xl border border-[#E7E7E7] space-y-1.5'>
-                        <div className='flex items-center justify-between'>
-                          <span className='px-2 py-0.5 rounded bg-[#171717] text-white font-mono text-[10px] font-bold'>
-                            VERSION {rev.versionNumber} {rev.isInitialVersion ? '(Khởi tạo)' : ''}
-                          </span>
+                      <div className='bg-[#FAF8F5] p-3.5 rounded-xl border border-[#E7E7E7] space-y-2'>
+                        <div className='flex flex-wrap items-center justify-between gap-2'>
+                          <div className='flex items-center gap-2'>
+                            <span className='px-2 py-0.5 rounded bg-[#171717] text-white font-mono text-[10px] font-bold'>
+                              VERSION {rev.versionNumber} {rev.isInitialVersion ? '(Khởi tạo)' : ''}
+                            </span>
+                            {rev.isLocked && (
+                              <span className='px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300 text-[10px] font-mono font-bold flex items-center gap-1 shadow-xs'>
+                                <Lock className='w-2.5 h-2.5 text-amber-600' />
+                                ĐÃ KHOÁ THAM CHIẾU
+                              </span>
+                            )}
+                          </div>
                           <span className='text-[10px] font-mono text-[#888888] flex items-center gap-1'>
                             <Clock className='w-3 h-3' />
                             {new Date(rev.createdAt).toLocaleString('vi-VN')}
                           </span>
                         </div>
                         <div className='text-xs font-semibold text-[#171717]'>{rev.summary}</div>
-                        <div className='flex items-center gap-2 pt-1'>
-                          <span className='px-2 py-0.5 rounded bg-[#ECFDF5] text-[#059669] border border-[#10B981]/30 text-[10px] font-mono font-semibold'>
-                            Hiệu lực từ: Chương {rev.effectiveFromChapterNumber}
-                          </span>
-                          <span
-                            className='text-[10px] font-mono text-[#888888] truncate'
-                            title={rev.contentHash}
-                          >
-                            Hash: {rev.contentHash.substring(0, 16)}...
-                          </span>
+                        <div className='flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-[#E7E7E7]/60'>
+                          <div className='flex items-center gap-2'>
+                            <span className='px-2 py-0.5 rounded bg-[#ECFDF5] text-[#059669] border border-[#10B981]/30 text-[10px] font-mono font-semibold'>
+                              Hiệu lực từ: Chương {rev.effectiveFromChapterNumber}
+                            </span>
+                            <span
+                              className='text-[10px] font-mono text-[#888888] truncate max-w-[120px]'
+                              title={rev.contentHash}
+                            >
+                              Hash: {rev.contentHash.substring(0, 10)}...
+                            </span>
+                          </div>
+
+                          {!rev.isLocked &&
+                            historyEntity?.category === 'characters' &&
+                            isProducer && (
+                              <button
+                                type='button'
+                                disabled={lockingRevisionId === rev.id}
+                                onClick={() => handleLockRevision(rev)}
+                                className='px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-semibold flex items-center gap-1 transition-colors shadow-xs disabled:opacity-50 cursor-pointer'
+                                title='Producer phê duyệt và khoá phiên bản này làm tham chiếu duy nhất'
+                              >
+                                <Lock className='w-3 h-3' />
+                                <span>
+                                  {lockingRevisionId === rev.id
+                                    ? 'Đang khoá...'
+                                    : 'Duyệt & Khoá Character Sheet'}
+                                </span>
+                              </button>
+                            )}
                         </div>
                       </div>
                     </div>
@@ -899,6 +1040,23 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
               thời và yêu cầu đối chiếu trước khi ghi đè.
             </div>
 
+            {/* Locked Chapters Notice (BR-15 Việc 5) */}
+            {lockedChapterNumbers.length > 0 && (
+              <div className='p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 space-y-1'>
+                <div className='flex items-center gap-1.5 font-semibold'>
+                  <Lock className='w-3.5 h-3.5 text-amber-600 shrink-0' />
+                  <span>Các chương đã có phiên bản khoá tham chiếu:</span>
+                </div>
+                <div className='text-[11px] font-mono text-amber-700 pl-5'>
+                  {lockedChapterNumbers.map((ch) => `Chương ${ch}`).join(', ')}
+                </div>
+                <div className='text-[10px] text-amber-700/90 pl-5'>
+                  Quy tắc: Không thể tạo revision trùng chương bắt đầu của bản đã khoá. Muốn cập
+                  nhật nội dung, bạn phải chọn một chương bắt đầu khác.
+                </div>
+              </div>
+            )}
+
             <div className='space-y-3'>
               <div>
                 <label className='block text-xs font-semibold text-[#171717] mb-1'>
@@ -911,8 +1069,19 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                   onChange={(e) =>
                     setRevisionEffectiveChapter(Math.max(1, parseInt(e.target.value, 10) || 1))
                   }
-                  className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg text-xs font-mono text-[#171717] focus:outline-none focus:border-[#F97316]'
+                  className={`w-full px-3 py-2 bg-[#FAF8F5] border rounded-lg text-xs font-mono text-[#171717] focus:outline-none ${
+                    lockedChapterNumbers.includes(revisionEffectiveChapter)
+                      ? 'border-red-400 focus:border-red-500'
+                      : 'border-[#E7E7E7] focus:border-[#F97316]'
+                  }`}
                 />
+                {lockedChapterNumbers.includes(revisionEffectiveChapter) && (
+                  <p className='text-[11px] text-red-600 mt-1 font-medium flex items-center gap-1'>
+                    <AlertCircle className='w-3 h-3 text-red-500 shrink-0' />
+                    Chương {revisionEffectiveChapter} đã có phiên bản bị khoá tham chiếu! Vui lòng
+                    chọn số chương khác.
+                  </p>
+                )}
               </div>
 
               <div>
@@ -975,7 +1144,11 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
               </button>
               <button
                 type='button'
-                disabled={!revisionSummary.trim() || savingRevision}
+                disabled={
+                  !revisionSummary.trim() ||
+                  savingRevision ||
+                  lockedChapterNumbers.includes(revisionEffectiveChapter)
+                }
                 onClick={async () => {
                   setSavingRevision(true);
                   try {
@@ -997,12 +1170,21 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                     setAddRevModalOpen(false);
                   } catch (err: any) {
                     if (err.code === 'CONFLICT' || err.status === 409) {
+                      const msg = err.message || '';
+                      const isLockedConflict =
+                        msg.toLowerCase().includes('lock') ||
+                        msg.toLowerCase().includes('khoá') ||
+                        msg.toLowerCase().includes('khóa') ||
+                        msg.toLowerCase().includes('chapter');
                       onShowToast(
                         'Xung đột phiên bản (409 CONFLICT)',
-                        'Đã có người khác sửa đổi mục này cùng lúc! Hệ thống tự động mở Lịch sử để bạn đối chiếu phiên bản mới nhất.',
+                        isLockedConflict
+                          ? 'Chương đã có phiên bản khoá tham chiếu hoặc đã có người khác cập nhật cùng lúc! Đang mở Lịch sử để bạn đối chiếu.'
+                          : 'Đã có người khác sửa đổi mục này cùng lúc! Hệ thống tự động mở Lịch sử để bạn đối chiếu phiên bản mới nhất.',
                       );
                       setAddRevModalOpen(false);
                       // Auto open history modal to compare
+                      setHistoryEntity(revisionTarget);
                       setHistoryEntityName(revisionTarget.name);
                       setHistoryModalOpen(true);
                       setLoadingHistory(true);

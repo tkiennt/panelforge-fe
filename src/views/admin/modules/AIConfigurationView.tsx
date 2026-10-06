@@ -58,6 +58,7 @@ export const AIConfigurationView: React.FC = () => {
     'claude-3-5-sonnet',
   ]);
   const [monthlyTokenQuota, setMonthlyTokenQuota] = useState('500000');
+  const [monthlyImageQuota, setMonthlyImageQuota] = useState('0');
 
   // UC-15: Reports & Records State
   const [reports, setReports] = useState<AiUsageReportItemDto[]>([]);
@@ -446,16 +447,37 @@ export const AIConfigurationView: React.FC = () => {
                 </div>
               </div>
 
-              <div>
-                <label className='block font-bold text-[#171717] mb-1.5'>
-                  Hạn ngạch Token mặc định tháng (Monthly Workspace Token Quota):
-                </label>
-                <Input
-                  type='number'
-                  value={monthlyTokenQuota}
-                  onChange={(e) => setMonthlyTokenQuota(e.target.value)}
-                  className='h-9 font-mono text-xs max-w-xs'
-                />
+              <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
+                <div>
+                  <label className='block font-bold text-[#171717] mb-1.5'>
+                    Hạn ngạch Token mặc định tháng (Monthly Workspace Token Quota):
+                  </label>
+                  <Input
+                    type='number'
+                    value={monthlyTokenQuota}
+                    onChange={(e) => setMonthlyTokenQuota(e.target.value)}
+                    className='h-9 font-mono text-xs max-w-xs'
+                  />
+                  <span className='text-[10px] text-[#737373] mt-1 block'>
+                    0 = không giới hạn token
+                  </span>
+                </div>
+
+                <div>
+                  <label className='block font-bold text-[#171717] mb-1.5'>
+                    Hạn ngạch Sinh Ảnh mặc định tháng (Monthly Image Quota):
+                  </label>
+                  <Input
+                    type='number'
+                    value={monthlyImageQuota}
+                    onChange={(e) => setMonthlyImageQuota(e.target.value)}
+                    className='h-9 font-mono text-xs max-w-xs'
+                    placeholder='0 (Không giới hạn)'
+                  />
+                  <span className='text-[10px] text-[#737373] mt-1 block'>
+                    0 = không giới hạn số ảnh sinh ra hàng tháng
+                  </span>
+                </div>
               </div>
             </div>
           </div>

@@ -59,6 +59,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
   const [editingChapter, setEditingChapter] = useState<ChapterDto | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [editTargetReleaseDate, setEditTargetReleaseDate] = useState('');
+  const [editOutline, setEditOutline] = useState('');
 
   const fetchChapters = useCallback(async () => {
     if (!seriesId) return;
@@ -127,6 +128,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
     setEditingChapter(chap);
     setEditTitle(chap.title || '');
     setEditTargetReleaseDate(chap.targetReleaseDate || '');
+    setEditOutline(chap.outline || '');
   };
 
   const handleUpdateChapter = async (e: React.FormEvent) => {
@@ -135,14 +137,15 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
     setActionLoading(true);
     try {
       const payload: UpdateChapterRequest = {
-        title: editTitle.trim() || undefined,
+        title: editTitle.trim() === '' ? '' : editTitle.trim(),
         targetReleaseDate: editTargetReleaseDate || undefined,
+        outline: editOutline.trim() === '' ? '' : editOutline.trim(),
       };
 
       await chapterService.updateChapter(editingChapter.id, payload);
       onShowToast?.(
         'Cập nhật thành công',
-        `Đã cập nhật thông tin và lịch phát hành cho Chương ${editingChapter.chapterNumber}.`,
+        `Đã cập nhật thông tin và đề cương cho Chương ${editingChapter.chapterNumber}.`,
       );
 
       setEditingChapter(null);
@@ -431,6 +434,28 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                 </div>
               </div>
 
+              <div>
+                <div className='flex items-center justify-between mb-1'>
+                  <label className='block font-semibold text-[#171717]'>
+                    Đề Cương / Tóm Tắt Chương (Outline)
+                  </label>
+                  <span className='text-[10px] text-[#F97316] font-mono font-medium'>
+                    Đầu vào AI Writer Agent
+                  </span>
+                </div>
+                <textarea
+                  rows={3}
+                  value={editOutline}
+                  onChange={(e) => setEditOutline(e.target.value)}
+                  placeholder='Tóm tắt diễn biến, cốt truyện chính và các tình tiết của chương này...'
+                  className='w-full px-3 py-2 bg-white border border-[#E7E7E7] rounded-lg text-xs focus:outline-none focus:border-[#F97316]'
+                />
+                <p className='text-[10px] text-[#737373] mt-1'>
+                  Đề cương sẽ được chụp vào snapshot và cung cấp trực tiếp cho AI Writer khi viết
+                  kịch bản phân cảnh.
+                </p>
+              </div>
+
               <div className='flex justify-end gap-2 pt-1'>
                 <button
                   type='button'
@@ -502,7 +527,20 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                             <span className='text-[#888888] italic'>Chưa đặt tên</span>
                           )}
                         </div>
-                        <div className='text-[10px] text-[#888888] font-mono'>
+                        {chap.outline && (
+                          <div className='mt-1 flex items-start gap-1'>
+                            <span className='px-1.5 py-0.2 rounded bg-amber-50 text-amber-700 border border-amber-200 text-[9px] font-mono shrink-0'>
+                              Outline
+                            </span>
+                            <span
+                              className='text-[10px] text-zinc-500 line-clamp-1'
+                              title={chap.outline}
+                            >
+                              {chap.outline}
+                            </span>
+                          </div>
+                        )}
+                        <div className='text-[10px] text-[#888888] font-mono mt-0.5'>
                           Tạo ngày: {new Date(chap.createdAt).toLocaleDateString('vi-VN')}
                         </div>
                       </td>

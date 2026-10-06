@@ -6,6 +6,7 @@ export interface SeriesDto {
   workspaceId: string;
   title: string;
   synopsis?: string | null;
+  storyArc?: string | null;
   readingDirection: number | string;
   pipelineDefinitionId?: string | null;
   genre: string;
@@ -37,6 +38,7 @@ export interface CreateSeriesRequest {
 export interface UpdateSeriesRequest {
   title: string;
   synopsis?: string;
+  storyArc?: string;
   readingDirection: number | string;
   pipelineDefinitionId?: string;
   pipelineTemplateId?: string;

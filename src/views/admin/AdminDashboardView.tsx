@@ -21,12 +21,14 @@ interface AdminDashboardViewProps {
   onNavigateToUsers?: () => void;
   onNavigateToSettings?: () => void;
   onNavigateToAudit?: () => void;
+  onNavigateToSessionPolicy?: () => void;
 }
 
 export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
   onNavigateToUsers,
   onNavigateToSettings,
   onNavigateToAudit,
+  onNavigateToSessionPolicy,
 }) => {
   const [stats, setStats] = useState<SystemStatsResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -256,6 +258,28 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                     </div>
                   </div>
                   <ArrowUpRight className='w-4 h-4 text-[#888888] group-hover:text-blue-600 group-hover:translate-x-0.5 transition-transform' />
+                </div>
+              </button>
+
+              <button
+                onClick={onNavigateToSessionPolicy}
+                className='p-4 rounded-xl border border-[#E7E7E7] hover:border-amber-500 hover:bg-amber-50/20 text-left transition-all group cursor-pointer'
+              >
+                <div className='flex items-center justify-between'>
+                  <div className='flex items-center gap-2.5'>
+                    <div className='w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center'>
+                      <Shield className='w-4 h-4' />
+                    </div>
+                    <div>
+                      <div className='text-xs font-bold text-[#171717] group-hover:text-amber-600 transition-colors'>
+                        Chính Sách Phiên (V1.2)
+                      </div>
+                      <div className='text-[10px] text-[#737373]'>
+                        Thời gian sống, idle timeout, số thiết bị
+                      </div>
+                    </div>
+                  </div>
+                  <ArrowUpRight className='w-4 h-4 text-[#888888] group-hover:text-amber-600 group-hover:translate-x-0.5 transition-transform' />
                 </div>
               </button>
             </div>

@@ -438,6 +438,23 @@ export const AiMultiAgentView: React.FC<{
             </select>
           </label>
 
+          {hasWriterLoop(workflowType) &&
+            (() => {
+              const currentChap = chapters.find((c) => c.id === chapterId);
+              if (!currentChap?.outline) return null;
+              return (
+                <div className='rounded-lg border border-amber-200 bg-amber-50/70 p-2 text-xs'>
+                  <div className='flex items-center gap-1 font-semibold text-amber-800 text-[11px] mb-0.5'>
+                    <Sparkles size={12} className='text-[#F97316]' />
+                    <span>Đề cương chương (Writer Input)</span>
+                  </div>
+                  <p className='text-[11px] text-amber-900 line-clamp-3 leading-relaxed'>
+                    {currentChap.outline}
+                  </p>
+                </div>
+              );
+            })()}
+
           {needsScene ? (
             <label className='block text-xs font-semibold'>
               Scene

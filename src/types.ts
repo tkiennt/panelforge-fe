@@ -108,6 +108,8 @@ export interface BibleEntity {
   continuityMatch?: number;
   status?: string;
   colors?: string[];
+  isLocked?: boolean;
+  lockedAt?: string | null;
 }
 
 export type StudioRole = 'Lead Producer' | 'Artist' | 'Writer' | 'Editor' | 'Letterer';

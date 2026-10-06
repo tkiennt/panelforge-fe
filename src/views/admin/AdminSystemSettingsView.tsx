@@ -18,6 +18,7 @@ import { adminService } from '../../services/admin.service';
 
 export const AdminSystemSettingsView: React.FC = () => {
   const [geminiQuota, setGeminiQuota] = useState('500000');
+  const [imageQuota, setImageQuota] = useState('0');
   const [claudeQuota, setClaudeQuota] = useState('200000');
   const [storageLimitGb, setStorageLimitGb] = useState('100');
   const [enforce2FAForAdmin, setEnforce2FAForAdmin] = useState(true);
@@ -54,6 +55,7 @@ export const AdminSystemSettingsView: React.FC = () => {
         await adminService.updateWorkspaceAiConfig(selectedWorkspaceId, {
           provider: 'Google Gemini',
           monthlyTokenQuota: parseInt(geminiQuota, 10) || 500000,
+          monthlyImageQuota: parseInt(imageQuota, 10) || 0,
           isEnabled: true,
           allowedModels: ['gemini-1.5-pro', 'gemini-1.5-flash'],
         });
@@ -140,7 +142,7 @@ export const AdminSystemSettingsView: React.FC = () => {
             </div>
           )}
 
-          <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
+          <div className='grid grid-cols-1 sm:grid-cols-3 gap-4'>
             <div>
               <label className='block text-xs font-semibold text-[#171717] mb-1'>
                 Google Gemini 1.5 Flash (Tokens/Tháng)
@@ -169,6 +171,20 @@ export const AdminSystemSettingsView: React.FC = () => {
               <span className='text-[10px] text-[#888888]'>
                 Dùng cho Editorial Polish & Dialogue Fit
               </span>
+            </div>
+
+            <div>
+              <label className='block text-xs font-semibold text-[#171717] mb-1'>
+                Hạn Ngạch Sinh Ảnh AI (Ảnh/Tháng)
+              </label>
+              <input
+                type='number'
+                value={imageQuota}
+                onChange={(e) => setImageQuota(e.target.value)}
+                placeholder='0 (Không giới hạn)'
+                className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg text-xs font-mono text-[#171717] focus:outline-none focus:border-[#F97316]'
+              />
+              <span className='text-[10px] text-[#888888]'>0 = không giới hạn số ảnh sinh ra</span>
             </div>
           </div>
         </div>

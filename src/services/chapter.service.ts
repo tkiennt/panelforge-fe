@@ -17,6 +17,7 @@ export interface ChapterDto {
   pagesCount: number;
   status?: ChapterStatus;
   publishedAt?: string | null;
+  outline?: string | null;
 }
 
 export interface PagedResult<T> {
@@ -37,6 +38,7 @@ export interface UpdateChapterRequest {
   title?: string | null;
   targetReleaseDate?: string | null; // YYYY-MM-DD
   incrementVersion?: boolean;
+  outline?: string | null;
 }
 
 function extractError(error: any, defaultMsg: string): string {
