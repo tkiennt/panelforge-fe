@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScriptBlock } from '../../data/mockScriptData';
+import { ScriptBlock } from '@/data/mockScriptData';
 import { Layers } from 'lucide-react';
 
 interface ScriptOutlineProps {

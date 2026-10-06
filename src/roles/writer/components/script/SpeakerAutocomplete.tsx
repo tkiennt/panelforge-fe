@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { User, Plus } from 'lucide-react';
-import { BibleEntity } from '../../types';
+import { BibleEntity } from '@/types';
 
 interface SpeakerAutocompleteProps {
   value: string;

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, Send, History, Sparkles } from 'lucide-react';
 
-import { ScriptEditor } from '../components/task-editor/ScriptEditor';
+import { ScriptEditor } from '@/roles/writer/components/ScriptEditor';
 import { ArtworkCanvas } from '../components/task-editor/ArtworkCanvas';
 import { LetteringWorkspace } from '../components/task-editor/LetteringWorkspace';
 import { VersionHistoryModal, AIProvenanceModal } from '../components/modals/ProvenanceModals';

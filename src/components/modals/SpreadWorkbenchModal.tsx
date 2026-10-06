@@ -1,6 +1,6 @@
 import React from 'react';
 import { X, ShieldCheck } from 'lucide-react';
-import WriterWorkspace from './roles/WriterWorkspace';
+import WriterWorkspace from '@/roles/writer/views/WriterWorkspace';
 import EditorWorkspace from './roles/EditorWorkspace';
 import ArtistWorkspace from './roles/ArtistWorkspace';
 

@@ -49,7 +49,7 @@ import {
 } from 'lucide-react';
 import { GlobalAppShell } from './layouts/GlobalAppShell';
 import { WorkspaceView } from './views/WorkspaceView';
-import { ScriptEditorView } from './views/ScriptEditorView';
+import { ScriptEditorView } from '@/roles/writer/views/ScriptEditorView';
 import { TaskEditor } from './views/TaskEditor';
 import { ExportView } from '@/roles/producer/views/ExportView';
 

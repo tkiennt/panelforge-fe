@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { BookOpen } from 'lucide-react';
-import { BibleEntity } from '../../types';
+import { BibleEntity } from '@/types';
 
 interface BibleLinkPopoverProps {
   text: string;

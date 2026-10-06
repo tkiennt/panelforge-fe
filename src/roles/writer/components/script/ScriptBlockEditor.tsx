@@ -1,6 +1,6 @@
 import React from 'react';
-import { ScriptBlock, ScriptBlockType } from '../../data/mockScriptData';
-import { BibleEntity } from '../../types';
+import { ScriptBlock, ScriptBlockType } from '@/data/mockScriptData';
+import { BibleEntity } from '@/types';
 import { ScriptBlockItem } from './ScriptBlockItem';
 
 interface ScriptBlockEditorProps {
