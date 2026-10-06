@@ -59,7 +59,7 @@ import {
   AdminUserManagementView,
   AdminSystemSettingsView,
   AdminAuditLogView,
-} from './views/admin';
+} from '@/roles/admin/views';
 
 import { ArtistDeskView } from './views/artist/ArtistDeskView';
 import { ProducerWorkspaceView } from './views/producer/ProducerWorkspaceView';
