@@ -4,7 +4,7 @@ import { LoginModal } from '@/roles/guest/modals/LoginModal';
 import { RegisterModal } from '@/roles/guest/modals/RegisterModal';
 import { TwoFactorSetupModal } from '@/shared/features/account/TwoFactorSetupModal';
 import { ChangePasswordModal } from '@/shared/features/account/ChangePasswordModal';
-import { SpreadWorkbenchModal } from '@/roles/artist/modals/SpreadWorkbenchModal';
+import { SpreadWorkbenchModal } from '@/shared/modals/SpreadWorkbenchModal';
 import { PageDetailModal } from '@/roles/artist/modals/PageDetailModal';
 import { AuditLogModal } from '@/shared/modals/AuditLogModal';
 import { NewPageCardModal } from '@/roles/artist/modals/NewPageCardModal';

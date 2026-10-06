@@ -21,4 +21,5 @@ Họa sĩ (Artist) chịu trách nhiệm phác thảo bố cục (Thumbnail/Stor
 ## 4. Modals nghiệp vụ
 - `NewPageCardModal.tsx`: Khởi tạo thẻ trang vẽ mới trong quy trình.
 - `PageDetailModal.tsx`: Xem chi tiết thông tin trang và các thuộc tính giai đoạn.
-- `SpreadWorkbenchModal.tsx`: Bàn làm việc hai trang liền kề (trang đôi / Spread Workbench).
+*(Lưu ý: `SpreadWorkbenchModal.tsx` được đặt tại `src/shared/modals/` do là bàn làm việc trang đôi dùng chung chuyển đổi linh hoạt giữa Writer, Editor và Artist).*
+
