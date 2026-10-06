@@ -15,7 +15,7 @@ import {
   hasWriterLoop,
   lastReportStep,
   wordDiff,
-} from '../components/ai/aiViewUtils';
+} from '@/shared/features/ai-agents/aiViewUtils';
 
 vi.mock('../api/axiosClient', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../api/axiosClient')>();

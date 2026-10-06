@@ -14,7 +14,7 @@ import {
   History,
 } from 'lucide-react';
 import { SystemRole } from '@/types';
-import { VersionHistoryModal, AIProvenanceModal } from '@/components/modals/ProvenanceModals';
+import { VersionHistoryModal, AIProvenanceModal } from '@/shared/modals/ProvenanceModals';
 
 interface Annotation {
   id: string;

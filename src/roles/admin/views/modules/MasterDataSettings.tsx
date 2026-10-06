@@ -9,8 +9,8 @@ import {
   Layout,
   FileOutput,
 } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
+import { Button } from '@/shared/components/ui/Button';
+import { Input } from '@/shared/components/ui/Input';
 
 export const MasterDataSettings: React.FC = () => {
   const [savedSuccess, setSavedSuccess] = useState(false);

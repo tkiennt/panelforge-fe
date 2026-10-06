@@ -9,7 +9,7 @@ import {
   latestScriptRevisionId,
   previousWriterStep,
 } from './aiAgents.service';
-import { agentNodeStates, collectLines } from '../components/ai/aiViewUtils';
+import { agentNodeStates, collectLines } from '@/shared/features/ai-agents/aiViewUtils';
 
 vi.mock('../api/axiosClient', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../api/axiosClient')>();

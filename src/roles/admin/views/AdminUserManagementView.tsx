@@ -16,9 +16,9 @@ import { AdminUserTable } from './components/AdminUserTable';
 import { AdminAssignRoleModal } from './components/AdminAssignRoleModal';
 import { ALL_ROLES } from './constants';
 import { AdminUserDetailsModal } from './components/AdminUserDetailsModal';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/shared/components/ui/Button';
+import { Input } from '@/shared/components/ui/Input';
+import { Badge } from '@/shared/components/ui/Badge';
 import { cn } from '@/lib/utils';
 
 export const AdminUserManagementView: React.FC = () => {

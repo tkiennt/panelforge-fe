@@ -30,9 +30,9 @@ import {
 import { ReviewView } from '@/roles/editor/views/ReviewView';
 import { Header } from './components/Header';
 import { DashboardView } from '@/roles/producer/views/DashboardView';
-import { WorkflowBoardView } from './views/WorkflowBoardView';
-import { SeriesBibleView } from './views/SeriesBibleView';
-import { AiMultiAgentView } from './views/ai/AiMultiAgentView';
+import { WorkflowBoardView } from '@/shared/features/pipeline-board/WorkflowBoardView';
+import { SeriesBibleView } from '@/shared/features/series-bible/SeriesBibleView';
+import { AiMultiAgentView } from '@/shared/features/ai-agents/AiMultiAgentView';
 import { MembersRolesView } from '@/roles/producer/views/MembersRolesView';
 import { SeriesMembersView } from '@/roles/producer/views/SeriesMembersView';
 import { GlobalModals } from './components/GlobalModals';
@@ -48,9 +48,9 @@ import {
   BookOpen,
 } from 'lucide-react';
 import { GlobalAppShell } from './layouts/GlobalAppShell';
-import { WorkspaceView } from './views/WorkspaceView';
+import { WorkspaceView } from '@/shared/features/production-workspace/WorkspaceView';
 import { ScriptEditorView } from '@/roles/writer/views/ScriptEditorView';
-import { TaskEditor } from './views/TaskEditor';
+import { TaskEditor } from '@/shared/features/production-workspace/TaskEditorView';
 import { ExportView } from '@/roles/producer/views/ExportView';
 
 import {
@@ -63,7 +63,7 @@ import {
 
 import { ArtistDeskView } from '@/roles/artist/views/ArtistDeskView';
 import { ProducerWorkspaceView } from '@/roles/producer/views/ProducerWorkspaceView';
-import { NotificationCenterView } from './views/NotificationCenterView';
+import { NotificationCenterView } from '@/shared/views/NotificationCenterView';
 import { ReaderPortalView } from '@/roles/reader/views/ReaderPortalView';
 import { PublicCatalogView } from '@/roles/reader/views/PublicCatalogView';
 import { authService } from './services/auth.service';
@@ -80,11 +80,11 @@ import {
 } from './types';
 import { LoginModal } from '@/roles/guest/modals/LoginModal';
 import { RegisterModal } from '@/roles/guest/modals/RegisterModal';
-import { TwoFactorSetupModal } from './components/modals/TwoFactorSetupModal';
-import { ChangePasswordModal } from './components/modals/ChangePasswordModal';
+import { TwoFactorSetupModal } from '@/shared/features/account/TwoFactorSetupModal';
+import { ChangePasswordModal } from '@/shared/features/account/ChangePasswordModal';
 import { LandingPageView } from '@/roles/guest/views/LandingPageView';
-import { WorkspaceListView } from './views/WorkspaceListView';
-import { UserProfile } from './views/UserProfile';
+import { WorkspaceListView } from '@/shared/views/WorkspaceListView';
+import { UserProfile } from '@/shared/views/UserProfileView';
 import { auth, onAuthStateChanged } from './firebase';
 import { User } from 'firebase/auth';
 
