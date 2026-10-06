@@ -20,7 +20,7 @@ const notFoundAdapter = async (config: InternalAxiosRequestConfig) => {
 };
 
 // Mock Firebase module
-vi.mock('./firebase', () => ({
+vi.mock('@/config/firebase', () => ({
   signInWithPopup: vi.fn(),
   onAuthStateChanged: vi.fn((_auth, callback) => {
     // Return null user initially

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, Sparkles, Layout, Check, AlertTriangle } from 'lucide-react';
-import { PanelItem } from '@/data/mockLayoutData';
+import { PanelItem } from '@/mocks/mockLayoutData';
 
 interface AILayoutModalProps {
   isOpen: boolean;

@@ -12,7 +12,7 @@ import {
 } from '@dnd-kit/core';
 import { KanbanColumn } from './KanbanColumn';
 import { TaskCard } from './TaskCard';
-import { PIPELINE_STAGES, MOCK_CARDS, PipelineCard, StageKey } from '@/data/mockPipelineData';
+import { PIPELINE_STAGES, MOCK_CARDS, PipelineCard, StageKey } from '@/mocks/mockPipelineData';
 import { usePermissions } from '@/lib/permissions';
 import { SystemRole, WorkspaceRole } from '@/types';
 import { seriesService, SeriesMemberDto } from '@/services/series.service';

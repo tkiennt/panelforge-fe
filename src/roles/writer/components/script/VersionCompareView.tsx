@@ -1,6 +1,6 @@
 import React from 'react';
 import { X, History, ArrowLeftRight } from 'lucide-react';
-import { ScriptBlock } from '@/data/mockScriptData';
+import { ScriptBlock } from '@/mocks/mockScriptData';
 
 interface VersionCompareViewProps {
   isOpen: boolean;

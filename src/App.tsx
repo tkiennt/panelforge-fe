@@ -21,7 +21,7 @@ import {
   INITIAL_PROVENANCE_LOGS,
   INITIAL_ASSISTANTS,
   INITIAL_PROJECT_MEMBERSHIPS,
-} from './data/mockData';
+} from '@/mocks/mockData';
 import { BrowserRouter, useNavigate, useLocation } from 'react-router-dom';
 import { GlobalModals } from './app/GlobalModals';
 import { AppRoutes } from './app/routes';
@@ -34,7 +34,7 @@ import { LoginModal } from '@/roles/guest/modals/LoginModal';
 import { RegisterModal } from '@/roles/guest/modals/RegisterModal';
 import { TwoFactorSetupModal } from '@/shared/features/account/TwoFactorSetupModal';
 import { ChangePasswordModal } from '@/shared/features/account/ChangePasswordModal';
-import { auth, onAuthStateChanged } from './firebase';
+import { auth, onAuthStateChanged } from '@/config/firebase';
 import { User } from 'firebase/auth';
 
 interface Toast {

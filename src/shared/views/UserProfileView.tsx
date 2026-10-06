@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { User, signOut } from 'firebase/auth';
-import { auth } from '@/firebase';
+import { auth } from '@/config/firebase';
 import { LogOut, User as UserIcon, ShieldCheck, Key, KeyRound } from 'lucide-react';
 import { TwoFactorSetupModal } from '@/shared/features/account/TwoFactorSetupModal';
 import { ChangePasswordModal } from '@/shared/features/account/ChangePasswordModal';

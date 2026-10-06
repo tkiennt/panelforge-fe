@@ -5,7 +5,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { Clock, Sparkles, Lock, CheckCircle, XCircle } from 'lucide-react';
 import { MessageSquare, Paperclip, MoreVertical, Eye, FileSignature } from 'lucide-react';
 import { usePermissions } from '@/lib/permissions';
-import { PipelineCard, PIPELINE_MEMBERS } from '@/data/mockPipelineData';
+import { PipelineCard, PIPELINE_MEMBERS } from '@/mocks/mockPipelineData';
 import { SeriesMemberDto } from '@/services/series.service';
 
 interface TaskCardProps {

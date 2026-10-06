@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { PanelItem, BibleOverlay } from '@/data/mockLayoutData';
+import { PanelItem, BibleOverlay } from '@/mocks/mockLayoutData';
 import { CanvasPanelItem } from './CanvasPanelItem';
 import { User, MapPin, Box, Paintbrush } from 'lucide-react';
 

@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { PipelineStage, PipelineCard } from '@/data/mockPipelineData';
+import { PipelineStage, PipelineCard } from '@/mocks/mockPipelineData';
 import { TaskCard } from './TaskCard';
 import { MoreHorizontal } from 'lucide-react';
 import { usePermissions } from '@/lib/permissions';

@@ -18,8 +18,8 @@ import {
   MOCK_OLD_VERSION_BLOCKS,
   ScriptBlock,
   ScriptBlockType,
-} from '@/data/mockScriptData';
-import { INITIAL_BIBLE_ENTITIES } from '@/data/mockData';
+} from '@/mocks/mockScriptData';
+import { INITIAL_BIBLE_ENTITIES } from '@/mocks/mockData';
 
 interface ScriptEditorViewProps {
   onShowToast: (title: string, desc: string) => void;

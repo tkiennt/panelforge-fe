@@ -5,7 +5,7 @@ import { LoginModal } from './LoginModal';
 import { authService } from '@/services/auth.service';
 
 // Mock Firebase module
-vi.mock('@/firebase', () => ({
+vi.mock('@/config/firebase', () => ({
   signInWithPopup: vi.fn(),
   auth: {},
   googleProvider: {},

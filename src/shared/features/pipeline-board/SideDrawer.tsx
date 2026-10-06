@@ -1,6 +1,6 @@
 import React from 'react';
 import { X, Image as ImageIcon, History, MessageSquare, Sparkles, Clock } from 'lucide-react';
-import { PipelineCard, PIPELINE_MEMBERS } from '@/data/mockPipelineData';
+import { PipelineCard, PIPELINE_MEMBERS } from '@/mocks/mockPipelineData';
 
 import { usePermissions } from '@/lib/permissions';
 

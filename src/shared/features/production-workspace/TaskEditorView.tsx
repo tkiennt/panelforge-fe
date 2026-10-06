@@ -7,7 +7,7 @@ import { ArtworkCanvas } from '@/roles/artist/components/ArtworkCanvas';
 import { LetteringWorkspace } from '@/roles/letterer/views/LetteringWorkspace';
 import { VersionHistoryModal, AIProvenanceModal } from '@/shared/modals/ProvenanceModals';
 import { KanbanCard, SystemRole } from '@/types';
-import { INITIAL_KANBAN_CARDS } from '@/data/mockData';
+import { INITIAL_KANBAN_CARDS } from '@/mocks/mockData';
 
 interface TaskEditorProps {
   activeRoles: SystemRole[];

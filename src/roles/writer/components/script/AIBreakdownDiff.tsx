@@ -1,6 +1,6 @@
 import React from 'react';
 import { X, Sparkles, CheckCircle2, Edit2, XCircle } from 'lucide-react';
-import { ScriptBlock } from '@/data/mockScriptData';
+import { ScriptBlock } from '@/mocks/mockScriptData';
 
 interface AIBreakdownDiffProps {
   isOpen: boolean;

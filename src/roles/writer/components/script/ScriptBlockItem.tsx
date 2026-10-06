@@ -1,6 +1,6 @@
 import React from 'react';
 import { Sparkles, AlertTriangle } from 'lucide-react';
-import { ScriptBlock, AIState, BibleLink } from '@/data/mockScriptData';
+import { ScriptBlock, AIState, BibleLink } from '@/mocks/mockScriptData';
 import { BibleEntity } from '@/types';
 import { SpeakerAutocomplete } from './SpeakerAutocomplete';
 import { BibleLinkPopover } from './BibleLinkPopover';

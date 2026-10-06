@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScriptBlock, ScriptBlockType } from '@/data/mockScriptData';
+import { ScriptBlock, ScriptBlockType } from '@/mocks/mockScriptData';
 import { BibleEntity } from '@/types';
 import { ScriptBlockItem } from './ScriptBlockItem';
 

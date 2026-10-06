@@ -13,7 +13,7 @@ import {
   KeyRound,
   RefreshCw,
 } from 'lucide-react';
-import { signInWithPopup, auth, googleProvider } from '@/firebase';
+import { signInWithPopup, auth, googleProvider } from '@/config/firebase';
 import { authService } from '@/services/auth.service';
 
 interface LoginModalProps {

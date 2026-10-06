@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { KanbanBoard } from '@/shared/features/pipeline-board/KanbanBoard';
-import { MOCK_CARDS } from '@/data/mockPipelineData';
+import { MOCK_CARDS } from '@/mocks/mockPipelineData';
 import { SystemRole, WorkspaceRole } from '@/types';
 import { Filter, Users, LayoutTemplate, Plus } from 'lucide-react';
 import { usePermissions } from '@/lib/permissions';
