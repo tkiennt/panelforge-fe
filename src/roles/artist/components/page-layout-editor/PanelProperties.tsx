@@ -1,5 +1,5 @@
 import React from 'react';
-import { PanelItem, StageType } from '../../data/mockLayoutData';
+import { PanelItem, StageType } from '@/data/mockLayoutData';
 import {
   Settings2,
   UploadCloud,

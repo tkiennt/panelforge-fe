@@ -23,7 +23,7 @@ import {
   PageDetailDto,
   MOCK_PAGES,
   DEFAULT_CHAPTER_ID,
-} from '../../services/page.service';
+} from '@/services/page.service';
 
 export const ArtistDeskView: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'queue' | 'pages'>('queue');

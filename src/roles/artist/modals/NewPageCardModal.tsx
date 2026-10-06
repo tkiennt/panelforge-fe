@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, Plus, Layers } from 'lucide-react';
-import { KanbanCard, KanbanStageKey } from '../../types';
+import { KanbanCard, KanbanStageKey } from '@/types';
 
 interface NewPageCardModalProps {
   isOpen: boolean;

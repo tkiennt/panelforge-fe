@@ -4,10 +4,10 @@ import { LoginModal } from './modals/LoginModal';
 import { RegisterModal } from './modals/RegisterModal';
 import { TwoFactorSetupModal } from './modals/TwoFactorSetupModal';
 import { ChangePasswordModal } from './modals/ChangePasswordModal';
-import { SpreadWorkbenchModal } from './modals/SpreadWorkbenchModal';
-import { PageDetailModal } from './modals/PageDetailModal';
+import { SpreadWorkbenchModal } from '@/roles/artist/modals/SpreadWorkbenchModal';
+import { PageDetailModal } from '@/roles/artist/modals/PageDetailModal';
 import { AuditLogModal } from './modals/AuditLogModal';
-import { NewPageCardModal } from './modals/NewPageCardModal';
+import { NewPageCardModal } from '@/roles/artist/modals/NewPageCardModal';
 import { KanbanCard, BibleEntity, MangaProject, SystemRole, KanbanStageKey } from '../types';
 
 interface GlobalModalsProps {

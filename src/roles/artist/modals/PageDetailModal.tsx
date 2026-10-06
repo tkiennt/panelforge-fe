@@ -11,7 +11,7 @@ import {
   ShieldCheck,
   Send,
 } from 'lucide-react';
-import { KanbanCard, KanbanStageKey } from '../../types';
+import { KanbanCard, KanbanStageKey } from '@/types';
 
 interface PageDetailModalProps {
   card: KanbanCard | null;

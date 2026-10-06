@@ -61,7 +61,7 @@ import {
   AdminAuditLogView,
 } from '@/roles/admin/views';
 
-import { ArtistDeskView } from './views/artist/ArtistDeskView';
+import { ArtistDeskView } from '@/roles/artist/views/ArtistDeskView';
 import { ProducerWorkspaceView } from '@/roles/producer/views/ProducerWorkspaceView';
 import { NotificationCenterView } from './views/NotificationCenterView';
 import { ReaderPortalView } from './views/ReaderPortalView';

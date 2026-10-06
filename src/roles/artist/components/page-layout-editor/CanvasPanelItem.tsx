@@ -1,5 +1,5 @@
 import React from 'react';
-import { PanelItem } from '../../data/mockLayoutData';
+import { PanelItem } from '@/data/mockLayoutData';
 import { Image as ImageIcon } from 'lucide-react';
 
 interface CanvasPanelItemProps {

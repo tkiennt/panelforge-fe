@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, Send, History, Sparkles } from 'lucide-react';
 
 import { ScriptEditor } from '@/roles/writer/components/ScriptEditor';
-import { ArtworkCanvas } from '../components/task-editor/ArtworkCanvas';
+import { ArtworkCanvas } from '@/roles/artist/components/ArtworkCanvas';
 import { LetteringWorkspace } from '../components/task-editor/LetteringWorkspace';
 import { VersionHistoryModal, AIProvenanceModal } from '../components/modals/ProvenanceModals';
 import { KanbanCard, SystemRole } from '../types';

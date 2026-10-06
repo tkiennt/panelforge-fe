@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { BookOpen, User, MapPin, Box, Paintbrush } from 'lucide-react';
-import { INITIAL_BIBLE_ENTITIES } from '../../data/mockData';
+import { INITIAL_BIBLE_ENTITIES } from '@/data/mockData';
 
 export const BibleReferencePanel: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'character' | 'location' | 'prop' | 'style'>(
