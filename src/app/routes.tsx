@@ -20,6 +20,7 @@ import { WorkspaceListView } from '@/shared/views/WorkspaceListView';
 import { UserProfileView } from '@/shared/views/UserProfileView';
 import { SeriesBibleView } from '@/shared/features/series-bible/SeriesBibleView';
 import { AiMultiAgentView } from '@/shared/features/ai-agents/AiMultiAgentView';
+import { MyWorkView } from '@/shared/features/collaboration/MyWorkView';
 import {
   SystemRole,
   WorkspaceRole,
@@ -284,6 +285,16 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                     onAddEntity={handleAddEntity}
                     onSelectSeries={(p) => setActiveProject(p)}
                     onEditEntity={(e) => showToast('Series Bible', `Mở chi tiết ${e.name}`)}
+                    onShowToast={showToast}
+                  />
+                }
+              />
+              <Route
+                path='my-work'
+                element={
+                  <MyWorkView
+                    currentUserId={currentUserInfo?.id}
+                    workspaceRole={currentWorkspaceRole}
                     onShowToast={showToast}
                   />
                 }

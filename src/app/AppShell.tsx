@@ -42,6 +42,7 @@ import {
   KeyRound,
 } from 'lucide-react';
 import { AppShellSidebar } from './AppShellSidebar';
+import { NotificationBell } from '@/shared/features/collaboration/NotificationBell';
 
 export interface CurrentUser {
   name: string;
@@ -259,6 +260,11 @@ export function AppShell({
                 badge: { type: 'text', text: 'Active', color: 'bg-[#F97316]/10 text-[#F97316]' },
               },
               {
+                icon: Layers,
+                label: 'Công việc & Xét duyệt',
+                href: `/workspaces/${workspaceId}/series/${seriesId}/my-work`,
+              },
+              {
                 icon: BookMarked,
                 label: 'Series Bible',
                 href: `/workspaces/${workspaceId}/series/${seriesId}/bible`,
@@ -307,6 +313,16 @@ export function AppShell({
     ) {
       return [
         ...base,
+        {
+          section: 'MY WORK',
+          items: [
+            {
+              icon: Layers,
+              label: 'Công việc của tôi',
+              href: `/workspaces/${workspaceId}/series/${seriesId}/my-work`,
+            },
+          ],
+        },
         {
           section: 'AI MULTI-AGENT',
           items: [
@@ -490,6 +506,9 @@ export function AppShell({
               <span className={`w-2 h-2 rounded-full ${aiConfig.dot}`} />
               <span className='font-mono text-[11px] hidden sm:inline'>{aiConfig.label}</span>
             </div>
+
+            {/* Chuông thông báo thật (UC-14): số chưa đọc và danh sách lấy từ Backend */}
+            {!isReader && <NotificationBell workspaceId={workspaceId} seriesId={seriesId} />}
 
             {/* User Profile Dropdown Menu */}
             <div className='relative'>

@@ -145,3 +145,115 @@ export interface StageProgressDto {
   submittedByUserId?: string | null;
   updatedAt?: string | null;
 }
+
+// ==========================================
+// CF3: Submissions & Change Requests Types
+// ==========================================
+
+export type SubmissionStatus = 'Pending' | 'Approved' | 'Rejected' | 'Superseded' | number;
+
+export interface SubmissionDto {
+  id: string;
+  assignmentId: string;
+  chapterId: string;
+  submittedByUserId: string;
+  attemptNumber: number;
+  status: SubmissionStatus;
+  submittedAt: string;
+  decidedByUserId?: string | null;
+  decidedAt?: string | null;
+  decisionComment?: string | null;
+}
+
+export type ChangeRequestStatus = 'Open' | 'Resolved' | 'Verified' | 'Rejected' | number;
+
+export interface ChangeRequestDto {
+  id: string;
+  assignmentId: string;
+  chapterId: string;
+  submissionId?: string | null;
+  responsibleUserId: string;
+  createdByUserId: string;
+  description: string;
+  regionJson?: string | null;
+  dueDate?: string | null;
+  status: ChangeRequestStatus;
+  resolutionNote?: string | null;
+  resolvedAt?: string | null;
+  reviewerComment?: string | null;
+  closedByUserId?: string | null;
+  closedAt?: string | null;
+  createdAt: string;
+  updatedAt?: string | null;
+}
+
+export interface ChangeRequestItemRequest {
+  description: string;
+  regionJson?: string;
+  dueDate?: string;
+}
+
+export interface RequestAssignmentChangesRequest {
+  comment: string;
+  changes?: ChangeRequestItemRequest[];
+}
+
+// ==========================================
+// CF2: Artwork Assets Types
+// ==========================================
+
+export interface AssetReferenceDto {
+  id: string;
+  assetId: string;
+  chapterId: string;
+  pageId: string;
+  pipelineStageId: string;
+  versionNumber: number;
+  layerType?: string | null;
+  fileName: string;
+  contentType: 'image/png' | 'image/jpeg' | 'image/webp' | string;
+  sizeBytes: number;
+  sha256: string;
+  reused: boolean;
+  uploadedByUserId: string;
+  createdAt: string;
+}
+
+export interface ArtworkAccessLinkDto {
+  url: string;
+  expiresAtUtc: string;
+}
+
+// ==========================================
+// Notifications Types (UC-14 / BR-14)
+// ==========================================
+
+export type NotificationType =
+  | 'AssignmentAssigned'
+  | 'AssignmentUnassigned'
+  | 'AssignmentUpdated'
+  | 'AssignmentSubmitted'
+  | 'AssignmentApproved'
+  | 'AssignmentChangesRequested'
+  | 'ChangeRequestResolved'
+  | 'ChangeRequestReopened'
+  | string;
+
+export interface NotificationDto {
+  id: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  assignmentId?: string | null;
+  chapterId?: string | null;
+  readAt?: string | null;
+  createdAt: string;
+}
+
+export interface NotificationListDto {
+  items: NotificationDto[];
+  totalCount: number;
+  unreadCount: number;
+  pageIndex: number;
+  pageSize: number;
+}

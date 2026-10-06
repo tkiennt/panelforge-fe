@@ -37,6 +37,7 @@ Chỉ chứa các tài nguyên được tái sử dụng bởi nhiều role ho�
   - `pipeline-board/`: Bảng Kanban quy trình sản xuất manga theo các chặng (`WorkflowBoardView.tsx`, `KanbanBoard.tsx`).
   - `production-workspace/`: Khung bàn làm việc và trình soạn thảo tác vụ (`WorkspaceView.tsx`, `TaskEditorView.tsx`).
   - `account/`: Quản lý xác thực nâng cao (`ChangePasswordModal.tsx`, `TwoFactorSetupModal.tsx`).
+  - `collaboration/`: Luồng cộng tác CF2/CF3 dùng chung mọi vai trò làm nội dung: `MyWorkView.tsx` (route `my-work`), `AssignmentWorkCard.tsx`, `ArtworkPanel.tsx` (upload có SHA-256), `ReviewDecisionPanel.tsx` (duyệt, trả về), `ChangeRequestPanel.tsx`, `SubmissionHistory.tsx`, `NotificationBell.tsx` (chuông ở header), `collaborationRules.ts` (luật bật/tắt nút, hàm thuần có test).
 - **`src/shared/components/ui/`**: Các UI atomic component (`Badge.tsx`, `Button.tsx`, `Card.tsx`, `Input.tsx`, `PermissionButton.tsx`, `PermissionGuard.tsx`).
 - **`src/shared/modals/`**: Hộp thoại toàn cục (`AuditLogModal.tsx`, `CommandPaletteModal.tsx`, `ProvenanceModals.tsx`, `VectorStatusModal.tsx`, `SpreadWorkbenchModal.tsx`).
 

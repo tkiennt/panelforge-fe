@@ -100,4 +100,59 @@ describe('assignmentService', () => {
     });
     expect(result).toEqual(mockProgress);
   });
+
+  it('openReview gọi POST /open-review và chuyển trạng thái sang UnderReview', async () => {
+    const mockUnderReview = { id: 'asg-1', status: 'UnderReview' };
+    vi.mocked(axiosClient.post).mockResolvedValueOnce({ data: mockUnderReview });
+
+    const result = await assignmentService.openReview('chap-1', 'asg-1');
+    expect(axiosClient.post).toHaveBeenCalledWith('/chapters/chap-1/assignments/asg-1/open-review');
+    expect(result).toEqual(mockUnderReview);
+  });
+
+  it('approveAssignment gọi POST /approve và chuyển trạng thái sang Approved', async () => {
+    const mockApproved = { id: 'asg-1', status: 'Approved' };
+    vi.mocked(axiosClient.post).mockResolvedValueOnce({ data: mockApproved });
+
+    const result = await assignmentService.approveAssignment('chap-1', 'asg-1');
+    expect(axiosClient.post).toHaveBeenCalledWith('/chapters/chap-1/assignments/asg-1/approve');
+    expect(result).toEqual(mockApproved);
+  });
+
+  it('requestChanges gọi POST /request-changes kèm comment và chuyển sang ReworkRequired', async () => {
+    const mockRework = { id: 'asg-1', status: 'ReworkRequired', lastFeedbackComment: 'Nét còn mờ' };
+    vi.mocked(axiosClient.post).mockResolvedValueOnce({ data: mockRework });
+
+    const result = await assignmentService.requestChanges('chap-1', 'asg-1', {
+      comment: 'Nét còn mờ',
+    });
+    expect(axiosClient.post).toHaveBeenCalledWith(
+      '/chapters/chap-1/assignments/asg-1/request-changes',
+      { comment: 'Nét còn mờ' },
+    );
+    expect(result).toEqual(mockRework);
+  });
+
+  it('getSubmissions gọi GET /submissions và trả về danh sách các lần nộp', async () => {
+    const mockSubmissions = [
+      { id: 'sub-1', attemptNumber: 1, status: 'Rejected' },
+      { id: 'sub-2', attemptNumber: 2, status: 'Pending' },
+    ];
+    vi.mocked(axiosClient.get).mockResolvedValueOnce({ data: mockSubmissions });
+
+    const result = await assignmentService.getSubmissions('chap-1', 'asg-1');
+    expect(axiosClient.get).toHaveBeenCalledWith('/chapters/chap-1/assignments/asg-1/submissions');
+    expect(result).toEqual(mockSubmissions);
+  });
+
+  it('resolveChangeRequest gọi POST /resolve để đánh dấu đã sửa', async () => {
+    const mockCR = { id: 'cr-1', status: 'Resolved', resolutionNote: 'Đã tỉa lại nét' };
+    vi.mocked(axiosClient.post).mockResolvedValueOnce({ data: mockCR });
+
+    const result = await assignmentService.resolveChangeRequest('chap-1', 'cr-1', 'Đã tỉa lại nét');
+    expect(axiosClient.post).toHaveBeenCalledWith('/chapters/chap-1/change-requests/cr-1/resolve', {
+      note: 'Đã tỉa lại nét',
+    });
+    expect(result).toEqual(mockCR);
+  });
 });
