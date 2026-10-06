@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Layers, Compass, Plus, Loader2, ArrowRight, LogOut, Sparkles } from 'lucide-react';
 import { WorkspaceDto, WorkspaceRole, normalizeWorkspaceRole } from '../types';
 import { workspaceService } from '../services/workspace.service';
-import { CreateWorkspaceModal } from '../components/modals/CreateWorkspaceModal';
+import { CreateWorkspaceModal } from '@/roles/producer/modals/CreateWorkspaceModal';
 
 interface WorkspaceListViewProps {
   onSelectWorkspace: (workspace: WorkspaceDto) => void;

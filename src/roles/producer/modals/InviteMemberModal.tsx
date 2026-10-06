@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, UserPlus, Mail, Shield, Key } from 'lucide-react';
-import { StudioMember } from '../../types';
+import { StudioMember } from '@/types';
 
 interface InviteMemberModalProps {
   isOpen: boolean;

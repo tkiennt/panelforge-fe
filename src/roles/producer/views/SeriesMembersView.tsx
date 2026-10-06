@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { Users, UserPlus, Shield, X, Check, Trash2, Edit2 } from 'lucide-react';
-import { seriesService, SeriesMemberDto } from '../../services/series.service';
-import { workspaceService, WorkspaceMemberDto } from '../../services/workspace.service';
+import { seriesService, SeriesMemberDto } from '@/services/series.service';
+import { workspaceService, WorkspaceMemberDto } from '@/services/workspace.service';
 
 export const SeriesMembersView: React.FC<{
   onShowToast: (title: string, desc: string) => void;

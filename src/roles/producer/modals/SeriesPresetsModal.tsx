@@ -25,7 +25,7 @@ import {
   ConsistencyRuleDto,
   CreateConsistencyRuleRequest,
   UpdateConsistencyRuleRequest,
-} from '../../services/series.service';
+} from '@/services/series.service';
 
 interface SeriesPresetsModalProps {
   isOpen: boolean;

@@ -19,7 +19,7 @@ import {
   Eye,
   ArrowRight,
 } from 'lucide-react';
-import { MangaProject, AssistantRosterItem, ProvenanceLogItem } from '../types';
+import { MangaProject, AssistantRosterItem, ProvenanceLogItem } from '@/types';
 
 interface DashboardViewProps {
   activeProject?: MangaProject;

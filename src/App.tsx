@@ -29,12 +29,12 @@ import {
 } from 'react-router-dom';
 import { ReviewView } from './views/ReviewView';
 import { Header } from './components/Header';
-import { DashboardView } from './views/DashboardView';
+import { DashboardView } from '@/roles/producer/views/DashboardView';
 import { WorkflowBoardView } from './views/WorkflowBoardView';
 import { SeriesBibleView } from './views/SeriesBibleView';
 import { AiMultiAgentView } from './views/ai/AiMultiAgentView';
-import { MembersRolesView } from './views/MembersRolesView';
-import { SeriesMembersView } from './views/series/SeriesMembersView';
+import { MembersRolesView } from '@/roles/producer/views/MembersRolesView';
+import { SeriesMembersView } from '@/roles/producer/views/SeriesMembersView';
 import { GlobalModals } from './components/GlobalModals';
 import {
   CheckCircle2,
@@ -51,7 +51,7 @@ import { GlobalAppShell } from './layouts/GlobalAppShell';
 import { WorkspaceView } from './views/WorkspaceView';
 import { ScriptEditorView } from './views/ScriptEditorView';
 import { TaskEditor } from './views/TaskEditor';
-import { ExportView } from './views/ExportView';
+import { ExportView } from '@/roles/producer/views/ExportView';
 
 import {
   AdminDashboard,
@@ -62,7 +62,7 @@ import {
 } from '@/roles/admin/views';
 
 import { ArtistDeskView } from './views/artist/ArtistDeskView';
-import { ProducerWorkspaceView } from './views/producer/ProducerWorkspaceView';
+import { ProducerWorkspaceView } from '@/roles/producer/views/ProducerWorkspaceView';
 import { NotificationCenterView } from './views/NotificationCenterView';
 import { ReaderPortalView } from './views/ReaderPortalView';
 import { PublicCatalogView } from './views/catalog/PublicCatalogView';

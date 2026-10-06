@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, Layers, Plus, Loader2 } from 'lucide-react';
-import { workspaceService, WorkspaceDto } from '../../services/workspace.service';
+import { workspaceService, WorkspaceDto } from '@/services/workspace.service';
 
 interface CreateWorkspaceModalProps {
   isOpen: boolean;

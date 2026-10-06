@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Plus, ChevronDown } from 'lucide-react';
-import { MangaProject } from '../types';
-import { seriesService } from '../services/series.service';
+import { MangaProject } from '@/types';
+import { seriesService } from '@/services/series.service';
 
 interface CreateProjectModalProps {
   isOpen: boolean;

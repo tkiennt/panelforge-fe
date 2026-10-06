@@ -17,9 +17,9 @@ import {
   RefreshCw,
   Edit3,
 } from 'lucide-react';
-import { StudioMember, MangaProject } from '../types';
-import { InviteMemberModal } from '../components/modals/InviteMemberModal';
-import { workspaceService, WorkspaceMemberDto } from '../services/workspace.service';
+import { StudioMember, MangaProject } from '@/types';
+import { InviteMemberModal } from '@/roles/producer/modals/InviteMemberModal';
+import { workspaceService, WorkspaceMemberDto } from '@/services/workspace.service';
 
 interface MembersRolesViewProps {
   activeProject?: MangaProject;

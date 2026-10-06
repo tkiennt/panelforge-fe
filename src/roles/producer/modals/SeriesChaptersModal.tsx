@@ -22,7 +22,7 @@ import {
   ChapterDto,
   CreateChapterRequest,
   UpdateChapterRequest,
-} from '../../services/chapter.service';
+} from '@/services/chapter.service';
 
 interface SeriesChaptersModalProps {
   isOpen: boolean;

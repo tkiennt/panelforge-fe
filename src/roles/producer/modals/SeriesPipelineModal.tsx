@@ -24,7 +24,7 @@ import {
   PipelineRole,
   AddPipelineStageRequest,
   UpdatePipelineStageRequest,
-} from '../../services/pipeline.service';
+} from '@/services/pipeline.service';
 
 interface SeriesPipelineModalProps {
   isOpen: boolean;

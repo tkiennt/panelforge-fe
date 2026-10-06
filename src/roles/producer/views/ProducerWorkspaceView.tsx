@@ -30,12 +30,12 @@ import {
   WorkspaceDto,
   WorkspaceMemberDto,
   WorkspaceUsageDto,
-} from '../../services/workspace.service';
-import { pipelineService, PipelineTemplateDto } from '../../services/pipeline.service';
-import { seriesService, SeriesDto, UpdateSeriesRequest } from '../../services/series.service';
-import { SeriesPipelineModal } from '../../components/modals/SeriesPipelineModal';
-import { SeriesChaptersModal } from '../../components/modals/SeriesChaptersModal';
-import { SeriesPresetsModal } from '../../components/modals/SeriesPresetsModal';
+} from '@/services/workspace.service';
+import { pipelineService, PipelineTemplateDto } from '@/services/pipeline.service';
+import { seriesService, SeriesDto, UpdateSeriesRequest } from '@/services/series.service';
+import { SeriesPipelineModal } from '@/roles/producer/modals/SeriesPipelineModal';
+import { SeriesChaptersModal } from '@/roles/producer/modals/SeriesChaptersModal';
+import { SeriesPresetsModal } from '@/roles/producer/modals/SeriesPresetsModal';
 
 export const ProducerWorkspaceView: React.FC = () => {
   const navigate = useNavigate();
