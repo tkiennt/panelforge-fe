@@ -12,11 +12,7 @@ import {
   RefreshCw,
   ExternalLink,
 } from 'lucide-react';
-import {
-  catalogService,
-  PublicSeriesDto,
-  PublicSeriesDetailDto,
-} from '../../services/catalog.service';
+import { catalogService, PublicSeriesDto, PublicSeriesDetailDto } from '@/services/catalog.service';
 
 interface PublicCatalogViewProps {
   onBackToWorkspaces?: () => void;
