@@ -24,15 +24,15 @@ import {
   AlertCircle,
   X,
 } from 'lucide-react';
-import { Button } from '../../../components/ui/Button';
-import { Input } from '../../../components/ui/Input';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 import {
   adminService,
   AiUsageReportItemDto,
   AiUsageRecordDto,
   AiUsageRecordsFilterParams,
   downloadBlob,
-} from '../../../services/admin.service';
+} from '@/services/admin.service';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'Tất cả trạng thái (All Statuses)' },

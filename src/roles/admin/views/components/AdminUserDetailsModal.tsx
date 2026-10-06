@@ -1,7 +1,7 @@
 import React from 'react';
 import { X } from 'lucide-react';
-import { AdminUserItem } from '../../../services/admin.service';
-import { Button } from '../../../components/ui/Button';
+import { AdminUserItem } from '@/services/admin.service';
+import { Button } from '@/components/ui/Button';
 
 interface AdminUserDetailsModalProps {
   user: AdminUserItem;

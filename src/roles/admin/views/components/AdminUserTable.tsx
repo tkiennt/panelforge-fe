@@ -8,7 +8,7 @@ import {
   ChevronRight,
   RefreshCw,
 } from 'lucide-react';
-import { AdminUserItem } from '../../../services/admin.service';
+import { AdminUserItem } from '@/services/admin.service';
 
 interface AdminUserTableProps {
   filteredUsers: AdminUserItem[];

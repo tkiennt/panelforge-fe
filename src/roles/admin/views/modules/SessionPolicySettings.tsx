@@ -18,7 +18,7 @@ import {
   WorkspaceSessionPolicyDto,
   UpdateWorkspaceSessionPolicyRequest,
   AiUsageReportItemDto,
-} from '../../../services/admin.service';
+} from '@/services/admin.service';
 
 export const SessionPolicySettings: React.FC = () => {
   const [workspaces, setWorkspaces] = useState<{ id: string; name: string }[]>([]);

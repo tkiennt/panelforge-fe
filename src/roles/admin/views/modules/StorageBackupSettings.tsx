@@ -9,8 +9,8 @@ import {
   ShieldAlert,
   FileCheck,
 } from 'lucide-react';
-import { Button } from '../../../components/ui/Button';
-import { Input } from '../../../components/ui/Input';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 
 export const StorageBackupSettings: React.FC = () => {
   const [savedSuccess, setSavedSuccess] = useState(false);

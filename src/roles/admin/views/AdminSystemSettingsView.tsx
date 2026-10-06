@@ -14,7 +14,7 @@ import {
   ToggleRight,
   Loader2,
 } from 'lucide-react';
-import { adminService } from '../../services/admin.service';
+import { adminService } from '@/services/admin.service';
 
 export const AdminSystemSettingsView: React.FC = () => {
   const [geminiQuota, setGeminiQuota] = useState('500000');

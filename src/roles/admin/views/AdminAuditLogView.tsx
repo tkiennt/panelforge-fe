@@ -26,7 +26,7 @@ import {
   AuditLogDto,
   AuditLogFilterParams,
   downloadBlob,
-} from '../../services/admin.service';
+} from '@/services/admin.service';
 
 const ENTITY_OPTIONS = [
   { value: '', label: 'Tất cả đối tượng (All Entities)' },

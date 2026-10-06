@@ -15,7 +15,7 @@ import {
   HardDrive,
   Lock,
 } from 'lucide-react';
-import { adminService, SystemStatsResponse } from '../../services/admin.service';
+import { adminService, SystemStatsResponse } from '@/services/admin.service';
 
 interface AdminDashboardViewProps {
   onNavigateToUsers?: () => void;
