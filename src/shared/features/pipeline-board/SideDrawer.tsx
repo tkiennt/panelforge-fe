@@ -1,6 +1,19 @@
-import React from 'react';
-import { X, Image as ImageIcon, History, MessageSquare, Sparkles, Clock } from 'lucide-react';
+import React, { useState } from 'react';
+import {
+  X,
+  Image as ImageIcon,
+  History,
+  MessageSquare,
+  Sparkles,
+  Clock,
+  Play,
+  Send,
+  CheckCircle2,
+  AlertTriangle,
+  Loader2,
+} from 'lucide-react';
 import { PipelineCard, PIPELINE_MEMBERS } from '@/mocks/mockPipelineData';
+import { assignmentService, AssignmentStatus } from '@/services/assignment.service';
 
 import { usePermissions } from '@/lib/permissions';
 
@@ -9,12 +22,68 @@ interface SideDrawerProps {
   onClose: () => void;
   card: PipelineCard | null;
   userRoles: string[];
+  chapterId?: string;
+  onShowToast?: (title: string, desc: string) => void;
 }
 
-export const SideDrawer: React.FC<SideDrawerProps> = ({ isOpen, onClose, card, userRoles }) => {
+export const SideDrawer: React.FC<SideDrawerProps> = ({
+  isOpen,
+  onClose,
+  card,
+  userRoles,
+  chapterId,
+  onShowToast,
+}) => {
   const { hasPermission } = usePermissions(userRoles || []);
+  const [currentStatus, setCurrentStatus] = useState<AssignmentStatus>('Assigned');
+  const [actionLoading, setActionLoading] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   if (!isOpen || !card) return null;
+
+  const handleStartAssignment = async () => {
+    setActionLoading(true);
+    setActionError(null);
+    try {
+      if (chapterId) {
+        await assignmentService.startAssignment(chapterId, card.id);
+      }
+      setCurrentStatus('InProgress');
+      onShowToast?.('Đã bắt đầu làm', `Công việc ${card.identifier} chuyển sang InProgress.`);
+    } catch (err: any) {
+      const msg = err.response?.data?.message || err.message || 'Lỗi khi bắt đầu làm việc.';
+      setActionError(msg);
+      onShowToast?.('Không thể bắt đầu', msg);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleSubmitAssignment = async () => {
+    if (currentStatus !== 'InProgress') {
+      const msg =
+        'Phải bắt đầu việc (trạng thái InProgress) trước khi nộp để tránh lỗi 409 Conflict!';
+      setActionError(msg);
+      onShowToast?.('Quy định nộp bài', msg);
+      return;
+    }
+
+    setActionLoading(true);
+    setActionError(null);
+    try {
+      if (chapterId) {
+        await assignmentService.submitAssignment(chapterId, card.id);
+      }
+      setCurrentStatus('Submitted');
+      onShowToast?.('Đã nộp bài thành công', `Công việc ${card.identifier} đã được nộp chờ duyệt.`);
+    } catch (err: any) {
+      const msg = err.response?.data?.message || err.message || 'Lỗi khi nộp bài.';
+      setActionError(msg);
+      onShowToast?.('Không thể nộp bài', msg);
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   const assignee = PIPELINE_MEMBERS[card.assigneeId];
 
@@ -133,6 +202,70 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({ isOpen, onClose, card, u
               </div>
             </div>
           )}
+
+          {/* Assignment Actions (UC-05) */}
+          <div className='p-3.5 bg-white border border-[#E7E7E7] rounded-xl shadow-2xs space-y-2.5'>
+            <div className='flex items-center justify-between'>
+              <h3 className='text-xs font-bold text-[#171717] uppercase tracking-wider flex items-center gap-1.5'>
+                <Clock className='w-3.5 h-3.5 text-[#F97316]' />
+                <span>Tiến độ nhiệm vụ (Assignment)</span>
+              </h3>
+              <span className='px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[#FAF8F5] border border-[#E7E7E7] text-[#F97316]'>
+                {currentStatus}
+              </span>
+            </div>
+
+            {actionError && (
+              <div className='p-2 bg-red-50 border border-red-200 text-red-700 rounded-lg text-[11px] flex items-center gap-1.5'>
+                <AlertTriangle className='w-3.5 h-3.5 shrink-0' />
+                <span>{actionError}</span>
+              </div>
+            )}
+
+            <div className='grid grid-cols-2 gap-2 pt-1'>
+              <button
+                onClick={handleStartAssignment}
+                disabled={actionLoading || currentStatus !== 'Assigned'}
+                title={
+                  currentStatus === 'Assigned'
+                    ? 'Bắt đầu làm công việc này'
+                    : `Công việc đã ở trạng thái ${currentStatus}`
+                }
+                className='py-2 px-3 bg-[#171717] hover:bg-black text-white text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-xs cursor-pointer'
+              >
+                {actionLoading ? (
+                  <Loader2 className='w-3.5 h-3.5 animate-spin' />
+                ) : (
+                  <Play className='w-3.5 h-3.5 text-[#F97316]' />
+                )}
+                <span>Bắt đầu làm</span>
+              </button>
+
+              <button
+                onClick={handleSubmitAssignment}
+                disabled={actionLoading || currentStatus !== 'InProgress'}
+                title={
+                  currentStatus === 'InProgress'
+                    ? 'Nộp bài để chuyển sang xét duyệt Review'
+                    : 'Phải bấm "Bắt đầu làm" trước khi nộp (Quy định hệ thống)'
+                }
+                className='py-2 px-3 bg-[#10B981] hover:bg-[#059669] text-white text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-xs cursor-pointer'
+              >
+                {actionLoading ? (
+                  <Loader2 className='w-3.5 h-3.5 animate-spin' />
+                ) : (
+                  <Send className='w-3.5 h-3.5' />
+                )}
+                <span>Nộp bài</span>
+              </button>
+            </div>
+            {currentStatus === 'Assigned' && (
+              <p className='text-[10px] text-[#888888] font-mono text-center'>
+                * Bắt buộc chuyển sang &quot;InProgress&quot; trước khi có thể nộp bài (tránh lỗi
+                409 Conflict).
+              </p>
+            )}
+          </div>
 
           {/* Actions */}
           <div className='space-y-3'>

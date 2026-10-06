@@ -1,0 +1,103 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { assignmentService } from './assignment.service';
+import axiosClient from '../api/axiosClient';
+
+vi.mock('../api/axiosClient');
+
+describe('assignmentService', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('getAssignments trả về mảng phân công khi gọi thành công', async () => {
+    const mockData = [
+      {
+        id: 'asg-1',
+        chapterId: 'chap-1',
+        brief: 'Vẽ chì trang 1',
+        status: 'Assigned',
+      },
+    ];
+    vi.mocked(axiosClient.get).mockResolvedValueOnce({ data: mockData });
+
+    const result = await assignmentService.getAssignments('chap-1');
+    expect(axiosClient.get).toHaveBeenCalledWith('/chapters/chap-1/assignments', {
+      params: undefined,
+    });
+    expect(result).toEqual(mockData);
+  });
+
+  it('getAssignments trả về mảng rỗng khi API lỗi', async () => {
+    vi.mocked(axiosClient.get).mockRejectedValueOnce(new Error('Network error'));
+
+    const result = await assignmentService.getAssignments('chap-1');
+    expect(result).toEqual([]);
+  });
+
+  it('createAssignment gọi POST và trả về assignment mới', async () => {
+    const req = {
+      entityType: 'Page' as const,
+      targetEntityId: 'page-1',
+      pipelineStageId: 'stage-pencil',
+      assigneeUserId: 'user-artist',
+      brief: 'Phác thảo chì trang 1',
+    };
+    const mockCreated = { id: 'asg-2', ...req, status: 'Assigned' };
+    vi.mocked(axiosClient.post).mockResolvedValueOnce({ data: mockCreated });
+
+    const result = await assignmentService.createAssignment('chap-1', req);
+    expect(axiosClient.post).toHaveBeenCalledWith('/chapters/chap-1/assignments', req);
+    expect(result).toEqual(mockCreated);
+  });
+
+  it('updateAssignment gọi PUT và trả về assignment đã cập nhật', async () => {
+    const req = {
+      brief: 'Cập nhật ghi chú chì',
+      priority: 'High' as const,
+      assigneeUserId: 'user-artist-2',
+    };
+    const mockUpdated = { id: 'asg-2', ...req, status: 'Assigned' };
+    vi.mocked(axiosClient.put).mockResolvedValueOnce({ data: mockUpdated });
+
+    const result = await assignmentService.updateAssignment('chap-1', 'asg-2', req);
+    expect(axiosClient.put).toHaveBeenCalledWith('/chapters/chap-1/assignments/asg-2', req);
+    expect(result).toEqual(mockUpdated);
+  });
+
+  it('startAssignment gọi POST /start để chuyển sang InProgress', async () => {
+    const mockStarted = { id: 'asg-1', status: 'InProgress', startedAt: '2026-10-06T19:00:00Z' };
+    vi.mocked(axiosClient.post).mockResolvedValueOnce({ data: mockStarted });
+
+    const result = await assignmentService.startAssignment('chap-1', 'asg-1');
+    expect(axiosClient.post).toHaveBeenCalledWith('/chapters/chap-1/assignments/asg-1/start');
+    expect(result).toEqual(mockStarted);
+  });
+
+  it('submitAssignment gọi POST /submit để chuyển sang Submitted', async () => {
+    const mockSubmitted = { id: 'asg-1', status: 'Submitted', completedAt: '2026-10-06T19:30:00Z' };
+    vi.mocked(axiosClient.post).mockResolvedValueOnce({ data: mockSubmitted });
+
+    const result = await assignmentService.submitAssignment('chap-1', 'asg-1');
+    expect(axiosClient.post).toHaveBeenCalledWith('/chapters/chap-1/assignments/asg-1/submit');
+    expect(result).toEqual(mockSubmitted);
+  });
+
+  it('getStageProgress gọi GET /stage-progress và trả về tiến độ panel', async () => {
+    const mockProgress = [
+      {
+        id: 'sp-1',
+        pageId: 'page-1',
+        panelId: 'panel-1',
+        pipelineStageId: 'stage-pencil',
+        status: 'InProgress',
+      },
+    ];
+    vi.mocked(axiosClient.get).mockResolvedValueOnce({ data: mockProgress });
+
+    const result = await assignmentService.getStageProgress('chap-1', 'page-1');
+    expect(axiosClient.get).toHaveBeenCalledWith('/chapters/chap-1/stage-progress', {
+      params: { pageId: 'page-1' },
+    });
+    expect(result).toEqual(mockProgress);
+  });
+});

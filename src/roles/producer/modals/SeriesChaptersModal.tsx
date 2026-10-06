@@ -1,5 +1,5 @@
-// src/components/modals/SeriesChaptersModal.tsx
 import React, { useState, useEffect, useCallback } from 'react';
+import { useParams } from 'react-router-dom';
 import {
   X,
   Plus,
@@ -16,6 +16,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Save,
+  ClipboardList,
 } from 'lucide-react';
 import {
   chapterService,
@@ -23,25 +24,38 @@ import {
   CreateChapterRequest,
   UpdateChapterRequest,
 } from '@/services/chapter.service';
+import { ChapterAssignmentsModal } from './ChapterAssignmentsModal';
 
 interface SeriesChaptersModalProps {
   isOpen: boolean;
+  workspaceId?: string;
   seriesId: string;
   seriesTitle: string;
   onClose: () => void;
   onChaptersCountChange?: (newCount: number) => void;
+  onChapterCountChange?: (delta: number) => void;
   onShowToast?: (title: string, desc: string) => void;
 }
 
 export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
   isOpen,
+  workspaceId: propWorkspaceId,
   seriesId,
   seriesTitle,
   onClose,
   onChaptersCountChange,
+  onChapterCountChange,
   onShowToast,
 }) => {
+  const { workspaceId: paramWorkspaceId } = useParams();
+  const effectiveWorkspaceId =
+    propWorkspaceId ||
+    paramWorkspaceId ||
+    JSON.parse(localStorage.getItem('activeWorkspace') || '{}').id ||
+    '';
+
   const [chapters, setChapters] = useState<ChapterDto[]>([]);
+  const [assigningChapter, setAssigningChapter] = useState<ChapterDto | null>(null);
   const [totalCount, setTotalCount] = useState(0);
   const [pageIndex, setPageIndex] = useState(1);
   const [pageSize] = useState(10);
@@ -260,375 +274,402 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
   return (
-    <div className='fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4'>
-      <div className='bg-white border border-[#E7E7E7] rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl animate-in fade-in zoom-in-95 duration-150'>
-        {/* Header */}
-        <div className='p-5 border-b border-[#E7E7E7] flex items-center justify-between bg-[#FAF8F5] rounded-t-2xl'>
-          <div className='flex items-center gap-3'>
-            <div className='w-9 h-9 rounded-xl bg-[#FFF7ED] border border-[#FDBA74] flex items-center justify-center text-[#F97316] shadow-2xs'>
-              <Calendar className='w-5 h-5' />
-            </div>
-            <div>
-              <div className='flex items-center gap-2'>
-                <span className='px-2 py-0.5 rounded bg-[#171717] text-white font-mono text-[9px] font-bold'>
-                  UC-03 // RELEASE CALENDAR
-                </span>
-                <span className='text-[10px] text-[#888888] font-mono'>Chapter Scheduling</span>
+    <>
+      <div className='fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4'>
+        <div className='bg-white border border-[#E7E7E7] rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl animate-in fade-in zoom-in-95 duration-150'>
+          {/* Header */}
+          <div className='p-5 border-b border-[#E7E7E7] flex items-center justify-between bg-[#FAF8F5] rounded-t-2xl'>
+            <div className='flex items-center gap-3'>
+              <div className='w-9 h-9 rounded-xl bg-[#FFF7ED] border border-[#FDBA74] flex items-center justify-center text-[#F97316] shadow-2xs'>
+                <Calendar className='w-5 h-5' />
               </div>
-              <h2 className='text-base font-bold text-[#171717] mt-0.5'>
-                Lịch Phát Hành &amp; Quản Lý Tập/Chương: {seriesTitle}
-              </h2>
+              <div>
+                <div className='flex items-center gap-2'>
+                  <span className='px-2 py-0.5 rounded bg-[#171717] text-white font-mono text-[9px] font-bold'>
+                    UC-03 // RELEASE CALENDAR
+                  </span>
+                  <span className='text-[10px] text-[#888888] font-mono'>Chapter Scheduling</span>
+                </div>
+                <h2 className='text-base font-bold text-[#171717] mt-0.5'>
+                  Lịch Phát Hành &amp; Quản Lý Tập/Chương: {seriesTitle}
+                </h2>
+              </div>
             </div>
-          </div>
-          <button
-            onClick={onClose}
-            className='w-8 h-8 rounded-lg hover:bg-white border border-transparent hover:border-[#E7E7E7] flex items-center justify-center text-[#888888] hover:text-[#171717] transition-all cursor-pointer'
-          >
-            <X className='w-4 h-4' />
-          </button>
-        </div>
-
-        {/* Content Body */}
-        <div className='p-6 overflow-y-auto space-y-5 flex-1 custom-scrollbar text-xs'>
-          {error && (
-            <div className='p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl flex items-center gap-2'>
-              <AlertCircle className='w-4 h-4 shrink-0' />
-              <span>{error}</span>
-            </div>
-          )}
-
-          {/* Action bar */}
-          <div className='flex items-center justify-between'>
-            <div className='text-xs text-[#737373]'>
-              Tổng số: <strong className='text-[#171717] font-mono'>{totalCount}</strong> chương đã
-              khởi tạo.
-            </div>
-
             <button
-              onClick={() => setShowAddForm(!showAddForm)}
-              className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold shadow-xs cursor-pointer'
+              onClick={onClose}
+              className='w-8 h-8 rounded-lg hover:bg-white border border-transparent hover:border-[#E7E7E7] flex items-center justify-center text-[#888888] hover:text-[#171717] transition-all cursor-pointer'
             >
-              <Plus className='w-3.5 h-3.5' />
-              <span>{showAddForm ? 'Đóng Form' : 'Tạo Chương Mới'}</span>
+              <X className='w-4 h-4' />
             </button>
           </div>
 
-          {/* Add Chapter Form */}
-          {showAddForm && (
-            <form
-              onSubmit={handleCreateChapter}
-              className='p-4 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl space-y-3 animate-in fade-in duration-150'
-            >
-              <div className='font-bold text-xs text-[#171717] flex items-center gap-1.5'>
-                <Sparkles className='w-3.5 h-3.5 text-[#F97316]' />
-                <span>Khởi Tạo Tập / Chương Mới</span>
+          {/* Content Body */}
+          <div className='p-6 overflow-y-auto space-y-5 flex-1 custom-scrollbar text-xs'>
+            {error && (
+              <div className='p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl flex items-center gap-2'>
+                <AlertCircle className='w-4 h-4 shrink-0' />
+                <span>{error}</span>
+              </div>
+            )}
+
+            {/* Action bar */}
+            <div className='flex items-center justify-between'>
+              <div className='text-xs text-[#737373]'>
+                Tổng số: <strong className='text-[#171717] font-mono'>{totalCount}</strong> chương
+                đã khởi tạo.
               </div>
 
-              <div className='grid grid-cols-1 sm:grid-cols-3 gap-3'>
-                <div>
-                  <label className='block font-semibold text-[#171717] mb-1'>
-                    Số thứ tự chương (Chapter #) *
-                  </label>
-                  <input
-                    type='number'
-                    step='any'
-                    min={0.1}
-                    required
-                    value={newChapterNumber}
-                    onChange={(e) => setNewChapterNumber(parseFloat(e.target.value) || 1)}
-                    className='w-full px-3 py-1.5 bg-white border border-[#E7E7E7] rounded-lg font-mono text-xs focus:outline-none focus:border-[#F97316]'
-                  />
+              <button
+                onClick={() => setShowAddForm(!showAddForm)}
+                className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold shadow-xs cursor-pointer'
+              >
+                <Plus className='w-3.5 h-3.5' />
+                <span>{showAddForm ? 'Đóng Form' : 'Tạo Chương Mới'}</span>
+              </button>
+            </div>
+
+            {/* Add Chapter Form */}
+            {showAddForm && (
+              <form
+                onSubmit={handleCreateChapter}
+                className='p-4 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl space-y-3 animate-in fade-in duration-150'
+              >
+                <div className='font-bold text-xs text-[#171717] flex items-center gap-1.5'>
+                  <Sparkles className='w-3.5 h-3.5 text-[#F97316]' />
+                  <span>Khởi Tạo Tập / Chương Mới</span>
+                </div>
+
+                <div className='grid grid-cols-1 sm:grid-cols-3 gap-3'>
+                  <div>
+                    <label className='block font-semibold text-[#171717] mb-1'>
+                      Số thứ tự chương (Chapter #) *
+                    </label>
+                    <input
+                      type='number'
+                      step='any'
+                      min={0.1}
+                      required
+                      value={newChapterNumber}
+                      onChange={(e) => setNewChapterNumber(parseFloat(e.target.value) || 1)}
+                      className='w-full px-3 py-1.5 bg-white border border-[#E7E7E7] rounded-lg font-mono text-xs focus:outline-none focus:border-[#F97316]'
+                    />
+                  </div>
+
+                  <div>
+                    <label className='block font-semibold text-[#171717] mb-1'>
+                      Tiêu đề chương (Title)
+                    </label>
+                    <input
+                      type='text'
+                      placeholder='Ví dụ: Khởi Đầu Mới'
+                      value={newTitle}
+                      onChange={(e) => setNewTitle(e.target.value)}
+                      className='w-full px-3 py-1.5 bg-white border border-[#E7E7E7] rounded-lg text-xs focus:outline-none focus:border-[#F97316]'
+                    />
+                  </div>
+
+                  <div>
+                    <label className='block font-semibold text-[#171717] mb-1'>
+                      Ngày phát hành dự kiến (Target Date)
+                    </label>
+                    <input
+                      type='date'
+                      value={newTargetReleaseDate}
+                      onChange={(e) => setNewTargetReleaseDate(e.target.value)}
+                      className='w-full px-3 py-1.5 bg-white border border-[#E7E7E7] rounded-lg text-xs focus:outline-none focus:border-[#F97316]'
+                    />
+                  </div>
+                </div>
+
+                <div className='flex justify-end gap-2 pt-1'>
+                  <button
+                    type='button'
+                    onClick={() => setShowAddForm(false)}
+                    className='px-3 py-1 rounded-lg border border-[#E7E7E7] bg-white text-[#555555] hover:bg-[#FAF8F5]'
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type='submit'
+                    disabled={actionLoading}
+                    className='px-3.5 py-1 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white font-semibold flex items-center gap-1.5 disabled:opacity-50'
+                  >
+                    {actionLoading ? (
+                      <Loader2 className='w-3 h-3 animate-spin' />
+                    ) : (
+                      <Plus className='w-3 h-3' />
+                    )}
+                    <span>Thêm Chương</span>
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* Edit Chapter Inline Form */}
+            {editingChapter && (
+              <form
+                onSubmit={handleUpdateChapter}
+                className='p-4 bg-[#FFF7ED] border border-[#FDBA74] rounded-xl space-y-3 animate-in fade-in duration-150'
+              >
+                <div className='font-bold text-xs text-[#171717] flex items-center justify-between'>
+                  <div className='flex items-center gap-1.5'>
+                    <Edit2 className='w-3.5 h-3.5 text-[#F97316]' />
+                    <span>Chỉnh Sửa Chương {editingChapter.chapterNumber}</span>
+                  </div>
+                  <button
+                    type='button'
+                    onClick={() => setEditingChapter(null)}
+                    className='text-[#888888] hover:text-[#171717]'
+                  >
+                    <X className='w-3.5 h-3.5' />
+                  </button>
+                </div>
+
+                <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
+                  <div>
+                    <label className='block font-semibold text-[#171717] mb-1'>
+                      Tiêu đề chương
+                    </label>
+                    <input
+                      type='text'
+                      value={editTitle}
+                      onChange={(e) => setEditTitle(e.target.value)}
+                      className='w-full px-3 py-1.5 bg-white border border-[#E7E7E7] rounded-lg text-xs focus:outline-none focus:border-[#F97316]'
+                    />
+                  </div>
+
+                  <div>
+                    <label className='block font-semibold text-[#171717] mb-1'>
+                      Ngày phát hành dự kiến (Target Date)
+                    </label>
+                    <input
+                      type='date'
+                      value={editTargetReleaseDate}
+                      onChange={(e) => setEditTargetReleaseDate(e.target.value)}
+                      className='w-full px-3 py-1.5 bg-white border border-[#E7E7E7] rounded-lg text-xs focus:outline-none focus:border-[#F97316]'
+                    />
+                  </div>
                 </div>
 
                 <div>
-                  <label className='block font-semibold text-[#171717] mb-1'>
-                    Tiêu đề chương (Title)
-                  </label>
-                  <input
-                    type='text'
-                    placeholder='Ví dụ: Khởi Đầu Mới'
-                    value={newTitle}
-                    onChange={(e) => setNewTitle(e.target.value)}
-                    className='w-full px-3 py-1.5 bg-white border border-[#E7E7E7] rounded-lg text-xs focus:outline-none focus:border-[#F97316]'
+                  <div className='flex items-center justify-between mb-1'>
+                    <label className='block font-semibold text-[#171717]'>
+                      Đề Cương / Tóm Tắt Chương (Outline)
+                    </label>
+                    <span className='text-[10px] text-[#F97316] font-mono font-medium'>
+                      Đầu vào AI Writer Agent
+                    </span>
+                  </div>
+                  <textarea
+                    rows={3}
+                    value={editOutline}
+                    onChange={(e) => setEditOutline(e.target.value)}
+                    placeholder='Tóm tắt diễn biến, cốt truyện chính và các tình tiết của chương này...'
+                    className='w-full px-3 py-2 bg-white border border-[#E7E7E7] rounded-lg text-xs focus:outline-none focus:border-[#F97316]'
                   />
+                  <p className='text-[10px] text-[#737373] mt-1'>
+                    Đề cương sẽ được chụp vào snapshot và cung cấp trực tiếp cho AI Writer khi viết
+                    kịch bản phân cảnh.
+                  </p>
                 </div>
 
-                <div>
-                  <label className='block font-semibold text-[#171717] mb-1'>
-                    Ngày phát hành dự kiến (Target Date)
-                  </label>
-                  <input
-                    type='date'
-                    value={newTargetReleaseDate}
-                    onChange={(e) => setNewTargetReleaseDate(e.target.value)}
-                    className='w-full px-3 py-1.5 bg-white border border-[#E7E7E7] rounded-lg text-xs focus:outline-none focus:border-[#F97316]'
-                  />
+                <div className='flex justify-end gap-2 pt-1'>
+                  <button
+                    type='button'
+                    onClick={() => setEditingChapter(null)}
+                    className='px-3 py-1 rounded-lg border border-[#E7E7E7] bg-white text-[#555555]'
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type='submit'
+                    disabled={actionLoading}
+                    className='px-3.5 py-1 rounded-lg bg-[#171717] hover:bg-black text-white font-semibold flex items-center gap-1.5 disabled:opacity-50'
+                  >
+                    {actionLoading ? (
+                      <Loader2 className='w-3 h-3 animate-spin' />
+                    ) : (
+                      <Save className='w-3 h-3' />
+                    )}
+                    <span>Lưu Thay Đổi</span>
+                  </button>
                 </div>
-              </div>
+              </form>
+            )}
 
-              <div className='flex justify-end gap-2 pt-1'>
-                <button
-                  type='button'
-                  onClick={() => setShowAddForm(false)}
-                  className='px-3 py-1 rounded-lg border border-[#E7E7E7] bg-white text-[#555555] hover:bg-[#FAF8F5]'
-                >
-                  Hủy
-                </button>
-                <button
-                  type='submit'
-                  disabled={actionLoading}
-                  className='px-3.5 py-1 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white font-semibold flex items-center gap-1.5 disabled:opacity-50'
-                >
-                  {actionLoading ? (
-                    <Loader2 className='w-3 h-3 animate-spin' />
-                  ) : (
-                    <Plus className='w-3 h-3' />
-                  )}
-                  <span>Thêm Chương</span>
-                </button>
-              </div>
-            </form>
-          )}
-
-          {/* Edit Chapter Inline Form */}
-          {editingChapter && (
-            <form
-              onSubmit={handleUpdateChapter}
-              className='p-4 bg-[#FFF7ED] border border-[#FDBA74] rounded-xl space-y-3 animate-in fade-in duration-150'
-            >
-              <div className='font-bold text-xs text-[#171717] flex items-center justify-between'>
-                <div className='flex items-center gap-1.5'>
-                  <Edit2 className='w-3.5 h-3.5 text-[#F97316]' />
-                  <span>Chỉnh Sửa Chương {editingChapter.chapterNumber}</span>
-                </div>
-                <button
-                  type='button'
-                  onClick={() => setEditingChapter(null)}
-                  className='text-[#888888] hover:text-[#171717]'
-                >
-                  <X className='w-3.5 h-3.5' />
-                </button>
-              </div>
-
-              <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
-                <div>
-                  <label className='block font-semibold text-[#171717] mb-1'>Tiêu đề chương</label>
-                  <input
-                    type='text'
-                    value={editTitle}
-                    onChange={(e) => setEditTitle(e.target.value)}
-                    className='w-full px-3 py-1.5 bg-white border border-[#E7E7E7] rounded-lg text-xs focus:outline-none focus:border-[#F97316]'
-                  />
-                </div>
-
-                <div>
-                  <label className='block font-semibold text-[#171717] mb-1'>
-                    Ngày phát hành dự kiến (Target Date)
-                  </label>
-                  <input
-                    type='date'
-                    value={editTargetReleaseDate}
-                    onChange={(e) => setEditTargetReleaseDate(e.target.value)}
-                    className='w-full px-3 py-1.5 bg-white border border-[#E7E7E7] rounded-lg text-xs focus:outline-none focus:border-[#F97316]'
-                  />
-                </div>
-              </div>
-
-              <div>
-                <div className='flex items-center justify-between mb-1'>
-                  <label className='block font-semibold text-[#171717]'>
-                    Đề Cương / Tóm Tắt Chương (Outline)
-                  </label>
-                  <span className='text-[10px] text-[#F97316] font-mono font-medium'>
-                    Đầu vào AI Writer Agent
-                  </span>
-                </div>
-                <textarea
-                  rows={3}
-                  value={editOutline}
-                  onChange={(e) => setEditOutline(e.target.value)}
-                  placeholder='Tóm tắt diễn biến, cốt truyện chính và các tình tiết của chương này...'
-                  className='w-full px-3 py-2 bg-white border border-[#E7E7E7] rounded-lg text-xs focus:outline-none focus:border-[#F97316]'
-                />
-                <p className='text-[10px] text-[#737373] mt-1'>
-                  Đề cương sẽ được chụp vào snapshot và cung cấp trực tiếp cho AI Writer khi viết
-                  kịch bản phân cảnh.
-                </p>
-              </div>
-
-              <div className='flex justify-end gap-2 pt-1'>
-                <button
-                  type='button'
-                  onClick={() => setEditingChapter(null)}
-                  className='px-3 py-1 rounded-lg border border-[#E7E7E7] bg-white text-[#555555]'
-                >
-                  Hủy
-                </button>
-                <button
-                  type='submit'
-                  disabled={actionLoading}
-                  className='px-3.5 py-1 rounded-lg bg-[#171717] hover:bg-black text-white font-semibold flex items-center gap-1.5 disabled:opacity-50'
-                >
-                  {actionLoading ? (
-                    <Loader2 className='w-3 h-3 animate-spin' />
-                  ) : (
-                    <Save className='w-3 h-3' />
-                  )}
-                  <span>Lưu Thay Đổi</span>
-                </button>
-              </div>
-            </form>
-          )}
-
-          {/* Chapters Table */}
-          <div className='border border-[#E7E7E7] rounded-xl overflow-hidden'>
-            <table className='w-full text-left border-collapse'>
-              <thead className='bg-[#FAF8F5] border-b border-[#E7E7E7] font-mono text-[10px] text-[#737373] uppercase'>
-                <tr>
-                  <th className='py-2.5 px-3'>Chương #</th>
-                  <th className='py-2.5 px-3'>Tiêu Đề</th>
-                  <th className='py-2.5 px-3'>Trạng Thái</th>
-                  <th className='py-2.5 px-3'>Lịch Phát Hành (Target Date)</th>
-                  <th className='py-2.5 px-3'>Phân Cảnh / Trang</th>
-                  <th className='py-2.5 px-3'>Version Vector</th>
-                  <th className='py-2.5 px-3 text-right'>Thao Tác</th>
-                </tr>
-              </thead>
-              <tbody className='divide-y divide-[#E7E7E7] text-xs'>
-                {loading ? (
+            {/* Chapters Table */}
+            <div className='border border-[#E7E7E7] rounded-xl overflow-hidden'>
+              <table className='w-full text-left border-collapse'>
+                <thead className='bg-[#FAF8F5] border-b border-[#E7E7E7] font-mono text-[10px] text-[#737373] uppercase'>
                   <tr>
-                    <td colSpan={7} className='py-8 text-center text-[#888888]'>
-                      <Loader2 className='w-5 h-5 animate-spin mx-auto mb-1 text-[#F97316]' />
-                      <span>Đang tải danh sách chương...</span>
-                    </td>
+                    <th className='py-2.5 px-3'>Chương #</th>
+                    <th className='py-2.5 px-3'>Tiêu Đề</th>
+                    <th className='py-2.5 px-3'>Trạng Thái</th>
+                    <th className='py-2.5 px-3'>Lịch Phát Hành (Target Date)</th>
+                    <th className='py-2.5 px-3'>Phân Cảnh / Trang</th>
+                    <th className='py-2.5 px-3'>Version Vector</th>
+                    <th className='py-2.5 px-3 text-right'>Thao Tác</th>
                   </tr>
-                ) : chapters.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className='py-8 text-center text-[#888888] space-y-1'>
-                      <BookOpen className='w-6 h-6 mx-auto text-[#888888]' />
-                      <div className='font-bold text-[#171717]'>Chưa có chương nào</div>
-                      <div className='text-[11px] text-[#737373]'>
-                        Bấm &quot;Tạo Chương Mới&quot; để thiết lập lịch phát hành.
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  chapters.map((chap) => (
-                    <tr key={chap.id} className='hover:bg-[#FAF8F5] transition-colors'>
-                      <td className='py-3 px-3 font-mono font-bold text-[#171717]'>
-                        <span className='px-2 py-0.5 rounded bg-[#FAF8F5] border border-[#E7E7E7] text-[#F97316]'>
-                          #{chap.chapterNumber}
-                        </span>
+                </thead>
+                <tbody className='divide-y divide-[#E7E7E7] text-xs'>
+                  {loading ? (
+                    <tr>
+                      <td colSpan={7} className='py-8 text-center text-[#888888]'>
+                        <Loader2 className='w-5 h-5 animate-spin mx-auto mb-1 text-[#F97316]' />
+                        <span>Đang tải danh sách chương...</span>
                       </td>
-
-                      <td className='py-3 px-3'>
-                        <div className='font-semibold text-[#171717]'>
-                          {chap.title || (
-                            <span className='text-[#888888] italic'>Chưa đặt tên</span>
-                          )}
-                        </div>
-                        {chap.outline && (
-                          <div className='mt-1 flex items-start gap-1'>
-                            <span className='px-1.5 py-0.2 rounded bg-amber-50 text-amber-700 border border-amber-200 text-[9px] font-mono shrink-0'>
-                              Outline
-                            </span>
-                            <span
-                              className='text-[10px] text-zinc-500 line-clamp-1'
-                              title={chap.outline}
-                            >
-                              {chap.outline}
-                            </span>
-                          </div>
-                        )}
-                        <div className='text-[10px] text-[#888888] font-mono mt-0.5'>
-                          Tạo ngày: {new Date(chap.createdAt).toLocaleDateString('vi-VN')}
-                        </div>
-                      </td>
-
-                      <td className='py-3 px-3 whitespace-nowrap'>
-                        {renderChapterStatus(chap.status, chap.publishedAt)}
-                      </td>
-
-                      <td className='py-3 px-3 whitespace-nowrap'>
-                        {renderReleaseStatus(chap.targetReleaseDate)}
-                      </td>
-
-                      <td className='py-3 px-3 font-mono text-[11px] text-[#555555]'>
-                        {chap.scenesCount || 0} Cảnh • {chap.pagesCount || 0} Trang
-                      </td>
-
-                      <td className='py-3 px-3 font-mono text-[11px] text-[#888888]'>
-                        v{chap.versionVector}
-                      </td>
-
-                      <td className='py-3 px-3 text-right'>
-                        <div className='inline-flex items-center gap-1.5'>
-                          <button
-                            type='button'
-                            onClick={() => handleStartEdit(chap)}
-                            className='p-1.5 rounded-lg hover:bg-white border border-transparent hover:border-[#E7E7E7] text-[#555555] hover:text-[#171717] transition-all cursor-pointer'
-                            title='Sửa tiêu đề & ngày phát hành'
-                          >
-                            <Edit2 className='w-3.5 h-3.5' />
-                          </button>
-                          <button
-                            type='button'
-                            onClick={() => handleDeleteChapter(chap)}
-                            className='p-1.5 rounded-lg hover:bg-red-50 text-[#888888] hover:text-red-600 transition-all cursor-pointer'
-                            title='Xóa chương'
-                          >
-                            <Trash2 className='w-3.5 h-3.5' />
-                          </button>
+                    </tr>
+                  ) : chapters.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className='py-8 text-center text-[#888888] space-y-1'>
+                        <BookOpen className='w-6 h-6 mx-auto text-[#888888]' />
+                        <div className='font-bold text-[#171717]'>Chưa có chương nào</div>
+                        <div className='text-[11px] text-[#737373]'>
+                          Bấm &quot;Tạo Chương Mới&quot; để thiết lập lịch phát hành.
                         </div>
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                  ) : (
+                    chapters.map((chap) => (
+                      <tr key={chap.id} className='hover:bg-[#FAF8F5] transition-colors'>
+                        <td className='py-3 px-3 font-mono font-bold text-[#171717]'>
+                          <span className='px-2 py-0.5 rounded bg-[#FAF8F5] border border-[#E7E7E7] text-[#F97316]'>
+                            #{chap.chapterNumber}
+                          </span>
+                        </td>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className='flex items-center justify-between text-xs font-mono text-[#737373] pt-2'>
-              <span>
-                Trang {pageIndex} / {totalPages} (Tổng {totalCount} chương)
-              </span>
-              <div className='flex items-center gap-1'>
-                <button
-                  disabled={pageIndex <= 1 || loading}
-                  onClick={() => setPageIndex((p) => Math.max(1, p - 1))}
-                  className='p-1 rounded-lg border border-[#E7E7E7] bg-white disabled:opacity-40 hover:bg-[#FAF8F5]'
-                >
-                  <ChevronLeft className='w-3.5 h-3.5' />
-                </button>
-                <button
-                  disabled={pageIndex >= totalPages || loading}
-                  onClick={() => setPageIndex((p) => Math.min(totalPages, p + 1))}
-                  className='p-1 rounded-lg border border-[#E7E7E7] bg-white disabled:opacity-40 hover:bg-[#FAF8F5]'
-                >
-                  <ChevronRight className='w-3.5 h-3.5' />
-                </button>
-              </div>
+                        <td className='py-3 px-3'>
+                          <div className='font-semibold text-[#171717]'>
+                            {chap.title || (
+                              <span className='text-[#888888] italic'>Chưa đặt tên</span>
+                            )}
+                          </div>
+                          {chap.outline && (
+                            <div className='mt-1 flex items-start gap-1'>
+                              <span className='px-1.5 py-0.2 rounded bg-amber-50 text-amber-700 border border-amber-200 text-[9px] font-mono shrink-0'>
+                                Outline
+                              </span>
+                              <span
+                                className='text-[10px] text-zinc-500 line-clamp-1'
+                                title={chap.outline}
+                              >
+                                {chap.outline}
+                              </span>
+                            </div>
+                          )}
+                          <div className='text-[10px] text-[#888888] font-mono mt-0.5'>
+                            Tạo ngày: {new Date(chap.createdAt).toLocaleDateString('vi-VN')}
+                          </div>
+                        </td>
+
+                        <td className='py-3 px-3 whitespace-nowrap'>
+                          {renderChapterStatus(chap.status, chap.publishedAt)}
+                        </td>
+
+                        <td className='py-3 px-3 whitespace-nowrap'>
+                          {renderReleaseStatus(chap.targetReleaseDate)}
+                        </td>
+
+                        <td className='py-3 px-3 font-mono text-[11px] text-[#555555]'>
+                          {chap.scenesCount || 0} Cảnh • {chap.pagesCount || 0} Trang
+                        </td>
+
+                        <td className='py-3 px-3 font-mono text-[11px] text-[#888888]'>
+                          v{chap.versionVector}
+                        </td>
+
+                        <td className='py-3 px-3 text-right'>
+                          <div className='inline-flex items-center gap-1.5'>
+                            <button
+                              type='button'
+                              onClick={() => setAssigningChapter(chap)}
+                              className='px-2.5 py-1 rounded-lg bg-[#FFF7ED] hover:bg-[#FFEDD5] border border-[#FDBA74] text-[#EA580C] hover:text-[#C2410C] transition-all cursor-pointer flex items-center gap-1 font-semibold text-[11px] shadow-2xs'
+                              title='Giao việc & Xem tiến độ phân công (UC-05 Assignment)'
+                            >
+                              <ClipboardList className='w-3.5 h-3.5 text-[#F97316]' />
+                              <span>Giao việc</span>
+                            </button>
+                            <button
+                              type='button'
+                              onClick={() => handleStartEdit(chap)}
+                              className='p-1.5 rounded-lg hover:bg-white border border-transparent hover:border-[#E7E7E7] text-[#555555] hover:text-[#171717] transition-all cursor-pointer'
+                              title='Sửa tiêu đề & ngày phát hành'
+                            >
+                              <Edit2 className='w-3.5 h-3.5' />
+                            </button>
+                            <button
+                              type='button'
+                              onClick={() => handleDeleteChapter(chap)}
+                              className='p-1.5 rounded-lg hover:bg-red-50 text-[#888888] hover:text-red-600 transition-all cursor-pointer'
+                              title='Xóa chương'
+                            >
+                              <Trash2 className='w-3.5 h-3.5' />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
-          )}
-        </div>
 
-        {/* Footer */}
-        <div className='p-4 bg-[#FAF8F5] border-t border-[#E7E7E7] rounded-b-2xl flex items-center justify-between text-xs'>
-          <div className='text-[11px] text-[#737373]'>
-            * TargetReleaseDate hỗ trợ quản lý lịch phát hành cho Producer &amp; Editor (UC-03 Phase
-            3).
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className='flex items-center justify-between text-xs font-mono text-[#737373] pt-2'>
+                <span>
+                  Trang {pageIndex} / {totalPages} (Tổng {totalCount} chương)
+                </span>
+                <div className='flex items-center gap-1'>
+                  <button
+                    disabled={pageIndex <= 1 || loading}
+                    onClick={() => setPageIndex((p) => Math.max(1, p - 1))}
+                    className='p-1 rounded-lg border border-[#E7E7E7] bg-white disabled:opacity-40 hover:bg-[#FAF8F5]'
+                  >
+                    <ChevronLeft className='w-3.5 h-3.5' />
+                  </button>
+                  <button
+                    disabled={pageIndex >= totalPages || loading}
+                    onClick={() => setPageIndex((p) => Math.min(totalPages, p + 1))}
+                    className='p-1 rounded-lg border border-[#E7E7E7] bg-white disabled:opacity-40 hover:bg-[#FAF8F5]'
+                  >
+                    <ChevronRight className='w-3.5 h-3.5' />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
-          <button
-            type='button'
-            onClick={onClose}
-            className='px-4 py-2 bg-[#171717] hover:bg-black text-white font-semibold rounded-lg'
-          >
-            Đóng
-          </button>
+
+          {/* Footer */}
+          <div className='p-4 bg-[#FAF8F5] border-t border-[#E7E7E7] rounded-b-2xl flex items-center justify-between text-xs'>
+            <div className='text-[11px] text-[#737373]'>
+              * TargetReleaseDate hỗ trợ quản lý lịch phát hành cho Producer &amp; Editor (UC-03
+              Phase 3).
+            </div>
+            <button
+              type='button'
+              onClick={onClose}
+              className='px-4 py-2 bg-[#171717] hover:bg-black text-white font-semibold rounded-lg'
+            >
+              Đóng
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* UC-05: Chapter Assignments & StageProgress Modal */}
+      {assigningChapter && (
+        <ChapterAssignmentsModal
+          isOpen={!!assigningChapter}
+          workspaceId={effectiveWorkspaceId}
+          seriesId={seriesId}
+          chapterId={assigningChapter.id}
+          chapterNumber={assigningChapter.chapterNumber}
+          chapterTitle={assigningChapter.title}
+          onClose={() => setAssigningChapter(null)}
+          onShowToast={onShowToast}
+        />
+      )}
+    </>
   );
 };

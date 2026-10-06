@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, Send, History, Sparkles } from 'lucide-react';
+import { ArrowLeft, Save, Send, History, Sparkles, Play } from 'lucide-react';
 
 import { ScriptEditor } from '@/roles/writer/components/ScriptEditor';
 import { ArtworkCanvas } from '@/roles/artist/components/ArtworkCanvas';
@@ -24,6 +24,7 @@ export const TaskEditorView: React.FC<TaskEditorProps> = ({
   const navigate = useNavigate();
 
   const [task, setTask] = useState<KanbanCard | null>(null);
+  const [taskStatus, setTaskStatus] = useState<'Assigned' | 'InProgress' | 'Submitted'>('Assigned');
   const [showVersionHistory, setShowVersionHistory] = useState(false);
   const [showAIProvenance, setShowAIProvenance] = useState(false);
 
@@ -146,6 +147,18 @@ export const TaskEditorView: React.FC<TaskEditorProps> = ({
 
           {canEdit && (
             <>
+              {taskStatus === 'Assigned' && (
+                <button
+                  onClick={() => {
+                    setTaskStatus('InProgress');
+                    onShowToast('Bắt đầu làm', 'Công việc đã chuyển sang trạng thái InProgress.');
+                  }}
+                  className='px-3.5 py-1.5 flex items-center gap-1.5 bg-[#FAF8F5] border border-[#FDBA74] text-[#EA580C] text-sm font-bold rounded hover:bg-[#FFF7ED] transition-colors shadow-2xs cursor-pointer'
+                  title='Bắt đầu làm việc (InProgress) trước khi nộp bài'
+                >
+                  <Play className='w-4 h-4 text-[#F97316]' /> Bắt đầu làm
+                </button>
+              )}
               <button
                 onClick={() => onShowToast('Lưu bản nháp', 'Đã lưu thay đổi.')}
                 className='px-4 py-1.5 flex items-center gap-1.5 bg-[#F3F3F3] border border-[#D4D4D4] text-[#171717] text-sm font-bold rounded hover:bg-[#E7E7E7]'
@@ -154,10 +167,27 @@ export const TaskEditorView: React.FC<TaskEditorProps> = ({
               </button>
               <button
                 onClick={() => {
+                  if (taskStatus === 'Assigned') {
+                    onShowToast(
+                      'Cảnh báo quy trình (BR-19)',
+                      'Phải bấm "Bắt đầu làm" (InProgress) trước khi nộp để tránh lỗi 409 Conflict!',
+                    );
+                    return;
+                  }
+                  setTaskStatus('Submitted');
                   onShowToast('Đã gửi', 'Đã chuyển task sang bước tiếp theo để Review.');
                   navigate(-1);
                 }}
-                className='px-4 py-1.5 flex items-center gap-1.5 bg-[#171717] text-white text-sm font-bold rounded hover:bg-black transition-colors'
+                className={`px-4 py-1.5 flex items-center gap-1.5 text-white text-sm font-bold rounded transition-colors cursor-pointer ${
+                  taskStatus === 'InProgress'
+                    ? 'bg-[#10B981] hover:bg-[#059669]'
+                    : 'bg-[#171717] hover:bg-black'
+                }`}
+                title={
+                  taskStatus === 'Assigned'
+                    ? 'Cần bắt đầu làm trước khi nộp bài'
+                    : 'Nộp bài để chuyển sang xét duyệt Review'
+                }
               >
                 <Send className='w-4 h-4' /> Submit for Review
               </button>
