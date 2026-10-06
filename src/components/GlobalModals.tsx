@@ -1,7 +1,7 @@
 import React from 'react';
 import { CommandPaletteModal } from './modals/CommandPaletteModal';
-import { LoginModal } from './modals/LoginModal';
-import { RegisterModal } from './modals/RegisterModal';
+import { LoginModal } from '@/roles/guest/modals/LoginModal';
+import { RegisterModal } from '@/roles/guest/modals/RegisterModal';
 import { TwoFactorSetupModal } from './modals/TwoFactorSetupModal';
 import { ChangePasswordModal } from './modals/ChangePasswordModal';
 import { SpreadWorkbenchModal } from '@/roles/artist/modals/SpreadWorkbenchModal';

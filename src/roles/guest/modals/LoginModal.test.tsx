@@ -2,17 +2,17 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { LoginModal } from './LoginModal';
-import { authService } from '../../services/auth.service';
+import { authService } from '@/services/auth.service';
 
 // Mock Firebase module
-vi.mock('../../firebase', () => ({
+vi.mock('@/firebase', () => ({
   signInWithPopup: vi.fn(),
   auth: {},
   googleProvider: {},
 }));
 
 // Mock authService
-vi.mock('../../services/auth.service', () => ({
+vi.mock('@/services/auth.service', () => ({
   authService: {
     login: vi.fn(),
     verifyTwoFactor: vi.fn(),

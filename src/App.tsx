@@ -78,11 +78,11 @@ import {
   normalizeWorkspaceRole,
   getRoleFromToken,
 } from './types';
-import { LoginModal } from './components/modals/LoginModal';
-import { RegisterModal } from './components/modals/RegisterModal';
+import { LoginModal } from '@/roles/guest/modals/LoginModal';
+import { RegisterModal } from '@/roles/guest/modals/RegisterModal';
 import { TwoFactorSetupModal } from './components/modals/TwoFactorSetupModal';
 import { ChangePasswordModal } from './components/modals/ChangePasswordModal';
-import { LandingPageView } from './views/LandingPageView';
+import { LandingPageView } from '@/roles/guest/views/LandingPageView';
 import { WorkspaceListView } from './views/WorkspaceListView';
 import { UserProfile } from './views/UserProfile';
 import { auth, onAuthStateChanged } from './firebase';

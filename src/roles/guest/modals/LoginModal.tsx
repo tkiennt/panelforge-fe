@@ -13,8 +13,8 @@ import {
   KeyRound,
   RefreshCw,
 } from 'lucide-react';
-import { signInWithPopup, auth, googleProvider } from '../../firebase';
-import { authService } from '../../services/auth.service';
+import { signInWithPopup, auth, googleProvider } from '@/firebase';
+import { authService } from '@/services/auth.service';
 
 interface LoginModalProps {
   onClose: () => void;

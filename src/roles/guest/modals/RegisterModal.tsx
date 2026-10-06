@@ -12,8 +12,8 @@ import {
   ArrowLeft,
   CheckCircle2,
 } from 'lucide-react';
-import { signInWithPopup, auth, googleProvider } from '../../firebase';
-import { authService } from '../../services/auth.service';
+import { signInWithPopup, auth, googleProvider } from '@/firebase';
+import { authService } from '@/services/auth.service';
 
 interface RegisterModalProps {
   onClose: () => void;
