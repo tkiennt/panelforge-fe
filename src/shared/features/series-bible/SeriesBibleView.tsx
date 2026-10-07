@@ -1,12 +1,23 @@
-import React, { useState } from 'react';
+﻿import React, { useState, useMemo, useEffect } from 'react';
 import {
-  Lock,
-  Unlock,
+  BookOpen,
+  Search,
   Plus,
-  GitCommit,
-  Image as ImageIcon,
-  AlertCircle,
+  Sparkles,
+  SlidersHorizontal,
+  ChevronDown,
+  Layers,
+  CheckCircle,
+  ExternalLink,
+  Tag,
+  Eye,
+  Edit,
+  ShieldCheck,
+  Cpu,
   FileText,
+  X,
+  History,
+  GitCommit,
   Clock,
   CheckCircle2,
   AlertCircle,
@@ -19,132 +30,39 @@ import { chapterService, ChapterDto } from '@/services/chapter.service';
 import { AddEntityModal } from './AddEntityModal';
 import { VectorStatusModal } from '@/shared/modals/VectorStatusModal';
 
-// --- Types & Interfaces ---
-
-export type VersionStatus = 'LOCKED' | 'DRAFT';
-export type EntityCategory = 'Characters' | 'Locations' | 'Props' | 'Terminology' | 'Style Rules' | 'Plot Facts';
-
-export interface EntityVersion {
-  id: string;
-  versionNumber: number;
-  status: VersionStatus;
-  effectiveFromChapter: number;
-  
-  // Data Fields
-  name: string;
-  personality?: string;
-  speechStyle?: string;
-  drawingStyle?: string;
-  colorMode?: 'Black & White' | 'Full Color';
-  
-  // Provenance
-  createdAt: string;
-  createdBy: string;
-  lockedAt?: string;
-  lockedBy?: string;
-  aiUsageCount: number;
-}
-
-export interface BibleEntityExtended {
-  id: string;
-  category: EntityCategory;
-  baseName: string;
-  versions: EntityVersion[];
-}
-
-export interface SeriesBibleViewProps {
+interface SeriesBibleViewProps {
   activeProject?: MangaProject;
   workspaceId?: string;
-  onShowToast?: (title: string, desc: string) => void;
+  entities?: BibleEntity[];
+  onAddEntity?: (entity: BibleEntity) => void;
+  onEditEntity?: (entity: BibleEntity) => void;
+  onSelectSeries?: (project: MangaProject) => void;
+  onShowToast: (title: string, desc: string) => void;
 }
 
-// --- Mock Data ---
-
-const INITIAL_ENTITIES: BibleEntityExtended[] = [
-  {
-    id: 'ent-1',
-    category: 'Characters',
-    baseName: 'Akira Tanaka',
-    versions: [
-      {
-        id: 'v-1-1',
-        versionNumber: 1,
-        status: 'LOCKED',
-        effectiveFromChapter: 1,
-        name: 'Akira Tanaka',
-        personality: 'Stoic, determined, fiercely loyal.',
-        speechStyle: 'Short, direct sentences.',
-        drawingStyle: 'Sharp angles, heavy inking around eyes.',
-        colorMode: 'Black & White',
-        createdAt: '2026-09-15T10:00:00Z',
-        createdBy: 'Producer Admin',
-        lockedAt: '2026-09-16T10:00:00Z',
-        lockedBy: 'Lead Editor',
-        aiUsageCount: 42,
-      },
-      {
-        id: 'v-1-2',
-        versionNumber: 2,
-        status: 'DRAFT',
-        effectiveFromChapter: 5,
-        name: 'Akira Tanaka (Awakened)',
-        personality: 'More open, slightly unhinged in battle.',
-        speechStyle: 'More expressive, uses sarcasm.',
-        drawingStyle: 'Softer facial features with glowing aura.',
-        colorMode: 'Black & White',
-        createdAt: '2026-10-01T14:30:00Z',
-        createdBy: 'Artist User',
-        aiUsageCount: 0,
-      },
-    ],
-  },
-  {
-    id: 'ent-2',
-    category: 'Characters',
-    baseName: 'Elena Rostova',
-    versions: [
-      {
-        id: 'v-2-1',
-        versionNumber: 1,
-        status: 'LOCKED',
-        effectiveFromChapter: 2,
-        name: 'Elena Rostova',
-        personality: 'Calculated, elegant, secretly compassionate.',
-        speechStyle: 'Highly formal, complex vocabulary.',
-        drawingStyle: 'Smooth curves, detailed shading.',
-        colorMode: 'Full Color',
-        createdAt: '2026-09-20T09:15:00Z',
-        createdBy: 'Producer Admin',
-        lockedAt: '2026-09-22T09:15:00Z',
-        lockedBy: 'Lead Editor',
-        aiUsageCount: 15,
-      },
-    ],
-  },
-  {
-    id: 'ent-3',
-    category: 'Locations',
-    baseName: 'Neo-Tokyo Slums',
-    versions: [
-      {
-        id: 'v-3-1',
-        versionNumber: 1,
-        status: 'LOCKED',
-        effectiveFromChapter: 1,
-        name: 'Sector 4 Undercity',
-        personality: 'Gritty, neon-lit, oppressive atmosphere.',
-        drawingStyle: 'High contrast, dense screentones.',
-        createdAt: '2026-09-10T10:00:00Z',
-        createdBy: 'Producer Admin',
-        lockedAt: '2026-09-11T10:00:00Z',
-        lockedBy: 'Lead Editor',
-        aiUsageCount: 89,
-      }
-    ]
-  }
+const CATEGORIES: { key: BibleCategory; label: string }[] = [
+  { key: 'characters', label: 'Characters' },
+  { key: 'locations', label: 'Locations' },
+  { key: 'terminology', label: 'Terminology & Lore' },
+  { key: 'style', label: 'Style Rules' },
 ];
 
-const CATEGORIES: EntityCategory[] = ['Characters', 'Locations', 'Props', 'Terminology', 'Style Rules', 'Plot Facts'];
+const mapCategoryToTab = (cat: number): BibleCategory => {
+  switch (cat) {
+    case 0:
+      return 'characters';
+    case 1:
+      return 'locations';
+    case 2:
+    case 3:
+    case 5:
+      return 'terminology';
+    case 4:
+      return 'style';
+    default:
+      return 'characters';
+  }
+};
 
 const mapEntryToBibleEntity = (entry: BibleEntryDto): BibleEntity => {
   return {
@@ -167,13 +85,21 @@ const mapEntryToBibleEntity = (entry: BibleEntryDto): BibleEntity => {
   };
 };
 
-export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({ activeProject, onShowToast }) => {
-  const [entities, setEntities] = useState<BibleEntityExtended[]>(INITIAL_ENTITIES);
-  const { addLockedCharacter } = useWorkspace();
-  const [selectedEntityId, setSelectedEntityId] = useState<string>(entities[0].id);
-  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({ Characters: true });
+export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
+  activeProject,
+  workspaceId,
+  entities = [],
+  onAddEntity,
+  onEditEntity,
+  onSelectSeries,
+  onShowToast,
+}) => {
+  const [localEntities, setLocalEntities] = useState<BibleEntity[]>(entities);
+  const [isLoading, setIsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<BibleCategory>('characters');
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'ALL' | 'LOCKED' | 'DRAFT'>('ALL');
+  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [selectedEntity, setSelectedEntity] = useState<BibleEntity | null>(null);
 
   const [addEntityOpen, setAddEntityOpen] = useState(false);
   const [vectorStatusOpen, setVectorStatusOpen] = useState(false);
@@ -196,7 +122,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({ activeProject,
             subtitle: s.synopsis || 'Studio Production Serial',
             arc: 'Arc 01',
             chapter: s.chaptersCount || 1,
-            format: s.format || 'B5 Tankōbon',
+            format: s.format || 'B5 Tank┼ìbon',
             status: 'In Production',
             progressPercent: 0,
             completedPages: 0,
@@ -216,11 +142,11 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({ activeProject,
           }
         }
       } catch (err) {
-        console.warn('Lỗi tải danh sách Series cho Bible:', err);
+        console.warn('Lß╗ùi tß║úi danh s├ích Series cho Bible:', err);
       }
     };
     loadSeries();
-    // onSelectSeries do cha truyền vào (thường là hàm inline) — thêm vào deps sẽ gây tải lại liên tục.
+    // onSelectSeries do cha truyß╗ün v├áo (th╞░ß╗¥ng l├á h├ám inline) ΓÇö th├¬m v├áo deps sß║╜ g├óy tß║úi lß║íi li├¬n tß╗Ñc.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workspaceId, activeProject?.id]);
 
@@ -251,7 +177,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({ activeProject,
         const res = await chapterService.getChaptersBySeries(effectiveSeries.id, 1, 100);
         setSeriesChapters(res.items || []);
       } catch (err) {
-        console.warn('Lỗi tải Chapters cho Series Bible:', err);
+        console.warn('Lß╗ùi tß║úi Chapters cho Series Bible:', err);
         setSeriesChapters([]);
       }
     };
@@ -266,7 +192,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({ activeProject,
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [lockingRevisionId, setLockingRevisionId] = useState<string | null>(null);
 
-  // Producer Role check (UC / BR-15 Việc 5: chỉ Producer mới có quyền khoá Character Sheet)
+  // Producer Role check (UC / BR-15 Viß╗çc 5: chß╗ë Producer mß╗¢i c├│ quyß╗ün kho├í Character Sheet)
   const isProducer = useMemo(() => {
     try {
       const rawWs = localStorage.getItem('activeWorkspace');
@@ -294,16 +220,16 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({ activeProject,
 
     if (historyEntity.category !== 'characters') {
       onShowToast(
-        'Chỉ áp dụng cho Nhân vật',
-        'Theo quy tắc Việc 5 (BR-15 Canon), chỉ có thể khoá revision thuộc danh mục Character.',
+        'Chß╗ë ├íp dß╗Ñng cho Nh├ón vß║¡t',
+        'Theo quy tß║»c Viß╗çc 5 (BR-15 Canon), chß╗ë c├│ thß╗â kho├í revision thuß╗Öc danh mß╗Ñc Character.',
       );
       return;
     }
 
     const confirmed = window.confirm(
-      `Bạn có chắc chắn muốn DUYỆT & KHOÁ phiên bản v${rev.versionNumber} của nhân vật "${historyEntity.name}" làm tham chiếu duy nhất?\n\n` +
-        'Lưu ý: Sau khi khoá, phiên bản này không thể chỉnh sửa trực tiếp hay mở khoá. ' +
-        'Các thay đổi sau này bắt buộc phải tạo revision mới bắt đầu từ một chương khác.',
+      `Bß║ín c├│ chß║»c chß║»n muß╗æn DUYß╗åT & KHO├ü phi├¬n bß║ún v${rev.versionNumber} cß╗ºa nh├ón vß║¡t "${historyEntity.name}" l├ám tham chiß║┐u duy nhß║Ñt?\n\n` +
+        'L╞░u ├╜: Sau khi kho├í, phi├¬n bß║ún n├áy kh├┤ng thß╗â chß╗ënh sß╗¡a trß╗▒c tiß║┐p hay mß╗ƒ kho├í. ' +
+        'C├íc thay ─æß╗òi sau n├áy bß║»t buß╗Öc phß║úi tß║ío revision mß╗¢i bß║»t ─æß║ºu tß╗½ mß╗Öt ch╞░╞íng kh├íc.',
     );
     if (!confirmed) return;
 
@@ -315,17 +241,17 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({ activeProject,
         rev.id,
       );
       onShowToast(
-        'Đã duyệt & khoá Character Sheet',
-        `Phiên bản v${rev.versionNumber} của "${historyEntity.name}" đã được khoá làm tham chiếu duy nhất thành công!`,
+        '─É├ú duyß╗çt & kho├í Character Sheet',
+        `Phi├¬n bß║ún v${rev.versionNumber} cß╗ºa "${historyEntity.name}" ─æ├ú ─æ╞░ß╗úc kho├í l├ám tham chiß║┐u duy nhß║Ñt th├ánh c├┤ng!`,
       );
-      // Cập nhật trực tiếp danh sách lịch sử
+      // Cß║¡p nhß║¡t trß╗▒c tiß║┐p danh s├ích lß╗ïch sß╗¡
       setHistoryRevisions((prev) =>
         prev.map((r) => (r.id === rev.id ? { ...r, ...updatedRev, isLocked: true } : r)),
       );
-      // Tải lại Bible để cập nhật cờ isLocked trên entity
+      // Tß║úi lß║íi Bible ─æß╗â cß║¡p nhß║¡t cß╗¥ isLocked tr├¬n entity
       setRefreshTrigger((prev) => prev + 1);
     } catch (err: any) {
-      onShowToast('Lỗi khoá phiên bản', err.message || 'Không thể khoá phiên bản này.');
+      onShowToast('Lß╗ùi kho├í phi├¬n bß║ún', err.message || 'Kh├┤ng thß╗â kho├í phi├¬n bß║ún n├áy.');
     } finally {
       setLockingRevisionId(null);
     }
@@ -346,8 +272,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({ activeProject,
   const [fetchingBaseVersion, setFetchingBaseVersion] = useState(false);
   const [savingRevision, setSavingRevision] = useState(false);
 
-  const activeVersion = selectedEntity?.versions.find((v) => v.id === selectedVersionId);
-  const isLocked = activeVersion?.status === 'LOCKED';
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const handleOpenAddRevision = async (entity: BibleEntity) => {
     setRevisionTarget(entity);
@@ -382,188 +307,319 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({ activeProject,
     }
   };
 
-  const toggleCategory = (cat: string) => {
-    setExpandedCategories(prev => ({ ...prev, [cat]: !prev[cat] }));
-  };
+  // Fetch Series Bible from backend API on mount or when effectiveSeries / effectiveChapter changes (BR-15)
+  useEffect(() => {
+    let isMounted = true;
+    const fetchBible = async () => {
+      if (!effectiveSeries?.id) {
+        setLocalEntities([]);
+        return;
+      }
+      setIsLoading(true);
+      try {
+        const bibleData =
+          effectiveChapter === 'all'
+            ? await bibleService.getSeriesBible(effectiveSeries.id)
+            : await bibleService.getSeriesBibleAtChapter(effectiveSeries.id, effectiveChapter);
+        if (isMounted && bibleData?.entries) {
+          setLocalEntities(bibleData.entries.map(mapEntryToBibleEntity));
+        } else if (isMounted) {
+          setLocalEntities([]);
+        }
+      } catch (err) {
+        console.warn('Kh├┤ng thß╗â tß║úi Series Bible tß╗½ backend:', err);
+        if (isMounted) {
+          setLocalEntities([]);
+        }
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
 
-  const handleUpdateField = (field: keyof EntityVersion, value: any) => {
-    if (!selectedEntity || !activeVersion || isLocked) return;
+    fetchBible();
+    return () => {
+      isMounted = false;
+    };
+  }, [effectiveSeries?.id, effectiveChapter, refreshTrigger]);
 
-    setEntities((prev) =>
-      prev.map((ent) => {
-        if (ent.id !== selectedEntity.id) return ent;
-        return {
-          ...ent,
-          versions: ent.versions.map((ver) => {
-            if (ver.id !== activeVersion.id) return ver;
-            return { ...ver, [field]: value };
-          }),
-        };
-      })
-    );
-  };
-
-  const handleLockVersion = () => {
-    if (!selectedEntity || !activeVersion || isLocked) return;
-
-    setEntities((prev) =>
-      prev.map((ent) => {
-        if (ent.id !== selectedEntity.id) return ent;
-        return {
-          ...ent,
-          versions: ent.versions.map((ver) => {
-            if (ver.id !== activeVersion.id) return ver;
-            
-            // Add to Global State when locked
-            addLockedCharacter({
-              id: activeVersion.id,
-              name: activeVersion.name,
-              version: `v${activeVersion.versionNumber}`,
-              colorMode: activeVersion.colorMode || 'Black & White'
-            });
-
-            return { 
-              ...ver, 
-              status: 'LOCKED', 
-              lockedAt: new Date().toISOString(),
-              lockedBy: 'Current User' // Mocked user
-            };
-          }),
-        };
-      })
-    );
-    if (onShowToast) onShowToast("Version Locked", "This version is now read-only.");
-  };
-
-  const handleCreateSupersedingVersion = () => {
-    if (!selectedEntity || !activeVersion) return;
-
-    const hasDraft = selectedEntity.versions.some((v) => v.status === 'DRAFT');
-    if (hasDraft) {
-      if (onShowToast) onShowToast("Draft Exists", "Please lock or delete the existing draft first.");
+  const handleCreateEntity = async (newEntity: BibleEntity) => {
+    if (!effectiveSeries?.id) {
+      onShowToast('Ch╞░a chß╗ìn Series', 'Vui l├▓ng chß╗ìn mß╗Öt Series tr╞░ß╗¢c khi th├¬m thß╗▒c thß╗â.');
       return;
     }
 
-    const newVersionNumber = Math.max(...selectedEntity.versions.map((v) => v.versionNumber)) + 1;
-    const newVersionId = `v-${selectedEntity.id}-${newVersionNumber}-${Date.now()}`;
+    try {
+      let catNum: any = 0;
+      if (newEntity.category === 'locations') catNum = 1;
+      else if (newEntity.category === 'prop') catNum = 2;
+      else if (newEntity.category === 'terminology') catNum = 3;
+      else if (newEntity.category === 'style') catNum = 4;
 
-    const newVersion: EntityVersion = {
-      ...activeVersion,
-      id: newVersionId,
-      versionNumber: newVersionNumber,
-      status: 'DRAFT',
-      effectiveFromChapter: activeVersion.effectiveFromChapter + 1,
-      createdAt: new Date().toISOString(),
-      createdBy: 'Current User',
-      lockedAt: undefined,
-      lockedBy: undefined,
-      aiUsageCount: 0,
-    };
+      const created = await bibleService.createBibleEntry(effectiveSeries.id, {
+        category: catNum,
+        code: newEntity.code,
+        name: newEntity.name,
+        subtitle: newEntity.subtitle,
+        description: newEntity.description,
+        referenceImageUrl: newEntity.imageUrl || undefined,
+        priority: 1,
+        strictCheck: true,
+        effectiveFromChapterNumber:
+          typeof effectiveChapter === 'number' ? effectiveChapter : effectiveSeries.chapter || 1,
+      });
 
-    setEntities((prev) =>
-      prev.map((ent) => {
-        if (ent.id !== selectedEntity.id) return ent;
-        return {
-          ...ent,
-          versions: [...ent.versions, newVersion],
-        };
-      })
-    );
-    setSelectedVersionId(newVersionId);
-    if (onShowToast) onShowToast("Draft Created", "A new superseding draft has been created.");
+      setRefreshTrigger((prev) => prev + 1);
+      const mapped = mapEntryToBibleEntity(created);
+      if (onAddEntity) onAddEntity(mapped);
+      onShowToast(
+        '─É├ú l╞░u thß╗▒c thß╗â v├áo Database',
+        `─É├ú tß║ío th├ánh c├┤ng "${created.name}" (${created.code}) trong bß║úng bible_entries & revision v1.`,
+      );
+    } catch (err: any) {
+      onShowToast('Lß╗ùi th├¬m thß╗▒c thß╗â Bible', err.message || 'Kh├┤ng thß╗â tß║ío bß║ún ghi Series Bible.');
+    }
   };
 
-  const filteredEntities = entities.filter(ent => {
-    if (searchQuery && !ent.baseName.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-    if (statusFilter !== 'ALL') {
-      const latestVer = ent.versions[ent.versions.length - 1];
-      if (latestVer.status !== statusFilter) return false;
-    }
-    return true;
-  });
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = {
+      characters: 0,
+      locations: 0,
+      terminology: 0,
+      style: 0,
+    };
+    localEntities.forEach((item) => {
+      if (counts[item.category] !== undefined) {
+        counts[item.category]++;
+      }
+    });
+    return counts;
+  }, [localEntities]);
+
+  const filteredEntities = useMemo(() => {
+    return localEntities.filter((item) => {
+      const matchesTab = activeTab === 'all' || item.category === activeTab;
+      const matchesSearch =
+        !searchQuery ||
+        item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.subtitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.description.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesStatus =
+        statusFilter === 'ALL' ||
+        (item.status && item.status.toLowerCase() === statusFilter.toLowerCase());
+
+      return matchesTab && matchesSearch && matchesStatus;
+    });
+  }, [localEntities, activeTab, searchQuery, statusFilter]);
 
   return (
-    <div className="flex h-screen w-full bg-[#FAF8F5] text-zinc-800 font-sans">
-      
-      {/* ========================================================= */}
-      {/* ZONE 1: Sidebar Navigation (Entity Explorer)              */}
-      {/* ========================================================= */}
-      <div className="w-80 shrink-0 bg-white border-r border-zinc-200 flex flex-col z-10">
-        <div className="p-4 border-b border-zinc-200">
-          <h2 className="text-lg font-bold text-zinc-900 flex items-center gap-2 mb-4">
-            <FileText className="w-5 h-5 text-orange-600" />
-            Series Bible
-          </h2>
-          
-          {/* Search & Filter */}
-          <div className="space-y-3">
-            <div className="relative">
-              <Search className="w-4 h-4 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder="Search entities..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-[#FAF8F5] border border-zinc-200 rounded-lg pl-9 pr-3 py-2 text-sm text-zinc-800 focus:outline-none focus:border-orange-500"
-              />
+    <div className='max-w-7xl mx-auto space-y-6 pb-12'>
+      {!effectiveSeries && (
+        <div className='p-4 bg-[#FFFBEB] border border-[#FDE68A] text-[#92400E] rounded-xl flex items-center justify-between text-xs'>
+          <div className='flex items-center gap-2.5'>
+            <AlertCircle className='w-4 h-4 text-[#D97706] shrink-0' />
+            <span>
+              Ch╞░a c├│ Series n├áo trong Workspace. H├úy v├áo <strong>Content Hub</strong> hoß║╖c{' '}
+              <strong>Producer Studio</strong> ─æß╗â tß║ío mß╗Öt Series tr╞░ß╗¢c khi quß║ún l├╜ Series Bible.
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Top Breadcrumb & Header Section */}
+      <div className='bg-white border border-[#E7E7E7] rounded-xl p-5 shadow-xs'>
+        <div className='flex flex-col lg:flex-row lg:items-center justify-between gap-4'>
+          <div>
+            <div className='flex items-center gap-2 text-[11px] font-mono text-[#888888] mb-1'>
+              {availableSeries.length > 1 ? (
+                <div className='flex items-center gap-1.5'>
+                  <span className='font-semibold text-[#555555]'>SERIES:</span>
+                  <select
+                    value={effectiveSeries?.id || ''}
+                    onChange={(e) => {
+                      const found = availableSeries.find((s) => s.id === e.target.value);
+                      if (found) {
+                        setSelectedSeriesId(found.id);
+                        if (onSelectSeries) onSelectSeries(found);
+                      }
+                    }}
+                    className='px-2 py-0.5 bg-[#FAF8F4] border border-[#D4D4D4] rounded font-semibold text-xs text-[#171717] focus:outline-none focus:border-[#F97316] cursor-pointer'
+                  >
+                    {availableSeries.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.title.toUpperCase()}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <span className='font-semibold text-[#171717]'>
+                  {(effectiveSeries?.title || 'PANELFORGE SERIES').toUpperCase()}
+                </span>
+              )}
+              <span>/</span>
+              <span className='text-[#F97316] font-semibold'>PRODUCTION ARCHIVE</span>
             </div>
-            <div className="flex bg-[#FAF8F5] rounded-lg p-1 border border-zinc-200">
-              {['ALL', 'LOCKED', 'DRAFT'].map(status => (
-                <button
-                  key={status}
-                  onClick={() => setStatusFilter(status as any)}
-                  className={`flex-1 text-[10px] font-bold py-1.5 rounded-md transition-colors ${
-                    statusFilter === status ? 'bg-zinc-100 text-zinc-900' : 'text-zinc-400 hover:text-zinc-700'
+            <h1 className='text-2xl lg:text-3xl font-bold font-serif text-[#171717] tracking-tight'>
+              Series Bible Repository
+            </h1>
+            <p className='text-xs text-[#555555] mt-1'>
+              Canon rules, mechanical blueprints, costume turnarounds, and character sheets for AI
+              continuity enforcement.
+            </p>
+          </div>
+
+          <div className='flex flex-wrap items-center gap-2.5'>
+            {/* Vector Index Pill */}
+            <button
+              onClick={() => setVectorStatusOpen(true)}
+              className='px-3 py-1.5 rounded-lg bg-[#ECFDF5] border border-[#10B981]/30 text-[#059669] text-xs font-semibold font-mono flex items-center gap-1.5 cursor-pointer hover:bg-[#10B981]/15 transition-colors'
+              title='Click to view Vector Index status and embedding models'
+            >
+              <span className='w-2 h-2 rounded-full bg-[#10B981] animate-pulse'></span>
+              <span>
+                Vector Index:{' '}
+                {localEntities.length > 0
+                  ? `─É├ú ─æß╗ông bß╗Ö (${localEntities.length} Nodes)`
+                  : 'Sß║╡n s├áng (0 Nodes)'}
+              </span>
+            </button>
+
+            {/* Add Entity Button */}
+            <button
+              onClick={() => setAddEntityOpen(true)}
+              className='px-3.5 py-2 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer active:scale-95'
+            >
+              <Plus className='w-3.5 h-3.5' />
+              <span>Add Entity</span>
+            </button>
+          </div>
+        </div>
+
+        {/* BR-15 Chapter-Versioned Bible Selector Banner */}
+        <div className='mt-4 p-3 bg-[#FAF8F5] rounded-xl border border-[#E7E7E7] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs'>
+          <div className='flex items-center gap-2'>
+            <span className='px-2 py-0.5 rounded bg-[#171717] text-white font-mono text-[10px] font-bold'>
+              BR-15 // CHAPTER-VERSIONED
+            </span>
+            <span className='text-[#171717] font-semibold'>Phi├¬n bß║ún Bible c├│ hiß╗çu lß╗▒c tß║íi:</span>
+            <span className='text-[#059669] font-mono font-bold'>
+              {effectiveChapter === 'all'
+                ? 'Tß║Ñt cß║ú c├íc mß╗Ñc (Mß╗¢i nhß║Ñt)'
+                : `Ch╞░╞íng ${effectiveChapter}`}
+            </span>
+          </div>
+
+          <div className='flex items-center gap-2'>
+            <span className='text-[11px] text-[#737373]'>Mß╗æc ch╞░╞íng kiß╗âm tra:</span>
+            <select
+              value={effectiveChapter}
+              onChange={(e) => {
+                const val = e.target.value === 'all' ? 'all' : parseInt(e.target.value, 10);
+                setEffectiveChapter(val);
+                onShowToast(
+                  'Chuyß╗ân ─æß╗òi phi├¬n bß║ún ch╞░╞íng (BR-15)',
+                  `─Éang hiß╗ân thß╗ï tri thß╗⌐c Series Bible c├│ hiß╗çu lß╗▒c tß║íi ${val === 'all' ? 'bß║ún mß╗¢i nhß║Ñt' : `Ch╞░╞íng ${val}`}`,
+                );
+              }}
+              className='px-2.5 py-1 bg-white border border-[#D4D4D4] rounded-lg font-mono text-xs text-[#171717] focus:outline-none focus:border-[#F97316]'
+            >
+              <option value='all'>Tß║Ñt cß║ú (Mß╗¢i nhß║Ñt)</option>
+              {seriesChapters.map((ch) => (
+                <option key={ch.id} value={ch.chapterNumber}>
+                  Ch╞░╞íng {ch.chapterNumber}
+                  {ch.title ? ` - ${ch.title}` : ''}
+                </option>
+              ))}
+              {seriesChapters.length === 0 && effectiveSeries?.chapter && (
+                <option value={effectiveSeries.chapter}>
+                  Ch╞░╞íng {effectiveSeries.chapter} (Mß║╖c ─æß╗ïnh)
+                </option>
+              )}
+            </select>
+          </div>
+        </div>
+
+        {/* Tab Selection Row */}
+        <div className='mt-4 pt-4 border-t border-[#E7E7E7] flex flex-col md:flex-row md:items-center justify-between gap-4'>
+          {/* Category Tabs */}
+          <div className='flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 custom-scrollbar'>
+            {CATEGORIES.map((cat) => (
+              <button
+                key={cat.key}
+                onClick={() => setActiveTab(cat.key)}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+                  activeTab === cat.key
+                    ? 'bg-[#171717] text-white shadow-xs'
+                    : 'text-[#555555] hover:text-[#171717] hover:bg-[#F3F1EB]'
+                }`}
+              >
+                <span>{cat.label}</span>
+                <span
+                  className={`text-[10px] font-mono px-1.5 py-0.2 rounded ${
+                    activeTab === cat.key ? 'bg-white/20 text-white' : 'bg-[#EAE8E0] text-[#555555]'
                   }`}
                 >
-                  {status}
-                </button>
-              ))}
+                  {categoryCounts[cat.key] || 0}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {/* Search and Filters */}
+          <div className='flex items-center gap-2.5'>
+            <div className='relative'>
+              <Search className='w-3.5 h-3.5 text-[#888888] absolute left-3 top-1/2 -translate-y-1/2' />
+              <input
+                type='text'
+                placeholder='Filter canon entities...'
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className='pl-8 pr-3 py-1.5 bg-[#FAF8F4] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-[#171717] placeholder-[#888888] focus:outline-none focus:border-[#F97316] w-48 sm:w-56 transition-all'
+              />
+            </div>
+
+            <div className='relative'>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className='appearance-none bg-[#FAF8F4] border border-[#E7E7E7] pl-3 pr-7 py-1.5 rounded-lg text-xs font-semibold text-[#171717] focus:outline-none focus:border-[#F97316] cursor-pointer'
+              >
+                <option value='ALL'>All Status</option>
+                <option value='Verified'>Verified Canon</option>
+                <option value='Draft'>Draft</option>
+                <option value='Review'>In Review</option>
+              </select>
+              <ChevronDown className='w-3.5 h-3.5 text-[#888888] absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none' />
             </div>
           </div>
         </div>
-        
-        <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
-          {CATEGORIES.map(category => {
-            const categoryEntities = filteredEntities.filter(e => e.category === category);
-            if (categoryEntities.length === 0) return null;
-            
-            const isExpanded = expandedCategories[category];
-            
-            return (
-              <div key={category} className="mb-2">
-                <button 
-                  onClick={() => toggleCategory(category)}
-                  className="w-full flex items-center gap-2 px-2 py-1.5 text-xs font-semibold text-zinc-500 hover:text-zinc-800 transition-colors uppercase tracking-wider"
-                >
-                  {isExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
-                  {category} ({categoryEntities.length})
-                </button>
-                
-                {isExpanded && (
-                  <div className="pl-4 pr-2 mt-1 space-y-1">
-                    {categoryEntities.map(ent => {
-                      const isSelected = ent.id === selectedEntityId;
-                      const latestVersion = ent.versions[ent.versions.length - 1];
-                      return (
-                        <button
-                          key={ent.id}
-                          onClick={() => handleSelectEntity(ent.id)}
-                          className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center justify-between transition-colors ${
-                            isSelected 
-                              ? 'bg-zinc-100 text-orange-500 shadow-sm border border-orange-500/30' 
-                              : 'text-zinc-700 hover:bg-zinc-50 border border-transparent'
-                          }`}
-                        >
-                          <span className="truncate pr-2 font-medium">{ent.baseName}</span>
-                          {latestVersion.status === 'LOCKED' ? (
-                            <Lock className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                          ) : (
-                            <Unlock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                          )}
-                        </button>
-                      );
-                    })}
+      </div>
+
+      {/* Entity Cards Grid */}
+      <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5'>
+        {filteredEntities.map((entity) => (
+          <div
+            key={entity.id}
+            className='bg-white border border-[#E7E7E7] rounded-xl overflow-hidden shadow-xs hover:border-[#171717] transition-all flex flex-col justify-between group'
+          >
+            <div>
+              {/* Card Image Banner */}
+              <div
+                className='relative w-full h-44 bg-[#171717] overflow-hidden cursor-pointer flex items-center justify-center'
+                onClick={() => setSelectedEntity(entity)}
+              >
+                {entity.imageUrl ? (
+                  <img
+                    src={entity.imageUrl}
+                    alt={entity.name}
+                    className='w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 opacity-90'
+                  />
+                ) : (
+                  <div className='w-full h-full flex flex-col items-center justify-center bg-[#262626] text-[#737373]'>
+                    <BookOpen className='w-10 h-10 mb-2 opacity-50' />
+                    <span className='text-[10px] font-mono uppercase tracking-wider text-[#A3A3A3]'>
+                      Canon Spec Sheet
+                    </span>
                   </div>
                 )}
                 <div className='absolute top-2.5 left-2.5 flex flex-wrap items-center gap-1.5'>
@@ -603,7 +659,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({ activeProject,
                 {entity.isLocked && (
                   <div className='px-2.5 py-1 bg-amber-50 border border-amber-200/80 rounded-lg text-[10px] text-amber-800 flex items-center gap-1.5 font-medium'>
                     <Lock className='w-3 h-3 text-amber-600 shrink-0' />
-                    <span>Character Sheet đã khoá tham chiếu (BR-15 Canon)</span>
+                    <span>Character Sheet ─æ├ú kho├í tham chiß║┐u (BR-15 Canon)</span>
                   </div>
                 )}
 
@@ -667,15 +723,15 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({ activeProject,
                     }
                   }}
                   className='px-2 py-1 bg-white hover:bg-[#F3F1EB] border border-[#E7E7E7] rounded text-[11px] font-semibold text-[#171717] flex items-center gap-1 transition-colors cursor-pointer'
-                  title='Xem toàn bộ lịch sử các phiên bản (BR-18)'
+                  title='Xem to├án bß╗Ö lß╗ïch sß╗¡ c├íc phi├¬n bß║ún (BR-18)'
                 >
                   <History className='w-3 h-3 text-[#F97316]' />
-                  <span>Lịch sử (BR-18)</span>
+                  <span>Lß╗ïch sß╗¡ (BR-18)</span>
                 </button>
                 <button
                   onClick={() => handleOpenAddRevision(entity)}
                   className='px-2 py-1 bg-white hover:bg-[#F3F1EB] border border-[#E7E7E7] rounded text-[11px] font-semibold text-[#059669] flex items-center gap-1 transition-colors cursor-pointer'
-                  title='Tạo phiên bản sửa đổi mới có hiệu lực từ một Chương (BR-15, UC-04 Concurrency)'
+                  title='Tß║ío phi├¬n bß║ún sß╗¡a ─æß╗òi mß╗¢i c├│ hiß╗çu lß╗▒c tß╗½ mß╗Öt Ch╞░╞íng (BR-15, UC-04 Concurrency)'
                 >
                   <GitCommit className='w-3 h-3' />
                   <span>+ Version (BR-15)</span>
@@ -685,7 +741,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({ activeProject,
               <button
                 onClick={() => onEditEntity(entity)}
                 className='w-7 h-7 rounded flex items-center justify-center text-[#888888] hover:text-[#171717] hover:bg-white border border-transparent hover:border-[#E7E7E7] transition-all cursor-pointer'
-                title='Sửa nhanh mục'
+                title='Sß╗¡a nhanh mß╗Ñc'
               >
                 <Edit className='w-3.5 h-3.5' />
               </button>
@@ -694,33 +750,35 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({ activeProject,
         ))}
       </div>
 
-      {/* Main Content & Right Sidebar Container */}
-      <div className="flex-1 flex overflow-hidden">
-        
-        <div className="flex-1 flex flex-col overflow-hidden relative">
-          {!selectedEntity || !activeVersion ? (
-            <div className="flex-1 flex items-center justify-center text-zinc-400">
-              Select an entity to view its Canon Spec Sheet.
+      {filteredEntities.length === 0 && (
+        <div className='bg-white border border-[#E7E7E7] rounded-xl p-12 text-center'>
+          <BookOpen className='w-8 h-8 text-[#888888] mx-auto mb-2' />
+          <h4 className='text-base font-bold text-[#171717]'>No Canon Entities Found</h4>
+          <p className='text-xs text-[#555555] mt-1'>
+            Try adjusting your search query or category filter.
+          </p>
+        </div>
+      )}
+
+      {/* Entity Model Sheet Modal / Drawer */}
+      {selectedEntity && (
+        <div className='fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4'>
+          <div className='bg-white border border-[#E7E7E7] rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-in fade-in zoom-in-95 duration-150'>
+            {/* Modal Header */}
+            <div className='p-4 border-b border-[#E7E7E7] flex items-center justify-between bg-[#FAF8F4]'>
+              <div className='flex items-center gap-2'>
+                <span className='w-2.5 h-2.5 rounded-full bg-[#10B981]'></span>
+                <h3 className='text-base font-bold font-serif text-[#171717]'>
+                  Canon Spec Sheet: {selectedEntity.name}
+                </h3>
+              </div>
+              <button
+                onClick={() => setSelectedEntity(null)}
+                className='w-7 h-7 rounded-lg hover:bg-white border border-transparent hover:border-[#E7E7E7] flex items-center justify-center text-[#888888] hover:text-[#171717] transition-all cursor-pointer'
+              >
+                <X className='w-4 h-4' />
+              </button>
             </div>
-          ) : (
-            <>
-              {/* ========================================================= */}
-              {/* ZONE 2: Version Timeline & Control                        */}
-              {/* ========================================================= */}
-              <div className="shrink-0 bg-white border-b border-zinc-200 px-6 py-4 flex flex-col justify-center z-10">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-bold text-zinc-900 flex items-center gap-3">
-                    <GitCommit className="w-5 h-5 text-orange-600" />
-                    {selectedEntity.baseName}
-                  </h3>
-                  
-                  <div className="flex items-center gap-3">
-                    {/* Chapter Metadata Tag */}
-                    <div className="flex items-center gap-2 bg-[#FAF8F5] border border-zinc-200 px-3 py-1.5 rounded-lg text-sm font-medium">
-                      <Clock className="w-4 h-4 text-zinc-500" />
-                      <span className="text-zinc-500">Effective from Ch.</span>
-                      <span className="text-orange-600 font-bold">{activeVersion.effectiveFromChapter}</span>
-                    </div>
 
             {/* Modal Body */}
             <div className='p-6 space-y-5'>
@@ -733,8 +791,8 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({ activeProject,
                         CANON LOCKED
                       </span>
                       <span>
-                        Character Sheet đã được Producer phê duyệt &amp; khoá làm tham chiếu duy
-                        nhất.
+                        Character Sheet ─æ├ú ─æ╞░ß╗úc Producer ph├¬ duyß╗çt &amp; kho├í l├ám tham chiß║┐u duy
+                        nhß║Ñt.
                       </span>
                     </div>
                   </div>
@@ -753,7 +811,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({ activeProject,
                   className='w-full h-full object-cover'
                 />
                 <div className='absolute bottom-3 left-3 bg-black/80 backdrop-blur-xs text-white px-3 py-1 rounded-lg text-xs font-mono'>
-                  Vector Model: {selectedEntity.modelVersion} • Weight {selectedEntity.loraWeight}
+                  Vector Model: {selectedEntity.modelVersion} ΓÇó Weight {selectedEntity.loraWeight}
                 </div>
               </div>
 
@@ -781,105 +839,89 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({ activeProject,
                         key={i}
                         className='flex items-center gap-1.5 bg-[#F8F6F0] px-2 py-1 rounded border border-[#E7E7E7] text-[10px] font-mono'
                       >
-                        <Plus className="w-4 h-4" /> Create Superseding Version
-                      </button>
-                    ) : (
-                      <button
-                        onClick={handleLockVersion}
-                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg shadow-sm flex items-center gap-2 transition-colors"
-                      >
-                        <Lock className="w-4 h-4" /> Lock Version
-                      </button>
-                    )}
+                        <span
+                          className='w-3.5 h-3.5 rounded-full border border-black/20'
+                          style={{ backgroundColor: c }}
+                        ></span>
+                        <span>{c}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
+              )}
 
-                <div className="flex items-center gap-3 overflow-x-auto pb-1 custom-scrollbar">
-                  {selectedEntity.versions.map((ver, idx) => {
-                    const isSelected = ver.id === selectedVersionId;
-                    const isNodeLocked = ver.status === 'LOCKED';
-                    
-                    return (
-                      <div key={ver.id} className="flex items-center shrink-0">
-                        <button
-                          onClick={() => setSelectedVersionId(ver.id)}
-                          className={`px-4 py-2 rounded-lg text-xs font-bold font-mono border transition-all flex items-center gap-2 ${
-                            isSelected
-                              ? 'bg-zinc-100 border-orange-500 text-orange-500 shadow-[0_0_12px_rgba(249,115,22,0.2)]'
-                              : 'bg-[#FAF8F5] border-zinc-200 text-zinc-500 hover:border-zinc-400'
-                          }`}
-                        >
-                          {isNodeLocked ? (
-                            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                          ) : (
-                            <Unlock className="w-4 h-4 text-amber-500" />
-                          )}
-                          <span>v{ver.versionNumber}</span>
-                        </button>
-                        
-                        {idx < selectedEntity.versions.length - 1 && (
-                          <div className="w-8 h-px bg-slate-700 mx-2" />
-                        )}
-                      </div>
-                    );
-                  })}
+              {/* Vector Embedding Details */}
+              <div className='p-3 bg-[#FAF8F4] rounded-xl border border-[#E7E7E7] space-y-2 text-xs font-mono'>
+                <div className='text-[11px] font-bold text-[#171717] flex items-center justify-between'>
+                  <span>Neural Vector Anchor</span>
+                  <span className='text-[#059669]'>100% Enforced</span>
+                </div>
+                <div className='text-[10px] text-[#555555] bg-white p-2 rounded border border-[#E7E7E7] break-all'>
+                  SHA-256: 4a9f81bc7e2d9a334f55a12089b2184911dcae984f1807d9b042a9b
+                </div>
+                <div className='text-[11px] text-[#555555] flex items-center justify-between pt-1'>
+                  <span>Embedding Latency: 1.2s</span>
+                  <span>Active Clones: 32 Panels</span>
                 </div>
               </div>
+            </div>
 
-              {/* ========================================================= */}
-              {/* ZONE 3: Character Sheet Area (Structured Data)            */}
-              {/* ========================================================= */}
-              <div className="flex-1 overflow-y-auto p-6 lg:p-8 custom-scrollbar">
-                <div className="max-w-4xl mx-auto">
-                  
-                  {isLocked ? (
-                    <div className="mb-8 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-start gap-3">
-                      <Lock className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
-                      <div>
-                        <h4 className="text-sm font-bold text-emerald-400">Locked Version (Read-Only)</h4>
-                        <p className="text-xs text-emerald-500/80 mt-1">
-                          This entity version is finalized and serves as immutable ground truth for AI Generation. Form fields are disabled.
-                        </p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="mb-8 p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-start gap-3">
-                      <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-                      <div>
-                        <h4 className="text-sm font-bold text-amber-400">Draft Version (Editable)</h4>
-                        <p className="text-xs text-amber-500/80 mt-1">
-                          You are editing a draft version. AI generation will NOT use this version until it is explicitly Locked.
-                        </p>
-                      </div>
-                    </div>
-                  )}
+            {/* Modal Footer */}
+            <div className='p-4 bg-[#FAF8F4] border-t border-[#E7E7E7] flex items-center justify-between'>
+              <button
+                onClick={() => {
+                  onShowToast(
+                    'Synced to LoRA Matrix',
+                    `Updated ${selectedEntity.name} vector lock.`,
+                  );
+                  setSelectedEntity(null);
+                }}
+                className='px-4 py-2 bg-[#171717] hover:bg-black text-white text-xs font-semibold rounded-lg shadow-xs transition-colors cursor-pointer'
+              >
+                Sync with Chapter 5 LoRA
+              </button>
+              <button
+                onClick={() => setSelectedEntity(null)}
+                className='px-3 py-2 bg-white hover:bg-[#F3F1EB] border border-[#E7E7E7] text-[#555555] text-xs font-semibold rounded-lg transition-colors cursor-pointer'
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* BR-18: Revision History Modal */}
+      {historyModalOpen && (
+        <div className='fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4'>
+          <div className='bg-white border border-[#E7E7E7] rounded-2xl max-w-xl w-full max-h-[85vh] flex flex-col shadow-2xl animate-in fade-in zoom-in-95 duration-150'>
+            <div className='p-4 border-b border-[#E7E7E7] flex items-center justify-between bg-[#FAF8F4]'>
+              <div className='flex items-center gap-2'>
+                <History className='w-4 h-4 text-[#F97316]' />
+                <h3 className='text-sm font-bold font-display text-[#171717]'>
+                  Lß╗ïch Sß╗¡ Phi├¬n Bß║ún &amp; Kiß╗âm To├ín (BR-18): {historyEntityName}
+                </h3>
+              </div>
+              <button
+                onClick={() => setHistoryModalOpen(false)}
+                className='w-7 h-7 rounded-lg hover:bg-white flex items-center justify-center text-[#888888] hover:text-[#171717]'
+              >
+                <X className='w-4 h-4' />
+              </button>
+            </div>
 
-                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-                    
-                    {/* Left Column: Text Fields */}
-                    <div className="space-y-6">
-                      <h4 className="text-sm font-bold text-zinc-900 border-b border-zinc-200 pb-2">Text Properties</h4>
-                      
-                      <div>
-                        <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">
-                          Display Name
-                        </label>
-                        <input
-                          type="text"
-                          value={activeVersion.name}
-                          onChange={(e) => handleUpdateField('name', e.target.value)}
-                          disabled={isLocked}
-                          className="w-full bg-white border border-zinc-300 rounded-lg px-4 py-2.5 text-sm text-zinc-800 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 disabled:opacity-50 disabled:bg-zinc-50 disabled:cursor-not-allowed transition-all"
-                        />
-                      </div>
+            <div className='p-6 overflow-y-auto space-y-4 flex-1'>
+              <div className='text-xs text-[#737373]'>
+                Dß╗» liß╗çu l╞░u trß╗» bß║Ñt biß║┐n (Append-only - BR-01). Mß╗ìi thay ─æß╗òi ─æß╗üu sinh mß╗Öt version
+                mß╗¢i gß║»n vß╗¢i mß╗æc ch╞░╞íng c├│ hiß╗çu lß╗▒c (BR-15) v├á l╞░u trß╗» vß║┐t kiß╗âm to├ín (BR-18).
+              </div>
 
               {loadingHistory ? (
                 <div className='py-8 text-center text-xs text-[#888888]'>
-                  Đang tải lịch sử phiên bản...
+                  ─Éang tß║úi lß╗ïch sß╗¡ phi├¬n bß║ún...
                 </div>
               ) : historyRevisions.length === 0 ? (
                 <div className='py-8 text-center text-xs text-[#888888]'>
-                  Chưa có phiên bản nào được ghi nhận.
+                  Ch╞░a c├│ phi├¬n bß║ún n├áo ─æ╞░ß╗úc ghi nhß║¡n.
                 </div>
               ) : (
                 <div className='relative pl-6 space-y-6 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-[#E7E7E7]'>
@@ -890,12 +932,12 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({ activeProject,
                         <div className='flex flex-wrap items-center justify-between gap-2'>
                           <div className='flex items-center gap-2'>
                             <span className='px-2 py-0.5 rounded bg-[#171717] text-white font-mono text-[10px] font-bold'>
-                              VERSION {rev.versionNumber} {rev.isInitialVersion ? '(Khởi tạo)' : ''}
+                              VERSION {rev.versionNumber} {rev.isInitialVersion ? '(Khß╗ƒi tß║ío)' : ''}
                             </span>
                             {rev.isLocked && (
                               <span className='px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300 text-[10px] font-mono font-bold flex items-center gap-1 shadow-xs'>
                                 <Lock className='w-2.5 h-2.5 text-amber-600' />
-                                ĐÃ KHOÁ THAM CHIẾU
+                                ─É├â KHO├ü THAM CHIß║╛U
                               </span>
                             )}
                           </div>
@@ -908,7 +950,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({ activeProject,
                         <div className='flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-[#E7E7E7]/60'>
                           <div className='flex items-center gap-2'>
                             <span className='px-2 py-0.5 rounded bg-[#ECFDF5] text-[#059669] border border-[#10B981]/30 text-[10px] font-mono font-semibold'>
-                              Hiệu lực từ: Chương {rev.effectiveFromChapterNumber}
+                              Hiß╗çu lß╗▒c tß╗½: Ch╞░╞íng {rev.effectiveFromChapterNumber}
                             </span>
                             <span
                               className='text-[10px] font-mono text-[#888888] truncate max-w-[120px]'
@@ -926,87 +968,35 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({ activeProject,
                                 disabled={lockingRevisionId === rev.id}
                                 onClick={() => handleLockRevision(rev)}
                                 className='px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-semibold flex items-center gap-1 transition-colors shadow-xs disabled:opacity-50 cursor-pointer'
-                                title='Producer phê duyệt và khoá phiên bản này làm tham chiếu duy nhất'
+                                title='Producer ph├¬ duyß╗çt v├á kho├í phi├¬n bß║ún n├áy l├ám tham chiß║┐u duy nhß║Ñt'
                               >
                                 <Lock className='w-3 h-3' />
                                 <span>
                                   {lockingRevisionId === rev.id
-                                    ? 'Đang khoá...'
-                                    : 'Duyệt & Khoá Character Sheet'}
+                                    ? '─Éang kho├í...'
+                                    : 'Duyß╗çt & Kho├í Character Sheet'}
                                 </span>
                               </button>
                             )}
                         </div>
                       </div>
                     </div>
-
-                  </div>
+                  ))}
                 </div>
-              </div>
-            </>
-          )}
-        </div>
+              )}
+            </div>
 
-        {/* ========================================================= */}
-        {/* ZONE 4: Provenance & Audit Panel                          */}
-        {/* ========================================================= */}
-        <div className="w-80 shrink-0 bg-white border-l border-zinc-200 flex flex-col z-10">
-          <div className="p-4 border-b border-zinc-200">
-            <h4 className="text-sm font-bold text-zinc-900 flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-emerald-500" />
-              Provenance & Audit
-            </h4>
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-4 space-y-6">
-            {activeVersion ? (
-              <>
-                {/* AI Consistency Metric */}
-                <div className="bg-[#FAF8F5] border border-zinc-200 rounded-xl p-4">
-                  <h5 className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-3">AI Metric</h5>
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-orange-500/10 border border-orange-500/30 flex items-center justify-center">
-                      <span className="text-orange-600 font-bold text-sm">{activeVersion.aiUsageCount}</span>
-                    </div>
-                    <div>
-                      <p className="text-sm text-zinc-800 font-medium">Consistency Checks</p>
-                      <p className="text-[10px] text-zinc-400 mt-0.5">Used as evidence in finding resolution</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Audit Log */}
-                <div>
-                  <h5 className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-                    <History className="w-3.5 h-3.5" /> Audit Log
-                  </h5>
-                  
-                  <div className="space-y-4 relative before:absolute before:inset-y-0 before:left-2 before:w-px before:bg-zinc-100 ml-1">
-                    
-                    <div className="relative pl-6">
-                      <div className="absolute w-2 h-2 rounded-full bg-orange-500 left-1 top-1.5 -ml-px ring-4 ring-white"></div>
-                      <p className="text-[11px] font-mono text-zinc-400">{new Date(activeVersion.createdAt).toLocaleString()}</p>
-                      <p className="text-xs text-zinc-700 mt-1">Draft Created by <span className="font-semibold text-zinc-800">{activeVersion.createdBy}</span></p>
-                    </div>
-
-                    {activeVersion.lockedAt && (
-                      <div className="relative pl-6">
-                        <div className="absolute w-2 h-2 rounded-full bg-emerald-500 left-1 top-1.5 -ml-px ring-4 ring-white"></div>
-                        <p className="text-[11px] font-mono text-zinc-400">{new Date(activeVersion.lockedAt).toLocaleString()}</p>
-                        <p className="text-xs text-zinc-700 mt-1">Version Locked by <span className="font-semibold text-zinc-800">{activeVersion.lockedBy}</span></p>
-                      </div>
-                    )}
-                    
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="text-xs text-zinc-400 text-center py-10">
-                No version selected.
-              </div>
-            )}
+            <div className='p-4 bg-[#FAF8F4] border-t border-[#E7E7E7] flex justify-end'>
+              <button
+                onClick={() => setHistoryModalOpen(false)}
+                className='px-4 py-2 bg-[#171717] hover:bg-black text-white text-xs font-semibold rounded-lg'
+              >
+                ─É├│ng
+              </button>
+            </div>
           </div>
         </div>
+      )}
 
       {/* BR-01 & BR-15 & UC-04: Add Revision Modal */}
       {addRevModalOpen && revisionTarget && (
@@ -1016,7 +1006,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({ activeProject,
               <div className='flex items-center gap-2'>
                 <GitCommit className='w-4 h-4 text-[#059669]' />
                 <h3 className='text-sm font-bold text-[#171717]'>
-                  Tạo Phiên Bản Mới (BR-15): {revisionTarget.name}
+                  Tß║ío Phi├¬n Bß║ún Mß╗¢i (BR-15): {revisionTarget.name}
                 </h3>
               </div>
               <button
@@ -1033,11 +1023,11 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({ activeProject,
                 <span className='px-2 py-0.5 rounded bg-[#171717] text-white font-mono text-[10px] font-bold'>
                   UC-04 // CONCURRENCY LOCK
                 </span>
-                <span className='text-[#737373]'>Phiên bản cơ sở:</span>
+                <span className='text-[#737373]'>Phi├¬n bß║ún c╞í sß╗ƒ:</span>
               </div>
               <span className='font-mono font-bold text-[#059669] bg-[#ECFDF5] border border-[#10B981]/30 px-2 py-0.5 rounded text-[11px] flex items-center gap-1'>
                 {fetchingBaseVersion ? (
-                  <span className='animate-pulse text-[#888888]'>Đang kiểm tra...</span>
+                  <span className='animate-pulse text-[#888888]'>─Éang kiß╗âm tra...</span>
                 ) : (
                   <>Version v{expectedVersionNumber ?? 1}</>
                 )}
@@ -1045,24 +1035,24 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({ activeProject,
             </div>
 
             <div className='text-xs text-[#737373] bg-[#FAF8F5] p-3 rounded-lg border border-[#E7E7E7] leading-relaxed'>
-              <strong>Lưu ý nghiệp vụ (BR-01 &amp; UC-04):</strong> Phiên bản cũ được bảo toàn vĩnh
-              viễn (Append-only). Hệ thống tự động phát hiện nếu có thành viên khác sửa đổi đồng
-              thời và yêu cầu đối chiếu trước khi ghi đè.
+              <strong>L╞░u ├╜ nghiß╗çp vß╗Ñ (BR-01 &amp; UC-04):</strong> Phi├¬n bß║ún c┼⌐ ─æ╞░ß╗úc bß║úo to├án v─⌐nh
+              viß╗àn (Append-only). Hß╗ç thß╗æng tß╗▒ ─æß╗Öng ph├ít hiß╗çn nß║┐u c├│ th├ánh vi├¬n kh├íc sß╗¡a ─æß╗òi ─æß╗ông
+              thß╗¥i v├á y├¬u cß║ºu ─æß╗æi chiß║┐u tr╞░ß╗¢c khi ghi ─æ├¿.
             </div>
 
-            {/* Locked Chapters Notice (BR-15 Việc 5) */}
+            {/* Locked Chapters Notice (BR-15 Viß╗çc 5) */}
             {lockedChapterNumbers.length > 0 && (
               <div className='p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 space-y-1'>
                 <div className='flex items-center gap-1.5 font-semibold'>
                   <Lock className='w-3.5 h-3.5 text-amber-600 shrink-0' />
-                  <span>Các chương đã có phiên bản khoá tham chiếu:</span>
+                  <span>C├íc ch╞░╞íng ─æ├ú c├│ phi├¬n bß║ún kho├í tham chiß║┐u:</span>
                 </div>
                 <div className='text-[11px] font-mono text-amber-700 pl-5'>
-                  {lockedChapterNumbers.map((ch) => `Chương ${ch}`).join(', ')}
+                  {lockedChapterNumbers.map((ch) => `Ch╞░╞íng ${ch}`).join(', ')}
                 </div>
                 <div className='text-[10px] text-amber-700/90 pl-5'>
-                  Quy tắc: Không thể tạo revision trùng chương bắt đầu của bản đã khoá. Muốn cập
-                  nhật nội dung, bạn phải chọn một chương bắt đầu khác.
+                  Quy tß║»c: Kh├┤ng thß╗â tß║ío revision tr├╣ng ch╞░╞íng bß║»t ─æß║ºu cß╗ºa bß║ún ─æ├ú kho├í. Muß╗æn cß║¡p
+                  nhß║¡t nß╗Öi dung, bß║ín phß║úi chß╗ìn mß╗Öt ch╞░╞íng bß║»t ─æß║ºu kh├íc.
                 </div>
               </div>
             )}
@@ -1070,7 +1060,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({ activeProject,
             <div className='space-y-3'>
               <div>
                 <label className='block text-xs font-semibold text-[#171717] mb-1'>
-                  Có hiệu lực từ Chương số (Effective From Chapter) *
+                  C├│ hiß╗çu lß╗▒c tß╗½ Ch╞░╞íng sß╗æ (Effective From Chapter) *
                 </label>
                 <input
                   type='number'
@@ -1088,15 +1078,15 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({ activeProject,
                 {lockedChapterNumbers.includes(revisionEffectiveChapter) && (
                   <p className='text-[11px] text-red-600 mt-1 font-medium flex items-center gap-1'>
                     <AlertCircle className='w-3 h-3 text-red-500 shrink-0' />
-                    Chương {revisionEffectiveChapter} đã có phiên bản bị khoá tham chiếu! Vui lòng
-                    chọn số chương khác.
+                    Ch╞░╞íng {revisionEffectiveChapter} ─æ├ú c├│ phi├¬n bß║ún bß╗ï kho├í tham chiß║┐u! Vui l├▓ng
+                    chß╗ìn sß╗æ ch╞░╞íng kh├íc.
                   </p>
                 )}
               </div>
 
               <div>
                 <label className='block text-xs font-semibold text-[#171717] mb-1'>
-                  Tên mục (Entity Name) *
+                  T├¬n mß╗Ñc (Entity Name) *
                 </label>
                 <input
                   type='text'
@@ -1108,7 +1098,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({ activeProject,
 
               <div>
                 <label className='block text-xs font-semibold text-[#171717] mb-1'>
-                  Phụ đề / Vai trò (Subtitle)
+                  Phß╗Ñ ─æß╗ü / Vai tr├▓ (Subtitle)
                 </label>
                 <input
                   type='text'
@@ -1120,11 +1110,11 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({ activeProject,
 
               <div>
                 <label className='block text-xs font-semibold text-[#171717] mb-1'>
-                  Lý do thay đổi / Tóm tắt phiên bản mới (Summary) *
+                  L├╜ do thay ─æß╗òi / T├│m tß║»t phi├¬n bß║ún mß╗¢i (Summary) *
                 </label>
                 <input
                   type='text'
-                  placeholder='VD: Cập nhật trang phục chiến đấu mới từ Arc Neo-Tokyo'
+                  placeholder='VD: Cß║¡p nhß║¡t trang phß╗Ñc chiß║┐n ─æß║Ñu mß╗¢i tß╗½ Arc Neo-Tokyo'
                   value={revisionSummary}
                   onChange={(e) => setRevisionSummary(e.target.value)}
                   className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg text-xs text-[#171717] focus:outline-none focus:border-[#F97316]'
@@ -1133,7 +1123,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({ activeProject,
 
               <div>
                 <label className='block text-xs font-semibold text-[#171717] mb-1'>
-                  Mô tả chi tiết phiên bản (Description)
+                  M├┤ tß║ú chi tiß║┐t phi├¬n bß║ún (Description)
                 </label>
                 <textarea
                   rows={3}
@@ -1150,7 +1140,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({ activeProject,
                 onClick={() => setAddRevModalOpen(false)}
                 className='px-3 py-1.5 border border-[#E7E7E7] rounded-lg text-xs font-semibold text-[#555555] hover:bg-[#F3F1EB]'
               >
-                Hủy
+                Hß╗ºy
               </button>
               <button
                 type='button'
@@ -1173,8 +1163,8 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({ activeProject,
                       });
                     }
                     onShowToast(
-                      'Tạo phiên bản thành công (BR-15)',
-                      `Đã ghi nhận phiên bản mới cho ${revisionName || revisionTarget.name} có hiệu lực từ Chương ${revisionEffectiveChapter}.`,
+                      'Tß║ío phi├¬n bß║ún th├ánh c├┤ng (BR-15)',
+                      `─É├ú ghi nhß║¡n phi├¬n bß║ún mß╗¢i cho ${revisionName || revisionTarget.name} c├│ hiß╗çu lß╗▒c tß╗½ Ch╞░╞íng ${revisionEffectiveChapter}.`,
                     );
                     setRefreshTrigger((prev) => prev + 1);
                     setAddRevModalOpen(false);
@@ -1183,14 +1173,14 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({ activeProject,
                       const msg = err.message || '';
                       const isLockedConflict =
                         msg.toLowerCase().includes('lock') ||
-                        msg.toLowerCase().includes('khoá') ||
-                        msg.toLowerCase().includes('khóa') ||
+                        msg.toLowerCase().includes('kho├í') ||
+                        msg.toLowerCase().includes('kh├│a') ||
                         msg.toLowerCase().includes('chapter');
                       onShowToast(
-                        'Xung đột phiên bản (409 CONFLICT)',
+                        'Xung ─æß╗Öt phi├¬n bß║ún (409 CONFLICT)',
                         isLockedConflict
-                          ? 'Chương đã có phiên bản khoá tham chiếu hoặc đã có người khác cập nhật cùng lúc! Đang mở Lịch sử để bạn đối chiếu.'
-                          : 'Đã có người khác sửa đổi mục này cùng lúc! Hệ thống tự động mở Lịch sử để bạn đối chiếu phiên bản mới nhất.',
+                          ? 'Ch╞░╞íng ─æ├ú c├│ phi├¬n bß║ún kho├í tham chiß║┐u hoß║╖c ─æ├ú c├│ ng╞░ß╗¥i kh├íc cß║¡p nhß║¡t c├╣ng l├║c! ─Éang mß╗ƒ Lß╗ïch sß╗¡ ─æß╗â bß║ín ─æß╗æi chiß║┐u.'
+                          : '─É├ú c├│ ng╞░ß╗¥i kh├íc sß╗¡a ─æß╗òi mß╗Ñc n├áy c├╣ng l├║c! Hß╗ç thß╗æng tß╗▒ ─æß╗Öng mß╗ƒ Lß╗ïch sß╗¡ ─æß╗â bß║ín ─æß╗æi chiß║┐u phi├¬n bß║ún mß╗¢i nhß║Ñt.',
                       );
                       setAddRevModalOpen(false);
                       // Auto open history modal to compare
@@ -1213,7 +1203,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({ activeProject,
                         setRefreshTrigger((prev) => prev + 1);
                       }
                     } else {
-                      onShowToast('Lỗi tạo phiên bản', err.message);
+                      onShowToast('Lß╗ùi tß║ío phi├¬n bß║ún', err.message);
                     }
                   } finally {
                     setSavingRevision(false);
@@ -1222,7 +1212,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({ activeProject,
                 className='px-4 py-1.5 bg-[#059669] hover:bg-[#047857] text-white rounded-lg text-xs font-semibold disabled:opacity-50 flex items-center gap-1.5'
               >
                 <CheckCircle2 className='w-3.5 h-3.5' />
-                <span>{savingRevision ? 'Đang lưu...' : 'Lưu phiên bản (BR-15)'}</span>
+                <span>{savingRevision ? '─Éang l╞░u...' : 'L╞░u phi├¬n bß║ún (BR-15)'}</span>
               </button>
             </div>
           </div>
