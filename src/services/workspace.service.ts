@@ -24,6 +24,21 @@ export interface WorkspaceDto {
   memberCount: number;
 }
 
+export interface UsageMeterDto {
+  used: number;
+  quota: number;
+  isUnlimited: boolean;
+  percentUsed: number | null;
+}
+
+export interface WorkspaceUsageDto {
+  workspaceId: string;
+  storage: UsageMeterDto;
+  aiTokens: UsageMeterDto | null;
+  aiEnabled: boolean | null;
+  images: UsageMeterDto | null;
+}
+
 export interface WorkspaceMemberDto {
   userId: string;
   fullName: string;
@@ -73,6 +88,7 @@ export const workspaceService = {
   },
 
   getMyWorkspaces: async (): Promise<WorkspaceDto[]> => {
+    // Chưa đăng nhập thì không gọi API (tránh 401 làm phát 'auth:unauthorized')
     if (!localStorage.getItem('token') && !localStorage.getItem('jwt_token')) return [];
     try {
       const response = await axiosClient.get('/Workspaces');
@@ -164,6 +180,20 @@ export const workspaceService = {
     } catch (error) {
       throw new Error(
         await parseErrorResponse(error, 'Không thể tải lịch sử Audit của Workspace.'),
+      );
+    }
+  },
+
+  /**
+   * Lấy mức dùng Storage và AI Tokens so với giới hạn (GET /api/workspaces/{id}/usage)
+   */
+  getWorkspaceUsage: async (workspaceId: string): Promise<WorkspaceUsageDto> => {
+    try {
+      const response = await axiosClient.get(`/workspaces/${workspaceId}/usage`);
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        await parseErrorResponse(error, 'Không thể tải mức dùng tài nguyên của Workspace.'),
       );
     }
   },

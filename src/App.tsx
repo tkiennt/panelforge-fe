@@ -1,6 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { RoleDemoBar, DemoRole } from './components/RoleDemoBar';
-import { DevFloatingMenu } from './components/DevFloatingMenu';
 import {
   ViewMode,
   MangaProject,
@@ -8,6 +6,12 @@ import {
   KanbanStageKey,
   BibleEntity,
   StudioMember,
+  SystemRole,
+  WorkspaceRole,
+  WorkspaceDto,
+  normalizeSystemRole,
+  normalizeWorkspaceRole,
+  getRoleFromToken,
 } from './types';
 import {
   INITIAL_PROJECTS,
@@ -17,73 +21,20 @@ import {
   INITIAL_PROVENANCE_LOGS,
   INITIAL_ASSISTANTS,
   INITIAL_PROJECT_MEMBERSHIPS,
-} from './data/mockData';
-import {
-  BrowserRouter,
-  Routes,
-  Route,
-  Navigate,
-  useNavigate,
-  useLocation,
-  Outlet,
-} from 'react-router-dom';
-import { ReviewView } from './views/ReviewView';
-import { Header } from './components/Header';
-import { DashboardView } from './views/DashboardView';
-import { WorkflowBoardView } from './views/WorkflowBoardView';
-import { SeriesBibleView } from './views/SeriesBibleView';
-import { MembersRolesView } from './views/MembersRolesView';
-import { SeriesMembersView } from './views/series/SeriesMembersView';
-import { GlobalModals } from './components/GlobalModals';
-import {
-  CheckCircle2,
-  Home,
-  Briefcase,
-  PenLine,
-  Layers,
-  CheckCheck,
-  Shield,
-  Type,
-  BookOpen,
-} from 'lucide-react';
-import { GlobalAppShell } from './layouts/GlobalAppShell';
-import { WorkspaceView } from './views/WorkspaceView';
-import { ScriptEditorView } from './views/ScriptEditorView';
-import { TaskEditor } from './views/TaskEditor';
-import { ExportView } from './views/ExportView';
-
-import {
-  AdminDashboard,
-  AdminDashboardView,
-  AdminUserManagementView,
-  AdminSystemSettingsView,
-  AdminAuditLogView,
-} from './views/admin';
-
-import { ArtistDeskView } from './views/artist/ArtistDeskView';
-import { ProducerWorkspaceView } from './views/producer/ProducerWorkspaceView';
-import { NotificationCenterView } from './views/NotificationCenterView';
-import { ReaderPortalView } from './views/ReaderPortalView';
-import { PublicCatalogView } from './views/catalog/PublicCatalogView';
+} from '@/mocks/mockData';
+import { BrowserRouter, useNavigate, useLocation } from 'react-router-dom';
+import { GlobalModals } from './app/GlobalModals';
+import { AppRoutes } from './app/routes';
+import { ROLE_MANIFEST } from './roles/roles';
+import { CheckCircle2 } from 'lucide-react';
 import { authService } from './services/auth.service';
+import { refreshAccessToken } from './api/axiosClient';
 import { seriesService } from './services/series.service';
-
-import {
-  SystemRole,
-  WorkspaceRole,
-  WorkspaceDto,
-  normalizeSystemRole,
-  normalizeWorkspaceRole,
-  getRoleFromToken,
-} from './types';
-import { LoginModal } from './components/modals/LoginModal';
-import { RegisterModal } from './components/modals/RegisterModal';
-import { TwoFactorSetupModal } from './components/modals/TwoFactorSetupModal';
-import { ChangePasswordModal } from './components/modals/ChangePasswordModal';
-import { LandingPageView } from './views/LandingPageView';
-import { WorkspaceListView } from './views/WorkspaceListView';
-import { UserProfile } from './views/UserProfile';
-import { auth, onAuthStateChanged } from './firebase';
+import { LoginModal } from '@/roles/guest/modals/LoginModal';
+import { RegisterModal } from '@/roles/guest/modals/RegisterModal';
+import { TwoFactorSetupModal } from '@/shared/features/account/TwoFactorSetupModal';
+import { ChangePasswordModal } from '@/shared/features/account/ChangePasswordModal';
+import { auth, onAuthStateChanged } from '@/config/firebase';
 import { User } from 'firebase/auth';
 import { SeriesBibleView } from './views/SeriesBibleView';
 
@@ -92,42 +43,6 @@ interface Toast {
   title: string;
   desc: string;
 }
-
-const PrivateRoute = ({
-  isAuthenticated,
-  children,
-}: {
-  isAuthenticated: boolean;
-  children: React.ReactNode;
-}) => {
-  if (!isAuthenticated) {
-    return <Navigate to='/login' replace />;
-  }
-  return <>{children}</>;
-};
-
-const AdminRoute = ({
-  activeRoles,
-  currentRole,
-  children,
-}: {
-  activeRoles?: any[];
-  currentRole?: any;
-  children: React.ReactNode;
-}) => {
-  // Lấy role xác thực từ Token JWT hoặc State/localStorage nếu vừa đăng nhập thành công
-  const verifiedRole = getRoleFromToken();
-  const storedRole = typeof window !== 'undefined' ? localStorage.getItem('userRole') : null;
-  const isAdmin =
-    verifiedRole === 'ADMINISTRATOR' ||
-    currentRole === 'ADMINISTRATOR' ||
-    storedRole === 'ADMINISTRATOR';
-
-  if (!isAdmin) {
-    return <Navigate to='/workspaces' replace />;
-  }
-  return <>{children}</>;
-};
 
 const IS_DEV_MODE = import.meta.env.VITE_DEV_MODE === 'true';
 
@@ -205,7 +120,7 @@ function AppContent() {
       setCurrentWorkspaceRole(null);
       setViewScope('project');
       setCurrentView('admin-dash');
-      navigate('/admin');
+      navigate(ROLE_MANIFEST.ADMINISTRATOR.defaultRoute);
     } else {
       setCurrentRole('USER');
       setCurrentWorkspaceRole(null);
@@ -278,25 +193,8 @@ function AppContent() {
   }, []);
 
   const navigateToWorkspaceRoleView = (role: WorkspaceRole) => {
-    switch (role) {
-      case 'PRODUCER':
-        setCurrentView('dashboard');
-        break;
-      case 'WRITER':
-        setCurrentView('script');
-        break;
-      case 'ARTIST':
-        setCurrentView('layout');
-        break;
-      case 'LETTERER':
-        setCurrentView('canvas');
-        break;
-      case 'EDITOR':
-        setCurrentView('review');
-        break;
-      default:
-        setCurrentView('dashboard');
-    }
+    const target = ROLE_MANIFEST[role]?.defaultRoute || 'dashboard';
+    setCurrentView(target as ViewMode);
   };
 
   const location = useLocation();
@@ -330,13 +228,13 @@ function AppContent() {
     setActiveProjectRoles([wsRole]);
     setViewScope('project');
 
-    let hasSeries = false;
+    let firstSeriesId: string | null = null;
     // Tải danh sách Series thật từ Backend API PostgreSQL cho Workspace này
     try {
       const realSeriesList = await seriesService.getSeriesList(ws.id);
       if (realSeriesList && realSeriesList.length > 0) {
-        hasSeries = true;
         const firstSeries = realSeriesList[0];
+        firstSeriesId = firstSeries.id;
         const adaptedProject: MangaProject = {
           id: firstSeries.id,
           title: firstSeries.title,
@@ -366,8 +264,13 @@ function AppContent() {
     if (wsRole === 'PRODUCER' || currentRole === 'ADMINISTRATOR') {
       navigate(`/workspaces/${ws.id}/overview`);
     } else {
+      // Vai trò khác vào thẳng bàn làm việc của Series đầu tiên; Workspace chưa có Series thì vào trang tổng quan
       navigateToWorkspaceRoleView(wsRole);
-      navigate(`/workspaces/${ws.id}/workspace`);
+      navigate(
+        firstSeriesId
+          ? `/workspaces/${ws.id}/series/${firstSeriesId}/workspace`
+          : `/workspaces/${ws.id}/overview`,
+      );
     }
   };
 
@@ -389,11 +292,19 @@ function AppContent() {
     } else {
       const savedToken = localStorage.getItem('token');
       if (savedToken && !savedToken.startsWith('mock-')) {
-        // Token hết hạn hoặc không hợp lệ -> xóa sạch
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        localStorage.removeItem('userRole');
-        setIsAuthenticated(false);
+        if (localStorage.getItem('refreshToken')) {
+          // Access token (30 phút) đã hết hạn nhưng còn refresh token → đổi token mới rồi nạp lại trang.
+          // Refresh bị từ chối thì axiosClient tự dọn phiên và phát 'auth:unauthorized'.
+          void refreshAccessToken().then((newToken) => {
+            if (newToken) window.location.reload();
+          });
+        } else {
+          // Token hết hạn hoặc không hợp lệ -> xóa sạch
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          localStorage.removeItem('userRole');
+          setIsAuthenticated(false);
+        }
       }
     }
 
@@ -505,6 +416,22 @@ function AppContent() {
     }, 4000);
   };
 
+  // axiosClient phát 'auth:unauthorized' khi hết phiên (refresh token bị từ chối / 401 không phục hồi được)
+  useEffect(() => {
+    const onUnauthorized = () => {
+      localStorage.removeItem('user');
+      localStorage.removeItem('userRole');
+      localStorage.removeItem('activeWorkspace');
+      setCurrentUserInfo(null);
+      setIsAuthenticated(false);
+      setCurrentRole('USER');
+      setCurrentWorkspaceRole(null);
+      showToast('Phiên đăng nhập hết hạn', 'Vui lòng đăng nhập lại.');
+    };
+    window.addEventListener('auth:unauthorized', onUnauthorized);
+    return () => window.removeEventListener('auth:unauthorized', onUnauthorized);
+  }, []);
+
   // Keyboard shortcut for Command Palette
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -597,8 +524,10 @@ function AppContent() {
   };
 
   const handleLogout = () => {
+    void authService.logout(); // thu hồi refresh token trên BE (đọc token trước khi xoá bên dưới)
     auth.signOut();
     localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
     localStorage.removeItem('userRole');
     localStorage.removeItem('user');
     localStorage.removeItem('pf_remember_device');
@@ -621,224 +550,32 @@ function AppContent() {
 
   return (
     <div className='min-h-screen bg-[#F8F6F0] text-[#171717] font-sans antialiased selection:bg-[#F97316]/20 selection:text-[#EA580C] relative'>
-      <Routes>
-        <Route path='/test-bible' element={<IsolatedSeriesBible />} />
-        <Route
-          path='/'
-          element={
-            !isAuthenticated ? (
-              <LandingPageView
-                onOpenLogin={() => setIsLoginModalOpen(true)}
-                onOpenRegister={() => setIsRegisterModalOpen(true)}
-              />
-            ) : (
-              <Navigate to={defaultRedirectPath} replace />
-            )
-          }
-        />
-
-        <Route
-          path='/login'
-          element={
-            !isAuthenticated ? (
-              <LandingPageView
-                onOpenLogin={() => setIsLoginModalOpen(true)}
-                onOpenRegister={() => setIsRegisterModalOpen(true)}
-              />
-            ) : (
-              <Navigate to={defaultRedirectPath} replace />
-            )
-          }
-        />
-
-        <Route
-          element={
-            <PrivateRoute isAuthenticated={isAuthenticated}>
-              <Outlet />
-            </PrivateRoute>
-          }
-        >
-          <Route
-            path='workspaces'
-            element={
-              <div className='h-screen w-full overflow-y-auto custom-scrollbar bg-[#FAF8F4]'>
-                <WorkspaceListView
-                  onSelectWorkspace={handleSelectWorkspace}
-                  currentUser={{
-                    name:
-                      currentUserInfo?.name ||
-                      firebaseUser?.displayName ||
-                      firebaseUser?.email?.split('@')[0] ||
-                      'User',
-                    email: currentUserInfo?.email || firebaseUser?.email || '',
-                    role: currentRole,
-                    avatarUrl: firebaseUser?.photoURL,
-                    canCreateStudio: currentUserInfo?.canCreateStudio,
-                  }}
-                  onLogout={handleLogout}
-                />
-              </div>
-            }
-          />
-
-          <Route path='projects' element={<Navigate to='/workspaces' replace />} />
-
-          <Route
-            element={
-              <GlobalAppShell
-                currentUser={{
-                  name:
-                    currentUserInfo?.name ||
-                    firebaseUser?.displayName ||
-                    firebaseUser?.email?.split('@')[0] ||
-                    'Tatsuki F.',
-                  role: currentRole,
-                  workspaceRole: currentWorkspaceRole,
-                  activeRoles: activeProjectRoles,
-                  avatarInitials: (
-                    currentUserInfo?.name ||
-                    firebaseUser?.displayName ||
-                    currentRole ||
-                    'U'
-                  )
-                    .charAt(0)
-                    .toUpperCase(),
-                }}
-                activeWorkspace={activeWorkspace}
-                activeSeries={activeProject}
-                aiState='active'
-                onLogout={handleLogout}
-                onLeaveFeedback={() => showToast('Feedback', 'Thanks for your feedback!')}
-                onOpenTwoFactor={() => setIsTwoFactorModalOpen(true)}
-                onOpenChangePassword={() => setIsChangePasswordModalOpen(true)}
-              />
-            }
-          >
-            <Route path='workspaces/:workspaceId'>
-              <Route index element={<ProducerWorkspaceView />} />
-              <Route path='overview' element={<ProducerWorkspaceView />} />
-              <Route
-                path='workspace'
-                element={
-                  <WorkspaceView
-                    currentUserRole={currentWorkspaceRole}
-                    systemRole={currentRole}
-                    userRoles={activeProjectRoles}
-                    onShowToast={showToast}
-                  />
-                }
-              />
-              <Route
-                path='members'
-                element={
-                  <MembersRolesView
-                    activeProject={activeProject}
-                    workspaceId={activeWorkspace?.id}
-                    members={members}
-                    onInviteMember={handleInviteMember}
-                    onUpdateMemberRole={(memberId, newRole) => {
-                      setMembers((prev) =>
-                        prev.map((m) => (m.id === memberId ? { ...m, role: newRole } : m)),
-                      );
-                      showToast('Cập nhật quyền', `Đã phân quyền ${newRole} cho thành viên`);
-                    }}
-                    onShowToast={showToast}
-                  />
-                }
-              />
-
-              <Route path='series/:seriesId'>
-                <Route path='members' element={<SeriesMembersView onShowToast={showToast} />} />
-                <Route
-                  path='dashboard'
-                  element={
-                    <DashboardView
-                      activeProject={activeProject}
-                      assistants={assistants}
-                      provenanceLogs={provenanceLogs}
-                      onShowToast={showToast}
-                    />
-                  }
-                />
-                <Route
-                  path='workspace'
-                  element={
-                    <WorkspaceView
-                      currentUserRole={currentWorkspaceRole}
-                      systemRole={currentRole}
-                      userRoles={activeProjectRoles}
-                      onShowToast={showToast}
-                    />
-                  }
-                />
-                <Route
-                  path='task/:taskId'
-                  element={
-                    <TaskEditor
-                      activeRoles={activeProjectRoles}
-                      onShowToast={showToast}
-                      isDevMode={IS_DEV_MODE}
-                    />
-                  }
-                />
-                <Route
-                  path='bible'
-                  element={
-                    <SeriesBibleView
-                      activeProject={activeProject}
-                      onAddEntity={handleAddEntity}
-                      onSelectSeries={(p) => setActiveProject(p)}
-                      onEditEntity={(e) => showToast('Series Bible', `Mở chi tiết ${e.name}`)}
-                      onShowToast={showToast}
-                    />
-                  }
-                />
-                <Route path='export' element={<ExportView onShowToast={showToast} />} />
-              </Route>
-            </Route>
-
-            {/* Flat routes for backward compatibility / other views */}
-            <Route path='producer' element={<ProducerWorkspaceView />} />
-            <Route
-              path='review/:taskId'
-              element={
-                <ReviewView
-                  activeRoles={activeProjectRoles}
-                  onShowToast={showToast}
-                  isDevMode={IS_DEV_MODE}
-                />
-              }
-            />
-            <Route path='reader' element={<ReaderPortalView />} />
-            <Route path='profile' element={<UserProfile />} />
-            <Route path='artist' element={<ArtistDeskView />} />
-            <Route
-              path='catalog'
-              element={<PublicCatalogView onBackToWorkspaces={() => navigate('/workspaces')} />}
-            />
-            <Route path='notifications' element={<NotificationCenterView />} />
-          </Route>
-
-          {/* Standalone Global Admin Portal (Decoupled completely from GlobalAppShell) */}
-          <Route
-            path='admin'
-            element={
-              <AdminRoute activeRoles={activeProjectRoles} currentRole={currentRole}>
-                <AdminDashboard
-                  onLogout={handleLogout}
-                  currentUser={{
-                    name: currentUserInfo?.name || firebaseUser?.displayName || 'Administrator',
-                    email: currentUserInfo?.email || firebaseUser?.email || 'admin@panelforge.sys',
-                    role: currentRole,
-                  }}
-                />
-              </AdminRoute>
-            }
-          />
-
-          <Route path='*' element={<Navigate to={defaultRedirectPath} replace />} />
-        </Route>
-      </Routes>
+      <AppRoutes
+        isAuthenticated={isAuthenticated}
+        defaultRedirectPath={defaultRedirectPath}
+        handleSelectWorkspace={handleSelectWorkspace}
+        currentUserInfo={currentUserInfo}
+        firebaseUser={firebaseUser}
+        currentRole={currentRole}
+        currentWorkspaceRole={currentWorkspaceRole}
+        activeProjectRoles={activeProjectRoles}
+        activeWorkspace={activeWorkspace}
+        activeProject={activeProject}
+        setActiveProject={setActiveProject}
+        handleLogout={handleLogout}
+        showToast={showToast}
+        setIsTwoFactorModalOpen={setIsTwoFactorModalOpen}
+        setIsChangePasswordModalOpen={setIsChangePasswordModalOpen}
+        setIsLoginModalOpen={setIsLoginModalOpen}
+        setIsRegisterModalOpen={setIsRegisterModalOpen}
+        members={members}
+        setMembers={setMembers}
+        handleInviteMember={handleInviteMember}
+        assistants={assistants}
+        provenanceLogs={provenanceLogs}
+        handleAddEntity={handleAddEntity}
+        isDevMode={IS_DEV_MODE}
+      />
 
       {/* Các Modals dùng chung */}
       <GlobalModals

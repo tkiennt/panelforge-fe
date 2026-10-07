@@ -16,6 +16,9 @@ export interface BibleEntryRevisionDto {
   effectiveFromChapterNumber: number;
   isInitialVersion: boolean;
   createdAt: string;
+  isLocked?: boolean;
+  lockedAt?: string | null;
+  lockedById?: string | null;
 }
 
 export interface BibleEntryDto {
@@ -146,6 +149,24 @@ export const bibleService = {
       return response.data;
     } catch (error) {
       throw extractError(error, 'Không thể tải lịch sử phiên bản của mục.');
+    }
+  },
+
+  /**
+   * Producer duyệt và khoá một revision của mục Nhân vật (POST /api/series/{seriesId}/bible/entries/{entryId}/revisions/{revisionId}/lock)
+   */
+  async lockRevision(
+    seriesId: string,
+    entryId: string,
+    revisionId: string,
+  ): Promise<BibleEntryRevisionDto> {
+    try {
+      const response = await axiosClient.post(
+        `/series/${seriesId}/bible/entries/${entryId}/revisions/${revisionId}/lock`,
+      );
+      return response.data;
+    } catch (error) {
+      throw extractError(error, 'Không thể khoá phiên bản mục Bible.');
     }
   },
 };

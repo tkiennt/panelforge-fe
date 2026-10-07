@@ -2,10 +2,25 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import App from './App';
 import { workspaceService } from './services/workspace.service';
+import { seriesService } from './services/series.service';
 import { WorkspaceDto } from './types';
+import axiosClient from './api/axiosClient';
+import { AxiosError, InternalAxiosRequestConfig } from 'axios';
+
+// Mặc định mọi request HTTP trả 404 (các service tự rơi vào nhánh fallback) để test không phụ thuộc
+// vào backend thật đang chạy ở localhost:5044
+const notFoundAdapter = async (config: InternalAxiosRequestConfig) => {
+  throw new AxiosError('Not Found', 'ERR_BAD_REQUEST', config, null, {
+    data: '',
+    status: 404,
+    statusText: 'Not Found',
+    headers: {},
+    config,
+  });
+};
 
 // Mock Firebase module
-vi.mock('./firebase', () => ({
+vi.mock('@/config/firebase', () => ({
   signInWithPopup: vi.fn(),
   onAuthStateChanged: vi.fn((_auth, callback) => {
     // Return null user initially
@@ -19,6 +34,7 @@ vi.mock('./firebase', () => ({
 describe('App Integration Smoke Test', () => {
   beforeEach(() => {
     localStorage.clear();
+    axiosClient.defaults.adapter = notFoundAdapter;
     // Mỗi test giả lập "tải lại trang trong cùng phiên": bắt đầu từ "/" và bỏ qua bước dọn phiên mới
     // (App xoá token khi mở tab/phiên mới nếu không ghi nhớ thiết bị).
     sessionStorage.clear();
@@ -82,6 +98,9 @@ describe('App Integration Smoke Test', () => {
     ];
 
     vi.spyOn(workspaceService, 'getMyWorkspaces').mockResolvedValue(mockWorkspaces as any);
+    vi.spyOn(seriesService, 'getSeriesList').mockResolvedValue([
+      { id: 's-1', title: 'Series One', createdAt: '2026-01-01T00:00:00Z' } as any,
+    ]);
 
     render(<App />);
 
@@ -94,15 +113,10 @@ describe('App Integration Smoke Test', () => {
     // 4. User chọn vào Workspace Alpha (Producer)
     fireEvent.click(screen.getByText('Workspace Alpha (Producer)'));
 
-    // 5. Xác nhận giao diện hiển thị đúng vai trò PRODUCER và các menu đặc thù Producer
+    // 5. Xác nhận giao diện Studio hiển thị menu / hành động dành riêng cho Producer
     await waitFor(() => {
-      expect(screen.getAllByText(/PRODUCER/i).length).toBeGreaterThanOrEqual(1);
-      expect(screen.getByText('STUDIO MANAGEMENT', { exact: false })).toBeInTheDocument();
-      expect(screen.getByText('Studio Workspaces')).toBeInTheDocument();
-      // Menu của Artist không được xuất hiện
-      expect(screen.queryByText('My Task Queue')).not.toBeInTheDocument();
-      expect(screen.queryByText('Layout & Thumbnail')).not.toBeInTheDocument();
-      expect(screen.queryByText('ARTIST')).not.toBeInTheDocument();
+      expect(screen.getByText('Members & Roles')).toBeInTheDocument();
+      expect(screen.getByText('Tạo Series Mới')).toBeInTheDocument();
     });
 
     // 6. User bấm nút "Workspaces" trên breadcrumb để rời khỏi Workspace
@@ -113,29 +127,22 @@ describe('App Integration Smoke Test', () => {
     await waitFor(() => {
       expect(screen.getByText('Workspace Alpha (Producer)')).toBeInTheDocument();
       expect(screen.getByText('Workspace Beta (Artist)')).toBeInTheDocument();
-      // Các menu của Producer đã biến mất hoàn toàn
-      expect(screen.queryByText('STUDIO MANAGEMENT', { exact: false })).not.toBeInTheDocument();
-      expect(screen.queryByText('Studio Workspaces')).not.toBeInTheDocument();
+      // Menu / hành động của Producer đã biến mất hoàn toàn
+      expect(screen.queryByText('Members & Roles')).not.toBeInTheDocument();
+      expect(screen.queryByText('Tạo Series Mới')).not.toBeInTheDocument();
     });
 
     // 8. User chọn vào Workspace Beta (Artist)
     fireEvent.click(screen.getByText('Workspace Beta (Artist)'));
 
-    // 9. Xác nhận giao diện Workspace B hiển thị chuẩn vai trò ARTIST
+    // 9. Xác nhận Workspace B (Artist) KHÔNG còn menu / hành động của Producer
+    // Artist vào thẳng bàn làm việc của Series đầu tiên (không bị đẩy ngược về danh sách Workspace)
     await waitFor(() => {
-      // Role badge hiển thị ARTIST
-      expect(screen.getAllByText(/ARTIST/i).length).toBeGreaterThanOrEqual(1);
-      // Menu dành riêng cho Artist xuất hiện
-      expect(screen.getByText('My Task Queue')).toBeInTheDocument();
-      expect(screen.getByText('Layout & Thumbnail')).toBeInTheDocument();
-      expect(screen.getByText('Upload Artwork')).toBeInTheDocument();
-      // Menu và vai trò dành riêng cho Producer TUYỆT ĐỐI KHÔNG xuất hiện
-      expect(screen.queryByText(/PRODUCER/i)).not.toBeInTheDocument();
-      expect(screen.queryByText('STUDIO MANAGEMENT', { exact: false })).not.toBeInTheDocument();
-      expect(screen.queryByText('Studio Workspaces')).not.toBeInTheDocument();
-      expect(screen.queryByText('Provenance / Restore')).not.toBeInTheDocument();
-      expect(screen.queryByText('B5 Pre-Press Specs')).not.toBeInTheDocument();
+      expect(window.location.pathname).toBe('/workspaces/ws-b/series/s-1/workspace');
     });
+    // Menu / hành động dành riêng cho Producer TUYỆT ĐỐI KHÔNG xuất hiện
+    expect(screen.queryByText('Members & Roles')).not.toBeInTheDocument();
+    expect(screen.queryByText('Tạo Series Mới')).not.toBeInTheDocument();
   });
 
   it('đăng nhập ADMINISTRATOR -> điều hướng tới /admin và render AdminDashboardView, TUYỆT ĐỐI KHÔNG bị đẩy về /workspaces', async () => {
@@ -274,29 +281,27 @@ describe('App Integration Smoke Test', () => {
       serverTimeUtc: new Date().toISOString(),
     };
 
-    const fetchMock = vi.fn().mockImplementation((url: string, options?: RequestInit) => {
-      if (url.includes('/api/Admin/system-stats')) {
+    // Service dùng axiosClient → giả lập ở tầng adapter để vẫn kiểm tra header Authorization do interceptor gắn
+    const adapterMock = vi.fn(async (config: InternalAxiosRequestConfig) => {
+      const respond = (status: number, data: unknown) => ({
+        data,
+        status,
+        statusText: '',
+        headers: {},
+        config,
+      });
+      if (config.url?.includes('/Admin/system-stats')) {
         // Kiểm tra header Authorization nhận đúng Bearer token có 2 dấu chấm
-        const authHeader = (options?.headers as any)?.['Authorization'];
-        if (authHeader === `Bearer ${validAdminJwt}`) {
-          return Promise.resolve({
-            ok: true,
-            status: 200,
-            json: () => Promise.resolve(mockStats),
-          });
+        if (config.headers.Authorization === `Bearer ${validAdminJwt}`) {
+          return respond(200, mockStats);
         }
-        return Promise.resolve({
-          ok: false,
-          status: 401,
-          json: () => Promise.resolve({ message: 'IDX14100: JWT is not well formed' }),
+        throw new AxiosError('IDX14100: JWT is not well formed', 'ERR_BAD_REQUEST', config, null, {
+          ...respond(401, { message: 'IDX14100: JWT is not well formed' }),
         });
       }
-      return Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve([]),
-      });
+      return respond(200, []);
     });
-    globalThis.fetch = fetchMock;
+    axiosClient.defaults.adapter = adapterMock;
 
     render(<App />);
 
@@ -307,11 +312,11 @@ describe('App Integration Smoke Test', () => {
     });
 
     // Xác nhận gọi thành công system-stats với đúng JWT thật
-    const systemStatsCall = fetchMock.mock.calls.find(([u]: any) =>
-      u.includes('/api/Admin/system-stats'),
+    const systemStatsCall = adapterMock.mock.calls.find(([config]) =>
+      config.url?.includes('/Admin/system-stats'),
     );
     expect(systemStatsCall).toBeDefined();
-    expect((systemStatsCall[1]?.headers as any)['Authorization']).toBe(`Bearer ${validAdminJwt}`);
+    expect(systemStatsCall![0].headers.Authorization).toBe(`Bearer ${validAdminJwt}`);
   });
 
   it('BƯỚC 5.3: Sau khi logout, localStorage không còn bất kỳ giá trị token cũ (thật hoặc mock) nào sót lại', async () => {
@@ -321,6 +326,7 @@ describe('App Integration Smoke Test', () => {
     localStorage.setItem('isDemoMode', 'true');
     localStorage.setItem('user', JSON.stringify({ email: 'admin@panelforge.com' }));
     localStorage.setItem('pf_remember_device', 'remember-token-xyz');
+    localStorage.setItem('refreshToken', 'refresh-token-xyz');
 
     render(<App />);
 
@@ -340,6 +346,7 @@ describe('App Integration Smoke Test', () => {
       expect(localStorage.getItem('demoRole')).toBeNull();
       expect(localStorage.getItem('isDemoMode')).toBeNull();
       expect(localStorage.getItem('pf_remember_device')).toBeNull();
+      expect(localStorage.getItem('refreshToken')).toBeNull();
     });
   });
 });
