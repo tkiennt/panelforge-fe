@@ -85,6 +85,7 @@ import { WorkspaceListView } from './views/WorkspaceListView';
 import { UserProfile } from './views/UserProfile';
 import { auth, onAuthStateChanged } from './firebase';
 import { User } from 'firebase/auth';
+import { SeriesBibleView } from './views/SeriesBibleView';
 
 interface Toast {
   id: string;
@@ -621,6 +622,7 @@ function AppContent() {
   return (
     <div className='min-h-screen bg-[#F8F6F0] text-[#171717] font-sans antialiased selection:bg-[#F97316]/20 selection:text-[#EA580C] relative'>
       <Routes>
+        <Route path='/test-bible' element={<IsolatedSeriesBible />} />
         <Route
           path='/'
           element={
