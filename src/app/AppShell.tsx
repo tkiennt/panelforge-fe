@@ -40,6 +40,7 @@ import {
   Layers,
   LogOut,
   KeyRound,
+  Send,
 } from 'lucide-react';
 import { AppShellSidebar } from './AppShellSidebar';
 import { NotificationBell } from '@/shared/features/collaboration/NotificationBell';
@@ -120,78 +121,60 @@ const ROLE_NAV_CONFIG: Record<string, { section: string; items: any[] }[]> = {
   ],
   WRITER: [
     {
-      section: 'WRITING',
+      section: 'BÀN LÀM VIỆC',
       items: [
-        { icon: FileEdit, label: 'My Scripts', href: '/workspace' },
-        {
-          icon: Sparkles,
-          label: 'AI Breakdown Requests',
-          href: '/ai-breakdown',
-          badge: { type: 'text', text: '2 Pending', color: 'bg-[#F3E8FF] text-[#6D28D9]' },
-        },
+        { icon: Layers, label: 'Công việc của tôi', href: '/my-work' },
+        { icon: FileText, label: 'Kịch bản (Script)', href: '/script' },
         { icon: BookMarked, label: 'Series Bible', href: '/bible' },
-        { icon: Split, label: 'Script Version Compare', href: '/compare' },
+        { icon: Sparkles, label: 'AI Multi-Agent', href: '/ai-agents' },
       ],
     },
   ],
   ARTIST: [
     {
-      section: 'STUDIO DESK',
+      section: 'BÀN LÀM VIỆC',
       items: [
-        {
-          icon: Inbox,
-          label: 'My Task Queue',
-          href: '/workspace',
-          badge: { type: 'text', text: '12', color: 'bg-[#F97316] text-white rounded-full px-2' },
-        },
-        { icon: LayoutTemplate, label: 'Layout & Thumbnail', href: '/layout' },
-        { icon: UploadCloud, label: 'Upload Artwork', href: '/upload' },
-        { icon: BookMarked, label: 'Series Bible & Assets', href: '/bible' },
-        {
-          icon: AlertCircle,
-          label: 'Change Requests',
-          href: '/requests',
-          badge: { type: 'dot', color: 'bg-red-500' },
-        },
+        { icon: Layers, label: 'Công việc của tôi', href: '/my-work' },
+        { icon: BookMarked, label: 'Series Bible', href: '/bible' },
+        { icon: Sparkles, label: 'AI Multi-Agent', href: '/ai-agents' },
       ],
     },
   ],
   LETTERER: [
     {
-      section: 'LETTERING',
+      section: 'BÀN LÀM VIỆC',
       items: [
-        { icon: Type, label: 'Panel Canvas', href: '/workspace' },
-        {
-          icon: AlertTriangle,
-          label: 'Overflow Warnings',
-          href: '/warnings',
-          badge: { type: 'text', text: '3', color: 'bg-yellow-100 text-yellow-700' },
-        },
-        { icon: Settings2, label: 'Typography Presets', href: '/presets' },
+        { icon: Layers, label: 'Công việc của tôi', href: '/my-work' },
+        { icon: BookMarked, label: 'Series Bible', href: '/bible' },
+        { icon: Sparkles, label: 'AI Multi-Agent', href: '/ai-agents' },
       ],
     },
   ],
   EDITOR: [
     {
-      section: 'EDITORIAL',
+      section: 'BÀN LÀM VIỆC',
       items: [
-        {
-          icon: Inbox,
-          label: 'Review Queue',
-          href: '/workspace',
-          badge: {
-            type: 'text',
-            text: 'In Review',
-            color: 'bg-[#FFFBEB] text-[#D97706] border border-[#FDE68A]',
-          },
-        },
-        { icon: Columns, label: 'Side-by-side Compare', href: '/compare' },
-        { icon: CheckSquare, label: 'Consistency Check', href: '/check' },
-        { icon: MessageSquare, label: 'Change Requests', href: '/requests' },
+        { icon: Layers, label: 'Công việc của tôi', href: '/my-work' },
+        { icon: BookMarked, label: 'Series Bible', href: '/bible' },
+        { icon: Sparkles, label: 'AI Multi-Agent', href: '/ai-agents' },
       ],
     },
   ],
   READER: [],
+  PUBLISHER: [
+    {
+      section: 'PUBLISHING',
+      items: [
+        {
+          icon: Send,
+          label: 'Cổng Duyệt Xuất Bản',
+          href: '/publishing',
+          badge: { type: 'dot', color: 'bg-indigo-600' },
+        },
+        { icon: BookOpen, label: 'Public Catalog', href: '/catalog' },
+      ],
+    },
+  ],
 };
 
 export function AppShell({
@@ -265,6 +248,11 @@ export function AppShell({
                 href: `/workspaces/${workspaceId}/series/${seriesId}/my-work`,
               },
               {
+                icon: FileText,
+                label: 'Kịch bản (Script)',
+                href: `/workspaces/${workspaceId}/series/${seriesId}/script`,
+              },
+              {
                 icon: BookMarked,
                 label: 'Series Bible',
                 href: `/workspaces/${workspaceId}/series/${seriesId}/bible`,
@@ -275,6 +263,11 @@ export function AppShell({
                 label: 'AI Multi-Agent',
                 href: `/workspaces/${workspaceId}/series/${seriesId}/ai-agents`,
                 badge: { type: 'text', text: 'Demo', color: 'bg-[#F3E8FF] text-[#6D28D9]' },
+              },
+              {
+                icon: Send,
+                label: 'Cổng Duyệt Xuất Bản',
+                href: `/workspaces/${workspaceId}/series/${seriesId}/publishing`,
               },
               {
                 icon: Upload,
@@ -301,41 +294,115 @@ export function AppShell({
       }
     }
 
-    const base = ROLE_NAV_CONFIG[effectiveRole] || ROLE_NAV_CONFIG['PRODUCER'] || [];
-    // AI Multi-Agent: mọi vai trò làm nội dung (Writer/Artist/Letterer/Editor) vào được khi đang ở trong một Series;
-    // nhiệm vụ nào chạy được là do Backend quyết định theo vai trò/assignment.
-    if (
-      isSeriesContext &&
-      (effectiveRole === 'WRITER' ||
-        effectiveRole === 'EDITOR' ||
-        effectiveRole === 'ARTIST' ||
-        effectiveRole === 'LETTERER')
-    ) {
-      return [
-        ...base,
-        {
-          section: 'MY WORK',
-          items: [
-            {
-              icon: Layers,
-              label: 'Công việc của tôi',
-              href: `/workspaces/${workspaceId}/series/${seriesId}/my-work`,
-            },
-          ],
-        },
-        {
-          section: 'AI MULTI-AGENT',
-          items: [
-            {
-              icon: Sparkles,
-              label: 'AI Multi-Agent',
-              href: `/workspaces/${workspaceId}/series/${seriesId}/ai-agents`,
-              badge: { type: 'text', text: 'Demo', color: 'bg-[#F3E8FF] text-[#6D28D9]' },
-            },
-          ],
-        },
-      ];
+    if (effectiveRole === 'PUBLISHER') {
+      if (isSeriesContext) {
+        return [
+          {
+            section: 'PUBLISHING',
+            items: [
+              {
+                icon: Send,
+                label: 'Cổng Duyệt Xuất Bản',
+                href: `/workspaces/${workspaceId}/series/${seriesId}/publishing`,
+                badge: { type: 'dot', color: 'bg-indigo-600' },
+              },
+              {
+                icon: BookMarked,
+                label: 'Series Bible',
+                href: `/workspaces/${workspaceId}/series/${seriesId}/bible`,
+              },
+              {
+                icon: BookOpen,
+                label: 'Public Catalog',
+                href: '/catalog',
+              },
+            ],
+          },
+        ];
+      } else {
+        return [
+          {
+            section: 'PUBLISHER DESK',
+            items: [
+              {
+                icon: LayoutDashboard,
+                label: 'Studio Workspaces',
+                href: `/workspaces/${workspaceId}/overview`,
+              },
+              {
+                icon: BookOpen,
+                label: 'Public Catalog',
+                href: '/catalog',
+              },
+            ],
+          },
+        ];
+      }
     }
+
+    if (
+      effectiveRole === 'WRITER' ||
+      effectiveRole === 'EDITOR' ||
+      effectiveRole === 'ARTIST' ||
+      effectiveRole === 'LETTERER'
+    ) {
+      if (isSeriesContext) {
+        return [
+          {
+            section: 'BÀN LÀM VIỆC',
+            items: [
+              {
+                icon: Layers,
+                label: 'Công việc của tôi',
+                href: `/workspaces/${workspaceId}/series/${seriesId}/my-work`,
+              },
+              {
+                icon: FileText,
+                label: 'Kịch bản (Script)',
+                href: `/workspaces/${workspaceId}/series/${seriesId}/script`,
+              },
+              {
+                icon: BookMarked,
+                label: 'Series Bible',
+                href: `/workspaces/${workspaceId}/series/${seriesId}/bible`,
+              },
+              {
+                icon: Sparkles,
+                label: 'AI Multi-Agent',
+                href: `/workspaces/${workspaceId}/series/${seriesId}/ai-agents`,
+                badge: { type: 'text', text: 'Hỗ trợ AI', color: 'bg-[#F3E8FF] text-[#6D28D9]' },
+              },
+            ],
+          },
+          {
+            section: 'TIỆN ÍCH SẢN XUẤT',
+            items: [
+              {
+                icon: Kanban,
+                label: 'Bảng Pipeline (Demo)',
+                href: `/workspaces/${workspaceId}/series/${seriesId}/workspace`,
+                badge: { type: 'text', text: 'Demo', color: 'bg-zinc-100 text-zinc-600' },
+              },
+            ],
+          },
+        ];
+      } else {
+        return [
+          {
+            section: 'STUDIO',
+            items: [
+              {
+                icon: LayoutDashboard,
+                label: 'Danh sách Series',
+                href: `/workspaces/${workspaceId}/overview`,
+              },
+            ],
+          },
+        ];
+      }
+    }
+
+    const base = ROLE_NAV_CONFIG[effectiveRole] || ROLE_NAV_CONFIG['PRODUCER'] || [];
     return base;
   };
 

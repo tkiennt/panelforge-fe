@@ -1,4 +1,4 @@
-const ROLES = ['admin', 'producer', 'writer', 'artist', 'letterer', 'editor', 'reader', 'guest'];
+const ROLES = ['admin', 'producer', 'writer', 'artist', 'letterer', 'editor', 'publisher', 'reader', 'guest'];
 
 const roleOverrides = ROLES.map((role) => {
   const otherRoles = ROLES.filter((r) => r !== role);
@@ -61,6 +61,8 @@ module.exports = {
         'src/shared/modals/CommandPaletteModal.tsx',
         'src/shared/modals/ProvenanceModals.tsx',
         'src/shared/modals/VectorStatusModal.tsx',
+        'src/shared/modals/ChapterReviewsModal.tsx',
+        'src/shared/modals/ChapterReaderModal.tsx',
       ],
       rules: {
         'no-restricted-imports': [

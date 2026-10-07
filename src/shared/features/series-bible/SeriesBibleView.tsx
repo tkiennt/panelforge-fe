@@ -608,7 +608,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                 className='relative w-full h-44 bg-[#171717] overflow-hidden cursor-pointer flex items-center justify-center'
                 onClick={() => setSelectedEntity(entity)}
               >
-                {entity.imageUrl ? (
+                {entity.imageUrl && entity.imageUrl.trim() ? (
                   <img
                     src={entity.imageUrl}
                     alt={entity.name}
@@ -805,14 +805,25 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
               )}
 
               <div className='relative w-full h-64 bg-[#171717] rounded-xl overflow-hidden border border-[#E7E7E7]'>
-                <img
-                  src={selectedEntity.imageUrl}
-                  alt={selectedEntity.name}
-                  className='w-full h-full object-cover'
-                />
-                <div className='absolute bottom-3 left-3 bg-black/80 backdrop-blur-xs text-white px-3 py-1 rounded-lg text-xs font-mono'>
-                  Vector Model: {selectedEntity.modelVersion} • Weight {selectedEntity.loraWeight}
-                </div>
+                {selectedEntity.imageUrl && selectedEntity.imageUrl.trim() ? (
+                  <img
+                    src={selectedEntity.imageUrl}
+                    alt={selectedEntity.name}
+                    className='w-full h-full object-cover'
+                  />
+                ) : (
+                  <div className='w-full h-full flex flex-col items-center justify-center bg-[#262626] text-[#737373]'>
+                    <BookOpen className='w-12 h-12 mb-2 opacity-50' />
+                    <span className='text-xs font-mono uppercase tracking-wider text-[#A3A3A3]'>
+                      Chưa có hình ảnh minh họa
+                    </span>
+                  </div>
+                )}
+                {selectedEntity.modelVersion && (
+                  <div className='absolute bottom-3 left-3 bg-black/80 backdrop-blur-xs text-white px-3 py-1 rounded-lg text-xs font-mono'>
+                    Vector Model: {selectedEntity.modelVersion} • Weight {selectedEntity.loraWeight}
+                  </div>
+                )}
               </div>
 
               <div>

@@ -115,7 +115,7 @@ export const PanelProperties: React.FC<PanelPropertiesProps> = ({
                   <div className='flex items-start gap-3'>
                     {/* Thumbnail */}
                     <div className='w-12 h-16 bg-[#E7E7E7] rounded flex items-center justify-center shrink-0 border border-[#B8B8B8]/30 overflow-hidden relative group/thumb'>
-                      {v.thumbnailUrl ? (
+                      {v.thumbnailUrl && v.thumbnailUrl.trim() ? (
                         <img
                           src={v.thumbnailUrl}
                           alt='thumb'

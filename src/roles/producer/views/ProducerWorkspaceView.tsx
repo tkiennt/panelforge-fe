@@ -711,7 +711,41 @@ export const ProducerWorkspaceView: React.FC = () => {
                         >
                           <MoreVertical className='w-4 h-4' />
                         </button>
-                        <div className='absolute right-0 top-full mt-1 w-32 bg-white rounded-lg shadow-xl border border-zinc-200 opacity-0 invisible group-hover/menu:opacity-100 group-hover/menu:visible transition-all z-10 py-1 overflow-hidden'>
+                        <div className='absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-xl border border-zinc-200 opacity-0 invisible group-hover/menu:opacity-100 group-hover/menu:visible transition-all z-10 py-1 overflow-hidden'>
+                          <button
+                            type='button'
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedChapterSeries({ id: s.id, title: s.title });
+                            }}
+                            className='w-full text-left px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 flex items-center gap-2 transition-colors'
+                          >
+                            <BookOpen className='w-3.5 h-3.5 text-orange-500' /> Quản lý Chương
+                            (Duyệt)
+                          </button>
+                          <button
+                            type='button'
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedPipelineSeries({ id: s.id, title: s.title });
+                            }}
+                            className='w-full text-left px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 flex items-center gap-2 transition-colors'
+                          >
+                            <Sliders className='w-3.5 h-3.5 text-blue-500' /> Cấu hình Pipeline
+                            (UC-03)
+                          </button>
+                          <button
+                            type='button'
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedPresetsSeries({ id: s.id, title: s.title });
+                            }}
+                            className='w-full text-left px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 flex items-center gap-2 transition-colors'
+                          >
+                            <ListOrdered className='w-3.5 h-3.5 text-purple-500' /> Typography
+                            Presets
+                          </button>
+                          <div className='border-t border-zinc-100 my-1'></div>
                           <button
                             type='button'
                             onClick={(e) => {
@@ -775,7 +809,58 @@ export const ProducerWorkspaceView: React.FC = () => {
                         <span className='text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 font-semibold flex items-center gap-1'>
                           <Sparkles className='w-3 h-3' /> Bible Active
                         </span>
-                        <span className='text-zinc-400 font-medium'>{s.chaptersCount} Chương</span>
+                        <button
+                          type='button'
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedChapterSeries({ id: s.id, title: s.title });
+                          }}
+                          className='text-orange-600 hover:text-orange-700 font-semibold hover:underline cursor-pointer flex items-center gap-1'
+                          title='Bấm để mở danh sách chương'
+                        >
+                          <BookOpen className='w-3 h-3' />
+                          <span>{s.chaptersCount} Chương</span>
+                        </button>
+                      </div>
+
+                      {/* Action buttons on card footer for Producer */}
+                      <div className='pt-2.5 border-t border-zinc-100 flex items-center gap-1.5'>
+                        <button
+                          type='button'
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedChapterSeries({ id: s.id, title: s.title });
+                          }}
+                          className='flex-1 py-1.5 px-2.5 bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-200/80 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all shadow-2xs hover:shadow-xs active:scale-98 cursor-pointer'
+                          title='Quản lý danh sách chương, kiểm tra tiến độ và phê duyệt hoàn tất (BR-12)'
+                        >
+                          <BookOpen className='w-3.5 h-3.5 text-orange-500' />
+                          <span>Quản Lý Chương (Duyệt)</span>
+                        </button>
+
+                        <button
+                          type='button'
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedPipelineSeries({ id: s.id, title: s.title });
+                          }}
+                          className='p-1.5 text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100 border border-zinc-200 rounded-lg transition-colors cursor-pointer shadow-2xs'
+                          title='Cấu hình Pipeline Series (UC-03)'
+                        >
+                          <Sliders className='w-3.5 h-3.5' />
+                        </button>
+
+                        <button
+                          type='button'
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedPresetsSeries({ id: s.id, title: s.title });
+                          }}
+                          className='p-1.5 text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100 border border-zinc-200 rounded-lg transition-colors cursor-pointer shadow-2xs'
+                          title='Typography Presets & Consistency Rules (NFR-08)'
+                        >
+                          <ListOrdered className='w-3.5 h-3.5' />
+                        </button>
                       </div>
                     </div>
                   </div>

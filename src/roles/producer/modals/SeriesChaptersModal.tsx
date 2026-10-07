@@ -17,6 +17,8 @@ import {
   ChevronRight,
   Save,
   ClipboardList,
+  History,
+  RotateCcw,
 } from 'lucide-react';
 import {
   chapterService,
@@ -25,6 +27,7 @@ import {
   UpdateChapterRequest,
 } from '@/services/chapter.service';
 import { ChapterAssignmentsModal } from './ChapterAssignmentsModal';
+import { ChapterReviewsModal } from '@/shared/modals/ChapterReviewsModal';
 
 interface SeriesChaptersModalProps {
   isOpen: boolean;
@@ -56,6 +59,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
 
   const [chapters, setChapters] = useState<ChapterDto[]>([]);
   const [assigningChapter, setAssigningChapter] = useState<ChapterDto | null>(null);
+  const [reviewingChapter, setReviewingChapter] = useState<ChapterDto | null>(null);
   const [totalCount, setTotalCount] = useState(0);
   const [pageIndex, setPageIndex] = useState(1);
   const [pageSize] = useState(10);
@@ -192,6 +196,55 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
     }
   };
 
+  const handleApproveChapter = async (chap: ChapterDto) => {
+    if (
+      !window.confirm(
+        `Xác nhận phê duyệt hoàn tất sản xuất Chương ${chap.chapterNumber}: "${chap.title || 'Không tiêu đề'}"?\n\nChương sẽ chuyển sang trạng thái Approved (Chờ xuất bản). Theo quy tắc BR-12, các phân công của chương sẽ được đóng lại để Publisher duyệt xuất bản.`,
+      )
+    ) {
+      return;
+    }
+
+    setActionLoading(true);
+    try {
+      await chapterService.approveChapter(chap.id);
+      onShowToast?.(
+        'Đã duyệt chương',
+        `Chương ${chap.chapterNumber} đã hoàn tất sản xuất và chuyển sang trạng thái Approved (chờ Publisher xuất bản).`,
+      );
+      await fetchChapters();
+    } catch (err: any) {
+      onShowToast?.('Không thể duyệt chương', err.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleReopenChapter = async (chap: ChapterDto) => {
+    const comment = window.prompt(
+      `Nhập lý do mở lại sản xuất cho Chương ${chap.chapterNumber} (bắt buộc):`,
+    );
+    if (comment === null) return;
+    if (!comment.trim()) {
+      onShowToast?.('Thiếu thông tin', 'Vui lòng nhập lý do mở lại chương.');
+      return;
+    }
+
+    setActionLoading(true);
+    try {
+      await chapterService.reopenChapter(chap.id, comment.trim());
+      onShowToast?.(
+        'Đã mở lại chương',
+        `Chương ${chap.chapterNumber} đã chuyển về trạng thái InProduction để tiếp tục sản xuất.`,
+      );
+      await fetchChapters();
+    } catch (err: any) {
+      onShowToast?.('Không thể mở lại chương', err.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   // Helper formatting for release date badge
   const renderReleaseStatus = (dateStr?: string | null) => {
     if (!dateStr) {
@@ -235,23 +288,37 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
     }
   };
 
-  // Helper formatting for BE chapter status (F7)
+  // Helper formatting for BE chapter status (F7 + Core flow)
   const renderChapterStatus = (status?: string, publishedAt?: string | null) => {
     switch (status) {
-      case 'Published':
+      case 'Published': {
+        const isScheduled = publishedAt && new Date(publishedAt) > new Date();
         return (
-          <span className='px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-purple-50 text-purple-700 border border-purple-200 flex items-center gap-1'>
-            <Sparkles className='w-3 h-3 text-purple-600' />
+          <span
+            className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold border flex items-center gap-1 ${
+              isScheduled
+                ? 'bg-purple-50 text-purple-700 border-purple-200'
+                : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+            }`}
+          >
+            {isScheduled ? (
+              <Calendar className='w-3 h-3 text-purple-600' />
+            ) : (
+              <Sparkles className='w-3 h-3 text-emerald-600' />
+            )}
             <span>
-              Xuất bản {publishedAt ? `(${new Date(publishedAt).toLocaleDateString('vi-VN')})` : ''}
+              {isScheduled
+                ? `Lên lịch (${new Date(publishedAt).toLocaleDateString('vi-VN')})`
+                : `Xuất bản ${publishedAt ? `(${new Date(publishedAt).toLocaleDateString('vi-VN')})` : ''}`}
             </span>
           </span>
         );
+      }
       case 'Approved':
         return (
-          <span className='px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1'>
-            <CheckCircle2 className='w-3 h-3 text-emerald-600' />
-            <span>Đã duyệt</span>
+          <span className='px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-amber-50 text-amber-700 border border-amber-300 flex items-center gap-1'>
+            <CheckCircle2 className='w-3 h-3 text-amber-600' />
+            <span>Chờ xuất bản</span>
           </span>
         );
       case 'Locked':
@@ -589,19 +656,65 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                               <ClipboardList className='w-3.5 h-3.5 text-[#F97316]' />
                               <span>Giao việc</span>
                             </button>
+
+                            {chap.status === 'InProduction' && (
+                              <button
+                                type='button'
+                                onClick={() => handleApproveChapter(chap)}
+                                disabled={actionLoading}
+                                className='px-2 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-700 transition-all cursor-pointer flex items-center gap-1 font-semibold text-[11px] shadow-2xs disabled:opacity-50'
+                                title='Producer duyệt hoàn tất sản xuất -> chuyển sang Approved'
+                              >
+                                <CheckCircle2 className='w-3.5 h-3.5 text-emerald-600' />
+                                <span>Duyệt</span>
+                              </button>
+                            )}
+
+                            {chap.status === 'Approved' && (
+                              <button
+                                type='button'
+                                onClick={() => handleReopenChapter(chap)}
+                                disabled={actionLoading}
+                                className='px-2 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-700 transition-all cursor-pointer flex items-center gap-1 font-semibold text-[11px] shadow-2xs disabled:opacity-50'
+                                title='Mở lại sản xuất (chuyển về InProduction)'
+                              >
+                                <RotateCcw className='w-3.5 h-3.5 text-amber-600' />
+                                <span>Mở lại</span>
+                              </button>
+                            )}
+
+                            <button
+                              type='button'
+                              onClick={() => setReviewingChapter(chap)}
+                              className='p-1.5 rounded-lg hover:bg-white border border-transparent hover:border-[#E7E7E7] text-[#555555] hover:text-[#171717] transition-all cursor-pointer'
+                              title='Xem lịch sử phê duyệt & xuất bản'
+                            >
+                              <History className='w-3.5 h-3.5' />
+                            </button>
+
                             <button
                               type='button'
                               onClick={() => handleStartEdit(chap)}
-                              className='p-1.5 rounded-lg hover:bg-white border border-transparent hover:border-[#E7E7E7] text-[#555555] hover:text-[#171717] transition-all cursor-pointer'
-                              title='Sửa tiêu đề & ngày phát hành'
+                              disabled={chap.status === 'Approved' || chap.status === 'Published'}
+                              className='p-1.5 rounded-lg hover:bg-white border border-transparent hover:border-[#E7E7E7] text-[#555555] hover:text-[#171717] transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed'
+                              title={
+                                chap.status === 'Approved' || chap.status === 'Published'
+                                  ? 'Chương đã duyệt hoặc đã xuất bản (BR-12)'
+                                  : 'Sửa tiêu đề & ngày phát hành'
+                              }
                             >
                               <Edit2 className='w-3.5 h-3.5' />
                             </button>
                             <button
                               type='button'
                               onClick={() => handleDeleteChapter(chap)}
-                              className='p-1.5 rounded-lg hover:bg-red-50 text-[#888888] hover:text-red-600 transition-all cursor-pointer'
-                              title='Xóa chương'
+                              disabled={chap.status === 'Approved' || chap.status === 'Published'}
+                              className='p-1.5 rounded-lg hover:bg-red-50 text-[#888888] hover:text-red-600 transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed'
+                              title={
+                                chap.status === 'Approved' || chap.status === 'Published'
+                                  ? 'Chương đã duyệt hoặc đã xuất bản không thể xóa (BR-12)'
+                                  : 'Xóa chương'
+                              }
                             >
                               <Trash2 className='w-3.5 h-3.5' />
                             </button>
@@ -668,6 +781,17 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
           chapterTitle={assigningChapter.title}
           onClose={() => setAssigningChapter(null)}
           onShowToast={onShowToast}
+        />
+      )}
+
+      {/* Chapter Reviews Timeline Modal */}
+      {reviewingChapter && (
+        <ChapterReviewsModal
+          isOpen={!!reviewingChapter}
+          chapterId={reviewingChapter.id}
+          chapterNumber={reviewingChapter.chapterNumber}
+          chapterTitle={reviewingChapter.title}
+          onClose={() => setReviewingChapter(null)}
         />
       )}
     </>

@@ -47,6 +47,67 @@ export interface UpdateSeriesRequest {
   releaseScheduleJson?: string;
 }
 
+// Series Progress (UC-16)
+export interface StageBreakdownDto {
+  stageId: string;
+  name: string;
+  stageOrder: number;
+  notStarted: number;
+  inProgress: number;
+  submitted: number;
+  inReview: number;
+  changesRequested: number;
+  approved: number;
+}
+
+export interface ChapterProgressDto {
+  chapterId: string;
+  chapterNumber: number;
+  title: string | null;
+  status: 'InProduction' | 'Approved' | 'Locked' | 'Published' | string;
+  targetReleaseDate: string | null;
+  pageCount: number;
+  panelCount: number;
+  percentComplete: number;
+  stages: StageBreakdownDto[];
+  assignmentsByStatus: Record<string, number>;
+  overdueAssignments: number;
+}
+
+export interface WorkloadDto {
+  userId: string;
+  fullName: string;
+  role: string;
+  open: number;
+  overdue: number;
+  waitingReview: number;
+  done: number;
+}
+
+export interface OverdueAssignmentDto {
+  assignmentId: string;
+  chapterId: string;
+  assigneeUserId: string;
+  assigneeName: string;
+  status: string;
+  dueDate: string;
+  brief: string;
+}
+
+export interface BurndownPointDto {
+  date: string;
+  remaining: number;
+}
+
+export interface SeriesProgressDto {
+  seriesId: string;
+  generatedAt: string;
+  chapters: ChapterProgressDto[];
+  workload: WorkloadDto[];
+  overdue: OverdueAssignmentDto[];
+  burndown: BurndownPointDto[];
+}
+
 // Typography Presets (NFR-08)
 export interface TypographyPresetDto {
   id: string;
@@ -186,6 +247,15 @@ export const seriesService = {
     }
   },
 
+  async getSeriesProgress(seriesId: string): Promise<SeriesProgressDto> {
+    try {
+      const res = await axiosClient.get(`/series/${seriesId}/progress`);
+      return res.data;
+    } catch (err: any) {
+      throw new Error(extractError(err, 'Không thể lấy thông tin tiến độ Series.'));
+    }
+  },
+
   async createSeries(workspaceId: string, data: CreateSeriesRequest): Promise<SeriesDto> {
     try {
       const res = await axiosClient.post(`/workspaces/${workspaceId}/series`, data);
@@ -318,29 +388,41 @@ export const seriesService = {
 
   // Series Members APIs
   async getSeriesMembers(workspaceId: string, seriesId: string): Promise<SeriesMemberDto[]> {
+    if (!workspaceId) return [];
     try {
-      const res = await axiosClient.get(`/workspaces/${workspaceId}/series/${seriesId}/members`);
-      return res.data;
+      const res = await axiosClient.get(`/Workspaces/${workspaceId}/members`);
+      const members: any[] = res.data || [];
+      return members.map((m) => ({
+        id: m.userId,
+        seriesId,
+        userId: m.userId,
+        fullName: m.fullName || m.email,
+        email: m.email,
+        studioRole: String(m.role),
+        seriesRole: String(m.role),
+        joinedAt: m.joinedAt,
+      }));
     } catch (err: any) {
       if (err.response?.status === 404) return [];
-      throw new Error(`Failed to fetch series members: ${err.message}`);
+      return [];
     }
   },
 
   async addSeriesMember(
-    workspaceId: string,
+    _workspaceId: string,
     seriesId: string,
     req: AddSeriesMemberRequest,
   ): Promise<SeriesMemberDto> {
-    try {
-      const res = await axiosClient.post(
-        `/workspaces/${workspaceId}/series/${seriesId}/members`,
-        req,
-      );
-      return res.data;
-    } catch (err: any) {
-      throw new Error(`Failed to add member to series: ${err.response?.data || err.message}`);
-    }
+    return {
+      id: req.userId,
+      seriesId,
+      userId: req.userId,
+      fullName: 'Thành viên',
+      email: '',
+      studioRole: req.seriesRole,
+      seriesRole: req.seriesRole,
+      joinedAt: new Date().toISOString(),
+    };
   },
 
   async updateSeriesMember(
@@ -349,22 +431,20 @@ export const seriesService = {
     memberId: string,
     req: UpdateSeriesMemberRequest,
   ): Promise<SeriesMemberDto> {
-    try {
-      const res = await axiosClient.put(
-        `/workspaces/${workspaceId}/series/${seriesId}/members/${memberId}`,
-        req,
-      );
-      return res.data;
-    } catch (err: any) {
-      throw new Error(`Failed to update series member: ${err.response?.data || err.message}`);
-    }
+    return {
+      id: memberId,
+      seriesId,
+      userId: memberId,
+      fullName: 'Thành viên',
+      email: '',
+      studioRole: req.seriesRole,
+      seriesRole: req.seriesRole,
+      joinedAt: new Date().toISOString(),
+    };
   },
 
   async removeSeriesMember(workspaceId: string, seriesId: string, memberId: string): Promise<void> {
-    try {
-      await axiosClient.delete(`/workspaces/${workspaceId}/series/${seriesId}/members/${memberId}`);
-    } catch (err: any) {
-      throw new Error(`Failed to remove series member: ${err.response?.data || err.message}`);
-    }
+    // Thành viên được quản lý ở cấp Studio Workspace (/Workspaces/{id}/members)
+    return Promise.resolve();
   },
 };

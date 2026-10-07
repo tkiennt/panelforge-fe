@@ -21,6 +21,11 @@ const TYPE_LABEL: Record<string, string> = {
   AssignmentChangesRequested: 'Trả về sửa',
   ChangeRequestResolved: 'Đã sửa xong',
   ChangeRequestReopened: 'Mở lại yêu cầu',
+  ChapterReadyForPublication: 'Chờ duyệt xuất bản',
+  ChapterReopened: 'Chương bị mở lại',
+  ChapterPublished: 'Chương đã xuất bản',
+  AssignmentDueSoon: 'Sắp đến hạn',
+  AssignmentOverdue: 'Đã quá hạn',
 };
 
 /**
@@ -68,6 +73,15 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
       }
     }
     if (workspaceId && seriesId && n.chapterId) {
+      if (
+        n.type === 'ChapterReadyForPublication' ||
+        n.type === 'ChapterReopened' ||
+        n.type === 'ChapterPublished'
+      ) {
+        setOpen(false);
+        navigate(`/workspaces/${workspaceId}/series/${seriesId}/publishing`);
+        return;
+      }
       const query = new URLSearchParams({ chapterId: n.chapterId });
       if (n.assignmentId) query.set('assignmentId', n.assignmentId);
       setOpen(false);
@@ -134,7 +148,23 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
                         className={`w-full text-left p-3 hover:bg-zinc-50 cursor-pointer ${n.readAt ? '' : 'bg-orange-50/50'}`}
                       >
                         <div className='flex items-center justify-between text-[10px] font-mono text-[#888888]'>
-                          <span className={n.readAt ? '' : 'text-[#F97316] font-bold'}>
+                          <span
+                            className={
+                              n.type === 'AssignmentOverdue'
+                                ? 'text-rose-600 font-bold flex items-center gap-1'
+                                : n.type === 'AssignmentDueSoon'
+                                  ? 'text-amber-600 font-bold flex items-center gap-1'
+                                  : n.readAt
+                                    ? ''
+                                    : 'text-[#F97316] font-bold'
+                            }
+                          >
+                            {n.type === 'AssignmentOverdue' && (
+                              <span className='w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0' />
+                            )}
+                            {n.type === 'AssignmentDueSoon' && (
+                              <span className='w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0' />
+                            )}
                             {TYPE_LABEL[String(n.type)] ?? 'Thông báo'}
                           </span>
                           <span>{formatRelativeTime(n.createdAt)}</span>

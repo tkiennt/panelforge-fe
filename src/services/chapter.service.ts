@@ -41,6 +41,28 @@ export interface UpdateChapterRequest {
   outline?: string | null;
 }
 
+export type ChapterReviewAction =
+  'ProducerApproved' | 'ProducerReopened' | 'PublisherRejected' | 'PublisherPublished';
+
+export interface ChapterReviewDto {
+  id: string;
+  chapterId: string;
+  action: ChapterReviewAction;
+  actorUserId: string;
+  comment?: string | null;
+  scheduledAt?: string | null;
+  chapterVersion: number;
+  createdAt: string;
+}
+
+export interface ReopenChapterRequest {
+  comment: string;
+}
+
+export interface PublishChapterRequest {
+  publishAt?: string | null;
+}
+
 function extractError(error: any, defaultMsg: string): string {
   return error.response?.data?.error || error.response?.data?.message || defaultMsg;
 }
@@ -108,6 +130,64 @@ export const chapterService = {
       await axiosClient.delete(`/chapters/${chapterId}`);
     } catch (error) {
       throw new Error(extractError(error, 'Không thể xóa chương.'));
+    }
+  },
+
+  /**
+   * Producer duyệt chương hoàn tất sản xuất (POST /api/chapters/{chapterId}/approve)
+   * Chuyển trạng thái từ InProduction -> Approved
+   */
+  approveChapter: async (chapterId: string): Promise<ChapterReviewDto> => {
+    try {
+      const response = await axiosClient.post(`/chapters/${chapterId}/approve`);
+      return response.data;
+    } catch (error) {
+      throw new Error(extractError(error, 'Không thể duyệt chương.'));
+    }
+  },
+
+  /**
+   * Producer hoặc Publisher mở lại/từ chối chương kèm lý do (POST /api/chapters/{chapterId}/reopen)
+   * Chuyển trạng thái từ Approved -> InProduction
+   */
+  reopenChapter: async (chapterId: string, comment: string): Promise<ChapterReviewDto> => {
+    try {
+      const response = await axiosClient.post(`/chapters/${chapterId}/reopen`, { comment });
+      return response.data;
+    } catch (error) {
+      throw new Error(extractError(error, 'Không thể mở lại/từ chối chương.'));
+    }
+  },
+
+  /**
+   * Publisher xuất bản hoặc lên lịch xuất bản chương (POST /api/chapters/{chapterId}/publish)
+   * Chuyển trạng thái từ Approved -> Published
+   */
+  publishChapter: async (
+    chapterId: string,
+    publishAt?: string | null,
+  ): Promise<ChapterReviewDto> => {
+    try {
+      const payload: PublishChapterRequest = {};
+      if (publishAt) {
+        payload.publishAt = publishAt;
+      }
+      const response = await axiosClient.post(`/chapters/${chapterId}/publish`, payload);
+      return response.data;
+    } catch (error) {
+      throw new Error(extractError(error, 'Không thể xuất bản chương.'));
+    }
+  },
+
+  /**
+   * Lấy lịch sử các mốc phê duyệt/xuất bản của chương (GET /api/chapters/{chapterId}/reviews)
+   */
+  getChapterReviews: async (chapterId: string): Promise<ChapterReviewDto[]> => {
+    try {
+      const response = await axiosClient.get(`/chapters/${chapterId}/reviews`);
+      return response.data;
+    } catch (error) {
+      throw new Error(extractError(error, 'Không thể lấy lịch sử phê duyệt của chương.'));
     }
   },
 };

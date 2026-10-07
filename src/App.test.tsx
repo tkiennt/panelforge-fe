@@ -136,9 +136,9 @@ describe('App Integration Smoke Test', () => {
     fireEvent.click(screen.getByText('Workspace Beta (Artist)'));
 
     // 9. Xác nhận Workspace B (Artist) KHÔNG còn menu / hành động của Producer
-    // Artist vào thẳng bàn làm việc của Series đầu tiên (không bị đẩy ngược về danh sách Workspace)
+    // Artist vào thẳng bàn làm việc thật "Công việc của tôi" của Series đầu tiên (không bị rơi vào màn mock hay bị đẩy về danh sách)
     await waitFor(() => {
-      expect(window.location.pathname).toBe('/workspaces/ws-b/series/s-1/workspace');
+      expect(window.location.pathname).toBe('/workspaces/ws-b/series/s-1/my-work');
     });
     // Menu / hành động dành riêng cho Producer TUYỆT ĐỐI KHÔNG xuất hiện
     expect(screen.queryByText('Members & Roles')).not.toBeInTheDocument();

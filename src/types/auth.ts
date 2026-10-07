@@ -3,7 +3,7 @@ export type RoleKey = 'producer' | 'artist' | 'writer' | 'editor' | 'letterer';
 
 export type SystemRole = 'ADMINISTRATOR' | 'USER';
 
-export type WorkspaceRole = 'PRODUCER' | 'WRITER' | 'ARTIST' | 'LETTERER' | 'EDITOR';
+export type WorkspaceRole = 'PRODUCER' | 'WRITER' | 'ARTIST' | 'LETTERER' | 'EDITOR' | 'PUBLISHER';
 
 export interface ProjectMembership {
   id: string;
@@ -83,7 +83,7 @@ export function getRoleFromToken(customToken?: string | null): SystemRole | null
 }
 
 /**
- * Chuẩn hóa WorkspaceRole (5 role sản xuất trong Workspace theo Entity E-11).
+ * Chuẩn hóa WorkspaceRole (6 role trong Workspace theo Entity E-11 & Core Flow).
  */
 export function normalizeWorkspaceRole(role: any): WorkspaceRole | null {
   if (!role && role !== 0) return null;
@@ -93,5 +93,6 @@ export function normalizeWorkspaceRole(role: any): WorkspaceRole | null {
   if (r === 'ARTIST' || r === '2') return 'ARTIST';
   if (r === 'LETTERER' || r === '3') return 'LETTERER';
   if (r === 'EDITOR' || r === '4') return 'EDITOR';
+  if (r === 'PUBLISHER' || r === '5') return 'PUBLISHER';
   return null;
 }

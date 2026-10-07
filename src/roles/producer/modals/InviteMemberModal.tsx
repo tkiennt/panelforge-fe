@@ -116,6 +116,7 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
               <option>Letterer</option>
               <option>Editor</option>
               <option>Producer</option>
+              <option>Publisher</option>
             </select>
           </div>
 

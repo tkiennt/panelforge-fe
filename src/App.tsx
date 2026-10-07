@@ -262,12 +262,19 @@ function AppContent() {
     // Smart Landing by Persona & Series Availability
     if (wsRole === 'PRODUCER' || currentRole === 'ADMINISTRATOR') {
       navigate(`/workspaces/${ws.id}/overview`);
-    } else {
-      // Vai trò khác vào thẳng bàn làm việc của Series đầu tiên; Workspace chưa có Series thì vào trang tổng quan
+    } else if (wsRole === 'PUBLISHER') {
       navigateToWorkspaceRoleView(wsRole);
       navigate(
         firstSeriesId
-          ? `/workspaces/${ws.id}/series/${firstSeriesId}/workspace`
+          ? `/workspaces/${ws.id}/series/${firstSeriesId}/publishing`
+          : `/workspaces/${ws.id}/overview`,
+      );
+    } else {
+      // Artist, Writer, Letterer, Editor: Vào thẳng bàn làm việc thật (My Work) của Series đầu tiên kết nối Backend API; Workspace chưa có Series thì vào trang tổng quan
+      navigateToWorkspaceRoleView(wsRole);
+      navigate(
+        firstSeriesId
+          ? `/workspaces/${ws.id}/series/${firstSeriesId}/my-work`
           : `/workspaces/${ws.id}/overview`,
       );
     }

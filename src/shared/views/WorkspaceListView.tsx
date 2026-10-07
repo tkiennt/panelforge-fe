@@ -86,6 +86,8 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
         return 'bg-amber-100 text-amber-700 border-amber-200';
       case 'LETTERER':
         return 'bg-pink-100 text-pink-700 border-pink-200';
+      case 'PUBLISHER':
+        return 'bg-indigo-100 text-indigo-700 border-indigo-200';
       default:
         return 'bg-gray-100 text-gray-700 border-gray-200';
     }
@@ -136,7 +138,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
             {currentUser && (
               <div className='flex items-center gap-3 pr-2 sm:pr-4 sm:border-r border-[#E7E7E7]'>
                 <div className='w-9 h-9 rounded-full bg-[#171717] text-white flex items-center justify-center font-bold text-sm shadow-2xs overflow-hidden'>
-                  {currentUser.avatarUrl ? (
+                  {currentUser.avatarUrl && currentUser.avatarUrl.trim() ? (
                     <img
                       src={currentUser.avatarUrl}
                       alt={currentUser.name}

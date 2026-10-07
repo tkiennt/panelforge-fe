@@ -13,6 +13,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { catalogService, PublicSeriesDto, PublicSeriesDetailDto } from '@/services/catalog.service';
+import { ChapterReaderModal } from '@/shared/modals/ChapterReaderModal';
 
 interface PublicCatalogViewProps {
   onBackToWorkspaces?: () => void;
@@ -34,6 +35,7 @@ export const PublicCatalogView: React.FC<PublicCatalogViewProps> = ({
   const [selectedSeries, setSelectedSeries] = useState<PublicSeriesDetailDto | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
+  const [readingChapterId, setReadingChapterId] = useState<string | null>(null);
 
   const genres = [
     'Tất cả',
@@ -331,21 +333,29 @@ export const PublicCatalogView: React.FC<PublicCatalogViewProps> = ({
                   {selectedSeries.chapters.map((chap) => (
                     <div
                       key={chap.id}
-                      className='p-2.5 bg-white rounded-lg border border-[#E7E7E7] flex items-center justify-between text-xs hover:border-[#F97316] transition-colors'
+                      onClick={() => setReadingChapterId(chap.id)}
+                      className='p-2.5 bg-white rounded-lg border border-[#E7E7E7] flex items-center justify-between text-xs hover:border-[#F97316] transition-all cursor-pointer group hover:bg-[#FFF7ED]/30'
+                      title='Bấm để đọc trực tuyến'
                     >
                       <div className='flex items-center gap-2'>
                         <span className='font-mono font-bold text-[#F97316]'>
                           Chương {chap.chapterNumber}:
                         </span>
-                        <span className='font-semibold text-[#171717]'>
+                        <span className='font-semibold text-[#171717] group-hover:text-[#F97316] transition-colors'>
                           {chap.title || 'Không tiêu đề'}
                         </span>
                       </div>
-                      {chap.publishedAt && (
-                        <span className='text-[10px] text-[#888888] font-mono'>
-                          {new Date(chap.publishedAt).toLocaleDateString('vi-VN')}
+                      <div className='flex items-center gap-2'>
+                        {chap.publishedAt && (
+                          <span className='text-[10px] text-[#888888] font-mono'>
+                            {new Date(chap.publishedAt).toLocaleDateString('vi-VN')}
+                          </span>
+                        )}
+                        <span className='px-2 py-0.5 rounded bg-orange-50 text-orange-600 text-[10px] font-bold border border-orange-200 group-hover:bg-orange-600 group-hover:text-white transition-colors flex items-center gap-1'>
+                          <span>Đọc</span>
+                          <span>→</span>
                         </span>
-                      )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -362,6 +372,15 @@ export const PublicCatalogView: React.FC<PublicCatalogViewProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Chapter Reader Modal */}
+      {readingChapterId && (
+        <ChapterReaderModal
+          isOpen={!!readingChapterId}
+          chapterId={readingChapterId}
+          onClose={() => setReadingChapterId(null)}
+        />
       )}
     </div>
   );

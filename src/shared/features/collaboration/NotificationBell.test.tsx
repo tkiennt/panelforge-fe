@@ -117,6 +117,34 @@ describe('NotificationBell', () => {
     expect(screen.getByText('Đã duyệt')).toBeInTheDocument();
   });
 
+  it('hiển thị nhãn Sắp đến hạn và Đã quá hạn chuẩn cho việc đến hạn', async () => {
+    vi.mocked(notificationService.getNotifications).mockResolvedValue(
+      list([
+        notification({
+          id: 'due1',
+          type: 'AssignmentDueSoon',
+          title: 'Việc sắp đến hạn',
+          message: 'Vẽ thumbnail trang 2 (hạn 2026-10-08 10:00 UTC)',
+        }),
+        notification({
+          id: 'over1',
+          type: 'AssignmentOverdue',
+          title: 'Việc đã quá hạn',
+          message: 'Vẽ pencil trang 1 (hạn 2026-10-06 10:00 UTC)',
+        }),
+      ]),
+    );
+    const user = userEvent.setup();
+    renderBell();
+
+    await user.click(await screen.findByTestId('notification-bell'));
+
+    expect(await screen.findByText('Sắp đến hạn')).toBeInTheDocument();
+    expect(screen.getByText('Đã quá hạn')).toBeInTheDocument();
+    expect(screen.getByText('Việc sắp đến hạn')).toBeInTheDocument();
+    expect(screen.getByText('Việc đã quá hạn')).toBeInTheDocument();
+  });
+
   it('danh sách rỗng hiện thông báo trống', async () => {
     vi.mocked(notificationService.getNotifications).mockResolvedValue(list([]));
     const user = userEvent.setup();

@@ -237,6 +237,11 @@ export type NotificationType =
   | 'AssignmentChangesRequested'
   | 'ChangeRequestResolved'
   | 'ChangeRequestReopened'
+  | 'ChapterReadyForPublication'
+  | 'ChapterReopened'
+  | 'ChapterPublished'
+  | 'AssignmentDueSoon'
+  | 'AssignmentOverdue'
   | string;
 
 export interface NotificationDto {

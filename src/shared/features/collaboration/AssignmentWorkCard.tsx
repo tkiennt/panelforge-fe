@@ -4,6 +4,7 @@ import {
   Calendar,
   ChevronDown,
   ChevronRight,
+  Info,
   Loader2,
   Play,
   Send,
@@ -251,6 +252,18 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
           )}
         </div>
       )}
+
+      {status === 'InProgress' &&
+        actions.isAssignee &&
+        String(assignment.assignedRole).toUpperCase() === 'LETTERER' && (
+          <div className='text-[10px] text-zinc-600 bg-zinc-50 border border-zinc-200 p-2 rounded-lg flex items-start gap-1.5'>
+            <Info className='w-3.5 h-3.5 text-zinc-400 shrink-0 mt-0.5' />
+            <span>
+              <strong>Cổng nộp Lettering:</strong> Đảm bảo mọi dòng thoại đã neo vào panel đều có
+              balloon/caption/SFX gắn dòng đó và đã xác nhận cảnh báo tràn chữ (nếu có).
+            </span>
+          </div>
+        )}
 
       {actions.submitBlockedReason && (
         <p
