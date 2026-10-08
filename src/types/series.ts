@@ -22,3 +22,12 @@ export interface MangaProject {
   lastUpdated: string;
   coverImage?: string;
 }
+
+export type {
+  StageBreakdownDto,
+  ChapterProgressDto,
+  WorkloadDto,
+  OverdueAssignmentDto,
+  BurndownPointDto,
+  SeriesProgressDto,
+} from '@/services/series.service';

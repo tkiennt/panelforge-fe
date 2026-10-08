@@ -36,7 +36,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
   const [chapterId, setChapterId] = useState<string>(searchParams.get('chapterId') ?? '');
   const [assignments, setAssignments] = useState<AssignmentDto[]>([]);
   const [progress, setProgress] = useState<StageProgressDto[]>([]);
-  const [tab, setTab] = useState<Tab>(reviewer ? 'review' : 'mine');
+  const [tab, setTab] = useState<Tab>(() => (reviewer ? 'review' : 'mine'));
   const [loadingChapters, setLoadingChapters] = useState(true);
   const [loadingWork, setLoadingWork] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -120,6 +120,19 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
     all: assignments.length,
   };
 
+  // Với Reviewer (Editor / Producer):
+  // 1. Tự động chuyển khỏi tab 'mine' nếu không có việc cá nhân (tránh màn hình trống 0 việc)
+  // 2. Ưu tiên tab 'review' nếu có việc đang chờ duyệt; nếu không có việc chờ duyệt thì mở 'all'
+  useEffect(() => {
+    if (reviewer) {
+      if (tab === 'mine' && counts.mine === 0) {
+        setTab(counts.review > 0 ? 'review' : 'all');
+      } else if (tab === 'review' && counts.review === 0 && counts.all > 0 && counts.mine === 0) {
+        setTab('all');
+      }
+    }
+  }, [reviewer, counts.mine, counts.review, counts.all, tab]);
+
   // Mở từ thông báo: cuộn tới đúng việc sau khi danh sách đã vẽ xong
   useEffect(() => {
     if (!highlightedId || loadingWork) return;
@@ -133,11 +146,16 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
     setSearchParams(id ? { chapterId: id } : {});
   };
 
-  const tabs: { key: Tab; label: string }[] = [
-    { key: 'mine', label: 'Việc của tôi' },
-    ...(reviewer ? [{ key: 'review' as const, label: 'Chờ duyệt' }] : []),
-    { key: 'all', label: 'Tất cả' },
-  ];
+  const tabs: { key: Tab; label: string; badgeAlert?: boolean }[] = reviewer
+    ? [
+        { key: 'review', label: 'Chờ duyệt', badgeAlert: counts.review > 0 },
+        { key: 'all', label: 'Tất cả công việc' },
+        { key: 'mine', label: 'Việc của tôi' },
+      ]
+    : [
+        { key: 'mine', label: 'Việc của tôi' },
+        { key: 'all', label: 'Tất cả' },
+      ];
 
   return (
     <div className='p-6 max-w-4xl mx-auto space-y-5' data-testid='my-work-view'>
@@ -188,13 +206,26 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
             type='button'
             onClick={() => setTab(t.key)}
             aria-pressed={tab === t.key}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold border cursor-pointer ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold border cursor-pointer inline-flex items-center gap-1.5 transition-colors ${
               tab === t.key
                 ? 'bg-[#171717] text-white border-[#171717]'
                 : 'bg-white text-[#555555] border-[#E7E7E7] hover:bg-zinc-50'
             }`}
           >
-            {t.label} ({counts[t.key]})
+            <span>{t.label}</span>
+            <span
+              className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono leading-none ${
+                t.badgeAlert
+                  ? tab === t.key
+                    ? 'bg-amber-500 text-white font-bold'
+                    : 'bg-amber-100 text-amber-800 font-bold border border-amber-300'
+                  : tab === t.key
+                    ? 'bg-zinc-700 text-zinc-200'
+                    : 'bg-zinc-100 text-zinc-600'
+              }`}
+            >
+              {counts[t.key]}
+            </span>
           </button>
         ))}
       </nav>
@@ -215,10 +246,25 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
         </div>
       ) : visible.length === 0 ? (
         <div
-          className='py-12 text-center border border-dashed border-[#E7E7E7] rounded-xl text-xs text-[#737373]'
+          className='py-12 text-center border border-dashed border-[#E7E7E7] rounded-xl text-xs text-[#737373] space-y-2'
           data-testid='my-work-empty'
         >
-          {tab === 'review' ? 'Không có việc nào đang chờ duyệt.' : 'Chưa có việc nào ở mục này.'}
+          <p>
+            {tab === 'review'
+              ? 'Không có việc nào đang chờ duyệt trong chương này.'
+              : tab === 'mine'
+                ? 'Bạn không có nhiệm vụ được phân công trực tiếp trong chương này.'
+                : 'Chưa có công việc nào trong chương này.'}
+          </p>
+          {tab !== 'all' && counts.all > 0 && (
+            <button
+              type='button'
+              onClick={() => setTab('all')}
+              className='text-xs font-semibold text-[#F97316] hover:underline cursor-pointer'
+            >
+              Xem tất cả ({counts.all}) công việc trong chương →
+            </button>
+          )}
         </div>
       ) : (
         <div className='space-y-3'>

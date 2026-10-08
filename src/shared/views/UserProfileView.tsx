@@ -82,7 +82,7 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
     <div className='flex flex-col items-center justify-center min-h-screen bg-[#F8F6F0] p-6'>
       <div className='bg-white rounded-2xl shadow-xl p-8 w-full max-w-md border border-[#e7e7e7] space-y-6'>
         <div className='flex flex-col items-center'>
-          {photoUrl ? (
+          {photoUrl && photoUrl.trim() ? (
             <img
               src={photoUrl}
               alt='Profile'

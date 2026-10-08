@@ -21,6 +21,8 @@ import { UserProfileView } from '@/shared/views/UserProfileView';
 import { SeriesBibleView } from '@/shared/features/series-bible/SeriesBibleView';
 import { AiMultiAgentView } from '@/shared/features/ai-agents/AiMultiAgentView';
 import { MyWorkView } from '@/shared/features/collaboration/MyWorkView';
+import { PublisherDeskView } from '@/roles/publisher/views/PublisherDeskView';
+import { ScriptEditorView } from '@/roles/writer/views/ScriptEditorView';
 import {
   SystemRole,
   WorkspaceRole,
@@ -299,7 +301,14 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                   />
                 }
               />
+              <Route
+                path='script'
+                element={
+                  <ScriptEditorView onShowToast={showToast} workspaceRole={currentWorkspaceRole} />
+                }
+              />
               <Route path='ai-agents' element={<AiMultiAgentView onShowToast={showToast} />} />
+              <Route path='publishing' element={<PublisherDeskView onShowToast={showToast} />} />
               <Route path='export' element={<ExportView onShowToast={showToast} />} />
             </Route>
           </Route>

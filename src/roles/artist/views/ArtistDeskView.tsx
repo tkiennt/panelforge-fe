@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useParams, useSearchParams } from 'react-router-dom';
 import {
   Layers,
   Plus,
@@ -16,17 +17,30 @@ import {
   KanbanSquare,
   Clock,
   ArrowRight,
+  BookOpen,
+  ShieldAlert,
 } from 'lucide-react';
-import {
-  pageService,
-  PageDto,
-  PageDetailDto,
-  MOCK_PAGES,
-  DEFAULT_CHAPTER_ID,
-} from '@/services/page.service';
+import { pageService, PageDto, PageDetailDto } from '@/services/page.service';
+import { chapterService, ChapterDto } from '@/services/chapter.service';
+import { normalizeWorkspaceRole } from '@/types/auth';
 
-export const ArtistDeskView: React.FC = () => {
+interface ArtistDeskViewProps {
+  workspaceRole?: string | null;
+}
+
+export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole }) => {
+  const { seriesId } = useParams<{ workspaceId?: string; seriesId?: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const chapterIdFromUrl = searchParams.get('chapterId');
+
   const [activeTab, setActiveTab] = useState<'queue' | 'pages'>('queue');
+  const [chapters, setChapters] = useState<ChapterDto[]>([]);
+  const [currentChapterId, setCurrentChapterId] = useState<string | null>(chapterIdFromUrl || null);
+  const [loadingChapters, setLoadingChapters] = useState(false);
+
+  // Quyền ghi Page (Breaking 152): Chỉ Producer và Artist được ghi (tạo/sửa canvas/xoá)
+  const normRole = workspaceRole ? normalizeWorkspaceRole(workspaceRole) : null;
+  const canEditPages = !normRole || normRole === 'PRODUCER' || normRole === 'ARTIST';
 
   // Tasks Queue Mock Data
   const [tasks, setTasks] = useState([
@@ -77,14 +91,14 @@ export const ArtistDeskView: React.FC = () => {
     {} as Record<string, typeof tasks>,
   );
 
-  const [pages, setPages] = useState<PageDto[]>(MOCK_PAGES);
-  const [selectedPage, setSelectedPage] = useState<PageDto | null>(MOCK_PAGES[0]);
+  const [pages, setPages] = useState<PageDto[]>([]);
+  const [selectedPage, setSelectedPage] = useState<PageDto | null>(null);
   const [pageDetail, setPageDetail] = useState<PageDetailDto | null>(null);
   const [loading, setLoading] = useState(false);
 
   // Modals
   const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [newPageNumber, setNewPageNumber] = useState(4);
+  const [newPageNumber, setNewPageNumber] = useState(1);
   const [newLayoutFormat, setNewLayoutFormat] = useState('StandardPage');
   const [newWidthPx, setNewWidthPx] = useState('1200');
   const [newHeightPx, setNewHeightPx] = useState('1800');
@@ -103,23 +117,63 @@ export const ArtistDeskView: React.FC = () => {
     setTimeout(() => setToast(null), 3500);
   };
 
+  // Nạp danh sách Chapter thật của Series
+  useEffect(() => {
+    if (!seriesId) return;
+    let isMounted = true;
+    setLoadingChapters(true);
+    chapterService
+      .getChaptersBySeries(seriesId, 1, 50)
+      .then((res) => {
+        if (!isMounted) return;
+        setChapters(res.items);
+        if (res.items.length > 0) {
+          const matched = res.items.find((c) => c.id === chapterIdFromUrl);
+          const chosenId = matched ? matched.id : res.items[0].id;
+          setCurrentChapterId(chosenId);
+        }
+      })
+      .catch((err) => {
+        console.error('Không thể nạp chapters cho ArtistDesk:', err);
+      })
+      .finally(() => {
+        if (isMounted) setLoadingChapters(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [seriesId, chapterIdFromUrl]);
+
   const loadPages = React.useCallback(async () => {
+    if (!currentChapterId) {
+      setPages([]);
+      setSelectedPage(null);
+      return;
+    }
     setLoading(true);
     try {
-      const list = await pageService.getPagesByChapter(DEFAULT_CHAPTER_ID);
+      const list = await pageService.getPagesByChapter(currentChapterId);
       if (list && list.length > 0) {
         setPages(list);
         const sel = list.find((p) => p.id === selectedPage?.id) || list[0];
         setSelectedPage(sel);
         const detail = await pageService.getPageById(sel.id);
         setPageDetail(detail);
+        setNewPageNumber(list.length + 1);
+      } else {
+        setPages([]);
+        setSelectedPage(null);
+        setPageDetail(null);
+        setNewPageNumber(1);
       }
     } catch (err: any) {
-      console.error(err);
+      console.error('Lỗi nạp pages cho chapter:', err);
+      showToast('Lỗi nạp trang', err.message || 'Không thể tải danh sách trang');
     } finally {
       setLoading(false);
     }
-  }, [selectedPage?.id]);
+  }, [currentChapterId, selectedPage?.id]);
 
   useEffect(() => {
     loadPages();
@@ -137,8 +191,16 @@ export const ArtistDeskView: React.FC = () => {
 
   const handleCreatePage = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canEditPages) {
+      showToast('Không có quyền', 'Chỉ Producer và Artist mới có quyền tạo trang.');
+      return;
+    }
+    if (!currentChapterId) {
+      showToast('Chưa chọn chương', 'Vui lòng chọn hoặc tạo một Chương trước khi thêm trang.');
+      return;
+    }
     try {
-      const created = await pageService.createPage(DEFAULT_CHAPTER_ID, {
+      const created = await pageService.createPage(currentChapterId, {
         pageNumber: newPageNumber,
         layoutFormat: newLayoutFormat,
         widthPx: parseInt(newWidthPx, 10),
@@ -188,6 +250,10 @@ export const ArtistDeskView: React.FC = () => {
   };
 
   const handleDeletePage = async (pageId: string) => {
+    if (!canEditPages) {
+      showToast('Không có quyền', 'Chỉ Producer và Artist mới có quyền xoá trang.');
+      return;
+    }
     if (!confirm('Bạn có chắc chắn muốn xóa trang này khỏi Chapter?')) return;
     try {
       await pageService.deletePage(pageId);
@@ -239,7 +305,37 @@ export const ArtistDeskView: React.FC = () => {
           </p>
         </div>
 
-        <div className='flex items-center gap-2.5 shrink-0'>
+        <div className='flex items-center gap-2.5 shrink-0 flex-wrap'>
+          {chapters.length > 0 && (
+            <div className='flex items-center gap-1.5 bg-[#F8F6F0] px-3 py-1 rounded-xl border border-[#E7E7E7]'>
+              <BookOpen className='w-3.5 h-3.5 text-blue-600' />
+              <label htmlFor='artist-chapter-select' className='text-xs font-medium text-[#555555]'>
+                Chương:
+              </label>
+              <select
+                id='artist-chapter-select'
+                value={currentChapterId || ''}
+                onChange={(e) => {
+                  const newId = e.target.value;
+                  setCurrentChapterId(newId);
+                  setSearchParams((prev) => {
+                    const p = new URLSearchParams(prev);
+                    p.set('chapterId', newId);
+                    return p;
+                  });
+                }}
+                className='bg-transparent text-xs font-semibold text-[#171717] outline-none cursor-pointer pr-1'
+              >
+                {chapters.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    Chương {c.chapterNumber}
+                    {c.title ? `: ${c.title}` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <button
             onClick={loadPages}
             disabled={loading}
@@ -250,13 +346,31 @@ export const ArtistDeskView: React.FC = () => {
           </button>
           <button
             onClick={() => setCreateModalOpen(true)}
-            className='inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-xs transition-all cursor-pointer'
+            disabled={!canEditPages || !currentChapterId}
+            title={
+              !canEditPages
+                ? 'Chỉ Producer và Artist mới có quyền tạo trang (Breaking 152)'
+                : !currentChapterId
+                  ? 'Vui lòng chọn hoặc tạo Chương trước'
+                  : undefined
+            }
+            className='inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-300 disabled:cursor-not-allowed rounded-xl shadow-xs transition-all cursor-pointer'
           >
             <Plus className='w-3.5 h-3.5' />
             <span>Tạo Trang Mới</span>
           </button>
         </div>
       </div>
+
+      {!canEditPages && (
+        <div className='p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-2 text-xs text-amber-800'>
+          <ShieldAlert className='w-4 h-4 text-amber-600 shrink-0' />
+          <span>
+            Chế độ xem: Bạn đang xem trang với quyền đọc. Chỉ vai trò <strong>Producer</strong> hoặc{' '}
+            <strong>Artist</strong> mới có quyền tạo, sửa cài đặt và xoá trang.
+          </span>
+        </div>
+      )}
 
       {activeTab === 'pages' && (
         <>
@@ -265,43 +379,56 @@ export const ArtistDeskView: React.FC = () => {
             <div className='flex items-center justify-between text-xs font-bold text-[#171717]'>
               <span className='flex items-center gap-2'>
                 <Layout className='w-4 h-4 text-blue-600' />
-                <span>Danh Sách Trang Bản Thảo (Chapter 5)</span>
+                <span>
+                  Danh Sách Trang Bản Thảo{' '}
+                  {currentChapterId
+                    ? `(Chương ${chapters.find((c) => c.id === currentChapterId)?.chapterNumber ?? ''})`
+                    : ''}
+                </span>
               </span>
               <span className='font-mono text-[11px] text-[#888888]'>
                 Tổng cộng: {pages.length} trang
               </span>
             </div>
 
-            <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3'>
-              {pages.map((p) => {
-                const isSel = selectedPage?.id === p.id;
-                return (
-                  <div
-                    key={p.id}
-                    onClick={() => handleSelectPage(p)}
-                    className={`p-3 rounded-xl border transition-all cursor-pointer text-center relative ${
-                      isSel
-                        ? 'border-blue-600 bg-blue-50/40 ring-2 ring-blue-500/30'
-                        : 'border-[#E7E7E7] bg-[#FAF8F5] hover:bg-white hover:border-blue-400'
-                    }`}
-                  >
-                    <div className='aspect-[2/3] bg-white border border-[#E7E7E7] rounded-lg flex flex-col items-center justify-center p-2 mb-2 relative overflow-hidden group shadow-2xs'>
-                      <FileImage className='w-8 h-8 text-blue-400 mb-1' />
-                      <span className='text-[10px] font-mono text-[#888888]'>
-                        {p.widthPx}x{p.heightPx}
-                      </span>
-                      <span className='text-[9px] font-mono font-bold text-blue-600 bg-blue-50 px-1 py-0.2 rounded mt-1'>
-                        {p.dpi} DPI
-                      </span>
+            {pages.length === 0 ? (
+              <div className='p-8 text-center text-xs text-zinc-500 border border-dashed border-[#E7E7E7] rounded-xl'>
+                {currentChapterId
+                  ? 'Chương này chưa có trang bản thảo nào. Bấm "Tạo Trang Mới" để bắt đầu vẽ.'
+                  : 'Vui lòng chọn một Chương để hiển thị danh sách trang.'}
+              </div>
+            ) : (
+              <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3'>
+                {pages.map((p) => {
+                  const isSel = selectedPage?.id === p.id;
+                  return (
+                    <div
+                      key={p.id}
+                      onClick={() => handleSelectPage(p)}
+                      className={`p-3 rounded-xl border transition-all cursor-pointer text-center relative ${
+                        isSel
+                          ? 'border-blue-600 bg-blue-50/40 ring-2 ring-blue-500/30'
+                          : 'border-[#E7E7E7] bg-[#FAF8F5] hover:bg-white hover:border-blue-400'
+                      }`}
+                    >
+                      <div className='aspect-[2/3] bg-white border border-[#E7E7E7] rounded-lg flex flex-col items-center justify-center p-2 mb-2 relative overflow-hidden group shadow-2xs'>
+                        <FileImage className='w-8 h-8 text-blue-400 mb-1' />
+                        <span className='text-[10px] font-mono text-[#888888]'>
+                          {p.widthPx}x{p.heightPx}
+                        </span>
+                        <span className='text-[9px] font-mono font-bold text-blue-600 bg-blue-50 px-1 py-0.2 rounded mt-1'>
+                          {p.dpi} DPI
+                        </span>
+                      </div>
+                      <div className='text-xs font-bold text-[#171717]'>Trang {p.pageNumber}</div>
+                      <div className='text-[10px] text-[#888888] font-mono truncate'>
+                        {p.layoutFormat}
+                      </div>
                     </div>
-                    <div className='text-xs font-bold text-[#171717]'>Trang {p.pageNumber}</div>
-                    <div className='text-[10px] text-[#888888] font-mono truncate'>
-                      {p.layoutFormat}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Selected Page Workbench & Canvas Specs */}
@@ -322,26 +449,30 @@ export const ArtistDeskView: React.FC = () => {
                   </div>
 
                   <div className='flex items-center gap-2'>
-                    <button
-                      onClick={() => {
-                        setEditWidthPx(selectedPage.widthPx.toString());
-                        setEditHeightPx(selectedPage.heightPx.toString());
-                        setEditDpi(selectedPage.dpi.toString());
-                        setEditLayout(selectedPage.layoutFormat);
-                        setSettingsModalOpen(true);
-                      }}
-                      className='px-2.5 py-1 text-xs font-semibold text-[#555555] hover:text-[#171717] bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg flex items-center gap-1 cursor-pointer'
-                    >
-                      <Settings className='w-3 h-3' />
-                      <span>Cài Đặt Canvas</span>
-                    </button>
-                    <button
-                      onClick={() => handleDeletePage(selectedPage.id)}
-                      className='p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg cursor-pointer'
-                      title='Xóa trang'
-                    >
-                      <Trash2 className='w-3.5 h-3.5' />
-                    </button>
+                    {canEditPages && (
+                      <>
+                        <button
+                          onClick={() => {
+                            setEditWidthPx(selectedPage.widthPx.toString());
+                            setEditHeightPx(selectedPage.heightPx.toString());
+                            setEditDpi(selectedPage.dpi.toString());
+                            setEditLayout(selectedPage.layoutFormat);
+                            setSettingsModalOpen(true);
+                          }}
+                          className='px-2.5 py-1 text-xs font-semibold text-[#555555] hover:text-[#171717] bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg flex items-center gap-1 cursor-pointer'
+                        >
+                          <Settings className='w-3 h-3' />
+                          <span>Cài Đặt Canvas</span>
+                        </button>
+                        <button
+                          onClick={() => handleDeletePage(selectedPage.id)}
+                          className='p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg cursor-pointer'
+                          title='Xóa trang'
+                        >
+                          <Trash2 className='w-3.5 h-3.5' />
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
 
