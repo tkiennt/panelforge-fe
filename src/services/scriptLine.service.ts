@@ -21,6 +21,7 @@ export interface SceneScriptLineSummaryDto {
   stageDirection?: string | null;
   speakerCharacterId?: string | null;
   panelId?: string | null;
+  bibleEntryIds?: string[];
 }
 
 export interface SceneDetailDto {
@@ -45,6 +46,8 @@ export interface ScriptLineDto {
   panelId?: string | null;
   chapterVersion: number;
   revisionId: string;
+  bibleEntryIds?: string[];
+  replayed?: boolean;
 }
 
 export interface CreateSceneRequest {
@@ -69,6 +72,8 @@ export interface CreateScriptLineRequest {
   speakerCharacterId?: string | null;
   lineOrder?: number | null;
   expectedChapterVersion?: number | null;
+  bibleEntryIds?: string[] | null;
+  clientLineId?: string | null;
 }
 
 export interface UpdateScriptLineRequest {
@@ -76,6 +81,7 @@ export interface UpdateScriptLineRequest {
   stageDirection?: string | null;
   speakerCharacterId?: string | null;
   expectedChapterVersion?: number | null;
+  bibleEntryIds?: string[] | null;
 }
 
 export interface DeleteScriptLineResult {

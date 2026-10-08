@@ -131,4 +131,17 @@ describe('seriesService - Progress & Series APIs (UC-16)', () => {
       expect(res.title).toBe('Cyber Ronin');
     });
   });
+
+  describe('updateStoryArc', () => {
+    it('gọi PUT /series/{seriesId}/story-arc và trả về giá trị đã lưu', async () => {
+      const put = vi.mocked(axiosClient.put);
+      put.mockResolvedValueOnce({ data: { value: 'Story arc mới' } });
+
+      const res = await seriesService.updateStoryArc('series-001', 'Story arc mới');
+      expect(put).toHaveBeenCalledWith('/series/series-001/story-arc', {
+        storyArc: 'Story arc mới',
+      });
+      expect(res.value).toBe('Story arc mới');
+    });
+  });
 });

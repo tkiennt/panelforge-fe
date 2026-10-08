@@ -53,20 +53,34 @@ export const lastRejectedAt = (
   );
 };
 
-/** Có artwork ở đúng stage cho Page, và (nếu từng bị trả về) tạo sau lần từ chối gần nhất. */
+/** Có artwork ở đúng stage cho Page (cả trang HOẶC tất cả Panel có ảnh riêng), và (nếu từng bị trả về) tạo sau lần từ chối gần nhất. */
 export const hasCurrentArtwork = (
-  artworks: Pick<AssetReferenceDto, 'pageId' | 'pipelineStageId' | 'createdAt'>[],
+  artworks: Pick<AssetReferenceDto, 'pageId' | 'pipelineStageId' | 'createdAt' | 'panelId'>[],
   pageId: string | null,
   stageId: string,
   rejectedAt: string | null,
-): boolean =>
-  pageId !== null &&
-  artworks.some(
+  panelIds?: string[],
+): boolean => {
+  if (pageId === null) return false;
+
+  const validArtworks = artworks.filter(
     (art) =>
       art.pageId === pageId &&
       art.pipelineStageId === stageId &&
       (rejectedAt === null || new Date(art.createdAt).getTime() >= new Date(rejectedAt).getTime()),
   );
+
+  // Điều kiện 1: Có ảnh cả trang (không có panelId hoặc panelId = null)
+  const hasFullPageArtwork = validArtworks.some((art) => !art.panelId);
+  if (hasFullPageArtwork) return true;
+
+  // Điều kiện 2: Có danh sách Panel và TẤT CẢ các Panel đều có ảnh riêng
+  if (panelIds && panelIds.length > 0) {
+    return panelIds.every((pId) => validArtworks.some((art) => art.panelId === pId));
+  }
+
+  return false;
+};
 
 export interface WorkContext {
   userId?: string | null;
@@ -111,7 +125,7 @@ export const getWorkActions = (a: AssignmentDto, ctx: WorkContext): WorkActions 
       submitBlockedReason = `Còn ${openCount} yêu cầu sửa chưa xử lý, hãy sửa và bấm "Đã sửa" trước khi nộp lại.`;
     } else if (needsArtwork(a) && ctx.hasCurrentArtwork === false) {
       submitBlockedReason =
-        'Chưa có artwork (hoặc chưa có bản mới sau lần bị trả về) cho trang này ở công đoạn này.';
+        'Chưa có artwork (hoặc chưa có bản mới sau lần bị trả về). Cần có ảnh cả trang hoặc tất cả các khung panel phải có ảnh riêng.';
     }
   }
 
@@ -205,6 +219,37 @@ export const describeRegion = (regionJson?: string | null): string | null => {
     const { x, y, w, h } = JSON.parse(regionJson) as RegionPercent;
     const pct = (n: number) => `${Math.round(n * 1000) / 10}%`;
     return `x ${pct(x)}, y ${pct(y)}, rộng ${pct(w)}, cao ${pct(h)}`;
+  } catch {
+    return null;
+  }
+};
+
+/** Phân tích toạ độ vùng chuẩn hoá (0–1) để vẽ khung khoanh trên ảnh. */
+export const parseRegionBox = (
+  regionJson?: string | null,
+): { x: number; y: number; w: number; h: number } | null => {
+  if (!regionJson) return null;
+  try {
+    const raw = typeof regionJson === 'string' ? JSON.parse(regionJson) : regionJson;
+    const rawX = typeof raw.x === 'number' ? raw.x : (raw.left ?? 0);
+    const rawY = typeof raw.y === 'number' ? raw.y : (raw.top ?? 0);
+    const rawW = typeof raw.w === 'number' ? raw.w : (raw.width ?? 0);
+    const rawH = typeof raw.h === 'number' ? raw.h : (raw.height ?? 0);
+
+    // Chuẩn hoá nếu toạ độ nhập dạng 0–100% thay vì 0–1
+    const x = rawX > 1 ? rawX / 100 : rawX;
+    const y = rawY > 1 ? rawY / 100 : rawY;
+    const w = rawW > 1 ? rawW / 100 : rawW;
+    const h = rawH > 1 ? rawH / 100 : rawH;
+
+    if (w <= 0 || h <= 0) return null;
+
+    return {
+      x: Math.min(1, Math.max(0, x)),
+      y: Math.min(1, Math.max(0, y)),
+      w: Math.min(1, Math.max(0, w)),
+      h: Math.min(1, Math.max(0, h)),
+    };
   } catch {
     return null;
   }

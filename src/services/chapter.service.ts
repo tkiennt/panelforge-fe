@@ -190,4 +190,20 @@ export const chapterService = {
       throw new Error(extractError(error, 'Không thể lấy lịch sử phê duyệt của chương.'));
     }
   },
+
+  /**
+   * Cập nhật đề cương chương (PUT /api/chapters/{chapterId}/outline)
+   * Quyền: Producer hoặc Writer. Chương Approved/Published -> 409
+   */
+  updateOutline: async (
+    chapterId: string,
+    outline: string | null,
+  ): Promise<{ value: string | null }> => {
+    try {
+      const response = await axiosClient.put(`/chapters/${chapterId}/outline`, { outline });
+      return response.data;
+    } catch (error) {
+      throw new Error(extractError(error, 'Không thể cập nhật đề cương chương.'));
+    }
+  },
 };

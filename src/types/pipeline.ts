@@ -163,6 +163,10 @@ export interface SubmissionDto {
   decidedByUserId?: string | null;
   decidedAt?: string | null;
   decisionComment?: string | null;
+  /** Phiên bản artwork (AssetReference.id) đúng của lần nộp này; rỗng với việc không có artwork / lần nộp cũ. */
+  artworkReferenceIds?: string[];
+  /** Version của chương lúc nộp (revision script). */
+  chapterVersion?: number;
 }
 
 export type ChangeRequestStatus = 'Open' | 'Resolved' | 'Verified' | 'Rejected' | number;
@@ -185,17 +189,32 @@ export interface ChangeRequestDto {
   closedAt?: string | null;
   createdAt: string;
   updatedAt?: string | null;
+  /** Phiên bản artwork mà vùng khoanh (regionJson) thuộc về; null = không gắn ảnh cụ thể. */
+  assetReferenceId?: string | null;
+  /** Panel thuộc một Page của Chapter; null/undefined nếu khoanh chung cả trang. */
+  panelId?: string | null;
 }
 
 export interface ChangeRequestItemRequest {
   description: string;
   regionJson?: string;
   dueDate?: string;
+  /** AssetReference.id của phiên bản artwork đang khoanh vùng. */
+  assetReferenceId?: string;
+  /** Panel thuộc một Page của Chapter; null/undefined nếu khoanh chung cả trang. */
+  panelId?: string | null;
 }
 
 export interface RequestAssignmentChangesRequest {
   comment: string;
   changes?: ChangeRequestItemRequest[];
+  /** Chống quyết định nhầm: id của lần nộp Pending đang xem; lệch → 409. */
+  expectedSubmissionId?: string;
+}
+
+export interface ApproveAssignmentRequest {
+  /** Chống quyết định nhầm: id của lần nộp Pending đang xem; lệch → 409. */
+  expectedSubmissionId?: string;
 }
 
 // ==========================================
@@ -217,6 +236,8 @@ export interface AssetReferenceDto {
   reused: boolean;
   uploadedByUserId: string;
   createdAt: string;
+  /** Ảnh cho một Panel; null/undefined = artwork cả trang. */
+  panelId?: string | null;
 }
 
 export interface ArtworkAccessLinkDto {
@@ -261,4 +282,78 @@ export interface NotificationListDto {
   unreadCount: number;
   pageIndex: number;
   pageSize: number;
+}
+
+export interface PanelDto {
+  id: string;
+  pageId: string;
+  panelNumber: number;
+  boundingBox: string;
+  readingOrder: number;
+  currentStageId?: string | null;
+  createdAt: string;
+  updatedAt?: string | null;
+  createdBy?: string | null;
+  sceneId?: string | null;
+}
+
+export interface PanelDetailDto extends PanelDto {
+  scriptLineIds?: string[] | null;
+}
+
+export interface CreatePanelRequest {
+  panelNumber?: number;
+  readingOrder?: number;
+  boundingBox?: string;
+}
+
+export interface UpdatePanelCoordinatesRequest {
+  boundingBox: string;
+  readingOrder?: number;
+}
+
+export interface AssignPanelSceneRequest {
+  sceneId: string | null;
+}
+
+export interface AssignPanelScriptLinesRequest {
+  scriptLineIds: string[];
+}
+
+// ==========================================
+// CF3: Consistency Check (kiểm tra nhất quán bằng code)
+// ==========================================
+
+export type ConsistencyFindingSeverity = 'Info' | 'Warning' | 'Blocking';
+
+export type ConsistencyFindingStatus =
+  'Open' | 'Confirmed' | 'Rejected' | 'Ignored' | 'NeedsClarification' | 'Resolved' | 'Stale';
+
+export interface ConsistencyFindingDto {
+  id: string;
+  chapterId: string;
+  ruleCode: string;
+  consistencyRuleId?: string | null;
+  severity: ConsistencyFindingSeverity;
+  message: string;
+  evidence?: string | null;
+  sceneId?: string | null;
+  scriptLineId?: string | null;
+  bibleEntryId?: string | null;
+  status: ConsistencyFindingStatus;
+  triageNote?: string | null;
+  triagedByUserId?: string | null;
+  triagedAt?: string | null;
+  lastDetectedAt: string;
+  createdAt: string;
+}
+
+export interface ConsistencyCheckResultDto {
+  chapterId: string;
+  checkedAt: string;
+  newCount: number;
+  openCount: number;
+  blockingOpenCount: number;
+  clearedCount: number;
+  findings: ConsistencyFindingDto[];
 }

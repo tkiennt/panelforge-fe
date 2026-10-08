@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import type {
   AssetReferenceDto,
   AssignmentDto,
@@ -10,6 +11,7 @@ import type {
 } from '@/types';
 import { assignmentService } from '@/services/assignment.service';
 import { artworkService } from '@/services/artwork.service';
+import { panelService } from '@/services/panel.service';
 import { AssignmentWorkCard } from './AssignmentWorkCard';
 
 vi.mock('@/services/assignment.service', () => ({
@@ -36,6 +38,12 @@ vi.mock('@/services/artwork.service', () => ({
   },
   computeFileSha256: vi.fn(),
   resolveArtworkUrl: vi.fn((u: string) => `http://api.test${u}`),
+}));
+
+vi.mock('@/services/panel.service', () => ({
+  panelService: {
+    getPanelsByPage: vi.fn().mockResolvedValue([]),
+  },
 }));
 
 const assignment = (over: Partial<AssignmentDto> = {}): AssignmentDto => ({
@@ -111,6 +119,7 @@ const renderCard = (s: Setup = {}) => {
       onChanged={onChanged}
       onToast={onToast}
     />,
+    { wrapper: MemoryRouter },
   );
   return { onChanged, onToast, user: userEvent.setup() };
 };
@@ -165,6 +174,7 @@ describe('AssignmentWorkCard: người nhận', () => {
         stageProgress={[]}
         onChanged={vi.fn()}
       />,
+      { wrapper: MemoryRouter },
     );
 
     expect(screen.getByRole('button', { name: 'Nộp bài' })).toBeDisabled();
@@ -273,7 +283,7 @@ describe('AssignmentWorkCard: Editor/Producer duyệt', () => {
     );
 
     const approve = await screen.findByRole('button', { name: 'Duyệt' });
-    expect(approve).toBeDisabled();
+    await waitFor(() => expect(approve).toBeDisabled());
     expect(screen.getByText(/xác minh trước khi duyệt/)).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Xác minh đạt' }));
@@ -462,5 +472,109 @@ describe('AssignmentWorkCard: lịch sử nộp', () => {
     expect(screen.getByTestId('submission-history')).toHaveTextContent('Lần 1');
     expect(screen.getByTestId('submission-history')).toHaveTextContent('Bị trả về');
     expect(screen.getByTestId('submission-history')).toHaveTextContent('Khung 1 lệch tỉ lệ');
+  });
+});
+
+describe('AssignmentWorkCard: lối vào màn duyệt', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('Editor thấy link mở màn duyệt khoanh vùng, người làm thì không', async () => {
+    renderCard({ role: 'EDITOR', userId: 'editor-1' });
+    const link = await screen.findByTestId('open-review-board');
+    expect(link.getAttribute('href')).toContain('review/');
+    expect(link.getAttribute('href')).toContain('chapterId=c1');
+  });
+
+  it('người làm (Artist) không thấy link màn duyệt', async () => {
+    renderCard({});
+    await screen.findByRole('button', { name: 'Nộp bài' });
+    expect(screen.queryByTestId('open-review-board')).not.toBeInTheDocument();
+  });
+});
+
+describe('AssignmentWorkCard: vùng khoanh trên artwork cho Artist', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('hiển thị badge "Vùng khoanh trên vN" và "Khung #N" trong danh sách yêu cầu sửa', async () => {
+    vi.mocked(panelService.getPanelsByPage).mockResolvedValueOnce([
+      {
+        id: 'panel-1',
+        pageId: 'page-1',
+        panelNumber: 2,
+        readingOrder: 2,
+        boundingBox: '{"x":0,"y":0,"w":1,"h":1}',
+      } as any,
+    ]);
+
+    renderCard({
+      artworks: [artwork({ id: 'art-v2', versionNumber: 2, fileName: 'page1_v2.png' })],
+      crs: [
+        changeRequest({
+          id: 'cr-1',
+          description: 'Sửa mắt nhân vật',
+          assetReferenceId: 'art-v2',
+          panelId: 'panel-1',
+          regionJson: '{"x":0.1,"y":0.2,"w":0.3,"h":0.4}',
+        }),
+      ],
+    });
+
+    expect(await screen.findByTestId('cr-version-badge-cr-1')).toHaveTextContent(
+      'Vùng khoanh trên v2',
+    );
+    expect(screen.getByTestId('cr-panel-badge-cr-1')).toHaveTextContent('Khung #2');
+    expect(screen.getByTestId('view-cr-on-artwork-cr-1')).toBeInTheDocument();
+  });
+
+  it('đưa khối "Yêu cầu sửa" lên TRÊN danh sách phiên bản khi việc đang ReworkRequired hoặc có yêu cầu Open', async () => {
+    renderCard({
+      assignment: assignment({ status: 'ReworkRequired' }),
+      artworks: [artwork({ id: 'art-1', versionNumber: 1 })],
+      crs: [
+        changeRequest({
+          id: 'cr-open',
+          status: 'Open',
+          description: 'Cần sửa gấp',
+        }),
+      ],
+    });
+
+    const crPanel = await screen.findByTestId('change-request-panel');
+    const artPanel = await screen.findByTestId('artwork-panel');
+
+    // DOM order: crPanel phải đứng trước artPanel
+    expect(
+      crPanel.compareDocumentPosition(artPanel) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it('bấm "Xem trên ảnh" tự kích hoạt mở xem phiên bản tương ứng', async () => {
+    vi.mocked(artworkService.getArtworkAccessLink).mockResolvedValueOnce({
+      url: 'https://cdn.example.com/artworks/page1_v3.png',
+      expiresAtUtc: '2026-10-08T11:00:00Z',
+    });
+
+    renderCard({
+      artworks: [artwork({ id: 'art-v3', versionNumber: 3, fileName: 'page1_v3.png' })],
+      crs: [
+        changeRequest({
+          id: 'cr-click',
+          description: 'Xoá mục này',
+          assetReferenceId: 'art-v3',
+          regionJson: '{"x":0.043,"y":0.9063,"w":0.9375,"h":0.0937}',
+        }),
+      ],
+    });
+
+    const viewOnArtworkBtn = await screen.findByTestId('view-cr-on-artwork-cr-click');
+    expect(viewOnArtworkBtn).toBeInTheDocument();
+
+    // Click nút Xem trên ảnh
+    await userEvent.click(viewOnArtworkBtn);
+
+    // ArtworkPanel nạp link và hiển thị box
+    await waitFor(() => {
+      expect(screen.getByTestId('cr-box-cr-click')).toBeInTheDocument();
+    });
   });
 });

@@ -40,6 +40,34 @@ describe('artworkService', () => {
     expect(result).toEqual(mockRes);
   });
 
+  it('uploadArtwork gửi kèm panelId khi tải ảnh cho Panel', async () => {
+    const mockFile = new File(['panel content'], 'panel1.png', { type: 'image/png' });
+    const mockRes = {
+      id: 'ref-panel-1',
+      fileName: 'panel1.png',
+      panelId: 'panel-999',
+      reused: false,
+    };
+    vi.mocked(axiosClient.post).mockResolvedValueOnce({ data: mockRes });
+
+    const result = await artworkService.uploadArtwork(
+      'chap-1',
+      'page-1',
+      mockFile,
+      'stage-pencil',
+      'abc123sha256',
+      undefined,
+      'panel-999',
+    );
+
+    expect(axiosClient.post).toHaveBeenCalledWith(
+      '/chapters/chap-1/pages/page-1/artwork',
+      expect.any(FormData),
+      expect.anything(),
+    );
+    expect(result).toEqual(mockRes);
+  });
+
   it('getArtworks gọi GET /artwork kèm stageId nếu có', async () => {
     const mockArtworks = [{ id: 'ref-1', versionNumber: 1 }];
     vi.mocked(axiosClient.get).mockResolvedValueOnce({ data: mockArtworks });

@@ -11,7 +11,10 @@ import {
   SubmissionStatus,
   ChangeRequestDto,
   ChangeRequestStatus,
+  ChangeRequestItemRequest,
   RequestAssignmentChangesRequest,
+  ConsistencyCheckResultDto,
+  ConsistencyFindingDto,
 } from '@/types';
 
 export type {
@@ -26,11 +29,42 @@ export type {
   SubmissionStatus,
   ChangeRequestDto,
   ChangeRequestStatus,
+  ChangeRequestItemRequest,
   RequestAssignmentChangesRequest,
+  ConsistencyCheckResultDto,
+  ConsistencyFindingDto,
 };
 
-function extractError(error: any, defaultMsg: string): string {
-  return error.response?.data?.error || error.response?.data?.message || defaultMsg;
+export function extractError(error: any, defaultMsg: string): string {
+  const data = error?.response?.data || error?.data;
+  if (!data) return error?.message || defaultMsg;
+
+  if (typeof data === 'string' && data.trim()) return data;
+  if (data.error && typeof data.error === 'string') return data.error;
+  if (data.message && typeof data.message === 'string') return data.message;
+  if (data.detail && typeof data.detail === 'string') return data.detail;
+
+  // ASP.NET Core ModelState Validation / ProblemDetails
+  if (data.errors && typeof data.errors === 'object') {
+    const errorList: string[] = [];
+    for (const key of Object.keys(data.errors)) {
+      const fieldErrors = data.errors[key];
+      if (Array.isArray(fieldErrors)) {
+        errorList.push(...fieldErrors);
+      } else if (typeof fieldErrors === 'string') {
+        errorList.push(fieldErrors);
+      }
+    }
+    if (errorList.length > 0) {
+      return errorList.join('; ');
+    }
+  }
+
+  if (data.title && typeof data.title === 'string') {
+    return data.title;
+  }
+
+  return error?.message || defaultMsg;
 }
 
 export const assignmentService = {
@@ -151,13 +185,20 @@ export const assignmentService = {
 
   /**
    * Phê duyệt hoàn thành Assignment (POST /api/chapters/{chapterId}/assignments/{assignmentId}/approve)
-   * Chuyển Assignment sang Approved, StageProgress sang Approved (mở stage sau BR-19)
+   * Chuyển Assignment sang Approved, StageProgress sang Approved (mở stage sau BR-19).
+   * expectedSubmissionId (tuỳ chọn): chống quyết định nhầm lần nộp; lệch → 409.
    */
-  approveAssignment: async (chapterId: string, assignmentId: string): Promise<AssignmentDto> => {
+  approveAssignment: async (
+    chapterId: string,
+    assignmentId: string,
+    expectedSubmissionId?: string,
+  ): Promise<AssignmentDto> => {
     try {
-      const response = await axiosClient.post(
-        `/chapters/${chapterId}/assignments/${assignmentId}/approve`,
-      );
+      const response = expectedSubmissionId
+        ? await axiosClient.post(`/chapters/${chapterId}/assignments/${assignmentId}/approve`, {
+            expectedSubmissionId,
+          })
+        : await axiosClient.post(`/chapters/${chapterId}/assignments/${assignmentId}/approve`);
       return response.data;
     } catch (error: any) {
       throw new Error(extractError(error, 'Không thể phê duyệt nhiệm vụ'));
@@ -182,6 +223,23 @@ export const assignmentService = {
     } catch (error: any) {
       throw new Error(extractError(error, 'Không thể yêu cầu sửa đổi'));
     }
+  },
+
+  /**
+   * Helper requestAssignmentChanges tiện dụng
+   */
+  requestAssignmentChanges: async (
+    chapterId: string,
+    assignmentId: string,
+    comment: string,
+    changes?: ChangeRequestItemRequest[],
+    expectedSubmissionId?: string,
+  ): Promise<AssignmentDto> => {
+    return assignmentService.requestChanges(chapterId, assignmentId, {
+      comment,
+      changes,
+      expectedSubmissionId,
+    });
   },
 
   /**
@@ -241,16 +299,23 @@ export const assignmentService = {
 
   /**
    * Xác minh yêu cầu đã sửa xong (POST /api/chapters/{chapterId}/change-requests/{changeRequestId}/verify)
-   * Editor hoặc Producer gọi
+   * Editor hoặc Producer gọi; nhận comment tuỳ chọn (lý do xác minh đạt).
    */
   verifyChangeRequest: async (
     chapterId: string,
     changeRequestId: string,
+    comment?: string,
   ): Promise<ChangeRequestDto> => {
     try {
-      const response = await axiosClient.post(
-        `/chapters/${chapterId}/change-requests/${changeRequestId}/verify`,
-      );
+      const response =
+        comment !== undefined
+          ? await axiosClient.post(
+              `/chapters/${chapterId}/change-requests/${changeRequestId}/verify`,
+              { comment },
+            )
+          : await axiosClient.post(
+              `/chapters/${chapterId}/change-requests/${changeRequestId}/verify`,
+            );
       return response.data;
     } catch (error: any) {
       throw new Error(extractError(error, 'Không thể xác minh yêu cầu'));
@@ -292,6 +357,45 @@ export const assignmentService = {
       return response.data;
     } catch (error: any) {
       throw new Error(extractError(error, 'Không thể từ chối yêu cầu'));
+    }
+  },
+
+  /** CF3: chạy kiểm tra nhất quán bằng code cho chương (POST /api/chapters/{chapterId}/consistency-check) */
+  runConsistencyCheck: async (chapterId: string): Promise<ConsistencyCheckResultDto> => {
+    try {
+      const response = await axiosClient.post(`/chapters/${chapterId}/consistency-check`);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(extractError(error, 'Không thể chạy kiểm tra nhất quán'));
+    }
+  },
+
+  /** CF3: finding của chương (GET /api/chapters/{chapterId}/consistency-findings) */
+  getConsistencyFindings: async (chapterId: string): Promise<ConsistencyFindingDto[]> => {
+    try {
+      const response = await axiosClient.get(`/chapters/${chapterId}/consistency-findings`);
+      return response.data || [];
+    } catch (error: any) {
+      console.warn('Không thể nạp kết quả kiểm tra nhất quán:', error);
+      return [];
+    }
+  },
+
+  /** CF3 (BR-21): phân loại finding; Ignored/NeedsClarification bắt buộc note */
+  triageConsistencyFinding: async (
+    chapterId: string,
+    findingId: string,
+    decision: 'Confirmed' | 'Rejected' | 'Ignored' | 'NeedsClarification',
+    note?: string,
+  ): Promise<ConsistencyFindingDto> => {
+    try {
+      const response = await axiosClient.post(
+        `/chapters/${chapterId}/consistency-findings/${findingId}/triage`,
+        { decision, note },
+      );
+      return response.data;
+    } catch (error: any) {
+      throw new Error(extractError(error, 'Không thể phân loại lỗi nhất quán'));
     }
   },
 };

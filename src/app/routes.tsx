@@ -15,6 +15,7 @@ import { ReviewView } from '@/roles/editor/views/ReviewView';
 import { NotificationCenterView } from '@/shared/views/NotificationCenterView';
 import { ReaderPortalView } from '@/roles/reader/views/ReaderPortalView';
 import { PublicCatalogView } from '@/roles/reader/views/PublicCatalogView';
+import { PublicPreviewView } from '@/roles/reader/views/PublicPreviewView';
 import { LandingPageView } from '@/roles/guest/views/LandingPageView';
 import { WorkspaceListView } from '@/shared/views/WorkspaceListView';
 import { UserProfileView } from '@/shared/views/UserProfileView';
@@ -23,6 +24,7 @@ import { AiMultiAgentView } from '@/shared/features/ai-agents/AiMultiAgentView';
 import { MyWorkView } from '@/shared/features/collaboration/MyWorkView';
 import { PublisherDeskView } from '@/roles/publisher/views/PublisherDeskView';
 import { ScriptEditorView } from '@/roles/writer/views/ScriptEditorView';
+import LettererWorkspace from '@/roles/letterer/views/LettererWorkspace';
 import {
   SystemRole,
   WorkspaceRole,
@@ -159,6 +161,9 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
           )
         }
       />
+
+      {/* CF5: Public Preview Link Route (No Auth Guard, No Bearer Header) */}
+      <Route path='/preview/:token' element={<PublicPreviewView />} />
 
       <Route
         element={
@@ -302,6 +307,16 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                 }
               />
               <Route
+                path='review/:taskId'
+                element={
+                  <ReviewView
+                    currentUserId={currentUserInfo?.id}
+                    workspaceRole={currentWorkspaceRole}
+                    onShowToast={showToast}
+                  />
+                }
+              />
+              <Route
                 path='script'
                 element={
                   <ScriptEditorView onShowToast={showToast} workspaceRole={currentWorkspaceRole} />
@@ -309,6 +324,11 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
               />
               <Route path='ai-agents' element={<AiMultiAgentView onShowToast={showToast} />} />
               <Route path='publishing' element={<PublisherDeskView onShowToast={showToast} />} />
+              <Route
+                path='artist'
+                element={<ArtistDeskView workspaceRole={currentWorkspaceRole} />}
+              />
+              <Route path='letterer' element={<LettererWorkspace />} />
               <Route path='export' element={<ExportView onShowToast={showToast} />} />
             </Route>
           </Route>
@@ -319,9 +339,9 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
             path='review/:taskId'
             element={
               <ReviewView
-                activeRoles={activeProjectRoles}
+                currentUserId={currentUserInfo?.id}
+                workspaceRole={currentWorkspaceRole}
                 onShowToast={showToast}
-                isDevMode={isDevMode}
               />
             }
           />
@@ -331,6 +351,7 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
             element={<UserProfileView user={firebaseUser} onLogout={handleLogout} />}
           />
           <Route path='artist' element={<ArtistDeskView />} />
+          <Route path='letterer' element={<LettererWorkspace />} />
           <Route
             path='catalog'
             element={<PublicCatalogView onBackToWorkspaces={() => navigate('/workspaces')} />}

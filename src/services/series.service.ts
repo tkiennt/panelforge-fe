@@ -247,6 +247,18 @@ export const seriesService = {
     }
   },
 
+  async updateStoryArc(
+    seriesId: string,
+    storyArc: string | null,
+  ): Promise<{ value: string | null }> {
+    try {
+      const res = await axiosClient.put(`/series/${seriesId}/story-arc`, { storyArc });
+      return res.data;
+    } catch (err: any) {
+      throw new Error(extractError(err, 'Không thể cập nhật Story Arc của Series.'));
+    }
+  },
+
   async getSeriesProgress(seriesId: string): Promise<SeriesProgressDto> {
     try {
       const res = await axiosClient.get(`/series/${seriesId}/progress`);

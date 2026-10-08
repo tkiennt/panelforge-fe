@@ -12,7 +12,7 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,css,json}\"",
     "typecheck": "tsc --noEmit",
     "test": "vitest",
-    "test:run": "vitest run",
+    "test:run": "vitest run --pool=threads --maxWorkers=2",
     "test:coverage": "vitest run --coverage",
     "quality": "npm run typecheck && npm run lint && npm run test:run",
     "prepare": "husky install"

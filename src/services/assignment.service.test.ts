@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { assignmentService } from './assignment.service';
+import { assignmentService, extractError } from './assignment.service';
 import axiosClient from '../api/axiosClient';
 
 vi.mock('../api/axiosClient');
@@ -154,5 +154,40 @@ describe('assignmentService', () => {
       note: 'Đã tỉa lại nét',
     });
     expect(result).toEqual(mockCR);
+  });
+
+  it('extractError trích xuất lỗi ASP.NET ProblemDetails errors (Point c)', () => {
+    const errorWithProblemDetails = {
+      response: {
+        status: 400,
+        data: {
+          type: 'https://tools.ietf.org/html/rfc9110#section-15.5.1',
+          title: 'One or more validation errors occurred.',
+          status: 400,
+          errors: {
+            targetEntityId: [
+              'The JSON value could not be converted to System.Nullable`1[System.Guid].',
+            ],
+          },
+        },
+      },
+    };
+
+    const msg = extractError(errorWithProblemDetails, 'Lỗi mặc định');
+    expect(msg).toContain('The JSON value could not be converted to System.Nullable');
+  });
+
+  it('extractError trích xuất lỗi nghiệp vụ role không khớp (Point c)', () => {
+    const errorRoleMismatch = {
+      response: {
+        status: 400,
+        data: {
+          error: "Stage 'Script' dành cho vai trò Writer, người nhận là Artist.",
+        },
+      },
+    };
+
+    const msg = extractError(errorRoleMismatch, 'Lỗi mặc định');
+    expect(msg).toBe("Stage 'Script' dành cho vai trò Writer, người nhận là Artist.");
   });
 });

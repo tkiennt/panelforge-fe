@@ -23,6 +23,7 @@ import {
   CheckCircle,
   HelpCircle,
   FileSpreadsheet,
+  UserCheck,
 } from 'lucide-react';
 import {
   seriesService,
@@ -35,6 +36,7 @@ import {
   SeriesDetailDto,
 } from '@/services/series.service';
 import { SeriesChaptersModal } from '../modals/SeriesChaptersModal';
+import { CreateAssignmentModal } from '../modals/CreateAssignmentModal';
 import { MangaProject, AssistantRosterItem, ProvenanceLogItem } from '@/types';
 
 interface DashboardViewProps {
@@ -101,6 +103,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [selectedChapterId, setSelectedChapterId] = useState<string | null>(null);
   const [isChapterModalOpen, setIsChapterModalOpen] = useState(false);
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  const [assignModalChapter, setAssignModalChapter] = useState<{
+    id: string;
+    number?: number | string;
+  } | null>(null);
   const [auditRunning, setAuditRunning] = useState(false);
 
   const fetchProgress = useCallback(async () => {
@@ -649,6 +656,22 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                           <span className='text-xs font-mono font-bold text-[#171717] w-12 text-right'>
                             {ch.percentComplete}%
                           </span>
+                          <button
+                            type='button'
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setAssignModalChapter({
+                                id: ch.chapterId,
+                                number: ch.chapterNumber,
+                              });
+                              setIsAssignModalOpen(true);
+                            }}
+                            className='px-2.5 py-1 rounded-lg bg-[#FFF7ED] hover:bg-[#F97316] text-[#EA580C] hover:text-white border border-[#FDBA74] text-[11px] font-semibold flex items-center gap-1 shadow-2xs transition-colors cursor-pointer shrink-0'
+                            title={`Giao việc mới cho Chương ${ch.chapterNumber}`}
+                          >
+                            <UserCheck className='w-3.5 h-3.5' />
+                            <span>Giao việc</span>
+                          </button>
                         </div>
                       </div>
 
@@ -689,9 +712,25 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     xuất
                   </p>
                 </div>
-                <span className='text-xs font-mono font-semibold px-2 py-0.5 rounded bg-zinc-100 text-zinc-700'>
-                  {selectedChapter.stages.length} Công đoạn
-                </span>
+                <div className='flex items-center gap-2'>
+                  <button
+                    type='button'
+                    onClick={() => {
+                      setAssignModalChapter({
+                        id: selectedChapter.chapterId,
+                        number: selectedChapter.chapterNumber,
+                      });
+                      setIsAssignModalOpen(true);
+                    }}
+                    className='px-3 py-1.5 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer'
+                  >
+                    <UserCheck className='w-3.5 h-3.5' />
+                    <span>Giao Việc Cho Chương {selectedChapter.chapterNumber}</span>
+                  </button>
+                  <span className='text-xs font-mono font-semibold px-2 py-0.5 rounded bg-zinc-100 text-zinc-700'>
+                    {selectedChapter.stages.length} Công đoạn
+                  </span>
+                </div>
               </div>
 
               {selectedChapter.stages.length === 0 ? (
@@ -978,6 +1017,27 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           seriesTitle={seriesDetail?.title || activeProject?.title || 'Series'}
           onClose={() => {
             setIsChapterModalOpen(false);
+            void fetchProgress();
+          }}
+          onShowToast={onShowToast}
+        />
+      )}
+
+      {/* Create Assignment Modal (Producer assign tasks per Chapter/Page/Panel) */}
+      {seriesId && isAssignModalOpen && assignModalChapter && (
+        <CreateAssignmentModal
+          isOpen={isAssignModalOpen}
+          workspaceId={workspaceId || ''}
+          seriesId={seriesId}
+          chapterId={assignModalChapter.id}
+          chapterNumber={assignModalChapter.number}
+          onClose={() => {
+            setIsAssignModalOpen(false);
+            setAssignModalChapter(null);
+          }}
+          onSuccess={() => {
+            setIsAssignModalOpen(false);
+            setAssignModalChapter(null);
             void fetchProgress();
           }}
           onShowToast={onShowToast}

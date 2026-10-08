@@ -30,6 +30,8 @@ import { CheckCircle2 } from 'lucide-react';
 import { authService } from './services/auth.service';
 import { refreshAccessToken } from './api/axiosClient';
 import { seriesService } from './services/series.service';
+import { workspaceService } from './services/workspace.service';
+import { offlineQueueService } from './services/offlineQueue.service';
 import { LoginModal } from '@/roles/guest/modals/LoginModal';
 import { RegisterModal } from '@/roles/guest/modals/RegisterModal';
 import { TwoFactorSetupModal } from '@/shared/features/account/TwoFactorSetupModal';
@@ -395,6 +397,36 @@ function AppContent() {
     }
   }, [location.pathname, activeProject?.id]);
 
+  // Tự nạp thông tin và vai trò trong Workspace khi mở trực tiếp bằng URL hoặc F5
+  useEffect(() => {
+    const wsMatch = location.pathname.match(/\/workspaces\/([^/]+)/);
+    if (wsMatch && wsMatch[1]) {
+      const wsId = wsMatch[1];
+      if (!currentWorkspaceRole || activeWorkspace?.id !== wsId) {
+        workspaceService
+          .getWorkspaceById(wsId)
+          .then((ws) => {
+            if (ws) {
+              setActiveWorkspace(ws);
+              try {
+                localStorage.setItem('activeWorkspace', JSON.stringify(ws));
+              } catch {
+                /* ignore */
+              }
+              const derivedRole =
+                normalizeWorkspaceRole(ws.currentUserRole) ||
+                (ws.isOwner ? 'PRODUCER' : currentRole === 'ADMINISTRATOR' ? 'PRODUCER' : 'ARTIST');
+              setCurrentWorkspaceRole(derivedRole);
+              setActiveProjectRoles([derivedRole]);
+            }
+          })
+          .catch((err) => {
+            console.warn('Failed to load workspace for URL sync:', err);
+          });
+      }
+    }
+  }, [location.pathname, activeWorkspace?.id, currentWorkspaceRole, currentRole]);
+
   const [cards, setCards] = useState<KanbanCard[]>(INITIAL_KANBAN_CARDS);
   const [entities, setEntities] = useState<BibleEntity[]>(INITIAL_BIBLE_ENTITIES);
   const [members, setMembers] = useState<StudioMember[]>(INITIAL_MEMBERS);
@@ -532,6 +564,7 @@ function AppContent() {
   const handleLogout = () => {
     void authService.logout(); // thu hồi refresh token trên BE (đọc token trước khi xoá bên dưới)
     auth.signOut();
+    offlineQueueService.clearQueue();
     localStorage.removeItem('token');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('userRole');

@@ -47,17 +47,26 @@ const CATEGORIES: { key: BibleCategory; label: string }[] = [
   { key: 'style', label: 'Style Rules' },
 ];
 
-const mapCategoryToTab = (cat: number): BibleCategory => {
-  switch (cat) {
-    case 0:
-      return 'characters';
-    case 1:
-      return 'locations';
-    case 2:
-    case 3:
-    case 5:
+const mapCategoryToTab = (cat: any): BibleCategory => {
+  if (typeof cat === 'string') {
+    const s = cat.toLowerCase();
+    if (s.includes('char')) return 'characters';
+    if (s.includes('loc')) return 'locations';
+    if (s.includes('style') || s.includes('rule')) return 'style';
+    if (s.includes('prop') || s.includes('term') || s.includes('plot') || s.includes('lore'))
       return 'terminology';
+  }
+  switch (Number(cat)) {
+    case 0:
+    case 1:
+      return 'characters';
+    case 2:
+      return 'locations';
+    case 3:
     case 4:
+    case 6:
+      return 'terminology';
+    case 5:
       return 'style';
     default:
       return 'characters';
@@ -349,20 +358,22 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
     }
 
     try {
-      let catNum: any = 0;
-      if (newEntity.category === 'locations') catNum = 1;
-      else if (newEntity.category === 'prop') catNum = 2;
-      else if (newEntity.category === 'terminology') catNum = 3;
-      else if (newEntity.category === 'style') catNum = 4;
+      let catPayload: any = 'Character';
+      if (newEntity.category === 'locations' || newEntity.category === 'location')
+        catPayload = 'Location';
+      else if (newEntity.category === 'prop') catPayload = 'Prop';
+      else if (newEntity.category === 'terminology') catPayload = 'Terminology';
+      else if (newEntity.category === 'style' || newEntity.category === 'rule')
+        catPayload = 'StyleRule';
 
       const created = await bibleService.createBibleEntry(effectiveSeries.id, {
-        category: catNum,
+        category: catPayload,
         code: newEntity.code,
         name: newEntity.name,
         subtitle: newEntity.subtitle,
         description: newEntity.description,
         referenceImageUrl: newEntity.imageUrl || undefined,
-        priority: 1,
+        priority: 'Standard',
         strictCheck: true,
         effectiveFromChapterNumber:
           typeof effectiveChapter === 'number' ? effectiveChapter : effectiveSeries.chapter || 1,

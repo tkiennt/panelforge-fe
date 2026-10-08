@@ -69,10 +69,11 @@ describe('artwork', () => {
     expect(resolvePageId(assignment({ entityType: 'Chapter' }), progress)).toBeNull();
   });
 
-  const art = (createdAt: string, pageId = 'page-1', stage = 'stage-1') => ({
+  const art = (createdAt: string, pageId = 'page-1', stage = 'stage-1', panelId?: string) => ({
     pageId,
     pipelineStageId: stage,
     createdAt,
+    panelId,
   });
 
   it('hasCurrentArtwork: đúng trang và đúng stage', () => {
@@ -90,6 +91,39 @@ describe('artwork', () => {
     ).toBe(false);
     expect(hasCurrentArtwork([], 'page-1', 'stage-1', null)).toBe(false);
     expect(hasCurrentArtwork([art('2026-10-06T10:00:00Z')], null, 'stage-1', null)).toBe(false);
+  });
+
+  it('hasCurrentArtwork: thoả mãn khi có ảnh cả trang HOẶC tất cả panel có ảnh riêng', () => {
+    const panels = ['p-1', 'p-2'];
+    // Chỉ có ảnh cả trang -> true
+    expect(
+      hasCurrentArtwork([art('2026-10-06T10:00:00Z')], 'page-1', 'stage-1', null, panels),
+    ).toBe(true);
+
+    // Có ảnh từng panel nhưng thiếu 1 panel -> false
+    expect(
+      hasCurrentArtwork(
+        [art('2026-10-06T10:00:00Z', 'page-1', 'stage-1', 'p-1')],
+        'page-1',
+        'stage-1',
+        null,
+        panels,
+      ),
+    ).toBe(false);
+
+    // Đủ ảnh cho tất cả panel -> true
+    expect(
+      hasCurrentArtwork(
+        [
+          art('2026-10-06T10:00:00Z', 'page-1', 'stage-1', 'p-1'),
+          art('2026-10-06T10:00:00Z', 'page-1', 'stage-1', 'p-2'),
+        ],
+        'page-1',
+        'stage-1',
+        null,
+        panels,
+      ),
+    ).toBe(true);
   });
 
   it('sau khi bị trả về phải có bản mới hơn lần từ chối (BR-01)', () => {

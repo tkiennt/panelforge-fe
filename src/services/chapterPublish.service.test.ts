@@ -109,6 +109,17 @@ describe('Chapter Publishing & Review Services', () => {
       expect(res.scheduledAt).toBe(futureDate);
     });
 
+    it('gọi updateOutline qua PUT /chapters/{id}/outline', async () => {
+      const put = vi.mocked(axiosClient.put);
+      put.mockResolvedValueOnce({ data: { value: 'Đề cương chương 1' } });
+
+      const res = await chapterService.updateOutline('chap-100', 'Đề cương chương 1');
+      expect(put).toHaveBeenCalledWith('/chapters/chap-100/outline', {
+        outline: 'Đề cương chương 1',
+      });
+      expect(res.value).toBe('Đề cương chương 1');
+    });
+
     it('lấy danh sách lịch sử phê duyệt của chương qua getChapterReviews', async () => {
       const mockReviews = [
         {

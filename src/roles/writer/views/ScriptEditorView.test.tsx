@@ -6,6 +6,8 @@ import { ScriptEditorView } from './ScriptEditorView';
 import { scriptLineService } from '@/services/scriptLine.service';
 import { chapterService } from '@/services/chapter.service';
 import { bibleService } from '@/services/bible.service';
+import { seriesService } from '@/services/series.service';
+import { assignmentService } from '@/services/assignment.service';
 
 vi.mock('@/services/scriptLine.service', () => ({
   scriptLineService: {
@@ -25,12 +27,28 @@ vi.mock('@/services/chapter.service', () => ({
   chapterService: {
     getChaptersBySeries: vi.fn(),
     getChapterById: vi.fn(),
+    updateOutline: vi.fn(),
   },
 }));
 
 vi.mock('@/services/bible.service', () => ({
   bibleService: {
     getSeriesBible: vi.fn(),
+  },
+}));
+
+vi.mock('@/services/series.service', () => ({
+  seriesService: {
+    getSeriesById: vi.fn(),
+    updateStoryArc: vi.fn(),
+  },
+}));
+
+vi.mock('@/services/assignment.service', () => ({
+  assignmentService: {
+    runConsistencyCheck: vi.fn(),
+    getConsistencyFindings: vi.fn(),
+    triageConsistencyFinding: vi.fn(),
   },
 }));
 
@@ -131,6 +149,25 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
     vi.mocked(bibleService.getSeriesBible).mockResolvedValue(mockBible as any);
     vi.mocked(scriptLineService.getScenesByChapter).mockResolvedValue(mockScenes);
     vi.mocked(scriptLineService.getSceneById).mockResolvedValue(mockSceneDetail);
+    vi.mocked(seriesService.getSeriesById).mockResolvedValue({
+      id: 'se-1',
+      workspaceId: 'ws-1',
+      title: 'Neon Odyssey',
+      storyArc: 'Hành trình vượt qua đêm đen Neo Tokyo.',
+      readingDirection: 0,
+      genre: 'Cyberpunk',
+      format: 'Manga',
+      chaptersCount: 1,
+      createdAt: '2026-10-01',
+      chapters: [],
+    });
+    vi.mocked(seriesService.updateStoryArc).mockResolvedValue({
+      value: 'Story arc mới của series.',
+    });
+    vi.mocked(chapterService.updateOutline).mockResolvedValue({
+      value: 'Outline mới của chương 1.',
+    });
+    vi.mocked(assignmentService.getConsistencyFindings).mockResolvedValue([]);
   });
 
   it('nạp và hiển thị danh sách Chapters, Scenes, ScriptLines và Characters', async () => {
@@ -144,6 +181,29 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
     expect(await screen.findByText(/Họ đang di chuyển/)).toBeInTheDocument();
     expect(screen.getByText(/Akira nhìn xuống đoàn xe/)).toBeInTheDocument();
     expect(screen.getAllByText('Akira').length).toBeGreaterThan(0);
+  });
+
+  it('nạp nhân vật vào ô Speaker khi BE trả category dạng chuỗi ("Character")', async () => {
+    vi.mocked(bibleService.getSeriesBible).mockResolvedValue({
+      ...mockBible,
+      entries: [
+        { ...mockBible.entries[0], category: 'Character' },
+        {
+          ...mockBible.entries[0],
+          id: 'loc-1',
+          code: 'TOWER',
+          name: 'Tháp Đèn',
+          category: 'Location',
+        },
+      ],
+    } as any);
+
+    const user = userEvent.setup();
+    renderView();
+    await user.click(await screen.findByTestId('open-add-line-btn'));
+
+    expect(await screen.findByRole('option', { name: 'Akira' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'Tháp Đèn' })).not.toBeInTheDocument();
   });
 
   it('cho phép thêm dòng kịch bản mới gửi đúng expectedChapterVersion', async () => {
@@ -229,5 +289,146 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
 
     expect(await screen.findByTestId('role-view-only-banner')).toBeInTheDocument();
     expect(screen.queryByTestId('open-add-line-btn')).not.toBeInTheDocument();
+  });
+
+  it('hiển thị chip mục Series Bible liên kết trên dòng kịch bản (UC-06)', async () => {
+    vi.mocked(bibleService.getSeriesBible).mockResolvedValue({
+      ...mockBible,
+      entries: [
+        ...mockBible.entries,
+        {
+          id: 'entry-sword-prop',
+          seriesBibleId: 'b-1',
+          category: 2,
+          code: 'SWORD',
+          name: 'Bảo Kiếm Gia Truyền',
+          description: 'Thanh bảo kiếm phát sáng ánh xanh',
+          priority: 1,
+          strictCheck: true,
+          isActive: true,
+          createdAt: '2026-10-01',
+        },
+      ],
+    } as any);
+
+    vi.mocked(scriptLineService.getSceneById).mockResolvedValue({
+      ...mockSceneDetail,
+      scriptLines: [
+        {
+          id: 'line-bible-1',
+          lineOrder: 1,
+          dialogueText: 'Thanh gươm này thuộc về thành cổ!',
+          stageDirection: 'Akira rút gươm',
+          speakerCharacterId: 'char-1',
+          panelId: null,
+          bibleEntryIds: ['entry-sword-prop'],
+        },
+      ],
+    });
+
+    renderView();
+
+    const headings = await screen.findAllByText('Cảnh 1: Neo Tokyo - Đêm');
+    expect(headings.length).toBeGreaterThanOrEqual(1);
+    expect(await screen.findByText(/Thanh gươm này thuộc về thành cổ!/)).toBeInTheDocument();
+    expect(await screen.findByText(/Bible:/i)).toBeInTheDocument();
+    expect(screen.getByText('Bảo Kiếm Gia Truyền')).toBeInTheDocument();
+  });
+
+  it('cho phép Writer sửa và lưu Story Arc của Series qua PUT /api/series/{seriesId}/story-arc', async () => {
+    const user = userEvent.setup();
+    renderView();
+
+    const toggleBtn = await screen.findByTestId('toggle-narrative-context-btn');
+    await user.click(toggleBtn);
+
+    const textarea = await screen.findByTestId('story-arc-textarea');
+    expect(textarea).toHaveValue('Hành trình vượt qua đêm đen Neo Tokyo.');
+
+    await user.clear(textarea);
+    await user.type(textarea, 'Khám phá bí mật trung tâm điều khiển.');
+
+    const saveBtn = screen.getByTestId('save-story-arc-btn');
+    await user.click(saveBtn);
+
+    expect(seriesService.updateStoryArc).toHaveBeenCalledWith(
+      'se-1',
+      'Khám phá bí mật trung tâm điều khiển.',
+    );
+  });
+
+  it('cho phép Writer sửa và lưu Outline của Chapter, và bắt lỗi 409 khi chương khoá / xung đột', async () => {
+    const conflictErr = new Error(
+      'Chương đã được duyệt, không thể cập nhật đề cương (409 Conflict).',
+    );
+    (conflictErr as any).status = 409;
+    vi.mocked(chapterService.updateOutline).mockRejectedValueOnce(conflictErr);
+
+    const user = userEvent.setup();
+    renderView();
+
+    const toggleBtn = await screen.findByTestId('toggle-narrative-context-btn');
+    await user.click(toggleBtn);
+
+    const textarea = await screen.findByTestId('chapter-outline-textarea');
+    await user.type(textarea, 'Dàn ý nhịp phim nhanh.');
+
+    const saveBtn = screen.getByTestId('save-chapter-outline-btn');
+    await user.click(saveBtn);
+
+    expect(chapterService.updateOutline).toHaveBeenCalledWith(
+      'chap-1',
+      expect.stringContaining('Dàn ý'),
+    );
+    expect(await screen.findByTestId('concurrency-error-banner')).toBeInTheDocument();
+  });
+
+  it('chạy Kiểm tra nhất quán: hiển thị findings, cuộn tới dòng script, hiển thị badge trên dòng và KHÔNG có nút triage', async () => {
+    vi.mocked(assignmentService.runConsistencyCheck).mockResolvedValue({
+      chapterId: 'chap-1',
+      checkedAt: '2026-10-08T10:00:00Z',
+      newCount: 1,
+      openCount: 1,
+      blockingOpenCount: 1,
+      clearedCount: 0,
+      findings: [
+        {
+          id: 'find-1',
+          chapterId: 'chap-1',
+          ruleCode: 'SPEAKER_UNKNOWN',
+          severity: 'Blocking',
+          message: 'Nhân vật nói "Akira" không khớp mục Canon Bible nào.',
+          evidence: 'Họ đang di chuyển. Chuẩn bị đi!',
+          scriptLineId: 'line-1',
+          status: 'Open',
+          createdAt: '2026-10-08T10:00:00Z',
+          lastDetectedAt: '2026-10-08T10:00:00Z',
+        },
+      ],
+    });
+
+    const user = userEvent.setup();
+    renderView();
+
+    const checkBtn = await screen.findByTestId('run-consistency-check-btn');
+    await user.click(checkBtn);
+
+    expect(assignmentService.runConsistencyCheck).toHaveBeenCalledWith('chap-1');
+
+    // Hiển thị panel findings và badge trên dòng kịch bản
+    expect(await screen.findByTestId('consistency-findings-panel')).toBeInTheDocument();
+    expect(screen.getAllByText(/Nhân vật nói "Akira" không khớp/).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('SPEAKER_UNKNOWN').length).toBeGreaterThanOrEqual(1);
+
+    // Hiển thị badge trên dòng kịch bản tương ứng
+    expect(await screen.findByTestId('line-finding-line-1')).toBeInTheDocument();
+
+    // Kiểm tra TUYỆT ĐỐI KHÔNG CÓ bất kỳ nút triage nào (Confirmed, Rejected, Ignored, NeedsClarification)
+    expect(screen.queryByRole('button', { name: /xác nhận|confirmed/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /từ chối|rejected/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /bỏ qua|ignored/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /làm rõ|needsclarification/i }),
+    ).not.toBeInTheDocument();
   });
 });

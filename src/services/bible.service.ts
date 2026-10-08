@@ -1,8 +1,10 @@
 // src/services/bible.service.ts
 import axiosClient from '../api/axiosClient';
 
-export type BibleCategory = 0 | 1 | 2 | 3 | 4 | 5; // Character, Location, Prop, Terminology, StyleRule, PlotFact
-export type BiblePriority = 0 | 1 | 2 | 3; // Low, Standard, High, CanonCritical
+export type BibleCategory =
+  'Character' | 'Location' | 'Prop' | 'Terminology' | 'StyleRule' | 'PlotFact' | number;
+
+export type BiblePriority = 'Low' | 'Standard' | 'StrictCheck' | 'High' | 'CanonCritical' | number;
 
 export interface BibleEntryRevisionDto {
   id: string;

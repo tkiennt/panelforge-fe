@@ -23,6 +23,16 @@ vi.mock('../modals/SeriesChaptersModal', () => ({
     ) : null,
 }));
 
+vi.mock('../modals/CreateAssignmentModal', () => ({
+  CreateAssignmentModal: ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) =>
+    isOpen ? (
+      <div data-testid='create-assignment-modal'>
+        <span>CreateAssignmentModal Mock</span>
+        <button onClick={onClose}>Đóng modal</button>
+      </div>
+    ) : null,
+}));
+
 const mockProgress: SeriesProgressDto = {
   seriesId: 'series-demo-1',
   generatedAt: '2026-10-07T12:00:00Z',
@@ -242,5 +252,20 @@ describe('DashboardView Component (UC-16 Progress Dashboard)', () => {
     });
 
     expect(screen.getByText('Thử lại')).toBeInTheDocument();
+  });
+
+  it('mở modal Giao việc mới khi Producer bấm nút Giao việc trên thẻ chương', async () => {
+    vi.mocked(seriesService.getSeriesProgress).mockResolvedValueOnce(mockProgress);
+    vi.mocked(seriesService.getSeriesById).mockResolvedValueOnce(mockDetail);
+
+    renderDashboard();
+
+    await waitFor(() => {
+      expect(screen.getAllByTitle(/Giao việc mới cho Chương 1/i)[0]).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getAllByTitle(/Giao việc mới cho Chương 1/i)[0]);
+
+    expect(screen.getByTestId('create-assignment-modal')).toBeInTheDocument();
   });
 });

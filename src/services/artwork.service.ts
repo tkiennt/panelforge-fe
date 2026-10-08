@@ -31,6 +31,7 @@ export const artworkService = {
     stageId: string,
     clientSha256: string,
     layerType?: string,
+    panelId?: string,
   ): Promise<AssetReferenceDto> => {
     const formData = new FormData();
     formData.append('file', file);
@@ -38,6 +39,9 @@ export const artworkService = {
     formData.append('clientSha256', clientSha256);
     if (layerType) {
       formData.append('layerType', layerType);
+    }
+    if (panelId) {
+      formData.append('panelId', panelId);
     }
 
     const res = await axiosClient.post<AssetReferenceDto>(

@@ -135,6 +135,7 @@ const ROLE_NAV_CONFIG: Record<string, { section: string; items: any[] }[]> = {
       section: 'BÀN LÀM VIỆC',
       items: [
         { icon: Layers, label: 'Công việc của tôi', href: '/my-work' },
+        { icon: LayoutTemplate, label: 'Bàn vẽ & Khung trang', href: '/artist' },
         { icon: BookMarked, label: 'Series Bible', href: '/bible' },
         { icon: Sparkles, label: 'AI Multi-Agent', href: '/ai-agents' },
       ],
@@ -145,6 +146,7 @@ const ROLE_NAV_CONFIG: Record<string, { section: string; items: any[] }[]> = {
       section: 'BÀN LÀM VIỆC',
       items: [
         { icon: Layers, label: 'Công việc của tôi', href: '/my-work' },
+        { icon: Type, label: 'Chèn chữ & Bóng thoại', href: '/letterer' },
         { icon: BookMarked, label: 'Series Bible', href: '/bible' },
         { icon: Sparkles, label: 'AI Multi-Agent', href: '/ai-agents' },
       ],
@@ -251,6 +253,16 @@ export function AppShell({
                 icon: FileText,
                 label: 'Kịch bản (Script)',
                 href: `/workspaces/${workspaceId}/series/${seriesId}/script`,
+              },
+              {
+                icon: LayoutTemplate,
+                label: 'Bàn vẽ & Khung trang',
+                href: `/workspaces/${workspaceId}/series/${seriesId}/artist`,
+              },
+              {
+                icon: Type,
+                label: 'Chèn chữ & Bóng thoại',
+                href: `/workspaces/${workspaceId}/series/${seriesId}/letterer`,
               },
               {
                 icon: BookMarked,
@@ -361,6 +373,25 @@ export function AppShell({
                 label: 'Kịch bản (Script)',
                 href: `/workspaces/${workspaceId}/series/${seriesId}/script`,
               },
+              // Màn làm việc riêng theo vai trò (route artist/letterer đã có trong routes.tsx)
+              ...(effectiveRole === 'ARTIST'
+                ? [
+                    {
+                      icon: LayoutTemplate,
+                      label: 'Bàn vẽ & Khung trang',
+                      href: `/workspaces/${workspaceId}/series/${seriesId}/artist`,
+                    },
+                  ]
+                : []),
+              ...(effectiveRole === 'LETTERER'
+                ? [
+                    {
+                      icon: Type,
+                      label: 'Chèn chữ & Bóng thoại',
+                      href: `/workspaces/${workspaceId}/series/${seriesId}/letterer`,
+                    },
+                  ]
+                : []),
               {
                 icon: BookMarked,
                 label: 'Series Bible',
@@ -379,9 +410,8 @@ export function AppShell({
             items: [
               {
                 icon: Kanban,
-                label: 'Bảng Pipeline (Demo)',
+                label: 'Bảng Pipeline',
                 href: `/workspaces/${workspaceId}/series/${seriesId}/workspace`,
-                badge: { type: 'text', text: 'Demo', color: 'bg-zinc-100 text-zinc-600' },
               },
             ],
           },

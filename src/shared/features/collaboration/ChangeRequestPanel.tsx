@@ -1,14 +1,18 @@
 import React, { useState } from 'react';
-import { AlertTriangle, CheckCircle2, Loader2, MessageSquareWarning } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Eye, Loader2, MessageSquareWarning } from 'lucide-react';
 import { assignmentService } from '@/services/assignment.service';
-import type { ChangeRequestDto } from '@/types';
+import type { AssetReferenceDto, ChangeRequestDto, PanelDto, SubmissionDto } from '@/types';
 import { describeRegion, errorMessage, isOverdue, isReviewerRole } from './collaborationRules';
 
 interface ChangeRequestPanelProps {
   chapterId: string;
   changeRequests: ChangeRequestDto[];
+  artworks?: AssetReferenceDto[];
+  panels?: PanelDto[];
+  submissions?: SubmissionDto[];
   userId?: string | null;
   workspaceRole?: string | null;
+  onSelectChangeRequest?: (cr: ChangeRequestDto) => void;
   onChanged: () => void;
   onToast?: (title: string, desc: string) => void;
 }
@@ -55,8 +59,12 @@ const FORM_LABEL: Record<
 export const ChangeRequestPanel: React.FC<ChangeRequestPanelProps> = ({
   chapterId,
   changeRequests,
+  artworks = [],
+  panels = [],
+  submissions = [],
   userId,
   workspaceRole,
+  onSelectChangeRequest,
   onChanged,
   onToast,
 }) => {
@@ -142,18 +150,64 @@ export const ChangeRequestPanel: React.FC<ChangeRequestPanelProps> = ({
           const overdue = st === 'Open' && isOverdue(cr.dueDate);
           const active = form?.id === cr.id ? form : null;
 
+          let targetArtwork: AssetReferenceDto | undefined;
+          if (cr.assetReferenceId) {
+            targetArtwork = artworks.find((a) => a.id === cr.assetReferenceId);
+          } else if (cr.submissionId && submissions.length > 0) {
+            const sub = submissions.find((s) => s.id === cr.submissionId);
+            if (sub?.artworkReferenceIds?.length) {
+              targetArtwork = artworks.find((a) => sub.artworkReferenceIds.includes(a.id));
+            }
+          }
+          const targetVersion = targetArtwork?.versionNumber;
+          const matchedPanel = cr.panelId ? panels.find((p) => p.id === cr.panelId) : null;
+
           return (
             <li
               key={cr.id}
               className='p-2.5 rounded-lg bg-white border border-[#E7E7E7] text-[11px] space-y-1.5'
             >
               <div className='flex items-start justify-between gap-2'>
-                <p className='text-[#171717] font-medium leading-relaxed'>{cr.description}</p>
-                <span
-                  className={`px-1.5 py-0.5 rounded border font-semibold text-[10px] shrink-0 ${style.className}`}
-                >
-                  {style.label}
-                </span>
+                <div className='space-y-1 min-w-0'>
+                  <p className='text-[#171717] font-medium leading-relaxed'>{cr.description}</p>
+                  <div className='flex flex-wrap items-center gap-1.5'>
+                    {targetVersion != null && (
+                      <span
+                        data-testid={`cr-version-badge-${cr.id}`}
+                        className='px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-semibold'
+                      >
+                        Vùng khoanh trên v{targetVersion}
+                      </span>
+                    )}
+                    {matchedPanel && (
+                      <span
+                        data-testid={`cr-panel-badge-${cr.id}`}
+                        className='px-1.5 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200 text-[10px] font-semibold'
+                      >
+                        Khung #{matchedPanel.panelNumber}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className='flex items-center gap-1.5 shrink-0'>
+                  {onSelectChangeRequest && (targetArtwork || cr.regionJson) && (
+                    <button
+                      type='button'
+                      data-testid={`view-cr-on-artwork-${cr.id}`}
+                      onClick={() => onSelectChangeRequest(cr)}
+                      className='px-2 py-0.5 rounded bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-200 text-[10px] font-semibold flex items-center gap-1 cursor-pointer transition-colors'
+                      title='Mở phiên bản và cuộn tới vùng khoanh'
+                    >
+                      <Eye className='w-3 h-3' />
+                      <span>Xem trên ảnh</span>
+                    </button>
+                  )}
+                  <span
+                    className={`px-1.5 py-0.5 rounded border font-semibold text-[10px] shrink-0 ${style.className}`}
+                  >
+                    {style.label}
+                  </span>
+                </div>
               </div>
 
               {(region || cr.dueDate) && (
