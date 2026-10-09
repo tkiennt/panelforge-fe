@@ -66,17 +66,12 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
   if (!isOpen) return null;
 
   const handleSendEmailOtp = async () => {
-    if (!activeToken) {
-      setError('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
-      return;
-    }
-
     setIsSendingOtp(true);
     setError(null);
     setOtpSentMessage(null);
 
     try {
-      await authService.sendChangePasswordOtp(activeToken);
+      await authService.sendChangePasswordOtp(activeToken || undefined);
       setOtpSentMessage('Mã OTP 6 chữ số đã được gửi đến email đăng ký của bạn.');
       setCountdown(60);
     } catch (err: any) {
@@ -112,11 +107,6 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
       return;
     }
 
-    if (!activeToken) {
-      setError('You are not logged in or your session has expired. Please log in again.');
-      return;
-    }
-
     setIsLoading(true);
 
     try {
@@ -128,7 +118,7 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
           emailOtp: emailOtp.trim() || '123456',
           otpCode: is2FA ? otpCode.trim() : undefined,
         },
-        activeToken,
+        activeToken || undefined,
       );
 
       setIsSuccess(true);

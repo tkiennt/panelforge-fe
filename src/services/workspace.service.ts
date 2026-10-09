@@ -89,7 +89,13 @@ export const workspaceService = {
 
   getMyWorkspaces: async (): Promise<WorkspaceDto[]> => {
     // Chưa đăng nhập thì không gọi API (tránh 401 làm phát 'auth:unauthorized')
-    if (!localStorage.getItem('token') && !localStorage.getItem('jwt_token')) return [];
+    if (
+      typeof window !== 'undefined' &&
+      !localStorage.getItem('user') &&
+      !localStorage.getItem('token')
+    ) {
+      return [];
+    }
     try {
       const response = await axiosClient.get('/Workspaces');
       return response.data;

@@ -23,6 +23,14 @@ export interface ResetPasswordPayload {
   confirmPassword: string;
 }
 
+export interface CurrentUserDto {
+  id: string;
+  email: string;
+  fullName?: string;
+  role: string;
+  canCreateStudio: boolean;
+}
+
 export interface LandingWorkspaceDto {
   workspaceId: string;
   name: string;
@@ -54,6 +62,21 @@ async function parseErrorResponse(error: any, defaultMessage: string): Promise<s
 }
 
 export const authService = {
+  /**
+   * Lấy thông tin người dùng đang đăng nhập từ BE qua cookie HttpOnly pf_access.
+   * Đây là Single Source of Truth để xác định trạng thái đăng nhập khi mở app.
+   */
+  getMe: async (): Promise<CurrentUserDto> => {
+    try {
+      const response = await axiosClient.get('/Auth/me');
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        await parseErrorResponse(error, 'Không thể lấy thông tin người dùng hiện tại'),
+      );
+    }
+  },
+
   login: async (email: string, password: string, rememberDeviceToken?: string) => {
     const tokenToSend =
       rememberDeviceToken ||
@@ -131,16 +154,18 @@ export const authService = {
     }
   },
 
-  enableTwoFactor: async (token: string) => {
+  enableTwoFactor: async (token?: string) => {
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
     try {
       const response = await axiosClient.post(
         '/Auth/enable-2fa',
         {},
         {
           withCredentials: true,
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers,
         },
       );
       return response.data;
@@ -169,20 +194,12 @@ export const authService = {
     }
   },
 
-  /** Thu hồi refresh token của phiên hiện tại trên BE (best-effort: lỗi mạng không chặn đăng xuất phía FE). */
+  /** Đăng xuất: gọi POST /Auth/logout không body để BE thu hồi refresh token và xóa 2 cookie pf_access, pf_refresh */
   logout: async () => {
-    const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
-    if (!refreshToken) return;
-    // Truyền sẵn Bearer vì token trong localStorage sẽ bị xoá ngay sau khi gọi hàm này
-    const accessToken = localStorage.getItem('token');
     try {
-      await axiosClient.post(
-        '/Auth/logout',
-        { refreshToken },
-        accessToken ? { headers: { Authorization: `Bearer ${accessToken}` } } : undefined,
-      );
+      await axiosClient.post('/Auth/logout', {});
     } catch {
-      // bỏ qua: token tự hết hạn trên BE
+      // bỏ qua: lỗi mạng không chặn việc dọn dẹp phiên phía FE
     }
   },
 
@@ -201,15 +218,17 @@ export const authService = {
     }
   },
 
-  sendChangePasswordOtp: async (token: string) => {
+  sendChangePasswordOtp: async (token?: string) => {
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
     try {
       const response = await axiosClient.post(
         '/Auth/send-change-password-otp',
         {},
         {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers,
         },
       );
       return response.data;
@@ -218,19 +237,16 @@ export const authService = {
     }
   },
 
-  changePassword: async (data: ChangePasswordPayload, token: string) => {
+  changePassword: async (data: ChangePasswordPayload, token?: string) => {
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
     try {
-      // Gửi kèm refresh token của phiên hiện tại để BE giữ phiên này, chỉ đăng xuất các thiết bị khác
-      const currentRefreshToken = localStorage.getItem(REFRESH_TOKEN_KEY) ?? undefined;
-      const response = await axiosClient.post(
-        '/Auth/change-password',
-        { ...data, currentRefreshToken },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
+      // BE đọc refresh token từ cookie pf_refresh để giữ lại phiên này, không cần gửi currentRefreshToken trong body
+      const response = await axiosClient.post('/Auth/change-password', data, {
+        headers,
+      });
       return response.data;
     } catch (error) {
       throw new Error(await parseErrorResponse(error, 'Failed to change password'));
@@ -256,12 +272,14 @@ export const authService = {
   },
 
   getLandingContext: async (customToken?: string): Promise<LandingContextDto> => {
-    const token =
-      customToken || (typeof window !== 'undefined' ? localStorage.getItem('token') : null) || '';
+    const headers: Record<string, string> = {};
+    if (customToken) {
+      headers.Authorization = `Bearer ${customToken}`;
+    }
 
     try {
       const response = await axiosClient.get('/Auth/me/landing-context', {
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        headers,
       });
       return response.data;
     } catch (error) {

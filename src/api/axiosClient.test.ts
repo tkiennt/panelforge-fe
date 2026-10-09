@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
-import axiosClient, { refreshAccessToken } from './axiosClient';
+import axiosClient, { refreshAccessToken, clearLegacyTokens } from './axiosClient';
 
 const ok = (config: InternalAxiosRequestConfig, data: unknown = { ok: true }) => ({
   data,
@@ -55,9 +55,18 @@ describe('axiosClient', () => {
     expect(adapter.mock.calls[0][0].headers.Authorization).toBe('Bearer new-access');
   });
 
-  it('gặp 401 thì đổi refresh token, lưu token mới và gửi lại request thành công', async () => {
+  it('luôn gửi withCredentials: true và header X-Requested-With: XMLHttpRequest trên mọi request', async () => {
+    const adapter = vi.fn(async (config: InternalAxiosRequestConfig) => ok(config));
+    axiosClient.defaults.adapter = adapter;
+
+    await axiosClient.get('/Workspaces');
+
+    expect(adapter.mock.calls[0][0].withCredentials).toBe(true);
+    expect(adapter.mock.calls[0][0].headers['X-Requested-With']).toBe('XMLHttpRequest');
+  });
+
+  it('gặp 401 thì gọi refresh token không body (dùng cookie), gửi lại request thành công', async () => {
     localStorage.setItem('token', 'old-access');
-    localStorage.setItem('refreshToken', 'refresh-1');
     const adapter = useAdapter();
     const refreshSpy = vi
       .spyOn(axios, 'post')
@@ -68,11 +77,30 @@ describe('axiosClient', () => {
     expect(response.status).toBe(200);
     expect(refreshSpy).toHaveBeenCalledTimes(1);
     expect(refreshSpy.mock.calls[0][0]).toContain('/Auth/refresh');
-    expect(refreshSpy.mock.calls[0][1]).toEqual({ refreshToken: 'refresh-1' });
-    expect(localStorage.getItem('token')).toBe('new-access');
-    expect(localStorage.getItem('refreshToken')).toBe('refresh-2');
+    // HttpOnly cookie: refresh không gửi body, BE đọc cookie pf_refresh
+    expect(refreshSpy.mock.calls[0][1]).toEqual({});
+    expect(refreshSpy.mock.calls[0][2]).toEqual(
+      expect.objectContaining({
+        withCredentials: true,
+        headers: expect.objectContaining({ 'X-Requested-With': 'XMLHttpRequest' }),
+      }),
+    );
     expect(adapter).toHaveBeenCalledTimes(2); // lần 1: 401, lần 2: gửi lại với token mới
     expect(unauthorizedEvents).toBe(0);
+  });
+
+  it('clearLegacyTokens xoá token cũ, jwt_token, refreshToken nhưng giữ mock- token', () => {
+    localStorage.setItem('token', 'old-jwt-real.token.here');
+    localStorage.setItem('jwt_token', 'old-jwt');
+    localStorage.setItem('refreshToken', 'old-refresh');
+    clearLegacyTokens();
+    expect(localStorage.getItem('token')).toBeNull();
+    expect(localStorage.getItem('jwt_token')).toBeNull();
+    expect(localStorage.getItem('refreshToken')).toBeNull();
+
+    localStorage.setItem('token', 'mock-admin-token');
+    clearLegacyTokens();
+    expect(localStorage.getItem('token')).toBe('mock-admin-token');
   });
 
   it('nhiều request 401 cùng lúc chỉ gọi /Auth/refresh một lần', async () => {

@@ -51,7 +51,7 @@ function AppContent() {
   const navigate = useNavigate();
   // ---> STATE QUẢN LÝ ĐĂNG NHẬP VÀ ĐIỀU HƯỚNG BÊN NGOÀI <---
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    return !!localStorage.getItem('token');
+    return !!localStorage.getItem('user') || !!localStorage.getItem('token');
   });
   const [authMode, setAuthMode] = useState<'landing' | 'login' | 'register'>('landing');
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
@@ -154,38 +154,31 @@ function AppContent() {
       if (user) {
         setIsAuthenticated(true);
         try {
-          const existingToken = localStorage.getItem('token');
-          if (!existingToken) {
-            const idToken = await user.getIdToken();
-            const res = await authService.externalLogin(idToken);
-            if (res?.token) {
-              localStorage.setItem('token', res.token);
+          const idToken = await user.getIdToken();
+          const res = await authService.externalLogin(idToken);
+          if (res?.user?.role) {
+            const role = normalizeSystemRole(res.user.role);
+            setCurrentRole(role);
+            localStorage.setItem('userRole', role);
+            if (role === 'ADMINISTRATOR') {
+              setActiveProjectRoles(['ADMINISTRATOR']);
             }
-            if (res?.user?.role) {
-              const role = normalizeSystemRole(res.user.role);
-              setCurrentRole(role);
-              localStorage.setItem('userRole', role);
-              if (role === 'ADMINISTRATOR') {
-                setActiveProjectRoles(['ADMINISTRATOR']);
-              }
-              setCurrentUserInfo({
-                id: res.user.id,
-                name: res.user.fullName || user.displayName || user.email?.split('@')[0] || 'User',
-                email: res.user.email || user.email || '',
-                role,
-                isTwoFactorEnabled: !!res.user.twoFactorEnabled,
-              });
-              localStorage.setItem('user', JSON.stringify(res.user));
-              navigateRoleDefaultView(role);
-            }
+            setCurrentUserInfo({
+              id: res.user.id,
+              name: res.user.fullName || user.displayName || user.email?.split('@')[0] || 'User',
+              email: res.user.email || user.email || '',
+              role,
+              isTwoFactorEnabled: !!res.user.twoFactorEnabled,
+            });
+            localStorage.setItem('user', JSON.stringify(res.user));
+            navigateRoleDefaultView(role);
           }
         } catch (err) {
           console.warn('Không thể đồng bộ token backend từ Firebase session:', err);
         }
       } else {
-        // Không có phiên Firebase (vd. đăng nhập email/mật khẩu qua backend): giữ JWT backend,
-        // chỉ coi là chưa đăng nhập khi không còn token. Đăng xuất do handleLogout xoá token.
-        setIsAuthenticated(!!localStorage.getItem('token'));
+        // Không có phiên Firebase (vd. đăng nhập email/mật khẩu qua backend):
+        // Trạng thái được kiểm tra và đồng bộ chính xác qua authService.getMe() ở effect mount.
       }
     });
     return () => unsubscribe();
@@ -282,45 +275,32 @@ function AppContent() {
     }
   };
 
-  // Khôi phục vai trò và phiên làm việc từ JWT token (Single Source of Truth) khi tải lại trang
+  // Khôi phục vai trò và phiên làm việc: nạp nhanh từ localStorage, xác thực qua GET /Auth/me
   useEffect(() => {
-    const verifiedRole = getRoleFromToken();
+    const token = localStorage.getItem('token');
+    const verifiedRole = getRoleFromToken(token);
     if (verifiedRole) {
       setIsAuthenticated(true);
       setCurrentRole(verifiedRole);
-      localStorage.setItem('userRole', verifiedRole); // Luôn ghi đè đồng bộ đúng role từ token
+      localStorage.setItem('userRole', verifiedRole);
       if (verifiedRole === 'ADMINISTRATOR') {
         setActiveProjectRoles(['ADMINISTRATOR']);
         setCurrentWorkspaceRole(null);
       } else {
-        if (activeProjectRoles.includes('ADMINISTRATOR')) {
-          setActiveProjectRoles(['ARTIST']);
-        }
+        setActiveProjectRoles((prev) => (prev.includes('ADMINISTRATOR') ? ['ARTIST'] : prev));
       }
-    } else {
-      const savedToken = localStorage.getItem('token');
-      if (savedToken && !savedToken.startsWith('mock-')) {
-        if (localStorage.getItem('refreshToken')) {
-          // Access token (30 phút) đã hết hạn nhưng còn refresh token → đổi token mới rồi nạp lại trang.
-          // Refresh bị từ chối thì axiosClient tự dọn phiên và phát 'auth:unauthorized'.
-          void refreshAccessToken().then((newToken) => {
-            if (newToken) window.location.reload();
-          });
-        } else {
-          // Token hết hạn hoặc không hợp lệ -> xóa sạch
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          localStorage.removeItem('userRole');
-          setIsAuthenticated(false);
-        }
+      if (token && token.startsWith('mock-')) {
+        return;
       }
     }
 
+    // Nạp thông tin user từ localStorage để hiển thị nhanh (optimistic UI)
     const savedUser = localStorage.getItem('user');
     if (savedUser) {
       try {
         const u = JSON.parse(savedUser);
-        const role = verifiedRole || normalizeSystemRole(u.role);
+        const storedRole = localStorage.getItem('userRole');
+        const role = storedRole ? normalizeSystemRole(storedRole) : normalizeSystemRole(u.role);
         setCurrentUserInfo({
           id: u.id,
           name: u.fullName || u.username || u.email?.split('@')[0] || 'User',
@@ -329,12 +309,54 @@ function AppContent() {
           canCreateStudio: !!u.canCreateStudio,
           isTwoFactorEnabled: !!u.isTwoFactorEnabled,
         });
+        setCurrentRole(role);
+        if (role === 'ADMINISTRATOR') {
+          setActiveProjectRoles(['ADMINISTRATOR']);
+          setCurrentWorkspaceRole(null);
+        }
       } catch {
         // bỏ qua lỗi parse
       }
     }
-    // Chỉ khôi phục phiên một lần khi mount.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
+    // Gọi GET /Auth/me để xác thực phiên với Backend qua cookie HttpOnly pf_access
+    let isMounted = true;
+    authService
+      .getMe()
+      .then((me) => {
+        if (!isMounted) return;
+        setIsAuthenticated(true);
+        const role = normalizeSystemRole(me.role);
+        setCurrentRole(role);
+        localStorage.setItem('userRole', role);
+        setCurrentUserInfo({
+          id: me.id,
+          name: me.fullName || me.email?.split('@')[0] || 'User',
+          email: me.email,
+          role,
+          canCreateStudio: !!me.canCreateStudio,
+        });
+        localStorage.setItem('user', JSON.stringify(me));
+        if (role === 'ADMINISTRATOR') {
+          setActiveProjectRoles(['ADMINISTRATOR']);
+          setCurrentWorkspaceRole(null);
+        }
+      })
+      .catch((err) => {
+        if (!isMounted) return;
+        // 401: phiên không hợp lệ hoặc đã hết hạn
+        const status = err?.response?.status;
+        if (status === 401 || (!savedUser && !token)) {
+          setIsAuthenticated(false);
+          setCurrentUserInfo(null);
+          localStorage.removeItem('user');
+          localStorage.removeItem('userRole');
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -687,9 +709,6 @@ function AppContent() {
             setIsAuthenticated(true);
             localStorage.removeItem('demoRole');
             localStorage.removeItem('isDemoMode');
-            if (res?.token) {
-              localStorage.setItem('token', res.token);
-            }
             const role = normalizeSystemRole(res?.user?.role);
             setCurrentRole(role);
             setCurrentUserInfo({
@@ -702,6 +721,9 @@ function AppContent() {
               email: res?.user?.email || res?.email || '',
               role,
             });
+            if (res?.user) {
+              localStorage.setItem('user', JSON.stringify(res.user));
+            }
             localStorage.setItem('userRole', role);
             navigate(role === 'ADMINISTRATOR' ? '/admin' : '/workspaces');
             const displayName =
@@ -714,9 +736,6 @@ function AppContent() {
             setIsAuthenticated(true);
             localStorage.removeItem('demoRole');
             localStorage.removeItem('isDemoMode');
-            if (authResponse?.token) {
-              localStorage.setItem('token', authResponse.token);
-            }
             const role = normalizeSystemRole(authResponse?.user?.role);
             setCurrentRole(role);
             setCurrentUserInfo({
@@ -735,7 +754,7 @@ function AppContent() {
 
             // BR-23 / F3: Điều hướng theo suggestedLanding từ landing-context API
             authService
-              .getLandingContext(authResponse?.token)
+              .getLandingContext()
               .then((landing) => {
                 if (landing?.suggestedLanding === 'AdminDashboard') {
                   navigate('/admin');
@@ -771,9 +790,6 @@ function AppContent() {
           onSuccess={(authResponse) => {
             setIsRegisterModalOpen(false);
             setIsAuthenticated(true);
-            if (authResponse?.token) {
-              localStorage.setItem('token', authResponse.token);
-            }
             const role = normalizeSystemRole(authResponse?.user?.role);
             setCurrentRole(role);
             setCurrentUserInfo({
@@ -783,6 +799,9 @@ function AppContent() {
               email: authResponse?.user?.email || '',
               role,
             });
+            if (authResponse?.user) {
+              localStorage.setItem('user', JSON.stringify(authResponse.user));
+            }
             localStorage.setItem('userRole', role);
             navigate(role === 'ADMINISTRATOR' ? '/admin' : '/workspaces');
             showToast(
@@ -798,7 +817,6 @@ function AppContent() {
         onClose={() => setIsTwoFactorModalOpen(false)}
         twoFactorEnabled={currentUserInfo?.isTwoFactorEnabled ?? false}
         isTwoFactorEnabled={currentUserInfo?.isTwoFactorEnabled ?? false}
-        token={localStorage.getItem('token') || ''}
         onSuccess={() => {
           showToast('Bảo mật 2FA', 'Đã kích hoạt thành công Google Authenticator cho tài khoản!');
           setCurrentUserInfo((prev) => (prev ? { ...prev, isTwoFactorEnabled: true } : prev));
@@ -820,7 +838,6 @@ function AppContent() {
         onClose={() => setIsChangePasswordModalOpen(false)}
         twoFactorEnabled={currentUserInfo?.isTwoFactorEnabled ?? false}
         isTwoFactorEnabled={currentUserInfo?.isTwoFactorEnabled ?? false}
-        token={localStorage.getItem('token') || ''}
         onSuccess={() => {
           showToast('Change Password', 'Account password updated successfully!');
         }}
