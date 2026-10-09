@@ -153,6 +153,15 @@ describe('axiosClient', () => {
   it('401 khi không có refresh token thì dọn phiên và phát auth:unauthorized', async () => {
     localStorage.setItem('token', 'old-access');
     useAdapter();
+    vi.spyOn(axios, 'post').mockRejectedValue(
+      new AxiosError('Unauthorized', 'ERR_BAD_REQUEST', undefined, null, {
+        data: {},
+        status: 401,
+        statusText: 'Unauthorized',
+        headers: {},
+        config: {} as InternalAxiosRequestConfig,
+      }),
+    );
 
     await expect(axiosClient.get('/Workspaces')).rejects.toBeDefined();
 
