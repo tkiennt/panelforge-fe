@@ -20,6 +20,7 @@ import {
 import { StudioMember, MangaProject } from '@/types';
 import { InviteMemberModal } from '@/roles/producer/modals/InviteMemberModal';
 import { workspaceService, WorkspaceMemberDto } from '@/services/workspace.service';
+import { PageContainer } from '@/shared/components/PageContainer';
 
 interface MembersRolesViewProps {
   activeProject?: MangaProject;
@@ -218,7 +219,7 @@ export const MembersRolesView: React.FC<MembersRolesViewProps> = ({
   };
 
   return (
-    <div className='max-w-7xl mx-auto space-y-6 pb-12'>
+    <PageContainer className='space-y-6 pb-12'>
       {/* Top Banner & Context */}
       <div className='bg-white border border-[#E7E7E7] rounded-xl p-5 shadow-xs'>
         <div className='flex flex-col lg:flex-row lg:items-center justify-between gap-4'>
@@ -631,6 +632,6 @@ export const MembersRolesView: React.FC<MembersRolesViewProps> = ({
         onInvite={handleInvite}
         onShowToast={onShowToast}
       />
-    </div>
+    </PageContainer>
   );
 };

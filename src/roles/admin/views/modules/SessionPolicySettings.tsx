@@ -197,7 +197,7 @@ export const SessionPolicySettings: React.FC = () => {
   };
 
   return (
-    <div className='space-y-6 max-w-5xl'>
+    <div className='space-y-6 w-full'>
       {/* Toast Alert */}
       {toast && (
         <div
@@ -274,170 +274,172 @@ export const SessionPolicySettings: React.FC = () => {
 
       {/* Main Configuration Form */}
       <form onSubmit={handleSave} className='space-y-6'>
-        {/* Card 1: Session Lifetime */}
-        <div className='bg-white p-6 rounded-2xl border border-[#E7E7E7] shadow-xs space-y-4'>
-          <div className='flex items-center justify-between border-b border-[#E7E7E7] pb-3'>
-            <div className='flex items-center gap-2.5'>
-              <div className='w-8 h-8 rounded-lg bg-[#FAF8F5] border border-[#E7E7E7] flex items-center justify-center text-[#F97316]'>
-                <Clock className='w-4 h-4' />
+        <div className='grid grid-cols-1 xl:grid-cols-2 gap-6'>
+          {/* Card 1: Session Lifetime */}
+          <div className='bg-white p-6 rounded-2xl border border-[#E7E7E7] shadow-xs space-y-4'>
+            <div className='flex items-center justify-between border-b border-[#E7E7E7] pb-3'>
+              <div className='flex items-center gap-2.5'>
+                <div className='w-8 h-8 rounded-lg bg-[#FAF8F5] border border-[#E7E7E7] flex items-center justify-center text-[#F97316]'>
+                  <Clock className='w-4 h-4' />
+                </div>
+                <div>
+                  <h3 className='text-sm font-bold text-[#171717]'>
+                    1. Thời Gian Sống Tối Đa Của Phiên (Session Lifetime)
+                  </h3>
+                  <p className='text-[11px] text-[#737373]'>
+                    Hạn tối đa từ khi đăng nhập. Quá thời gian này, phiên hết hạn và buộc người dùng
+                    đăng nhập lại.
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className='text-sm font-bold text-[#171717]'>
-                  1. Thời Gian Sống Tối Đa Của Phiên (Session Lifetime)
-                </h3>
-                <p className='text-[11px] text-[#737373]'>
-                  Hạn tối đa từ khi đăng nhập. Quá thời gian này, phiên hết hạn và buộc người dùng
-                  đăng nhập lại.
-                </p>
-              </div>
+
+              <label className='relative inline-flex items-center cursor-pointer'>
+                <input
+                  type='checkbox'
+                  checked={lifetimeEnabled}
+                  onChange={(e) => setLifetimeEnabled(e.target.checked)}
+                  className='sr-only peer'
+                />
+                <div className="w-11 h-6 bg-zinc-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#059669]"></div>
+                <span className='ml-2 text-xs font-semibold text-[#171717]'>
+                  {lifetimeEnabled ? 'Bật giới hạn' : 'Không giới hạn (Mặc định 30 ngày)'}
+                </span>
+              </label>
             </div>
 
-            <label className='relative inline-flex items-center cursor-pointer'>
-              <input
-                type='checkbox'
-                checked={lifetimeEnabled}
-                onChange={(e) => setLifetimeEnabled(e.target.checked)}
-                className='sr-only peer'
-              />
-              <div className="w-11 h-6 bg-zinc-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#059669]"></div>
-              <span className='ml-2 text-xs font-semibold text-[#171717]'>
-                {lifetimeEnabled ? 'Bật giới hạn' : 'Không giới hạn (Mặc định 30 ngày)'}
-              </span>
-            </label>
+            {lifetimeEnabled && (
+              <div className='space-y-3 pt-2 animate-in fade-in duration-150'>
+                <div className='flex flex-wrap items-center gap-2'>
+                  <span className='text-xs text-[#737373]'>Gợi ý nhanh:</span>
+                  {[
+                    { label: '2 giờ', mins: 120 },
+                    { label: '8 giờ', mins: 480 },
+                    { label: '24 giờ (1 ngày)', mins: 1440 },
+                    { label: '7 ngày', mins: 10080 },
+                    { label: '30 ngày', mins: 43200 },
+                  ].map((preset) => (
+                    <button
+                      key={preset.mins}
+                      type='button'
+                      onClick={() => setSessionLifetimeMinutes(preset.mins)}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-mono transition-colors cursor-pointer ${
+                        sessionLifetimeMinutes === preset.mins
+                          ? 'bg-[#171717] text-white font-bold'
+                          : 'bg-[#FAF8F5] border border-[#E7E7E7] text-[#555555] hover:bg-[#F3F1EB]'
+                      }`}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className='flex items-center gap-4'>
+                  <input
+                    type='number'
+                    min={5}
+                    max={43200}
+                    value={sessionLifetimeMinutes}
+                    onChange={(e) =>
+                      setSessionLifetimeMinutes(
+                        Math.max(5, Math.min(43200, parseInt(e.target.value, 10) || 5)),
+                      )
+                    }
+                    className='w-36 px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl text-xs font-mono text-[#171717] focus:outline-none focus:border-[#F97316]'
+                  />
+                  <span className='text-xs text-[#737373]'>
+                    phút (tương đương {(sessionLifetimeMinutes / 60).toFixed(1)} giờ hoặc{' '}
+                    {(sessionLifetimeMinutes / 1440).toFixed(1)} ngày)
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
 
-          {lifetimeEnabled && (
-            <div className='space-y-3 pt-2 animate-in fade-in duration-150'>
-              <div className='flex flex-wrap items-center gap-2'>
-                <span className='text-xs text-[#737373]'>Gợi ý nhanh:</span>
-                {[
-                  { label: '2 giờ', mins: 120 },
-                  { label: '8 giờ', mins: 480 },
-                  { label: '24 giờ (1 ngày)', mins: 1440 },
-                  { label: '7 ngày', mins: 10080 },
-                  { label: '30 ngày', mins: 43200 },
-                ].map((preset) => (
-                  <button
-                    key={preset.mins}
-                    type='button'
-                    onClick={() => setSessionLifetimeMinutes(preset.mins)}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-mono transition-colors cursor-pointer ${
-                      sessionLifetimeMinutes === preset.mins
-                        ? 'bg-[#171717] text-white font-bold'
-                        : 'bg-[#FAF8F5] border border-[#E7E7E7] text-[#555555] hover:bg-[#F3F1EB]'
-                    }`}
-                  >
-                    {preset.label}
-                  </button>
-                ))}
+          {/* Card 2: Idle Timeout */}
+          <div className='bg-white p-6 rounded-2xl border border-[#E7E7E7] shadow-xs space-y-4'>
+            <div className='flex items-center justify-between border-b border-[#E7E7E7] pb-3'>
+              <div className='flex items-center gap-2.5'>
+                <div className='w-8 h-8 rounded-lg bg-[#FAF8F5] border border-[#E7E7E7] flex items-center justify-center text-[#F97316]'>
+                  <SlidersHorizontal className='w-4 h-4' />
+                </div>
+                <div>
+                  <h3 className='text-sm font-bold text-[#171717]'>
+                    2. Thời Gian Chờ Không Hoạt Động (Idle Timeout)
+                  </h3>
+                  <p className='text-[11px] text-[#737373]'>
+                    Tự động thu hồi phiên nếu không có thao tác refresh token trong khoảng thời gian
+                    này.
+                  </p>
+                </div>
               </div>
 
-              <div className='flex items-center gap-4'>
+              <label className='relative inline-flex items-center cursor-pointer'>
                 <input
-                  type='number'
-                  min={5}
-                  max={43200}
-                  value={sessionLifetimeMinutes}
-                  onChange={(e) =>
-                    setSessionLifetimeMinutes(
-                      Math.max(5, Math.min(43200, parseInt(e.target.value, 10) || 5)),
-                    )
-                  }
-                  className='w-36 px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl text-xs font-mono text-[#171717] focus:outline-none focus:border-[#F97316]'
+                  type='checkbox'
+                  checked={idleEnabled}
+                  onChange={(e) => setIdleEnabled(e.target.checked)}
+                  className='sr-only peer'
                 />
-                <span className='text-xs text-[#737373]'>
-                  phút (tương đương {(sessionLifetimeMinutes / 60).toFixed(1)} giờ hoặc{' '}
-                  {(sessionLifetimeMinutes / 1440).toFixed(1)} ngày)
+                <div className="w-11 h-6 bg-zinc-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#059669]"></div>
+                <span className='ml-2 text-xs font-semibold text-[#171717]'>
+                  {idleEnabled ? 'Bật giới hạn' : 'Không giới hạn'}
                 </span>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Card 2: Idle Timeout */}
-        <div className='bg-white p-6 rounded-2xl border border-[#E7E7E7] shadow-xs space-y-4'>
-          <div className='flex items-center justify-between border-b border-[#E7E7E7] pb-3'>
-            <div className='flex items-center gap-2.5'>
-              <div className='w-8 h-8 rounded-lg bg-[#FAF8F5] border border-[#E7E7E7] flex items-center justify-center text-[#F97316]'>
-                <SlidersHorizontal className='w-4 h-4' />
-              </div>
-              <div>
-                <h3 className='text-sm font-bold text-[#171717]'>
-                  2. Thời Gian Chờ Không Hoạt Động (Idle Timeout)
-                </h3>
-                <p className='text-[11px] text-[#737373]'>
-                  Tự động thu hồi phiên nếu không có thao tác refresh token trong khoảng thời gian
-                  này.
-                </p>
-              </div>
+              </label>
             </div>
 
-            <label className='relative inline-flex items-center cursor-pointer'>
-              <input
-                type='checkbox'
-                checked={idleEnabled}
-                onChange={(e) => setIdleEnabled(e.target.checked)}
-                className='sr-only peer'
-              />
-              <div className="w-11 h-6 bg-zinc-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#059669]"></div>
-              <span className='ml-2 text-xs font-semibold text-[#171717]'>
-                {idleEnabled ? 'Bật giới hạn' : 'Không giới hạn'}
-              </span>
-            </label>
+            {idleEnabled && (
+              <div className='space-y-3 pt-2 animate-in fade-in duration-150'>
+                <div className='flex flex-wrap items-center gap-2'>
+                  <span className='text-xs text-[#737373]'>Gợi ý nhanh:</span>
+                  {[
+                    { label: '15 phút', mins: 15 },
+                    { label: '30 phút', mins: 30 },
+                    { label: '60 phút (1 giờ)', mins: 60 },
+                    { label: '120 phút (2 giờ)', mins: 120 },
+                  ].map((preset) => (
+                    <button
+                      key={preset.mins}
+                      type='button'
+                      onClick={() => setIdleTimeoutMinutes(preset.mins)}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-mono transition-colors cursor-pointer ${
+                        idleTimeoutMinutes === preset.mins
+                          ? 'bg-[#171717] text-white font-bold'
+                          : 'bg-[#FAF8F5] border border-[#E7E7E7] text-[#555555] hover:bg-[#F3F1EB]'
+                      }`}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className='flex items-center gap-4'>
+                  <input
+                    type='number'
+                    min={1}
+                    max={lifetimeEnabled ? sessionLifetimeMinutes : 43200}
+                    value={idleTimeoutMinutes}
+                    onChange={(e) =>
+                      setIdleTimeoutMinutes(Math.max(1, parseInt(e.target.value, 10) || 1))
+                    }
+                    className='w-36 px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl text-xs font-mono text-[#171717] focus:outline-none focus:border-[#F97316]'
+                  />
+                  <span className='text-xs text-[#737373]'>
+                    phút không hoạt động trước khi đăng xuất
+                  </span>
+                </div>
+
+                <div className='p-3 bg-amber-50/70 border border-amber-200/80 rounded-xl text-[11px] text-amber-800 flex items-start gap-2'>
+                  <Info className='w-4 h-4 text-amber-600 shrink-0 mt-0.5' />
+                  <span>
+                    <strong>Đặc thù kỹ thuật:</strong> Do Access Token (JWT) có hiệu lực 30 phút,
+                    việc kiểm tra idle timeout được thực thi ở lần gọi Refresh Token tiếp theo. Nếu
+                    đặt dưới 30 phút, người dùng vẫn có thể thao tác đến khi Access Token hiện tại
+                    hết hạn.
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
-
-          {idleEnabled && (
-            <div className='space-y-3 pt-2 animate-in fade-in duration-150'>
-              <div className='flex flex-wrap items-center gap-2'>
-                <span className='text-xs text-[#737373]'>Gợi ý nhanh:</span>
-                {[
-                  { label: '15 phút', mins: 15 },
-                  { label: '30 phút', mins: 30 },
-                  { label: '60 phút (1 giờ)', mins: 60 },
-                  { label: '120 phút (2 giờ)', mins: 120 },
-                ].map((preset) => (
-                  <button
-                    key={preset.mins}
-                    type='button'
-                    onClick={() => setIdleTimeoutMinutes(preset.mins)}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-mono transition-colors cursor-pointer ${
-                      idleTimeoutMinutes === preset.mins
-                        ? 'bg-[#171717] text-white font-bold'
-                        : 'bg-[#FAF8F5] border border-[#E7E7E7] text-[#555555] hover:bg-[#F3F1EB]'
-                    }`}
-                  >
-                    {preset.label}
-                  </button>
-                ))}
-              </div>
-
-              <div className='flex items-center gap-4'>
-                <input
-                  type='number'
-                  min={1}
-                  max={lifetimeEnabled ? sessionLifetimeMinutes : 43200}
-                  value={idleTimeoutMinutes}
-                  onChange={(e) =>
-                    setIdleTimeoutMinutes(Math.max(1, parseInt(e.target.value, 10) || 1))
-                  }
-                  className='w-36 px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl text-xs font-mono text-[#171717] focus:outline-none focus:border-[#F97316]'
-                />
-                <span className='text-xs text-[#737373]'>
-                  phút không hoạt động trước khi đăng xuất
-                </span>
-              </div>
-
-              <div className='p-3 bg-amber-50/70 border border-amber-200/80 rounded-xl text-[11px] text-amber-800 flex items-start gap-2'>
-                <Info className='w-4 h-4 text-amber-600 shrink-0 mt-0.5' />
-                <span>
-                  <strong>Đặc thù kỹ thuật:</strong> Do Access Token (JWT) có hiệu lực 30 phút, việc
-                  kiểm tra idle timeout được thực thi ở lần gọi Refresh Token tiếp theo. Nếu đặt
-                  dưới 30 phút, người dùng vẫn có thể thao tác đến khi Access Token hiện tại hết
-                  hạn.
-                </span>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Card 3: Max Concurrent Sessions */}

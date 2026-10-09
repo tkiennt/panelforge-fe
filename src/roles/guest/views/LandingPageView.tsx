@@ -100,7 +100,8 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
           <div className='flex items-center gap-3'>
             <button
               onClick={onOpenLogin}
-              className='hidden sm:block text-sm text-[#404040] font-medium hover:text-white hover:bg-[#f97316] hover:shadow-[0_8px_20px_rgba(249,115,22,0.3)] hover:-translate-y-1 border border-transparent px-4 py-2 rounded-full transition-all duration-300 cursor-pointer'
+              aria-label='Sign in'
+              className='text-xs sm:text-sm text-[#404040] font-medium hover:text-white hover:bg-[#f97316] hover:shadow-[0_8px_20px_rgba(249,115,22,0.3)] hover:-translate-y-1 border border-zinc-200 sm:border-transparent px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-full transition-all duration-300 cursor-pointer whitespace-nowrap'
             >
               Sign in
             </button>

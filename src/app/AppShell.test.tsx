@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { AppShell, CurrentUser } from './AppShell';
 
@@ -119,5 +119,32 @@ describe('AppShell Component', () => {
     expect(screen.getByText('System Dashboard')).toBeInTheDocument();
     expect(screen.getByText('Users & Roles')).toBeInTheDocument();
     expect(screen.getByText('AI Provider & Quota')).toBeInTheDocument();
+  });
+
+  it('hỗ trợ mở và đóng sidebar drawer trên màn hình nhỏ (< md) bằng nút hamburger', () => {
+    const producerUser: CurrentUser = {
+      name: 'Phạm Nhà Sản Xuất',
+      role: 'USER',
+      workspaceRole: 'PRODUCER' as any,
+      activeRoles: ['PRODUCER'],
+      avatarInitials: 'PN',
+    };
+
+    renderInRouter(producerUser, '/workspaces/ws-1/series/ser-1/dashboard');
+
+    const hamburgerBtn = screen.getByRole('button', { name: /mở menu điều hướng/i });
+    expect(hamburgerBtn).toBeInTheDocument();
+    expect(hamburgerBtn).toHaveAttribute('aria-expanded', 'false');
+
+    // Mở drawer
+    fireEvent.click(hamburgerBtn);
+    expect(hamburgerBtn).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('dialog', { name: /menu điều hướng/i })).toBeInTheDocument();
+
+    // Đóng drawer bằng nút Đóng menu
+    const closeBtn = screen.getByRole('button', { name: /đóng menu điều hướng/i });
+    fireEvent.click(closeBtn);
+    expect(hamburgerBtn).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('dialog', { name: /menu điều hướng/i })).not.toBeInTheDocument();
   });
 });

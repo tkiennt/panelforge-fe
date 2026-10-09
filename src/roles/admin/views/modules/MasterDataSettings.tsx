@@ -60,7 +60,7 @@ export const MasterDataSettings: React.FC = () => {
   };
 
   return (
-    <div className='space-y-6 max-w-5xl'>
+    <div className='space-y-6 w-full'>
       <div className='flex items-center justify-between bg-white p-6 rounded-2xl border border-[#E7E7E7] shadow-xs'>
         <div>
           <div className='flex items-center gap-2 mb-1'>
@@ -86,95 +86,97 @@ export const MasterDataSettings: React.FC = () => {
       </div>
 
       <form onSubmit={handleSave} className='space-y-6'>
-        {/* Pipeline Stage Templates */}
-        <div className='bg-white p-6 rounded-2xl border border-[#E7E7E7] shadow-xs space-y-4'>
-          <h3 className='text-sm font-bold text-[#171717] flex items-center gap-2'>
-            <Layers className='w-4 h-4 text-[#F97316]' />
-            <span>Mẫu Giai Đoạn Pipeline Sản Xuất (Pipeline Stage Templates)</span>
-          </h3>
+        <div className='grid grid-cols-1 xl:grid-cols-2 gap-6'>
+          {/* Pipeline Stage Templates */}
+          <div className='bg-white p-6 rounded-2xl border border-[#E7E7E7] shadow-xs space-y-4'>
+            <h3 className='text-sm font-bold text-[#171717] flex items-center gap-2'>
+              <Layers className='w-4 h-4 text-[#F97316]' />
+              <span>Mẫu Giai Đoạn Pipeline Sản Xuất (Pipeline Stage Templates)</span>
+            </h3>
 
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-3'>
-            {stages.map((stage, idx) => (
-              <div
-                key={stage.key}
-                className='flex items-center justify-between p-3 rounded-xl border border-[#E7E7E7] bg-[#FAF8F5] text-xs'
-              >
-                <div className='flex items-center gap-2.5'>
-                  <span className={`w-3 h-3 rounded-full ${stage.color}`} />
-                  <span className='font-bold text-[#171717]'>{stage.name}</span>
-                  <span className='font-mono text-[10px] text-[#737373]'>({stage.key})</span>
+            <div className='grid grid-cols-1 md:grid-cols-2 gap-3'>
+              {stages.map((stage, idx) => (
+                <div
+                  key={stage.key}
+                  className='flex items-center justify-between p-3 rounded-xl border border-[#E7E7E7] bg-[#FAF8F5] text-xs'
+                >
+                  <div className='flex items-center gap-2.5'>
+                    <span className={`w-3 h-3 rounded-full ${stage.color}`} />
+                    <span className='font-bold text-[#171717]'>{stage.name}</span>
+                    <span className='font-mono text-[10px] text-[#737373]'>({stage.key})</span>
+                  </div>
+                  {idx > 2 && (
+                    <button
+                      type='button'
+                      onClick={() => setStages(stages.filter((_, i) => i !== idx))}
+                      className='text-red-500 hover:text-red-700 p-1 cursor-pointer'
+                    >
+                      <Trash2 className='w-3.5 h-3.5' />
+                    </button>
+                  )}
                 </div>
-                {idx > 2 && (
-                  <button
-                    type='button'
-                    onClick={() => setStages(stages.filter((_, i) => i !== idx))}
-                    className='text-red-500 hover:text-red-700 p-1 cursor-pointer'
-                  >
-                    <Trash2 className='w-3.5 h-3.5' />
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
 
-          <div className='flex items-center gap-2 pt-2'>
-            <Input
-              placeholder='Tên giai đoạn sản xuất mới...'
-              value={newStageName}
-              onChange={(e) => setNewStageName(e.target.value)}
-              className='text-xs h-9'
-            />
-            <Button
-              type='button'
-              onClick={handleAddStage}
-              className='h-9 bg-[#171717] hover:bg-black text-white text-xs shrink-0 cursor-pointer'
-            >
-              <Plus className='w-3.5 h-3.5 mr-1' /> Thêm Stage
-            </Button>
-          </div>
-        </div>
-
-        {/* Manga Element Types */}
-        <div className='bg-white p-6 rounded-2xl border border-[#E7E7E7] shadow-xs space-y-4'>
-          <h3 className='text-sm font-bold text-[#171717] flex items-center gap-2'>
-            <Layout className='w-4 h-4 text-[#F97316]' />
-            <span>Phân Loại Thực Thể Series Bible (Manga Element Types)</span>
-          </h3>
-
-          <div className='flex flex-wrap gap-2'>
-            {elementTypes.map((type, idx) => (
-              <span
-                key={idx}
-                className='inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#FAF8F5] border border-[#E7E7E7] text-xs font-semibold text-[#171717]'
+            <div className='flex items-center gap-2 pt-2'>
+              <Input
+                placeholder='Tên giai đoạn sản xuất mới...'
+                value={newStageName}
+                onChange={(e) => setNewStageName(e.target.value)}
+                className='text-xs h-9'
+              />
+              <Button
+                type='button'
+                onClick={handleAddStage}
+                className='h-9 bg-[#171717] hover:bg-black text-white text-xs shrink-0 cursor-pointer'
               >
-                {type}
-                {idx > 1 && (
-                  <button
-                    type='button'
-                    onClick={() => setElementTypes(elementTypes.filter((_, i) => i !== idx))}
-                    className='text-red-500 hover:text-red-700 cursor-pointer'
-                  >
-                    &times;
-                  </button>
-                )}
-              </span>
-            ))}
+                <Plus className='w-3.5 h-3.5 mr-1' /> Thêm Stage
+              </Button>
+            </div>
           </div>
 
-          <div className='flex items-center gap-2 pt-2'>
-            <Input
-              placeholder='Loại thực thể Bible mới...'
-              value={newElementType}
-              onChange={(e) => setNewElementType(e.target.value)}
-              className='text-xs h-9'
-            />
-            <Button
-              type='button'
-              onClick={handleAddElementType}
-              className='h-9 bg-[#171717] hover:bg-black text-white text-xs shrink-0 cursor-pointer'
-            >
-              <Plus className='w-3.5 h-3.5 mr-1' /> Thêm Element Type
-            </Button>
+          {/* Manga Element Types */}
+          <div className='bg-white p-6 rounded-2xl border border-[#E7E7E7] shadow-xs space-y-4'>
+            <h3 className='text-sm font-bold text-[#171717] flex items-center gap-2'>
+              <Layout className='w-4 h-4 text-[#F97316]' />
+              <span>Phân Loại Thực Thể Series Bible (Manga Element Types)</span>
+            </h3>
+
+            <div className='flex flex-wrap gap-2'>
+              {elementTypes.map((type, idx) => (
+                <span
+                  key={idx}
+                  className='inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#FAF8F5] border border-[#E7E7E7] text-xs font-semibold text-[#171717]'
+                >
+                  {type}
+                  {idx > 1 && (
+                    <button
+                      type='button'
+                      onClick={() => setElementTypes(elementTypes.filter((_, i) => i !== idx))}
+                      className='text-red-500 hover:text-red-700 cursor-pointer'
+                    >
+                      &times;
+                    </button>
+                  )}
+                </span>
+              ))}
+            </div>
+
+            <div className='flex items-center gap-2 pt-2'>
+              <Input
+                placeholder='Loại thực thể Bible mới...'
+                value={newElementType}
+                onChange={(e) => setNewElementType(e.target.value)}
+                className='text-xs h-9'
+              />
+              <Button
+                type='button'
+                onClick={handleAddElementType}
+                className='h-9 bg-[#171717] hover:bg-black text-white text-xs shrink-0 cursor-pointer'
+              >
+                <Plus className='w-3.5 h-3.5 mr-1' /> Thêm Element Type
+              </Button>
+            </div>
           </div>
         </div>
 

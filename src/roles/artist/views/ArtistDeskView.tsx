@@ -2062,6 +2062,20 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
               </div>
             </div>
           )}
+
+          {!selectedPage && (
+            <div className='flex flex-col items-center justify-center p-12 text-center bg-white rounded-2xl border border-[#E7E7E7] shadow-xs my-6'>
+              <div className='w-16 h-16 rounded-2xl bg-zinc-100 border border-zinc-200 flex items-center justify-center text-zinc-400 mb-4'>
+                <FileImage className='w-8 h-8' />
+              </div>
+              <h3 className='text-base font-bold text-zinc-800 mb-1'>Chọn một trang để bắt đầu</h3>
+              <p className='text-xs text-zinc-500 max-w-sm'>
+                {pages.length > 0
+                  ? 'Vui lòng chọn một trang từ dải thumbnail phía trên để bắt đầu thao tác bố cục khung tranh.'
+                  : 'Chương hiện tại chưa có trang truyện nào. Bấm "Thêm Trang Mới" để tạo trang đầu tiên.'}
+              </p>
+            </div>
+          )}
         </>
       )}
 

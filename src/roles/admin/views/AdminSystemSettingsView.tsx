@@ -97,7 +97,7 @@ export const AdminSystemSettingsView: React.FC = () => {
         )}
       </div>
 
-      <form onSubmit={handleSave} className='space-y-6 max-w-4xl'>
+      <form onSubmit={handleSave} className='space-y-6 w-full'>
         {/* AI Provider & Token Quotas */}
         <div className='bg-white p-6 rounded-2xl border border-[#E7E7E7] shadow-xs space-y-4'>
           <div className='flex items-center gap-2.5 border-b border-[#E7E7E7] pb-3'>
@@ -189,108 +189,110 @@ export const AdminSystemSettingsView: React.FC = () => {
           </div>
         </div>
 
-        {/* Cloud Storage & pgvector Cache */}
-        <div className='bg-white p-6 rounded-2xl border border-[#E7E7E7] shadow-xs space-y-4'>
-          <div className='flex items-center gap-2.5 border-b border-[#E7E7E7] pb-3'>
-            <div className='w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center'>
-              <HardDrive className='w-4 h-4' />
-            </div>
-            <div>
-              <h3 className='text-sm font-bold text-[#171717]'>
-                Lưu Trữ Đám Mây & Continuity Cache
-              </h3>
-              <p className='text-[11px] text-[#737373]'>
-                Giới hạn dung lượng tệp đồ họa gốc 600 DPI TIFF và vector embeddings nhân vật.
-              </p>
-            </div>
-          </div>
-
-          <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
-            <div>
-              <label className='block text-xs font-semibold text-[#171717] mb-1'>
-                Giới hạn tổng dung lượng Cloud Storage (GB)
-              </label>
-              <input
-                type='number'
-                value={storageLimitGb}
-                onChange={(e) => setStorageLimitGb(e.target.value)}
-                className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg text-xs font-mono text-[#171717] focus:outline-none focus:border-[#F97316]'
-              />
-            </div>
-
-            <div className='p-3 bg-[#FAF8F5] rounded-xl border border-[#E7E7E7] text-xs space-y-1'>
-              <div className='font-semibold text-[#171717] flex items-center gap-1.5'>
-                <Database className='w-3.5 h-3.5 text-blue-600' />
-                <span>PostgreSQL pgvector Lore Index</span>
+        <div className='grid grid-cols-1 xl:grid-cols-2 gap-6'>
+          {/* Cloud Storage & pgvector Cache */}
+          <div className='bg-white p-6 rounded-2xl border border-[#E7E7E7] shadow-xs space-y-4'>
+            <div className='flex items-center gap-2.5 border-b border-[#E7E7E7] pb-3'>
+              <div className='w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center'>
+                <HardDrive className='w-4 h-4' />
               </div>
-              <p className='text-[11px] text-[#737373]'>
-                Kích thước vector dimension: <strong>1536</strong> • Index type: HNSW
-              </p>
-              <span className='inline-block text-[10px] font-mono text-emerald-600 font-bold'>
-                Synced & Healthy
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Security & Maintenance Policies */}
-        <div className='bg-white p-6 rounded-2xl border border-[#E7E7E7] shadow-xs space-y-4'>
-          <div className='flex items-center gap-2.5 border-b border-[#E7E7E7] pb-3'>
-            <div className='w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center'>
-              <Shield className='w-4 h-4' />
-            </div>
-            <div>
-              <h3 className='text-sm font-bold text-[#171717]'>Chính Sách Bảo Mật & Hệ Thống</h3>
-              <p className='text-[11px] text-[#737373]'>
-                Bảo vệ tài khoản quản trị và duy trì độ tin cậy của manga studio.
-              </p>
-            </div>
-          </div>
-
-          <div className='space-y-3 text-xs'>
-            {/* 2FA Mandatory Toggle */}
-            <div className='flex items-center justify-between p-3 rounded-xl border border-[#E7E7E7] hover:bg-[#FAF8F5] transition-colors'>
               <div>
-                <div className='font-bold text-[#171717]'>
-                  Bắt buộc 2FA (RFC 6238 TOTP) cho Administrator & Producer
-                </div>
-                <div className='text-[11px] text-[#737373]'>
-                  Yêu cầu kích hoạt Google Authenticator trước khi truy cập bảng điều khiển nhạy
-                  cảm.
-                </div>
+                <h3 className='text-sm font-bold text-[#171717]'>
+                  Lưu Trữ Đám Mây & Continuity Cache
+                </h3>
+                <p className='text-[11px] text-[#737373]'>
+                  Giới hạn dung lượng tệp đồ họa gốc 600 DPI TIFF và vector embeddings nhân vật.
+                </p>
               </div>
-              <button
-                type='button'
-                onClick={() => setEnforce2FAForAdmin(!enforce2FAForAdmin)}
-                className='cursor-pointer text-[#171717]'
-              >
-                {enforce2FAForAdmin ? (
-                  <ToggleRight className='w-8 h-8 text-emerald-600' />
-                ) : (
-                  <ToggleLeft className='w-8 h-8 text-gray-400' />
-                )}
-              </button>
             </div>
 
-            {/* Maintenance Mode Toggle */}
-            <div className='flex items-center justify-between p-3 rounded-xl border border-[#E7E7E7] hover:bg-[#FAF8F5] transition-colors'>
+            <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
               <div>
-                <div className='font-bold text-[#171717]'>Chế độ Bảo Trì (Maintenance Mode)</div>
-                <div className='text-[11px] text-[#737373]'>
-                  Tạm thời khóa quyền ghi đối với mọi role khác trừ Administrator.
-                </div>
+                <label className='block text-xs font-semibold text-[#171717] mb-1'>
+                  Giới hạn tổng dung lượng Cloud Storage (GB)
+                </label>
+                <input
+                  type='number'
+                  value={storageLimitGb}
+                  onChange={(e) => setStorageLimitGb(e.target.value)}
+                  className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg text-xs font-mono text-[#171717] focus:outline-none focus:border-[#F97316]'
+                />
               </div>
-              <button
-                type='button'
-                onClick={() => setMaintenanceMode(!maintenanceMode)}
-                className='cursor-pointer text-[#171717]'
-              >
-                {maintenanceMode ? (
-                  <ToggleRight className='w-8 h-8 text-amber-600' />
-                ) : (
-                  <ToggleLeft className='w-8 h-8 text-gray-400' />
-                )}
-              </button>
+
+              <div className='p-3 bg-[#FAF8F5] rounded-xl border border-[#E7E7E7] text-xs space-y-1'>
+                <div className='font-semibold text-[#171717] flex items-center gap-1.5'>
+                  <Database className='w-3.5 h-3.5 text-blue-600' />
+                  <span>PostgreSQL pgvector Lore Index</span>
+                </div>
+                <p className='text-[11px] text-[#737373]'>
+                  Kích thước vector dimension: <strong>1536</strong> • Index type: HNSW
+                </p>
+                <span className='inline-block text-[10px] font-mono text-emerald-600 font-bold'>
+                  Synced & Healthy
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Security & Maintenance Policies */}
+          <div className='bg-white p-6 rounded-2xl border border-[#E7E7E7] shadow-xs space-y-4'>
+            <div className='flex items-center gap-2.5 border-b border-[#E7E7E7] pb-3'>
+              <div className='w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center'>
+                <Shield className='w-4 h-4' />
+              </div>
+              <div>
+                <h3 className='text-sm font-bold text-[#171717]'>Chính Sách Bảo Mật & Hệ Thống</h3>
+                <p className='text-[11px] text-[#737373]'>
+                  Bảo vệ tài khoản quản trị và duy trì độ tin cậy của manga studio.
+                </p>
+              </div>
+            </div>
+
+            <div className='space-y-3 text-xs'>
+              {/* 2FA Mandatory Toggle */}
+              <div className='flex items-center justify-between p-3 rounded-xl border border-[#E7E7E7] hover:bg-[#FAF8F5] transition-colors'>
+                <div>
+                  <div className='font-bold text-[#171717]'>
+                    Bắt buộc 2FA (RFC 6238 TOTP) cho Administrator & Producer
+                  </div>
+                  <div className='text-[11px] text-[#737373]'>
+                    Yêu cầu kích hoạt Google Authenticator trước khi truy cập bảng điều khiển nhạy
+                    cảm.
+                  </div>
+                </div>
+                <button
+                  type='button'
+                  onClick={() => setEnforce2FAForAdmin(!enforce2FAForAdmin)}
+                  className='cursor-pointer text-[#171717]'
+                >
+                  {enforce2FAForAdmin ? (
+                    <ToggleRight className='w-8 h-8 text-emerald-600' />
+                  ) : (
+                    <ToggleLeft className='w-8 h-8 text-gray-400' />
+                  )}
+                </button>
+              </div>
+
+              {/* Maintenance Mode Toggle */}
+              <div className='flex items-center justify-between p-3 rounded-xl border border-[#E7E7E7] hover:bg-[#FAF8F5] transition-colors'>
+                <div>
+                  <div className='font-bold text-[#171717]'>Chế độ Bảo Trì (Maintenance Mode)</div>
+                  <div className='text-[11px] text-[#737373]'>
+                    Tạm thời khóa quyền ghi đối với mọi role khác trừ Administrator.
+                  </div>
+                </div>
+                <button
+                  type='button'
+                  onClick={() => setMaintenanceMode(!maintenanceMode)}
+                  className='cursor-pointer text-[#171717]'
+                >
+                  {maintenanceMode ? (
+                    <ToggleRight className='w-8 h-8 text-amber-600' />
+                  ) : (
+                    <ToggleLeft className='w-8 h-8 text-gray-400' />
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>

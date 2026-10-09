@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { Users, UserPlus, Shield, X, Check, Trash2, Edit2 } from 'lucide-react';
 import { seriesService, SeriesMemberDto } from '@/services/series.service';
 import { workspaceService, WorkspaceMemberDto } from '@/services/workspace.service';
+import { PageContainer } from '@/shared/components/PageContainer';
 
 export const SeriesMembersView: React.FC<{
   onShowToast: (title: string, desc: string) => void;
@@ -43,7 +44,7 @@ export const SeriesMembersView: React.FC<{
   };
 
   return (
-    <div className='max-w-6xl mx-auto space-y-6 pb-12 p-4'>
+    <PageContainer className='space-y-6 pb-12 py-4'>
       <div className='bg-white border border-zinc-200 rounded-xl p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4'>
         <div>
           <h1 className='text-2xl font-bold font-display text-zinc-900 flex items-center gap-2'>
@@ -166,7 +167,7 @@ export const SeriesMembersView: React.FC<{
           }}
         />
       )}
-    </div>
+    </PageContainer>
   );
 };
 

@@ -28,6 +28,7 @@ import { bibleService, BibleEntryRevisionDto, BibleEntryDto } from '@/services/b
 import { seriesService } from '@/services/series.service';
 import { chapterService, ChapterDto } from '@/services/chapter.service';
 import { AddEntityModal } from './AddEntityModal';
+import { PageContainer } from '@/shared/components/PageContainer';
 import { VectorStatusModal } from '@/shared/modals/VectorStatusModal';
 
 interface SeriesBibleViewProps {
@@ -423,7 +424,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
   }, [localEntities, activeTab, searchQuery, statusFilter]);
 
   return (
-    <div className='max-w-7xl mx-auto space-y-6 pb-12'>
+    <PageContainer className='space-y-6 pb-12'>
       {!effectiveSeries && (
         <div className='p-4 bg-[#FFFBEB] border border-[#FDE68A] text-[#92400E] rounded-xl flex items-center justify-between text-xs'>
           <div className='flex items-center gap-2.5'>
@@ -607,7 +608,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
       </div>
 
       {/* Entity Cards Grid */}
-      <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5'>
+      <div className='grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5'>
         {filteredEntities.map((entity) => (
           <div
             key={entity.id}
@@ -1253,6 +1254,6 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
         onClose={() => setVectorStatusOpen(false)}
         onShowToast={onShowToast}
       />
-    </div>
+    </PageContainer>
   );
 };

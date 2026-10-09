@@ -149,7 +149,6 @@ function extractError(error: any, defaultMsg: string): any {
   return err;
 }
 
-export const DEFAULT_PAGE_ID = '813ad7b2-3570-4def-8321-c6603a11c450';
 export const DEFAULT_ELEMENT_ID = '99999999-9999-9999-9999-999999999901';
 
 export const isGuid = (val?: string): boolean => {
@@ -159,7 +158,7 @@ export const isGuid = (val?: string): boolean => {
 
 export const toValidPageGuid = (id?: string): string => {
   if (id && isGuid(id)) return id;
-  return DEFAULT_PAGE_ID;
+  return id || '';
 };
 
 export const toValidElementGuid = (id?: string): string => {

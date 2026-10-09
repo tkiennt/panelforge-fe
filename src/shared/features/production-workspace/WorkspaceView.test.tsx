@@ -142,4 +142,15 @@ describe('WorkspaceView Component', () => {
     expect(screen.getByText('Khu Vực Sản Xuất Giới Hạn')).toBeInTheDocument();
     expect(screen.queryByTestId('kanban-board-mock')).not.toBeInTheDocument();
   });
+
+  it('không gọi getSeriesProgress và ẩn KPI đối với vai không phải Producer (ví dụ WRITER)', async () => {
+    renderComponent({ currentUserRole: 'WRITER' });
+
+    await waitFor(() => {
+      expect(screen.getByText('Chương 1: Khởi đầu cuộc hành trình')).toBeInTheDocument();
+    });
+
+    expect(seriesService.getSeriesProgress).not.toHaveBeenCalled();
+    expect(screen.queryByText('Hoàn thành')).not.toBeInTheDocument();
+  });
 });

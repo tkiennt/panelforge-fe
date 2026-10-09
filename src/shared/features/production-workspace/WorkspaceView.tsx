@@ -38,10 +38,11 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
 
   const chapterIdFromUrl = searchParams.get('chapterId');
 
-  const effectiveRoles =
-    userRoles.length > 0
+  const effectiveRoles = useMemo(() => {
+    return userRoles.length > 0
       ? userRoles
       : [...(systemRole ? [systemRole] : []), ...(currentUserRole ? [currentUserRole] : [])];
+  }, [userRoles, systemRole, currentUserRole]);
 
   const [filterType, setFilterType] = useState<'all' | 'my-tasks' | 'overdue'>('all');
   const [chapters, setChapters] = useState<ChapterDto[]>([]);
@@ -50,6 +51,9 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
   const [seriesProgress, setSeriesProgress] = useState<SeriesProgressDto | null>(null);
 
   const isReaderOnly = effectiveRoles.length === 1 && effectiveRoles[0] === 'READER';
+  const isProducer = useMemo(() => {
+    return effectiveRoles.some((r) => r.toUpperCase() === 'PRODUCER');
+  }, [effectiveRoles]);
 
   // Nạp danh sách chương của Series
   const loadChapters = useCallback(async () => {
@@ -80,21 +84,23 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
     }
   }, [seriesId, chapterIdFromUrl, setSearchParams, onShowToast]);
 
-  // Nạp tiến độ sản xuất SeriesProgress
+  // Nạp tiến độ sản xuất SeriesProgress (chỉ dành cho Producer)
   const loadProgress = useCallback(async () => {
-    if (!seriesId) return;
+    if (!seriesId || !isProducer) return;
     try {
       const prog = await seriesService.getSeriesProgress(seriesId);
       setSeriesProgress(prog);
     } catch (err) {
       console.warn('Không thể nạp tiến độ SeriesProgress:', err);
     }
-  }, [seriesId]);
+  }, [seriesId, isProducer]);
 
   useEffect(() => {
     loadChapters();
-    loadProgress();
-  }, [loadChapters, loadProgress]);
+    if (isProducer) {
+      loadProgress();
+    }
+  }, [loadChapters, loadProgress, isProducer]);
 
   // Xử lý chuyển đổi chương
   const handleChapterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -212,39 +218,41 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
             )}
           </div>
 
-          {/* Real KPIs from Backend */}
-          <div className='hidden lg:flex items-center gap-5 pl-6 border-l border-zinc-200'>
-            <div className='flex flex-col'>
-              <span className='text-[10px] text-zinc-400 uppercase tracking-wider font-bold'>
-                Hoàn thành
-              </span>
-              <span className='text-sm font-mono font-bold text-zinc-900'>
-                {completionPercent}%
-              </span>
-            </div>
+          {/* Real KPIs from Backend (Chỉ hiển thị cho Producer) */}
+          {isProducer && (
+            <div className='hidden lg:flex items-center gap-5 pl-6 border-l border-zinc-200'>
+              <div className='flex flex-col'>
+                <span className='text-[10px] text-zinc-400 uppercase tracking-wider font-bold'>
+                  Hoàn thành
+                </span>
+                <span className='text-sm font-mono font-bold text-zinc-900'>
+                  {completionPercent}%
+                </span>
+              </div>
 
-            <div className='flex flex-col'>
-              <span className='text-[10px] text-zinc-400 uppercase tracking-wider font-bold'>
-                Chờ xét duyệt
-              </span>
-              <span className='text-sm font-mono font-bold text-purple-600'>
-                {waitingReviewCount}
-              </span>
-            </div>
+              <div className='flex flex-col'>
+                <span className='text-[10px] text-zinc-400 uppercase tracking-wider font-bold'>
+                  Chờ xét duyệt
+                </span>
+                <span className='text-sm font-mono font-bold text-purple-600'>
+                  {waitingReviewCount}
+                </span>
+              </div>
 
-            <div className='flex flex-col'>
-              <span className='text-[10px] text-zinc-400 uppercase tracking-wider font-bold'>
-                Quá hạn
-              </span>
-              <span
-                className={`text-sm font-mono font-bold ${
-                  overdueCount > 0 ? 'text-rose-600' : 'text-emerald-600'
-                }`}
-              >
-                {overdueCount}
-              </span>
+              <div className='flex flex-col'>
+                <span className='text-[10px] text-zinc-400 uppercase tracking-wider font-bold'>
+                  Quá hạn
+                </span>
+                <span
+                  className={`text-sm font-mono font-bold ${
+                    overdueCount > 0 ? 'text-rose-600' : 'text-emerald-600'
+                  }`}
+                >
+                  {overdueCount}
+                </span>
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Right: Bộ lọc & Phím chuyển hướng nhanh */}

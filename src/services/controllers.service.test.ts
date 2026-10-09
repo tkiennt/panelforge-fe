@@ -1,8 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import axiosClient from '../api/axiosClient';
 import { workspaceService } from './workspace.service';
-import { pageService, MOCK_PAGES, DEFAULT_CHAPTER_ID, DEFAULT_PAGE_ID } from './page.service';
+import { pageService, MOCK_PAGES, DEFAULT_CHAPTER_ID } from './page.service';
 import { elementService, MOCK_ELEMENTS } from './element.service';
+
+const DEFAULT_PAGE_ID = '813ad7b2-3570-4def-8321-c6603a11c450';
 
 // Giả lập các method HTTP của axiosClient
 vi.mock('../api/axiosClient', async (importOriginal) => {

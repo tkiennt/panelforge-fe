@@ -52,7 +52,6 @@ async function parseErrorResponse(error: any, defaultMsg: string): Promise<strin
 
 // Canonical seeded UUIDs matching PostgreSQL panelforge_dev database
 export const DEFAULT_CHAPTER_ID = 'cccccccc-3333-3333-3333-333333333333';
-export const DEFAULT_PAGE_ID = '813ad7b2-3570-4def-8321-c6603a11c450';
 
 export const isGuid = (val?: string): boolean => {
   if (!val) return false;
@@ -66,7 +65,7 @@ export const toValidChapterGuid = (id?: string): string => {
 
 export const toValidPageGuid = (id?: string): string => {
   if (id && isGuid(id)) return id;
-  return DEFAULT_PAGE_ID;
+  return id || '';
 };
 
 // Fallback mock pages (empty)

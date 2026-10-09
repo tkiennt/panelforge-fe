@@ -3,6 +3,7 @@ import { Layers, Compass, Plus, Loader2, ArrowRight, LogOut, Sparkles } from 'lu
 import { WorkspaceDto, WorkspaceRole, normalizeWorkspaceRole } from '@/types';
 import { workspaceService } from '@/services/workspace.service';
 import { CreateWorkspaceModal } from '@/roles/producer/modals/CreateWorkspaceModal';
+import { PageContainer } from '@/shared/components/PageContainer';
 
 interface WorkspaceListViewProps {
   onSelectWorkspace: (workspace: WorkspaceDto) => void;
@@ -111,8 +112,8 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
   return (
     <div className='min-h-screen bg-[#F8F6F0] flex flex-col'>
       {/* Top Navigation Bar with Brand, User Info and Logout */}
-      <header className='sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-[#E7E7E7] px-6 py-3.5 shadow-2xs'>
-        <div className='max-w-6xl mx-auto flex items-center justify-between'>
+      <header className='sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-[#E7E7E7] px-4 md:px-6 lg:px-8 py-3.5 shadow-2xs'>
+        <div className='w-full flex items-center justify-between'>
           {/* Logo & Brand */}
           <div className='flex items-center gap-3'>
             <div className='w-9 h-9 rounded-xl bg-gradient-to-tr from-[#EA580C] to-[#F97316] flex items-center justify-center text-white shadow-xs'>
@@ -179,8 +180,8 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
       </header>
 
       {/* Main Content Area */}
-      <main className='flex-1 p-6 md:p-12'>
-        <div className='max-w-6xl mx-auto'>
+      <main className='flex-1 py-6 md:py-12'>
+        <PageContainer>
           {loading ? (
             <div className='flex flex-col items-center justify-center py-24'>
               <Loader2 className='w-8 h-8 text-[#F97316] animate-spin mb-4' />
@@ -242,7 +243,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                 </button>
               </div>
 
-              <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
+              <div className='grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6'>
                 {workspaces.map((ws) => (
                   <div
                     key={ws.id}
@@ -319,7 +320,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
               </div>
             </>
           )}
-        </div>
+        </PageContainer>
       </main>
 
       {/* Modal Tạo Workspace Thật (gọi POST /api/Workspaces) */}

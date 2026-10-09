@@ -20,7 +20,6 @@ import {
   ElementSnapshotDto,
   PageSnapshotDto,
   MoveElementRequest,
-  DEFAULT_PAGE_ID,
   IMAGE_LAYER_TYPES,
   LAYER_LABELS,
 } from '@/services/element.service';
@@ -61,7 +60,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
   onShowToast,
 }) => {
   const [searchParams] = useSearchParams();
-  const activePageId = propPageId || searchParams.get('pageId') || DEFAULT_PAGE_ID;
+  const activePageId = propPageId || searchParams.get('pageId') || '';
   const activeChapterId = propChapterId || searchParams.get('chapterId') || '';
 
   const [pageSnapshot, setPageSnapshot] = useState<PageSnapshotDto | null>(null);
@@ -154,6 +153,11 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
 
   // Nạp Elements của trang
   const loadElements = useCallback(async () => {
+    if (!activePageId) {
+      setPageSnapshot(null);
+      setElements([]);
+      return;
+    }
     setLoading(true);
     try {
       const snap = await elementService.getPageSnapshot(activePageId);
@@ -678,6 +682,21 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
 
   const selectedElement = elements.find((e) => e.elementId === selectedElementId);
   const selectedElementBox = selectedElement ? getNormalizedElementBox(selectedElement) : null;
+
+  if (!activePageId) {
+    return (
+      <div className='flex flex-col items-center justify-center h-full p-8 text-center bg-[#FAF8F5]'>
+        <div className='w-16 h-16 rounded-2xl bg-zinc-100 border border-zinc-200 flex items-center justify-center text-zinc-400 mb-4'>
+          <Type className='w-8 h-8' />
+        </div>
+        <h3 className='text-base font-bold text-zinc-800 mb-1'>Chọn một trang để bắt đầu</h3>
+        <p className='text-xs text-zinc-500 max-w-sm'>
+          Vui lòng chọn một chương và trang truyện từ danh sách phía trên để mở bàn làm việc chèn
+          chữ.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className='flex flex-col h-full bg-[#FAF8F5] text-[#171717] overflow-hidden'>

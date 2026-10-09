@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Lock, Download, CheckCircle2, FileText, ImageIcon, Code } from 'lucide-react';
+import { PageContainer } from '@/shared/components/PageContainer';
 
 interface ExportViewProps {
   onShowToast: (title: string, desc: string) => void;
@@ -36,7 +37,7 @@ export const ExportView: React.FC<ExportViewProps> = ({ onShowToast }) => {
   };
 
   return (
-    <div className='p-8 max-w-4xl mx-auto flex flex-col h-full overflow-y-auto custom-scrollbar'>
+    <PageContainer className='py-8 flex flex-col h-full overflow-y-auto custom-scrollbar'>
       <button
         onClick={() => navigate(-1)}
         className='self-start flex items-center gap-2 text-sm text-[#737373] hover:text-[#171717] mb-6 transition-colors'
@@ -52,7 +53,7 @@ export const ExportView: React.FC<ExportViewProps> = ({ onShowToast }) => {
         Đóng băng chương truyện <b>{projectId || 'Unknown'}</b> và trích xuất dữ liệu đa nền tảng.
       </p>
 
-      <div className='grid grid-cols-2 gap-6'>
+      <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
         {/* LOCK SECTION */}
         <div
           className={`p-6 border rounded-xl flex flex-col gap-4 ${isLocked ? 'border-[#10B981] bg-[#ECFCCB]' : 'border-[#E7E7E7] bg-white'}`}
@@ -142,6 +143,6 @@ export const ExportView: React.FC<ExportViewProps> = ({ onShowToast }) => {
           </button>
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 };

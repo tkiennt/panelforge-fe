@@ -25,6 +25,7 @@ import {
   FileSpreadsheet,
   UserCheck,
 } from 'lucide-react';
+import { PageContainer } from '@/shared/components/PageContainer';
 import {
   seriesService,
   SeriesProgressDto,
@@ -261,7 +262,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   }, [progress?.burndown]);
 
   return (
-    <div className='space-y-6 max-w-7xl mx-auto pb-12'>
+    <PageContainer className='space-y-6 pb-12'>
       {/* Top Banner Context & Header Row */}
       <div className='bg-white border border-[#E7E7E7] rounded-xl p-5 shadow-xs'>
         <div className='flex flex-col lg:flex-row lg:items-center justify-between gap-4'>
@@ -1043,6 +1044,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           onShowToast={onShowToast}
         />
       )}
-    </div>
+    </PageContainer>
   );
 };
