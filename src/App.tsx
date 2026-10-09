@@ -725,6 +725,14 @@ function AppContent() {
               localStorage.setItem('user', JSON.stringify(res.user));
             }
             localStorage.setItem('userRole', role);
+
+            if (res?.token) {
+              localStorage.setItem('token', res.token);
+            }
+            if (res?.refreshToken) {
+              localStorage.setItem('refreshToken', res.refreshToken);
+            }
+
             navigate(role === 'ADMINISTRATOR' ? '/admin' : '/workspaces');
             const displayName =
               res?.user?.fullName || res?.user?.email || res?.displayName || res?.email || 'bạn';
@@ -751,6 +759,13 @@ function AppContent() {
               localStorage.setItem('user', JSON.stringify(authResponse.user));
             }
             localStorage.setItem('userRole', role);
+
+            if (authResponse?.token) {
+              localStorage.setItem('token', authResponse.token);
+            }
+            if (authResponse?.refreshToken) {
+              localStorage.setItem('refreshToken', authResponse.refreshToken);
+            }
 
             // BR-23 / F3: Điều hướng theo suggestedLanding từ landing-context API
             authService

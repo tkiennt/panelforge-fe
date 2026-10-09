@@ -6,8 +6,6 @@ import { WorkspaceView } from '@/shared/features/production-workspace/WorkspaceV
 import { TaskEditorView } from '@/shared/features/production-workspace/TaskEditorView';
 import { ExportView } from '@/roles/producer/views/ExportView';
 import { DashboardView } from '@/roles/producer/views/DashboardView';
-import { MembersRolesView } from '@/roles/producer/views/MembersRolesView';
-import { SeriesMembersView } from '@/roles/producer/views/SeriesMembersView';
 import { ProducerWorkspaceView } from '@/roles/producer/views/ProducerWorkspaceView';
 import { AdminDashboard } from '@/roles/admin/views';
 import { ArtistDeskView } from '@/roles/artist/views/ArtistDeskView';
@@ -231,27 +229,8 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
           <Route path='workspaces/:workspaceId'>
             <Route index element={<ProducerWorkspaceView />} />
             <Route path='overview' element={<ProducerWorkspaceView />} />
-            <Route
-              path='members'
-              element={
-                <MembersRolesView
-                  activeProject={activeProject}
-                  workspaceId={activeWorkspace?.id}
-                  members={members}
-                  onInviteMember={handleInviteMember}
-                  onUpdateMemberRole={(memberId, newRole) => {
-                    setMembers((prev) =>
-                      prev.map((m) => (m.id === memberId ? { ...m, role: newRole } : m)),
-                    );
-                    showToast('Cập nhật quyền', `Đã phân quyền ${newRole} cho thành viên`);
-                  }}
-                  onShowToast={showToast}
-                />
-              }
-            />
 
             <Route path='series/:seriesId'>
-              <Route path='members' element={<SeriesMembersView onShowToast={showToast} />} />
               <Route
                 path='dashboard'
                 element={

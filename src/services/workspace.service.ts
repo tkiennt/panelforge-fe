@@ -48,6 +48,8 @@ export interface WorkspaceMemberDto {
   role: string | number;
   isOwner: boolean;
   joinedAt: string;
+  isEmailConfirmed?: boolean;
+  invitationEmailSent?: boolean;
 }
 
 export interface AddWorkspaceMemberRequest {
@@ -151,6 +153,14 @@ export const workspaceService = {
       return response.data;
     } catch (error) {
       throw new Error(await parseErrorResponse(error, 'Thêm thành viên thất bại.'));
+    }
+  },
+
+  resendInvitation: async (id: string, userId: string): Promise<void> => {
+    try {
+      await axiosClient.post(`/Workspaces/${id}/members/${userId}/resend-invitation`);
+    } catch (error) {
+      throw new Error(await parseErrorResponse(error, 'Gửi lại lời mời thất bại.'));
     }
   },
 

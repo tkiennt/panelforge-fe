@@ -103,11 +103,6 @@ const ROLE_NAV_CONFIG: Record<string, { section: string; items: any[] }[]> = {
           href: '/bible',
           badge: { type: 'dot', color: 'bg-[#8B5CF6]' },
         },
-        {
-          icon: Users,
-          label: 'Members & Roles',
-          href: '/members',
-        },
         { icon: Calendar, label: 'Release Calendar', href: '/calendar' },
         { icon: History, label: 'Provenance / Restore', href: '/provenance' },
       ],
@@ -235,11 +230,7 @@ export function AppShell({
                 label: 'Series Dashboard',
                 href: `/workspaces/${workspaceId}/series/${seriesId}/dashboard`,
               },
-              {
-                icon: Users,
-                label: 'Production Crew',
-                href: `/workspaces/${workspaceId}/series/${seriesId}/members`,
-              },
+
               {
                 icon: Kanban,
                 label: 'Production Pipeline',
@@ -301,7 +292,6 @@ export function AppShell({
                 label: 'Studio Workspaces',
                 href: `/workspaces/${workspaceId}/overview`,
               },
-              { icon: Users, label: 'Members & Roles', href: `/workspaces/${workspaceId}/members` },
             ],
           },
         ];
