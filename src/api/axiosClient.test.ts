@@ -197,3 +197,173 @@ describe('axiosClient', () => {
     expect(unauthorizedEvents).toBe(0);
   });
 });
+
+describe('HttpOnly Cookie Authentication & Refresh Flow', () => {
+  let unauthorizedEvents: number;
+  const onUnauthorized = () => {
+    unauthorizedEvents++;
+  };
+
+  beforeEach(() => {
+    localStorage.clear();
+    unauthorizedEvents = 0;
+    window.addEventListener('auth:unauthorized', onUnauthorized);
+  });
+
+  afterEach(() => {
+    window.removeEventListener('auth:unauthorized', onUnauthorized);
+    vi.restoreAllMocks();
+  });
+
+  it('refresh thuần cookie: không có token localStorage, 401 tự gọi /Auth/refresh với body rỗng và retry thành công', async () => {
+    let callCount = 0;
+    const adapter = vi.fn(async (config: InternalAxiosRequestConfig) => {
+      callCount++;
+      expect(config.withCredentials).toBe(true);
+      expect(config.headers['X-Requested-With']).toBe('XMLHttpRequest');
+      // Lần 1: request ban đầu không mang Bearer token (thuần cookie)
+      if (callCount === 1) {
+        expect(config.headers.Authorization).toBeUndefined();
+        throw unauthorized(config);
+      }
+      // Lần 2: sau khi refresh thành công
+      return ok(config, { success: true });
+    });
+    axiosClient.defaults.adapter = adapter;
+
+    const refreshSpy = vi.spyOn(axios, 'post').mockResolvedValue({
+      data: { token: 'new-cookie-jwt' },
+    });
+
+    const response = await axiosClient.get('/Workspaces');
+
+    expect(response.status).toBe(200);
+    expect(response.data).toEqual({ success: true });
+    expect(refreshSpy).toHaveBeenCalledTimes(1);
+    expect(refreshSpy.mock.calls[0][0]).toContain('/Auth/refresh');
+    expect(refreshSpy.mock.calls[0][1]).toEqual({});
+    expect(refreshSpy.mock.calls[0][2]).toEqual(
+      expect.objectContaining({
+        withCredentials: true,
+        headers: expect.objectContaining({ 'X-Requested-With': 'XMLHttpRequest' }),
+      }),
+    );
+    expect(adapter).toHaveBeenCalledTimes(2);
+    // Tuyệt đối không lưu token vào localStorage
+    expect(localStorage.getItem('token')).toBeNull();
+    expect(unauthorizedEvents).toBe(0);
+  });
+
+  it('Giai đoạn 2 (Backend không trả token trong JSON): refresh thành công và retry request hoàn toàn dựa vào cookie', async () => {
+    let callCount = 0;
+    const adapter = vi.fn(async (config: InternalAxiosRequestConfig) => {
+      callCount++;
+      if (callCount === 1) {
+        throw unauthorized(config);
+      }
+      // Lần retry: BE giai đoạn 2 không trả token, config gửi lại KHÔNG có Authorization header
+      expect(config.headers.Authorization).toBeUndefined();
+      expect(config.withCredentials).toBe(true);
+      expect(config.headers['X-Requested-With']).toBe('XMLHttpRequest');
+      return ok(config, { message: 'stage 2 ok' });
+    });
+    axiosClient.defaults.adapter = adapter;
+
+    // BE Stage 2: chỉ trả JSON rỗng {} hoặc user profile, token mới được cấp qua Set-Cookie HttpOnly
+    const refreshSpy = vi.spyOn(axios, 'post').mockResolvedValue({
+      data: {},
+    });
+
+    const res = await axiosClient.get('/Chapters/1/pages');
+
+    expect(res.status).toBe(200);
+    expect(res.data).toEqual({ message: 'stage 2 ok' });
+    expect(refreshSpy).toHaveBeenCalledTimes(1);
+    expect(refreshSpy.mock.calls[0][1]).toEqual({});
+    expect(localStorage.getItem('token')).toBeNull();
+    expect(unauthorizedEvents).toBe(0);
+  });
+
+  it('nhiều request 401 đồng thời trong chế độ cookie: chỉ gọi /Auth/refresh đúng 1 lần và giải phóng toàn bộ hàng đợi', async () => {
+    let refreshCalls = 0;
+    let cookieRenewed = false;
+
+    const adapter = vi.fn(async (config: InternalAxiosRequestConfig) => {
+      if (!cookieRenewed) {
+        throw unauthorized(config);
+      }
+      return ok(config, { path: config.url });
+    });
+    axiosClient.defaults.adapter = adapter;
+
+    const refreshSpy = vi.spyOn(axios, 'post').mockImplementation(async () => {
+      refreshCalls++;
+      await new Promise((r) => setTimeout(r, 20));
+      cookieRenewed = true;
+      return { data: {} };
+    });
+
+    const [res1, res2, res3] = await Promise.all([
+      axiosClient.get('/endpoint-1'),
+      axiosClient.get('/endpoint-2'),
+      axiosClient.get('/endpoint-3'),
+    ]);
+
+    expect(res1.status).toBe(200);
+    expect(res2.status).toBe(200);
+    expect(res3.status).toBe(200);
+    expect(refreshSpy).toHaveBeenCalledTimes(1);
+    expect(refreshCalls).toBe(1);
+    expect(unauthorizedEvents).toBe(0);
+  });
+
+  it('cookie pf_refresh hết hạn (401 từ server): dọn dẹp sạch thông tin user trong localStorage và phát auth:unauthorized', async () => {
+    localStorage.setItem('user', JSON.stringify({ id: 'u1', email: 'test@panelforge.com' }));
+    localStorage.setItem('userRole', 'ARTIST');
+    localStorage.setItem('activeWorkspace', JSON.stringify({ id: 'ws1' }));
+
+    const adapter = vi.fn(async (config: InternalAxiosRequestConfig) => {
+      throw unauthorized(config);
+    });
+    axiosClient.defaults.adapter = adapter;
+
+    // Server từ chối refresh vì cookie pf_refresh đã hết hạn hoặc bị thu hồi
+    vi.spyOn(axios, 'post').mockRejectedValue(
+      new AxiosError('Unauthorized', 'ERR_BAD_REQUEST', undefined, null, {
+        data: { message: 'Refresh token cookie expired' },
+        status: 401,
+        statusText: 'Unauthorized',
+        headers: {},
+        config: {} as InternalAxiosRequestConfig,
+      }),
+    );
+
+    await expect(axiosClient.get('/MyWork')).rejects.toThrow();
+
+    // Dọn sạch phiên đăng nhập
+    expect(localStorage.getItem('user')).toBeNull();
+    expect(localStorage.getItem('userRole')).toBeNull();
+    expect(localStorage.getItem('activeWorkspace')).toBeNull();
+    expect(unauthorizedEvents).toBe(1);
+  });
+
+  it('lỗi mạng khi refresh cookie: không xoá thông tin phiên của người dùng', async () => {
+    localStorage.setItem('user', JSON.stringify({ id: 'u1' }));
+    localStorage.setItem('userRole', 'ARTIST');
+
+    const adapter = vi.fn(async (config: InternalAxiosRequestConfig) => {
+      throw unauthorized(config);
+    });
+    axiosClient.defaults.adapter = adapter;
+
+    // Lỗi mạng hoặc 500 từ server
+    vi.spyOn(axios, 'post').mockRejectedValue(new Error('Network Error / ECONNREFUSED'));
+
+    await expect(axiosClient.get('/MyWork')).rejects.toThrow();
+
+    // Phiên không bị xóa khi chỉ là lỗi mạng tạm thời
+    expect(localStorage.getItem('user')).not.toBeNull();
+    expect(localStorage.getItem('userRole')).toBe('ARTIST');
+    expect(unauthorizedEvents).toBe(0);
+  });
+});
