@@ -54,7 +54,7 @@ Chỉ chứa các tài nguyên được tái sử dụng bởi nhiều role ho�
 - **`src/roles/roles.ts`**: Manifest role tập trung (`ROLE_MANIFEST`).
 - **`src/services/`**: Các lớp giao tiếp API Backend theo từng domain (`auth`, `admin`, `workspace`, `series`, `bible`, `pipeline`, `aiAgents`, `aiWorkflows`).
 - **`src/types/`**: Kiểu dữ liệu TypeScript chuẩn hóa theo domain (`auth.ts`, `series.ts`, `pipeline.ts`, `bible.ts`, `workspace.ts`, re-export qua `index.ts`).
-- **`src/mocks/`**: Dữ liệu giả lập phục vụ dev mode và unit test (`mockData.ts`, `mockLayoutData.ts`, `mockPipelineData.ts`, `mockScriptData.ts`).
+- **`src/mocks/`**: Dữ liệu giả lập phục vụ dev mode và unit test (`mockData.ts`, `mockLayoutData.ts`, `mockScriptData.ts`).
 - **`src/config/`**: Cấu hình môi trường (`firebase.ts`).
 
 ---

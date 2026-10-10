@@ -48,6 +48,8 @@ export interface WorkspaceMemberDto {
   role: string | number;
   isOwner: boolean;
   joinedAt: string;
+  isEmailConfirmed?: boolean;
+  invitationEmailSent?: boolean;
 }
 
 export interface AddWorkspaceMemberRequest {
@@ -89,7 +91,13 @@ export const workspaceService = {
 
   getMyWorkspaces: async (): Promise<WorkspaceDto[]> => {
     // Chưa đăng nhập thì không gọi API (tránh 401 làm phát 'auth:unauthorized')
-    if (!localStorage.getItem('token') && !localStorage.getItem('jwt_token')) return [];
+    if (
+      typeof window !== 'undefined' &&
+      !localStorage.getItem('user') &&
+      !localStorage.getItem('token')
+    ) {
+      return [];
+    }
     try {
       const response = await axiosClient.get('/Workspaces');
       return response.data;
@@ -145,6 +153,14 @@ export const workspaceService = {
       return response.data;
     } catch (error) {
       throw new Error(await parseErrorResponse(error, 'Thêm thành viên thất bại.'));
+    }
+  },
+
+  resendInvitation: async (id: string, userId: string): Promise<void> => {
+    try {
+      await axiosClient.post(`/Workspaces/${id}/members/${userId}/resend-invitation`);
+    } catch (error) {
+      throw new Error(await parseErrorResponse(error, 'Gửi lại lời mời thất bại.'));
     }
   },
 

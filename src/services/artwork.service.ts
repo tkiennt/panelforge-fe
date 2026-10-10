@@ -3,7 +3,11 @@ import axiosClient from '../api/axiosClient';
 import { AssetReferenceDto, ArtworkAccessLinkDto } from '@/types';
 
 export async function computeFileSha256(file: File): Promise<string> {
-  const buffer = await file.arrayBuffer();
+  const raw = await file.arrayBuffer();
+  // Sao chép sang ArrayBuffer của realm hiện tại để đảm bảo tương thích tuyệt đối trong cả trình duyệt và JSDOM/Node worker threads
+  const buffer = new ArrayBuffer(raw.byteLength);
+  new Uint8Array(buffer).set(new Uint8Array(raw));
+
   const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
@@ -31,6 +35,7 @@ export const artworkService = {
     stageId: string,
     clientSha256: string,
     layerType?: string,
+    panelId?: string,
   ): Promise<AssetReferenceDto> => {
     const formData = new FormData();
     formData.append('file', file);
@@ -38,6 +43,9 @@ export const artworkService = {
     formData.append('clientSha256', clientSha256);
     if (layerType) {
       formData.append('layerType', layerType);
+    }
+    if (panelId) {
+      formData.append('panelId', panelId);
     }
 
     const res = await axiosClient.post<AssetReferenceDto>(

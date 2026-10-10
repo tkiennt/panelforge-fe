@@ -41,9 +41,11 @@ import {
   LogOut,
   KeyRound,
   Send,
+  Menu,
 } from 'lucide-react';
 import { AppShellSidebar } from './AppShellSidebar';
 import { NotificationBell } from '@/shared/features/collaboration/NotificationBell';
+import { SidebarDrawer } from '@/shared/components/SidebarDrawer';
 
 export interface CurrentUser {
   name: string;
@@ -101,11 +103,6 @@ const ROLE_NAV_CONFIG: Record<string, { section: string; items: any[] }[]> = {
           href: '/bible',
           badge: { type: 'dot', color: 'bg-[#8B5CF6]' },
         },
-        {
-          icon: Users,
-          label: 'Members & Roles',
-          href: '/members',
-        },
         { icon: Calendar, label: 'Release Calendar', href: '/calendar' },
         { icon: History, label: 'Provenance / Restore', href: '/provenance' },
       ],
@@ -135,6 +132,7 @@ const ROLE_NAV_CONFIG: Record<string, { section: string; items: any[] }[]> = {
       section: 'BÀN LÀM VIỆC',
       items: [
         { icon: Layers, label: 'Công việc của tôi', href: '/my-work' },
+        { icon: LayoutTemplate, label: 'Bàn vẽ & Khung trang', href: '/artist' },
         { icon: BookMarked, label: 'Series Bible', href: '/bible' },
         { icon: Sparkles, label: 'AI Multi-Agent', href: '/ai-agents' },
       ],
@@ -145,6 +143,7 @@ const ROLE_NAV_CONFIG: Record<string, { section: string; items: any[] }[]> = {
       section: 'BÀN LÀM VIỆC',
       items: [
         { icon: Layers, label: 'Công việc của tôi', href: '/my-work' },
+        { icon: Type, label: 'Chèn chữ & Bóng thoại', href: '/letterer' },
         { icon: BookMarked, label: 'Series Bible', href: '/bible' },
         { icon: Sparkles, label: 'AI Multi-Agent', href: '/ai-agents' },
       ],
@@ -231,11 +230,7 @@ export function AppShell({
                 label: 'Series Dashboard',
                 href: `/workspaces/${workspaceId}/series/${seriesId}/dashboard`,
               },
-              {
-                icon: Users,
-                label: 'Production Crew',
-                href: `/workspaces/${workspaceId}/series/${seriesId}/members`,
-              },
+
               {
                 icon: Kanban,
                 label: 'Production Pipeline',
@@ -251,6 +246,16 @@ export function AppShell({
                 icon: FileText,
                 label: 'Kịch bản (Script)',
                 href: `/workspaces/${workspaceId}/series/${seriesId}/script`,
+              },
+              {
+                icon: LayoutTemplate,
+                label: 'Bàn vẽ & Khung trang',
+                href: `/workspaces/${workspaceId}/series/${seriesId}/artist`,
+              },
+              {
+                icon: Type,
+                label: 'Chèn chữ & Bóng thoại',
+                href: `/workspaces/${workspaceId}/series/${seriesId}/letterer`,
               },
               {
                 icon: BookMarked,
@@ -287,7 +292,6 @@ export function AppShell({
                 label: 'Studio Workspaces',
                 href: `/workspaces/${workspaceId}/overview`,
               },
-              { icon: Users, label: 'Members & Roles', href: `/workspaces/${workspaceId}/members` },
             ],
           },
         ];
@@ -361,6 +365,25 @@ export function AppShell({
                 label: 'Kịch bản (Script)',
                 href: `/workspaces/${workspaceId}/series/${seriesId}/script`,
               },
+              // Màn làm việc riêng theo vai trò (route artist/letterer đã có trong routes.tsx)
+              ...(effectiveRole === 'ARTIST'
+                ? [
+                    {
+                      icon: LayoutTemplate,
+                      label: 'Bàn vẽ & Khung trang',
+                      href: `/workspaces/${workspaceId}/series/${seriesId}/artist`,
+                    },
+                  ]
+                : []),
+              ...(effectiveRole === 'LETTERER'
+                ? [
+                    {
+                      icon: Type,
+                      label: 'Chèn chữ & Bóng thoại',
+                      href: `/workspaces/${workspaceId}/series/${seriesId}/letterer`,
+                    },
+                  ]
+                : []),
               {
                 icon: BookMarked,
                 label: 'Series Bible',
@@ -379,9 +402,8 @@ export function AppShell({
             items: [
               {
                 icon: Kanban,
-                label: 'Bảng Pipeline (Demo)',
+                label: 'Bảng Pipeline',
                 href: `/workspaces/${workspaceId}/series/${seriesId}/workspace`,
-                badge: { type: 'text', text: 'Demo', color: 'bg-zinc-100 text-zinc-600' },
               },
             ],
           },
@@ -408,6 +430,9 @@ export function AppShell({
 
   const rawSections = getNavSections();
 
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
+  const [isRailExpanded, setIsRailExpanded] = useState(false);
+
   const navSections = rawSections.map((sec) => ({
     ...sec,
     items: sec.items.map((item) => ({ ...item })),
@@ -415,6 +440,7 @@ export function AppShell({
 
   const handleNavClick = (e: React.MouseEvent, href: string) => {
     e.preventDefault();
+    setIsMobileDrawerOpen(false);
     if (onNavigate) {
       onNavigate(href);
     }
@@ -477,7 +503,35 @@ export function AppShell({
 
   return (
     <div className='h-screen w-full flex overflow-hidden text-[#171717] bg-[#F8F6F0]'>
-      {/* --- SIDEBAR --- */}
+      {/* --- MOBILE DRAWER (< md) --- */}
+      {!isReader && (
+        <SidebarDrawer
+          isOpen={isMobileDrawerOpen}
+          onClose={() => setIsMobileDrawerOpen(false)}
+          title='Menu điều hướng'
+        >
+          <AppShellSidebar
+            currentUser={currentUser}
+            activeSeries={effectiveActiveSeries as any}
+            isReader={isReader}
+            navSections={navSections}
+            handleNavClick={handleNavClick}
+            renderBadge={renderBadge}
+            onOpenTwoFactor={() => {
+              setIsMobileDrawerOpen(false);
+              onOpenTwoFactor?.();
+            }}
+            onLogout={() => {
+              setIsMobileDrawerOpen(false);
+              onLogout?.();
+            }}
+            isRailExpanded={true}
+            isMobileDrawer={true}
+          />
+        </SidebarDrawer>
+      )}
+
+      {/* --- PERMANENT SIDEBAR (>= md) --- */}
       <AppShellSidebar
         currentUser={currentUser}
         activeSeries={effectiveActiveSeries as any}
@@ -487,12 +541,27 @@ export function AppShell({
         renderBadge={renderBadge}
         onOpenTwoFactor={onOpenTwoFactor}
         onLogout={onLogout}
+        isRailExpanded={isRailExpanded}
+        onToggleRail={() => setIsRailExpanded((prev) => !prev)}
+        isMobileDrawer={false}
       />
 
       {/* --- RIGHT WRAPPER --- */}
       <div className='flex-1 flex flex-col min-w-0 h-full bg-[#FFFFFF] relative'>
-        <header className='h-16 bg-[#FFFFFF] border-b border-[#E7E7E7] flex items-center justify-between px-6 shrink-0 z-20'>
+        <header className='h-16 bg-[#FFFFFF] border-b border-[#E7E7E7] flex items-center justify-between px-4 md:px-6 shrink-0 z-20'>
           <div className='flex items-center gap-2 min-w-0'>
+            {!isReader && (
+              <button
+                type='button'
+                onClick={() => setIsMobileDrawerOpen(true)}
+                aria-label='Mở menu điều hướng'
+                aria-expanded={isMobileDrawerOpen}
+                className='md:hidden p-2 -ml-2 mr-1 rounded-lg text-[#555555] hover:text-[#171717] hover:bg-[#F3F1EB] transition-colors cursor-pointer shrink-0'
+                data-testid='appshell-hamburger-btn'
+              >
+                <Menu className='w-5 h-5' />
+              </button>
+            )}
             {isReader ? (
               <div className='flex items-center gap-3'>
                 <div className='w-8 h-8 rounded-lg bg-[#171717] flex items-center justify-center text-white font-heading font-bold text-base shadow-sm tracking-tighter'>

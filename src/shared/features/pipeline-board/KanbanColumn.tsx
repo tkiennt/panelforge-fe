@@ -1,145 +1,51 @@
-import React, { useRef } from 'react';
-import { useDroppable } from '@dnd-kit/core';
-import { useVirtualizer } from '@tanstack/react-virtual';
-import { PipelineStage, PipelineCard } from '@/mocks/mockPipelineData';
+import React from 'react';
+import { BoardCard, BoardColumnDefinition } from './pipelineBoard.types';
 import { TaskCard } from './TaskCard';
-import { MoreHorizontal } from 'lucide-react';
-import { usePermissions } from '@/lib/permissions';
-import { WorkspaceRole } from '@/types';
-import { SeriesMemberDto } from '@/services/series.service';
 
 interface KanbanColumnProps {
-  stage: PipelineStage;
-  cards: PipelineCard[];
-  currentUserRole?: WorkspaceRole | null;
-  userRoles?: string[];
-  onCardClick?: (card: PipelineCard) => void;
-  checkIsLocked: (card: PipelineCard) => boolean;
-  canDragCard: (card: PipelineCard) => boolean;
-  seriesMembers?: SeriesMemberDto[];
+  column: BoardColumnDefinition;
+  cards: BoardCard[];
+  onCardClick: (card: BoardCard) => void;
+  onOpenMyWork?: (card: BoardCard) => void;
 }
 
 export const KanbanColumn: React.FC<KanbanColumnProps> = ({
-  stage,
+  column,
   cards,
-  currentUserRole,
-  userRoles = [],
   onCardClick,
-  checkIsLocked,
-  canDragCard,
-  seriesMembers = [],
+  onOpenMyWork,
 }) => {
-  const effectiveRoles =
-    userRoles.length > 0 ? userRoles : currentUserRole ? [currentUserRole] : [];
-  const { hasPermission } = usePermissions(effectiveRoles);
-  const { setNodeRef, isOver } = useDroppable({
-    id: stage.id,
-  });
-
-  // Role-based visual emphasis
-  let isDimmed = false;
-  let isHighlighted = false;
-
-  // We map permissions to stages for highlighting
-  // e.g. edit_script -> script stage
-  // edit_art -> thumbnail, pencil, ink, color
-  // review_card -> review
-
-  if (hasPermission('edit_script') && stage.id === 'script') {
-    isHighlighted = true;
-  } else if (
-    hasPermission('edit_art') &&
-    ['thumbnail', 'pencil', 'ink', 'color'].includes(stage.id)
-  ) {
-    isHighlighted = true;
-  } else if (hasPermission('upload_layer') && stage.id === 'letter') {
-    isHighlighted = true;
-  } else if (hasPermission('review_card') && stage.id === 'review') {
-    isHighlighted = true;
-  } else if (hasPermission('create_card')) {
-    // Admin/Producer see all equally
-  } else {
-    isDimmed = true;
-  }
-
-  const columnClasses = [
-    'flex flex-col w-[300px] shrink-0 border border-dashed border-zinc-200 rounded-xl bg-zinc-50/50 overflow-hidden transition-all duration-300',
-    isDimmed ? 'opacity-60 hover:opacity-100' : 'opacity-100',
-    isHighlighted ? 'border-t-2 border-t-orange-500' : '', // Top accent for highlighted columns
-    isOver ? 'ring-2 ring-orange-500/50 bg-orange-50/50' : '',
-  ]
-    .filter(Boolean)
-    .join(' ');
-
-  const parentRef = useRef<HTMLDivElement>(null);
-
-  // TanStack Virtual chưa tương thích React Compiler; component này không cần memo hoá tự động.
-  // eslint-disable-next-line react-hooks/incompatible-library
-  const rowVirtualizer = useVirtualizer({
-    count: cards.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 150, // estimate height of each card + spacing
-    overscan: 5,
-  });
-
   return (
-    <div ref={setNodeRef} className={columnClasses}>
+    <div
+      className={`flex flex-col w-[310px] shrink-0 bg-zinc-50/70 border border-zinc-200/90 rounded-2xl overflow-hidden shadow-xs border-t-4 ${column.accentBorderClass}`}
+    >
       {/* Column Header */}
-      <div className='p-4 border-b border-zinc-200 flex items-center justify-between sticky top-0 z-10'>
-        <div className='flex items-center gap-2'>
-          <h3 className='text-sm font-semibold text-zinc-800'>{stage.label}</h3>
-          <span className='bg-zinc-200 text-zinc-700 text-xs font-medium px-2 py-0.5 rounded-full'>
+      <div className={`p-3.5 border-b border-zinc-200 ${column.headerBgClass}`}>
+        <div className='flex items-center justify-between gap-2 mb-1'>
+          <h3 className='font-sans font-bold text-xs uppercase tracking-wider text-zinc-900'>
+            {column.label}
+          </h3>
+          <span
+            className={`text-xs font-mono font-bold px-2 py-0.5 rounded-full border shadow-2xs ${column.badgeClass}`}
+          >
             {cards.length}
           </span>
         </div>
-        <button className='text-zinc-400 hover:text-zinc-700 transition-colors p-1 rounded hover:bg-zinc-200'>
-          <MoreHorizontal className='w-4 h-4' />
-        </button>
+        <p className='text-[11px] text-zinc-500 line-clamp-1' title={column.description}>
+          {column.description}
+        </p>
       </div>
 
-      {/* Cards List */}
-      <div
-        ref={parentRef}
-        className='flex-1 p-3 overflow-y-auto custom-scrollbar min-h-[150px] bg-[#F9F9F9]/50'
-      >
-        <div
-          style={{
-            height: `${rowVirtualizer.getTotalSize()}px`,
-            width: '100%',
-            position: 'relative',
-          }}
-        >
-          {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-            const card = cards[virtualRow.index];
-            return (
-              <div
-                key={card.id}
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  height: `${virtualRow.size}px`,
-                  transform: `translateY(${virtualRow.start}px)`,
-                  paddingBottom: '12px', // gap spacing
-                }}
-              >
-                <TaskCard
-                  card={card}
-                  userRoles={effectiveRoles}
-                  onClick={onCardClick}
-                  isLocked={checkIsLocked(card)}
-                  canDrag={canDragCard(card)}
-                  seriesMembers={seriesMembers}
-                />
-              </div>
-            );
-          })}
-        </div>
-        {cards.length === 0 && (
-          <div className='h-20 border-2 border-dashed border-[#E7E7E7] rounded-xl flex items-center justify-center text-sm text-[#A3A3A3] mt-2'>
-            Drop cards here
+      {/* Cards Scroll Container */}
+      <div className='flex-1 p-3 overflow-y-auto max-h-[calc(100vh-280px)] space-y-3 custom-scrollbar'>
+        {cards.length === 0 ? (
+          <div className='py-8 px-4 text-center border border-dashed border-zinc-200 rounded-xl bg-white/50 text-zinc-400 text-xs'>
+            Chưa có nhiệm vụ
           </div>
+        ) : (
+          cards.map((card) => (
+            <TaskCard key={card.id} card={card} onClick={onCardClick} onOpenMyWork={onOpenMyWork} />
+          ))
         )}
       </div>
     </div>

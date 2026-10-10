@@ -9,11 +9,28 @@ vi.mock('../api/axiosClient', async (importOriginal) => {
 });
 
 const post = vi.mocked(axiosClient.post);
+const get = vi.mocked(axiosClient.get);
 
 describe('authService', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     localStorage.clear();
+  });
+
+  it('gọi getMe thành công trả về thông tin người dùng từ /Auth/me', async () => {
+    const mockUser = {
+      id: 'u-1',
+      email: 'artist@panelforge.studio',
+      fullName: 'Artist Name',
+      role: 'User',
+      canCreateStudio: true,
+    };
+    get.mockResolvedValue({ data: mockUser });
+
+    const result = await authService.getMe();
+
+    expect(get).toHaveBeenCalledWith('/Auth/me');
+    expect(result).toEqual(mockUser);
   });
 
   it('gửi thông tin đăng nhập đúng format và trả về dữ liệu khi thành công', async () => {
@@ -38,12 +55,12 @@ describe('authService', () => {
     expect(result).toEqual(mockUserResponse);
   });
 
-  it('lưu refreshToken vào localStorage khi đăng nhập thành công', async () => {
+  it('không lưu refreshToken vào localStorage khi đăng nhập (chuyển sang HttpOnly cookie)', async () => {
     post.mockResolvedValue({ data: { token: 'jwt', refreshToken: 'refresh-abc', user: {} } });
 
     await authService.login('artist@panelforge.studio', 'password123');
 
-    expect(localStorage.getItem('refreshToken')).toBe('refresh-abc');
+    expect(localStorage.getItem('refreshToken')).toBeNull();
   });
 
   it('không ghi đè refreshToken khi response không có refreshToken (vd: cần 2FA)', async () => {
@@ -140,24 +157,15 @@ describe('authService', () => {
     expect(result).toEqual(mockVerifyResponse);
   });
 
-  it('logout gửi refreshToken kèm Bearer đã đọc sẵn, kể cả khi token bị xoá ngay sau đó', async () => {
-    localStorage.setItem('token', 'access-1');
-    localStorage.setItem('refreshToken', 'refresh-1');
+  it('logout gọi POST /Auth/logout không body (cookie được BE xóa tự động)', async () => {
     post.mockResolvedValue({ data: {} });
 
-    const pending = authService.logout();
-    localStorage.removeItem('token'); // App.handleLogout xoá token ngay sau khi gọi
-    await pending;
+    await authService.logout();
 
-    expect(post).toHaveBeenCalledWith(
-      '/Auth/logout',
-      { refreshToken: 'refresh-1' },
-      { headers: { Authorization: 'Bearer access-1' } },
-    );
+    expect(post).toHaveBeenCalledWith('/Auth/logout', {});
   });
 
-  it('changePassword gửi kèm refresh token hiện tại để BE giữ lại phiên này', async () => {
-    localStorage.setItem('refreshToken', 'refresh-current');
+  it('changePassword không cần gửi currentRefreshToken (BE đọc từ cookie pf_refresh)', async () => {
     post.mockResolvedValue({ data: { message: 'ok' } });
 
     await authService.changePassword(
@@ -167,19 +175,12 @@ describe('authService', () => {
 
     expect(post).toHaveBeenCalledWith(
       '/Auth/change-password',
-      expect.objectContaining({ newPassword: 'New1!aa', currentRefreshToken: 'refresh-current' }),
-      expect.anything(),
+      { currentPassword: 'Old1!', newPassword: 'New1!aa', emailOtp: '123456' },
+      { headers: { Authorization: 'Bearer access-1' } },
     );
   });
 
-  it('logout không gọi API khi không có refreshToken', async () => {
-    await authService.logout();
-
-    expect(post).not.toHaveBeenCalled();
-  });
-
   it('logout nuốt lỗi mạng để không chặn việc đăng xuất phía FE', async () => {
-    localStorage.setItem('refreshToken', 'refresh-1');
     post.mockRejectedValue(new Error('Network Error'));
 
     await expect(authService.logout()).resolves.toBeUndefined();

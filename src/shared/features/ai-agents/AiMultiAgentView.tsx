@@ -13,6 +13,7 @@ import {
   PowerOff,
   Sparkles,
 } from 'lucide-react';
+import { PageContainer } from '@/shared/components/PageContainer';
 import {
   AiApiError,
   AiRunDto,
@@ -386,7 +387,7 @@ export const AiMultiAgentView: React.FC<{
     !!runBlocked;
 
   return (
-    <div className='mx-auto max-w-[1280px] space-y-5 p-6'>
+    <PageContainer className='space-y-5 py-6'>
       <header className='flex flex-wrap items-center gap-3'>
         <span className='flex h-10 w-10 items-center justify-center rounded-xl bg-[#171717] text-white'>
           <Bot size={20} />
@@ -951,6 +952,6 @@ export const AiMultiAgentView: React.FC<{
           )}
         </main>
       </div>
-    </div>
+    </PageContainer>
   );
 };

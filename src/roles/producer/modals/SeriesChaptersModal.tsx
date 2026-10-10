@@ -19,6 +19,7 @@ import {
   ClipboardList,
   History,
   RotateCcw,
+  Share2,
 } from 'lucide-react';
 import {
   chapterService,
@@ -28,6 +29,7 @@ import {
 } from '@/services/chapter.service';
 import { ChapterAssignmentsModal } from './ChapterAssignmentsModal';
 import { ChapterReviewsModal } from '@/shared/modals/ChapterReviewsModal';
+import { PreviewLinksModal } from './PreviewLinksModal';
 
 interface SeriesChaptersModalProps {
   isOpen: boolean;
@@ -60,6 +62,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
   const [chapters, setChapters] = useState<ChapterDto[]>([]);
   const [assigningChapter, setAssigningChapter] = useState<ChapterDto | null>(null);
   const [reviewingChapter, setReviewingChapter] = useState<ChapterDto | null>(null);
+  const [previewChapter, setPreviewChapter] = useState<ChapterDto | null>(null);
   const [totalCount, setTotalCount] = useState(0);
   const [pageIndex, setPageIndex] = useState(1);
   const [pageSize] = useState(10);
@@ -683,6 +686,19 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                               </button>
                             )}
 
+                            {chap.status === 'Approved' && (
+                              <button
+                                type='button'
+                                onClick={() => setPreviewChapter(chap)}
+                                className='px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 border border-indigo-300 text-indigo-700 transition-all cursor-pointer flex items-center gap-1 font-semibold text-[11px] shadow-2xs'
+                                title='Tạo & Quản lý link xem thử bảo mật (CF5)'
+                                data-testid={`preview-links-btn-${chap.id}`}
+                              >
+                                <Share2 className='w-3.5 h-3.5 text-indigo-600' />
+                                <span>Gửi xem thử</span>
+                              </button>
+                            )}
+
                             <button
                               type='button'
                               onClick={() => setReviewingChapter(chap)}
@@ -792,6 +808,23 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
           chapterNumber={reviewingChapter.chapterNumber}
           chapterTitle={reviewingChapter.title}
           onClose={() => setReviewingChapter(null)}
+        />
+      )}
+
+      {/* CF5: Preview Links & Feedback Triage Modal */}
+      {previewChapter && (
+        <PreviewLinksModal
+          isOpen={!!previewChapter}
+          chapterId={previewChapter.id}
+          chapterNumber={previewChapter.chapterNumber}
+          chapterTitle={previewChapter.title}
+          chapterStatus={previewChapter.status}
+          onClose={() => setPreviewChapter(null)}
+          onReopenChapter={async () => {
+            await handleReopenChapter(previewChapter);
+            setPreviewChapter(null);
+          }}
+          onShowToast={onShowToast}
         />
       )}
     </>

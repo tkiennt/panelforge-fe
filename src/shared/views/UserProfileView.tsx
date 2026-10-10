@@ -54,7 +54,6 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
         const res = await authService.externalLogin(idToken);
         if (res?.token) {
           currentToken = res.token;
-          localStorage.setItem('token', res.token);
         }
       } catch (err) {
         console.error('Lỗi đồng bộ token backend từ Firebase:', err);

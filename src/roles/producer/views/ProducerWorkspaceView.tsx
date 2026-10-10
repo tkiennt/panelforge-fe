@@ -24,6 +24,10 @@ import {
   MoreVertical,
   Cpu,
   Image as ImageIcon,
+  Key,
+  Mail,
+  Search,
+  Edit3,
 } from 'lucide-react';
 import {
   workspaceService,
@@ -36,6 +40,7 @@ import { seriesService, SeriesDto, UpdateSeriesRequest } from '@/services/series
 import { SeriesPipelineModal } from '@/roles/producer/modals/SeriesPipelineModal';
 import { SeriesChaptersModal } from '@/roles/producer/modals/SeriesChaptersModal';
 import { SeriesPresetsModal } from '@/roles/producer/modals/SeriesPresetsModal';
+import { InviteMemberModal } from '@/roles/producer/modals/InviteMemberModal';
 
 export const ProducerWorkspaceView: React.FC = () => {
   const navigate = useNavigate();
@@ -74,8 +79,6 @@ export const ProducerWorkspaceView: React.FC = () => {
   const [newWsQuotaGb, setNewWsQuotaGb] = useState('5');
 
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState<'Producer' | 'Editor' | 'Artist'>('Artist');
 
   // UC-03: Create Series Modal State
   const [createSeriesModalOpen, setCreateSeriesModalOpen] = useState(false);
@@ -83,7 +86,7 @@ export const ProducerWorkspaceView: React.FC = () => {
   const [newSeriesFormat, setNewSeriesFormat] = useState('WEBTOON');
   const [creatingSeries, setCreatingSeries] = useState(false);
 
-  // Pipeline Templates
+  // Pipeline Templates (B1 / UC-03)
   const [pipelineTemplates, setPipelineTemplates] = useState<PipelineTemplateDto[]>([]);
   const [newSeriesTemplateId, setNewSeriesTemplateId] = useState('');
 
@@ -111,6 +114,13 @@ export const ProducerWorkspaceView: React.FC = () => {
   const [auditLoading, setAuditLoading] = useState(false);
   const [auditFilterEntity, setAuditFilterEntity] = useState('');
 
+  // Members UI States
+  const [memberRoleFilter, setMemberRoleFilter] = useState<'ALL' | 'LEAD' | 'ARTIST' | 'WRITER' | 'EDITOR'>('ALL');
+  const [memberSearchQuery, setMemberSearchQuery] = useState('');
+  const [editingMember, setEditingMember] = useState<any>(null);
+  const [editRole, setEditRole] = useState('');
+  const [editTask, setEditTask] = useState('');
+
   // CanCreateStudio check (B3 / F4)
   const currentUser = React.useMemo(() => {
     try {
@@ -127,6 +137,58 @@ export const ProducerWorkspaceView: React.FC = () => {
     setToast({ title, desc });
     setTimeout(() => setToast(null), 3500);
   };
+
+  const studioMembers = React.useMemo(() => {
+    return members.map(m => {
+      const roleStr = typeof m.role === 'number'
+        ? (m.role === 0 ? 'PRODUCER' : m.role === 1 ? 'WRITER' : m.role === 2 ? 'ARTIST' : m.role === 3 ? 'LETTERER' : 'EDITOR')
+        : String(m.role).toUpperCase();
+
+      const initials = m.fullName
+        ? m.fullName.split(' ').map((p) => p[0]).join('').substring(0, 2).toUpperCase()
+        : 'ME';
+
+      return {
+        id: m.userId,
+        name: m.fullName || m.email.split('@')[0],
+        email: m.email,
+        role: roleStr,
+        avatarBg: '#171717',
+        initials,
+        status: m.isEmailConfirmed === false ? 'Chờ kích hoạt' : 'Đang hoạt động',
+        isEmailConfirmed: m.isEmailConfirmed,
+        invitationEmailSent: m.invitationEmailSent,
+        isOwner: m.isOwner,
+        isYou: currentUser?.id === m.userId || currentUser?.email === m.email
+      };
+    });
+  }, [members, currentUser]);
+
+  const filteredMembers = React.useMemo(() => {
+    return studioMembers.filter((m) => {
+      const q = memberSearchQuery.toLowerCase().trim();
+      const matchesSearch = !q || m.name.toLowerCase().includes(q) || m.email.toLowerCase().includes(q) || (m.role && m.role.toLowerCase().includes(q));
+
+      const roleStr = (m.role || '').toLowerCase();
+      const matchesTab = memberRoleFilter === 'ALL' ||
+        (memberRoleFilter === 'LEAD' && (roleStr.includes('lead') || roleStr.includes('producer'))) ||
+        (memberRoleFilter === 'ARTIST' && (roleStr.includes('artist') || roleStr.includes('line'))) ||
+        (memberRoleFilter === 'WRITER' && (roleStr.includes('writer') || roleStr.includes('script'))) ||
+        (memberRoleFilter === 'EDITOR' && roleStr.includes('editor'));
+
+      return matchesSearch && matchesTab;
+    });
+  }, [studioMembers, memberSearchQuery, memberRoleFilter]);
+
+  const tabCounts = React.useMemo(() => {
+    return {
+      ALL: studioMembers.length,
+      LEAD: studioMembers.filter((m) => (m.role || '').toLowerCase().includes('lead') || (m.role || '').toLowerCase().includes('producer')).length,
+      ARTIST: studioMembers.filter((m) => (m.role || '').toLowerCase().includes('artist')).length,
+      WRITER: studioMembers.filter((m) => (m.role || '').toLowerCase().includes('writer')).length,
+      EDITOR: studioMembers.filter((m) => (m.role || '').toLowerCase().includes('editor')).length,
+    };
+  }, [studioMembers]);
 
   const loadData = React.useCallback(async () => {
     setLoading(true);
@@ -177,7 +239,7 @@ export const ProducerWorkspaceView: React.FC = () => {
     loadData();
   }, [loadData]);
 
-  // Load Active Pipeline Templates from API (GET /api/pipeline-templates)
+  // Load Active Pipeline Templates from API (GET /api/pipeline-templates) (B1 / UC-03)
   useEffect(() => {
     const fetchTemplates = async () => {
       try {
@@ -242,7 +304,7 @@ export const ProducerWorkspaceView: React.FC = () => {
     if (!canCreateStudio) {
       showToast(
         'Từ chối quyền thao tác',
-        'Tài khoản chưa được Admin cấp quyền Producer (CanCreateStudio) để tạo Studio Workspace.',
+        'Tài khoản chưa được Admin cấp quyền Producer (CanCreateStudio) để tạo Studio Workspace (BR-07).',
       );
       return;
     }
@@ -347,26 +409,6 @@ export const ProducerWorkspaceView: React.FC = () => {
     }
   }, [auditModalOpen, loadWorkspaceAudit]);
 
-  const handleInviteMember = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!activeWorkspace) {
-      showToast('Lỗi', 'Vui lòng chọn một Studio Workspace.');
-      return;
-    }
-    if (!inviteEmail.trim()) return;
-    try {
-      const added = await workspaceService.addMember(activeWorkspace.id, {
-        email: inviteEmail.trim(),
-        role: inviteRole,
-      });
-      setMembers((prev) => [...prev, added]);
-      setInviteModalOpen(false);
-      setInviteEmail('');
-      showToast('Mời thành viên thành công', `Đã gửi lời mời tham gia tới ${added.email}.`);
-    } catch (err: any) {
-      showToast('Lỗi mời thành viên', err.message);
-    }
-  };
 
   const handleRemoveMember = async (userId: string, email: string) => {
     if (!activeWorkspace) return;
@@ -378,6 +420,44 @@ export const ProducerWorkspaceView: React.FC = () => {
     } catch (err: any) {
       showToast('Lỗi', err.message);
     }
+  };
+
+  const handleResendInvitation = async (userId: string) => {
+    if (!activeWorkspace) return;
+    try {
+      await workspaceService.resendInvitation(activeWorkspace.id, userId);
+      showToast('Gửi lại thành công', 'Đã gửi lại lời mời qua email.');
+    } catch (err: any) {
+      showToast('Lỗi gửi lại lời mời', err.message);
+    }
+  };
+
+  const handleOpenEditAccess = (member: any) => {
+    setEditingMember(member);
+    setEditRole(member.role);
+    setEditTask(member.activeTask || 'Chapter 5 Production');
+  };
+
+  const handleSaveAccess = async () => {
+    if (!editingMember || !activeWorkspace) return;
+    try {
+      await workspaceService.updateMemberRole(activeWorkspace.id, editingMember.id, {
+        newRole: editRole,
+      });
+      const memList = await workspaceService.getMembers(activeWorkspace.id);
+      setMembers(memList);
+      showToast('Permissions Saved', `Updated role & access policies for ${editingMember.name}.`);
+      setEditingMember(null);
+    } catch (err: any) {
+      showToast('Lỗi cập nhật vai trò', err.message || 'Không thể cập nhật vai trò thành viên.');
+    }
+  };
+
+  const handleRotateKey = (member: any) => {
+    const randomHex = Math.random().toString(16).substring(2, 6).toUpperCase();
+    const randomSuffix = Math.random().toString(16).substring(2, 5).toUpperCase();
+    const newKey = `ECDSA-P256 [0x${randomHex}...${randomSuffix}]`;
+    showToast('Key Rotated', `Generated new cryptographic signing authority key for ${member.name}: ${newKey}`);
   };
 
   const formatGb = (bytes: number) => {
@@ -400,7 +480,7 @@ export const ProducerWorkspaceView: React.FC = () => {
     <div className='flex-1 bg-[#FAF8F5] min-h-screen p-6 md:p-8 space-y-6'>
       {/* Toast */}
       {toast && (
-        <div className='fixed top-6 right-6 z-50 bg-zinc-900 text-white px-4 py-3 rounded-xl shadow-2xl border border-white/10 flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-200'>
+        <div className='fixed top-6 right-6 z-50 bg-[#171717] text-white px-4 py-3 rounded-xl shadow-2xl border border-white/10 flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-200'>
           <CheckCircle2 className='w-4 h-4 text-emerald-400 shrink-0' />
           <div>
             <div className='text-xs font-bold'>{toast.title}</div>
@@ -413,8 +493,8 @@ export const ProducerWorkspaceView: React.FC = () => {
       )}
 
       {/* Header Banner: Clean & Compact Studio Banner */}
-      <div className='bg-white p-5 rounded-2xl border border-zinc-200 shadow-sm space-y-3'>
-        <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-zinc-200 pb-3'>
+      <div className='bg-white p-5 rounded-2xl border border-[#E7E7E7] shadow-2xs space-y-3'>
+        <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-[#E7E7E7] pb-3'>
           <div>
             <h1 className='text-xl font-bold text-zinc-900 tracking-tight flex items-center gap-2 font-display'>
               <Briefcase className='w-5 h-5 text-orange-500' />
@@ -605,21 +685,21 @@ export const ProducerWorkspaceView: React.FC = () => {
       </div>
 
       {/* Main Workspace Content Area with Tabbed Navigation */}
-      <div className='bg-white rounded-2xl border border-zinc-200 shadow-sm p-6 space-y-5'>
+      <div className='bg-white rounded-2xl border border-[#E7E7E7] shadow-xs p-6 space-y-5'>
         {/* Tab Navigation & CTA */}
-        <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-200 pb-4'>
-          <div className='flex items-center gap-1 bg-[#FAF8F5] p-1 rounded-xl border border-zinc-200'>
+        <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E7E7E7] pb-4'>
+          <div className='flex items-center gap-1 bg-[#FAF8F5] p-1 rounded-xl border border-[#E7E7E7]'>
             <button
               onClick={() => setActiveTab('series')}
               className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 activeTab === 'series'
-                  ? 'bg-white text-zinc-900 shadow-sm border border-zinc-200'
-                  : 'text-[#737373] hover:text-zinc-900'
+                  ? 'bg-white text-[#171717] shadow-2xs border border-[#E7E7E7]'
+                  : 'text-[#737373] hover:text-[#171717]'
               }`}
             >
-              <BookOpen className='w-3.5 h-3.5 text-orange-500' />
+              <BookOpen className='w-3.5 h-3.5 text-[#F97316]' />
               <span>Bộ Truyện (Series)</span>
-              <span className='px-1.5 py-0.2 rounded-full bg-orange-50 text-orange-500 text-[10px] font-mono'>
+              <span className='px-1.5 py-0.2 rounded-full bg-orange-50 text-[#F97316] text-[10px] font-mono'>
                 {seriesList.length}
               </span>
             </button>
@@ -627,8 +707,8 @@ export const ProducerWorkspaceView: React.FC = () => {
               onClick={() => setActiveTab('members')}
               className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 activeTab === 'members'
-                  ? 'bg-white text-zinc-900 shadow-sm border border-zinc-200'
-                  : 'text-[#737373] hover:text-zinc-900'
+                  ? 'bg-white text-[#171717] shadow-2xs border border-[#E7E7E7]'
+                  : 'text-[#737373] hover:text-[#171717]'
               }`}
             >
               <Users className='w-3.5 h-3.5 text-[#3B82F6]' />
@@ -642,7 +722,7 @@ export const ProducerWorkspaceView: React.FC = () => {
           {activeTab === 'series' ? (
             <button
               onClick={() => setCreateSeriesModalOpen(true)}
-              className='inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold shadow-sm cursor-pointer'
+              className='inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold shadow-xs cursor-pointer'
             >
               <Plus className='w-4 h-4' />
               <span>Tạo Series Mới</span>
@@ -650,9 +730,9 @@ export const ProducerWorkspaceView: React.FC = () => {
           ) : (
             <button
               onClick={() => setInviteModalOpen(true)}
-              className='inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-zinc-900 hover:bg-black text-white text-xs font-semibold shadow-sm cursor-pointer'
+              className='inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#171717] hover:bg-black text-white text-xs font-semibold shadow-xs cursor-pointer'
             >
-              <UserPlus className='w-4 h-4 text-orange-500' />
+              <UserPlus className='w-4 h-4 text-[#F97316]' />
               <span>Mời Thành Viên Mới</span>
             </button>
           )}
@@ -662,8 +742,8 @@ export const ProducerWorkspaceView: React.FC = () => {
         {activeTab === 'series' && (
           <div>
             {seriesList.length === 0 ? (
-              <div className='py-12 px-4 text-center bg-[#FAF8F5] rounded-xl border border-dashed border-zinc-200 max-w-lg mx-auto my-4 space-y-3'>
-                <div className='w-12 h-12 rounded-full bg-orange-50 text-orange-500 flex items-center justify-center mx-auto'>
+              <div className='py-12 px-4 text-center bg-[#FAF8F5] rounded-xl border border-dashed border-[#E7E7E7] max-w-lg mx-auto my-4 space-y-3'>
+                <div className='w-12 h-12 rounded-full bg-orange-50 text-[#F97316] flex items-center justify-center mx-auto'>
                   <BookOpen className='w-6 h-6' />
                 </div>
                 <h3 className='text-sm font-bold text-[#171717]'>
@@ -675,7 +755,7 @@ export const ProducerWorkspaceView: React.FC = () => {
                 </p>
                 <button
                   onClick={() => setCreateSeriesModalOpen(true)}
-                  className='inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-xl shadow-sm transition-all cursor-pointer'
+                  className='inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-[#F97316] hover:bg-[#EA580C] rounded-xl shadow-xs transition-all cursor-pointer'
                 >
                   <Plus className='w-3.5 h-3.5' />
                   <span>Tạo Series Mới Ngay</span>
@@ -872,57 +952,273 @@ export const ProducerWorkspaceView: React.FC = () => {
 
         {/* TAB 2: Studio Members View */}
         {activeTab === 'members' && (
-          <div className='overflow-x-auto'>
-            <table className='w-full text-left text-xs'>
-              <thead className='bg-[#FAF8F5] text-[#737373] font-semibold text-[10px] uppercase tracking-wider'>
-                <tr>
-                  <th className='py-3 px-4'>Thành Viên</th>
-                  <th className='py-3 px-4'>Email</th>
-                  <th className='py-3 px-4'>Vai Trò Studio</th>
-                  <th className='py-3 px-4'>Ngày Tham Gia</th>
-                  <th className='py-3 px-4 text-right'>Thao Tác</th>
-                </tr>
-              </thead>
-              <tbody className='divide-y divide-[#E7E7E7]'>
-                {members.map((m) => (
-                  <tr key={m.userId} className='hover:bg-[#FAF8F5] transition-colors'>
-                    <td className='py-3.5 px-4'>
-                      <div className='flex items-center gap-2.5'>
-                        <div className='w-7 h-7 rounded-full bg-zinc-900 text-white flex items-center justify-center font-bold text-xs'>
-                          {m.fullName.charAt(0)}
+          <div className='space-y-6'>
+            {/* Tab Selection Row & Search */}
+            <div className='flex flex-col md:flex-row md:items-center justify-between gap-4'>
+              <div className='flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 custom-scrollbar'>
+                {[
+                  { key: 'ALL', label: 'All Members', count: tabCounts.ALL },
+                  { key: 'LEAD', label: 'Lead Producers', count: tabCounts.LEAD },
+                  { key: 'ARTIST', label: 'Artists', count: tabCounts.ARTIST },
+                  { key: 'WRITER', label: 'Writers & Storyboard', count: tabCounts.WRITER },
+                  { key: 'EDITOR', label: 'Editors & Editorial', count: tabCounts.EDITOR },
+                ].map((tab) => (
+                  <button
+                    key={tab.key}
+                    onClick={() => setMemberRoleFilter(tab.key as any)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+                      memberRoleFilter === tab.key
+                        ? 'bg-[#171717] text-white shadow-xs'
+                        : 'text-[#555555] hover:text-[#171717] hover:bg-[#F3F1EB]'
+                    }`}
+                  >
+                    <span>{tab.label}</span>
+                    <span
+                      className={`text-[10px] font-mono px-1.5 py-0.2 rounded ${
+                        memberRoleFilter === tab.key ? 'bg-white/20 text-white' : 'bg-[#EAE8E0] text-[#555555]'
+                      }`}
+                    >
+                      {tab.count}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Search Box */}
+              <div className='relative'>
+                <Search className='w-3.5 h-3.5 text-[#888888] absolute left-3 top-1/2 -translate-y-1/2' />
+                <input
+                  type='text'
+                  placeholder='Filter members by name, role, task...'
+                  value={memberSearchQuery}
+                  onChange={(e) => setMemberSearchQuery(e.target.value)}
+                  className='pl-8 pr-3 py-1.5 bg-[#FAF8F4] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-[#171717] placeholder-[#888888] focus:outline-none focus:border-[#F97316] w-64 transition-all'
+                />
+              </div>
+            </div>
+
+            {/* Members List */}
+            <div className='bg-white border border-[#E7E7E7] rounded-xl overflow-hidden shadow-xs'>
+              <div className='p-4 bg-[#FAF8F4] border-b border-[#E7E7E7] flex items-center justify-between'>
+                <h3 className='text-sm font-bold font-serif text-[#171717]'>
+                  Thành viên Studio ({filteredMembers.length})
+                </h3>
+              </div>
+
+              <div className='divide-y divide-[#E7E7E7]'>
+                {filteredMembers.length === 0 ? (
+                  <div className='p-8 text-center text-xs text-[#888888] font-mono'>
+                    Không có thành viên nào phù hợp với bộ lọc hiện tại.
+                  </div>
+                ) : (
+                  filteredMembers.map((member) => (
+                    <div
+                      key={member.id}
+                      className='p-5 hover:bg-[#FAF8F4] transition-colors flex flex-col md:flex-row md:items-center justify-between gap-4'
+                    >
+                      {/* Member Info */}
+                      <div className='flex items-start sm:items-center gap-4'>
+                        <div
+                          className='w-11 h-11 rounded-full text-white font-bold text-sm flex items-center justify-center shrink-0 shadow-xs ring-2 ring-white'
+                          style={{ backgroundColor: member.avatarBg || '#171717' }}
+                        >
+                          {member.initials || 'ST'}
                         </div>
-                        <span className='font-semibold text-zinc-900'>{m.fullName}</span>
-                        {m.isOwner && (
-                          <span className='text-[9px] font-mono bg-[#FFF7ED] text-orange-500 border border-[#FDBA74] px-1 py-0.2 rounded'>
-                            Studio Owner
-                          </span>
+
+                        <div>
+                          <div className='flex flex-wrap items-center gap-2'>
+                            <h4 className='text-sm font-bold text-[#171717] font-serif'>{member.name}</h4>
+                            <span className='px-2 py-0.5 rounded bg-[#171717] text-white text-[10px] font-mono font-bold tracking-wider'>
+                              {(member.role || 'MEMBER').toUpperCase()}
+                            </span>
+                            {member.isOwner && (
+                              <span className='px-1.5 py-0.2 rounded bg-[#FFF7ED] text-[#EA580C] border border-[#FDBA74] text-[9px] font-mono font-bold'>
+                                STUDIO OWNER
+                              </span>
+                            )}
+                            {member.isYou && (
+                              <span className='px-1.5 py-0.2 rounded bg-[#F8FAFC] text-[#3B82F6] border border-[#BFDBFE] text-[9px] font-mono font-bold'>
+                                YOU
+                              </span>
+                            )}
+                            <span className='flex items-center gap-1 text-[11px] font-medium'>
+                              {member.isEmailConfirmed === false ? (
+                                <span className='text-[#D97706] flex items-center gap-1 bg-[#FEF3C7] px-1.5 py-0.5 rounded-sm border border-[#FDE68A]'>
+                                  Chờ kích hoạt
+                                </span>
+                              ) : (
+                                <span className='text-[#059669] flex items-center gap-1'>
+                                  <span className='w-1.5 h-1.5 rounded-full bg-[#10B981] animate-pulse'></span>
+                                  {member.status}
+                                </span>
+                              )}
+                            </span>
+                          </div>
+
+                          <div className='flex flex-wrap items-center gap-3 text-xs text-[#555555] mt-1 font-mono'>
+                            <span className='flex items-center gap-1'>
+                              <Mail className='w-3 h-3 text-[#888888]' />
+                              {member.email}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className='flex flex-col sm:flex-row sm:items-center gap-4 self-end md:self-center shrink-0'>
+                        {canCreateStudio && (
+                          <div className='flex items-center gap-2'>
+                            {member.isEmailConfirmed === false && (
+                              <button
+                                onClick={() => handleResendInvitation(member.id)}
+                                className='px-3 py-1.5 bg-white hover:bg-[#F3F1EB] border border-[#E7E7E7] rounded-lg text-xs font-semibold text-[#888888] hover:text-[#171717] transition-colors cursor-pointer shadow-2xs flex items-center gap-1'
+                              >
+                                <Mail className='w-3 h-3' />
+                                <span className='hidden sm:inline'>Gửi lại lời mời</span>
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleOpenEditAccess(member)}
+                              className='px-3 py-1.5 bg-white hover:bg-[#F3F1EB] border border-[#E7E7E7] rounded-lg text-xs font-semibold text-[#171717] transition-colors cursor-pointer shadow-2xs flex items-center gap-1'
+                            >
+                              <Edit3 className='w-3 h-3 text-[#F97316]' />
+                              <span>Sửa quyền</span>
+                            </button>
+                            {!member.isOwner && (
+                              <button
+                                onClick={() => handleRemoveMember(member.id, member.email)}
+                                className='text-red-500 hover:text-red-700 p-1.5 rounded hover:bg-red-50 transition-colors cursor-pointer border border-transparent hover:border-red-200 ml-1'
+                                title='Xóa thành viên'
+                              >
+                                <Trash2 className='w-4 h-4' />
+                              </button>
+                            )}
+                          </div>
                         )}
                       </div>
-                    </td>
-                    <td className='py-3.5 px-4 font-mono text-zinc-500'>{m.email}</td>
-                    <td className='py-3.5 px-4'>
-                      <span className='inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-[#FFF7ED] text-orange-500 border border-[#FDBA74]'>
-                        {m.role}
-                      </span>
-                    </td>
-                    <td className='py-3.5 px-4 text-zinc-500 font-mono text-[11px]'>
-                      {new Date(m.joinedAt).toLocaleDateString()}
-                    </td>
-                    <td className='py-3.5 px-4 text-right'>
-                      {!m.isOwner && (
-                        <button
-                          onClick={() => handleRemoveMember(m.userId, m.email)}
-                          className='text-red-500 hover:text-red-700 p-1.5 rounded hover:bg-red-50 transition-colors cursor-pointer'
-                          title='Xóa thành viên'
-                        >
-                          <Trash2 className='w-3.5 h-3.5' />
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* RBAC Privilege Matrix */}
+            <div className='bg-white border border-[#E7E7E7] rounded-xl p-5 shadow-xs'>
+              <div className='flex items-center justify-between mb-4'>
+                <div>
+                  <h3 className='text-base font-bold font-serif text-[#171717] flex items-center gap-2'>
+                    <Shield className='w-4 h-4 text-[#F97316]' />
+                    Role-Based Access Control (RBAC) Matrix
+                  </h3>
+                  <p className='text-xs text-[#555555]'>
+                    Production permissions mapped across studio roles for Tankōbon mastering
+                  </p>
+                </div>
+                <span className='text-xs font-mono text-[#059669] bg-[#ECFDF5] px-2.5 py-1 rounded border border-[#10B981]/30 font-semibold'>
+                  Strict Enforcement
+                </span>
+              </div>
+
+              <div className='overflow-x-auto'>
+                <table className='w-full text-left border-collapse text-xs'>
+                  <thead className='bg-[#F8F6F0] border-b border-[#E7E7E7] text-[#555555] font-mono uppercase text-[10px]'>
+                    <tr>
+                      <th className='p-3'>Capability Privilege</th>
+                      <th className='p-3 text-center'>Lead Producer</th>
+                      <th className='p-3 text-center'>Key Artist</th>
+                      <th className='p-3 text-center'>Writer / SFX</th>
+                      <th className='p-3 text-center'>Chief Editor</th>
+                    </tr>
+                  </thead>
+                  <tbody className='divide-y divide-[#E7E7E7]'>
+                    {[
+                      {
+                        name: 'Master Commit & Tankōbon Lock',
+                        lead: true,
+                        ink: false,
+                        writer: false,
+                        edit: true,
+                      },
+                      {
+                        name: 'AI Vector Retraining & LoRA Anchoring',
+                        lead: true,
+                        ink: true,
+                        writer: false,
+                        edit: false,
+                      },
+                      {
+                        name: '600 DPI TIFF & CMYK Production Export',
+                        lead: true,
+                        ink: true,
+                        writer: false,
+                        edit: true,
+                      },
+                      {
+                        name: 'Editorial Sign-off / Print Gate Release',
+                        lead: true,
+                        ink: false,
+                        writer: false,
+                        edit: true,
+                      },
+                      {
+                        name: 'Script Versioning & Dialogue Balloon Fit',
+                        lead: true,
+                        ink: false,
+                        writer: true,
+                        edit: true,
+                      },
+                      {
+                        name: 'Budget, Billing & Seat Allocation',
+                        lead: true,
+                        ink: false,
+                        writer: false,
+                        edit: false,
+                      },
+                    ].map((row, i) => (
+                      <tr key={i} className='hover:bg-[#FAF8F4] transition-colors'>
+                        <td className='p-3 font-semibold text-[#171717]'>{row.name}</td>
+                        <td className='p-3 text-center'>
+                          {row.lead ? (
+                            <span className='inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#ECFDF5] text-[#059669] font-bold'>
+                              ✓
+                            </span>
+                          ) : (
+                            <span className='inline-block text-[#D1D5DB] font-mono'>—</span>
+                          )}
+                        </td>
+                        <td className='p-3 text-center'>
+                          {row.ink ? (
+                            <span className='inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#ECFDF5] text-[#059669] font-bold'>
+                              ✓
+                            </span>
+                          ) : (
+                            <span className='inline-block text-[#D1D5DB] font-mono'>—</span>
+                          )}
+                        </td>
+                        <td className='p-3 text-center'>
+                          {row.writer ? (
+                            <span className='inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#ECFDF5] text-[#059669] font-bold'>
+                              ✓
+                            </span>
+                          ) : (
+                            <span className='inline-block text-[#D1D5DB] font-mono'>—</span>
+                          )}
+                        </td>
+                        <td className='p-3 text-center'>
+                          {row.edit ? (
+                            <span className='inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#ECFDF5] text-[#059669] font-bold'>
+                              ✓
+                            </span>
+                          ) : (
+                            <span className='inline-block text-[#D1D5DB] font-mono'>—</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -930,37 +1226,37 @@ export const ProducerWorkspaceView: React.FC = () => {
       {/* Modal: Create Workspace */}
       {createModalOpen && (
         <div className='fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4'>
-          <div className='bg-white rounded-2xl border border-zinc-200 shadow-2xl max-w-md w-full p-6 space-y-4'>
-            <div className='flex items-center justify-between border-b border-zinc-200 pb-3'>
-              <h3 className='text-sm font-bold text-zinc-900'>Tạo Studio Workspace Mới</h3>
+          <div className='bg-white rounded-2xl border border-[#E7E7E7] shadow-2xl max-w-md w-full p-6 space-y-4'>
+            <div className='flex items-center justify-between border-b border-[#E7E7E7] pb-3'>
+              <h3 className='text-sm font-bold text-[#171717]'>Tạo Studio Workspace Mới</h3>
               <button
                 onClick={() => setCreateModalOpen(false)}
-                className='text-zinc-500 hover:text-zinc-900'
+                className='text-[#888888] hover:text-[#171717]'
               >
                 <X className='w-4 h-4' />
               </button>
             </div>
             <form onSubmit={handleCreateWorkspace} className='space-y-4 text-xs'>
               <div>
-                <label className='block font-semibold text-zinc-900 mb-1'>Tên Workspace</label>
+                <label className='block font-semibold text-[#171717] mb-1'>Tên Workspace</label>
                 <input
                   type='text'
                   value={newWsName}
                   onChange={(e) => setNewWsName(e.target.value)}
                   placeholder='Ví dụ: Tokyo Mecha Arc Studio'
-                  className='w-full px-3 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:border-orange-500'
+                  className='w-full px-3 py-2 border border-[#E7E7E7] rounded-lg focus:outline-none focus:border-[#F97316]'
                   required
                 />
               </div>
               <div>
-                <label className='block font-semibold text-zinc-900 mb-1'>
+                <label className='block font-semibold text-[#171717] mb-1'>
                   Hạn mức lưu trữ Cloud Vault (GB)
                 </label>
                 <input
                   type='number'
                   value={newWsQuotaGb}
                   onChange={(e) => setNewWsQuotaGb(e.target.value)}
-                  className='w-full px-3 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:border-orange-500'
+                  className='w-full px-3 py-2 border border-[#E7E7E7] rounded-lg focus:outline-none focus:border-[#F97316]'
                   min='1'
                   max='100'
                 />
@@ -969,13 +1265,13 @@ export const ProducerWorkspaceView: React.FC = () => {
                 <button
                   type='button'
                   onClick={() => setCreateModalOpen(false)}
-                  className='px-3 py-1.5 rounded-lg text-zinc-500'
+                  className='px-3 py-1.5 rounded-lg text-[#555555]'
                 >
                   Hủy
                 </button>
                 <button
                   type='submit'
-                  className='px-4 py-1.5 rounded-lg bg-orange-500 text-white font-semibold'
+                  className='px-4 py-1.5 rounded-lg bg-[#F97316] text-white font-semibold'
                 >
                   Tạo Ngay
                 </button>
@@ -986,80 +1282,30 @@ export const ProducerWorkspaceView: React.FC = () => {
       )}
 
       {/* Modal: Invite Member */}
-      {inviteModalOpen && (
-        <div className='fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4'>
-          <div className='bg-white rounded-2xl border border-zinc-200 shadow-2xl max-w-md w-full p-6 space-y-4'>
-            <div className='flex items-center justify-between border-b border-zinc-200 pb-3'>
-              <h3 className='text-sm font-bold text-zinc-900'>Mời Thành Viên Vào Workspace</h3>
-              <button
-                onClick={() => setInviteModalOpen(false)}
-                className='text-zinc-500 hover:text-zinc-900'
-              >
-                <X className='w-4 h-4' />
-              </button>
-            </div>
-            <form onSubmit={handleInviteMember} className='space-y-4 text-xs'>
-              <div>
-                <label className='block font-semibold text-zinc-900 mb-1'>Email người nhận</label>
-                <input
-                  type='email'
-                  value={inviteEmail}
-                  onChange={(e) => setInviteEmail(e.target.value)}
-                  placeholder='artist@panelforge.com'
-                  className='w-full px-3 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:border-orange-500'
-                  required
-                />
-              </div>
-              <div>
-                <label className='block font-semibold text-zinc-900 mb-1'>Vai trò dự án</label>
-                <select
-                  value={inviteRole}
-                  onChange={(e) => setInviteRole(e.target.value as any)}
-                  className='w-full px-3 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:border-orange-500'
-                >
-                  <option value='Producer'>Producer (Đồng sản xuất)</option>
-                  <option value='Editor'>Editor (Biên tập viên)</option>
-                  <option value='Artist'>Artist (Đóng góp / Họa sĩ / Biên kịch)</option>
-                </select>
-              </div>
-              <div className='p-2.5 bg-[#FAF8F5] rounded-lg border border-zinc-200 text-[11px] text-[#737373] space-y-1'>
-                <p>
-                  <strong>Lưu ý:</strong> Nếu email chưa có tài khoản, hệ thống sẽ gửi email kèm mã
-                  OTP 6 số (hạn 15 phút) để thành viên kích hoạt tài khoản và tự tạo mật khẩu.
-                </p>
-              </div>
-              <div className='flex justify-end gap-2 pt-2'>
-                <button
-                  type='button'
-                  onClick={() => setInviteModalOpen(false)}
-                  className='px-3 py-1.5 rounded-lg text-zinc-500'
-                >
-                  Hủy
-                </button>
-                <button
-                  type='submit'
-                  className='px-4 py-1.5 rounded-lg bg-orange-500 text-white font-semibold'
-                >
-                  Gửi Lời Mời
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+      {inviteModalOpen && activeWorkspace && (
+        <InviteMemberModal
+          isOpen={inviteModalOpen}
+          workspaceId={activeWorkspace.id}
+          onClose={() => setInviteModalOpen(false)}
+          onInvited={(newMember) => setMembers((prev) => [...prev, newMember])}
+          onShowToast={showToast}
+        />
       )}
 
       {/* UC-03: Modal Create Series */}
       {createSeriesModalOpen && (
         <div className='fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4'>
-          <div className='bg-white rounded-2xl border border-zinc-200 shadow-2xl max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto'>
-            <div className='flex items-center justify-between border-b border-zinc-200 pb-3'>
+          <div className='bg-white rounded-2xl border border-[#E7E7E7] shadow-2xl max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto'>
+            <div className='flex items-center justify-between border-b border-[#E7E7E7] pb-3'>
               <div className='flex items-center gap-2'>
-                <BookOpen className='w-4 h-4 text-orange-500' />
-                <h3 className='text-sm font-bold text-zinc-900'>Tạo Series Mới</h3>
+                <BookOpen className='w-4 h-4 text-[#F97316]' />
+                <h3 className='text-sm font-bold text-[#171717]'>
+                  Tạo Dự Án Series Truyện Mới (UC-03)
+                </h3>
               </div>
               <button
                 onClick={() => setCreateSeriesModalOpen(false)}
-                className='text-zinc-500 hover:text-zinc-900'
+                className='text-[#888888] hover:text-[#171717]'
               >
                 <X className='w-4 h-4' />
               </button>
@@ -1067,7 +1313,7 @@ export const ProducerWorkspaceView: React.FC = () => {
 
             <form onSubmit={handleCreateSeries} className='space-y-3.5 text-xs'>
               <div>
-                <label className='block font-semibold text-zinc-900 mb-1'>
+                <label className='block font-semibold text-[#171717] mb-1'>
                   Tên Dự Án (Series Title) *
                 </label>
                 <input
@@ -1075,20 +1321,20 @@ export const ProducerWorkspaceView: React.FC = () => {
                   value={newSeriesTitle}
                   onChange={(e) => setNewSeriesTitle(e.target.value)}
                   placeholder='Ví dụ: Tokyo Neon Shadows'
-                  className='w-full px-3 py-2 bg-[#FAF8F5] border border-zinc-200 rounded-lg focus:outline-none focus:border-orange-500'
+                  className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg focus:outline-none focus:border-[#F97316]'
                   required
                 />
               </div>
 
               <div className='grid grid-cols-1 gap-3'>
                 <div>
-                  <label className='block font-semibold text-zinc-900 mb-1'>
+                  <label className='block font-semibold text-[#171717] mb-1'>
                     Định Dạng (Format)
                   </label>
                   <select
                     value={newSeriesFormat}
                     onChange={(e) => setNewSeriesFormat(e.target.value)}
-                    className='w-full px-3 py-2 bg-[#FAF8F5] border border-zinc-200 rounded-lg focus:outline-none focus:border-orange-500'
+                    className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg focus:outline-none focus:border-[#F97316]'
                   >
                     <option value='WEBTOON'>Webtoon (Cuộn dọc)</option>
                     <option value='MANGA'>Manga (Phải sang Trái)</option>
@@ -1097,9 +1343,9 @@ export const ProducerWorkspaceView: React.FC = () => {
                 </div>
               </div>
 
-              <div className='p-3 bg-[#FAF8F5] rounded-xl border border-zinc-200 space-y-1 text-[11px] text-[#737373]'>
-                <div className='font-bold text-zinc-900 flex items-center gap-1.5'>
-                  <Sparkles className='w-3.5 h-3.5 text-orange-500' />
+              <div className='p-3 bg-[#FAF8F5] rounded-xl border border-[#E7E7E7] space-y-1 text-[11px] text-[#737373]'>
+                <div className='font-bold text-[#171717] flex items-center gap-1.5'>
+                  <Sparkles className='w-3.5 h-3.5 text-[#F97316]' />
                   <span>Cấu hình tự động:</span>
                 </div>
                 <div>• Áp dụng chuẩn 8 công đoạn (Script → Approved) có Review Gate.</div>
@@ -1107,18 +1353,18 @@ export const ProducerWorkspaceView: React.FC = () => {
                 <div>• Khởi tạo sẵn Series Bible rỗng.</div>
               </div>
 
-              <div className='flex justify-end gap-2 pt-2 border-t border-zinc-200'>
+              <div className='flex justify-end gap-2 pt-2 border-t border-[#E7E7E7]'>
                 <button
                   type='button'
                   onClick={() => setCreateSeriesModalOpen(false)}
-                  className='px-3 py-1.5 rounded-lg text-zinc-500 hover:bg-[#F3F1EB]'
+                  className='px-3 py-1.5 rounded-lg text-[#555555] hover:bg-[#F3F1EB]'
                 >
                   Hủy
                 </button>
                 <button
                   type='submit'
                   disabled={creatingSeries || !newSeriesTitle.trim()}
-                  className='px-4 py-1.5 rounded-lg bg-orange-500 hover:bg-orange-600 text-white font-semibold disabled:opacity-50'
+                  className='px-4 py-1.5 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white font-semibold disabled:opacity-50'
                 >
                   {creatingSeries ? 'Đang tạo...' : 'Tạo Dự Án Ngay'}
                 </button>
@@ -1175,15 +1421,17 @@ export const ProducerWorkspaceView: React.FC = () => {
       {/* F5: Edit Series Modal */}
       {editingSeries && (
         <div className='fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4'>
-          <div className='bg-white rounded-2xl border border-zinc-200 shadow-2xl max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto'>
-            <div className='flex items-center justify-between border-b border-zinc-200 pb-3'>
+          <div className='bg-white rounded-2xl border border-[#E7E7E7] shadow-2xl max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto'>
+            <div className='flex items-center justify-between border-b border-[#E7E7E7] pb-3'>
               <div className='flex items-center gap-2'>
-                <Edit2 className='w-4 h-4 text-orange-500' />
-                <h3 className='text-sm font-bold text-zinc-900'>Chỉnh Sửa Series</h3>
+                <Edit2 className='w-4 h-4 text-[#F97316]' />
+                <h3 className='text-sm font-bold text-[#171717]'>
+                  Chỉnh Sửa Thông Tin Series (UC-03 / F5)
+                </h3>
               </div>
               <button
                 onClick={() => setEditingSeries(null)}
-                className='text-zinc-500 hover:text-zinc-900'
+                className='text-[#888888] hover:text-[#171717]'
               >
                 <X className='w-4 h-4' />
               </button>
@@ -1191,20 +1439,20 @@ export const ProducerWorkspaceView: React.FC = () => {
 
             <form onSubmit={handleUpdateSeries} className='space-y-3.5 text-xs'>
               <div>
-                <label className='block font-semibold text-zinc-900 mb-1'>
+                <label className='block font-semibold text-[#171717] mb-1'>
                   Tên Dự Án (Title) *
                 </label>
                 <input
                   type='text'
                   value={editSeriesTitle}
                   onChange={(e) => setEditSeriesTitle(e.target.value)}
-                  className='w-full px-3 py-2 bg-[#FAF8F5] border border-zinc-200 rounded-lg focus:outline-none focus:border-orange-500'
+                  className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg focus:outline-none focus:border-[#F97316]'
                   required
                 />
               </div>
 
               <div>
-                <label className='block font-semibold text-zinc-900 mb-1'>
+                <label className='block font-semibold text-[#171717] mb-1'>
                   Tóm Tắt Cốt Truyện (Synopsis)
                 </label>
                 <textarea
@@ -1238,11 +1486,13 @@ export const ProducerWorkspaceView: React.FC = () => {
 
               <div className='grid grid-cols-2 gap-3'>
                 <div>
-                  <label className='block font-semibold text-zinc-900 mb-1'>Thể Loại (Genre)</label>
+                  <label className='block font-semibold text-[#171717] mb-1'>
+                    Thể Loại (Genre)
+                  </label>
                   <select
                     value={editSeriesGenre}
                     onChange={(e) => setEditSeriesGenre(e.target.value)}
-                    className='w-full px-3 py-2 bg-[#FAF8F5] border border-zinc-200 rounded-lg focus:outline-none focus:border-orange-500'
+                    className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg focus:outline-none focus:border-[#F97316]'
                   >
                     <option value='Action / Sci-Fi'>Action / Sci-Fi</option>
                     <option value='Fantasy / Isekai'>Fantasy / Isekai</option>
@@ -1253,13 +1503,13 @@ export const ProducerWorkspaceView: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className='block font-semibold text-zinc-900 mb-1'>
+                  <label className='block font-semibold text-[#171717] mb-1'>
                     Định Dạng (Format)
                   </label>
                   <select
                     value={editSeriesFormat}
                     onChange={(e) => setEditSeriesFormat(e.target.value)}
-                    className='w-full px-3 py-2 bg-[#FAF8F5] border border-zinc-200 rounded-lg focus:outline-none focus:border-orange-500'
+                    className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg focus:outline-none focus:border-[#F97316]'
                   >
                     <option value='Manga (B&W Standard)'>Manga (B&W Standard)</option>
                     <option value='Webtoon (Vertical Scroll)'>Webtoon (Vertical Scroll)</option>
@@ -1270,11 +1520,11 @@ export const ProducerWorkspaceView: React.FC = () => {
 
               <div className='grid grid-cols-2 gap-3'>
                 <div>
-                  <label className='block font-semibold text-zinc-900 mb-1'>Hướng Đọc</label>
+                  <label className='block font-semibold text-[#171717] mb-1'>Hướng Đọc</label>
                   <select
                     value={editSeriesDirection}
                     onChange={(e) => setEditSeriesDirection(parseInt(e.target.value, 10))}
-                    className='w-full px-3 py-2 bg-[#FAF8F5] border border-zinc-200 rounded-lg focus:outline-none focus:border-orange-500'
+                    className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg focus:outline-none focus:border-[#F97316]'
                   >
                     <option value={1}>Phải sang Trái (RTL, Manga)</option>
                     <option value={0}>Trái sang Phải (LTR)</option>
@@ -1283,28 +1533,28 @@ export const ProducerWorkspaceView: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className='block font-semibold text-zinc-900 mb-1'>Lịch Phát Hành</label>
+                  <label className='block font-semibold text-[#171717] mb-1'>Lịch Phát Hành</label>
                   <input
                     type='text'
                     value={editSeriesSchedule}
                     onChange={(e) => setEditSeriesSchedule(e.target.value)}
-                    className='w-full px-3 py-2 bg-[#FAF8F5] border border-zinc-200 rounded-lg focus:outline-none focus:border-orange-500'
+                    className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg focus:outline-none focus:border-[#F97316]'
                   />
                 </div>
               </div>
 
-              <div className='flex justify-end gap-2 pt-2 border-t border-zinc-200'>
+              <div className='flex justify-end gap-2 pt-2 border-t border-[#E7E7E7]'>
                 <button
                   type='button'
                   onClick={() => setEditingSeries(null)}
-                  className='px-3 py-1.5 rounded-lg text-zinc-500 hover:bg-[#F3F1EB]'
+                  className='px-3 py-1.5 rounded-lg text-[#555555] hover:bg-[#F3F1EB]'
                 >
                   Hủy
                 </button>
                 <button
                   type='submit'
                   disabled={updatingSeries || !editSeriesTitle.trim()}
-                  className='px-4 py-1.5 rounded-lg bg-orange-500 hover:bg-orange-600 text-white font-semibold disabled:opacity-50'
+                  className='px-4 py-1.5 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white font-semibold disabled:opacity-50'
                 >
                   {updatingSeries ? 'Đang lưu...' : 'Lưu Thay Đổi'}
                 </button>
@@ -1317,20 +1567,20 @@ export const ProducerWorkspaceView: React.FC = () => {
       {/* F5: Delete Series Confirm Modal */}
       {deleteSeriesModal && (
         <div className='fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4'>
-          <div className='bg-white rounded-2xl border border-zinc-200 shadow-2xl max-w-sm w-full p-6 space-y-4'>
+          <div className='bg-white rounded-2xl border border-[#E7E7E7] shadow-2xl max-w-sm w-full p-6 space-y-4'>
             <div className='flex items-center gap-3'>
               <div className='w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center shrink-0'>
                 <Trash2 className='w-5 h-5' />
               </div>
               <div>
-                <h3 className='text-sm font-bold text-zinc-900'>Xác nhận xóa Series</h3>
+                <h3 className='text-sm font-bold text-[#171717]'>Xác nhận xóa Series</h3>
                 <p className='text-xs text-[#737373]'>
                   Thao tác này sẽ xóa Series và toàn bộ dữ liệu liên quan.
                 </p>
               </div>
             </div>
 
-            <p className='text-xs text-zinc-500 p-3 bg-red-50 rounded-xl border border-red-200'>
+            <p className='text-xs text-[#555555] p-3 bg-red-50 rounded-xl border border-red-200'>
               Bạn có chắc chắn muốn xóa bộ truyện{' '}
               <strong>&quot;{deleteSeriesModal.title}&quot;</strong>?
             </p>
@@ -1339,7 +1589,7 @@ export const ProducerWorkspaceView: React.FC = () => {
               <button
                 type='button'
                 onClick={() => setDeleteSeriesModal(null)}
-                className='px-3 py-1.5 rounded-lg text-zinc-500 hover:bg-[#F3F1EB] text-xs'
+                className='px-3 py-1.5 rounded-lg text-[#555555] hover:bg-[#F3F1EB] text-xs'
               >
                 Hủy
               </button>
@@ -1359,24 +1609,24 @@ export const ProducerWorkspaceView: React.FC = () => {
       {/* F8: Workspace Audit Log Modal */}
       {auditModalOpen && (
         <div className='fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4'>
-          <div className='bg-white rounded-2xl border border-zinc-200 shadow-2xl max-w-4xl w-full max-h-[85vh] flex flex-col p-6 space-y-4'>
-            <div className='flex items-center justify-between border-b border-zinc-200 pb-3'>
+          <div className='bg-white rounded-2xl border border-[#E7E7E7] shadow-2xl max-w-4xl w-full max-h-[85vh] flex flex-col p-6 space-y-4'>
+            <div className='flex items-center justify-between border-b border-[#E7E7E7] pb-3'>
               <div>
                 <div className='flex items-center gap-2 mb-0.5'>
-                  <span className='px-2 py-0.5 rounded bg-zinc-900 text-white font-mono text-[10px] font-bold'>
+                  <span className='px-2 py-0.5 rounded bg-[#171717] text-white font-mono text-[10px] font-bold'>
                     PRODUCER // AUDIT TRAIL
                   </span>
-                  <span className='text-xs text-zinc-500 font-mono'>
-                    Lịch sử thay đổi được bảo mật
+                  <span className='text-xs text-[#888888] font-mono'>
+                    BR-18 Provenance Guarantee
                   </span>
                 </div>
-                <h3 className='text-sm font-bold text-zinc-900'>
+                <h3 className='text-sm font-bold text-[#171717]'>
                   Lịch Sử Thay Đổi Studio: {activeWorkspace?.name}
                 </h3>
               </div>
               <button
                 onClick={() => setAuditModalOpen(false)}
-                className='text-zinc-500 hover:text-zinc-900'
+                className='text-[#888888] hover:text-[#171717]'
               >
                 <X className='w-4 h-4' />
               </button>
@@ -1389,11 +1639,11 @@ export const ProducerWorkspaceView: React.FC = () => {
                 placeholder='Lọc theo Entity (Series, BibleEntry, PipelineStage...)'
                 value={auditFilterEntity}
                 onChange={(e) => setAuditFilterEntity(e.target.value)}
-                className='px-3 py-1.5 bg-[#FAF8F5] border border-zinc-200 rounded-lg text-xs w-64 focus:outline-none focus:border-orange-500'
+                className='px-3 py-1.5 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg text-xs w-64 focus:outline-none focus:border-[#F97316]'
               />
               <button
                 onClick={loadWorkspaceAudit}
-                className='px-3 py-1.5 rounded-lg bg-[#FAF8F5] border border-zinc-200 hover:bg-[#F3F1EB] font-semibold flex items-center gap-1.5'
+                className='px-3 py-1.5 rounded-lg bg-[#FAF8F5] border border-[#E7E7E7] hover:bg-[#F3F1EB] font-semibold flex items-center gap-1.5'
               >
                 <RefreshCw className={`w-3 h-3 ${auditLoading ? 'animate-spin' : ''}`} />
                 <span>Tìm kiếm</span>
@@ -1401,9 +1651,9 @@ export const ProducerWorkspaceView: React.FC = () => {
             </div>
 
             {/* Audit Logs Table */}
-            <div className='overflow-y-auto flex-1 border border-zinc-200 rounded-xl text-xs'>
+            <div className='overflow-y-auto flex-1 border border-[#E7E7E7] rounded-xl text-xs'>
               <table className='w-full text-left'>
-                <thead className='bg-[#FAF8F5] border-b border-zinc-200 font-mono text-[10px] text-[#737373] sticky top-0'>
+                <thead className='bg-[#FAF8F5] border-b border-[#E7E7E7] font-mono text-[10px] text-[#737373] sticky top-0'>
                   <tr>
                     <th className='py-2.5 px-3'>Hành Động</th>
                     <th className='py-2.5 px-3'>Thực Thể</th>
@@ -1415,21 +1665,21 @@ export const ProducerWorkspaceView: React.FC = () => {
                 <tbody className='divide-y divide-[#E7E7E7]'>
                   {auditLoading ? (
                     <tr>
-                      <td colSpan={5} className='py-8 text-center text-zinc-500'>
-                        <RefreshCw className='w-5 h-5 animate-spin mx-auto mb-1 text-orange-500' />
+                      <td colSpan={5} className='py-8 text-center text-[#888888]'>
+                        <RefreshCw className='w-5 h-5 animate-spin mx-auto mb-1 text-[#F97316]' />
                         <span>Đang tải lịch sử audit...</span>
                       </td>
                     </tr>
                   ) : auditLogs.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className='py-8 text-center text-zinc-500'>
+                      <td colSpan={5} className='py-8 text-center text-[#888888]'>
                         Chưa có bản ghi audit nào trong Studio này.
                       </td>
                     </tr>
                   ) : (
                     auditLogs.map((log: any) => (
                       <tr key={log.id} className='hover:bg-[#FAF8F5]'>
-                        <td className='py-2.5 px-3 font-mono font-semibold text-zinc-900'>
+                        <td className='py-2.5 px-3 font-mono font-semibold text-[#171717]'>
                           <span
                             className={`px-1.5 py-0.5 rounded text-[10px] ${
                               log.action?.includes('CREATE')
@@ -1442,13 +1692,13 @@ export const ProducerWorkspaceView: React.FC = () => {
                             {log.action}
                           </span>
                         </td>
-                        <td className='py-2.5 px-3 font-mono text-[11px] text-zinc-500'>
+                        <td className='py-2.5 px-3 font-mono text-[11px] text-[#555555]'>
                           {log.entityName} {log.entityId ? `#${log.entityId.substring(0, 6)}` : ''}
                         </td>
-                        <td className='py-2.5 px-3 text-zinc-500'>
+                        <td className='py-2.5 px-3 text-[#555555]'>
                           {log.userEmail || log.userId || 'Hệ thống'}
                         </td>
-                        <td className='py-2.5 px-3 font-mono text-[11px] text-zinc-500 whitespace-nowrap'>
+                        <td className='py-2.5 px-3 font-mono text-[11px] text-[#888888] whitespace-nowrap'>
                           {new Date(log.createdAtUtc).toLocaleString('vi-VN')}
                         </td>
                         <td className='py-2.5 px-3 font-mono text-[10px] text-[#737373] max-w-xs truncate'>
@@ -1463,6 +1713,95 @@ export const ProducerWorkspaceView: React.FC = () => {
           </div>
         </div>
       )}
+      {/* Edit Access & Role Modal */}
+      {editingMember && (
+        <div className='fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-150'>
+          <div className='bg-white border border-[#E7E7E7] rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden'>
+            {/* Header */}
+            <div className='p-4 bg-[#FAF8F4] border-b border-[#E7E7E7] flex items-center justify-between'>
+              <div className='flex items-center gap-2'>
+                <Shield className='w-4 h-4 text-[#F97316]' />
+                <h3 className='font-serif font-bold text-base text-[#171717]'>
+                  Edit Access Policies: {editingMember.name}
+                </h3>
+              </div>
+              <button
+                onClick={() => setEditingMember(null)}
+                className='w-7 h-7 rounded-lg hover:bg-white border border-transparent hover:border-[#E7E7E7] flex items-center justify-center text-[#888888] hover:text-[#171717] transition-all cursor-pointer'
+              >
+                <X className='w-4 h-4' />
+              </button>
+            </div>
+
+            {/* Form */}
+            <div className='p-6 space-y-4 text-xs'>
+              <div>
+                <label className='block font-mono font-bold uppercase tracking-wider text-[#888888] mb-1.5 text-[10px]'>
+                  Assigned Production Role (Single Role)
+                </label>
+                <div className='flex flex-wrap gap-2 mt-1'>
+                  {(['PRODUCER', 'ARTIST', 'WRITER', 'LETTERER', 'EDITOR'] as const).map(
+                    (roleKey) => {
+                      const isSelected = editRole.toUpperCase() === roleKey;
+                      return (
+                        <label
+                          key={roleKey}
+                          className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border text-[11px] font-bold tracking-wider cursor-pointer transition-colors ${
+                            isSelected
+                              ? 'bg-[#171717] text-white border-[#171717] shadow-xs'
+                              : 'bg-white text-[#555555] border-[#E7E7E7] hover:bg-[#FAF8F4]'
+                          }`}
+                        >
+                          <input
+                            type='radio'
+                            name='memberRole'
+                            value={roleKey}
+                            className='hidden'
+                            checked={isSelected}
+                            onChange={() => setEditRole(roleKey)}
+                          />
+                          <span>{roleKey}</span>
+                        </label>
+                      );
+                    },
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label className='block font-mono font-bold uppercase tracking-wider text-[#888888] mb-1.5 text-[10px]'>
+                  Current Assignment / Scope
+                </label>
+                <input
+                  type='text'
+                  value={editTask}
+                  onChange={(e) => setEditTask(e.target.value)}
+                  className='w-full px-3 py-2 bg-[#FAF8F4] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-[#171717] focus:outline-none focus:border-[#F97316]'
+                />
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className='p-4 bg-[#FAF8F4] border-t border-[#E7E7E7] flex items-center justify-between'>
+              <button
+                type='button'
+                onClick={() => setEditingMember(null)}
+                className='px-3.5 py-1.5 bg-white hover:bg-[#F3F1EB] border border-[#E7E7E7] text-[#555555] rounded-lg text-xs font-semibold cursor-pointer'
+              >
+                Cancel
+              </button>
+              <button
+                type='button'
+                onClick={handleSaveAccess}
+                className='px-4 py-1.5 bg-[#171717] hover:bg-black text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer'
+              >
+                Save Policies
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

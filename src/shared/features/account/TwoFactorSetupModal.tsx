@@ -65,7 +65,7 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
     setCode('');
 
     try {
-      if (!activeToken) {
+      if (activeToken.startsWith('mock-')) {
         // Mock data neu chay demo offline khong co JWT that
         setTimeout(() => {
           const mockKey = 'JBSWY3DPEHPK3PXP';
@@ -79,7 +79,7 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
         return;
       }
 
-      const data = await authService.enableTwoFactor(activeToken);
+      const data = await authService.enableTwoFactor(activeToken || undefined);
       setBackupKey(data.sharedKey);
       setFormattedKey(data.formattedKey || data.sharedKey);
       setQrUri(data.authenticatorUri);
@@ -133,14 +133,14 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
     setErrorMessage(null);
 
     try {
-      if (!activeToken) {
+      if (activeToken.startsWith('mock-')) {
         await new Promise((resolve) => setTimeout(resolve, 600));
         setStep('success');
         if (onSuccess) onSuccess();
         return;
       }
 
-      await authService.verifyTwoFactor({ code: code.trim() }, activeToken);
+      await authService.verifyTwoFactor({ code: code.trim() }, activeToken || undefined);
       setStep('success');
       if (onSuccess) onSuccess();
     } catch (err: any) {

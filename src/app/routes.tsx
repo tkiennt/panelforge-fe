@@ -6,8 +6,6 @@ import { WorkspaceView } from '@/shared/features/production-workspace/WorkspaceV
 import { TaskEditorView } from '@/shared/features/production-workspace/TaskEditorView';
 import { ExportView } from '@/roles/producer/views/ExportView';
 import { DashboardView } from '@/roles/producer/views/DashboardView';
-import { MembersRolesView } from '@/roles/producer/views/MembersRolesView';
-import { SeriesMembersView } from '@/roles/producer/views/SeriesMembersView';
 import { ProducerWorkspaceView } from '@/roles/producer/views/ProducerWorkspaceView';
 import { AdminDashboard } from '@/roles/admin/views';
 import { ArtistDeskView } from '@/roles/artist/views/ArtistDeskView';
@@ -15,6 +13,7 @@ import { ReviewView } from '@/roles/editor/views/ReviewView';
 import { NotificationCenterView } from '@/shared/views/NotificationCenterView';
 import { ReaderPortalView } from '@/roles/reader/views/ReaderPortalView';
 import { PublicCatalogView } from '@/roles/reader/views/PublicCatalogView';
+import { PublicPreviewView } from '@/roles/reader/views/PublicPreviewView';
 import { LandingPageView } from '@/roles/guest/views/LandingPageView';
 import { WorkspaceListView } from '@/shared/views/WorkspaceListView';
 import { UserProfileView } from '@/shared/views/UserProfileView';
@@ -23,6 +22,7 @@ import { AiMultiAgentView } from '@/shared/features/ai-agents/AiMultiAgentView';
 import { MyWorkView } from '@/shared/features/collaboration/MyWorkView';
 import { PublisherDeskView } from '@/roles/publisher/views/PublisherDeskView';
 import { ScriptEditorView } from '@/roles/writer/views/ScriptEditorView';
+import LettererWorkspace from '@/roles/letterer/views/LettererWorkspace';
 import {
   SystemRole,
   WorkspaceRole,
@@ -160,6 +160,9 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
         }
       />
 
+      {/* CF5: Public Preview Link Route (No Auth Guard, No Bearer Header) */}
+      <Route path='/preview/:token' element={<PublicPreviewView />} />
+
       <Route
         element={
           <PrivateRoute isAuthenticated={isAuthenticated}>
@@ -226,27 +229,8 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
           <Route path='workspaces/:workspaceId'>
             <Route index element={<ProducerWorkspaceView />} />
             <Route path='overview' element={<ProducerWorkspaceView />} />
-            <Route
-              path='members'
-              element={
-                <MembersRolesView
-                  activeProject={activeProject}
-                  workspaceId={activeWorkspace?.id}
-                  members={members}
-                  onInviteMember={handleInviteMember}
-                  onUpdateMemberRole={(memberId, newRole) => {
-                    setMembers((prev) =>
-                      prev.map((m) => (m.id === memberId ? { ...m, role: newRole } : m)),
-                    );
-                    showToast('Cập nhật quyền', `Đã phân quyền ${newRole} cho thành viên`);
-                  }}
-                  onShowToast={showToast}
-                />
-              }
-            />
 
             <Route path='series/:seriesId'>
-              <Route path='members' element={<SeriesMembersView onShowToast={showToast} />} />
               <Route
                 path='dashboard'
                 element={
@@ -302,6 +286,16 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                 }
               />
               <Route
+                path='review/:taskId'
+                element={
+                  <ReviewView
+                    currentUserId={currentUserInfo?.id}
+                    workspaceRole={currentWorkspaceRole}
+                    onShowToast={showToast}
+                  />
+                }
+              />
+              <Route
                 path='script'
                 element={
                   <ScriptEditorView onShowToast={showToast} workspaceRole={currentWorkspaceRole} />
@@ -309,6 +303,11 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
               />
               <Route path='ai-agents' element={<AiMultiAgentView onShowToast={showToast} />} />
               <Route path='publishing' element={<PublisherDeskView onShowToast={showToast} />} />
+              <Route
+                path='artist'
+                element={<ArtistDeskView workspaceRole={currentWorkspaceRole} />}
+              />
+              <Route path='letterer' element={<LettererWorkspace />} />
               <Route path='export' element={<ExportView onShowToast={showToast} />} />
             </Route>
           </Route>
@@ -319,9 +318,9 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
             path='review/:taskId'
             element={
               <ReviewView
-                activeRoles={activeProjectRoles}
+                currentUserId={currentUserInfo?.id}
+                workspaceRole={currentWorkspaceRole}
                 onShowToast={showToast}
-                isDevMode={isDevMode}
               />
             }
           />
@@ -331,6 +330,7 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
             element={<UserProfileView user={firebaseUser} onLogout={handleLogout} />}
           />
           <Route path='artist' element={<ArtistDeskView />} />
+          <Route path='letterer' element={<LettererWorkspace />} />
           <Route
             path='catalog'
             element={<PublicCatalogView onBackToWorkspaces={() => navigate('/workspaces')} />}

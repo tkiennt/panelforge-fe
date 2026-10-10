@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   AlertTriangle,
   Calendar,
@@ -9,13 +10,16 @@ import {
   Play,
   Send,
   User,
+  ScanSearch,
 } from 'lucide-react';
 import { assignmentService } from '@/services/assignment.service';
 import { artworkService } from '@/services/artwork.service';
+import { panelService } from '@/services/panel.service';
 import type {
   AssetReferenceDto,
   AssignmentDto,
   ChangeRequestDto,
+  PanelDto,
   StageProgressDto,
   SubmissionDto,
 } from '@/types';
@@ -81,25 +85,46 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
   const [submissions, setSubmissions] = useState<SubmissionDto[]>([]);
   const [changeRequests, setChangeRequests] = useState<ChangeRequestDto[]>([]);
   const [artworks, setArtworks] = useState<AssetReferenceDto[]>([]);
+  const [panels, setPanels] = useState<PanelDto[]>([]);
   const [detailsLoaded, setDetailsLoaded] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [highlightedCrId, setHighlightedCrId] = useState<string | null>(null);
+  const [targetArtworkId, setTargetArtworkId] = useState<string | null>(null);
 
   const pageId = resolvePageId(assignment, stageProgress);
   const artworkRelevant = needsArtwork(assignment);
 
+  const handleSelectChangeRequest = (cr: ChangeRequestDto) => {
+    setHighlightedCrId(cr.id);
+    let artId = cr.assetReferenceId;
+    if (!artId && cr.submissionId && submissions.length > 0) {
+      const sub = submissions.find((s) => s.id === cr.submissionId);
+      if (sub?.artworkReferenceIds?.length) {
+        artId = sub.artworkReferenceIds[0];
+      }
+    }
+    if (artId) {
+      setTargetArtworkId(artId);
+    }
+  };
+
   const loadDetails = useCallback(async () => {
-    const [subs, crs, arts] = await Promise.all([
+    const [subs, crs, arts, pagePanels] = await Promise.all([
       assignmentService.getSubmissions(chapterId, assignment.id),
       assignmentService.getChangeRequests(chapterId, { assignmentId: assignment.id }),
       artworkRelevant && pageId
         ? artworkService.getArtworks(chapterId, pageId, assignment.pipelineStageId)
         : Promise.resolve([] as AssetReferenceDto[]),
+      artworkRelevant && pageId
+        ? panelService.getPanelsByPage(pageId).catch(() => [] as PanelDto[])
+        : Promise.resolve([] as PanelDto[]),
     ]);
     setSubmissions(subs);
     setChangeRequests(crs);
     setArtworks(arts);
+    setPanels(pagePanels);
     setDetailsLoaded(true);
   }, [chapterId, assignment.id, assignment.pipelineStageId, artworkRelevant, pageId]);
 
@@ -109,7 +134,13 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
 
   const artworkOk = artworkRelevant
     ? detailsLoaded
-      ? hasCurrentArtwork(artworks, pageId, assignment.pipelineStageId, lastRejectedAt(submissions))
+      ? hasCurrentArtwork(
+          artworks,
+          pageId,
+          assignment.pipelineStageId,
+          lastRejectedAt(submissions),
+          panels.map((p) => p.id),
+        )
       : null
     : null;
 
@@ -275,6 +306,18 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
         </p>
       )}
 
+      {actions.isReviewer && !actions.isAssignee && artworkRelevant && (
+        <Link
+          to={`../review/${assignment.id}?chapterId=${chapterId}`}
+          relative='path'
+          data-testid='open-review-board'
+          className='inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#F97316] hover:underline'
+        >
+          <ScanSearch className='w-3.5 h-3.5' /> Mở màn duyệt (so sánh phiên bản, khoanh vùng cần
+          sửa)
+        </Link>
+      )}
+
       <ReviewDecisionPanel
         chapterId={chapterId}
         assignment={assignment}
@@ -283,26 +326,55 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
         onToast={onToast}
       />
 
-      {artworkRelevant && (status === 'InProgress' || artworks.length > 0) && (
-        <ArtworkPanel
-          chapterId={chapterId}
-          pageId={pageId}
-          stageId={assignment.pipelineStageId}
-          artworks={artworks}
-          canUpload={actions.canUploadArtwork}
-          onChanged={() => void loadDetails()}
-          onToast={onToast}
-        />
-      )}
+      {(() => {
+        const prioritizeChangeRequests =
+          status === 'ReworkRequired' || changeRequests.some((c) => String(c.status) === 'Open');
 
-      <ChangeRequestPanel
-        chapterId={chapterId}
-        changeRequests={changeRequests}
-        userId={userId}
-        workspaceRole={workspaceRole}
-        onChanged={() => changed()}
-        onToast={onToast}
-      />
+        const artworkPanelElement = artworkRelevant &&
+          (status === 'InProgress' || artworks.length > 0) && (
+            <ArtworkPanel
+              chapterId={chapterId}
+              pageId={pageId}
+              stageId={assignment.pipelineStageId}
+              artworks={artworks}
+              panels={panels}
+              submissions={submissions}
+              changeRequests={changeRequests}
+              highlightedChangeRequestId={highlightedCrId}
+              targetArtworkId={targetArtworkId}
+              canUpload={actions.canUploadArtwork}
+              onChanged={() => void loadDetails()}
+              onToast={onToast}
+            />
+          );
+
+        const changeRequestPanelElement = (
+          <ChangeRequestPanel
+            chapterId={chapterId}
+            changeRequests={changeRequests}
+            artworks={artworks}
+            panels={panels}
+            submissions={submissions}
+            userId={userId}
+            workspaceRole={workspaceRole}
+            onSelectChangeRequest={handleSelectChangeRequest}
+            onChanged={() => changed()}
+            onToast={onToast}
+          />
+        );
+
+        return prioritizeChangeRequests ? (
+          <>
+            {changeRequestPanelElement}
+            {artworkPanelElement}
+          </>
+        ) : (
+          <>
+            {artworkPanelElement}
+            {changeRequestPanelElement}
+          </>
+        );
+      })()}
 
       <div className='pt-2 border-t border-[#F3F3F3]'>
         <button

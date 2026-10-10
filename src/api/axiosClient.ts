@@ -2,13 +2,35 @@ import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 
 export const REFRESH_TOKEN_KEY = 'refreshToken';
 
+/**
+ * Xóa sạch token cũ trong localStorage khi khởi động (chuyển sang cookie HttpOnly pf_access và pf_refresh).
+ * Không xoá token giả dùng cho chế độ demo / mock trong test ('mock-...').
+ */
+export function clearLegacyTokens() {
+  if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+    // Tạm thời KHÔNG xoá token trong localStorage vì nếu cookie bị lỗi (CORS, SameSite), 
+    // chúng ta vẫn cần token làm fallback để tránh bị văng đăng nhập khi tải lại trang.
+    // const token = localStorage.getItem('token');
+    // if (token && !token.startsWith('mock-')) {
+    //   localStorage.removeItem('token');
+    // }
+    localStorage.removeItem('jwt_token');
+    // localStorage.removeItem(REFRESH_TOKEN_KEY);
+  }
+}
+
+// Chạy dọn dẹp token legacy ngay khi module được nạp
+clearLegacyTokens();
+
 const axiosClient = axios.create({
   baseURL:
     import.meta.env.VITE_API_URL ||
     import.meta.env.VITE_API_BASE_URL ||
     'http://localhost:5044/api',
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
+    'X-Requested-With': 'XMLHttpRequest',
   },
 });
 
@@ -18,43 +40,50 @@ const AUTH_ENDPOINTS =
 
 type RetriableConfig = InternalAxiosRequestConfig & { _retry?: boolean };
 
-function clearSession() {
-  localStorage.removeItem('token');
-  localStorage.removeItem('jwt_token');
-  localStorage.removeItem(REFRESH_TOKEN_KEY);
-  window.dispatchEvent(new Event('auth:unauthorized'));
+export function clearSession() {
+  clearLegacyTokens();
+  if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+    localStorage.removeItem('user');
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('activeWorkspace');
+    window.dispatchEvent(new Event('auth:unauthorized'));
+  }
 }
 
-/** Lưu refresh token từ AuthResponse của BE (login / verify-email / verify-2fa / external-login / refresh). */
-export function storeRefreshToken(data: { refreshToken?: string | null } | null | undefined) {
-  if (data?.refreshToken) {
-    localStorage.setItem(REFRESH_TOKEN_KEY, data.refreshToken);
-  }
+/**
+ * storeRefreshToken được giữ cho tương thích ngược nhưng không lưu vào localStorage
+ * (refresh token được lưu an toàn trong cookie HttpOnly pf_refresh do BE cấp).
+ */
+export function storeRefreshToken(_data?: { refreshToken?: string | null } | null | undefined) {
+  // Không lưu refreshToken vào localStorage nữa
 }
 
 let refreshing: Promise<string | null> | null = null;
 
 async function doRefresh(): Promise<string | null> {
-  const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
-  if (!refreshToken) return null;
-
   try {
     // Dùng axios trần (không interceptor) để tránh vòng lặp refresh
-    const { data } = await axios.post(`${axiosClient.defaults.baseURL}/Auth/refresh`, {
-      refreshToken,
-    });
-    localStorage.setItem('token', data.token);
-    storeRefreshToken(data);
-    return data.token as string;
+    // Không gửi body, BE đọc cookie HttpOnly pf_refresh (bắt buộc header X-Requested-With và withCredentials)
+    const { data } = await axios.post(
+      `${axiosClient.defaults.baseURL}/Auth/refresh`,
+      {},
+      {
+        withCredentials: true,
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+      },
+    );
+    return (data?.token as string) ?? 'ok';
   } catch (error) {
-    // Refresh token bị từ chối (hết hạn / đã thu hồi) → hết phiên. Lỗi mạng / 5xx thì giữ nguyên phiên.
+    // Refresh cookie bị từ chối (hết hạn / đã thu hồi) → hết phiên. Lỗi mạng / 5xx thì giữ nguyên phiên.
     const status = axios.isAxiosError(error) ? error.response?.status : undefined;
     if (status && status < 500) clearSession();
     return null;
   }
 }
 
-/** Đổi refresh token lấy access token mới. Nhiều request 401 cùng lúc chỉ gọi /Auth/refresh một lần. */
+/** Đổi refresh token lấy access token mới qua cookie HttpOnly. Nhiều request 401 cùng lúc chỉ gọi /Auth/refresh một lần. */
 export function refreshAccessToken(): Promise<string | null> {
   refreshing ??= doRefresh().finally(() => {
     refreshing = null;
@@ -62,13 +91,19 @@ export function refreshAccessToken(): Promise<string | null> {
   return refreshing;
 }
 
-// Interceptor để tự động gắn JWT Token vào mọi request
+// Interceptor để tự động gắn header X-Requested-With và withCredentials
 axiosClient.interceptors.request.use(
-  (config) => { 
-    // Lấy token từ localStorage (hoặc state management của bạn)
-    const token = localStorage.getItem('token') || localStorage.getItem('jwt_token');
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
+  (config) => {
+    config.withCredentials = true;
+    if (config.headers) {
+      if (!config.headers['X-Requested-With']) {
+        config.headers['X-Requested-With'] = 'XMLHttpRequest';
+      }
+      // Hỗ trợ chế độ mock dev / demo token hoặc token set thủ công nếu có trong localStorage
+      const token = localStorage.getItem('token') || localStorage.getItem('jwt_token');
+      if (token && !config.headers.Authorization) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
     return config;
   },
@@ -90,18 +125,24 @@ axiosClient.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    // Access token (30 phút) hết hạn: thử đổi refresh token một lần rồi gửi lại request
-    if (!original._retry && localStorage.getItem(REFRESH_TOKEN_KEY)) {
+    // Access token (30 phút) hết hạn: thử đổi refresh token qua cookie HttpOnly một lần rồi gửi lại request
+    if (!original._retry) {
       original._retry = true;
       const newToken = await refreshAccessToken();
       if (newToken) {
-        original.headers.Authorization = `Bearer ${newToken}`;
+        original.withCredentials = true;
+        if (original.headers) {
+          original.headers['X-Requested-With'] = 'XMLHttpRequest';
+          if (newToken !== 'ok') {
+            original.headers.Authorization = `Bearer ${newToken}`;
+          }
+        }
         return axiosClient(original);
       }
       return Promise.reject(error); // refreshAccessToken đã dọn phiên nếu refresh bị từ chối
     }
 
-    // Không có / đã dùng refresh token mà vẫn 401 → hết phiên
+    // Đã thử refresh mà vẫn 401 → hết phiên
     clearSession();
     return Promise.reject(error);
   },

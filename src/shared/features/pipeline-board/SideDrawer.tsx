@@ -1,304 +1,287 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   X,
-  Image as ImageIcon,
-  History,
-  MessageSquare,
-  Sparkles,
   Clock,
-  Play,
-  Send,
+  User,
+  Layers,
+  FileText,
+  AlertCircle,
   CheckCircle2,
-  AlertTriangle,
+  History,
+  ArrowUpRight,
   Loader2,
+  Calendar,
+  Lock,
 } from 'lucide-react';
-import { PipelineCard, PIPELINE_MEMBERS } from '@/mocks/mockPipelineData';
-import { assignmentService, AssignmentStatus } from '@/services/assignment.service';
-
-import { usePermissions } from '@/lib/permissions';
+import { BoardCard } from './pipelineBoard.types';
+import { assignmentService, SubmissionDto, ChangeRequestDto } from '@/services/assignment.service';
 
 interface SideDrawerProps {
   isOpen: boolean;
   onClose: () => void;
-  card: PipelineCard | null;
-  userRoles: string[];
-  chapterId?: string;
+  card: BoardCard | null;
   onShowToast?: (title: string, desc: string) => void;
 }
 
-export const SideDrawer: React.FC<SideDrawerProps> = ({
-  isOpen,
-  onClose,
-  card,
-  userRoles,
-  chapterId,
-  onShowToast,
-}) => {
-  const { hasPermission } = usePermissions(userRoles || []);
-  const [currentStatus, setCurrentStatus] = useState<AssignmentStatus>('Assigned');
-  const [actionLoading, setActionLoading] = useState(false);
-  const [actionError, setActionError] = useState<string | null>(null);
+export const SideDrawer: React.FC<SideDrawerProps> = ({ isOpen, onClose, card, onShowToast }) => {
+  const navigate = useNavigate();
+  const { workspaceId, seriesId } = useParams();
+
+  const [submissions, setSubmissions] = useState<SubmissionDto[]>([]);
+  const [changeRequests, setChangeRequests] = useState<ChangeRequestDto[]>([]);
+  const [loadingData, setLoadingData] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen || !card) return;
+
+    let isMounted = true;
+    setLoadingData(true);
+
+    Promise.all([
+      assignmentService.getSubmissions(card.chapterId, card.id).catch(() => []),
+      assignmentService
+        .getChangeRequests(card.chapterId, { assignmentId: card.id })
+        .catch(() => []),
+    ])
+      .then(([subList, crList]) => {
+        if (!isMounted) return;
+        setSubmissions(subList);
+        setChangeRequests(crList);
+      })
+      .finally(() => {
+        if (isMounted) setLoadingData(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen, card]);
 
   if (!isOpen || !card) return null;
 
-  const handleStartAssignment = async () => {
-    setActionLoading(true);
-    setActionError(null);
-    try {
-      if (chapterId) {
-        await assignmentService.startAssignment(chapterId, card.id);
-      }
-      setCurrentStatus('InProgress');
-      onShowToast?.('Đã bắt đầu làm', `Công việc ${card.identifier} chuyển sang InProgress.`);
-    } catch (err: any) {
-      const msg = err.response?.data?.message || err.message || 'Lỗi khi bắt đầu làm việc.';
-      setActionError(msg);
-      onShowToast?.('Không thể bắt đầu', msg);
-    } finally {
-      setActionLoading(false);
+  const handleOpenMyWork = () => {
+    if (workspaceId && seriesId) {
+      navigate(
+        `/workspaces/${workspaceId}/series/${seriesId}/my-work?chapterId=${card.chapterId}&assignmentId=${card.id}`,
+      );
+      onClose();
+    } else {
+      onShowToast?.('Không tìm thấy thông tin Series', 'Vui lòng kiểm tra lại đường dẫn');
     }
   };
-
-  const handleSubmitAssignment = async () => {
-    if (currentStatus !== 'InProgress') {
-      const msg =
-        'Phải bắt đầu việc (trạng thái InProgress) trước khi nộp để tránh lỗi 409 Conflict!';
-      setActionError(msg);
-      onShowToast?.('Quy định nộp bài', msg);
-      return;
-    }
-
-    setActionLoading(true);
-    setActionError(null);
-    try {
-      if (chapterId) {
-        await assignmentService.submitAssignment(chapterId, card.id);
-      }
-      setCurrentStatus('Submitted');
-      onShowToast?.('Đã nộp bài thành công', `Công việc ${card.identifier} đã được nộp chờ duyệt.`);
-    } catch (err: any) {
-      const msg = err.response?.data?.message || err.message || 'Lỗi khi nộp bài.';
-      setActionError(msg);
-      onShowToast?.('Không thể nộp bài', msg);
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const assignee = PIPELINE_MEMBERS[card.assigneeId];
-
-  // AI button permission
-  const canRequestAI = hasPermission('request_ai');
 
   return (
     <>
-      {/* Overlay */}
+      {/* Backdrop */}
       <div
-        className='fixed inset-0 bg-[#171717]/20 backdrop-blur-[2px] z-[100]'
+        className='fixed inset-0 bg-black/30 backdrop-blur-[2px] z-[100] transition-opacity'
         onClick={onClose}
       />
 
-      {/* Drawer */}
-      <div className='fixed top-0 right-0 h-full w-[400px] max-w-[90vw] bg-[#FAF8F4] shadow-2xl border-l border-[#E7E7E7] z-[110] flex flex-col animate-in slide-in-from-right duration-300'>
+      {/* Drawer Container */}
+      <div className='fixed top-0 right-0 h-full w-[460px] max-w-[95vw] bg-white shadow-2xl border-l border-zinc-200 z-[110] flex flex-col animate-in slide-in-from-right duration-300'>
         {/* Header */}
-        <div className='flex items-center justify-between p-5 border-b border-[#E7E7E7] bg-white'>
-          <div>
-            <div className='flex items-center gap-2 mb-1'>
-              <span className='text-xs font-mono text-[#737373] bg-[#F3F3F3] px-1.5 py-0.5 rounded-md'>
-                {card.identifier}
+        <div className='flex items-start justify-between p-5 border-b border-zinc-200 bg-zinc-50/70'>
+          <div className='space-y-1.5 pr-4'>
+            <div className='flex items-center gap-2 flex-wrap'>
+              <span
+                className='inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold text-zinc-900 border border-zinc-200'
+                style={{ backgroundColor: card.stageColor || '#F3F4F6' }}
+              >
+                {card.stageName}
               </span>
-              {card.isAIAssisted && (
-                <span className='text-[10px] uppercase font-bold tracking-wider text-[#8B5CF6] bg-[#F5F3FF] px-1.5 py-0.5 rounded border border-[#DDD6FE]'>
-                  AI Assisted
-                </span>
-              )}
+              <span className='text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-zinc-200 text-zinc-700'>
+                {card.targetLabel}
+              </span>
+              <span className='text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border bg-white border-zinc-300 text-zinc-800'>
+                {card.status}
+              </span>
             </div>
-            <h2 className='text-lg font-heading font-semibold text-[#171717]'>{card.title}</h2>
+            <h2 className='text-base font-bold text-zinc-900 leading-snug'>{card.brief}</h2>
           </div>
           <button
+            type='button'
             onClick={onClose}
-            className='w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#F3F3F3] text-[#737373] transition-colors'
+            className='w-8 h-8 flex items-center justify-center rounded-xl hover:bg-zinc-200 text-zinc-500 hover:text-zinc-800 transition-colors shrink-0'
           >
             <X className='w-5 h-5' />
           </button>
         </div>
 
-        {/* Body Scrollable */}
-        <div className='flex-1 overflow-y-auto custom-scrollbar p-5 space-y-6'>
-          {/* Thumbnail / Image Preview */}
-          <div className='w-full aspect-video bg-[#E7E7E7] rounded-lg border border-[#D4D4D4] flex items-center justify-center overflow-hidden'>
-            {card.thumbnailUrl ? (
-              <img
-                src={card.thumbnailUrl}
-                alt={card.title}
-                className='w-full h-full object-cover'
-              />
-            ) : (
-              <div className='flex flex-col items-center text-[#A3A3A3]'>
-                <ImageIcon className='w-8 h-8 mb-2 stroke-[1.5]' />
-                <span className='text-sm font-medium'>No preview available</span>
+        {/* Scrollable Content */}
+        <div className='flex-1 overflow-y-auto p-5 space-y-6 custom-scrollbar'>
+          {/* Quick Info Grid */}
+          <div className='bg-zinc-50 rounded-2xl p-4 border border-zinc-200/80 space-y-3 text-xs'>
+            <div className='flex items-center justify-between py-1 border-b border-zinc-200/60'>
+              <span className='text-zinc-500 flex items-center gap-1.5'>
+                <User className='w-3.5 h-3.5 text-zinc-400' />
+                Người thực hiện:
+              </span>
+              <span className='font-semibold text-zinc-900 flex items-center gap-1.5'>
+                <span className='w-5 h-5 rounded-full bg-blue-100 text-blue-800 flex items-center justify-center text-[10px] font-bold'>
+                  {card.assigneeAvatarInitials}
+                </span>
+                {card.assigneeName} ({card.assignedRole})
+              </span>
+            </div>
+
+            <div className='flex items-center justify-between py-1 border-b border-zinc-200/60'>
+              <span className='text-zinc-500 flex items-center gap-1.5'>
+                <Clock className='w-3.5 h-3.5 text-zinc-400' />
+                Hạn chót:
+              </span>
+              <span className='font-semibold text-zinc-900'>
+                {card.dueDate ? new Date(card.dueDate).toLocaleString('vi-VN') : 'Không có hạn'}
+              </span>
+            </div>
+
+            <div className='flex items-center justify-between py-1 border-b border-zinc-200/60'>
+              <span className='text-zinc-500 flex items-center gap-1.5'>
+                <Layers className='w-3.5 h-3.5 text-zinc-400' />
+                Mức ưu tiên:
+              </span>
+              <span className='font-semibold text-zinc-900'>{String(card.priority)}</span>
+            </div>
+
+            {card.dependsOnAssignmentId && (
+              <div className='flex items-center justify-between py-1'>
+                <span className='text-zinc-500 flex items-center gap-1.5'>
+                  <Lock className='w-3.5 h-3.5 text-amber-500' />
+                  Phụ thuộc vào:
+                </span>
+                <span className='font-mono text-[11px] text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200'>
+                  {card.dependsOnAssignmentId.substring(0, 8)}...
+                </span>
               </div>
             )}
           </div>
 
-          {/* Brief & Assignee */}
-          <div className='bg-white p-4 rounded-xl border border-[#E7E7E7] shadow-2xs space-y-4'>
-            <div>
-              <h3 className='text-xs font-bold text-[#737373] uppercase tracking-wider mb-2'>
-                Assignee
-              </h3>
-              <div className='flex items-center gap-3'>
-                <div className='w-8 h-8 rounded-full bg-[#171717] flex items-center justify-center text-white text-xs font-semibold shadow-md'>
-                  {assignee?.avatarInitials}
-                </div>
-                <div>
-                  <div className='text-sm font-semibold text-[#171717]'>{assignee?.name}</div>
-                  <div className='text-[11px] text-[#737373]'>{assignee?.role}</div>
-                </div>
-              </div>
-            </div>
-
-            <div className='pt-3 border-t border-[#F3F3F3]'>
-              <h3 className='text-xs font-bold text-[#737373] uppercase tracking-wider mb-2'>
-                Stage
-              </h3>
-              <div className='flex items-center justify-between'>
-                <span className='text-sm font-medium capitalize text-[#171717]'>{card.stage}</span>
-                <span className='flex items-center gap-1.5 text-xs text-[#525252] font-mono'>
-                  <Clock className='w-3.5 h-3.5' />
-                  {new Date(card.deadline).toLocaleDateString()}
-                </span>
-              </div>
-            </div>
-
-            <div className='pt-3 border-t border-[#F3F3F3]'>
-              <h3 className='text-xs font-bold text-[#737373] uppercase tracking-wider mb-2'>
-                Brief / Description
-              </h3>
-              <p className='text-sm text-[#525252] leading-relaxed'>
-                This is a placeholder description for {card.identifier}. In the real system, this
-                would contain the script excerpt or director's notes.
-              </p>
-            </div>
-          </div>
-
-          {/* Elements List (if panel) */}
-          {card.type === 'panel' && (
-            <div>
-              <h3 className='text-sm font-bold text-[#171717] mb-3'>Panel Elements</h3>
-              <div className='bg-white border border-[#E7E7E7] rounded-lg overflow-hidden'>
-                <div className='p-3 border-b border-[#F3F3F3] flex items-center justify-between text-sm hover:bg-[#FAF8F4]'>
-                  <span className='text-[#525252]'>Character Ink</span>
-                  <span className='text-xs font-mono text-[#10B981]'>Done</span>
-                </div>
-                <div className='p-3 border-b border-[#F3F3F3] flex items-center justify-between text-sm hover:bg-[#FAF8F4]'>
-                  <span className='text-[#525252]'>Background</span>
-                  <span className='text-xs font-mono text-[#F59E0B]'>WIP</span>
-                </div>
-                <div className='p-3 flex items-center justify-between text-sm hover:bg-[#FAF8F4]'>
-                  <span className='text-[#525252]'>SFX Lettering</span>
-                  <span className='text-xs font-mono text-[#737373]'>Pending</span>
-                </div>
+          {/* Reference Notes */}
+          {card.referenceNotes && (
+            <div className='space-y-1.5'>
+              <h4 className='text-xs font-bold text-zinc-700 uppercase tracking-wider flex items-center gap-1.5'>
+                <FileText className='w-3.5 h-3.5 text-zinc-400' />
+                Ghi chú & Tài liệu tham chiếu
+              </h4>
+              <div className='p-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs text-zinc-700 leading-relaxed whitespace-pre-wrap'>
+                {card.referenceNotes}
               </div>
             </div>
           )}
 
-          {/* Assignment Actions (UC-05) */}
-          <div className='p-3.5 bg-white border border-[#E7E7E7] rounded-xl shadow-2xs space-y-2.5'>
+          {/* Last Feedback Comment */}
+          {card.lastFeedbackComment && (
+            <div className='space-y-1.5'>
+              <h4 className='text-xs font-bold text-rose-700 uppercase tracking-wider flex items-center gap-1.5'>
+                <AlertCircle className='w-3.5 h-3.5 text-rose-500' />
+                Nhận xét phản hồi gần nhất
+              </h4>
+              <div className='p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-900 leading-relaxed'>
+                {card.lastFeedbackComment}
+              </div>
+            </div>
+          )}
+
+          {/* Submissions Section */}
+          <div className='space-y-2.5'>
             <div className='flex items-center justify-between'>
-              <h3 className='text-xs font-bold text-[#171717] uppercase tracking-wider flex items-center gap-1.5'>
-                <Clock className='w-3.5 h-3.5 text-[#F97316]' />
-                <span>Tiến độ nhiệm vụ (Assignment)</span>
-              </h3>
-              <span className='px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[#FAF8F5] border border-[#E7E7E7] text-[#F97316]'>
-                {currentStatus}
-              </span>
+              <h4 className='text-xs font-bold text-zinc-800 uppercase tracking-wider flex items-center gap-1.5'>
+                <History className='w-3.5 h-3.5 text-blue-600' />
+                Lịch sử nộp bài ({submissions.length})
+              </h4>
             </div>
 
-            {actionError && (
-              <div className='p-2 bg-red-50 border border-red-200 text-red-700 rounded-lg text-[11px] flex items-center gap-1.5'>
-                <AlertTriangle className='w-3.5 h-3.5 shrink-0' />
-                <span>{actionError}</span>
+            {loadingData ? (
+              <div className='py-6 flex items-center justify-center text-zinc-400 gap-2 text-xs'>
+                <Loader2 className='w-4 h-4 animate-spin' />
+                <span>Đang tải lịch sử...</span>
+              </div>
+            ) : submissions.length === 0 ? (
+              <div className='p-4 text-center border border-dashed border-zinc-200 rounded-xl text-xs text-zinc-400'>
+                Chưa có bản nộp nào cho nhiệm vụ này.
+              </div>
+            ) : (
+              <div className='space-y-2'>
+                {submissions.map((sub) => (
+                  <div
+                    key={sub.id}
+                    className='p-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs space-y-1'
+                  >
+                    <div className='flex items-center justify-between'>
+                      <span className='font-bold text-zinc-900'>Lần nộp #{sub.attemptNumber}</span>
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                          sub.status === 'Approved'
+                            ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                            : sub.status === 'Rejected'
+                              ? 'bg-rose-100 text-rose-800 border-rose-300'
+                              : 'bg-zinc-100 text-zinc-700 border-zinc-300'
+                        }`}
+                      >
+                        {sub.status}
+                      </span>
+                    </div>
+                    <div className='text-[11px] text-zinc-500'>
+                      Thời gian: {new Date(sub.submittedAt).toLocaleString('vi-VN')}
+                    </div>
+                    {sub.decisionComment && (
+                      <div className='text-[11px] text-zinc-700 pt-1 italic'>
+                        Ghi chú duyệt: &quot;{sub.decisionComment}&quot;
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
+          </div>
 
-            <div className='grid grid-cols-2 gap-2 pt-1'>
-              <button
-                onClick={handleStartAssignment}
-                disabled={actionLoading || currentStatus !== 'Assigned'}
-                title={
-                  currentStatus === 'Assigned'
-                    ? 'Bắt đầu làm công việc này'
-                    : `Công việc đã ở trạng thái ${currentStatus}`
-                }
-                className='py-2 px-3 bg-[#171717] hover:bg-black text-white text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-xs cursor-pointer'
-              >
-                {actionLoading ? (
-                  <Loader2 className='w-3.5 h-3.5 animate-spin' />
-                ) : (
-                  <Play className='w-3.5 h-3.5 text-[#F97316]' />
-                )}
-                <span>Bắt đầu làm</span>
-              </button>
-
-              <button
-                onClick={handleSubmitAssignment}
-                disabled={actionLoading || currentStatus !== 'InProgress'}
-                title={
-                  currentStatus === 'InProgress'
-                    ? 'Nộp bài để chuyển sang xét duyệt Review'
-                    : 'Phải bấm "Bắt đầu làm" trước khi nộp (Quy định hệ thống)'
-                }
-                className='py-2 px-3 bg-[#10B981] hover:bg-[#059669] text-white text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-xs cursor-pointer'
-              >
-                {actionLoading ? (
-                  <Loader2 className='w-3.5 h-3.5 animate-spin' />
-                ) : (
-                  <Send className='w-3.5 h-3.5' />
-                )}
-                <span>Nộp bài</span>
-              </button>
+          {/* Change Requests Section */}
+          {changeRequests.length > 0 && (
+            <div className='space-y-2.5'>
+              <h4 className='text-xs font-bold text-zinc-800 uppercase tracking-wider flex items-center gap-1.5'>
+                <AlertCircle className='w-3.5 h-3.5 text-amber-500' />
+                Yêu cầu sửa đổi ({changeRequests.length})
+              </h4>
+              <div className='space-y-2'>
+                {changeRequests.map((cr) => (
+                  <div
+                    key={cr.id}
+                    className='p-3 bg-amber-50/50 border border-amber-200 rounded-xl text-xs space-y-1'
+                  >
+                    <div className='flex items-center justify-between'>
+                      <span className='font-bold text-amber-900'>{cr.description}</span>
+                      <span className='text-[10px] font-bold px-2 py-0.5 rounded-full bg-white border border-amber-300 text-amber-800'>
+                        {cr.status}
+                      </span>
+                    </div>
+                    {cr.resolutionNote && (
+                      <div className='text-[11px] text-zinc-600'>Đã xử lý: {cr.resolutionNote}</div>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
-            {currentStatus === 'Assigned' && (
-              <p className='text-[10px] text-[#888888] font-mono text-center'>
-                * Bắt buộc chuyển sang &quot;InProgress&quot; trước khi có thể nộp bài (tránh lỗi
-                409 Conflict).
-              </p>
-            )}
-          </div>
+          )}
+        </div>
 
-          {/* Actions */}
-          <div className='space-y-3'>
-            <button className='w-full py-2.5 bg-white border border-[#D4D4D4] rounded-lg text-sm font-semibold text-[#171717] shadow-2xs hover:bg-[#F3F3F3] transition-colors flex items-center justify-center gap-2'>
-              <History className='w-4 h-4' />
-              Version History
-            </button>
-
-            <button
-              disabled={!canRequestAI}
-              title={!canRequestAI ? 'Bạn cần quyền tương tác với AI' : 'Yêu cầu AI hỗ trợ'}
-              onClick={() => {
-                // TODO: Gọi AI Assistance Layer API
-                console.log('AI Assistance Requested');
-                alert('Requesting AI Assistance... (Placeholder)');
-              }}
-              className='w-full py-2.5 bg-[#F5F3FF] border border-[#DDD6FE] rounded-lg text-sm font-semibold text-[#8B5CF6] shadow-2xs hover:bg-[#EDE9FE] transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed'
-            >
-              <Sparkles className='w-4 h-4' />
-              Yêu cầu AI hỗ trợ
-            </button>
-          </div>
-
-          {/* Comments */}
-          <div>
-            <h3 className='text-sm font-bold text-[#171717] mb-3 flex items-center gap-2'>
-              <MessageSquare className='w-4 h-4' />
-              Comments
-            </h3>
-            <div className='bg-white p-4 rounded-xl border border-[#E7E7E7] text-sm text-[#737373] text-center'>
-              No comments yet. (Review & Annotation handled in separate view).
-            </div>
-          </div>
+        {/* Footer Actions */}
+        <div className='p-4 border-t border-zinc-200 bg-zinc-50 flex items-center gap-3'>
+          <button
+            type='button'
+            onClick={handleOpenMyWork}
+            className='flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer'
+          >
+            <span>Mở Bàn làm việc & Xét duyệt</span>
+            <ArrowUpRight className='w-4 h-4' />
+          </button>
+          <button
+            type='button'
+            onClick={onClose}
+            className='px-4 py-2.5 bg-white hover:bg-zinc-100 text-zinc-700 border border-zinc-200 rounded-xl text-xs font-semibold transition-colors cursor-pointer'
+          >
+            Đóng
+          </button>
         </div>
       </div>
     </>

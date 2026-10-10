@@ -8,6 +8,7 @@ import { workspaceService, type WorkspaceMemberDto } from '@/services/workspace.
 import type { AssignmentDto, StageProgressDto } from '@/types';
 import { AssignmentWorkCard } from './AssignmentWorkCard';
 import { errorMessage, isReviewerRole } from './collaborationRules';
+import { PageContainer } from '@/shared/components/PageContainer';
 
 interface MyWorkViewProps {
   currentUserId?: string | null;
@@ -158,7 +159,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
       ];
 
   return (
-    <div className='p-6 max-w-4xl mx-auto space-y-5' data-testid='my-work-view'>
+    <PageContainer className='space-y-5 py-6' data-testid='my-work-view'>
       <header className='flex flex-wrap items-center justify-between gap-3'>
         <div className='flex items-center gap-3'>
           <div className='w-9 h-9 rounded-xl bg-[#FFF7ED] border border-[#FDBA74] flex items-center justify-center text-[#F97316]'>
@@ -285,6 +286,6 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
           ))}
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 };
