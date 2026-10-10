@@ -267,6 +267,47 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
     }
   };
 
+  const handleUnlockRevision = async (rev: BibleEntryRevisionDto) => {
+    if (!effectiveSeries?.id || !historyEntity) return;
+
+    if (historyEntity.category !== 'characters') {
+      onShowToast(
+        'Chỉ áp dụng cho Nhân vật',
+        'Theo quy tắc Việc 5 (BR-15 Canon), chỉ có thể thao tác trên revision thuộc danh mục Character.',
+      );
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Bạn có chắc chắn muốn MỞ KHOÁ phiên bản v${rev.versionNumber} của nhân vật "${historyEntity.name}"?\n\n` +
+        'Lưu ý: Sau khi mở khoá, phiên bản này không còn là tham chiếu duy nhất nữa.',
+    );
+    if (!confirmed) return;
+
+    setLockingRevisionId(rev.id); // Reusing the same loading state
+    try {
+      const updatedRev = await bibleService.unlockRevision(
+        effectiveSeries.id,
+        historyEntity.id,
+        rev.id,
+      );
+      onShowToast(
+        'Đã mở khoá Character Sheet',
+        `Phiên bản v${rev.versionNumber} của "${historyEntity.name}" đã được mở khoá thành công!`,
+      );
+      // Cập nhật trực tiếp danh sách lịch sử
+      setHistoryRevisions((prev) =>
+        prev.map((r) => (r.id === rev.id ? { ...r, ...updatedRev, isLocked: false } : r)),
+      );
+      // Tải lại Bible để cập nhật cờ isLocked trên entity
+      setRefreshTrigger((prev) => prev + 1);
+    } catch (err: any) {
+      onShowToast('Lỗi mở khoá phiên bản', err.message || 'Không thể mở khoá phiên bản này.');
+    } finally {
+      setLockingRevisionId(null);
+    }
+  };
+
   // BR-01 & BR-15 & UC-04: Add Revision Modal State with Concurrency Control & Locked Chapters tracking
   const [addRevModalOpen, setAddRevModalOpen] = useState(false);
   const [revisionTarget, setRevisionTarget] = useState<BibleEntity | null>(null);
@@ -998,6 +1039,24 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                                   {lockingRevisionId === rev.id
                                     ? 'Đang khoá...'
                                     : 'Duyệt & Khoá Character Sheet'}
+                                </span>
+                              </button>
+                            )}
+                          {rev.isLocked &&
+                            historyEntity?.category === 'characters' &&
+                            isProducer && (
+                              <button
+                                type='button'
+                                disabled={lockingRevisionId === rev.id}
+                                onClick={() => handleUnlockRevision(rev)}
+                                className='px-2.5 py-1 rounded-lg bg-gray-500 hover:bg-gray-600 text-white text-[10px] font-semibold flex items-center gap-1 transition-colors shadow-xs disabled:opacity-50 cursor-pointer'
+                                title='Mở khoá phiên bản này'
+                              >
+                                <Lock className='w-3 h-3' />
+                                <span>
+                                  {lockingRevisionId === rev.id
+                                    ? 'Đang mở khoá...'
+                                    : 'Mở Khoá Character Sheet'}
                                 </span>
                               </button>
                             )}

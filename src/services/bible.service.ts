@@ -171,4 +171,22 @@ export const bibleService = {
       throw extractError(error, 'Không thể khoá phiên bản mục Bible.');
     }
   },
+
+  /**
+   * Mở khoá một revision của mục Nhân vật
+   */
+  async unlockRevision(
+    seriesId: string,
+    entryId: string,
+    revisionId: string,
+  ): Promise<BibleEntryRevisionDto> {
+    try {
+      const response = await axiosClient.post(
+        `/series/${seriesId}/bible/entries/${entryId}/revisions/${revisionId}/unlock`,
+      );
+      return response.data;
+    } catch (error) {
+      throw extractError(error, 'Không thể mở khoá phiên bản mục Bible.');
+    }
+  },
 };
