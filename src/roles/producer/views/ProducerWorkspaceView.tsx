@@ -765,6 +765,10 @@ export const ProducerWorkspaceView: React.FC = () => {
                   <span className='text-[10px] font-mono text-zinc-400'>NFR Governance</span>
                 </div>
               )}
+              {/* shortcut: chưa có pipeline sinh ảnh gọi RecordImages nên số đã dùng luôn 0; bỏ dòng này khi pipeline chạy */}
+              <p className='text-[10px] text-[#737373] italic'>
+                Chưa áp dụng: pipeline sinh ảnh AI chưa bật nên số ảnh đã dùng luôn là 0.
+              </p>
             </div>
 
             {/* Active Devices & Concurrent Sessions Meter */}
