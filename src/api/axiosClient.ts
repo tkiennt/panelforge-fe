@@ -43,6 +43,12 @@ type RetriableConfig = InternalAxiosRequestConfig & { _retry?: boolean };
 export function clearSession() {
   clearLegacyTokens();
   if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+    // Phiên đã kết thúc: bỏ cả token fallback trong localStorage (trừ token demo 'mock-...')
+    const token = localStorage.getItem('token');
+    if (token && !token.startsWith('mock-')) {
+      localStorage.removeItem('token');
+    }
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
     localStorage.removeItem('user');
     localStorage.removeItem('userRole');
     localStorage.removeItem('activeWorkspace');

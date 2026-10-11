@@ -115,7 +115,7 @@ describe('App Integration Smoke Test', () => {
 
     // 5. Xác nhận giao diện Studio hiển thị menu / hành động dành riêng cho Producer
     await waitFor(() => {
-      expect(screen.getByText('Members & Roles')).toBeInTheDocument();
+      // Menu Members & Roles đã gộp vào ProducerWorkspaceView, chỉ cần kiểm tra nút của Producer
       expect(screen.getByText('Tạo Series Mới')).toBeInTheDocument();
     });
 
@@ -128,7 +128,6 @@ describe('App Integration Smoke Test', () => {
       expect(screen.getByText('Workspace Alpha (Producer)')).toBeInTheDocument();
       expect(screen.getByText('Workspace Beta (Artist)')).toBeInTheDocument();
       // Menu / hành động của Producer đã biến mất hoàn toàn
-      expect(screen.queryByText('Members & Roles')).not.toBeInTheDocument();
       expect(screen.queryByText('Tạo Series Mới')).not.toBeInTheDocument();
     });
 
