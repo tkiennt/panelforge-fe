@@ -122,6 +122,40 @@ describe('bibleService', () => {
     });
   });
 
+  describe('supersedeRevision (V1.2 - Producer thay thế bản đã khoá, không mở khoá)', () => {
+    it('gọi POST .../revisions/{revisionId}/supersede với lý do và nội dung mới', async () => {
+      const payload = {
+        reason: 'Sai màu tóc trong bản khoá',
+        name: 'Kenji',
+        description: 'Tóc đen, không phải nâu',
+        expectedVersionNumber: 2,
+      };
+      post.mockResolvedValueOnce({ data: { id: 'rev-3', versionNumber: 3, isLocked: true } });
+
+      const result = await bibleService.supersedeRevision(seriesId, entryId, revisionId, payload);
+
+      expect(post).toHaveBeenCalledWith(
+        `/series/${seriesId}/bible/entries/${entryId}/revisions/${revisionId}/supersede`,
+        payload,
+      );
+      expect(result.isLocked).toBe(true);
+    });
+
+    it('ném lỗi có message khi thiếu lý do (400)', async () => {
+      post.mockRejectedValueOnce({
+        response: { status: 400, data: { error: 'Phải nhập lý do thay thế bản đã khoá.' } },
+      });
+
+      await expect(
+        bibleService.supersedeRevision(seriesId, entryId, revisionId, {
+          reason: ' ',
+          name: 'Kenji',
+          description: 'x',
+        }),
+      ).rejects.toThrow('Phải nhập lý do thay thế bản đã khoá.');
+    });
+  });
+
   describe('getEntryHistory', () => {
     it('gọi GET /series/{seriesId}/bible/entries/{entryId}/history và trả về danh sách revisions kèm trạng thái khoá', async () => {
       const mockHistory = [

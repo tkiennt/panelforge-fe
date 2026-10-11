@@ -77,6 +77,12 @@ export interface AddBibleEntryRevisionRequest {
   effectiveFromChapterNumber?: number;
 }
 
+/** Producer thay thế bản đã khoá: nội dung mới + lý do; chương hiệu lực lấy theo bản bị thay. */
+export type SupersedeBibleEntryRevisionRequest = Omit<
+  AddBibleEntryRevisionRequest,
+  'summary' | 'effectiveFromChapterNumber'
+> & { reason: string };
+
 function extractError(error: any, defaultMsg: string): any {
   const message = error.response?.data?.error || error.response?.data?.message || defaultMsg;
   const err: any = new Error(message);
@@ -173,20 +179,23 @@ export const bibleService = {
   },
 
   /**
-   * Mở khoá một revision của mục Nhân vật
+   * Producer thay thế một bản đã khoá (POST .../revisions/{revisionId}/supersede): tạo bản mới cùng chương, khoá luôn.
+   * Bản cũ giữ nguyên trong lịch sử, không có thao tác mở khoá (V1.2).
    */
-  async unlockRevision(
+  async supersedeRevision(
     seriesId: string,
     entryId: string,
     revisionId: string,
+    data: SupersedeBibleEntryRevisionRequest,
   ): Promise<BibleEntryRevisionDto> {
     try {
       const response = await axiosClient.post(
-        `/series/${seriesId}/bible/entries/${entryId}/revisions/${revisionId}/unlock`,
+        `/series/${seriesId}/bible/entries/${entryId}/revisions/${revisionId}/supersede`,
+        data,
       );
       return response.data;
     } catch (error) {
-      throw extractError(error, 'Không thể mở khoá phiên bản mục Bible.');
+      throw extractError(error, 'Không thể thay thế bản đã khoá.');
     }
   },
 };

@@ -95,6 +95,17 @@ const mapEntryToBibleEntity = (entry: BibleEntryDto): BibleEntity => {
   };
 };
 
+/** Nội dung của một revision (snapshot BE ghi PascalCase); snapshot hỏng thì coi như rỗng. */
+const readSnapshot = (
+  json?: string,
+): { Name?: string; Subtitle?: string | null; Description?: string } => {
+  try {
+    return JSON.parse(json || '{}') ?? {};
+  } catch {
+    return {};
+  }
+};
+
 export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
   activeProject,
   workspaceId,
@@ -239,7 +250,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
     const confirmed = window.confirm(
       `Bạn có chắc chắn muốn DUYỆT & KHOÁ phiên bản v${rev.versionNumber} của nhân vật "${historyEntity.name}" làm tham chiếu duy nhất?\n\n` +
         'Lưu ý: Sau khi khoá, phiên bản này không thể chỉnh sửa trực tiếp hay mở khoá. ' +
-        'Các thay đổi sau này bắt buộc phải tạo revision mới bắt đầu từ một chương khác.',
+        'Muốn đổi, hãy tạo revision mới từ một chương khác, hoặc Producer thay thế bản khoá (kèm lý do).',
     );
     if (!confirmed) return;
 
@@ -267,50 +278,11 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
     }
   };
 
-  const handleUnlockRevision = async (rev: BibleEntryRevisionDto) => {
-    if (!effectiveSeries?.id || !historyEntity) return;
-
-    if (historyEntity.category !== 'characters') {
-      onShowToast(
-        'Chỉ áp dụng cho Nhân vật',
-        'Theo quy tắc Việc 5 (BR-15 Canon), chỉ có thể thao tác trên revision thuộc danh mục Character.',
-      );
-      return;
-    }
-
-    const confirmed = window.confirm(
-      `Bạn có chắc chắn muốn MỞ KHOÁ phiên bản v${rev.versionNumber} của nhân vật "${historyEntity.name}"?\n\n` +
-        'Lưu ý: Sau khi mở khoá, phiên bản này không còn là tham chiếu duy nhất nữa.',
-    );
-    if (!confirmed) return;
-
-    setLockingRevisionId(rev.id); // Reusing the same loading state
-    try {
-      const updatedRev = await bibleService.unlockRevision(
-        effectiveSeries.id,
-        historyEntity.id,
-        rev.id,
-      );
-      onShowToast(
-        'Đã mở khoá Character Sheet',
-        `Phiên bản v${rev.versionNumber} của "${historyEntity.name}" đã được mở khoá thành công!`,
-      );
-      // Cập nhật trực tiếp danh sách lịch sử
-      setHistoryRevisions((prev) =>
-        prev.map((r) => (r.id === rev.id ? { ...r, ...updatedRev, isLocked: false } : r)),
-      );
-      // Tải lại Bible để cập nhật cờ isLocked trên entity
-      setRefreshTrigger((prev) => prev + 1);
-    } catch (err: any) {
-      onShowToast('Lỗi mở khoá phiên bản', err.message || 'Không thể mở khoá phiên bản này.');
-    } finally {
-      setLockingRevisionId(null);
-    }
-  };
-
   // BR-01 & BR-15 & UC-04: Add Revision Modal State with Concurrency Control & Locked Chapters tracking
   const [addRevModalOpen, setAddRevModalOpen] = useState(false);
   const [revisionTarget, setRevisionTarget] = useState<BibleEntity | null>(null);
+  // V1.2: bản khoá đang được Producer thay thế (form tạo phiên bản ở chế độ "thay thế"); null = tạo phiên bản thường
+  const [supersedeTarget, setSupersedeTarget] = useState<BibleEntryRevisionDto | null>(null);
   const [revisionSummary, setRevisionSummary] = useState('');
   const [revisionName, setRevisionName] = useState('');
   const [revisionSubtitle, setRevisionSubtitle] = useState('');
@@ -325,14 +297,24 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
 
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  const handleOpenAddRevision = async (entity: BibleEntity) => {
+  /** supersede: Producer thay thế bản đã khoá — bản mới cùng chương, khoá luôn, bản cũ giữ nguyên (không mở khoá). */
+  const handleOpenAddRevision = async (
+    entity: BibleEntity,
+    supersede: BibleEntryRevisionDto | null = null,
+  ) => {
+    const snapshot = supersede ? readSnapshot(supersede.snapshotJson) : {};
     setRevisionTarget(entity);
+    setSupersedeTarget(supersede);
     setRevisionSummary('');
-    setRevisionName(entity.name);
-    setRevisionSubtitle(entity.subtitle || '');
-    setRevisionDescription(entity.description || '');
+    setRevisionName(snapshot.Name ?? entity.name);
+    setRevisionSubtitle(snapshot.Subtitle ?? entity.subtitle ?? '');
+    setRevisionDescription(snapshot.Description ?? entity.description ?? '');
     setRevisionEffectiveChapter(
-      typeof effectiveChapter === 'number' ? effectiveChapter : effectiveSeries?.chapter || 1,
+      supersede
+        ? supersede.effectiveFromChapterNumber
+        : typeof effectiveChapter === 'number'
+          ? effectiveChapter
+          : effectiveSeries?.chapter || 1,
     );
     setExpectedVersionNumber(1);
     setLockedChapterNumbers([]);
@@ -1047,17 +1029,16 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                             isProducer && (
                               <button
                                 type='button'
-                                disabled={lockingRevisionId === rev.id}
-                                onClick={() => handleUnlockRevision(rev)}
-                                className='px-2.5 py-1 rounded-lg bg-gray-500 hover:bg-gray-600 text-white text-[10px] font-semibold flex items-center gap-1 transition-colors shadow-xs disabled:opacity-50 cursor-pointer'
-                                title='Mở khoá phiên bản này'
+                                onClick={() => {
+                                  if (!historyEntity) return;
+                                  setHistoryModalOpen(false);
+                                  handleOpenAddRevision(historyEntity, rev);
+                                }}
+                                className='px-2.5 py-1 rounded-lg bg-gray-500 hover:bg-gray-600 text-white text-[10px] font-semibold flex items-center gap-1 transition-colors shadow-xs cursor-pointer'
+                                title='Tạo bản mới cùng chương thay cho bản khoá này (kèm lý do); bản cũ vẫn giữ trong lịch sử'
                               >
                                 <Lock className='w-3 h-3' />
-                                <span>
-                                  {lockingRevisionId === rev.id
-                                    ? 'Đang mở khoá...'
-                                    : 'Mở Khoá Character Sheet'}
-                                </span>
+                                <span>Thay thế bản khoá</span>
                               </button>
                             )}
                         </div>
@@ -1088,7 +1069,9 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
               <div className='flex items-center gap-2'>
                 <GitCommit className='w-4 h-4 text-[#059669]' />
                 <h3 className='text-sm font-bold text-[#171717]'>
-                  Tạo Phiên Bản Mới (BR-15): {revisionTarget.name}
+                  {supersedeTarget
+                    ? `Thay thế bản khoá v${supersedeTarget.versionNumber}: ${revisionTarget.name}`
+                    : `Tạo Phiên Bản Mới (BR-15): ${revisionTarget.name}`}
                 </h3>
               </div>
               <button
@@ -1122,8 +1105,16 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
               thời và yêu cầu đối chiếu trước khi ghi đè.
             </div>
 
+            {supersedeTarget && (
+              <div className='p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900'>
+                Bản mới có hiệu lực từ Chương {supersedeTarget.effectiveFromChapterNumber} (cùng
+                chương với bản khoá v{supersedeTarget.versionNumber}) và được khoá ngay làm tham
+                chiếu. Bản v{supersedeTarget.versionNumber} vẫn giữ nguyên trong lịch sử.
+              </div>
+            )}
+
             {/* Locked Chapters Notice (BR-15 Việc 5) */}
-            {lockedChapterNumbers.length > 0 && (
+            {!supersedeTarget && lockedChapterNumbers.length > 0 && (
               <div className='p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 space-y-1'>
                 <div className='flex items-center gap-1.5 font-semibold'>
                   <Lock className='w-3.5 h-3.5 text-amber-600 shrink-0' />
@@ -1134,7 +1125,8 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                 </div>
                 <div className='text-[10px] text-amber-700/90 pl-5'>
                   Quy tắc: Không thể tạo revision trùng chương bắt đầu của bản đã khoá. Muốn cập
-                  nhật nội dung, bạn phải chọn một chương bắt đầu khác.
+                  nhật nội dung, hãy chọn một chương bắt đầu khác, hoặc Producer dùng nút &quot;Thay
+                  thế bản khoá&quot; trong Lịch sử.
                 </div>
               </div>
             )}
@@ -1148,16 +1140,17 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                   type='number'
                   min={1}
                   value={revisionEffectiveChapter}
+                  disabled={!!supersedeTarget}
                   onChange={(e) =>
                     setRevisionEffectiveChapter(Math.max(1, parseInt(e.target.value, 10) || 1))
                   }
-                  className={`w-full px-3 py-2 bg-[#FAF8F5] border rounded-lg text-xs font-mono text-[#171717] focus:outline-none ${
-                    lockedChapterNumbers.includes(revisionEffectiveChapter)
+                  className={`w-full px-3 py-2 bg-[#FAF8F5] border rounded-lg text-xs font-mono text-[#171717] focus:outline-none disabled:opacity-60 ${
+                    !supersedeTarget && lockedChapterNumbers.includes(revisionEffectiveChapter)
                       ? 'border-red-400 focus:border-red-500'
                       : 'border-[#E7E7E7] focus:border-[#F97316]'
                   }`}
                 />
-                {lockedChapterNumbers.includes(revisionEffectiveChapter) && (
+                {!supersedeTarget && lockedChapterNumbers.includes(revisionEffectiveChapter) && (
                   <p className='text-[11px] text-red-600 mt-1 font-medium flex items-center gap-1'>
                     <AlertCircle className='w-3 h-3 text-red-500 shrink-0' />
                     Chương {revisionEffectiveChapter} đã có phiên bản bị khoá tham chiếu! Vui lòng
@@ -1192,10 +1185,13 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
 
               <div>
                 <label className='block text-xs font-semibold text-[#171717] mb-1'>
-                  Lý do thay đổi / Tóm tắt phiên bản mới (Summary) *
+                  {supersedeTarget
+                    ? 'Lý do thay thế bản đã khoá *'
+                    : 'Lý do thay đổi / Tóm tắt phiên bản mới (Summary) *'}
                 </label>
                 <input
                   type='text'
+                  maxLength={supersedeTarget ? 400 : undefined}
                   placeholder='VD: Cập nhật trang phục chiến đấu mới từ Arc Neo-Tokyo'
                   value={revisionSummary}
                   onChange={(e) => setRevisionSummary(e.target.value)}
@@ -1229,24 +1225,38 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                 disabled={
                   !revisionSummary.trim() ||
                   savingRevision ||
-                  lockedChapterNumbers.includes(revisionEffectiveChapter)
+                  (!supersedeTarget && lockedChapterNumbers.includes(revisionEffectiveChapter))
                 }
                 onClick={async () => {
                   setSavingRevision(true);
                   try {
                     if (effectiveSeries?.id) {
-                      await bibleService.addRevision(effectiveSeries.id, revisionTarget.id, {
+                      const content = {
                         expectedVersionNumber: expectedVersionNumber ?? undefined,
-                        summary: revisionSummary.trim(),
                         name: revisionName.trim() || revisionTarget.name,
                         subtitle: revisionSubtitle.trim() || revisionTarget.subtitle,
                         description: revisionDescription.trim() || revisionTarget.description,
-                        effectiveFromChapterNumber: revisionEffectiveChapter,
-                      });
+                      };
+                      if (supersedeTarget) {
+                        await bibleService.supersedeRevision(
+                          effectiveSeries.id,
+                          revisionTarget.id,
+                          supersedeTarget.id,
+                          { ...content, reason: revisionSummary.trim() },
+                        );
+                      } else {
+                        await bibleService.addRevision(effectiveSeries.id, revisionTarget.id, {
+                          ...content,
+                          summary: revisionSummary.trim(),
+                          effectiveFromChapterNumber: revisionEffectiveChapter,
+                        });
+                      }
                     }
                     onShowToast(
-                      'Tạo phiên bản thành công (BR-15)',
-                      `Đã ghi nhận phiên bản mới cho ${revisionName || revisionTarget.name} có hiệu lực từ Chương ${revisionEffectiveChapter}.`,
+                      supersedeTarget ? 'Đã thay thế bản khoá' : 'Tạo phiên bản thành công (BR-15)',
+                      supersedeTarget
+                        ? `Bản mới của ${revisionName || revisionTarget.name} đã được khoá ở Chương ${revisionEffectiveChapter}; bản v${supersedeTarget.versionNumber} vẫn giữ trong lịch sử.`
+                        : `Đã ghi nhận phiên bản mới cho ${revisionName || revisionTarget.name} có hiệu lực từ Chương ${revisionEffectiveChapter}.`,
                     );
                     setRefreshTrigger((prev) => prev + 1);
                     setAddRevModalOpen(false);
