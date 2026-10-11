@@ -8,7 +8,7 @@ export const REFRESH_TOKEN_KEY = 'refreshToken';
  */
 export function clearLegacyTokens() {
   if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
-    // Tạm thời KHÔNG xoá token trong localStorage vì nếu cookie bị lỗi (CORS, SameSite), 
+    // Tạm thời KHÔNG xoá token trong localStorage vì nếu cookie bị lỗi (CORS, SameSite),
     // chúng ta vẫn cần token làm fallback để tránh bị văng đăng nhập khi tải lại trang.
     // const token = localStorage.getItem('token');
     // if (token && !token.startsWith('mock-')) {

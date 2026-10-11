@@ -555,8 +555,8 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
               <div>
                 <h3 className='text-xl font-bold font-serif text-[#171717]'>Đã tắt 2FA</h3>
                 <p className='text-xs text-[#555555] mt-2 max-w-md mx-auto leading-relaxed'>
-                  Khóa bí mật và mọi thiết bị tin cậy đã bị xóa. Bạn có thể bật lại 2FA bất cứ lúc nào để
-                  thiết lập Authenticator mới.
+                  Khóa bí mật và mọi thiết bị tin cậy đã bị xóa. Bạn có thể bật lại 2FA bất cứ lúc
+                  nào để thiết lập Authenticator mới.
                 </p>
               </div>
               <button

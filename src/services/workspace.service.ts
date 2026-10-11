@@ -252,9 +252,7 @@ export const workspaceService = {
     try {
       await axiosClient.delete(`/workspaces/${workspaceId}/sessions/${sessionId}`);
     } catch (error) {
-      throw new Error(
-        await parseErrorResponse(error, 'Không thể thu hồi phiên làm việc.'),
-      );
+      throw new Error(await parseErrorResponse(error, 'Không thể thu hồi phiên làm việc.'));
     }
   },
 };

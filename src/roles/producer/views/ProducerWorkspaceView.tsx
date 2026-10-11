@@ -125,7 +125,9 @@ export const ProducerWorkspaceView: React.FC = () => {
   const [sessionSearchQuery, setSessionSearchQuery] = useState('');
 
   // Members UI States
-  const [memberRoleFilter, setMemberRoleFilter] = useState<'ALL' | 'LEAD' | 'ARTIST' | 'WRITER' | 'EDITOR'>('ALL');
+  const [memberRoleFilter, setMemberRoleFilter] = useState<
+    'ALL' | 'LEAD' | 'ARTIST' | 'WRITER' | 'EDITOR'
+  >('ALL');
   const [memberSearchQuery, setMemberSearchQuery] = useState('');
   const [editingMember, setEditingMember] = useState<any>(null);
   const [editRole, setEditRole] = useState('');
@@ -149,13 +151,27 @@ export const ProducerWorkspaceView: React.FC = () => {
   };
 
   const studioMembers = React.useMemo(() => {
-    return members.map(m => {
-      const roleStr = typeof m.role === 'number'
-        ? (m.role === 0 ? 'PRODUCER' : m.role === 1 ? 'WRITER' : m.role === 2 ? 'ARTIST' : m.role === 3 ? 'LETTERER' : 'EDITOR')
-        : String(m.role).toUpperCase();
+    return members.map((m) => {
+      const roleStr =
+        typeof m.role === 'number'
+          ? m.role === 0
+            ? 'PRODUCER'
+            : m.role === 1
+              ? 'WRITER'
+              : m.role === 2
+                ? 'ARTIST'
+                : m.role === 3
+                  ? 'LETTERER'
+                  : 'EDITOR'
+          : String(m.role).toUpperCase();
 
       const initials = m.fullName
-        ? m.fullName.split(' ').map((p) => p[0]).join('').substring(0, 2).toUpperCase()
+        ? m.fullName
+            .split(' ')
+            .map((p) => p[0])
+            .join('')
+            .substring(0, 2)
+            .toUpperCase()
         : 'ME';
 
       return {
@@ -169,7 +185,7 @@ export const ProducerWorkspaceView: React.FC = () => {
         isEmailConfirmed: m.isEmailConfirmed,
         invitationEmailSent: m.invitationEmailSent,
         isOwner: m.isOwner,
-        isYou: currentUser?.id === m.userId || currentUser?.email === m.email
+        isYou: currentUser?.id === m.userId || currentUser?.email === m.email,
       };
     });
   }, [members, currentUser]);
@@ -177,13 +193,21 @@ export const ProducerWorkspaceView: React.FC = () => {
   const filteredMembers = React.useMemo(() => {
     return studioMembers.filter((m) => {
       const q = memberSearchQuery.toLowerCase().trim();
-      const matchesSearch = !q || m.name.toLowerCase().includes(q) || m.email.toLowerCase().includes(q) || (m.role && m.role.toLowerCase().includes(q));
+      const matchesSearch =
+        !q ||
+        m.name.toLowerCase().includes(q) ||
+        m.email.toLowerCase().includes(q) ||
+        (m.role && m.role.toLowerCase().includes(q));
 
       const roleStr = (m.role || '').toLowerCase();
-      const matchesTab = memberRoleFilter === 'ALL' ||
-        (memberRoleFilter === 'LEAD' && (roleStr.includes('lead') || roleStr.includes('producer'))) ||
-        (memberRoleFilter === 'ARTIST' && (roleStr.includes('artist') || roleStr.includes('line'))) ||
-        (memberRoleFilter === 'WRITER' && (roleStr.includes('writer') || roleStr.includes('script'))) ||
+      const matchesTab =
+        memberRoleFilter === 'ALL' ||
+        (memberRoleFilter === 'LEAD' &&
+          (roleStr.includes('lead') || roleStr.includes('producer'))) ||
+        (memberRoleFilter === 'ARTIST' &&
+          (roleStr.includes('artist') || roleStr.includes('line'))) ||
+        (memberRoleFilter === 'WRITER' &&
+          (roleStr.includes('writer') || roleStr.includes('script'))) ||
         (memberRoleFilter === 'EDITOR' && roleStr.includes('editor'));
 
       return matchesSearch && matchesTab;
@@ -193,7 +217,11 @@ export const ProducerWorkspaceView: React.FC = () => {
   const tabCounts = React.useMemo(() => {
     return {
       ALL: studioMembers.length,
-      LEAD: studioMembers.filter((m) => (m.role || '').toLowerCase().includes('lead') || (m.role || '').toLowerCase().includes('producer')).length,
+      LEAD: studioMembers.filter(
+        (m) =>
+          (m.role || '').toLowerCase().includes('lead') ||
+          (m.role || '').toLowerCase().includes('producer'),
+      ).length,
       ARTIST: studioMembers.filter((m) => (m.role || '').toLowerCase().includes('artist')).length,
       WRITER: studioMembers.filter((m) => (m.role || '').toLowerCase().includes('writer')).length,
       EDITOR: studioMembers.filter((m) => (m.role || '').toLowerCase().includes('editor')).length,
@@ -440,7 +468,11 @@ export const ProducerWorkspaceView: React.FC = () => {
 
   const handleRevokeSession = async (sessionId: string, userName: string) => {
     if (!activeWorkspace?.id) return;
-    if (!confirm(`Bạn có chắc muốn ngắt kết nối thiết bị này của ${userName}? Phiên đăng nhập sẽ bị thu hồi ngay lập tức.`)) {
+    if (
+      !confirm(
+        `Bạn có chắc muốn ngắt kết nối thiết bị này của ${userName}? Phiên đăng nhập sẽ bị thu hồi ngay lập tức.`,
+      )
+    ) {
       return;
     }
     setRevokingSessionId(sessionId);
@@ -460,7 +492,6 @@ export const ProducerWorkspaceView: React.FC = () => {
       setRevokingSessionId(null);
     }
   };
-
 
   const handleRemoveMember = async (userId: string, email: string) => {
     if (!activeWorkspace) return;
@@ -509,7 +540,10 @@ export const ProducerWorkspaceView: React.FC = () => {
     const randomHex = Math.random().toString(16).substring(2, 6).toUpperCase();
     const randomSuffix = Math.random().toString(16).substring(2, 5).toUpperCase();
     const newKey = `ECDSA-P256 [0x${randomHex}...${randomSuffix}]`;
-    showToast('Key Rotated', `Generated new cryptographic signing authority key for ${member.name}: ${newKey}`);
+    showToast(
+      'Key Rotated',
+      `Generated new cryptographic signing authority key for ${member.name}: ${newKey}`,
+    );
   };
 
   const formatGb = (bytes: number) => {
@@ -741,15 +775,11 @@ export const ProducerWorkspaceView: React.FC = () => {
                   <span>Phiên Đăng Nhập Đồng Thời</span>
                 </div>
                 <div className='font-mono text-[11px] font-bold text-[#171717]'>
-                  {workspaceUsage?.activeSessions ? (
-                    workspaceUsage.activeSessions.isUnlimited ? (
-                      `${workspaceUsage.activeSessions.used} thiết bị`
-                    ) : (
-                      `${workspaceUsage.activeSessions.used} / ${workspaceUsage.activeSessions.quota} thiết bị`
-                    )
-                  ) : (
-                    '0 thiết bị'
-                  )}
+                  {workspaceUsage?.activeSessions
+                    ? workspaceUsage.activeSessions.isUnlimited
+                      ? `${workspaceUsage.activeSessions.used} thiết bị`
+                      : `${workspaceUsage.activeSessions.used} / ${workspaceUsage.activeSessions.quota} thiết bị`
+                    : '0 thiết bị'}
                 </div>
               </div>
 
@@ -767,7 +797,7 @@ export const ProducerWorkspaceView: React.FC = () => {
                       100,
                       workspaceUsage?.activeSessions?.isUnlimited
                         ? Math.min(100, (workspaceUsage.activeSessions.used || 1) * 25)
-                        : workspaceUsage?.activeSessions?.percentUsed ?? 15,
+                        : (workspaceUsage?.activeSessions?.percentUsed ?? 15),
                     )}%`,
                   }}
                 />
@@ -1091,7 +1121,9 @@ export const ProducerWorkspaceView: React.FC = () => {
                     <span>{tab.label}</span>
                     <span
                       className={`text-[10px] font-mono px-1.5 py-0.2 rounded ${
-                        memberRoleFilter === tab.key ? 'bg-white/20 text-white' : 'bg-[#EAE8E0] text-[#555555]'
+                        memberRoleFilter === tab.key
+                          ? 'bg-white/20 text-white'
+                          : 'bg-[#EAE8E0] text-[#555555]'
                       }`}
                     >
                       {tab.count}
@@ -1154,7 +1186,9 @@ export const ProducerWorkspaceView: React.FC = () => {
 
                         <div>
                           <div className='flex flex-wrap items-center gap-2'>
-                            <h4 className='text-sm font-bold text-[#171717] font-serif'>{member.name}</h4>
+                            <h4 className='text-sm font-bold text-[#171717] font-serif'>
+                              {member.name}
+                            </h4>
                             <span className='px-2 py-0.5 rounded bg-[#171717] text-white text-[10px] font-mono font-bold tracking-wider'>
                               {(member.role || 'MEMBER').toUpperCase()}
                             </span>
@@ -1976,7 +2010,8 @@ export const ProducerWorkspaceView: React.FC = () => {
                 </button>
               </div>
               <div className='text-xs text-[#737373] font-mono'>
-                Tổng cộng: <span className='font-bold text-[#171717]'>{activeSessions.length}</span> phiên đang hoạt động
+                Tổng cộng: <span className='font-bold text-[#171717]'>{activeSessions.length}</span>{' '}
+                phiên đang hoạt động
               </div>
             </div>
 
@@ -2000,10 +2035,15 @@ export const ProducerWorkspaceView: React.FC = () => {
                         Đang tải danh sách phiên làm việc...
                       </td>
                     </tr>
-                  ) : activeSessions.filter(s => {
-                    const q = sessionSearchQuery.toLowerCase().trim();
-                    return !q || s.fullName.toLowerCase().includes(q) || s.email.toLowerCase().includes(q) || (s.deviceName && s.deviceName.toLowerCase().includes(q));
-                  }).length === 0 ? (
+                  ) : activeSessions.filter((s) => {
+                      const q = sessionSearchQuery.toLowerCase().trim();
+                      return (
+                        !q ||
+                        s.fullName.toLowerCase().includes(q) ||
+                        s.email.toLowerCase().includes(q) ||
+                        (s.deviceName && s.deviceName.toLowerCase().includes(q))
+                      );
+                    }).length === 0 ? (
                     <tr>
                       <td colSpan={6} className='p-8 text-center text-[#888888] font-mono'>
                         Không có phiên đăng nhập nào đang hoạt động.
@@ -2011,12 +2051,20 @@ export const ProducerWorkspaceView: React.FC = () => {
                     </tr>
                   ) : (
                     activeSessions
-                      .filter(s => {
+                      .filter((s) => {
                         const q = sessionSearchQuery.toLowerCase().trim();
-                        return !q || s.fullName.toLowerCase().includes(q) || s.email.toLowerCase().includes(q) || (s.deviceName && s.deviceName.toLowerCase().includes(q));
+                        return (
+                          !q ||
+                          s.fullName.toLowerCase().includes(q) ||
+                          s.email.toLowerCase().includes(q) ||
+                          (s.deviceName && s.deviceName.toLowerCase().includes(q))
+                        );
                       })
                       .map((session) => (
-                        <tr key={session.sessionId} className='hover:bg-[#FAF8F5] transition-colors'>
+                        <tr
+                          key={session.sessionId}
+                          className='hover:bg-[#FAF8F5] transition-colors'
+                        >
                           <td className='py-2.5 px-3'>
                             <div>
                               <div className='font-bold text-[#171717] flex items-center gap-1.5'>
@@ -2049,7 +2097,9 @@ export const ProducerWorkspaceView: React.FC = () => {
                             <button
                               type='button'
                               disabled={revokingSessionId === session.sessionId}
-                              onClick={() => handleRevokeSession(session.sessionId, session.fullName)}
+                              onClick={() =>
+                                handleRevokeSession(session.sessionId, session.fullName)
+                              }
                               className='px-2 py-1 rounded bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 text-[11px] font-semibold border border-red-200 flex items-center gap-1 ml-auto cursor-pointer disabled:opacity-50'
                               title='Ngắt kết nối thiết bị này'
                             >
@@ -2067,7 +2117,8 @@ export const ProducerWorkspaceView: React.FC = () => {
             {/* Footer */}
             <div className='flex items-center justify-between text-xs text-[#888888] border-t border-[#E7E7E7] pt-3'>
               <span className='italic'>
-                * Producer có thể ngắt kết nối các thiết bị không rõ nguồn gốc hoặc khi nghi ngờ tài khoản bị lộ.
+                * Producer có thể ngắt kết nối các thiết bị không rõ nguồn gốc hoặc khi nghi ngờ tài
+                khoản bị lộ.
               </span>
               <button
                 type='button'
@@ -2080,7 +2131,6 @@ export const ProducerWorkspaceView: React.FC = () => {
           </div>
         </div>
       )}
-
     </div>
   );
 };
