@@ -13,6 +13,7 @@ import {
   Loader2,
   Calendar,
   Lock,
+  Trash2,
 } from 'lucide-react';
 import { BoardCard } from './pipelineBoard.types';
 import { assignmentService, SubmissionDto, ChangeRequestDto } from '@/services/assignment.service';
@@ -22,17 +23,28 @@ interface SideDrawerProps {
   onClose: () => void;
   card: BoardCard | null;
   onShowToast?: (title: string, desc: string) => void;
+  onDeleted?: (cardId: string) => void;
 }
 
-export const SideDrawer: React.FC<SideDrawerProps> = ({ isOpen, onClose, card, onShowToast }) => {
+export const SideDrawer: React.FC<SideDrawerProps> = ({
+  isOpen,
+  onClose,
+  card,
+  onShowToast,
+  onDeleted,
+}) => {
   const navigate = useNavigate();
   const { workspaceId, seriesId } = useParams();
 
   const [submissions, setSubmissions] = useState<SubmissionDto[]>([]);
   const [changeRequests, setChangeRequests] = useState<ChangeRequestDto[]>([]);
   const [loadingData, setLoadingData] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
+    setConfirmDelete(false);
+    setIsDeleting(false);
     if (!isOpen || !card) return;
 
     let isMounted = true;
@@ -68,6 +80,27 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({ isOpen, onClose, card, o
       onClose();
     } else {
       onShowToast?.('Không tìm thấy thông tin Series', 'Vui lòng kiểm tra lại đường dẫn');
+    }
+  };
+
+  const handleDeleteAssignment = async () => {
+    if (!card) return;
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      await assignmentService.deleteAssignment(card.chapterId, card.id);
+      onShowToast?.('Đã huỷ nhiệm vụ', `Nhiệm vụ "${card.brief}" đã được gỡ khỏi chương.`);
+      onDeleted?.(card.id);
+      onClose();
+    } catch (err: any) {
+      onShowToast?.('Lỗi khi huỷ nhiệm vụ', err.message || 'Không thể huỷ nhiệm vụ này');
+    } finally {
+      setIsDeleting(false);
+      setConfirmDelete(false);
     }
   };
 
@@ -266,22 +299,56 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({ isOpen, onClose, card, o
         </div>
 
         {/* Footer Actions */}
-        <div className='p-4 border-t border-zinc-200 bg-zinc-50 flex items-center gap-3'>
-          <button
-            type='button'
-            onClick={handleOpenMyWork}
-            className='flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer'
-          >
-            <span>Mở Bàn làm việc & Xét duyệt</span>
-            <ArrowUpRight className='w-4 h-4' />
-          </button>
-          <button
-            type='button'
-            onClick={onClose}
-            className='px-4 py-2.5 bg-white hover:bg-zinc-100 text-zinc-700 border border-zinc-200 rounded-xl text-xs font-semibold transition-colors cursor-pointer'
-          >
-            Đóng
-          </button>
+        <div className='p-4 border-t border-zinc-200 bg-zinc-50 flex items-center justify-between gap-2 flex-wrap'>
+          {card.status !== 'Approved' && (
+            <div className='flex items-center gap-1.5'>
+              <button
+                type='button'
+                onClick={handleDeleteAssignment}
+                disabled={isDeleting}
+                className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                  confirmDelete
+                    ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-xs'
+                    : 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200'
+                }`}
+                title={confirmDelete ? 'Bấm để xác nhận xoá nhiệm vụ' : 'Huỷ / Xoá phân công này'}
+              >
+                {isDeleting ? (
+                  <Loader2 className='w-3.5 h-3.5 animate-spin' />
+                ) : (
+                  <Trash2 className='w-3.5 h-3.5' />
+                )}
+                <span>{confirmDelete ? 'Xác nhận xoá?' : 'Huỷ việc'}</span>
+              </button>
+              {confirmDelete && (
+                <button
+                  type='button'
+                  onClick={() => setConfirmDelete(false)}
+                  className='px-2 py-2 text-xs text-zinc-500 hover:text-zinc-800 cursor-pointer'
+                >
+                  Huỷ
+                </button>
+              )}
+            </div>
+          )}
+
+          <div className='flex items-center gap-2 ml-auto'>
+            <button
+              type='button'
+              onClick={handleOpenMyWork}
+              className='inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer'
+            >
+              <span>Mở Bàn làm việc & Xét duyệt</span>
+              <ArrowUpRight className='w-3.5 h-3.5' />
+            </button>
+            <button
+              type='button'
+              onClick={onClose}
+              className='px-3.5 py-2 bg-white hover:bg-zinc-100 text-zinc-700 border border-zinc-200 rounded-xl text-xs font-semibold transition-colors cursor-pointer'
+            >
+              Đóng
+            </button>
+          </div>
         </div>
       </div>
     </>

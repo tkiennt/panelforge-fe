@@ -259,6 +259,10 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
         onClose={() => setIsDrawerOpen(false)}
         card={selectedCard}
         onShowToast={onShowToast}
+        onDeleted={(deletedId) => {
+          setCards((prev) => prev.filter((c) => c.id !== deletedId));
+          setIsDrawerOpen(false);
+        }}
       />
     </div>
   );

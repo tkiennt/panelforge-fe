@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { KanbanBoard } from '@/shared/features/pipeline-board/KanbanBoard';
+import { CreateAssignmentModal } from '@/roles/producer/modals/CreateAssignmentModal';
 import { SystemRole, WorkspaceRole } from '@/types';
 import {
   Layers,
@@ -49,6 +50,8 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
   const [currentChapterId, setCurrentChapterId] = useState<string>('');
   const [loadingChapters, setLoadingChapters] = useState(false);
   const [seriesProgress, setSeriesProgress] = useState<SeriesProgressDto | null>(null);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const isReaderOnly = effectiveRoles.length === 1 && effectiveRoles[0] === 'READER';
   const isProducer = useMemo(() => {
@@ -329,6 +332,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
 
       {/* Board Area */}
       <KanbanBoard
+        key={`${currentChapterId}-${refreshKey}`}
         chapterId={currentChapterId}
         filterType={filterType}
         currentUserRole={currentUserRole}
@@ -336,16 +340,27 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
         userRoles={effectiveRoles}
         currentUserId={currentUserId}
         onShowToast={onShowToast}
-        onOpenCreateAssignment={() => {
-          if (workspaceId && seriesId) {
-            navigate(
-              `/workspaces/${workspaceId}/series/${seriesId}/dashboard${
-                currentChapterId ? `?chapterId=${currentChapterId}` : ''
-              }`,
-            );
-          }
-        }}
+        onOpenCreateAssignment={() => setIsCreateModalOpen(true)}
       />
+
+      {/* Modal giao việc trực tiếp */}
+      {workspaceId && seriesId && currentChapterId && isCreateModalOpen && (
+        <CreateAssignmentModal
+          isOpen={isCreateModalOpen}
+          workspaceId={workspaceId}
+          seriesId={seriesId}
+          chapterId={currentChapterId}
+          chapterNumber={currentChapter?.chapterNumber}
+          onClose={() => setIsCreateModalOpen(false)}
+          onSuccess={() => {
+            setIsCreateModalOpen(false);
+            setRefreshKey((k) => k + 1);
+            loadProgress();
+            onShowToast('Giao việc thành công', 'Nhiệm vụ mới đã được thêm vào bảng tiến độ');
+          }}
+          onShowToast={onShowToast}
+        />
+      )}
     </div>
   );
 };

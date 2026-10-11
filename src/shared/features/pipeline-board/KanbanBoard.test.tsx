@@ -12,6 +12,7 @@ vi.mock('@/services/assignment.service', () => ({
     getAssignments: vi.fn(),
     getSubmissions: vi.fn(),
     getChangeRequests: vi.fn(),
+    deleteAssignment: vi.fn(),
   },
 }));
 
@@ -249,13 +250,32 @@ describe('KanbanBoard Component (Real Pipeline Board)', () => {
     });
   });
 
-  it('hiển thị empty state khi chương chưa chọn hoặc chưa có công việc', async () => {
-    vi.mocked(assignmentService.getAssignments).mockResolvedValueOnce([]);
+  it('cho phép huỷ/xoá nhiệm vụ từ SideDrawer và cập nhật lại danh sách', async () => {
+    vi.mocked(assignmentService.deleteAssignment).mockResolvedValueOnce();
 
     renderComponent();
 
     await waitFor(() => {
-      expect(screen.getByText('Chương này chưa có nhiệm vụ nào được giao')).toBeInTheDocument();
+      expect(screen.getByText('Viết kịch bản cho Trang 1')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('Viết kịch bản cho Trang 1'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Huỷ việc')).toBeInTheDocument();
+    });
+
+    // Bấm lần 1 để yêu cầu xác nhận
+    fireEvent.click(screen.getByText('Huỷ việc'));
+    expect(screen.getByText('Xác nhận xoá?')).toBeInTheDocument();
+
+    // Bấm lần 2 để thực hiện xoá
+    fireEvent.click(screen.getByText('Xác nhận xoá?'));
+
+    await waitFor(() => {
+      expect(assignmentService.deleteAssignment).toHaveBeenCalledWith('chap-1', 'assign-1');
+      // Thẻ bị gỡ bỏ khỏi board
+      expect(screen.queryByText('Viết kịch bản cho Trang 1')).not.toBeInTheDocument();
     });
   });
 });
