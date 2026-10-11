@@ -37,6 +37,23 @@ export interface WorkspaceUsageDto {
   aiTokens: UsageMeterDto | null;
   aiEnabled: boolean | null;
   images: UsageMeterDto | null;
+  activeSessions?: UsageMeterDto | null;
+  activeMemberCount?: number | null;
+  maxConcurrentSessionsPerUser?: number | null;
+}
+
+export interface WorkspaceSessionDto {
+  sessionId: string;
+  userId: string;
+  fullName: string;
+  email: string;
+  role: string;
+  deviceName?: string | null;
+  ipAddress?: string | null;
+  userAgent?: string | null;
+  sessionStartedAt: string;
+  lastActiveAt: string;
+  isCurrentSession: boolean;
 }
 
 export interface WorkspaceMemberDto {
@@ -210,6 +227,33 @@ export const workspaceService = {
     } catch (error) {
       throw new Error(
         await parseErrorResponse(error, 'Không thể tải mức dùng tài nguyên của Workspace.'),
+      );
+    }
+  },
+
+  /**
+   * Lấy danh sách thiết bị và phiên làm việc đồng thời trong Studio (GET /api/workspaces/{id}/sessions)
+   */
+  getActiveSessions: async (workspaceId: string): Promise<WorkspaceSessionDto[]> => {
+    try {
+      const response = await axiosClient.get(`/workspaces/${workspaceId}/sessions`);
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        await parseErrorResponse(error, 'Không thể tải danh sách phiên làm việc của Studio.'),
+      );
+    }
+  },
+
+  /**
+   * Thu hồi phiên làm việc của một thiết bị (DELETE /api/workspaces/{id}/sessions/{sessionId})
+   */
+  revokeSession: async (workspaceId: string, sessionId: string): Promise<void> => {
+    try {
+      await axiosClient.delete(`/workspaces/${workspaceId}/sessions/${sessionId}`);
+    } catch (error) {
+      throw new Error(
+        await parseErrorResponse(error, 'Không thể thu hồi phiên làm việc.'),
       );
     }
   },
