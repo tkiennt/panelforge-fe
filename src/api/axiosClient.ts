@@ -36,7 +36,7 @@ const axiosClient = axios.create({
 
 // 401 ở các endpoint này là lỗi nghiệp vụ (sai mật khẩu, sai mã...), không phải hết phiên → không refresh / không đăng xuất
 const AUTH_ENDPOINTS =
-  /\/Auth\/(login|register|verify-email|verify-2fa|external-login|forgot-password|reset-password|resend-verification|refresh|logout)/i;
+  /\/Auth\/(login|register|verify-email|verify-2fa|disable-2fa|external-login|forgot-password|reset-password|resend-verification|refresh|logout)/i;
 
 type RetriableConfig = InternalAxiosRequestConfig & { _retry?: boolean };
 

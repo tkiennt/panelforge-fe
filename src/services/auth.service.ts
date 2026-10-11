@@ -203,6 +203,18 @@ export const authService = {
     }
   },
 
+  /** Tắt 2FA: POST /Auth/disable-2fa { code, currentPassword? } (currentPassword bắt buộc nếu tài khoản có mật khẩu) */
+  disableTwoFactor: async (data: { code: string; currentPassword?: string }) => {
+    try {
+      const response = await axiosClient.post('/Auth/disable-2fa', data, {
+        withCredentials: true,
+      });
+      return response.data as { message: string };
+    } catch (error) {
+      throw new Error(await parseErrorResponse(error, 'Không thể tắt 2FA'));
+    }
+  },
+
   forgetDevice: async () => {
     try {
       const response = await axiosClient.post(
