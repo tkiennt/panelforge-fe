@@ -134,6 +134,7 @@ export default function LettererWorkspace() {
         <LetteringWorkspace
           pageId={currentPageId || undefined}
           chapterId={currentChapterId || undefined}
+          seriesId={seriesId || undefined}
         />
       </div>
     </div>

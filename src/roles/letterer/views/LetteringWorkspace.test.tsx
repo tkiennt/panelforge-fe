@@ -7,6 +7,8 @@ import { elementService } from '@/services/element.service';
 import { pageService } from '@/services/page.service';
 import { scriptLineService } from '@/services/scriptLine.service';
 import { offlineQueueService } from '@/services/offlineQueue.service';
+import { chapterService } from '@/services/chapter.service';
+import { aiAgentsService } from '@/services/aiAgents.service';
 
 vi.mock('@/services/element.service', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/services/element.service')>();
@@ -25,6 +27,19 @@ vi.mock('@/services/element.service', async (importOriginal) => {
 });
 vi.mock('@/services/page.service');
 vi.mock('@/services/scriptLine.service');
+vi.mock('@/services/chapter.service', () => ({
+  chapterService: {
+    getChapterById: vi.fn(),
+  },
+}));
+vi.mock('@/services/aiAgents.service', () => ({
+  aiAgentsService: {
+    runWorkflow: vi.fn(),
+    getRun: vi.fn(),
+    getSuggestions: vi.fn(),
+    review: vi.fn(),
+  },
+}));
 vi.mock('@/services/offlineQueue.service', () => ({
   offlineQueueService: {
     enqueue: vi.fn(),
@@ -286,5 +301,128 @@ describe('LetteringWorkspace', () => {
     // Layer ảnh không có textarea
     const bgElem = screen.getByTestId('letterer-image-layer-elem-bg-1');
     expect(bgElem.querySelector('textarea')).toBeNull();
+  });
+
+  it('bật tắt bộ lọc lớp vẽ (Layers) ẩn hiện layer tương ứng (CF2 2.5)', async () => {
+    vi.mocked(elementService.getPageSnapshot).mockResolvedValueOnce({
+      pageId: 'page-101',
+      version: 1,
+      pageNumber: 1,
+      elements: [
+        {
+          elementId: 'elem-bg-1',
+          elementType: 'BACKGROUND',
+          zIndex: 1,
+          x: 0,
+          y: 0,
+          width: 1200,
+          height: 1800,
+          content: 'https://example.com/bg.png',
+          isRemoved: false,
+          version: 1,
+          rotation: 0,
+        },
+      ],
+    });
+
+    renderComponent();
+
+    await waitFor(() => {
+      expect(screen.getByTestId('letterer-image-layer-elem-bg-1')).toBeInTheDocument();
+    });
+
+    // Mở menu Lớp vẽ
+    const layerBtn = screen.getByRole('button', { name: /Lớp vẽ/i });
+    fireEvent.click(layerBtn);
+
+    // Bấm ẩn Bối cảnh
+    const bgToggle = screen.getByRole('button', { name: /Bối cảnh/i });
+    fireEvent.click(bgToggle);
+
+    // Layer ảnh bị ẩn khỏi DOM
+    expect(screen.queryByTestId('letterer-image-layer-elem-bg-1')).toBeNull();
+  });
+
+  it('chạy Letterer Agent và hiển thị modal đề xuất rút gọn thoại (CF2 2.4)', async () => {
+    const onShowToast = vi.fn();
+
+    vi.mocked(chapterService.getChapterById).mockResolvedValue({
+      id: 'chap-1',
+      versionVector: 2,
+    } as any);
+
+    vi.mocked(aiAgentsService.runWorkflow).mockResolvedValue({
+      runId: 'run-ai-1',
+      status: 'Completed',
+      provider: 'Gemini',
+      model: 'gemini-1.5-pro',
+    });
+
+    vi.mocked(aiAgentsService.getRun).mockResolvedValue({
+      id: 'run-ai-1',
+      status: 'Completed',
+    } as any);
+
+    vi.mocked(aiAgentsService.getSuggestions).mockResolvedValue([
+      {
+        id: 'sug-1',
+        runId: 'run-ai-1',
+        kind: 'Lettering',
+        status: 'Pending',
+        payload: {
+          suggestions: [
+            {
+              sourceScriptLineId: 'line-1',
+              targetElementId: 'elem-1',
+              originalText: 'Lời thoại ban đầu quá dài dòng và vượt kích thước',
+              suggestedText: 'Thoại gọn hơn',
+              reason: 'Rút ngắn vừa balloon',
+              maxChars: 20,
+              limitSource: 'element-estimate',
+              withinEstimatedLimit: true,
+            },
+          ],
+        },
+      } as any,
+    ]);
+
+    renderComponent({ seriesId: 'ser-1', onShowToast });
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue('Lời thoại ban đầu')).toBeInTheDocument();
+    });
+
+    // Bấm nút AI Rút Gọn Thoại trên toolbar
+    const aiBtn = screen.getByRole('button', { name: /AI Rút Gọn Thoại/i });
+    fireEvent.click(aiBtn);
+
+    await waitFor(
+      () => {
+        expect(aiAgentsService.runWorkflow).toHaveBeenCalledWith(
+          'ser-1',
+          expect.objectContaining({
+            workflowType: 'Letterer',
+            chapterId: 'chap-1',
+          }),
+        );
+        expect(screen.getByText(/Đề Xuất Rút Gọn Thoại/i)).toBeInTheDocument();
+        expect(screen.getByText(/Thoại gọn hơn/i)).toBeInTheDocument();
+      },
+      { timeout: 3000 },
+    );
+
+    // Bấm "Áp dụng vào bóng thoại này"
+    const applyBtn = screen.getByRole('button', { name: /Áp dụng vào bóng thoại này/i });
+    fireEvent.click(applyBtn);
+
+    await waitFor(() => {
+      expect(elementService.updateElementText).toHaveBeenCalledWith(
+        'page-101',
+        'elem-1',
+        expect.objectContaining({
+          content: 'Thoại gọn hơn',
+        }),
+      );
+    });
   });
 });
