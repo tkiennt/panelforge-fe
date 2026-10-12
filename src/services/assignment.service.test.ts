@@ -34,6 +34,33 @@ describe('assignmentService', () => {
     expect(result).toEqual([]);
   });
 
+  it('getMyWorkspaceAssignments gọi GET /workspaces/{id}/my-assignments thành công', async () => {
+    const mockList = [
+      {
+        id: 'asg-1',
+        seriesId: 'ser-1',
+        seriesTitle: 'Đại Chiến',
+        chapterId: 'chap-1',
+        chapterNumber: 1,
+        brief: 'Vẽ Lineart',
+        status: 'InProgress',
+      },
+    ];
+    vi.mocked(axiosClient.get).mockResolvedValueOnce({ data: mockList });
+
+    const result = await assignmentService.getMyWorkspaceAssignments('ws-1', { seriesId: 'ser-1' });
+    expect(axiosClient.get).toHaveBeenCalledWith('/workspaces/ws-1/my-assignments', {
+      params: { seriesId: 'ser-1' },
+    });
+    expect(result).toEqual(mockList);
+  });
+
+  it('getMyWorkspaceAssignments trả về mảng rỗng khi API lỗi', async () => {
+    vi.mocked(axiosClient.get).mockRejectedValueOnce(new Error('Network error'));
+    const result = await assignmentService.getMyWorkspaceAssignments('ws-1');
+    expect(result).toEqual([]);
+  });
+
   it('createAssignment gọi POST và trả về assignment mới', async () => {
     const req = {
       entityType: 'Page' as const,

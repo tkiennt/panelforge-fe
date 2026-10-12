@@ -104,11 +104,21 @@ export interface AssignmentDto {
   priority: AssignmentPriority;
   status: AssignmentStatus;
   dependsOnAssignmentId?: string | null;
+  dependsOnAssignmentIds?: string[];
   startedAt?: string | null;
   completedAt?: string | null;
   lastFeedbackComment?: string | null;
   createdAt: string;
   updatedAt?: string | null;
+}
+
+export interface WorkspaceAssignmentDto extends AssignmentDto {
+  seriesTitle: string;
+  chapterNumber: number;
+  chapterTitle?: string | null;
+  stageName: string;
+  stageOrder: number;
+  stageColorCode?: string | null;
 }
 
 export interface CreateAssignmentRequest {
@@ -121,6 +131,7 @@ export interface CreateAssignmentRequest {
   dueDate?: string | null;
   priority?: AssignmentPriority;
   dependsOnAssignmentId?: string | null;
+  dependsOnAssignmentIds?: string[];
 }
 
 export interface UpdateAssignmentRequest {
@@ -130,6 +141,7 @@ export interface UpdateAssignmentRequest {
   priority: AssignmentPriority;
   assigneeUserId: string;
   dependsOnAssignmentId?: string | null;
+  dependsOnAssignmentIds?: string[];
 }
 
 export type StageProgressStatus =

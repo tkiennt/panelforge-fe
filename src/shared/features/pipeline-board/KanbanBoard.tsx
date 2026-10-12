@@ -113,6 +113,12 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
           priority: a.priority,
           status: a.status,
           dependsOnAssignmentId: a.dependsOnAssignmentId,
+          dependsOnAssignmentIds:
+            a.dependsOnAssignmentIds && a.dependsOnAssignmentIds.length > 0
+              ? a.dependsOnAssignmentIds
+              : a.dependsOnAssignmentId
+                ? [a.dependsOnAssignmentId]
+                : [],
           startedAt: a.startedAt,
           completedAt: a.completedAt,
           lastFeedbackComment: a.lastFeedbackComment,

@@ -56,6 +56,7 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
   const [dueDate, setDueDate] = useState('');
   const [priority, setPriority] = useState<AssignmentPriority>('Medium');
   const [dependsOnAssignmentId, setDependsOnAssignmentId] = useState('');
+  const [selectedDependsOnIds, setSelectedDependsOnIds] = useState<string[]>([]);
 
   const [stages, setStages] = useState<PipelineStageDto[]>([]);
   const [members, setMembers] = useState<SeriesMemberDto[]>([]);
@@ -346,7 +347,8 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
       referenceNotes: referenceNotes.trim() || null,
       dueDate: dueDate ? new Date(dueDate).toISOString() : null,
       priority,
-      dependsOnAssignmentId: dependsOnAssignmentId.trim() || null,
+      dependsOnAssignmentId: selectedDependsOnIds[0] || dependsOnAssignmentId.trim() || null,
+      dependsOnAssignmentIds: selectedDependsOnIds.length > 0 ? selectedDependsOnIds : undefined,
     };
 
     try {
@@ -714,28 +716,60 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
               {/* Dependency on another assignment */}
               {existingAssignments.length > 0 && (
                 <div>
-                  <label
-                    htmlFor='assignment-depends-on-select'
-                    className='block font-semibold text-[#171717] mb-1'
-                  >
-                    Phụ thuộc vào công việc trước (Depends On Assignment)
-                  </label>
-                  <select
-                    id='assignment-depends-on-select'
-                    value={dependsOnAssignmentId}
-                    onChange={(e) => setDependsOnAssignmentId(e.target.value)}
-                    className='w-full px-3 py-2 bg-white border border-[#E7E7E7] rounded-lg text-xs focus:outline-none focus:border-[#F97316]'
-                  >
-                    <option value=''>Không có phụ thuộc (Có thể bắt đầu ngay)</option>
-                    {existingAssignments.map((a) => (
-                      <option key={a.id} value={a.id}>
-                        [{a.entityType}] {a.brief.slice(0, 40)}... ({a.status})
-                      </option>
-                    ))}
-                  </select>
+                  <div className='flex items-center justify-between mb-1'>
+                    <label className='block font-semibold text-[#171717] text-xs'>
+                      Phụ thuộc vào các công việc trước (Đồ thị DAG - Multiple Dependencies)
+                    </label>
+                    {selectedDependsOnIds.length > 0 && (
+                      <span className='text-[10px] font-bold text-[#F97316] bg-orange-50 px-2 py-0.5 rounded border border-orange-200'>
+                        Đã chọn: {selectedDependsOnIds.length} việc tiền đề
+                      </span>
+                    )}
+                  </div>
+                  <div className='max-h-40 overflow-y-auto border border-[#E7E7E7] rounded-lg p-2 space-y-1.5 bg-white'>
+                    {existingAssignments.map((a) => {
+                      const isSelected = selectedDependsOnIds.includes(a.id);
+                      return (
+                        <label
+                          key={a.id}
+                          className={`flex items-start gap-2 p-2 rounded-md border text-xs cursor-pointer transition-colors ${
+                            isSelected
+                              ? 'bg-orange-50/70 border-orange-300 text-orange-950'
+                              : 'bg-white hover:bg-zinc-50 border-zinc-200 text-zinc-700'
+                          }`}
+                        >
+                          <input
+                            type='checkbox'
+                            checked={isSelected}
+                            onChange={() => {
+                              setSelectedDependsOnIds((prev) => {
+                                const next = prev.includes(a.id)
+                                  ? prev.filter((id) => id !== a.id)
+                                  : [...prev, a.id];
+                                setDependsOnAssignmentId(next[0] || '');
+                                return next;
+                              });
+                            }}
+                            className='mt-0.5 rounded border-zinc-300 text-orange-600 focus:ring-orange-500 cursor-pointer'
+                          />
+                          <div className='flex-1 min-w-0'>
+                            <div className='flex items-center gap-1.5 flex-wrap'>
+                              <span className='font-bold text-[10px] px-1.5 py-0.2 rounded bg-zinc-100 text-zinc-800 border border-zinc-200'>
+                                {a.entityType}
+                              </span>
+                              <span className='font-medium text-xs truncate'>{a.brief}</span>
+                            </div>
+                            <div className='text-[10px] text-zinc-500 mt-0.5 flex items-center gap-2'>
+                              <span>Trạng thái: <strong>{a.status}</strong></span>
+                              <span>• ID: #{a.id.substring(0, 8)}</span>
+                            </div>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
                   <p className='text-[10px] text-[#737373] mt-1'>
-                    Theo quy tắc BR-19, việc phụ thuộc chỉ có thể bấm &quot;Bắt đầu&quot; khi việc
-                    trước đã Approved.
+                    Theo quy tắc BR-19 & DAG, toàn bộ các việc được chọn ở đây phải được duyệt (Approved) thì việc này mới có thể bắt đầu.
                   </p>
                 </div>
               )}

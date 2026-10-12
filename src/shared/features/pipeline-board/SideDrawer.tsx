@@ -177,15 +177,33 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
               <span className='font-semibold text-zinc-900'>{String(card.priority)}</span>
             </div>
 
-            {card.dependsOnAssignmentId && (
-              <div className='flex items-center justify-between py-1'>
-                <span className='text-zinc-500 flex items-center gap-1.5'>
-                  <Lock className='w-3.5 h-3.5 text-amber-500' />
-                  Phụ thuộc vào:
-                </span>
-                <span className='font-mono text-[11px] text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200'>
-                  {card.dependsOnAssignmentId.substring(0, 8)}...
-                </span>
+            {((card.dependsOnAssignmentIds && card.dependsOnAssignmentIds.length > 0) ||
+              card.dependsOnAssignmentId) && (
+              <div className='py-1 space-y-1.5 border-t border-zinc-200/60 pt-2'>
+                <div className='flex items-center justify-between'>
+                  <span className='text-zinc-500 flex items-center gap-1.5'>
+                    <Lock className='w-3.5 h-3.5 text-amber-500' />
+                    Phụ thuộc tiền đề (DAG):
+                  </span>
+                  <span className='font-semibold text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 text-[10px]'>
+                    {(card.dependsOnAssignmentIds?.length || (card.dependsOnAssignmentId ? 1 : 0))} nhiệm vụ
+                  </span>
+                </div>
+                <div className='flex flex-wrap gap-1'>
+                  {(card.dependsOnAssignmentIds && card.dependsOnAssignmentIds.length > 0
+                    ? card.dependsOnAssignmentIds
+                    : card.dependsOnAssignmentId
+                      ? [card.dependsOnAssignmentId]
+                      : []
+                  ).map((id) => (
+                    <span
+                      key={id}
+                      className='font-mono text-[10px] text-amber-900 bg-amber-100/70 px-2 py-0.5 rounded border border-amber-200/60'
+                    >
+                      #{id.substring(0, 8)}
+                    </span>
+                  ))}
+                </div>
               </div>
             )}
           </div>

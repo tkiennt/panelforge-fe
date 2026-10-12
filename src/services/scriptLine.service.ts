@@ -227,4 +227,24 @@ export const scriptLineService = {
       throw extractError(error, 'Không thể xoá dòng kịch bản.');
     }
   },
+
+  /**
+   * Cập nhật thứ tự các dòng kịch bản trong phân cảnh (PUT /api/chapters/{chapterId}/scenes/{sceneId}/script-lines/reorder)
+   */
+  async reorderScriptLines(
+    chapterId: string,
+    sceneId: string,
+    lines: { lineId: string; newOrder: number }[],
+    expectedChapterVersion?: number | null,
+  ): Promise<{ message: string }> {
+    try {
+      const response = await axiosClient.put(
+        `/chapters/${chapterId}/scenes/${sceneId}/script-lines/reorder`,
+        { lines, expectedChapterVersion },
+      );
+      return response.data;
+    } catch (error) {
+      throw extractError(error, 'Không thể sắp xếp lại dòng kịch bản.');
+    }
+  },
 };
