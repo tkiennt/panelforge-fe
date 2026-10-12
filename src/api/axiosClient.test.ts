@@ -94,9 +94,10 @@ describe('axiosClient', () => {
     localStorage.setItem('jwt_token', 'old-jwt');
     localStorage.setItem('refreshToken', 'old-refresh');
     clearLegacyTokens();
-    expect(localStorage.getItem('token')).toBeNull();
+    // Token fallback tạm giữ lúc khởi động (xem clearLegacyTokens); chỉ jwt_token cũ bị xoá
+    expect(localStorage.getItem('token')).toBe('old-jwt-real.token.here');
     expect(localStorage.getItem('jwt_token')).toBeNull();
-    expect(localStorage.getItem('refreshToken')).toBeNull();
+    expect(localStorage.getItem('refreshToken')).toBe('old-refresh');
 
     localStorage.setItem('token', 'mock-admin-token');
     clearLegacyTokens();

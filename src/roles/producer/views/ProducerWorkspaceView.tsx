@@ -28,12 +28,15 @@ import {
   Mail,
   Search,
   Edit3,
+  Monitor,
+  LogOut,
 } from 'lucide-react';
 import {
   workspaceService,
   WorkspaceDto,
   WorkspaceMemberDto,
   WorkspaceUsageDto,
+  WorkspaceSessionDto,
 } from '@/services/workspace.service';
 import { pipelineService, PipelineTemplateDto } from '@/services/pipeline.service';
 import { seriesService, SeriesDto, UpdateSeriesRequest } from '@/services/series.service';
@@ -114,8 +117,17 @@ export const ProducerWorkspaceView: React.FC = () => {
   const [auditLoading, setAuditLoading] = useState(false);
   const [auditFilterEntity, setAuditFilterEntity] = useState('');
 
+  // Workspace Active Sessions Modal State
+  const [sessionsModalOpen, setSessionsModalOpen] = useState(false);
+  const [activeSessions, setActiveSessions] = useState<WorkspaceSessionDto[]>([]);
+  const [sessionsLoading, setSessionsLoading] = useState(false);
+  const [revokingSessionId, setRevokingSessionId] = useState<string | null>(null);
+  const [sessionSearchQuery, setSessionSearchQuery] = useState('');
+
   // Members UI States
-  const [memberRoleFilter, setMemberRoleFilter] = useState<'ALL' | 'LEAD' | 'ARTIST' | 'WRITER' | 'EDITOR'>('ALL');
+  const [memberRoleFilter, setMemberRoleFilter] = useState<
+    'ALL' | 'LEAD' | 'ARTIST' | 'WRITER' | 'EDITOR'
+  >('ALL');
   const [memberSearchQuery, setMemberSearchQuery] = useState('');
   const [editingMember, setEditingMember] = useState<any>(null);
   const [editRole, setEditRole] = useState('');
@@ -139,13 +151,27 @@ export const ProducerWorkspaceView: React.FC = () => {
   };
 
   const studioMembers = React.useMemo(() => {
-    return members.map(m => {
-      const roleStr = typeof m.role === 'number'
-        ? (m.role === 0 ? 'PRODUCER' : m.role === 1 ? 'WRITER' : m.role === 2 ? 'ARTIST' : m.role === 3 ? 'LETTERER' : 'EDITOR')
-        : String(m.role).toUpperCase();
+    return members.map((m) => {
+      const roleStr =
+        typeof m.role === 'number'
+          ? m.role === 0
+            ? 'PRODUCER'
+            : m.role === 1
+              ? 'WRITER'
+              : m.role === 2
+                ? 'ARTIST'
+                : m.role === 3
+                  ? 'LETTERER'
+                  : 'EDITOR'
+          : String(m.role).toUpperCase();
 
       const initials = m.fullName
-        ? m.fullName.split(' ').map((p) => p[0]).join('').substring(0, 2).toUpperCase()
+        ? m.fullName
+            .split(' ')
+            .map((p) => p[0])
+            .join('')
+            .substring(0, 2)
+            .toUpperCase()
         : 'ME';
 
       return {
@@ -159,7 +185,7 @@ export const ProducerWorkspaceView: React.FC = () => {
         isEmailConfirmed: m.isEmailConfirmed,
         invitationEmailSent: m.invitationEmailSent,
         isOwner: m.isOwner,
-        isYou: currentUser?.id === m.userId || currentUser?.email === m.email
+        isYou: currentUser?.id === m.userId || currentUser?.email === m.email,
       };
     });
   }, [members, currentUser]);
@@ -167,13 +193,21 @@ export const ProducerWorkspaceView: React.FC = () => {
   const filteredMembers = React.useMemo(() => {
     return studioMembers.filter((m) => {
       const q = memberSearchQuery.toLowerCase().trim();
-      const matchesSearch = !q || m.name.toLowerCase().includes(q) || m.email.toLowerCase().includes(q) || (m.role && m.role.toLowerCase().includes(q));
+      const matchesSearch =
+        !q ||
+        m.name.toLowerCase().includes(q) ||
+        m.email.toLowerCase().includes(q) ||
+        (m.role && m.role.toLowerCase().includes(q));
 
       const roleStr = (m.role || '').toLowerCase();
-      const matchesTab = memberRoleFilter === 'ALL' ||
-        (memberRoleFilter === 'LEAD' && (roleStr.includes('lead') || roleStr.includes('producer'))) ||
-        (memberRoleFilter === 'ARTIST' && (roleStr.includes('artist') || roleStr.includes('line'))) ||
-        (memberRoleFilter === 'WRITER' && (roleStr.includes('writer') || roleStr.includes('script'))) ||
+      const matchesTab =
+        memberRoleFilter === 'ALL' ||
+        (memberRoleFilter === 'LEAD' &&
+          (roleStr.includes('lead') || roleStr.includes('producer'))) ||
+        (memberRoleFilter === 'ARTIST' &&
+          (roleStr.includes('artist') || roleStr.includes('line'))) ||
+        (memberRoleFilter === 'WRITER' &&
+          (roleStr.includes('writer') || roleStr.includes('script'))) ||
         (memberRoleFilter === 'EDITOR' && roleStr.includes('editor'));
 
       return matchesSearch && matchesTab;
@@ -183,7 +217,11 @@ export const ProducerWorkspaceView: React.FC = () => {
   const tabCounts = React.useMemo(() => {
     return {
       ALL: studioMembers.length,
-      LEAD: studioMembers.filter((m) => (m.role || '').toLowerCase().includes('lead') || (m.role || '').toLowerCase().includes('producer')).length,
+      LEAD: studioMembers.filter(
+        (m) =>
+          (m.role || '').toLowerCase().includes('lead') ||
+          (m.role || '').toLowerCase().includes('producer'),
+      ).length,
       ARTIST: studioMembers.filter((m) => (m.role || '').toLowerCase().includes('artist')).length,
       WRITER: studioMembers.filter((m) => (m.role || '').toLowerCase().includes('writer')).length,
       EDITOR: studioMembers.filter((m) => (m.role || '').toLowerCase().includes('editor')).length,
@@ -409,6 +447,51 @@ export const ProducerWorkspaceView: React.FC = () => {
     }
   }, [auditModalOpen, loadWorkspaceAudit]);
 
+  const loadActiveSessions = React.useCallback(async () => {
+    if (!activeWorkspace?.id) return;
+    setSessionsLoading(true);
+    try {
+      const data = await workspaceService.getActiveSessions(activeWorkspace.id);
+      setActiveSessions(data);
+    } catch (err: any) {
+      showToast('Lỗi tải phiên làm việc', err.message || 'Không thể lấy danh sách thiết bị.');
+    } finally {
+      setSessionsLoading(false);
+    }
+  }, [activeWorkspace?.id]);
+
+  useEffect(() => {
+    if (sessionsModalOpen) {
+      loadActiveSessions();
+    }
+  }, [sessionsModalOpen, loadActiveSessions]);
+
+  const handleRevokeSession = async (sessionId: string, userName: string) => {
+    if (!activeWorkspace?.id) return;
+    if (
+      !confirm(
+        `Bạn có chắc muốn ngắt kết nối thiết bị này của ${userName}? Phiên đăng nhập sẽ bị thu hồi ngay lập tức.`,
+      )
+    ) {
+      return;
+    }
+    setRevokingSessionId(sessionId);
+    try {
+      await workspaceService.revokeSession(activeWorkspace.id, sessionId);
+      showToast('Đã thu hồi phiên', `Đã ngắt kết nối thiết bị của ${userName}.`);
+      await loadActiveSessions();
+      try {
+        const usage = await workspaceService.getWorkspaceUsage(activeWorkspace.id);
+        setWorkspaceUsage(usage);
+      } catch {
+        // ignore
+      }
+    } catch (err: any) {
+      showToast('Lỗi', err.message || 'Không thể thu hồi phiên làm việc.');
+    } finally {
+      setRevokingSessionId(null);
+    }
+  };
 
   const handleRemoveMember = async (userId: string, email: string) => {
     if (!activeWorkspace) return;
@@ -457,7 +540,10 @@ export const ProducerWorkspaceView: React.FC = () => {
     const randomHex = Math.random().toString(16).substring(2, 6).toUpperCase();
     const randomSuffix = Math.random().toString(16).substring(2, 5).toUpperCase();
     const newKey = `ECDSA-P256 [0x${randomHex}...${randomSuffix}]`;
-    showToast('Key Rotated', `Generated new cryptographic signing authority key for ${member.name}: ${newKey}`);
+    showToast(
+      'Key Rotated',
+      `Generated new cryptographic signing authority key for ${member.name}: ${newKey}`,
+    );
   };
 
   const formatGb = (bytes: number) => {
@@ -509,7 +595,7 @@ export const ProducerWorkspaceView: React.FC = () => {
 
         {/* Workspace Governance & Resource Usage Meters (Storage, AI Tokens & Image Quota) */}
         {activeWorkspace && (
-          <div className='grid grid-cols-1 md:grid-cols-3 gap-3 pt-1'>
+          <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1'>
             {/* Storage Meter */}
             <div className='p-3.5 bg-[#FAF8F5] rounded-xl border border-[#E7E7E7] space-y-2'>
               <div className='flex items-center justify-between text-xs'>
@@ -679,6 +765,70 @@ export const ProducerWorkspaceView: React.FC = () => {
                   <span className='text-[10px] font-mono text-zinc-400'>NFR Governance</span>
                 </div>
               )}
+              {/* shortcut: chưa có pipeline sinh ảnh gọi RecordImages nên số đã dùng luôn 0; bỏ dòng này khi pipeline chạy */}
+              <p className='text-[10px] text-[#737373] italic'>
+                Chưa áp dụng: pipeline sinh ảnh AI chưa bật nên số ảnh đã dùng luôn là 0.
+              </p>
+            </div>
+
+            {/* Active Devices & Concurrent Sessions Meter */}
+            <div className='p-3.5 bg-[#FAF8F5] rounded-xl border border-[#E7E7E7] space-y-2'>
+              <div className='flex items-center justify-between text-xs'>
+                <div className='flex items-center gap-1.5 font-semibold text-[#171717]'>
+                  <Monitor className='w-4 h-4 text-[#10B981]' />
+                  <span>Phiên Đăng Nhập Đồng Thời</span>
+                </div>
+                <div className='font-mono text-[11px] font-bold text-[#171717]'>
+                  {workspaceUsage?.activeSessions
+                    ? workspaceUsage.activeSessions.isUnlimited
+                      ? `${workspaceUsage.activeSessions.used} thiết bị`
+                      : `${workspaceUsage.activeSessions.used} / ${workspaceUsage.activeSessions.quota} thiết bị`
+                    : '0 thiết bị'}
+                </div>
+              </div>
+
+              <div className='w-full bg-[#E7E7E7] h-2 rounded-full overflow-hidden'>
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${
+                    (workspaceUsage?.activeSessions?.percentUsed ?? 0) >= 90
+                      ? 'bg-red-500'
+                      : (workspaceUsage?.activeSessions?.percentUsed ?? 0) >= 75
+                        ? 'bg-amber-500'
+                        : 'bg-emerald-500'
+                  }`}
+                  style={{
+                    width: `${Math.min(
+                      100,
+                      workspaceUsage?.activeSessions?.isUnlimited
+                        ? Math.min(100, (workspaceUsage.activeSessions.used || 1) * 25)
+                        : (workspaceUsage?.activeSessions?.percentUsed ?? 15),
+                    )}%`,
+                  }}
+                />
+              </div>
+
+              <div className='flex items-center justify-between text-[10px] text-[#737373]'>
+                <span>
+                  {workspaceUsage?.activeMemberCount
+                    ? `${workspaceUsage.activeMemberCount} người online`
+                    : 'Chưa có thành viên online'}
+                  {workspaceUsage?.maxConcurrentSessionsPerUser
+                    ? ` (Tối đa ${workspaceUsage.maxConcurrentSessionsPerUser} tb/người)`
+                    : ''}
+                </span>
+                <button
+                  type='button'
+                  onClick={() => {
+                    setSessionsModalOpen(true);
+                    loadActiveSessions();
+                  }}
+                  className='font-bold text-emerald-600 hover:text-emerald-700 hover:underline cursor-pointer flex items-center gap-0.5'
+                  title='Xem danh sách các thiết bị đang đăng nhập của Studio'
+                >
+                  <span>Chi tiết</span>
+                  <span>&rarr;</span>
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -975,7 +1125,9 @@ export const ProducerWorkspaceView: React.FC = () => {
                     <span>{tab.label}</span>
                     <span
                       className={`text-[10px] font-mono px-1.5 py-0.2 rounded ${
-                        memberRoleFilter === tab.key ? 'bg-white/20 text-white' : 'bg-[#EAE8E0] text-[#555555]'
+                        memberRoleFilter === tab.key
+                          ? 'bg-white/20 text-white'
+                          : 'bg-[#EAE8E0] text-[#555555]'
                       }`}
                     >
                       {tab.count}
@@ -1003,6 +1155,17 @@ export const ProducerWorkspaceView: React.FC = () => {
                 <h3 className='text-sm font-bold font-serif text-[#171717]'>
                   Thành viên Studio ({filteredMembers.length})
                 </h3>
+                <button
+                  type='button'
+                  onClick={() => {
+                    setSessionsModalOpen(true);
+                    loadActiveSessions();
+                  }}
+                  className='px-3 py-1.5 rounded-lg bg-white border border-[#E7E7E7] hover:bg-[#FAF8F4] text-xs font-semibold text-[#171717] flex items-center gap-1.5 shadow-2xs cursor-pointer'
+                >
+                  <Monitor className='w-3.5 h-3.5 text-emerald-600' />
+                  <span>Giám sát thiết bị ({workspaceUsage?.activeSessions?.used ?? 0})</span>
+                </button>
               </div>
 
               <div className='divide-y divide-[#E7E7E7]'>
@@ -1027,7 +1190,9 @@ export const ProducerWorkspaceView: React.FC = () => {
 
                         <div>
                           <div className='flex flex-wrap items-center gap-2'>
-                            <h4 className='text-sm font-bold text-[#171717] font-serif'>{member.name}</h4>
+                            <h4 className='text-sm font-bold text-[#171717] font-serif'>
+                              {member.name}
+                            </h4>
                             <span className='px-2 py-0.5 rounded bg-[#171717] text-white text-[10px] font-mono font-bold tracking-wider'>
                               {(member.role || 'MEMBER').toUpperCase()}
                             </span>
@@ -1802,6 +1967,174 @@ export const ProducerWorkspaceView: React.FC = () => {
         </div>
       )}
 
+      {/* Active Sessions & Devices Modal */}
+      {sessionsModalOpen && (
+        <div className='fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4'>
+          <div className='bg-white rounded-2xl border border-[#E7E7E7] shadow-2xl max-w-4xl w-full max-h-[85vh] flex flex-col p-6 space-y-4'>
+            <div className='flex items-center justify-between border-b border-[#E7E7E7] pb-3'>
+              <div>
+                <div className='flex items-center gap-2 mb-0.5'>
+                  <span className='px-2 py-0.5 rounded bg-emerald-600 text-white font-mono text-[10px] font-bold'>
+                    PRODUCER // ACTIVE SESSIONS
+                  </span>
+                  <span className='text-xs text-[#888888] font-mono'>
+                    NFR Concurrent Session Governance
+                  </span>
+                </div>
+                <h3 className='text-sm font-bold text-[#171717]'>
+                  Giám Sát Thiết Bị & Phiên Đăng Nhập Đồng Thời: {activeWorkspace?.name}
+                </h3>
+              </div>
+              <button
+                type='button'
+                onClick={() => setSessionsModalOpen(false)}
+                className='text-[#888888] hover:text-[#171717] cursor-pointer'
+              >
+                <X className='w-4 h-4' />
+              </button>
+            </div>
+
+            {/* Filter & Refresh */}
+            <div className='flex items-center justify-between text-xs'>
+              <div className='flex items-center gap-3'>
+                <input
+                  type='text'
+                  placeholder='Lọc theo tên thành viên, email, thiết bị...'
+                  value={sessionSearchQuery}
+                  onChange={(e) => setSessionSearchQuery(e.target.value)}
+                  className='px-3 py-1.5 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg text-xs w-72 focus:outline-none focus:border-[#F97316]'
+                />
+                <button
+                  type='button'
+                  onClick={loadActiveSessions}
+                  className='px-3 py-1.5 rounded-lg bg-[#FAF8F5] border border-[#E7E7E7] hover:bg-[#F3F1EB] font-semibold flex items-center gap-1.5 cursor-pointer'
+                >
+                  <RefreshCw className={`w-3 h-3 ${sessionsLoading ? 'animate-spin' : ''}`} />
+                  <span>Làm mới</span>
+                </button>
+              </div>
+              <div className='text-xs text-[#737373] font-mono'>
+                Tổng cộng: <span className='font-bold text-[#171717]'>{activeSessions.length}</span>{' '}
+                phiên đang hoạt động
+              </div>
+            </div>
+
+            {/* Sessions Table */}
+            <div className='overflow-y-auto flex-1 border border-[#E7E7E7] rounded-xl text-xs'>
+              <table className='w-full text-left'>
+                <thead className='bg-[#FAF8F5] border-b border-[#E7E7E7] font-mono text-[10px] text-[#737373] sticky top-0'>
+                  <tr>
+                    <th className='py-2.5 px-3'>Thành Viên</th>
+                    <th className='py-2.5 px-3'>Thiết Bị / Trình Duyệt</th>
+                    <th className='py-2.5 px-3'>Địa Chỉ IP</th>
+                    <th className='py-2.5 px-3'>Đăng Nhập Lúc</th>
+                    <th className='py-2.5 px-3'>Hoạt Động Gần Nhất</th>
+                    <th className='py-2.5 px-3 text-right'>Hành Động</th>
+                  </tr>
+                </thead>
+                <tbody className='divide-y divide-[#E7E7E7]'>
+                  {sessionsLoading ? (
+                    <tr>
+                      <td colSpan={6} className='p-8 text-center text-[#888888] font-mono'>
+                        Đang tải danh sách phiên làm việc...
+                      </td>
+                    </tr>
+                  ) : activeSessions.filter((s) => {
+                      const q = sessionSearchQuery.toLowerCase().trim();
+                      return (
+                        !q ||
+                        s.fullName.toLowerCase().includes(q) ||
+                        s.email.toLowerCase().includes(q) ||
+                        (s.deviceName && s.deviceName.toLowerCase().includes(q))
+                      );
+                    }).length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className='p-8 text-center text-[#888888] font-mono'>
+                        Không có phiên đăng nhập nào đang hoạt động.
+                      </td>
+                    </tr>
+                  ) : (
+                    activeSessions
+                      .filter((s) => {
+                        const q = sessionSearchQuery.toLowerCase().trim();
+                        return (
+                          !q ||
+                          s.fullName.toLowerCase().includes(q) ||
+                          s.email.toLowerCase().includes(q) ||
+                          (s.deviceName && s.deviceName.toLowerCase().includes(q))
+                        );
+                      })
+                      .map((session) => (
+                        <tr
+                          key={session.sessionId}
+                          className='hover:bg-[#FAF8F5] transition-colors'
+                        >
+                          <td className='py-2.5 px-3'>
+                            <div>
+                              <div className='font-bold text-[#171717] flex items-center gap-1.5'>
+                                <span>{session.fullName}</span>
+                                {session.isCurrentSession && (
+                                  <span className='px-1.5 py-0.2 rounded bg-blue-50 text-blue-600 border border-blue-200 text-[9px] font-mono font-bold'>
+                                    Bạn
+                                  </span>
+                                )}
+                              </div>
+                              <div className='text-[10px] text-[#888888]'>{session.email}</div>
+                            </div>
+                          </td>
+                          <td className='py-2.5 px-3 font-medium text-[#171717]'>
+                            <div className='flex items-center gap-1.5'>
+                              <Monitor className='w-3.5 h-3.5 text-zinc-500' />
+                              <span>{session.deviceName || 'Thiết bị Web'}</span>
+                            </div>
+                          </td>
+                          <td className='py-2.5 px-3 font-mono text-[11px] text-zinc-600'>
+                            {session.ipAddress || '—'}
+                          </td>
+                          <td className='py-2.5 px-3 font-mono text-[11px] text-[#737373]'>
+                            {new Date(session.sessionStartedAt).toLocaleString('vi-VN')}
+                          </td>
+                          <td className='py-2.5 px-3 font-mono text-[11px] text-[#737373]'>
+                            {new Date(session.lastActiveAt).toLocaleString('vi-VN')}
+                          </td>
+                          <td className='py-2.5 px-3 text-right'>
+                            <button
+                              type='button'
+                              disabled={revokingSessionId === session.sessionId}
+                              onClick={() =>
+                                handleRevokeSession(session.sessionId, session.fullName)
+                              }
+                              className='px-2 py-1 rounded bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 text-[11px] font-semibold border border-red-200 flex items-center gap-1 ml-auto cursor-pointer disabled:opacity-50'
+                              title='Ngắt kết nối thiết bị này'
+                            >
+                              <LogOut className='w-3 h-3' />
+                              <span>{session.isCurrentSession ? 'Đăng xuất' : 'Ngắt kết nối'}</span>
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Footer */}
+            <div className='flex items-center justify-between text-xs text-[#888888] border-t border-[#E7E7E7] pt-3'>
+              <span className='italic'>
+                * Producer có thể ngắt kết nối các thiết bị không rõ nguồn gốc hoặc khi nghi ngờ tài
+                khoản bị lộ.
+              </span>
+              <button
+                type='button'
+                onClick={() => setSessionsModalOpen(false)}
+                className='px-4 py-1.5 bg-[#171717] text-white rounded-lg text-xs font-semibold cursor-pointer'
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

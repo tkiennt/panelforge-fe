@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   X,
   ShieldCheck,
+  ShieldOff,
   Copy,
   Check,
   Smartphone,
@@ -21,6 +22,8 @@ interface TwoFactorSetupModalProps {
   isTwoFactorEnabled?: boolean;
   token?: string;
   onSuccess?: () => void;
+  /** Gọi khi người dùng đóng modal sau khi đã tắt 2FA thành công */
+  onDisabled?: () => void;
 }
 
 export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
@@ -30,8 +33,11 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
   isTwoFactorEnabled,
   token,
   onSuccess,
+  onDisabled,
 }) => {
-  const [step, setStep] = useState<'status' | 'loading' | 'setup' | 'success' | 'error'>('loading');
+  const [step, setStep] = useState<
+    'status' | 'loading' | 'setup' | 'success' | 'error' | 'disabled'
+  >('loading');
   const [qrUri, setQrUri] = useState('');
   const [backupKey, setBackupKey] = useState('');
   const [formattedKey, setFormattedKey] = useState('');
@@ -40,6 +46,11 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
   const [copied, setCopied] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [showDisableForm, setShowDisableForm] = useState(false);
+  const [disableCode, setDisableCode] = useState('');
+  const [disablePassword, setDisablePassword] = useState('');
+  const [isDisabling, setIsDisabling] = useState(false);
+  const justDisabledRef = useRef(false);
 
   // Lay token tu props hoac localStorage
   const activeToken =
@@ -93,6 +104,10 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
+      if (justDisabledRef.current) return;
+      setShowDisableForm(false);
+      setDisableCode('');
+      setDisablePassword('');
       setStatusMessage(null);
       setErrorMessage(null);
       if (is2faActive) {
@@ -151,6 +166,53 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
     }
   };
 
+  const handleDisable = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (disableCode.trim().length !== 6) {
+      setErrorMessage('Vui lòng nhập đầy đủ 6 chữ số OTP');
+      return;
+    }
+    setIsDisabling(true);
+    setErrorMessage(null);
+    try {
+      if (!activeToken.startsWith('mock-')) {
+        await authService.disableTwoFactor({
+          code: disableCode.trim(),
+          currentPassword: disablePassword || undefined,
+        });
+      }
+      justDisabledRef.current = true;
+      try {
+        const savedUser = localStorage.getItem('user');
+        if (savedUser) {
+          const parsed = JSON.parse(savedUser);
+          parsed.isTwoFactorEnabled = false;
+          localStorage.setItem('user', JSON.stringify(parsed));
+        }
+      } catch {
+        // bỏ qua
+      }
+      localStorage.removeItem('pf_remember_device');
+      setDisableCode('');
+      setDisablePassword('');
+      setShowDisableForm(false);
+      setStep('disabled');
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Không thể tắt 2FA. Kiểm tra lại mật khẩu và mã xác thực.');
+    } finally {
+      setIsDisabling(false);
+    }
+  };
+
+  // Đóng sau khi tắt 2FA: báo cho component cha cập nhật trạng thái (tránh modal tự khởi tạo lại 2FA giữa chừng)
+  const handleClose = () => {
+    if (justDisabledRef.current) {
+      justDisabledRef.current = false;
+      onDisabled?.();
+    }
+    onClose();
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -161,7 +223,7 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
 
         {/* Close Button */}
         <button
-          onClick={onClose}
+          onClick={handleClose}
           className='absolute top-4 right-4 z-20 text-[#555555] hover:text-[#171717] bg-[#FAF8F5] hover:bg-[#E7E7E7] rounded-full p-1.5 transition-colors cursor-pointer'
           title='Đóng'
         >
@@ -228,33 +290,110 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
                 </div>
               </div>
 
-              <div className='pt-2 flex flex-col sm:flex-row items-center justify-between gap-3'>
-                <div className='flex items-center gap-2 w-full sm:w-auto'>
+              {showDisableForm ? (
+                <form
+                  onSubmit={handleDisable}
+                  className='border border-red-200 bg-red-50/40 rounded-xl p-4 space-y-3'
+                >
+                  <h4 className='text-sm font-bold text-red-700 flex items-center gap-1.5'>
+                    <ShieldOff className='w-4 h-4' />
+                    Tắt bảo mật 2 lớp
+                  </h4>
+                  {errorMessage && (
+                    <div className='p-2.5 bg-red-50 border border-red-200 text-red-600 text-xs rounded-lg flex items-center gap-2'>
+                      <AlertCircle className='w-4 h-4 shrink-0' />
+                      <span>{errorMessage}</span>
+                    </div>
+                  )}
+                  <div>
+                    <label className='text-[11px] font-semibold text-[#171717] block mb-1'>
+                      Mật khẩu hiện tại{' '}
+                      <span className='font-normal text-[#888888]'>
+                        (bỏ trống nếu chỉ đăng nhập bằng mạng xã hội)
+                      </span>
+                    </label>
+                    <input
+                      type='password'
+                      value={disablePassword}
+                      onChange={(e) => setDisablePassword(e.target.value)}
+                      autoComplete='current-password'
+                      className='w-full px-3 py-2 bg-white border border-[#E7E7E7] focus:border-[#F97316] rounded-lg text-sm outline-none'
+                    />
+                  </div>
+                  <div>
+                    <label className='text-[11px] font-semibold text-[#171717] block mb-1'>
+                      Mã 6 số hiện tại từ Authenticator
+                    </label>
+                    <input
+                      type='text'
+                      inputMode='numeric'
+                      maxLength={6}
+                      value={disableCode}
+                      onChange={(e) => setDisableCode(e.target.value.replace(/\D/g, ''))}
+                      placeholder='000000'
+                      className='w-full text-center tracking-[0.5em] text-lg font-mono font-bold py-2 bg-white border border-[#E7E7E7] focus:border-[#F97316] rounded-lg outline-none'
+                    />
+                  </div>
+                  <div className='flex items-center justify-end gap-2 pt-1'>
+                    <button
+                      type='button'
+                      onClick={() => {
+                        setShowDisableForm(false);
+                        setErrorMessage(null);
+                      }}
+                      disabled={isDisabling}
+                      className='px-3 py-2 text-xs font-semibold text-[#555555] hover:text-[#171717] cursor-pointer'
+                    >
+                      Hủy
+                    </button>
+                    <button
+                      type='submit'
+                      disabled={isDisabling || disableCode.length !== 6}
+                      className='bg-red-600 hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-xs font-semibold px-5 py-2 rounded-lg flex items-center gap-2 cursor-pointer'
+                    >
+                      {isDisabling ? (
+                        <>
+                          <RefreshCw className='w-3.5 h-3.5 animate-spin' />
+                          Đang tắt...
+                        </>
+                      ) : (
+                        'Xác nhận tắt 2FA'
+                      )}
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div className='pt-2 flex flex-col sm:flex-row items-center justify-between gap-3'>
+                  <div className='flex items-center gap-2 w-full sm:w-auto'>
+                    <button
+                      type='button'
+                      onClick={handleForgetCurrentDevice}
+                      className='w-full sm:w-auto px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-red-200 flex items-center justify-center gap-1.5 cursor-pointer'
+                    >
+                      <Trash2 className='w-3.5 h-3.5' />
+                      Quên thiết bị này
+                    </button>
+                    <button
+                      type='button'
+                      onClick={() => {
+                        setErrorMessage(null);
+                        setShowDisableForm(true);
+                      }}
+                      className='w-full sm:w-auto px-3 py-2 text-xs font-medium text-[#555555] hover:text-[#171717] hover:bg-gray-100 rounded-lg transition-colors border border-[#E7E7E7] flex items-center justify-center gap-1.5 cursor-pointer'
+                    >
+                      <ShieldOff className='w-3.5 h-3.5' />
+                      Tắt 2FA
+                    </button>
+                  </div>
                   <button
                     type='button'
-                    onClick={handleForgetCurrentDevice}
-                    className='w-full sm:w-auto px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-red-200 flex items-center justify-center gap-1.5 cursor-pointer'
+                    onClick={onClose}
+                    className='w-full sm:w-auto bg-[#171717] hover:bg-[#262626] text-white text-xs font-semibold px-6 py-2 rounded-lg transition-colors cursor-pointer'
                   >
-                    <Trash2 className='w-3.5 h-3.5' />
-                    Quên thiết bị này
-                  </button>
-                  <button
-                    type='button'
-                    onClick={() => loadTwoFactorData()}
-                    className='w-full sm:w-auto px-3 py-2 text-xs font-medium text-[#555555] hover:text-[#171717] hover:bg-gray-100 rounded-lg transition-colors border border-[#E7E7E7] flex items-center justify-center gap-1.5 cursor-pointer'
-                  >
-                    <RefreshCw className='w-3.5 h-3.5' />
-                    Quét lại mã QR mới
+                    Đóng
                   </button>
                 </div>
-                <button
-                  type='button'
-                  onClick={onClose}
-                  className='w-full sm:w-auto bg-[#171717] hover:bg-[#262626] text-white text-xs font-semibold px-6 py-2 rounded-lg transition-colors cursor-pointer'
-                >
-                  Đóng
-                </button>
-              </div>
+              )}
             </div>
           )}
 
@@ -404,6 +543,29 @@ export const TwoFactorSetupModal: React.FC<TwoFactorSetupModalProps> = ({
                   </button>
                 </div>
               </form>
+            </div>
+          )}
+
+          {/* Đã tắt 2FA */}
+          {step === 'disabled' && (
+            <div className='py-8 text-center space-y-5'>
+              <div className='w-16 h-16 rounded-2xl bg-[#FAF8F5] border border-[#E7E7E7] text-[#555555] flex items-center justify-center mx-auto'>
+                <ShieldOff className='w-10 h-10' />
+              </div>
+              <div>
+                <h3 className='text-xl font-bold font-serif text-[#171717]'>Đã tắt 2FA</h3>
+                <p className='text-xs text-[#555555] mt-2 max-w-md mx-auto leading-relaxed'>
+                  Khóa bí mật và mọi thiết bị tin cậy đã bị xóa. Bạn có thể bật lại 2FA bất cứ lúc
+                  nào để thiết lập Authenticator mới.
+                </p>
+              </div>
+              <button
+                type='button'
+                onClick={handleClose}
+                className='bg-[#171717] hover:bg-[#262626] text-white text-xs font-semibold px-8 py-2.5 rounded-lg transition-colors cursor-pointer'
+              >
+                Hoàn tất & Đóng
+              </button>
             </div>
           )}
 

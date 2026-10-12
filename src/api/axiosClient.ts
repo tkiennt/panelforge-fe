@@ -8,7 +8,7 @@ export const REFRESH_TOKEN_KEY = 'refreshToken';
  */
 export function clearLegacyTokens() {
   if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
-    // Tạm thời KHÔNG xoá token trong localStorage vì nếu cookie bị lỗi (CORS, SameSite), 
+    // Tạm thời KHÔNG xoá token trong localStorage vì nếu cookie bị lỗi (CORS, SameSite),
     // chúng ta vẫn cần token làm fallback để tránh bị văng đăng nhập khi tải lại trang.
     // const token = localStorage.getItem('token');
     // if (token && !token.startsWith('mock-')) {
@@ -36,13 +36,19 @@ const axiosClient = axios.create({
 
 // 401 ở các endpoint này là lỗi nghiệp vụ (sai mật khẩu, sai mã...), không phải hết phiên → không refresh / không đăng xuất
 const AUTH_ENDPOINTS =
-  /\/Auth\/(login|register|verify-email|verify-2fa|external-login|forgot-password|reset-password|resend-verification|refresh|logout)/i;
+  /\/Auth\/(login|register|verify-email|verify-2fa|disable-2fa|external-login|forgot-password|reset-password|resend-verification|refresh|logout)/i;
 
 type RetriableConfig = InternalAxiosRequestConfig & { _retry?: boolean };
 
 export function clearSession() {
   clearLegacyTokens();
   if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+    // Phiên đã kết thúc: bỏ cả token fallback trong localStorage (trừ token demo 'mock-...')
+    const token = localStorage.getItem('token');
+    if (token && !token.startsWith('mock-')) {
+      localStorage.removeItem('token');
+    }
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
     localStorage.removeItem('user');
     localStorage.removeItem('userRole');
     localStorage.removeItem('activeWorkspace');

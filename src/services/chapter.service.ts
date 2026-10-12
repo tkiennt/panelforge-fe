@@ -32,6 +32,7 @@ export interface CreateChapterRequest {
   chapterNumber: number;
   title?: string | null;
   targetReleaseDate?: string | null; // YYYY-MM-DD
+  outline?: string | null;
 }
 
 export interface UpdateChapterRequest {

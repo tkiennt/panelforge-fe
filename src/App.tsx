@@ -487,7 +487,7 @@ function AppContent() {
       setIsAuthenticated(false);
       setCurrentRole('USER');
       setCurrentWorkspaceRole(null);
-      showToast('Phiên đăng nhập hết hạn', 'Vui lòng đăng nhập lại.');
+      showToast('Phiên đăng nhập đã kết thúc', 'Vui lòng đăng nhập lại.');
     };
     window.addEventListener('auth:unauthorized', onUnauthorized);
     return () => window.removeEventListener('auth:unauthorized', onUnauthorized);
@@ -846,6 +846,10 @@ function AppContent() {
               // bỏ qua
             }
           }
+        }}
+        onDisabled={() => {
+          showToast('Bảo mật 2FA', 'Đã tắt xác thực 2 lớp cho tài khoản.');
+          setCurrentUserInfo((prev) => (prev ? { ...prev, isTwoFactorEnabled: false } : prev));
         }}
       />
 

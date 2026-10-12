@@ -75,6 +75,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
   const [newChapterNumber, setNewChapterNumber] = useState(1);
   const [newTitle, setNewTitle] = useState('');
   const [newTargetReleaseDate, setNewTargetReleaseDate] = useState('');
+  const [newOutline, setNewOutline] = useState('');
 
   // Edit Chapter Modal/Form State
   const [editingChapter, setEditingChapter] = useState<ChapterDto | null>(null);
@@ -126,6 +127,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
         chapterNumber: Number(newChapterNumber),
         title: newTitle.trim() || undefined,
         targetReleaseDate: newTargetReleaseDate || undefined,
+        outline: newOutline.trim() || undefined,
       };
 
       const created = await chapterService.createChapter(seriesId, payload);
@@ -136,6 +138,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
 
       setNewTitle('');
       setNewTargetReleaseDate('');
+      setNewOutline('');
       setShowAddForm(false);
       await fetchChapters();
     } catch (err: any) {
@@ -449,6 +452,28 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                       className='w-full px-3 py-1.5 bg-white border border-[#E7E7E7] rounded-lg text-xs focus:outline-none focus:border-[#F97316]'
                     />
                   </div>
+                </div>
+
+                <div>
+                  <div className='flex items-center justify-between mb-1'>
+                    <label className='block font-semibold text-[#171717]'>
+                      Đề Cương / Tóm Tắt Chương (Outline)
+                    </label>
+                    <span className='text-[10px] text-[#F97316] font-mono font-medium'>
+                      Đầu vào AI Writer Agent
+                    </span>
+                  </div>
+                  <textarea
+                    rows={3}
+                    value={newOutline}
+                    onChange={(e) => setNewOutline(e.target.value)}
+                    placeholder='Tóm tắt diễn biến, cốt truyện chính và các tình tiết của chương này...'
+                    className='w-full px-3 py-2 bg-white border border-[#E7E7E7] rounded-lg text-xs focus:outline-none focus:border-[#F97316]'
+                  />
+                  <p className='text-[10px] text-[#737373] mt-1'>
+                    Đề cương sẽ được chụp vào snapshot và cung cấp trực tiếp cho AI Writer khi viết
+                    kịch bản phân cảnh.
+                  </p>
                 </div>
 
                 <div className='flex justify-end gap-2 pt-1'>

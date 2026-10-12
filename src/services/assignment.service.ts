@@ -124,6 +124,17 @@ export const assignmentService = {
   },
 
   /**
+   * Producer xoá mềm hoặc huỷ phân công nhiệm vụ (DELETE /api/chapters/{chapterId}/assignments/{assignmentId})
+   */
+  deleteAssignment: async (chapterId: string, assignmentId: string): Promise<void> => {
+    try {
+      await axiosClient.delete(`/chapters/${chapterId}/assignments/${assignmentId}`);
+    } catch (error: any) {
+      throw new Error(extractError(error, 'Không thể huỷ/xoá phân công nhiệm vụ'));
+    }
+  },
+
+  /**
    * Người được giao việc bắt đầu làm (POST /api/chapters/{chapterId}/assignments/{assignmentId}/start)
    * Tạo dòng InProgress trong StageProgress cho các Panel được giao
    */

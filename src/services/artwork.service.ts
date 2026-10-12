@@ -5,10 +5,10 @@ import { AssetReferenceDto, ArtworkAccessLinkDto } from '@/types';
 export async function computeFileSha256(file: File): Promise<string> {
   const raw = await file.arrayBuffer();
   // Sao chép sang ArrayBuffer của realm hiện tại để đảm bảo tương thích tuyệt đối trong cả trình duyệt và JSDOM/Node worker threads
-  const buffer = new ArrayBuffer(raw.byteLength);
-  new Uint8Array(buffer).set(new Uint8Array(raw));
+  const bytes = new Uint8Array(raw.byteLength);
+  bytes.set(new Uint8Array(raw));
 
-  const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', bytes);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
 }
