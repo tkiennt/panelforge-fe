@@ -12,5 +12,5 @@ export interface WorkspaceDto {
   isOwner: boolean;
   currentUserRole?: WorkspaceRole | null;
   memberCount: number;
-  pendingTasks: number;
+  pendingTasks?: number;
 }

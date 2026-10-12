@@ -38,7 +38,6 @@ import { TwoFactorSetupModal } from '@/shared/features/account/TwoFactorSetupMod
 import { ChangePasswordModal } from '@/shared/features/account/ChangePasswordModal';
 import { auth, onAuthStateChanged } from '@/config/firebase';
 import { User } from 'firebase/auth';
-import { SeriesBibleView } from './views/SeriesBibleView';
 
 interface Toast {
   id: string;
