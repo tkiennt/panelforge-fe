@@ -72,6 +72,7 @@ export interface ChapterProgressDto {
   stages: StageBreakdownDto[];
   assignmentsByStatus: Record<string, number>;
   overdueAssignments: number;
+  overdueChangeRequests?: number;
 }
 
 export interface WorkloadDto {
@@ -94,6 +95,17 @@ export interface OverdueAssignmentDto {
   brief: string;
 }
 
+export interface OverdueChangeRequestDto {
+  changeRequestId: string;
+  assignmentId: string;
+  chapterId: string;
+  responsibleUserId: string;
+  responsibleUserName: string;
+  status: string;
+  dueDate: string;
+  description: string;
+}
+
 export interface BurndownPointDto {
   date: string;
   remaining: number;
@@ -105,6 +117,7 @@ export interface SeriesProgressDto {
   chapters: ChapterProgressDto[];
   workload: WorkloadDto[];
   overdue: OverdueAssignmentDto[];
+  overdueChangeRequests?: OverdueChangeRequestDto[];
   burndown: BurndownPointDto[];
 }
 

@@ -275,6 +275,8 @@ export type NotificationType =
   | 'ChapterPublished'
   | 'AssignmentDueSoon'
   | 'AssignmentOverdue'
+  | 'ChangeRequestDueSoon'
+  | 'ChangeRequestOverdue'
   | string;
 
 export interface NotificationDto {

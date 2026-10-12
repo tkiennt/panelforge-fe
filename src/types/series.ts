@@ -28,6 +28,7 @@ export type {
   ChapterProgressDto,
   WorkloadDto,
   OverdueAssignmentDto,
+  OverdueChangeRequestDto,
   BurndownPointDto,
   SeriesProgressDto,
 } from '@/services/series.service';
