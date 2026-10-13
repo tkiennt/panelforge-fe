@@ -34,6 +34,7 @@ import {
   UpdateScriptLineRequest,
   CreateSceneRequest,
   UpdateSceneRequest,
+  NarrationMode,
 } from '@/services/scriptLine.service';
 import { chapterService, ChapterDto } from '@/services/chapter.service';
 import { bibleService, BibleEntryDto } from '@/services/bible.service';
@@ -83,6 +84,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   const [sceneNumberInput, setSceneNumberInput] = useState<number>(1);
   const [sceneHeadingInput, setSceneHeadingInput] = useState<string>('');
   const [sceneSummaryInput, setSceneSummaryInput] = useState<string>('');
+  const [sceneDefaultNarrationMode, setSceneDefaultNarrationMode] = useState<NarrationMode>('Present');
 
   const [lineModalOpen, setLineModalOpen] = useState(false);
   const [editingLine, setEditingLine] = useState<SceneScriptLineSummaryDto | null>(null);
@@ -91,6 +93,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   const [lineStageDirection, setLineStageDirection] = useState<string>('');
   const [lineOrderInput, setLineOrderInput] = useState<number>(1);
   const [lineBibleEntryIds, setLineBibleEntryIds] = useState<string[]>([]);
+  const [lineNarrationMode, setLineNarrationMode] = useState<NarrationMode>('Present');
 
   // State Story Arc (Series) & Outline (Chapter)
   const [seriesDetail, setSeriesDetail] = useState<SeriesDetailDto | null>(null);
@@ -355,6 +358,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     setSceneNumberInput(scenes.length + 1);
     setSceneHeadingInput('');
     setSceneSummaryInput('');
+    setSceneDefaultNarrationMode('Present');
     setSceneModalOpen(true);
   };
 
@@ -364,6 +368,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     setSceneNumberInput(selectedScene.sceneNumber);
     setSceneHeadingInput(selectedScene.heading || '');
     setSceneSummaryInput(selectedScene.summary || '');
+    setSceneDefaultNarrationMode(selectedScene.defaultNarrationMode || 'Present');
     setSceneModalOpen(true);
   };
 
@@ -376,6 +381,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         const req: UpdateSceneRequest = {
           heading: sceneHeadingInput.trim() || null,
           summary: sceneSummaryInput.trim() || null,
+          defaultNarrationMode: sceneDefaultNarrationMode,
         };
         const updated = await scriptLineService.updateScene(selectedScene.id, req);
         notify('Thành công', `Đã cập nhật Phân cảnh ${updated.sceneNumber}`);
@@ -387,6 +393,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           sceneNumber: sceneNumberInput,
           heading: sceneHeadingInput.trim() || null,
           summary: sceneSummaryInput.trim() || null,
+          defaultNarrationMode: sceneDefaultNarrationMode,
         };
         const created = await scriptLineService.createScene(currentChapter.id, req);
         notify('Thành công', `Đã tạo Phân cảnh ${created.sceneNumber}`);
@@ -426,6 +433,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     setLineDialogue('');
     setLineStageDirection('');
     setLineBibleEntryIds([]);
+    setLineNarrationMode(selectedScene?.defaultNarrationMode || 'Present');
     const nextOrder =
       selectedScene && selectedScene.scriptLines && selectedScene.scriptLines.length > 0
         ? Math.max(...selectedScene.scriptLines.map((l) => l.lineOrder)) + 1
@@ -440,6 +448,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     setLineDialogue(line.dialogueText || '');
     setLineStageDirection(line.stageDirection || '');
     setLineBibleEntryIds(line.bibleEntryIds || []);
+    setLineNarrationMode(line.narrationMode || selectedScene?.defaultNarrationMode || 'Present');
     setLineOrderInput(line.lineOrder);
     setLineModalOpen(true);
   };
@@ -467,6 +476,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           speakerCharacterId: lineSpeakerId || null,
           expectedChapterVersion: expectedVersion,
           bibleEntryIds: lineBibleEntryIds,
+          narrationMode: lineNarrationMode,
         };
         const res = await scriptLineService.updateScriptLine(
           currentChapter.id,
@@ -495,6 +505,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           expectedChapterVersion: expectedVersion,
           bibleEntryIds: lineBibleEntryIds.length > 0 ? lineBibleEntryIds : null,
           clientLineId,
+          narrationMode: lineNarrationMode,
         };
         const res = await scriptLineService.createScriptLine(
           currentChapter.id,
@@ -1195,6 +1206,20 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                                 <span>Panel</span>
                               </span>
                             )}
+                            {line.narrationMode && line.narrationMode !== 'Present' && (
+                              <span
+                                data-testid={`narration-mode-badge-${line.id}`}
+                                className='text-[10px] font-semibold text-purple-700 bg-purple-100 border border-purple-200 px-2 py-0.5 rounded-full flex items-center gap-1'
+                                title={`Ngoại lệ trần thuật: ${line.narrationMode}`}
+                              >
+                                {line.narrationMode === 'Flashback' && '⏪ Hồi tưởng'}
+                                {line.narrationMode === 'Dream' && '💭 Giấc mơ'}
+                                {line.narrationMode === 'Imagination' && '✨ Tưởng tượng'}
+                                {line.narrationMode === 'Lie' && '🤥 Nói dối'}
+                                {line.narrationMode === 'Rumor' && '🗣️ Tin đồn'}
+                                {line.narrationMode === 'UnreliableNarrator' && '🎭 Không đáng tin'}
+                              </span>
+                            )}
                           </div>
 
                           {canEditScript && !isChapterLocked && (
@@ -1440,6 +1465,30 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                 />
               </div>
 
+              <div>
+                <label className='block text-xs font-semibold text-zinc-700 mb-1 flex items-center gap-1.5'>
+                  <Compass className='w-3.5 h-3.5 text-orange-600' />
+                  <span>Chế độ kể chuyện mặc định (Default Narration Mode)</span>
+                </label>
+                <select
+                  data-testid='scene-default-narration-mode-select'
+                  value={sceneDefaultNarrationMode}
+                  onChange={(e) => setSceneDefaultNarrationMode(e.target.value as NarrationMode)}
+                  className='w-full px-3 py-2 text-xs border border-[#E7E7E7] rounded-xl outline-none focus:border-orange-500 bg-white'
+                >
+                  <option value='Present'>Hiện tại / Mặc định (Present)</option>
+                  <option value='Flashback'>Hồi tưởng (Flashback)</option>
+                  <option value='Dream'>Giấc mơ (Dream)</option>
+                  <option value='Imagination'>Tưởng tượng (Imagination)</option>
+                  <option value='Lie'>Lời nói dối (Lie)</option>
+                  <option value='Rumor'>Tin đồn (Rumor)</option>
+                  <option value='UnreliableNarrator'>Người kể không đáng tin (Unreliable Narrator)</option>
+                </select>
+                <p className='text-[10px] text-zinc-400 mt-1'>
+                  Các dòng kịch bản mới thêm vào phân cảnh này sẽ tự động kế thừa chế độ kể chuyện tương ứng.
+                </p>
+              </div>
+
               <div className='flex justify-end gap-2 pt-2 border-t border-[#E7E7E7]'>
                 <button
                   type='button'
@@ -1592,6 +1641,36 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                     </div>
                   )}
                 </div>
+              </div>
+
+              {/* Ngoại lệ trần thuật (Narration Mode) */}
+              <div>
+                <label className='block text-xs font-semibold text-zinc-700 mb-1 flex items-center justify-between'>
+                  <div className='flex items-center gap-1.5'>
+                    <Compass className='w-3.5 h-3.5 text-purple-600' />
+                    <span>Ngoại lệ trần thuật (Narration Mode)</span>
+                  </div>
+                  <span className='text-[10px] text-zinc-400 font-normal'>
+                    Bỏ qua báo sai
+                  </span>
+                </label>
+                <select
+                  data-testid='line-narration-mode-select'
+                  value={lineNarrationMode}
+                  onChange={(e) => setLineNarrationMode(e.target.value as NarrationMode)}
+                  className='w-full px-3 py-2 text-xs border border-[#E7E7E7] rounded-xl outline-none focus:border-purple-500 bg-white'
+                >
+                  <option value='Present'>Hiện tại / Mặc định (Present - Kiểm tra toàn bộ)</option>
+                  <option value='Flashback'>Hồi tưởng (Flashback - Cho phép nhân vật đã mất phát biểu)</option>
+                  <option value='Dream'>Giấc mơ (Dream - Cho phép phi thực tế, bỏ qua đạo cụ/bí mật)</option>
+                  <option value='Imagination'>Tưởng tượng (Imagination - Bỏ qua ràng buộc canon)</option>
+                  <option value='Lie'>Lời nói dối (Lie - Cho phép nói sai lệch bí mật chưa tiết lộ)</option>
+                  <option value='Rumor'>Tin đồn (Rumor - Cho phép thông tin truyền miệng chưa xác nhận)</option>
+                  <option value='UnreliableNarrator'>Người kể không đáng tin (Hạ cảnh báo xuống Warning)</option>
+                </select>
+                <p className='text-[10px] text-zinc-400 mt-1'>
+                  * Chọn ngoại lệ có chủ ý để hệ thống Kiểm tra Nhất quán không báo lỗi sai (False Positives).
+                </p>
               </div>
 
               {/* Vị trí chèn nếu tạo mới */}
