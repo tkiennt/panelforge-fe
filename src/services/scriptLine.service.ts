@@ -1,6 +1,15 @@
 // src/services/scriptLine.service.ts
 import axiosClient from '../api/axiosClient';
 
+export type NarrationMode =
+  | 'Present'
+  | 'Flashback'
+  | 'Dream'
+  | 'Imagination'
+  | 'Lie'
+  | 'Rumor'
+  | 'UnreliableNarrator';
+
 export interface SceneDto {
   id: string;
   chapterId: string;
@@ -12,6 +21,7 @@ export interface SceneDto {
   createdBy?: string | null;
   scriptLinesCount: number;
   pagesCount: number;
+  defaultNarrationMode?: NarrationMode;
 }
 
 export interface SceneScriptLineSummaryDto {
@@ -22,6 +32,7 @@ export interface SceneScriptLineSummaryDto {
   speakerCharacterId?: string | null;
   panelId?: string | null;
   bibleEntryIds?: string[];
+  narrationMode?: NarrationMode;
 }
 
 export interface SceneDetailDto {
@@ -34,6 +45,7 @@ export interface SceneDetailDto {
   updatedAt?: string | null;
   createdBy?: string | null;
   scriptLines: SceneScriptLineSummaryDto[];
+  defaultNarrationMode?: NarrationMode;
 }
 
 export interface ScriptLineDto {
@@ -48,17 +60,20 @@ export interface ScriptLineDto {
   revisionId: string;
   bibleEntryIds?: string[];
   replayed?: boolean;
+  narrationMode?: NarrationMode;
 }
 
 export interface CreateSceneRequest {
   sceneNumber?: number | null;
   heading?: string | null;
   summary?: string | null;
+  defaultNarrationMode?: NarrationMode | null;
 }
 
 export interface UpdateSceneRequest {
   heading?: string | null;
   summary?: string | null;
+  defaultNarrationMode?: NarrationMode | null;
 }
 
 export interface ReorderSceneItem {
@@ -74,6 +89,7 @@ export interface CreateScriptLineRequest {
   expectedChapterVersion?: number | null;
   bibleEntryIds?: string[] | null;
   clientLineId?: string | null;
+  narrationMode?: NarrationMode | null;
 }
 
 export interface UpdateScriptLineRequest {
@@ -82,6 +98,7 @@ export interface UpdateScriptLineRequest {
   speakerCharacterId?: string | null;
   expectedChapterVersion?: number | null;
   bibleEntryIds?: string[] | null;
+  narrationMode?: NarrationMode | null;
 }
 
 export interface DeleteScriptLineResult {
@@ -225,6 +242,26 @@ export const scriptLineService = {
       return response.data;
     } catch (error) {
       throw extractError(error, 'Không thể xoá dòng kịch bản.');
+    }
+  },
+
+  /**
+   * Cập nhật thứ tự các dòng kịch bản trong phân cảnh (PUT /api/chapters/{chapterId}/scenes/{sceneId}/script-lines/reorder)
+   */
+  async reorderScriptLines(
+    chapterId: string,
+    sceneId: string,
+    lines: { lineId: string; newOrder: number }[],
+    expectedChapterVersion?: number | null,
+  ): Promise<{ message: string }> {
+    try {
+      const response = await axiosClient.put(
+        `/chapters/${chapterId}/scenes/${sceneId}/script-lines/reorder`,
+        { lines, expectedChapterVersion },
+      );
+      return response.data;
+    } catch (error) {
+      throw extractError(error, 'Không thể sắp xếp lại dòng kịch bản.');
     }
   },
 };

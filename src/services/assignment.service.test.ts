@@ -34,6 +34,33 @@ describe('assignmentService', () => {
     expect(result).toEqual([]);
   });
 
+  it('getMyWorkspaceAssignments gọi GET /workspaces/{id}/my-assignments thành công', async () => {
+    const mockList = [
+      {
+        id: 'asg-1',
+        seriesId: 'ser-1',
+        seriesTitle: 'Đại Chiến',
+        chapterId: 'chap-1',
+        chapterNumber: 1,
+        brief: 'Vẽ Lineart',
+        status: 'InProgress',
+      },
+    ];
+    vi.mocked(axiosClient.get).mockResolvedValueOnce({ data: mockList });
+
+    const result = await assignmentService.getMyWorkspaceAssignments('ws-1', { seriesId: 'ser-1' });
+    expect(axiosClient.get).toHaveBeenCalledWith('/workspaces/ws-1/my-assignments', {
+      params: { seriesId: 'ser-1' },
+    });
+    expect(result).toEqual(mockList);
+  });
+
+  it('getMyWorkspaceAssignments trả về mảng rỗng khi API lỗi', async () => {
+    vi.mocked(axiosClient.get).mockRejectedValueOnce(new Error('Network error'));
+    const result = await assignmentService.getMyWorkspaceAssignments('ws-1');
+    expect(result).toEqual([]);
+  });
+
   it('createAssignment gọi POST và trả về assignment mới', async () => {
     const req = {
       entityType: 'Page' as const,
@@ -189,5 +216,43 @@ describe('assignmentService', () => {
 
     const msg = extractError(errorRoleMismatch, 'Lỗi mặc định');
     expect(msg).toBe("Stage 'Script' dành cho vai trò Writer, người nhận là Artist.");
+  });
+
+  it('getVisualConsistencyReport gọi GET /visual-consistency-report với threshold', async () => {
+    const mockReport = {
+      chapterId: 'chap-1',
+      threshold: 0.75,
+      totalEvaluated: 4,
+      passedCount: 3,
+      deviationCount: 1,
+      blockingDeviationCount: 0,
+      deviations: [],
+    };
+    vi.mocked(axiosClient.get).mockResolvedValueOnce({ data: mockReport });
+
+    const result = await assignmentService.getVisualConsistencyReport('chap-1', 0.8);
+    expect(axiosClient.get).toHaveBeenCalledWith('/chapters/chap-1/visual-consistency-report', {
+      params: { threshold: 0.8 },
+    });
+    expect(result).toEqual(mockReport);
+  });
+
+  it('runVisualConsistencyCheck gọi POST /visual-consistency-check thành công', async () => {
+    const mockReport = {
+      chapterId: 'chap-1',
+      threshold: 0.75,
+      totalEvaluated: 2,
+      passedCount: 1,
+      deviationCount: 1,
+      blockingDeviationCount: 1,
+      deviations: [],
+    };
+    vi.mocked(axiosClient.post).mockResolvedValueOnce({ data: mockReport });
+
+    const result = await assignmentService.runVisualConsistencyCheck('chap-1', 0.75);
+    expect(axiosClient.post).toHaveBeenCalledWith('/chapters/chap-1/visual-consistency-check', {
+      threshold: 0.75,
+    });
+    expect(result).toEqual(mockReport);
   });
 });

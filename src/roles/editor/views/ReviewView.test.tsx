@@ -42,6 +42,8 @@ vi.mock('@/services/assignment.service', () => ({
     reopenChangeRequest: vi.fn(),
     runConsistencyCheck: vi.fn(),
     triageConsistencyFinding: vi.fn(),
+    getVisualConsistencyReport: vi.fn(),
+    runVisualConsistencyCheck: vi.fn(),
   },
 }));
 
@@ -134,6 +136,8 @@ describe('ReviewView (CF3: duyệt, khoanh vùng, nhất quán)', () => {
       expiresAtUtc: '2026-10-08T01:00:00Z',
     }));
     vi.mocked(assignmentService.requestChanges).mockResolvedValue(assignment as any);
+    vi.mocked(assignmentService.getVisualConsistencyReport).mockResolvedValue(null as any);
+    vi.mocked(assignmentService.runVisualConsistencyCheck).mockResolvedValue(null as any);
   });
 
   it('so sánh đúng bản được nộp: lần nộp 2 (v2) với lần nộp 1 (v1), bỏ qua v3 tải sau khi nộp', async () => {
@@ -622,5 +626,137 @@ describe('ReviewView (CF3: duyệt, khoanh vùng, nhất quán)', () => {
         ],
       }),
     );
+  });
+
+  it('tab Hình ảnh: hiển thị báo cáo nhất quán hình ảnh, so sánh sheet và artwork, gauge độ tương đồng', async () => {
+    const user = userEvent.setup();
+    const mockReport = {
+      chapterId: 'c1',
+      chapterNumber: 1,
+      chapterTitle: 'Chương 1',
+      checkedAt: '2026-10-13T00:00:00Z',
+      threshold: 0.75,
+      totalEvaluated: 2,
+      passedCount: 1,
+      deviationCount: 1,
+      openDeviationCount: 1,
+      blockingDeviationCount: 0,
+      deviations: [
+        {
+          findingId: 'vf1',
+          chapterId: 'c1',
+          characterId: 'char-1',
+          characterName: 'Alex Mercer',
+          characterSheetVersion: 1,
+          characterSheetImageUrl: '/bible/alex.png',
+          pageId: 'p1',
+          pageNumber: 1,
+          panelId: 'panel-1',
+          panelNumber: 1,
+          assetReferenceId: 'r1',
+          artworkUrl: '/artwork/p1.png',
+          similarityScore: 0.68,
+          threshold: 0.75,
+          isDeviation: true,
+          severity: 'Warning',
+          message: 'Alex Mercer có độ lệch hình ảnh so với Character Sheet khóa: 0.68 dưới ngưỡng 0.75',
+          status: 'Open',
+          detectedAt: '2026-10-13T00:00:00Z',
+        },
+      ],
+    };
+    vi.mocked(assignmentService.getVisualConsistencyReport).mockResolvedValue(mockReport as any);
+
+    renderView();
+
+    // Click tab Hình ảnh
+    const visualTab = await screen.findByRole('tab', { name: /Hình ảnh/ });
+    await user.click(visualTab);
+
+    // Báo cáo tổng quan
+    expect(await screen.findByText(/Báo cáo hình ảnh/i)).toBeInTheDocument();
+    expect(screen.getByText('Alex Mercer')).toBeInTheDocument();
+    expect(screen.getByText(/68% \/ Ngưỡng 75%/i)).toBeInTheDocument();
+    expect(screen.getByText(/Sheet khóa \(v1\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/Artwork nộp/i)).toBeInTheDocument();
+  });
+
+  it('tab Hình ảnh: chạy kiểm tra và triage từng độ lệch (Confirmed & Ignored có note)', async () => {
+    const user = userEvent.setup();
+    const mockReport = {
+      chapterId: 'c1',
+      chapterNumber: 1,
+      chapterTitle: 'Chương 1',
+      checkedAt: '2026-10-13T00:00:00Z',
+      threshold: 0.75,
+      totalEvaluated: 1,
+      passedCount: 0,
+      deviationCount: 1,
+      openDeviationCount: 1,
+      blockingDeviationCount: 1,
+      deviations: [
+        {
+          findingId: 'vf-block',
+          chapterId: 'c1',
+          characterId: 'char-2',
+          characterName: 'Elena Rostova',
+          characterSheetVersion: 2,
+          characterSheetImageUrl: '/bible/elena.png',
+          pageId: 'p1',
+          pageNumber: 1,
+          panelId: 'panel-2',
+          panelNumber: 2,
+          assetReferenceId: 'r2',
+          artworkUrl: '/artwork/p2.png',
+          similarityScore: 0.45,
+          threshold: 0.75,
+          isDeviation: true,
+          severity: 'Blocking',
+          message: 'Elena Rostova sai trang phục và màu mắt nghiêm trọng',
+          status: 'Open',
+          detectedAt: '2026-10-13T00:00:00Z',
+        },
+      ],
+    };
+
+    vi.mocked(assignmentService.runVisualConsistencyCheck).mockResolvedValue(mockReport as any);
+    vi.mocked(assignmentService.getVisualConsistencyReport).mockResolvedValue(mockReport as any);
+    vi.mocked(assignmentService.triageConsistencyFinding).mockResolvedValue({} as any);
+
+    renderView();
+
+    // Chuyển sang tab Hình ảnh
+    await user.click(await screen.findByRole('tab', { name: /Hình ảnh/ }));
+
+    // Bấm Chạy kiểm tra nhất quán hình ảnh
+    const runBtn = screen.getByRole('button', { name: /Chạy kiểm tra nhất quán hình ảnh/i });
+    await user.click(runBtn);
+
+    expect(assignmentService.runVisualConsistencyCheck).toHaveBeenCalledWith('c1', 0.75);
+
+    // Triage Confirmed
+    const confirmBtn = await screen.findByRole('button', { name: /Xác nhận là lỗi/i });
+    await user.click(confirmBtn);
+
+    expect(assignmentService.triageConsistencyFinding).toHaveBeenCalledWith(
+      'c1',
+      'vf-block',
+      'Confirmed',
+      undefined,
+    );
+
+    // Triage Ignored với note
+    const promptSpy = vi.spyOn(window, 'prompt').mockReturnValue('Trang phục biến hình theo cốt truyện');
+    const ignoreBtn = screen.getByRole('button', { name: /Bỏ qua \(cần lý do\)/i });
+    await user.click(ignoreBtn);
+
+    expect(promptSpy).toHaveBeenCalled();
+    expect(assignmentService.triageConsistencyFinding).toHaveBeenCalledWith(
+      'c1',
+      'vf-block',
+      'Ignored',
+      'Trang phục biến hình theo cốt truyện',
+    );
+    promptSpy.mockRestore();
   });
 });

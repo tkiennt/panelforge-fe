@@ -104,11 +104,21 @@ export interface AssignmentDto {
   priority: AssignmentPriority;
   status: AssignmentStatus;
   dependsOnAssignmentId?: string | null;
+  dependsOnAssignmentIds?: string[];
   startedAt?: string | null;
   completedAt?: string | null;
   lastFeedbackComment?: string | null;
   createdAt: string;
   updatedAt?: string | null;
+}
+
+export interface WorkspaceAssignmentDto extends AssignmentDto {
+  seriesTitle: string;
+  chapterNumber: number;
+  chapterTitle?: string | null;
+  stageName: string;
+  stageOrder: number;
+  stageColorCode?: string | null;
 }
 
 export interface CreateAssignmentRequest {
@@ -121,6 +131,7 @@ export interface CreateAssignmentRequest {
   dueDate?: string | null;
   priority?: AssignmentPriority;
   dependsOnAssignmentId?: string | null;
+  dependsOnAssignmentIds?: string[];
 }
 
 export interface UpdateAssignmentRequest {
@@ -130,6 +141,7 @@ export interface UpdateAssignmentRequest {
   priority: AssignmentPriority;
   assigneeUserId: string;
   dependsOnAssignmentId?: string | null;
+  dependsOnAssignmentIds?: string[];
 }
 
 export type StageProgressStatus =
@@ -263,6 +275,8 @@ export type NotificationType =
   | 'ChapterPublished'
   | 'AssignmentDueSoon'
   | 'AssignmentOverdue'
+  | 'ChangeRequestDueSoon'
+  | 'ChangeRequestOverdue'
   | string;
 
 export interface NotificationDto {
@@ -357,3 +371,44 @@ export interface ConsistencyCheckResultDto {
   clearedCount: number;
   findings: ConsistencyFindingDto[];
 }
+
+export interface VisualDeviationDto {
+  findingId: string;
+  chapterId: string;
+  characterId: string;
+  characterName: string;
+  characterSheetVersion?: number | null;
+  characterSheetImageUrl?: string | null;
+  pageId?: string | null;
+  pageNumber?: number | null;
+  panelId?: string | null;
+  panelNumber?: number | null;
+  assetReferenceId?: string | null;
+  artworkUrl?: string | null;
+  similarityScore: number;
+  threshold: number;
+  isDeviation: boolean;
+  severity: ConsistencyFindingSeverity;
+  message: string;
+  status: ConsistencyFindingStatus;
+  triageNote?: string | null;
+  triagedByUserId?: string | null;
+  triagedByUserName?: string | null;
+  triagedAt?: string | null;
+  detectedAt: string;
+}
+
+export interface VisualConsistencyReportDto {
+  chapterId: string;
+  chapterNumber: number;
+  chapterTitle: string;
+  checkedAt: string;
+  threshold: number;
+  totalEvaluated: number;
+  passedCount: number;
+  deviationCount: number;
+  openDeviationCount: number;
+  blockingDeviationCount: number;
+  deviations: VisualDeviationDto[];
+}
+
