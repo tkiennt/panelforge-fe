@@ -102,6 +102,21 @@ describe('previewLinkService', () => {
       );
       expect(res).toEqual(mockUpdated);
     });
+
+    it('createChangeRequestFromFeedback gửi việc được chọn tới endpoint change-request', async () => {
+      const mockUpdated = { id: 'fb-2', status: 'NeedsChange', changeRequestId: 'cr-1' };
+      (axiosClient.post as any).mockResolvedValue({ data: mockUpdated });
+
+      const res = await previewLinkService.createChangeRequestFromFeedback('chap-123', 'fb-2', {
+        assignmentId: 'a-1',
+      });
+
+      expect(axiosClient.post).toHaveBeenCalledWith(
+        '/chapters/chap-123/preview-feedback/fb-2/change-request',
+        { assignmentId: 'a-1' },
+      );
+      expect(res.changeRequestId).toBe('cr-1');
+    });
   });
 
   describe('Anonymous Reader Operations (AllowAnonymous, NO Bearer)', () => {

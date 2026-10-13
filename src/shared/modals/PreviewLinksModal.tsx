@@ -23,6 +23,8 @@ import {
   PreviewFeedbackDto,
   PreviewFeedbackStatus,
 } from '@/services/previewLink.service';
+import { assignmentService } from '@/services/assignment.service';
+import type { AssignmentDto } from '@/types/pipeline';
 import { WorkspaceRole } from '@/types';
 
 export interface PreviewLinksModalProps {
@@ -67,6 +69,12 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
   const [triageNotes, setTriageNotes] = useState<Record<string, string>>({});
   const [triagingId, setTriagingId] = useState<string | null>(null);
 
+  // 5.7: phản hồi NeedsChange → yêu cầu sửa của một việc (sau khi chương mở lại)
+  const [assignments, setAssignments] = useState<AssignmentDto[]>([]);
+  const [crAssignment, setCrAssignment] = useState<Record<string, string>>({});
+  const [creatingCrId, setCreatingCrId] = useState<string | null>(null);
+  const isInProduction = chapterStatus === 'InProduction';
+
   const fetchLinks = useCallback(async () => {
     if (!chapterId) return;
     setLoadingLinks(true);
@@ -100,6 +108,12 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
       fetchFeedback();
     }
   }, [isOpen, fetchLinks, fetchFeedback]);
+
+  useEffect(() => {
+    if (isOpen && isInProduction && chapterId) {
+      assignmentService.getAssignments(chapterId).then(setAssignments);
+    }
+  }, [isOpen, isInProduction, chapterId]);
 
   if (!isOpen) return null;
 
@@ -188,6 +202,38 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
       setTriagingId(null);
     }
   };
+
+  const handleCreateChangeRequest = async (feedbackId: string, assignmentId: string) => {
+    setCreatingCrId(feedbackId);
+    try {
+      const updated = await previewLinkService.createChangeRequestFromFeedback(
+        chapterId,
+        feedbackId,
+        { assignmentId },
+      );
+      setFeedbacks((prev) => prev.map((f) => (f.id === feedbackId ? updated : f)));
+      assignmentService.getAssignments(chapterId).then(setAssignments);
+      onShowToast?.(
+        'Đã tạo yêu cầu sửa',
+        'Việc được chọn đã nhận yêu cầu sửa; người làm đã được thông báo.',
+      );
+    } catch (err: any) {
+      onShowToast?.(
+        'Không tạo được yêu cầu sửa',
+        err?.response?.data?.error || 'Vui lòng thử lại.',
+      );
+    } finally {
+      setCreatingCrId(null);
+    }
+  };
+
+  /** Việc gắn đúng trang/khung của phản hồi lên đầu danh sách chọn. */
+  const assignmentOptions = (fb: PreviewFeedbackDto) =>
+    [...assignments].sort(
+      (a, b) =>
+        Number([fb.panelId, fb.pageId].includes(b.targetEntityId)) -
+        Number([fb.panelId, fb.pageId].includes(a.targetEntityId)),
+    );
 
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
 
@@ -631,68 +677,132 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
                           </div>
                         )}
 
-                        {/* Triage Actions Form */}
-                        <div className='pt-2 border-t border-[#E7E7E7] flex flex-col sm:flex-row items-stretch sm:items-center gap-2'>
-                          <input
-                            type='text'
-                            value={noteValue}
-                            onChange={(e) =>
-                              setTriageNotes((prev) => ({ ...prev, [fb.id]: e.target.value }))
-                            }
-                            placeholder={
-                              fb.status === 'NeedsChange'
-                                ? 'Nhập ghi chú / lý do sửa đổi (Bắt buộc)...'
-                                : 'Nhập ghi chú xử lý (tuỳ chọn)...'
-                            }
-                            className='flex-1 px-3 py-1.5 bg-white border border-[#E7E7E7] rounded-lg text-xs focus:outline-none focus:border-[#F97316]'
-                            data-testid={`triage-note-input-${fb.id}`}
-                          />
-
-                          <div className='flex items-center gap-1.5 shrink-0'>
-                            <button
-                              type='button'
-                              disabled={isTriaging}
-                              onClick={() => handleTriage(fb.id, 'Noted')}
-                              className='px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 font-semibold text-xs transition-colors cursor-pointer disabled:opacity-50'
-                              data-testid={`triage-noted-btn-${fb.id}`}
-                            >
-                              Ghi nhận (Noted)
-                            </button>
-
-                            <button
-                              type='button'
-                              disabled={isTriaging || !noteValue.trim()}
-                              onClick={() => handleTriage(fb.id, 'NeedsChange')}
-                              className='px-3 py-1.5 rounded-lg bg-orange-50 hover:bg-orange-100 border border-orange-300 text-orange-800 font-semibold text-xs transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed'
-                              title={
-                                !noteValue.trim()
-                                  ? 'NeedsChange bắt buộc phải nhập ghi chú'
-                                  : 'Đánh dấu cần sửa đổi'
-                              }
-                              data-testid={`triage-needschange-btn-${fb.id}`}
-                            >
-                              Cần sửa (NeedsChange)
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Gợi ý mở lại chương khi phản hồi là NeedsChange */}
-                        {(fb.status === 'NeedsChange' || noteValue) && onReopenChapter && (
-                          <div className='p-2.5 bg-amber-50/70 border border-amber-200 rounded-lg flex items-center justify-between gap-3 text-amber-900'>
-                            <span className='text-[11px]'>
-                              💡 Phản hồi này yêu cầu sửa đổi. Bạn có thể mở lại chương để chuyển về
-                              sản xuất:
+                        {/* Đã thành yêu cầu sửa: không phân loại lại được (BE trả 409) */}
+                        {fb.changeRequestId && (
+                          <div
+                            className='pt-2 border-t border-[#E7E7E7] flex items-center gap-1.5 text-[11px] text-emerald-800'
+                            data-testid={`feedback-cr-linked-${fb.id}`}
+                          >
+                            <CheckCircle2 className='w-3.5 h-3.5 text-emerald-600' />
+                            <span>
+                              Đã chuyển thành yêu cầu sửa. Theo dõi tiến độ ở danh sách Yêu cầu sửa
+                              của chương.
                             </span>
+                          </div>
+                        )}
+
+                        {/* Triage Actions Form */}
+                        {!fb.changeRequestId && (
+                          <div className='pt-2 border-t border-[#E7E7E7] flex flex-col sm:flex-row items-stretch sm:items-center gap-2'>
+                            <input
+                              type='text'
+                              value={noteValue}
+                              onChange={(e) =>
+                                setTriageNotes((prev) => ({ ...prev, [fb.id]: e.target.value }))
+                              }
+                              placeholder={
+                                fb.status === 'NeedsChange'
+                                  ? 'Nhập ghi chú / lý do sửa đổi (Bắt buộc)...'
+                                  : 'Nhập ghi chú xử lý (tuỳ chọn)...'
+                              }
+                              className='flex-1 px-3 py-1.5 bg-white border border-[#E7E7E7] rounded-lg text-xs focus:outline-none focus:border-[#F97316]'
+                              data-testid={`triage-note-input-${fb.id}`}
+                            />
+
+                            <div className='flex items-center gap-1.5 shrink-0'>
+                              <button
+                                type='button'
+                                disabled={isTriaging}
+                                onClick={() => handleTriage(fb.id, 'Noted')}
+                                className='px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 font-semibold text-xs transition-colors cursor-pointer disabled:opacity-50'
+                                data-testid={`triage-noted-btn-${fb.id}`}
+                              >
+                                Ghi nhận (Noted)
+                              </button>
+
+                              <button
+                                type='button'
+                                disabled={isTriaging || !noteValue.trim()}
+                                onClick={() => handleTriage(fb.id, 'NeedsChange')}
+                                className='px-3 py-1.5 rounded-lg bg-orange-50 hover:bg-orange-100 border border-orange-300 text-orange-800 font-semibold text-xs transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed'
+                                title={
+                                  !noteValue.trim()
+                                    ? 'NeedsChange bắt buộc phải nhập ghi chú'
+                                    : 'Đánh dấu cần sửa đổi'
+                                }
+                                data-testid={`triage-needschange-btn-${fb.id}`}
+                              >
+                                Cần sửa (NeedsChange)
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Gợi ý mở lại chương khi phản hồi là NeedsChange (chỉ chương Approved mới mở lại được) */}
+                        {!fb.changeRequestId &&
+                          (fb.status === 'NeedsChange' || noteValue) &&
+                          isApproved &&
+                          onReopenChapter && (
+                            <div className='p-2.5 bg-amber-50/70 border border-amber-200 rounded-lg flex items-center justify-between gap-3 text-amber-900'>
+                              <span className='text-[11px]'>
+                                💡 Phản hồi này yêu cầu sửa đổi. Bạn có thể mở lại chương để chuyển
+                                về sản xuất:
+                              </span>
+                              <button
+                                type='button'
+                                onClick={() =>
+                                  onReopenChapter(fb.triageNote || noteValue || fb.message)
+                                }
+                                className='px-3 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs flex items-center gap-1 shrink-0 transition-colors cursor-pointer shadow-2xs'
+                                data-testid={`reopen-chapter-from-feedback-btn-${fb.id}`}
+                              >
+                                <RotateCcw className='w-3.5 h-3.5' />
+                                <span>Mở lại chương</span>
+                              </button>
+                            </div>
+                          )}
+
+                        {/* 5.7: chương đã mở lại → chuyển phản hồi thành yêu cầu sửa của một việc */}
+                        {!fb.changeRequestId && fb.status === 'NeedsChange' && isInProduction && (
+                          <div className='p-2.5 bg-orange-50/70 border border-orange-200 rounded-lg flex flex-col sm:flex-row sm:items-center gap-2 text-orange-950'>
+                            <label
+                              htmlFor={`cr-assignment-${fb.id}`}
+                              className='text-[11px] shrink-0'
+                            >
+                              Giao sửa cho việc:
+                            </label>
+                            <select
+                              id={`cr-assignment-${fb.id}`}
+                              value={crAssignment[fb.id] || ''}
+                              onChange={(e) =>
+                                setCrAssignment((prev) => ({ ...prev, [fb.id]: e.target.value }))
+                              }
+                              className='flex-1 min-w-0 px-2 py-1.5 bg-white border border-orange-200 rounded-lg text-xs focus:outline-none focus:border-[#F97316]'
+                              data-testid={`cr-assignment-select-${fb.id}`}
+                            >
+                              <option value=''>-- Chọn việc cần sửa --</option>
+                              {assignmentOptions(fb).map((a) => {
+                                const waiting =
+                                  a.status === 'Submitted' || a.status === 'UnderReview';
+                                return (
+                                  <option key={a.id} value={a.id} disabled={waiting}>
+                                    {a.assignedRole} · {a.brief.slice(0, 60)} (
+                                    {waiting ? 'đang chờ duyệt' : a.status})
+                                  </option>
+                                );
+                              })}
+                            </select>
                             <button
                               type='button'
-                              onClick={() =>
-                                onReopenChapter(fb.triageNote || noteValue || fb.message)
-                              }
-                              className='px-3 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs flex items-center gap-1 shrink-0 transition-colors cursor-pointer shadow-2xs'
-                              data-testid={`reopen-chapter-from-feedback-btn-${fb.id}`}
+                              disabled={!crAssignment[fb.id] || creatingCrId === fb.id}
+                              onClick={() => handleCreateChangeRequest(fb.id, crAssignment[fb.id])}
+                              className='px-3 py-1.5 rounded-lg bg-[#F97316] hover:bg-[#EA580C] disabled:opacity-50 text-white font-semibold text-xs flex items-center gap-1 shrink-0 transition-colors cursor-pointer'
+                              data-testid={`create-cr-from-feedback-btn-${fb.id}`}
                             >
-                              <RotateCcw className='w-3.5 h-3.5' />
-                              <span>Mở lại chương</span>
+                              {creatingCrId === fb.id && (
+                                <Loader2 className='w-3.5 h-3.5 animate-spin' />
+                              )}
+                              <span>Tạo yêu cầu sửa</span>
                             </button>
                           </div>
                         )}

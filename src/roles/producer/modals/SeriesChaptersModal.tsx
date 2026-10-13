@@ -226,14 +226,15 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
     }
   };
 
-  const handleReopenChapter = async (chap: ChapterDto) => {
+  /** Trả true khi đã mở lại thành công. */
+  const handleReopenChapter = async (chap: ChapterDto): Promise<boolean> => {
     const comment = window.prompt(
       `Nhập lý do mở lại sản xuất cho Chương ${chap.chapterNumber} (bắt buộc):`,
     );
-    if (comment === null) return;
+    if (comment === null) return false;
     if (!comment.trim()) {
       onShowToast?.('Thiếu thông tin', 'Vui lòng nhập lý do mở lại chương.');
-      return;
+      return false;
     }
 
     setActionLoading(true);
@@ -244,8 +245,10 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
         `Chương ${chap.chapterNumber} đã chuyển về trạng thái InProduction để tiếp tục sản xuất.`,
       );
       await fetchChapters();
+      return true;
     } catch (err: any) {
       onShowToast?.('Không thể mở lại chương', err.message);
+      return false;
     } finally {
       setActionLoading(false);
     }
@@ -711,7 +714,8 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                               </button>
                             )}
 
-                            {chap.status === 'Approved' && (
+                            {/* InProduction: vẫn mở được để chuyển phản hồi "cần sửa" thành yêu cầu sửa (5.7) */}
+                            {(chap.status === 'Approved' || chap.status === 'InProduction') && (
                               <button
                                 type='button'
                                 onClick={() => setPreviewChapter(chap)}
@@ -720,7 +724,9 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                                 data-testid={`preview-links-btn-${chap.id}`}
                               >
                                 <Share2 className='w-3.5 h-3.5 text-indigo-600' />
-                                <span>Gửi xem thử</span>
+                                <span>
+                                  {chap.status === 'Approved' ? 'Gửi xem thử' : 'Phản hồi xem thử'}
+                                </span>
                               </button>
                             )}
 
@@ -846,8 +852,9 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
           chapterStatus={previewChapter.status}
           onClose={() => setPreviewChapter(null)}
           onReopenChapter={async () => {
-            await handleReopenChapter(previewChapter);
-            setPreviewChapter(null);
+            // Giữ modal mở ở trạng thái mới để chuyển ngay phản hồi thành yêu cầu sửa (5.7)
+            if (await handleReopenChapter(previewChapter))
+              setPreviewChapter({ ...previewChapter, status: 'InProduction' });
           }}
           onShowToast={onShowToast}
         />
