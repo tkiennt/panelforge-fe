@@ -173,6 +173,25 @@ describe('LetteringWorkspace', () => {
     });
   });
 
+  it('chương đã duyệt (409 CHAPTER_READ_ONLY, BR-12): báo chỉ đọc, không mở hộp thoại xung đột', async () => {
+    const readOnlyError: any = new Error(
+      'Chương đang ở trạng thái Approved, nội dung chỉ đọc (BR-12).',
+    );
+    readOnlyError.code = 'CHAPTER_READ_ONLY';
+    readOnlyError.status = 409;
+    vi.mocked(elementService.updateElementText).mockRejectedValueOnce(readOnlyError);
+    const onShowToast = vi.fn();
+
+    renderComponent({ onShowToast });
+    const textarea = await screen.findByDisplayValue('Lời thoại ban đầu');
+    fireEvent.change(textarea, { target: { value: 'Lời thoại mới sửa' } });
+
+    await waitFor(() => {
+      expect(onShowToast).toHaveBeenCalledWith('Chương chỉ đọc', readOnlyError.message);
+    });
+    expect(screen.queryByText(/Xung Đột Phiên Bản Phần Tử/i)).not.toBeInTheDocument();
+  });
+
   it('lưu vào offlineQueueService khi mất mạng ngoại tuyến (NFR-09)', async () => {
     // Giả lập offline
     const originalOnline = navigator.onLine;

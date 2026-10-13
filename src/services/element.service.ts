@@ -142,8 +142,11 @@ function extractError(error: any, defaultMsg: string): any {
     msg = 'Không tìm thấy Page hoặc Element.';
   }
   const err: any = new Error(msg);
+  // BR-12: chương đã duyệt/phát hành chỉ đọc cũng là 409 nhưng không phải xung đột phiên bản
+  const readOnly = data?.code === 'CHAPTER_READ_ONLY';
   err.conflict =
-    data?.conflict || (error.response?.status === 409 ? 'ELEMENT_VERSION_CONFLICT' : undefined);
+    data?.conflict ||
+    (error.response?.status === 409 && !readOnly ? 'ELEMENT_VERSION_CONFLICT' : undefined);
   err.code = data?.code || (error.response?.status === 409 ? 'CONFLICT' : undefined);
   err.status = error.response?.status;
   return err;
