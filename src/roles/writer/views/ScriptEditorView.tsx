@@ -23,6 +23,7 @@ import {
   Compass,
   Save,
   Info,
+  GripVertical,
 } from 'lucide-react';
 import {
   scriptLineService,
@@ -555,6 +556,77 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     }
   };
 
+  // Drag & drop and quick reorder state for script lines
+  const [draggedLineIndex, setDraggedLineIndex] = useState<number | null>(null);
+  const [dragOverLineIndex, setDragOverLineIndex] = useState<number | null>(null);
+  const [isReorderingLines, setIsReorderingLines] = useState(false);
+
+  const applyReorder = async (reorderedLines: SceneScriptLineSummaryDto[]) => {
+    if (!currentChapter?.id || !selectedScene?.id) return;
+    setIsReorderingLines(true);
+    const previousLines = selectedScene.scriptLines || [];
+    const normalized = reorderedLines.map((l, idx) => ({ ...l, lineOrder: idx + 1 }));
+    setSelectedScene((prev) => (prev ? { ...prev, scriptLines: normalized } : null));
+
+    try {
+      const payload = normalized.map((l) => ({ lineId: l.id, newOrder: l.lineOrder }));
+      await scriptLineService.reorderScriptLines(
+        currentChapter.id,
+        selectedScene.id,
+        payload,
+        currentChapter.versionVector,
+      );
+      notify('Đã cập nhật thứ tự', 'Thứ tự các dòng kịch bản đã được lưu thành công.');
+      await refreshChapterDetail(currentChapter.id);
+    } catch (err: any) {
+      setSelectedScene((prev) => (prev ? { ...prev, scriptLines: previousLines } : null));
+      notify('Lỗi sắp xếp dòng', err.message || 'Không thể cập nhật thứ tự dòng kịch bản.');
+      await loadSceneDetail(selectedScene.id);
+    } finally {
+      setIsReorderingLines(false);
+      setDraggedLineIndex(null);
+      setDragOverLineIndex(null);
+    }
+  };
+
+  const handleMoveLine = (fromIndex: number, direction: 'up' | 'down') => {
+    if (!selectedScene?.scriptLines || isReorderingLines) return;
+    const targetIndex = direction === 'up' ? fromIndex - 1 : fromIndex + 1;
+    if (targetIndex < 0 || targetIndex >= selectedScene.scriptLines.length) return;
+
+    const items = [...selectedScene.scriptLines];
+    const [moved] = items.splice(fromIndex, 1);
+    items.splice(targetIndex, 0, moved);
+    void applyReorder(items);
+  };
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedLineIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', String(index));
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverLineIndex !== index) {
+      setDragOverLineIndex(index);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    if (draggedLineIndex === null || draggedLineIndex === dropIndex || !selectedScene?.scriptLines) {
+      setDraggedLineIndex(null);
+      setDragOverLineIndex(null);
+      return;
+    }
+    const items = [...selectedScene.scriptLines];
+    const [moved] = items.splice(draggedLineIndex, 1);
+    items.splice(dropIndex, 0, moved);
+    void applyReorder(items);
+  };
+
   // Helper tìm tên nhân vật từ ID
   const getSpeakerName = (speakerId?: string | null) => {
     if (!speakerId) return null;
@@ -1068,21 +1140,46 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                     )}
                   </div>
                 ) : (
-                  selectedScene.scriptLines.map((line) => {
+                  selectedScene.scriptLines.map((line, index) => {
                     const speakerName = getSpeakerName(line.speakerCharacterId);
+                    const isFirst = index === 0;
+                    const isLast = index === (selectedScene.scriptLines?.length || 0) - 1;
+                    const isDragging = draggedLineIndex === index;
+                    const isDragOver = dragOverLineIndex === index && draggedLineIndex !== index;
+
                     return (
                       <div
                         key={line.id}
                         id={`script-line-${line.id}`}
                         data-testid={`script-line-${line.id}`}
+                        draggable={canEditScript && !isChapterLocked && !isReorderingLines}
+                        onDragStart={(e) => handleDragStart(e, index)}
+                        onDragOver={(e) => handleDragOver(e, index)}
+                        onDragEnd={() => {
+                          setDraggedLineIndex(null);
+                          setDragOverLineIndex(null);
+                        }}
+                        onDrop={(e) => handleDrop(e, index)}
                         className={`p-4 rounded-xl border transition-all shadow-2xs group relative ${
-                          highlightedLineId === line.id
-                            ? 'border-orange-500 ring-2 ring-orange-400 bg-orange-50/40'
-                            : 'border-[#E7E7E7] bg-white hover:border-orange-300'
+                          isDragging
+                            ? 'opacity-40 border-dashed border-orange-400 bg-orange-50/20'
+                            : isDragOver
+                              ? 'border-orange-500 ring-2 ring-orange-300 bg-orange-50/60 scale-[1.01]'
+                              : highlightedLineId === line.id
+                                ? 'border-orange-500 ring-2 ring-orange-400 bg-orange-50/40'
+                                : 'border-[#E7E7E7] bg-white hover:border-orange-300'
                         }`}
                       >
                         <div className='flex items-start justify-between gap-3'>
                           <div className='flex items-center gap-2'>
+                            {canEditScript && !isChapterLocked && (
+                              <div
+                                className='cursor-grab active:cursor-grabbing text-zinc-400 hover:text-orange-500 p-0.5 rounded transition-colors'
+                                title='Kéo thả để đổi thứ tự dòng'
+                              >
+                                <GripVertical className='w-4 h-4' />
+                              </div>
+                            )}
                             <span className='font-mono text-[10px] font-bold text-zinc-500 bg-zinc-100 px-1.5 py-0.5 rounded'>
                               #{line.lineOrder}
                             </span>
@@ -1102,6 +1199,22 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
                           {canEditScript && !isChapterLocked && (
                             <div className='flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity'>
+                              <button
+                                onClick={() => handleMoveLine(index, 'up')}
+                                disabled={isFirst || isReorderingLines}
+                                className='p-1 text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100 rounded cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed'
+                                title='Di chuyển lên trên'
+                              >
+                                <ChevronUp className='w-3.5 h-3.5' />
+                              </button>
+                              <button
+                                onClick={() => handleMoveLine(index, 'down')}
+                                disabled={isLast || isReorderingLines}
+                                className='p-1 text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100 rounded cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed'
+                                title='Di chuyển xuống dưới'
+                              >
+                                <ChevronDown className='w-3.5 h-3.5' />
+                              </button>
                               <button
                                 onClick={() => handleOpenEditLine(line)}
                                 className='p-1 text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100 rounded cursor-pointer'

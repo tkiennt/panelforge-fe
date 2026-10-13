@@ -24,6 +24,7 @@ import {
   HelpCircle,
   FileSpreadsheet,
   UserCheck,
+  AlertCircle,
 } from 'lucide-react';
 import { PageContainer } from '@/shared/components/PageContainer';
 import {
@@ -33,6 +34,7 @@ import {
   StageBreakdownDto,
   WorkloadDto,
   OverdueAssignmentDto,
+  OverdueChangeRequestDto,
   BurndownPointDto,
   SeriesDetailDto,
 } from '@/services/series.service';
@@ -164,6 +166,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     publishedChapters,
     waitingReviewTotal,
     overdueTotal,
+    overdueAssignmentsCount,
+    overdueChangeRequestsCount,
   } = useMemo(() => {
     if (!progress || progress.chapters.length === 0) {
       return {
@@ -175,6 +179,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         publishedChapters: 0,
         waitingReviewTotal: 0,
         overdueTotal: 0,
+        overdueAssignmentsCount: 0,
+        overdueChangeRequestsCount: 0,
       };
     }
 
@@ -193,7 +199,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     const published = progress.chapters.filter((c) => c.status === 'Published').length;
 
     const waiting = progress.workload.reduce((sum, w) => sum + (w.waitingReview || 0), 0);
-    const overdue = progress.overdue.length;
+    const overdueAsg = progress.overdue?.length || 0;
+    const overdueCr = progress.overdueChangeRequests?.length || 0;
+    const overdue = overdueAsg + overdueCr;
 
     return {
       overallPercent: avgPercent,
@@ -204,6 +212,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       publishedChapters: published,
       waitingReviewTotal: waiting,
       overdueTotal: overdue,
+      overdueAssignmentsCount: overdueAsg,
+      overdueChangeRequestsCount: overdueCr,
     };
   }, [progress]);
 
@@ -485,8 +495,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 overdueTotal > 0 ? 'text-red-600' : 'text-[#171717]'
               }`}
             >
-              {overdueTotal} <span className='text-base font-normal text-[#555555]'>Việc</span>
+              {overdueTotal} <span className='text-base font-normal text-[#555555]'>Mục</span>
             </div>
+            {overdueTotal > 0 && (
+              <div className='flex items-center gap-1.5 text-[10px] text-[#737373] font-mono mt-1'>
+                <span>{overdueAssignmentsCount} công việc</span>
+                <span>•</span>
+                <span>{overdueChangeRequestsCount} yêu cầu sửa</span>
+              </div>
+            )}
           </div>
           <div className='mt-4 pt-2 border-t border-[#F3F1EB] flex items-center justify-between text-[10px] font-mono'>
             <span className='text-[#555555]'>Kiểm tra thời hạn:</span>
@@ -497,7 +514,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             >
               {overdueTotal > 0 ? (
                 <>
-                  <AlertTriangle className='w-3.5 h-3.5 text-red-500' /> Có việc trễ hạn
+                  <AlertTriangle className='w-3.5 h-3.5 text-red-500' /> Có việc/sửa trễ hạn
                 </>
               ) : (
                 <>
@@ -554,6 +571,62 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     className='w-full text-center py-1 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded text-[11px] font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1'
                   >
                     <span>Xem việc cần xử lý</span>
+                    <ArrowRight className='w-3 h-3' />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Overdue Change Requests Alert Banner (if any) */}
+      {progress?.overdueChangeRequests && progress.overdueChangeRequests.length > 0 && (
+        <div className='bg-amber-50/90 border border-amber-300 rounded-xl p-5 shadow-xs space-y-3'>
+          <div className='flex items-center justify-between'>
+            <div className='flex items-center gap-2'>
+              <AlertCircle className='w-4 h-4 text-amber-700 shrink-0' />
+              <h3 className='text-sm font-bold text-amber-950 font-display'>
+                Danh Sách Yêu Cầu Sửa Đổi Quá Hạn ({progress.overdueChangeRequests.length})
+              </h3>
+            </div>
+            <span className='text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300'>
+              Chờ hoàn thành sửa
+            </span>
+          </div>
+
+          <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3'>
+            {progress.overdueChangeRequests.map((cr) => (
+              <div
+                key={cr.changeRequestId}
+                className='p-3 bg-white rounded-lg border border-amber-200 shadow-2xs space-y-2'
+              >
+                <div className='flex items-start justify-between gap-2'>
+                  <div className='text-xs font-bold text-[#171717] line-clamp-1'>
+                    {cr.description}
+                  </div>
+                  <span className='px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-amber-100 text-amber-800 shrink-0'>
+                    {cr.status}
+                  </span>
+                </div>
+                <div className='flex items-center justify-between text-[11px] text-[#555555] font-mono'>
+                  <span>
+                    Người sửa: <strong>{cr.responsibleUserName}</strong>
+                  </span>
+                  <span className='text-amber-700 font-bold'>
+                    Hạn: {new Date(cr.dueDate).toLocaleDateString('vi-VN')}
+                  </span>
+                </div>
+                {workspaceId && seriesId && (
+                  <button
+                    onClick={() =>
+                      navigate(
+                        `/workspaces/${workspaceId}/series/${seriesId}/my-work?chapterId=${cr.chapterId}&assignmentId=${cr.assignmentId}`,
+                      )
+                    }
+                    className='w-full text-center py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded text-[11px] font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1'
+                  >
+                    <span>Xem yêu cầu cần sửa</span>
                     <ArrowRight className='w-3 h-3' />
                   </button>
                 )}
@@ -647,6 +720,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                             <span className='px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-red-100 text-red-700 border border-red-200 flex items-center gap-1'>
                               <AlertTriangle className='w-3 h-3' />
                               {ch.overdueAssignments} Quá hạn
+                            </span>
+                          )}
+                          {(ch.overdueChangeRequests ?? 0) > 0 && (
+                            <span className='px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-100 text-amber-800 border border-amber-300 flex items-center gap-1'>
+                              <AlertCircle className='w-3 h-3' />
+                              {ch.overdueChangeRequests} Sửa trễ
                             </span>
                           )}
                           <span

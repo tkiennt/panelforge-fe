@@ -1,6 +1,7 @@
 import axiosClient from '../api/axiosClient';
 import {
   AssignmentDto,
+  WorkspaceAssignmentDto,
   CreateAssignmentRequest,
   UpdateAssignmentRequest,
   StageProgressDto,
@@ -19,6 +20,7 @@ import {
 
 export type {
   AssignmentDto,
+  WorkspaceAssignmentDto,
   CreateAssignmentRequest,
   UpdateAssignmentRequest,
   StageProgressDto,
@@ -85,6 +87,28 @@ export const assignmentService = {
       return response.data || [];
     } catch (error: any) {
       console.warn('Không thể nạp danh sách Assignment:', error);
+      return [];
+    }
+  },
+
+  /**
+   * Danh sách toàn bộ việc được giao của một hoạ sĩ/biên kịch trên tất cả các chương trong Studio (Cross-Chapter Worklist).
+   * GET /api/workspaces/{workspaceId}/my-assignments
+   */
+  getMyWorkspaceAssignments: async (
+    workspaceId: string,
+    params?: {
+      status?: AssignmentStatus;
+      seriesId?: string;
+    },
+  ): Promise<WorkspaceAssignmentDto[]> => {
+    try {
+      const response = await axiosClient.get(`/workspaces/${workspaceId}/my-assignments`, {
+        params,
+      });
+      return response.data || [];
+    } catch (error: any) {
+      console.warn('Không thể nạp danh sách công việc toàn Studio:', error);
       return [];
     }
   },

@@ -62,7 +62,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
         setChapters(chapterPage.items);
         if (pipeline?.stages) setStages(pipeline.stages);
         setMembers(memberList ?? []);
-        setChapterId((current) => current || chapterPage.items[0]?.id || '');
+        setChapterId((current) => current || 'ALL_STUDIO');
       } catch (err) {
         if (!cancelled) setError(errorMessage(err, 'Không thể tải danh sách chương.'));
       } finally {
@@ -78,22 +78,35 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
     if (!chapterId) return;
     setLoadingWork(true);
     try {
-      const [list, prog] = await Promise.all([
-        assignmentService.getAssignments(chapterId),
-        assignmentService.getStageProgress(chapterId),
-      ]);
-      setAssignments(list);
-      setProgress(prog);
+      if (chapterId === 'ALL_STUDIO') {
+        if (!workspaceId) return;
+        const list = await assignmentService.getMyWorkspaceAssignments(workspaceId, {
+          seriesId: seriesId || undefined,
+        });
+        setAssignments(list);
+        setProgress([]);
+      } else {
+        const [list, prog] = await Promise.all([
+          assignmentService.getAssignments(chapterId),
+          assignmentService.getStageProgress(chapterId),
+        ]);
+        setAssignments(list);
+        setProgress(prog);
+      }
     } finally {
       setLoadingWork(false);
     }
-  }, [chapterId]);
+  }, [chapterId, workspaceId, seriesId]);
 
   useEffect(() => {
     void loadWork();
   }, [loadWork]);
 
-  const stageName = (id: string) => {
+  const stageName = (id: string, a?: AssignmentDto) => {
+    if ((a as any)?.stageName) {
+      const order = (a as any).stageOrder ? `${(a as any).stageOrder}. ` : '';
+      return `${order}${(a as any).stageName}`;
+    }
     const s = stages.find((x) => x.id === id);
     return s ? `${s.stageOrder}. ${s.name}` : 'Công đoạn';
   };
@@ -144,7 +157,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
 
   const selectChapter = (id: string) => {
     setChapterId(id);
-    setSearchParams(id ? { chapterId: id } : {});
+    setSearchParams(id && id !== 'ALL_STUDIO' ? { chapterId: id } : id === 'ALL_STUDIO' ? { view: 'all' } : {});
   };
 
   const tabs: { key: Tab; label: string; badgeAlert?: boolean }[] = reviewer
@@ -178,10 +191,10 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
             value={chapterId}
             onChange={(e) => selectChapter(e.target.value)}
             aria-label='Chọn chương'
-            disabled={loadingChapters || chapters.length === 0}
+            disabled={loadingChapters && chapters.length === 0}
             className='px-3 py-1.5 bg-white border border-[#E7E7E7] rounded-lg text-xs font-semibold'
           >
-            {chapters.length === 0 && <option value=''>Chưa có chương</option>}
+            <option value='ALL_STUDIO'>✨ Toàn bộ Studio (Tất cả các chương)</option>
             {chapters.map((c) => (
               <option key={c.id} value={c.id}>
                 Chương {c.chapterNumber}
@@ -251,11 +264,17 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
           data-testid='my-work-empty'
         >
           <p>
-            {tab === 'review'
-              ? 'Không có việc nào đang chờ duyệt trong chương này.'
-              : tab === 'mine'
-                ? 'Bạn không có nhiệm vụ được phân công trực tiếp trong chương này.'
-                : 'Chưa có công việc nào trong chương này.'}
+            {chapterId === 'ALL_STUDIO'
+              ? tab === 'review'
+                ? 'Không có việc nào đang chờ duyệt trong toàn bộ Studio.'
+                : tab === 'mine'
+                  ? 'Bạn không có nhiệm vụ nào được phân công trong toàn bộ Studio.'
+                  : 'Chưa có công việc nào trong Studio.'
+              : tab === 'review'
+                ? 'Không có việc nào đang chờ duyệt trong chương này.'
+                : tab === 'mine'
+                  ? 'Bạn không có nhiệm vụ được phân công trực tiếp trong chương này.'
+                  : 'Chưa có công việc nào trong chương này.'}
           </p>
           {tab !== 'all' && counts.all > 0 && (
             <button
@@ -270,19 +289,30 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
       ) : (
         <div className='space-y-3'>
           {visible.map((a) => (
-            <AssignmentWorkCard
-              key={a.id}
-              chapterId={chapterId}
-              assignment={a}
-              stageName={stageName(a.pipelineStageId)}
-              assigneeName={memberName(a.assigneeUserId)}
-              userId={currentUserId}
-              workspaceRole={workspaceRole}
-              stageProgress={progress}
-              highlighted={a.id === highlightedId}
-              onChanged={() => void loadWork()}
-              onToast={onShowToast}
-            />
+            <div key={a.id} className='space-y-1.5'>
+              {(a as any).seriesTitle && (
+                <div className='flex items-center gap-1.5 text-[11px] font-semibold text-orange-800 bg-orange-50 px-2.5 py-1 rounded-md border border-orange-200/80 w-fit'>
+                  <span>{(a as any).seriesTitle}</span>
+                  <span className='text-orange-400'>•</span>
+                  <span>
+                    Chương {(a as any).chapterNumber}
+                    {(a as any).chapterTitle ? `: ${(a as any).chapterTitle}` : ''}
+                  </span>
+                </div>
+              )}
+              <AssignmentWorkCard
+                chapterId={a.chapterId || chapterId}
+                assignment={a}
+                stageName={stageName(a.pipelineStageId, a)}
+                assigneeName={memberName(a.assigneeUserId)}
+                userId={currentUserId}
+                workspaceRole={workspaceRole}
+                stageProgress={progress}
+                highlighted={a.id === highlightedId}
+                onChanged={() => void loadWork()}
+                onToast={onShowToast}
+              />
+            </div>
           ))}
         </div>
       )}

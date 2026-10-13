@@ -268,4 +268,47 @@ describe('DashboardView Component (UC-16 Progress Dashboard)', () => {
 
     expect(screen.getByTestId('create-assignment-modal')).toBeInTheDocument();
   });
+
+  it('hiển thị danh sách yêu cầu sửa đổi quá hạn (Change Requests) trên Dashboard', async () => {
+    const progressWithOverdueCr: SeriesProgressDto = {
+      ...mockProgress,
+      chapters: [
+        {
+          ...mockProgress.chapters[0],
+          overdueChangeRequests: 2,
+        },
+        ...mockProgress.chapters.slice(1),
+      ],
+      overdueChangeRequests: [
+        {
+          changeRequestId: 'cr-overdue-1',
+          assignmentId: 'asg-overdue-1',
+          chapterId: 'chap-1',
+          responsibleUserId: 'user-kenji',
+          responsibleUserName: 'Kenji Sato',
+          status: 'Open',
+          dueDate: '2026-10-02T00:00:00Z',
+          description: 'Sửa lại chi tiết mắt nhân vật tại panel 3',
+        },
+      ],
+    };
+
+    vi.mocked(seriesService.getSeriesProgress).mockResolvedValueOnce(progressWithOverdueCr);
+    vi.mocked(seriesService.getSeriesById).mockResolvedValueOnce(mockDetail);
+
+    renderDashboard();
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/Danh Sách Yêu Cầu Sửa Đổi Quá Hạn/i),
+      ).toBeInTheDocument();
+    });
+
+    expect(
+      screen.getByText('Sửa lại chi tiết mắt nhân vật tại panel 3'),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText('Kenji Sato').length).toBeGreaterThan(0);
+    expect(screen.getByText(/1 yêu cầu sửa/i)).toBeInTheDocument();
+    expect(screen.getByText('Xem yêu cầu cần sửa')).toBeInTheDocument();
+  });
 });

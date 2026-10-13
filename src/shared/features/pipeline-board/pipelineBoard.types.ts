@@ -28,6 +28,7 @@ export interface BoardCard {
   priority: AssignmentPriority;
   status: AssignmentStatus;
   dependsOnAssignmentId?: string | null;
+  dependsOnAssignmentIds?: string[];
   startedAt?: string | null;
   completedAt?: string | null;
   lastFeedbackComment?: string | null;
