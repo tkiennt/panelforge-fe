@@ -19,4 +19,3 @@ Giám đốc Sản xuất (Producer) chịu trách nhiệm vận hành Studio Wo
 - `SeriesChaptersModal.tsx`: Quản lý danh sách chương, số trang, đề cương và đếm ngược phát hành.
 - `SeriesPipelineModal.tsx`: Cấu hình các giai đoạn sản xuất (stages), cổng kiểm duyệt (approval gates) và luồng chuyển đổi (transitions).
 - `SeriesPresetsModal.tsx`: Thiết lập quy chuẩn font chữ (Typography Presets) và luật nhất quán.
-- `ExportDeliveryModal.tsx`: Xuất bản thảo theo các định dạng PDF, CBZ, Webtoon Strip.
