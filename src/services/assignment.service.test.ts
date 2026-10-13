@@ -217,4 +217,42 @@ describe('assignmentService', () => {
     const msg = extractError(errorRoleMismatch, 'Lỗi mặc định');
     expect(msg).toBe("Stage 'Script' dành cho vai trò Writer, người nhận là Artist.");
   });
+
+  it('getVisualConsistencyReport gọi GET /visual-consistency-report với threshold', async () => {
+    const mockReport = {
+      chapterId: 'chap-1',
+      threshold: 0.75,
+      totalEvaluated: 4,
+      passedCount: 3,
+      deviationCount: 1,
+      blockingDeviationCount: 0,
+      deviations: [],
+    };
+    vi.mocked(axiosClient.get).mockResolvedValueOnce({ data: mockReport });
+
+    const result = await assignmentService.getVisualConsistencyReport('chap-1', 0.8);
+    expect(axiosClient.get).toHaveBeenCalledWith('/chapters/chap-1/visual-consistency-report', {
+      params: { threshold: 0.8 },
+    });
+    expect(result).toEqual(mockReport);
+  });
+
+  it('runVisualConsistencyCheck gọi POST /visual-consistency-check thành công', async () => {
+    const mockReport = {
+      chapterId: 'chap-1',
+      threshold: 0.75,
+      totalEvaluated: 2,
+      passedCount: 1,
+      deviationCount: 1,
+      blockingDeviationCount: 1,
+      deviations: [],
+    };
+    vi.mocked(axiosClient.post).mockResolvedValueOnce({ data: mockReport });
+
+    const result = await assignmentService.runVisualConsistencyCheck('chap-1', 0.75);
+    expect(axiosClient.post).toHaveBeenCalledWith('/chapters/chap-1/visual-consistency-check', {
+      threshold: 0.75,
+    });
+    expect(result).toEqual(mockReport);
+  });
 });

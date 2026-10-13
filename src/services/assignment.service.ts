@@ -16,6 +16,8 @@ import {
   RequestAssignmentChangesRequest,
   ConsistencyCheckResultDto,
   ConsistencyFindingDto,
+  VisualDeviationDto,
+  VisualConsistencyReportDto,
 } from '@/types';
 
 export type {
@@ -35,6 +37,8 @@ export type {
   RequestAssignmentChangesRequest,
   ConsistencyCheckResultDto,
   ConsistencyFindingDto,
+  VisualDeviationDto,
+  VisualConsistencyReportDto,
 };
 
 export function extractError(error: any, defaultMsg: string): string {
@@ -431,6 +435,37 @@ export const assignmentService = {
       return response.data;
     } catch (error: any) {
       throw new Error(extractError(error, 'Không thể phân loại lỗi nhất quán'));
+    }
+  },
+
+  /** CF3 (V1.2): Lấy báo cáo nhất quán hình ảnh so với Character Sheet khóa (GET /api/chapters/{chapterId}/visual-consistency-report) */
+  getVisualConsistencyReport: async (
+    chapterId: string,
+    threshold?: number,
+  ): Promise<VisualConsistencyReportDto> => {
+    try {
+      const response = await axiosClient.get(`/chapters/${chapterId}/visual-consistency-report`, {
+        params: threshold !== undefined ? { threshold } : undefined,
+      });
+      return response.data;
+    } catch (error: any) {
+      console.warn('Không thể nạp báo cáo nhất quán hình ảnh:', error);
+      throw new Error(extractError(error, 'Không thể nạp báo cáo nhất quán hình ảnh'));
+    }
+  },
+
+  /** CF3 (V1.2): Chạy kiểm tra nhất quán hình ảnh cho chương (POST /api/chapters/{chapterId}/visual-consistency-check) */
+  runVisualConsistencyCheck: async (
+    chapterId: string,
+    threshold?: number,
+  ): Promise<VisualConsistencyReportDto> => {
+    try {
+      const response = await axiosClient.post(`/chapters/${chapterId}/visual-consistency-check`, {
+        threshold,
+      });
+      return response.data;
+    } catch (error: any) {
+      throw new Error(extractError(error, 'Không thể chạy kiểm tra nhất quán hình ảnh'));
     }
   },
 };
