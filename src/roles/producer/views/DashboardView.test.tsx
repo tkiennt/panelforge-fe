@@ -4,12 +4,19 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { DashboardView } from './DashboardView';
 import { seriesService } from '@/services/series.service';
+import { notificationService } from '@/services/notification.service';
 import type { SeriesProgressDto, SeriesDetailDto } from '@/services/series.service';
 
 vi.mock('@/services/series.service', () => ({
   seriesService: {
     getSeriesProgress: vi.fn(),
     getSeriesById: vi.fn(),
+  },
+}));
+
+vi.mock('@/services/notification.service', () => ({
+  notificationService: {
+    sendReminders: vi.fn().mockResolvedValue({ created: 2 }),
   },
 }));
 
@@ -310,5 +317,11 @@ describe('DashboardView Component (UC-16 Progress Dashboard)', () => {
     expect(screen.getAllByText('Kenji Sato').length).toBeGreaterThan(0);
     expect(screen.getByText(/1 yêu cầu sửa/i)).toBeInTheDocument();
     expect(screen.getByText('Xem yêu cầu cần sửa')).toBeInTheDocument();
+
+    // Nút gửi thông báo nhắc hạn
+    const sendReminderBtn = screen.getByRole('button', { name: /Gửi thông báo nhắc hạn/i });
+    expect(sendReminderBtn).toBeInTheDocument();
+    fireEvent.click(sendReminderBtn);
+    expect(notificationService.sendReminders).toHaveBeenCalled();
   });
 });

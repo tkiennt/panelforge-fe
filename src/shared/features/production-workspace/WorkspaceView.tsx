@@ -130,7 +130,9 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
     ? Math.round(currentChapterProgress.percentComplete)
     : 0;
 
-  const overdueCount = currentChapterProgress?.overdueAssignments || 0;
+  const overdueCount =
+    (currentChapterProgress?.overdueAssignments || 0) +
+    (currentChapterProgress?.overdueChangeRequests || 0);
 
   const waitingReviewCount = useMemo(() => {
     if (!currentChapterProgress?.assignmentsByStatus) return 0;
