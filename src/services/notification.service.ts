@@ -73,9 +73,13 @@ export const notificationService = {
    */
   sendReminders: async (leadHours = 24): Promise<{ created: number }> => {
     try {
-      const response = await axiosClient.post<{ created: number }>('/notifications/send-reminders', null, {
-        params: { leadHours },
-      });
+      const response = await axiosClient.post<{ created: number }>(
+        '/notifications/send-reminders',
+        null,
+        {
+          params: { leadHours },
+        },
+      );
       return response.data || { created: 0 };
     } catch (error) {
       console.error('Không thể kích hoạt gửi thông báo nhắc hạn:', error);

@@ -11,6 +11,7 @@ import {
   Send,
   User,
   ScanSearch,
+  Eye,
 } from 'lucide-react';
 import { assignmentService } from '@/services/assignment.service';
 import { artworkService } from '@/services/artwork.service';
@@ -26,13 +27,16 @@ import type {
 import { ArtworkPanel } from './ArtworkPanel';
 import { ChangeRequestPanel } from './ChangeRequestPanel';
 import { ReviewDecisionPanel } from './ReviewDecisionPanel';
+import { SubmitPreviewModal } from './SubmitPreviewModal';
 import { SubmissionHistory } from './SubmissionHistory';
 import {
+  describeStartError,
   errorMessage,
   getWorkActions,
   hasCurrentArtwork,
   lastRejectedAt,
   needsArtwork,
+  pendingDependencyCount,
   resolvePageId,
 } from './collaborationRules';
 
@@ -48,6 +52,8 @@ interface AssignmentWorkCardProps {
   /** Gọi sau mỗi thao tác đổi dữ liệu; cha nên nạp lại danh sách việc và tiến độ. */
   onChanged: (updated?: AssignmentDto) => void;
   onToast?: (title: string, desc: string) => void;
+  /** Các việc cùng chương (nếu cha có), để khoá nút Bắt đầu khi việc phụ thuộc chưa Approved. */
+  relatedAssignments?: Pick<AssignmentDto, 'id' | 'status'>[];
 }
 
 const STATUS_STYLE: Record<string, { label: string; className: string }> = {
@@ -81,6 +87,7 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
   highlighted,
   onChanged,
   onToast,
+  relatedAssignments,
 }) => {
   const [submissions, setSubmissions] = useState<SubmissionDto[]>([]);
   const [changeRequests, setChangeRequests] = useState<ChangeRequestDto[]>([]);
@@ -92,6 +99,7 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [highlightedCrId, setHighlightedCrId] = useState<string | null>(null);
   const [targetArtworkId, setTargetArtworkId] = useState<string | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   const pageId = resolvePageId(assignment, stageProgress);
   const artworkRelevant = needsArtwork(assignment);
@@ -156,7 +164,12 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
     void loadDetails();
   };
 
-  const run = async (action: () => Promise<AssignmentDto>, doneTitle: string, doneDesc: string) => {
+  const run = async (
+    action: () => Promise<AssignmentDto>,
+    doneTitle: string,
+    doneDesc: string,
+    describeError?: (err: unknown) => { title: string; message: string },
+  ) => {
     setBusy(true);
     setError(null);
     try {
@@ -164,13 +177,21 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
       onToast?.(doneTitle, doneDesc);
       changed(updated);
     } catch (err) {
-      const msg = errorMessage(err, 'Thao tác thất bại.');
-      setError(msg);
-      onToast?.('Không thể thực hiện', msg);
+      const { title, message } = describeError
+        ? describeError(err)
+        : { title: 'Không thể thực hiện', message: errorMessage(err, 'Thao tác thất bại.') };
+      setError(message);
+      onToast?.(title, message);
+      // 409: trạng thái trên máy đã cũ (vd. việc đã được bắt đầu) → nạp lại để hiện đúng trạng thái
+      if ((err as { status?: number })?.status === 409) changed();
     } finally {
       setBusy(false);
     }
   };
+
+  const pendingDeps = pendingDependencyCount(assignment, relatedAssignments);
+  const startLockedReason =
+    pendingDeps > 0 ? `Chờ ${pendingDeps} việc phụ thuộc được duyệt (Approved).` : null;
 
   const status = String(assignment.status);
   const style = STATUS_STYLE[status] ?? {
@@ -244,15 +265,18 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
           {actions.canStart && (
             <button
               type='button'
-              disabled={busy}
+              disabled={busy || !!startLockedReason}
+              data-testid='start-assignment-btn'
+              title={startLockedReason ?? undefined}
               onClick={() =>
                 void run(
                   () => assignmentService.startAssignment(chapterId, assignment.id),
                   status === 'ReworkRequired' ? 'Đã bắt đầu sửa' : 'Đã bắt đầu làm',
                   stageName,
+                  describeStartError,
                 )
               }
-              className='px-3 py-1.5 rounded-lg bg-[#171717] hover:bg-black text-white text-xs font-semibold flex items-center gap-1.5 disabled:opacity-50 cursor-pointer'
+              className='px-3 py-1.5 rounded-lg bg-[#171717] hover:bg-black text-white text-xs font-semibold flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'
             >
               {busy ? (
                 <Loader2 className='w-3 h-3 animate-spin' />
@@ -262,6 +286,32 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
               {status === 'ReworkRequired' ? 'Bắt đầu sửa' : 'Bắt đầu làm'}
             </button>
           )}
+          {actions.canStart && startLockedReason && (
+            <span
+              className='text-[11px] text-amber-700 flex items-center gap-1'
+              data-testid='start-blocked-reason'
+            >
+              <AlertTriangle className='w-3.5 h-3.5 shrink-0' />
+              {startLockedReason}
+            </span>
+          )}
+
+          {status === 'InProgress' &&
+            actions.isAssignee &&
+            artworkRelevant &&
+            pageId &&
+            String(assignment.assignedRole).toUpperCase() === 'ARTIST' && (
+              <button
+                type='button'
+                disabled={busy || !detailsLoaded}
+                data-testid='open-submit-preview'
+                onClick={() => setPreviewOpen(true)}
+                className='px-3 py-1.5 rounded-lg border border-[#E7E7E7] bg-white hover:bg-zinc-50 text-[#171717] text-xs font-semibold flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
+              >
+                <Eye className='w-3 h-3 text-[#F97316]' />
+                Xem trước trang truyện
+              </button>
+            )}
 
           {status === 'InProgress' && actions.isAssignee && (
             <button
@@ -392,6 +442,30 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
           </div>
         )}
       </div>
+
+      {previewOpen && pageId && (
+        <SubmitPreviewModal
+          chapterId={chapterId}
+          pageId={pageId}
+          stageId={assignment.pipelineStageId}
+          stageName={stageName}
+          panels={panels}
+          artworks={artworks}
+          rejectedAt={lastRejectedAt(submissions)}
+          canSubmit={actions.canSubmit}
+          submitBlockedReason={actions.submitBlockedReason}
+          busy={busy}
+          onClose={() => setPreviewOpen(false)}
+          onConfirm={() => {
+            setPreviewOpen(false);
+            void run(
+              () => assignmentService.submitAssignment(chapterId, assignment.id),
+              'Đã nộp bài',
+              `${stageName}: chờ xét duyệt.`,
+            );
+          }}
+        />
+      )}
     </article>
   );
 };

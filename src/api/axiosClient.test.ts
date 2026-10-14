@@ -1,6 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
-import axiosClient, { refreshAccessToken, clearLegacyTokens } from './axiosClient';
+import axiosClient, {
+  refreshAccessToken,
+  clearLegacyTokens,
+  resetSessionEnded,
+} from './axiosClient';
+
+// Cờ "hết phiên" là state cấp module: đặt lại để các test không ảnh hưởng nhau
+beforeEach(() => resetSessionEnded());
 
 const ok = (config: InternalAxiosRequestConfig, data: unknown = { ok: true }) => ({
   data,

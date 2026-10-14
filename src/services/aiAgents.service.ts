@@ -1,6 +1,6 @@
 // src/services/aiAgents.service.ts
-// AI Multi-Agent: 7 agent chuyên môn (Writer, Continuity, Storyboard, Artist, Letterer, Editor, Producer) + Gemini Supervisor
-// điều phối theo từng loại nhiệm vụ (BE: AiAgentsController). AI chỉ ĐỀ XUẤT; người có quyền quyết định Accept / Reject / RequestChanges.
+// Trợ lý AI trong màn làm việc của từng role (BE: AiAgentsController). Mỗi nhiệm vụ (workflowType) chạy một tập agent
+// riêng. AI chỉ ĐỀ XUẤT; người có quyền quyết định Accept / Reject / RequestChanges.
 import axiosClient from '../api/axiosClient';
 
 export type AiRunStatus =
@@ -339,16 +339,6 @@ export const aiAgentsService = {
   async runWorkflow(seriesId: string, body: RunWorkflowRequest): Promise<RunWorkflowResponse> {
     try {
       const res = await axiosClient.post(`/series/${seriesId}/ai/workflows/run`, body);
-      return res.data;
-    } catch (e) {
-      throw toError(e, 'Không thể chạy workflow AI.');
-    }
-  },
-
-  /** Giữ cho tương thích: route demo cũ, mặc định FullScene. */
-  async runDemoWorkflow(seriesId: string, body: RunWorkflowRequest): Promise<RunWorkflowResponse> {
-    try {
-      const res = await axiosClient.post(`/series/${seriesId}/ai/workflows/demo/run`, body);
       return res.data;
     } catch (e) {
       throw toError(e, 'Không thể chạy workflow AI.');

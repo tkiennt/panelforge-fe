@@ -659,7 +659,8 @@ describe('ReviewView (CF3: duyệt, khoanh vùng, nhất quán)', () => {
           threshold: 0.75,
           isDeviation: true,
           severity: 'Warning',
-          message: 'Alex Mercer có độ lệch hình ảnh so với Character Sheet khóa: 0.68 dưới ngưỡng 0.75',
+          message:
+            'Alex Mercer có độ lệch hình ảnh so với Character Sheet khóa: 0.68 dưới ngưỡng 0.75',
           status: 'Open',
           detectedAt: '2026-10-13T00:00:00Z',
         },
@@ -746,7 +747,9 @@ describe('ReviewView (CF3: duyệt, khoanh vùng, nhất quán)', () => {
     );
 
     // Triage Ignored với note
-    const promptSpy = vi.spyOn(window, 'prompt').mockReturnValue('Trang phục biến hình theo cốt truyện');
+    const promptSpy = vi
+      .spyOn(window, 'prompt')
+      .mockReturnValue('Trang phục biến hình theo cốt truyện');
     const ignoreBtn = screen.getByRole('button', { name: /Bỏ qua \(cần lý do\)/i });
     await user.click(ignoreBtn);
 
@@ -758,5 +761,73 @@ describe('ReviewView (CF3: duyệt, khoanh vùng, nhất quán)', () => {
       'Trang phục biến hình theo cốt truyện',
     );
     promptSpy.mockRestore();
+  });
+
+  const panelArt = (id: string, panelId: string) => ({
+    id,
+    assetId: `asset-${id}`,
+    chapterId: 'c1',
+    pageId: 'p1',
+    pipelineStageId: 'st1',
+    versionNumber: 1,
+    fileName: `${id}.png`,
+    contentType: 'image/png',
+    sizeBytes: 100,
+    sha256: id,
+    reused: false,
+    uploadedByUserId: 'artist-1',
+    createdAt: '2026-10-08T00:00:00Z',
+    panelId,
+  });
+
+  it('lần nộp có panelLayout: ghép theo bố cục lúc nộp dù khung đã bị xoá khỏi trang', async () => {
+    vi.mocked(panelService.getPanelsByPage).mockResolvedValue([]);
+    vi.mocked(artworkService.getArtworks).mockResolvedValue([
+      panelArt('art-old', 'p-deleted'),
+    ] as any);
+    vi.mocked(assignmentService.getSubmissions).mockResolvedValue([
+      {
+        id: 'sub-layout',
+        attemptNumber: 1,
+        status: 'Pending',
+        artworkReferenceIds: ['art-old'],
+        panelLayout: [
+          {
+            id: 'p-deleted',
+            pageId: 'p1',
+            panelNumber: 1,
+            readingOrder: 1,
+            boundingBox: JSON.stringify({ x: 0, y: 0, width: 1200, height: 600, unit: 'px' }),
+          },
+        ],
+      } as any,
+    ]);
+
+    renderView();
+
+    expect(await screen.findByText(/Đang duyệt: v1/i)).toBeInTheDocument();
+    expect(screen.queryByTestId('orphan-submissions')).not.toBeInTheDocument();
+  });
+
+  it('lần nộp cũ không còn khung nào: hiện thông báo thay vì trang trống', async () => {
+    vi.mocked(panelService.getPanelsByPage).mockResolvedValue([]);
+    vi.mocked(artworkService.getArtworks).mockResolvedValue([
+      panelArt('art-old', 'p-deleted'),
+    ] as any);
+    vi.mocked(assignmentService.getSubmissions).mockResolvedValue([
+      {
+        id: 'sub-orphan',
+        attemptNumber: 1,
+        status: 'Rejected',
+        artworkReferenceIds: ['art-old'],
+        panelLayout: [],
+      } as any,
+    ]);
+
+    renderView();
+
+    const notice = await screen.findByTestId('orphan-submissions');
+    expect(notice).toHaveTextContent(/Bố cục khung của lần nộp này không còn/);
+    expect(notice).toHaveTextContent(/Lần nộp 1/);
   });
 });

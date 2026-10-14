@@ -9,6 +9,17 @@ describe('assignmentService', () => {
     vi.clearAllMocks();
   });
 
+  it('getMyAssignments gọi /workspaces/{id}/my-assignments kèm bộ lọc', async () => {
+    const mockData = [{ id: 'asg-9', chapterId: 'chap-2', seriesTitle: 'S', chapterNumber: 2 }];
+    vi.mocked(axiosClient.get).mockResolvedValueOnce({ data: mockData });
+
+    const result = await assignmentService.getMyAssignments('ws-1', { status: 'InProgress' });
+    expect(axiosClient.get).toHaveBeenCalledWith('/workspaces/ws-1/my-assignments', {
+      params: { status: 'InProgress' },
+    });
+    expect(result).toEqual(mockData);
+  });
+
   it('getAssignments trả về mảng phân công khi gọi thành công', async () => {
     const mockData = [
       {

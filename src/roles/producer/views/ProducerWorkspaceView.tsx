@@ -536,16 +536,6 @@ export const ProducerWorkspaceView: React.FC = () => {
     }
   };
 
-  const handleRotateKey = (member: any) => {
-    const randomHex = Math.random().toString(16).substring(2, 6).toUpperCase();
-    const randomSuffix = Math.random().toString(16).substring(2, 5).toUpperCase();
-    const newKey = `ECDSA-P256 [0x${randomHex}...${randomSuffix}]`;
-    showToast(
-      'Key Rotated',
-      `Generated new cryptographic signing authority key for ${member.name}: ${newKey}`,
-    );
-  };
-
   const formatGb = (bytes: number) => {
     return (bytes / (1024 * 1024 * 1024)).toFixed(1);
   };
@@ -626,15 +616,19 @@ export const ProducerWorkspaceView: React.FC = () => {
                         : 'bg-[#F97316]'
                   }`}
                   style={{
-                    width: `${Math.min(
-                      100,
-                      workspaceUsage?.storage.percentUsed ??
-                        Math.round(
-                          (activeWorkspace.usedStorageBytes /
-                            (activeWorkspace.storageQuotaBytes || 1)) *
+                    width: `${
+                      workspaceUsage?.storage.isUnlimited
+                        ? 0
+                        : Math.min(
                             100,
-                        ),
-                    )}%`,
+                            workspaceUsage?.storage.percentUsed ??
+                              Math.round(
+                                (activeWorkspace.usedStorageBytes /
+                                  (activeWorkspace.storageQuotaBytes || 1)) *
+                                  100,
+                              ),
+                          )
+                    }%`,
                   }}
                 />
               </div>
@@ -800,8 +794,8 @@ export const ProducerWorkspaceView: React.FC = () => {
                     width: `${Math.min(
                       100,
                       workspaceUsage?.activeSessions?.isUnlimited
-                        ? Math.min(100, (workspaceUsage.activeSessions.used || 1) * 25)
-                        : (workspaceUsage?.activeSessions?.percentUsed ?? 15),
+                        ? 0
+                        : (workspaceUsage?.activeSessions?.percentUsed ?? 0),
                     )}%`,
                   }}
                 />
@@ -1027,18 +1021,17 @@ export const ProducerWorkspaceView: React.FC = () => {
                               : 'Vertical'}
                           </span>
                         </div>
-                        <div className='flex items-center gap-1.5'>
-                          <Calendar className='w-3 h-3 text-zinc-400' />
-                          <span className='text-zinc-700 font-semibold'>
-                            {s.releaseScheduleJson || 'Hàng tuần'}
-                          </span>
-                        </div>
+                        {s.releaseScheduleJson && (
+                          <div className='flex items-center gap-1.5'>
+                            <Calendar className='w-3 h-3 text-zinc-400' />
+                            <span className='text-zinc-700 font-semibold'>
+                              {s.releaseScheduleJson}
+                            </span>
+                          </div>
+                        )}
                       </div>
 
-                      <div className='flex items-center justify-between text-[10px] font-mono'>
-                        <span className='text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 font-semibold flex items-center gap-1'>
-                          <Sparkles className='w-3 h-3' /> Bible Active
-                        </span>
+                      <div className='flex items-center justify-end text-[10px] font-mono'>
                         <button
                           type='button'
                           onClick={(e) => {
@@ -1264,124 +1257,6 @@ export const ProducerWorkspaceView: React.FC = () => {
                     </div>
                   ))
                 )}
-              </div>
-            </div>
-
-            {/* RBAC Privilege Matrix */}
-            <div className='bg-white border border-[#E7E7E7] rounded-xl p-5 shadow-xs'>
-              <div className='flex items-center justify-between mb-4'>
-                <div>
-                  <h3 className='text-base font-bold font-serif text-[#171717] flex items-center gap-2'>
-                    <Shield className='w-4 h-4 text-[#F97316]' />
-                    Role-Based Access Control (RBAC) Matrix
-                  </h3>
-                  <p className='text-xs text-[#555555]'>
-                    Production permissions mapped across studio roles for Tankōbon mastering
-                  </p>
-                </div>
-                <span className='text-xs font-mono text-[#059669] bg-[#ECFDF5] px-2.5 py-1 rounded border border-[#10B981]/30 font-semibold'>
-                  Strict Enforcement
-                </span>
-              </div>
-
-              <div className='overflow-x-auto'>
-                <table className='w-full text-left border-collapse text-xs'>
-                  <thead className='bg-[#F8F6F0] border-b border-[#E7E7E7] text-[#555555] font-mono uppercase text-[10px]'>
-                    <tr>
-                      <th className='p-3'>Capability Privilege</th>
-                      <th className='p-3 text-center'>Lead Producer</th>
-                      <th className='p-3 text-center'>Key Artist</th>
-                      <th className='p-3 text-center'>Writer / SFX</th>
-                      <th className='p-3 text-center'>Chief Editor</th>
-                    </tr>
-                  </thead>
-                  <tbody className='divide-y divide-[#E7E7E7]'>
-                    {[
-                      {
-                        name: 'Master Commit & Tankōbon Lock',
-                        lead: true,
-                        ink: false,
-                        writer: false,
-                        edit: true,
-                      },
-                      {
-                        name: 'AI Vector Retraining & LoRA Anchoring',
-                        lead: true,
-                        ink: true,
-                        writer: false,
-                        edit: false,
-                      },
-                      {
-                        name: '600 DPI TIFF & CMYK Production Export',
-                        lead: true,
-                        ink: true,
-                        writer: false,
-                        edit: true,
-                      },
-                      {
-                        name: 'Editorial Sign-off / Print Gate Release',
-                        lead: true,
-                        ink: false,
-                        writer: false,
-                        edit: true,
-                      },
-                      {
-                        name: 'Script Versioning & Dialogue Balloon Fit',
-                        lead: true,
-                        ink: false,
-                        writer: true,
-                        edit: true,
-                      },
-                      {
-                        name: 'Budget, Billing & Seat Allocation',
-                        lead: true,
-                        ink: false,
-                        writer: false,
-                        edit: false,
-                      },
-                    ].map((row, i) => (
-                      <tr key={i} className='hover:bg-[#FAF8F4] transition-colors'>
-                        <td className='p-3 font-semibold text-[#171717]'>{row.name}</td>
-                        <td className='p-3 text-center'>
-                          {row.lead ? (
-                            <span className='inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#ECFDF5] text-[#059669] font-bold'>
-                              ✓
-                            </span>
-                          ) : (
-                            <span className='inline-block text-[#D1D5DB] font-mono'>—</span>
-                          )}
-                        </td>
-                        <td className='p-3 text-center'>
-                          {row.ink ? (
-                            <span className='inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#ECFDF5] text-[#059669] font-bold'>
-                              ✓
-                            </span>
-                          ) : (
-                            <span className='inline-block text-[#D1D5DB] font-mono'>—</span>
-                          )}
-                        </td>
-                        <td className='p-3 text-center'>
-                          {row.writer ? (
-                            <span className='inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#ECFDF5] text-[#059669] font-bold'>
-                              ✓
-                            </span>
-                          ) : (
-                            <span className='inline-block text-[#D1D5DB] font-mono'>—</span>
-                          )}
-                        </td>
-                        <td className='p-3 text-center'>
-                          {row.edit ? (
-                            <span className='inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#ECFDF5] text-[#059669] font-bold'>
-                              ✓
-                            </span>
-                          ) : (
-                            <span className='inline-block text-[#D1D5DB] font-mono'>—</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
               </div>
             </div>
           </div>

@@ -9,7 +9,6 @@ import {
   LetteringSuggestionSet,
   ProductionReport,
 } from '@/services/aiAgents.service';
-import { AgentPipelineStrip } from './AgentPipelineStrip';
 import { SuggestionCard } from './SuggestionCard';
 import { StepOutputView } from './StepOutputView';
 import { LetteringDiffView, ProductionReportView } from './AgentOutputViews';
@@ -144,84 +143,6 @@ const production: ProductionReport = {
     { key: 'F3', text: 'Assignment Writer/Script hạn 2026-09-30, đã quá 3 ngày.' },
   ],
 };
-
-describe('AgentPipelineStrip — 7 agent + Supervisor riêng', () => {
-  it('hiển thị đủ 7 agent chuyên môn; Supervisor là khối riêng, không phải một trong 7', () => {
-    const { container } = render(<AgentPipelineStrip run={null} />);
-
-    const agents = [...container.querySelectorAll('[data-agent]')].map((n) =>
-      n.getAttribute('data-agent'),
-    );
-    expect(agents).toEqual([
-      'Writer',
-      'Continuity',
-      'Storyboard',
-      'Artist',
-      'Letterer',
-      'Editor',
-      'Producer',
-    ]);
-    expect(screen.getByText('Supervisor')).toBeInTheDocument();
-    expect(agents).not.toContain('Supervisor');
-  });
-
-  it('nhiệm vụ Artist: chỉ Artist thuộc chuỗi, agent khác được làm mờ "Không thuộc nhiệm vụ này"', () => {
-    const r = run({
-      workflowType: 'Artist',
-      steps: [
-        step({
-          stepIndex: 1,
-          agent: 'Supervisor',
-          output: { action: 'Artist', allowedActions: ['Artist'], reason: 'r' },
-        }),
-        step({ stepIndex: 2, agent: 'Artist', output: artist }),
-        step({
-          stepIndex: 3,
-          agent: 'Supervisor',
-          output: { action: 'Finish', allowedActions: ['Finish'], reason: 'xong' },
-        }),
-      ],
-    });
-    const { container } = render(<AgentPipelineStrip run={r} />);
-
-    const state = (a: string) =>
-      container.querySelector(`[data-agent="${a}"]`)?.getAttribute('data-state');
-    expect(state('Artist')).toBe('done');
-    expect(state('Writer')).toBe('notInWorkflow');
-    expect(state('Producer')).toBe('notInWorkflow');
-    expect(screen.getAllByText('Không thuộc nhiệm vụ này')).toHaveLength(6);
-    expect(screen.getByText(/nhiệm vụ: Prompt ảnh/)).toBeInTheDocument();
-  });
-
-  it('vòng sửa Writer ↔ Continuity chỉ hiện ở nhiệm vụ có Writer; run cũ (không workflowType) vẫn hiện', () => {
-    const { rerender } = render(<AgentPipelineStrip run={run({})} />);
-    expect(screen.getByText(/vòng sửa 0\/2/)).toBeInTheDocument();
-
-    rerender(<AgentPipelineStrip run={run({ workflowType: 'Producer' })} />);
-    expect(screen.queryByText(/vòng sửa/)).not.toBeInTheDocument();
-  });
-
-  it('báo guardrail đã ghi đè lựa chọn của Supervisor', () => {
-    const r = run({
-      workflowType: 'Artist',
-      steps: [
-        step({
-          stepIndex: 1,
-          agent: 'Supervisor',
-          output: {
-            action: 'Artist',
-            reason: 'Guardrail ghi đè',
-            allowedActions: ['Artist'],
-            guardrailOverridden: true,
-          },
-        }),
-      ],
-    });
-    render(<AgentPipelineStrip run={r} />);
-
-    expect(screen.getByText(/1 bị guardrail ghi đè/)).toBeInTheDocument();
-  });
-});
 
 describe('SuggestionCard — nút quyết định theo loại kết quả và quyền', () => {
   const noop = () => undefined;

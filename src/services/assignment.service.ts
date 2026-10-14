@@ -1,4 +1,7 @@
 import axiosClient from '../api/axiosClient';
+
+// Request "start" đang chạy theo chapterId:assignmentId (chống gọi trùng)
+const startInflight = new Map<string, Promise<any>>();
 import {
   AssignmentDto,
   WorkspaceAssignmentDto,
@@ -74,6 +77,20 @@ export function extractError(error: any, defaultMsg: string): string {
 }
 
 export const assignmentService = {
+  /**
+   * Việc cá nhân của người đang đăng nhập trên mọi series/chương của Studio
+   * (GET /api/workspaces/{workspaceId}/my-assignments)
+   */
+  getMyAssignments: async (
+    workspaceId: string,
+    params?: { status?: AssignmentStatus; seriesId?: string },
+  ): Promise<WorkspaceAssignmentDto[]> => {
+    const response = await axiosClient.get(`/workspaces/${workspaceId}/my-assignments`, {
+      params,
+    });
+    return response.data || [];
+  },
+
   /**
    * Lấy danh sách phân công nhiệm vụ của Chapter (GET /api/chapters/{chapterId}/assignments)
    */
@@ -166,15 +183,31 @@ export const assignmentService = {
    * Người được giao việc bắt đầu làm (POST /api/chapters/{chapterId}/assignments/{assignmentId}/start)
    * Tạo dòng InProgress trong StageProgress cho các Panel được giao
    */
-  startAssignment: async (chapterId: string, assignmentId: string): Promise<AssignmentDto> => {
-    try {
-      const response = await axiosClient.post(
-        `/chapters/${chapterId}/assignments/${assignmentId}/start`,
-      );
-      return response.data;
-    } catch (error: any) {
-      throw new Error(extractError(error, 'Không thể bắt đầu nhiệm vụ'));
-    }
+  startAssignment: (chapterId: string, assignmentId: string): Promise<AssignmentDto> => {
+    // Bấm đúp / gọi trùng khi request trước chưa xong: dùng chung một request, tránh 409 do gọi start hai lần
+    const key = `${chapterId}:${assignmentId}`;
+    const inflight = startInflight.get(key);
+    if (inflight) return inflight;
+    const req = (async () => {
+      try {
+        const response = await axiosClient.post(
+          `/chapters/${chapterId}/assignments/${assignmentId}/start`,
+        );
+        return response.data as AssignmentDto;
+      } catch (error: any) {
+        // 409 ở đây là luật nghiệp vụ (việc phụ thuộc chưa Approved, chương không còn InProduction, BR-14...):
+        // giữ nguyên câu `error` của BE và mã lỗi để giao diện giải thích đúng lý do.
+        const err: any = new Error(extractError(error, 'Không thể bắt đầu nhiệm vụ'));
+        err.status = error?.response?.status;
+        err.code =
+          error?.response?.data?.code || (error?.response?.status === 409 ? 'CONFLICT' : undefined);
+        throw err;
+      } finally {
+        startInflight.delete(key);
+      }
+    })();
+    startInflight.set(key, req);
+    return req;
   },
 
   /**

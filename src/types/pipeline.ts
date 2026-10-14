@@ -112,6 +112,7 @@ export interface AssignmentDto {
   updatedAt?: string | null;
 }
 
+/** Việc cá nhân xuyên chương: GET /api/workspaces/{workspaceId}/my-assignments */
 export interface WorkspaceAssignmentDto extends AssignmentDto {
   seriesTitle: string;
   chapterNumber: number;
@@ -164,6 +165,15 @@ export interface StageProgressDto {
 
 export type SubmissionStatus = 'Pending' | 'Approved' | 'Rejected' | 'Superseded' | number;
 
+/** Bố cục một khung chụp lúc nộp (BR-01): lần nộp cũ không đổi khi khung bị xoá/đổi toạ độ sau đó. */
+export interface SubmissionPanelDto {
+  id: string;
+  pageId: string;
+  panelNumber: number;
+  readingOrder: number;
+  boundingBox: string;
+}
+
 export interface SubmissionDto {
   id: string;
   assignmentId: string;
@@ -179,6 +189,8 @@ export interface SubmissionDto {
   artworkReferenceIds?: string[];
   /** Version của chương lúc nộp (revision script). */
   chapterVersion?: number;
+  /** Bố cục khung lúc nộp; mảng rỗng với lần nộp có trước bản sửa BE và việc không có Panel. */
+  panelLayout?: SubmissionPanelDto[];
 }
 
 export type ChangeRequestStatus = 'Open' | 'Resolved' | 'Verified' | 'Rejected' | number;
@@ -396,6 +408,32 @@ export interface VisualDeviationDto {
   triagedByUserName?: string | null;
   triagedAt?: string | null;
   detectedAt: string;
+  detailedDeviations?: ImageConsistencyDeviationDto[] | null;
+  summaryReason?: string | null;
+  revisionRef?: string | null;
+}
+
+export interface ImageConsistencyDeviationDto {
+  aspect: string;
+  description: string;
+  regionHint?: string | null;
+}
+
+export interface ImageConsistencyResultDto {
+  panelId: string;
+  characterId?: string | null;
+  characterName?: string | null;
+  characterSheetVersion?: number | null;
+  score: number;
+  threshold: number;
+  passed: boolean;
+  summaryReason?: string | null;
+  deviations: ImageConsistencyDeviationDto[];
+  findingId?: string | null;
+  revisionRef?: string | null;
+  assetReferenceId?: string | null;
+  artworkUrl?: string | null;
+  characterSheetUrl?: string | null;
 }
 
 export interface VisualConsistencyReportDto {
@@ -411,4 +449,3 @@ export interface VisualConsistencyReportDto {
   blockingDeviationCount: number;
   deviations: VisualDeviationDto[];
 }
-

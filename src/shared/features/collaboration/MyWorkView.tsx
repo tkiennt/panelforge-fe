@@ -1,13 +1,24 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
-import { ClipboardList, Loader2, RefreshCw } from 'lucide-react';
+import {
+  ChevronDown,
+  ChevronUp,
+  Clapperboard,
+  ClipboardList,
+  Film,
+  Layers,
+  Loader2,
+  RefreshCw,
+} from 'lucide-react';
 import { assignmentService } from '@/services/assignment.service';
 import { chapterService, type ChapterDto } from '@/services/chapter.service';
 import { pipelineService, type PipelineStageDto } from '@/services/pipeline.service';
 import { workspaceService, type WorkspaceMemberDto } from '@/services/workspace.service';
-import type { AssignmentDto, StageProgressDto } from '@/types';
+import { scriptLineService, type SceneDto } from '@/services/scriptLine.service';
+import { pageService, type PageDto } from '@/services/page.service';
+import type { AssignmentDto, StageProgressDto, WorkspaceAssignmentDto } from '@/types';
 import { AssignmentWorkCard } from './AssignmentWorkCard';
-import { errorMessage, isReviewerRole } from './collaborationRules';
+import { errorMessage, isReviewerRole, resolvePageId } from './collaborationRules';
 import { PageContainer } from '@/shared/components/PageContainer';
 
 interface MyWorkViewProps {
@@ -16,7 +27,7 @@ interface MyWorkViewProps {
   onShowToast?: (title: string, desc: string) => void;
 }
 
-type Tab = 'mine' | 'review' | 'all';
+type Tab = 'mine' | 'review' | 'all' | 'studio';
 
 /**
  * "Công việc của tôi" theo Series (CF2 + CF3): mọi vai trò làm nội dung vào đây để bắt đầu, tải artwork, nộp, xử lý yêu cầu sửa;
@@ -34,6 +45,10 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
   const [chapters, setChapters] = useState<ChapterDto[]>([]);
   const [stages, setStages] = useState<PipelineStageDto[]>([]);
   const [members, setMembers] = useState<WorkspaceMemberDto[]>([]);
+  const [scenes, setScenes] = useState<SceneDto[]>([]);
+  const [pages, setPages] = useState<PageDto[]>([]);
+  const [selectedSceneId, setSelectedSceneId] = useState<string>('ALL');
+  const [collapsedScenes, setCollapsedScenes] = useState<Record<string, boolean>>({});
   const [chapterId, setChapterId] = useState<string>(searchParams.get('chapterId') ?? '');
   const [assignments, setAssignments] = useState<AssignmentDto[]>([]);
   const [progress, setProgress] = useState<StageProgressDto[]>([]);
@@ -41,6 +56,8 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
   const [loadingChapters, setLoadingChapters] = useState(true);
   const [loadingWork, setLoadingWork] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [studioWork, setStudioWork] = useState<WorkspaceAssignmentDto[]>([]);
+  const [loadingStudio, setLoadingStudio] = useState(false);
 
   const highlightedId = searchParams.get('assignmentId');
 
@@ -85,13 +102,20 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
         });
         setAssignments(list);
         setProgress([]);
+        setScenes([]);
+        setPages([]);
+        setSelectedSceneId('ALL');
       } else {
-        const [list, prog] = await Promise.all([
+        const [list, prog, sceneList, pageList] = await Promise.all([
           assignmentService.getAssignments(chapterId),
           assignmentService.getStageProgress(chapterId),
+          scriptLineService.getScenesByChapter(chapterId).catch(() => [] as SceneDto[]),
+          pageService.getPagesByChapter(chapterId).catch(() => [] as PageDto[]),
         ]);
         setAssignments(list);
         setProgress(prog);
+        setScenes(sceneList || []);
+        setPages(pageList || []);
       }
     } finally {
       setLoadingWork(false);
@@ -101,6 +125,23 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
   useEffect(() => {
     void loadWork();
   }, [loadWork]);
+
+  // Việc cá nhân xuyên chương/series của cả Studio (CF2 Cross-Chapter Worklist)
+  const loadStudioWork = useCallback(async () => {
+    if (!workspaceId) return;
+    setLoadingStudio(true);
+    try {
+      setStudioWork(await assignmentService.getMyAssignments(workspaceId));
+    } catch (err) {
+      setError(errorMessage(err, 'Không thể tải việc toàn Studio.'));
+    } finally {
+      setLoadingStudio(false);
+    }
+  }, [workspaceId]);
+
+  useEffect(() => {
+    if (tab === 'studio') void loadStudioWork();
+  }, [tab, loadStudioWork]);
 
   const stageName = (id: string, a?: AssignmentDto) => {
     if ((a as any)?.stageName) {
@@ -132,7 +173,138 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
     review: assignments.filter((a) => ['Submitted', 'UnderReview'].includes(String(a.status)))
       .length,
     all: assignments.length,
+    studio: studioWork.length,
   };
+
+  const getAssignmentSceneInfo = useCallback(
+    (a: AssignmentDto) => {
+      const pageId = resolvePageId(a, progress);
+      if (!pageId) {
+        return { sceneId: 'UNASSIGNED', scene: null, page: null };
+      }
+      const page = pages.find((p) => p.id === pageId);
+      if (!page || !page.sceneId) {
+        return { sceneId: 'UNASSIGNED', scene: null, page: page ?? null };
+      }
+      const scene = scenes.find((s) => s.id === page.sceneId);
+      if (!scene) {
+        return { sceneId: 'UNASSIGNED', scene: null, page };
+      }
+      return { sceneId: scene.id, scene, page };
+    },
+    [progress, pages, scenes],
+  );
+
+  const sceneFilterCounts = useMemo(() => {
+    const map: Record<string, number> = {};
+    let unassigned = 0;
+    for (const a of visible) {
+      const { sceneId } = getAssignmentSceneInfo(a);
+      if (sceneId === 'UNASSIGNED') {
+        unassigned++;
+      } else {
+        map[sceneId] = (map[sceneId] || 0) + 1;
+      }
+    }
+    return { ...map, UNASSIGNED: unassigned };
+  }, [visible, getAssignmentSceneInfo]);
+
+  const filteredAssignments = useMemo(() => {
+    if (selectedSceneId === 'ALL') return visible;
+    return visible.filter((a) => getAssignmentSceneInfo(a).sceneId === selectedSceneId);
+  }, [visible, selectedSceneId, getAssignmentSceneInfo]);
+
+  interface SceneGroup {
+    sceneId: string;
+    scene: SceneDto | null;
+    title: string;
+    summary?: string | null;
+    assignments: AssignmentDto[];
+  }
+
+  const sceneGroups = useMemo((): SceneGroup[] => {
+    if (chapterId === 'ALL_STUDIO' || scenes.length === 0) {
+      return [
+        {
+          sceneId: 'ALL',
+          scene: null,
+          title: 'Tất cả công việc',
+          assignments: filteredAssignments,
+        },
+      ];
+    }
+
+    const tasksByScene = new Map<string, AssignmentDto[]>();
+    const unassignedTasks: AssignmentDto[] = [];
+
+    for (const a of filteredAssignments) {
+      const { sceneId } = getAssignmentSceneInfo(a);
+      if (sceneId === 'UNASSIGNED') {
+        unassignedTasks.push(a);
+      } else {
+        const list = tasksByScene.get(sceneId) || [];
+        list.push(a);
+        tasksByScene.set(sceneId, list);
+      }
+    }
+
+    if (selectedSceneId !== 'ALL') {
+      if (selectedSceneId === 'UNASSIGNED') {
+        return unassignedTasks.length > 0
+          ? [
+              {
+                sceneId: 'UNASSIGNED',
+                scene: null,
+                title: 'Công việc chung / Toàn chương',
+                summary: 'Các công việc cấp chương hoặc chưa gắn vào phân cảnh cụ thể',
+                assignments: unassignedTasks,
+              },
+            ]
+          : [];
+      }
+      const sc = scenes.find((s) => s.id === selectedSceneId);
+      const list = tasksByScene.get(selectedSceneId) || [];
+      if (sc) {
+        return [
+          {
+            sceneId: sc.id,
+            scene: sc,
+            title: `Cảnh ${sc.sceneNumber}${sc.heading ? `: ${sc.heading}` : ''}`,
+            summary: sc.summary,
+            assignments: list,
+          },
+        ];
+      }
+      return [];
+    }
+
+    const groups: SceneGroup[] = [];
+    const sortedScenes = [...scenes].sort((a, b) => a.sceneNumber - b.sceneNumber);
+    for (const sc of sortedScenes) {
+      const list = tasksByScene.get(sc.id) || [];
+      if (list.length > 0) {
+        groups.push({
+          sceneId: sc.id,
+          scene: sc,
+          title: `Cảnh ${sc.sceneNumber}${sc.heading ? `: ${sc.heading}` : ''}`,
+          summary: sc.summary,
+          assignments: list,
+        });
+      }
+    }
+
+    if (unassignedTasks.length > 0) {
+      groups.push({
+        sceneId: 'UNASSIGNED',
+        scene: null,
+        title: 'Công việc chung / Toàn chương',
+        summary: 'Các công việc cấp chương hoặc chưa gắn vào phân cảnh cụ thể',
+        assignments: unassignedTasks,
+      });
+    }
+
+    return groups;
+  }, [chapterId, scenes, filteredAssignments, getAssignmentSceneInfo, selectedSceneId]);
 
   // Với Reviewer (Editor / Producer):
   // 1. Tự động chuyển khỏi tab 'mine' nếu không có việc cá nhân (tránh màn hình trống 0 việc)
@@ -150,17 +322,41 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
   // Mở từ thông báo: cuộn tới đúng việc sau khi danh sách đã vẽ xong
   useEffect(() => {
     if (!highlightedId || loadingWork) return;
-    document
-      .getElementById(`assignment-${highlightedId}`)
-      ?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
-  }, [highlightedId, loadingWork, assignments]);
+    const target = assignments.find((a) => a.id === highlightedId);
+    if (target) {
+      const { sceneId } = getAssignmentSceneInfo(target);
+      if (sceneId && collapsedScenes[sceneId]) {
+        setCollapsedScenes((prev) => ({ ...prev, [sceneId]: false }));
+      }
+      if (selectedSceneId !== 'ALL' && selectedSceneId !== sceneId) {
+        setSelectedSceneId('ALL');
+      }
+    }
+    const timer = setTimeout(() => {
+      document
+        .getElementById(`assignment-${highlightedId}`)
+        ?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [
+    highlightedId,
+    loadingWork,
+    assignments,
+    getAssignmentSceneInfo,
+    collapsedScenes,
+    selectedSceneId,
+  ]);
 
   const selectChapter = (id: string) => {
     setChapterId(id);
-    setSearchParams(id && id !== 'ALL_STUDIO' ? { chapterId: id } : id === 'ALL_STUDIO' ? { view: 'all' } : {});
+    setSelectedSceneId('ALL');
+    setCollapsedScenes({});
+    setSearchParams(
+      id && id !== 'ALL_STUDIO' ? { chapterId: id } : id === 'ALL_STUDIO' ? { view: 'all' } : {},
+    );
   };
 
-  const tabs: { key: Tab; label: string; badgeAlert?: boolean }[] = reviewer
+  const baseTabs: { key: Tab; label: string; badgeAlert?: boolean }[] = reviewer
     ? [
         { key: 'review', label: 'Chờ duyệt', badgeAlert: counts.review > 0 },
         { key: 'all', label: 'Tất cả công việc' },
@@ -170,6 +366,10 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
         { key: 'mine', label: 'Việc của tôi' },
         { key: 'all', label: 'Tất cả' },
       ];
+  const tabs = workspaceId
+    ? [...baseTabs, { key: 'studio' as Tab, label: 'Việc của tôi – toàn Studio' }]
+    : baseTabs;
+  const isStudioTab = tab === 'studio';
 
   return (
     <PageContainer className='space-y-5 py-6' data-testid='my-work-view'>
@@ -204,11 +404,13 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
           </select>
           <button
             type='button'
-            onClick={() => void loadWork()}
+            onClick={() => void (isStudioTab ? loadStudioWork() : loadWork())}
             aria-label='Tải lại'
             className='p-2 rounded-lg border border-[#E7E7E7] bg-white hover:bg-zinc-50 cursor-pointer'
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${loadingWork ? 'animate-spin' : ''}`} />
+            <RefreshCw
+              className={`w-3.5 h-3.5 ${(isStudioTab ? loadingStudio : loadingWork) ? 'animate-spin' : ''}`}
+            />
           </button>
         </div>
       </header>
@@ -244,6 +446,91 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
         ))}
       </nav>
 
+      {/* Lọc theo Phân cảnh trong Chương (CF2 & CF3) */}
+      {chapterId !== 'ALL_STUDIO' && scenes.length > 0 && !isStudioTab && (
+        <div className='flex items-center gap-2 overflow-x-auto pb-1.5 pt-1 text-xs border-t border-[#F0ECE1]'>
+          <span className='flex items-center gap-1 font-bold text-zinc-600 whitespace-nowrap text-[11px] uppercase tracking-wider shrink-0'>
+            <Clapperboard className='w-3.5 h-3.5 text-[#F97316]' />
+            Phân cảnh:
+          </span>
+          <button
+            type='button'
+            onClick={() => setSelectedSceneId('ALL')}
+            className={`px-3 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer shrink-0 flex items-center gap-1.5 ${
+              selectedSceneId === 'ALL'
+                ? 'bg-orange-50 border-orange-300 text-orange-900 shadow-2xs font-bold'
+                : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50'
+            }`}
+          >
+            <span>Tất cả các cảnh</span>
+            <span
+              className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+                selectedSceneId === 'ALL'
+                  ? 'bg-orange-200/80 text-orange-950 font-bold'
+                  : 'bg-zinc-100 text-zinc-600'
+              }`}
+            >
+              {visible.length}
+            </span>
+          </button>
+          {scenes
+            .slice()
+            .sort((a, b) => a.sceneNumber - b.sceneNumber)
+            .map((s) => {
+              const count = sceneFilterCounts[s.id] || 0;
+              const isSelected = selectedSceneId === s.id;
+              return (
+                <button
+                  key={s.id}
+                  type='button'
+                  onClick={() => setSelectedSceneId(s.id)}
+                  className={`px-3 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer shrink-0 flex items-center gap-1.5 ${
+                    isSelected
+                      ? 'bg-orange-50 border-orange-300 text-orange-900 shadow-2xs font-bold'
+                      : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50'
+                  }`}
+                >
+                  <span>
+                    Cảnh {s.sceneNumber}
+                    {s.heading ? `: ${s.heading}` : ''}
+                  </span>
+                  <span
+                    className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+                      isSelected
+                        ? 'bg-orange-200/80 text-orange-950 font-bold'
+                        : 'bg-zinc-100 text-zinc-600'
+                    }`}
+                  >
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          {sceneFilterCounts['UNASSIGNED'] > 0 && (
+            <button
+              type='button'
+              onClick={() => setSelectedSceneId('UNASSIGNED')}
+              className={`px-3 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer shrink-0 flex items-center gap-1.5 ${
+                selectedSceneId === 'UNASSIGNED'
+                  ? 'bg-orange-50 border-orange-300 text-orange-900 shadow-2xs font-bold'
+                  : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50'
+              }`}
+            >
+              <span>Chung / Chưa gắn cảnh</span>
+              <span
+                className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+                  selectedSceneId === 'UNASSIGNED'
+                    ? 'bg-orange-200/80 text-orange-950 font-bold'
+                    : 'bg-zinc-100 text-zinc-600'
+                }`}
+              >
+                {sceneFilterCounts['UNASSIGNED']}
+              </span>
+            </button>
+          )}
+        </div>
+      )}
+
       {error && (
         <div
           role='alert'
@@ -253,7 +540,44 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
         </div>
       )}
 
-      {loadingChapters || loadingWork ? (
+      {isStudioTab ? (
+        loadingStudio ? (
+          <div className='py-12 text-center text-[#888888] text-xs'>
+            <Loader2 className='w-6 h-6 animate-spin mx-auto mb-2 text-[#F97316]' />
+            Đang tải việc toàn Studio...
+          </div>
+        ) : studioWork.length === 0 ? (
+          <div
+            className='py-12 text-center border border-dashed border-[#E7E7E7] rounded-xl text-xs text-[#737373]'
+            data-testid='studio-work-empty'
+          >
+            Bạn chưa được giao việc nào trong Studio này.
+          </div>
+        ) : (
+          <div className='space-y-3' data-testid='studio-work-list'>
+            {studioWork.map((a) => (
+              <div key={a.id} className='space-y-1'>
+                <p className='text-[11px] font-semibold text-[#737373]'>
+                  {a.seriesTitle} · Chương {a.chapterNumber}
+                  {a.chapterTitle ? `: ${a.chapterTitle}` : ''}
+                </p>
+                <AssignmentWorkCard
+                  chapterId={a.chapterId}
+                  assignment={a}
+                  stageName={`${a.stageOrder}. ${a.stageName}`}
+                  assigneeName={memberName(a.assigneeUserId)}
+                  userId={currentUserId}
+                  workspaceRole={workspaceRole}
+                  stageProgress={[]}
+                  highlighted={a.id === highlightedId}
+                  onChanged={() => void loadStudioWork()}
+                  onToast={onShowToast}
+                />
+              </div>
+            ))}
+          </div>
+        )
+      ) : loadingChapters || loadingWork ? (
         <div className='py-12 text-center text-[#888888] text-xs'>
           <Loader2 className='w-6 h-6 animate-spin mx-auto mb-2 text-[#F97316]' />
           Đang tải công việc...
@@ -286,9 +610,20 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
             </button>
           )}
         </div>
-      ) : (
+      ) : filteredAssignments.length === 0 ? (
+        <div className='py-10 text-center border border-dashed border-[#E7E7E7] rounded-xl text-xs text-[#737373] space-y-2'>
+          <p>Không có công việc nào thuộc phân cảnh này trong mục đã chọn.</p>
+          <button
+            type='button'
+            onClick={() => setSelectedSceneId('ALL')}
+            className='text-xs font-semibold text-[#F97316] hover:underline cursor-pointer'
+          >
+            Xem tất cả ({visible.length}) công việc trong chương →
+          </button>
+        </div>
+      ) : chapterId === 'ALL_STUDIO' || scenes.length === 0 ? (
         <div className='space-y-3'>
-          {visible.map((a) => (
+          {filteredAssignments.map((a) => (
             <div key={a.id} className='space-y-1.5'>
               {(a as any).seriesTitle && (
                 <div className='flex items-center gap-1.5 text-[11px] font-semibold text-orange-800 bg-orange-50 px-2.5 py-1 rounded-md border border-orange-200/80 w-fit'>
@@ -311,9 +646,95 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
                 highlighted={a.id === highlightedId}
                 onChanged={() => void loadWork()}
                 onToast={onShowToast}
+                relatedAssignments={assignments}
               />
             </div>
           ))}
+        </div>
+      ) : (
+        <div className='space-y-6'>
+          {sceneGroups.map((group) => {
+            const isCollapsed = Boolean(collapsedScenes[group.sceneId]);
+            return (
+              <section
+                key={group.sceneId}
+                className='rounded-2xl border border-zinc-200/80 bg-zinc-50/40 p-3.5 space-y-3 shadow-2xs'
+              >
+                <div
+                  onClick={() =>
+                    setCollapsedScenes((prev) => ({
+                      ...prev,
+                      [group.sceneId]: !prev[group.sceneId],
+                    }))
+                  }
+                  className='flex items-center justify-between gap-3 cursor-pointer select-none'
+                >
+                  <div className='flex items-center gap-2.5 min-w-0'>
+                    <div className='w-7 h-7 rounded-lg bg-orange-100/90 border border-orange-200/80 flex items-center justify-center text-orange-700 shrink-0'>
+                      {group.scene ? <Film className='w-4 h-4' /> : <Layers className='w-4 h-4' />}
+                    </div>
+                    <div className='min-w-0'>
+                      <div className='flex items-center gap-2'>
+                        <h2 className='text-xs font-bold text-zinc-900 truncate'>{group.title}</h2>
+                        <span className='px-2 py-0.2 rounded-full text-[10px] font-mono font-bold bg-white border border-zinc-200 text-zinc-700'>
+                          {group.assignments.length} công việc
+                        </span>
+                      </div>
+                      {group.summary && (
+                        <p className='text-[11px] text-zinc-500 truncate max-w-xl'>
+                          {group.summary}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div className='flex items-center gap-2 shrink-0'>
+                    <span className='text-[11px] font-semibold text-zinc-500'>
+                      {isCollapsed ? 'Mở rộng' : 'Thu gọn'}
+                    </span>
+                    <div className='p-1 rounded-md hover:bg-zinc-200/60 text-zinc-600 transition-colors'>
+                      {isCollapsed ? (
+                        <ChevronDown className='w-4 h-4' />
+                      ) : (
+                        <ChevronUp className='w-4 h-4' />
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {!isCollapsed && (
+                  <div className='space-y-3 pt-1'>
+                    {group.assignments.map((a) => (
+                      <div key={a.id} className='space-y-1.5'>
+                        {(a as any).seriesTitle && (
+                          <div className='flex items-center gap-1.5 text-[11px] font-semibold text-orange-800 bg-orange-50 px-2.5 py-1 rounded-md border border-orange-200/80 w-fit'>
+                            <span>{(a as any).seriesTitle}</span>
+                            <span className='text-orange-400'>•</span>
+                            <span>
+                              Chương {(a as any).chapterNumber}
+                              {(a as any).chapterTitle ? `: ${(a as any).chapterTitle}` : ''}
+                            </span>
+                          </div>
+                        )}
+                        <AssignmentWorkCard
+                          chapterId={a.chapterId || chapterId}
+                          assignment={a}
+                          stageName={stageName(a.pipelineStageId, a)}
+                          assigneeName={memberName(a.assigneeUserId)}
+                          userId={currentUserId}
+                          workspaceRole={workspaceRole}
+                          stageProgress={progress}
+                          highlighted={a.id === highlightedId}
+                          onChanged={() => void loadWork()}
+                          onToast={onShowToast}
+                          relatedAssignments={assignments}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            );
+          })}
         </div>
       )}
     </PageContainer>

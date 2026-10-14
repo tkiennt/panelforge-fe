@@ -17,7 +17,6 @@ import { LandingPageView } from '@/roles/guest/views/LandingPageView';
 import { WorkspaceListView } from '@/shared/views/WorkspaceListView';
 import { UserProfileView } from '@/shared/views/UserProfileView';
 import { SeriesBibleView } from '@/shared/features/series-bible/SeriesBibleView';
-import { AiMultiAgentView } from '@/shared/features/ai-agents/AiMultiAgentView';
 import { MyWorkView } from '@/shared/features/collaboration/MyWorkView';
 import { PublisherDeskView } from '@/roles/publisher/views/PublisherDeskView';
 import { ScriptEditorView } from '@/roles/writer/views/ScriptEditorView';
@@ -300,7 +299,6 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                   <ScriptEditorView onShowToast={showToast} workspaceRole={currentWorkspaceRole} />
                 }
               />
-              <Route path='ai-agents' element={<AiMultiAgentView onShowToast={showToast} />} />
               <Route path='publishing' element={<PublisherDeskView onShowToast={showToast} />} />
               <Route
                 path='artist'

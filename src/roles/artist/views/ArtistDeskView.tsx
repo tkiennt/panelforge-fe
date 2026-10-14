@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import {
   Layers,
@@ -33,11 +33,13 @@ import {
   Package,
   Zap,
   Palette,
+  Loader2,
+  AlertTriangle,
 } from 'lucide-react';
 import { pageService, PageDto, PageDetailDto } from '@/services/page.service';
 import { chapterService, ChapterDto } from '@/services/chapter.service';
 import { panelService } from '@/services/panel.service';
-import { PanelDto, PanelDetailDto } from '@/types/pipeline';
+import { PanelDto, PanelDetailDto, ImageConsistencyResultDto } from '@/types/pipeline';
 import {
   elementService,
   ElementSnapshotDto,
@@ -56,13 +58,53 @@ import {
   SceneScriptLineSummaryDto,
 } from '@/services/scriptLine.service';
 import { artworkService, computeFileSha256, resolveArtworkUrl } from '@/services/artwork.service';
+import { assignmentService } from '@/services/assignment.service';
+import {
+  findUploadAssignment,
+  needsArtworkLink,
+  parseLinkExpiry,
+} from '@/shared/utils/artworkLinks';
+import { errorMessage } from '@/shared/features/collaboration/collaborationRules';
 import type { AssetReferenceDto } from '@/types';
+import type { WorkspaceAssignmentDto } from '@/types/pipeline';
 import { normalizeWorkspaceRole } from '@/types/auth';
 import {
   ParsedBoundingBox,
   parseBoundingBox,
   buildBoundingBoxJson,
 } from '../utils/panelBoundingBox';
+import {
+  alignRects,
+  clampRect,
+  detectLayoutIssues,
+  distributeRects,
+  moveRect,
+  resizeRect,
+  round1,
+  roundRect,
+  snapRect,
+  splitEvenly,
+  splitPanelRect,
+  straightenRects,
+  type AlignMode,
+  type DragMode,
+  type GapLabel,
+  type Guide,
+  type Rect,
+  type SplitAxis,
+  type SplitPreset,
+} from '@/shared/utils/panelLayout';
+import {
+  LayoutGuidesOverlay,
+  PanelLayoutToolbar,
+  PanelResizeHandles,
+} from '@/roles/artist/components/PanelLayoutControls';
+
+import { splitPanelWithRollback } from '../utils/splitPanel';
+
+/** Chỉ lỗi mạng (không có status HTTP) mới xếp hàng chờ ngoại tuyến; 4xx/409 của BE phải hiện cho người dùng. */
+const isNetworkFailure = (err: any): boolean =>
+  err?.status === undefined && (!err?.response || err?.code === 'ERR_NETWORK');
 
 interface ArtistDeskViewProps {
   workspaceRole?: string | null;
@@ -145,6 +187,33 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
   const [panelBoxH, setPanelBoxH] = useState(35);
   const [panelReadingOrder, setPanelReadingOrder] = useState(1);
 
+  // Chỉnh bố cục khung trực tiếp trên canvas (kéo/đổi cỡ có snap, chọn nhiều, căn chỉnh)
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef<{
+    id: string;
+    mode: DragMode;
+    ids: string[];
+    starts: Record<string, Rect>;
+    others: Rect[];
+    startX: number;
+    startY: number;
+    w: number;
+    h: number;
+    moved: boolean;
+  } | null>(null);
+  const liveRef = useRef<Record<string, Rect>>({});
+  const nudgeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const latestRef = useRef<{
+    persistRects: (u: Array<{ id: string; rect: Rect }>) => Promise<void>;
+  } | null>(null);
+  const [liveRects, setLiveRects] = useState<Record<string, Rect>>({});
+  const [dragGuides, setDragGuides] = useState<{ guides: Guide[]; gaps: GapLabel[] }>({
+    guides: [],
+    gaps: [],
+  });
+  const [multiIds, setMultiIds] = useState<string[]>([]);
+  const [layoutBusy, setLayoutBusy] = useState(false);
+
   // Modals
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [frameTemplateModalOpen, setFrameTemplateModalOpen] = useState(false);
@@ -165,6 +234,10 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
   const [panelArtworkUrls, setPanelArtworkUrls] = useState<Record<string, string>>({});
   const panelFileInputRef = React.useRef<HTMLInputElement>(null);
   const [uploadingPanelId, setUploadingPanelId] = useState<string | null>(null);
+  const [checkingConsistencyPanelId, setCheckingConsistencyPanelId] = useState<string | null>(null);
+  const [panelConsistencyResult, setPanelConsistencyResult] = useState<
+    Record<string, ImageConsistencyResultDto>
+  >({});
 
   const [toast, setToast] = useState<{ title: string; desc: string } | null>(null);
 
@@ -173,11 +246,73 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
     setTimeout(() => setToast(null), 3500);
   };
 
+  const handleCheckPanelConsistency = async (panelId: string) => {
+    setCheckingConsistencyPanelId(panelId);
+    try {
+      const res = await panelService.checkImageConsistency(panelId);
+      setPanelConsistencyResult((prev) => ({ ...prev, [panelId]: res }));
+      if (res.passed) {
+        showToast(
+          'Nhất quán hình ảnh: ĐẠT',
+          `Điểm tương đồng ${Math.round(res.score * 100)}% (ngưỡng ${Math.round(res.threshold * 100)}%) với Character Sheet đã khóa.`,
+        );
+      } else {
+        showToast(
+          'Cảnh báo sai lệch nhân vật',
+          res.summaryReason ||
+            `Điểm tương đồng chỉ đạt ${Math.round(res.score * 100)}% (ngưỡng ${Math.round(res.threshold * 100)}%). Đã ghi nhận độ lệch.`,
+        );
+      }
+    } catch (err: any) {
+      showToast(
+        'Lỗi kiểm tra nhất quán',
+        err.message || 'Không thể kiểm tra tính nhất quán hình ảnh.',
+      );
+    } finally {
+      setCheckingConsistencyPanelId(null);
+    }
+  };
+
+  /**
+   * Hiện lỗi của các lệnh sửa nội dung (Page/Panel/Element).
+   * BR-12: 409 `CHAPTER_READ_ONLY` = chương đã Approved/Published, KHÔNG phải xung đột phiên bản.
+   */
+  const showMutationError = (title: string, err: any, fallback?: string) => {
+    if (err?.code === 'CHAPTER_READ_ONLY') {
+      showToast(
+        'Chương chỉ đọc',
+        err?.message || 'Chương đã được duyệt hoặc phát hành nên không thể sửa nội dung (BR-12).',
+      );
+      return;
+    }
+    showToast(title, err?.message || fallback || 'Thao tác thất bại.');
+  };
+
+  /** Xoá Page/Panel bị BE chặn (409 CONFLICT) vì còn Assignment đang giao: giữ nguyên trên giao diện. */
+  const showDeleteError = (title: string, err: any) => {
+    if (err?.code === 'CONFLICT' || (err?.status === 409 && err?.code !== 'CHAPTER_READ_ONLY')) {
+      showToast(
+        title,
+        err?.message ||
+          'Vẫn còn việc đang giao cho mục này. Producer cần huỷ việc trước rồi mới xoá được.',
+      );
+      return;
+    }
+    showMutationError(title, err);
+  };
+
   // Quản lý Layers & Element ảnh trên Canvas (CF2 / BR-11)
   const [pageElements, setPageElements] = useState<ElementSnapshotDto[]>([]);
   const [loadingElements, setLoadingElements] = useState(false);
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
   const [activeRightTab, setActiveRightTab] = useState<'panel' | 'layers'>('panel');
+  // Mặc định khi đang chọn panel: chỉ hiện layer của panel đó + layer "Toàn trang"
+  const [showAllPageLayers, setShowAllPageLayers] = useState(false);
+  const isPanelLayerFilter = Boolean(selectedPanelId) && !showAllPageLayers;
+  const visibleElements = isPanelLayerFilter
+    ? pageElements.filter((e) => !e.panelId || e.panelId === selectedPanelId)
+    : pageElements;
+  const selectedPanelNumber = panels.find((p) => p.id === selectedPanelId)?.panelNumber;
   const [bibleEntries, setBibleEntries] = useState<BibleEntryDto[]>([]);
   const [createLayerModalOpen, setCreateLayerModalOpen] = useState(false);
 
@@ -193,29 +328,94 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
   const [newLayerAssetId, setNewLayerAssetId] = useState<string>('');
   const [newLayerContent, setNewLayerContent] = useState<string>('');
 
+  // Link xem artwork chỉ sống 5 phút (BR-16): nhớ thời điểm hết hạn để xin lại trước khi ảnh vỡ
+  const artworkLinkExpiry = React.useRef<Record<string, number>>({});
+  const artworkLinkRetried = React.useRef<Set<string>>(new Set());
+
+  const requestArtworkLink = useCallback(async (chapId: string, artId: string) => {
+    try {
+      const res = await artworkService.getArtworkAccessLink(chapId, artId);
+      artworkLinkExpiry.current[artId] = parseLinkExpiry(res.expiresAtUtc, Date.now());
+      setPanelArtworkUrls((prev) => ({ ...prev, [artId]: resolveArtworkUrl(res.url) }));
+    } catch {
+      // để lần kế tiếp (interval / onError) thử lại
+    }
+  }, []);
+
   const loadPageArtworks = useCallback(
     async (chapId: string, pId: string) => {
       try {
         const arts = await artworkService.getArtworks(chapId, pId);
         setPageArtworks(arts);
         for (const a of arts) {
-          if (!panelArtworkUrls[a.id]) {
-            artworkService
-              .getArtworkAccessLink(chapId, a.id)
-              .then((res) => {
-                setPanelArtworkUrls((prev) => ({ ...prev, [a.id]: resolveArtworkUrl(res.url) }));
-              })
-              .catch(() => undefined);
+          if (needsArtworkLink(artworkLinkExpiry.current[a.id], Date.now())) {
+            void requestArtworkLink(chapId, a.id);
           }
         }
       } catch {
         // ignore
       }
     },
-    [panelArtworkUrls],
+    [requestArtworkLink],
   );
 
+  // Trang để mở lâu: cứ 30 giây xin lại link sắp hết hạn
+  useEffect(() => {
+    if (!currentChapterId || pageArtworks.length === 0) return;
+    const timer = window.setInterval(() => {
+      for (const a of pageArtworks) {
+        if (needsArtworkLink(artworkLinkExpiry.current[a.id], Date.now())) {
+          void requestArtworkLink(currentChapterId, a.id);
+        }
+      }
+    }, 30_000);
+    return () => window.clearInterval(timer);
+  }, [currentChapterId, pageArtworks, requestArtworkLink]);
+
+  /** Ảnh lỗi tải (thường do link hết hạn, 401): xin link mới một lần rồi mới bỏ cuộc. */
+  const handleArtworkImgError = (artId: string | undefined) => {
+    if (!artId || !currentChapterId || artworkLinkRetried.current.has(artId)) return;
+    artworkLinkRetried.current.add(artId);
+    void requestArtworkLink(currentChapterId, artId);
+  };
+  const handleArtworkImgLoad = (artId: string | undefined) => {
+    if (artId) artworkLinkRetried.current.delete(artId);
+  };
+
+  // Việc InProgress của chính mình: nguồn duy nhất của stageId (GUID) khi tải ảnh
+  const [myInProgress, setMyInProgress] = useState<WorkspaceAssignmentDto[]>([]);
+  useEffect(() => {
+    if (!workspaceId) {
+      setMyInProgress([]);
+      return;
+    }
+    let alive = true;
+    assignmentService
+      .getMyAssignments(workspaceId, { status: 'InProgress' })
+      .then((list) => alive && setMyInProgress(list))
+      .catch(() => alive && setMyInProgress([]));
+    return () => {
+      alive = false;
+    };
+  }, [workspaceId, currentChapterId]);
+
+  const findStageAssignment = (panelId: string) =>
+    currentChapterId && selectedPage
+      ? findUploadAssignment(myInProgress, {
+          chapterId: currentChapterId,
+          pageId: selectedPage.id,
+          panelId,
+        })
+      : undefined;
+
   const handleTriggerUploadPanel = (panelId: string) => {
+    if (!findStageAssignment(panelId)) {
+      showToast(
+        'Chưa thể tải ảnh',
+        'Bạn cần đang làm (bấm "Bắt đầu") một việc được giao cho Page hoặc Panel này trước.',
+      );
+      return;
+    }
     setUploadingPanelId(panelId);
     panelFileInputRef.current?.click();
   };
@@ -223,6 +423,13 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
   const handlePanelFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !currentChapterId || !selectedPage || !uploadingPanelId) return;
+    const stageAssignment = findStageAssignment(uploadingPanelId);
+    if (!stageAssignment) {
+      showToast('Chưa thể tải ảnh', 'Không tìm thấy việc đang làm cho Page/Panel này.');
+      if (panelFileInputRef.current) panelFileInputRef.current.value = '';
+      setUploadingPanelId(null);
+      return;
+    }
     try {
       showToast('Đang xử lý', 'Đang tính mã SHA-256 cho ảnh panel...');
       const sha256 = await computeFileSha256(file);
@@ -231,15 +438,15 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
         currentChapterId,
         selectedPage.id,
         file,
-        'Thumbnail',
+        stageAssignment.pipelineStageId,
         sha256,
         undefined,
         uploadingPanelId,
       );
       showToast('Thành công', `Đã tải artwork v${res.versionNumber} cho khung panel!`);
       await loadPageArtworks(currentChapterId, selectedPage.id);
-    } catch (err: any) {
-      showToast('Lỗi tải ảnh', err.message || 'Không thể tải ảnh cho khung panel');
+    } catch (err: unknown) {
+      showToast('Lỗi tải ảnh', errorMessage(err, 'Không thể tải ảnh cho khung panel'));
     } finally {
       if (panelFileInputRef.current) panelFileInputRef.current.value = '';
       setUploadingPanelId(null);
@@ -470,7 +677,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
       setCreateLayerModalOpen(false);
       showToast('Thành công', `Đã thêm layer ${LAYER_LABELS[newLayerType] || newLayerType}!`);
     } catch (err: any) {
-      showToast('Thất bại', err.message || 'Không thể tạo layer ảnh');
+      showMutationError('Thất bại', err, 'Không thể tạo layer ảnh');
     }
   };
 
@@ -496,7 +703,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
       );
       showToast('Xoay layer', `Đã xoay layer sang ${newRotation}°`);
     } catch (err: any) {
-      showToast('Lỗi xoay layer', err.message);
+      showMutationError('Lỗi xoay layer', err);
     }
   };
 
@@ -522,7 +729,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
       );
       showToast('Đổi thứ tự lớp', `Đã đổi zIndex sang ${newZIndex}`);
     } catch (err: any) {
-      showToast('Lỗi đổi lớp', err.message);
+      showMutationError('Lỗi đổi lớp', err);
     }
   };
 
@@ -534,7 +741,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
       if (selectedElementId === elem.elementId) setSelectedElementId(null);
       showToast('Đã xoá layer', 'Đã xoá layer thành công.');
     } catch (err: any) {
-      showToast('Lỗi xoá layer', err.message);
+      showMutationError('Lỗi xoá layer', err);
     }
   };
 
@@ -554,10 +761,10 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
           selectedPage?.widthPx,
           selectedPage?.heightPx,
         );
-        setPanelBoxX(Math.round(box.percentX));
-        setPanelBoxY(Math.round(box.percentY));
-        setPanelBoxW(Math.round(box.percentW));
-        setPanelBoxH(Math.round(box.percentH));
+        setPanelBoxX(round1(box.percentX));
+        setPanelBoxY(round1(box.percentY));
+        setPanelBoxW(round1(box.percentW));
+        setPanelBoxH(round1(box.percentH));
         setPanelReadingOrder(detail.readingOrder);
 
         if (detail.sceneId) {
@@ -575,6 +782,11 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
       })
       .catch(console.error);
   }, [selectedPanelId, selectedPage?.widthPx, selectedPage?.heightPx]);
+
+  // Đổi trang thì bỏ chọn nhiều khung của trang cũ
+  useEffect(() => {
+    setMultiIds([]);
+  }, [selectedPage?.id]);
 
   const handleCreatePage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -603,7 +815,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
       );
       await loadPanels(created.id);
     } catch (err: any) {
-      showToast('Lỗi tạo trang', err.message);
+      showMutationError('Lỗi tạo trang', err);
     }
   };
 
@@ -633,7 +845,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
       setSettingsModalOpen(false);
       showToast('Cập nhật Canvas', 'Đã lưu cài đặt kích thước và DPI khổ giấy.');
     } catch (err: any) {
-      showToast('Lỗi', err.message);
+      showMutationError('Lỗi', err);
     }
   };
 
@@ -657,7 +869,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
       }
       showToast('Đã xóa trang', 'Trang đã được gỡ khỏi chapter.');
     } catch (err: any) {
-      showToast('Lỗi', err.message);
+      showDeleteError('Không xoá được trang', err);
     }
   };
 
@@ -713,7 +925,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
         `Đã tạo Panel #${created.panelNumber} (Thứ tự đọc #${created.readingOrder}).`,
       );
     } catch (err: any) {
-      const isNetworkError = !err.response || err.code === 'ERR_NETWORK';
+      const isNetworkError = isNetworkFailure(err);
       if (isNetworkError) {
         const clientPanelId =
           typeof crypto !== 'undefined' && crypto.randomUUID
@@ -742,7 +954,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
         setSelectedPanelId(tempPanel.id);
         showToast('Đã lưu ngoại tuyến', `Mất mạng: Đã tạo Panel #${nextNum} tạm thời trên máy.`);
       } else {
-        showToast('Lỗi tạo panel', err.message);
+        showMutationError('Lỗi tạo panel', err);
       }
     }
   };
@@ -778,7 +990,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
       }
       showToast('Đã xóa panel', 'Khung panel đã được xóa thành công.');
     } catch (err: any) {
-      const isNetworkError = !err.response || err.code === 'ERR_NETWORK';
+      const isNetworkError = isNetworkFailure(err);
       if (isNetworkError) {
         offlineQueueService.enqueue({
           type: 'DELETE_PANEL',
@@ -794,7 +1006,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
         }
         showToast('Đã lưu ngoại tuyến', 'Mất mạng: Đã xóa khung panel tạm thời trên máy.');
       } else {
-        showToast('Lỗi xóa panel', err.message);
+        showDeleteError('Không xoá được panel', err);
       }
     }
   };
@@ -864,7 +1076,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
         `Tọa độ và thứ tự đọc #${updated.readingOrder} đã được cập nhật.`,
       );
     } catch (err: any) {
-      const isNetworkError = !err.response || err.code === 'ERR_NETWORK';
+      const isNetworkError = isNetworkFailure(err);
       if (isNetworkError) {
         offlineQueueService.enqueue({
           type: 'UPDATE_PANEL_COORDINATES',
@@ -895,10 +1107,338 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
           'Mất mạng: Tọa độ panel đã được lưu tạm trên máy (NFR-09).',
         );
       } else {
-        showToast('Lỗi lưu tọa độ', err.message);
+        showMutationError('Lỗi lưu tọa độ', err);
       }
     }
   };
+
+  // ───────── Bố cục khung: kéo thả, đổi cỡ, căn chỉnh, chia lại N khung ─────────
+  const rectOfPanel = (p: PanelDto): Rect => {
+    const box = parseBoundingBox(
+      p.boundingBox,
+      selectedPage?.widthPx || 1200,
+      selectedPage?.heightPx || 1800,
+    );
+    return { x: box.percentX, y: box.percentY, w: box.percentW, h: box.percentH };
+  };
+  const rectOfId = (id: string): Rect => {
+    const p = panels.find((x) => x.id === id);
+    return liveRef.current[id] ?? (p ? rectOfPanel(p) : { x: 0, y: 0, w: 10, h: 10 });
+  };
+  const targetIds = (): string[] =>
+    multiIds.length > 0 ? multiIds : selectedPanelId ? [selectedPanelId] : [];
+
+  // Lưu toạ độ nhiều khung một lượt (mỗi khung một PUT; mất mạng thì xếp hàng chờ như cũ)
+  const persistRects = async (updates: Array<{ id: string; rect: Rect }>) => {
+    if (!selectedPage || updates.length === 0) return;
+    const pw = selectedPage.widthPx || 1200;
+    const ph = selectedPage.heightPx || 1800;
+    try {
+      const results = await Promise.all(
+        updates.map(async ({ id, rect }) => {
+          const p = panels.find((x) => x.id === id);
+          if (!p) return null;
+          const existing = p.boundingBox ? parseBoundingBox(p.boundingBox, pw, ph) : null;
+          const r = roundRect(clampRect(rect));
+          const boundingBox = buildBoundingBoxJson(r.x, r.y, r.w, r.h, pw, ph, {
+            corners: existing?.corners,
+            borderless: existing?.borderless,
+          });
+          const payload = { boundingBox, readingOrder: p.readingOrder };
+          const offline = typeof navigator !== 'undefined' && !navigator.onLine;
+          if (!offline) {
+            try {
+              return await panelService.updatePanelCoordinates(id, payload);
+            } catch (err: any) {
+              // Chỉ lỗi mạng (không có status HTTP) mới chuyển sang hàng chờ ngoại tuyến
+              if (err?.status !== undefined) throw err;
+            }
+          }
+          offlineQueueService.enqueue({
+            type: 'UPDATE_PANEL_COORDINATES',
+            endpoint: `/panels/${id}/coordinates`,
+            method: 'PUT',
+            payload,
+            clientRefId: id,
+          });
+          return { ...p, boundingBox } as PanelDto;
+        }),
+      );
+      const byId = new Map(results.filter((x): x is PanelDto => Boolean(x)).map((x) => [x.id, x]));
+      setPanels((prev) => prev.map((p) => byId.get(p.id) ?? p));
+      const sel = selectedPanelId ? byId.get(selectedPanelId) : undefined;
+      if (sel) {
+        const b = parseBoundingBox(sel.boundingBox, pw, ph);
+        setPanelBoxX(round1(b.percentX));
+        setPanelBoxY(round1(b.percentY));
+        setPanelBoxW(round1(b.percentW));
+        setPanelBoxH(round1(b.percentH));
+        setSelectedPanelDetail((d) => (d ? { ...d, boundingBox: sel.boundingBox } : d));
+      }
+    } catch (err: any) {
+      showMutationError('Lỗi lưu bố cục', err, 'Không lưu được vị trí khung.');
+    }
+  };
+  useEffect(() => {
+    latestRef.current = { persistRects };
+  });
+
+  const handlePanelPointerDown = (p: PanelDto, e: React.PointerEvent) => {
+    if (!canEditPages || e.button !== 0) return;
+    if (e.shiftKey) {
+      const base = multiIds.length > 0 ? multiIds : selectedPanelId ? [selectedPanelId] : [];
+      setMultiIds(base.includes(p.id) ? base.filter((x) => x !== p.id) : [...base, p.id]);
+      return;
+    }
+    if (!multiIds.includes(p.id)) setMultiIds([]);
+    setSelectedPanelId(p.id);
+    startDrag(p.id, 'move', e);
+  };
+
+  const startDrag = (id: string, mode: DragMode, e: React.PointerEvent) => {
+    if (!canEditPages || e.button !== 0 || !canvasRef.current) return;
+    const bounds = canvasRef.current.getBoundingClientRect();
+    if (bounds.width <= 0 || bounds.height <= 0) return;
+    const ids = mode === 'move' && multiIds.length > 1 && multiIds.includes(id) ? multiIds : [id];
+    const starts: Record<string, Rect> = {};
+    ids.forEach((x) => {
+      starts[x] = rectOfId(x);
+    });
+    dragRef.current = {
+      id,
+      mode,
+      ids,
+      starts,
+      others: panels.filter((o) => !ids.includes(o.id)).map(rectOfPanel),
+      startX: e.clientX,
+      startY: e.clientY,
+      w: bounds.width,
+      h: bounds.height,
+      moved: false,
+    };
+  };
+
+  useEffect(() => {
+    const onMove = (e: PointerEvent) => {
+      const d = dragRef.current;
+      if (!d) return;
+      if (!d.moved && Math.hypot(e.clientX - d.startX, e.clientY - d.startY) < 3) return;
+      d.moved = true;
+      const dx = ((e.clientX - d.startX) / d.w) * 100;
+      const dy = ((e.clientY - d.startY) / d.h) * 100;
+      const next: Record<string, Rect> = {};
+      if (d.ids.length > 1) {
+        d.ids.forEach((id) => {
+          next[id] = roundRect(moveRect(d.starts[id], dx, dy));
+        });
+        setDragGuides({ guides: [], gaps: [] });
+      } else {
+        const start = d.starts[d.id];
+        const raw = d.mode === 'move' ? moveRect(start, dx, dy) : resizeRect(start, d.mode, dx, dy);
+        // Giữ Alt để kéo tự do, không hít
+        const snapped = e.altKey
+          ? { rect: raw, guides: [], gaps: [] }
+          : snapRect(raw, d.mode, d.others);
+        next[d.id] = roundRect(snapped.rect);
+        setDragGuides({ guides: snapped.guides, gaps: snapped.gaps });
+      }
+      liveRef.current = next;
+      setLiveRects(next);
+    };
+    const onUp = async () => {
+      const d = dragRef.current;
+      dragRef.current = null;
+      if (!d) return;
+      setDragGuides({ guides: [], gaps: [] });
+      if (!d.moved) return;
+      const updates = d.ids
+        .filter((id) => liveRef.current[id])
+        .map((id) => ({ id, rect: liveRef.current[id] }));
+      await latestRef.current?.persistRects(updates);
+      liveRef.current = {};
+      setLiveRects({});
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    return () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      if (nudgeTimerRef.current) clearTimeout(nudgeTimerRef.current);
+    };
+  }, []);
+
+  // Phím mũi tên nhích khung đang chọn (0.5%, giữ Shift = 2%); lưu sau khi dừng bấm
+  const handleCanvasKeyDown = (e: React.KeyboardEvent) => {
+    if (!canEditPages) return;
+    const keys = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'];
+    if (!keys.includes(e.key)) return;
+    const ids = targetIds();
+    if (ids.length === 0) return;
+    e.preventDefault();
+    const step = e.shiftKey ? 2 : 0.5;
+    const dx = e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0;
+    const dy = e.key === 'ArrowUp' ? -step : e.key === 'ArrowDown' ? step : 0;
+    const next: Record<string, Rect> = { ...liveRef.current };
+    ids.forEach((id) => {
+      next[id] = roundRect(moveRect(rectOfId(id), dx, dy));
+    });
+    liveRef.current = next;
+    setLiveRects(next);
+    if (nudgeTimerRef.current) clearTimeout(nudgeTimerRef.current);
+    nudgeTimerRef.current = setTimeout(async () => {
+      const updates = ids.map((id) => ({ id, rect: liveRef.current[id] })).filter((u) => u.rect);
+      await latestRef.current?.persistRects(updates);
+      liveRef.current = {};
+      setLiveRects({});
+    }, 600);
+  };
+
+  const runLayoutAction = async (action: () => Promise<void>) => {
+    setLayoutBusy(true);
+    try {
+      await action();
+    } finally {
+      setLayoutBusy(false);
+    }
+  };
+
+  const handleAlign = (mode: AlignMode) =>
+    runLayoutAction(async () => {
+      const ids = targetIds();
+      if (ids.length < 2) return;
+      const out = alignRects(ids.map(rectOfId), mode);
+      await persistRects(ids.map((id, i) => ({ id, rect: out[i] })));
+    });
+
+  const handleDistribute = (axis: 'x' | 'y') =>
+    runLayoutAction(async () => {
+      const ids = targetIds();
+      if (ids.length < 3) return;
+      const out = distributeRects(ids.map(rectOfId), axis);
+      await persistRects(ids.map((id, i) => ({ id, rect: out[i] })));
+    });
+
+  const handleStraighten = () =>
+    runLayoutAction(async () => {
+      const ids = panels.map((p) => p.id);
+      const out = straightenRects(ids.map(rectOfId));
+      await persistRects(ids.map((id, i) => ({ id, rect: out[i] })));
+      showToast('Đã căn thẳng', 'Các cạnh lệch nhẹ đã được gom về cùng một đường.');
+    });
+
+  // Chia đôi Panel đang chọn (dọc = 2 cột, ngang = 2 hàng): PUT khung gốc rồi POST khung mới; POST lỗi thì hoàn tác PUT
+  const splitBlockedReason = (axis: SplitAxis): string | null => {
+    const p = panels.find((x) => x.id === selectedPanelId);
+    if (!p || !selectedPage) return 'Chọn một khung trước.';
+    if (!canEditPages) return 'Chỉ Producer và Artist được sửa khung.';
+    const box = parseBoundingBox(p.boundingBox, selectedPage.widthPx, selectedPage.heightPx);
+    if (box.corners && box.corners.length >= 3)
+      return 'Khung nghiêng không chia hình chữ nhật được.';
+    const res = splitPanelRect(rectOfPanel(p), axis);
+    return 'error' in res ? res.error : null;
+  };
+
+  const handleSplitPanel = (axis: SplitAxis) =>
+    runLayoutAction(async () => {
+      const p = panels.find((x) => x.id === selectedPanelId);
+      if (!p || !selectedPage) return;
+      const blocked = splitBlockedReason(axis);
+      if (blocked) {
+        showToast('Chưa thể chia khung', blocked);
+        return;
+      }
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        showToast('Cần kết nối mạng', 'Chia khung cần tạo khung mới trên máy chủ.');
+        return;
+      }
+      const pw = selectedPage.widthPx || 1200;
+      const ph = selectedPage.heightPx || 1800;
+      const res = splitPanelRect(rectOfPanel(p), axis);
+      if ('error' in res) return;
+      const existing = parseBoundingBox(p.boundingBox, pw, ph);
+      const extra = { borderless: existing.borderless };
+      const toJson = (r: Rect) => buildBoundingBoxJson(r.x, r.y, r.w, r.h, pw, ph, extra);
+      try {
+        const { updated, created } = await splitPanelWithRollback(
+          {
+            updateCoordinates: panelService.updatePanelCoordinates,
+            createPanel: panelService.createPanel,
+          },
+          {
+            panel: p,
+            pageId: selectedPage.id,
+            firstBox: toJson(res.first),
+            secondBox: toJson(res.second),
+            newPanelNumber: panels.reduce((m, x) => Math.max(m, x.panelNumber), 0) + 1,
+            newReadingOrder: panels.reduce((m, x) => Math.max(m, x.readingOrder), 0) + 1,
+          },
+        );
+        setPanels((prev) => [...prev.map((x) => (x.id === p.id ? updated : x)), created]);
+        setSelectedPanelDetail((d) => (d ? { ...d, boundingBox: updated.boundingBox } : d));
+        setPanelBoxX(round1(res.first.x));
+        setPanelBoxY(round1(res.first.y));
+        setPanelBoxW(round1(res.first.w));
+        setPanelBoxH(round1(res.first.h));
+        setMultiIds([]);
+        showToast(
+          'Đã chia khung',
+          `Khung #${p.panelNumber} được chia đôi; khung mới #${created.panelNumber} cần tải ảnh riêng.`,
+        );
+      } catch (err: any) {
+        // BE từ chối (vd 409: chương không còn ở trạng thái sản xuất): giữ nguyên bố cục
+        showMutationError('Không chia được khung', err, 'Bố cục được giữ nguyên.');
+      }
+    });
+
+  // Editor trả về yêu cầu thêm khung: chia lại bố cục thành N khung đều, giữ khung/ảnh đã có
+  const handleRelayout = (preset: SplitPreset, count: number, margin: number, gap: number) =>
+    runLayoutAction(async () => {
+      if (!selectedPage || !canEditPages) return;
+      if (count < panels.length) {
+        showToast(
+          'Chưa thể giảm số khung',
+          'Hãy xóa bớt khung thủ công (nếu không còn việc đang giao) rồi chia lại.',
+        );
+        return;
+      }
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        showToast('Cần kết nối mạng', 'Chia lại bố cục cần tạo khung mới trên máy chủ.');
+        return;
+      }
+      const pw = selectedPage.widthPx || 1200;
+      const ph = selectedPage.heightPx || 1800;
+      const cells = splitEvenly(preset, count, margin, gap);
+      const sorted = [...panels].sort((a, b) => a.readingOrder - b.readingOrder);
+      await persistRects(sorted.map((p, i) => ({ id: p.id, rect: cells[i] })));
+
+      const created: PanelDto[] = [];
+      let nextNumber = panels.reduce((m, p) => Math.max(m, p.panelNumber), 0);
+      let nextOrder = panels.reduce((m, p) => Math.max(m, p.readingOrder), 0);
+      try {
+        for (let i = sorted.length; i < count; i += 1) {
+          nextNumber += 1;
+          nextOrder += 1;
+          const r = cells[i];
+          created.push(
+            await panelService.createPanel(selectedPage.id, {
+              panelNumber: nextNumber,
+              readingOrder: nextOrder,
+              boundingBox: buildBoundingBoxJson(r.x, r.y, r.w, r.h, pw, ph),
+            }),
+          );
+        }
+      } catch (err: any) {
+        showMutationError('Lỗi tạo khung mới', err, 'Không tạo được khung mới.');
+      }
+      if (created.length > 0) setPanels((prev) => [...prev, ...created]);
+      setMultiIds([]);
+      showToast(
+        'Đã chia lại bố cục',
+        created.length > 0
+          ? `Trang có ${panels.length + created.length} khung đều nhau. Khung mới cần tải ảnh riêng.`
+          : 'Các khung đã được xếp lại đều nhau.',
+      );
+    });
 
   // Gán Phân cảnh cho Panel (PUT /api/panels/{panelId}/scene)
   const handleAssignScene = async (sceneId: string | null) => {
@@ -939,7 +1479,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
         sceneId ? 'Đã liên kết Panel với Phân cảnh.' : 'Đã bỏ liên kết Phân cảnh.',
       );
     } catch (err: any) {
-      const isNetworkError = !err.response || err.code === 'ERR_NETWORK';
+      const isNetworkError = isNetworkFailure(err);
       if (isNetworkError) {
         offlineQueueService.enqueue({
           type: 'ASSIGN_PANEL_SCENE',
@@ -954,7 +1494,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
         }
         showToast('Đã lưu ngoại tuyến', 'Mất mạng: Liên kết phân cảnh đã được lưu tạm trên máy.');
       } else {
-        showToast('Lỗi gán phân cảnh', err.message);
+        showMutationError('Lỗi gán phân cảnh', err);
       }
     }
   };
@@ -985,7 +1525,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
       setSelectedPanelDetail({ ...selectedPanelDetail, scriptLineIds: newIds });
       showToast('Cập nhật dòng thoại', `Đã neo ${newIds.length} dòng kịch bản vào Panel này.`);
     } catch (err: any) {
-      const isNetworkError = !err.response || err.code === 'ERR_NETWORK';
+      const isNetworkError = isNetworkFailure(err);
       if (isNetworkError) {
         offlineQueueService.enqueue({
           type: 'ASSIGN_PANEL_SCRIPT_LINES',
@@ -997,7 +1537,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
         setSelectedPanelDetail({ ...selectedPanelDetail, scriptLineIds: newIds });
         showToast('Đã lưu ngoại tuyến', `Mất mạng: Đã lưu tạm neo ${newIds.length} dòng kịch bản.`);
       } else {
-        showToast('Lỗi neo kịch bản', err.message);
+        showMutationError('Lỗi neo kịch bản', err);
       }
     }
   };
@@ -1277,12 +1817,69 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                   </div>
                 </div>
 
+                {canEditPages && panels.length > 0 && (
+                  <PanelLayoutToolbar
+                    panelCount={panels.length}
+                    selectedCount={Math.max(multiIds.length, selectedPanelId ? 1 : 0)}
+                    issues={detectLayoutIssues(
+                      panels.map((p) => liveRects[p.id] ?? rectOfPanel(p)),
+                    )}
+                    busy={layoutBusy}
+                    onRelayout={handleRelayout}
+                    onAlign={handleAlign}
+                    onDistribute={handleDistribute}
+                    onStraighten={handleStraighten}
+                    onSelectAll={() => setMultiIds(panels.map((p) => p.id))}
+                  />
+                )}
+                {(() => {
+                  const selP = panels.find((p) => p.id === selectedPanelId);
+                  if (!selP || !selectedPage) return null;
+                  const r = liveRects[selP.id] ?? rectOfPanel(selP);
+                  const pw = selectedPage.widthPx || 1200;
+                  const ph = selectedPage.heightPx || 1800;
+                  const px = (v: number, total: number) => Math.round((v / 100) * total);
+                  const left = round1(r.x);
+                  const rightM = round1(100 - r.x - r.w);
+                  const symmetric = Math.abs(left - rightM) <= 0.2;
+                  return (
+                    <div
+                      className='mb-2 px-2.5 py-1.5 bg-zinc-900 text-zinc-100 rounded-lg font-mono text-[10px] flex flex-wrap gap-x-3 gap-y-0.5'
+                      data-testid='panel-readout'
+                    >
+                      <span className='text-orange-300'>Khung #{selP.panelNumber}</span>
+                      <span>
+                        X {round1(r.x)}% ({px(r.x, pw)}px)
+                      </span>
+                      <span>
+                        Y {round1(r.y)}% ({px(r.y, ph)}px)
+                      </span>
+                      <span>
+                        Rộng {round1(r.w)}% ({px(r.w, pw)}px)
+                      </span>
+                      <span>
+                        Cao {round1(r.h)}% ({px(r.h, ph)}px)
+                      </span>
+                      <span className={symmetric ? 'text-emerald-300' : 'text-amber-300'}>
+                        Lề trái {left}% · phải {rightM}% {symmetric ? '✓ cân giữa' : ''}
+                      </span>
+                      <span>
+                        Lề trên {round1(r.y)}% · dưới {round1(100 - r.y - r.h)}%
+                      </span>
+                    </div>
+                  );
+                })()}
+
                 {/* Canvas Container */}
                 <div className='bg-[#F8F6F0] rounded-xl border border-dashed border-[#CCCCCC] p-6 flex items-center justify-center min-h-[460px] relative overflow-hidden'>
                   <div
-                    className='bg-white shadow-xl border-2 border-[#171717] relative'
+                    ref={canvasRef}
+                    tabIndex={0}
+                    onKeyDown={handleCanvasKeyDown}
+                    data-testid='panel-canvas'
+                    className='bg-white shadow-xl border-2 border-[#171717] relative outline-none focus:ring-2 focus:ring-blue-300'
                     style={{
-                      width: '320px',
+                      width: '380px',
                       aspectRatio: '1 / 1.414',
                     }}
                   >
@@ -1304,14 +1901,21 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                           selectedPage.widthPx,
                           selectedPage.heightPx,
                         );
-                        const isSelected = selectedPanelId === p.id;
+                        const liveRect = liveRects[p.id];
+                        const isPrimary = selectedPanelId === p.id;
+                        const isSelected = isPrimary || multiIds.includes(p.id);
+                        const dragging = Boolean(liveRect);
                         const panelArt = pageArtworks.filter((a) => a.panelId === p.id).pop();
                         const panelArtUrl = panelArt ? panelArtworkUrls[panelArt.id] : null;
                         return (
                           <div
                             key={p.id}
                             onClick={() => setSelectedPanelId(p.id)}
-                            className={`absolute border-2 transition-all cursor-pointer flex flex-col justify-between p-1.5 overflow-hidden ${
+                            onPointerDown={(e) => handlePanelPointerDown(p, e)}
+                            data-testid={`panel-box-${p.id}`}
+                            className={`absolute border-2 ${
+                              dragging ? '' : 'transition-all'
+                            } ${canEditPages ? 'cursor-move' : 'cursor-pointer'} flex flex-col justify-between p-1.5 overflow-hidden select-none ${
                               isSelected
                                 ? 'border-orange-500 bg-orange-500/10 ring-2 ring-orange-400/40 z-20'
                                 : box.borderless
@@ -1319,16 +1923,22 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                                   : 'border-[#171717] bg-white/90 hover:border-blue-500 hover:bg-blue-50/20 z-10'
                             }`}
                             style={{
-                              left: `${box.percentX}%`,
-                              top: `${box.percentY}%`,
-                              width: `${box.percentW}%`,
-                              height: `${box.percentH}%`,
+                              left: `${liveRect ? liveRect.x : box.percentX}%`,
+                              top: `${liveRect ? liveRect.y : box.percentY}%`,
+                              width: `${liveRect ? liveRect.w : box.percentW}%`,
+                              height: `${liveRect ? liveRect.h : box.percentH}%`,
+                              touchAction: 'none',
                             }}
                           >
+                            {isPrimary && canEditPages && multiIds.length <= 1 && (
+                              <PanelResizeHandles onStart={(mode, e) => startDrag(p.id, mode, e)} />
+                            )}
                             {panelArtUrl && (
                               <img
                                 src={panelArtUrl}
                                 alt={`Panel #${p.panelNumber}`}
+                                onError={() => handleArtworkImgError(panelArt?.id)}
+                                onLoad={() => handleArtworkImgLoad(panelArt?.id)}
                                 className='absolute inset-0 w-full h-full object-contain pointer-events-none opacity-85 z-0'
                               />
                             )}
@@ -1363,6 +1973,10 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                           </div>
                         );
                       })
+                    )}
+
+                    {(dragGuides.guides.length > 0 || dragGuides.gaps.length > 0) && (
+                      <LayoutGuidesOverlay guides={dragGuides.guides} gaps={dragGuides.gaps} />
                     )}
 
                     {/* Layers / Image Elements on Canvas (CF2) */}
@@ -1421,6 +2035,8 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                               <img
                                 src={imgUrl}
                                 alt={el.elementType}
+                                onError={() => handleArtworkImgError(artRef?.id)}
+                                onLoad={() => handleArtworkImgLoad(artRef?.id)}
                                 className='w-full h-full object-contain pointer-events-none'
                               />
                             ) : (
@@ -1494,9 +2110,9 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                     >
                       <Layers className='w-3.5 h-3.5' />
                       <span>Lớp Vẽ &amp; Layer Ảnh</span>
-                      {pageElements.length > 0 && (
+                      {visibleElements.length > 0 && (
                         <span className='ml-1 px-1.5 py-0.2 bg-purple-200 text-purple-800 rounded-full text-[10px] font-mono'>
-                          {pageElements.length}
+                          {visibleElements.length}
                         </span>
                       )}
                     </button>
@@ -1540,6 +2156,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                             <label className='block text-zinc-500 mb-0.5'>X (%):</label>
                             <input
                               type='number'
+                              step={0.1}
                               value={panelBoxX}
                               onChange={(e) => setPanelBoxX(parseFloat(e.target.value))}
                               className='w-full px-2 py-1 bg-white border border-[#E7E7E7] rounded font-mono'
@@ -1549,6 +2166,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                             <label className='block text-zinc-500 mb-0.5'>Y (%):</label>
                             <input
                               type='number'
+                              step={0.1}
                               value={panelBoxY}
                               onChange={(e) => setPanelBoxY(parseFloat(e.target.value))}
                               className='w-full px-2 py-1 bg-white border border-[#E7E7E7] rounded font-mono'
@@ -1559,12 +2177,14 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                             <div className='flex gap-1'>
                               <input
                                 type='number'
+                                step={0.1}
                                 value={panelBoxW}
                                 onChange={(e) => setPanelBoxW(parseFloat(e.target.value))}
                                 className='w-1/2 px-1 py-1 bg-white border border-[#E7E7E7] rounded font-mono'
                               />
                               <input
                                 type='number'
+                                step={0.1}
                                 value={panelBoxH}
                                 onChange={(e) => setPanelBoxH(parseFloat(e.target.value))}
                                 className='w-1/2 px-1 py-1 bg-white border border-[#E7E7E7] rounded font-mono'
@@ -1578,6 +2198,37 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                         >
                           Lưu Tọa Độ &amp; Thứ Tự Đọc
                         </button>
+                        <div
+                          className='grid grid-cols-2 gap-2 mt-2'
+                          data-testid='panel-split-buttons'
+                        >
+                          {(['vertical', 'horizontal'] as const).map((axis) => {
+                            const reason = splitBlockedReason(axis);
+                            return (
+                              <button
+                                key={axis}
+                                type='button'
+                                data-testid={`split-${axis}`}
+                                disabled={Boolean(reason) || layoutBusy}
+                                title={
+                                  reason ??
+                                  (axis === 'vertical'
+                                    ? 'Chia khung này thành 2 cột trái/phải'
+                                    : 'Chia khung này thành 2 hàng trên/dưới')
+                                }
+                                onClick={() => handleSplitPanel(axis)}
+                                className='py-1.5 bg-white hover:bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-lg font-semibold text-xs transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed'
+                              >
+                                {axis === 'vertical' ? 'Chia đôi dọc' : 'Chia đôi ngang'}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {splitBlockedReason('vertical') && splitBlockedReason('horizontal') && (
+                          <p className='text-[10px] text-zinc-500 mt-1'>
+                            {splitBlockedReason('vertical')}
+                          </p>
+                        )}
                       </div>
 
                       {/* Ảnh Artwork Của Khung (CF2) */}
@@ -1610,6 +2261,8 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                                     <img
                                       src={panelArtUrl}
                                       alt={panelArt.fileName}
+                                      onError={() => handleArtworkImgError(panelArt.id)}
+                                      onLoad={() => handleArtworkImgLoad(panelArt.id)}
                                       className='w-full h-full object-contain'
                                     />
                                   </div>
@@ -1631,16 +2284,131 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                             )}
 
                             {canEditPages && (
+                              <>
+                                <button
+                                  type='button'
+                                  data-testid={`desk-upload-panel-btn-${selectedPanelDetail.id}`}
+                                  onClick={() => handleTriggerUploadPanel(selectedPanelDetail.id)}
+                                  disabled={!findStageAssignment(selectedPanelDetail.id)}
+                                  className='w-full py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-blue-600'
+                                >
+                                  <Upload className='w-3.5 h-3.5' />
+                                  <span>Tải ảnh cho khung</span>
+                                </button>
+                                {!findStageAssignment(selectedPanelDetail.id) && (
+                                  <p
+                                    className='text-[10px] text-amber-700'
+                                    data-testid='desk-upload-panel-blocked'
+                                  >
+                                    Cần đang làm (bấm "Bắt đầu") một việc được giao cho Page hoặc
+                                    Panel này mới tải được ảnh.
+                                  </p>
+                                )}
+                              </>
+                            )}
+
+                            {panelArt && (
                               <button
                                 type='button'
-                                data-testid={`desk-upload-panel-btn-${selectedPanelDetail.id}`}
-                                onClick={() => handleTriggerUploadPanel(selectedPanelDetail.id)}
-                                className='w-full py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs'
+                                data-testid={`check-consistency-panel-btn-${selectedPanelDetail.id}`}
+                                onClick={() => handleCheckPanelConsistency(selectedPanelDetail.id)}
+                                disabled={checkingConsistencyPanelId === selectedPanelDetail.id}
+                                className='w-full py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg font-semibold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs disabled:opacity-50'
                               >
-                                <Upload className='w-3.5 h-3.5' />
-                                <span>Tải ảnh cho khung</span>
+                                {checkingConsistencyPanelId === selectedPanelDetail.id ? (
+                                  <Loader2 className='w-3.5 h-3.5 animate-spin' />
+                                ) : (
+                                  <Sparkles className='w-3.5 h-3.5 text-amber-300' />
+                                )}
+                                <span>
+                                  {checkingConsistencyPanelId === selectedPanelDetail.id
+                                    ? 'Đang kiểm tra AI...'
+                                    : 'Kiểm tra nhất quán nhân vật AI'}
+                                </span>
                               </button>
                             )}
+
+                            {/* Kết quả kiểm tra nhất quán nếu có */}
+                            {panelConsistencyResult[selectedPanelDetail.id] &&
+                              (() => {
+                                const r = panelConsistencyResult[selectedPanelDetail.id];
+                                const scorePct = Math.round(r.score * 100);
+                                const threshPct = Math.round(r.threshold * 100);
+
+                                return (
+                                  <div
+                                    data-testid={`panel-consistency-card-${selectedPanelDetail.id}`}
+                                    className={`p-2.5 rounded-lg border text-xs space-y-1.5 ${
+                                      r.passed
+                                        ? 'bg-emerald-50/70 border-emerald-200 text-emerald-950'
+                                        : 'bg-amber-50/70 border-amber-300 text-amber-950'
+                                    }`}
+                                  >
+                                    <div className='flex items-center justify-between font-bold text-[11px]'>
+                                      <span className='flex items-center gap-1'>
+                                        {r.passed ? (
+                                          <CheckCircle2 className='w-3.5 h-3.5 text-emerald-600' />
+                                        ) : (
+                                          <AlertTriangle className='w-3.5 h-3.5 text-amber-600' />
+                                        )}
+                                        <span>
+                                          {r.passed ? 'Nhất quán ĐẠT' : 'Cảnh báo sai lệch'}
+                                        </span>
+                                      </span>
+                                      <span
+                                        className={`font-mono px-1.5 py-0.5 rounded text-[10px] ${
+                                          r.passed
+                                            ? 'bg-emerald-100 text-emerald-800'
+                                            : 'bg-amber-100 text-amber-900 font-bold'
+                                        }`}
+                                      >
+                                        {scorePct}% / {threshPct}%
+                                      </span>
+                                    </div>
+
+                                    {r.characterName && (
+                                      <div className='text-[10px] text-zinc-600'>
+                                        So với Character Sheet:{' '}
+                                        <strong className='text-zinc-800'>{r.characterName}</strong>
+                                        {r.characterSheetVersion != null &&
+                                          ` (v${r.characterSheetVersion})`}
+                                      </div>
+                                    )}
+
+                                    {r.summaryReason && (
+                                      <p className='text-[10px] leading-relaxed bg-white/70 p-1.5 rounded border border-black/5'>
+                                        {r.summaryReason}
+                                      </p>
+                                    )}
+
+                                    {r.deviations && r.deviations.length > 0 && (
+                                      <div className='space-y-1 pt-1 border-t border-black/5'>
+                                        <div className='text-[9px] font-bold uppercase tracking-wider text-amber-900'>
+                                          Chi tiết độ lệch ({r.deviations.length}):
+                                        </div>
+                                        <ul className='space-y-1 text-[10px]'>
+                                          {r.deviations.map((dev, idx) => (
+                                            <li
+                                              key={idx}
+                                              className='bg-white/80 p-1 rounded border border-amber-200/50'
+                                            >
+                                              <span className='font-bold text-amber-950 mr-1'>
+                                                [{dev.aspect}]
+                                              </span>
+                                              <span>{dev.description}</span>
+                                              {dev.regionHint && (
+                                                <span className='text-amber-700 italic ml-1'>
+                                                  ({dev.regionHint})
+                                                </span>
+                                              )}
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })()}
                           </div>
                         );
                       })()}
@@ -1765,11 +2533,22 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                       <div className='flex items-center justify-between'>
                         <span className='font-bold text-purple-900 flex items-center gap-1.5'>
                           <Sparkles className='w-3.5 h-3.5 text-purple-600' />
-                          <span>Quản Lý Element &amp; Layer Ảnh (CF2)</span>
+                          <span data-testid='layers-title'>
+                            {isPanelLayerFilter
+                              ? `Layer của Panel #${selectedPanelNumber ?? '?'} (${visibleElements.length})`
+                              : `Layer của trang (${pageElements.length})`}
+                          </span>
                         </span>
-                        <span className='text-[10px] font-mono text-purple-700'>
-                          {pageElements.length} layer
-                        </span>
+                        {selectedPanelId && (
+                          <button
+                            type='button'
+                            data-testid='toggle-all-page-layers'
+                            onClick={() => setShowAllPageLayers((v) => !v)}
+                            className='text-[10px] font-bold text-purple-700 hover:text-purple-900 underline cursor-pointer'
+                          >
+                            {showAllPageLayers ? 'Chỉ xem panel đang chọn' : 'Xem cả trang'}
+                          </button>
+                        )}
                       </div>
                       <p className='text-[11px] text-purple-800/80'>
                         Tách layer nhân vật, bối cảnh, đạo cụ, hiệu ứng trực quan trên canvas. Hỗ
@@ -1943,7 +2722,17 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
 
                         {/* Layer List Items */}
                         <div className='space-y-1.5'>
-                          {pageElements
+                          {visibleElements.length === 0 && (
+                            <p
+                              className='p-3 text-center text-[11px] text-zinc-400 border border-dashed border-[#E7E7E7] rounded-xl'
+                              data-testid='no-panel-layers'
+                            >
+                              Panel #{selectedPanelNumber ?? '?'} chưa có layer nào (trang có{' '}
+                              {pageElements.length} layer ở panel khác). Bấm "Xem cả trang" để xem
+                              tất cả.
+                            </p>
+                          )}
+                          {visibleElements
                             .slice()
                             .sort((a, b) => (b.zIndex || 0) - (a.zIndex || 0))
                             .map((el) => {

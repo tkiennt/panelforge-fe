@@ -2,13 +2,7 @@
 import axiosClient from '../api/axiosClient';
 
 export type NarrationMode =
-  | 'Present'
-  | 'Flashback'
-  | 'Dream'
-  | 'Imagination'
-  | 'Lie'
-  | 'Rumor'
-  | 'UnreliableNarrator';
+  'Present' | 'Flashback' | 'Dream' | 'Imagination' | 'Lie' | 'Rumor' | 'UnreliableNarrator';
 
 export interface SceneDto {
   id: string;
@@ -104,6 +98,44 @@ export interface UpdateScriptLineRequest {
 export interface DeleteScriptLineResult {
   chapterVersion: number;
   revisionId: string;
+}
+
+/** Một dòng trong nội dung revision script (GET .../script-revisions/{revisionId}), đã sắp theo lineOrder. */
+export interface ScriptRevisionLineDto {
+  lineId: string;
+  lineOrder: number;
+  speakerCharacterId?: string | null;
+  dialogueText?: string | null;
+  stageDirection?: string | null;
+}
+
+export interface ScriptRevisionDetailDto {
+  id: string;
+  sceneId: string;
+  versionNumber: number;
+  summary: string;
+  previousRevisionId?: string | null;
+  /** null = sửa tay / baseline / khôi phục. */
+  sourceSuggestionId?: string | null;
+  /** true = bản mới nhất, không khôi phục được. */
+  isCurrent: boolean;
+  createdAt: string;
+  createdBy?: string | null;
+  lines: ScriptRevisionLineDto[];
+}
+
+export interface RestoreScriptRevisionRequest {
+  expectedChapterVersion?: number | null;
+}
+
+export interface RestoreScriptRevisionResult {
+  /** Version SAU khôi phục, dùng cho lần sửa kế. */
+  chapterVersion: number;
+  /** Revision MỚI vừa tạo. */
+  revisionId: string;
+  versionNumber: number;
+  restoredFromRevisionId: string;
+  restoredFromVersionNumber: number;
 }
 
 function extractError(error: any, defaultMsg: string): any {
@@ -262,6 +294,47 @@ export const scriptLineService = {
       return response.data;
     } catch (error) {
       throw extractError(error, 'Không thể sắp xếp lại dòng kịch bản.');
+    }
+  },
+
+  /**
+   * Xem nội dung một revision script (GET /api/chapters/{chapterId}/scenes/{sceneId}/script-revisions/{revisionId}).
+   * Quyền: mọi thành viên Workspace. Danh sách revision lấy từ aiAgentsService.getSceneRevisions (kind = Script).
+   */
+  async getScriptRevision(
+    chapterId: string,
+    sceneId: string,
+    revisionId: string,
+  ): Promise<ScriptRevisionDetailDto> {
+    try {
+      const response = await axiosClient.get(
+        `/chapters/${chapterId}/scenes/${sceneId}/script-revisions/${revisionId}`,
+      );
+      return response.data;
+    } catch (error) {
+      throw extractError(error, 'Không thể tải nội dung phiên bản kịch bản.');
+    }
+  },
+
+  /**
+   * Khôi phục script về một revision cũ (BR-08): BE tạo revision MỚI ở đầu lịch sử, không xoá revision nào.
+   * Quyền: Producer/Writer. Luôn gửi body JSON (tối thiểu {}). 409 = lệch version (BR-11) hoặc chương không còn InProduction (BR-12).
+   */
+  async restoreScriptRevision(
+    chapterId: string,
+    sceneId: string,
+    revisionId: string,
+    request: RestoreScriptRevisionRequest = {},
+  ): Promise<RestoreScriptRevisionResult> {
+    try {
+      const response = await axiosClient.post(
+        `/chapters/${chapterId}/scenes/${sceneId}/script-revisions/${revisionId}/restore`,
+        request,
+        { headers: { 'Content-Type': 'application/json' } },
+      );
+      return response.data;
+    } catch (error) {
+      throw extractError(error, 'Không thể khôi phục phiên bản kịch bản.');
     }
   },
 };

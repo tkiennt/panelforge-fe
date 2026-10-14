@@ -99,6 +99,7 @@ interface Setup {
   artworks?: AssetReferenceDto[];
   submissions?: SubmissionDto[];
   progress?: StageProgressDto[];
+  related?: Pick<AssignmentDto, 'id' | 'status'>[];
 }
 
 const renderCard = (s: Setup = {}) => {
@@ -118,6 +119,7 @@ const renderCard = (s: Setup = {}) => {
       stageProgress={s.progress ?? []}
       onChanged={onChanged}
       onToast={onToast}
+      relatedAssignments={s.related}
     />,
     { wrapper: MemoryRouter },
   );
@@ -149,6 +151,48 @@ describe('AssignmentWorkCard: người nhận', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Stage trước (Pencil) chưa được duyệt',
     );
+  });
+
+  it('409 việc phụ thuộc chưa duyệt: hiện đúng câu `error` của BE (toast + inline)', async () => {
+    const msg = 'Có 1 công việc phụ thuộc chưa được duyệt (Approved), chưa thể bắt đầu.';
+    vi.mocked(assignmentService.startAssignment).mockRejectedValue(
+      Object.assign(new Error(msg), { status: 409, code: 'CONFLICT' }),
+    );
+    const { user, onToast } = renderCard({ assignment: assignment({ status: 'Assigned' }) });
+
+    await user.click(await screen.findByRole('button', { name: 'Bắt đầu làm' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(msg);
+    expect(onToast).toHaveBeenCalledWith('Không thể bắt đầu', msg);
+  });
+
+  it('409 CHAPTER_READ_ONLY: báo "Chương chỉ đọc", không phải xung đột phiên bản', async () => {
+    vi.mocked(assignmentService.startAssignment).mockRejectedValue(
+      Object.assign(new Error('Chương đã Approved.'), { status: 409, code: 'CHAPTER_READ_ONLY' }),
+    );
+    const { user, onToast } = renderCard({ assignment: assignment({ status: 'Assigned' }) });
+
+    await user.click(await screen.findByRole('button', { name: 'Bắt đầu làm' }));
+
+    await waitFor(() =>
+      expect(onToast).toHaveBeenCalledWith('Chương chỉ đọc', 'Chương đã Approved.'),
+    );
+  });
+
+  it('việc phụ thuộc chưa Approved: khoá nút Bắt đầu kèm lý do, không gọi BE', async () => {
+    renderCard({
+      assignment: assignment({ status: 'Assigned', dependsOnAssignmentIds: ['dep-1', 'dep-2'] }),
+      related: [
+        { id: 'dep-1', status: 'UnderReview' },
+        { id: 'dep-2', status: 'Approved' },
+      ],
+    });
+
+    const btn = await screen.findByTestId('start-assignment-btn');
+    expect(btn).toBeDisabled();
+    expect(btn).toHaveAttribute('title', 'Chờ 1 việc phụ thuộc được duyệt (Approved).');
+    expect(screen.getByTestId('start-blocked-reason')).toHaveTextContent('Chờ 1 việc phụ thuộc');
+    expect(assignmentService.startAssignment).not.toHaveBeenCalled();
   });
 
   it('thiếu artwork: nút Nộp bài bị khoá và nói rõ lý do', async () => {

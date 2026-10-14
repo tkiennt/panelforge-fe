@@ -52,17 +52,15 @@ export default function LettererWorkspace() {
   return (
     <div className='flex flex-col h-full bg-[#FAF8F4] text-[#171717] font-sans overflow-hidden'>
       {/* Header with Chapter & Page Selectors */}
-      <div className='flex flex-wrap items-center justify-between px-6 py-3 border-b border-[#E7E7E7] bg-white shrink-0 gap-3 shadow-xs'>
+      <div className='flex flex-wrap items-center justify-between px-3 py-1.5 border-b border-[#E7E7E7] bg-white shrink-0 gap-2 shadow-xs'>
         <div className='flex items-center gap-2'>
-          <Type className='w-5 h-5 text-purple-600' />
-          <div>
-            <h2 className='text-sm font-bold tracking-tight text-[#171717]'>
-              Bàn Làm Việc Kỹ Thuật Chèn Chữ (Letterer Desk)
-            </h2>
-            <p className='text-[10px] text-[#888888] font-mono'>
-              Balloon Placement • Script Anchoring • Concurrency Control (BR-11, NFR-09)
-            </p>
-          </div>
+          <Type className='w-4 h-4 text-purple-600' />
+          <h2
+            className='text-xs font-bold tracking-tight text-[#171717]'
+            title='Balloon Placement • Script Anchoring • Concurrency Control (BR-11, NFR-09)'
+          >
+            Letterer Desk
+          </h2>
         </div>
 
         <div className='flex items-center gap-3 flex-wrap'>

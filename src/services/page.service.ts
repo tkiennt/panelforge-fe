@@ -50,6 +50,15 @@ async function parseErrorResponse(error: any, defaultMsg: string): Promise<strin
   return defaultMsg;
 }
 
+/** Giữ lại status HTTP và mã lỗi BE (CONFLICT, CHAPTER_READ_ONLY) để màn hình xử lý riêng từng trường hợp. */
+async function toPageError(error: any, defaultMsg: string): Promise<Error> {
+  const err: any = new Error(await parseErrorResponse(error, defaultMsg));
+  err.status = error.response?.status;
+  err.code =
+    error.response?.data?.code || (error.response?.status === 409 ? 'CONFLICT' : undefined);
+  return err;
+}
+
 // Canonical seeded UUIDs matching PostgreSQL panelforge_dev database
 export const DEFAULT_CHAPTER_ID = 'cccccccc-3333-3333-3333-333333333333';
 
@@ -78,7 +87,7 @@ export const pageService = {
       const response = await axiosClient.post(`/chapters/${validChapterId}/pages`, body);
       return response.data;
     } catch (error) {
-      throw new Error(await parseErrorResponse(error, 'Tạo trang mới thất bại.'));
+      throw await toPageError(error, 'Tạo trang mới thất bại.');
     }
   },
 
@@ -123,7 +132,7 @@ export const pageService = {
       const response = await axiosClient.put(`/pages/${validPageId}/canvas-settings`, body);
       return response.data;
     } catch (error) {
-      throw new Error(await parseErrorResponse(error, 'Cập nhật canvas thất bại.'));
+      throw await toPageError(error, 'Cập nhật canvas thất bại.');
     }
   },
 
@@ -133,7 +142,7 @@ export const pageService = {
       const response = await axiosClient.delete(`/pages/${validPageId}`);
       return response.data;
     } catch (error) {
-      throw new Error(await parseErrorResponse(error, 'Xóa trang thất bại.'));
+      throw await toPageError(error, 'Xóa trang thất bại.');
     }
   },
 };

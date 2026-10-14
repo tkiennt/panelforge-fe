@@ -107,7 +107,6 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
             <span className='text-2xl font-serif font-bold text-[#171717]'>
               {stats ? stats.totalUsers.toLocaleString() : '—'}
             </span>
-            <span className='text-[10px] font-mono text-emerald-600 font-semibold'>+12% mo</span>
           </div>
           <p className='text-[11px] text-[#888888] mt-1'>Đã đăng ký tài khoản trong hệ thống</p>
         </div>
@@ -292,32 +291,41 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                 <Shield className='w-4 h-4 text-[#171717]' />
                 <span>Phân Bổ Vai Trò Manga Studio (RBAC)</span>
               </h3>
-              <span className='text-[11px] font-mono text-[#888888]'>PanelForge Roles v2.1</span>
             </div>
 
             <div className='space-y-3 text-xs'>
-              {[
-                { role: 'Administrator', count: stats?.admins || 3, color: 'bg-[#171717]', pct: 5 },
-                { role: 'Producer', count: 18, color: 'bg-[#F97316]', pct: 15 },
-                { role: 'Writer', count: 32, color: 'bg-indigo-600', pct: 25 },
-                { role: 'Artist', count: 48, color: 'bg-blue-600', pct: 35 },
-                { role: 'Letterer', count: 14, color: 'bg-emerald-600', pct: 12 },
-                { role: 'Editor', count: 12, color: 'bg-red-600', pct: 10 },
-                { role: 'Reader', count: 120, color: 'bg-gray-500', pct: 60 },
-              ].map((item) => (
-                <div key={item.role} className='space-y-1'>
-                  <div className='flex items-center justify-between text-[11px]'>
-                    <span className='font-semibold text-[#171717]'>{item.role}</span>
-                    <span className='font-mono text-[#737373]'>{item.count} người dùng</span>
-                  </div>
-                  <div className='w-full bg-[#EAE6DF] h-2 rounded-full overflow-hidden'>
-                    <div
-                      className={`h-full rounded-full ${item.color} transition-all duration-500`}
-                      style={{ width: `${item.pct}%` }}
-                    ></div>
-                  </div>
-                </div>
-              ))}
+              {!stats && <p className='text-[11px] text-[#888888]'>Chưa có dữ liệu.</p>}
+              {stats &&
+                [
+                  { role: 'Administrator', count: stats.admins, color: 'bg-[#171717]' },
+                  { role: 'Registered User', count: stats.registeredUsers, color: 'bg-[#F97316]' },
+                  {
+                    role: 'Workspace Member',
+                    count: stats.totalWorkspaceMembers,
+                    color: 'bg-violet-600',
+                  },
+                ]
+                  .map((item) => ({
+                    ...item,
+                    pct:
+                      stats.totalUsers > 0
+                        ? Math.min(100, (item.count / stats.totalUsers) * 100)
+                        : 0,
+                  }))
+                  .map((item) => (
+                    <div key={item.role} className='space-y-1'>
+                      <div className='flex items-center justify-between text-[11px]'>
+                        <span className='font-semibold text-[#171717]'>{item.role}</span>
+                        <span className='font-mono text-[#737373]'>{item.count} người dùng</span>
+                      </div>
+                      <div className='w-full bg-[#EAE6DF] h-2 rounded-full overflow-hidden'>
+                        <div
+                          className={`h-full rounded-full ${item.color} transition-all duration-500`}
+                          style={{ width: `${item.pct}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  ))}
             </div>
           </div>
         </div>
@@ -330,32 +338,14 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                 <Server className='w-4 h-4 text-emerald-600' />
                 <span>Trạng Thái Hạ Tầng</span>
               </h3>
-              <span className='text-[10px] font-mono text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded'>
-                99.98% SLA
-              </span>
             </div>
 
             <div className='space-y-3 text-xs'>
               <div className='flex items-center justify-between py-1.5 border-b border-[#F3F1EB]'>
-                <span className='text-[#737373]'>Backend API Host</span>
+                <span className='text-[#737373]'>Server time (UTC)</span>
                 <span className='font-mono font-medium text-[#171717]'>
-                  localhost:5044 (.NET 9)
+                  {stats?.serverTimeUtc ? new Date(stats.serverTimeUtc).toLocaleString() : '—'}
                 </span>
-              </div>
-
-              <div className='flex items-center justify-between py-1.5 border-b border-[#F3F1EB]'>
-                <span className='text-[#737373]'>Database Primary</span>
-                <span className='font-mono font-medium text-[#171717]'>PostgreSQL 16 + Vector</span>
-              </div>
-
-              <div className='flex items-center justify-between py-1.5 border-b border-[#F3F1EB]'>
-                <span className='text-[#737373]'>AI LoRA Model Engine</span>
-                <span className='font-mono font-semibold text-[#8B5CF6]'>Active (v1.4)</span>
-              </div>
-
-              <div className='flex items-center justify-between py-1.5 border-b border-[#F3F1EB]'>
-                <span className='text-[#737373]'>Cơ chế Bảo mật 2FA</span>
-                <span className='font-mono font-semibold text-emerald-600'>RFC 6238 TOTP</span>
               </div>
 
               <div className='flex items-center justify-between py-1.5'>

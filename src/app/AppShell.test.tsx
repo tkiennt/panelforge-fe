@@ -105,6 +105,20 @@ describe('AppShell Component', () => {
     expect(screen.getByText('Bàn vẽ & Khung trang')).toBeInTheDocument();
     expect(screen.getByText('Chèn chữ & Bóng thoại')).toBeInTheDocument();
     expect(screen.getByText('Cổng Duyệt Xuất Bản')).toBeInTheDocument();
+    expect(screen.queryByText('AI Multi-Agent')).not.toBeInTheDocument();
+  });
+
+  it('không còn hiển thị mục AI Multi-Agent trong thanh điều hướng sau khi loại bỏ phần demo', () => {
+    const producerUser: CurrentUser = {
+      name: 'Phạm Nhà Sản Xuất',
+      role: 'USER',
+      workspaceRole: 'PRODUCER' as any,
+      activeRoles: ['PRODUCER'],
+      avatarInitials: 'PN',
+    };
+
+    renderInRouter(producerUser, '/workspaces/ws-1/series/ser-1/dashboard');
+    expect(screen.queryByText('AI Multi-Agent')).not.toBeInTheDocument();
   });
 
   it('hiển thị menu Admin cho vai trò ADMINISTRATOR', () => {

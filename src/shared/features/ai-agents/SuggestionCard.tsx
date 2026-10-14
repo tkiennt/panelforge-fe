@@ -148,8 +148,7 @@ export const SuggestionCard: React.FC<Props> = ({
       {s.hasBlockingFindings && (
         <div className='mt-2 flex items-start gap-1.5 rounded border border-red-300 bg-red-50 p-2 text-[11px] text-red-700'>
           <MessageSquareWarning size={13} className='mt-0.5 shrink-0' />
-          Còn finding chặn sau 2 lượt sửa. Storyboard/Editor đã không chạy; hãy Reject hoặc Yêu cầu
-          sửa rồi chạy lại.
+          Còn lỗi nhất quán chặn sau 2 lượt sửa. Hãy Reject hoặc Yêu cầu sửa rồi chạy lại.
         </div>
       )}
 

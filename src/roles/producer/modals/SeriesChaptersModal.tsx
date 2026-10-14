@@ -352,7 +352,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
   return (
     <>
       <div className='fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4'>
-        <div className='bg-white border border-[#E7E7E7] rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl animate-in fade-in zoom-in-95 duration-150'>
+        <div className='bg-white border border-[#E7E7E7] rounded-2xl max-w-6xl w-full max-h-[90vh] flex flex-col shadow-2xl animate-in fade-in zoom-in-95 duration-150'>
           {/* Header */}
           <div className='p-5 border-b border-[#E7E7E7] flex items-center justify-between bg-[#FAF8F5] rounded-t-2xl'>
             <div className='flex items-center gap-3'>
@@ -596,8 +596,8 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
             )}
 
             {/* Chapters Table */}
-            <div className='border border-[#E7E7E7] rounded-xl overflow-hidden'>
-              <table className='w-full text-left border-collapse'>
+            <div className='border border-[#E7E7E7] rounded-xl overflow-x-auto'>
+              <table className='w-full min-w-[880px] text-left border-collapse'>
                 <thead className='bg-[#FAF8F5] border-b border-[#E7E7E7] font-mono text-[10px] text-[#737373] uppercase'>
                   <tr>
                     <th className='py-2.5 px-3'>Chương #</th>
@@ -676,8 +676,8 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                           v{chap.versionVector}
                         </td>
 
-                        <td className='py-3 px-3 text-right'>
-                          <div className='inline-flex items-center gap-1.5'>
+                        <td className='py-3 px-3 text-right whitespace-nowrap'>
+                          <div className='inline-flex items-center gap-1.5 whitespace-nowrap'>
                             <button
                               type='button'
                               onClick={() => setAssigningChapter(chap)}

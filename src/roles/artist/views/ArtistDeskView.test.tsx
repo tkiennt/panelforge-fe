@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ArtistDeskView } from './ArtistDeskView';
 import { parseBoundingBox } from '../utils/panelBoundingBox';
@@ -12,7 +12,8 @@ import { frameTemplateService } from '@/services/frameTemplate.service';
 
 import { elementService } from '@/services/element.service';
 import { bibleService } from '@/services/bible.service';
-import { artworkService } from '@/services/artwork.service';
+import { artworkService, computeFileSha256, resolveArtworkUrl } from '@/services/artwork.service';
+import { assignmentService } from '@/services/assignment.service';
 
 vi.mock('@/services/chapter.service');
 vi.mock('@/services/page.service');
@@ -36,6 +37,7 @@ vi.mock('@/services/element.service', async (importOriginal) => {
 });
 vi.mock('@/services/bible.service');
 vi.mock('@/services/artwork.service');
+vi.mock('@/services/assignment.service');
 
 describe('ArtistDeskView', () => {
   beforeEach(() => {
@@ -84,6 +86,9 @@ describe('ArtistDeskView', () => {
     });
 
     vi.mocked(artworkService.getArtworks).mockResolvedValue([]);
+    vi.mocked(assignmentService.getMyAssignments).mockResolvedValue([]);
+    vi.mocked(computeFileSha256).mockResolvedValue('sha-1');
+    vi.mocked(resolveArtworkUrl).mockImplementation((u: string) => `http://localhost${u}`);
 
     vi.mocked(chapterService.getChaptersBySeries).mockResolvedValue({
       items: [
@@ -398,6 +403,114 @@ describe('ArtistDeskView', () => {
 
     await waitFor(() => {
       expect(elementService.removeElement).toHaveBeenCalledWith('page-1', 'elem-char-1', 1);
+    });
+  });
+
+  describe('tải ảnh theo panel (stageId)', () => {
+    const inProgress = (over: Record<string, unknown> = {}) =>
+      ({
+        id: 'as-1',
+        chapterId: 'chap-1',
+        entityType: 'Panel',
+        targetEntityId: 'panel-1',
+        pipelineStageId: '3f2c9a52-1d6e-4b7a-9c11-0a5d8e7f1b22',
+        status: 'InProgress',
+        ...over,
+      }) as any;
+
+    it('gửi stageId là GUID của việc InProgress, không phải tên stage', async () => {
+      vi.mocked(assignmentService.getMyAssignments).mockResolvedValue([inProgress()]);
+      vi.mocked(artworkService.uploadArtwork).mockResolvedValue({ versionNumber: 1 } as any);
+      const { container } = renderComponent();
+
+      const btn = await screen.findByTestId('desk-upload-panel-btn-panel-1');
+      await waitFor(() => expect(btn).not.toBeDisabled());
+      fireEvent.click(btn);
+
+      const file = new File(['x'], 'p1.png', { type: 'image/png' });
+      const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+      fireEvent.change(input, { target: { files: [file] } });
+
+      await waitFor(() =>
+        expect(artworkService.uploadArtwork).toHaveBeenCalledWith(
+          'chap-1',
+          'page-1',
+          file,
+          '3f2c9a52-1d6e-4b7a-9c11-0a5d8e7f1b22',
+          'sha-1',
+          undefined,
+          'panel-1',
+        ),
+      );
+    });
+
+    it('khoá nút tải ảnh và nêu lý do khi không có việc InProgress', async () => {
+      vi.mocked(assignmentService.getMyAssignments).mockResolvedValue([
+        inProgress({ status: 'Assigned' }),
+      ]);
+      renderComponent();
+
+      const btn = await screen.findByTestId('desk-upload-panel-btn-panel-1');
+      expect(btn).toBeDisabled();
+      expect(screen.getByTestId('desk-upload-panel-blocked')).toBeInTheDocument();
+      fireEvent.click(btn);
+      expect(artworkService.uploadArtwork).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('link xem artwork hết hạn', () => {
+    const art = {
+      id: 'art-1',
+      pageId: 'page-1',
+      panelId: 'panel-1',
+      versionNumber: 1,
+      fileName: 'p1.png',
+      sizeBytes: 2048,
+    } as any;
+    const link = (token: string, ms: number) => ({
+      url: `/api/assets/download?token=${token}`,
+      expiresAtUtc: new Date(Date.now() + ms).toISOString(),
+    });
+
+    it('ảnh lỗi tải thì xin link mới một lần rồi mới bỏ cuộc', async () => {
+      vi.mocked(artworkService.getArtworks).mockResolvedValue([art]);
+      vi.mocked(artworkService.getArtworkAccessLink).mockImplementation(async () =>
+        link('t', 5 * 60_000),
+      );
+      renderComponent();
+
+      const img = await screen.findByAltText('Panel #1');
+      expect(artworkService.getArtworkAccessLink).toHaveBeenCalledTimes(1);
+
+      fireEvent.error(img);
+      await waitFor(() => expect(artworkService.getArtworkAccessLink).toHaveBeenCalledTimes(2));
+
+      fireEvent.error(screen.getByAltText('Panel #1'));
+      await act(async () => {
+        await Promise.resolve();
+      });
+      expect(artworkService.getArtworkAccessLink).toHaveBeenCalledTimes(2);
+    });
+
+    it('xin lại link sắp hết hạn khi trang để mở lâu', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      try {
+        vi.mocked(artworkService.getArtworks).mockResolvedValue([art]);
+        vi.mocked(artworkService.getArtworkAccessLink).mockImplementation(async () =>
+          link('t', 10_000),
+        );
+        renderComponent();
+        await waitFor(() => expect(artworkService.getArtworkAccessLink).toHaveBeenCalledTimes(1));
+
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(31_000);
+        });
+        expect(
+          vi.mocked(artworkService.getArtworkAccessLink).mock.calls.length,
+        ).toBeGreaterThanOrEqual(2);
+      } finally {
+        vi.useRealTimers();
+      }
     });
   });
 });

@@ -51,6 +51,8 @@ import {
   resolvePageId,
 } from '@/shared/features/collaboration/collaborationRules';
 import { parseBoundingBox } from '@/shared/utils/panelBoundingBox';
+import { buildPageComposite, type CompositePanel } from '@/shared/utils/compositePageRenderer';
+import { needsArtworkLink, parseLinkExpiry } from '@/shared/utils/artworkLinks';
 import { PreviewLinksModal } from '@/shared/modals/PreviewLinksModal';
 
 interface ReviewViewProps {
@@ -89,65 +91,23 @@ const parseRegion = (json?: string | null): Box | null => {
 
 /**
  * Ghép ảnh các Panel lên khổ 1200×1800 khi submission không có ảnh cả trang (CF2 / Mục 3).
- * Lưu ý bắt buộc:
- * - Kiểm tra đơn vị boundingBox (px hay %) qua parseBoundingBox
- * - Chỉ lấy các ảnh panel thuộc submission.artworkReferenceIds, không lấy bản mới nhất ngoài submission.
+ * Việc vẽ nằm ở `shared/utils/compositePageRenderer` (dùng chung với bản xem trước của Artist).
+ * Lưu ý bắt buộc: chỉ lấy các ảnh panel thuộc submission.artworkReferenceIds, không lấy bản mới nhất ngoài submission.
  */
 async function buildCompositeSubmissionArtwork(
   chapterId: string,
   submission: SubmissionDto,
   submissionPanelArts: AssetReferenceDto[],
-  panels: PanelDto[],
+  panels: CompositePanel[],
 ): Promise<{ artwork: AssetReferenceDto; dataUrl: string } | null> {
-  const CANVAS_W = 1200;
-  const CANVAS_H = 1800;
-  let dataUrl = '';
-  try {
-    const canvas = document.createElement('canvas');
-    canvas.width = CANVAS_W;
-    canvas.height = CANVAS_H;
-    const ctx = canvas.getContext ? canvas.getContext('2d') : null;
-    if (ctx) {
-      // 1. Nền trắng
-      ctx.fillStyle = '#FFFFFF';
-      ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
-
-      // 2. Vẽ từng panel và ghép ảnh tương ứng
-      for (const panel of panels) {
-        // Kiểm tra đơn vị boundingBox (px hay %)
-        const box = parseBoundingBox(panel.boundingBox, CANVAS_W, CANVAS_H);
-
-        // Vẽ viền panel
-        ctx.strokeStyle = '#171717';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(box.pixelX, box.pixelY, box.pixelW, box.pixelH);
-
-        // Chỉ lấy ảnh panel thuộc submission.artworkReferenceIds, không lấy bản mới nhất
-        const panelArt = submissionPanelArts.find((a) => a.panelId === panel.id);
-        if (panelArt) {
-          try {
-            const link = await artworkService.getArtworkAccessLink(chapterId, panelArt.id);
-            const url = resolveArtworkUrl(link.url);
-            await new Promise<void>((resolve) => {
-              const img = new Image();
-              img.crossOrigin = 'anonymous';
-              img.onload = () => {
-                ctx.drawImage(img, box.pixelX, box.pixelY, box.pixelW, box.pixelH);
-                resolve();
-              };
-              img.onerror = () => resolve();
-              img.src = url;
-            });
-          } catch {
-            // bỏ qua lỗi nếu 1 ảnh panel không tải được
-          }
-        }
-      }
-      dataUrl = canvas.toDataURL('image/png');
-    }
-  } catch {
-    // fallback an toàn khi môi trường không có canvas đầy đủ
-  }
+  const { dataUrl } = await buildPageComposite({
+    panels,
+    artworks: submissionPanelArts,
+    getAccessUrl: async (assetReferenceId) => {
+      const link = await artworkService.getArtworkAccessLink(chapterId, assetReferenceId);
+      return resolveArtworkUrl(link.url);
+    },
+  });
 
   const compositeArt: AssetReferenceDto = {
     id: `composite-sub-${submission.id}`,
@@ -313,6 +273,10 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
   const [submissions, setSubmissions] = useState<SubmissionDto[]>([]);
   const [members, setMembers] = useState<WorkspaceMemberDto[]>([]);
   const [panels, setPanels] = useState<PanelDto[]>([]);
+  // Lần nộp cũ mà bố cục khung không còn (khung đã bị xoá trước khi BE lưu panelLayout theo lần nộp)
+  const [orphanSubs, setOrphanSubs] = useState<
+    Array<{ subId: string; attempt: number; arts: AssetReferenceDto[] }>
+  >([]);
   const [currentId, setCurrentId] = useState<string | null>(null);
   const [previousId, setPreviousId] = useState<string | null>(null);
   const [changeRequests, setChangeRequests] = useState<ChangeRequestDto[]>([]);
@@ -320,6 +284,10 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
   const [visualReport, setVisualReport] = useState<VisualConsistencyReportDto | null>(null);
   const [visualThreshold, setVisualThreshold] = useState<number>(0.75);
   const [urls, setUrls] = useState<Record<string, string>>({});
+  // Link chỉ sống 5 phút (BR-16): nhớ hạn để xin lại trước khi ảnh vỡ; linkTick đánh thức effect định kỳ
+  const linkExpiry = useRef<Record<string, number>>({});
+  const linkInFlight = useRef<Set<string>>(new Set());
+  const [linkTick, setLinkTick] = useState(0);
   const [naturalSizes, setNaturalSizes] = useState<Record<string, { w: number; h: number }>>({});
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -529,6 +497,8 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
         const compositeArts: AssetReferenceDto[] = [];
         const newUrls: Record<string, string> = {};
 
+        const orphans: Array<{ subId: string; attempt: number; arts: AssetReferenceDto[] }> = [];
+
         for (const s of sortedSubs) {
           const hasWholePage = arts.some(
             (x) => !x.panelId && s.artworkReferenceIds?.includes(x.id),
@@ -539,11 +509,24 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
               (x) => x.panelId && s.artworkReferenceIds?.includes(x.id),
             );
             if (submissionPanelArts.length > 0) {
+              // BR-01: ghép theo bố cục CHỤP LÚC NỘP của chính lần nộp này; lần nộp cũ (panelLayout rỗng)
+              // mới dùng khung hiện tại của trang.
+              const layoutPanels: CompositePanel[] =
+                s.panelLayout && s.panelLayout.length > 0
+                  ? s.panelLayout.filter((p) => !pageId || p.pageId === pageId)
+                  : pagePanels;
+              const drawable = submissionPanelArts.filter((x) =>
+                layoutPanels.some((p) => p.id === x.panelId),
+              );
+              if (drawable.length === 0) {
+                orphans.push({ subId: s.id, attempt: s.attemptNumber, arts: submissionPanelArts });
+                continue;
+              }
               const composite = await buildCompositeSubmissionArtwork(
                 chapterId,
                 s,
-                submissionPanelArts,
-                pagePanels,
+                drawable,
+                layoutPanels,
               );
               if (composite) {
                 compositeArts.push(composite.artwork);
@@ -554,6 +537,19 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
             }
           }
         }
+
+        // Ảnh thu nhỏ cho các lần nộp không ghép được để Editor vẫn xem được
+        for (const o of orphans) {
+          for (const art of o.arts) {
+            try {
+              const link = await artworkService.getArtworkAccessLink(chapterId, art.id);
+              newUrls[art.id] = resolveArtworkUrl(link.url);
+            } catch {
+              /* bỏ qua ảnh không xin được link */
+            }
+          }
+        }
+        setOrphanSubs(orphans);
 
         if (Object.keys(newUrls).length > 0) {
           setUrls((prev) => ({ ...prev, ...newUrls }));
@@ -700,17 +696,29 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
     [attemptOf, members, getVersionBadge],
   );
 
-  // Link xem ảnh ngắn hạn (BR-16), xin theo từng phiên bản đang hiển thị
+  // Link xem ảnh ngắn hạn (BR-16), xin theo từng phiên bản đang hiển thị và xin lại khi sắp hết hạn
+  useEffect(() => {
+    if (!chapterId) return;
+    const timer = window.setInterval(() => setLinkTick((t) => t + 1), 30_000);
+    return () => window.clearInterval(timer);
+  }, [chapterId]);
+
   useEffect(() => {
     if (!chapterId) return;
     for (const art of [current, previous]) {
-      if (!art || urls[art.id]) continue;
+      if (!art || art.id.startsWith('composite-sub-') || linkInFlight.current.has(art.id)) continue;
+      if (!needsArtworkLink(linkExpiry.current[art.id], Date.now())) continue;
+      linkInFlight.current.add(art.id);
       artworkService
         .getArtworkAccessLink(chapterId, art.id)
-        .then((link) => setUrls((u) => ({ ...u, [art.id]: resolveArtworkUrl(link.url) })))
-        .catch(() => undefined);
+        .then((link) => {
+          linkExpiry.current[art.id] = parseLinkExpiry(link.expiresAtUtc, Date.now());
+          setUrls((u) => ({ ...u, [art.id]: resolveArtworkUrl(link.url) }));
+        })
+        .catch(() => undefined)
+        .finally(() => linkInFlight.current.delete(art.id));
     }
-  }, [chapterId, current, previous, urls]);
+  }, [chapterId, current, previous, linkTick]);
 
   // Kích thước tự nhiên (natural size) để cảnh báo khác kích thước
   const prevSize = previous ? naturalSizes[previous.id] : null;
@@ -767,6 +775,43 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
       });
     }
   };
+
+  // Lăn chuột trên vùng ảnh để zoom in/out (thoát zoom khi lăn về 100%); Esc để đặt lại góc nhìn.
+  useEffect(() => {
+    const el = comparisonContainerRef.current;
+    if (!el) return;
+    const applyWheel = (t: { scale: number; x: number; y: number }, delta: number) => {
+      const nextScale = Math.min(4, Math.max(1, round(t.scale + delta)));
+      // Về 100% thì đưa ảnh về giữa để thoát hẳn chế độ zoom
+      if (nextScale <= 1) return { scale: 1, x: 0, y: 0 };
+      const ratio = nextScale / t.scale;
+      return { scale: nextScale, x: t.x * ratio, y: t.y * ratio };
+    };
+    const onWheel = (e: WheelEvent) => {
+      if (!(e.target as HTMLElement).closest('[data-testid^="review-"][data-testid$="-image"]')) {
+        return;
+      }
+      const isZoomed = zoomTransform.scale > 1 || prevTransform.scale > 1;
+      if (!isZoomed && !e.ctrlKey) return; // chưa zoom: để trang cuộn bình thường
+      e.preventDefault();
+      const delta = e.deltaY < 0 ? 0.25 : -0.25;
+      setZoomTransform((t) => applyWheel(t, delta));
+      setPrevTransform((t) => applyWheel(t, delta));
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      setZoomTransform({ scale: 1, x: 0, y: 0 });
+      setPrevTransform({ scale: 1, x: 0, y: 0 });
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      el.removeEventListener('wheel', onWheel);
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  });
 
   const toggleFullscreen = async () => {
     if (!comparisonContainerRef.current) return;
@@ -1162,7 +1207,9 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
       async () => {
         await assignmentService.triageConsistencyFinding(chapterId, d.findingId, decision, note);
         const [updatedVr, updatedFs] = await Promise.all([
-          assignmentService.getVisualConsistencyReport(chapterId, visualThreshold).catch(() => null),
+          assignmentService
+            .getVisualConsistencyReport(chapterId, visualThreshold)
+            .catch(() => null),
           assignmentService.getConsistencyFindings(chapterId).catch(() => []),
         ]);
         if (updatedVr) setVisualReport(updatedVr);
@@ -1392,6 +1439,41 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
 
   return (
     <div className='w-full h-full flex flex-col bg-[#FAF8F4] overflow-hidden select-none'>
+      {orphanSubs.length > 0 && (
+        <div
+          className='shrink-0 px-6 py-2 bg-amber-50 border-b border-amber-200 space-y-2'
+          data-testid='orphan-submissions'
+        >
+          {orphanSubs.map((o) => (
+            <div key={o.subId} className='text-[11px] text-amber-900'>
+              <p className='font-semibold'>
+                Lần nộp {o.attempt}: Bố cục khung của lần nộp này không còn (khung đã bị xoá trước
+                khi hệ thống lưu bố cục theo lần nộp).
+              </p>
+              <div className='flex gap-2 mt-1 flex-wrap'>
+                {o.arts.map((art) =>
+                  urls[art.id] ? (
+                    <img
+                      key={art.id}
+                      src={urls[art.id]}
+                      alt={art.fileName || `Ảnh ${art.id}`}
+                      title={art.fileName}
+                      className='h-16 w-auto rounded border border-amber-300 bg-white object-contain'
+                    />
+                  ) : (
+                    <span
+                      key={art.id}
+                      className='h-16 px-2 flex items-center rounded border border-amber-300 bg-white text-[10px]'
+                    >
+                      {art.fileName || art.id}
+                    </span>
+                  ),
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
       {/* HEADER */}
       <div className='shrink-0 bg-white border-b border-[#E7E7E7] px-6 py-2.5 flex items-center justify-between gap-4 z-10 shadow-xs'>
         <div className='flex items-center gap-3 min-w-0'>
@@ -2379,6 +2461,40 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
 
                           {/* Deviation Message */}
                           <p className='text-xs text-[#171717] leading-relaxed'>{d.message}</p>
+
+                          {/* Summary Reason từ AI Vision */}
+                          {d.summaryReason && (
+                            <div className='p-2 bg-purple-50/70 border border-purple-200/80 rounded text-[11px] text-purple-900'>
+                              <span className='font-semibold text-purple-950'>Đánh giá AI: </span>
+                              {d.summaryReason}
+                            </div>
+                          )}
+
+                          {/* Detailed Deviations theo từng khía cạnh */}
+                          {d.detailedDeviations && d.detailedDeviations.length > 0 && (
+                            <div className='space-y-1 bg-amber-50/50 border border-amber-200/70 p-2 rounded text-[11px]'>
+                              <div className='text-[10px] font-bold uppercase tracking-wider text-amber-900'>
+                                Chi tiết lệch hình ảnh ({d.detailedDeviations.length}):
+                              </div>
+                              <ul className='space-y-1 divide-y divide-amber-200/50'>
+                                {d.detailedDeviations.map((dev, idx) => (
+                                  <li key={idx} className='pt-1 first:pt-0'>
+                                    <div className='flex items-center gap-1.5'>
+                                      <span className='font-bold text-amber-950 bg-amber-100/80 px-1.5 py-0.5 rounded text-[10px]'>
+                                        {dev.aspect}
+                                      </span>
+                                      {dev.regionHint && (
+                                        <span className='text-[10px] text-amber-700 italic'>
+                                          ({dev.regionHint})
+                                        </span>
+                                      )}
+                                    </div>
+                                    <p className='text-amber-900 mt-0.5'>{dev.description}</p>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
 
                           {/* Triage Note */}
                           {d.triageNote && (

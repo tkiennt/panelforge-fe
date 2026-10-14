@@ -760,7 +760,9 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                               <span className='font-medium text-xs truncate'>{a.brief}</span>
                             </div>
                             <div className='text-[10px] text-zinc-500 mt-0.5 flex items-center gap-2'>
-                              <span>Trạng thái: <strong>{a.status}</strong></span>
+                              <span>
+                                Trạng thái: <strong>{a.status}</strong>
+                              </span>
                               <span>• ID: #{a.id.substring(0, 8)}</span>
                             </div>
                           </div>
@@ -769,7 +771,8 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                     })}
                   </div>
                   <p className='text-[10px] text-[#737373] mt-1'>
-                    Theo quy tắc BR-19 & DAG, toàn bộ các việc được chọn ở đây phải được duyệt (Approved) thì việc này mới có thể bắt đầu.
+                    Theo quy tắc BR-19 & DAG, toàn bộ các việc được chọn ở đây phải được duyệt
+                    (Approved) thì việc này mới có thể bắt đầu.
                   </p>
                 </div>
               )}

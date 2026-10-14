@@ -40,7 +40,18 @@ const AUTH_ENDPOINTS =
 
 type RetriableConfig = InternalAxiosRequestConfig & { _retry?: boolean };
 
+// Đã hết phiên (refresh bị từ chối): chặn các request khác để không lần lượt báo 401, chỉ phát sự kiện một lần.
+// Đăng nhập / refresh thành công sẽ mở lại.
+let sessionEnded = false;
+const SESSION_RESTORE_ENDPOINTS = /\/Auth\/(login|refresh|verify-2fa|external-login)/i;
+
+export function resetSessionEnded() {
+  sessionEnded = false;
+}
+
 export function clearSession() {
+  const alreadyEnded = sessionEnded;
+  sessionEnded = true;
   clearLegacyTokens();
   if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
     // Phiên đã kết thúc: bỏ cả token fallback trong localStorage (trừ token demo 'mock-...')
@@ -52,7 +63,7 @@ export function clearSession() {
     localStorage.removeItem('user');
     localStorage.removeItem('userRole');
     localStorage.removeItem('activeWorkspace');
-    window.dispatchEvent(new Event('auth:unauthorized'));
+    if (!alreadyEnded) window.dispatchEvent(new Event('auth:unauthorized'));
   }
 }
 
@@ -80,6 +91,7 @@ async function doRefresh(): Promise<string | null> {
         },
       },
     );
+    sessionEnded = false;
     return (data?.token as string) ?? 'ok';
   } catch (error) {
     // Refresh cookie bị từ chối (hết hạn / đã thu hồi) → hết phiên. Lỗi mạng / 5xx thì giữ nguyên phiên.
@@ -100,6 +112,14 @@ export function refreshAccessToken(): Promise<string | null> {
 // Interceptor để tự động gắn header X-Requested-With và withCredentials
 axiosClient.interceptors.request.use(
   (config) => {
+    // Hết phiên rồi thì huỷ các request cần đăng nhập (tránh chuỗi 401 notifications, workspace...)
+    if (
+      sessionEnded &&
+      !AUTH_ENDPOINTS.test(config.url ?? '') &&
+      !localStorage.getItem('token')?.startsWith('mock-')
+    ) {
+      return Promise.reject(new axios.CanceledError('Phiên đăng nhập đã kết thúc'));
+    }
     config.withCredentials = true;
     if (config.headers) {
       if (!config.headers['X-Requested-With']) {
@@ -119,10 +139,18 @@ axiosClient.interceptors.request.use(
 );
 
 axiosClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    if (SESSION_RESTORE_ENDPOINTS.test(response.config?.url ?? '')) sessionEnded = false;
+    return response;
+  },
   async (error: AxiosError) => {
     const original = error.config as RetriableConfig | undefined;
     if (error.response?.status !== 401 || !original || AUTH_ENDPOINTS.test(original.url ?? '')) {
+      return Promise.reject(error);
+    }
+
+    // Phiên đã kết thúc: không thử refresh lại cho từng request đang bay
+    if (sessionEnded) {
       return Promise.reject(error);
     }
 

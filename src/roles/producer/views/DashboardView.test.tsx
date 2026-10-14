@@ -306,14 +306,10 @@ describe('DashboardView Component (UC-16 Progress Dashboard)', () => {
     renderDashboard();
 
     await waitFor(() => {
-      expect(
-        screen.getByText(/Danh Sách Yêu Cầu Sửa Đổi Quá Hạn/i),
-      ).toBeInTheDocument();
+      expect(screen.getByText(/Danh Sách Yêu Cầu Sửa Đổi Quá Hạn/i)).toBeInTheDocument();
     });
 
-    expect(
-      screen.getByText('Sửa lại chi tiết mắt nhân vật tại panel 3'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Sửa lại chi tiết mắt nhân vật tại panel 3')).toBeInTheDocument();
     expect(screen.getAllByText('Kenji Sato').length).toBeGreaterThan(0);
     expect(screen.getByText(/1 yêu cầu sửa/i)).toBeInTheDocument();
     expect(screen.getByText('Xem yêu cầu cần sửa')).toBeInTheDocument();

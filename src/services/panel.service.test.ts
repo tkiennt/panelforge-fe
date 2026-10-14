@@ -115,6 +115,32 @@ describe('panelService', () => {
     expect(result.message).toContain('Panel panel-1 đã được xóa');
   });
 
+  it('checkImageConsistency gọi đúng POST /api/panels/{panelId}/check-image-consistency với params và trả về ImageConsistencyResultDto', async () => {
+    const mockResult = {
+      panelId: 'panel-1',
+      characterId: 'char-10',
+      characterSheetUrl: 'https://example.com/sheet.png',
+      score: 0.88,
+      threshold: 0.75,
+      passed: true,
+      summaryReason: 'Khuôn mặt và trang phục khớp.',
+      deviations: [],
+      checkedAt: '2026-10-14T20:00:00Z',
+    };
+    vi.mocked(axiosClient.post).mockResolvedValueOnce({ data: mockResult });
+
+    const result = await panelService.checkImageConsistency('panel-1', {
+      revisionRef: 'rev-1',
+      threshold: 0.8,
+    });
+
+    expect(axiosClient.post).toHaveBeenCalledWith('/panels/panel-1/check-image-consistency', null, {
+      params: { revisionRef: 'rev-1', threshold: 0.8 },
+    });
+    expect(result).toEqual(mockResult);
+    expect(result.passed).toBe(true);
+  });
+
   it('ném lỗi có cấu trúc khi API thất bại', async () => {
     vi.mocked(axiosClient.post).mockRejectedValueOnce({
       response: {

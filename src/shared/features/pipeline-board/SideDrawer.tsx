@@ -186,7 +186,8 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
                     Phụ thuộc tiền đề (DAG):
                   </span>
                   <span className='font-semibold text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 text-[10px]'>
-                    {(card.dependsOnAssignmentIds?.length || (card.dependsOnAssignmentId ? 1 : 0))} nhiệm vụ
+                    {card.dependsOnAssignmentIds?.length || (card.dependsOnAssignmentId ? 1 : 0)}{' '}
+                    nhiệm vụ
                   </span>
                 </div>
                 <div className='flex flex-wrap gap-1'>

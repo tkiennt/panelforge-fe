@@ -154,17 +154,20 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
                             className={
                               n.type === 'AssignmentOverdue' || n.type === 'ChangeRequestOverdue'
                                 ? 'text-rose-600 font-bold flex items-center gap-1'
-                                : n.type === 'AssignmentDueSoon' || n.type === 'ChangeRequestDueSoon'
+                                : n.type === 'AssignmentDueSoon' ||
+                                    n.type === 'ChangeRequestDueSoon'
                                   ? 'text-amber-600 font-bold flex items-center gap-1'
                                   : n.readAt
                                     ? ''
                                     : 'text-[#F97316] font-bold'
                             }
                           >
-                            {(n.type === 'AssignmentOverdue' || n.type === 'ChangeRequestOverdue') && (
+                            {(n.type === 'AssignmentOverdue' ||
+                              n.type === 'ChangeRequestOverdue') && (
                               <span className='w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0' />
                             )}
-                            {(n.type === 'AssignmentDueSoon' || n.type === 'ChangeRequestDueSoon') && (
+                            {(n.type === 'AssignmentDueSoon' ||
+                              n.type === 'ChangeRequestDueSoon') && (
                               <span className='w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0' />
                             )}
                             {TYPE_LABEL[String(n.type)] ?? 'Thông báo'}

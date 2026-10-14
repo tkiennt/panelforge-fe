@@ -44,6 +44,7 @@ import {
   Menu,
 } from 'lucide-react';
 import { AppShellSidebar } from './AppShellSidebar';
+import { AppShellRail } from './AppShellRail';
 import { NotificationBell } from '@/shared/features/collaboration/NotificationBell';
 import { SidebarDrawer } from '@/shared/components/SidebarDrawer';
 
@@ -123,7 +124,6 @@ const ROLE_NAV_CONFIG: Record<string, { section: string; items: any[] }[]> = {
         { icon: Layers, label: 'Công việc của tôi', href: '/my-work' },
         { icon: FileText, label: 'Kịch bản (Script)', href: '/script' },
         { icon: BookMarked, label: 'Series Bible', href: '/bible' },
-        { icon: Sparkles, label: 'AI Multi-Agent', href: '/ai-agents' },
       ],
     },
   ],
@@ -134,7 +134,6 @@ const ROLE_NAV_CONFIG: Record<string, { section: string; items: any[] }[]> = {
         { icon: Layers, label: 'Công việc của tôi', href: '/my-work' },
         { icon: LayoutTemplate, label: 'Bàn vẽ & Khung trang', href: '/artist' },
         { icon: BookMarked, label: 'Series Bible', href: '/bible' },
-        { icon: Sparkles, label: 'AI Multi-Agent', href: '/ai-agents' },
       ],
     },
   ],
@@ -145,7 +144,6 @@ const ROLE_NAV_CONFIG: Record<string, { section: string; items: any[] }[]> = {
         { icon: Layers, label: 'Công việc của tôi', href: '/my-work' },
         { icon: Type, label: 'Chèn chữ & Bóng thoại', href: '/letterer' },
         { icon: BookMarked, label: 'Series Bible', href: '/bible' },
-        { icon: Sparkles, label: 'AI Multi-Agent', href: '/ai-agents' },
       ],
     },
   ],
@@ -155,7 +153,6 @@ const ROLE_NAV_CONFIG: Record<string, { section: string; items: any[] }[]> = {
       items: [
         { icon: Layers, label: 'Công việc của tôi', href: '/my-work' },
         { icon: BookMarked, label: 'Series Bible', href: '/bible' },
-        { icon: Sparkles, label: 'AI Multi-Agent', href: '/ai-agents' },
       ],
     },
   ],
@@ -262,12 +259,6 @@ export function AppShell({
                 label: 'Series Bible',
                 href: `/workspaces/${workspaceId}/series/${seriesId}/bible`,
                 badge: { type: 'dot', color: 'bg-[#8B5CF6]' },
-              },
-              {
-                icon: Sparkles,
-                label: 'AI Multi-Agent',
-                href: `/workspaces/${workspaceId}/series/${seriesId}/ai-agents`,
-                badge: { type: 'text', text: 'Demo', color: 'bg-[#F3E8FF] text-[#6D28D9]' },
               },
               {
                 icon: Send,
@@ -389,12 +380,6 @@ export function AppShell({
                 label: 'Series Bible',
                 href: `/workspaces/${workspaceId}/series/${seriesId}/bible`,
               },
-              {
-                icon: Sparkles,
-                label: 'AI Multi-Agent',
-                href: `/workspaces/${workspaceId}/series/${seriesId}/ai-agents`,
-                badge: { type: 'text', text: 'Hỗ trợ AI', color: 'bg-[#F3E8FF] text-[#6D28D9]' },
-              },
             ],
           },
           {
@@ -432,6 +417,9 @@ export function AppShell({
 
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [isRailExpanded, setIsRailExpanded] = useState(false);
+  // Màn Letterer cần tối đa diện tích canvas: menu hệ thống thu thành thanh icon, bấm để mở lớp phủ.
+  const [isRailOverlayOpen, setIsRailOverlayOpen] = useState(false);
+  const compactRail = !isReader && /\/letterer\/?$/.test(location.pathname);
 
   const navSections = rawSections.map((sec) => ({
     ...sec,
@@ -441,6 +429,7 @@ export function AppShell({
   const handleNavClick = (e: React.MouseEvent, href: string) => {
     e.preventDefault();
     setIsMobileDrawerOpen(false);
+    setIsRailOverlayOpen(false);
     if (onNavigate) {
       onNavigate(href);
     }
@@ -531,20 +520,60 @@ export function AppShell({
         </SidebarDrawer>
       )}
 
-      {/* --- PERMANENT SIDEBAR (>= md) --- */}
-      <AppShellSidebar
-        currentUser={currentUser}
-        activeSeries={effectiveActiveSeries as any}
-        isReader={isReader}
-        navSections={navSections}
-        handleNavClick={handleNavClick}
-        renderBadge={renderBadge}
-        onOpenTwoFactor={onOpenTwoFactor}
-        onLogout={onLogout}
-        isRailExpanded={isRailExpanded}
-        onToggleRail={() => setIsRailExpanded((prev) => !prev)}
-        isMobileDrawer={false}
-      />
+      {/* --- PERMANENT SIDEBAR (>= md); thanh icon ở màn Letterer --- */}
+      {compactRail ? (
+        <>
+          <AppShellRail
+            navSections={navSections}
+            handleNavClick={handleNavClick}
+            onExpand={() => setIsRailOverlayOpen(true)}
+          />
+          {isRailOverlayOpen && (
+            <div
+              className='fixed inset-0 z-[1000] hidden md:flex'
+              role='dialog'
+              aria-label='Menu hệ thống'
+              data-testid='app-shell-rail-overlay'
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') setIsRailOverlayOpen(false);
+              }}
+            >
+              <AppShellSidebar
+                currentUser={currentUser}
+                activeSeries={effectiveActiveSeries as any}
+                isReader={isReader}
+                navSections={navSections}
+                handleNavClick={handleNavClick}
+                renderBadge={renderBadge}
+                onOpenTwoFactor={onOpenTwoFactor}
+                onLogout={onLogout}
+                isRailExpanded={true}
+                isMobileDrawer={false}
+              />
+              <div
+                className='flex-1 bg-black/40'
+                onClick={() => setIsRailOverlayOpen(false)}
+                data-testid='app-shell-rail-overlay-backdrop'
+                aria-hidden='true'
+              />
+            </div>
+          )}
+        </>
+      ) : (
+        <AppShellSidebar
+          currentUser={currentUser}
+          activeSeries={effectiveActiveSeries as any}
+          isReader={isReader}
+          navSections={navSections}
+          handleNavClick={handleNavClick}
+          renderBadge={renderBadge}
+          onOpenTwoFactor={onOpenTwoFactor}
+          onLogout={onLogout}
+          isRailExpanded={isRailExpanded}
+          onToggleRail={() => setIsRailExpanded((prev) => !prev)}
+          isMobileDrawer={false}
+        />
+      )}
 
       {/* --- RIGHT WRAPPER --- */}
       <div className='flex-1 flex flex-col min-w-0 h-full bg-[#FFFFFF] relative'>

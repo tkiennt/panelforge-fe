@@ -12,7 +12,6 @@ Thư mục `src/shared/` chứa toàn bộ các màn hình (views), tính năng 
 
 ### 2.2 Features phức hợp (`src/shared/features/`)
 - **`series-bible/`**: Quản lý Kinh thánh bộ truyện (Series Bible), danh mục thực thể thế giới, nhân vật, đạo cụ và bản thảo sửa đổi (`SeriesBibleView.tsx`, `AddEntityModal.tsx`).
-- **`ai-agents/`**: Hệ thống phối hợp 7 AI Agents + Supervisor (`AiMultiAgentView.tsx`, `AgentPipelineStrip.tsx`, `StepOutputView.tsx`, `SuggestionCard.tsx`, `AgentOutputViews.tsx`, `LayoutPreview.tsx`, `aiViewUtils.ts`).
 - **`pipeline-board/`**: Bảng điều phối tiến độ sản xuất dạng Kanban qua các giai đoạn kịch bản, nét vẽ, màu sắc, thoại và phê duyệt (`WorkflowBoardView.tsx`, `KanbanBoard.tsx`, `KanbanColumn.tsx`, `TaskCard.tsx`, `SideDrawer.tsx`).
 - **`production-workspace/`**: Khung bàn làm việc sản xuất và trình biên tập tác vụ đa năng (`WorkspaceView.tsx`, `TaskEditorView.tsx`).
 - **`account/`**: Quản lý tài khoản cá nhân, xác thực hai lớp và đổi mật khẩu (`ChangePasswordModal.tsx`, `TwoFactorSetupModal.tsx`).

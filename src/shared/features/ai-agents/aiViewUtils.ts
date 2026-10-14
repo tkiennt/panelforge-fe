@@ -1,14 +1,11 @@
 import {
-  AiAgentName,
   AiRunDto,
   AiRunStatus,
   AiStepDto,
   AiSuggestionKind,
   AiWorkflowType,
   ScriptDraft,
-  SupervisorDecision,
   WorkerAgentName,
-  workflowOf,
 } from '@/services/aiAgents.service';
 
 /** Bảy agent chuyên môn, mỗi agent hỗ trợ một hoặc hai role; Supervisor (Gemini) điều phối chúng và KHÔNG phải ProducerAgent. */
@@ -21,60 +18,6 @@ export const AGENTS: WorkerAgentName[] = [
   'Editor',
   'Producer',
 ];
-
-export const AGENT_META: Record<
-  AiAgentName,
-  { label: string; role: string; accent: string; roles: string[] }
-> = {
-  Supervisor: {
-    label: 'Supervisor',
-    role: 'Gemini điều phối: chọn agent kế tiếp',
-    accent: '#171717',
-    roles: ['Gemini'],
-  },
-  Writer: {
-    label: 'Writer',
-    role: 'Viết script từ brief + Bible',
-    accent: '#F97316',
-    roles: ['Writer'],
-  },
-  Continuity: {
-    label: 'Continuity',
-    role: 'Đối chiếu script với Bible',
-    accent: '#8B5CF6',
-    roles: ['Writer', 'Editor'],
-  },
-  Storyboard: {
-    label: 'Storyboard',
-    role: 'Chia Page / Panel, góc máy',
-    accent: '#0EA5E9',
-    roles: ['Writer', 'Artist'],
-  },
-  Artist: {
-    label: 'Artist',
-    role: 'Soạn prompt ảnh cho từng panel',
-    accent: '#EC4899',
-    roles: ['Artist'],
-  },
-  Letterer: {
-    label: 'Letterer',
-    role: 'Rút gọn thoại cho vừa bubble',
-    accent: '#14B8A6',
-    roles: ['Letterer'],
-  },
-  Editor: {
-    label: 'Editor',
-    role: 'Viết báo cáo review',
-    accent: '#10B981',
-    roles: ['Editor'],
-  },
-  Producer: {
-    label: 'Producer',
-    role: 'Báo cáo tiến độ, rủi ro',
-    accent: '#EAB308',
-    roles: ['Producer'],
-  },
-};
 
 /** Tập agent của từng nhiệm vụ — khớp WorkflowRules.AgentsOf của Backend (dùng để hiển thị run đã lưu, không để cấp quyền). */
 export const WORKFLOW_AGENTS: Record<AiWorkflowType, WorkerAgentName[]> = {
@@ -153,74 +96,6 @@ export const RUN_STATUS_LABEL: Record<AiRunStatus, string> = {
   Failed: 'Thất bại',
   Interrupted: 'Bị gián đoạn (AI service dừng)',
 };
-
-/** idle: chưa tới lượt · skipped: thuộc nhiệm vụ nhưng không chạy (run dừng sớm) · notInWorkflow: không thuộc nhiệm vụ này. */
-export type AgentNodeState = 'idle' | 'running' | 'done' | 'failed' | 'skipped' | 'notInWorkflow';
-
-export function hasBlocking(step: AiStepDto): boolean {
-  const out = step.output as { findings?: { severity: string }[] } | null | undefined;
-  return !!out?.findings?.some((f) => f.severity === 'Blocking');
-}
-
-export const decisionOf = (step: AiStepDto): SupervisorDecision | null =>
-  step.agent === 'Supervisor' && step.output ? (step.output as SupervisorDecision) : null;
-
-/**
- * Trạng thái hiển thị của từng agent, suy ra từ các step đã lưu + trạng thái run + loại nhiệm vụ.
- * Run có Supervisor: agent chuyên môn "đang chạy" khi quyết định liền trước chọn nó; Supervisor "đang quyết định" khi
- * bước cuối là một agent chuyên môn. Run cũ (không có Supervisor, luôn là FullScene) dùng thứ tự cố định.
- */
-export function agentNodeStates(run: AiRunDto | null): Record<AiAgentName, AgentNodeState> {
-  const states = {
-    Supervisor: 'idle',
-    Writer: 'idle',
-    Continuity: 'idle',
-    Storyboard: 'idle',
-    Artist: 'idle',
-    Letterer: 'idle',
-    Editor: 'idle',
-    Producer: 'idle',
-  } as Record<AiAgentName, AgentNodeState>;
-  if (!run) return states;
-
-  const inWorkflow = new Set<WorkerAgentName>(WORKFLOW_AGENTS[workflowOf(run)]);
-  for (const a of AGENTS) if (!inWorkflow.has(a)) states[a] = 'notInWorkflow';
-
-  for (const a of [...AGENTS, 'Supervisor' as const]) {
-    const steps = run.steps.filter((s) => s.agent === a);
-    if (steps.some((s) => s.status === 'Failed')) states[a] = 'failed';
-    else if (steps.length > 0) states[a] = 'done';
-  }
-
-  const active = run.status === 'Queued' || run.status === 'Running';
-  const hasSupervisor = run.steps.some((s) => s.agent === 'Supervisor');
-  const last = run.steps[run.steps.length - 1];
-
-  if (active) {
-    if (!hasSupervisor && run.steps.length > 0) {
-      // run cũ: thứ tự cố định
-      let next: WorkerAgentName = 'Writer';
-      if (last?.status === 'Succeeded') {
-        if (last.agent === 'Writer') next = 'Continuity';
-        else if (last.agent === 'Continuity') next = hasBlocking(last) ? 'Writer' : 'Storyboard';
-        else if (last.agent === 'Storyboard') next = 'Editor';
-      }
-      states[next] = 'running';
-    } else if (!last || (last.agent !== 'Supervisor' && last.status === 'Succeeded')) {
-      states.Supervisor = 'running'; // đang quyết định bước kế tiếp
-    } else if (last.agent === 'Supervisor' && last.status === 'Succeeded') {
-      const action = decisionOf(last)?.action;
-      if (action && (AGENTS as string[]).includes(action))
-        states[action as WorkerAgentName] = 'running';
-    }
-  }
-
-  // Run dừng chờ người: agent thuộc nhiệm vụ nhưng chưa từng chạy là "không chạy" (vd Storyboard/Editor khi còn finding chặn)
-  if (run.status === 'WaitingForHuman') {
-    for (const a of inWorkflow) if (states[a] === 'idle') states[a] = 'skipped';
-  }
-  return states;
-}
 
 export interface LineInfo {
   order: number;

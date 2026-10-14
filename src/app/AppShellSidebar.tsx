@@ -289,7 +289,6 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
             </span>
           </button>
         </div>
-
       </div>
     </aside>
   );

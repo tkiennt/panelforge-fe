@@ -82,6 +82,43 @@ export const hasCurrentArtwork = (
   return false;
 };
 
+export interface PanelArtworkCoverage {
+  /** Số Panel có ảnh riêng hợp lệ. */
+  covered: number;
+  total: number;
+  /** Có ảnh cả trang hợp lệ: khi đó trang đã đủ, không cần ảnh từng Panel. */
+  hasFullPage: boolean;
+  /** Trang đủ artwork theo luật BE (StageProgressRules.SubmissionBlockReasonAsync). */
+  complete: boolean;
+}
+
+/**
+ * Checklist "panel đã có ảnh N/M" theo đúng luật BE: chỉ tính ảnh đúng trang + stage và (nếu từng bị trả về)
+ * có `createdAt` ≥ thời điểm quyết định của lần nộp Rejected gần nhất. Đếm mọi ảnh sẽ báo đủ trong khi server trả 409.
+ */
+export const panelArtworkCoverage = (
+  artworks: Pick<AssetReferenceDto, 'pageId' | 'pipelineStageId' | 'createdAt' | 'panelId'>[],
+  pageId: string | null,
+  stageId: string,
+  rejectedAt: string | null,
+  panelIds: string[],
+): PanelArtworkCoverage => {
+  const valid =
+    pageId === null
+      ? []
+      : artworks.filter(
+          (art) =>
+            art.pageId === pageId &&
+            art.pipelineStageId === stageId &&
+            (rejectedAt === null ||
+              new Date(art.createdAt).getTime() >= new Date(rejectedAt).getTime()),
+        );
+  const hasFullPage = valid.some((art) => !art.panelId);
+  const covered = panelIds.filter((id) => valid.some((art) => art.panelId === id)).length;
+  const complete = hasFullPage || (panelIds.length > 0 && covered === panelIds.length);
+  return { covered, total: panelIds.length, hasFullPage, complete };
+};
+
 export interface WorkContext {
   userId?: string | null;
   workspaceRole?: string | null;
@@ -255,13 +292,68 @@ export const parseRegionBox = (
   }
 };
 
-/** Thông báo lỗi cho người dùng: ưu tiên message của Backend ({ error } hoặc { message }), rồi tới message của Error. */
+/**
+ * Số việc phụ thuộc (dependsOnAssignmentIds / dependsOnAssignmentId) CHƯA Approved, tra trong `related`.
+ * Việc phụ thuộc không có trong danh sách thì không đếm (không đoán); BE vẫn chặn bằng 409 khi bấm Bắt đầu.
+ */
+export const pendingDependencyCount = (
+  a: Pick<AssignmentDto, 'dependsOnAssignmentIds' | 'dependsOnAssignmentId'>,
+  related?: Pick<AssignmentDto, 'id' | 'status'>[],
+): number => {
+  if (!related?.length) return 0;
+  const ids = new Set<string>([
+    ...(a.dependsOnAssignmentIds ?? []),
+    ...(a.dependsOnAssignmentId ? [a.dependsOnAssignmentId] : []),
+  ]);
+  let pending = 0;
+  ids.forEach((id) => {
+    const dep = related.find((r) => r.id === id);
+    if (dep && status(dep.status) !== 'Approved') pending++;
+  });
+  return pending;
+};
+
+/**
+ * Tiêu đề + nội dung thông báo khi POST .../start thất bại.
+ * 409 `CHAPTER_READ_ONLY` = chương đã Approved/Published (KHÔNG phải xung đột phiên bản);
+ * 409 khác là luật nghiệp vụ, hiện nguyên câu `error` của BE.
+ */
+export const describeStartError = (err: unknown): { title: string; message: string } => {
+  const e = err as { code?: string; status?: number } | null;
+  const message = errorMessage(err, 'Không thể bắt đầu công việc.');
+  if (e?.code === 'CHAPTER_READ_ONLY') {
+    return {
+      title: 'Chương chỉ đọc',
+      message: message || 'Chương đã được duyệt hoặc phát hành nên không thể thay đổi (BR-12).',
+    };
+  }
+  return { title: 'Không thể bắt đầu', message };
+};
+
+/**
+ * Thông báo lỗi cho người dùng: ưu tiên message của Backend ({ error } hoặc { message }), rồi tới lỗi validation dạng
+ * problem+json (`errors`, `title`), cuối cùng là message của Error.
+ */
 export const errorMessage = (err: unknown, fallback: string): string => {
   const e = err as {
-    response?: { data?: { error?: string; message?: string } };
+    response?: {
+      data?: {
+        error?: string;
+        message?: string;
+        title?: string;
+        errors?: Record<string, string[] | string>;
+      };
+    };
     message?: string;
   } | null;
-  return e?.response?.data?.error || e?.response?.data?.message || e?.message || fallback;
+  const data = e?.response?.data;
+  const validation = data?.errors
+    ? Object.values(data.errors)
+        .flat()
+        .filter((m): m is string => typeof m === 'string' && m.length > 0)
+        .join('; ')
+    : '';
+  return data?.error || data?.message || validation || data?.title || e?.message || fallback;
 };
 
 export const isOverdue = (dueDate?: string | null, now: Date = new Date()): boolean =>

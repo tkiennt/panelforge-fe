@@ -26,6 +26,10 @@ import {
 import { seriesService, SeriesMemberDto } from '@/services/series.service';
 import { pipelineService, PipelineStageDto } from '@/services/pipeline.service';
 import { CreateAssignmentModal } from './CreateAssignmentModal';
+import {
+  describeStartError,
+  pendingDependencyCount,
+} from '@/shared/features/collaboration/collaborationRules';
 
 interface ChapterAssignmentsModalProps {
   isOpen: boolean;
@@ -123,9 +127,16 @@ export const ChapterAssignmentsModal: React.FC<ChapterAssignmentsModalProps> = (
       const p = await assignmentService.getStageProgress(chapterId);
       setStageProgressList(p || []);
     } catch (err: any) {
-      const msg = err.response?.data?.message || err.message || 'Không thể bắt đầu công việc.';
-      setError(msg);
-      onShowToast?.('Không thể bắt đầu', msg);
+      const { title, message } = describeStartError(err);
+      setError(message);
+      onShowToast?.(title, message);
+      // 409: trạng thái trên máy đã cũ (vd. đã bắt đầu rồi) → nạp lại danh sách để hiện đúng trạng thái
+      if (err?.status === 409) {
+        assignmentService
+          .getAssignments(chapterId)
+          .then((list) => setAssignments(list || []))
+          .catch(() => undefined);
+      }
     } finally {
       setActionLoadingId(null);
     }
@@ -489,21 +500,29 @@ export const ChapterAssignmentsModal: React.FC<ChapterAssignmentsModalProps> = (
 
                         {/* Action Buttons: Start & Submit */}
                         <div className='flex items-center gap-2'>
-                          {canStart && (
-                            <button
-                              onClick={() => handleStart(assignment)}
-                              disabled={isLoadingThis}
-                              className='px-3 py-1.5 rounded-lg bg-[#171717] hover:bg-black text-white font-semibold flex items-center gap-1.5 disabled:opacity-50 cursor-pointer shadow-xs'
-                              title='Bắt đầu làm công việc này'
-                            >
-                              {isLoadingThis ? (
-                                <Loader2 className='w-3 h-3 animate-spin' />
-                              ) : (
-                                <Play className='w-3 h-3 text-[#F97316]' />
-                              )}
-                              <span>Bắt đầu làm</span>
-                            </button>
-                          )}
+                          {canStart &&
+                            (() => {
+                              const pendingDeps = pendingDependencyCount(assignment, assignments);
+                              const lockedReason =
+                                pendingDeps > 0
+                                  ? `Chờ ${pendingDeps} việc phụ thuộc được duyệt (Approved).`
+                                  : null;
+                              return (
+                                <button
+                                  onClick={() => handleStart(assignment)}
+                                  disabled={isLoadingThis || !!lockedReason}
+                                  className='px-3 py-1.5 rounded-lg bg-[#171717] hover:bg-black text-white font-semibold flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-xs'
+                                  title={lockedReason ?? 'Bắt đầu làm công việc này'}
+                                >
+                                  {isLoadingThis ? (
+                                    <Loader2 className='w-3 h-3 animate-spin' />
+                                  ) : (
+                                    <Play className='w-3 h-3 text-[#F97316]' />
+                                  )}
+                                  <span>{lockedReason ? 'Chờ việc phụ thuộc' : 'Bắt đầu làm'}</span>
+                                </button>
+                              );
+                            })()}
 
                           {canSubmit && (
                             <button

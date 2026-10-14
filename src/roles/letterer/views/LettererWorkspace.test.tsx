@@ -6,14 +6,27 @@ import LettererWorkspace from './LettererWorkspace';
 import { chapterService } from '@/services/chapter.service';
 import { pageService } from '@/services/page.service';
 import { elementService } from '@/services/element.service';
+import { scriptLineService } from '@/services/scriptLine.service';
+import { panelService } from '@/services/panel.service';
+import { artworkService } from '@/services/artwork.service';
 
 vi.mock('@/services/chapter.service');
 vi.mock('@/services/page.service');
 vi.mock('@/services/element.service');
+vi.mock('@/services/scriptLine.service');
+vi.mock('@/services/panel.service');
+vi.mock('@/services/artwork.service');
+vi.mock('@/shared/utils/compositePageRenderer', () => ({
+  buildPageComposite: vi.fn().mockResolvedValue({ dataUrl: '', failedImages: 0, mode: 'empty' }),
+}));
 
 describe('LettererWorkspace', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+
+    vi.mocked(panelService.getPanelsByPage).mockResolvedValue([]);
+    vi.mocked(artworkService.getArtworks).mockResolvedValue([]);
+    vi.mocked(scriptLineService.getScenesByChapter).mockResolvedValue([]);
 
     vi.mocked(chapterService.getChaptersBySeries).mockResolvedValue({
       items: [

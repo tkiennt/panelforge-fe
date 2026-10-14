@@ -152,8 +152,11 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
     }
   };
 
+  const [expandedPanelHistory, setExpandedPanelHistory] = useState<Record<string, boolean>>({});
+
   const busy = phase !== 'idle';
 
+  const fullPageArts = mine.filter((a) => !a.panelId);
   const latestArt = mine.length > 0 ? mine[mine.length - 1] : null;
   const olderArts = mine.length > 1 ? mine.slice(0, -1).reverse() : [];
   const displayArtworks = showOlder ? [...mine].reverse() : latestArt ? [latestArt] : [];
@@ -200,6 +203,9 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
     if (!art) return;
     if (olderArts.some((a) => a.id === targetArtworkId)) {
       setShowOlder(true);
+    }
+    if (art.panelId) {
+      setExpandedPanelHistory((prev) => ({ ...prev, [art.panelId!]: true }));
     }
     if (!previews[targetArtworkId]) {
       void handlePreview(art);
@@ -288,15 +294,15 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
   };
 
   return (
-    <div className='space-y-2' data-testid='artwork-panel'>
-      <div className='flex items-center justify-between gap-2'>
+    <div className='space-y-3' data-testid='artwork-panel'>
+      <div className='flex items-center justify-between gap-2 flex-wrap'>
         <span className='flex items-center gap-1.5 text-[11px] font-bold text-[#171717]'>
           <ImageIcon className='w-3.5 h-3.5 text-[#F97316]' />
           Artwork của trang ({mine.length} phiên bản)
         </span>
 
         {canUpload && (
-          <>
+          <div className='flex items-center gap-1.5'>
             <input
               ref={fileInput}
               type='file'
@@ -309,7 +315,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
               type='button'
               disabled={busy || !pageId}
               onClick={() => fileInput.current?.click()}
-              className='px-2.5 py-1 rounded-lg bg-[#171717] hover:bg-black text-white text-[11px] font-semibold flex items-center gap-1.5 disabled:opacity-50 cursor-pointer'
+              className='px-2.5 py-1 rounded-lg bg-[#171717] hover:bg-black text-white text-[11px] font-semibold flex items-center gap-1.5 disabled:opacity-50 cursor-pointer transition-colors shadow-2xs'
             >
               {busy ? (
                 <Loader2 className='w-3 h-3 animate-spin' />
@@ -334,7 +340,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                 void handleFile(e.target.files?.[0], activeUploadPanelId ?? undefined)
               }
             />
-          </>
+          </div>
         )}
       </div>
 
@@ -355,7 +361,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
 
       {panels.length > 0 && (
         <div
-          className='p-2.5 rounded-xl bg-[#FBF9F5] border border-[#EBE6DB] space-y-2'
+          className='p-3 rounded-xl bg-[#FBF9F5] border border-[#EBE6DB] space-y-2.5'
           data-testid='panel-artworks-section'
         >
           <div className='flex items-center justify-between text-[11px] font-bold text-[#171717]'>
@@ -363,40 +369,82 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
               <LayoutTemplate className='w-3.5 h-3.5 text-blue-600' />
               <span>Ảnh theo từng khung ({panels.length} Panels)</span>
             </span>
+            <span className='text-[10px] text-zinc-500 font-normal'>
+              Mỗi khung quản lý bản hiện tại và lịch sử riêng biệt
+            </span>
           </div>
 
-          <div className='space-y-1.5'>
+          <div className='space-y-2'>
             {panels.map((p) => {
               const panelArts = mine.filter((a) => a.panelId === p.id);
-              const latestPanelArt = panelArts[panelArts.length - 1];
+              const latestPanelArt = panelArts.length > 0 ? panelArts[panelArts.length - 1] : null;
+              const olderPanelArts = panelArts.length > 1 ? panelArts.slice(0, -1).reverse() : [];
+              const isHistoryOpen = Boolean(expandedPanelHistory[p.id]);
+
               return (
                 <div
                   key={p.id}
-                  className='p-2 bg-white rounded-lg border border-[#E7E7E7] text-[11px] space-y-2'
+                  className='p-2.5 bg-white rounded-xl border border-zinc-200 shadow-2xs space-y-2 transition-all'
                 >
-                  <div className='flex items-center justify-between gap-2'>
-                    <div className='flex items-center gap-2 min-w-0'>
-                      <span className='font-mono font-bold px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-800 text-[10px]'>
-                        #{p.panelNumber}
+                  <div className='flex items-center justify-between gap-2 flex-wrap'>
+                    <div className='flex items-center gap-2 flex-wrap min-w-0'>
+                      <span className='font-mono font-bold px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-800 text-[11px] border border-zinc-200'>
+                        Khung #{p.panelNumber}
                       </span>
                       <span className='text-zinc-500 font-mono text-[10px]'>
                         Đọc #{p.readingOrder}
                       </span>
                       {latestPanelArt ? (
-                        <span className='font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded text-[10px]'>
-                          v{latestPanelArt.versionNumber} ({latestPanelArt.fileName})
-                        </span>
+                        <div className='flex items-center gap-1.5 flex-wrap'>
+                          <span className='font-mono font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded text-[10px]'>
+                            v{latestPanelArt.versionNumber}
+                          </span>
+                          <span className='inline-flex items-center gap-1 font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded text-[9px]'>
+                            <span className='w-1.5 h-1.5 rounded-full bg-emerald-500' />
+                            Bản hiện tại
+                          </span>
+                          <span
+                            className='text-zinc-700 font-medium text-[11px] truncate max-w-[200px]'
+                            title={latestPanelArt.fileName}
+                          >
+                            {latestPanelArt.fileName}
+                          </span>
+                          {getStatusBadges(latestPanelArt).map((b) => (
+                            <span
+                              key={b.label}
+                              className={`px-1.5 py-0.2 rounded border text-[9px] font-bold ${b.cls}`}
+                            >
+                              {b.label}
+                            </span>
+                          ))}
+                        </div>
                       ) : (
-                        <span className='text-zinc-400 italic text-[10px]'>Chưa có ảnh</span>
+                        <span className='text-zinc-400 italic text-[11px]'>Chưa có ảnh</span>
                       )}
                     </div>
 
                     <div className='flex items-center gap-1.5 shrink-0'>
+                      {olderPanelArts.length > 0 && (
+                        <button
+                          type='button'
+                          onClick={() =>
+                            setExpandedPanelHistory((prev) => ({ ...prev, [p.id]: !prev[p.id] }))
+                          }
+                          className='px-2 py-1 rounded-md border border-zinc-200 bg-zinc-50 hover:bg-zinc-100 text-[10px] font-semibold text-zinc-700 flex items-center gap-1 cursor-pointer transition-colors'
+                        >
+                          {isHistoryOpen ? (
+                            <ChevronUp className='w-3 h-3 text-zinc-500' />
+                          ) : (
+                            <ChevronDown className='w-3 h-3 text-zinc-500' />
+                          )}
+                          <span>{olderPanelArts.length} bản cũ</span>
+                        </button>
+                      )}
                       {latestPanelArt && (
                         <button
                           type='button'
                           onClick={() => void handlePreview(latestPanelArt)}
-                          className='px-2 py-0.5 rounded border border-[#E7E7E7] bg-white hover:bg-zinc-50 text-[10px] font-semibold flex items-center gap-1 cursor-pointer'
+                          className='px-2.5 py-1 rounded-md border border-zinc-200 bg-white hover:bg-zinc-50 text-[10px] font-semibold flex items-center gap-1 cursor-pointer transition-colors shadow-2xs'
                         >
                           <Eye className='w-3 h-3' />
                           <span>{previews[latestPanelArt.id] ? 'Ẩn' : 'Xem'}</span>
@@ -411,7 +459,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                             setActiveUploadPanelId(p.id);
                             panelFileInput.current?.click();
                           }}
-                          className='px-2 py-0.5 rounded bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 text-[10px] font-semibold flex items-center gap-1 cursor-pointer disabled:opacity-50'
+                          className='px-2.5 py-1 rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 text-[10px] font-semibold flex items-center gap-1 cursor-pointer disabled:opacity-50 transition-colors'
                         >
                           <Upload className='w-3 h-3' />
                           <span>Tải ảnh cho khung</span>
@@ -423,7 +471,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                   {latestPanelArt && previews[latestPanelArt.id] && (
                     <div
                       id={`artwork-preview-container-${latestPanelArt.id}`}
-                      className='relative inline-block max-w-full overflow-hidden rounded border border-[#E7E7E7] bg-white'
+                      className='relative inline-block max-w-full overflow-hidden rounded-lg border border-zinc-200 bg-zinc-950/5 p-1'
                     >
                       <button
                         type='button'
@@ -440,10 +488,116 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                         <img
                           src={previews[latestPanelArt.id]}
                           alt={`Artwork v${latestPanelArt.versionNumber} của khung #${p.panelNumber}`}
-                          className='max-h-56 w-auto block'
+                          className='max-h-60 w-auto block rounded'
                         />
                       </button>
                       {renderBoundingBoxes(latestPanelArt.id, false)}
+                    </div>
+                  )}
+
+                  {olderPanelArts.length > 0 && isHistoryOpen && (
+                    <div className='mt-2 pt-2 border-t border-dashed border-zinc-200 space-y-1.5 pl-2 border-l-2 border-l-amber-400'>
+                      <p className='text-[10px] font-semibold text-zinc-500 uppercase tracking-wider'>
+                        Lịch sử bản vẽ cũ của Khung #{p.panelNumber} ({olderPanelArts.length} bản
+                        cũ):
+                      </p>
+                      {olderPanelArts.map((art) => (
+                        <div
+                          key={art.id}
+                          className='p-2 rounded-lg bg-zinc-50 border border-zinc-200 text-[11px] space-y-1.5'
+                        >
+                          <div className='flex items-center justify-between gap-2 flex-wrap'>
+                            <div className='flex items-center gap-2 flex-wrap min-w-0'>
+                              <span className='font-mono font-semibold px-1.5 py-0.2 rounded bg-zinc-200 text-zinc-700 text-[10px]'>
+                                v{art.versionNumber} (Bản cũ)
+                              </span>
+                              <span className='text-zinc-700 font-medium text-[11px] truncate max-w-[200px]'>
+                                {art.fileName}
+                              </span>
+                              <span className='text-[10px] text-zinc-500 font-mono'>
+                                {formatSize(art.sizeBytes)} ·{' '}
+                                {new Date(art.createdAt).toLocaleString('vi-VN')}
+                              </span>
+                              {getStatusBadges(art).map((b) => (
+                                <span
+                                  key={b.label}
+                                  className={`px-1.5 py-0.2 rounded border text-[9px] font-bold ${b.cls}`}
+                                >
+                                  {b.label}
+                                </span>
+                              ))}
+                            </div>
+                            <div className='flex items-center gap-1.5'>
+                              <button
+                                type='button'
+                                onClick={() =>
+                                  setDetailsExpanded((prev) => ({
+                                    ...prev,
+                                    [art.id]: !prev[art.id],
+                                  }))
+                                }
+                                className='text-[10px] text-zinc-500 hover:text-zinc-800 flex items-center gap-0.5 cursor-pointer font-medium'
+                              >
+                                <Info className='w-3 h-3' />
+                                {detailsExpanded[art.id] ? 'Ẩn chi tiết' : 'Chi tiết'}
+                              </button>
+                              <button
+                                type='button'
+                                onClick={() => void handlePreview(art)}
+                                className='px-2 py-0.5 rounded border border-zinc-200 bg-white hover:bg-zinc-50 text-[10px] font-semibold flex items-center gap-1 cursor-pointer shadow-2xs'
+                              >
+                                <Eye className='w-3 h-3' />
+                                <span>{previews[art.id] ? 'Ẩn' : 'Xem bản cũ'}</span>
+                              </button>
+                            </div>
+                          </div>
+                          {detailsExpanded[art.id] && (
+                            <div
+                              data-testid={`artwork-details-${art.id}`}
+                              className='p-2 rounded bg-white border border-zinc-200 text-[10px] font-mono text-zinc-600 space-y-0.5'
+                            >
+                              <div>
+                                Tên file:{' '}
+                                <span className='text-zinc-900 font-medium'>{art.fileName}</span>
+                              </div>
+                              <div>
+                                Dung lượng: {formatSize(art.sizeBytes)} (
+                                {art.sizeBytes.toLocaleString()} bytes)
+                              </div>
+                              <div className='truncate'>SHA-256: {art.sha256}</div>
+                              <div>
+                                Thời gian tải: {new Date(art.createdAt).toLocaleString('vi-VN')}
+                              </div>
+                            </div>
+                          )}
+                          {previews[art.id] && (
+                            <div
+                              id={`artwork-preview-container-${art.id}`}
+                              className='relative inline-block max-w-full overflow-hidden rounded-lg border border-zinc-200 bg-zinc-950/5 p-1'
+                            >
+                              <button
+                                type='button'
+                                title='Bấm để phóng to'
+                                onClick={() =>
+                                  setZoomed({
+                                    src: previews[art.id],
+                                    alt: `Artwork v${art.versionNumber} của khung #${p.panelNumber}`,
+                                    artId: art.id,
+                                  })
+                                }
+                                className='block cursor-zoom-in'
+                              >
+                                <img
+                                  src={previews[art.id]}
+                                  alt={`Artwork v${art.versionNumber} của khung #${p.panelNumber}`}
+                                  className='max-h-56 w-auto block rounded'
+                                />
+                              </button>
+                              {renderBoundingBoxes(art.id, false)}
+                            </div>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
@@ -455,23 +609,44 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
 
       {mine.length === 0 ? (
         <p className='text-[11px] text-[#888888]'>Chưa có artwork nào ở công đoạn này.</p>
-      ) : (
-        <div className='space-y-1.5'>
-          <ul className='space-y-1.5'>
+      ) : panels.length === 0 || fullPageArts.length > 0 ? (
+        <div className='space-y-2'>
+          {panels.length > 0 && fullPageArts.length > 0 && (
+            <p className='text-[11px] font-bold text-zinc-800 flex items-center gap-1.5'>
+              <ImageIcon className='w-3.5 h-3.5 text-orange-600' />
+              <span>Ảnh artwork cả trang ({fullPageArts.length} phiên bản)</span>
+            </p>
+          )}
+          <ul className='space-y-2'>
             {displayArtworks.map((art) => {
               const matchedPanel = art.panelId ? panels.find((p) => p.id === art.panelId) : null;
+              const isCurrent = art.id === latestArt?.id;
+
               return (
                 <li
                   key={art.id}
-                  className='p-2 rounded-lg bg-[#FAF8F5] border border-[#F0ECE1] text-[11px] space-y-1.5'
+                  className={`p-2.5 rounded-xl border text-[11px] space-y-2 transition-all ${
+                    isCurrent
+                      ? 'bg-emerald-50/30 border-emerald-200/90 shadow-2xs'
+                      : 'bg-zinc-50/70 border-zinc-200'
+                  }`}
                 >
-                  <div className='flex items-center justify-between gap-2'>
+                  <div className='flex items-center justify-between gap-2 flex-wrap'>
                     <div className='min-w-0 flex-1'>
                       <div className='flex items-center gap-1.5 flex-wrap'>
                         <span className='font-mono font-bold text-zinc-900'>
                           v{art.versionNumber}
-                        </span>{' '}
-                        <span className='truncate font-medium text-zinc-800'>{art.fileName}</span>
+                        </span>
+                        <span
+                          className={`px-1.5 py-0.2 rounded text-[10px] font-semibold ${
+                            isCurrent
+                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                              : 'bg-zinc-200 text-zinc-700'
+                          }`}
+                        >
+                          {isCurrent ? 'Bản hiện tại' : 'Bản cũ'}
+                        </span>
+                        <span className='truncate font-semibold text-zinc-900'>{art.fileName}</span>
                         {matchedPanel ? (
                           <span className='px-1.5 py-0.2 rounded border text-[10px] font-bold bg-indigo-50 text-indigo-700 border-indigo-200'>
                             Khung #{matchedPanel.panelNumber}
@@ -490,7 +665,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                           </span>
                         ))}
                       </div>
-                      <div className='mt-0.5 flex items-center gap-2'>
+                      <div className='mt-1 flex items-center gap-2 flex-wrap'>
                         <button
                           type='button'
                           onClick={() =>
@@ -501,7 +676,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                           <Info className='w-3 h-3' />
                           {detailsExpanded[art.id] ? 'Ẩn chi tiết' : 'Chi tiết'}
                         </button>
-                        <span className='text-[10px] text-[#737373] font-mono'>
+                        <span className='text-[10px] text-zinc-500 font-mono'>
                           {formatSize(art.sizeBytes)} · sha256 {art.sha256.slice(0, 10)}… ·{' '}
                           {new Date(art.createdAt).toLocaleString('vi-VN')}
                         </span>
@@ -511,7 +686,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                       type='button'
                       onClick={() => void handlePreview(art)}
                       disabled={previewLoading === art.id}
-                      className='px-2 py-1 rounded-lg border border-[#E7E7E7] bg-white hover:bg-zinc-50 flex items-center gap-1 font-semibold disabled:opacity-50 cursor-pointer shrink-0'
+                      className='px-2.5 py-1 rounded-lg border border-zinc-200 bg-white hover:bg-zinc-50 flex items-center gap-1 font-semibold disabled:opacity-50 cursor-pointer shrink-0 shadow-2xs'
                     >
                       {previewLoading === art.id ? (
                         <Loader2 className='w-3 h-3 animate-spin' />
@@ -524,7 +699,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                   {detailsExpanded[art.id] && (
                     <div
                       data-testid={`artwork-details-${art.id}`}
-                      className='mt-1 p-2 rounded bg-white border border-[#E7E7E7] text-[10px] font-mono text-[#555555] space-y-0.5'
+                      className='mt-1 p-2 rounded-lg bg-white border border-zinc-200 text-[10px] font-mono text-zinc-600 space-y-0.5'
                     >
                       <div>
                         Tên file: <span className='text-zinc-900 font-medium'>{art.fileName}</span>
@@ -540,7 +715,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                   {previews[art.id] && (
                     <div
                       id={`artwork-preview-container-${art.id}`}
-                      className='relative inline-block max-w-full overflow-hidden rounded border border-[#E7E7E7] bg-white'
+                      className='relative inline-block max-w-full overflow-hidden rounded-lg border border-zinc-200 bg-zinc-950/5 p-1'
                     >
                       <button
                         type='button'
@@ -557,7 +732,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                         <img
                           src={previews[art.id]}
                           alt={`Artwork v${art.versionNumber} của ${art.fileName}`}
-                          className='max-h-72 w-auto block'
+                          className='max-h-72 w-auto block rounded'
                         />
                       </button>
                       {renderBoundingBoxes(art.id, false)}
@@ -572,7 +747,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
             <button
               type='button'
               onClick={() => setShowOlder((prev) => !prev)}
-              className='w-full py-1 text-center text-[11px] font-semibold text-zinc-600 hover:text-zinc-900 bg-white hover:bg-zinc-50 border border-zinc-200 rounded flex items-center justify-center gap-1 cursor-pointer transition-colors'
+              className='w-full py-1.5 text-center text-[11px] font-semibold text-zinc-600 hover:text-zinc-900 bg-white hover:bg-zinc-50 border border-zinc-200 rounded-lg flex items-center justify-center gap-1 cursor-pointer transition-colors shadow-2xs'
             >
               {showOlder ? (
                 <ChevronUp className='w-3.5 h-3.5' />
@@ -585,7 +760,169 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
             </button>
           )}
         </div>
-      )}
+      ) : olderArts.length > 0 ? (
+        /* When page has panels and all arts are assigned to panels, keep an overall history drawer */
+        <div className='pt-1'>
+          <button
+            type='button'
+            onClick={() => setShowOlder((prev) => !prev)}
+            className='w-full py-1.5 text-center text-[11px] font-semibold text-zinc-600 hover:text-zinc-900 bg-white hover:bg-zinc-50 border border-zinc-200 rounded-lg flex items-center justify-center gap-1 cursor-pointer transition-colors shadow-2xs'
+          >
+            {showOlder ? (
+              <ChevronUp className='w-3.5 h-3.5' />
+            ) : (
+              <ChevronDown className='w-3.5 h-3.5' />
+            )}
+            <span>
+              {showOlder
+                ? 'Thu gọn danh sách tất cả phiên bản'
+                : `Xem ${olderArts.length} phiên bản cũ`}
+            </span>
+          </button>
+          {showOlder && (
+            <div className='mt-2 space-y-2'>
+              <p className='text-[10px] font-semibold text-zinc-500 uppercase tracking-wider'>
+                Lịch sử tải lên toàn trang ({mine.length} bản ghi):
+              </p>
+              <ul className='space-y-2'>
+                {[...mine].reverse().map((art) => {
+                  const matchedPanel = art.panelId
+                    ? panels.find((p) => p.id === art.panelId)
+                    : null;
+                  const panelArts = art.panelId
+                    ? mine.filter((a) => a.panelId === art.panelId)
+                    : [];
+                  const isCurrent =
+                    panelArts.length > 0 && panelArts[panelArts.length - 1].id === art.id;
+
+                  return (
+                    <li
+                      key={art.id}
+                      className={`p-2.5 rounded-xl border text-[11px] space-y-1.5 ${
+                        isCurrent
+                          ? 'bg-emerald-50/30 border-emerald-200'
+                          : 'bg-zinc-50/70 border-zinc-200'
+                      }`}
+                    >
+                      <div className='flex items-center justify-between gap-2 flex-wrap'>
+                        <div className='min-w-0 flex-1'>
+                          <div className='flex items-center gap-1.5 flex-wrap'>
+                            <span className='font-mono font-bold text-zinc-900'>
+                              v{art.versionNumber}
+                            </span>
+                            <span
+                              className={`px-1.5 py-0.2 rounded text-[10px] font-semibold ${
+                                isCurrent
+                                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                                  : 'bg-zinc-200 text-zinc-700'
+                              }`}
+                            >
+                              {isCurrent ? 'Bản hiện tại' : 'Bản cũ'}
+                            </span>
+                            <span className='truncate font-semibold text-zinc-900'>
+                              {art.fileName}
+                            </span>
+                            {matchedPanel && (
+                              <span className='px-1.5 py-0.2 rounded border text-[10px] font-bold bg-indigo-50 text-indigo-700 border-indigo-200'>
+                                Khung #{matchedPanel.panelNumber}
+                              </span>
+                            )}
+                            {getStatusBadges(art).map((b) => (
+                              <span
+                                key={b.label}
+                                className={`px-1.5 py-0.2 rounded border text-[10px] font-bold ${b.cls}`}
+                              >
+                                {b.label}
+                              </span>
+                            ))}
+                          </div>
+                          <div className='mt-1 flex items-center gap-2 flex-wrap'>
+                            <button
+                              type='button'
+                              onClick={() =>
+                                setDetailsExpanded((prev) => ({
+                                  ...prev,
+                                  [art.id]: !prev[art.id],
+                                }))
+                              }
+                              className='text-[10px] text-zinc-500 hover:text-zinc-800 flex items-center gap-0.5 cursor-pointer font-medium'
+                            >
+                              <Info className='w-3 h-3' />
+                              {detailsExpanded[art.id] ? 'Ẩn chi tiết' : 'Chi tiết'}
+                            </button>
+                            <span className='text-[10px] text-zinc-500 font-mono'>
+                              {formatSize(art.sizeBytes)} · sha256 {art.sha256.slice(0, 10)}… ·{' '}
+                              {new Date(art.createdAt).toLocaleString('vi-VN')}
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          type='button'
+                          onClick={() => void handlePreview(art)}
+                          disabled={previewLoading === art.id}
+                          className='px-2.5 py-1 rounded-lg border border-zinc-200 bg-white hover:bg-zinc-50 flex items-center gap-1 font-semibold disabled:opacity-50 cursor-pointer shrink-0 shadow-2xs'
+                        >
+                          {previewLoading === art.id ? (
+                            <Loader2 className='w-3 h-3 animate-spin' />
+                          ) : (
+                            <Eye className='w-3 h-3' />
+                          )}
+                          <span>{previews[art.id] ? 'Ẩn' : 'Xem'}</span>
+                        </button>
+                      </div>
+                      {detailsExpanded[art.id] && (
+                        <div
+                          data-testid={`artwork-details-${art.id}`}
+                          className='p-2 rounded-lg bg-white border border-zinc-200 text-[10px] font-mono text-zinc-600 space-y-0.5'
+                        >
+                          <div>
+                            Tên file:{' '}
+                            <span className='text-zinc-900 font-medium'>{art.fileName}</span>
+                          </div>
+                          <div>
+                            Dung lượng: {formatSize(art.sizeBytes)} (
+                            {art.sizeBytes.toLocaleString()} bytes)
+                          </div>
+                          <div className='truncate'>SHA-256: {art.sha256}</div>
+                          <div>
+                            Thời gian tải: {new Date(art.createdAt).toLocaleString('vi-VN')}
+                          </div>
+                        </div>
+                      )}
+                      {previews[art.id] && (
+                        <div
+                          id={`artwork-preview-container-${art.id}`}
+                          className='relative inline-block max-w-full overflow-hidden rounded-lg border border-zinc-200 bg-zinc-950/5 p-1'
+                        >
+                          <button
+                            type='button'
+                            title='Bấm để phóng to'
+                            onClick={() =>
+                              setZoomed({
+                                src: previews[art.id],
+                                alt: `Artwork v${art.versionNumber} của ${art.fileName}`,
+                                artId: art.id,
+                              })
+                            }
+                            className='block cursor-zoom-in'
+                          >
+                            <img
+                              src={previews[art.id]}
+                              alt={`Artwork v${art.versionNumber} của ${art.fileName}`}
+                              className='max-h-72 w-auto block rounded'
+                            />
+                          </button>
+                          {renderBoundingBoxes(art.id, false)}
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
+        </div>
+      ) : null}
 
       {zoomed && (
         <div

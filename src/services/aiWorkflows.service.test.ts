@@ -11,7 +11,6 @@ import {
   AGENTS,
   WORKFLOW_AGENTS,
   WORKFLOW_META,
-  agentNodeStates,
   hasWriterLoop,
   lastReportStep,
   wordDiff,
@@ -62,17 +61,6 @@ const run = (over: Partial<AiRunDto>): AiRunDto => ({
   steps: [],
   suggestions: [],
   ...over,
-});
-
-const decision = (action: string) => ({
-  schemaVersion: 1,
-  runId: 'r1',
-  round: 0,
-  action,
-  reason: 'lý do',
-  instruction: null,
-  allowedActions: [action],
-  guardrailOverridden: false,
 });
 
 describe('API nhiệm vụ AI (workflow)', () => {
@@ -164,18 +152,6 @@ describe('API nhiệm vụ AI (workflow)', () => {
       params: { chapterId: 'c1' },
     });
   });
-
-  it('route demo cũ vẫn dùng được (tương thích)', async () => {
-    post.mockResolvedValue({ data: {} });
-    await aiAgentsService.runDemoWorkflow('s1', {
-      chapterId: 'c',
-      sceneId: 's',
-      brief: 'b',
-      readingDirection: 'RightToLeft',
-      chapterVersion: 0,
-    });
-    expect(post).toHaveBeenCalledWith('/series/s1/ai/workflows/demo/run', expect.anything());
-  });
 });
 
 describe('meta nhiệm vụ', () => {
@@ -220,118 +196,6 @@ describe('meta nhiệm vụ', () => {
     expect(workflowOf(run({}))).toBe('FullScene');
     expect(workflowOf(null)).toBe('FullScene');
     expect(workflowOf(run({ workflowType: 'Producer' }))).toBe('Producer');
-  });
-});
-
-describe('trạng thái agent theo nhiệm vụ', () => {
-  it('run cũ (không workflowType, không Supervisor): Artist/Letterer/Producer "không thuộc nhiệm vụ", 4 agent cũ hoạt động như trước', () => {
-    const s = agentNodeStates(
-      run({
-        steps: [
-          step({ agent: 'Writer' }),
-          step({ stepIndex: 2, agent: 'Continuity', output: { findings: [] } }),
-        ],
-      }),
-    );
-
-    expect(s.Writer).toBe('done');
-    expect(s.Storyboard).toBe('running');
-    expect(s.Artist).toBe('notInWorkflow');
-    expect(s.Letterer).toBe('notInWorkflow');
-    expect(s.Producer).toBe('notInWorkflow');
-  });
-
-  it('nhiệm vụ Artist: chỉ Artist thuộc chuỗi, 6 agent còn lại "không thuộc nhiệm vụ"', () => {
-    const s = agentNodeStates(
-      run({
-        workflowType: 'Artist',
-        status: 'Completed',
-        steps: [
-          step({ stepIndex: 1, agent: 'Supervisor', output: decision('Artist') }),
-          step({ stepIndex: 2, agent: 'Artist', output: { panels: [] } }),
-          step({ stepIndex: 3, agent: 'Supervisor', output: decision('Finish') }),
-        ],
-      }),
-    );
-
-    expect(s.Artist).toBe('done');
-    expect(s.Supervisor).toBe('done');
-    for (const a of [
-      'Writer',
-      'Continuity',
-      'Storyboard',
-      'Letterer',
-      'Editor',
-      'Producer',
-    ] as const)
-      expect(s[a]).toBe('notInWorkflow');
-  });
-
-  it('Supervisor chọn Producer → Producer "đang chạy"', () => {
-    const s = agentNodeStates(
-      run({
-        workflowType: 'Producer',
-        steps: [step({ stepIndex: 1, agent: 'Supervisor', output: decision('Producer') })],
-      }),
-    );
-
-    expect(s.Producer).toBe('running');
-    expect(s.Artist).toBe('notInWorkflow');
-  });
-
-  it('Script dừng chờ người: Storyboard/Editor không thuộc nhiệm vụ (không phải "bị bỏ qua")', () => {
-    const s = agentNodeStates(
-      run({
-        workflowType: 'Script',
-        status: 'WaitingForHuman',
-        revisionRounds: 2,
-        steps: [
-          step({ stepIndex: 1, agent: 'Writer' }),
-          step({
-            stepIndex: 2,
-            agent: 'Continuity',
-            output: { findings: [{ severity: 'Blocking' }] },
-          }),
-        ],
-      }),
-    );
-
-    expect(s.Storyboard).toBe('notInWorkflow');
-    expect(s.Editor).toBe('notInWorkflow');
-  });
-
-  it('Storyboard dừng vì finding chặn: Storyboard/Editor "không chạy", Writer không thuộc nhiệm vụ', () => {
-    const s = agentNodeStates(
-      run({
-        workflowType: 'Storyboard',
-        status: 'WaitingForHuman',
-        steps: [
-          step({ stepIndex: 1, agent: 'Supervisor', output: decision('Continuity') }),
-          step({
-            stepIndex: 2,
-            agent: 'Continuity',
-            output: { findings: [{ severity: 'Blocking' }] },
-          }),
-          step({ stepIndex: 3, agent: 'Supervisor', output: decision('StopForHuman') }),
-        ],
-      }),
-    );
-
-    expect(s.Continuity).toBe('done');
-    expect(s.Storyboard).toBe('skipped');
-    expect(s.Editor).toBe('skipped');
-    expect(s.Writer).toBe('notInWorkflow');
-  });
-
-  it('step lỗi của agent mới đánh dấu "failed"', () => {
-    const s = agentNodeStates(
-      run({
-        workflowType: 'Letterer',
-        status: 'Failed',
-        steps: [step({ agent: 'Letterer', status: 'Failed' })],
-      }),
-    );
-    expect(s.Letterer).toBe('failed');
   });
 });
 

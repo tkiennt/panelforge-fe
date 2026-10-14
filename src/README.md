@@ -33,7 +33,6 @@ Chỉ chứa các tài nguyên được tái sử dụng bởi nhiều role ho�
   - `UserProfileView.tsx`: Hồ sơ cá nhân và quản lý thiết bị/phiên.
 - **`src/shared/features/`**:
   - `series-bible/`: Kinh thánh bộ truyện (Series Bible), quản lý thực thể nhân vật, bối cảnh, quy tắc (`SeriesBibleView.tsx`, `AddEntityModal.tsx`).
-  - `ai-agents/`: Hệ thống cộng tác 7 AI Agents (`AiMultiAgentView.tsx`, pipeline preview, recommendation cards).
   - `pipeline-board/`: Bảng Kanban quy trình sản xuất manga theo các chặng (`WorkflowBoardView.tsx`, `KanbanBoard.tsx`).
   - `production-workspace/`: Khung bàn làm việc và trình soạn thảo tác vụ (`WorkspaceView.tsx`, `TaskEditorView.tsx`).
   - `account/`: Quản lý xác thực nâng cao (`ChangePasswordModal.tsx`, `TwoFactorSetupModal.tsx`).
@@ -52,7 +51,7 @@ Chỉ chứa các tài nguyên được tái sử dụng bởi nhiều role ho�
   - `routes.tsx`: Khai báo toàn bộ cây định tuyến `<Route>`, phân quyền `PrivateRoute` và `AdminRoute`.
   - `dev/`: Công cụ kiểm thử nhanh giao diện (`RoleDemoBar.tsx`, `DevFloatingMenu.tsx`).
 - **`src/roles/roles.ts`**: Manifest role tập trung (`ROLE_MANIFEST`).
-- **`src/services/`**: Các lớp giao tiếp API Backend theo từng domain (`auth`, `admin`, `workspace`, `series`, `bible`, `pipeline`, `aiAgents`, `aiWorkflows`).
+- **`src/services/`**: Các lớp giao tiếp API Backend theo từng domain (`auth`, `admin`, `workspace`, `series`, `bible`, `pipeline`).
 - **`src/types/`**: Kiểu dữ liệu TypeScript chuẩn hóa theo domain (`auth.ts`, `series.ts`, `pipeline.ts`, `bible.ts`, `workspace.ts`, re-export qua `index.ts`).
 - **`src/mocks/`**: Dữ liệu giả lập phục vụ dev mode và unit test (`mockData.ts`, `mockLayoutData.ts`, `mockScriptData.ts`).
 - **`src/config/`**: Cấu hình môi trường (`firebase.ts`).

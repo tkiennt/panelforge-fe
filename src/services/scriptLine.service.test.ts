@@ -225,4 +225,41 @@ describe('scriptLineService', () => {
       expect(res.bibleEntryIds).toEqual(['entry-new-loc']);
     });
   });
+
+  describe('Script revisions (UC-13)', () => {
+    it('getScriptRevision calls GET .../script-revisions/{id}', async () => {
+      const detail = { id: 'r1', sceneId: 's1', versionNumber: 1, isCurrent: false, lines: [] };
+      vi.mocked(axiosClient.get).mockResolvedValueOnce({ data: detail });
+      const res = await scriptLineService.getScriptRevision('c1', 's1', 'r1');
+      expect(axiosClient.get).toHaveBeenCalledWith('/chapters/c1/scenes/s1/script-revisions/r1');
+      expect(res).toEqual(detail);
+    });
+
+    it('restoreScriptRevision luôn gửi body JSON kèm expectedChapterVersion', async () => {
+      vi.mocked(axiosClient.post).mockResolvedValue({ data: { chapterVersion: 9 } });
+      await scriptLineService.restoreScriptRevision('c1', 's1', 'r1', {
+        expectedChapterVersion: 8,
+      });
+      expect(axiosClient.post).toHaveBeenCalledWith(
+        '/chapters/c1/scenes/s1/script-revisions/r1/restore',
+        { expectedChapterVersion: 8 },
+        { headers: { 'Content-Type': 'application/json' } },
+      );
+      await scriptLineService.restoreScriptRevision('c1', 's1', 'r1');
+      expect(vi.mocked(axiosClient.post).mock.calls[1][1]).toEqual({});
+    });
+
+    it('409 giữ code CONFLICT để UI tải lại', async () => {
+      vi.mocked(axiosClient.post).mockRejectedValueOnce({
+        response: { status: 409, data: { error: 'Lệch version', code: 'CONFLICT' } },
+      });
+      await expect(
+        scriptLineService.restoreScriptRevision('c1', 's1', 'r1', {}),
+      ).rejects.toMatchObject({
+        code: 'CONFLICT',
+        status: 409,
+        message: 'Lệch version',
+      });
+    });
+  });
 });
