@@ -371,3 +371,44 @@ export interface ConsistencyCheckResultDto {
   clearedCount: number;
   findings: ConsistencyFindingDto[];
 }
+
+export interface VisualDeviationDto {
+  findingId: string;
+  chapterId: string;
+  characterId: string;
+  characterName: string;
+  characterSheetVersion?: number | null;
+  characterSheetImageUrl?: string | null;
+  pageId?: string | null;
+  pageNumber?: number | null;
+  panelId?: string | null;
+  panelNumber?: number | null;
+  assetReferenceId?: string | null;
+  artworkUrl?: string | null;
+  similarityScore: number;
+  threshold: number;
+  isDeviation: boolean;
+  severity: ConsistencyFindingSeverity;
+  message: string;
+  status: ConsistencyFindingStatus;
+  triageNote?: string | null;
+  triagedByUserId?: string | null;
+  triagedByUserName?: string | null;
+  triagedAt?: string | null;
+  detectedAt: string;
+}
+
+export interface VisualConsistencyReportDto {
+  chapterId: string;
+  chapterNumber: number;
+  chapterTitle: string;
+  checkedAt: string;
+  threshold: number;
+  totalEvaluated: number;
+  passedCount: number;
+  deviationCount: number;
+  openDeviationCount: number;
+  blockingDeviationCount: number;
+  deviations: VisualDeviationDto[];
+}
+

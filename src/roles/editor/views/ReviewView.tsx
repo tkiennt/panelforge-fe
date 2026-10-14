@@ -35,6 +35,8 @@ import type {
   PanelDto,
   StageProgressDto,
   SubmissionDto,
+  VisualConsistencyReportDto,
+  VisualDeviationDto,
 } from '@/types';
 import { assignmentService } from '@/services/assignment.service';
 import { artworkService, resolveArtworkUrl } from '@/services/artwork.service';
@@ -72,7 +74,7 @@ interface DraftRegion {
   panelId?: string | null;
 }
 
-type Tab = 'changes' | 'consistency';
+type Tab = 'changes' | 'consistency' | 'visual';
 type CompareMode = 'side-by-side' | 'swipe' | 'onion-skin';
 
 const parseRegion = (json?: string | null): Box | null => {
@@ -315,6 +317,8 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
   const [previousId, setPreviousId] = useState<string | null>(null);
   const [changeRequests, setChangeRequests] = useState<ChangeRequestDto[]>([]);
   const [findings, setFindings] = useState<ConsistencyFindingDto[]>([]);
+  const [visualReport, setVisualReport] = useState<VisualConsistencyReportDto | null>(null);
+  const [visualThreshold, setVisualThreshold] = useState<number>(0.75);
   const [urls, setUrls] = useState<Record<string, string>>({});
   const [naturalSizes, setNaturalSizes] = useState<Record<string, { w: number; h: number }>>({});
   const [loading, setLoading] = useState(true);
@@ -393,11 +397,12 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
     setLoading(true);
     setError(null);
     try {
-      const [list, crs, fs, subs] = await Promise.all([
+      const [list, crs, fs, subs, vr] = await Promise.all([
         assignmentService.getAssignments(chapterId),
         assignmentService.getChangeRequests(chapterId, { assignmentId: taskId }),
         assignmentService.getConsistencyFindings(chapterId),
         assignmentService.getSubmissions(chapterId, taskId),
+        assignmentService.getVisualConsistencyReport(chapterId).catch(() => null),
       ]);
       const sortedSubs = [...subs].sort((x, y) => x.attemptNumber - y.attemptNumber);
       setSubmissions(sortedSubs);
@@ -405,6 +410,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
       setAssignment(a);
       setChangeRequests(crs);
       setFindings(fs);
+      if (vr) setVisualReport(vr);
 
       // Tự động xác định targetWsId khi mở qua URL trực tiếp hoặc F5
       let targetWsId = effectiveWsId;
@@ -1136,6 +1142,55 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
     );
   };
 
+  // ── Phân loại độ lệch hình ảnh (CF3, V1.2) ──
+  const triageVisual = async (
+    d: VisualDeviationDto,
+    decision: 'Confirmed' | 'Rejected' | 'Ignored' | 'NeedsClarification',
+  ) => {
+    if (!chapterId) return;
+    let note: string | undefined;
+    if (decision === 'Ignored' || decision === 'NeedsClarification') {
+      const answer = window.prompt(
+        decision === 'Ignored'
+          ? 'Lý do bỏ qua độ lệch hình ảnh này (bắt buộc):'
+          : 'Câu hỏi cần làm rõ cho Artist (bắt buộc):',
+      );
+      if (!answer?.trim()) return;
+      note = answer.trim();
+    }
+    await run(
+      async () => {
+        await assignmentService.triageConsistencyFinding(chapterId, d.findingId, decision, note);
+        const [updatedVr, updatedFs] = await Promise.all([
+          assignmentService.getVisualConsistencyReport(chapterId, visualThreshold).catch(() => null),
+          assignmentService.getConsistencyFindings(chapterId).catch(() => []),
+        ]);
+        if (updatedVr) setVisualReport(updatedVr);
+        if (updatedFs) setFindings(updatedFs);
+      },
+      'Đã phân loại độ lệch hình ảnh',
+      `${d.characterName}: ${FINDING_LABEL[decision] ?? decision}`,
+    );
+  };
+
+  const handleRunVisualCheck = async () => {
+    if (!chapterId) return;
+    await run(
+      async () => {
+        const res = await assignmentService.runVisualConsistencyCheck(chapterId, visualThreshold);
+        setVisualReport(res);
+        const fs = await assignmentService.getConsistencyFindings(chapterId);
+        setFindings(fs);
+        toast(
+          'Kiểm tra nhất quán hình ảnh',
+          `Tổng: ${res.totalEvaluated} · Đạt: ${res.passedCount} · Lệch: ${res.deviationCount} (${res.blockingDeviationCount} chặn)`,
+        );
+      },
+      'Đã chạy kiểm tra hình ảnh',
+      'Báo cáo nhất quán hình ảnh đã được cập nhật.',
+    );
+  };
+
   // ── Lọc danh sách yêu cầu sửa ──
   const filteredChangeRequests = useMemo(() => {
     if (crFilter === 'all') return changeRequests;
@@ -1332,6 +1387,8 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
 
   const st = String(assignment.status);
   const openFindings = findings.filter((f) => OPEN_FINDING.includes(String(f.status)));
+  const openVisualDeviations =
+    visualReport?.deviations.filter((d) => OPEN_FINDING.includes(String(d.status))) ?? [];
 
   return (
     <div className='w-full h-full flex flex-col bg-[#FAF8F4] overflow-hidden select-none'>
@@ -1777,6 +1834,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
                   MessageSquare,
                 ],
                 ['consistency', `Nhất quán (${openFindings.length})`, ShieldCheck],
+                ['visual', `Hình ảnh (${openVisualDeviations.length})`, Sparkles],
               ] as const
             ).map(([key, tabLabel, Icon]) => (
               <button
@@ -2100,6 +2158,274 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
                                     (decision === 'Confirmed' && String(f.status) === 'Confirmed')
                                   }
                                   onClick={() => void triage(f, decision)}
+                                  title={actionLabel}
+                                  aria-label={actionLabel}
+                                  className={`p-1.5 rounded disabled:opacity-30 cursor-pointer ${cls}`}
+                                >
+                                  <Icon className='w-4 h-4' />
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </>
+            )}
+
+            {tab === 'visual' && (
+              <>
+                {/* Control bar: Threshold & Run Check */}
+                <div className='p-3 bg-gradient-to-r from-violet-50 to-indigo-50 border border-violet-200 rounded-lg space-y-2'>
+                  <div className='flex items-center justify-between text-xs font-semibold text-violet-900'>
+                    <span>Ngưỡng tương đồng</span>
+                    <span className='font-mono bg-white px-2 py-0.5 rounded border border-violet-200'>
+                      {Math.round(visualThreshold * 100)}%
+                    </span>
+                  </div>
+                  <input
+                    type='range'
+                    min='0.5'
+                    max='0.95'
+                    step='0.05'
+                    value={visualThreshold}
+                    onChange={(e) => setVisualThreshold(parseFloat(e.target.value))}
+                    className='w-full accent-violet-600 cursor-pointer'
+                  />
+                  <button
+                    type='button'
+                    disabled={busy}
+                    onClick={() => void handleRunVisualCheck()}
+                    className='w-full py-2 flex items-center justify-center gap-2 bg-[#6D28D9] text-white text-xs font-bold rounded-md hover:bg-[#5B21B6] disabled:opacity-50 cursor-pointer shadow-xs'
+                  >
+                    {busy ? (
+                      <Loader2 className='w-3.5 h-3.5 animate-spin' />
+                    ) : (
+                      <Play className='w-3.5 h-3.5' />
+                    )}
+                    Chạy kiểm tra nhất quán hình ảnh
+                  </button>
+                </div>
+
+                {/* Metrics Summary Card */}
+                {visualReport && (
+                  <div className='p-3 bg-white border border-[#E7E7E7] rounded-lg space-y-2 shadow-xs'>
+                    <div className='flex items-center justify-between'>
+                      <span className='text-xs font-bold text-[#171717] flex items-center gap-1.5'>
+                        <Sparkles className='w-3.5 h-3.5 text-violet-600' />
+                        Báo cáo hình ảnh
+                      </span>
+                      <span className='text-[10px] text-[#737373]'>
+                        Ngưỡng: {Math.round(visualReport.threshold * 100)}%
+                      </span>
+                    </div>
+                    <div className='grid grid-cols-4 gap-1.5 text-center'>
+                      <div className='p-1.5 bg-[#FAF8F4] rounded border border-[#E7E7E7]'>
+                        <div className='text-[10px] text-[#737373]'>Tổng</div>
+                        <div className='text-xs font-bold text-[#171717]'>
+                          {visualReport.totalEvaluated}
+                        </div>
+                      </div>
+                      <div className='p-1.5 bg-emerald-50 rounded border border-emerald-200'>
+                        <div className='text-[10px] text-emerald-700'>Đạt</div>
+                        <div className='text-xs font-bold text-emerald-800'>
+                          {visualReport.passedCount}
+                        </div>
+                      </div>
+                      <div className='p-1.5 bg-amber-50 rounded border border-amber-200'>
+                        <div className='text-[10px] text-amber-700'>Lệch</div>
+                        <div className='text-xs font-bold text-amber-800'>
+                          {visualReport.deviationCount}
+                        </div>
+                      </div>
+                      <div className='p-1.5 bg-red-50 rounded border border-red-200'>
+                        <div className='text-[10px] text-red-700'>Chặn</div>
+                        <div className='text-xs font-bold text-red-800'>
+                          {visualReport.blockingDeviationCount}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Deviations List */}
+                {!visualReport ? (
+                  <p className='text-center text-xs text-[#A3A3A3] py-6'>
+                    Chưa có báo cáo. Bấm nút phía trên để chạy kiểm tra.
+                  </p>
+                ) : visualReport.deviations.length === 0 ? (
+                  <div className='text-center py-6 px-4 bg-emerald-50 border border-emerald-200 rounded-lg space-y-1.5'>
+                    <CheckCircle2 className='w-6 h-6 text-emerald-600 mx-auto' />
+                    <p className='text-xs font-bold text-emerald-900'>
+                      Đạt chuẩn nhất quán hình ảnh
+                    </p>
+                    <p className='text-[11px] text-emerald-700'>
+                      Tất cả nhân vật đánh giá đều có độ tương đồng ≥{' '}
+                      {Math.round(visualReport.threshold * 100)}%.
+                    </p>
+                  </div>
+                ) : (
+                  <ul className='space-y-3' data-testid='visual-deviations'>
+                    {visualReport.deviations.map((d) => {
+                      const isOpen = OPEN_FINDING.includes(String(d.status));
+                      const scorePct = Math.round(d.similarityScore * 100);
+                      const threshPct = Math.round(d.threshold * 100);
+                      const isBlocking = d.similarityScore < 0.55;
+
+                      return (
+                        <li
+                          key={d.findingId}
+                          className={`p-3 rounded-lg border bg-white space-y-2.5 shadow-2xs ${
+                            isOpen ? 'border-[#E7E7E7]' : 'border-[#E7E7E7] opacity-60'
+                          }`}
+                        >
+                          {/* Header: Name, Location, Severity, Status */}
+                          <div className='flex items-center justify-between gap-1.5'>
+                            <div className='flex items-center gap-1.5 min-w-0'>
+                              <span className='text-xs font-bold text-[#171717] truncate'>
+                                {d.characterName}
+                              </span>
+                              <span className='text-[10px] text-[#737373] shrink-0'>
+                                (Trang {d.pageNumber ?? 1}, Khung {d.panelNumber ?? 1})
+                              </span>
+                            </div>
+                            <div className='flex items-center gap-1 shrink-0'>
+                              <span
+                                className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${
+                                  SEVERITY_STYLE[String(d.severity)] ?? SEVERITY_STYLE.Info
+                                }`}
+                              >
+                                {String(d.severity)}
+                              </span>
+                              <span className='text-[10px] font-bold text-[#737373]'>
+                                {FINDING_LABEL[String(d.status)] ?? String(d.status)}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Side-by-side Visual Comparison Cards */}
+                          <div className='grid grid-cols-2 gap-2 bg-[#FAF8F4] p-2 rounded border border-[#E7E7E7]'>
+                            <div className='text-center space-y-1'>
+                              <div className='text-[10px] font-bold text-[#737373]'>
+                                Sheet khóa (v{d.characterSheetVersion ?? 1})
+                              </div>
+                              <div className='w-full aspect-square max-h-24 rounded bg-white border border-[#E7E7E7] flex items-center justify-center overflow-hidden'>
+                                {d.characterSheetImageUrl ? (
+                                  <img
+                                    src={resolveArtworkUrl(d.characterSheetImageUrl)}
+                                    alt={d.characterName}
+                                    className='w-full h-full object-cover'
+                                  />
+                                ) : (
+                                  <div className='text-[10px] text-[#A3A3A3] flex flex-col items-center gap-1'>
+                                    <Sparkles className='w-4 h-4 text-violet-400' />
+                                    <span>Bản mẫu</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            <div className='text-center space-y-1'>
+                              <div className='text-[10px] font-bold text-[#737373]'>
+                                Artwork nộp
+                              </div>
+                              <div className='w-full aspect-square max-h-24 rounded bg-white border border-[#E7E7E7] flex items-center justify-center overflow-hidden'>
+                                {d.artworkUrl ? (
+                                  <img
+                                    src={resolveArtworkUrl(d.artworkUrl)}
+                                    alt={`Panel ${d.panelNumber}`}
+                                    className='w-full h-full object-cover'
+                                  />
+                                ) : (
+                                  <div className='text-[10px] text-[#A3A3A3] flex flex-col items-center gap-1'>
+                                    <Layers className='w-4 h-4 text-amber-400' />
+                                    <span>Khung vẽ</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Similarity Gauge */}
+                          <div className='space-y-1'>
+                            <div className='flex items-center justify-between text-[11px] font-bold'>
+                              <span className='text-[#737373]'>Độ tương đồng</span>
+                              <span
+                                className={
+                                  isBlocking
+                                    ? 'text-red-600'
+                                    : scorePct < threshPct
+                                      ? 'text-amber-600'
+                                      : 'text-emerald-600'
+                                }
+                              >
+                                {scorePct}% / Ngưỡng {threshPct}%
+                              </span>
+                            </div>
+                            <div className='w-full h-2 bg-[#E7E7E7] rounded-full overflow-hidden'>
+                              <div
+                                className={`h-full rounded-full transition-all ${
+                                  isBlocking
+                                    ? 'bg-red-500'
+                                    : scorePct < threshPct
+                                      ? 'bg-amber-500'
+                                      : 'bg-emerald-500'
+                                }`}
+                                style={{ width: `${Math.min(100, scorePct)}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* Deviation Message */}
+                          <p className='text-xs text-[#171717] leading-relaxed'>{d.message}</p>
+
+                          {/* Triage Note */}
+                          {d.triageNote && (
+                            <p className='text-[10px] text-[#737373] bg-[#F5F5F5] p-1.5 rounded'>
+                              Ghi chú ({d.triagedByUserName ?? 'Editor'}): {d.triageNote}
+                            </p>
+                          )}
+
+                          {/* Triage Action Buttons */}
+                          {canTriage && isOpen && (
+                            <div className='flex items-center gap-1 pt-1.5 border-t border-[#F3F3F3]'>
+                              {(
+                                [
+                                  [
+                                    'Confirmed',
+                                    CheckCircle2,
+                                    'text-emerald-600 hover:bg-emerald-50',
+                                    'Xác nhận là lỗi',
+                                  ],
+                                  [
+                                    'Rejected',
+                                    XCircle,
+                                    'text-red-600 hover:bg-red-50',
+                                    'Bác bỏ (không phải lỗi)',
+                                  ],
+                                  [
+                                    'Ignored',
+                                    MinusCircle,
+                                    'text-indigo-600 hover:bg-indigo-50',
+                                    'Bỏ qua (cần lý do)',
+                                  ],
+                                  [
+                                    'NeedsClarification',
+                                    HelpCircle,
+                                    'text-amber-600 hover:bg-amber-50',
+                                    'Cần làm rõ (cần câu hỏi)',
+                                  ],
+                                ] as const
+                              ).map(([decision, Icon, cls, actionLabel]) => (
+                                <button
+                                  key={decision}
+                                  type='button'
+                                  disabled={
+                                    busy ||
+                                    (decision === 'Confirmed' && String(d.status) === 'Confirmed')
+                                  }
+                                  onClick={() => void triageVisual(d, decision)}
                                   title={actionLabel}
                                   aria-label={actionLabel}
                                   className={`p-1.5 rounded disabled:opacity-30 cursor-pointer ${cls}`}
