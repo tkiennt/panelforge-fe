@@ -479,14 +479,14 @@ export function AppShell({
           icon: Sparkles,
           color: 'bg-emerald-50 text-emerald-700 border-emerald-200',
           dot: 'bg-emerald-500',
-          label: 'AI: Available (Gemini 1.5 Pro)',
+          label: 'AI: Sẵn sàng',
         };
       case 'degraded':
         return {
           icon: AlertTriangle,
           color: 'bg-amber-50 text-amber-700 border-amber-200',
           dot: 'bg-amber-500 animate-pulse',
-          label: 'AI: Degraded (High Latency)',
+          label: 'AI: Phản hồi chậm',
         };
       case 'unavailable':
       default:
@@ -494,7 +494,7 @@ export function AppShell({
           icon: AlertCircle,
           color: 'bg-rose-50 text-rose-700 border-rose-200',
           dot: 'bg-rose-500',
-          label: 'AI: Offline (Fallback Mock Active)',
+          label: 'AI: Ngoại tuyến',
         };
     }
   };

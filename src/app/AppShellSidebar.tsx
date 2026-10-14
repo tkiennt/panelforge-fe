@@ -290,17 +290,6 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
           </button>
         </div>
 
-        <div
-          className={`px-2 items-center justify-between text-[11px] text-[#555555] font-mono ${
-            showFullContent ? 'flex' : 'hidden lg:flex'
-          }`}
-        >
-          <span className='flex items-center gap-1.5'>
-            <span className='w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse'></span>
-            Sync Online
-          </span>
-          <span className='text-[#B8B8B8]'>v2.4</span>
-        </div>
       </div>
     </aside>
   );

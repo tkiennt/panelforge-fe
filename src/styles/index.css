@@ -89,6 +89,19 @@ body {
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Playfair defaults to old-style figures; force lining so numbers read correctly */
+  font-variant-numeric: lining-nums;
+}
+
+h1,
+h2,
+h3,
+h4,
+.font-heading,
+.font-display,
+.font-serif {
+  font-variant-numeric: lining-nums;
+  font-feature-settings: 'lnum' 1;
 }
 
 h1,

@@ -279,7 +279,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <div>
             <div className='flex flex-wrap items-center gap-2 text-[11px] font-mono font-semibold tracking-wider text-[#F97316] mb-1'>
               <span className='uppercase'>
-                {seriesDetail?.storyArc || 'TIẾN ĐỘ SẢN XUẤT SERIES (UC-16)'}
+                {seriesDetail?.storyArc || 'TIẾN ĐỘ SẢN XUẤT SERIES'}
               </span>
               <span className='text-[#888888]'>•</span>
               <span className='text-[#555555] uppercase'>

@@ -508,14 +508,13 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
             <button
               onClick={() => setVectorStatusOpen(true)}
               className='px-3 py-1.5 rounded-lg bg-[#ECFDF5] border border-[#10B981]/30 text-[#059669] text-xs font-semibold font-mono flex items-center gap-1.5 cursor-pointer hover:bg-[#10B981]/15 transition-colors'
-              title='Click to view Vector Index status and embedding models'
+              title='Xem trạng thái chỉ mục tìm kiếm ngữ nghĩa của Series Bible'
             >
-              <span className='w-2 h-2 rounded-full bg-[#10B981] animate-pulse'></span>
+              <span className='w-2 h-2 rounded-full bg-[#10B981]'></span>
               <span>
-                Vector Index:{' '}
                 {localEntities.length > 0
-                  ? `Đã đồng bộ (${localEntities.length} Nodes)`
-                  : 'Sẵn sàng (0 Nodes)'}
+                  ? `Chỉ mục AI: ${localEntities.length} mục đã đồng bộ`
+                  : 'Chỉ mục AI: chưa có dữ liệu'}
               </span>
             </button>
 
@@ -525,17 +524,14 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
               className='px-3.5 py-2 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer active:scale-95'
             >
               <Plus className='w-3.5 h-3.5' />
-              <span>Add Entity</span>
+              <span>Thêm mục</span>
             </button>
           </div>
         </div>
 
-        {/* BR-15 Chapter-Versioned Bible Selector Banner */}
+        {/* Chapter-versioned Bible selector banner */}
         <div className='mt-4 p-3 bg-[#FAF8F5] rounded-xl border border-[#E7E7E7] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs'>
           <div className='flex items-center gap-2'>
-            <span className='px-2 py-0.5 rounded bg-[#171717] text-white font-mono text-[10px] font-bold'>
-              BR-15 // CHAPTER-VERSIONED
-            </span>
             <span className='text-[#171717] font-semibold'>Phiên bản Bible có hiệu lực tại:</span>
             <span className='text-[#059669] font-mono font-bold'>
               {effectiveChapter === 'all'
@@ -552,7 +548,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                 const val = e.target.value === 'all' ? 'all' : parseInt(e.target.value, 10);
                 setEffectiveChapter(val);
                 onShowToast(
-                  'Chuyển đổi phiên bản chương (BR-15)',
+                  'Chuyển đổi phiên bản chương',
                   `Đang hiển thị tri thức Series Bible có hiệu lực tại ${val === 'all' ? 'bản mới nhất' : `Chương ${val}`}`,
                 );
               }}
@@ -694,7 +690,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                 {entity.isLocked && (
                   <div className='px-2.5 py-1 bg-amber-50 border border-amber-200/80 rounded-lg text-[10px] text-amber-800 flex items-center gap-1.5 font-medium'>
                     <Lock className='w-3 h-3 text-amber-600 shrink-0' />
-                    <span>Character Sheet đã khoá tham chiếu (BR-15 Canon)</span>
+                    <span>Character Sheet đã khoá tham chiếu</span>
                   </div>
                 )}
 
@@ -758,18 +754,18 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                     }
                   }}
                   className='px-2 py-1 bg-white hover:bg-[#F3F1EB] border border-[#E7E7E7] rounded text-[11px] font-semibold text-[#171717] flex items-center gap-1 transition-colors cursor-pointer'
-                  title='Xem toàn bộ lịch sử các phiên bản (BR-18)'
+                  title='Xem toàn bộ lịch sử các phiên bản'
                 >
                   <History className='w-3 h-3 text-[#F97316]' />
-                  <span>Lịch sử (BR-18)</span>
+                  <span>Lịch sử</span>
                 </button>
                 <button
                   onClick={() => handleOpenAddRevision(entity)}
                   className='px-2 py-1 bg-white hover:bg-[#F3F1EB] border border-[#E7E7E7] rounded text-[11px] font-semibold text-[#059669] flex items-center gap-1 transition-colors cursor-pointer'
-                  title='Tạo phiên bản sửa đổi mới có hiệu lực từ một Chương (BR-15, UC-04 Concurrency)'
+                  title='Tạo phiên bản sửa đổi mới có hiệu lực từ một Chương'
                 >
                   <GitCommit className='w-3 h-3' />
-                  <span>+ Version (BR-15)</span>
+                  <span>+ Phiên bản</span>
                 </button>
               </div>
 
@@ -786,12 +782,31 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
       </div>
 
       {filteredEntities.length === 0 && (
-        <div className='bg-white border border-[#E7E7E7] rounded-xl p-12 text-center'>
+        <div className='bg-white border-2 border-dashed border-[#B8B8B8] rounded-xl p-12 text-center'>
           <BookOpen className='w-8 h-8 text-[#888888] mx-auto mb-2' />
-          <h4 className='text-base font-bold text-[#171717]'>No Canon Entities Found</h4>
-          <p className='text-xs text-[#555555] mt-1'>
-            Try adjusting your search query or category filter.
-          </p>
+          {localEntities.length === 0 ? (
+            <>
+              <h4 className='text-base font-bold text-[#171717]'>Series Bible chưa có mục nào</h4>
+              <p className='text-xs text-[#555555] mt-1 mb-4'>
+                Thêm nhân vật, bối cảnh hoặc quy tắc để AI giữ nhất quán xuyên suốt các chương.
+              </p>
+              <button
+                type='button'
+                onClick={() => setAddEntityOpen(true)}
+                className='px-3.5 py-2 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer'
+              >
+                <Plus className='w-3.5 h-3.5' />
+                <span>Thêm mục đầu tiên</span>
+              </button>
+            </>
+          ) : (
+            <>
+              <h4 className='text-base font-bold text-[#171717]'>Không tìm thấy mục phù hợp</h4>
+              <p className='text-xs text-[#555555] mt-1'>
+                Thử đổi từ khoá tìm kiếm hoặc bộ lọc danh mục/trạng thái.
+              </p>
+            </>
+          )}
         </div>
       )}
 
