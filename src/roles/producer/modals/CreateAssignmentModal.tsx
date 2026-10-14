@@ -548,7 +548,6 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                           {panels.map((p) => (
                             <option key={p.id} value={p.id}>
                               Panel #{p.panelNumber ?? p.readingOrder ?? p.id.slice(0, 8)}{' '}
-                              {p.status ? `(${p.status})` : ''}
                             </option>
                           ))}
                         </select>

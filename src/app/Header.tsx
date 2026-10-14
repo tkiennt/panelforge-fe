@@ -12,7 +12,7 @@ import {
 import { ViewMode, MangaProject } from '@/types';
 
 interface HeaderProps {
-  currentView: ViewMode;
+  currentView: ViewMode | string;
   activeProject?: MangaProject;
   onReturnToHub: () => void;
   onOpenCommandPalette: () => void;

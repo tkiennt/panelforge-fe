@@ -2058,7 +2058,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                                 )}
                                 <span className='text-[8px] font-bold text-zinc-700 truncate max-w-full'>
                                   {bibleEntry
-                                    ? bibleEntry.canonicalName
+                                    ? bibleEntry.name
                                     : LAYER_LABELS[el.elementType] || el.elementType}
                                 </span>
                                 {el.rotation ? (
@@ -2603,7 +2603,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                                   </span>
                                   <span className='truncate max-w-[160px]'>
                                     {bible
-                                      ? bible.canonicalName
+                                      ? bible.name
                                       : LAYER_LABELS[selectedElem.elementType] ||
                                         selectedElem.elementType}
                                   </span>
@@ -2650,7 +2650,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                                   {bible.referenceImageUrl && (
                                     <img
                                       src={bible.referenceImageUrl}
-                                      alt={bible.canonicalName}
+                                      alt={bible.name}
                                       className='w-7 h-7 rounded object-cover border border-zinc-200'
                                     />
                                   )}
@@ -2659,7 +2659,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                                       Series Bible:
                                     </span>
                                     <p className='text-xs font-bold text-zinc-800 truncate'>
-                                      {bible.canonicalName}
+                                      {bible.name}
                                     </p>
                                   </div>
                                 </div>
@@ -2772,7 +2772,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                                     <div className='min-w-0'>
                                       <p className='font-bold text-zinc-800 text-[11px] truncate'>
                                         {bible
-                                          ? bible.canonicalName
+                                          ? bible.name
                                           : LAYER_LABELS[el.elementType] || el.elementType}
                                       </p>
                                       <div className='flex items-center gap-1.5 text-[9px] text-zinc-500'>
@@ -3122,7 +3122,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                     <option value=''>Không gắn mục Bible</option>
                     {bibleEntries.map((b) => (
                       <option key={b.id} value={b.id}>
-                        [{b.category}] {b.canonicalName}
+                        [{b.category}] {b.name}
                       </option>
                     ))}
                   </select>
@@ -3143,7 +3143,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                   <option value=''>Không dùng assetId sẵn có</option>
                   {pageArtworks.map((a) => (
                     <option key={a.id} value={a.id}>
-                      v{a.versionNumber} ({a.stageName}){' '}
+                      v{a.versionNumber}{' '}
                       {a.panelId ? `[Panel ${a.panelId.slice(0, 6)}]` : '[Toàn trang]'}
                     </option>
                   ))}

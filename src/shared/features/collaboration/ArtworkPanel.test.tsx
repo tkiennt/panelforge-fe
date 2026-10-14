@@ -174,6 +174,7 @@ describe('ArtworkPanel Component', () => {
         panelNumber: 1,
         readingOrder: 1,
         boundingBox: '{"x":10,"y":10,"width":80,"height":35}',
+        createdAt: '2026-01-01T00:00:00Z',
       },
       {
         id: 'p-2',
@@ -181,6 +182,7 @@ describe('ArtworkPanel Component', () => {
         panelNumber: 2,
         readingOrder: 2,
         boundingBox: '{"x":10,"y":50,"width":80,"height":35}',
+        createdAt: '2026-01-01T00:00:00Z',
       },
     ];
 
@@ -409,8 +411,22 @@ describe('ArtworkPanel Component', () => {
         stageId='stage-thumbnail'
         artworks={scopedArtworks}
         panels={[
-          { id: 'p-3', pageId: 'page-101', panelNumber: 3, readingOrder: 3, boundingBox: '{}' },
-          { id: 'p-4', pageId: 'page-101', panelNumber: 4, readingOrder: 4, boundingBox: '{}' },
+          {
+            id: 'p-3',
+            pageId: 'page-101',
+            panelNumber: 3,
+            readingOrder: 3,
+            boundingBox: '{}',
+            createdAt: '2026-01-01T00:00:00Z',
+          },
+          {
+            id: 'p-4',
+            pageId: 'page-101',
+            panelNumber: 4,
+            readingOrder: 4,
+            boundingBox: '{}',
+            createdAt: '2026-01-01T00:00:00Z',
+          },
         ]}
         canUpload={false}
         onChanged={vi.fn()}

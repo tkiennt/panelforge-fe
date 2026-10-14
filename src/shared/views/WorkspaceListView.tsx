@@ -328,7 +328,10 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSuccess={(newWs) => {
-          setWorkspaces((prev) => [newWs, ...prev]);
+          setWorkspaces((prev) => [
+            { ...newWs, currentUserRole: normalizeWorkspaceRole(newWs.currentUserRole) },
+            ...prev,
+          ]);
         }}
       />
     </div>

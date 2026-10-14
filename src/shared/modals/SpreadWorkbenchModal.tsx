@@ -8,7 +8,7 @@ interface SpreadWorkbenchModalProps {
   isOpen: boolean;
   onClose: () => void;
   onShowToast: (title: string, desc: string) => void;
-  userRole?: 'WRITER' | 'ARTIST' | 'LETTERER' | 'EDITOR';
+  userRole?: string;
 }
 
 export const SpreadWorkbenchModal: React.FC<SpreadWorkbenchModalProps> = ({
@@ -56,8 +56,8 @@ export const SpreadWorkbenchModal: React.FC<SpreadWorkbenchModalProps> = ({
         {/* Dynamic Workspace Area - Thay đổi ruột dựa vào prop userRole */}
         <div className='flex-1 flex overflow-hidden'>
           {userRole === 'WRITER' && <WriterWorkspace />}
-          {userRole === 'EDITOR' && <EditorWorkspace onShowToast={onShowToast} />}
-          {userRole === 'ARTIST' && <ArtistWorkspace onClose={onClose} onShowToast={onShowToast} />}
+          {userRole === 'EDITOR' && <EditorWorkspace />}
+          {userRole === 'ARTIST' && <ArtistWorkspace />}
         </div>
       </div>
     </div>

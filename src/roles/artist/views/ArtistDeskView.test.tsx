@@ -77,7 +77,7 @@ describe('ArtistDeskView', () => {
         {
           id: 'bible-char-1',
           seriesId: 'series-1',
-          canonicalName: 'Kiếm Sĩ Ren',
+          name: 'Kiếm Sĩ Ren',
           category: 'Character',
           status: 'Active',
           referenceImageUrl: 'https://example.com/ren.png',

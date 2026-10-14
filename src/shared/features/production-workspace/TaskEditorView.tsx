@@ -10,7 +10,7 @@ import { KanbanCard, SystemRole } from '@/types';
 import { INITIAL_KANBAN_CARDS } from '@/mocks/mockData';
 
 interface TaskEditorProps {
-  activeRoles: SystemRole[];
+  activeRoles: string[];
   onShowToast: (title: string, desc: string) => void;
   isDevMode?: boolean;
 }

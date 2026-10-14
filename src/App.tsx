@@ -429,7 +429,10 @@ function AppContent() {
           .getWorkspaceById(wsId)
           .then((ws) => {
             if (ws) {
-              setActiveWorkspace(ws);
+              setActiveWorkspace({
+                ...ws,
+                currentUserRole: normalizeWorkspaceRole(ws.currentUserRole),
+              });
               try {
                 localStorage.setItem('activeWorkspace', JSON.stringify(ws));
               } catch {

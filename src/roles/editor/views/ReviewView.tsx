@@ -2569,8 +2569,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
           chapterId={assignment.chapterId}
           chapterNumber={assignment.targetEntityId || 1}
           chapterTitle={assignment.brief}
-          chapterStatus={assignment.status}
-          workspaceRole={workspaceRole}
+          workspaceRole={normalizeWorkspaceRole(workspaceRole)}
           onClose={() => setIsPreviewFeedbackOpen(false)}
           onShowToast={onShowToast}
         />

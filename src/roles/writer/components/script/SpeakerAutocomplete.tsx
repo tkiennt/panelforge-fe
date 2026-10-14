@@ -19,7 +19,7 @@ export const SpeakerAutocomplete: React.FC<SpeakerAutocompleteProps> = ({
   const [search, setSearch] = useState('');
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  const characters = mockEntities.filter((e) => e.category === 'Character');
+  const characters = mockEntities.filter((e) => String(e.category).toLowerCase() === 'character');
   const selectedChar = characters.find((c) => c.id === value);
   const displayValue = selectedChar ? selectedChar.name : value;
 

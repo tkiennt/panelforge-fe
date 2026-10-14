@@ -333,7 +333,14 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
             path='catalog'
             element={<PublicCatalogView onBackToWorkspaces={() => navigate('/workspaces')} />}
           />
-          <Route path='notifications' element={<NotificationCenterView />} />
+          <Route
+            path='notifications'
+            element={
+              <NotificationCenterView
+                onNavigateToWorkspace={(workspaceId) => navigate(`/workspaces/${workspaceId}`)}
+              />
+            }
+          />
         </Route>
 
         {/* Standalone Global Admin Portal (Decoupled completely from GlobalAppShell) */}
