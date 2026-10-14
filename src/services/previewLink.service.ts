@@ -72,6 +72,8 @@ export interface PreviewFeedbackDto {
   triagedByUserId?: string | null;
   triagedAt?: string | null;
   createdAt: string;
+  /** Yêu cầu sửa sinh từ phản hồi này (5.7); null = chưa chuyển. */
+  changeRequestId?: string | null;
 }
 
 export interface CreatePreviewLinkRequest {
@@ -89,6 +91,13 @@ export interface SubmitPreviewFeedbackRequest {
 export interface TriagePreviewFeedbackRequest {
   decision: 'Noted' | 'NeedsChange';
   note?: string;
+}
+
+/** description bỏ trống = BE lấy từ nội dung phản hồi + ghi chú triage. */
+export interface CreateChangeRequestFromFeedbackRequest {
+  assignmentId: string;
+  description?: string;
+  dueDate?: string;
 }
 
 /**
@@ -184,6 +193,22 @@ export const previewLinkService = {
   ): Promise<PreviewFeedbackDto> => {
     const res = await axiosClient.post<PreviewFeedbackDto>(
       `/chapters/${chapterId}/preview-feedback/${feedbackId}/triage`,
+      req,
+    );
+    return res.data;
+  },
+
+  /**
+   * Phản hồi NeedsChange → yêu cầu sửa (ChangeRequest) của một việc; chương phải đã mở lại.
+   * Việc đã duyệt bị trả về làm lại. POST /api/chapters/{chapterId}/preview-feedback/{feedbackId}/change-request
+   */
+  createChangeRequestFromFeedback: async (
+    chapterId: string,
+    feedbackId: string,
+    req: CreateChangeRequestFromFeedbackRequest,
+  ): Promise<PreviewFeedbackDto> => {
+    const res = await axiosClient.post<PreviewFeedbackDto>(
+      `/chapters/${chapterId}/preview-feedback/${feedbackId}/change-request`,
       req,
     );
     return res.data;

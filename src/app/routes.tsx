@@ -11,7 +11,6 @@ import { AdminDashboard } from '@/roles/admin/views';
 import { ArtistDeskView } from '@/roles/artist/views/ArtistDeskView';
 import { ReviewView } from '@/roles/editor/views/ReviewView';
 import { NotificationCenterView } from '@/shared/views/NotificationCenterView';
-import { ReaderPortalView } from '@/roles/reader/views/ReaderPortalView';
 import { PublicCatalogView } from '@/roles/reader/views/PublicCatalogView';
 import { PublicPreviewView } from '@/roles/reader/views/PublicPreviewView';
 import { LandingPageView } from '@/roles/guest/views/LandingPageView';
@@ -324,7 +323,8 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
               />
             }
           />
-          <Route path='reader' element={<ReaderPortalView />} />
+          {/* 5.8: màn đọc tĩnh cũ đã thay bằng catalog thật (đọc chương đã phát hành) */}
+          <Route path='reader' element={<Navigate to='/catalog' replace />} />
           <Route
             path='profile'
             element={<UserProfileView user={firebaseUser} onLogout={handleLogout} />}

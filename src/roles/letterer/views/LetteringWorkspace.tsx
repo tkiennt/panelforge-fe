@@ -259,6 +259,10 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
 
   // Xử lý xung đột phiên bản BR-11
   const handleConcurrencyError = (err: any, elementId?: string) => {
+    if (err.code === 'CHAPTER_READ_ONLY') {
+      showToast('Chương chỉ đọc', err.message);
+      return;
+    }
     if (
       err.conflict === 'ELEMENT_VERSION_CONFLICT' ||
       err.code === 'CONFLICT' ||

@@ -7,6 +7,7 @@ import {
   PreviewLinkDto,
   PreviewFeedbackDto,
 } from '@/services/previewLink.service';
+import { assignmentService } from '@/services/assignment.service';
 
 vi.mock('@/services/previewLink.service', () => ({
   previewLinkService: {
@@ -15,7 +16,12 @@ vi.mock('@/services/previewLink.service', () => ({
     revokePreviewLink: vi.fn(),
     getPreviewFeedback: vi.fn(),
     triagePreviewFeedback: vi.fn(),
+    createChangeRequestFromFeedback: vi.fn(),
   },
+}));
+
+vi.mock('@/services/assignment.service', () => ({
+  assignmentService: { getAssignments: vi.fn() },
 }));
 
 describe('PreviewLinksModal', () => {
@@ -246,5 +252,85 @@ describe('PreviewLinksModal', () => {
     fireEvent.click(screen.getByTestId('reopen-chapter-from-feedback-btn-fb-1'));
 
     expect(mockReopen).toHaveBeenCalledWith('Cần sửa thoại khung 2');
+  });
+
+  describe('5.7: phản hồi cần sửa → yêu cầu sửa (chương đã mở lại)', () => {
+    const needsChange: PreviewFeedbackDto = {
+      ...mockFeedback[0],
+      status: 'NeedsChange',
+      triageNote: 'Phóng to thoại khung 2',
+    };
+    const assignment = (id: string, target: string, status: string, brief: string) => ({
+      id,
+      targetEntityId: target,
+      status,
+      brief,
+      assignedRole: 'Letterer',
+    });
+
+    const renderInProduction = () =>
+      render(
+        <PreviewLinksModal
+          isOpen={true}
+          onClose={vi.fn()}
+          chapterId='chap-101'
+          chapterNumber={1}
+          chapterStatus='InProduction'
+          onReopenChapter={vi.fn()}
+        />,
+      );
+
+    it('chọn việc (việc đúng trang/khung lên đầu, việc đang chờ duyệt bị khoá) rồi tạo yêu cầu sửa', async () => {
+      (previewLinkService.getPreviewFeedback as any).mockResolvedValue([needsChange]);
+      (assignmentService.getAssignments as any).mockResolvedValue([
+        assignment('a-other', 'page-9', 'Approved', 'Lettering trang 9'),
+        assignment('a-review', 'page-1', 'UnderReview', 'Lettering lại trang 1'),
+        assignment('a-panel', 'panel-2', 'Approved', 'Lettering khung 2'),
+      ]);
+      (previewLinkService.createChangeRequestFromFeedback as any).mockResolvedValueOnce({
+        ...needsChange,
+        changeRequestId: 'cr-1',
+      });
+
+      renderInProduction();
+      fireEvent.click(screen.getByTestId('tab-preview-feedback'));
+
+      const select = await screen.findByTestId('cr-assignment-select-fb-1');
+      await waitFor(() => expect(select.querySelectorAll('option')).toHaveLength(4));
+      const options = Array.from(select.querySelectorAll('option'));
+      expect(options[1]).toHaveValue('a-review');
+      expect(options[1]).toBeDisabled();
+      expect(options[2]).toHaveValue('a-panel');
+      expect(screen.queryByTestId('reopen-chapter-from-feedback-btn-fb-1')).not.toBeInTheDocument();
+
+      const createBtn = screen.getByTestId('create-cr-from-feedback-btn-fb-1');
+      expect(createBtn).toBeDisabled();
+      fireEvent.change(select, { target: { value: 'a-panel' } });
+      fireEvent.click(createBtn);
+
+      await waitFor(() => {
+        expect(previewLinkService.createChangeRequestFromFeedback).toHaveBeenCalledWith(
+          'chap-101',
+          'fb-1',
+          { assignmentId: 'a-panel' },
+        );
+        expect(screen.getByTestId('feedback-cr-linked-fb-1')).toBeInTheDocument();
+      });
+      expect(screen.queryByTestId('triage-noted-btn-fb-1')).not.toBeInTheDocument();
+    });
+
+    it('phản hồi đã thành yêu cầu sửa thì không cho phân loại hay tạo lại', async () => {
+      (previewLinkService.getPreviewFeedback as any).mockResolvedValue([
+        { ...needsChange, changeRequestId: 'cr-1' },
+      ]);
+      (assignmentService.getAssignments as any).mockResolvedValue([]);
+
+      renderInProduction();
+      fireEvent.click(screen.getByTestId('tab-preview-feedback'));
+
+      expect(await screen.findByTestId('feedback-cr-linked-fb-1')).toBeInTheDocument();
+      expect(screen.queryByTestId('triage-needschange-btn-fb-1')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('cr-assignment-select-fb-1')).not.toBeInTheDocument();
+    });
   });
 });
