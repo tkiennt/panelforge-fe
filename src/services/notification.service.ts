@@ -67,4 +67,19 @@ export const notificationService = {
       return 0;
     }
   },
+
+  /**
+   * Kích hoạt quét thông báo nhắc việc và yêu cầu sửa sắp/đã quá hạn (POST /api/notifications/send-reminders)
+   */
+  sendReminders: async (leadHours = 24): Promise<{ created: number }> => {
+    try {
+      const response = await axiosClient.post<{ created: number }>('/notifications/send-reminders', null, {
+        params: { leadHours },
+      });
+      return response.data || { created: 0 };
+    } catch (error) {
+      console.error('Không thể kích hoạt gửi thông báo nhắc hạn:', error);
+      return { created: 0 };
+    }
+  },
 };

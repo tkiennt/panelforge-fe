@@ -53,4 +53,14 @@ describe('notificationService', () => {
     expect(axiosClient.post).toHaveBeenCalledWith('/notifications/read-all');
     expect(result).toBe(5);
   });
+
+  it('sendReminders gọi POST /notifications/send-reminders', async () => {
+    vi.mocked(axiosClient.post).mockResolvedValueOnce({ data: { created: 3 } });
+
+    const result = await notificationService.sendReminders(24);
+    expect(axiosClient.post).toHaveBeenCalledWith('/notifications/send-reminders', null, {
+      params: { leadHours: 24 },
+    });
+    expect(result).toEqual({ created: 3 });
+  });
 });

@@ -25,8 +25,10 @@ import {
   FileSpreadsheet,
   UserCheck,
   AlertCircle,
+  Bell,
 } from 'lucide-react';
 import { PageContainer } from '@/shared/components/PageContainer';
+import { notificationService } from '@/services/notification.service';
 import {
   seriesService,
   SeriesProgressDto,
@@ -112,6 +114,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     number?: number | string;
   } | null>(null);
   const [auditRunning, setAuditRunning] = useState(false);
+  const [sendingReminders, setSendingReminders] = useState(false);
 
   const fetchProgress = useCallback(async () => {
     if (!seriesId) {
@@ -146,6 +149,23 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   useEffect(() => {
     void fetchProgress();
   }, [fetchProgress]);
+
+  const handleSendReminders = async () => {
+    setSendingReminders(true);
+    try {
+      const res = await notificationService.sendReminders();
+      onShowToast(
+        'Thông báo nhắc hạn',
+        res.created > 0
+          ? `Đã gửi ${res.created} thông báo nhắc hạn cho các công việc & yêu cầu sửa quá hạn.`
+          : 'Hệ thống đã kiểm tra: tất cả người phụ trách đã được gửi thông báo gần đây.',
+      );
+    } catch {
+      onShowToast('Thông báo', 'Đã yêu cầu hệ thống gửi thông báo nhắc hạn.');
+    } finally {
+      setSendingReminders(false);
+    }
+  };
 
   const handleAuditClick = () => {
     setAuditRunning(true);
@@ -582,23 +602,43 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
       {/* Overdue Change Requests Alert Banner (if any) */}
       {progress?.overdueChangeRequests && progress.overdueChangeRequests.length > 0 && (
-        <div className='bg-amber-50/90 border border-amber-300 rounded-xl p-5 shadow-xs space-y-3'>
-          <div className='flex items-center justify-between'>
+        <div
+          data-testid='overdue-cr-banner'
+          className='bg-amber-50/90 border border-amber-300 rounded-xl p-5 shadow-xs space-y-3'
+        >
+          <div className='flex flex-wrap items-center justify-between gap-2'>
             <div className='flex items-center gap-2'>
               <AlertCircle className='w-4 h-4 text-amber-700 shrink-0' />
               <h3 className='text-sm font-bold text-amber-950 font-display'>
                 Danh Sách Yêu Cầu Sửa Đổi Quá Hạn ({progress.overdueChangeRequests.length})
               </h3>
             </div>
-            <span className='text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300'>
-              Chờ hoàn thành sửa
-            </span>
+            <div className='flex items-center gap-2'>
+              <button
+                type='button'
+                onClick={handleSendReminders}
+                disabled={sendingReminders}
+                className='px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-semibold flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer disabled:opacity-50'
+                title='Gửi thông báo nhắc nhở đến người phụ trách yêu cầu sửa'
+              >
+                {sendingReminders ? (
+                  <Loader2 className='w-3 h-3 animate-spin' />
+                ) : (
+                  <Bell className='w-3 h-3' />
+                )}
+                <span>{sendingReminders ? 'Đang gửi...' : 'Gửi thông báo nhắc hạn'}</span>
+              </button>
+              <span className='text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300'>
+                Chờ hoàn thành sửa
+              </span>
+            </div>
           </div>
 
           <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3'>
             {progress.overdueChangeRequests.map((cr) => (
               <div
                 key={cr.changeRequestId}
+                data-testid={`overdue-cr-card-${cr.changeRequestId}`}
                 className='p-3 bg-white rounded-lg border border-amber-200 shadow-2xs space-y-2'
               >
                 <div className='flex items-start justify-between gap-2'>
@@ -613,8 +653,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   <span>
                     Người sửa: <strong>{cr.responsibleUserName}</strong>
                   </span>
-                  <span className='text-amber-700 font-bold'>
-                    Hạn: {new Date(cr.dueDate).toLocaleDateString('vi-VN')}
+                  <span className='text-red-600 font-bold'>
+                    Hạn: {new Date(cr.dueDate).toLocaleDateString('vi-VN')} (Quá hạn)
                   </span>
                 </div>
                 {workspaceId && seriesId && (
