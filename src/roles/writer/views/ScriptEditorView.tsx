@@ -665,7 +665,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           <div>
             <div className='flex items-center gap-2'>
               <span className='px-2 py-0.5 rounded bg-orange-600 text-white font-mono text-[10px] font-bold uppercase tracking-wider'>
-                UC-06 // Writer Script
+                Kịch bản
               </span>
               {currentChapter && (
                 <span

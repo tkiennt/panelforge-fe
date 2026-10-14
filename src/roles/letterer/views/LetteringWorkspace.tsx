@@ -14,6 +14,12 @@ import {
   ListOrdered,
   Sparkles,
   Move,
+  Layers,
+  Eye,
+  EyeOff,
+  Check,
+  X,
+  Bot,
 } from 'lucide-react';
 import {
   elementService,
@@ -24,11 +30,17 @@ import {
   LAYER_LABELS,
 } from '@/services/element.service';
 import { pageService } from '@/services/page.service';
+import { chapterService } from '@/services/chapter.service';
 import {
   scriptLineService,
   SceneDto,
   SceneScriptLineSummaryDto,
 } from '@/services/scriptLine.service';
+import {
+  aiAgentsService,
+  LetteringSuggestion,
+  AiSuggestionDto,
+} from '@/services/aiAgents.service';
 import { offlineQueueService } from '@/services/offlineQueue.service';
 import { OfflineStatusBanner } from '@/shared/components/OfflineStatusBanner';
 import { ElementConflictModal } from '@/shared/modals/ElementConflictModal';
@@ -36,6 +48,7 @@ import { ElementConflictModal } from '@/shared/modals/ElementConflictModal';
 interface LetteringWorkspaceProps {
   pageId?: string;
   chapterId?: string;
+  seriesId?: string;
   isReadOnly?: boolean;
   onShowToast?: (title: string, desc: string) => void;
 }
@@ -56,12 +69,14 @@ function checkIsNetworkError(err: any): boolean {
 export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
   pageId: propPageId,
   chapterId: propChapterId,
+  seriesId: propSeriesId,
   isReadOnly = false,
   onShowToast,
 }) => {
   const [searchParams] = useSearchParams();
   const activePageId = propPageId || searchParams.get('pageId') || '';
   const activeChapterId = propChapterId || searchParams.get('chapterId') || '';
+  const activeSeriesId = propSeriesId || searchParams.get('seriesId') || '';
 
   const [pageSnapshot, setPageSnapshot] = useState<PageSnapshotDto | null>(null);
   const [elements, setElements] = useState<ElementSnapshotDto[]>([]);
@@ -73,6 +88,22 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
     width: 1200,
     height: 1800,
   });
+
+  // Layer filter on canvas (CF2 2.5: nhân vật / bối cảnh / đạo cụ / hiệu ứng)
+  const [visibleLayers, setVisibleLayers] = useState<Record<string, boolean>>({
+    BACKGROUND: true,
+    CHARACTER_INSTANCE: true,
+    PROP: true,
+    EFFECT: true,
+  });
+  const [showLayerFilterMenu, setShowLayerFilterMenu] = useState(false);
+
+  // AI Letterer Agent (CF2 2.4: rút gọn thoại vừa balloon)
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiModalOpen, setAiModalOpen] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState<LetteringSuggestion[]>([]);
+  const [currentAiSuggestionId, setCurrentAiSuggestionId] = useState<string | null>(null);
+  const [chapterVersionVector, setChapterVersionVector] = useState<number>(1);
 
   // Script lines & Scenes
   const [scenes, setScenes] = useState<SceneDto[]>([]);
@@ -684,6 +715,175 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
     }
   };
 
+  // ── AI Letterer Agent (CF2 2.4): Rút gọn thoại cho vừa balloon ──
+  const handleRunLettererAgent = async () => {
+    if (!activeSeriesId) {
+      showToast('Thiếu Series ID', 'Không tìm thấy mã Series để chạy Letterer Agent.');
+      return;
+    }
+    if (!activeChapterId) {
+      showToast('Thiếu Chapter ID', 'Vui lòng chọn chương trước khi chạy Letterer Agent.');
+      return;
+    }
+
+    setAiLoading(true);
+    try {
+      let currentVersion = chapterVersionVector;
+      try {
+        const ch = await chapterService.getChapterById(activeChapterId);
+        if (ch && ch.versionVector) {
+          currentVersion = ch.versionVector;
+          setChapterVersionVector(ch.versionVector);
+        }
+      } catch (err) {
+        console.warn('Lỗi lấy version chương:', err);
+      }
+
+      const runRes = await aiAgentsService.runWorkflow(activeSeriesId, {
+        chapterId: activeChapterId,
+        sceneId: selectedSceneId || undefined,
+        brief: 'Rút gọn thoại cho vừa bóng thoại',
+        readingDirection: 'RightToLeft',
+        chapterVersion: currentVersion,
+        workflowType: 'Letterer',
+      });
+
+      // Poll run status nếu đang Queued/Running
+      let run = await aiAgentsService.getRun(activeSeriesId, runRes.runId);
+      let attempts = 0;
+      while ((run.status === 'Queued' || run.status === 'Running') && attempts < 10) {
+        await new Promise((r) => setTimeout(r, 1000));
+        run = await aiAgentsService.getRun(activeSeriesId, runRes.runId);
+        attempts++;
+      }
+
+      const suggestions = await aiAgentsService.getSuggestions(activeSeriesId, {
+        runId: runRes.runId,
+        status: 'Pending',
+      });
+
+      const letteringSugs = suggestions.filter((s) => s.kind === 'Lettering');
+      if (letteringSugs.length === 0) {
+        showToast('Thông báo', 'Không có đề xuất rút gọn thoại mới nào từ Letterer Agent.');
+        return;
+      }
+
+      const latestSug = letteringSugs[0];
+      const payload: any = latestSug.payload;
+      const list: LetteringSuggestion[] = payload?.suggestions || [];
+
+      if (list.length === 0) {
+        showToast('Thông báo', 'Letterer Agent không tìm thấy thoại nào cần rút gọn.');
+        return;
+      }
+
+      setCurrentAiSuggestionId(latestSug.id);
+      setAiSuggestions(list);
+      setAiModalOpen(true);
+      showToast('Thành công', `Letterer Agent đã tạo ${list.length} gợi ý rút gọn thoại.`);
+    } catch (err: any) {
+      console.error('Lỗi chạy Letterer Agent:', err);
+      showToast('Lỗi Letterer Agent', err.message || 'Không thể chạy quy trình rút gọn thoại.');
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const handleApplySuggestionToElement = async (sug: LetteringSuggestion) => {
+    const target = elements.find(
+      (e) =>
+        (sug.targetElementId && e.elementId === sug.targetElementId) ||
+        (sug.sourceScriptLineId && e.scriptLineId === sug.sourceScriptLineId) ||
+        (selectedElementId && e.elementId === selectedElementId),
+    );
+
+    if (!target) {
+      showToast('Chưa đặt trên trang', 'Bóng thoại này chưa được đặt trên trang vẽ hiện tại.');
+      return;
+    }
+
+    try {
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        offlineQueueService.enqueue({
+          type: 'UPDATE_ELEMENT_TEXT',
+          endpoint: `/pages/${activePageId}/elements/${target.elementId}/text`,
+          method: 'PATCH',
+          payload: {
+            content: sug.suggestedText,
+            expectedElementVersion: target.version,
+          },
+          clientRefId: target.elementId,
+        });
+      } else {
+        await elementService.updateElementText(activePageId, target.elementId, {
+          content: sug.suggestedText,
+          expectedElementVersion: target.version,
+        });
+      }
+
+      setElements((prev) =>
+        prev.map((el) =>
+          el.elementId === target.elementId
+            ? { ...el, content: sug.suggestedText, version: (el.version || 1) + 1 }
+            : el,
+        ),
+      );
+      showToast('Đã áp dụng', 'Đã cập nhật thoại rút gọn vào bóng thoại trên trang.');
+    } catch (err: any) {
+      handleConcurrencyError(err, target.elementId);
+    }
+  };
+
+  const handleAcceptAllAiSuggestions = async () => {
+    if (!currentAiSuggestionId || !activeSeriesId) return;
+    try {
+      await aiAgentsService.review(activeSeriesId, currentAiSuggestionId, 'accept', {
+        chapterVersion: chapterVersionVector,
+      });
+
+      // Cập nhật các bóng thoại đang có trên trang hiện tại
+      for (const sug of aiSuggestions) {
+        const target = elements.find(
+          (e) =>
+            (sug.targetElementId && e.elementId === sug.targetElementId) ||
+            (sug.sourceScriptLineId && e.scriptLineId === sug.sourceScriptLineId),
+        );
+        if (target) {
+          try {
+            await elementService.updateElementText(activePageId, target.elementId, {
+              content: sug.suggestedText,
+              expectedElementVersion: target.version,
+            });
+          } catch (e) {
+            console.warn('Lỗi cập nhật bóng thoại:', e);
+          }
+        }
+      }
+
+      await loadElements();
+      setAiModalOpen(false);
+      showToast('Đã chấp nhận', 'Đã lưu kịch bản mới và áp dụng thoại rút gọn vào các bóng thoại.');
+    } catch (err: any) {
+      showToast('Lỗi chấp nhận đề xuất', err.message);
+    }
+  };
+
+  const handleRejectAiSuggestions = async () => {
+    if (!currentAiSuggestionId || !activeSeriesId) {
+      setAiModalOpen(false);
+      return;
+    }
+    try {
+      await aiAgentsService.review(activeSeriesId, currentAiSuggestionId, 'reject', {
+        reason: 'Từ chối bởi Letterer',
+      });
+      setAiModalOpen(false);
+      showToast('Đã từ chối', 'Đã từ chối đề xuất rút gọn thoại của AI.');
+    } catch (err: any) {
+      showToast('Lỗi từ chối đề xuất', err.message);
+    }
+  };
+
   const selectedElement = elements.find((e) => e.elementId === selectedElementId);
   const selectedElementBox = selectedElement ? getNormalizedElementBox(selectedElement) : null;
 
@@ -730,6 +930,64 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
         </div>
 
         <div className='flex items-center gap-2'>
+          {/* Layer visibility toggle button (CF2 2.5) */}
+          <div className='relative'>
+            <button
+              onClick={() => setShowLayerFilterMenu(!showLayerFilterMenu)}
+              className={`px-3 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
+                showLayerFilterMenu
+                  ? 'bg-zinc-800 text-white border-zinc-800'
+                  : 'bg-white border-[#E7E7E7] text-zinc-700 hover:bg-zinc-50'
+              }`}
+              title='Bật / tắt hiển thị các lớp vẽ (Background, Character, Prop, Effect)'
+            >
+              <Layers className='w-4 h-4 text-purple-600' />
+              <span>Lớp vẽ (Layers)</span>
+            </button>
+
+            {showLayerFilterMenu && (
+              <div className='absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-zinc-200 p-2.5 z-50 space-y-1.5 text-xs'>
+                <div className='font-bold text-zinc-500 uppercase text-[10px] px-2 py-1'>
+                  Hiển thị lớp vẽ trên canvas
+                </div>
+                {IMAGE_LAYER_TYPES.map((layerKey) => {
+                  const isVisible = visibleLayers[layerKey] !== false;
+                  return (
+                    <button
+                      key={layerKey}
+                      onClick={() =>
+                        setVisibleLayers((prev) => ({ ...prev, [layerKey]: !isVisible }))
+                      }
+                      className='w-full px-2 py-1.5 rounded-lg flex items-center justify-between hover:bg-zinc-100 transition-colors text-zinc-700 cursor-pointer'
+                    >
+                      <span className='font-medium'>{LAYER_LABELS[layerKey] || layerKey}</span>
+                      {isVisible ? (
+                        <Eye className='w-3.5 h-3.5 text-emerald-600' />
+                      ) : (
+                        <EyeOff className='w-3.5 h-3.5 text-zinc-400' />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* AI Letterer Agent trigger button (CF2 2.4) */}
+          <button
+            onClick={handleRunLettererAgent}
+            disabled={aiLoading || !activeSeriesId}
+            className='px-3 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 disabled:opacity-50 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer'
+            title='Chạy Letterer Agent để rút gọn các dòng thoại cho vừa bóng thoại'
+          >
+            {aiLoading ? (
+              <RefreshCw className='w-3.5 h-3.5 animate-spin' />
+            ) : (
+              <Sparkles className='w-3.5 h-3.5 text-amber-300' />
+            )}
+            <span>AI Rút Gọn Thoại</span>
+          </button>
+
           <button
             onClick={loadElements}
             disabled={loading}
@@ -895,6 +1153,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                 const box = getNormalizedElementBox(b);
 
                 if (isImageLayer) {
+                  if (visibleLayers[b.elementType] === false) return null;
                   return (
                     <div
                       key={b.elementId}
@@ -1140,6 +1399,71 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                 </div>
               </div>
 
+              {/* AI Dialogue Shortening (Letterer Agent CF2 2.4) */}
+              <div className='p-3 bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-200 rounded-xl space-y-2.5'>
+                <div className='flex items-center justify-between'>
+                  <span className='font-bold text-purple-900 text-[11px] flex items-center gap-1.5'>
+                    <Sparkles className='w-3.5 h-3.5 text-purple-600' />
+                    <span>Letterer Agent (Rút gọn thoại)</span>
+                  </span>
+                  <span className='text-[10px] font-mono text-purple-600 font-semibold'>
+                    {selectedElement.content?.length || 0} ký tự
+                  </span>
+                </div>
+                <p className='text-[10px] text-purple-700 leading-tight'>
+                  AI phân tích giới hạn kích thước balloon và đề xuất rút gọn thoại tự nhiên, vừa vặn khung tranh.
+                </p>
+
+                {(() => {
+                  const matchSug = aiSuggestions.find(
+                    (s) =>
+                      (s.targetElementId && s.targetElementId === selectedElement.elementId) ||
+                      (s.sourceScriptLineId && s.sourceScriptLineId === selectedElement.scriptLineId),
+                  );
+                  if (matchSug) {
+                    return (
+                      <div className='bg-white p-2.5 rounded-lg border border-purple-200 space-y-1.5 text-[11px]'>
+                        <div className='text-zinc-500 text-[10px]'>Gợi ý hiện có cho bóng thoại này:</div>
+                        <div className='font-bold text-zinc-800 italic bg-purple-50/50 p-1.5 rounded'>
+                          "{matchSug.suggestedText}"
+                        </div>
+                        <div className='flex items-center justify-between text-[10px] text-zinc-500'>
+                          <span>{matchSug.suggestedText.length} ký tự (ước lượng tối đa: {matchSug.maxChars})</span>
+                          <span className={matchSug.withinEstimatedLimit ? 'text-emerald-600 font-bold' : 'text-amber-600 font-bold'}>
+                            {matchSug.withinEstimatedLimit ? '✓ Trong giới hạn' : 'Vượt giới hạn'}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => handleApplySuggestionToElement(matchSug)}
+                          className='w-full py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded font-semibold text-[11px] flex items-center justify-center gap-1 transition-colors cursor-pointer'
+                        >
+                          <Check className='w-3.5 h-3.5' /> Áp dụng gợi ý này
+                        </button>
+                      </div>
+                    );
+                  }
+                  return (
+                    <button
+                      onClick={handleRunLettererAgent}
+                      disabled={aiLoading || !activeSeriesId}
+                      className='w-full py-1.5 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-semibold rounded-lg text-[11px] flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer'
+                    >
+                      {aiLoading ? (
+                        <>
+                          <RefreshCw className='w-3 h-3 animate-spin' />
+                          <span>Đang phân tích...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className='w-3 h-3 text-amber-300' />
+                          <span>Chạy Letterer Agent</span>
+                        </>
+                      )}
+                    </button>
+                  );
+                })()}
+              </div>
+
               {/* Overflow Acknowledgment Section */}
               <div className='p-3 bg-zinc-50 border border-zinc-200 rounded-xl space-y-2'>
                 <div className='font-semibold text-zinc-800 text-[11px]'>
@@ -1191,6 +1515,149 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
           )}
         </div>
       </div>
+
+      {/* Modal Đề Xuất Rút Gọn Thoại (Letterer Agent - CF2 2.4) */}
+      {aiModalOpen && (
+        <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4'>
+          <div className='bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden border border-zinc-200 animate-in fade-in zoom-in-95 duration-150'>
+            {/* Modal Header */}
+            <div className='p-4 border-b border-zinc-200 bg-gradient-to-r from-purple-50 to-indigo-50 flex items-center justify-between shrink-0'>
+              <div className='flex items-center gap-2.5'>
+                <div className='w-9 h-9 rounded-xl bg-purple-600 text-white flex items-center justify-center shadow-xs'>
+                  <Bot className='w-5 h-5' />
+                </div>
+                <div>
+                  <h3 className='font-bold text-sm text-zinc-900 flex items-center gap-2'>
+                    <span>Đề Xuất Rút Gọn Thoại (Letterer Agent)</span>
+                    <span className='px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-700 font-mono'>
+                      {aiSuggestions.length} đề xuất
+                    </span>
+                  </h3>
+                  <p className='text-xs text-zinc-500'>
+                    Human-in-the-loop: Kiểm tra và quyết định áp dụng từng dòng hoặc cập nhật toàn bộ vào kịch bản.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setAiModalOpen(false)}
+                className='p-1.5 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors cursor-pointer'
+              >
+                <X className='w-5 h-5' />
+              </button>
+            </div>
+
+            {/* Modal Content - List of Suggestions */}
+            <div className='p-4 overflow-y-auto flex-1 space-y-3 custom-scrollbar'>
+              {aiSuggestions.map((sug, idx) => {
+                const targetBalloon = elements.find(
+                  (e) =>
+                    (sug.targetElementId && e.elementId === sug.targetElementId) ||
+                    (sug.sourceScriptLineId && e.scriptLineId === sug.sourceScriptLineId),
+                );
+                return (
+                  <div
+                    key={idx}
+                    className='p-3.5 rounded-xl border border-zinc-200 bg-[#FAF8F5] space-y-2.5 hover:border-purple-300 transition-colors'
+                  >
+                    <div className='flex items-center justify-between text-xs'>
+                      <div className='flex items-center gap-2'>
+                        <span className='font-mono font-bold text-zinc-700 bg-white px-2 py-0.5 rounded border border-zinc-200 text-[11px]'>
+                          #{idx + 1}
+                        </span>
+                        {targetBalloon ? (
+                          <span className='text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 flex items-center gap-1'>
+                            <CheckCircle2 className='w-3 h-3' /> Bóng thoại #{targetBalloon.readingOrder || ''}
+                          </span>
+                        ) : (
+                          <span className='text-[11px] text-zinc-500 bg-zinc-100 px-2 py-0.5 rounded'>
+                            Chưa đặt trên trang
+                          </span>
+                        )}
+                      </div>
+                      <div className='flex items-center gap-2'>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          sug.withinEstimatedLimit ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                        }`}>
+                          {sug.withinEstimatedLimit ? '✓ Vừa balloon' : 'Ước lượng dài'}
+                        </span>
+                        <span className='text-[10px] font-mono text-zinc-500'>
+                          Tối đa: ~{sug.maxChars} ký tự
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Comparison Box */}
+                    <div className='grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs'>
+                      <div className='p-2.5 bg-red-50/60 rounded-lg border border-red-200/70 space-y-1'>
+                        <div className='text-[10px] font-bold text-red-700 uppercase tracking-wide flex items-center justify-between'>
+                          <span>Thoại gốc</span>
+                          <span className='font-mono'>{sug.originalText.length} ký tự</span>
+                        </div>
+                        <p className='text-zinc-800 leading-relaxed font-serif line-clamp-3'>
+                          "{sug.originalText}"
+                        </p>
+                      </div>
+
+                      <div className='p-2.5 bg-emerald-50/70 rounded-lg border border-emerald-200 space-y-1'>
+                        <div className='text-[10px] font-bold text-emerald-800 uppercase tracking-wide flex items-center justify-between'>
+                          <span>Đề xuất rút gọn</span>
+                          <span className='font-mono'>{sug.suggestedText.length} ký tự</span>
+                        </div>
+                        <p className='text-zinc-900 font-semibold leading-relaxed font-serif line-clamp-3'>
+                          "{sug.suggestedText}"
+                        </p>
+                      </div>
+                    </div>
+
+                    {sug.reason && (
+                      <p className='text-[11px] text-zinc-600 bg-white/70 p-2 rounded border border-zinc-200/60 leading-tight'>
+                        <span className='font-semibold text-zinc-700'>Lý do: </span>
+                        {sug.reason}
+                      </p>
+                    )}
+
+                    {targetBalloon && (
+                      <div className='flex justify-end pt-1'>
+                        <button
+                          onClick={() => handleApplySuggestionToElement(sug)}
+                          className='px-3 py-1 bg-white hover:bg-purple-50 text-purple-700 border border-purple-300 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer'
+                        >
+                          <Check className='w-3.5 h-3.5' /> Áp dụng vào bóng thoại này
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Modal Footer */}
+            <div className='p-3.5 border-t border-zinc-200 bg-zinc-50 flex items-center justify-between shrink-0 text-xs'>
+              <button
+                onClick={handleRejectAiSuggestions}
+                className='px-3.5 py-2 text-red-600 hover:bg-red-50 font-semibold rounded-xl transition-colors cursor-pointer'
+              >
+                Từ chối đề xuất (Reject)
+              </button>
+
+              <div className='flex items-center gap-2'>
+                <button
+                  onClick={() => setAiModalOpen(false)}
+                  className='px-3.5 py-2 text-zinc-600 hover:bg-zinc-200 font-semibold rounded-xl transition-colors cursor-pointer'
+                >
+                  Đóng
+                </button>
+                <button
+                  onClick={handleAcceptAllAiSuggestions}
+                  className='px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer'
+                >
+                  <Check className='w-4 h-4' /> Chấp nhận tất cả &amp; Cập nhật kịch bản (Accept)
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Concurrency Conflict Modal (BR-11) */}
       <ElementConflictModal

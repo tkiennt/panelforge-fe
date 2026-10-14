@@ -1024,14 +1024,8 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
       {/* Header */}
       <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-6 rounded-2xl border border-[#E7E7E7] shadow-xs'>
         <div>
-          <div className='flex items-center gap-2 mb-1'>
-            <span className='px-2 py-0.5 rounded bg-blue-600 text-white font-mono text-[10px] font-bold'>
-              ARTIST // PAGES &amp; PANELS DESK
-            </span>
-            <span className='text-xs text-[#888888] font-mono'>
-              API: <code>/api/pages/&#123;id&#125;/panels</code> &amp;{' '}
-              <code>/api/pages/&#123;id&#125;/frame-template</code>
-            </span>
+          <div className='mb-1 text-[11px] font-mono font-semibold uppercase tracking-wider text-[#555555]'>
+            Bàn vẽ
           </div>
           <h1 className='text-2xl font-serif font-bold text-[#171717] tracking-tight'>
             Bàn Vẽ &amp; Bố Cục Khung Tranh Manga
