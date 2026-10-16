@@ -7,7 +7,6 @@ import { ArtworkCanvas } from '@/roles/artist/components/ArtworkCanvas';
 import { LetteringWorkspace } from '@/roles/letterer/views/LetteringWorkspace';
 import { VersionHistoryModal, AIProvenanceModal } from '@/shared/modals/ProvenanceModals';
 import { KanbanCard, SystemRole } from '@/types';
-import { INITIAL_KANBAN_CARDS } from '@/mocks/mockData';
 
 interface TaskEditorProps {
   activeRoles: string[];
@@ -30,30 +29,19 @@ export const TaskEditorView: React.FC<TaskEditorProps> = ({
 
   useEffect(() => {
     if (taskId) {
-      // Mock fetch
-      const found = INITIAL_KANBAN_CARDS.find((c) => c.id === taskId);
-      if (found) {
-        setTask(found);
-      } else {
-        // Fallback for unknown IDs to allow UI testing
-        setTask({
-          id: taskId,
-          title: `Demo Task: ${taskId}`,
-          pageNumber: 'Page 1',
-          stage: taskId.includes('letter')
-            ? 'letter'
-            : taskId.includes('script')
-              ? 'script'
-              : 'ink',
-          assignee: 'Test User',
-          assigneeRole: '',
-          assigneeInitials: 'TU',
-          avatarBg: '#E7E7E7',
-          pageType: 'Single',
-          dueText: '',
-          tags: [],
-        });
-      }
+      setTask({
+        id: taskId,
+        title: `Task: ${taskId}`,
+        pageNumber: 'Page 1',
+        stage: taskId.includes('letter') ? 'letter' : taskId.includes('script') ? 'script' : 'ink',
+        assignee: 'Assigned User',
+        assigneeRole: '',
+        assigneeInitials: 'AU',
+        avatarBg: '#E7E7E7',
+        pageType: 'Single',
+        dueText: '',
+        tags: [],
+      });
     }
   }, [taskId]);
 

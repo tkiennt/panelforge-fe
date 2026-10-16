@@ -5,16 +5,16 @@
 ---
 
 ## PHASE 1: STRUCTURAL CONSOLIDATION & DUPLICATE REMOVAL
-- [ ] **1.1. Remove Root-Level Legacy Files:**
-  - [ ] Delete `App_old.tsx`, `App_commit.tsx`, and `GlobalAppShell.html` after verifying zero active imports.
-- [ ] **1.2. Consolidate Duplicated Role Workspaces (4 Overlapping Locations):**
-  - [ ] Keep the canonical API-connected views inside `src/roles/{writer,artist,letterer,editor}/views/`.
-  - [ ] Merge or remove redundant duplicates in `components/modals/roles/*Workspace.tsx` and `components/task-editor/*`.
-- [ ] **1.3. Consolidate Member & Pipeline Views:**
-  - [ ] Merge `MembersRolesView.tsx`, `ProjectMembersView.tsx`, and `SeriesMembersView.tsx` into a single canonical `src/roles/producer/views/MembersRolesView.tsx` (MVP manages members at the Workspace level, not `SeriesMember`).
-  - [ ] Remove orphaned `ProductionPipelineView.tsx` and standardize on `src/shared/features/pipeline-board/KanbanBoard.tsx`.
-- [ ] **1.4. Clean Up Residual Mock Data Imports:**
-  - [ ] Replace or remove references to `src/data/mock*.ts` inside `AILayoutModal`, `BibleReferencePanel`, `AIBreakdownDiff`, and `ScriptOutline`.
+- [x] **1.1. Remove Root-Level Legacy Files:**
+  - [x] Delete `App_old.tsx`, `App_commit.tsx`, and `GlobalAppShell.html` after verifying zero active imports.
+- [x] **1.2. Consolidate Duplicated Role Workspaces (4 Overlapping Locations):**
+  - [x] Keep the canonical API-connected views inside `src/roles/{writer,artist,letterer,editor}/views/`.
+  - [x] Merge or remove redundant duplicates in `components/modals/roles/*Workspace.tsx` and `components/task-editor/*`.
+- [x] **1.3. Consolidate Member & Pipeline Views:**
+  - [x] Merge `MembersRolesView.tsx`, `ProjectMembersView.tsx`, and `SeriesMembersView.tsx` into a single canonical `src/roles/producer/views/MembersRolesView.tsx` (MVP manages members at the Workspace level, not `SeriesMember`).
+  - [x] Remove orphaned `ProductionPipelineView.tsx` and standardize on `src/shared/features/pipeline-board/KanbanBoard.tsx`.
+- [x] **1.4. Clean Up Residual Mock Data Imports:**
+  - [x] Replace or remove references to `src/data/mock*.ts` inside `AILayoutModal`, `BibleReferencePanel`, `AIBreakdownDiff`, and `ScriptOutline`.
 
 ---
 
