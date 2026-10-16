@@ -734,12 +734,12 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           </div>
           <div>
             <div className='flex items-center gap-2'>
-              <span className='px-2 py-0.5 rounded bg-orange-600 text-white font-mono text-[10px] font-bold uppercase tracking-wider'>
+              <span className='px-2 py-0.5 rounded bg-orange-600 text-white font-mono text-xs font-bold uppercase tracking-wider'>
                 Kịch bản
               </span>
               {currentChapter && (
                 <span
-                  className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${
+                  className={`text-xs font-mono font-bold px-2 py-0.5 rounded ${
                     currentChapter.status === 'Approved'
                       ? 'bg-emerald-100 text-emerald-800'
                       : currentChapter.status === 'Published'
@@ -751,7 +751,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                 </span>
               )}
               {currentChapter && (
-                <span className='text-[10px] font-mono text-zinc-500 bg-zinc-100 px-1.5 py-0.5 rounded'>
+                <span className='text-xs font-mono text-zinc-500 bg-zinc-100 px-1.5 py-0.5 rounded'>
                   v{currentChapter.versionVector}
                 </span>
               )}
@@ -803,7 +803,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             <span>{loadingConsistency ? 'Đang kiểm tra...' : 'Kiểm tra nhất quán'}</span>
             {findings.filter((f) => f.status === 'Open' || f.status === 'NeedsClarification')
               .length > 0 && (
-              <span className='px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[10px] font-mono font-bold'>
+              <span className='px-1.5 py-0.5 rounded-full bg-rose-500 text-white text-xs font-mono font-bold'>
                 {
                   findings.filter((f) => f.status === 'Open' || f.status === 'NeedsClarification')
                     .length
@@ -1290,7 +1290,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                       <span className={isSelected ? 'text-orange-950 font-bold' : 'text-[#171717]'}>
                         Cảnh {s.sceneNumber}
                       </span>
-                      <span className='font-mono text-[10px] text-zinc-500 bg-zinc-100 px-2 py-0.5 rounded-full'>
+                      <span className='font-mono text-xs text-zinc-500 bg-zinc-100 px-2 py-0.5 rounded-full'>
                         {s.scriptLinesCount} dòng
                       </span>
                     </div>
@@ -1298,7 +1298,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                       {s.heading || 'Chưa đặt tiêu đề'}
                     </div>
                     {s.summary && (
-                      <p className='text-[11px] text-[#78716C] line-clamp-2 mt-1 leading-snug'>
+                      <p className='text-xs text-[#78716C] line-clamp-2 mt-1 leading-snug'>
                         {s.summary}
                       </p>
                     )}
@@ -1317,7 +1317,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               <div className='flex items-start justify-between border-b border-[#E5DFD7] pb-4'>
                 <div className='min-w-0 flex-1 pr-3'>
                   <div className='flex items-center gap-2 mb-1'>
-                    <span className='px-2.5 py-0.5 rounded-md bg-zinc-900 text-white font-mono text-[10px] font-bold tracking-wider'>
+                    <span className='px-2.5 py-0.5 rounded-md bg-zinc-900 text-white font-mono text-xs font-bold tracking-wider'>
                       CẢNH {selectedScene.sceneNumber}
                     </span>
                     <span className='text-xs font-mono text-zinc-400'>
@@ -1467,7 +1467,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                               </span>
                             )}
                             {line.panelId && (
-                              <span className='text-[10px] font-mono font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-md flex items-center gap-1'>
+                              <span className='text-xs font-mono font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-md flex items-center gap-1'>
                                 <Layers className='w-2.5 h-2.5' />
                                 <span>Panel</span>
                               </span>
@@ -1475,7 +1475,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                             {line.narrationMode && line.narrationMode !== 'Present' && (
                               <span
                                 data-testid={`narration-mode-badge-${line.id}`}
-                                className='text-[10px] font-semibold text-purple-700 bg-purple-100 border border-purple-200 px-2.5 py-0.5 rounded-full flex items-center gap-1'
+                                className='text-xs font-semibold text-purple-700 bg-purple-100 border border-purple-200 px-2.5 py-0.5 rounded-full flex items-center gap-1'
                                 title={`Ngoại lệ trần thuật: ${line.narrationMode}`}
                               >
                                 {line.narrationMode === 'Flashback' && '⏪ Hồi tưởng'}
@@ -1487,7 +1487,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                               </span>
                             )}
                             {isHighlighted && (
-                              <span className='text-[10px] font-bold text-orange-700 bg-orange-100 border border-orange-300 px-2 py-0.5 rounded-full animate-pulse'>
+                              <span className='text-xs font-bold text-orange-700 bg-orange-100 border border-orange-300 px-2 py-0.5 rounded-full animate-pulse'>
                                 Đang xem dòng này
                               </span>
                             )}
@@ -1598,7 +1598,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                         {/* Linked Series Bible Entries (UC-06) */}
                         {line.bibleEntryIds && line.bibleEntryIds.length > 0 && (
                           <div className='mt-3 flex flex-wrap items-center gap-1.5 pt-2.5 border-t border-zinc-100'>
-                            <span className='text-[11px] font-semibold text-zinc-400 flex items-center gap-1 mr-1'>
+                            <span className='text-xs font-semibold text-zinc-400 flex items-center gap-1 mr-1'>
                               <BookOpen className='w-3 h-3 text-purple-600' />
                               <span>Bible:</span>
                             </span>
@@ -1607,7 +1607,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                               return (
                                 <span
                                   key={bId}
-                                  className='inline-flex items-center gap-1 text-[11px] font-medium text-purple-800 bg-purple-50 border border-purple-200 px-2.5 py-0.5 rounded-full'
+                                  className='inline-flex items-center gap-1 text-xs font-medium text-purple-800 bg-purple-50 border border-purple-200 px-2.5 py-0.5 rounded-full'
                                   title={entry?.description || entry?.name || 'Mục Series Bible'}
                                 >
                                   <span>{entry?.name || bId.slice(0, 8)}</span>
@@ -1649,7 +1649,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             </div>
           </div>
 
-          <p className='text-[11px] text-[#78716C] leading-relaxed'>
+          <p className='text-xs text-[#78716C] leading-relaxed'>
             Danh sách nhân vật Canon từ Series Bible. Gắn đúng nhân vật khi soạn thoại để hệ thống
             Letterer và AI kiểm tra nhất quán.
           </p>
@@ -1697,12 +1697,12 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                         {char.name}
                       </div>
                       {char.subtitle && (
-                        <div className='text-[10px] text-orange-600 font-mono truncate font-semibold'>
+                        <div className='text-xs text-orange-600 font-mono truncate font-semibold'>
                           {char.subtitle}
                         </div>
                       )}
                       {char.description && (
-                        <p className='text-[11px] text-[#737373] line-clamp-2 mt-1 leading-snug'>
+                        <p className='text-xs text-[#737373] line-clamp-2 mt-1 leading-snug'>
                           {char.description}
                         </p>
                       )}
@@ -1847,7 +1847,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                     Người kể không đáng tin (Unreliable Narrator)
                   </option>
                 </select>
-                <p className='text-[10px] text-zinc-400 mt-1'>
+                <p className='text-xs text-zinc-400 mt-1'>
                   Các dòng kịch bản mới thêm vào phân cảnh này sẽ tự động kế thừa chế độ kể chuyện
                   tương ứng.
                 </p>
@@ -1885,7 +1885,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                     ? `Sửa Dòng Kịch Bản #${editingLine.lineOrder}`
                     : 'Thêm Dòng Kịch Bản Mới (UC-06)'}
                 </h3>
-                <p className='text-[11px] text-zinc-500'>
+                <p className='text-xs text-zinc-500'>
                   Phiên bản chương hiện tại: <strong>v{currentChapter?.versionVector}</strong>
                 </p>
               </div>
@@ -1916,7 +1916,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                     </option>
                   ))}
                 </select>
-                <p className='text-[10px] text-zinc-400 mt-1'>
+                <p className='text-xs text-zinc-400 mt-1'>
                   * Nhân vật được lấy từ Series Bible. Gắn đúng nhân vật giúp Letterer sinh balloon
                   tương ứng.
                 </p>
@@ -1961,13 +1961,13 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                     <BookOpen className='w-3.5 h-3.5 text-purple-600' />
                     <span>Liên kết Series Bible (Địa điểm, Đạo cụ, Nhân vật, Thuật ngữ...)</span>
                   </div>
-                  <span className='text-[10px] text-zinc-400 font-normal'>
+                  <span className='text-xs text-zinc-400 font-normal'>
                     Đã chọn {lineBibleEntryIds.length}/20 mục
                   </span>
                 </label>
                 <div className='max-h-28 overflow-y-auto border border-[#E7E7E7] rounded-xl p-2.5 bg-zinc-50/50 custom-scrollbar'>
                   {allBibleEntries.length === 0 ? (
-                    <p className='text-[11px] text-zinc-400 italic'>
+                    <p className='text-xs text-zinc-400 italic'>
                       Series Bible chưa có mục nào hoặc đang tải.
                     </p>
                   ) : (
@@ -1987,7 +1987,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                                     : prev,
                               );
                             }}
-                            className={`inline-flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full border transition-all cursor-pointer ${
+                            className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border transition-all cursor-pointer ${
                               isChecked
                                 ? 'bg-purple-100 border-purple-300 text-purple-800 font-semibold shadow-2xs'
                                 : 'bg-white border-zinc-200 text-zinc-600 hover:border-purple-200 hover:bg-purple-50/30'
@@ -2014,7 +2014,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                     <Compass className='w-3.5 h-3.5 text-purple-600' />
                     <span>Ngoại lệ trần thuật (Narration Mode)</span>
                   </div>
-                  <span className='text-[10px] text-zinc-400 font-normal'>Bỏ qua báo sai</span>
+                  <span className='text-xs text-zinc-400 font-normal'>Bỏ qua báo sai</span>
                 </label>
                 <select
                   data-testid='line-narration-mode-select'
@@ -2042,7 +2042,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                     Người kể không đáng tin (Hạ cảnh báo xuống Warning)
                   </option>
                 </select>
-                <p className='text-[10px] text-zinc-400 mt-1'>
+                <p className='text-xs text-zinc-400 mt-1'>
                   * Chọn ngoại lệ có chủ ý để hệ thống Kiểm tra Nhất quán không báo lỗi sai (False
                   Positives).
                 </p>
@@ -2061,7 +2061,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                     onChange={(e) => setLineOrderInput(parseInt(e.target.value, 10) || 1)}
                     className='w-32 px-3 py-1.5 text-xs border border-[#E7E7E7] rounded-xl outline-none focus:border-orange-500'
                   />
-                  <span className='text-[10px] text-zinc-400 ml-2'>
+                  <span className='text-xs text-zinc-400 ml-2'>
                     Trùng số sẽ tự động chèn và dịch các dòng sau xuống.
                   </span>
                 </div>

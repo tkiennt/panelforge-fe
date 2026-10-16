@@ -26,7 +26,7 @@ import { SeriesBibleView } from '@/shared/features/series-bible/SeriesBibleView'
 import { MyWorkView } from '@/shared/features/collaboration/MyWorkView';
 import { PublisherDeskView } from '@/roles/publisher/views/PublisherDeskView';
 import { ScriptEditorView } from '@/roles/writer/views/ScriptEditorView';
-import LettererWorkspace from '@/roles/letterer/views/LettererWorkspace';
+import LettererDeskView from '@/roles/letterer/views/LettererDeskView';
 import {
   SystemRole,
   WorkspaceRole,
@@ -344,7 +344,7 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                 path='artist'
                 element={<ArtistDeskView workspaceRole={currentWorkspaceRole} />}
               />
-              <Route path='letterer' element={<LettererWorkspace />} />
+              <Route path='letterer' element={<LettererDeskView />} />
               <Route path='export' element={<ExportView onShowToast={showToast} />} />
             </Route>
           </Route>

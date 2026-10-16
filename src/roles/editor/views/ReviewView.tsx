@@ -1376,7 +1376,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
               }}
             >
               <span
-                className={`absolute -top-2.5 -left-2.5 w-5 h-5 rounded-full text-white text-[10px] font-bold flex items-center justify-center shadow ${
+                className={`absolute -top-2.5 -left-2.5 min-w-5 h-5 px-1 rounded-full text-white text-xs font-mono font-bold flex items-center justify-center shadow ${
                   isActive ? 'bg-orange-500' : 'bg-red-500'
                 }`}
               >
@@ -1399,7 +1399,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
                 height: `${d.box.h * 100}%`,
               }}
             >
-              <span className='absolute -top-2.5 -left-2.5 w-5 h-5 rounded-full bg-[#F97316] text-white text-[10px] font-bold flex items-center justify-center shadow'>
+              <span className='absolute -top-2.5 -left-2.5 min-w-5 h-5 px-1 rounded-full bg-[#F97316] text-white text-xs font-mono font-bold flex items-center justify-center shadow'>
                 M{i + 1}
               </span>
             </div>
@@ -1445,7 +1445,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
           data-testid='orphan-submissions'
         >
           {orphanSubs.map((o) => (
-            <div key={o.subId} className='text-[11px] text-amber-900'>
+            <div key={o.subId} className='text-xs text-amber-900'>
               <p className='font-semibold'>
                 Lần nộp {o.attempt}: Bố cục khung của lần nộp này không còn (khung đã bị xoá trước
                 khi hệ thống lưu bố cục theo lần nộp).
@@ -1463,7 +1463,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
                   ) : (
                     <span
                       key={art.id}
-                      className='h-16 px-2 flex items-center rounded border border-amber-300 bg-white text-[10px]'
+                      className='h-16 px-2 flex items-center rounded border border-amber-300 bg-white text-xs font-mono'
                     >
                       {art.fileName || art.id}
                     </span>
@@ -1501,13 +1501,13 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
                 Duyệt: {assignment.brief}
               </h2>
               {current && (
-                <span className='px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200'>
+                <span className='px-2 py-0.5 rounded text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200'>
                   Đang duyệt: {label(current)}
                   {pendingSub ? ` (lần nộp ${pendingSub.attemptNumber})` : ''}
                 </span>
               )}
             </div>
-            <p className='text-[10px] text-[#A3A3A3] uppercase tracking-wider font-bold'>
+            <p className='text-xs text-[#A3A3A3] uppercase tracking-wider font-bold'>
               Trạng thái: {st} · {String(assignment.entityType)}
               {effectiveRole ? ` · Vai trò: ${effectiveRole}` : ''}
             </p>
@@ -1572,16 +1572,16 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
           <button
             type='button'
             onClick={() => setCompareMode('side-by-side')}
-            className={`px-2 py-1 rounded flex items-center gap-1 font-semibold text-[11px] cursor-pointer ${
+            className={`px-2.5 py-1 rounded flex items-center gap-1.5 font-semibold text-xs cursor-pointer ${
               compareMode === 'side-by-side' ? 'bg-[#171717] text-white' : 'text-[#737373]'
             }`}
           >
-            <Columns className='w-3 h-3' /> Cạnh nhau
+            <Columns className='w-3.5 h-3.5' /> Cạnh nhau
           </button>
           <button
             type='button'
             onClick={() => setCompareMode('swipe')}
-            className={`px-2 py-1 rounded flex items-center gap-1 font-semibold text-[11px] cursor-pointer ${
+            className={`px-2.5 py-1 rounded flex items-center gap-1.5 font-semibold text-xs cursor-pointer ${
               compareMode === 'swipe' ? 'bg-[#171717] text-white' : 'text-[#737373]'
             }`}
           >
@@ -1590,18 +1590,18 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
           <button
             type='button'
             onClick={() => setCompareMode('onion-skin')}
-            className={`px-2 py-1 rounded flex items-center gap-1 font-semibold text-[11px] cursor-pointer ${
+            className={`px-2.5 py-1 rounded flex items-center gap-1.5 font-semibold text-xs cursor-pointer ${
               compareMode === 'onion-skin' ? 'bg-[#171717] text-white' : 'text-[#737373]'
             }`}
           >
-            <Layers className='w-3 h-3' /> Chồng ảnh
+            <Layers className='w-3.5 h-3.5' /> Chồng ảnh
           </button>
         </div>
 
         {/* Thanh trượt Onion Skin nếu đang ở mode onion-skin */}
         {compareMode === 'onion-skin' && (
           <div className='flex items-center gap-2'>
-            <span className='text-[11px] text-zinc-600 font-medium'>Độ mờ bản sau:</span>
+            <span className='text-xs text-zinc-600 font-medium'>Độ mờ bản sau:</span>
             <input
               type='range'
               min='0'
@@ -1610,7 +1610,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
               onChange={(e) => setOnionOpacity(Number(e.target.value))}
               className='w-24 accent-[#171717]'
             />
-            <span className='text-[10px] font-mono text-zinc-500 w-8'>{onionOpacity}%</span>
+            <span className='text-xs font-mono text-zinc-500 w-8'>{onionOpacity}%</span>
           </div>
         )}
 
@@ -1624,7 +1624,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
           >
             <ZoomIn className='w-3.5 h-3.5' />
           </button>
-          <span className='px-1.5 font-mono text-[11px] text-zinc-600 font-medium'>
+          <span className='px-1.5 font-mono text-xs text-zinc-600 font-medium'>
             {Math.round(zoomTransform.scale * 100)}%
           </span>
           <button
@@ -1639,7 +1639,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
             type='button'
             onClick={resetZoom}
             title='Đặt lại góc nhìn'
-            className='px-2 py-1 border border-[#D4D4D4] rounded bg-white hover:bg-zinc-50 font-medium text-[11px] flex items-center gap-1 cursor-pointer'
+            className='px-2 py-1 border border-[#D4D4D4] rounded bg-white hover:bg-zinc-50 font-medium text-xs flex items-center gap-1 cursor-pointer'
           >
             <RotateCcw className='w-3 h-3' /> Đặt lại
           </button>
@@ -1647,7 +1647,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
             type='button'
             onClick={() => setZoomSync((s) => !s)}
             title='Đồng bộ zoom/pan cả hai khung'
-            className={`px-2 py-1 border rounded font-medium text-[11px] flex items-center gap-1 cursor-pointer ${
+            className={`px-2 py-1 border rounded font-medium text-xs flex items-center gap-1 cursor-pointer ${
               zoomSync
                 ? 'bg-blue-50 text-blue-700 border-blue-200'
                 : 'bg-white text-zinc-600 border-zinc-200'
@@ -1666,7 +1666,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
                 <button
                   type='button'
                   onClick={() => setIsDrawTool(true)}
-                  className={`px-2 py-0.5 rounded text-[11px] font-semibold flex items-center gap-1 cursor-pointer ${
+                  className={`px-2 py-0.5 rounded text-xs font-semibold flex items-center gap-1 cursor-pointer ${
                     isDrawTool ? 'bg-[#F97316] text-white' : 'text-[#737373]'
                   }`}
                 >
@@ -1675,7 +1675,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
                 <button
                   type='button'
                   onClick={() => setIsDrawTool(false)}
-                  className={`px-2 py-0.5 rounded text-[11px] font-semibold flex items-center gap-1 cursor-pointer ${
+                  className={`px-2 py-0.5 rounded text-xs font-semibold flex items-center gap-1 cursor-pointer ${
                     !isDrawTool ? 'bg-[#171717] text-white' : 'text-[#737373]'
                   }`}
                 >
@@ -1683,7 +1683,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
                 </button>
               </div>
               {drawingHint && (
-                <span className='px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-100 text-amber-800 border border-amber-300 animate-pulse flex items-center gap-1'>
+                <span className='px-2 py-0.5 rounded text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-300 animate-pulse flex items-center gap-1'>
                   <span>💡</span>
                   <span>{drawingHint}</span>
                 </span>
@@ -1696,12 +1696,12 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
             type='button'
             onClick={() => void runPixelDiff()}
             disabled={diffLoading || !current || !previous}
-            className='px-2.5 py-1 border border-pink-200 bg-pink-50 hover:bg-pink-100 text-pink-700 rounded font-semibold text-[11px] flex items-center gap-1 cursor-pointer disabled:opacity-50'
+            className='px-2.5 py-1 border border-pink-200 bg-pink-50 hover:bg-pink-100 text-pink-700 rounded font-semibold text-xs flex items-center gap-1 cursor-pointer disabled:opacity-50'
           >
             {diffLoading ? (
-              <Loader2 className='w-3 h-3 animate-spin' />
+              <Loader2 className='w-3.5 h-3.5 animate-spin' />
             ) : (
-              <Sparkles className='w-3 h-3' />
+              <Sparkles className='w-3.5 h-3.5' />
             )}
             <span>Pixel Diff</span>
           </button>
@@ -1753,7 +1753,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
             <span>
               Phát hiện {diffStats.diffPixels.toLocaleString()} px khác nhau (~{diffStats.percent}%)
             </span>
-            <span className='text-[10px] text-zinc-500 italic'>
+            <span className='text-xs text-zinc-500 italic'>
               (Gợi ý tham khảo, không phải kết luận)
             </span>
           </div>
@@ -1773,7 +1773,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
           {/* HEADER CHỌN PHIÊN BẢN */}
           <div className='p-2 bg-white border-b border-[#E7E7E7] flex items-center justify-between gap-4 text-xs'>
             <div className='flex-1 flex items-center gap-2'>
-              <span className='uppercase tracking-wider font-bold text-[#737373] text-[11px] shrink-0'>
+              <span className='uppercase tracking-wider font-bold text-[#737373] text-xs shrink-0'>
                 Phiên bản trước:
               </span>
               <select
@@ -1794,7 +1794,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
             </div>
 
             <div className='flex-1 flex items-center justify-end gap-2'>
-              <span className='uppercase tracking-wider font-bold text-[#F97316] text-[11px] shrink-0'>
+              <span className='uppercase tracking-wider font-bold text-[#F97316] text-xs shrink-0'>
                 Bản đang duyệt:
               </span>
               <select
@@ -1817,7 +1817,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
             {compareMode === 'side-by-side' && (
               <div className='flex-1 flex w-full h-full'>
                 <div className='flex-1 border-r border-[#D4D4D4] flex flex-col min-w-0'>
-                  <div className='text-center py-1 text-[11px] font-bold text-zinc-500 bg-[#EAE8E3] border-b border-[#D4D4D4]'>
+                  <div className='text-center py-1 text-xs font-bold text-zinc-500 bg-[#EAE8E3] border-b border-[#D4D4D4]'>
                     {previous ? label(previous) : 'Không có phiên bản trước'}
                   </div>
                   <div className='flex-1 p-4 flex items-center justify-center overflow-hidden'>
@@ -1826,7 +1826,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
                 </div>
 
                 <div className='flex-1 flex flex-col min-w-0'>
-                  <div className='text-center py-1 text-[11px] font-bold text-[#F97316] bg-[#FFF7ED] border-b border-[#FED7AA]'>
+                  <div className='text-center py-1 text-xs font-bold text-[#F97316] bg-[#FFF7ED] border-b border-[#FED7AA]'>
                     {current ? `Bản đang duyệt · ${label(current)}` : 'Chưa có artwork'}
                   </div>
                   <div className='flex-1 p-4 flex items-center justify-center overflow-hidden'>
@@ -1883,7 +1883,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
                       window.addEventListener('mouseup', onUp);
                     }}
                   >
-                    <div className='w-6 h-6 rounded-full bg-white border border-zinc-300 shadow flex items-center justify-center text-[10px] font-bold text-zinc-700'>
+                    <div className='w-6 h-6 rounded-full bg-white border border-zinc-300 shadow flex items-center justify-center text-xs font-bold text-zinc-700'>
                       ↔
                     </div>
                   </div>
@@ -1935,7 +1935,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
                 role='tab'
                 aria-selected={tab === key}
                 onClick={() => setTab(key)}
-                className={`flex-1 py-3 text-[11px] font-bold flex items-center justify-center gap-1.5 cursor-pointer ${
+                className={`flex-1 py-3 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer ${
                   tab === key
                     ? 'text-[#171717] border-b-2 border-[#171717]'
                     : 'text-[#A3A3A3] bg-[#FAF8F4]'
@@ -1955,7 +1955,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
                   <select
                     value={crFilter}
                     onChange={(e) => setCrFilter(e.target.value as 'all' | 'version')}
-                    className='border border-zinc-200 rounded px-2 py-0.5 text-[11px] bg-white'
+                    className='border border-zinc-200 rounded px-2 py-0.5 text-xs bg-white'
                   >
                     <option value='all'>Hiện tất cả ({changeRequests.length})</option>
                     <option value='version'>Theo phiên bản đang xem</option>
@@ -1968,15 +1968,15 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
                     className='space-y-2 p-3 rounded-lg border border-[#FED7AA] bg-[#FFF7ED]'
                     data-testid='review-draft-panel'
                   >
-                    <p className='text-[11px] font-bold text-[#9A3412]'>Trả về kèm yêu cầu sửa</p>
+                    <p className='text-xs font-bold text-[#9A3412]'>Trả về kèm yêu cầu sửa</p>
                     {drafts.length === 0 && (
-                      <p className='text-[11px] text-[#9A3412]'>
+                      <p className='text-xs text-[#9A3412]'>
                         Kéo chuột trên ảnh hiện tại để khoanh vùng cần sửa (tuỳ chọn).
                       </p>
                     )}
                     {drafts.map((d, i) => (
                       <div key={d.key} className='flex items-start gap-1.5'>
-                        <span className='mt-1.5 text-[10px] font-bold text-[#F97316] w-6'>
+                        <span className='mt-1.5 text-xs font-bold text-[#F97316] w-6'>
                           M{i + 1}
                         </span>
                         <div className='flex-1 space-y-1'>
@@ -1994,7 +1994,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
                             className='w-full px-2 py-1 text-xs border border-[#D4D4D4] rounded bg-white'
                           />
                           {d.panelId && (
-                            <span className='text-[9px] text-zinc-500 font-mono'>
+                            <span className='text-xs text-zinc-500 font-mono'>
                               Khung: {d.panelId.slice(0, 8)}…
                             </span>
                           )}
