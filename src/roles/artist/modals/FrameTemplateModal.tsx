@@ -95,26 +95,26 @@ export const FrameTemplateModal: React.FC<FrameTemplateModalProps> = ({
   const selectedTemplate = templates.find((t) => t.id === selectedTemplateId);
 
   return (
-    <div className='fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200'>
-      <div className='bg-white rounded-2xl border border-[#E7E7E7] shadow-2xl max-w-2xl w-full flex flex-col max-h-[85vh] overflow-hidden'>
+    <div className='fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200'>
+      <div className='bg-white rounded-2xl border border-stone-200 shadow-2xl max-w-2xl w-full flex flex-col max-h-[85vh] overflow-hidden'>
         {/* Header */}
-        <div className='p-5 border-b border-[#E7E7E7] flex items-center justify-between bg-[#FAF8F5]'>
-          <div className='flex items-center gap-2.5'>
-            <div className='p-2 bg-blue-100 text-blue-600 rounded-xl'>
+        <div className='p-5 border-b border-stone-100 flex items-center justify-between bg-stone-50/50'>
+          <div className='flex items-center gap-3'>
+            <div className='p-2.5 bg-orange-50 text-orange-600 rounded-xl border border-orange-100'>
               <LayoutTemplate className='w-5 h-5' />
             </div>
             <div>
-              <h3 className='text-sm font-bold text-[#171717]'>
+              <h3 className='text-sm font-bold text-stone-900'>
                 Áp Dụng Mẫu Khung Tranh (Frame Templates)
               </h3>
-              <p className='text-xs text-[#737373]'>
+              <p className='text-xs text-stone-500'>
                 Trang {pageNumber} • Chọn mẫu khung dựng sẵn để tự động sinh ô Panel theo thứ tự đọc
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className='p-1.5 text-[#888888] hover:text-[#171717] rounded-lg transition-colors cursor-pointer'
+            className='p-1.5 text-stone-400 hover:text-stone-700 hover:bg-stone-100 rounded-lg transition-colors cursor-pointer'
           >
             <X className='w-4 h-4' />
           </button>
@@ -136,8 +136,8 @@ export const FrameTemplateModal: React.FC<FrameTemplateModalProps> = ({
 
         {/* Error notice */}
         {errorMsg && (
-          <div className='mx-6 mt-4 p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2 text-xs text-red-700'>
-            <AlertTriangle className='w-4 h-4 text-red-600 shrink-0' />
+          <div className='mx-6 mt-4 p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-2 text-xs text-rose-700'>
+            <AlertTriangle className='w-4 h-4 text-rose-600 shrink-0' />
             <span>{errorMsg}</span>
           </div>
         )}
@@ -145,15 +145,15 @@ export const FrameTemplateModal: React.FC<FrameTemplateModalProps> = ({
         {/* Content body */}
         <div className='p-6 flex-1 overflow-y-auto custom-scrollbar space-y-4'>
           {loading ? (
-            <div className='p-12 text-center text-xs text-zinc-500'>
+            <div className='p-12 text-center text-xs text-stone-500'>
               Đang tải danh sách mẫu khung...
             </div>
           ) : templates.length === 0 ? (
-            <div className='p-12 text-center text-xs text-zinc-500 border border-dashed border-[#E7E7E7] rounded-xl'>
+            <div className='p-12 text-center text-xs text-stone-500 border border-dashed border-stone-200 rounded-xl'>
               Chưa có mẫu khung nào trong Studio.
             </div>
           ) : (
-            <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
+            <div className='grid grid-cols-1 sm:grid-cols-2 gap-3.5'>
               {templates.map((tpl) => {
                 const isSelected = tpl.id === selectedTemplateId;
                 return (
@@ -162,37 +162,37 @@ export const FrameTemplateModal: React.FC<FrameTemplateModalProps> = ({
                     onClick={() => setSelectedTemplateId(tpl.id)}
                     className={`p-4 rounded-xl border text-left cursor-pointer transition-all ${
                       isSelected
-                        ? 'border-blue-600 bg-blue-50/40 ring-2 ring-blue-500/20'
-                        : 'border-[#E7E7E7] bg-white hover:border-blue-300'
+                        ? 'border-orange-500 bg-orange-50/40 ring-2 ring-orange-500/20 shadow-soft-sm'
+                        : 'border-stone-200 bg-white hover:border-orange-300'
                     }`}
                   >
                     <div className='flex items-center justify-between mb-2'>
-                      <div className='font-bold text-xs text-[#171717] flex items-center gap-1.5'>
+                      <div className='font-bold text-xs text-stone-900 flex items-center gap-1.5'>
                         <span>{tpl.name}</span>
                         {tpl.isBuiltIn && (
-                          <span className='px-1.5 py-0.5 rounded text-xs font-bold bg-zinc-100 text-zinc-600'>
+                          <span className='px-1.5 py-0.5 rounded text-xs font-bold bg-stone-100 text-stone-600'>
                             Mặc định
                           </span>
                         )}
                       </div>
-                      <span className='font-mono text-xs text-blue-600 font-semibold bg-blue-50 px-1.5 py-0.5 rounded'>
+                      <span className='font-mono text-xs text-orange-700 font-bold bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-md'>
                         {tpl.panelCount} ô
                       </span>
                     </div>
 
-                    <div className='text-xs text-[#737373] mb-3'>
-                      Khổ: <span className='font-mono'>{tpl.layoutFormat}</span>
+                    <div className='text-xs text-stone-500 mb-3'>
+                      Khổ: <span className='font-mono font-medium text-stone-700'>{tpl.layoutFormat}</span>
                     </div>
 
                     {/* Miniature Slot Layout Visualization */}
                     {/* BE trả x/y/w/h chuẩn hoá 0–1 theo trang; corners 0–1 trong hộp khung (khung nghiêng) */}
                     <div
-                      className={`${tpl.layoutFormat === 'SpreadDouble' ? 'aspect-[3/2]' : 'aspect-[2/3]'} bg-white border border-zinc-200 rounded relative overflow-hidden`}
+                      className={`${tpl.layoutFormat === 'SpreadDouble' ? 'aspect-[3/2]' : 'aspect-[2/3]'} bg-stone-50 border border-stone-200 rounded-lg relative overflow-hidden`}
                     >
                       {tpl.slots.map((s, idx) => (
                         <div
                           key={idx}
-                          className={`absolute border ${s.borderless ? 'border-dashed border-blue-300' : 'border-blue-400'} bg-blue-500/15 flex items-center justify-center font-mono text-xs font-bold text-blue-700`}
+                          className={`absolute border ${s.borderless ? 'border-dashed border-orange-400' : 'border-stone-800'} ${isSelected ? 'bg-orange-500/20 text-orange-900' : 'bg-stone-200/60 text-stone-700'} flex items-center justify-center font-mono text-xs font-bold`}
                           style={{
                             left: `${s.x * 100}%`,
                             top: `${s.y * 100}%`,
@@ -215,11 +215,11 @@ export const FrameTemplateModal: React.FC<FrameTemplateModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className='p-4 border-t border-[#E7E7E7] flex items-center justify-between bg-[#FAF8F5]'>
-          <div className='text-xs text-[#737373]'>
+        <div className='p-4 border-t border-stone-100 flex items-center justify-between bg-stone-50/50'>
+          <div className='text-xs text-stone-500'>
             {selectedTemplate && (
               <span>
-                Đang chọn: <strong>{selectedTemplate.name}</strong> ({selectedTemplate.panelCount} ô
+                Đang chọn: <strong className='text-stone-800'>{selectedTemplate.name}</strong> ({selectedTemplate.panelCount} ô
                 Panel)
               </span>
             )}
@@ -227,14 +227,14 @@ export const FrameTemplateModal: React.FC<FrameTemplateModalProps> = ({
           <div className='flex items-center gap-2'>
             <button
               onClick={onClose}
-              className='px-3.5 py-1.5 text-xs text-[#555555] hover:text-[#171717] font-semibold cursor-pointer'
+              className='px-3.5 py-2 text-xs text-stone-600 hover:text-stone-900 font-semibold cursor-pointer'
             >
               Hủy
             </button>
             <button
               onClick={handleApply}
               disabled={applying || !selectedTemplateId}
-              className='px-4 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-300 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer'
+              className='px-4 py-2 bg-[#EA580C] hover:bg-[#C2410C] disabled:bg-stone-300 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-soft-sm transition-all cursor-pointer active:scale-95'
             >
               <span>{applying ? 'Đang áp dụng...' : 'Áp Dụng Mẫu Khung'}</span>
               <ArrowRight className='w-3.5 h-3.5' />

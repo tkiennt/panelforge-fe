@@ -57,100 +57,105 @@ export const NewPageCardModal: React.FC<NewPageCardModalProps> = ({
   };
 
   return (
-    <div className='fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4'>
-      <div className='bg-white border border-[#E7E7E7] rounded-2xl max-w-md w-full shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150'>
+    <div className='fixed inset-0 bg-stone-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4'>
+      <div className='bg-white border border-stone-200 rounded-2xl max-w-md w-full shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150'>
         {/* Header */}
-        <div className='p-4 bg-[#FAF8F4] border-b border-[#E7E7E7] flex items-center justify-between'>
-          <div className='flex items-center gap-2'>
-            <Layers className='w-4 h-4 text-[#F97316]' />
-            <h3 className='font-display font-bold text-base text-[#171717]'>
-              Create New Page Card
-            </h3>
+        <div className='p-4.5 bg-stone-50/50 border-b border-stone-100 flex items-center justify-between'>
+          <div className='flex items-center gap-2.5'>
+            <div className='p-2 bg-orange-50 text-orange-600 rounded-xl border border-orange-100'>
+              <Layers className='w-4 h-4' />
+            </div>
+            <div>
+              <h3 className='font-display font-bold text-sm text-stone-900'>
+                Tạo Thẻ Tiến Độ Trang (Page Card)
+              </h3>
+              <p className='text-xs text-stone-500'>Thêm thẻ trang vào quy trình phân cảnh</p>
+            </div>
           </div>
           <button
             onClick={onClose}
-            className='w-7 h-7 rounded-lg hover:bg-white border border-transparent hover:border-[#E7E7E7] flex items-center justify-center text-[#888888] hover:text-[#171717] transition-all cursor-pointer'
+            className='w-7 h-7 rounded-lg hover:bg-stone-100 flex items-center justify-center text-stone-400 hover:text-stone-700 transition-all cursor-pointer'
           >
             <X className='w-4 h-4' />
           </button>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className='p-6 space-y-4'>
+        <form onSubmit={handleSubmit} className='p-6 space-y-4 text-xs'>
           <div className='grid grid-cols-2 gap-3'>
             <div>
-              <label className='block text-xs font-mono font-bold uppercase tracking-wider text-[#888888] mb-1.5'>
-                Page # (e.g. 25)
+              <label className='block font-semibold text-stone-700 mb-1.5'>
+                Số Trang (Page #)
               </label>
               <input
                 type='text'
                 required
-                placeholder='25'
+                placeholder='Ví dụ: 25'
                 value={pageNumber}
                 onChange={(e) => setPageNumber(e.target.value)}
-                className='w-full px-3 py-2 bg-[#FAF8F4] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-[#171717] focus:outline-none focus:border-[#F97316]'
+                className='w-full px-3 py-2 bg-white rounded-xl border border-stone-200 text-stone-900 focus:outline-none focus:border-orange-500 font-mono'
               />
             </div>
 
             <div>
-              <label className='block text-xs font-mono font-bold uppercase tracking-wider text-[#888888] mb-1.5'>
-                Page Type
+              <label className='block font-semibold text-stone-700 mb-1.5'>
+                Loại Trang (Page Type)
               </label>
               <select
                 value={pageType}
                 onChange={(e) => setPageType(e.target.value as any)}
-                className='w-full px-3 py-2 bg-[#FAF8F4] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-[#171717] focus:outline-none focus:border-[#F97316] font-semibold cursor-pointer'
+                className='w-full px-3 py-2 bg-white rounded-xl border border-stone-200 text-stone-900 focus:outline-none focus:border-orange-500 font-semibold cursor-pointer'
               >
-                <option value='Action'>Action Sequence</option>
-                <option value='Dialogue'>Dialogue Heavy</option>
-                <option value='Spread'>Spread / Splash</option>
+                <option value='Action'>Action Sequence (Hành động)</option>
+                <option value='Dialogue'>Dialogue Heavy (Hội thoại)</option>
+                <option value='Spread'>Spread / Splash (Trang đôi / Tràn)</option>
               </select>
             </div>
           </div>
 
           <div>
-            <label className='block text-xs font-mono font-bold uppercase tracking-wider text-[#888888] mb-1.5'>
-              Cut / Scene Title
+            <label className='block font-semibold text-stone-700 mb-1.5'>
+              Tiêu Đề Cảnh (Scene Title)
             </label>
             <input
               type='text'
               required
-              placeholder='e.g. Zor breaks through rooftop skylight'
+              placeholder='Ví dụ: Zor đột nhập qua cửa sổ trần tầng áp mái'
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className='w-full px-3 py-2 bg-[#FAF8F4] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-[#171717] focus:outline-none focus:border-[#F97316]'
+              className='w-full px-3 py-2 bg-white rounded-xl border border-stone-200 text-stone-900 focus:outline-none focus:border-orange-500'
             />
           </div>
 
           <div className='grid grid-cols-2 gap-3'>
             <div>
-              <label className='block text-xs font-mono font-bold uppercase tracking-wider text-[#888888] mb-1.5'>
-                Initial Pipeline Stage
+              <label className='block font-semibold text-stone-700 mb-1.5'>
+                Công Đoạn Ban Đầu
               </label>
               <select
                 value={stage}
                 onChange={(e) => setStage(e.target.value as KanbanStageKey)}
-                className='w-full px-3 py-2 bg-[#FAF8F4] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-[#171717] focus:outline-none focus:border-[#F97316] font-semibold cursor-pointer'
+                className='w-full px-3 py-2 bg-white rounded-xl border border-stone-200 text-stone-900 focus:outline-none focus:border-orange-500 font-semibold cursor-pointer'
               >
-                <option value='script'>1. Script</option>
-                <option value='thumbnail'>2. Thumbnail</option>
-                <option value='pencil'>3. Pencil</option>
-                <option value='ink'>4. Ink</option>
-                <option value='color'>5. Color</option>
-                <option value='letter'>6. Letter</option>
-                <option value='review'>7. Review</option>
-                <option value='approved'>8. Approved</option>
+                <option value='script'>1. Kịch bản (Script)</option>
+                <option value='thumbnail'>2. Thumbnail (Phác thảo)</option>
+                <option value='pencil'>3. Nét chì (Pencil)</option>
+                <option value='ink'>4. Đi mực (Ink)</option>
+                <option value='color'>5. Đổ màu (Color)</option>
+                <option value='letter'>6. Thoại &amp; SFX (Letter)</option>
+                <option value='review'>7. Duyệt (Review)</option>
+                <option value='approved'>8. Hoàn tất (Approved)</option>
               </select>
             </div>
 
             <div>
-              <label className='block text-xs font-mono font-bold uppercase tracking-wider text-[#888888] mb-1.5'>
-                Assignee
+              <label className='block font-semibold text-stone-700 mb-1.5'>
+                Người Phụ Trách
               </label>
               <select
                 value={assignee}
                 onChange={(e) => setAssignee(e.target.value)}
-                className='w-full px-3 py-2 bg-[#FAF8F4] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-[#171717] focus:outline-none focus:border-[#F97316] font-semibold cursor-pointer'
+                className='w-full px-3 py-2 bg-white rounded-xl border border-stone-200 text-stone-900 focus:outline-none focus:border-orange-500 font-semibold cursor-pointer'
               >
                 <option value='Kenji S.'>Kenji S. (Artist)</option>
                 <option value='Arata M.'>Arata M. (Writer)</option>
@@ -161,19 +166,19 @@ export const NewPageCardModal: React.FC<NewPageCardModalProps> = ({
             </div>
           </div>
 
-          <div className='pt-2 flex items-center justify-between'>
+          <div className='pt-2 flex items-center justify-between border-t border-stone-100'>
             <button
               type='button'
               onClick={onClose}
-              className='px-3 py-2 bg-white hover:bg-[#F3F1EB] border border-[#E7E7E7] text-[#555555] text-xs font-semibold rounded-lg transition-colors cursor-pointer'
+              className='px-3.5 py-2 bg-white hover:bg-stone-50 border border-stone-200 text-stone-600 text-xs font-semibold rounded-xl transition-colors cursor-pointer'
             >
-              Cancel
+              Hủy
             </button>
             <button
               type='submit'
-              className='px-4 py-2 bg-[#171717] hover:bg-black text-white text-xs font-bold rounded-lg shadow-xs transition-colors cursor-pointer'
+              className='px-4 py-2 bg-[#EA580C] hover:bg-[#C2410C] text-white text-xs font-semibold rounded-xl shadow-soft-sm transition-all cursor-pointer active:scale-95'
             >
-              Create Page Card
+              Tạo Thẻ Trang
             </button>
           </div>
         </form>
