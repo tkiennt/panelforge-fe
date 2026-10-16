@@ -31,6 +31,7 @@ Frontend ↔ Backend coordination happens through `../../HANDOFF.md` (see the wo
 14. Do not read or expose secrets unnecessarily (`.env*` except `.env.example`, tokens, keys).
 15. Do not send source code or local files to unknown external services.
 16. Ask before enabling a new network-connected MCP server.
+17. **Documentation Sync**: Follow `docs/DOCUMENTATION_PROCESS.md`. Any change to UI tokens/styling, business flows, role workspaces, or shared components must be synchronized into the corresponding docs (`docs/DESIGN_RULES.md`, `PRODUCT.md`, `src/roles/*/README.md`, `src/shared/README.md`). Feature/refactor plans must be tracked in `docs/implement-plan/ongoing/` and moved to `completed/` when done.
 
 ## Precedence when instructions conflict
 

@@ -3,7 +3,7 @@
 > **Tham chiếu chuẩn:** [VoltAgent/awesome-design-md](https://github.com/VoltAgent/awesome-design-md) — `design-md/elevenlabs/DESIGN.md`  
 > **Dự án áp dụng:** PanelForge Frontend (`panelforge-fe`)  
 > **Phiên bản:** 1.0 (Production Blueprint)  
-> **Bảng nhiệm vụ chi tiết:** [ELEVENLABS_TASK_LIST.md](./ELEVENLABS_TASK_LIST.md)
+> **Bảng nhiệm vụ chi tiết:** [EDITORIAL_STUDIO_TASK_LIST.md](./EDITORIAL_STUDIO_TASK_LIST.md)
 
 ---
 

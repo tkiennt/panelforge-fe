@@ -2,7 +2,7 @@
 
 > **Tham chiếu chuẩn thẩm mỹ:** `VoltAgent/awesome-design-md` — Thiết kế Quiet Editorial Magazine & Atmospheric Orbs.  
 > **Dự án áp dụng:** PanelForge Frontend (`panelforge-fe`).  
-> **Tài liệu chiến lược:** [`docs/EDITORIAL_DESIGN_IMPLEMENTATION_PLAN.md`](./EDITORIAL_DESIGN_IMPLEMENTATION_PLAN.md).  
+> **Tài liệu chiến lược:** [`docs/implement-plan/completed/EDITORIAL_STUDIO_DESIGN_PLAN.md`](./EDITORIAL_STUDIO_DESIGN_PLAN.md).  
 > **Quy ước định danh:** Giữ nguyên 100% tên gọi, cấu trúc file và nhận diện thương hiệu của hệ thống **PanelForge** (không gắn tiền tố của bất kỳ nền tảng bên ngoài nào vào tên file hay component).
 
 ---
