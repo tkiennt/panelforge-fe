@@ -821,7 +821,7 @@ export function AppShell({
         </header>
 
         <main className='flex-1 overflow-y-auto custom-scrollbar flex flex-col relative min-h-0 bg-[#F3F3F3]'>
-          <div className='relative z-10 w-full min-h-full flex-1 flex flex-col'>
+          <div className='w-full min-h-full flex-1 flex flex-col'>
             {children || <Outlet />}
           </div>
         </main>

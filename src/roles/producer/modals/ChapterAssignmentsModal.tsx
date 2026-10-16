@@ -258,7 +258,7 @@ export const ChapterAssignmentsModal: React.FC<ChapterAssignmentsModalProps> = (
 
   return (
     <>
-      <div className='fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4'>
+      <div className='fixed inset-0 bg-black/60 backdrop-blur-xs z-[60] flex items-center justify-center p-4'>
         <div className='bg-white border border-[#E7E7E7] rounded-2xl max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl animate-in fade-in zoom-in-95 duration-150'>
           {/* Header */}
           <div className='p-5 border-b border-[#E7E7E7] flex items-center justify-between bg-[#FAF8F5] rounded-t-2xl'>

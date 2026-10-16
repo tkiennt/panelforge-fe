@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams } from 'react-router-dom';
 import {
   X,
@@ -349,9 +350,13 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
 
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
-  return (
+  return createPortal(
     <>
-      <div className='fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4'>
+      <div
+        role='dialog'
+        aria-modal='true'
+        className='fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4'
+      >
         <div className='bg-white border border-[#E7E7E7] rounded-2xl max-w-6xl w-full max-h-[90vh] flex flex-col shadow-2xl animate-in fade-in zoom-in-95 duration-150'>
           {/* Header */}
           <div className='p-5 border-b border-[#E7E7E7] flex items-center justify-between bg-[#FAF8F5] rounded-t-2xl'>
@@ -859,6 +864,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
           onShowToast={onShowToast}
         />
       )}
-    </>
+    </>,
+    document.body,
   );
 };
