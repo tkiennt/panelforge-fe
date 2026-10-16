@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Server,
   BookOpen,
@@ -11,9 +11,11 @@ import {
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
+  Check,
 } from 'lucide-react';
 import { CurrentUser } from './AppShell';
 import { MangaProject } from '@/types';
+import { seriesService, SeriesDto } from '@/services/series.service';
 
 export interface AppShellSidebarProps {
   currentUser: CurrentUser;
@@ -48,9 +50,48 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
   onToggleRail,
   isMobileDrawer = false,
 }) => {
-  if (isReader) return null;
-
   const showFullContent = isMobileDrawer || isRailExpanded;
+  const [seriesDropdownOpen, setSeriesDropdownOpen] = useState(false);
+  const [seriesList, setSeriesList] = useState<SeriesDto[]>([]);
+  const [loadingSeries, setLoadingSeries] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const loadSeries = React.useCallback(() => {
+    if (!workspaceId) return;
+    setLoadingSeries(true);
+    seriesService
+      .getSeriesList(workspaceId)
+      .then((data) => {
+        setSeriesList(data || []);
+      })
+      .catch((err) => {
+        console.warn('Failed to load series for sidebar dropdown:', err);
+        setSeriesList([]);
+      })
+      .finally(() => setLoadingSeries(false));
+  }, [workspaceId]);
+
+  useEffect(() => {
+    if (workspaceId && showFullContent) {
+      loadSeries();
+    }
+  }, [workspaceId, showFullContent, loadSeries]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setSeriesDropdownOpen(false);
+      }
+    };
+    if (seriesDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [seriesDropdownOpen]);
+
+  if (isReader) return null;
 
   return (
     <aside
@@ -157,31 +198,91 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
 
         {/* 2. Series Selector (hiển thị khi đang trong ngữ cảnh Workspace) */}
         {workspaceId && (
-          <div
-            data-testid='sidebar-series-selector'
-            onClick={(e) => handleNavClick(e, `/workspaces/${workspaceId}/series`)}
-            className={`group flex items-center cursor-pointer px-2 py-1.5 rounded-md hover:bg-[#E7E7E7]/40 transition-colors ${
-              showFullContent ? 'justify-between' : 'justify-center lg:justify-between'
-            }`}
-            title={`Series: ${seriesId ? activeSeries?.title || 'Bộ truyện' : 'Chọn Series'}`}
-            aria-label={`Series: ${seriesId ? activeSeries?.title || 'Bộ truyện' : 'Chọn Series'}`}
-          >
-            <div className='flex items-center gap-2.5 min-w-0'>
-              <BookOpen className='w-4 h-4 stroke-[2] text-[#10B981] shrink-0' />
-              <div className={`min-w-0 ${showFullContent ? 'block' : 'hidden lg:block'}`}>
-                <p className='text-xs font-bold text-[#171717] truncate leading-tight'>
-                  {seriesId ? activeSeries?.title || 'Active Series' : 'Chọn Series...'}
-                </p>
-                <p className='text-[10px] text-[#555555] font-mono truncate'>
-                  {seriesId ? activeSeries?.subtitle || 'Chương hiện tại' : 'Danh sách Series'}
-                </p>
-              </div>
-            </div>
-            <ChevronDown
-              className={`w-3.5 h-3.5 text-[#555555] group-hover:text-[#171717] transition-colors shrink-0 ${
-                showFullContent ? 'block' : 'hidden lg:block'
+          <div className='relative' ref={dropdownRef}>
+            <div
+              data-testid='sidebar-series-selector'
+              onClick={() => {
+                if (!seriesDropdownOpen && seriesList.length === 0) {
+                  loadSeries();
+                }
+                setSeriesDropdownOpen((prev) => !prev);
+              }}
+              className={`group flex items-center cursor-pointer px-2 py-1.5 rounded-md hover:bg-[#E7E7E7]/40 transition-colors ${
+                showFullContent ? 'justify-between' : 'justify-center lg:justify-between'
               }`}
-            />
+              title={`Series: ${seriesId ? activeSeries?.title || 'Bộ truyện' : 'Chọn Series'}`}
+              aria-label={`Series: ${seriesId ? activeSeries?.title || 'Bộ truyện' : 'Chọn Series'}`}
+            >
+              <div className='flex items-center gap-2.5 min-w-0'>
+                <BookOpen className='w-4 h-4 stroke-[2] text-[#10B981] shrink-0' />
+                <div className={`min-w-0 ${showFullContent ? 'block' : 'hidden lg:block'}`}>
+                  <p className='text-xs font-bold text-[#171717] truncate leading-tight'>
+                    {seriesId ? activeSeries?.title || 'Active Series' : 'Chọn Series...'}
+                  </p>
+                  <p className='text-[10px] text-[#555555] font-mono truncate'>
+                    {seriesId ? activeSeries?.subtitle || 'Chương hiện tại' : 'Danh sách Series'}
+                  </p>
+                </div>
+              </div>
+              <ChevronDown
+                className={`w-3.5 h-3.5 text-[#555555] group-hover:text-[#171717] transition-transform shrink-0 ${
+                  seriesDropdownOpen ? 'rotate-180' : ''
+                } ${showFullContent ? 'block' : 'hidden lg:block'}`}
+              />
+            </div>
+
+            {/* Dropdown Popover */}
+            {seriesDropdownOpen && showFullContent && (
+              <div className='absolute left-0 right-0 mt-1 bg-white border border-stone-200 rounded-lg shadow-lg z-50 py-1 max-h-60 overflow-y-auto animate-in fade-in-50 zoom-in-95'>
+                <div className='px-3 py-1.5 border-b border-stone-100 flex items-center justify-between text-[11px] font-semibold text-stone-600'>
+                  <span>Bộ truyện trong Studio</span>
+                  <button
+                    type='button'
+                    onClick={(e) => {
+                      setSeriesDropdownOpen(false);
+                      handleNavClick(e, `/workspaces/${workspaceId}/series`);
+                    }}
+                    className='text-orange-600 hover:text-orange-700 text-[10px] cursor-pointer'
+                  >
+                    Xem tất cả
+                  </button>
+                </div>
+                {loadingSeries && (
+                  <div className='p-3 text-xs text-stone-400 text-center'>Đang tải...</div>
+                )}
+                {!loadingSeries && seriesList.length === 0 && (
+                  <div className='p-3 text-xs text-stone-400 text-center'>
+                    Chưa có bộ truyện nào
+                  </div>
+                )}
+                {!loadingSeries &&
+                  seriesList.map((s) => {
+                    const isSelected = s.id === seriesId;
+                    return (
+                      <div
+                        key={s.id}
+                        onClick={(e) => {
+                          setSeriesDropdownOpen(false);
+                          handleNavClick(e, `/workspaces/${workspaceId}/series/${s.id}/dashboard`);
+                        }}
+                        className={`px-3 py-2 text-xs flex items-center justify-between cursor-pointer transition-colors ${
+                          isSelected
+                            ? 'bg-orange-50 text-orange-900 font-semibold'
+                            : 'hover:bg-stone-50 text-stone-700'
+                        }`}
+                      >
+                        <div className='truncate pr-2'>
+                          <p className='truncate'>{s.title}</p>
+                          <p className='text-[10px] text-stone-400 font-mono'>
+                            {s.genre || 'Manga'} • {s.chaptersCount || 0} chương
+                          </p>
+                        </div>
+                        {isSelected && <Check className='w-3.5 h-3.5 text-orange-600 shrink-0' />}
+                      </div>
+                    );
+                  })}
+              </div>
+            )}
           </div>
         )}
       </div>

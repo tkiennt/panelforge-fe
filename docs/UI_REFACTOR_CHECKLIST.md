@@ -19,16 +19,16 @@
 ---
 
 ## PHASE 2: APPSHELL & END-TO-END NAVIGATION FLOW SYNCHRONIZATION
-- [ ] **2.1. Centralize Role Manifest & Routes:**
-  - [ ] Create/verify `src/roles/roles.ts` (`ROLE_MANIFEST`) and `src/app/routes.tsx`.
-  - [ ] Fix post-workspace selection routing: Selecting a Workspace from `/workspaces` must take ALL workspace roles (`PRODUCER`, `EDITOR`, `WRITER`, `ARTIST`, `LETTERER`) to the **Studio Series Selection Screen** first—never skip Series selection or jump into an uncontextualized editor view.
-- [ ] **2.2. Fix Top Header (`src/app/Header.tsx`):**
-  - [ ] Fix Breadcrumb navigation (`Workspaces / <Studio> / <Series> / <Chapter>`): Clicking each breadcrumb segment must route cleanly to the corresponding hierarchy level.
-  - [ ] Align the Global Search input, `AI: Ready` status pill, Notification bell badge, and User Profile dropdown.
-- [ ] **2.3. Fix Left Sidebar (`src/app/AppShellSidebar.tsx`):**
-  - [ ] Top Workspace Switcher must display the active Studio name and current user's `WorkspaceRole`.
-  - [ ] Series Selector dropdown (`"Select Series..."`) must populate with the active Studio's real Series list, reflect the currently selected Series, and trigger the exact same navigation flow as clicking a Series Card.
-  - [ ] Sidebar navigation items must dynamically adapt to the active role and current navigation depth (Studio level vs. Series/Chapter level).
+- [x] **2.1. Centralize Role Manifest & Routes:**
+  - [x] Create/verify `src/roles/roles.ts` (`ROLE_MANIFEST`) and `src/app/routes.tsx`.
+  - [x] Fix post-workspace selection routing: Selecting a Workspace from `/workspaces` must take ALL workspace roles (`PRODUCER`, `EDITOR`, `WRITER`, `ARTIST`, `LETTERER`) to the **Studio Series Selection Screen** first—never skip Series selection or jump into an uncontextualized editor view.
+- [x] **2.2. Fix Top Header (`src/app/Header.tsx`):**
+  - [x] Fix Breadcrumb navigation (`Workspaces / <Studio> / <Series> / <Chapter>`): Clicking each breadcrumb segment must route cleanly to the corresponding hierarchy level.
+  - [x] Align the Global Search input, `AI: Ready` status pill, Notification bell badge, and User Profile dropdown.
+- [x] **2.3. Fix Left Sidebar (`src/app/AppShellSidebar.tsx`):**
+  - [x] Top Workspace Switcher must display the active Studio name and current user's `WorkspaceRole`.
+  - [x] Series Selector dropdown (`"Select Series..."`) must populate with the active Studio's real Series list, reflect the currently selected Series, and trigger the exact same navigation flow as clicking a Series Card.
+  - [x] Sidebar navigation items must dynamically adapt to the active role and current navigation depth (Studio level vs. Series/Chapter level).
 
 ---
 
