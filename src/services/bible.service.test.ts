@@ -74,11 +74,9 @@ describe('bibleService', () => {
       const file = new File(['dummy'], 'char.png', { type: 'image/png' });
       const result = await bibleService.uploadReferenceImage(seriesId, file);
 
-      expect(post).toHaveBeenCalledWith(
-        `/series/${seriesId}/bible/assets`,
-        expect.any(FormData),
-        { headers: { 'Content-Type': 'multipart/form-data' } },
-      );
+      expect(post).toHaveBeenCalledWith(`/series/${seriesId}/bible/assets`, expect.any(FormData), {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
       expect(result).toEqual(mockRes);
     });
   });

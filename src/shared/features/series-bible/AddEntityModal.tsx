@@ -15,12 +15,19 @@ import { BibleEntity, BibleCategory } from '@/types';
 import { bibleService } from '@/services/bible.service';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 
+export type NewBibleEntityPayload = BibleEntity & {
+  stageName?: string;
+  effectiveFromChapterNumber?: number;
+  effectiveToChapterNumber?: number | null;
+};
+
 interface AddEntityModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAdd: (entity: BibleEntity) => void;
+  onAdd: (entity: NewBibleEntityPayload) => void;
   onShowToast: (title: string, desc: string) => void;
   seriesId?: string;
+  isProducer?: boolean;
 }
 
 export const AddEntityModal: React.FC<AddEntityModalProps> = ({
@@ -29,11 +36,15 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
   onAdd,
   onShowToast,
   seriesId,
+  isProducer = true,
 }) => {
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
   const [subtitle, setSubtitle] = useState('');
   const [category, setCategory] = useState<BibleCategory>('characters');
+  const [stageName, setStageName] = useState('');
+  const [effectiveFromChapter, setEffectiveFromChapter] = useState(1);
+  const [effectiveToChapter, setEffectiveToChapter] = useState<number | ''>('');
   const [imageUrl, setImageUrl] = useState('');
   const [description, setDescription] = useState('');
 
@@ -103,14 +114,25 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
     }
   };
 
+  const isRangeInvalid =
+    effectiveToChapter !== '' && Number(effectiveToChapter) < Number(effectiveFromChapter);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !description.trim()) return;
 
+    if (isRangeInvalid) {
+      onShowToast(
+        'Phạm vi chương không hợp lệ',
+        'Chương kết thúc phải lớn hơn hoặc bằng chương bắt đầu.',
+      );
+      return;
+    }
+
     const generatedCode =
       code.trim().toUpperCase() || `ENT-${Math.floor(1000 + Math.random() * 9000)}`;
 
-    const newEntity: BibleEntity = {
+    const newEntity: NewBibleEntityPayload = {
       id: `entity-${Date.now()}`,
       code: generatedCode,
       name: name.trim(),
@@ -120,12 +142,19 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
       description: description.trim(),
       imageUrl: imageUrl.trim() || '',
       status: 'Draft',
+      stageName: stageName.trim() || undefined,
+      effectiveFromChapterNumber: effectiveFromChapter,
+      effectiveToChapterNumber:
+        typeof effectiveToChapter === 'number' ? effectiveToChapter : undefined,
     };
 
     onAdd(newEntity);
     setName('');
     setCode('');
     setSubtitle('');
+    setStageName('');
+    setEffectiveFromChapter(1);
+    setEffectiveToChapter('');
     setDescription('');
     setImageUrl('');
     onClose();
@@ -146,7 +175,10 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
               <BookOpen className='w-4 h-4' />
             </div>
             <div>
-              <h3 id='add-bible-entity-title' className='font-bold font-sans text-sm text-[#171717]'>
+              <h3
+                id='add-bible-entity-title'
+                className='font-bold font-sans text-sm text-[#171717]'
+              >
                 Thêm mục mới vào Series Bible
               </h3>
               <p className='text-[11px] text-zinc-500'>
@@ -244,6 +276,90 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
               />
             </div>
           </div>
+
+          {/* Giai đoạn & Phạm vi chương hiệu lực */}
+          <div className='p-3.5 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl space-y-3'>
+            <div>
+              <label
+                htmlFor='bible-entity-stage-name'
+                className='block text-xs font-semibold text-zinc-800 mb-1'
+              >
+                Tên giai đoạn (Tùy chọn)
+              </label>
+              <input
+                id='bible-entity-stage-name'
+                type='text'
+                maxLength={100}
+                placeholder='Ví dụ: Lúc nhỏ, Trưởng thành, Khởi nghiệp...'
+                value={stageName}
+                onChange={(e) => setStageName(e.target.value)}
+                className='w-full px-3 py-2 bg-white rounded-lg border border-[#E7E7E7] text-xs text-zinc-900 placeholder-zinc-400 focus:outline-none focus:border-[#F97316] transition-colors'
+              />
+            </div>
+
+            <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
+              <div>
+                <label
+                  htmlFor='bible-entity-from-chapter'
+                  className='block text-xs font-semibold text-zinc-800 mb-1'
+                >
+                  Hiệu lực từ Chương số *
+                </label>
+                <input
+                  id='bible-entity-from-chapter'
+                  type='number'
+                  min={1}
+                  required
+                  value={effectiveFromChapter}
+                  onChange={(e) =>
+                    setEffectiveFromChapter(Math.max(1, parseInt(e.target.value, 10) || 1))
+                  }
+                  className='w-full px-3 py-2 bg-white rounded-lg border border-[#E7E7E7] text-xs font-mono text-zinc-900 focus:outline-none focus:border-[#F97316]'
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor='bible-entity-to-chapter'
+                  className='block text-xs font-semibold text-zinc-800 mb-1'
+                >
+                  Đến Chương (Để trống = tới hết truyện)
+                </label>
+                <input
+                  id='bible-entity-to-chapter'
+                  type='number'
+                  min={effectiveFromChapter}
+                  placeholder='Để trống = tới hết truyện'
+                  value={effectiveToChapter}
+                  onChange={(e) =>
+                    setEffectiveToChapter(e.target.value ? parseInt(e.target.value, 10) : '')
+                  }
+                  className={`w-full px-3 py-2 bg-white rounded-lg border text-xs font-mono text-zinc-900 focus:outline-none ${
+                    isRangeInvalid
+                      ? 'border-red-400 focus:border-red-500'
+                      : 'border-[#E7E7E7] focus:border-[#F97316]'
+                  }`}
+                />
+              </div>
+            </div>
+
+            {isRangeInvalid && (
+              <p className='text-[11px] text-red-600 font-medium'>
+                Chương kết thúc ({effectiveToChapter}) phải lớn hơn hoặc bằng chương bắt đầu (
+                {effectiveFromChapter}).
+              </p>
+            )}
+          </div>
+
+          {!isProducer && (
+            <div className='p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-[11px] flex items-start gap-1.5'>
+              <HelpCircle className='w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5' />
+              <span>
+                <strong>Bản nháp (Hướng B):</strong> Mục bạn tạo sẽ được lưu dưới dạng Bản nháp và
+                cần Producer xét duyệt &amp; khoá để trở thành Canon.
+              </span>
+            </div>
+          )}
 
           {/* Reference Sheet Image Upload Dropzone */}
           <div>
@@ -395,11 +511,11 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
             </button>
             <button
               type='submit'
-              disabled={uploadingImage || !name.trim() || !description.trim()}
+              disabled={uploadingImage || !name.trim() || !description.trim() || isRangeInvalid}
               className='px-4 py-2 bg-[#F97316] hover:bg-[#EA580C] disabled:opacity-50 text-white text-xs font-semibold rounded-lg shadow-xs transition-colors cursor-pointer flex items-center gap-1.5'
             >
               <Plus className='w-3.5 h-3.5' />
-              <span>Lưu vào Series Bible</span>
+              <span>{isProducer ? 'Lưu vào Series Bible' : 'Tạo bản nháp mới'}</span>
             </button>
           </div>
         </form>

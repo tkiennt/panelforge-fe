@@ -21,6 +21,8 @@ export interface BibleEntryRevisionDto {
   isLocked?: boolean;
   lockedAt?: string | null;
   lockedById?: string | null;
+  stageName?: string | null;
+  effectiveToChapterNumber?: number | null;
 }
 
 export interface BibleEntryDto {
@@ -62,6 +64,8 @@ export interface CreateBibleEntryRequest {
   priority?: BiblePriority;
   strictCheck?: boolean;
   effectiveFromChapterNumber?: number;
+  stageName?: string | null;
+  effectiveToChapterNumber?: number | null;
 }
 
 export interface BibleReferenceImageDto {
@@ -82,6 +86,8 @@ export interface AddBibleEntryRevisionRequest {
   priority?: BiblePriority;
   strictCheck?: boolean;
   effectiveFromChapterNumber?: number;
+  stageName?: string | null;
+  effectiveToChapterNumber?: number | null;
 }
 
 /** Producer thay thế bản đã khoá: nội dung mới + lý do; chương hiệu lực lấy theo bản bị thay. */

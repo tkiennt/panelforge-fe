@@ -29,9 +29,7 @@ describe('AddEntityModal UX/UI improvements', () => {
 
     // Header and titles
     expect(screen.getByText('Thêm mục mới vào Series Bible')).toBeDefined();
-    expect(
-      screen.getByText(/Tạo thiết kế nhân vật, địa điểm/i)
-    ).toBeDefined();
+    expect(screen.getByText(/Tạo thiết kế nhân vật, địa điểm/i)).toBeDefined();
 
     // Field labels with accessible htmlFor
     expect(screen.getByLabelText(/Danh mục tri thức/i)).toBeDefined();
@@ -51,7 +49,9 @@ describe('AddEntityModal UX/UI improvements', () => {
   it('disables submit button when required fields are empty', async () => {
     render(<AddEntityModal {...defaultProps} />);
 
-    const submitBtn = screen.getByRole('button', { name: /Lưu vào Series Bible/i }) as HTMLButtonElement;
+    const submitBtn = screen.getByRole('button', {
+      name: /Lưu vào Series Bible/i,
+    }) as HTMLButtonElement;
     expect(submitBtn.disabled).toBe(true);
   });
 
@@ -66,7 +66,9 @@ describe('AddEntityModal UX/UI improvements', () => {
       target: { value: 'Cố nhân của Tần Mục tại Diên Khang.' },
     });
 
-    const submitBtn = screen.getByRole('button', { name: /Lưu vào Series Bible/i }) as HTMLButtonElement;
+    const submitBtn = screen.getByRole('button', {
+      name: /Lưu vào Series Bible/i,
+    }) as HTMLButtonElement;
     expect(submitBtn.disabled).toBe(false);
     fireEvent.click(submitBtn);
 
@@ -75,8 +77,75 @@ describe('AddEntityModal UX/UI improvements', () => {
         name: 'Bạch Du',
         description: 'Cố nhân của Tần Mục tại Diên Khang.',
         category: 'characters',
-      })
+      }),
     );
     expect(defaultProps.onClose).toHaveBeenCalled();
+  });
+
+  it('handles stageName and chapter range inputs and submits them', async () => {
+    render(<AddEntityModal {...defaultProps} isProducer={true} />);
+
+    fireEvent.change(screen.getByLabelText(/Tên mục/i), {
+      target: { value: 'Goku' },
+    });
+    fireEvent.change(screen.getByLabelText(/Mô tả quy chuẩn thiết kế/i), {
+      target: { value: 'Chiến binh Saiyan' },
+    });
+    fireEvent.change(screen.getByLabelText(/Tên giai đoạn \(Tùy chọn\)/i), {
+      target: { value: 'Lúc nhỏ' },
+    });
+    fireEvent.change(screen.getByLabelText(/Hiệu lực từ Chương số \*/i), {
+      target: { value: '1' },
+    });
+    fireEvent.change(screen.getByLabelText(/Đến Chương \(Để trống = tới hết truyện\)/i), {
+      target: { value: '19' },
+    });
+
+    const submitBtn = screen.getByRole('button', {
+      name: /Lưu vào Series Bible/i,
+    }) as HTMLButtonElement;
+    expect(submitBtn.disabled).toBe(false);
+    fireEvent.click(submitBtn);
+
+    expect(defaultProps.onAdd).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'Goku',
+        stageName: 'Lúc nhỏ',
+        effectiveFromChapterNumber: 1,
+        effectiveToChapterNumber: 19,
+      }),
+    );
+  });
+
+  it('displays draft banner and submit button as "Tạo bản nháp mới" when isProducer is false', async () => {
+    render(<AddEntityModal {...defaultProps} isProducer={false} />);
+
+    expect(screen.getByText(/Bản nháp \(Hướng B\)/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Tạo bản nháp mới/i })).toBeInTheDocument();
+  });
+
+  it('validates chapter range: disables submit when to < from', async () => {
+    render(<AddEntityModal {...defaultProps} isProducer={true} />);
+
+    fireEvent.change(screen.getByLabelText(/Tên mục/i), {
+      target: { value: 'Goku' },
+    });
+    fireEvent.change(screen.getByLabelText(/Mô tả quy chuẩn thiết kế/i), {
+      target: { value: 'Chiến binh Saiyan' },
+    });
+    fireEvent.change(screen.getByLabelText(/Hiệu lực từ Chương số \*/i), {
+      target: { value: '20' },
+    });
+    fireEvent.change(screen.getByLabelText(/Đến Chương \(Để trống = tới hết truyện\)/i), {
+      target: { value: '10' },
+    });
+
+    expect(
+      screen.getByText(/Chương kết thúc \(10\) phải lớn hơn hoặc bằng chương bắt đầu \(20\)/i),
+    ).toBeInTheDocument();
+    const submitBtn = screen.getByRole('button', {
+      name: /Lưu vào Series Bible/i,
+    }) as HTMLButtonElement;
+    expect(submitBtn.disabled).toBe(true);
   });
 });

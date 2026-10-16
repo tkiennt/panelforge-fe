@@ -217,9 +217,7 @@ describe('BibleReferenceDrawer', () => {
     );
 
     await waitFor(() => {
-      expect(
-        screen.getByText(/Chưa có nhân vật gắn trong khung này/i),
-      ).toBeInTheDocument();
+      expect(screen.getByText(/Chưa có nhân vật gắn trong khung này/i)).toBeInTheDocument();
     });
   });
 });

@@ -31,6 +31,7 @@ import { ReviewDecisionPanel } from './ReviewDecisionPanel';
 import { SubmitPreviewModal } from './SubmitPreviewModal';
 import { SubmissionHistory } from './SubmissionHistory';
 import { BibleReferenceDrawer } from './BibleReferenceDrawer';
+import { ChapterReviewArtworkOverview } from './ChapterReviewArtworkOverview';
 import {
   describeStartError,
   errorMessage,
@@ -162,6 +163,9 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
     changeRequests,
     hasCurrentArtwork: artworkOk,
   });
+
+  const isChapterAssignment = String(assignment.entityType) === 'Chapter';
+  const showChapterOverview = isChapterAssignment && (actions.isReviewer || actions.isAssignee);
 
   const changed = (updated?: AssignmentDto) => {
     onChanged(updated);
@@ -375,7 +379,7 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
         </p>
       )}
 
-      {actions.isReviewer && !actions.isAssignee && artworkRelevant && (
+      {actions.isReviewer && !actions.isAssignee && !showChapterOverview && (
         <Link
           to={`../review/${assignment.id}?chapterId=${chapterId}`}
           relative='path'
@@ -385,6 +389,15 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
           <ScanSearch className='w-3.5 h-3.5' /> Mở màn duyệt (so sánh phiên bản, khoanh vùng cần
           sửa)
         </Link>
+      )}
+
+      {showChapterOverview && (
+        <ChapterReviewArtworkOverview
+          chapterId={chapterId}
+          seriesId={assignment.seriesId}
+          assignmentId={assignment.id}
+          onToast={onToast}
+        />
       )}
 
       <ReviewDecisionPanel

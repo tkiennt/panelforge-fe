@@ -14,6 +14,7 @@ export interface PipelineStageDto {
   isInitial: boolean;
   isTerminal: boolean;
   estimatedDurationDays?: number | null;
+  isEnabled?: boolean;
 }
 
 export interface StageTransitionDto {
@@ -74,6 +75,7 @@ export interface UpdatePipelineStageRequest {
   allowedRole?: PipelineRole | null;
   isApprovalGate: boolean;
   estimatedDurationDays?: number | null;
+  isEnabled?: boolean;
 }
 
 export interface ReorderPipelineStagesRequest {

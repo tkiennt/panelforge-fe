@@ -16,6 +16,8 @@ import {
   ArrowRight,
   Sparkles,
   Loader2,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import {
   pipelineService,
@@ -65,6 +67,8 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
   const [stageRole, setStageRole] = useState<PipelineRole | ''>('Artist');
   const [isApprovalGate, setIsApprovalGate] = useState(false);
   const [estimatedDuration, setEstimatedDuration] = useState<number | ''>(2);
+  const [isEnabled, setIsEnabled] = useState(true);
+  const [editingStageInitialOrTerminal, setEditingStageInitialOrTerminal] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
 
   const fetchPipeline = async () => {
@@ -100,6 +104,8 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
     setStageRole('Artist');
     setIsApprovalGate(false);
     setEstimatedDuration(2);
+    setIsEnabled(true);
+    setEditingStageInitialOrTerminal(false);
     setShowAddForm(false);
     setError(null);
   };
@@ -113,8 +119,40 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
     setStageRole(stage.allowedRole || '');
     setIsApprovalGate(stage.isApprovalGate);
     setEstimatedDuration(stage.estimatedDurationDays ?? '');
+    setIsEnabled(stage.isEnabled !== false);
+    setEditingStageInitialOrTerminal(stage.isInitial || stage.isTerminal);
     setShowAddForm(true);
     setError(null);
+  };
+
+  const handleToggleStage = async (stage: PipelineStageDto) => {
+    if (stage.isInitial || stage.isTerminal) {
+      setError('Không thể tắt công đoạn khởi tạo hoặc kết thúc.');
+      return;
+    }
+    setActionLoading(true);
+    setError(null);
+    try {
+      const newEnabled = stage.isEnabled === false;
+      const payload: UpdatePipelineStageRequest = {
+        name: stage.name,
+        colorCode: stage.colorCode,
+        allowedRole: stage.allowedRole,
+        isApprovalGate: stage.isApprovalGate,
+        estimatedDurationDays: stage.estimatedDurationDays,
+        isEnabled: newEnabled,
+      };
+      const updated = await pipelineService.updateStage(seriesId, stage.id, payload);
+      setPipeline(updated);
+      onShowToast?.(
+        newEnabled ? 'Đã bật công đoạn' : 'Đã tắt công đoạn',
+        `Công đoạn "${stage.name}" hiện đã ${newEnabled ? 'được bật' : 'tắt'}.`,
+      );
+    } catch (err: any) {
+      setError(err.message || 'Không thể thay đổi trạng thái công đoạn.');
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const handleSaveStage = async (e: React.FormEvent) => {
@@ -134,6 +172,7 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
           allowedRole: (stageRole as PipelineRole) || null,
           isApprovalGate,
           estimatedDurationDays: typeof estimatedDuration === 'number' ? estimatedDuration : null,
+          isEnabled,
         };
         const updated = await pipelineService.updateStage(seriesId, editingStageId, payload);
         setPipeline(updated);
@@ -445,6 +484,40 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
                         Cổng duyệt (Approval Gate)
                       </label>
                     </div>
+
+                    {isEditing && (
+                      <div className='flex flex-col gap-1 pt-3 col-span-full border-t border-[#FDBA74]/40'>
+                        <div className='flex items-center gap-2'>
+                          <input
+                            type='checkbox'
+                            id='stageIsEnabled'
+                            disabled={editingStageInitialOrTerminal}
+                            checked={isEnabled}
+                            onChange={(e) => setIsEnabled(e.target.checked)}
+                            className='w-4 h-4 accent-[#F97316] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed'
+                          />
+                          <label
+                            htmlFor='stageIsEnabled'
+                            className={`font-bold select-none cursor-pointer ${
+                              editingStageInitialOrTerminal
+                                ? 'text-zinc-400 cursor-not-allowed'
+                                : 'text-[#171717]'
+                            }`}
+                          >
+                            Bật công đoạn này (Enabled)
+                          </label>
+                          {editingStageInitialOrTerminal && (
+                            <span className='text-[10px] text-zinc-500 italic'>
+                              (Không thể tắt công đoạn khởi tạo hoặc kết thúc)
+                            </span>
+                          )}
+                        </div>
+                        <p className='text-[11px] text-[#888888]'>
+                          Gợi ý: Truyện trắng đen → tắt Color (hoặc tắt bất kỳ công đoạn không cần
+                          thiết mà không phải xoá).
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   <div className='flex items-center justify-end gap-2 pt-2 border-t border-[#FDBA74]/50'>
@@ -472,7 +545,11 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
                 {pipeline.stages.map((stage, idx) => (
                   <div
                     key={stage.id}
-                    className='flex items-center justify-between p-3.5 bg-[#FAF8F5] hover:bg-white rounded-xl border border-[#E7E7E7] hover:border-[#171717] transition-all shadow-2xs group'
+                    className={`flex items-center justify-between p-3.5 rounded-xl border transition-all shadow-2xs group ${
+                      stage.isEnabled === false
+                        ? 'opacity-65 bg-zinc-100/90 border-dashed border-zinc-300'
+                        : 'bg-[#FAF8F5] hover:bg-white border-[#E7E7E7] hover:border-[#171717]'
+                    }`}
                   >
                     <div className='flex items-center gap-3'>
                       {/* Move Up/Down Controls */}
@@ -514,6 +591,11 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
                           <span className='text-[10px] font-mono text-[#888888] bg-white px-1.5 py-0.2 rounded border border-[#E7E7E7]'>
                             slug: {stage.slug}
                           </span>
+                          {stage.isEnabled === false && (
+                            <span className='px-1.5 py-0.2 rounded bg-zinc-200 text-zinc-700 text-[9px] font-mono font-bold uppercase'>
+                              Đã tắt
+                            </span>
+                          )}
                           {stage.isInitial && (
                             <span className='px-1.5 py-0.2 rounded bg-blue-100 text-blue-700 text-[9px] font-mono font-bold uppercase'>
                               Khởi Tạo
@@ -560,6 +642,29 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
 
                     {/* Actions */}
                     <div className='flex items-center gap-1'>
+                      <button
+                        type='button'
+                        disabled={stage.isInitial || stage.isTerminal || actionLoading}
+                        onClick={() => handleToggleStage(stage)}
+                        className={`p-1.5 rounded-lg transition-colors cursor-pointer disabled:opacity-20 disabled:cursor-not-allowed ${
+                          stage.isEnabled === false
+                            ? 'text-zinc-500 hover:text-emerald-600 hover:bg-emerald-50'
+                            : 'text-emerald-600 hover:text-zinc-600 hover:bg-zinc-100'
+                        }`}
+                        title={
+                          stage.isInitial || stage.isTerminal
+                            ? 'Không thể tắt công đoạn khởi tạo hoặc kết thúc'
+                            : stage.isEnabled === false
+                              ? 'Bật lại công đoạn này'
+                              : 'Tắt công đoạn này (vd: truyện trắng đen tắt Color)'
+                        }
+                      >
+                        {stage.isEnabled === false ? (
+                          <EyeOff className='w-3.5 h-3.5' />
+                        ) : (
+                          <Eye className='w-3.5 h-3.5' />
+                        )}
+                      </button>
                       <button
                         type='button'
                         onClick={() => handleStartEdit(stage)}

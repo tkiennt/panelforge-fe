@@ -110,11 +110,45 @@ describe('BibleEntityDetailModal UX/UI', () => {
     render(<BibleEntityDetailModal {...defaultProps} />);
 
     expect(screen.getByText(/Canon đã khoá/i)).toBeInTheDocument();
-    expect(screen.getByText(/Có hiệu lực từ Chương 5/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Ch\.\s*5\s*→\s*hết/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText(/Đã duyệt/i)).toBeInTheDocument();
 
     // Must NOT contain internal code BR-18
     expect(screen.queryByText(/BR-18/i)).not.toBeInTheDocument();
+  });
+
+  it('displays stageName alongside chapter range if provided in revision', () => {
+    const rawWithStage: BibleEntryDto = {
+      ...mockRawEntry,
+      effectiveRevision: {
+        ...mockRawEntry.effectiveRevision!,
+        stageName: 'Lúc nhỏ',
+        effectiveFromChapterNumber: 1,
+        effectiveToChapterNumber: 19,
+      },
+    };
+
+    render(<BibleEntityDetailModal {...defaultProps} rawEntry={rawWithStage} />);
+
+    expect(screen.getAllByText(/Lúc nhỏ\s*·\s*Ch\.1–19/i).length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('allows Writer/Artist to create drafts via canCreateDraft prop', () => {
+    render(<BibleEntityDetailModal {...defaultProps} isProducer={false} canCreateDraft={true} />);
+
+    const draftBtn = screen.getByRole('button', { name: /\+ Tạo bản nháp mới/i });
+    expect(draftBtn).toBeInTheDocument();
+    fireEvent.click(draftBtn);
+
+    expect(defaultProps.onClose).toHaveBeenCalled();
+    expect(defaultProps.onOpenAddRevision).toHaveBeenCalledWith(mockEntityWithImage);
+  });
+
+  it('shows read-only notice when canCreateDraft is false for non-producer', () => {
+    render(<BibleEntityDetailModal {...defaultProps} isProducer={false} canCreateDraft={false} />);
+
+    expect(screen.getByText(/Chế độ chỉ xem/i)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /\+ Tạo/i })).not.toBeInTheDocument();
   });
 
   it('renders image and triggers zoom when image is clicked or zoom button is clicked', () => {
@@ -132,17 +166,11 @@ describe('BibleEntityDetailModal UX/UI', () => {
 
   it('renders compact empty state without giant black box when no image exists', () => {
     render(
-      <BibleEntityDetailModal
-        {...defaultProps}
-        entity={mockEntityNoImage}
-        rawEntry={undefined}
-      />,
+      <BibleEntityDetailModal {...defaultProps} entity={mockEntityNoImage} rawEntry={undefined} />,
     );
 
     expect(screen.queryByTestId('auth-image')).not.toBeInTheDocument();
-    expect(
-      screen.getByText(/Chưa có ảnh Reference Sheet cho mục này/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Chưa có ảnh Reference Sheet cho mục này/i)).toBeInTheDocument();
 
     // For producer, shows action to create revision to add image
     const addImgBtn = screen.getByRole('button', {
@@ -171,18 +199,14 @@ describe('BibleEntityDetailModal UX/UI', () => {
 
     // Hash not visible yet
     expect(
-      screen.queryByText(
-        'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
-      ),
+      screen.queryByText('e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'),
     ).not.toBeInTheDocument();
 
     // Expand
     fireEvent.click(toggleTechBtn);
 
     expect(
-      screen.getByText(
-        'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
-      ),
+      screen.getByText('e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'),
     ).toBeInTheDocument();
 
     const copyBtn = screen.getByRole('button', { name: /Sao chép/i });

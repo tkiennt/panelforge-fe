@@ -33,7 +33,7 @@ vi.mock('@/services/chapter.service', () => ({
 
 vi.mock('@/shared/components/AuthenticatedImage', () => ({
   AuthenticatedImage: ({ alt, className }: any) => (
-    <img alt={alt} className={className} data-testid="auth-image" />
+    <img alt={alt} className={className} data-testid='auth-image' />
   ),
 }));
 
@@ -112,7 +112,7 @@ describe('SeriesBibleView UX/UI improvements', () => {
     localStorage.clear();
     localStorage.setItem(
       'activeWorkspace',
-      JSON.stringify({ id: 'ws-1', currentUserRole: 'PRODUCER', isOwner: true })
+      JSON.stringify({ id: 'ws-1', currentUserRole: 'PRODUCER', isOwner: true }),
     );
 
     (bibleService.getSeriesBible as any).mockResolvedValue({
@@ -158,7 +158,7 @@ describe('SeriesBibleView UX/UI improvements', () => {
 
     // Default 'all' tab placeholder
     const searchInput = screen.getByPlaceholderText(
-      'Tìm tên, mã hoặc mô tả trong Series Bible...'
+      'Tìm tên, mã hoặc mô tả trong Series Bible...',
     ) as HTMLInputElement;
     expect(searchInput).toBeDefined();
 
@@ -167,18 +167,14 @@ describe('SeriesBibleView UX/UI improvements', () => {
     fireEvent.click(charTab);
 
     // Placeholder updates for Character tab
-    expect(
-      screen.getByPlaceholderText('Tìm tên, mã hoặc mô tả nhân vật...')
-    ).toBeDefined();
+    expect(screen.getByPlaceholderText('Tìm tên, mã hoặc mô tả nhân vật...')).toBeDefined();
 
     // Click 'Địa điểm & Bối cảnh' tab
     const locTab = screen.getByTestId('tab-category-locations');
     fireEvent.click(locTab);
 
     // Placeholder updates for Location tab
-    expect(
-      screen.getByPlaceholderText('Tìm tên, mã hoặc mô tả địa điểm...')
-    ).toBeDefined();
+    expect(screen.getByPlaceholderText('Tìm tên, mã hoặc mô tả địa điểm...')).toBeDefined();
   });
 
   it('renders chapter versioning options with clear labels', async () => {
@@ -252,5 +248,96 @@ describe('SeriesBibleView UX/UI improvements', () => {
     // Both entries restored
     expect(screen.getByText('Tần Mục')).toBeDefined();
     expect(screen.getByText('Tàn Lão Thôn')).toBeDefined();
+  });
+
+  it('allows Writer to create draft entries and add revisions (Direction B)', async () => {
+    localStorage.setItem(
+      'activeWorkspace',
+      JSON.stringify({ id: 'ws-1', currentUserRole: 'WRITER', isOwner: false }),
+    );
+
+    render(<SeriesBibleView activeProject={mockSeries as any} onShowToast={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Tần Mục')).toBeDefined();
+    });
+
+    // Top button displays "Tạo mục nháp" instead of "Thêm mục mới" or read-only
+    expect(screen.getByText('Tạo mục nháp')).toBeDefined();
+
+    // Cards have "+ Bản" enabled for Writer
+    const addRevBtns = screen.getAllByTestId(/add-revision-btn-/i);
+    expect(addRevBtns.length).toBeGreaterThan(0);
+  });
+
+  it('allows Artist to create draft entries and add revisions (Direction B)', async () => {
+    localStorage.setItem(
+      'activeWorkspace',
+      JSON.stringify({ id: 'ws-1', currentUserRole: 'ARTIST', isOwner: false }),
+    );
+
+    render(<SeriesBibleView activeProject={mockSeries as any} onShowToast={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Tần Mục')).toBeDefined();
+    });
+
+    expect(screen.getByText('Tạo mục nháp')).toBeDefined();
+    const addRevBtns = screen.getAllByTestId(/add-revision-btn-/i);
+    expect(addRevBtns.length).toBeGreaterThan(0);
+  });
+
+  it('restricts Editor to read-only mode without draft buttons (Direction B)', async () => {
+    localStorage.setItem(
+      'activeWorkspace',
+      JSON.stringify({ id: 'ws-1', currentUserRole: 'EDITOR', isOwner: false }),
+    );
+
+    render(<SeriesBibleView activeProject={mockSeries as any} onShowToast={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Tần Mục')).toBeDefined();
+    });
+
+    // Shows read-only badge
+    expect(screen.getByTestId('bible-readonly-badge')).toBeDefined();
+    expect(screen.queryByTestId('add-bible-entry-btn')).toBeNull();
+
+    // No "+ Bản" buttons on cards
+    expect(screen.queryByTestId(/add-revision-btn-/i)).toBeNull();
+  });
+
+  it('displays stageName and chapter range Ch.from-to instead of raw v1/v2', async () => {
+    const entriesWithStage = [
+      {
+        ...mockEntries[0],
+        effectiveRevision: {
+          ...mockEntries[0].effectiveRevision!,
+          stageName: 'Lúc nhỏ',
+          effectiveFromChapterNumber: 1,
+          effectiveToChapterNumber: 19,
+        },
+      },
+    ];
+
+    (bibleService.getSeriesBible as any).mockResolvedValue({
+      id: 'bible-1',
+      seriesId: 'series-123',
+      workspaceId: 'ws-1',
+      name: 'Series Bible',
+      version: 1,
+      entries: entriesWithStage,
+    });
+
+    render(<SeriesBibleView activeProject={mockSeries as any} onShowToast={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Tần Mục/)).toBeDefined();
+    });
+
+    // Header has name with stage: "Tần Mục · Lúc nhỏ"
+    expect(screen.getByText(/· Lúc nhỏ/i)).toBeDefined();
+    // Range format: "Ch.1–19"
+    expect(screen.getByText(/Ch\.1–19/i)).toBeDefined();
   });
 });

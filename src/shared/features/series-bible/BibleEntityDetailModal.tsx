@@ -22,6 +22,7 @@ interface BibleEntityDetailModalProps {
   entity: BibleEntity;
   rawEntry?: BibleEntryDto;
   isProducer: boolean;
+  canCreateDraft?: boolean;
   onClose: () => void;
   onOpenHistory: (entity: BibleEntity) => void;
   onOpenAddRevision: (entity: BibleEntity) => void;
@@ -33,6 +34,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
   entity,
   rawEntry,
   isProducer,
+  canCreateDraft = isProducer,
   onClose,
   onOpenHistory,
   onOpenAddRevision,
@@ -139,35 +141,37 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
           <span>Thông tin phiên bản</span>
         </span>
         <span className='font-mono font-bold text-xs px-2 py-0.5 rounded bg-zinc-100 text-zinc-700 border border-zinc-200'>
-          {effectiveRevision ? `v${effectiveRevision.versionNumber}` : 'v1'}
+          {effectiveRevision?.stageName ||
+            (effectiveRevision
+              ? `Giai đoạn ${effectiveRevision.versionNumber}`
+              : 'Giai đoạn khởi tạo')}
         </span>
       </div>
 
       <div className='grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs'>
         <div className='p-2.5 bg-white rounded-lg border border-zinc-200/80 space-y-0.5'>
           <span className='text-[11px] text-zinc-500 block font-medium'>
-            Hiệu lực từ mốc
+            Giai đoạn &amp; Hiệu lực
           </span>
           <strong className='text-zinc-900 text-xs sm:text-sm font-semibold'>
-            Chương {effectiveRevision?.effectiveFromChapterNumber ?? 1}
+            {effectiveRevision?.stageName ? `${effectiveRevision.stageName} · ` : ''}
+            Ch.{effectiveRevision?.effectiveFromChapterNumber ?? 1}
+            {effectiveRevision?.effectiveToChapterNumber
+              ? `–${effectiveRevision.effectiveToChapterNumber}`
+              : ' → hết'}
           </strong>
         </div>
         <div className='p-2.5 bg-white rounded-lg border border-zinc-200/80 space-y-0.5'>
-          <span className='text-[11px] text-zinc-500 block font-medium'>
-            Cập nhật lần cuối
-          </span>
+          <span className='text-[11px] text-zinc-500 block font-medium'>Cập nhật lần cuối</span>
           <span className='text-zinc-800 text-xs sm:text-sm font-medium'>
             {rawEntry?.updatedAt || rawEntry?.createdAt
-              ? new Date(rawEntry.updatedAt || rawEntry.createdAt).toLocaleDateString(
-                  'vi-VN',
-                  {
-                    year: 'numeric',
-                    month: '2-digit',
-                    day: '2-digit',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  },
-                )
+              ? new Date(rawEntry.updatedAt || rawEntry.createdAt).toLocaleDateString('vi-VN', {
+                  year: 'numeric',
+                  month: '2-digit',
+                  day: '2-digit',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })
               : 'Mới khởi tạo'}
           </span>
         </div>
@@ -288,7 +292,11 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                     Canon đã khoá
                   </span>
                   <span className='text-[11px] font-semibold text-amber-900 bg-amber-100/90 px-2 py-0.5 rounded border border-amber-300/60'>
-                    Có hiệu lực từ Chương {effectiveRevision?.effectiveFromChapterNumber ?? 1}
+                    {effectiveRevision?.stageName ? `${effectiveRevision.stageName} · ` : ''}
+                    Ch.{effectiveRevision?.effectiveFromChapterNumber ?? 1}
+                    {effectiveRevision?.effectiveToChapterNumber
+                      ? `–${effectiveRevision.effectiveToChapterNumber}`
+                      : ' → hết'}
                   </span>
                   {entity.lockedAt && (
                     <span className='text-[11px] font-medium text-amber-800'>
@@ -309,9 +317,13 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
               </div>
               <div className='space-y-1 flex-1 min-w-0'>
                 <div className='flex items-center gap-2 flex-wrap'>
-                  <span className='font-semibold text-zinc-900'>Bản thảo (Chưa khoá Canon)</span>
+                  <span className='font-semibold text-zinc-900'>Bản nháp – chờ Producer duyệt</span>
                   <span className='text-[11px] font-medium text-zinc-600 bg-zinc-200/80 px-2 py-0.5 rounded'>
-                    Có hiệu lực từ Chương {effectiveRevision?.effectiveFromChapterNumber ?? 1}
+                    {effectiveRevision?.stageName ? `${effectiveRevision.stageName} · ` : ''}
+                    Ch.{effectiveRevision?.effectiveFromChapterNumber ?? 1}
+                    {effectiveRevision?.effectiveToChapterNumber
+                      ? `–${effectiveRevision.effectiveToChapterNumber}`
+                      : ' → hết'}
                   </span>
                 </div>
                 <p className='text-xs text-zinc-600 leading-relaxed'>
@@ -451,7 +463,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
               <span>Xem lịch sử phiên bản</span>
             </button>
 
-            {isProducer ? (
+            {canCreateDraft ? (
               <button
                 type='button'
                 onClick={() => {
@@ -461,12 +473,10 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                 className='px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer'
               >
                 <GitCommit className='w-3.5 h-3.5' />
-                <span>+ Tạo phiên bản mới</span>
+                <span>{isProducer ? '+ Tạo phiên bản mới' : '+ Tạo bản nháp mới'}</span>
               </button>
             ) : (
-              <span className='text-[11px] text-zinc-500 italic'>
-                Chỉ Producer mới có quyền tạo bản sửa đổi.
-              </span>
+              <span className='text-[11px] text-zinc-500 italic'>Chế độ chỉ xem.</span>
             )}
           </div>
 

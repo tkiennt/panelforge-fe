@@ -17,7 +17,7 @@ describe('AuthenticatedImage', () => {
   });
 
   it('render trực tiếp khi src là URL http(s) hoặc data-uri', () => {
-    render(<AuthenticatedImage src="https://example.com/hero.png" alt="Hero" />);
+    render(<AuthenticatedImage src='https://example.com/hero.png' alt='Hero' />);
     const img = screen.getByRole('img');
     expect(img).toHaveAttribute('src', 'https://example.com/hero.png');
     expect(img).toHaveAttribute('alt', 'Hero');
@@ -30,8 +30,8 @@ describe('AuthenticatedImage', () => {
 
     render(
       <AuthenticatedImage
-        src="/api/series/series-1/bible/assets/sha-256-abc"
-        alt="Kenji Spec Sheet"
+        src='/api/series/series-1/bible/assets/sha-256-abc'
+        alt='Kenji Spec Sheet'
       />,
     );
 
@@ -41,10 +41,9 @@ describe('AuthenticatedImage', () => {
       expect(img).toHaveAttribute('alt', 'Kenji Spec Sheet');
     });
 
-    expect(axiosClient.get).toHaveBeenCalledWith(
-      '/api/series/series-1/bible/assets/sha-256-abc',
-      { responseType: 'blob' },
-    );
+    expect(axiosClient.get).toHaveBeenCalledWith('/api/series/series-1/bible/assets/sha-256-abc', {
+      responseType: 'blob',
+    });
   });
 
   it('hiển thị fallback khi API lỗi hoặc src rỗng', async () => {
@@ -52,9 +51,9 @@ describe('AuthenticatedImage', () => {
 
     render(
       <AuthenticatedImage
-        src="/api/series/series-1/bible/assets/not-found"
-        alt="Not Found"
-        fallback={<span data-testid="custom-fallback">Ảnh không tồn tại</span>}
+        src='/api/series/series-1/bible/assets/not-found'
+        alt='Not Found'
+        fallback={<span data-testid='custom-fallback'>Ảnh không tồn tại</span>}
       />,
     );
 
