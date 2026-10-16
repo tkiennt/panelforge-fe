@@ -110,20 +110,42 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
               onChange={(e) => setRole(e.target.value)}
               className='w-full px-3 py-2 bg-[#FAF8F4] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-[#171717] focus:outline-none focus:border-[#F97316] font-semibold cursor-pointer'
             >
-              <option value='Writer'>Writer</option>
-              <option value='Artist'>Artist</option>
-              <option value='Letterer'>Letterer</option>
-              <option value='Editor'>Editor</option>
-              <option value='Publisher'>Publisher</option>
-              <option value='Producer'>Producer</option>
+              <option value='Writer'>Writer (Biên kịch)</option>
+              <option value='Artist'>Artist (Họa sĩ)</option>
+              <option value='Letterer'>Letterer (Chèn chữ & SFX)</option>
+              <option value='Editor'>Editor (Biên tập viên)</option>
+              <option value='Publisher'>Publisher (Nhà xuất bản)</option>
+              <option value='Producer'>Producer (Giám đốc sản xuất)</option>
             </select>
           </div>
 
+          {/* Role Permission Preview */}
+          <div className='p-3 bg-stone-50 rounded-xl border border-stone-200/80 text-xs space-y-1.5'>
+            <div className='font-mono font-bold uppercase tracking-wider text-stone-500 flex items-center justify-between'>
+              <span>Quyền hạn theo vai trò</span>
+              <span className='text-orange-600 font-bold'>{role}</span>
+            </div>
+            <p className='text-stone-700 leading-relaxed text-xs'>
+              {role === 'Writer' &&
+                'Sáng tác kịch bản phân cảnh, biên tập hội thoại, cấu trúc hồi truyện (Story Arc) và cập nhật tư liệu Series Bible.'}
+              {role === 'Artist' &&
+                'Phác thảo khung tranh (Storyboard), vẽ nét, tô màu per-panel, chia tầng layer và tải lên bản vẽ hoàn thiện.'}
+              {role === 'Letterer' &&
+                'Tạo và chỉnh sửa bóng thoại (Speech, Thought, SFX), điều chỉnh typography và kiểm tra an toàn tràn chữ.'}
+              {role === 'Editor' &&
+                'Kiểm soát chất lượng, so sánh phiên bản (Pixel Diff), khoanh vùng yêu cầu sửa (Change Request) và phê duyệt bài.'}
+              {role === 'Publisher' &&
+                'Quản lý đóng gói Tankōbon Master, tạo link preview kèm watermark bản quyền và lên lịch phân phối ấn bản.'}
+              {role === 'Producer' &&
+                'Quản lý toàn bộ Studio Workspace: phân bổ thành viên, phân quyền hạn, giám sát tiến độ và kiểm soát quota lưu trữ.'}
+            </p>
+          </div>
+
           <div className='p-3 bg-[#FAF8F4] rounded-xl border border-[#E7E7E7] text-xs font-mono text-[#555555] space-y-1'>
-            <div className='text-[10px] uppercase font-bold text-[#F97316]'>
+            <div className='text-xs uppercase font-bold text-[#F97316]'>
               Thông tin kích hoạt tài khoản
             </div>
-            <p className='text-[11px] leading-relaxed'>
+            <p className='text-xs leading-relaxed text-[#737373]'>
               Nếu email chưa có tài khoản trong hệ thống, PanelForge sẽ gửi email mời kèm mã OTP 6
               số (hạn 15 phút). Người được mời dùng mã OTP này để tạo mật khẩu tại màn Kích hoạt tài
               khoản / Đặt lại mật khẩu.

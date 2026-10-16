@@ -430,7 +430,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
           >
             <span>{t.label}</span>
             <span
-              className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono leading-none ${
+              className={`px-1.5 py-0.5 rounded-full text-xs font-mono leading-none ${
                 t.badgeAlert
                   ? tab === t.key
                     ? 'bg-amber-500 text-white font-bold'
@@ -449,7 +449,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
       {/* Lọc theo Phân cảnh trong Chương (CF2 & CF3) */}
       {chapterId !== 'ALL_STUDIO' && scenes.length > 0 && !isStudioTab && (
         <div className='flex items-center gap-2 overflow-x-auto pb-1.5 pt-1 text-xs border-t border-[#F0ECE1]'>
-          <span className='flex items-center gap-1 font-bold text-zinc-600 whitespace-nowrap text-[11px] uppercase tracking-wider shrink-0'>
+          <span className='flex items-center gap-1 font-bold text-zinc-600 whitespace-nowrap text-xs uppercase tracking-wider shrink-0'>
             <Clapperboard className='w-3.5 h-3.5 text-[#F97316]' />
             Phân cảnh:
           </span>
@@ -464,7 +464,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
           >
             <span>Tất cả các cảnh</span>
             <span
-              className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+              className={`px-1.5 py-0.5 rounded-full text-xs font-mono ${
                 selectedSceneId === 'ALL'
                   ? 'bg-orange-200/80 text-orange-950 font-bold'
                   : 'bg-zinc-100 text-zinc-600'
@@ -495,7 +495,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
                     {s.heading ? `: ${s.heading}` : ''}
                   </span>
                   <span
-                    className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+                    className={`px-1.5 py-0.5 rounded-full text-xs font-mono ${
                       isSelected
                         ? 'bg-orange-200/80 text-orange-950 font-bold'
                         : 'bg-zinc-100 text-zinc-600'
@@ -518,7 +518,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
             >
               <span>Chung / Chưa gắn cảnh</span>
               <span
-                className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+                className={`px-1.5 py-0.5 rounded-full text-xs font-mono ${
                   selectedSceneId === 'UNASSIGNED'
                     ? 'bg-orange-200/80 text-orange-950 font-bold'
                     : 'bg-zinc-100 text-zinc-600'
@@ -557,7 +557,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
           <div className='space-y-3' data-testid='studio-work-list'>
             {studioWork.map((a) => (
               <div key={a.id} className='space-y-1'>
-                <p className='text-[11px] font-semibold text-[#737373]'>
+                <p className='text-xs font-semibold text-[#737373]'>
                   {a.seriesTitle} · Chương {a.chapterNumber}
                   {a.chapterTitle ? `: ${a.chapterTitle}` : ''}
                 </p>
@@ -626,7 +626,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
           {filteredAssignments.map((a) => (
             <div key={a.id} className='space-y-1.5'>
               {(a as any).seriesTitle && (
-                <div className='flex items-center gap-1.5 text-[11px] font-semibold text-orange-800 bg-orange-50 px-2.5 py-1 rounded-md border border-orange-200/80 w-fit'>
+                <div className='flex items-center gap-1.5 text-xs font-semibold text-orange-800 bg-orange-50 px-2.5 py-1 rounded-md border border-orange-200/80 w-fit'>
                   <span>{(a as any).seriesTitle}</span>
                   <span className='text-orange-400'>•</span>
                   <span>
@@ -676,19 +676,17 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
                     <div className='min-w-0'>
                       <div className='flex items-center gap-2'>
                         <h2 className='text-xs font-bold text-zinc-900 truncate'>{group.title}</h2>
-                        <span className='px-2 py-0.2 rounded-full text-[10px] font-mono font-bold bg-white border border-zinc-200 text-zinc-700'>
+                        <span className='px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-white border border-zinc-200 text-zinc-700'>
                           {group.assignments.length} công việc
                         </span>
                       </div>
                       {group.summary && (
-                        <p className='text-[11px] text-zinc-500 truncate max-w-xl'>
-                          {group.summary}
-                        </p>
+                        <p className='text-xs text-zinc-500 truncate max-w-xl'>{group.summary}</p>
                       )}
                     </div>
                   </div>
                   <div className='flex items-center gap-2 shrink-0'>
-                    <span className='text-[11px] font-semibold text-zinc-500'>
+                    <span className='text-xs font-semibold text-zinc-500'>
                       {isCollapsed ? 'Mở rộng' : 'Thu gọn'}
                     </span>
                     <div className='p-1 rounded-md hover:bg-zinc-200/60 text-zinc-600 transition-colors'>
@@ -706,7 +704,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
                     {group.assignments.map((a) => (
                       <div key={a.id} className='space-y-1.5'>
                         {(a as any).seriesTitle && (
-                          <div className='flex items-center gap-1.5 text-[11px] font-semibold text-orange-800 bg-orange-50 px-2.5 py-1 rounded-md border border-orange-200/80 w-fit'>
+                          <div className='flex items-center gap-1.5 text-xs font-semibold text-orange-800 bg-orange-50 px-2.5 py-1 rounded-md border border-orange-200/80 w-fit'>
                             <span>{(a as any).seriesTitle}</span>
                             <span className='text-orange-400'>•</span>
                             <span>

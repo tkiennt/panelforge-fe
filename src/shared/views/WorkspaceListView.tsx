@@ -78,19 +78,19 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
   const getRoleBadgeColor = (role?: WorkspaceRole | null) => {
     switch (role) {
       case 'PRODUCER':
-        return 'bg-purple-100 text-purple-700 border-purple-200';
+        return 'bg-purple-50 text-purple-700 border-purple-200';
       case 'ARTIST':
-        return 'bg-blue-100 text-blue-700 border-blue-200';
+        return 'bg-blue-50 text-blue-700 border-blue-200';
       case 'WRITER':
-        return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+        return 'bg-emerald-50 text-emerald-700 border-emerald-200';
       case 'EDITOR':
-        return 'bg-amber-100 text-amber-700 border-amber-200';
+        return 'bg-amber-50 text-amber-700 border-amber-200';
       case 'LETTERER':
-        return 'bg-pink-100 text-pink-700 border-pink-200';
+        return 'bg-pink-50 text-pink-700 border-pink-200';
       case 'PUBLISHER':
-        return 'bg-indigo-100 text-indigo-700 border-indigo-200';
+        return 'bg-indigo-50 text-indigo-700 border-indigo-200';
       default:
-        return 'bg-gray-100 text-gray-700 border-gray-200';
+        return 'bg-stone-100 text-stone-700 border-stone-200';
     }
   };
 
@@ -110,9 +110,9 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
   };
 
   return (
-    <div className='min-h-screen bg-[#F8F6F0] flex flex-col'>
+    <div className='min-h-screen bg-[#FAF9F5] flex flex-col'>
       {/* Top Navigation Bar with Brand, User Info and Logout */}
-      <header className='sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-[#E7E7E7] px-4 md:px-6 lg:px-8 py-3.5 shadow-2xs'>
+      <header className='sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-stone-200 px-4 md:px-6 lg:px-8 py-3.5 shadow-2xs'>
         <div className='w-full flex items-center justify-between'>
           {/* Logo & Brand */}
           <div className='flex items-center gap-3'>
@@ -121,23 +121,21 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
             </div>
             <div>
               <div className='flex items-center gap-2'>
-                <span className='font-bold text-base text-[#171717] tracking-tight'>
+                <span className='font-serif font-bold text-base text-stone-900 tracking-tight'>
                   PanelForge
                 </span>
-                <span className='text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-orange-50 text-[#EA580C] border border-orange-200/60 uppercase tracking-wider'>
+                <span className='text-xs font-mono font-bold px-2 py-0.5 rounded-md bg-orange-50 text-[#EA580C] border border-orange-200/60 uppercase tracking-wider'>
                   Studio Hub
                 </span>
               </div>
-              <p className='text-[11px] text-[#888888] hidden sm:block'>
-                Production Workspace Catalog
-              </p>
+              <p className='text-xs text-stone-500 hidden sm:block'>Production Workspace Catalog</p>
             </div>
           </div>
 
           {/* User Profile & Logout Button */}
           <div className='flex items-center gap-3 sm:gap-4'>
             {currentUser && (
-              <div className='flex items-center gap-3 pr-2 sm:pr-4 sm:border-r border-[#E7E7E7]'>
+              <div className='flex items-center gap-3 pr-2 sm:pr-4 sm:border-r border-stone-200'>
                 <div className='w-9 h-9 rounded-full bg-[#171717] text-white flex items-center justify-center font-bold text-sm shadow-2xs overflow-hidden'>
                   {currentUser.avatarUrl && currentUser.avatarUrl.trim() ? (
                     <img
@@ -151,14 +149,14 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                 </div>
                 <div className='hidden sm:block text-left'>
                   <div className='flex items-center gap-1.5'>
-                    <span className='text-sm font-semibold text-[#171717] truncate max-w-[140px]'>
+                    <span className='text-sm font-semibold text-stone-900 truncate max-w-[140px]'>
                       {currentUser.name}
                     </span>
-                    <span className='text-[10px] font-mono px-1.5 py-0.2 bg-gray-100 text-gray-700 rounded font-bold uppercase'>
+                    <span className='text-xs font-mono px-1.5 py-0.5 bg-stone-100 text-stone-700 rounded font-bold uppercase'>
                       {currentUser.role || 'USER'}
                     </span>
                   </div>
-                  <p className='text-xs text-[#888888] truncate max-w-[160px]'>
+                  <p className='text-xs text-stone-500 truncate max-w-[160px]'>
                     {currentUser.email}
                   </p>
                 </div>
@@ -265,7 +263,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                         </div>
                       </div>
 
-                      <h3 className='text-lg font-bold text-[#171717] mb-2 group-hover:text-[#F97316] transition-colors line-clamp-1'>
+                      <h3 className='text-lg font-serif font-bold text-stone-900 mb-2 group-hover:text-orange-600 transition-colors line-clamp-1'>
                         {ws.name}
                       </h3>
 

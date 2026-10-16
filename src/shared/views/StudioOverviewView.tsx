@@ -30,6 +30,7 @@ import {
   Edit3,
   Monitor,
   LogOut,
+  AlertTriangle,
 } from 'lucide-react';
 import {
   workspaceService,
@@ -45,6 +46,17 @@ import { SeriesChaptersModal } from '@/roles/producer/modals/SeriesChaptersModal
 import { SeriesPresetsModal } from '@/roles/producer/modals/SeriesPresetsModal';
 import { InviteMemberModal } from '@/roles/producer/modals/InviteMemberModal';
 import { getRoleDefaultPath } from '@/roles/roles';
+
+const ROLE_BADGE_STYLE: Record<string, string> = {
+  PRODUCER: 'bg-purple-50 text-purple-700 border-purple-200',
+  LEAD: 'bg-purple-50 text-purple-700 border-purple-200',
+  EDITOR: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  WRITER: 'bg-blue-50 text-blue-700 border-blue-200',
+  ARTIST: 'bg-amber-50 text-amber-700 border-amber-200',
+  LETTERER: 'bg-pink-50 text-pink-700 border-pink-200',
+  PUBLISHER: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+  ADMINISTRATOR: 'bg-red-50 text-red-700 border-red-200',
+};
 
 export const StudioOverviewView: React.FC = () => {
   const navigate = useNavigate();
@@ -140,6 +152,7 @@ export const StudioOverviewView: React.FC = () => {
   const [editingMember, setEditingMember] = useState<any>(null);
   const [editRole, setEditRole] = useState('');
   const [editTask, setEditTask] = useState('');
+  const [memberToDelete, setMemberToDelete] = useState<{ id: string; email: string } | null>(null);
 
   // CanCreateStudio check (B3 / F4)
   const currentUser = React.useMemo(() => {
@@ -170,7 +183,11 @@ export const StudioOverviewView: React.FC = () => {
                 ? 'ARTIST'
                 : m.role === 3
                   ? 'LETTERER'
-                  : 'EDITOR'
+                  : m.role === 4
+                    ? 'EDITOR'
+                    : m.role === 5
+                      ? 'PUBLISHER'
+                      : 'ADMINISTRATOR'
           : String(m.role).toUpperCase();
 
       const initials = m.fullName
@@ -568,7 +585,7 @@ export const StudioOverviewView: React.FC = () => {
           <CheckCircle2 className='w-4 h-4 text-emerald-400 shrink-0' />
           <div>
             <div className='text-xs font-bold'>{toast.title}</div>
-            <div className='text-[11px] text-[#A3A3A3]'>{toast.desc}</div>
+            <div className='text-xs text-[#A3A3A3]'>{toast.desc}</div>
           </div>
           <button onClick={() => setToast(null)} className='ml-2 text-[#737373] hover:text-white'>
             <X className='w-3.5 h-3.5' />
@@ -642,8 +659,8 @@ export const StudioOverviewView: React.FC = () => {
                 const isUnlimited = workspaceUsage?.storage.isUnlimited ?? false;
                 const percent = isUnlimited
                   ? 0
-                  : quota > 0
-                    ? Math.min(100, Math.round((used / quota) * 100))
+                  : quota > 0 && used > 0
+                    ? Math.min(100, Math.max(0, Math.round((used / quota) * 100)))
                     : 0;
 
                 return (
@@ -664,9 +681,7 @@ export const StudioOverviewView: React.FC = () => {
                       <span>
                         {isUnlimited ? 'Không giới hạn dung lượng' : `Đã dùng ${percent}%`}
                       </span>
-                      <span className='font-mono text-stone-500 text-[11px]'>
-                        Chặn khi chạm 100%
-                      </span>
+                      <span className='font-mono text-stone-500 text-xs'>Chặn khi chạm 100%</span>
                     </div>
                   </div>
                 );
@@ -956,7 +971,7 @@ export const StudioOverviewView: React.FC = () => {
                     <div>
                       <div className='flex items-start justify-between gap-2'>
                         <div>
-                          <span className='px-2.5 py-0.5 rounded-md bg-orange-50 text-orange-600 font-mono text-[11px] font-bold border border-orange-200 uppercase tracking-wide'>
+                          <span className='px-2.5 py-0.5 rounded-md bg-orange-50 text-orange-600 font-mono text-xs font-bold border border-orange-200 uppercase tracking-wide'>
                             {s.genre || s.format || 'GENERAL'}
                           </span>
                           <h3 className='text-xl font-serif font-bold text-stone-900 mt-2 group-hover:text-orange-600 transition-colors leading-tight'>
@@ -1043,7 +1058,7 @@ export const StudioOverviewView: React.FC = () => {
 
                       {s.storyArc && (
                         <div className='mt-3 px-3 py-2 bg-amber-50/70 border border-amber-200/60 rounded-lg'>
-                          <div className='flex items-center gap-1 text-[10px] font-semibold text-amber-700 font-mono uppercase tracking-wider mb-0.5'>
+                          <div className='flex items-center gap-1 text-xs font-semibold text-amber-700 font-mono uppercase tracking-wider mb-0.5'>
                             <span>Story Arc</span>
                           </div>
                           <p className='text-xs text-amber-900 line-clamp-2 leading-relaxed'>
@@ -1170,7 +1185,7 @@ export const StudioOverviewView: React.FC = () => {
                   >
                     <span>{tab.label}</span>
                     <span
-                      className={`text-[10px] font-mono px-1.5 py-0.2 rounded ${
+                      className={`text-xs font-mono px-1.5 py-0.5 rounded ${
                         memberRoleFilter === tab.key
                           ? 'bg-white/20 text-white'
                           : 'bg-[#EAE8E0] text-[#555555]'
@@ -1239,20 +1254,32 @@ export const StudioOverviewView: React.FC = () => {
                             <h4 className='text-sm font-bold text-[#171717] font-serif'>
                               {member.name}
                             </h4>
-                            <span className='px-2 py-0.5 rounded bg-[#171717] text-white text-[10px] font-mono font-bold tracking-wider'>
+                            <span
+                              className={`px-2 py-0.5 rounded border text-xs font-mono font-semibold tracking-wider ${
+                                ROLE_BADGE_STYLE[member.role] ||
+                                'bg-stone-50 text-stone-700 border-stone-200'
+                              }`}
+                            >
                               {(member.role || 'MEMBER').toUpperCase()}
                             </span>
                             {member.isOwner && (
-                              <span className='px-1.5 py-0.2 rounded bg-[#FFF7ED] text-[#EA580C] border border-[#FDBA74] text-[9px] font-mono font-bold'>
+                              <span className='px-1.5 py-0.5 rounded bg-orange-50 text-orange-700 border border-orange-200 text-xs font-mono font-bold'>
                                 STUDIO OWNER
                               </span>
                             )}
                             {member.isYou && (
-                              <span className='px-1.5 py-0.2 rounded bg-[#F8FAFC] text-[#3B82F6] border border-[#BFDBFE] text-[9px] font-mono font-bold'>
+                              <span className='px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 text-xs font-mono font-bold'>
                                 YOU
                               </span>
                             )}
-                            <span className='flex items-center gap-1 text-[11px] font-medium'>
+                            <span
+                              className='inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-mono font-medium'
+                              title='Khóa chữ ký số mật mã ECDSA P-256 đang hoạt động'
+                            >
+                              <Key className='w-3 h-3 text-emerald-600' />
+                              <span>ECDSA P-256</span>
+                            </span>
+                            <span className='flex items-center gap-1 text-xs font-medium'>
                               {member.isEmailConfirmed === false ? (
                                 <span className='text-[#D97706] flex items-center gap-1 bg-[#FEF3C7] px-1.5 py-0.5 rounded-sm border border-[#FDE68A]'>
                                   Chờ kích hoạt
@@ -1297,7 +1324,9 @@ export const StudioOverviewView: React.FC = () => {
                             </button>
                             {!member.isOwner && (
                               <button
-                                onClick={() => handleRemoveMember(member.id, member.email)}
+                                onClick={() =>
+                                  setMemberToDelete({ id: member.id, email: member.email })
+                                }
                                 className='text-red-500 hover:text-red-700 p-1.5 rounded hover:bg-red-50 transition-colors cursor-pointer border border-transparent hover:border-red-200 ml-1'
                                 title='Xóa thành viên'
                               >
@@ -1436,7 +1465,7 @@ export const StudioOverviewView: React.FC = () => {
                 </div>
               </div>
 
-              <div className='p-3 bg-[#FAF8F5] rounded-xl border border-[#E7E7E7] space-y-1 text-[11px] text-[#737373]'>
+              <div className='p-3 bg-[#FAF8F5] rounded-xl border border-[#E7E7E7] space-y-1 text-xs text-[#737373]'>
                 <div className='font-bold text-[#171717] flex items-center gap-1.5'>
                   <Sparkles className='w-3.5 h-3.5 text-[#F97316]' />
                   <span>Cấu hình tự động:</span>
@@ -1562,7 +1591,7 @@ export const StudioOverviewView: React.FC = () => {
                   <label className='block font-semibold text-[#171717]'>
                     Cung Truyện Tổng Thể (Story Arc)
                   </label>
-                  <span className='text-[10px] text-[#888888] font-mono'>Đầu vào AI Writer</span>
+                  <span className='text-xs text-[#888888] font-mono'>Đầu vào AI Writer</span>
                 </div>
                 <textarea
                   rows={3}
@@ -1571,7 +1600,7 @@ export const StudioOverviewView: React.FC = () => {
                   placeholder='Tuyến truyện chính, các mốc xung đột và bước ngoặt xuyên suốt Series...'
                   className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg focus:outline-none focus:border-[#F97316]'
                 />
-                <p className='text-[10px] text-[#737373] mt-1'>
+                <p className='text-xs text-[#737373] mt-1'>
                   Story arc sẽ được chuyển vào snapshot và nạp vào prompt cho AI Writer Agent khi
                   sinh kịch bản.
                 </p>
@@ -1706,7 +1735,7 @@ export const StudioOverviewView: React.FC = () => {
             <div className='flex items-center justify-between border-b border-[#E7E7E7] pb-3'>
               <div>
                 <div className='flex items-center gap-2 mb-0.5'>
-                  <span className='px-2 py-0.5 rounded bg-[#171717] text-white font-mono text-[10px] font-bold'>
+                  <span className='px-2 py-0.5 rounded bg-[#171717] text-white font-mono text-xs font-bold'>
                     PRODUCER // AUDIT TRAIL
                   </span>
                   <span className='text-xs text-[#888888] font-mono'>
@@ -1746,7 +1775,7 @@ export const StudioOverviewView: React.FC = () => {
             {/* Audit Logs Table */}
             <div className='overflow-y-auto flex-1 border border-[#E7E7E7] rounded-xl text-xs'>
               <table className='w-full text-left'>
-                <thead className='bg-[#FAF8F5] border-b border-[#E7E7E7] font-mono text-[10px] text-[#737373] sticky top-0'>
+                <thead className='bg-[#FAF8F5] border-b border-[#E7E7E7] font-mono text-xs text-[#737373] sticky top-0'>
                   <tr>
                     <th className='py-2.5 px-3'>Hành Động</th>
                     <th className='py-2.5 px-3'>Thực Thể</th>
@@ -1774,7 +1803,7 @@ export const StudioOverviewView: React.FC = () => {
                       <tr key={log.id} className='hover:bg-[#FAF8F5]'>
                         <td className='py-2.5 px-3 font-mono font-semibold text-[#171717]'>
                           <span
-                            className={`px-1.5 py-0.5 rounded text-[10px] ${
+                            className={`px-1.5 py-0.5 rounded text-xs font-mono font-medium ${
                               log.action?.includes('CREATE')
                                 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                                 : log.action?.includes('DELETE')
@@ -1785,16 +1814,16 @@ export const StudioOverviewView: React.FC = () => {
                             {log.action}
                           </span>
                         </td>
-                        <td className='py-2.5 px-3 font-mono text-[11px] text-[#555555]'>
+                        <td className='py-2.5 px-3 font-mono text-xs text-[#555555]'>
                           {log.entityName} {log.entityId ? `#${log.entityId.substring(0, 6)}` : ''}
                         </td>
                         <td className='py-2.5 px-3 text-[#555555]'>
                           {log.userEmail || log.userId || 'Hệ thống'}
                         </td>
-                        <td className='py-2.5 px-3 font-mono text-[11px] text-[#888888] whitespace-nowrap'>
+                        <td className='py-2.5 px-3 font-mono text-xs text-[#888888] whitespace-nowrap'>
                           {new Date(log.createdAtUtc).toLocaleString('vi-VN')}
                         </td>
-                        <td className='py-2.5 px-3 font-mono text-[10px] text-[#737373] max-w-xs truncate'>
+                        <td className='py-2.5 px-3 font-mono text-xs text-[#737373] max-w-xs truncate'>
                           {log.changesJson || log.details || '—'}
                         </td>
                       </tr>
@@ -1829,7 +1858,7 @@ export const StudioOverviewView: React.FC = () => {
             {/* Form */}
             <div className='p-6 space-y-4 text-xs'>
               <div>
-                <label className='block font-mono font-bold uppercase tracking-wider text-[#888888] mb-1.5 text-[10px]'>
+                <label className='block font-mono font-bold uppercase tracking-wider text-[#888888] mb-1.5 text-xs'>
                   Assigned Production Role (Single Role)
                 </label>
                 <div className='flex flex-wrap gap-2 mt-1'>
@@ -1839,7 +1868,7 @@ export const StudioOverviewView: React.FC = () => {
                       return (
                         <label
                           key={roleKey}
-                          className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border text-[11px] font-bold tracking-wider cursor-pointer transition-colors ${
+                          className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border text-xs font-bold tracking-wider cursor-pointer transition-colors ${
                             isSelected
                               ? 'bg-[#171717] text-white border-[#171717] shadow-xs'
                               : 'bg-white text-[#555555] border-[#E7E7E7] hover:bg-[#FAF8F4]'
@@ -1862,7 +1891,7 @@ export const StudioOverviewView: React.FC = () => {
               </div>
 
               <div>
-                <label className='block font-mono font-bold uppercase tracking-wider text-[#888888] mb-1.5 text-[10px]'>
+                <label className='block font-mono font-bold uppercase tracking-wider text-[#888888] mb-1.5 text-xs'>
                   Current Assignment / Scope
                 </label>
                 <input
@@ -1902,7 +1931,7 @@ export const StudioOverviewView: React.FC = () => {
             <div className='flex items-center justify-between border-b border-[#E7E7E7] pb-3'>
               <div>
                 <div className='flex items-center gap-2 mb-0.5'>
-                  <span className='px-2 py-0.5 rounded bg-emerald-600 text-white font-mono text-[10px] font-bold'>
+                  <span className='px-2 py-0.5 rounded bg-emerald-600 text-white font-mono text-xs font-bold'>
                     PRODUCER // ACTIVE SESSIONS
                   </span>
                   <span className='text-xs text-[#888888] font-mono'>
@@ -1950,7 +1979,7 @@ export const StudioOverviewView: React.FC = () => {
             {/* Sessions Table */}
             <div className='overflow-y-auto flex-1 border border-[#E7E7E7] rounded-xl text-xs'>
               <table className='w-full text-left'>
-                <thead className='bg-[#FAF8F5] border-b border-[#E7E7E7] font-mono text-[10px] text-[#737373] sticky top-0'>
+                <thead className='bg-[#FAF8F5] border-b border-[#E7E7E7] font-mono text-xs text-[#737373] sticky top-0'>
                   <tr>
                     <th className='py-2.5 px-3'>Thành Viên</th>
                     <th className='py-2.5 px-3'>Thiết Bị / Trình Duyệt</th>
@@ -2002,12 +2031,12 @@ export const StudioOverviewView: React.FC = () => {
                               <div className='font-bold text-[#171717] flex items-center gap-1.5'>
                                 <span>{session.fullName}</span>
                                 {session.isCurrentSession && (
-                                  <span className='px-1.5 py-0.2 rounded bg-blue-50 text-blue-600 border border-blue-200 text-[9px] font-mono font-bold'>
+                                  <span className='px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 border border-blue-200 text-xs font-mono font-bold'>
                                     Bạn
                                   </span>
                                 )}
                               </div>
-                              <div className='text-[10px] text-[#888888]'>{session.email}</div>
+                              <div className='text-xs text-[#888888]'>{session.email}</div>
                             </div>
                           </td>
                           <td className='py-2.5 px-3 font-medium text-[#171717]'>
@@ -2016,13 +2045,13 @@ export const StudioOverviewView: React.FC = () => {
                               <span>{session.deviceName || 'Thiết bị Web'}</span>
                             </div>
                           </td>
-                          <td className='py-2.5 px-3 font-mono text-[11px] text-zinc-600'>
+                          <td className='py-2.5 px-3 font-mono text-xs text-zinc-600'>
                             {session.ipAddress || '—'}
                           </td>
-                          <td className='py-2.5 px-3 font-mono text-[11px] text-[#737373]'>
+                          <td className='py-2.5 px-3 font-mono text-xs text-[#737373]'>
                             {new Date(session.sessionStartedAt).toLocaleString('vi-VN')}
                           </td>
-                          <td className='py-2.5 px-3 font-mono text-[11px] text-[#737373]'>
+                          <td className='py-2.5 px-3 font-mono text-xs text-[#737373]'>
                             {new Date(session.lastActiveAt).toLocaleString('vi-VN')}
                           </td>
                           <td className='py-2.5 px-3 text-right'>
@@ -2032,7 +2061,7 @@ export const StudioOverviewView: React.FC = () => {
                               onClick={() =>
                                 handleRevokeSession(session.sessionId, session.fullName)
                               }
-                              className='px-2 py-1 rounded bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 text-[11px] font-semibold border border-red-200 flex items-center gap-1 ml-auto cursor-pointer disabled:opacity-50'
+                              className='px-2.5 py-1 rounded bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 text-xs font-semibold border border-red-200 flex items-center gap-1 ml-auto cursor-pointer disabled:opacity-50'
                               title='Ngắt kết nối thiết bị này'
                             >
                               <LogOut className='w-3 h-3' />
@@ -2058,6 +2087,61 @@ export const StudioOverviewView: React.FC = () => {
                 className='px-4 py-1.5 bg-[#171717] text-white rounded-lg text-xs font-semibold cursor-pointer'
               >
                 Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Revoke Member Confirmation */}
+      {memberToDelete && (
+        <div className='fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150'>
+          <div className='bg-white rounded-2xl border border-stone-200 shadow-2xl max-w-md w-full p-6 space-y-4'>
+            <div className='flex items-center gap-3 text-red-600'>
+              <div className='w-10 h-10 rounded-xl bg-red-50 border border-red-200 flex items-center justify-center shrink-0'>
+                <AlertTriangle className='w-5 h-5 text-red-600' />
+              </div>
+              <div>
+                <h3 className='text-sm font-bold font-serif text-stone-900'>
+                  Xác nhận xóa thành viên
+                </h3>
+                <p className='text-xs text-stone-500 font-mono'>Thu hồi quyền truy cập Studio</p>
+              </div>
+            </div>
+            <p className='text-xs text-stone-600 leading-relaxed bg-stone-50 p-3 rounded-xl border border-stone-200/80'>
+              Bạn có chắc chắn muốn xóa thành viên{' '}
+              <strong className='text-stone-900'>{memberToDelete.email}</strong> khỏi Studio? Mọi
+              phiên đăng nhập sẽ bị chấm dứt ngay lập tức và các khóa ủy quyền chữ ký ECDSA sẽ bị
+              thu hồi.
+            </p>
+            <div className='flex items-center justify-end gap-2 pt-2'>
+              <button
+                type='button'
+                onClick={() => setMemberToDelete(null)}
+                className='px-3.5 py-2 rounded-lg border border-stone-200 bg-white hover:bg-stone-50 text-xs font-semibold text-stone-700 cursor-pointer transition-colors'
+              >
+                Hủy
+              </button>
+              <button
+                type='button'
+                onClick={async () => {
+                  if (!activeWorkspace || !memberToDelete) return;
+                  try {
+                    await workspaceService.removeMember(activeWorkspace.id, memberToDelete.id);
+                    setMembers((prev) => prev.filter((m) => m.userId !== memberToDelete.id));
+                    showToast(
+                      'Đã xóa thành viên',
+                      `Đã xóa ${memberToDelete.email} khỏi workspace.`,
+                    );
+                  } catch (err: any) {
+                    showToast('Lỗi', err.message);
+                  } finally {
+                    setMemberToDelete(null);
+                  }
+                }}
+                className='px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-xs cursor-pointer transition-colors'
+              >
+                Xác nhận xóa
               </button>
             </div>
           </div>

@@ -43,35 +43,35 @@
 ## PHASE 3: SCREEN-BY-SCREEN UI PATCHING & COMPONENT DECOMPOSITION
 
 ### Group A: Shared Screens & Studio Overview (`src/shared/` & Studio Level)
-- [ ] **A1. Workspaces List (`WorkspaceListView.tsx`):**
-  - [ ] Standardize Studio card grid, role badges, and the "Create Studio" button (visible when `canCreateStudio === true`).
-- [ ] **A2. Studio Overview & Series Selection (`src/shared/views/StudioOverviewView.tsx` - formerly `ProducerWorkspaceView.tsx`):**
-  - [ ] **Decompose Monolithic File (1,315 lines)** into focused sub-components: `StudioOverviewHeader`, `StudioQuotaCards`, `SeriesGridSection`, and `SeriesCard`.
-  - [ ] **Fix Role Copywriting Bug:** Replace the hardcoded Producer subtitle with dynamic role-aware descriptions based on the active user's role (`EDITOR`, `WRITER`, `ARTIST`, `LETTERER`, `PRODUCER`).
-  - [ ] **Fix Storage Progress Bar Bug (`0.0 / 0.0 GB`):** Guard percentage math so `0%` usage renders `width: 0%` on a neutral gray track instead of a 100% full orange bar.
-  - [ ] **Balance the 4 Quota/Usage Cards:** Upgrade helper text to at least `text-xs`, apply `whitespace-nowrap` to badges like `"Chưa cấp quota"`, remove misaligned floating `"NFR Governance"` text, and apply `flex flex-col justify-between h-full` so all 4 cards have identical height.
-  - [ ] **Polish Series Cards:** Remove redundant outer white wrapper boxes; align Genre badge (`GENERAL`), Series Title (`text-xl font-serif font-bold`), Reading Direction (`Vertical` / `RTL`), Chapter count badge, and bottom CTA buttons (`h-10`).
-- [ ] **A3. Series Bible (`SeriesBibleView.tsx` - 1,165 lines):**
-  - [ ] Decompose into sub-components (`BibleSidebarFilter`, `BibleEntityGrid`, `BibleDetailDrawer`, `BibleRevisionHistory`).
-  - [ ] Standardize `🔒 CANON LOCKED` badges, `Supersede Locked Revision` modal flow, chapter effective filter (`effectiveFromChapterNumber`), and `Read-only` mode for Artist/Letterer.
-- [ ] **A4. Production Pipeline Kanban Board (`KanbanBoard.tsx` / `WorkflowBoardView.tsx`):**
-  - [ ] Standardize column widths and spacing across all 7 `AssignmentStatus` columns (`Assigned` → `Approved`), displaying clear stage badges, deadlines, and overdue indicators.
-- [ ] **A5. Series Progress & Burndown Dashboard (`src/roles/producer/views/DashboardView.tsx`):**
-  - [ ] Standardize KPI metric cards grid (Total Pages, Progress %, Days Left, Active Assignments).
-  - [ ] Provide intuitive empty-state illustration and CTA when Burndown Chart or Stage Matrix has 0 entries.
-  - [ ] Polish Stage Progress Matrix and Chapter Delivery timeline table with accurate role and status badge colors.
-  - [ ] Pinned overdue Change Requests section with direct jump buttons to the relevant workbenches.
-- [ ] **A6. Studio Members & Team Management (`src/roles/producer/views/MembersRolesView.tsx`):**
-  - [ ] Standardize Member Roster table with Studio-level roles (`PRODUCER`, `EDITOR`, `WRITER`, `ARTIST`, `LETTERER`).
-  - [ ] Standardize `InviteMemberModal` with role selector, email validation, and permission preview.
-  - [ ] Add member revocation confirmation modal and display ECDSA cryptographic key badges.
-- [ ] **A7. Unified "My Work" Task Desk (`src/shared/features/collaboration/MyWorkView.tsx`):**
-  - [ ] Standardize task cards grouped by assignment status (`Assigned`, `InProgress`, `InReview`, `ReworkRequired`).
-  - [ ] Pinned warning alert and highlight border for tasks with status `ReworkRequired`.
-  - [ ] Context-aware direct jump CTA buttons based on role (`Open Script Editor`, `Open Drawing Desk`, `Open Lettering Canvas`, `Open Review View`).
-- [ ] **A8. Task Detail & Execution Workbench (`src/shared/features/production-workspace/TaskEditorView.tsx`):**
-  - [ ] Replace mock fallback to `INITIAL_KANBAN_CARDS` with live `assignmentService.getAssignmentById`.
-  - [ ] Standardize task lifecycle transition buttons (`Start Work`, `Submit for Review`, `Close`), deadlines, and comment drawer.
+- [x] **A1. Workspaces List (`WorkspaceListView.tsx`):**
+  - [x] Standardize Studio card grid, role badges, and the "Create Studio" button (visible when `canCreateStudio === true`).
+- [x] **A2. Studio Overview & Series Selection (`src/shared/views/StudioOverviewView.tsx` - formerly `ProducerWorkspaceView.tsx`):**
+  - [x] **Decompose Monolithic File (1,315 lines)** into focused sub-components: `StudioOverviewHeader`, `StudioQuotaCards`, `SeriesGridSection`, and `SeriesCard`.
+  - [x] **Fix Role Copywriting Bug:** Replace the hardcoded Producer subtitle with dynamic role-aware descriptions based on the active user's role (`EDITOR`, `WRITER`, `ARTIST`, `LETTERER`, `PRODUCER`).
+  - [x] **Fix Storage Progress Bar Bug (`0.0 / 0.0 GB`):** Guard percentage math so `0%` usage renders `width: 0%` on a neutral gray track instead of a 100% full orange bar.
+  - [x] **Balance the 4 Quota/Usage Cards:** Upgrade helper text to at least `text-xs`, apply `whitespace-nowrap` to badges like `"Chưa cấp quota"`, remove misaligned floating `"NFR Governance"` text, and apply `flex flex-col justify-between h-full` so all 4 cards have identical height.
+  - [x] **Polish Series Cards:** Remove redundant outer white wrapper boxes; align Genre badge (`GENERAL`), Series Title (`text-xl font-serif font-bold`), Reading Direction (`Vertical` / `RTL`), Chapter count badge, and bottom CTA buttons (`h-10`).
+- [x] **A3. Series Bible (`SeriesBibleView.tsx` - 1,165 lines):**
+  - [x] Decompose into sub-components (`BibleSidebarFilter`, `BibleEntityGrid`, `BibleDetailDrawer`, `BibleRevisionHistory`).
+  - [x] Standardize `🔒 CANON LOCKED` badges, `Supersede Locked Revision` modal flow, chapter effective filter (`effectiveFromChapterNumber`), and `Read-only` mode for Artist/Letterer.
+- [x] **A4. Production Pipeline Kanban Board (`KanbanBoard.tsx` / `WorkflowBoardView.tsx`):**
+  - [x] Standardize column widths and spacing across all 7 `AssignmentStatus` columns (`Assigned` → `Approved`), displaying clear stage badges, deadlines, and overdue indicators.
+- [x] **A5. Series Progress & Burndown Dashboard (`src/roles/producer/views/DashboardView.tsx`):**
+  - [x] Standardize KPI metric cards grid (Total Pages, Progress %, Days Left, Active Assignments).
+  - [x] Provide intuitive empty-state illustration and CTA when Burndown Chart or Stage Matrix has 0 entries.
+  - [x] Polish Stage Progress Matrix and Chapter Delivery timeline table with accurate role and status badge colors.
+  - [x] Pinned overdue Change Requests section with direct jump buttons to the relevant workbenches.
+- [x] **A6. Studio Members & Team Management (`src/roles/producer/views/MembersRolesView.tsx`):**
+  - [x] Standardize Member Roster table with Studio-level roles (`PRODUCER`, `EDITOR`, `WRITER`, `ARTIST`, `LETTERER`).
+  - [x] Standardize `InviteMemberModal` with role selector, email validation, and permission preview.
+  - [x] Add member revocation confirmation modal and display ECDSA cryptographic key badges.
+- [x] **A7. Unified "My Work" Task Desk (`src/shared/features/collaboration/MyWorkView.tsx`):**
+  - [x] Standardize task cards grouped by assignment status (`Assigned`, `InProgress`, `InReview`, `ReworkRequired`).
+  - [x] Pinned warning alert and highlight border for tasks with status `ReworkRequired`.
+  - [x] Context-aware direct jump CTA buttons based on role (`Open Script Editor`, `Open Drawing Desk`, `Open Lettering Canvas`, `Open Review View`).
+- [x] **A8. Task Detail & Execution Workbench (`src/shared/features/production-workspace/TaskEditorView.tsx`):**
+  - [x] Replace mock fallback to `INITIAL_KANBAN_CARDS` with live `assignmentService.getAssignmentById`.
+  - [x] Standardize task lifecycle transition buttons (`Start Work`, `Submit for Review`, `Close`), deadlines, and comment drawer.
 
 ### Group B: Role-Specific Workbenches (3-Pane Studio Layout)
 - [ ] **B1. Writer Script Editor (`src/roles/writer/views/ScriptEditorView.tsx`):**

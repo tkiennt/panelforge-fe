@@ -135,6 +135,32 @@ export const assignmentService = {
   },
 
   /**
+   * Lấy chi tiết Assignment theo ID (tìm kiếm từ Chapter assignments hoặc Workspace assignments)
+   */
+  getAssignmentById: async (
+    assignmentId: string,
+    chapterId?: string,
+    workspaceId?: string,
+  ): Promise<AssignmentDto | null> => {
+    try {
+      if (chapterId) {
+        const list = await assignmentService.getAssignments(chapterId);
+        const match = list.find((a) => a.id === assignmentId);
+        if (match) return match;
+      }
+      if (workspaceId) {
+        const list = await assignmentService.getMyWorkspaceAssignments(workspaceId);
+        const match = list.find((a) => a.id === assignmentId);
+        if (match) return match;
+      }
+      return null;
+    } catch (err: any) {
+      console.warn('Không thể nạp thông tin chi tiết Assignment:', err);
+      return null;
+    }
+  },
+
+  /**
    * Producer giao việc cho Chapter, Page hoặc Panel (POST /api/chapters/{chapterId}/assignments)
    */
   createAssignment: async (
