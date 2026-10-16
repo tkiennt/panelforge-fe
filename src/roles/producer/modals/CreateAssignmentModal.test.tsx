@@ -272,4 +272,56 @@ describe('CreateAssignmentModal', () => {
       ).toBeInTheDocument();
     });
   });
+
+  it('ẩn các công đoạn đã tắt (isEnabled === false) khỏi dropdown chọn stage', async () => {
+    vi.mocked(pipelineService.getSeriesPipeline).mockResolvedValueOnce({
+      id: 'pipe-1',
+      seriesId: 'series-1',
+      name: 'Default Pipeline',
+      stages: [
+        {
+          id: 'stage-script',
+          name: 'Script',
+          slug: 'script',
+          stageOrder: 1,
+          allowedRole: 'Writer',
+          isApprovalGate: false,
+          isInitial: true,
+          isTerminal: false,
+          isEnabled: true,
+        },
+        {
+          id: 'stage-color',
+          name: 'Color Stage',
+          slug: 'color',
+          stageOrder: 2,
+          allowedRole: 'Artist',
+          isApprovalGate: false,
+          isInitial: false,
+          isTerminal: false,
+          isEnabled: false,
+        },
+      ],
+      transitions: [],
+    } as any);
+
+    render(
+      <CreateAssignmentModal
+        isOpen={true}
+        workspaceId='ws-1'
+        seriesId='series-1'
+        chapterId='chap-1'
+        chapterNumber={1}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/Công đoạn Pipeline/i)).toBeInTheDocument();
+    });
+
+    const stageSelect = screen.getByLabelText(/Công đoạn Pipeline/i) as HTMLSelectElement;
+    expect(stageSelect).toHaveTextContent('Script');
+    expect(stageSelect).not.toHaveTextContent('Color Stage');
+  });
 });

@@ -102,6 +102,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
           stageName: stage?.name || 'Công đoạn',
           stageOrder: stage?.stageOrder || 99,
           stageColor: stage?.colorCode || null,
+          isStageEnabled: stage ? stage.isEnabled !== false : true,
           assigneeUserId: a.assigneeUserId,
           assigneeName: memberName,
           assigneeEmail: member?.email,
