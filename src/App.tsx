@@ -581,6 +581,73 @@ function AppContent() {
       ? '/admin'
       : '/workspaces';
 
+  const handleApiLoginSuccess = (authResponse: any, customRedirect?: string) => {
+    setIsLoginModalOpen(false);
+    setIsRegisterModalOpen(false);
+    setIsAuthenticated(true);
+    localStorage.removeItem('demoRole');
+    localStorage.removeItem('isDemoMode');
+    const role = normalizeSystemRole(authResponse?.user?.role);
+    setCurrentRole(role);
+    setCurrentUserInfo({
+      id: authResponse?.user?.id,
+      name: authResponse?.user?.fullName || authResponse?.user?.email?.split('@')[0] || 'User',
+      email: authResponse?.user?.email || '',
+      role,
+      canCreateStudio: authResponse?.user?.canCreateStudio,
+      isTwoFactorEnabled: authResponse?.user?.isTwoFactorEnabled,
+    });
+    if (authResponse?.user) {
+      localStorage.setItem('user', JSON.stringify(authResponse.user));
+    }
+    localStorage.setItem('userRole', role);
+
+    if (authResponse?.token) {
+      localStorage.setItem('token', authResponse.token);
+    }
+    if (authResponse?.refreshToken) {
+      localStorage.setItem('refreshToken', authResponse.refreshToken);
+    }
+
+    if (customRedirect) {
+      navigate(customRedirect);
+      showToast(
+        'Đăng nhập thành công',
+        `Chào mừng ${authResponse?.user?.fullName || 'bạn'} (Vai trò: ${role})!`,
+      );
+      return;
+    }
+
+    // BR-23 / F3: Điều hướng theo suggestedLanding từ landing-context API
+    authService
+      .getLandingContext()
+      .then((landing) => {
+        if (landing?.suggestedLanding === 'AdminDashboard') {
+          navigate('/admin');
+        } else if (landing?.suggestedLanding === 'YourWorkspaces') {
+          navigate('/workspaces');
+        } else if (landing?.suggestedLanding === 'StudioCreation') {
+          navigate(landing.canCreateStudio ? '/producer' : '/workspaces');
+        } else if (landing?.suggestedLanding === 'PublicCatalog') {
+          navigate('/catalog');
+        } else {
+          navigate(role === 'ADMINISTRATOR' ? '/admin' : '/workspaces');
+        }
+      })
+      .catch(() => {
+        navigate(role === 'ADMINISTRATOR' ? '/admin' : '/workspaces');
+      });
+
+    showToast(
+      'Đăng nhập thành công',
+      `Chào mừng ${authResponse?.user?.fullName || 'bạn'} (Vai trò: ${role})!`,
+    );
+  };
+
+  const handleRegisterSuccess = (authResponse: any, customRedirect?: string) => {
+    handleApiLoginSuccess(authResponse, customRedirect);
+  };
+
   return (
     <div className='min-h-screen bg-[#F8F6F0] text-[#171717] font-sans antialiased selection:bg-[#F97316]/20 selection:text-[#EA580C] relative'>
       <AppRoutes
@@ -609,6 +676,8 @@ function AppContent() {
         provenanceLogs={provenanceLogs}
         handleAddEntity={handleAddEntity}
         isDevMode={IS_DEV_MODE}
+        onApiLoginSuccess={handleApiLoginSuccess}
+        onRegisterSuccess={handleRegisterSuccess}
       />
 
       {/* Các Modals dùng chung */}
@@ -712,59 +781,7 @@ function AppContent() {
             const roleLabel = role === 'ADMINISTRATOR' ? 'Administrator' : 'User';
             showToast('Đăng nhập thành công', `Chào mừng ${displayName} (Vai trò: ${roleLabel})!`);
           }}
-          onApiLoginSuccess={(authResponse) => {
-            setIsLoginModalOpen(false);
-            setIsAuthenticated(true);
-            localStorage.removeItem('demoRole');
-            localStorage.removeItem('isDemoMode');
-            const role = normalizeSystemRole(authResponse?.user?.role);
-            setCurrentRole(role);
-            setCurrentUserInfo({
-              id: authResponse?.user?.id,
-              name:
-                authResponse?.user?.fullName || authResponse?.user?.email?.split('@')[0] || 'User',
-              email: authResponse?.user?.email || '',
-              role,
-              canCreateStudio: authResponse?.user?.canCreateStudio,
-              isTwoFactorEnabled: authResponse?.user?.isTwoFactorEnabled,
-            });
-            if (authResponse?.user) {
-              localStorage.setItem('user', JSON.stringify(authResponse.user));
-            }
-            localStorage.setItem('userRole', role);
-
-            if (authResponse?.token) {
-              localStorage.setItem('token', authResponse.token);
-            }
-            if (authResponse?.refreshToken) {
-              localStorage.setItem('refreshToken', authResponse.refreshToken);
-            }
-
-            // BR-23 / F3: Điều hướng theo suggestedLanding từ landing-context API
-            authService
-              .getLandingContext()
-              .then((landing) => {
-                if (landing?.suggestedLanding === 'AdminDashboard') {
-                  navigate('/admin');
-                } else if (landing?.suggestedLanding === 'YourWorkspaces') {
-                  navigate('/workspaces');
-                } else if (landing?.suggestedLanding === 'StudioCreation') {
-                  navigate(landing.canCreateStudio ? '/producer' : '/workspaces');
-                } else if (landing?.suggestedLanding === 'PublicCatalog') {
-                  navigate('/catalog');
-                } else {
-                  navigate(role === 'ADMINISTRATOR' ? '/admin' : '/workspaces');
-                }
-              })
-              .catch(() => {
-                navigate(role === 'ADMINISTRATOR' ? '/admin' : '/workspaces');
-              });
-
-            showToast(
-              'Đăng nhập thành công',
-              `Chào mừng ${authResponse?.user?.fullName || 'bạn'} (Vai trò: ${role})!`,
-            );
-          }}
+          onApiLoginSuccess={handleApiLoginSuccess}
         />
       )}
 
@@ -775,28 +792,7 @@ function AppContent() {
             setIsRegisterModalOpen(false);
             setIsLoginModalOpen(true);
           }}
-          onSuccess={(authResponse) => {
-            setIsRegisterModalOpen(false);
-            setIsAuthenticated(true);
-            const role = normalizeSystemRole(authResponse?.user?.role);
-            setCurrentRole(role);
-            setCurrentUserInfo({
-              id: authResponse?.user?.id,
-              name:
-                authResponse?.user?.fullName || authResponse?.user?.email?.split('@')[0] || 'User',
-              email: authResponse?.user?.email || '',
-              role,
-            });
-            if (authResponse?.user) {
-              localStorage.setItem('user', JSON.stringify(authResponse.user));
-            }
-            localStorage.setItem('userRole', role);
-            navigate(role === 'ADMINISTRATOR' ? '/admin' : '/workspaces');
-            showToast(
-              'Kích hoạt thành công',
-              `Chào mừng ${authResponse?.user?.fullName || 'bạn'} (Vai trò: ${role})!`,
-            );
-          }}
+          onSuccess={handleRegisterSuccess}
         />
       )}
 
