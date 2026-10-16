@@ -576,31 +576,49 @@ export const ProducerWorkspaceView: React.FC = () => {
       )}
 
       {/* Header Banner: Clean & Compact Studio Banner */}
-      <div className='bg-white p-5 rounded-2xl border border-[#E7E7E7] shadow-2xs space-y-3'>
-        <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-[#E7E7E7] pb-3'>
+      <div className='bg-white p-6 rounded-2xl border border-stone-200/80 shadow-2xs space-y-4'>
+        <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-stone-100 pb-4'>
           <div>
-            <h1 className='text-xl font-bold text-zinc-900 tracking-tight flex items-center gap-2 font-display'>
-              <Briefcase className='w-5 h-5 text-orange-500' />
+            <h1 className='text-2xl font-serif font-bold text-stone-900 tracking-tight flex items-center gap-2.5'>
+              <Briefcase className='w-5 h-5 text-orange-500 shrink-0' />
               <span>{activeWorkspace?.name || 'Studio Workspace'}</span>
             </h1>
-            <p className='text-xs text-zinc-500 mt-0.5'>
-              Bàn làm việc của Giám đốc Sản xuất: Quản lý các bộ truyện (Series), quy trình sản xuất
-              và thành viên.
+            <p className='text-xs md:text-sm text-stone-500 mt-1 leading-relaxed'>
+              {(() => {
+                const effective = String(wsRole || userRole || '').toUpperCase();
+                switch (effective) {
+                  case 'EDITOR':
+                    return 'Bàn làm việc của Biên tập viên: Kiểm soát chất lượng, duyệt chương và rà soát tính nhất quán của các bộ truyện (Series).';
+                  case 'WRITER':
+                    return 'Không gian sáng tạo Kịch bản: Quản lý các hồi truyện, kịch bản phân cảnh và kho tư liệu Series Bible.';
+                  case 'ARTIST':
+                    return 'Bàn vẽ & Phân cảnh: Quản lý khung tranh, phân tầng đồ họa và phác thảo các trang truyện.';
+                  case 'LETTERER':
+                    return 'Xưởng Thoại & Chèn chữ: Thiết kế bóng thoại, hiệu ứng âm thanh (SFX) và chèn chữ theo kịch bản.';
+                  case 'PUBLISHER':
+                    return 'Cổng Xuất bản Studio: Thẩm định ấn bản phát hành, lên lịch phát hành và kiểm soát phân phối.';
+                  case 'ADMINISTRATOR':
+                    return 'Khu vực Quản trị Hệ thống: Quản lý tài nguyên, định mức quota và giám sát toàn bộ Studio.';
+                  case 'PRODUCER':
+                  default:
+                    return 'Bàn làm việc của Giám đốc Sản xuất: Quản lý các bộ truyện (Series), quy trình sản xuất và thành viên.';
+                }
+              })()}
             </p>
           </div>
         </div>
 
-        {/* Workspace Governance & Resource Usage Meters (Storage, AI Tokens & Image Quota) */}
+        {/* Workspace Governance & Resource Usage Meters (Storage, AI Tokens, Image Quota & Concurrent Sessions) */}
         {activeWorkspace && (
-          <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1'>
-            {/* Storage Meter */}
-            <div className='p-3.5 bg-[#FAF8F5] rounded-xl border border-[#E7E7E7] space-y-2'>
-              <div className='flex items-center justify-between text-xs'>
-                <div className='flex items-center gap-1.5 font-semibold text-[#171717]'>
-                  <HardDrive className='w-4 h-4 text-[#F97316]' />
+          <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-1'>
+            {/* 1. Storage Meter */}
+            <div className='flex flex-col justify-between h-full p-5 bg-stone-50/70 hover:bg-stone-50 rounded-xl border border-stone-200/80 transition-all space-y-3'>
+              <div className='flex items-center justify-between gap-2'>
+                <div className='flex items-center gap-2 text-sm font-semibold text-stone-800'>
+                  <HardDrive className='w-4 h-4 text-orange-500 shrink-0' />
                   <span>Dung Lượng Lưu Trữ</span>
                 </div>
-                <div className='font-mono text-[11px] font-bold text-[#171717]'>
+                <div className='font-mono text-sm font-bold text-stone-900 shrink-0'>
                   {workspaceUsage
                     ? `${formatBytes(workspaceUsage.storage.used)} / ${
                         workspaceUsage.storage.isUnlimited
@@ -613,222 +631,221 @@ export const ProducerWorkspaceView: React.FC = () => {
                 </div>
               </div>
 
-              <div className='w-full bg-[#E7E7E7] h-2 rounded-full overflow-hidden'>
-                <div
-                  className={`h-full rounded-full transition-all duration-500 ${
-                    (workspaceUsage?.storage.percentUsed ?? 0) >= 90
-                      ? 'bg-red-500'
-                      : (workspaceUsage?.storage.percentUsed ?? 0) >= 75
-                        ? 'bg-amber-500'
-                        : 'bg-[#F97316]'
-                  }`}
-                  style={{
-                    width: `${
-                      workspaceUsage?.storage.isUnlimited
-                        ? 0
-                        : Math.min(
-                            100,
-                            workspaceUsage?.storage.percentUsed ??
-                              Math.round(
-                                (activeWorkspace.usedStorageBytes /
-                                  (activeWorkspace.storageQuotaBytes || 1)) *
-                                  100,
-                              ),
-                          )
-                    }%`,
-                  }}
-                />
-              </div>
+              {(() => {
+                const used = workspaceUsage
+                  ? workspaceUsage.storage.used
+                  : activeWorkspace.usedStorageBytes || 0;
+                const quota = workspaceUsage
+                  ? workspaceUsage.storage.quota
+                  : activeWorkspace.storageQuotaBytes || 0;
+                const isUnlimited = workspaceUsage?.storage.isUnlimited ?? false;
+                const percent = isUnlimited
+                  ? 0
+                  : quota > 0
+                    ? Math.min(100, Math.round((used / quota) * 100))
+                    : 0;
 
-              <div className='flex items-center justify-between text-[10px] text-[#737373]'>
-                <span>
-                  {workspaceUsage?.storage.isUnlimited
-                    ? 'Không giới hạn dung lượng'
-                    : `Đã dùng ${workspaceUsage?.storage.percentUsed ?? 0}%`}
-                </span>
-                <span className='font-mono text-zinc-500'>Chặn khi chạm 100%</span>
-              </div>
+                return (
+                  <div className='space-y-2'>
+                    <div className='w-full bg-stone-200/80 h-2 rounded-full overflow-hidden'>
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${
+                          percent >= 90
+                            ? 'bg-red-500'
+                            : percent >= 75
+                              ? 'bg-amber-500'
+                              : 'bg-orange-500'
+                        }`}
+                        style={{ width: `${percent}%` }}
+                      />
+                    </div>
+                    <div className='flex items-center justify-between text-xs leading-relaxed text-stone-600'>
+                      <span>
+                        {isUnlimited ? 'Không giới hạn dung lượng' : `Đã dùng ${percent}%`}
+                      </span>
+                      <span className='font-mono text-stone-500 text-[11px]'>
+                        Chặn khi chạm 100%
+                      </span>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
 
-            {/* AI Token Meter */}
-            <div className='p-3.5 bg-[#FAF8F5] rounded-xl border border-[#E7E7E7] space-y-2'>
-              <div className='flex items-center justify-between text-xs'>
-                <div className='flex items-center gap-1.5 font-semibold text-[#171717]'>
-                  <Cpu className='w-4 h-4 text-[#3B82F6]' />
-                  <span>Hạn Mức AI Tokens (Tháng này)</span>
+            {/* 2. AI Token Meter */}
+            <div className='flex flex-col justify-between h-full p-5 bg-stone-50/70 hover:bg-stone-50 rounded-xl border border-stone-200/80 transition-all space-y-3'>
+              <div className='flex items-center justify-between gap-2'>
+                <div className='flex items-center gap-2 text-sm font-semibold text-stone-800'>
+                  <Cpu className='w-4 h-4 text-blue-500 shrink-0' />
+                  <span>Hạn Mức AI Tokens</span>
                 </div>
                 {workspaceUsage?.aiTokens ? (
-                  <div className='font-mono text-[11px] font-bold text-[#171717]'>
+                  <div className='font-mono text-sm font-bold text-stone-900 shrink-0'>
                     {formatTokens(workspaceUsage.aiTokens.used)} /{' '}
                     {workspaceUsage.aiTokens.isUnlimited
                       ? 'Không giới hạn'
-                      : `${formatTokens(workspaceUsage.aiTokens.quota)} Tokens`}
+                      : `${formatTokens(workspaceUsage.aiTokens.quota)}`}
                   </div>
                 ) : (
-                  <span className='text-[10px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 font-mono'>
+                  <span className='whitespace-nowrap px-2.5 py-0.5 text-xs font-medium rounded-full text-amber-700 bg-amber-50 border border-amber-200 font-mono shrink-0'>
                     Chưa cấp quota
                   </span>
                 )}
               </div>
 
               {workspaceUsage?.aiTokens ? (
-                <>
-                  <div className='w-full bg-[#E7E7E7] h-2 rounded-full overflow-hidden'>
+                <div className='space-y-2'>
+                  <div className='w-full bg-stone-200/80 h-2 rounded-full overflow-hidden'>
                     <div
                       className={`h-full rounded-full transition-all duration-500 ${
                         (workspaceUsage.aiTokens.percentUsed ?? 0) >= 90
                           ? 'bg-red-500'
-                          : 'bg-[#3B82F6]'
+                          : 'bg-blue-500'
                       }`}
                       style={{
                         width: `${Math.min(100, workspaceUsage.aiTokens.percentUsed ?? 0)}%`,
                       }}
                     />
                   </div>
-                  <div className='flex items-center justify-between text-[10px] text-[#737373]'>
+                  <div className='flex items-center justify-between text-xs leading-relaxed text-stone-600'>
                     <span>
                       {workspaceUsage.aiTokens.isUnlimited
                         ? 'Token không giới hạn'
                         : `Đã dùng ${workspaceUsage.aiTokens.percentUsed ?? 0}%`}
                     </span>
                     <span
-                      className={`font-semibold ${
-                        workspaceUsage.aiEnabled ? 'text-emerald-600' : 'text-zinc-400'
+                      className={`font-semibold text-xs ${
+                        workspaceUsage.aiEnabled ? 'text-emerald-600' : 'text-stone-400'
                       }`}
                     >
                       {workspaceUsage.aiEnabled ? '● AI Đang bật' : '○ AI Đã tắt'}
                     </span>
                   </div>
-                </>
+                </div>
               ) : (
-                <div className='flex items-center justify-between text-[11px] text-[#737373] pt-1'>
-                  <span className='italic'>Liên hệ Admin để cấu hình quota AI Studio</span>
-                  <span className='text-[10px] font-mono text-zinc-400'>NFR Governance</span>
+                <div className='pt-1 text-xs leading-relaxed text-stone-600 italic'>
+                  Liên hệ Admin để cấu hình quota AI Studio
                 </div>
               )}
             </div>
 
-            {/* AI Image Generation Meter */}
-            <div className='p-3.5 bg-[#FAF8F5] rounded-xl border border-[#E7E7E7] space-y-2'>
-              <div className='flex items-center justify-between text-xs'>
-                <div className='flex items-center gap-1.5 font-semibold text-[#171717]'>
-                  <ImageIcon className='w-4 h-4 text-[#8B5CF6]' />
-                  <span>Hạn Mức Sinh Ảnh AI (Tháng này)</span>
+            {/* 3. AI Image Generation Meter */}
+            <div className='flex flex-col justify-between h-full p-5 bg-stone-50/70 hover:bg-stone-50 rounded-xl border border-stone-200/80 transition-all space-y-3'>
+              <div className='flex items-center justify-between gap-2'>
+                <div className='flex items-center gap-2 text-sm font-semibold text-stone-800'>
+                  <ImageIcon className='w-4 h-4 text-purple-500 shrink-0' />
+                  <span>Hạn Mức Sinh Ảnh AI</span>
                 </div>
                 {workspaceUsage?.images ? (
-                  <div className='font-mono text-[11px] font-bold text-[#171717]'>
+                  <div className='font-mono text-sm font-bold text-stone-900 shrink-0'>
                     {workspaceUsage.images.used.toLocaleString()} /{' '}
                     {workspaceUsage.images.isUnlimited
                       ? 'Không giới hạn'
                       : `${workspaceUsage.images.quota.toLocaleString()} ảnh`}
                   </div>
                 ) : (
-                  <span className='text-[10px] text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200 font-mono'>
+                  <span className='whitespace-nowrap px-2.5 py-0.5 text-xs font-medium rounded-full text-purple-700 bg-purple-50 border border-purple-200 font-mono shrink-0'>
                     Chưa cấp quota
                   </span>
                 )}
               </div>
 
               {workspaceUsage?.images ? (
-                <>
-                  <div className='w-full bg-[#E7E7E7] h-2 rounded-full overflow-hidden'>
+                <div className='space-y-2'>
+                  <div className='w-full bg-stone-200/80 h-2 rounded-full overflow-hidden'>
                     <div
                       className={`h-full rounded-full transition-all duration-500 ${
                         (workspaceUsage.images.percentUsed ?? 0) >= 90
                           ? 'bg-red-500'
                           : (workspaceUsage.images.percentUsed ?? 0) >= 75
                             ? 'bg-amber-500'
-                            : 'bg-[#8B5CF6]'
+                            : 'bg-purple-500'
                       }`}
                       style={{
                         width: `${Math.min(100, workspaceUsage.images.percentUsed ?? 0)}%`,
                       }}
                     />
                   </div>
-                  <div className='flex items-center justify-between text-[10px] text-[#737373]'>
+                  <div className='flex items-center justify-between text-xs leading-relaxed text-stone-600'>
                     <span>
                       {workspaceUsage.images.isUnlimited
                         ? 'Ảnh không giới hạn'
                         : `Đã dùng ${workspaceUsage.images.percentUsed ?? 0}%`}
                     </span>
                     <span
-                      className={`font-semibold ${
-                        workspaceUsage.aiEnabled ? 'text-purple-600' : 'text-zinc-400'
+                      className={`font-semibold text-xs ${
+                        workspaceUsage.aiEnabled ? 'text-purple-600' : 'text-stone-400'
                       }`}
                     >
                       {workspaceUsage.aiEnabled ? '● Đang kích hoạt' : '○ AI Đã tắt'}
                     </span>
                   </div>
-                </>
+                </div>
               ) : (
-                <div className='flex items-center justify-between text-[11px] text-[#737373] pt-1'>
-                  <span className='italic'>Liên hệ Admin để cấp quota sinh ảnh</span>
-                  <span className='text-[10px] font-mono text-zinc-400'>NFR Governance</span>
+                <div className='space-y-1 pt-1'>
+                  <p className='text-xs leading-relaxed text-stone-600 italic'>
+                    Pipeline sinh ảnh AI chưa bật (đã dùng: 0).
+                  </p>
                 </div>
               )}
-              {/* shortcut: chưa có pipeline sinh ảnh gọi RecordImages nên số đã dùng luôn 0; bỏ dòng này khi pipeline chạy */}
-              <p className='text-[10px] text-[#737373] italic'>
-                Chưa áp dụng: pipeline sinh ảnh AI chưa bật nên số ảnh đã dùng luôn là 0.
-              </p>
             </div>
 
-            {/* Active Devices & Concurrent Sessions Meter */}
-            <div className='p-3.5 bg-[#FAF8F5] rounded-xl border border-[#E7E7E7] space-y-2'>
-              <div className='flex items-center justify-between text-xs'>
-                <div className='flex items-center gap-1.5 font-semibold text-[#171717]'>
-                  <Monitor className='w-4 h-4 text-[#10B981]' />
+            {/* 4. Active Devices & Concurrent Sessions Meter */}
+            <div className='flex flex-col justify-between h-full p-5 bg-stone-50/70 hover:bg-stone-50 rounded-xl border border-stone-200/80 transition-all space-y-3'>
+              <div className='flex items-center justify-between gap-2'>
+                <div className='flex items-center gap-2 text-sm font-semibold text-stone-800'>
+                  <Monitor className='w-4 h-4 text-emerald-500 shrink-0' />
                   <span>Phiên Đăng Nhập Đồng Thời</span>
                 </div>
-                <div className='font-mono text-[11px] font-bold text-[#171717]'>
+                <div className='font-mono text-sm font-bold text-stone-900 shrink-0'>
                   {workspaceUsage?.activeSessions
                     ? workspaceUsage.activeSessions.isUnlimited
                       ? `${workspaceUsage.activeSessions.used} thiết bị`
-                      : `${workspaceUsage.activeSessions.used} / ${workspaceUsage.activeSessions.quota} thiết bị`
+                      : `${workspaceUsage.activeSessions.used} / ${workspaceUsage.activeSessions.quota}`
                     : '0 thiết bị'}
                 </div>
               </div>
 
-              <div className='w-full bg-[#E7E7E7] h-2 rounded-full overflow-hidden'>
-                <div
-                  className={`h-full rounded-full transition-all duration-500 ${
-                    (workspaceUsage?.activeSessions?.percentUsed ?? 0) >= 90
-                      ? 'bg-red-500'
-                      : (workspaceUsage?.activeSessions?.percentUsed ?? 0) >= 75
-                        ? 'bg-amber-500'
-                        : 'bg-emerald-500'
-                  }`}
-                  style={{
-                    width: `${Math.min(
-                      100,
-                      workspaceUsage?.activeSessions?.isUnlimited
-                        ? 0
-                        : (workspaceUsage?.activeSessions?.percentUsed ?? 0),
-                    )}%`,
-                  }}
-                />
-              </div>
+              <div className='space-y-2'>
+                <div className='w-full bg-stone-200/80 h-2 rounded-full overflow-hidden'>
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      (workspaceUsage?.activeSessions?.percentUsed ?? 0) >= 90
+                        ? 'bg-red-500'
+                        : (workspaceUsage?.activeSessions?.percentUsed ?? 0) >= 75
+                          ? 'bg-amber-500'
+                          : 'bg-emerald-500'
+                    }`}
+                    style={{
+                      width: `${Math.min(
+                        100,
+                        workspaceUsage?.activeSessions?.isUnlimited
+                          ? 0
+                          : (workspaceUsage?.activeSessions?.percentUsed ?? 0),
+                      )}%`,
+                    }}
+                  />
+                </div>
 
-              <div className='flex items-center justify-between text-[10px] text-[#737373]'>
-                <span>
-                  {workspaceUsage?.activeMemberCount
-                    ? `${workspaceUsage.activeMemberCount} người online`
-                    : 'Chưa có thành viên online'}
-                  {workspaceUsage?.maxConcurrentSessionsPerUser
-                    ? ` (Tối đa ${workspaceUsage.maxConcurrentSessionsPerUser} tb/người)`
-                    : ''}
-                </span>
-                <button
-                  type='button'
-                  onClick={() => {
-                    setSessionsModalOpen(true);
-                    loadActiveSessions();
-                  }}
-                  className='font-bold text-emerald-600 hover:text-emerald-700 hover:underline cursor-pointer flex items-center gap-0.5'
-                  title='Xem danh sách các thiết bị đang đăng nhập của Studio'
-                >
-                  <span>Chi tiết</span>
-                  <span>&rarr;</span>
-                </button>
+                <div className='flex items-center justify-between text-xs leading-relaxed text-stone-600'>
+                  <span>
+                    {workspaceUsage?.activeMemberCount
+                      ? `${workspaceUsage.activeMemberCount} người online`
+                      : 'Chưa có thành viên online'}
+                  </span>
+                  <button
+                    type='button'
+                    onClick={() => {
+                      setSessionsModalOpen(true);
+                      loadActiveSessions();
+                    }}
+                    className='font-semibold text-emerald-600 hover:text-emerald-700 hover:underline cursor-pointer flex items-center gap-1'
+                    title='Xem danh sách các thiết bị đang đăng nhập của Studio'
+                  >
+                    <span>Chi tiết</span>
+                    <span>&rarr;</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -836,39 +853,44 @@ export const ProducerWorkspaceView: React.FC = () => {
       </div>
 
       {/* Main Workspace Content Area with Tabbed Navigation */}
-      <div className='bg-white rounded-2xl border border-[#E7E7E7] shadow-xs p-6 space-y-5'>
-        {/* Tab Navigation & CTA */}
-        <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E7E7E7] pb-4'>
-          <div className='flex items-center gap-1 bg-[#FAF8F5] p-1 rounded-xl border border-[#E7E7E7]'>
-            <button
-              onClick={() => setActiveTab('series')}
-              className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                activeTab === 'series'
-                  ? 'bg-white text-[#171717] shadow-2xs border border-[#E7E7E7]'
-                  : 'text-[#737373] hover:text-[#171717]'
-              }`}
-            >
-              <BookOpen className='w-3.5 h-3.5 text-[#F97316]' />
+      <div className='space-y-6'>
+        {/* Section Header bar & Action Controls */}
+        <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4'>
+          <div className='flex items-center gap-3'>
+            <h2 className='text-base font-bold text-stone-900 flex items-center gap-2'>
+              <BookOpen className='w-4 h-4 text-orange-500' />
               <span>Bộ Truyện (Series)</span>
-              <span className='px-1.5 py-0.2 rounded-full bg-orange-50 text-[#F97316] text-[10px] font-mono'>
+              <span className='px-2 py-0.5 rounded-full bg-orange-100/70 text-orange-700 text-xs font-mono font-bold'>
                 {seriesList.length}
               </span>
-            </button>
+            </h2>
             {isProducerOrAdmin && (
-              <button
-                onClick={() => setActiveTab('members')}
-                className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  activeTab === 'members'
-                    ? 'bg-white text-[#171717] shadow-2xs border border-[#E7E7E7]'
-                    : 'text-[#737373] hover:text-[#171717]'
-                }`}
-              >
-                <Users className='w-3.5 h-3.5 text-[#3B82F6]' />
-                <span>Thành Viên Studio</span>
-                <span className='px-1.5 py-0.2 rounded-full bg-blue-50 text-[#3B82F6] text-[10px] font-mono'>
-                  {members.length}
-                </span>
-              </button>
+              <div className='flex items-center gap-1 bg-stone-100 p-1 rounded-xl border border-stone-200/80 ml-2'>
+                <button
+                  onClick={() => setActiveTab('series')}
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    activeTab === 'series'
+                      ? 'bg-white text-stone-900 shadow-2xs'
+                      : 'text-stone-600 hover:text-stone-900'
+                  }`}
+                >
+                  <span>Dự Án Series</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab('members')}
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    activeTab === 'members'
+                      ? 'bg-white text-stone-900 shadow-2xs'
+                      : 'text-stone-600 hover:text-stone-900'
+                  }`}
+                >
+                  <Users className='w-3 h-3 text-blue-500' />
+                  <span>Thành Viên Studio</span>
+                  <span className='px-1.5 py-0.2 rounded-full bg-blue-50 text-blue-600 text-[10px] font-mono'>
+                    {members.length}
+                  </span>
+                </button>
+              </div>
             )}
           </div>
 
@@ -876,7 +898,7 @@ export const ProducerWorkspaceView: React.FC = () => {
             (activeTab === 'series' ? (
               <button
                 onClick={() => setCreateSeriesModalOpen(true)}
-                className='inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold shadow-xs cursor-pointer'
+                className='inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold shadow-xs transition-all cursor-pointer'
               >
                 <Plus className='w-4 h-4' />
                 <span>Tạo Series Mới</span>
@@ -884,9 +906,9 @@ export const ProducerWorkspaceView: React.FC = () => {
             ) : (
               <button
                 onClick={() => setInviteModalOpen(true)}
-                className='inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#171717] hover:bg-black text-white text-xs font-semibold shadow-xs cursor-pointer'
+                className='inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-stone-900 hover:bg-black text-white text-xs font-semibold shadow-xs transition-all cursor-pointer'
               >
-                <UserPlus className='w-4 h-4 text-[#F97316]' />
+                <UserPlus className='w-4 h-4 text-orange-400' />
                 <span>Mời Thành Viên Mới</span>
               </button>
             ))}
@@ -896,21 +918,21 @@ export const ProducerWorkspaceView: React.FC = () => {
         {activeTab === 'series' && (
           <div>
             {seriesList.length === 0 ? (
-              <div className='py-12 px-4 text-center bg-[#FAF8F5] rounded-xl border border-dashed border-[#E7E7E7] max-w-lg mx-auto my-4 space-y-3'>
-                <div className='w-12 h-12 rounded-full bg-orange-50 text-[#F97316] flex items-center justify-center mx-auto'>
+              <div className='py-12 px-4 text-center bg-white rounded-2xl border border-dashed border-stone-200 max-w-lg mx-auto my-4 space-y-3 shadow-2xs'>
+                <div className='w-12 h-12 rounded-full bg-orange-50 text-orange-500 flex items-center justify-center mx-auto'>
                   <BookOpen className='w-6 h-6' />
                 </div>
-                <h3 className='text-sm font-bold text-[#171717]'>
+                <h3 className='text-sm font-bold text-stone-900'>
                   Chưa có Series nào trong Studio này
                 </h3>
-                <p className='text-xs text-[#737373] leading-relaxed'>
+                <p className='text-xs text-stone-600 leading-relaxed'>
                   Khởi tạo Series mới để thiết lập thể loại, định dạng xuất bản, quy trình 8 công
                   đoạn và kho tư liệu Series Bible.
                 </p>
                 {isProducerOrAdmin && (
                   <button
                     onClick={() => setCreateSeriesModalOpen(true)}
-                    className='inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-[#F97316] hover:bg-[#EA580C] rounded-xl shadow-xs transition-all cursor-pointer'
+                    className='inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-xl shadow-xs transition-all cursor-pointer'
                   >
                     <Plus className='w-3.5 h-3.5' />
                     <span>Tạo Series Mới Ngay</span>
@@ -918,7 +940,7 @@ export const ProducerWorkspaceView: React.FC = () => {
                 )}
               </div>
             ) : (
-              <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
+              <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
                 {seriesList.map((s) => (
                   <div
                     key={s.id}
@@ -928,179 +950,176 @@ export const ProducerWorkspaceView: React.FC = () => {
                       const effectiveRole = wsRole ? String(wsRole) : userRole;
                       navigate(getRoleDefaultPath(effectiveRole, wsId, String(s.id)));
                     }}
-                    className='p-5 bg-white hover:bg-zinc-50 rounded-xl border border-zinc-200 hover:border-orange-500/50 transition-all shadow-sm hover:shadow-md cursor-pointer group relative flex flex-col h-full'
+                    className='p-6 bg-white hover:bg-stone-50/50 rounded-2xl border border-stone-200/80 hover:border-orange-300 hover:shadow-md transition-all cursor-pointer group relative flex flex-col justify-between h-full'
                   >
-                    <div className='flex items-start justify-between gap-2'>
-                      <div>
-                        <span className='px-2 py-0.5 rounded bg-orange-50 text-orange-600 font-mono text-[10px] font-bold border border-orange-200 uppercase tracking-wide'>
-                          {s.genre || s.format || 'WEBTOON'}
-                        </span>
-                        <h3 className='text-lg font-bold text-zinc-900 mt-2 group-hover:text-orange-600 transition-colors leading-tight font-display'>
-                          {s.title}
-                        </h3>
-                      </div>
-                      {isProducerOrAdmin && (
-                        <div className='flex items-center gap-1 shrink-0 relative group/menu'>
-                          <button
-                            type='button'
-                            onClick={(e) => {
-                              e.stopPropagation();
-                            }}
-                            className='p-1.5 rounded-lg text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 transition-colors'
-                            title='Tùy chọn'
-                          >
-                            <MoreVertical className='w-4 h-4' />
-                          </button>
-                          <div className='absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-xl border border-zinc-200 opacity-0 invisible group-hover/menu:opacity-100 group-hover/menu:visible transition-all z-10 py-1 overflow-hidden'>
+                    <div>
+                      <div className='flex items-start justify-between gap-2'>
+                        <div>
+                          <span className='px-2.5 py-0.5 rounded-md bg-orange-50 text-orange-600 font-mono text-[11px] font-bold border border-orange-200 uppercase tracking-wide'>
+                            {s.genre || s.format || 'GENERAL'}
+                          </span>
+                          <h3 className='text-xl font-serif font-bold text-stone-900 mt-2 group-hover:text-orange-600 transition-colors leading-tight'>
+                            {s.title}
+                          </h3>
+                        </div>
+                        {isProducerOrAdmin && (
+                          <div className='flex items-center gap-1 shrink-0 relative group/menu'>
                             <button
                               type='button'
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setSelectedChapterSeries({ id: s.id, title: s.title });
                               }}
-                              className='w-full text-left px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 flex items-center gap-2 transition-colors'
+                              className='p-1.5 rounded-lg text-stone-400 hover:text-stone-900 hover:bg-stone-100 transition-colors'
+                              title='Tùy chọn'
                             >
-                              <BookOpen className='w-3.5 h-3.5 text-orange-500' /> Quản lý Chương
-                              (Duyệt)
+                              <MoreVertical className='w-4 h-4' />
                             </button>
+                            <div className='absolute right-0 top-full mt-1 w-48 bg-white rounded-xl shadow-xl border border-stone-200 opacity-0 invisible group-hover/menu:opacity-100 group-hover/menu:visible transition-all z-10 py-1 overflow-hidden'>
+                              <button
+                                type='button'
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedChapterSeries({ id: s.id, title: s.title });
+                                }}
+                                className='w-full text-left px-3 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 hover:text-stone-900 flex items-center gap-2 transition-colors'
+                              >
+                                <BookOpen className='w-3.5 h-3.5 text-orange-500' /> Quản lý Chương
+                                (Duyệt)
+                              </button>
+                              <button
+                                type='button'
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedPipelineSeries({ id: s.id, title: s.title });
+                                }}
+                                className='w-full text-left px-3 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 hover:text-stone-900 flex items-center gap-2 transition-colors'
+                              >
+                                <Sliders className='w-3.5 h-3.5 text-blue-500' /> Cấu hình Pipeline
+                                (UC-03)
+                              </button>
+                              <button
+                                type='button'
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedPresetsSeries({ id: s.id, title: s.title });
+                                }}
+                                className='w-full text-left px-3 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 hover:text-stone-900 flex items-center gap-2 transition-colors'
+                              >
+                                <ListOrdered className='w-3.5 h-3.5 text-purple-500' /> Typography
+                                Presets
+                              </button>
+                              <div className='border-t border-stone-100 my-1'></div>
+                              <button
+                                type='button'
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenEditSeries(s);
+                                }}
+                                className='w-full text-left px-3 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 hover:text-stone-900 flex items-center gap-2 transition-colors'
+                              >
+                                <Edit2 className='w-3.5 h-3.5' /> Chỉnh sửa
+                              </button>
+                              <button
+                                type='button'
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeleteSeriesModal(s);
+                                }}
+                                className='w-full text-left px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors'
+                              >
+                                <Trash2 className='w-3.5 h-3.5' /> Xóa
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {s.synopsis && (
+                        <p className='text-xs text-stone-600 line-clamp-2 leading-relaxed mt-2.5'>
+                          {s.synopsis}
+                        </p>
+                      )}
+
+                      {s.storyArc && (
+                        <div className='mt-3 px-3 py-2 bg-amber-50/70 border border-amber-200/60 rounded-lg'>
+                          <div className='flex items-center gap-1 text-[10px] font-semibold text-amber-700 font-mono uppercase tracking-wider mb-0.5'>
+                            <span>Story Arc</span>
+                          </div>
+                          <p className='text-xs text-amber-900 line-clamp-2 leading-relaxed'>
+                            {s.storyArc}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className='pt-5 flex flex-col gap-3'>
+                      {/* Unified metadata row: Direction on left, Chapter Count on right */}
+                      <div className='flex items-center justify-between text-xs font-mono text-stone-600'>
+                        <div className='flex items-center gap-1.5'>
+                          <Compass className='w-3.5 h-3.5 text-stone-400' />
+                          <span className='font-semibold text-stone-700'>
+                            {s.readingDirection === 1 || s.readingDirection === 'RightToLeft'
+                              ? 'RTL'
+                              : 'Vertical'}
+                          </span>
+                        </div>
+
+                        <button
+                          type='button'
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedChapterSeries({ id: s.id, title: s.title });
+                          }}
+                          className='px-2.5 py-0.5 rounded-full bg-stone-100 hover:bg-orange-50 text-stone-700 hover:text-orange-600 font-semibold transition-colors cursor-pointer flex items-center gap-1 text-xs'
+                          title='Bấm để xem danh sách chương'
+                        >
+                          <BookOpen className='w-3 h-3 text-orange-500' />
+                          <span>{s.chaptersCount ?? 0} Chương</span>
+                        </button>
+                      </div>
+
+                      {/* Action buttons on card footer */}
+                      <div className='border-t border-stone-100 pt-4 flex items-center gap-2'>
+                        <button
+                          type='button'
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedChapterSeries({ id: s.id, title: s.title });
+                          }}
+                          className='flex-1 h-10 px-4 bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-200/80 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all shadow-2xs hover:shadow-xs active:scale-98 cursor-pointer'
+                          title='Quản lý danh sách chương, kiểm tra tiến độ và phê duyệt hoàn tất (BR-12)'
+                        >
+                          <BookOpen className='w-4 h-4 text-orange-500' />
+                          <span>Quản Lý Chương (Duyệt)</span>
+                        </button>
+
+                        {isProducerOrAdmin && (
+                          <>
                             <button
                               type='button'
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setSelectedPipelineSeries({ id: s.id, title: s.title });
                               }}
-                              className='w-full text-left px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 flex items-center gap-2 transition-colors'
+                              className='h-10 w-10 flex items-center justify-center text-stone-500 hover:text-stone-800 hover:bg-stone-100 border border-stone-200/80 rounded-xl transition-colors cursor-pointer shadow-2xs shrink-0'
+                              title='Cấu hình Pipeline Series (UC-03)'
                             >
-                              <Sliders className='w-3.5 h-3.5 text-blue-500' /> Cấu hình Pipeline
-                              (UC-03)
+                              <Sliders className='w-4 h-4' />
                             </button>
+
                             <button
                               type='button'
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setSelectedPresetsSeries({ id: s.id, title: s.title });
                               }}
-                              className='w-full text-left px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 flex items-center gap-2 transition-colors'
+                              className='h-10 w-10 flex items-center justify-center text-stone-500 hover:text-stone-800 hover:bg-stone-100 border border-stone-200/80 rounded-xl transition-colors cursor-pointer shadow-2xs shrink-0'
+                              title='Typography Presets & Consistency Rules (NFR-08)'
                             >
-                              <ListOrdered className='w-3.5 h-3.5 text-purple-500' /> Typography
-                              Presets
+                              <ListOrdered className='w-4 h-4' />
                             </button>
-                            <div className='border-t border-zinc-100 my-1'></div>
-                            <button
-                              type='button'
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleOpenEditSeries(s);
-                              }}
-                              className='w-full text-left px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 flex items-center gap-2 transition-colors'
-                            >
-                              <Edit2 className='w-3 h-3' /> Chỉnh sửa
-                            </button>
-                            <button
-                              type='button'
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setDeleteSeriesModal(s);
-                              }}
-                              className='w-full text-left px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors'
-                            >
-                              <Trash2 className='w-3 h-3' /> Xóa
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {s.synopsis && (
-                      <p className='text-xs text-zinc-500 line-clamp-2 leading-relaxed mt-2.5'>
-                        {s.synopsis}
-                      </p>
-                    )}
-
-                    {s.storyArc && (
-                      <div className='mt-2 px-2.5 py-1.5 bg-amber-50/70 border border-amber-200/60 rounded-lg'>
-                        <div className='flex items-center gap-1 text-[10px] font-semibold text-amber-700 font-mono uppercase tracking-wider mb-0.5'>
-                          <span>Story Arc</span>
-                        </div>
-                        <p className='text-[11px] text-amber-900 line-clamp-2 leading-relaxed'>
-                          {s.storyArc}
-                        </p>
-                      </div>
-                    )}
-
-                    <div className='mt-auto pt-4 flex flex-col gap-2.5'>
-                      <div className='flex items-center justify-between text-[11px] font-mono text-zinc-500'>
-                        <div className='flex items-center gap-1.5'>
-                          <Compass className='w-3 h-3 text-zinc-400' />
-                          <span className='font-semibold text-zinc-700'>
-                            {s.readingDirection === 1 || s.readingDirection === 'RightToLeft'
-                              ? 'RTL'
-                              : 'Vertical'}
-                          </span>
-                        </div>
-                        {s.releaseScheduleJson && (
-                          <div className='flex items-center gap-1.5'>
-                            <Calendar className='w-3 h-3 text-zinc-400' />
-                            <span className='text-zinc-700 font-semibold'>
-                              {s.releaseScheduleJson}
-                            </span>
-                          </div>
+                          </>
                         )}
-                      </div>
-
-                      <div className='flex items-center justify-end text-[10px] font-mono'>
-                        <button
-                          type='button'
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedChapterSeries({ id: s.id, title: s.title });
-                          }}
-                          className='text-orange-600 hover:text-orange-700 font-semibold hover:underline cursor-pointer flex items-center gap-1'
-                          title='Bấm để mở danh sách chương'
-                        >
-                          <BookOpen className='w-3 h-3' />
-                          <span>{s.chaptersCount} Chương</span>
-                        </button>
-                      </div>
-
-                      {/* Action buttons on card footer for Producer */}
-                      <div className='pt-2.5 border-t border-zinc-100 flex items-center gap-1.5'>
-                        <button
-                          type='button'
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedChapterSeries({ id: s.id, title: s.title });
-                          }}
-                          className='flex-1 py-1.5 px-2.5 bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-200/80 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all shadow-2xs hover:shadow-xs active:scale-98 cursor-pointer'
-                          title='Quản lý danh sách chương, kiểm tra tiến độ và phê duyệt hoàn tất (BR-12)'
-                        >
-                          <BookOpen className='w-3.5 h-3.5 text-orange-500' />
-                          <span>Quản Lý Chương (Duyệt)</span>
-                        </button>
-
-                        <button
-                          type='button'
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedPipelineSeries({ id: s.id, title: s.title });
-                          }}
-                          className='p-1.5 text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100 border border-zinc-200 rounded-lg transition-colors cursor-pointer shadow-2xs'
-                          title='Cấu hình Pipeline Series (UC-03)'
-                        >
-                          <Sliders className='w-3.5 h-3.5' />
-                        </button>
-
-                        <button
-                          type='button'
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedPresetsSeries({ id: s.id, title: s.title });
-                          }}
-                          className='p-1.5 text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100 border border-zinc-200 rounded-lg transition-colors cursor-pointer shadow-2xs'
-                          title='Typography Presets & Consistency Rules (NFR-08)'
-                        >
-                          <ListOrdered className='w-3.5 h-3.5' />
-                        </button>
                       </div>
                     </div>
                   </div>
