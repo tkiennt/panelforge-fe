@@ -68,6 +68,8 @@ interface GlobalAppShellProps {
   onLeaveFeedback?: () => void;
   onOpenTwoFactor?: () => void;
   onOpenChangePassword?: () => void;
+  onOpenCommandPalette?: () => void;
+  onSelectSeries?: (seriesId: string) => void;
 }
 
 const ROLE_NAV_CONFIG: Record<string, { section: string; items: any[] }[]> = {
@@ -185,11 +187,15 @@ export function AppShell({
   onLeaveFeedback,
   onOpenTwoFactor,
   onOpenChangePassword,
+  onOpenCommandPalette,
+  onSelectSeries,
 }: GlobalAppShellProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { workspaceId, seriesId } = useParams();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const searchParams = new URLSearchParams(location.search);
+  const chapterId = searchParams.get('chapterId');
 
   const isReader =
     currentUser.activeRoles?.includes('READER') ||
@@ -532,6 +538,7 @@ export function AppShell({
               setIsMobileDrawerOpen(false);
               onLogout?.();
             }}
+            onSelectSeries={onSelectSeries}
             isRailExpanded={true}
             isMobileDrawer={true}
           />
@@ -568,6 +575,7 @@ export function AppShell({
                 renderBadge={renderBadge}
                 onOpenTwoFactor={onOpenTwoFactor}
                 onLogout={onLogout}
+                onSelectSeries={onSelectSeries}
                 isRailExpanded={true}
                 isMobileDrawer={false}
               />
@@ -593,6 +601,7 @@ export function AppShell({
           renderBadge={renderBadge}
           onOpenTwoFactor={onOpenTwoFactor}
           onLogout={onLogout}
+          onSelectSeries={onSelectSeries}
           isRailExpanded={isRailExpanded}
           onToggleRail={() => setIsRailExpanded((prev) => !prev)}
           isMobileDrawer={false}
@@ -666,12 +675,31 @@ export function AppShell({
                           ),
                         )
                       }
-                      className='text-[#171717] font-semibold truncate flex items-center gap-1.5 px-1.5 py-1 rounded hover:bg-[#FAF8F5] transition-colors cursor-pointer'
+                      className={`font-semibold truncate flex items-center gap-1.5 px-1.5 py-1 rounded hover:bg-[#FAF8F5] transition-colors cursor-pointer ${
+                        chapterId ? 'text-[#555555] font-normal hover:text-[#171717]' : 'text-[#171717]'
+                      }`}
                       title='Chuyển đến Series Workspace'
                     >
                       <BookOpen className='w-3.5 h-3.5 text-[#10B981]' />
                       <span className='truncate'>{activeSeries?.title || 'Active Series'}</span>
                     </button>
+                    {chapterId && (
+                      <>
+                        <span className='mx-1.5 text-[#B8B8B8] font-normal select-none'>/</span>
+                        <div
+                          className='flex items-center gap-1.5 px-1.5 py-1 text-xs font-semibold text-[#171717] truncate bg-[#FAF8F5] rounded border border-[#E7E7E7]'
+                          data-testid='header-chapter-breadcrumb'
+                          title={`Chương đang mở: ${chapterId}`}
+                        >
+                          <FileText className='w-3.5 h-3.5 text-[#F97316]' />
+                          <span className='truncate'>
+                            {chapterId.toLowerCase().startsWith('ch') || !isNaN(Number(chapterId))
+                              ? `Chapter ${chapterId.replace(/^chapter-?/i, '')}`
+                              : `Chapter (${chapterId.slice(0, 8)})`}
+                          </span>
+                        </div>
+                      </>
+                    )}
                   </>
                 )}
               </nav>
@@ -680,17 +708,29 @@ export function AppShell({
 
           <div className='flex items-center gap-4 shrink-0'>
             {!isReader && (
-              <div className='relative flex items-center'>
-                <Search className='w-3.5 h-3.5 text-[#555555] absolute left-3 pointer-events-none stroke-[2]' />
-                <input
-                  type='text'
-                  placeholder='Search frames, dialogues, assets...'
-                  className='pl-8 pr-12 py-1.5 bg-[#FAF8F3] hover:bg-[#F3EFE6] focus:bg-white text-xs rounded-md border border-[#E7E7E7] focus:border-[#F97316] focus:outline-none w-64 transition-all'
-                />
-                <span className='absolute right-2 px-1.5 py-0.5 text-[10px] font-mono text-[#555555] bg-[#E7E7E7] rounded select-none'>
+              <button
+                type='button'
+                onClick={() => {
+                  if (onOpenCommandPalette) {
+                    onOpenCommandPalette();
+                  } else {
+                    window.dispatchEvent(
+                      new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true }),
+                    );
+                  }
+                }}
+                className='relative flex items-center text-left cursor-pointer group'
+                title='Tìm kiếm nhanh hoặc mở bảng lệnh (⌘K / Ctrl+K)'
+                data-testid='header-command-palette-trigger'
+              >
+                <Search className='w-3.5 h-3.5 text-[#555555] absolute left-3 pointer-events-none stroke-[2] group-hover:text-[#171717] transition-colors' />
+                <div className='pl-8 pr-12 py-1.5 bg-[#FAF8F3] group-hover:bg-[#F3EFE6] text-xs text-[#555555] rounded-md border border-[#E7E7E7] group-hover:border-[#F97316] w-64 transition-all truncate select-none'>
+                  Search frames, dialogues, assets...
+                </div>
+                <span className='absolute right-2 px-1.5 py-0.5 text-[10px] font-mono text-[#555555] bg-[#E7E7E7] rounded select-none group-hover:bg-[#dedede]'>
                   ⌘K
                 </span>
-              </div>
+              </button>
             )}
 
             {/* AI Status Badge */}

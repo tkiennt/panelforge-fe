@@ -7,6 +7,7 @@ const WorkspaceRedirect: React.FC = () => {
   const { workspaceId, '*': rest } = useParams<{ workspaceId: string; '*'?: string }>();
   return <Navigate to={`/workspaces/${workspaceId}${rest ? `/${rest}` : ''}`} replace />;
 };
+import { seriesService } from '@/services/series.service';
 import { WorkspaceView } from '@/shared/features/production-workspace/WorkspaceView';
 import { TaskEditorView } from '@/shared/features/production-workspace/TaskEditorView';
 import { ExportView } from '@/roles/producer/views/ExportView';
@@ -96,6 +97,7 @@ export interface AppRoutesProps {
   setIsChangePasswordModalOpen: (open: boolean) => void;
   setIsLoginModalOpen: (open: boolean) => void;
   setIsRegisterModalOpen: (open: boolean) => void;
+  setIsCommandPaletteOpen?: (open: boolean) => void;
   members: StudioMember[];
   setMembers: React.Dispatch<React.SetStateAction<StudioMember[]>>;
   handleInviteMember: (m: StudioMember) => void;
@@ -123,6 +125,7 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
   setIsChangePasswordModalOpen,
   setIsLoginModalOpen,
   setIsRegisterModalOpen,
+  setIsCommandPaletteOpen,
   members,
   setMembers,
   handleInviteMember,
@@ -228,6 +231,34 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
               onLeaveFeedback={() => showToast('Feedback', 'Thanks for your feedback!')}
               onOpenTwoFactor={() => setIsTwoFactorModalOpen(true)}
               onOpenChangePassword={() => setIsChangePasswordModalOpen(true)}
+              onOpenCommandPalette={() => setIsCommandPaletteOpen?.(true)}
+              onSelectSeries={(newSeriesId) => {
+                seriesService
+                  .getSeriesById(newSeriesId)
+                  .then((series) => {
+                    const adapted: MangaProject = {
+                      id: series.id,
+                      title: series.title,
+                      subtitle: series.synopsis || 'N/A',
+                      arc: 'Arc 01',
+                      chapter: 1,
+                      format: series.format || 'B5 Tankōbon Master (600 DPI)',
+                      status: 'In Production',
+                      progressPercent: 50,
+                      completedPages: 16,
+                      totalPages: 32,
+                      dueDate: 'Dec 2026',
+                      daysLeft: 30,
+                      genres: [series.genre || 'Manga'],
+                      coverStyle: 'halftone-cyber',
+                      coverText: series.title,
+                      tagline: series.synopsis || 'Studio Production',
+                      lastUpdated: new Date(series.createdAt).toLocaleDateString(),
+                    };
+                    setActiveProject(adapted);
+                  })
+                  .catch((err) => console.warn('Failed to load series on select:', err));
+              }}
             />
           }
         >
@@ -318,8 +349,15 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
             </Route>
           </Route>
 
-          {/* Flat routes for backward compatibility / other views */}
-          <Route path='producer' element={<ProducerWorkspaceView />} />
+          {/* Flat legacy routes: safely redirect to /workspaces or /catalog */}
+          <Route path='producer' element={<Navigate to='/workspaces' replace />} />
+          <Route path='reader' element={<Navigate to='/catalog' replace />} />
+          <Route path='artist' element={<Navigate to='/workspaces' replace />} />
+          <Route path='letterer' element={<Navigate to='/workspaces' replace />} />
+          <Route
+            path='profile'
+            element={<UserProfileView user={firebaseUser} onLogout={handleLogout} />}
+          />
           <Route
             path='review/:taskId'
             element={
@@ -330,14 +368,6 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
               />
             }
           />
-          {/* 5.8: màn đọc tĩnh cũ đã thay bằng catalog thật (đọc chương đã phát hành) */}
-          <Route path='reader' element={<Navigate to='/catalog' replace />} />
-          <Route
-            path='profile'
-            element={<UserProfileView user={firebaseUser} onLogout={handleLogout} />}
-          />
-          <Route path='artist' element={<ArtistDeskView />} />
-          <Route path='letterer' element={<LettererWorkspace />} />
           <Route
             path='catalog'
             element={<PublicCatalogView onBackToWorkspaces={() => navigate('/workspaces')} />}

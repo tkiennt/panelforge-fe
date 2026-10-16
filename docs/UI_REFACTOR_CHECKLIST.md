@@ -7,14 +7,18 @@
 ## PHASE 1: STRUCTURAL CONSOLIDATION & DUPLICATE REMOVAL
 - [x] **1.1. Remove Root-Level Legacy Files:**
   - [x] Delete `App_old.tsx`, `App_commit.tsx`, and `GlobalAppShell.html` after verifying zero active imports.
+  - [ ] Remove orphaned `src/app/Header.tsx` (an unmounted legacy navbar completely superseded by canonical `AppShell.tsx` header).
 - [x] **1.2. Consolidate Duplicated Role Workspaces (4 Overlapping Locations):**
   - [x] Keep the canonical API-connected views inside `src/roles/{writer,artist,letterer,editor}/views/`.
   - [x] Merge or remove redundant duplicates in `components/modals/roles/*Workspace.tsx` and `components/task-editor/*`.
+  - [ ] Consolidate or deprecate experimental Spike UI components in `src/roles/artist/components/page-layout-editor/` (`CanvasEditor.tsx`, `PanelProperties.tsx`, `CanvasPanelItem.tsx`) in favor of canonical `ArtistDeskView.tsx`.
 - [x] **1.3. Consolidate Member & Pipeline Views:**
   - [x] Merge `MembersRolesView.tsx`, `ProjectMembersView.tsx`, and `SeriesMembersView.tsx` into a single canonical `src/roles/producer/views/MembersRolesView.tsx` (MVP manages members at the Workspace level, not `SeriesMember`).
   - [x] Remove orphaned `ProductionPipelineView.tsx` and standardize on `src/shared/features/pipeline-board/KanbanBoard.tsx`.
 - [x] **1.4. Clean Up Residual Mock Data Imports:**
   - [x] Replace or remove references to `src/data/mock*.ts` inside `AILayoutModal`, `BibleReferencePanel`, `AIBreakdownDiff`, and `ScriptOutline`.
+  - [ ] Clean unused mock block files in `src/roles/writer/components/script/` (`VersionCompareView.tsx`, `ScriptBlockEditor.tsx`, `ScriptBlockItem.tsx`) superseded by `ScriptHistoryModal.tsx` and `ScriptEditorView.tsx`.
+  - [ ] Remove legacy `INITIAL_*` mock bindings in `src/App.tsx` and migrate default project/membership states to real API types.
 
 ---
 
@@ -22,13 +26,17 @@
 - [x] **2.1. Centralize Role Manifest & Routes:**
   - [x] Create/verify `src/roles/roles.ts` (`ROLE_MANIFEST`) and `src/app/routes.tsx`.
   - [x] Fix post-workspace selection routing: Selecting a Workspace from `/workspaces` must take ALL workspace roles (`PRODUCER`, `EDITOR`, `WRITER`, `ARTIST`, `LETTERER`) to the **Studio Series Selection Screen** first—never skip Series selection or jump into an uncontextualized editor view.
-- [x] **2.2. Fix Top Header (`src/app/Header.tsx`):**
+  - [ ] Remove dead fallback flat routes in `src/app/routes.tsx` (`/producer`, `/reader`, `/artist`, `/letterer`) that lack `:workspaceId` and `:seriesId` context.
+- [x] **2.2. Fix Top Header (`src/app/Header.tsx` / `AppShell.tsx` Header):**
   - [x] Fix Breadcrumb navigation (`Workspaces / <Studio> / <Series> / <Chapter>`): Clicking each breadcrumb segment must route cleanly to the corresponding hierarchy level.
   - [x] Align the Global Search input, `AI: Ready` status pill, Notification bell badge, and User Profile dropdown.
+  - [ ] Connect Global Search input (`⌘K`) in `AppShell.tsx` top bar to trigger `CommandPaletteModal` shortcut.
+  - [ ] Add Active Chapter breadcrumb segment (`/ <Chapter N>`) in Header when editing inside Chapter-specific workbenches (`Script`, `ArtistDesk`, `Letterer`).
 - [x] **2.3. Fix Left Sidebar (`src/app/AppShellSidebar.tsx`):**
   - [x] Top Workspace Switcher must display the active Studio name and current user's `WorkspaceRole`.
   - [x] Series Selector dropdown (`"Select Series..."`) must populate with the active Studio's real Series list, reflect the currently selected Series, and trigger the exact same navigation flow as clicking a Series Card.
   - [x] Sidebar navigation items must dynamically adapt to the active role and current navigation depth (Studio level vs. Series/Chapter level).
+  - [ ] Synchronize `activeProject` state in `App.tsx` when a user selects a series from the sidebar popover dropdown.
 
 ---
 

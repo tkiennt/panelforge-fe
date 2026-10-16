@@ -29,6 +29,7 @@ export interface AppShellSidebarProps {
   renderBadge: (badge: any) => React.ReactNode;
   onOpenTwoFactor?: () => void;
   onLogout?: () => void;
+  onSelectSeries?: (seriesId: string) => void;
   isRailExpanded?: boolean;
   onToggleRail?: () => void;
   isMobileDrawer?: boolean;
@@ -46,6 +47,7 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
   renderBadge,
   onOpenTwoFactor,
   onLogout,
+  onSelectSeries,
   isRailExpanded = false,
   onToggleRail,
   isMobileDrawer = false,
@@ -263,6 +265,9 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
                         key={s.id}
                         onClick={(e) => {
                           setSeriesDropdownOpen(false);
+                          if (onSelectSeries) {
+                            onSelectSeries(s.id);
+                          }
                           handleNavClick(e, `/workspaces/${workspaceId}/series/${s.id}/dashboard`);
                         }}
                         className={`px-3 py-2 text-xs flex items-center justify-between cursor-pointer transition-colors ${

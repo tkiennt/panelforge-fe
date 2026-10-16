@@ -12,16 +12,9 @@ import {
   normalizeSystemRole,
   normalizeWorkspaceRole,
   getRoleFromToken,
+  ProvenanceLogItem,
+  AssistantRosterItem,
 } from './types';
-import {
-  INITIAL_PROJECTS,
-  INITIAL_KANBAN_CARDS,
-  INITIAL_BIBLE_ENTITIES,
-  INITIAL_MEMBERS,
-  INITIAL_PROVENANCE_LOGS,
-  INITIAL_ASSISTANTS,
-  INITIAL_PROJECT_MEMBERSHIPS,
-} from '@/mocks/mockData';
 import { BrowserRouter, useNavigate, useLocation } from 'react-router-dom';
 import { GlobalModals } from './app/GlobalModals';
 import { AppRoutes } from './app/routes';
@@ -353,13 +346,13 @@ function AppContent() {
     }
   }, [currentRole, viewScope]);
 
-  const [projects, setProjects] = useState<MangaProject[]>(INITIAL_PROJECTS);
+  const [projects, setProjects] = useState<MangaProject[]>([]);
   const [activeProject, setActiveProject] = useState<MangaProject | undefined>(() => {
     try {
       const saved = localStorage.getItem('activeProject');
-      return saved ? JSON.parse(saved) : INITIAL_PROJECTS[0];
+      return saved ? JSON.parse(saved) : undefined;
     } catch {
-      return INITIAL_PROJECTS[0];
+      return undefined;
     }
   });
 
@@ -438,11 +431,11 @@ function AppContent() {
     }
   }, [location.pathname, activeWorkspace?.id, currentWorkspaceRole, currentRole]);
 
-  const [cards, setCards] = useState<KanbanCard[]>(INITIAL_KANBAN_CARDS);
-  const [entities, setEntities] = useState<BibleEntity[]>(INITIAL_BIBLE_ENTITIES);
-  const [members, setMembers] = useState<StudioMember[]>(INITIAL_MEMBERS);
-  const [provenanceLogs, setProvenanceLogs] = useState(INITIAL_PROVENANCE_LOGS);
-  const [assistants] = useState(INITIAL_ASSISTANTS);
+  const [cards, setCards] = useState<KanbanCard[]>([]);
+  const [entities, setEntities] = useState<BibleEntity[]>([]);
+  const [members, setMembers] = useState<StudioMember[]>([]);
+  const [provenanceLogs, setProvenanceLogs] = useState<ProvenanceLogItem[]>([]);
+  const [assistants] = useState<AssistantRosterItem[]>([]);
 
   // Modals
   const [spreadModalOpen, setSpreadModalOpen] = useState(false);
@@ -547,18 +540,8 @@ function AppContent() {
   const handleEnterProject = (proj: MangaProject, targetView: ViewMode | string = 'workspace') => {
     setActiveProject(proj);
 
-    // Find roles for the current user in this project
-    const userId = currentUserInfo?.id || 'member-tf'; // default to TF for testing
-    const membership = INITIAL_PROJECT_MEMBERSHIPS.find(
-      (m) => m.projectId === proj.id && m.userId === userId,
-    );
-
-    if (membership && membership.roles.length > 0) {
-      setActiveProjectRoles(membership.roles);
-    } else {
-      // Default fallback
-      setActiveProjectRoles(['READER']);
-    }
+    const defaultRole = currentWorkspaceRole || 'PRODUCER';
+    setActiveProjectRoles([defaultRole]);
 
     navigate(targetView === 'workspace' ? '/workspace' : `/${targetView}`);
     showToast('Entered Studio Workspace', `Active workspace: ${proj.title}`);
@@ -618,6 +601,7 @@ function AppContent() {
         setIsChangePasswordModalOpen={setIsChangePasswordModalOpen}
         setIsLoginModalOpen={setIsLoginModalOpen}
         setIsRegisterModalOpen={setIsRegisterModalOpen}
+        setIsCommandPaletteOpen={setCommandPaletteOpen}
         members={members}
         setMembers={setMembers}
         handleInviteMember={handleInviteMember}
