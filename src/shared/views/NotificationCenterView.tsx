@@ -92,14 +92,14 @@ export const NotificationCenterView: React.FC<NotificationCenterViewProps> = ({
                     >
                       {n.title}
                     </h4>
-                    <span className='text-[10px] text-[#888888] whitespace-nowrap ml-2'>
+                    <span className='text-xs text-[#888888] whitespace-nowrap ml-2'>
                       {n.timeAgo}
                     </span>
                   </div>
                   <p className='text-xs text-[#555555] line-clamp-2 leading-relaxed mb-2'>
                     {n.message}
                   </p>
-                  <div className='flex items-center text-[#F97316] text-[11px] font-semibold group'>
+                  <div className='flex items-center text-[#F97316] text-xs font-semibold group'>
                     <span>View Details</span>
                     <ArrowRight className='w-3 h-3 ml-1 transform group-hover:translate-x-1 transition-transform' />
                   </div>

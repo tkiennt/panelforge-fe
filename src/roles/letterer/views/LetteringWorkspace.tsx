@@ -1908,9 +1908,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                     <BookOpen className='w-4 h-4 text-purple-600' />
                     <span>Kịch Bản Chương</span>
                   </span>
-                  <span className='text-xs font-mono text-zinc-500'>
-                    {sceneLines.length} dòng
-                  </span>
+                  <span className='text-xs font-mono text-zinc-500'>{sceneLines.length} dòng</span>
                 </div>
 
                 {/* Scene Selector */}
@@ -2010,7 +2008,8 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                         </p>
                         {isSelected && (
                           <div className='text-xs font-semibold text-purple-700 flex items-center gap-1 pt-1 border-t border-purple-200'>
-                            <Plus className='w-3.5 h-3.5' /> Bấm hoặc kéo thả lên trang để đặt dòng này
+                            <Plus className='w-3.5 h-3.5' /> Bấm hoặc kéo thả lên trang để đặt dòng
+                            này
                           </div>
                         )}
                       </div>
@@ -2817,7 +2816,9 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                           >
                             <div className='font-bold flex items-center gap-1.5'>
                               <AlertTriangle className='w-3.5 h-3.5 shrink-0' />
-                              <span className='font-mono uppercase font-bold text-xs'>{w.code}</span>
+                              <span className='font-mono uppercase font-bold text-xs'>
+                                {w.code}
+                              </span>
                             </div>
                             <p className='leading-relaxed text-xs'>{w.message}</p>
                           </div>
@@ -2963,7 +2964,9 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                     <div className='text-zinc-500 text-xs uppercase font-mono'>
                       Loại phần tử &amp; ID
                     </div>
-                    <div className='font-bold text-[#171717] text-xs'>{selectedElement.elementType}</div>
+                    <div className='font-bold text-[#171717] text-xs'>
+                      {selectedElement.elementType}
+                    </div>
                     <div className='font-mono text-xs text-zinc-400 truncate select-all'>
                       {selectedElement.elementId}
                     </div>

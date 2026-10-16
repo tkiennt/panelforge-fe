@@ -880,36 +880,36 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       {/* Story Arc & Chapter Outline Section (Collapsible & Expandable) */}
       <div
         data-testid='narrative-context-section'
-        className='mx-6 mt-6 shrink-0 bg-white border-2 border-[#E0D9CE] rounded-3xl shadow-sm overflow-hidden transition-all'
+        className='mx-6 mt-6 shrink-0 bg-white border border-[#f0efed] rounded-2xl shadow-soft-sm overflow-hidden transition-all'
       >
-        <div className='w-full px-6 py-5 md:px-8 md:py-6 min-h-[92px] flex flex-wrap items-center justify-between gap-4 bg-gradient-to-r from-[#FAF8F5] via-[#FFFDFB] to-[#F7F3EC] border-b border-[#E0D9CE]'>
+        <div className='w-full px-6 py-4 md:px-8 md:py-5 min-h-[80px] flex flex-wrap items-center justify-between gap-4 bg-[#fafafa] border-b border-[#f0efed]'>
           <button
             type='button'
             onClick={() => setIsNarrativeExpanded((prev) => !prev)}
             className='flex items-center gap-4 text-left cursor-pointer group flex-1 min-w-[280px]'
             data-testid='toggle-narrative-context-btn'
           >
-            <div className='w-14 h-14 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-400 text-white flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform'>
-              <Compass className='w-7 h-7' />
+            <div className='w-11 h-11 rounded-full bg-[#292524] text-white flex items-center justify-center shrink-0 shadow-soft-sm group-hover:scale-105 transition-transform'>
+              <Compass className='w-5 h-5' />
             </div>
             <div>
               <div className='flex items-center gap-3 flex-wrap'>
-                <span className='text-base md:text-xl font-bold font-serif uppercase tracking-wide text-[#171717] group-hover:text-orange-950 transition-colors'>
+                <span className='text-base md:text-lg font-serif font-light text-[#0c0a09] group-hover:text-[#292524] transition-colors'>
                   Định Hướng Cốt Truyện & Đề Cương (Story Arc & Chapter Outline)
                 </span>
                 {storyArcInput && (
-                  <span className='text-xs font-mono px-3.5 py-1.5 rounded-full bg-orange-100 text-orange-900 font-bold border border-orange-300 shadow-2xs'>
+                  <span className='text-xs font-mono px-3 py-1 rounded-full bg-[#f0efed] text-[#292524] font-medium border border-[#e7e5e4] shadow-soft-sm'>
                     Story Arc: {storyArcInput.trim().split(/\s+/).filter(Boolean).length} từ
                   </span>
                 )}
                 {outlineInput && (
-                  <span className='text-xs font-mono px-3.5 py-1.5 rounded-full bg-blue-100 text-blue-900 font-bold border border-blue-300 shadow-2xs'>
+                  <span className='text-xs font-mono px-3 py-1 rounded-full bg-blue-50 text-blue-800 font-medium border border-blue-200 shadow-soft-sm'>
                     Outline Ch.{currentChapter?.chapterNumber || ''}:{' '}
                     {outlineInput.trim().split(/\s+/).filter(Boolean).length} từ
                   </span>
                 )}
               </div>
-              <p className='text-xs md:text-sm text-[#78716C] font-medium mt-1'>
+              <p className='text-xs text-[#777169] mt-0.5'>
                 Ngữ cảnh sáng tác dài hạn & nhịp phim phân cảnh cho Writer và AI Agent
               </p>
             </div>
@@ -919,14 +919,14 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             {isNarrativeExpanded && (
               <>
                 {/* Tab switch: Song song / Chỉ Story Arc / Chỉ Outline */}
-                <div className='flex items-center p-1.5 bg-zinc-200/80 rounded-2xl text-xs md:text-sm font-semibold'>
+                <div className='flex items-center p-1 bg-[#f0efed] rounded-full text-xs font-medium border border-[#e7e5e4]'>
                   <button
                     type='button'
                     onClick={() => setNarrativeTab('both')}
-                    className={`px-3.5 py-2 rounded-xl transition-all cursor-pointer ${
+                    className={`px-3.5 py-1.5 rounded-full transition-all cursor-pointer ${
                       narrativeTab === 'both'
-                        ? 'bg-white text-zinc-900 shadow-xs font-bold'
-                        : 'text-zinc-600 hover:text-zinc-900'
+                        ? 'bg-[#292524] text-white shadow-soft-sm font-medium'
+                        : 'text-[#4e4e4e] hover:text-[#0c0a09]'
                     }`}
                   >
                     Song song 2 cột
@@ -934,10 +934,10 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                   <button
                     type='button'
                     onClick={() => setNarrativeTab('storyArc')}
-                    className={`px-3.5 py-2 rounded-xl transition-all cursor-pointer ${
+                    className={`px-3.5 py-1.5 rounded-full transition-all cursor-pointer ${
                       narrativeTab === 'storyArc'
-                        ? 'bg-white text-orange-800 shadow-xs font-bold'
-                        : 'text-zinc-600 hover:text-zinc-900'
+                        ? 'bg-[#292524] text-white shadow-soft-sm font-medium'
+                        : 'text-[#4e4e4e] hover:text-[#0c0a09]'
                     }`}
                   >
                     Story Arc
@@ -945,10 +945,10 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                   <button
                     type='button'
                     onClick={() => setNarrativeTab('outline')}
-                    className={`px-3.5 py-2 rounded-xl transition-all cursor-pointer ${
+                    className={`px-3.5 py-1.5 rounded-full transition-all cursor-pointer ${
                       narrativeTab === 'outline'
-                        ? 'bg-white text-blue-800 shadow-xs font-bold'
-                        : 'text-zinc-600 hover:text-zinc-900'
+                        ? 'bg-[#292524] text-white shadow-soft-sm font-medium'
+                        : 'text-[#4e4e4e] hover:text-[#0c0a09]'
                     }`}
                   >
                     Đề Cương
@@ -959,7 +959,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                 <button
                   type='button'
                   onClick={() => setIsNarrativeExpandedHeight((prev) => !prev)}
-                  className='p-3 text-zinc-700 hover:text-zinc-900 bg-white hover:bg-zinc-100 border border-zinc-200 rounded-2xl cursor-pointer transition-all shadow-xs'
+                  className='p-2 text-[#777169] hover:text-[#0c0a09] bg-white hover:bg-[#f0efed] border border-[#e7e5e4] rounded-full cursor-pointer transition-all shadow-soft-sm'
                   title={
                     isNarrativeExpandedHeight
                       ? 'Thu nhỏ khung soạn thảo'
@@ -967,25 +967,24 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                   }
                 >
                   {isNarrativeExpandedHeight ? (
-                    <Minimize2 className='w-5 h-5' />
+                    <Minimize2 className='w-4 h-4' />
                   ) : (
-                    <Maximize2 className='w-5 h-5' />
+                    <Maximize2 className='w-4 h-4' />
                   )}
                 </button>
               </>
             )}
 
-            {/* Nút Mở rộng / Thu gọn to bản nổi bật */}
             <button
               type='button'
               onClick={() => setIsNarrativeExpanded((prev) => !prev)}
-              className='flex items-center gap-2.5 px-6 py-3 text-xs md:text-sm font-bold text-white bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 rounded-2xl shadow-md hover:shadow-lg transition-all cursor-pointer active:scale-95'
+              className='flex items-center gap-2 px-5 py-2.5 text-xs font-medium text-white bg-[#292524] hover:bg-[#0c0a09] rounded-full shadow-soft-sm transition-all cursor-pointer'
             >
               <span>{isNarrativeExpanded ? 'Thu gọn' : 'Mở rộng'}</span>
               {isNarrativeExpanded ? (
-                <ChevronUp className='w-4 h-4' />
+                <ChevronUp className='w-3.5 h-3.5' />
               ) : (
-                <ChevronDown className='w-4 h-4' />
+                <ChevronDown className='w-3.5 h-3.5' />
               )}
             </button>
           </div>

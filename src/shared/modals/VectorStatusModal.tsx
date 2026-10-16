@@ -55,7 +55,7 @@ export const VectorStatusModal: React.FC<VectorStatusModalProps> = ({
                 V-Rockstar-v4.2-safetensors
               </div>
             </div>
-            <span className='px-2.5 py-0.5 rounded bg-[#10B981] text-white text-[10px] font-mono font-bold'>
+            <span className='px-2.5 py-0.5 rounded bg-[#10B981] text-white text-xs font-mono font-bold'>
               SYNCHRONIZED
             </span>
           </div>
@@ -63,41 +63,39 @@ export const VectorStatusModal: React.FC<VectorStatusModalProps> = ({
           {/* Telemetry Metrics */}
           <div className='grid grid-cols-2 gap-3 text-xs font-mono'>
             <div className='p-3 bg-[#FAF8F4] rounded-xl border border-[#E7E7E7]'>
-              <span className='text-[#888888] block text-[10px] uppercase'>
+              <span className='text-[#888888] block text-xs uppercase'>
                 Continuity Vector Drift
               </span>
               <strong className='text-base text-[#171717] mt-0.5 block'>&lt; 0.04 σ</strong>
-              <span className='text-[10px] text-[#059669] font-semibold'>Zero Anomaly</span>
+              <span className='text-xs text-[#059669] font-semibold'>Zero Anomaly</span>
             </div>
 
             <div className='p-3 bg-[#FAF8F4] rounded-xl border border-[#E7E7E7]'>
-              <span className='text-[#888888] block text-[10px] uppercase'>
+              <span className='text-[#888888] block text-xs uppercase'>
                 Prompt Inversion Latency
               </span>
               <strong className='text-base text-[#171717] mt-0.5 block'>1.18s / cut</strong>
-              <span className='text-[10px] text-[#059669] font-semibold'>Sub-second ready</span>
+              <span className='text-xs text-[#059669] font-semibold'>Sub-second ready</span>
             </div>
 
             <div className='p-3 bg-[#FAF8F4] rounded-xl border border-[#E7E7E7]'>
-              <span className='text-[#888888] block text-[10px] uppercase'>
-                Model Anchors Enforced
-              </span>
+              <span className='text-[#888888] block text-xs uppercase'>Model Anchors Enforced</span>
               <strong className='text-base text-[#171717] mt-0.5 block'>14 Characters</strong>
-              <span className='text-[10px] text-[#555555]'>Series Bible Locked</span>
+              <span className='text-xs text-[#555555]'>Series Bible Locked</span>
             </div>
 
             <div className='p-3 bg-[#FAF8F4] rounded-xl border border-[#E7E7E7]'>
-              <span className='text-[#888888] block text-[10px] uppercase'>
+              <span className='text-[#888888] block text-xs uppercase'>
                 Screentone Density Spec
               </span>
               <strong className='text-base text-[#171717] mt-0.5 block'>600 DPI Dot Screen</strong>
-              <span className='text-[10px] text-[#555555]'>Moiré-free verified</span>
+              <span className='text-xs text-[#555555]'>Moiré-free verified</span>
             </div>
           </div>
 
           {/* Model Anchors List */}
           <div>
-            <div className='text-[11px] font-mono font-bold uppercase tracking-wider text-[#888888] mb-2'>
+            <div className='text-xs font-mono font-bold uppercase tracking-wider text-[#888888] mb-2'>
               Primary Character Anchors
             </div>
             <div className='space-y-1.5 text-xs'>

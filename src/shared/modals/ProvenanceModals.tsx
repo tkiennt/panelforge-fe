@@ -111,10 +111,10 @@ export const AIProvenanceModal: React.FC<ModalProps> = ({ isOpen, onClose }) => 
                 này.
               </p>
               <div className='mt-3 flex gap-2'>
-                <span className='px-2 py-1 bg-white border border-[#DDD6FE] text-[#8B5CF6] text-[10px] font-bold rounded uppercase'>
+                <span className='px-2 py-1 bg-white border border-[#DDD6FE] text-[#8B5CF6] text-xs font-bold rounded uppercase'>
                   Data Privacy: ENTERPRISE
                 </span>
-                <span className='px-2 py-1 bg-white border border-[#DDD6FE] text-[#8B5CF6] text-[10px] font-bold rounded uppercase'>
+                <span className='px-2 py-1 bg-white border border-[#DDD6FE] text-[#8B5CF6] text-xs font-bold rounded uppercase'>
                   Training: OPT-OUT
                 </span>
               </div>
@@ -131,11 +131,11 @@ export const AIProvenanceModal: React.FC<ModalProps> = ({ isOpen, onClose }) => 
                 <span className='text-xs font-bold uppercase tracking-wider text-[#737373]'>
                   Interaction #1
                 </span>
-                <span className='text-[10px] text-[#A3A3A3]'>Sep 18, 2026 - 09:12 AM</span>
+                <span className='text-xs text-[#A3A3A3]'>Sep 18, 2026 - 09:12 AM</span>
               </div>
               <div className='space-y-3'>
                 <div>
-                  <div className='text-[10px] font-bold text-[#888888] uppercase mb-1'>
+                  <div className='text-xs font-bold text-[#888888] uppercase mb-1'>
                     Input Prompt
                   </div>
                   <div className='text-sm font-mono bg-[#F3F3F3] p-2 rounded text-[#171717]'>
@@ -143,7 +143,7 @@ export const AIProvenanceModal: React.FC<ModalProps> = ({ isOpen, onClose }) => 
                   </div>
                 </div>
                 <div>
-                  <div className='text-[10px] font-bold text-[#8B5CF6] uppercase mb-1'>
+                  <div className='text-xs font-bold text-[#8B5CF6] uppercase mb-1'>
                     AI Output (Suggestion)
                   </div>
                   <div className='text-sm font-mono bg-[#F5F3FF] border border-[#DDD6FE] p-2 rounded text-[#555555]'>
@@ -152,7 +152,7 @@ export const AIProvenanceModal: React.FC<ModalProps> = ({ isOpen, onClose }) => 
                   </div>
                 </div>
                 <div>
-                  <div className='text-[10px] font-bold text-[#10B981] uppercase mb-1'>
+                  <div className='text-xs font-bold text-[#10B981] uppercase mb-1'>
                     Human Modification
                   </div>
                   <div className='text-sm font-mono bg-[#ECFCCB] border border-[#BEF264] p-2 rounded text-[#4D7C0F]'>

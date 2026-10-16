@@ -1527,7 +1527,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
                   assignment.brief,
                 )
               }
-              className='px-3 py-1.5 flex items-center gap-1.5 border border-[#D4D4D4] rounded text-xs font-semibold hover:bg-[#F3F3F3] disabled:opacity-50 cursor-pointer'
+              className='px-3.5 py-1.5 flex items-center gap-1.5 border border-[#e7e5e4] rounded-full text-xs font-medium hover:bg-[#f0efed] disabled:opacity-50 cursor-pointer shadow-soft-sm'
             >
               <Eye className='w-3.5 h-3.5' /> Mở xét duyệt
             </button>
@@ -1537,7 +1537,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
             <button
               type='button'
               onClick={() => setIsPreviewFeedbackOpen(true)}
-              className='px-3 py-1.5 flex items-center gap-1.5 border border-indigo-200 bg-indigo-50/70 hover:bg-indigo-100/70 text-indigo-800 text-xs font-semibold rounded cursor-pointer transition-colors shadow-2xs'
+              className='px-3.5 py-1.5 flex items-center gap-1.5 border border-indigo-200 bg-indigo-50/70 hover:bg-indigo-100/70 text-indigo-800 text-xs font-medium rounded-full cursor-pointer transition-colors shadow-soft-sm'
               data-testid='editor-preview-feedback-btn'
               title='Xem & Triage phản hồi từ liên kết xem thử độc giả (CF5)'
             >
@@ -1557,7 +1557,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
                   : 'Duyệt công đoạn này')
               }
               onClick={() => void onApprove()}
-              className='px-4 py-1.5 flex items-center gap-1.5 bg-[#171717] text-white text-xs font-bold rounded hover:bg-black disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-sm'
+              className='px-5 py-2 flex items-center gap-1.5 bg-[#292524] text-white text-xs font-medium rounded-full hover:bg-[#0c0a09] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-soft-sm transition-all'
             >
               <CheckCircle2 className='w-4 h-4' /> Duyệt
             </button>
@@ -1566,14 +1566,16 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
       </div>
 
       {/* TOOLBAR SO SÁNH & ĐIỀU KHIỂN GÓC NHÌN */}
-      <div className='shrink-0 bg-[#F9F8F6] border-b border-[#E7E7E7] px-6 py-1.5 flex items-center justify-between gap-4 text-xs z-10 flex-wrap'>
+      <div className='shrink-0 bg-[#fafafa] border-b border-[#e7e5e4] px-6 py-2 flex items-center justify-between gap-4 text-xs z-10 flex-wrap'>
         {/* Nhóm chế độ hiển thị */}
-        <div className='flex items-center gap-1 border border-[#D4D4D4] rounded bg-white p-0.5'>
+        <div className='flex items-center gap-1 border border-[#e7e5e4] rounded-full bg-[#f0efed] p-1 shadow-soft-sm'>
           <button
             type='button'
             onClick={() => setCompareMode('side-by-side')}
-            className={`px-2.5 py-1 rounded flex items-center gap-1.5 font-semibold text-xs cursor-pointer ${
-              compareMode === 'side-by-side' ? 'bg-[#171717] text-white' : 'text-[#737373]'
+            className={`px-3 py-1 rounded-full flex items-center gap-1.5 font-medium text-xs cursor-pointer transition-all ${
+              compareMode === 'side-by-side'
+                ? 'bg-[#292524] text-white shadow-soft-sm'
+                : 'text-[#4e4e4e] hover:text-[#0c0a09]'
             }`}
           >
             <Columns className='w-3.5 h-3.5' /> Cạnh nhau
@@ -1581,8 +1583,10 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
           <button
             type='button'
             onClick={() => setCompareMode('swipe')}
-            className={`px-2.5 py-1 rounded flex items-center gap-1.5 font-semibold text-xs cursor-pointer ${
-              compareMode === 'swipe' ? 'bg-[#171717] text-white' : 'text-[#737373]'
+            className={`px-3 py-1 rounded-full flex items-center gap-1.5 font-medium text-xs cursor-pointer transition-all ${
+              compareMode === 'swipe'
+                ? 'bg-[#292524] text-white shadow-soft-sm'
+                : 'text-[#4e4e4e] hover:text-[#0c0a09]'
             }`}
           >
             Thanh trượt
@@ -1590,8 +1594,10 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
           <button
             type='button'
             onClick={() => setCompareMode('onion-skin')}
-            className={`px-2.5 py-1 rounded flex items-center gap-1.5 font-semibold text-xs cursor-pointer ${
-              compareMode === 'onion-skin' ? 'bg-[#171717] text-white' : 'text-[#737373]'
+            className={`px-3 py-1 rounded-full flex items-center gap-1.5 font-medium text-xs cursor-pointer transition-all ${
+              compareMode === 'onion-skin'
+                ? 'bg-[#292524] text-white shadow-soft-sm'
+                : 'text-[#4e4e4e] hover:text-[#0c0a09]'
             }`}
           >
             <Layers className='w-3.5 h-3.5' /> Chồng ảnh
@@ -2064,7 +2070,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
                           <div className='flex items-center justify-between gap-2'>
                             <span className='font-semibold text-[#171717]'>{c.description}</span>
                             <span
-                              className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${
+                              className={`text-xs font-bold px-1.5 py-0.5 rounded border ${
                                 isOpen
                                   ? 'bg-red-50 text-red-700 border-red-200'
                                   : isResolved
@@ -2087,7 +2093,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
                           </div>
 
                           {c.regionJson && (
-                            <p className='text-[10px] text-[#737373]'>
+                            <p className='text-xs text-[#737373]'>
                               Vùng khoanh{' '}
                               {art
                                 ? `trên v${art.versionNumber}`
@@ -2100,11 +2106,11 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
                           )}
 
                           {c.resolutionNote && (
-                            <div className='p-1.5 rounded bg-emerald-50 border border-emerald-200 text-[11px] text-emerald-800 space-y-0.5'>
+                            <div className='p-1.5 rounded bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 space-y-0.5'>
                               <div className='font-bold'>Phản hồi của người làm:</div>
                               <div>{c.resolutionNote}</div>
                               {resolvedSub && (
-                                <div className='text-[10px] text-emerald-600'>
+                                <div className='text-xs text-emerald-600'>
                                   Đã nộp ở lần {resolvedSub.attemptNumber}
                                 </div>
                               )}
@@ -2112,7 +2118,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
                           )}
 
                           {c.reviewerComment && (
-                            <p className='text-[10px] text-zinc-600 italic'>
+                            <p className='text-xs text-zinc-600 italic'>
                               Nhận xét người duyệt: {c.reviewerComment}
                             </p>
                           )}
@@ -2127,7 +2133,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
                                   e.stopPropagation();
                                   void verifyChangeRequest(c);
                                 }}
-                                className='flex-1 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[11px] font-bold flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50'
+                                className='flex-1 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-bold flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50'
                               >
                                 <CheckCircle2 className='w-3 h-3' /> Xác minh đạt
                               </button>
@@ -2138,7 +2144,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
                                   e.stopPropagation();
                                   void reopenChangeRequest(c);
                                 }}
-                                className='flex-1 py-1 bg-zinc-200 hover:bg-zinc-300 text-zinc-800 rounded text-[11px] font-bold flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50'
+                                className='flex-1 py-1 bg-zinc-200 hover:bg-zinc-300 text-zinc-800 rounded text-xs font-bold flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50'
                               >
                                 <RotateCcw className='w-3 h-3' /> Mở lại
                               </button>
@@ -2195,22 +2201,22 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
                         >
                           <div className='flex items-center justify-between gap-2'>
                             <span
-                              className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${SEVERITY_STYLE[String(f.severity)] ?? SEVERITY_STYLE.Info}`}
+                              className={`text-xs font-bold px-1.5 py-0.5 rounded border ${SEVERITY_STYLE[String(f.severity)] ?? SEVERITY_STYLE.Info}`}
                             >
                               {String(f.severity)} · {f.ruleCode}
                             </span>
-                            <span className='text-[10px] font-bold text-[#737373]'>
+                            <span className='text-xs font-bold text-[#737373]'>
                               {FINDING_LABEL[String(f.status)] ?? String(f.status)}
                             </span>
                           </div>
                           <p className='text-xs text-[#171717]'>{f.message}</p>
                           {f.evidence && (
-                            <blockquote className='text-[11px] text-[#555555] border-l-2 border-[#D4D4D4] pl-2 italic'>
+                            <blockquote className='text-xs text-[#555555] border-l-2 border-[#D4D4D4] pl-2 italic'>
                               {f.evidence}
                             </blockquote>
                           )}
                           {f.triageNote && (
-                            <p className='text-[10px] text-[#737373]'>Ghi chú: {f.triageNote}</p>
+                            <p className='text-xs text-[#737373]'>Ghi chú: {f.triageNote}</p>
                           )}
                           {canTriage && isOpen && (
                             <div className='flex items-center gap-1 pt-1 border-t border-[#F3F3F3]'>
@@ -2309,31 +2315,31 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
                         <Sparkles className='w-3.5 h-3.5 text-violet-600' />
                         Báo cáo hình ảnh
                       </span>
-                      <span className='text-[10px] text-[#737373]'>
+                      <span className='text-xs text-[#737373]'>
                         Ngưỡng: {Math.round(visualReport.threshold * 100)}%
                       </span>
                     </div>
                     <div className='grid grid-cols-4 gap-1.5 text-center'>
                       <div className='p-1.5 bg-[#FAF8F4] rounded border border-[#E7E7E7]'>
-                        <div className='text-[10px] text-[#737373]'>Tổng</div>
+                        <div className='text-xs text-[#737373]'>Tổng</div>
                         <div className='text-xs font-bold text-[#171717]'>
                           {visualReport.totalEvaluated}
                         </div>
                       </div>
                       <div className='p-1.5 bg-emerald-50 rounded border border-emerald-200'>
-                        <div className='text-[10px] text-emerald-700'>Đạt</div>
+                        <div className='text-xs text-emerald-700'>Đạt</div>
                         <div className='text-xs font-bold text-emerald-800'>
                           {visualReport.passedCount}
                         </div>
                       </div>
                       <div className='p-1.5 bg-amber-50 rounded border border-amber-200'>
-                        <div className='text-[10px] text-amber-700'>Lệch</div>
+                        <div className='text-xs text-amber-700'>Lệch</div>
                         <div className='text-xs font-bold text-amber-800'>
                           {visualReport.deviationCount}
                         </div>
                       </div>
                       <div className='p-1.5 bg-red-50 rounded border border-red-200'>
-                        <div className='text-[10px] text-red-700'>Chặn</div>
+                        <div className='text-xs text-red-700'>Chặn</div>
                         <div className='text-xs font-bold text-red-800'>
                           {visualReport.blockingDeviationCount}
                         </div>
@@ -2353,7 +2359,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
                     <p className='text-xs font-bold text-emerald-900'>
                       Đạt chuẩn nhất quán hình ảnh
                     </p>
-                    <p className='text-[11px] text-emerald-700'>
+                    <p className='text-xs text-emerald-700'>
                       Tất cả nhân vật đánh giá đều có độ tương đồng ≥{' '}
                       {Math.round(visualReport.threshold * 100)}%.
                     </p>
@@ -2379,19 +2385,19 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
                               <span className='text-xs font-bold text-[#171717] truncate'>
                                 {d.characterName}
                               </span>
-                              <span className='text-[10px] text-[#737373] shrink-0'>
+                              <span className='text-xs text-[#737373] shrink-0'>
                                 (Trang {d.pageNumber ?? 1}, Khung {d.panelNumber ?? 1})
                               </span>
                             </div>
                             <div className='flex items-center gap-1 shrink-0'>
                               <span
-                                className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${
+                                className={`text-xs font-bold px-1.5 py-0.5 rounded border ${
                                   SEVERITY_STYLE[String(d.severity)] ?? SEVERITY_STYLE.Info
                                 }`}
                               >
                                 {String(d.severity)}
                               </span>
-                              <span className='text-[10px] font-bold text-[#737373]'>
+                              <span className='text-xs font-bold text-[#737373]'>
                                 {FINDING_LABEL[String(d.status)] ?? String(d.status)}
                               </span>
                             </div>
@@ -2400,7 +2406,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
                           {/* Side-by-side Visual Comparison Cards */}
                           <div className='grid grid-cols-2 gap-2 bg-[#FAF8F4] p-2 rounded border border-[#E7E7E7]'>
                             <div className='text-center space-y-1'>
-                              <div className='text-[10px] font-bold text-[#737373]'>
+                              <div className='text-xs font-bold text-[#737373]'>
                                 Sheet khóa (v{d.characterSheetVersion ?? 1})
                               </div>
                               <div className='w-full aspect-square max-h-24 rounded bg-white border border-[#E7E7E7] flex items-center justify-center overflow-hidden'>
@@ -2411,7 +2417,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
                                     className='w-full h-full object-cover'
                                   />
                                 ) : (
-                                  <div className='text-[10px] text-[#A3A3A3] flex flex-col items-center gap-1'>
+                                  <div className='text-xs text-[#A3A3A3] flex flex-col items-center gap-1'>
                                     <Sparkles className='w-4 h-4 text-violet-400' />
                                     <span>Bản mẫu</span>
                                   </div>
@@ -2419,9 +2425,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
                               </div>
                             </div>
                             <div className='text-center space-y-1'>
-                              <div className='text-[10px] font-bold text-[#737373]'>
-                                Artwork nộp
-                              </div>
+                              <div className='text-xs font-bold text-[#737373]'>Artwork nộp</div>
                               <div className='w-full aspect-square max-h-24 rounded bg-white border border-[#E7E7E7] flex items-center justify-center overflow-hidden'>
                                 {d.artworkUrl ? (
                                   <img
@@ -2430,7 +2434,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
                                     className='w-full h-full object-cover'
                                   />
                                 ) : (
-                                  <div className='text-[10px] text-[#A3A3A3] flex flex-col items-center gap-1'>
+                                  <div className='text-xs text-[#A3A3A3] flex flex-col items-center gap-1'>
                                     <Layers className='w-4 h-4 text-amber-400' />
                                     <span>Khung vẽ</span>
                                   </div>
@@ -2441,7 +2445,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
 
                           {/* Similarity Gauge */}
                           <div className='space-y-1'>
-                            <div className='flex items-center justify-between text-[11px] font-bold'>
+                            <div className='flex items-center justify-between text-xs font-bold'>
                               <span className='text-[#737373]'>Độ tương đồng</span>
                               <span
                                 className={
@@ -2474,7 +2478,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
 
                           {/* Summary Reason từ AI Vision */}
                           {d.summaryReason && (
-                            <div className='p-2 bg-purple-50/70 border border-purple-200/80 rounded text-[11px] text-purple-900'>
+                            <div className='p-2 bg-purple-50/70 border border-purple-200/80 rounded text-xs text-purple-900'>
                               <span className='font-semibold text-purple-950'>Đánh giá AI: </span>
                               {d.summaryReason}
                             </div>
@@ -2482,19 +2486,19 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
 
                           {/* Detailed Deviations theo từng khía cạnh */}
                           {d.detailedDeviations && d.detailedDeviations.length > 0 && (
-                            <div className='space-y-1 bg-amber-50/50 border border-amber-200/70 p-2 rounded text-[11px]'>
-                              <div className='text-[10px] font-bold uppercase tracking-wider text-amber-900'>
+                            <div className='space-y-1 bg-amber-50/50 border border-amber-200/70 p-2 rounded text-xs'>
+                              <div className='text-xs font-bold uppercase tracking-wider text-amber-900'>
                                 Chi tiết lệch hình ảnh ({d.detailedDeviations.length}):
                               </div>
                               <ul className='space-y-1 divide-y divide-amber-200/50'>
                                 {d.detailedDeviations.map((dev, idx) => (
                                   <li key={idx} className='pt-1 first:pt-0'>
                                     <div className='flex items-center gap-1.5'>
-                                      <span className='font-bold text-amber-950 bg-amber-100/80 px-1.5 py-0.5 rounded text-[10px]'>
+                                      <span className='font-bold text-amber-950 bg-amber-100/80 px-1.5 py-0.5 rounded text-xs'>
                                         {dev.aspect}
                                       </span>
                                       {dev.regionHint && (
-                                        <span className='text-[10px] text-amber-700 italic'>
+                                        <span className='text-xs text-amber-700 italic'>
                                           ({dev.regionHint})
                                         </span>
                                       )}
@@ -2508,7 +2512,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
 
                           {/* Triage Note */}
                           {d.triageNote && (
-                            <p className='text-[10px] text-[#737373] bg-[#F5F5F5] p-1.5 rounded'>
+                            <p className='text-xs text-[#737373] bg-[#F5F5F5] p-1.5 rounded'>
                               Ghi chú ({d.triagedByUserName ?? 'Editor'}): {d.triageNote}
                             </p>
                           )}

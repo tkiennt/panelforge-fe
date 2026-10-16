@@ -391,9 +391,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                       <span className='font-mono font-bold px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-800 text-xs border border-zinc-200'>
                         Khung #{p.panelNumber}
                       </span>
-                      <span className='text-zinc-500 font-mono text-xs'>
-                        Đọc #{p.readingOrder}
-                      </span>
+                      <span className='text-zinc-500 font-mono text-xs'>Đọc #{p.readingOrder}</span>
                       {latestPanelArt ? (
                         <div className='flex items-center gap-1.5 flex-wrap'>
                           <span className='font-mono font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded text-xs'>
@@ -841,8 +839,8 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                               type='button'
                               onClick={() =>
                                 setDetailsExpanded((prev) => ({
-                                    ...prev,
-                                    [art.id]: !prev[art.id],
+                                  ...prev,
+                                  [art.id]: !prev[art.id],
                                 }))
                               }
                               className='text-xs text-zinc-500 hover:text-zinc-800 flex items-center gap-0.5 cursor-pointer font-medium'

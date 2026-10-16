@@ -843,7 +843,7 @@ function AppContent() {
           <div className='glass rounded-full shadow-[0_8px_30px_rgba(0,0,0,0.14)] border border-[#e7e7e7]/80 p-1.5 flex items-center gap-1'>
             <div className='hidden sm:flex items-center gap-1.5 pl-2 pr-1.5 py-1'>
               <span className='w-1.5 h-1.5 rounded-full bg-[#f97316] pulse-dot'></span>
-              <span className='text-[10px] font-semibold text-[#404040] uppercase tracking-[0.15em]'>
+              <span className='text-xs font-semibold text-[#404040] uppercase tracking-[0.15em]'>
                 Preview
               </span>
             </div>
@@ -874,7 +874,7 @@ function AppContent() {
                   >
                     <Icon className='w-4 h-4' />
                   </button>
-                  <div className='absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-[#171717] text-white text-[10px] rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none'>
+                  <div className='absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-[#171717] text-white text-xs rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none'>
                     {label}
                     <div className='absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[#171717]'></div>
                   </div>
@@ -896,7 +896,7 @@ function AppContent() {
             <CheckCircle2 className='w-4 h-4 text-[#10B981] shrink-0 mt-0.5' />
             <div>
               <div className='text-xs font-bold text-white font-display'>{toast.title}</div>
-              <div className='text-[11px] text-[#CCCCCC] mt-0.5 leading-snug'>{toast.desc}</div>
+              <div className='text-xs text-[#CCCCCC] mt-0.5 leading-snug'>{toast.desc}</div>
             </div>
           </div>
         ))}

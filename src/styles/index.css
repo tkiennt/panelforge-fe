@@ -35,6 +35,30 @@
   --color-status-amber-dark: #d97706;
   --color-status-amber-surface: #fffbeb;
 
+  /* Editorial AI Studio Design Tokens (Quiet Editorial & Atmospheric Canvas) */
+  --color-canvas-editorial: #f5f5f5;
+  --color-canvas-soft: #fafafa;
+  --color-canvas-deep: #0c0a09;
+  --color-ink: #0c0a09;
+  --color-ink-primary: #292524;
+  --color-ink-primary-active: #0c0a09;
+  --color-body-editorial: #4e4e4e;
+  --color-body-strong: #292524;
+  --color-muted-editorial: #777169;
+  --color-muted-soft: #a8a29e;
+  --color-hairline: #e7e5e4;
+  --color-hairline-soft: #f0efed;
+  --color-hairline-strong: #d6d3d1;
+  --color-surface-card: #ffffff;
+  --color-surface-strong: #f0efed;
+
+  /* Atmospheric Gradient Orbs */
+  --color-orb-mint: #a7e5d3;
+  --color-orb-peach: #f4c5a8;
+  --color-orb-lavender: #c8b8e0;
+  --color-orb-sky: #a8c8e8;
+  --color-orb-rose: #e8b8c4;
+
   --shadow-manga: 3px 3px 0px #171717;
   --shadow-manga-lg: 5px 5px 0px #171717;
   --shadow-manga-sm: 2px 2px 0px #171717;
@@ -55,6 +79,8 @@
   --animate-float-slow: float 7s ease-in-out infinite;
   --animate-float-delayed: float 8s ease-in-out 2.5s infinite;
   --animate-pulse-subtle: pulseSubtle 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-orb-float-slow: orbFloat 20s ease-in-out infinite;
+  --animate-orb-float-reverse: orbFloat 25s ease-in-out infinite reverse;
 }
 
 @keyframes float {
@@ -76,6 +102,26 @@
     opacity: 0.6;
     transform: scale(1.05);
   }
+}
+
+@keyframes orbFloat {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(32px, -38px) scale(1.07);
+  }
+  66% {
+    transform: translate(-28px, 24px) scale(0.96);
+  }
+}
+
+.orb-glow {
+  filter: blur(90px);
+  will-change: transform;
+  mix-blend-mode: multiply;
+  pointer-events: none;
 }
 
 html {

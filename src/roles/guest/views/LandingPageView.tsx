@@ -24,6 +24,7 @@ import {
   ChevronRight,
   User,
 } from 'lucide-react';
+import { AtmosphericOrbBackground } from '@/shared/components/ui/AtmosphericOrbBackground';
 
 interface LandingPageViewProps {
   onOpenLogin: () => void;
@@ -57,43 +58,43 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
   }, []);
 
   return (
-    <div className='antialiased text-[#171717] bg-[#EAE6DF]'>
+    <div className='antialiased text-[#0c0a09] bg-[#f5f5f5]'>
       {/* ===== NAV ===== */}
-      <header className='sticky top-0 z-40 glass border-b border-[#e7e7e7]/60'>
+      <header className='sticky top-0 z-40 bg-[#f5f5f5]/90 backdrop-blur-md border-b border-[#e7e5e4]'>
         <div className='max-w-7xl mx-auto px-6 lg:px-8 h-16 flex items-center justify-between'>
           <a href='#' className='flex items-center gap-2.5 group'>
-            <div className='relative w-9 h-9 rounded-lg tangerine-gradient flex items-center justify-center soft-shadow group-hover:rotate-3 transition-transform'>
+            <div className='relative w-9 h-9 rounded-full bg-[#292524] flex items-center justify-center text-white shadow-soft-sm group-hover:scale-105 transition-transform'>
               <svg
                 width='18'
                 height='18'
                 viewBox='0 0 24 24'
                 fill='none'
                 stroke='white'
-                strokeWidth='2.5'
+                strokeWidth='2'
                 strokeLinecap='round'
                 strokeLinejoin='round'
               >
                 <path d='M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z' />
               </svg>
             </div>
-            <span className='font-serif text-xl font-bold tracking-tight text-[#171717]'>
+            <span className='font-serif text-xl font-medium tracking-tight text-[#0c0a09]'>
               PanelForge
             </span>
           </a>
-          <nav className='hidden md:flex items-center gap-8 text-sm text-[#404040]'>
-            <a href='#block-features' className='nav-link hover:text-[#171717] transition'>
+          <nav className='hidden md:flex items-center gap-8 text-xs font-medium text-[#777169]'>
+            <a href='#block-features' className='hover:text-[#0c0a09] transition-colors'>
               Features
             </a>
-            <a href='#block-workflow' className='nav-link hover:text-[#171717] transition'>
+            <a href='#block-workflow' className='hover:text-[#0c0a09] transition-colors'>
               Workflow
             </a>
-            <a href='#block-showcase' className='nav-link hover:text-[#171717] transition'>
+            <a href='#block-showcase' className='hover:text-[#0c0a09] transition-colors'>
               Showcase
             </a>
-            <a href='#block-[#171717]' className='nav-link hover:text-[#171717] transition'>
+            <a href='#block-studios' className='hover:text-[#0c0a09] transition-colors'>
               Studios
             </a>
-            <a href='#' className='nav-link hover:text-[#171717] transition'>
+            <a href='#' className='hover:text-[#0c0a09] transition-colors'>
               Docs
             </a>
           </nav>
@@ -101,13 +102,13 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             <button
               onClick={onOpenLogin}
               aria-label='Sign in'
-              className='text-xs sm:text-sm text-[#404040] font-medium hover:text-white hover:bg-[#f97316] hover:shadow-[0_8px_20px_rgba(249,115,22,0.3)] hover:-translate-y-1 border border-zinc-200 sm:border-transparent px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-full transition-all duration-300 cursor-pointer whitespace-nowrap'
+              className='text-xs sm:text-sm text-[#0c0a09] font-medium hover:bg-[#f0efed] border border-[#e7e5e4] hover:border-[#0c0a09] px-4 py-2 rounded-full transition-all duration-200 cursor-pointer whitespace-nowrap'
             >
               Sign in
             </button>
             <button
               onClick={() => (onOpenRegister ? onOpenRegister() : onOpenLogin())}
-              className='inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#171717] text-white text-sm font-medium hover:bg-[#404040] transition soft-shadow cursor-pointer'
+              className='inline-flex items-center gap-1.5 px-5 py-2 rounded-full bg-[#292524] text-white text-xs sm:text-sm font-medium hover:bg-[#0c0a09] shadow-soft-sm transition-all duration-200 cursor-pointer'
             >
               Onboard Studio
               <ArrowRight className='w-3.5 h-3.5' />
@@ -117,53 +118,56 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
       </header>
 
       {/* ===== HERO ===== */}
-      <div className='relative w-full min-h-[90vh] bg-[#EAE6DF] overflow-hidden border-b-[1.5px] border-[#171717] flex items-center justify-center pt-16 pb-16'>
-        {/* Halftone / Dot Grid Pattern */}
-        <div className='absolute inset-0 opacity-[0.03] bg-[radial-gradient(#171717_1px,transparent_1px)] [background-size:24px_24px]'></div>
-
+      <AtmosphericOrbBackground className='min-h-[88vh] border-b border-[#e7e5e4] flex items-center justify-center pt-20 pb-20'>
         <div className='relative z-20 text-center flex flex-col items-center max-w-4xl px-6 animate-on-scroll'>
-          <h1 className='font-serif text-6xl md:text-7xl lg:text-8xl font-bold text-[#171717] tracking-tight leading-[1.05]'>
-            <span className='relative inline-block'>
-              <em className='font-normal text-[#f97316] not-italic italic relative z-10'>
-                Architect
-              </em>
-            </span>{' '}
-            Your
+          <div className='inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/80 border border-[#e7e5e4] shadow-soft-sm text-xs font-mono font-medium text-[#777169] mb-8'>
+            <span className='w-2 h-2 rounded-full bg-[#a7e5d3]'></span>
+            Next-Gen Manga Studio Infrastructure
+          </div>
+
+          <h1 className='font-serif text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-light text-[#0c0a09] tracking-tight leading-[1.08]'>
+            Architect Your
             <br />
-            Manga Production.
+            <em className='font-light italic text-[#292524]'>Manga Production.</em>
           </h1>
 
-          <p className='mt-8 text-[#171717] font-sans text-lg md:text-xl font-medium tracking-wide max-w-2xl leading-relaxed mx-auto'>
-            From first script to final approval, PanelForge is the{' '}
-            <span className='bg-[#171717] text-[#EAE6DF] px-2 py-0.5 rounded-sm font-mono text-sm uppercase'>
+          <p className='mt-8 text-[#4e4e4e] font-sans text-base md:text-lg font-normal tracking-wide max-w-2xl leading-relaxed mx-auto'>
+            From first script draft to final approval, PanelForge is the unified{' '}
+            <span className='bg-[#f0efed] text-[#0c0a09] px-2.5 py-0.5 rounded-full font-mono text-xs uppercase border border-[#e7e5e4]'>
               Data Layer
             </span>{' '}
-            for Modern Manga Studios.
+            for modern manga and webtoon studios.
           </p>
 
-          <div className='mt-10 flex flex-wrap items-center justify-center gap-5'>
+          <div className='mt-10 flex flex-wrap items-center justify-center gap-4'>
             <button
               onClick={onOpenLogin}
-              className='group inline-flex items-center gap-2 px-8 py-3.5 bg-[#f97316] border-[1.5px] border-[#171717] shadow-[6px_6px_0px_#171717] text-white font-bold text-sm uppercase tracking-wide hover:shadow-[2px_2px_0px_#171717] hover:translate-x-[4px] hover:translate-y-[4px] transition-all cursor-pointer rounded'
+              className='group inline-flex items-center gap-2 px-8 py-3.5 bg-[#292524] text-white font-medium text-xs sm:text-sm rounded-full hover:bg-[#0c0a09] shadow-soft-sm transition-all duration-200 cursor-pointer'
             >
               Sign In to Studio
               <ArrowRight className='w-4 h-4 group-hover:translate-x-1 transition-transform' />
             </button>
+            <button
+              onClick={() => (onOpenRegister ? onOpenRegister() : onOpenLogin())}
+              className='inline-flex items-center gap-2 px-8 py-3.5 bg-white border border-[#e7e5e4] text-[#0c0a09] font-medium text-xs sm:text-sm rounded-full hover:border-[#0c0a09] hover:bg-[#fafafa] shadow-soft-sm transition-all duration-200 cursor-pointer'
+            >
+              Request Access
+            </button>
           </div>
 
-          <div className='mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-xs font-bold text-[#404040] uppercase tracking-wide'>
-            <div className='flex items-center gap-2'>
-              <Check className='w-4 h-4 text-[#f97316]' /> 14-day studio trial
+          <div className='mt-12 flex flex-wrap items-center justify-center gap-4 text-xs font-medium text-[#777169]'>
+            <div className='flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/70 border border-[#e7e5e4] shadow-soft-sm'>
+              <Check className='w-3.5 h-3.5 text-emerald-600' /> 14-day studio trial
             </div>
-            <div className='flex items-center gap-2'>
-              <Check className='w-4 h-4 text-[#f97316]' /> Migrate from any tool
+            <div className='flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/70 border border-[#e7e5e4] shadow-soft-sm'>
+              <Check className='w-3.5 h-3.5 text-emerald-600' /> Seamless migration
             </div>
-            <div className='flex items-center gap-2'>
-              <Check className='w-4 h-4 text-[#f97316]' /> SOC 2 ready
+            <div className='flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/70 border border-[#e7e5e4] shadow-soft-sm'>
+              <Check className='w-3.5 h-3.5 text-emerald-600' /> Enterprise grade security
             </div>
           </div>
         </div>
-      </div>
+      </AtmosphericOrbBackground>
 
       {/* ===== CREATOR FIRST SECTION ===== */}
       <div className='py-24 bg-[#171717] relative border-b-[1.5px] border-[#171717]'>

@@ -33,7 +33,7 @@ export const ElementConflictModal: React.FC<ElementConflictModalProps> = ({
               <h3 className='text-sm font-bold text-[#171717]'>
                 Xung Đột Phiên Bản Phần Tử (BR-11)
               </h3>
-              <p className='text-[11px] text-[#737373]'>
+              <p className='text-xs text-[#737373]'>
                 Optimistic Concurrency Control — ELEMENT_VERSION_CONFLICT
               </p>
             </div>
@@ -53,20 +53,20 @@ export const ElementConflictModal: React.FC<ElementConflictModalProps> = ({
               <ShieldAlert className='w-4 h-4 text-amber-600' />
               <span>Phần tử đã được cập nhật bởi một người dùng khác</span>
             </div>
-            <p className='text-[11px] text-amber-800 leading-relaxed'>
+            <p className='text-xs text-amber-800 leading-relaxed'>
               Phiên bản trên máy chủ hiện tại đã tăng lên (khác với phiên bản bạn đang giữ trên màn
               hình). Để tránh vô tình ghi đè hoặc làm mất dữ liệu của đồng đội, thao tác vừa rồi đã
               được chặn lại.
             </p>
             {elementId && (
-              <div className='text-[10px] font-mono text-amber-700 bg-amber-100/60 px-2 py-0.5 rounded'>
+              <div className='text-xs font-mono text-amber-700 bg-amber-100/60 px-2 py-0.5 rounded'>
                 Element ID: {elementId}
               </div>
             )}
           </div>
 
           {errorMessage && (
-            <div className='p-2.5 bg-zinc-50 border border-zinc-200 rounded-lg text-zinc-600 font-mono text-[10px]'>
+            <div className='p-2.5 bg-zinc-50 border border-zinc-200 rounded-lg text-zinc-600 font-mono text-xs'>
               Thông báo máy chủ: {errorMessage}
             </div>
           )}
@@ -89,7 +89,7 @@ export const ElementConflictModal: React.FC<ElementConflictModalProps> = ({
                   <RefreshCw className='w-3.5 h-3.5 text-blue-600 group-hover:rotate-180 transition-transform duration-300' />
                   <span>Tải lại dữ liệu mới nhất (Khuyên dùng)</span>
                 </div>
-                <div className='text-[11px] text-blue-700 mt-0.5'>
+                <div className='text-xs text-blue-700 mt-0.5'>
                   Cập nhật canvas với dữ liệu mới nhất từ máy chủ để bạn thấy chính xác thay đổi của
                   người khác.
                 </div>
@@ -108,7 +108,7 @@ export const ElementConflictModal: React.FC<ElementConflictModalProps> = ({
               >
                 <div>
                   <div className='font-bold text-red-900'>Ghi đè bằng thay đổi của tôi</div>
-                  <div className='text-[11px] text-red-700 mt-0.5'>
+                  <div className='text-xs text-red-700 mt-0.5'>
                     Buộc gửi lại thao tác của bạn lên phiên bản mới nhất trên máy chủ.
                   </div>
                 </div>

@@ -204,7 +204,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
             {/* Trạng thái Chapter Badge */}
             {currentChapter && (
               <span
-                className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border shadow-2xs ${
+                className={`text-xs font-mono font-medium uppercase tracking-wider px-3 py-1 rounded-full border shadow-soft-sm ${
                   currentChapter.status === 'Approved'
                     ? 'text-emerald-700 bg-emerald-50 border-emerald-200'
                     : currentChapter.status === 'Published'
@@ -225,31 +225,31 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
 
           {/* Real KPIs from Backend (Chỉ hiển thị cho Producer) */}
           {isProducer && (
-            <div className='hidden lg:flex items-center gap-5 pl-6 border-l border-zinc-200'>
+            <div className='hidden lg:flex items-center gap-5 pl-6 border-l border-[#e7e5e4]'>
               <div className='flex flex-col'>
-                <span className='text-[10px] text-zinc-400 uppercase tracking-wider font-bold'>
+                <span className='text-xs text-[#777169] uppercase tracking-wider font-mono'>
                   Hoàn thành
                 </span>
-                <span className='text-sm font-mono font-bold text-zinc-900'>
+                <span className='text-sm font-mono font-semibold text-[#0c0a09]'>
                   {completionPercent}%
                 </span>
               </div>
 
               <div className='flex flex-col'>
-                <span className='text-[10px] text-zinc-400 uppercase tracking-wider font-bold'>
+                <span className='text-xs text-[#777169] uppercase tracking-wider font-mono'>
                   Chờ xét duyệt
                 </span>
-                <span className='text-sm font-mono font-bold text-purple-600'>
+                <span className='text-sm font-mono font-semibold text-purple-700'>
                   {waitingReviewCount}
                 </span>
               </div>
 
               <div className='flex flex-col'>
-                <span className='text-[10px] text-zinc-400 uppercase tracking-wider font-bold'>
+                <span className='text-xs text-[#777169] uppercase tracking-wider font-mono'>
                   Quá hạn
                 </span>
                 <span
-                  className={`text-sm font-mono font-bold ${
+                  className={`text-sm font-mono font-semibold ${
                     overdueCount > 0 ? 'text-rose-600' : 'text-emerald-600'
                   }`}
                 >
@@ -263,14 +263,14 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
         {/* Right: Bộ lọc & Phím chuyển hướng nhanh */}
         <div className='flex items-center gap-3'>
           {/* Bộ lọc Thẻ */}
-          <div className='flex items-center bg-zinc-100 p-1 rounded-xl border border-zinc-200'>
+          <div className='flex items-center bg-[#f0efed] p-1 rounded-full border border-[#e7e5e4]'>
             <button
               type='button'
               onClick={() => setFilterType('all')}
-              className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+              className={`px-3.5 py-1 text-xs font-medium rounded-full transition-all cursor-pointer ${
                 filterType === 'all'
-                  ? 'bg-white shadow-xs text-zinc-900'
-                  : 'text-zinc-500 hover:text-zinc-900'
+                  ? 'bg-[#292524] text-white shadow-soft-sm'
+                  : 'text-[#4e4e4e] hover:text-[#0c0a09]'
               }`}
             >
               Tất cả
@@ -278,10 +278,10 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
             <button
               type='button'
               onClick={() => setFilterType('my-tasks')}
-              className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+              className={`px-3.5 py-1 text-xs font-medium rounded-full transition-all cursor-pointer ${
                 filterType === 'my-tasks'
-                  ? 'bg-white shadow-xs text-zinc-900'
-                  : 'text-zinc-500 hover:text-zinc-900'
+                  ? 'bg-[#292524] text-white shadow-soft-sm'
+                  : 'text-[#4e4e4e] hover:text-[#0c0a09]'
               }`}
             >
               Của tôi
@@ -289,10 +289,10 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
             <button
               type='button'
               onClick={() => setFilterType('overdue')}
-              className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+              className={`px-3.5 py-1 text-xs font-medium rounded-full transition-all cursor-pointer ${
                 filterType === 'overdue'
-                  ? 'bg-white shadow-xs text-rose-600 font-bold'
-                  : 'text-zinc-500 hover:text-zinc-900'
+                  ? 'bg-[#292524] text-white shadow-soft-sm'
+                  : 'text-[#4e4e4e] hover:text-[#0c0a09]'
               }`}
             >
               Quá hạn
@@ -307,7 +307,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
               loadProgress();
             }}
             title='Làm mới dữ liệu'
-            className='p-2 text-zinc-500 hover:text-zinc-800 bg-white hover:bg-zinc-100 border border-zinc-200 rounded-xl shadow-2xs transition-colors cursor-pointer'
+            className='p-2 text-[#777169] hover:text-[#0c0a09] bg-white hover:bg-[#f0efed] border border-[#e7e5e4] rounded-full shadow-soft-sm transition-colors cursor-pointer'
           >
             <RefreshCw className='w-4 h-4' />
           </button>
@@ -323,7 +323,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                   }`,
                 )
               }
-              className='inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-xs transition-all cursor-pointer shrink-0'
+              className='inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium text-white bg-[#292524] hover:bg-[#0c0a09] rounded-full shadow-soft-sm transition-all cursor-pointer shrink-0'
             >
               <span>Công việc & Xét duyệt</span>
               <ArrowUpRight className='w-4 h-4' />

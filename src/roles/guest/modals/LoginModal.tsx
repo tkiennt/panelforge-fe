@@ -292,22 +292,21 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             {features.map((feature, index) => (
               <div
                 key={index}
-                className={`group relative bg-[#FFFFFF] border-[1.5px] border-[#E7E7E7] hover:border-[#171717] rounded-sm p-4 flex items-start gap-4 hover:shadow-[4px_4px_0px_#171717] hover:-translate-y-0.5 transition-all cursor-default overflow-hidden animate-in slide-in-from-bottom-8 fade-in duration-500 fill-mode-both ${feature.delay}`}
+                className={`group relative bg-[#FFFFFF] border border-[#f0efed] hover:border-[#292524] rounded-xl p-4 flex items-start gap-4 shadow-soft-sm hover:-translate-y-0.5 transition-all cursor-default overflow-hidden animate-in slide-in-from-bottom-8 fade-in duration-500 fill-mode-both ${feature.delay}`}
               >
-                <div className='absolute inset-0 bg-[radial-gradient(#171717_1.5px,transparent_1.5px)] bg-[size:10px_10px] opacity-0 group-hover:opacity-[0.04] transition-opacity pointer-events-none'></div>
-                <div className='absolute top-0 right-0 bg-[#E7E7E7] group-hover:bg-[#171717] text-[#555555] group-hover:text-white text-[9px] font-mono font-bold px-1.5 py-0.5 transition-colors border-b border-l border-transparent group-hover:border-[#171717]'>
+                <div className='absolute top-0 right-0 bg-[#f0efed] group-hover:bg-[#292524] text-[#777169] group-hover:text-white text-xs font-mono font-medium px-2 py-0.5 rounded-bl-lg transition-colors'>
                   P.{String(index + 1).padStart(2, '0')}
                 </div>
                 <div
-                  className={`relative z-10 mt-0.5 rounded-sm p-2 flex-shrink-0 border border-transparent group-hover:border-[#171717] group-hover:shadow-[2px_2px_0px_#171717] transition-all ${feature.iconColor}`}
+                  className={`relative z-10 mt-0.5 rounded-lg p-2 flex-shrink-0 transition-all ${feature.iconColor}`}
                 >
                   {feature.icon}
                 </div>
                 <div className='relative z-10 pr-6'>
-                  <h4 className='text-[#171717] font-bold text-sm tracking-tight'>
+                  <h4 className='text-[#0c0a09] font-semibold text-xs tracking-tight'>
                     {feature.title}
                   </h4>
-                  <p className='text-[#555555] text-xs leading-relaxed mt-1'>{feature.desc}</p>
+                  <p className='text-[#777169] text-xs leading-relaxed mt-1'>{feature.desc}</p>
                 </div>
               </div>
             ))}
@@ -335,39 +334,43 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             {/* ===== VIEW 1: ĐĂNG NHẬP THƯỜNG ===== */}
             {step === 'login' && (
               <div className='animate-in fade-in duration-300'>
-                <div className='w-10 h-10 rounded-xl tangerine-gradient flex items-center justify-center mb-6'>
+                <div className='w-10 h-10 rounded-full bg-[#292524] text-white flex items-center justify-center mb-6 shadow-soft-sm'>
                   <svg
                     width='20'
                     height='20'
                     viewBox='0 0 24 24'
                     fill='none'
                     stroke='white'
-                    strokeWidth='2.5'
+                    strokeWidth='2'
                     strokeLinecap='round'
                     strokeLinejoin='round'
                   >
                     <path d='M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z' />
                   </svg>
                 </div>
-                <h2 className='font-serif text-3xl font-bold text-[#171717]'>Welcome Back</h2>
-                <p className='text-[#555555] text-sm mt-2'>Log in to your studio workspace.</p>
+                <h2 className='font-serif font-light text-3xl text-[#0c0a09] tracking-tight'>
+                  Welcome Back
+                </h2>
+                <p className='text-[#777169] text-xs mt-1.5'>Log in to your studio workspace.</p>
 
                 <form className='mt-8 space-y-4' onSubmit={handleLoginSubmit}>
                   <div>
-                    <label className='block text-sm font-medium text-[#171717] mb-1.5'>Email</label>
+                    <label className='block text-xs font-semibold text-[#0c0a09] mb-1.5'>
+                      Email
+                    </label>
                     <input
                       type='email'
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder='mika@studio.com'
-                      className='w-full border border-[#E7E7E7] rounded-lg px-4 py-2.5 focus:border-[#171717] focus:ring-1 focus:ring-[#171717] outline-none transition-all text-sm'
+                      className='w-full border border-[#e7e5e4] rounded-xl px-4 py-2.5 focus:border-[#292524] focus:ring-2 focus:ring-[#292524]/10 outline-none transition-all text-xs text-[#0c0a09] placeholder:text-[#a8a29e]'
                       required
                     />
                   </div>
 
                   <div>
                     <div className='flex items-center justify-between mb-1.5'>
-                      <label className='block text-sm font-medium text-[#171717]'>Password</label>
+                      <label className='block text-xs font-semibold text-[#0c0a09]'>Password</label>
                       <div className='flex items-center gap-1.5'>
                         <button
                           type='button'
@@ -377,12 +380,12 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                             setSuccessNotice(null);
                             setStep('reset');
                           }}
-                          className='text-xs font-semibold text-emerald-600 hover:text-emerald-700 cursor-pointer'
+                          className='text-xs font-medium text-emerald-600 hover:text-emerald-700 cursor-pointer'
                           title='Kích hoạt tài khoản nhận được lời mời qua email bằng mã OTP 6 số'
                         >
                           Kích hoạt tài khoản mời?
                         </button>
-                        <span className='text-xs text-gray-300'>•</span>
+                        <span className='text-xs text-stone-300'>•</span>
                         <button
                           type='button'
                           onClick={() => {
@@ -391,7 +394,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                             setSuccessNotice(null);
                             setStep('forgot');
                           }}
-                          className='text-xs font-semibold text-[#F97316] hover:text-[#EA580C] cursor-pointer'
+                          className='text-xs font-medium text-[#777169] hover:text-[#0c0a09] cursor-pointer'
                         >
                           Quên mật khẩu?
                         </button>
@@ -402,7 +405,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder='••••••••'
-                      className='w-full border border-[#E7E7E7] rounded-lg px-4 py-2.5 focus:border-[#171717] focus:ring-1 focus:ring-[#171717] outline-none transition-all text-sm'
+                      className='w-full border border-[#e7e5e4] rounded-xl px-4 py-2.5 focus:border-[#292524] focus:ring-2 focus:ring-[#292524]/10 outline-none transition-all text-xs text-[#0c0a09] placeholder:text-[#a8a29e]'
                       required
                     />
                   </div>
@@ -410,18 +413,18 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                   <button
                     type='submit'
                     disabled={isLoading}
-                    className='w-full bg-[#F97316] hover:bg-[#EA580C] disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium py-2.5 rounded-lg shadow-sm transition-all mt-6 cursor-pointer flex justify-center items-center gap-2'
+                    className='w-full bg-[#292524] hover:bg-[#0c0a09] disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium py-3 rounded-full shadow-soft-sm transition-all mt-6 cursor-pointer flex justify-center items-center gap-2 text-xs sm:text-sm'
                   >
                     {isLoading ? 'Đang xử lý...' : 'Log In'}
                   </button>
                 </form>
 
                 <div className='flex items-center my-6'>
-                  <div className='flex-1 border-t border-[#E7E7E7]'></div>
-                  <span className='px-3 text-xs text-[#B8B8B8] uppercase tracking-wider font-semibold'>
+                  <div className='flex-1 border-t border-[#e7e5e4]'></div>
+                  <span className='px-3 text-xs text-[#a8a29e] uppercase tracking-wider font-semibold font-mono'>
                     or continue with
                   </span>
-                  <div className='flex-1 border-t border-[#E7E7E7]'></div>
+                  <div className='flex-1 border-t border-[#e7e5e4]'></div>
                 </div>
 
                 <div className='space-y-3'>
@@ -429,7 +432,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                     type='button'
                     onClick={handleGoogleSignIn}
                     disabled={isLoading}
-                    className='w-full border border-[#E7E7E7] bg-white text-[#171717] text-sm font-medium py-2.5 rounded-lg flex items-center justify-center gap-2 hover:border-[#171717] hover:bg-[#FAF8F5] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
+                    className='w-full border border-[#e7e5e4] bg-white text-[#0c0a09] text-xs sm:text-sm font-medium py-2.5 rounded-full flex items-center justify-center gap-2 hover:border-[#292524] hover:bg-[#fafafa] shadow-soft-sm transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
                   >
                     <svg className='w-4 h-4' viewBox='0 0 24 24' fill='currentColor'>
                       <path
