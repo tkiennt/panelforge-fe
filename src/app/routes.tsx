@@ -12,7 +12,7 @@ import { WorkspaceView } from '@/shared/features/production-workspace/WorkspaceV
 import { TaskEditorView } from '@/shared/features/production-workspace/TaskEditorView';
 import { ExportView } from '@/roles/producer/views/ExportView';
 import { DashboardView } from '@/roles/producer/views/DashboardView';
-import { ProducerWorkspaceView } from '@/roles/producer/views/ProducerWorkspaceView';
+import { StudioOverviewView } from '@/shared/views/StudioOverviewView';
 import { AdminDashboard } from '@/roles/admin/views';
 import { ArtistDeskView } from '@/roles/artist/views/ArtistDeskView';
 import { ReviewView } from '@/roles/editor/views/ReviewView';
@@ -263,9 +263,9 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
           }
         >
           <Route path='workspaces/:workspaceId'>
-            <Route index element={<ProducerWorkspaceView />} />
-            <Route path='overview' element={<ProducerWorkspaceView />} />
-            <Route path='series' element={<ProducerWorkspaceView />} />
+            <Route index element={<StudioOverviewView />} />
+            <Route path='overview' element={<StudioOverviewView />} />
+            <Route path='series' element={<StudioOverviewView />} />
 
             <Route path='series/:seriesId'>
               <Route index element={<Navigate to='dashboard' replace />} />
