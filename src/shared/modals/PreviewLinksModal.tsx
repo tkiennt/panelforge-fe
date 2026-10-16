@@ -259,8 +259,7 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
                 </span>
               </div>
               <h2 className='text-base font-bold text-[#171717] mt-0.5'>
-                Chương #{chapterNumber}
-                {chapterTitle ? `: ${chapterTitle}` : ''}
+                {`Chương #${chapterNumber}${chapterTitle ? `: ${chapterTitle}` : ''}`}
               </h2>
             </div>
           </div>

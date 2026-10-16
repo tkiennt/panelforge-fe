@@ -134,8 +134,17 @@ describe('App Integration Smoke Test', () => {
     // 8. User chọn vào Workspace Beta (Artist)
     fireEvent.click(screen.getByText('Workspace Beta (Artist)'));
 
-    // 9. Xác nhận Workspace B (Artist) KHÔNG còn menu / hành động của Producer
-    // Artist vào thẳng bàn làm việc thật "Công việc của tôi" của Series đầu tiên (không bị rơi vào màn mock hay bị đẩy về danh sách)
+    // 9. Xác nhận chuyển vào màn chọn Series của Workspace B (/workspaces/ws-b/series)
+    // và không có quyền / nút tạo của Producer
+    await waitFor(() => {
+      expect(window.location.pathname).toBe('/workspaces/ws-b/series');
+      expect(screen.getByText('Series One')).toBeInTheDocument();
+    });
+    expect(screen.queryByText('Tạo Series Mới')).not.toBeInTheDocument();
+
+    // 10. User chọn Series One để vào môi trường làm việc chính của Artist
+    fireEvent.click(screen.getByText('Series One'));
+
     await waitFor(() => {
       expect(window.location.pathname).toBe('/workspaces/ws-b/series/s-1/my-work');
     });

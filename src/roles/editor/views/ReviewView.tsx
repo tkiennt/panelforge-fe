@@ -1479,7 +1479,17 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
         <div className='flex items-center gap-3 min-w-0'>
           <button
             type='button'
-            onClick={() => navigate(-1)}
+            onClick={() => {
+              if (window.history.length > 1) {
+                navigate(-1);
+              } else if (effectiveWsId && seriesId) {
+                navigate(`/workspaces/${effectiveWsId}/series/${seriesId}/my-work`);
+              } else if (effectiveWsId) {
+                navigate(`/workspaces/${effectiveWsId}/series`);
+              } else {
+                navigate('/workspaces');
+              }
+            }}
             aria-label='Quay lại'
             className='w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#F3F3F3] text-[#737373] cursor-pointer'
           >

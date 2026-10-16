@@ -1,7 +1,12 @@
 import React from 'react';
-import { Routes, Route, Navigate, Outlet, useNavigate } from 'react-router-dom';
+import { Routes, Route, Navigate, Outlet, useNavigate, useParams } from 'react-router-dom';
 import { User } from 'firebase/auth';
 import { AppShell } from './AppShell';
+
+const WorkspaceRedirect: React.FC = () => {
+  const { workspaceId, '*': rest } = useParams<{ workspaceId: string; '*'?: string }>();
+  return <Navigate to={`/workspaces/${workspaceId}${rest ? `/${rest}` : ''}`} replace />;
+};
 import { WorkspaceView } from '@/shared/features/production-workspace/WorkspaceView';
 import { TaskEditorView } from '@/shared/features/production-workspace/TaskEditorView';
 import { ExportView } from '@/roles/producer/views/ExportView';
@@ -192,6 +197,8 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
         />
 
         <Route path='projects' element={<Navigate to='/workspaces' replace />} />
+        <Route path='workspace/:workspaceId/*' element={<WorkspaceRedirect />} />
+        <Route path='workspace/:workspaceId' element={<WorkspaceRedirect />} />
 
         <Route
           element={
@@ -227,8 +234,10 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
           <Route path='workspaces/:workspaceId'>
             <Route index element={<ProducerWorkspaceView />} />
             <Route path='overview' element={<ProducerWorkspaceView />} />
+            <Route path='series' element={<ProducerWorkspaceView />} />
 
             <Route path='series/:seriesId'>
+              <Route index element={<Navigate to='dashboard' replace />} />
               <Route
                 path='dashboard'
                 element={

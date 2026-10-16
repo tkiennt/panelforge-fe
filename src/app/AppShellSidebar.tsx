@@ -2,6 +2,7 @@ import React from 'react';
 import {
   Server,
   BookOpen,
+  Briefcase,
   ChevronDown,
   Bell,
   Search,
@@ -16,7 +17,10 @@ import { MangaProject } from '@/types';
 
 export interface AppShellSidebarProps {
   currentUser: CurrentUser;
+  activeWorkspace?: { id?: string; name: string } | null;
   activeSeries: MangaProject | { title: string; subtitle: string };
+  workspaceId?: string;
+  seriesId?: string;
   isReader: boolean;
   navSections: any[];
   handleNavClick: (e: React.MouseEvent, href: string) => void;
@@ -30,7 +34,10 @@ export interface AppShellSidebarProps {
 
 export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
   currentUser,
+  activeWorkspace,
   activeSeries,
+  workspaceId,
+  seriesId,
   isReader,
   navSections,
   handleNavClick,
@@ -103,11 +110,11 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
         </div>
       </div>
 
-      {/* Workspace / Context Switcher */}
-      <div className='mx-2 lg:mx-4 mt-3'>
+      {/* Workspace & Series Context Switchers */}
+      <div className='mx-2 lg:mx-4 mt-3 space-y-1.5'>
         {currentUser.activeRoles?.includes('ADMINISTRATOR') && (
           <div
-            className={`flex items-center gap-2 px-1 mb-4 text-[#171717] ${
+            className={`flex items-center gap-2 px-1 mb-2 text-[#171717] ${
               showFullContent ? 'justify-start' : 'justify-center lg:justify-start'
             }`}
           >
@@ -120,23 +127,24 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
           </div>
         )}
 
+        {/* 1. Workspace Switcher */}
         <div
           data-testid='sidebar-workspace-switcher'
           onClick={(e) => handleNavClick(e, '/workspaces')}
           className={`group flex items-center cursor-pointer px-2 py-1.5 rounded-md hover:bg-[#E7E7E7]/40 transition-colors ${
             showFullContent ? 'justify-between' : 'justify-center lg:justify-between'
           }`}
-          title={`Workspace: ${activeSeries?.title || 'PanelForge Studio'}`}
-          aria-label={`Workspace: ${activeSeries?.title || 'PanelForge Studio'}`}
+          title={`Workspace: ${activeWorkspace?.name || 'Chọn Workspace'}`}
+          aria-label={`Workspace: ${activeWorkspace?.name || 'Chọn Workspace'}`}
         >
           <div className='flex items-center gap-2.5 min-w-0'>
-            <BookOpen className='w-4 h-4 stroke-[2] text-[#171717] shrink-0' />
+            <Briefcase className='w-4 h-4 stroke-[2] text-[#F97316] shrink-0' />
             <div className={`min-w-0 ${showFullContent ? 'block' : 'hidden lg:block'}`}>
               <p className='text-xs font-bold text-[#171717] truncate leading-tight'>
-                {activeSeries?.title || 'PanelForge Studio'}
+                {activeWorkspace?.name || 'PanelForge Studio'}
               </p>
               <p className='text-[10px] text-[#555555] font-mono truncate'>
-                {activeSeries?.subtitle || 'Volume 01'}
+                {currentUser.workspaceRole || 'Studio Workspace'}
               </p>
             </div>
           </div>
@@ -146,6 +154,36 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
             }`}
           />
         </div>
+
+        {/* 2. Series Selector (hiển thị khi đang trong ngữ cảnh Workspace) */}
+        {workspaceId && (
+          <div
+            data-testid='sidebar-series-selector'
+            onClick={(e) => handleNavClick(e, `/workspaces/${workspaceId}/series`)}
+            className={`group flex items-center cursor-pointer px-2 py-1.5 rounded-md hover:bg-[#E7E7E7]/40 transition-colors ${
+              showFullContent ? 'justify-between' : 'justify-center lg:justify-between'
+            }`}
+            title={`Series: ${seriesId ? activeSeries?.title || 'Bộ truyện' : 'Chọn Series'}`}
+            aria-label={`Series: ${seriesId ? activeSeries?.title || 'Bộ truyện' : 'Chọn Series'}`}
+          >
+            <div className='flex items-center gap-2.5 min-w-0'>
+              <BookOpen className='w-4 h-4 stroke-[2] text-[#10B981] shrink-0' />
+              <div className={`min-w-0 ${showFullContent ? 'block' : 'hidden lg:block'}`}>
+                <p className='text-xs font-bold text-[#171717] truncate leading-tight'>
+                  {seriesId ? activeSeries?.title || 'Active Series' : 'Chọn Series...'}
+                </p>
+                <p className='text-[10px] text-[#555555] font-mono truncate'>
+                  {seriesId ? activeSeries?.subtitle || 'Chương hiện tại' : 'Danh sách Series'}
+                </p>
+              </div>
+            </div>
+            <ChevronDown
+              className={`w-3.5 h-3.5 text-[#555555] group-hover:text-[#171717] transition-colors shrink-0 ${
+                showFullContent ? 'block' : 'hidden lg:block'
+              }`}
+            />
+          </div>
+        )}
       </div>
 
       {/* Nav List */}

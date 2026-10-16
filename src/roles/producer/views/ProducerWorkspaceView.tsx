@@ -44,6 +44,7 @@ import { SeriesPipelineModal } from '@/roles/producer/modals/SeriesPipelineModal
 import { SeriesChaptersModal } from '@/roles/producer/modals/SeriesChaptersModal';
 import { SeriesPresetsModal } from '@/roles/producer/modals/SeriesPresetsModal';
 import { InviteMemberModal } from '@/roles/producer/modals/InviteMemberModal';
+import { getRoleDefaultPath } from '@/roles/roles';
 
 export const ProducerWorkspaceView: React.FC = () => {
   const navigate = useNavigate();
@@ -57,6 +58,12 @@ export const ProducerWorkspaceView: React.FC = () => {
       return null;
     }
   });
+
+  const userRole = localStorage.getItem('userRole');
+  const wsRole = localStorage.getItem('workspaceRole') || activeWorkspace?.currentUserRole;
+  const isProducerOrAdmin =
+    userRole === 'ADMINISTRATOR' || wsRole === 'PRODUCER' || !!activeWorkspace?.isOwner;
+
   const [members, setMembers] = useState<WorkspaceMemberDto[]>([]);
   const [seriesList, setSeriesList] = useState<SeriesDto[]>([]);
   const [activeTab, setActiveTab] = useState<'series' | 'members'>('series');
@@ -847,39 +854,42 @@ export const ProducerWorkspaceView: React.FC = () => {
                 {seriesList.length}
               </span>
             </button>
-            <button
-              onClick={() => setActiveTab('members')}
-              className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                activeTab === 'members'
-                  ? 'bg-white text-[#171717] shadow-2xs border border-[#E7E7E7]'
-                  : 'text-[#737373] hover:text-[#171717]'
-              }`}
-            >
-              <Users className='w-3.5 h-3.5 text-[#3B82F6]' />
-              <span>Thành Viên Studio</span>
-              <span className='px-1.5 py-0.2 rounded-full bg-blue-50 text-[#3B82F6] text-[10px] font-mono'>
-                {members.length}
-              </span>
-            </button>
+            {isProducerOrAdmin && (
+              <button
+                onClick={() => setActiveTab('members')}
+                className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'members'
+                    ? 'bg-white text-[#171717] shadow-2xs border border-[#E7E7E7]'
+                    : 'text-[#737373] hover:text-[#171717]'
+                }`}
+              >
+                <Users className='w-3.5 h-3.5 text-[#3B82F6]' />
+                <span>Thành Viên Studio</span>
+                <span className='px-1.5 py-0.2 rounded-full bg-blue-50 text-[#3B82F6] text-[10px] font-mono'>
+                  {members.length}
+                </span>
+              </button>
+            )}
           </div>
 
-          {activeTab === 'series' ? (
-            <button
-              onClick={() => setCreateSeriesModalOpen(true)}
-              className='inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold shadow-xs cursor-pointer'
-            >
-              <Plus className='w-4 h-4' />
-              <span>Tạo Series Mới</span>
-            </button>
-          ) : (
-            <button
-              onClick={() => setInviteModalOpen(true)}
-              className='inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#171717] hover:bg-black text-white text-xs font-semibold shadow-xs cursor-pointer'
-            >
-              <UserPlus className='w-4 h-4 text-[#F97316]' />
-              <span>Mời Thành Viên Mới</span>
-            </button>
-          )}
+          {isProducerOrAdmin &&
+            (activeTab === 'series' ? (
+              <button
+                onClick={() => setCreateSeriesModalOpen(true)}
+                className='inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold shadow-xs cursor-pointer'
+              >
+                <Plus className='w-4 h-4' />
+                <span>Tạo Series Mới</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => setInviteModalOpen(true)}
+                className='inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#171717] hover:bg-black text-white text-xs font-semibold shadow-xs cursor-pointer'
+              >
+                <UserPlus className='w-4 h-4 text-[#F97316]' />
+                <span>Mời Thành Viên Mới</span>
+              </button>
+            ))}
         </div>
 
         {/* TAB 1: Series Projects View */}
@@ -897,22 +907,27 @@ export const ProducerWorkspaceView: React.FC = () => {
                   Khởi tạo Series mới để thiết lập thể loại, định dạng xuất bản, quy trình 8 công
                   đoạn và kho tư liệu Series Bible.
                 </p>
-                <button
-                  onClick={() => setCreateSeriesModalOpen(true)}
-                  className='inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-[#F97316] hover:bg-[#EA580C] rounded-xl shadow-xs transition-all cursor-pointer'
-                >
-                  <Plus className='w-3.5 h-3.5' />
-                  <span>Tạo Series Mới Ngay</span>
-                </button>
+                {isProducerOrAdmin && (
+                  <button
+                    onClick={() => setCreateSeriesModalOpen(true)}
+                    className='inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-[#F97316] hover:bg-[#EA580C] rounded-xl shadow-xs transition-all cursor-pointer'
+                  >
+                    <Plus className='w-3.5 h-3.5' />
+                    <span>Tạo Series Mới Ngay</span>
+                  </button>
+                )}
               </div>
             ) : (
               <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
                 {seriesList.map((s) => (
                   <div
                     key={s.id}
-                    onClick={() =>
-                      navigate(`/workspaces/${activeWorkspace.id}/series/${s.id}/dashboard`)
-                    }
+                    onClick={() => {
+                      const wsId = activeWorkspace?.id || workspaceId;
+                      if (!wsId) return;
+                      const effectiveRole = wsRole ? String(wsRole) : userRole;
+                      navigate(getRoleDefaultPath(effectiveRole, wsId, String(s.id)));
+                    }}
                     className='p-5 bg-white hover:bg-zinc-50 rounded-xl border border-zinc-200 hover:border-orange-500/50 transition-all shadow-sm hover:shadow-md cursor-pointer group relative flex flex-col h-full'
                   >
                     <div className='flex items-start justify-between gap-2'>
@@ -924,74 +939,76 @@ export const ProducerWorkspaceView: React.FC = () => {
                           {s.title}
                         </h3>
                       </div>
-                      <div className='flex items-center gap-1 shrink-0 relative group/menu'>
-                        <button
-                          type='button'
-                          onClick={(e) => {
-                            e.stopPropagation();
-                          }}
-                          className='p-1.5 rounded-lg text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 transition-colors'
-                          title='Tùy chọn'
-                        >
-                          <MoreVertical className='w-4 h-4' />
-                        </button>
-                        <div className='absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-xl border border-zinc-200 opacity-0 invisible group-hover/menu:opacity-100 group-hover/menu:visible transition-all z-10 py-1 overflow-hidden'>
+                      {isProducerOrAdmin && (
+                        <div className='flex items-center gap-1 shrink-0 relative group/menu'>
                           <button
                             type='button'
                             onClick={(e) => {
                               e.stopPropagation();
-                              setSelectedChapterSeries({ id: s.id, title: s.title });
                             }}
-                            className='w-full text-left px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 flex items-center gap-2 transition-colors'
+                            className='p-1.5 rounded-lg text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 transition-colors'
+                            title='Tùy chọn'
                           >
-                            <BookOpen className='w-3.5 h-3.5 text-orange-500' /> Quản lý Chương
-                            (Duyệt)
+                            <MoreVertical className='w-4 h-4' />
                           </button>
-                          <button
-                            type='button'
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedPipelineSeries({ id: s.id, title: s.title });
-                            }}
-                            className='w-full text-left px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 flex items-center gap-2 transition-colors'
-                          >
-                            <Sliders className='w-3.5 h-3.5 text-blue-500' /> Cấu hình Pipeline
-                            (UC-03)
-                          </button>
-                          <button
-                            type='button'
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedPresetsSeries({ id: s.id, title: s.title });
-                            }}
-                            className='w-full text-left px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 flex items-center gap-2 transition-colors'
-                          >
-                            <ListOrdered className='w-3.5 h-3.5 text-purple-500' /> Typography
-                            Presets
-                          </button>
-                          <div className='border-t border-zinc-100 my-1'></div>
-                          <button
-                            type='button'
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleOpenEditSeries(s);
-                            }}
-                            className='w-full text-left px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 flex items-center gap-2 transition-colors'
-                          >
-                            <Edit2 className='w-3 h-3' /> Chỉnh sửa
-                          </button>
-                          <button
-                            type='button'
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setDeleteSeriesModal(s);
-                            }}
-                            className='w-full text-left px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors'
-                          >
-                            <Trash2 className='w-3 h-3' /> Xóa
-                          </button>
+                          <div className='absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-xl border border-zinc-200 opacity-0 invisible group-hover/menu:opacity-100 group-hover/menu:visible transition-all z-10 py-1 overflow-hidden'>
+                            <button
+                              type='button'
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedChapterSeries({ id: s.id, title: s.title });
+                              }}
+                              className='w-full text-left px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 flex items-center gap-2 transition-colors'
+                            >
+                              <BookOpen className='w-3.5 h-3.5 text-orange-500' /> Quản lý Chương
+                              (Duyệt)
+                            </button>
+                            <button
+                              type='button'
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedPipelineSeries({ id: s.id, title: s.title });
+                              }}
+                              className='w-full text-left px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 flex items-center gap-2 transition-colors'
+                            >
+                              <Sliders className='w-3.5 h-3.5 text-blue-500' /> Cấu hình Pipeline
+                              (UC-03)
+                            </button>
+                            <button
+                              type='button'
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedPresetsSeries({ id: s.id, title: s.title });
+                              }}
+                              className='w-full text-left px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 flex items-center gap-2 transition-colors'
+                            >
+                              <ListOrdered className='w-3.5 h-3.5 text-purple-500' /> Typography
+                              Presets
+                            </button>
+                            <div className='border-t border-zinc-100 my-1'></div>
+                            <button
+                              type='button'
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenEditSeries(s);
+                              }}
+                              className='w-full text-left px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 flex items-center gap-2 transition-colors'
+                            >
+                              <Edit2 className='w-3 h-3' /> Chỉnh sửa
+                            </button>
+                            <button
+                              type='button'
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteSeriesModal(s);
+                              }}
+                              className='w-full text-left px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors'
+                            >
+                              <Trash2 className='w-3 h-3' /> Xóa
+                            </button>
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
 
                     {s.synopsis && (

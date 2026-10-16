@@ -47,6 +47,7 @@ import { AppShellSidebar } from './AppShellSidebar';
 import { AppShellRail } from './AppShellRail';
 import { NotificationBell } from '@/shared/features/collaboration/NotificationBell';
 import { SidebarDrawer } from '@/shared/components/SidebarDrawer';
+import { getRoleDefaultPath } from '@/roles/roles';
 
 export interface CurrentUser {
   name: string;
@@ -58,7 +59,7 @@ export interface CurrentUser {
 
 interface GlobalAppShellProps {
   currentUser: CurrentUser;
-  activeWorkspace?: { name: string } | null;
+  activeWorkspace?: { id?: string; name: string } | null;
   activeSeries?: MangaProject | { title: string; subtitle: string } | null;
   aiState?: 'active' | 'degraded' | 'unavailable';
   children?: React.ReactNode;
@@ -281,7 +282,7 @@ export function AppShell({
               {
                 icon: LayoutDashboard,
                 label: 'Studio Workspaces',
-                href: `/workspaces/${workspaceId}/overview`,
+                href: `/workspaces/${workspaceId}/series`,
               },
             ],
           },
@@ -321,8 +322,8 @@ export function AppShell({
             items: [
               {
                 icon: LayoutDashboard,
-                label: 'Studio Workspaces',
-                href: `/workspaces/${workspaceId}/overview`,
+                label: 'Danh sách Series',
+                href: `/workspaces/${workspaceId}/series`,
               },
               {
                 icon: BookOpen,
@@ -401,7 +402,7 @@ export function AppShell({
               {
                 icon: LayoutDashboard,
                 label: 'Danh sách Series',
-                href: `/workspaces/${workspaceId}/overview`,
+                href: `/workspaces/${workspaceId}/series`,
               },
             ],
           },
@@ -433,7 +434,21 @@ export function AppShell({
     if (onNavigate) {
       onNavigate(href);
     }
-    navigate(href.startsWith('/') ? href : `/${href}`);
+    let target = href;
+    if (
+      workspaceId &&
+      seriesId &&
+      !href.startsWith('/workspaces') &&
+      !href.startsWith('/workspace') &&
+      !href.startsWith('/catalog') &&
+      !href.startsWith('/admin') &&
+      !href.startsWith('/notifications') &&
+      !href.startsWith('/profile')
+    ) {
+      const cleanHref = href.startsWith('/') ? href.slice(1) : href;
+      target = `/workspaces/${workspaceId}/series/${seriesId}/${cleanHref}`;
+    }
+    navigate(target.startsWith('/') ? target : `/${target}`);
   };
 
   // Set isActive based on location pathname
@@ -501,7 +516,10 @@ export function AppShell({
         >
           <AppShellSidebar
             currentUser={currentUser}
+            activeWorkspace={activeWorkspace}
             activeSeries={effectiveActiveSeries as any}
+            workspaceId={workspaceId}
+            seriesId={seriesId}
             isReader={isReader}
             navSections={navSections}
             handleNavClick={handleNavClick}
@@ -540,7 +558,10 @@ export function AppShell({
             >
               <AppShellSidebar
                 currentUser={currentUser}
+                activeWorkspace={activeWorkspace}
                 activeSeries={effectiveActiveSeries as any}
+                workspaceId={workspaceId}
+                seriesId={seriesId}
                 isReader={isReader}
                 navSections={navSections}
                 handleNavClick={handleNavClick}
@@ -562,7 +583,10 @@ export function AppShell({
       ) : (
         <AppShellSidebar
           currentUser={currentUser}
+          activeWorkspace={activeWorkspace}
           activeSeries={effectiveActiveSeries as any}
+          workspaceId={workspaceId}
+          seriesId={seriesId}
           isReader={isReader}
           navSections={navSections}
           handleNavClick={handleNavClick}
@@ -620,10 +644,10 @@ export function AppShell({
                 <button
                   type='button'
                   onClick={() =>
-                    navigate(workspaceId ? `/workspaces/${workspaceId}/overview` : '/producer')
+                    navigate(workspaceId ? `/workspaces/${workspaceId}/series` : '/workspaces')
                   }
                   className='hover:text-[#171717] cursor-pointer transition-colors truncate px-1.5 py-1 rounded hover:bg-[#FAF8F5] flex items-center gap-1 font-semibold text-[#171717]'
-                  title='Mở Studio Workspace'
+                  title='Mở danh sách Series của Workspace'
                 >
                   <Briefcase className='w-3.5 h-3.5 text-[#8B5CF6]' />
                   <span className='truncate'>{activeWorkspace?.name || 'Studio Workspace'}</span>
@@ -634,10 +658,16 @@ export function AppShell({
                     <button
                       type='button'
                       onClick={() =>
-                        navigate(`/workspaces/${workspaceId}/series/${seriesId}/dashboard`)
+                        navigate(
+                          getRoleDefaultPath(
+                            currentUser.workspaceRole || currentUser.role,
+                            workspaceId,
+                            seriesId,
+                          ),
+                        )
                       }
                       className='text-[#171717] font-semibold truncate flex items-center gap-1.5 px-1.5 py-1 rounded hover:bg-[#FAF8F5] transition-colors cursor-pointer'
-                      title='Chuyển đến Series'
+                      title='Chuyển đến Series Workspace'
                     >
                       <BookOpen className='w-3.5 h-3.5 text-[#10B981]' />
                       <span className='truncate'>{activeSeries?.title || 'Active Series'}</span>

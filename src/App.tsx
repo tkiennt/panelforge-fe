@@ -254,25 +254,9 @@ function AppContent() {
       console.warn('Không thể nạp Series thật cho Workspace:', err);
     }
 
-    // Smart Landing by Persona & Series Availability
-    if (wsRole === 'PRODUCER' || currentRole === 'ADMINISTRATOR') {
-      navigate(`/workspaces/${ws.id}/overview`);
-    } else if (wsRole === 'PUBLISHER') {
-      navigateToWorkspaceRoleView(wsRole);
-      navigate(
-        firstSeriesId
-          ? `/workspaces/${ws.id}/series/${firstSeriesId}/publishing`
-          : `/workspaces/${ws.id}/overview`,
-      );
-    } else {
-      // Artist, Writer, Letterer, Editor: Vào thẳng bàn làm việc thật (My Work) của Series đầu tiên kết nối Backend API; Workspace chưa có Series thì vào trang tổng quan
-      navigateToWorkspaceRoleView(wsRole);
-      navigate(
-        firstSeriesId
-          ? `/workspaces/${ws.id}/series/${firstSeriesId}/my-work`
-          : `/workspaces/${ws.id}/overview`,
-      );
-    }
+    // Strict UI flow: Workspaces list (/workspaces) -> Select a Workspace -> Series Selection Screen (/workspaces/{id}/series)
+    navigateToWorkspaceRoleView(wsRole);
+    navigate(`/workspaces/${ws.id}/series`);
   };
 
   // Khôi phục vai trò và phiên làm việc: nạp nhanh từ localStorage, xác thực qua GET /Auth/me

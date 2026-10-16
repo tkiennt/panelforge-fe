@@ -32,7 +32,7 @@ describe('PreviewLinksModal', () => {
       recipientEmail: 'reviewer@editor.com',
       status: 'Active',
       createdAt: '2026-10-08T10:00:00Z',
-      expiresAt: '2026-10-15T10:00:00Z',
+      expiresAt: '2099-10-15T10:00:00Z',
       chapterVersion: 1,
       pageCount: 12,
       accessCount: 5,
