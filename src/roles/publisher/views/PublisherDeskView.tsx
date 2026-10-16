@@ -328,10 +328,10 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
                     <button
                       type='button'
                       onClick={() => setReviewingChapter(chap)}
-                      className='px-3 py-1.5 rounded-xl border border-[#E7E7E7] bg-white hover:bg-[#FAF8F5] text-xs font-semibold text-[#555555] flex items-center gap-1.5 transition-colors cursor-pointer'
+                      className='px-3.5 py-1.5 rounded-full border border-stone-200 bg-white hover:bg-stone-50 text-xs font-semibold text-stone-700 flex items-center gap-1.5 transition-colors cursor-pointer shadow-soft-sm'
                       title='Xem lịch sử phê duyệt & xuất bản'
                     >
-                      <History className='w-3.5 h-3.5 text-neutral-500' />
+                      <History className='w-3.5 h-3.5 text-stone-500' />
                       <span>Lịch sử</span>
                     </button>
 
@@ -339,10 +339,10 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
                       <button
                         type='button'
                         onClick={() => setReadingChapter(chap)}
-                        className='px-3 py-1.5 rounded-xl border border-purple-200 bg-purple-50 hover:bg-purple-100 text-xs font-semibold text-purple-700 flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs'
+                        className='px-3.5 py-1.5 rounded-full border border-stone-200 bg-stone-100 hover:bg-stone-200 text-xs font-semibold text-stone-800 flex items-center gap-1.5 transition-colors cursor-pointer shadow-soft-sm'
                         title='Đọc thử trên trình đọc Catalog'
                       >
-                        <BookOpen className='w-3.5 h-3.5 text-purple-600' />
+                        <BookOpen className='w-3.5 h-3.5 text-stone-700' />
                         <span>Đọc Thử</span>
                       </button>
                     )}
@@ -352,7 +352,7 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
                         <button
                           type='button'
                           onClick={() => setRejectingChapter(chap)}
-                          className='px-3 py-1.5 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-xs font-semibold text-rose-700 flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs'
+                          className='px-3.5 py-1.5 rounded-full border border-rose-300 bg-rose-50 hover:bg-rose-100 text-xs font-semibold text-rose-700 flex items-center gap-1.5 transition-colors cursor-pointer shadow-soft-sm'
                           title='Từ chối xuất bản và mở lại sản xuất'
                         >
                           <RotateCcw className='w-3.5 h-3.5 text-rose-600' />
@@ -362,7 +362,7 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
                         <button
                           type='button'
                           onClick={() => setPublishingChapter(chap)}
-                          className='px-4 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs'
+                          className='px-4 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-soft-sm active:scale-95'
                           title='Xuất bản hoặc lên lịch phát hành'
                         >
                           <Send className='w-3.5 h-3.5' />

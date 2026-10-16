@@ -174,7 +174,7 @@ export const NarrativeContextDrawer: React.FC<NarrativeContextDrawerProps> = ({
                   onClick={onSaveStoryArc}
                   disabled={savingStoryArc || !isStoryArcDirty}
                   data-testid='save-story-arc-btn'
-                  className='inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-orange-600 hover:bg-orange-700 disabled:opacity-40 rounded-xl shadow-xs transition-all cursor-pointer'
+                  className='btn-cta-primary'
                 >
                   <Save className='w-3.5 h-3.5' />
                   <span>{savingStoryArc ? 'Đang lưu...' : 'Lưu Story Arc'}</span>
@@ -221,7 +221,7 @@ export const NarrativeContextDrawer: React.FC<NarrativeContextDrawerProps> = ({
                   onClick={onSaveOutline}
                   disabled={savingOutline || !isOutlineDirty}
                   data-testid='save-chapter-outline-btn'
-                  className='inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-orange-600 hover:bg-orange-700 disabled:opacity-40 rounded-xl shadow-xs transition-all cursor-pointer'
+                  className='btn-cta-primary'
                 >
                   <Save className='w-3.5 h-3.5' />
                   <span>{savingOutline ? 'Đang lưu...' : 'Lưu Đề Cương'}</span>

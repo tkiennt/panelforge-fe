@@ -1614,7 +1614,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
           <button
             onClick={loadPages}
             disabled={loading}
-            className='inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-[#555555] bg-[#F8F6F0] hover:bg-[#EAE6DF] border border-[#E7E7E7] rounded-xl transition-all cursor-pointer'
+            className='btn-cta-secondary'
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             <span>Làm mới</span>
@@ -1626,7 +1626,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
               setBibleDrawerOpen(true);
             }}
             data-testid='artist-desk-bible-reference-btn'
-            className='inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-zinc-700 bg-white hover:bg-zinc-50 border border-[#E7E7E7] rounded-xl shadow-2xs transition-all cursor-pointer'
+            className='inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-purple-900 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-full shadow-soft-sm transition-all cursor-pointer'
             title='Mở tham chiếu nhân vật và thiết kế của Series Bible'
           >
             <BookOpen className='w-3.5 h-3.5 text-purple-600' />
@@ -1642,7 +1642,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                   ? 'Vui lòng chọn hoặc tạo Chương trước'
                   : undefined
             }
-            className='inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-300 disabled:cursor-not-allowed rounded-xl shadow-xs transition-all cursor-pointer'
+            className='btn-cta-primary'
           >
             <Plus className='w-3.5 h-3.5' />
             <span>Tạo Trang Mới</span>
@@ -1664,9 +1664,9 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
       <div className='flex items-center gap-2 border-b border-[#E7E7E7] pb-3'>
         <button
           onClick={() => setActiveTab('pages')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+          className={`px-4 py-2 rounded-full text-xs font-semibold transition-all cursor-pointer flex items-center gap-2 ${
             activeTab === 'pages'
-              ? 'bg-blue-600 text-white shadow-xs'
+              ? 'bg-[#292524] text-white shadow-soft-sm'
               : 'bg-white text-[#555555] hover:bg-[#F8F6F0] border border-[#E7E7E7]'
           }`}
         >

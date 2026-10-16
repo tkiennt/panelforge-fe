@@ -231,7 +231,7 @@ export const PublicCatalogView: React.FC<PublicCatalogViewProps> = ({
             {onBackToWorkspaces && (
               <button
                 onClick={onBackToWorkspaces}
-                className='inline-flex items-center gap-1.5 px-4 py-2 bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold rounded-xl shadow-xs transition-colors cursor-pointer'
+                className='inline-flex items-center gap-1.5 px-4 py-2 bg-[#EA580C] hover:bg-[#C2410C] text-white text-xs font-semibold rounded-full shadow-soft-sm transition-all cursor-pointer'
               >
                 <Compass className='w-3.5 h-3.5' />
                 <span>Trở Về Studio Workspace</span>

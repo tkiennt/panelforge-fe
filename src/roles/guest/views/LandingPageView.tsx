@@ -108,7 +108,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             </button>
             <button
               onClick={() => (onOpenRegister ? onOpenRegister() : onOpenLogin())}
-              className='inline-flex items-center gap-1.5 px-5 py-2 rounded-full bg-[#292524] text-white text-xs sm:text-sm font-medium hover:bg-[#0c0a09] shadow-soft-sm transition-all duration-200 cursor-pointer'
+              className='inline-flex items-center gap-1.5 px-5 py-2 rounded-full bg-[#EA580C] hover:bg-[#C2410C] text-white text-xs sm:text-sm font-medium shadow-soft-sm transition-all duration-200 cursor-pointer'
             >
               Onboard Studio
               <ArrowRight className='w-3.5 h-3.5' />

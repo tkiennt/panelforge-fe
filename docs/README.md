@@ -22,11 +22,12 @@ Thư mục: [`docs/implement-plan/`](./implement-plan/)
 ### 🟡 Đang Thực Hiện (`ongoing/`)
 > *Chứa các kế hoạch tính năng hoặc đợt refactor đang trong quá trình phát triển.*
 
-- Hiện tại không có kế hoạch nào đang thực hiện (Thư mục sẵn sàng cho sprint kế tiếp).
+*(Hiện tại không có kế hoạch nào đang dở dang).*
 
 ### 🟢 Đã Hoàn Thành (`completed/`)
 > *Chứa các kế hoạch đã hoàn thành 100% nhiệm vụ, pass typecheck, lint và unit test.*
 
+- [**COLOR_SYSTEM_AND_STATUS_ENHANCEMENT_PLAN.md**](./implement-plan/completed/COLOR_SYSTEM_AND_STATUS_ENHANCEMENT_PLAN.md): Kế hoạch bổ sung & đồng bộ hệ thống màu sắc trạng thái, nút bấm và các yếu tố cần chú ý (Artisan Ink Pigments).
 - [**EDITORIAL_STUDIO_DESIGN_PLAN.md**](./implement-plan/completed/EDITORIAL_STUDIO_DESIGN_PLAN.md): Kế hoạch áp dụng Editorial AI Studio Design System vào PanelForge.
 - [**EDITORIAL_STUDIO_TASK_LIST.md**](./implement-plan/completed/EDITORIAL_STUDIO_TASK_LIST.md): Danh sách kiểm tra chi tiết các màn hình và components đã chuyển đổi sang phong cách Editorial Studio.
 - [**UI_REFACTOR_CHECKLIST.md**](./implement-plan/completed/UI_REFACTOR_CHECKLIST.md): Danh mục tinh giản kiến trúc UI, loại bỏ duplicate role views và dọn dẹp mock data.

@@ -833,19 +833,23 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                 </span>
                 {currentChapter && (
                   <span
-                    className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                    className={`text-[10px] font-semibold px-2.5 py-0.5 rounded-full border ${
                       currentChapter.status === 'Approved'
-                        ? 'bg-emerald-100 text-emerald-800'
+                        ? 'badge-status-approved'
                         : currentChapter.status === 'Published'
-                          ? 'bg-indigo-100 text-indigo-800'
-                          : 'bg-amber-100 text-amber-800'
+                          ? 'badge-status-published'
+                          : currentChapter.status === 'InReview'
+                            ? 'badge-status-inreview'
+                            : 'badge-status-inproduction'
                     }`}
                   >
                     {currentChapter.status === 'Approved'
                       ? 'Đã duyệt'
                       : currentChapter.status === 'Published'
                         ? 'Đã phát hành'
-                        : 'Đang sản xuất'}
+                        : currentChapter.status === 'InReview'
+                          ? 'Đang duyệt'
+                          : 'Đang sản xuất'}
                   </span>
                 )}
                 {currentChapter && (
@@ -941,22 +945,22 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             data-testid='run-consistency-check-btn'
             onClick={handleRunConsistencyCheck}
             disabled={loadingConsistency || !currentChapter?.id}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer shadow-2xs disabled:opacity-50 ${
+            className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-full border transition-all cursor-pointer shadow-soft-sm disabled:opacity-50 ${
               activeSideDrawer === 'consistency'
-                ? 'bg-amber-100 text-amber-950 border-amber-300 font-bold'
-                : 'text-orange-800 bg-orange-50 hover:bg-orange-100 border-orange-200'
+                ? 'bg-[#7c3aed] text-white border-transparent shadow-glow-violet font-bold'
+                : 'text-violet-900 bg-violet-50 hover:bg-violet-100 border-violet-200'
             }`}
             title={`Kiểm tra nhất quán (${openFindingsCount} cần xử lý / ${totalFindingsCount} tổng số)`}
           >
             <ShieldCheck
-              className={`w-3.5 h-3.5 text-orange-600 ${loadingConsistency ? 'animate-spin' : ''}`}
+              className={`w-3.5 h-3.5 ${activeSideDrawer === 'consistency' ? 'text-white' : 'text-violet-600'} ${loadingConsistency ? 'animate-spin' : ''}`}
             />
             <span className='hidden sm:inline'>
               {loadingConsistency ? 'Đang kiểm tra...' : 'Kiểm tra nhất quán'}
             </span>
             <span className='sm:hidden'>Nhất quán</span>
             {openFindingsCount > 0 ? (
-              <span className='px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[10px] font-mono font-bold'>
+              <span className='px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[10px] font-mono font-bold shadow-xs'>
                 {openFindingsCount}
               </span>
             ) : totalFindingsCount > 0 ? (
@@ -972,14 +976,14 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             onClick={() =>
               setActiveSideDrawer((prev) => (prev === 'characters' ? null : 'characters'))
             }
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer shadow-2xs ${
+            className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-full border transition-all cursor-pointer shadow-soft-sm ${
               activeSideDrawer === 'characters'
-                ? 'bg-purple-100 text-purple-900 border-purple-300 font-bold'
-                : 'bg-[#F8F6F0] text-zinc-700 hover:bg-[#EAE6DF] border-[#E7E2D9]'
+                ? 'bg-purple-700 text-white border-transparent font-bold'
+                : 'bg-purple-50 text-purple-900 hover:bg-purple-100 border-purple-200'
             }`}
             title='Xem danh sách nhân vật Canon từ Series Bible'
           >
-            <User className='w-3.5 h-3.5 text-purple-600' />
+            <User className={`w-3.5 h-3.5 ${activeSideDrawer === 'characters' ? 'text-white' : 'text-purple-600'}`} />
             <span className='hidden sm:inline'>Nhân vật Bible ({characters.length})</span>
             <span className='sm:hidden'>Bible</span>
           </button>
@@ -1288,7 +1292,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                     type='button'
                     data-testid='open-script-history-btn'
                     onClick={() => setHistoryOpen(true)}
-                    className='inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-zinc-700 bg-white hover:bg-zinc-100 border border-[#E5DFD7] rounded-xl transition-all cursor-pointer shadow-2xs'
+                    className='inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-zinc-700 bg-white hover:bg-zinc-100 border border-[#E5DFD7] rounded-full transition-all cursor-pointer shadow-soft-sm'
                   >
                     <History className='w-3.5 h-3.5 text-zinc-500' />
                     <span className='hidden sm:inline'>Lịch sử phiên bản</span>
@@ -1299,9 +1303,9 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                       type='button'
                       data-testid='open-ai-draft-btn'
                       onClick={() => setAiPanelOpen(true)}
-                      className='inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-orange-700 bg-orange-50 hover:bg-orange-100 border border-orange-200 rounded-xl transition-all cursor-pointer shadow-2xs'
+                      className='inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-violet-800 bg-violet-50 hover:bg-violet-100 border border-violet-200 rounded-full transition-all cursor-pointer shadow-soft-sm'
                     >
-                      <Sparkles className='w-3.5 h-3.5 text-orange-600' />
+                      <Sparkles className='w-3.5 h-3.5 text-violet-600' />
                       <span className='hidden sm:inline'>Viết nháp bằng AI</span>
                     </button>
                   )}
@@ -1311,7 +1315,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                       type='button'
                       data-testid='open-add-line-btn'
                       onClick={handleOpenAddLine}
-                      className='inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-white bg-orange-600 hover:bg-orange-700 active:scale-95 rounded-xl shadow-xs transition-all cursor-pointer'
+                      className='btn-cta-primary'
                     >
                       <Plus className='w-4 h-4' />
                       <span>Thêm Dòng Kịch Bản</span>

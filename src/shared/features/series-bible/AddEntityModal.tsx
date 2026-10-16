@@ -505,14 +505,14 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
             <button
               type='button'
               onClick={onClose}
-              className='px-3.5 py-2 bg-white hover:bg-zinc-50 border border-zinc-200 text-zinc-600 text-xs font-semibold rounded-lg transition-colors cursor-pointer'
+              className='px-4 py-2 bg-white hover:bg-stone-50 border border-stone-200 text-stone-600 text-xs font-semibold rounded-full transition-colors cursor-pointer'
             >
               Hủy
             </button>
             <button
               type='submit'
               disabled={uploadingImage || !name.trim() || !description.trim() || isRangeInvalid}
-              className='px-4 py-2 bg-[#F97316] hover:bg-[#EA580C] disabled:opacity-50 text-white text-xs font-semibold rounded-lg shadow-xs transition-colors cursor-pointer flex items-center gap-1.5'
+              className='px-4 py-2 bg-[#EA580C] hover:bg-[#C2410C] disabled:opacity-50 text-white text-xs font-semibold rounded-full shadow-soft-sm transition-all cursor-pointer flex items-center gap-1.5'
             >
               <Plus className='w-3.5 h-3.5' />
               <span>{isProducer ? 'Lưu vào Series Bible' : 'Tạo bản nháp mới'}</span>

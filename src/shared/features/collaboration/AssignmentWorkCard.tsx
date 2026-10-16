@@ -300,14 +300,14 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
                   describeStartError,
                 )
               }
-              className='px-3 py-1.5 rounded-lg bg-[#171717] hover:bg-black text-white text-xs font-semibold flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'
+              className='btn-cta-primary'
             >
               {busy ? (
-                <Loader2 className='w-3 h-3 animate-spin' />
+                <Loader2 className='w-3.5 h-3.5 animate-spin' />
               ) : (
-                <Play className='w-3 h-3 text-[#F97316]' />
+                <Play className='w-3.5 h-3.5 text-white' />
               )}
-              {status === 'ReworkRequired' ? 'Bắt đầu sửa' : 'Bắt đầu làm'}
+              <span>{status === 'ReworkRequired' ? 'Bắt đầu sửa' : 'Bắt đầu làm'}</span>
             </button>
           )}
           {actions.canStart && startLockedReason && (
@@ -403,10 +403,14 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
                   `${stageName}: chờ xét duyệt.`,
                 )
               }
-              className='px-3 py-1.5 rounded-lg bg-[#10B981] hover:bg-[#059669] text-white text-xs font-semibold flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
+              className='btn-cta-success'
             >
-              {busy ? <Loader2 className='w-3 h-3 animate-spin' /> : <Send className='w-3 h-3' />}
-              Nộp bài
+              {busy ? (
+                <Loader2 className='w-3.5 h-3.5 animate-spin' />
+              ) : (
+                <Send className='w-3.5 h-3.5' />
+              )}
+              <span>Nộp bài</span>
             </button>
           )}
         </div>

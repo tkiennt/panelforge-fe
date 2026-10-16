@@ -40,23 +40,37 @@ PanelForge uses a tactile **Manga Paper & Ink / Warm Stone** foundation paired w
 - **Secondary Text (Subtitles, descriptions, field labels):** `text-stone-600` (`#555555`)
 - **Muted / Helper Text (Captions, timestamps, hints):** `text-stone-500` *(NEVER use `text-stone-300` or lighter for readable text on light backgrounds due to poor contrast)*
 
-### 1.5. Semantic & Domain Status Colors
+### 1.5. Semantic & Domain Status Colors ("Artisan Ink Pigments")
 All statuses for `AssignmentStatus`, `StageProgress`, `ChapterStatus`, `ChangeRequest`, and `ConsistencyFinding` must use these exact semantic mappings:
-- **Brand / Primary CTA:** `bg-orange-600 hover:bg-orange-700 text-white` (Secondary Tinted CTA: `bg-orange-50 text-orange-700 border border-orange-200 hover:bg-orange-100`)
-- **Blocking Error / Rejected / ReworkRequired / Open ChangeRequest / Overdue:**
-  - Badge/Alert: `bg-red-50 text-red-700 border border-red-200`
-  - Artwork Annotation Bounding Box (`Open`): Red `#EF4444` (`border-red-500 bg-red-500/15`)
-- **Warning / InReview / Submitted / Stale Text (`isStale`) / Approaching Deadline (≤ 2 days):**
-  - Badge/Alert: `bg-amber-50 text-amber-800 border border-amber-200`
-- **Approved / Verified / Resolved / Completed / Online / On Track Deadline (> 2 days):**
-  - Badge/Alert: `bg-emerald-50 text-emerald-700 border border-emerald-200`
+- **Brand / Creator Primary CTA (Mực Cam Studio):**
+  - Utility Class: `.btn-cta-primary`
+  - Inline Tokens: `bg-[#EA580C] hover:bg-[#C2410C] text-white shadow-soft-sm rounded-full`
+  - Soft Tint / Active Tab: `bg-orange-50 text-orange-800 border border-orange-200 hover:bg-orange-100`
+- **AI Action / Consistency / Series Bible Lore (Mực Tím Trí Tuệ):**
+  - Utility Class: `.btn-cta-ai`
+  - Inline Tokens: `bg-violet-600 hover:bg-violet-700 text-white shadow-soft-sm rounded-full`
+  - Soft Badge / AI Pill: `bg-violet-50 text-violet-800 border border-violet-200`
+  - AI Suggestion Border: `border-l-2 border-violet-500`
+- **Approved / Verified / Resolved / Completed / Published (Mực Ngọc Hoàn Tất):**
+  - Utility Class: `.btn-cta-success`
+  - Inline Tokens: `bg-emerald-600 hover:bg-emerald-700 text-white shadow-soft-sm rounded-full`
+  - Badge: `bg-emerald-50 text-emerald-800 border border-emerald-200`
   - Artwork Annotation Bounding Box (`Resolved/Verified`): Green `#10B981` (`border-emerald-500 bg-emerald-500/15`)
-- **Canon Locked (`🔒 CANON LOCKED`) / AI Provenance / Suggestions:**
-  - Badge: `bg-purple-50 text-purple-700 border border-purple-200`
-  - AI Suggestion Border: `border-l-2 border-purple-500`
-- **InProgress / Info / Active Stage:**
-  - Badge: `bg-blue-50 text-blue-700 border border-blue-200`
-- **NotStarted / Locked / Disabled / 0% Quota:**
+- **InReview / Warning / Submitted / Approaching Deadline (≤ 2 days) (Mực Hổ Phách):**
+  - Utility Class: `.btn-cta-warning`
+  - Inline Tokens: `bg-amber-50 text-amber-900 border border-amber-300 hover:bg-amber-100 rounded-full`
+  - Badge: `bg-amber-50 text-amber-800 border border-amber-200`
+- **Blocking Error / Rejected / ReworkRequired / Danger / Delete (Mực Đỏ Chặn / Sửa Lại):**
+  - Utility Class: `.btn-cta-danger`
+  - Inline Tokens: `border border-rose-300 text-rose-700 hover:bg-rose-50 rounded-full` (hoặc `bg-rose-600 hover:bg-rose-700 text-white` khi xác nhận xóa vĩnh viễn)
+  - Badge: `bg-rose-50 text-rose-800 border border-rose-200`
+  - Artwork Annotation Bounding Box (`Open`): Red `#EF4444` (`border-red-500 bg-red-500/15`)
+- **InProgress / Info / Active Stage (Mực Lam Tiến Độ):**
+  - Inline Tokens: `bg-blue-50 text-blue-800 border border-blue-200 hover:bg-blue-100 rounded-full`
+  - Badge: `bg-blue-50 text-blue-800 border border-blue-200`
+- **Neutral / Secondary Action (Mực Tro Yên Tĩnh):**
+  - Utility Class: `.btn-cta-secondary`
+  - Inline Tokens: `bg-white hover:bg-[#F5F5F4] text-[#292524] border border-[#E7E5E4] rounded-full shadow-soft-sm`
   - Badge/Track: `bg-stone-100 text-stone-600 border border-stone-200`
 
 ---

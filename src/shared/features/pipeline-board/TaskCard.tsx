@@ -22,9 +22,9 @@ export const TaskCard: React.FC<TaskCardProps> = ({ card, onClick, onOpenMyWork 
 
   let deadlineBadgeClass = 'text-zinc-600 bg-zinc-100 border-zinc-200';
   if (isOverdue) {
-    deadlineBadgeClass = 'text-rose-700 bg-rose-50 border-rose-200 font-semibold';
+    deadlineBadgeClass = 'badge-status-rework shadow-2xs';
   } else if (isDueSoon) {
-    deadlineBadgeClass = 'text-amber-800 bg-amber-50 border-amber-200 font-semibold';
+    deadlineBadgeClass = 'badge-status-inreview shadow-2xs';
   }
 
   // Priority color
@@ -76,8 +76,8 @@ export const TaskCard: React.FC<TaskCardProps> = ({ card, onClick, onOpenMyWork 
             </span>
           )}
           {isHighPriority && (
-            <span className='px-1.5 py-0.5 text-[9px] font-bold uppercase rounded bg-rose-100 text-rose-700 border border-rose-200'>
-              {priorityStr === 'Urgent' || priorityStr === '3' ? 'Khẩn' : 'Cao'}
+            <span className='px-2 py-0.5 text-[10px] font-bold uppercase rounded-full bg-rose-50 text-rose-700 border border-rose-200'>
+              {priorityStr === 'Urgent' || priorityStr === '3' ? 'Khẩn cấp' : 'Ưu tiên'}
             </span>
           )}
         </div>
@@ -139,10 +139,10 @@ export const TaskCard: React.FC<TaskCardProps> = ({ card, onClick, onOpenMyWork 
             e.stopPropagation();
             onOpenMyWork(card);
           }}
-          className='hidden group-hover:flex items-center justify-center gap-1 w-full mt-1 py-1 text-[11px] font-semibold text-blue-600 bg-blue-50/80 hover:bg-blue-100 rounded-lg transition-colors'
+          className='hidden group-hover:flex items-center justify-center gap-1 w-full mt-1 py-1.5 text-[11px] font-semibold text-orange-800 bg-orange-50 hover:bg-orange-100 border border-orange-200 rounded-lg transition-colors cursor-pointer'
         >
           <span>Xem trong Bàn làm việc & Xét duyệt</span>
-          <ArrowUpRight className='w-3 h-3' />
+          <ArrowUpRight className='w-3 h-3 text-orange-600' />
         </button>
       )}
     </div>

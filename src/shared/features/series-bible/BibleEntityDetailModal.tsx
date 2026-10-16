@@ -457,9 +457,9 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                 onClose();
                 onOpenHistory(entity);
               }}
-              className='px-3 py-1.5 bg-white hover:bg-zinc-50 border border-zinc-200 text-zinc-700 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs'
+              className='px-3.5 py-1.5 bg-white hover:bg-stone-50 border border-stone-200 text-stone-700 text-xs font-semibold rounded-full flex items-center gap-1.5 transition-colors cursor-pointer shadow-soft-sm'
             >
-              <History className='w-3.5 h-3.5 text-[#F97316]' />
+              <History className='w-3.5 h-3.5 text-[#EA580C]' />
               <span>Xem lịch sử phiên bản</span>
             </button>
 
@@ -470,7 +470,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                   onClose();
                   onOpenAddRevision(entity);
                 }}
-                className='px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer'
+                className='px-3.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-semibold rounded-full flex items-center gap-1.5 transition-colors cursor-pointer shadow-soft-sm'
               >
                 <GitCommit className='w-3.5 h-3.5' />
                 <span>{isProducer ? '+ Tạo phiên bản mới' : '+ Tạo bản nháp mới'}</span>
@@ -483,7 +483,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
           <button
             type='button'
             onClick={onClose}
-            className='px-4 py-1.5 bg-[#171717] hover:bg-black text-white text-xs font-semibold rounded-lg transition-colors cursor-pointer active:scale-95'
+            className='px-4 py-1.5 bg-[#292524] hover:bg-black text-white text-xs font-semibold rounded-full transition-colors cursor-pointer active:scale-95 shadow-soft-sm'
           >
             Đóng
           </button>

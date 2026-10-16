@@ -2,7 +2,20 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'ghost' | 'danger' | 'outline' | 'accent';
+  variant?:
+    | 'primary'
+    | 'secondary'
+    | 'ghost'
+    | 'danger'
+    | 'danger-solid'
+    | 'outline'
+    | 'accent'
+    | 'ai'
+    | 'ai-soft'
+    | 'success'
+    | 'success-soft'
+    | 'warning'
+    | 'warning-soft';
   size?: 'sm' | 'md' | 'lg' | 'icon';
   pill?: boolean;
   isLoading?: boolean;
@@ -34,6 +47,8 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           // Variants
           variant === 'primary' &&
             'bg-[#292524] text-white hover:bg-[#0c0a09] active:bg-black shadow-soft-sm border border-transparent',
+          variant === 'accent' &&
+            'bg-[#ea580c] text-white border-transparent hover:bg-[#c2410c] shadow-soft-sm',
           variant === 'secondary' &&
             'bg-white text-[#0c0a09] border border-[#e7e5e4] hover:bg-[#f5f5f5] hover:border-[#d6d3d1] shadow-soft-sm',
           variant === 'outline' &&
@@ -42,8 +57,20 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             'bg-transparent text-[#292524] border-transparent hover:text-[#0c0a09] hover:bg-[#f0efed]',
           variant === 'danger' &&
             'bg-[#fef2f2] text-[#b91c1c] border border-[#fecaca] hover:bg-[#fee2e2]',
-          variant === 'accent' &&
-            'bg-[#f97316] text-white border-transparent hover:bg-[#ea580c] shadow-soft-sm',
+          variant === 'danger-solid' &&
+            'bg-[#dc2626] text-white border-transparent hover:bg-[#b91c1c] shadow-soft-sm',
+          variant === 'ai' &&
+            'bg-[#7c3aed] text-white border-transparent hover:bg-[#6d28d9] shadow-soft-sm',
+          variant === 'ai-soft' &&
+            'bg-[#f5f3ff] text-[#6d28d9] border border-[#ddd6fe] hover:bg-[#ede9fe]',
+          variant === 'success' &&
+            'bg-[#059669] text-white border-transparent hover:bg-[#047857] shadow-soft-sm',
+          variant === 'success-soft' &&
+            'bg-[#ecfdf5] text-[#047857] border border-[#a7f3d0] hover:bg-[#d1fae5]',
+          variant === 'warning' &&
+            'bg-[#d97706] text-white border-transparent hover:bg-[#b45309] shadow-soft-sm',
+          variant === 'warning-soft' &&
+            'bg-[#fffbeb] text-[#b45309] border border-[#fde68a] hover:bg-[#fef3c7]',
 
           // Sizes (Min text size text-xs per DESIGN_RULES)
           size === 'sm' && 'h-8 px-3 text-xs gap-1.5',

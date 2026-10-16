@@ -693,7 +693,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
               <button
                 type='button'
                 onClick={() => setAddEntityOpen(true)}
-                className='px-3.5 py-2 rounded-xl bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer active:scale-95'
+                className='px-4 py-2 rounded-full bg-[#EA580C] hover:bg-[#C2410C] text-white text-xs font-semibold flex items-center gap-1.5 shadow-soft-sm transition-all cursor-pointer active:scale-95'
                 data-testid='add-bible-entry-btn'
               >
                 <Plus className='w-4 h-4' />

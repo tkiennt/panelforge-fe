@@ -194,7 +194,7 @@ export const ExportView: React.FC<ExportViewProps> = ({ onShowToast }) => {
             <button
               onClick={handleExport}
               disabled={submitting || formats.length === 0 || !chapterId}
-              className='mt-auto py-2.5 bg-[#8B5CF6] text-white font-bold rounded-lg hover:bg-[#7C3AED] disabled:opacity-50 transition-colors flex items-center justify-center gap-2'
+              className='mt-auto py-2.5 bg-[#EA580C] text-white font-bold rounded-full hover:bg-[#C2410C] disabled:opacity-50 transition-all shadow-soft-sm flex items-center justify-center gap-2 cursor-pointer'
               data-testid='export-submit'
             >
               {submitting && <Loader2 className='w-4 h-4 animate-spin' />}
@@ -208,10 +208,10 @@ export const ExportView: React.FC<ExportViewProps> = ({ onShowToast }) => {
               <button
                 type='button'
                 onClick={fetchJobs}
-                className='p-1 rounded text-[#737373] hover:text-[#171717]'
+                className='p-1 rounded text-[#737373] hover:text-[#171717] cursor-pointer'
                 aria-label='Tải lại danh sách bản xuất'
               >
-                <RefreshCw className={`w-4 h-4 ${running ? 'animate-spin text-[#8B5CF6]' : ''}`} />
+                <RefreshCw className={`w-4 h-4 ${running ? 'animate-spin text-orange-600' : ''}`} />
               </button>
             </div>
 
@@ -254,7 +254,7 @@ export const ExportView: React.FC<ExportViewProps> = ({ onShowToast }) => {
                             <button
                               type='button'
                               onClick={() => handleDownload(job)}
-                              className='px-2 py-1 rounded bg-[#8B5CF6] text-white font-semibold inline-flex items-center gap-1'
+                              className='px-3 py-1 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold inline-flex items-center gap-1 shadow-soft-sm cursor-pointer'
                               data-testid={`export-download-${job.id}`}
                             >
                               <Download className='w-3.5 h-3.5' /> Tải

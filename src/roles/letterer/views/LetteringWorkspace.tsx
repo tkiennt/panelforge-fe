@@ -1842,7 +1842,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
           <button
             onClick={handleRunLettererAgent}
             disabled={aiLoading || !activeSeriesId}
-            className='px-3 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 disabled:opacity-50 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer'
+            className='px-3.5 py-1.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white rounded-full text-xs font-semibold flex items-center gap-1.5 shadow-soft-sm transition-all cursor-pointer'
             title='Chạy Letterer Agent để rút gọn các dòng thoại cho vừa bóng thoại'
           >
             {aiLoading ? (

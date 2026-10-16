@@ -131,23 +131,23 @@ export const ReviewDecisionPanel: React.FC<ReviewDecisionPanelProps> = ({
                   'Công đoạn kế tiếp của các Panel này đã mở.',
                 )
               }
-              className='px-3 py-1.5 rounded-lg bg-[#10B981] hover:bg-[#059669] text-white text-[11px] font-semibold flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
+              className='btn-cta-success'
             >
               {busy ? (
-                <Loader2 className='w-3 h-3 animate-spin' />
+                <Loader2 className='w-3.5 h-3.5 animate-spin' />
               ) : (
-                <CheckCircle2 className='w-3 h-3' />
+                <CheckCircle2 className='w-3.5 h-3.5' />
               )}
-              Duyệt
+              <span>Duyệt công đoạn</span>
             </button>
             <button
               type='button'
               disabled={busy}
               onClick={() => setReturning(true)}
-              className='px-3 py-1.5 rounded-lg border border-red-300 text-red-700 hover:bg-red-50 text-[11px] font-semibold flex items-center gap-1.5 cursor-pointer'
+              className='btn-cta-danger'
             >
-              <RotateCcw className='w-3 h-3' />
-              Trả về để sửa
+              <RotateCcw className='w-3.5 h-3.5' />
+              <span>Trả về để sửa</span>
             </button>
           </div>
         </div>

@@ -864,7 +864,7 @@ export function AppShell({
                     navigate('/export');
                   }
                 }}
-                className='bg-[#F97316] text-white px-4 py-1.5 rounded-md text-sm font-medium hover:bg-[#EA580C] active:scale-[0.98] transition-all flex items-center gap-1.5 shadow-sm'
+                className='bg-[#EA580C] hover:bg-[#C2410C] text-white px-4 py-1.5 rounded-full text-xs font-medium active:scale-[0.98] transition-all flex items-center gap-1.5 shadow-soft-sm'
               >
                 {currentUser.workspaceRole === 'ARTIST' ||
                 currentUser.activeRoles?.includes('ARTIST') ? (
