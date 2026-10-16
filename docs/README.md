@@ -55,6 +55,6 @@ panel-forge/
 │   ├── views/              # Core screen modules (Content Hub, Kanban, Bible, Dashboard)
 │   ├── styles/             # Tailwind configuration & global typography
 │   └── App.jsx             # Main SPA router & state controller
-├── DESIGN.md               # Complete design system & UI guidelines
+├── DESIGN_RULES.md         # Complete design system & UI guidelines
 ├── package.json
 └── README.md

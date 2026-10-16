@@ -61,6 +61,7 @@ export const ProducerWorkspaceView: React.FC = () => {
 
   const userRole = localStorage.getItem('userRole');
   const wsRole = localStorage.getItem('workspaceRole') || activeWorkspace?.currentUserRole;
+  const effectiveRoleUpper = String(wsRole || userRole || '').toUpperCase();
   const isProducerOrAdmin =
     userRole === 'ADMINISTRATOR' || wsRole === 'PRODUCER' || !!activeWorkspace?.isOwner;
 
@@ -608,8 +609,8 @@ export const ProducerWorkspaceView: React.FC = () => {
           </div>
         </div>
 
-        {/* Workspace Governance & Resource Usage Meters (Storage, AI Tokens, Image Quota & Concurrent Sessions) */}
-        {activeWorkspace && (
+        {/* Workspace Governance & Resource Usage Meters (Storage, AI Tokens, Image Quota & Concurrent Sessions) - Shown for Producer/Admin */}
+        {activeWorkspace && isProducerOrAdmin && (
           <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-1'>
             {/* 1. Storage Meter */}
             <div className='flex flex-col justify-between h-full p-5 bg-stone-50/70 hover:bg-stone-50 rounded-xl border border-stone-200/80 transition-all space-y-3'>
@@ -1087,10 +1088,26 @@ export const ProducerWorkspaceView: React.FC = () => {
                             setSelectedChapterSeries({ id: s.id, title: s.title });
                           }}
                           className='flex-1 h-10 px-4 bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-200/80 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all shadow-2xs hover:shadow-xs active:scale-98 cursor-pointer'
-                          title='Quản lý danh sách chương, kiểm tra tiến độ và phê duyệt hoàn tất (BR-12)'
+                          title={
+                            effectiveRoleUpper === 'EDITOR'
+                              ? 'Quản lý và duyệt các chương truyện (BR-12)'
+                              : effectiveRoleUpper === 'WRITER' ||
+                                  effectiveRoleUpper === 'ARTIST' ||
+                                  effectiveRoleUpper === 'LETTERER'
+                                ? 'Vào không gian sáng tác và danh sách chương'
+                                : 'Quản lý danh sách chương, kiểm tra tiến độ và phê duyệt hoàn tất (BR-12)'
+                          }
                         >
                           <BookOpen className='w-4 h-4 text-orange-500' />
-                          <span>Quản Lý Chương (Duyệt)</span>
+                          <span>
+                            {effectiveRoleUpper === 'EDITOR'
+                              ? 'Quản Lý & Duyệt Chương'
+                              : effectiveRoleUpper === 'WRITER' ||
+                                  effectiveRoleUpper === 'ARTIST' ||
+                                  effectiveRoleUpper === 'LETTERER'
+                                ? 'Vào Không Gian Sáng Tác'
+                                : 'Quản Lý Chương (Duyệt)'}
+                          </span>
                         </button>
 
                         {isProducerOrAdmin && (

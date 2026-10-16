@@ -42,7 +42,7 @@ Unlike generic creative tools (Clip Studio Paint, Photoshop) or generic project 
 ## Evidence on Hand
 - Implemented and live frontend views in `src/` (`SeriesBibleView`, `IsolatedSeriesBible`, `PublicCatalogView`, `ExportView`, `DashboardView`).
 - Detailed screen status audit in `docs/audit/UI_SCREEN_AUDIT.md`.
-- Comprehensive design tokens and component specs in `docs/DESIGN.md`.
+- Comprehensive design tokens and component specs in `docs/DESIGN_RULES.md`.
 
 ## Product Principles
 1. **Flow Over Friction**: The workspace feels like a physical artist desk; tools and navigation stay unobtrusive until summoned.

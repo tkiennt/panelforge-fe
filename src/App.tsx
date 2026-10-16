@@ -223,6 +223,8 @@ function AppContent() {
     setViewScope('project');
 
     let firstSeriesId: string | null = null;
+    // Clear stale project before loading new workspace's series
+    setActiveProject(null as any);
     // Tải danh sách Series thật từ Backend API PostgreSQL cho Workspace này
     try {
       const realSeriesList = await seriesService.getSeriesList(ws.id);
