@@ -50,6 +50,8 @@ import {
 } from '@/services/element.service';
 import { bibleService, BibleEntryDto } from '@/services/bible.service';
 import { FrameTemplateModal } from '@/roles/artist/modals/FrameTemplateModal';
+import { BibleReferenceDrawer } from '@/shared/features/collaboration/BibleReferenceDrawer';
+import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { OfflineStatusBanner } from '@/shared/components/OfflineStatusBanner';
 import { offlineQueueService } from '@/services/offlineQueue.service';
 import {
@@ -238,6 +240,8 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
   const [panelConsistencyResult, setPanelConsistencyResult] = useState<
     Record<string, ImageConsistencyResultDto>
   >({});
+  const [bibleDrawerOpen, setBibleDrawerOpen] = useState(false);
+  const [selectedDrawerPanelId, setSelectedDrawerPanelId] = useState<string | null>(null);
 
   const [toast, setToast] = useState<{ title: string; desc: string } | null>(null);
 
@@ -1616,6 +1620,19 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
             <span>Làm mới</span>
           </button>
           <button
+            type='button'
+            onClick={() => {
+              setSelectedDrawerPanelId(selectedPanelId || null);
+              setBibleDrawerOpen(true);
+            }}
+            data-testid='artist-desk-bible-reference-btn'
+            className='inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-zinc-700 bg-white hover:bg-zinc-50 border border-[#E7E7E7] rounded-xl shadow-2xs transition-all cursor-pointer'
+            title='Mở tham chiếu nhân vật và thiết kế của Series Bible'
+          >
+            <BookOpen className='w-3.5 h-3.5 text-purple-600' />
+            <span>Tham chiếu Bible</span>
+          </button>
+          <button
             onClick={() => setCreateModalOpen(true)}
             disabled={!canEditPages || !currentChapterId}
             title={
@@ -2307,6 +2324,21 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                               </>
                             )}
 
+                            <button
+                              type='button'
+                              data-testid={`panel-bible-reference-btn-${selectedPanelDetail.id}`}
+                              onClick={() => {
+                                setSelectedDrawerPanelId(selectedPanelDetail.id);
+                                setBibleDrawerOpen(true);
+                              }}
+                              className='w-full py-1.5 bg-white hover:bg-purple-50 text-purple-700 border border-purple-200 rounded-lg font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs'
+                            >
+                              <BookOpen className='w-3.5 h-3.5 text-purple-600' />
+                              <span>
+                                Tham chiếu Bible (Khung #{selectedPanelDetail.panelNumber})
+                              </span>
+                            </button>
+
                             {panelArt && (
                               <button
                                 type='button'
@@ -2648,7 +2680,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                               {bible && (
                                 <div className='p-2 bg-white rounded-lg border border-[#E7E7E7] flex items-center gap-2'>
                                   {bible.referenceImageUrl && (
-                                    <img
+                                    <AuthenticatedImage
                                       src={bible.referenceImageUrl}
                                       alt={bible.name}
                                       className='w-7 h-7 rounded object-cover border border-zinc-200'
@@ -3269,6 +3301,29 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
         className='hidden'
         data-testid='desk-panel-file-input'
         onChange={handlePanelFileSelected}
+      />
+
+      {/* Drawer Tham chiếu Series Bible (FR-Artist-04) */}
+      <BibleReferenceDrawer
+        isOpen={bibleDrawerOpen}
+        onClose={() => setBibleDrawerOpen(false)}
+        seriesId={seriesId}
+        chapterId={currentChapterId || undefined}
+        chapterNumber={chapters.find((c) => c.id === currentChapterId)?.chapterNumber ?? 1}
+        panelId={selectedDrawerPanelId || selectedPanelId || (panels[0]?.id ?? null)}
+        panelNumber={
+          panels.find((p) => p.id === (selectedDrawerPanelId || selectedPanelId))?.panelNumber ??
+          null
+        }
+        availablePanels={panels.map((p) => ({
+          id: p.id,
+          panelNumber: p.panelNumber,
+          readingOrder: p.readingOrder,
+        }))}
+        onSelectPanel={(pid) => {
+          setSelectedDrawerPanelId(pid);
+          setSelectedPanelId(pid);
+        }}
       />
     </div>
   );

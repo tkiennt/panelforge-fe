@@ -64,6 +64,13 @@ export interface CreateBibleEntryRequest {
   effectiveFromChapterNumber?: number;
 }
 
+export interface BibleReferenceImageDto {
+  url: string;
+  sha256: string;
+  contentType: string;
+  sizeBytes: number;
+}
+
 export interface AddBibleEntryRevisionRequest {
   expectedVersionNumber?: number;
   summary: string;
@@ -105,11 +112,13 @@ export const bibleService = {
   async getBibleEntriesAtChapter(
     seriesId: string,
     chapterNumber: number,
+    canonOnly?: boolean,
   ): Promise<BibleEntryDto[]> {
     try {
-      const response = await axiosClient.get(
-        `/series/${seriesId}/bible/at-chapter/${chapterNumber}`,
-      );
+      const url = `/series/${seriesId}/bible/at-chapter/${chapterNumber}${
+        canonOnly ? '?canonOnly=true' : ''
+      }`;
+      const response = await axiosClient.get(url);
       return response.data;
     } catch (error) {
       throw extractError(error, `Không thể tải Bible cho Chapter ${chapterNumber}.`);
@@ -119,9 +128,40 @@ export const bibleService = {
   async getSeriesBibleAtChapter(
     seriesId: string,
     chapterNumber: number,
+    canonOnly?: boolean,
   ): Promise<{ entries: BibleEntryDto[] }> {
-    const entries = await this.getBibleEntriesAtChapter(seriesId, chapterNumber);
+    const entries = await this.getBibleEntriesAtChapter(seriesId, chapterNumber, canonOnly);
     return { entries };
+  },
+
+  /**
+   * Producer tải ảnh reference sheet lên kho (POST /api/series/{seriesId}/bible/assets).
+   * Trả về URL để gán vào referenceImageUrl của entry/revision.
+   */
+  async uploadReferenceImage(seriesId: string, file: File): Promise<BibleReferenceImageDto> {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await axiosClient.post(`/series/${seriesId}/bible/assets`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      return response.data;
+    } catch (error) {
+      throw extractError(error, 'Không thể tải ảnh reference sheet lên máy chủ.');
+    }
+  },
+
+  /**
+   * GET /api/panels/{panelId}/bible — mục Bible của các nhân vật nói trong Panel, bản canon đã khoá.
+   * Dùng cho drawer tham chiếu trong task của Artist (UC-07 bước 1, BR-15).
+   */
+  async getPanelBible(panelId: string): Promise<BibleEntryDto[]> {
+    try {
+      const response = await axiosClient.get(`/panels/${panelId}/bible`);
+      return response.data;
+    } catch (error) {
+      throw extractError(error, 'Không thể tải danh sách Bible cho khung tranh.');
+    }
   },
 
   async createBibleEntry(seriesId: string, data: CreateBibleEntryRequest): Promise<BibleEntryDto> {

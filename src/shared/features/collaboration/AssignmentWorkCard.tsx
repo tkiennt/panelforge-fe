@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   AlertTriangle,
+  BookOpen,
   Calendar,
   ChevronDown,
   ChevronRight,
@@ -29,6 +30,7 @@ import { ChangeRequestPanel } from './ChangeRequestPanel';
 import { ReviewDecisionPanel } from './ReviewDecisionPanel';
 import { SubmitPreviewModal } from './SubmitPreviewModal';
 import { SubmissionHistory } from './SubmissionHistory';
+import { BibleReferenceDrawer } from './BibleReferenceDrawer';
 import {
   describeStartError,
   errorMessage,
@@ -100,6 +102,8 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
   const [highlightedCrId, setHighlightedCrId] = useState<string | null>(null);
   const [targetArtworkId, setTargetArtworkId] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [bibleDrawerOpen, setBibleDrawerOpen] = useState(false);
+  const [selectedBiblePanelId, setSelectedBiblePanelId] = useState<string | null>(null);
 
   const pageId = resolvePageId(assignment, stageProgress);
   const artworkRelevant = needsArtwork(assignment);
@@ -313,6 +317,21 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
               </button>
             )}
 
+          {(artworkRelevant || assignment.entityType === 'Panel') && (
+            <button
+              type='button'
+              data-testid='open-bible-reference'
+              onClick={() => {
+                setSelectedBiblePanelId(null);
+                setBibleDrawerOpen(true);
+              }}
+              className='px-3 py-1.5 rounded-lg border border-[#E7E7E7] bg-white hover:bg-zinc-50 text-[#171717] text-xs font-semibold flex items-center gap-1.5 cursor-pointer'
+            >
+              <BookOpen className='w-3.5 h-3.5 text-[#F97316]' />
+              Tham chiếu Bible
+            </button>
+          )}
+
           {status === 'InProgress' && actions.isAssignee && (
             <button
               type='button'
@@ -395,6 +414,10 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
               canUpload={actions.canUploadArtwork}
               onChanged={() => void loadDetails()}
               onToast={onToast}
+              onOpenBible={(pid) => {
+                setSelectedBiblePanelId(pid);
+                setBibleDrawerOpen(true);
+              }}
             />
           );
 
@@ -466,6 +489,30 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
           }}
         />
       )}
+
+      <BibleReferenceDrawer
+        isOpen={bibleDrawerOpen}
+        onClose={() => setBibleDrawerOpen(false)}
+        seriesId={assignment.seriesId}
+        chapterId={chapterId}
+        panelId={
+          selectedBiblePanelId ||
+          (assignment.entityType === 'Panel' ? assignment.targetEntityId : panels[0]?.id || null)
+        }
+        panelNumber={
+          selectedBiblePanelId
+            ? panels.find((p) => p.id === selectedBiblePanelId)?.panelNumber || null
+            : assignment.entityType === 'Panel'
+              ? panels.find((p) => p.id === assignment.targetEntityId)?.panelNumber || null
+              : panels[0]?.panelNumber || null
+        }
+        availablePanels={panels.map((p) => ({
+          id: p.id,
+          panelNumber: p.panelNumber,
+          readingOrder: p.readingOrder,
+        }))}
+        onSelectPanel={(pid) => setSelectedBiblePanelId(pid)}
+      />
     </article>
   );
 };

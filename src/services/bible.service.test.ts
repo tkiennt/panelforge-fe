@@ -49,6 +49,50 @@ describe('bibleService', () => {
       expect(get).toHaveBeenCalledWith(`/series/${seriesId}/bible/at-chapter/5`);
       expect(result).toEqual({ entries: mockEntries });
     });
+
+    it('gọi GET kèm canonOnly=true khi tham số canonOnly là true', async () => {
+      const mockEntries = [{ id: 'entry-1', name: 'Hero', isLocked: true }] as any[];
+      get.mockResolvedValueOnce({ data: mockEntries });
+
+      const result = await bibleService.getBibleEntriesAtChapter(seriesId, 3, true);
+
+      expect(get).toHaveBeenCalledWith(`/series/${seriesId}/bible/at-chapter/3?canonOnly=true`);
+      expect(result).toEqual(mockEntries);
+    });
+  });
+
+  describe('uploadReferenceImage', () => {
+    it('gọi POST /series/{seriesId}/bible/assets với FormData', async () => {
+      const mockRes = {
+        url: '/api/series/series-123/bible/assets/sha-abc',
+        sha256: 'sha-abc',
+        contentType: 'image/png',
+        sizeBytes: 1024,
+      };
+      post.mockResolvedValueOnce({ data: mockRes });
+
+      const file = new File(['dummy'], 'char.png', { type: 'image/png' });
+      const result = await bibleService.uploadReferenceImage(seriesId, file);
+
+      expect(post).toHaveBeenCalledWith(
+        `/series/${seriesId}/bible/assets`,
+        expect.any(FormData),
+        { headers: { 'Content-Type': 'multipart/form-data' } },
+      );
+      expect(result).toEqual(mockRes);
+    });
+  });
+
+  describe('getPanelBible', () => {
+    it('gọi GET /panels/{panelId}/bible và trả về danh sách nhân vật canon', async () => {
+      const mockEntries = [{ id: 'entry-hero', name: 'Hero', category: 'Character' }] as any[];
+      get.mockResolvedValueOnce({ data: mockEntries });
+
+      const result = await bibleService.getPanelBible('panel-456');
+
+      expect(get).toHaveBeenCalledWith('/panels/panel-456/bible');
+      expect(result).toEqual(mockEntries);
+    });
   });
 
   describe('lockRevision (Việc 5 - Producer khoá Character Sheet)', () => {

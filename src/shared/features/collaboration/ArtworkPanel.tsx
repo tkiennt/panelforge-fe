@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
+  BookOpen,
   ChevronDown,
   ChevronUp,
   Eye,
@@ -31,6 +32,7 @@ interface ArtworkPanelProps {
   canUpload: boolean;
   onChanged: () => void;
   onToast?: (title: string, desc: string) => void;
+  onOpenBible?: (panelId: string, panelNumber?: number) => void;
 }
 
 const formatSize = (bytes: number) =>
@@ -56,6 +58,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
   canUpload,
   onChanged,
   onToast,
+  onOpenBible,
 }) => {
   const fileInput = useRef<HTMLInputElement>(null);
   const panelFileInput = useRef<HTMLInputElement>(null);
@@ -448,6 +451,18 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                         >
                           <Eye className='w-3 h-3' />
                           <span>{previews[latestPanelArt.id] ? 'Ẩn' : 'Xem'}</span>
+                        </button>
+                      )}
+                      {onOpenBible && (
+                        <button
+                          type='button'
+                          onClick={() => onOpenBible(p.id, p.panelNumber)}
+                          data-testid={`panel-bible-btn-${p.id}`}
+                          title='Xem tham chiếu thiết kế nhân vật trong khung tranh này'
+                          className='px-2.5 py-1 rounded-md border border-orange-200 bg-orange-50 hover:bg-orange-100 text-[10px] font-semibold text-orange-800 flex items-center gap-1 cursor-pointer transition-colors shadow-2xs'
+                        >
+                          <BookOpen className='w-3 h-3 text-[#F97316]' />
+                          <span>Bible</span>
                         </button>
                       )}
                       {canUpload && (
