@@ -94,7 +94,7 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
 
         let loadedStages: PipelineStageDto[] = [];
         if (pipelineData?.stages && pipelineData.stages.length > 0) {
-          loadedStages = pipelineData.stages;
+          loadedStages = pipelineData.stages.filter((s) => s.isEnabled !== false);
         } else {
           // Fallback default stages với đầy đủ allowedRole
           loadedStages = [

@@ -38,7 +38,11 @@ export const TaskCard: React.FC<TaskCardProps> = ({ card, onClick, onOpenMyWork 
   return (
     <div
       onClick={() => onClick(card)}
-      className='group relative bg-white rounded-xl border border-zinc-200 p-4 shadow-xs hover:shadow-md hover:border-zinc-400 transition-all cursor-pointer flex flex-col gap-2.5'
+      className={`group relative rounded-xl border p-4 shadow-xs transition-all cursor-pointer flex flex-col gap-2.5 ${
+        card.isStageEnabled === false
+          ? 'bg-zinc-50/80 border-dashed border-zinc-300 opacity-65'
+          : 'bg-white border-zinc-200 hover:shadow-md hover:border-zinc-400'
+      }`}
     >
       {/* Top Header: Stage badge & Target Label */}
       <div className='flex items-center justify-between gap-2'>
@@ -51,6 +55,11 @@ export const TaskCard: React.FC<TaskCardProps> = ({ card, onClick, onOpenMyWork 
           >
             {card.stageName}
           </span>
+          {card.isStageEnabled === false && (
+            <span className='text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-zinc-200 text-zinc-700 border border-zinc-300 uppercase'>
+              Đã tắt
+            </span>
+          )}
           <span className='text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-600 border border-zinc-200'>
             {card.targetLabel}
           </span>

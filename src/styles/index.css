@@ -151,24 +151,26 @@ body {
   font-variant-numeric: lining-nums;
 }
 
-h1,
-h2,
-h3,
-h4,
-.font-heading,
-.font-display,
-.font-serif {
-  font-variant-numeric: lining-nums;
-  font-feature-settings: 'lnum' 1;
-}
+@layer base {
+  h1,
+  h2,
+  h3,
+  h4,
+  .font-heading,
+  .font-display,
+  .font-serif {
+    font-variant-numeric: lining-nums;
+    font-feature-settings: 'lnum' 1;
+  }
 
-h1,
-h2,
-h3,
-h4,
-.font-heading,
-.font-display {
-  font-family: 'Playfair Display', Georgia, serif;
+  h1,
+  h2,
+  h3,
+  h4,
+  .font-heading,
+  .font-display {
+    font-family: 'Playfair Display', Georgia, serif;
+  }
 }
 
 @keyframes float-y {

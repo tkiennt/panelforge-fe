@@ -46,6 +46,27 @@ vi.mock('@/services/panel.service', () => ({
   },
 }));
 
+vi.mock('@/services/page.service', () => ({
+  pageService: {
+    getPagesByChapter: vi.fn().mockResolvedValue([
+      { id: 'page-1', pageNumber: 1, chapterId: 'c1' },
+      { id: 'page-2', pageNumber: 2, chapterId: 'c1' },
+    ]),
+  },
+}));
+
+vi.mock('@/services/pipeline.service', () => ({
+  pipelineService: {
+    getSeriesPipeline: vi.fn().mockResolvedValue({
+      id: 'pipe-1',
+      stages: [
+        { id: 'stage-1', name: 'Thumbnail', stageOrder: 1, isEnabled: true },
+        { id: 'stage-2', name: 'Color', stageOrder: 2, isEnabled: false },
+      ],
+    }),
+  },
+}));
+
 const assignment = (over: Partial<AssignmentDto> = {}): AssignmentDto => ({
   id: 'a1',
   seriesId: 's1',
@@ -533,6 +554,18 @@ describe('AssignmentWorkCard: lối vào màn duyệt', () => {
     renderCard({});
     await screen.findByRole('button', { name: 'Nộp bài' });
     expect(screen.queryByTestId('open-review-board')).not.toBeInTheDocument();
+  });
+
+  it('Editor thấy ChapterReviewArtworkOverview và link mở màn duyệt khi việc ở cấp Chapter', async () => {
+    renderCard({
+      role: 'EDITOR',
+      userId: 'editor-1',
+      assignment: assignment({ entityType: 'Chapter', targetEntityId: 'c1' }),
+    });
+    expect(await screen.findByTestId('chapter-review-artwork-overview')).toBeInTheDocument();
+    const link = await screen.findByTestId('open-review-board');
+    expect(link).toBeInTheDocument();
+    expect(link.getAttribute('href')).toContain('review/');
   });
 });
 
