@@ -1,5 +1,5 @@
 // src/services/workspace.service.ts
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5044';
+import axiosClient from '../api/axiosClient';
 
 export interface CreateWorkspaceRequest {
   name: string;
@@ -24,6 +24,38 @@ export interface WorkspaceDto {
   memberCount: number;
 }
 
+export interface UsageMeterDto {
+  used: number;
+  quota: number;
+  isUnlimited: boolean;
+  percentUsed: number | null;
+}
+
+export interface WorkspaceUsageDto {
+  workspaceId: string;
+  storage: UsageMeterDto;
+  aiTokens: UsageMeterDto | null;
+  aiEnabled: boolean | null;
+  images: UsageMeterDto | null;
+  activeSessions?: UsageMeterDto | null;
+  activeMemberCount?: number | null;
+  maxConcurrentSessionsPerUser?: number | null;
+}
+
+export interface WorkspaceSessionDto {
+  sessionId: string;
+  userId: string;
+  fullName: string;
+  email: string;
+  role: string;
+  deviceName?: string | null;
+  ipAddress?: string | null;
+  userAgent?: string | null;
+  sessionStartedAt: string;
+  lastActiveAt: string;
+  isCurrentSession: boolean;
+}
+
 export interface WorkspaceMemberDto {
   userId: string;
   fullName: string;
@@ -33,6 +65,8 @@ export interface WorkspaceMemberDto {
   role: string | number;
   isOwner: boolean;
   joinedAt: string;
+  isEmailConfirmed?: boolean;
+  invitationEmailSent?: boolean;
 }
 
 export interface AddWorkspaceMemberRequest {
@@ -44,227 +78,181 @@ export interface UpdateMemberRoleRequest {
   newRole: string | number;
 }
 
-function getAuthHeaders(customToken?: string): Record<string, string> {
-  const token = customToken || localStorage.getItem('token') || '';
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-  return headers;
-}
-
-async function parseErrorResponse(response: Response, defaultMsg: string): Promise<string> {
-  try {
-    const data = await response.json();
+// Xử lý lỗi từ Axios
+async function parseErrorResponse(error: any, defaultMsg: string): Promise<string> {
+  if (error.response) {
+    const data = error.response.data;
+    const status = error.response.status;
     if (data?.message) return data.message;
     if (data?.error) return data.error;
-  } catch {
-    // empty body
+
+    if (status === 401) return 'Chưa xác thực danh tính (401 Unauthorized).';
+    if (status === 403) return 'Bạn không có quyền thực hiện thao tác này (403 Forbidden).';
+    if (status === 404) return 'Không tìm thấy Workspace hoặc thành viên.';
   }
-  if (response.status === 401) return 'Chưa xác thực danh tính (401 Unauthorized).';
-  if (response.status === 403)
-    return 'Bạn không có quyền thực hiện thao tác này trong Workspace (403 Forbidden).';
-  if (response.status === 404) return 'Không tìm thấy Workspace hoặc thành viên.';
   return defaultMsg;
 }
 
-// Mock fallback for workspaces
-export const MOCK_WORKSPACES: WorkspaceDto[] = [
-  {
-    id: 'w-1111-2222-3333-4444',
-    name: 'Chronicles of Aria Main Studio',
-    ownerId: 'u-admin-1',
-    ownerName: 'Tatsuki Fujimoto',
-    ownerEmail: 'producer@panelforge.com',
-    storageQuotaBytes: 10 * 1024 * 1024 * 1024,
-    usedStorageBytes: 3.4 * 1024 * 1024 * 1024,
-    createdAt: '2026-01-15T09:00:00Z',
-    isOwner: true,
-    currentUserRole: 'Producer',
-    memberCount: 8,
-  },
-  {
-    id: 'w-5555-6666-7777-8888',
-    name: 'Ghost Protocol Cyberpunk Desk',
-    ownerId: 'u-admin-2',
-    ownerName: 'Kenji Sato',
-    ownerEmail: 'kenji@panelforge.com',
-    storageQuotaBytes: 5 * 1024 * 1024 * 1024,
-    usedStorageBytes: 1.2 * 1024 * 1024 * 1024,
-    createdAt: '2026-02-01T14:30:00Z',
-    isOwner: false,
-    currentUserRole: 'Editor',
-    memberCount: 4,
-  },
-];
-
-export const MOCK_WORKSPACE_MEMBERS: WorkspaceMemberDto[] = [
-  {
-    userId: 'u-01',
-    fullName: 'Tatsuki Fujimoto',
-    email: 'producer@panelforge.com',
-    role: 'Producer',
-    isOwner: true,
-    joinedAt: '2026-01-15T09:00:00Z',
-  },
-  {
-    userId: 'u-02',
-    fullName: 'Gen Urobuchi',
-    email: 'writer@panelforge.com',
-    role: 'Reviewer',
-    isOwner: false,
-    joinedAt: '2026-01-20T10:00:00Z',
-  },
-  {
-    userId: 'u-03',
-    fullName: 'Yusuke Murata',
-    email: 'artist@panelforge.com',
-    role: 'Reviewer',
-    isOwner: false,
-    joinedAt: '2026-02-01T11:15:00Z',
-  },
-];
+export const MOCK_WORKSPACES: WorkspaceDto[] = [];
+export const MOCK_WORKSPACE_MEMBERS: WorkspaceMemberDto[] = [];
 
 export const workspaceService = {
-  createWorkspace: async (
-    request: CreateWorkspaceRequest,
-    token?: string,
-  ): Promise<WorkspaceDto> => {
-    const response = await fetch(`${API_URL}/api/Workspaces`, {
-      method: 'POST',
-      headers: getAuthHeaders(token),
-      body: JSON.stringify(request),
-    });
-    if (!response.ok) {
-      throw new Error(await parseErrorResponse(response, 'Tạo Workspace thất bại.'));
-    }
-    return await response.json();
-  },
-
-  getMyWorkspaces: async (token?: string): Promise<WorkspaceDto[]> => {
+  createWorkspace: async (request: CreateWorkspaceRequest): Promise<WorkspaceDto> => {
     try {
-      const response = await fetch(`${API_URL}/api/Workspaces`, {
-        method: 'GET',
-        headers: getAuthHeaders(token),
-      });
-      if (!response.ok) {
-        throw new Error(await parseErrorResponse(response, 'Không thể lấy danh sách Workspaces.'));
-      }
-      return await response.json();
-    } catch (err: any) {
-      console.warn('workspaceService.getMyWorkspaces fallback:', err.message);
-      return MOCK_WORKSPACES;
+      const response = await axiosClient.post('/Workspaces', request);
+      return response.data;
+    } catch (error) {
+      throw new Error(await parseErrorResponse(error, 'Tạo Workspace thất bại.'));
     }
   },
 
-  getWorkspaceById: async (id: string, token?: string): Promise<WorkspaceDto> => {
+  getMyWorkspaces: async (): Promise<WorkspaceDto[]> => {
+    // Chưa đăng nhập thì không gọi API (tránh 401 làm phát 'auth:unauthorized')
+    if (
+      typeof window !== 'undefined' &&
+      !localStorage.getItem('user') &&
+      !localStorage.getItem('token')
+    ) {
+      return [];
+    }
     try {
-      const response = await fetch(`${API_URL}/api/Workspaces/${id}`, {
-        method: 'GET',
-        headers: getAuthHeaders(token),
-      });
-      if (!response.ok) {
-        throw new Error(await parseErrorResponse(response, 'Không thể lấy thông tin Workspace.'));
-      }
-      return await response.json();
-    } catch (err: any) {
-      console.warn('workspaceService.getWorkspaceById fallback:', err.message);
-      return MOCK_WORKSPACES.find((w) => w.id === id) || MOCK_WORKSPACES[0];
+      const response = await axiosClient.get('/Workspaces');
+      return response.data;
+    } catch (error) {
+      console.warn('workspaceService.getMyWorkspaces error:', error);
+      return [];
     }
   },
 
-  updateWorkspace: async (
-    id: string,
-    request: UpdateWorkspaceRequest,
-    token?: string,
-  ): Promise<WorkspaceDto> => {
-    const response = await fetch(`${API_URL}/api/Workspaces/${id}`, {
-      method: 'PUT',
-      headers: getAuthHeaders(token),
-      body: JSON.stringify(request),
-    });
-    if (!response.ok) {
-      throw new Error(await parseErrorResponse(response, 'Cập nhật Workspace thất bại.'));
-    }
-    return await response.json();
-  },
-
-  deleteWorkspace: async (id: string, token?: string): Promise<{ message: string }> => {
-    const response = await fetch(`${API_URL}/api/Workspaces/${id}`, {
-      method: 'DELETE',
-      headers: getAuthHeaders(token),
-    });
-    if (!response.ok) {
-      throw new Error(await parseErrorResponse(response, 'Xóa Workspace thất bại.'));
-    }
-    return await response.json();
-  },
-
-  getMembers: async (id: string, token?: string): Promise<WorkspaceMemberDto[]> => {
+  getWorkspaceById: async (id: string): Promise<WorkspaceDto> => {
     try {
-      const response = await fetch(`${API_URL}/api/Workspaces/${id}/members`, {
-        method: 'GET',
-        headers: getAuthHeaders(token),
-      });
-      if (!response.ok) {
-        throw new Error(await parseErrorResponse(response, 'Không thể lấy danh sách thành viên.'));
-      }
-      return await response.json();
-    } catch (err: any) {
-      console.warn('workspaceService.getMembers fallback:', err.message);
-      return MOCK_WORKSPACE_MEMBERS;
+      const response = await axiosClient.get(`/Workspaces/${id}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(await parseErrorResponse(error, 'Không thể lấy thông tin Workspace.'));
+    }
+  },
+
+  updateWorkspace: async (id: string, request: UpdateWorkspaceRequest): Promise<WorkspaceDto> => {
+    try {
+      const response = await axiosClient.put(`/Workspaces/${id}`, request);
+      return response.data;
+    } catch (error) {
+      throw new Error(await parseErrorResponse(error, 'Cập nhật Workspace thất bại.'));
+    }
+  },
+
+  deleteWorkspace: async (id: string): Promise<{ message: string }> => {
+    try {
+      const response = await axiosClient.delete(`/Workspaces/${id}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(await parseErrorResponse(error, 'Xóa Workspace thất bại.'));
+    }
+  },
+
+  getMembers: async (id: string): Promise<WorkspaceMemberDto[]> => {
+    try {
+      const response = await axiosClient.get(`/Workspaces/${id}/members`);
+      return response.data;
+    } catch (error) {
+      console.warn('workspaceService.getMembers error:', error);
+      return [];
     }
   },
 
   addMember: async (
     id: string,
     request: AddWorkspaceMemberRequest,
-    token?: string,
   ): Promise<WorkspaceMemberDto> => {
-    const response = await fetch(`${API_URL}/api/Workspaces/${id}/members`, {
-      method: 'POST',
-      headers: getAuthHeaders(token),
-      body: JSON.stringify(request),
-    });
-    if (!response.ok) {
-      throw new Error(await parseErrorResponse(response, 'Thêm thành viên thất bại.'));
+    try {
+      const response = await axiosClient.post(`/Workspaces/${id}/members`, request);
+      return response.data;
+    } catch (error) {
+      throw new Error(await parseErrorResponse(error, 'Thêm thành viên thất bại.'));
     }
-    return await response.json();
+  },
+
+  resendInvitation: async (id: string, userId: string): Promise<void> => {
+    try {
+      await axiosClient.post(`/Workspaces/${id}/members/${userId}/resend-invitation`);
+    } catch (error) {
+      throw new Error(await parseErrorResponse(error, 'Gửi lại lời mời thất bại.'));
+    }
   },
 
   updateMemberRole: async (
     id: string,
     userId: string,
     request: UpdateMemberRoleRequest,
-    token?: string,
   ): Promise<WorkspaceMemberDto> => {
-    const response = await fetch(`${API_URL}/api/Workspaces/${id}/members/${userId}`, {
-      method: 'PUT',
-      headers: getAuthHeaders(token),
-      body: JSON.stringify(request),
-    });
-    if (!response.ok) {
-      throw new Error(await parseErrorResponse(response, 'Cập nhật vai trò thành viên thất bại.'));
+    try {
+      const response = await axiosClient.put(`/Workspaces/${id}/members/${userId}`, request);
+      return response.data;
+    } catch (error) {
+      throw new Error(await parseErrorResponse(error, 'Cập nhật vai trò thành viên thất bại.'));
     }
-    return await response.json();
   },
 
-  removeMember: async (
-    id: string,
-    userId: string,
-    token?: string,
-  ): Promise<{ message: string }> => {
-    const response = await fetch(`${API_URL}/api/Workspaces/${id}/members/${userId}`, {
-      method: 'DELETE',
-      headers: getAuthHeaders(token),
-    });
-    if (!response.ok) {
+  removeMember: async (id: string, userId: string): Promise<{ message: string }> => {
+    try {
+      const response = await axiosClient.delete(`/Workspaces/${id}/members/${userId}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(await parseErrorResponse(error, 'Xóa thành viên khỏi Workspace thất bại.'));
+    }
+  },
+
+  getWorkspaceAuditLogs: async (
+    workspaceId: string,
+    params?: Record<string, any>,
+  ): Promise<any> => {
+    try {
+      const response = await axiosClient.get(`/workspaces/${workspaceId}/audit-logs`, { params });
+      return response.data;
+    } catch (error) {
       throw new Error(
-        await parseErrorResponse(response, 'Xóa thành viên khỏi Workspace thất bại.'),
+        await parseErrorResponse(error, 'Không thể tải lịch sử Audit của Workspace.'),
       );
     }
-    return await response.json();
+  },
+
+  /**
+   * Lấy mức dùng Storage và AI Tokens so với giới hạn (GET /api/workspaces/{id}/usage)
+   */
+  getWorkspaceUsage: async (workspaceId: string): Promise<WorkspaceUsageDto> => {
+    try {
+      const response = await axiosClient.get(`/workspaces/${workspaceId}/usage`);
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        await parseErrorResponse(error, 'Không thể tải mức dùng tài nguyên của Workspace.'),
+      );
+    }
+  },
+
+  /**
+   * Lấy danh sách thiết bị và phiên làm việc đồng thời trong Studio (GET /api/workspaces/{id}/sessions)
+   */
+  getActiveSessions: async (workspaceId: string): Promise<WorkspaceSessionDto[]> => {
+    try {
+      const response = await axiosClient.get(`/workspaces/${workspaceId}/sessions`);
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        await parseErrorResponse(error, 'Không thể tải danh sách phiên làm việc của Studio.'),
+      );
+    }
+  },
+
+  /**
+   * Thu hồi phiên làm việc của một thiết bị (DELETE /api/workspaces/{id}/sessions/{sessionId})
+   */
+  revokeSession: async (workspaceId: string, sessionId: string): Promise<void> => {
+    try {
+      await axiosClient.delete(`/workspaces/${workspaceId}/sessions/${sessionId}`);
+    } catch (error) {
+      throw new Error(await parseErrorResponse(error, 'Không thể thu hồi phiên làm việc.'));
+    }
   },
 };

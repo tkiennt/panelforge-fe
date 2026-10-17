@@ -1,60 +1,87 @@
-# PanelForge 🖋️✨
+# PanelForge Frontend 🎨📖
 > *An AI-Assisted Manga & Webtoon Production Management Platform*
 
-[![React](https://img.shields.io/badge/React-18.x-blue?style=flat-square&logo=react)](https://react.dev/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind-CSS-3.x-38BDF8?style=flat-square&logo=tailwindcss)](https://tailwindcss.com/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![React](https://img.shields.io/badge/React-19.x-blue?style=flat-square&logo=react)](https://react.dev/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-CSS-4.x-38BDF8?style=flat-square&logo=tailwindcss)](https://tailwindcss.com/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
+[![Vite](https://img.shields.io/badge/Vite-6.x-646CFF?style=flat-square&logo=vite)](https://vitejs.dev/)
 
 ---
 
 ## 📖 Overview
-**PanelForge** is a modern, collaborative SaaS platform tailored for manga studios, writers, artists, and editors. It bridges the gap between creative storytelling and complex project management, combining an intuitive **Kanban production pipeline**, an **AI-powered script breakdown & continuity engine**, and a centralized **Series Bible (RAG repository)**.
-
-Designed around a pristine **"Manga Paper × Ink × Tangerine"** artistic editorial aesthetic, PanelForge provides a distraction-free, professional digital workspace for comic creators.
-
----
-
-## 🎨 Design System & Theme
-* **Visual Identity:** Clean, bright editorial light-theme inspired by high-grade manuscript drawing paper and traditional Japanese manga publishing.
-* **Color Palette:**
-  * **Paper & Backgrounds:** Pure White (`#FFFFFF`) & Warm Organic Paper (`#FAF8F5`).
-  * **Ink & Structure:** Crisp Ink Black (`#171717`) for typography, outlines, and borders (`1.5px`).
-  * **Brand Accent:** Tangerine Orange (`#F97316`) for primary creator actions.
-  * **AI Accent:** Refined AI Violet (`#8B5CF6`) for intelligent assistance and vectorization logs.
-* **Typography:**
-  * **Headings & Series Titles:** Serif editorial font (`Playfair Display` / `Cinzel`).
-  * **UI & Body Elements:** Clean geometric sans-serif (`Plus Jakarta Sans` / `Inter`).
-  * **Scripts & Technical Metadata:** Crisp monospace (`JetBrains Mono`).
+**PanelForge** is a modern, collaborative SaaS platform tailored for manga studios, writers, artists, letterers, editors, and producers. It bridges the gap between creative storytelling and complex project management by combining:
+- **Kanban Production Pipeline:** Multi-stage workflow tracking from Scripting to Final Approval.
+- **AI-Powered Continuity & Script Breakdown:** Intelligent script analysis and visual consistency checks.
+- **Centralized Series Bible:** Lore, character references, and world-building rules synced with `pgvector` for real-time RAG continuity.
+- **Editorial AI Studio Design:** A distraction-free, quiet editorial print magazine aesthetic built with Inter typography and atmospheric pastel gradients.
 
 ---
 
-## 🚀 Core Features & Modules
-1. **Portfolio Content Hub:** Manage multiple manga series/projects with live progress tracking, publication metadata, and a streamlined "Create New Series" setup flow.
-2. **Project Workspace (App Shell):** Persistent navigation and single-page application (SPA) routing across four core modules:
-   * **Dashboard:** Real-time burndown metrics, velocity charts, and append-only SHA-256 provenance audit logs.
-   * **Production Pipeline (Kanban):** Multi-stage workflow board (Script ➔ Thumbnail ➔ Pencil ➔ Ink ➔ Review ➔ Approved) featuring rich page cards with strict deadline tracking and assignee filters.
-   * **Series Bible (RAG Repository):** Categorized lore storage (Characters, Locations, Props, Plot Rules) synced with `pgvector` for real-time AI continuity checking.
-   * **Members & Roles (RBAC):** Role-based permission matrix and team management for Producers, Writers, Artists, and Reviewers.
+## 🎨 Design System & Visual Identity
+- **Visual Tone:** Quiet Editorial Print Magazine (`#f5f5f5` canvas, warm near-black ink `#292524` typography).
+- **Brand Voltage:** Soft atmospheric pastel gradient orbs (Mint `#a7e5d3`, Peach `#f4c5a8`, Lavender `#c8b8e0`, Sky `#a8c8e8`, Rose `#e8b8c4`).
+- **Typography:** Standardized on `@fontsource/inter` (Weights: 400, 500, 600, 700). Minimum font size is `text-xs` (12px).
+- **Core Rules:** See detailed specs in [`docs/DESIGN_RULES.md`](./docs/DESIGN_RULES.md).
 
 ---
 
-## 🛠️ Tech Stack
-* **Frontend Library:** React (Vite / Next.js architecture)
-* **Styling:** Tailwind CSS
-* **Icons:** Lucide React
-* **State Management:** React Hooks (`useState` SPA navigation)
-
----
-
-## 📂 Project Structure
+## 🏗️ Project Architecture
 ```text
-panel-forge/
-├── public/                 # Static assets & cover art placeholders
+panelforge-fe/
 ├── src/
-│   ├── components/         # Reusable UI components (Modals, Cards, App Shell)
-│   ├── views/              # Core screen modules (Content Hub, Kanban, Bible, Dashboard)
-│   ├── styles/             # Tailwind configuration & global typography
-│   └── App.jsx             # Main SPA router & state controller
-├── DESIGN.md               # Complete design system & UI guidelines
-├── package.json
-└── README.md
+│   ├── layouts/              # Global application shell and navigation layouts
+│   ├── roles/                # Role-isolated views, components, and local READMEs:
+│   │   ├── admin/            # System & user management
+│   │   ├── artist/           # Page drawing, layer layout, and asset review
+│   │   ├── editor/           # Quality control and continuity validation
+│   │   ├── guest/            # Public viewer / portfolio preview
+│   │   ├── letterer/         # Dialogue balloons and SFX placement
+│   │   ├── producer/         # Workspace, sprint timeline, pipeline board
+│   │   ├── publisher/        # Catalog, metadata, and export dispatch
+│   │   ├── reader/           # Reading view & community comments
+│   │   └── writer/           # Scriptwriting & Series Bible lore management
+│   ├── shared/               # Shared components, hooks, modals, and pipeline boards
+│   ├── services/api/         # REST API clients & endpoints integration
+│   └── styles/               # Tailwind CSS v4 design tokens and global styles
+├── docs/                     # Central documentation hub (see docs/README.md)
+├── PRODUCT.md                # System specification & business rules
+└── CLAUDE.md                 # Developer & AI Agent operational instructions
+```
+
+---
+
+## 🚀 Quick Start & Development
+
+### 1. Installation
+```bash
+npm install
+```
+
+### 2. Run Development Server
+```bash
+npm run dev
+```
+
+### 3. Quality & Verification Scripts
+```bash
+# Typecheck
+npm run typecheck
+
+# Lint check & auto-fix
+npm run lint
+
+# Run all automated tests
+npm run test:run
+
+# Full quality gate (typecheck + lint + test)
+npm run quality
+```
+
+---
+
+## 📚 Technical Documentation Hub
+All architectural documentation, implementation plans, and design specifications are organized under [`docs/`](./docs/README.md):
+- [Documentation Hub & Index](./docs/README.md)
+- [Documentation Process & Sync Protocol](./docs/DOCUMENTATION_PROCESS.md)
+- [Design Rules & Tokens](./docs/DESIGN_RULES.md)
+- [Completed Implementation Plans](./docs/implement-plan/completed/)

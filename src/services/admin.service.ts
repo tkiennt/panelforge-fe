@@ -1,5 +1,5 @@
 // src/services/admin.service.ts
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5044';
+import axiosClient from '../api/axiosClient';
 
 export interface AdminUserItem {
   id: string;
@@ -7,10 +7,12 @@ export interface AdminUserItem {
   fullName: string | null;
   phoneNumber: string | null;
   role: string;
+  canCreateStudio?: boolean;
   isActive: boolean;
   isEmailConfirmed: boolean;
   twoFactorEnabled: boolean;
   createdAt: string;
+  projectRoles?: { projectId: string; roles: string[] }[];
 }
 
 export interface AdminUsersResponse {
@@ -29,198 +31,443 @@ export interface AssignRoleResponse {
   message: string;
   userId: string;
   newRole: string;
+  canCreateStudio?: boolean;
 }
 
 export interface SystemStatsResponse {
   totalUsers: number;
   admins: number;
-  moderators: number;
-  standardUsers: number;
+  registeredUsers: number;
+  totalWorkspaces: number;
+  totalWorkspaceMembers: number;
   serverTimeUtc: string;
 }
 
-async function parseErrorResponse(response: Response, defaultMessage: string): Promise<string> {
-  try {
-    if (typeof response.json === 'function') {
-      const data = await response.json();
-      if (data && typeof data === 'object' && data.message) {
-        return data.message;
-      }
-    }
-  } catch {
-    // response body empty or non-JSON
-  }
+export interface CreateUserPayload {
+  email: string;
+  fullName: string;
+  password: string;
+  phoneNumber?: string;
+  role: 'Admin' | 'User';
+  isActive?: boolean;
+}
 
-  if (response.status === 401) {
+export interface UpdateUserPayload {
+  fullName: string;
+  phoneNumber?: string;
+  role: 'Admin' | 'User';
+  isActive: boolean;
+}
+
+export interface AuditLogDto {
+  id: string;
+  workspaceId?: string | null;
+  workspaceName?: string | null;
+  userId?: string | null;
+  userEmail?: string | null;
+  action: string;
+  entityName: string;
+  entityId: string;
+  details?: string | null;
+  changesJson?: string | null;
+  ipAddress?: string | null;
+  createdAt: string;
+}
+
+export interface AuditLogsPagedResponse {
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  items: AuditLogDto[];
+}
+
+export interface AuditLogFilterParams {
+  workspaceId?: string;
+  userId?: string;
+  userEmail?: string;
+  entityName?: string;
+  entityId?: string;
+  action?: string;
+  from?: string;
+  to?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface ExportResult {
+  blob: Blob;
+  fileName: string;
+  rowCount: number;
+  isTruncated: boolean;
+}
+
+export function downloadBlob(blob: Blob, fileName: string) {
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  window.URL.revokeObjectURL(url);
+  document.body.removeChild(a);
+}
+
+export interface AiUsageFeatureSummary {
+  feature: string;
+  callCount: number;
+  totalTokens: number;
+}
+
+export interface AiUsageReportItemDto {
+  workspaceId: string;
+  workspaceName: string;
+  provider?: string | null;
+  monthlyTokenQuota: number;
+  usedTokensCurrentMonth: number;
+  usagePercent: number;
+  isEnabled: boolean;
+  periodFrom: string;
+  periodTo: string;
+  callCount: number;
+  succeededCount: number;
+  failedCount: number;
+  blockedCount: number;
+  totalTokens: number;
+  totalCostUsd: number;
+  byFeature: AiUsageFeatureSummary[];
+}
+
+export interface AiUsageRecordDto {
+  id: string;
+  workspaceId: string;
+  userId?: string | null;
+  feature: string;
+  provider: string;
+  model?: string | null;
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  costUsd?: number | null;
+  status: 'Succeeded' | 'Failed' | 'QuotaExceeded' | 'ProviderUnavailable' | 'Disabled' | string;
+  errorMessage?: string | null;
+  durationMs?: number | null;
+  occurredAtUtc: string;
+}
+
+export interface AiUsageRecordsFilterParams {
+  workspaceId?: string;
+  userId?: string;
+  feature?: string;
+  status?: string;
+  from?: string;
+  to?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface AiUsageRecordsPagedResponse {
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  items: AiUsageRecordDto[];
+}
+
+export interface WorkspaceSessionPolicyDto {
+  workspaceId: string;
+  sessionLifetimeMinutes: number | null;
+  idleTimeoutMinutes: number | null;
+  maxConcurrentSessions: number | null;
+}
+
+export interface UpdateWorkspaceSessionPolicyRequest {
+  sessionLifetimeMinutes?: number | null;
+  idleTimeoutMinutes?: number | null;
+  maxConcurrentSessions?: number | null;
+}
+
+export interface WorkspaceAiConfigDto {
+  id: string;
+  workspaceId: string;
+  provider: string;
+  hasApiKey: boolean;
+  isEnabled: boolean;
+  monthlyTokenQuota: number;
+  usedTokensCurrentMonth: number;
+  allowedModels: string[];
+  lastResetAt?: string | null;
+  createdAt: string;
+  updatedAt?: string | null;
+  monthlyImageQuota: number;
+  usedImagesCurrentMonth: number;
+}
+
+export interface UpdateWorkspaceAiConfigRequest {
+  provider: string;
+  apiKey?: string;
+  isEnabled: boolean;
+  monthlyTokenQuota: number;
+  allowedModels: string[];
+  monthlyImageQuota?: number;
+}
+
+function extractError(error: any, defaultMsg: string): string {
+  const data = error.response?.data;
+  if (data?.message) return data.message;
+  if (data?.error) return data.error;
+  if (error.response?.status === 401)
     return 'Phiên đăng nhập đã hết hạn hoặc bạn chưa đăng nhập (401 Unauthorized).';
-  }
-  if (response.status === 403) {
+  if (error.response?.status === 403)
     return 'Bạn không có quyền quản trị viên để thực hiện thao tác này (403 Forbidden).';
-  }
-  return defaultMessage;
+  return defaultMsg;
 }
 
-function getAuthHeaders(customToken?: string): Record<string, string> {
-  const token = customToken || localStorage.getItem('token') || '';
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-  return headers;
-}
-
-// Fallback Mock Users when offline or demo
-export const MOCK_ADMIN_USERS: AdminUserItem[] = [
-  {
-    id: '11111111-1111-1111-1111-111111111111',
-    email: 'admin@panelforge.com',
-    fullName: 'System Super Admin',
-    phoneNumber: '+84 901 000 001',
-    role: 'Admin',
-    isActive: true,
-    isEmailConfirmed: true,
-    twoFactorEnabled: true,
-    createdAt: '2026-01-01T08:00:00Z',
-  },
-  {
-    id: '22222222-2222-2222-2222-222222222222',
-    email: 'producer@panelforge.com',
-    fullName: 'Tatsuki Fujimoto',
-    phoneNumber: '+84 901 000 002',
-    role: 'Producer',
-    isActive: true,
-    isEmailConfirmed: true,
-    twoFactorEnabled: true,
-    createdAt: '2026-01-15T09:30:00Z',
-  },
-  {
-    id: '33333333-3333-3333-3333-333333333333',
-    email: 'writer@panelforge.com',
-    fullName: 'Gen Urobuchi',
-    phoneNumber: '+84 901 000 003',
-    role: 'Writer',
-    isActive: true,
-    isEmailConfirmed: true,
-    twoFactorEnabled: false,
-    createdAt: '2026-02-01T10:15:00Z',
-  },
-  {
-    id: '44444444-4444-4444-4444-444444444444',
-    email: 'artist@panelforge.com',
-    fullName: 'Yusuke Murata',
-    phoneNumber: '+84 901 000 004',
-    role: 'Artist',
-    isActive: true,
-    isEmailConfirmed: true,
-    twoFactorEnabled: true,
-    createdAt: '2026-02-10T14:20:00Z',
-  },
-  {
-    id: '55555555-5555-5555-5555-555555555555',
-    email: 'letterer@panelforge.com',
-    fullName: 'Stan Sakai',
-    phoneNumber: '+84 901 000 005',
-    role: 'Letterer',
-    isActive: true,
-    isEmailConfirmed: true,
-    twoFactorEnabled: false,
-    createdAt: '2026-02-20T11:00:00Z',
-  },
-  {
-    id: '66666666-6666-6666-6666-666666666666',
-    email: 'editor@panelforge.com',
-    fullName: 'Kazuhiko Torishima',
-    phoneNumber: '+84 901 000 006',
-    role: 'Editor',
-    isActive: true,
-    isEmailConfirmed: true,
-    twoFactorEnabled: true,
-    createdAt: '2026-03-01T08:45:00Z',
-  },
-  {
-    id: '77777777-7777-7777-7777-777777777777',
-    email: 'reader@panelforge.com',
-    fullName: 'Early Access Fan Reader',
-    phoneNumber: '+84 901 000 007',
-    role: 'Reader',
-    isActive: true,
-    isEmailConfirmed: true,
-    twoFactorEnabled: false,
-    createdAt: '2026-03-10T16:30:00Z',
-  },
-];
+export const MOCK_ADMIN_USERS: AdminUserItem[] = [];
 
 export const adminService = {
-  /**
-   * Lấy danh sách toàn bộ người dùng có phân trang (GET /api/Admin/users?page=&pageSize=)
-   */
-  getAllUsers: async (page = 1, pageSize = 20, token?: string): Promise<AdminUsersResponse> => {
+  getAllUsers: async (page = 1, pageSize = 20): Promise<AdminUsersResponse> => {
+    const currentRole = localStorage.getItem('userRole');
+    if (
+      currentRole &&
+      currentRole.toUpperCase() !== 'ADMINISTRATOR' &&
+      currentRole.toUpperCase() !== 'ADMIN'
+    ) {
+      return { total: 0, page, pageSize, items: [] };
+    }
+
     try {
-      const response = await fetch(`${API_URL}/api/Admin/users?page=${page}&pageSize=${pageSize}`, {
-        method: 'GET',
-        headers: getAuthHeaders(token),
-      });
-
-      if (!response.ok) {
-        throw new Error(await parseErrorResponse(response, 'Không thể tải danh sách người dùng.'));
-      }
-
-      return await response.json();
-    } catch (err: any) {
-      // Nếu là lỗi phân quyền hoặc network offline trong môi trường dev/demo, cho phép fallback
-      console.warn('adminService.getAllUsers error, using mock fallback:', err.message);
-      return {
-        total: MOCK_ADMIN_USERS.length,
-        page,
-        pageSize,
-        items: MOCK_ADMIN_USERS,
-      };
+      const response = await axiosClient.get('/Admin/users', { params: { page, pageSize } });
+      return response.data;
+    } catch (error: any) {
+      console.warn('adminService.getAllUsers error:', error.message);
+      return { total: 0, page, pageSize, items: [] };
     }
   },
 
-  /**
-   * Phân quyền vai trò mới cho người dùng (POST /api/Admin/assign-role)
-   */
-  assignRole: async (request: AssignRoleRequest, token?: string): Promise<AssignRoleResponse> => {
-    const response = await fetch(`${API_URL}/api/Admin/assign-role`, {
-      method: 'POST',
-      headers: getAuthHeaders(token),
-      body: JSON.stringify(request),
-    });
-
-    if (!response.ok) {
-      throw new Error(await parseErrorResponse(response, 'Không thể phân quyền cho người dùng.'));
+  assignProducer: async (request: AssignRoleRequest): Promise<AssignRoleResponse> => {
+    try {
+      const response = await axiosClient.post('/Admin/assign-producer', request);
+      return response.data;
+    } catch (error) {
+      throw new Error(extractError(error, 'Không thể phân quyền cho người dùng.'));
     }
-
-    return await response.json();
   },
 
-  /**
-   * Lấy thống kê tổng quan hệ thống (GET /api/Admin/system-stats)
-   */
-  getSystemStats: async (token?: string): Promise<SystemStatsResponse> => {
+  assignRole: async (request: AssignRoleRequest): Promise<AssignRoleResponse> => {
     try {
-      const response = await fetch(`${API_URL}/api/Admin/system-stats`, {
-        method: 'GET',
-        headers: getAuthHeaders(token),
-      });
+      const response = await axiosClient.post('/Admin/assign-role', request);
+      return response.data;
+    } catch (error) {
+      throw new Error(extractError(error, 'Không thể phân quyền cho người dùng.'));
+    }
+  },
 
-      if (!response.ok) {
-        throw new Error(await parseErrorResponse(response, 'Không thể tải thống kê hệ thống.'));
-      }
+  createUser: async (payload: CreateUserPayload): Promise<AdminUserItem> => {
+    try {
+      const response = await axiosClient.post('/Admin/users', payload);
+      return response.data;
+    } catch (error) {
+      throw new Error(extractError(error, 'Không thể tạo người dùng mới.'));
+    }
+  },
 
-      return await response.json();
-    } catch (err: any) {
-      console.warn('adminService.getSystemStats error, using mock fallback:', err.message);
+  updateUser: async (id: string, payload: UpdateUserPayload): Promise<AdminUserItem> => {
+    try {
+      const response = await axiosClient.put(`/Admin/users/${id}`, payload);
+      return response.data;
+    } catch (error) {
+      throw new Error(extractError(error, 'Không thể cập nhật thông tin người dùng.'));
+    }
+  },
+
+  getSystemStats: async (): Promise<SystemStatsResponse> => {
+    const currentRole = localStorage.getItem('userRole');
+    if (
+      currentRole &&
+      currentRole.toUpperCase() !== 'ADMINISTRATOR' &&
+      currentRole.toUpperCase() !== 'ADMIN'
+    ) {
       return {
-        totalUsers: 148,
-        admins: 3,
-        moderators: 8,
-        standardUsers: 137,
+        totalUsers: 0,
+        admins: 0,
+        registeredUsers: 0,
+        totalWorkspaces: 0,
+        totalWorkspaceMembers: 0,
         serverTimeUtc: new Date().toISOString(),
       };
+    }
+
+    try {
+      const response = await axiosClient.get('/Admin/system-stats');
+      return response.data;
+    } catch (error: any) {
+      console.warn('adminService.getSystemStats error:', error.message);
+      return {
+        totalUsers: 0,
+        admins: 0,
+        registeredUsers: 0,
+        totalWorkspaces: 0,
+        totalWorkspaceMembers: 0,
+        serverTimeUtc: new Date().toISOString(),
+      };
+    }
+  },
+
+  getAuditLogs: async (
+    workspaceIdOrParams?: string | AuditLogFilterParams,
+    action?: string,
+    page = 1,
+    pageSize = 30,
+  ): Promise<AuditLogsPagedResponse> => {
+    let params: AuditLogFilterParams = {};
+    if (typeof workspaceIdOrParams === 'object' && workspaceIdOrParams !== null) {
+      params = workspaceIdOrParams;
+    } else {
+      params = {
+        workspaceId: typeof workspaceIdOrParams === 'string' ? workspaceIdOrParams : undefined,
+        action,
+        page,
+        pageSize,
+      };
+    }
+
+    try {
+      const response = await axiosClient.get('/Admin/audit-logs', { params });
+      return response.data;
+    } catch (error) {
+      throw new Error(extractError(error, 'Không thể tải danh sách Audit Log.'));
+    }
+  },
+
+  exportAuditLogs: async (params: AuditLogFilterParams = {}): Promise<ExportResult> => {
+    try {
+      const response = await axiosClient.get('/Admin/audit-logs/export', {
+        params,
+        responseType: 'blob',
+      });
+
+      const rowCountHeader = response.headers['x-export-row-count'];
+      const truncatedHeader = response.headers['x-export-truncated'];
+      const contentDisposition = response.headers['content-disposition'] || '';
+
+      let fileName = 'audit-logs.csv';
+      const match = contentDisposition.match(/filename\*?=['"]?(?:UTF-8'')?([^"';]+)['"]?/i);
+      if (match && match[1]) {
+        fileName = decodeURIComponent(match[1]);
+      }
+
+      return {
+        blob: response.data,
+        fileName,
+        rowCount: rowCountHeader ? parseInt(rowCountHeader, 10) : 0,
+        isTruncated: truncatedHeader === 'true',
+      };
+    } catch (error) {
+      throw new Error(extractError(error, 'Không thể xuất file CSV Audit Log.'));
+    }
+  },
+
+  getAiUsage: async (
+    params: { workspaceId?: string; from?: string; to?: string } = {},
+  ): Promise<AiUsageReportItemDto[]> => {
+    try {
+      const response = await axiosClient.get('/Admin/ai-usage', { params });
+      return response.data;
+    } catch (error) {
+      throw new Error(extractError(error, 'Không thể tải thống kê AI Usage.'));
+    }
+  },
+
+  getAiUsageRecords: async (
+    params: AiUsageRecordsFilterParams = {},
+  ): Promise<AiUsageRecordsPagedResponse> => {
+    try {
+      const response = await axiosClient.get('/Admin/ai-usage/records', { params });
+      return response.data;
+    } catch (error) {
+      throw new Error(extractError(error, 'Không thể tải lịch sử gọi AI records.'));
+    }
+  },
+
+  exportAiUsage: async (params: AiUsageRecordsFilterParams = {}): Promise<ExportResult> => {
+    try {
+      const response = await axiosClient.get('/Admin/ai-usage/export', {
+        params,
+        responseType: 'blob',
+      });
+
+      const rowCountHeader = response.headers['x-export-row-count'];
+      const truncatedHeader = response.headers['x-export-truncated'];
+      const contentDisposition = response.headers['content-disposition'] || '';
+
+      let fileName = 'ai-usage-records.csv';
+      const match = contentDisposition.match(/filename\*?=['"]?(?:UTF-8'')?([^"';]+)['"]?/i);
+      if (match && match[1]) {
+        fileName = decodeURIComponent(match[1]);
+      }
+
+      return {
+        blob: response.data,
+        fileName,
+        rowCount: rowCountHeader ? parseInt(rowCountHeader, 10) : 0,
+        isTruncated: truncatedHeader === 'true',
+      };
+    } catch (error) {
+      throw new Error(extractError(error, 'Không thể xuất file CSV AI Usage.'));
+    }
+  },
+
+  getWorkspaceAiConfig: async (workspaceId: string): Promise<WorkspaceAiConfigDto> => {
+    try {
+      const response = await axiosClient.get(`/Admin/workspaces/${workspaceId}/ai-config`);
+      return response.data;
+    } catch (error) {
+      throw new Error(extractError(error, 'Không thể tải cấu hình AI của Workspace.'));
+    }
+  },
+
+  updateWorkspaceAiConfig: async (
+    workspaceId: string,
+    data: UpdateWorkspaceAiConfigRequest,
+  ): Promise<WorkspaceAiConfigDto> => {
+    try {
+      const response = await axiosClient.put(`/Admin/workspaces/${workspaceId}/ai-config`, data);
+      return response.data;
+    } catch (error) {
+      throw new Error(extractError(error, 'Không thể lưu cấu hình AI của Workspace.'));
+    }
+  },
+
+  getWorkspaceSessionPolicy: async (workspaceId: string): Promise<WorkspaceSessionPolicyDto> => {
+    try {
+      const response = await axiosClient.get(`/Admin/workspaces/${workspaceId}/session-policy`);
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        extractError(error, 'Không thể tải chính sách phiên làm việc của Workspace.'),
+      );
+    }
+  },
+
+  updateWorkspaceSessionPolicy: async (
+    workspaceId: string,
+    data: UpdateWorkspaceSessionPolicyRequest,
+  ): Promise<WorkspaceSessionPolicyDto> => {
+    try {
+      // Đảm bảo luôn gửi đủ 3 field (null nếu không đặt giới hạn) vì PUT thay thế toàn bộ policy
+      const payload: UpdateWorkspaceSessionPolicyRequest = {
+        sessionLifetimeMinutes: data.sessionLifetimeMinutes ?? null,
+        idleTimeoutMinutes: data.idleTimeoutMinutes ?? null,
+        maxConcurrentSessions: data.maxConcurrentSessions ?? null,
+      };
+      const response = await axiosClient.put(
+        `/Admin/workspaces/${workspaceId}/session-policy`,
+        payload,
+      );
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        extractError(error, 'Không thể cập nhật chính sách phiên làm việc của Workspace.'),
+      );
     }
   },
 };
