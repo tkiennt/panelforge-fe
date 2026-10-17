@@ -329,7 +329,7 @@ describe('AssignmentWorkCard: Editor/Producer duyệt', () => {
     );
     const { user } = renderCard(asEditor({ assignment: assignment({ status: 'UnderReview' }) }));
 
-    const approve = await screen.findByRole('button', { name: 'Duyệt' });
+    const approve = await screen.findByRole('button', { name: /Duyệt/ });
     await waitFor(() => expect(approve).toBeEnabled());
     await user.click(approve);
 
@@ -347,7 +347,7 @@ describe('AssignmentWorkCard: Editor/Producer duyệt', () => {
       }),
     );
 
-    const approve = await screen.findByRole('button', { name: 'Duyệt' });
+    const approve = await screen.findByRole('button', { name: /Duyệt/ });
     await waitFor(() => expect(approve).toBeDisabled());
     expect(screen.getByText(/xác minh trước khi duyệt/)).toBeInTheDocument();
 
