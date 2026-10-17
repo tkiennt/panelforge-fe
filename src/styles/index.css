@@ -52,6 +52,18 @@
   --color-surface-card: #ffffff;
   --color-surface-strong: #f0efed;
 
+  /* Shared Hero & Auth Identity Tokens */
+  --color-charcoal-ink: #0c0a09;
+  --color-charcoal-deep: #171717;
+  --color-charcoal-cta: #292524;
+  --color-charcoal-cta-hover: #0c0a09;
+  --color-charcoal-desk: #1a1714;
+  --color-editorial-muted: #777169;
+  --color-editorial-body: #4e4e4e;
+  --color-paper-base: #faf8f5;
+  --color-paper-card: #fffefa;
+  --color-tangerine-accent: #f97316;
+
   /* Atmospheric Gradient Orbs */
   --color-orb-mint: #a7e5d3;
   --color-orb-peach: #f4c5a8;
@@ -541,4 +553,65 @@ body {
   color: #6d28d9;
   border: 1px solid #ddd6fe;
   font-weight: 600;
+}
+
+/* ============================================================== */
+/* AUTH DIALOG CARD ANIMATION (180ms fade + scale 0.98 -> 1)      */
+/* ============================================================== */
+@keyframes authDialogIn {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-auth-dialog-in {
+  animation: authDialogIn 180ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ============================================================== */
+/* THE VERSIONED BLUEPRINT & ACCESSIBILITY RULES                  */
+/* ============================================================== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.001s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001s !important;
+    scroll-behavior: auto !important;
+  }
+
+  .animate-auth-dialog-in {
+    animation: none !important;
+    transform: none !important;
+  }
+
+  /* Disable dynamic 3D tilt and translate when user prefers reduced motion */
+  [style*='transformStyle: preserve-3d'],
+  [style*='preserve-3d'] {
+    transform: none !important;
+  }
+}
+
+/* ============================================================== */
+/* HERO VIEWPORT SIZING (EXACT DESKTOP FIT)                       */
+/* ============================================================== */
+@media (min-width: 1024px) {
+  .hero-desktop-screen {
+    height: calc(100vh - 4rem);
+    height: calc(100svh - 4rem);
+    min-height: calc(100vh - 4rem);
+    min-height: calc(100svh - 4rem);
+    max-height: calc(100vh - 4rem);
+    max-height: calc(100svh - 4rem);
+  }
+
+  .hero-grid-layout {
+    grid-template-columns: 52fr 48fr !important;
+  }
 }

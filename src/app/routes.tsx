@@ -1,7 +1,18 @@
 import React from 'react';
-import { Routes, Route, Navigate, Outlet, useNavigate, useParams } from 'react-router-dom';
+import {
+  Routes,
+  Route,
+  Navigate,
+  Outlet,
+  useNavigate,
+  useLocation,
+  useParams,
+} from 'react-router-dom';
 import { User } from 'firebase/auth';
 import { AppShell } from './AppShell';
+import { AuthLayout } from '@/roles/guest/views/AuthLayout';
+import { LoginPage } from '@/roles/guest/views/LoginPage';
+import { RegisterPage } from '@/roles/guest/views/RegisterPage';
 
 const WorkspaceRedirect: React.FC = () => {
   const { workspaceId, '*': rest } = useParams<{ workspaceId: string; '*'?: string }>();
@@ -44,8 +55,10 @@ export const PrivateRoute = ({
   isAuthenticated: boolean;
   children: React.ReactNode;
 }) => {
+  const location = useLocation();
   if (!isAuthenticated) {
-    return <Navigate to='/login' replace />;
+    const redirectParam = encodeURIComponent(location.pathname + location.search);
+    return <Navigate to={`/login?redirect=${redirectParam}`} replace />;
   }
   return <>{children}</>;
 };
@@ -105,6 +118,8 @@ export interface AppRoutesProps {
   provenanceLogs: any[];
   handleAddEntity: (e: BibleEntity) => void;
   isDevMode?: boolean;
+  onApiLoginSuccess?: (authResponse: any) => void;
+  onRegisterSuccess?: (authResponse: any) => void;
 }
 
 export const AppRoutes: React.FC<AppRoutesProps> = ({
@@ -133,8 +148,11 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
   provenanceLogs,
   handleAddEntity,
   isDevMode = false,
+  onApiLoginSuccess,
+  onRegisterSuccess,
 }) => {
   const navigate = useNavigate();
+  const location = useLocation();
 
   return (
     <Routes>
@@ -143,8 +161,8 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
         element={
           !isAuthenticated ? (
             <LandingPageView
-              onOpenLogin={() => setIsLoginModalOpen(true)}
-              onOpenRegister={() => setIsRegisterModalOpen(true)}
+              onOpenLogin={() => navigate(`/login${location.search}`)}
+              onOpenRegister={() => navigate(`/register${location.search}`)}
             />
           ) : (
             <Navigate to={defaultRedirectPath} replace />
@@ -156,10 +174,22 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
         path='/login'
         element={
           !isAuthenticated ? (
-            <LandingPageView
-              onOpenLogin={() => setIsLoginModalOpen(true)}
-              onOpenRegister={() => setIsRegisterModalOpen(true)}
-            />
+            <AuthLayout mode='login'>
+              <LoginPage onLoginSuccess={onApiLoginSuccess} />
+            </AuthLayout>
+          ) : (
+            <Navigate to={defaultRedirectPath} replace />
+          )
+        }
+      />
+
+      <Route
+        path='/register'
+        element={
+          !isAuthenticated ? (
+            <AuthLayout mode='register'>
+              <RegisterPage onRegisterSuccess={onRegisterSuccess} />
+            </AuthLayout>
           ) : (
             <Navigate to={defaultRedirectPath} replace />
           )

@@ -12,6 +12,25 @@ export interface ProjectMembership {
   roles: (WorkspaceRole | string)[];
 }
 
+export interface UserDto {
+  id: string;
+  email: string;
+  fullName?: string;
+  role: string;
+  canCreateStudio?: boolean;
+  twoFactorEnabled?: boolean;
+  isTwoFactorEnabled?: boolean;
+}
+
+export interface AuthResponse {
+  token?: string;
+  refreshToken?: string;
+  user?: UserDto;
+  requiresTwoFactor?: boolean;
+  twoFactorEmail?: string;
+  message?: string;
+}
+
 /**
  * Chuẩn hóa SystemRole (chỉ có 2 giá trị toàn cục: ADMINISTRATOR hoặc USER).
  */
