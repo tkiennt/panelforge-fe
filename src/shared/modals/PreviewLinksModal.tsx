@@ -251,16 +251,15 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
             </div>
             <div>
               <div className='flex items-center gap-2'>
-                <span className='px-2 py-0.5 rounded bg-[#171717] text-white font-mono text-[9px] font-bold'>
+                <span className='px-2 py-0.5 rounded bg-[#171717] text-white font-mono text-xs font-bold'>
                   CF5 // PREVIEW &amp; FEEDBACK
                 </span>
-                <span className='text-[10px] text-[#888888] font-mono'>
+                <span className='text-xs text-[#888888] font-mono'>
                   Bản xem thử bảo mật &amp; Phản hồi đối tác
                 </span>
               </div>
               <h2 className='text-base font-bold text-[#171717] mt-0.5'>
-                Chương #{chapterNumber}
-                {chapterTitle ? `: ${chapterTitle}` : ''}
+                {`Chương #${chapterNumber}${chapterTitle ? `: ${chapterTitle}` : ''}`}
               </h2>
             </div>
           </div>
@@ -402,7 +401,7 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
                     <button
                       type='button'
                       onClick={() => setCreatedLink(null)}
-                      className='text-orange-700 hover:text-orange-950 text-[11px] font-semibold underline cursor-pointer'
+                      className='text-orange-700 hover:text-orange-950 text-xs font-semibold underline cursor-pointer'
                     >
                       Đóng thông báo
                     </button>
@@ -430,7 +429,7 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
                     </button>
                   </div>
 
-                  <div className='text-[11px] text-amber-800 bg-amber-100/60 p-2 rounded-lg border border-amber-200/80'>
+                  <div className='text-xs text-amber-800 bg-amber-100/60 p-2 rounded-lg border border-amber-200/80'>
                     ⚠️ <strong>Cảnh báo bảo mật:</strong> Token liên kết chỉ hiển thị một lần duy
                     nhất trên giao diện (máy chủ chỉ lưu mã băm SHA-256). Vui lòng sao chép và gửi
                     cho người nhận ngay bây giờ.
@@ -458,7 +457,7 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
                 </div>
 
                 <table className='w-full text-left border-collapse text-xs'>
-                  <thead className='bg-[#FAF8F5] border-b border-[#E7E7E7] font-mono text-[10px] text-[#737373] uppercase'>
+                  <thead className='bg-[#FAF8F5] border-b border-[#E7E7E7] font-mono text-xs text-[#737373] uppercase'>
                     <tr>
                       <th className='py-2.5 px-3'>Email Người Nhận</th>
                       <th className='py-2.5 px-3'>Trạng Thái</th>
@@ -506,23 +505,23 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
                             </td>
                             <td className='py-2.5 px-3 whitespace-nowrap'>
                               <span
-                                className={`px-2 py-0.5 rounded-full border text-[10px] font-mono font-bold ${statusClass}`}
+                                className={`px-2 py-0.5 rounded-full border text-xs font-mono font-bold ${statusClass}`}
                               >
                                 {statusLabel}
                               </span>
                             </td>
-                            <td className='py-2.5 px-3 whitespace-nowrap font-mono text-[11px] text-[#555555]'>
+                            <td className='py-2.5 px-3 whitespace-nowrap font-mono text-xs text-[#555555]'>
                               {new Date(item.expiresAt).toLocaleString('vi-VN')}
                             </td>
-                            <td className='py-2.5 px-3 font-mono text-[11px] text-[#555555]'>
+                            <td className='py-2.5 px-3 font-mono text-xs text-[#555555]'>
                               {item.accessCount} / {item.deniedCount}
                             </td>
-                            <td className='py-2.5 px-3 font-mono text-[11px] text-[#737373]'>
+                            <td className='py-2.5 px-3 font-mono text-xs text-[#737373]'>
                               {item.lastAccessAt
                                 ? new Date(item.lastAccessAt).toLocaleString('vi-VN')
                                 : 'Chưa xem'}
                             </td>
-                            <td className='py-2.5 px-3 font-mono text-[11px] font-bold text-[#F97316]'>
+                            <td className='py-2.5 px-3 font-mono text-xs font-bold text-[#F97316]'>
                               {item.feedbackCount || 0}
                             </td>
                             <td className='py-2.5 px-3 text-right'>
@@ -531,7 +530,7 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
                                   type='button'
                                   onClick={() => handleRevokeLink(item.id)}
                                   disabled={revokingId === item.id}
-                                  className='px-2 py-1 rounded bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 font-semibold text-[10px] transition-colors cursor-pointer disabled:opacity-50'
+                                  className='px-2 py-1 rounded bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 font-semibold text-xs transition-colors cursor-pointer disabled:opacity-50'
                                   data-testid={`revoke-link-btn-${item.id}`}
                                 >
                                   {revokingId === item.id ? 'Đang thu hồi...' : 'Thu hồi'}
@@ -553,13 +552,13 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
               {/* Filter Bar */}
               <div className='flex items-center justify-between'>
                 <div className='flex items-center gap-1.5'>
-                  <span className='text-[11px] font-semibold text-[#737373]'>Lọc trạng thái:</span>
+                  <span className='text-xs font-semibold text-[#737373]'>Lọc trạng thái:</span>
                   {(['ALL', 'New', 'Noted', 'NeedsChange'] as const).map((st) => (
                     <button
                       key={st}
                       type='button'
                       onClick={() => setFilterStatus(st)}
-                      className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all cursor-pointer ${
+                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
                         filterStatus === st
                           ? 'bg-[#171717] text-white border-[#171717]'
                           : 'bg-white hover:bg-[#FAF8F5] border-[#E7E7E7] text-[#555555]'
@@ -600,7 +599,7 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
                 <div className='py-12 text-center text-[#888888] border border-dashed border-[#E7E7E7] rounded-xl space-y-1'>
                   <MessageSquare className='w-6 h-6 mx-auto text-[#888888]' />
                   <div className='font-bold text-[#171717]'>Chưa có phản hồi nào</div>
-                  <p className='text-[11px] text-[#737373]'>
+                  <p className='text-xs text-[#737373]'>
                     Các ý kiến đóng góp từ liên kết xem thử công khai sẽ xuất hiện ở đây.
                   </p>
                 </div>
@@ -623,14 +622,14 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
                       >
                         <div className='flex items-center justify-between flex-wrap gap-2'>
                           <div className='flex items-center gap-2'>
-                            <span className='px-2 py-0.5 rounded bg-orange-50 border border-orange-200 text-[#F97316] font-mono text-[10px] font-bold'>
+                            <span className='px-2 py-0.5 rounded bg-orange-50 border border-orange-200 text-[#F97316] font-mono text-xs font-bold'>
                               {scopeLabel}
                             </span>
                             <span className='font-semibold text-[#171717]'>
                               {fb.recipientEmail}
                             </span>
                             {fb.assetReferenceId && (
-                              <span className='text-[10px] font-mono text-[#888888]'>
+                              <span className='text-xs font-mono text-[#888888]'>
                                 (Bản v{fb.chapterVersion})
                               </span>
                             )}
@@ -638,7 +637,7 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
 
                           <div className='flex items-center gap-2'>
                             <span
-                              className={`px-2 py-0.5 rounded-full border text-[10px] font-mono font-bold ${
+                              className={`px-2 py-0.5 rounded-full border text-xs font-mono font-bold ${
                                 fb.status === 'New'
                                   ? 'bg-amber-50 text-amber-700 border-amber-300'
                                   : fb.status === 'Noted'
@@ -653,7 +652,7 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
                                   ? 'Đã ghi nhận'
                                   : 'Cần sửa đổi'}
                             </span>
-                            <span className='text-[10px] text-[#888888] font-mono'>
+                            <span className='text-xs text-[#888888] font-mono'>
                               {new Date(fb.createdAt).toLocaleString('vi-VN')}
                             </span>
                           </div>
@@ -666,11 +665,11 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
 
                         {/* Ghi chú triage đã có */}
                         {fb.triageNote && (
-                          <div className='text-[11px] text-[#555555] bg-blue-50/60 border border-blue-200/80 p-2.5 rounded-lg'>
+                          <div className='text-xs text-[#555555] bg-blue-50/60 border border-blue-200/80 p-2.5 rounded-lg'>
                             <strong className='text-blue-900'>Ghi chú xử lý:</strong>{' '}
                             {fb.triageNote}
                             {fb.triagedAt && (
-                              <span className='text-[10px] text-blue-700 font-mono ml-2'>
+                              <span className='text-xs text-blue-700 font-mono ml-2'>
                                 ({new Date(fb.triagedAt).toLocaleString('vi-VN')})
                               </span>
                             )}
@@ -680,7 +679,7 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
                         {/* Đã thành yêu cầu sửa: không phân loại lại được (BE trả 409) */}
                         {fb.changeRequestId && (
                           <div
-                            className='pt-2 border-t border-[#E7E7E7] flex items-center gap-1.5 text-[11px] text-emerald-800'
+                            className='pt-2 border-t border-[#E7E7E7] flex items-center gap-1.5 text-xs text-emerald-800'
                             data-testid={`feedback-cr-linked-${fb.id}`}
                           >
                             <CheckCircle2 className='w-3.5 h-3.5 text-emerald-600' />
@@ -744,7 +743,7 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
                           isApproved &&
                           onReopenChapter && (
                             <div className='p-2.5 bg-amber-50/70 border border-amber-200 rounded-lg flex items-center justify-between gap-3 text-amber-900'>
-                              <span className='text-[11px]'>
+                              <span className='text-xs'>
                                 💡 Phản hồi này yêu cầu sửa đổi. Bạn có thể mở lại chương để chuyển
                                 về sản xuất:
                               </span>
@@ -765,10 +764,7 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
                         {/* 5.7: chương đã mở lại → chuyển phản hồi thành yêu cầu sửa của một việc */}
                         {!fb.changeRequestId && fb.status === 'NeedsChange' && isInProduction && (
                           <div className='p-2.5 bg-orange-50/70 border border-orange-200 rounded-lg flex flex-col sm:flex-row sm:items-center gap-2 text-orange-950'>
-                            <label
-                              htmlFor={`cr-assignment-${fb.id}`}
-                              className='text-[11px] shrink-0'
-                            >
+                            <label htmlFor={`cr-assignment-${fb.id}`} className='text-xs shrink-0'>
                               Giao sửa cho việc:
                             </label>
                             <select

@@ -1,13 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import { BookOpen, User, MapPin, Box, Paintbrush } from 'lucide-react';
-import { INITIAL_BIBLE_ENTITIES } from '@/mocks/mockData';
+import { bibleService, BibleEntryDto } from '@/services/bible.service';
 
 export const BibleReferencePanel: React.FC = () => {
+  const { seriesId } = useParams<{ seriesId?: string }>();
   const [activeTab, setActiveTab] = useState<'character' | 'location' | 'prop' | 'style'>(
     'character',
   );
+  const [entries, setEntries] = useState<BibleEntryDto[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
 
-  const handleDragStart = (e: React.DragEvent, entity: any) => {
+  useEffect(() => {
+    if (!seriesId) return;
+    setLoading(true);
+    bibleService
+      .getSeriesBible(seriesId)
+      .then((res) => {
+        setEntries(res.entries || []);
+      })
+      .catch((err) => {
+        console.error('Failed to load Bible entries:', err);
+        setEntries([]);
+      })
+      .finally(() => setLoading(false));
+  }, [seriesId]);
+
+  const handleDragStart = (e: React.DragEvent, entity: BibleEntryDto) => {
     e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'bible', data: entity }));
     e.dataTransfer.effectAllowed = 'copy';
   };
@@ -15,13 +34,24 @@ export const BibleReferencePanel: React.FC = () => {
   const getFiltered = () => {
     switch (activeTab) {
       case 'character':
-        return INITIAL_BIBLE_ENTITIES.filter((e) => e.category === 'character');
+        return entries.filter(
+          (e) => String(e.category).toLowerCase() === 'character' || e.category === 0,
+        );
       case 'location':
-        return INITIAL_BIBLE_ENTITIES.filter((e) => e.category === 'location');
+        return entries.filter(
+          (e) => String(e.category).toLowerCase() === 'location' || e.category === 1,
+        );
       case 'prop':
-        return INITIAL_BIBLE_ENTITIES.filter((e) => e.category === 'prop');
+        return entries.filter(
+          (e) => String(e.category).toLowerCase() === 'prop' || e.category === 2,
+        );
       case 'style':
-        return []; // No mock style rules yet
+        return entries.filter(
+          (e) =>
+            String(e.category).toLowerCase() === 'stylerule' ||
+            String(e.category).toLowerCase() === 'style' ||
+            e.category === 4,
+        );
       default:
         return [];
     }
@@ -85,8 +115,11 @@ export const BibleReferencePanel: React.FC = () => {
             </div>
           </div>
         ))}
-        {getFiltered().length === 0 && (
-          <div className='text-center text-xs text-[#A3A3A3] p-4'>No data available</div>
+        {loading && (
+          <div className='text-center text-xs text-[#A3A3A3] p-4'>Đang tải Series Bible...</div>
+        )}
+        {!loading && getFiltered().length === 0 && (
+          <div className='text-center text-xs text-[#A3A3A3] p-4'>Chưa có dữ liệu</div>
         )}
       </div>
     </div>

@@ -1,12 +1,29 @@
 import React from 'react';
-import { Routes, Route, Navigate, Outlet, useNavigate } from 'react-router-dom';
+import {
+  Routes,
+  Route,
+  Navigate,
+  Outlet,
+  useNavigate,
+  useLocation,
+  useParams,
+} from 'react-router-dom';
 import { User } from 'firebase/auth';
 import { AppShell } from './AppShell';
+import { AuthLayout } from '@/roles/guest/views/AuthLayout';
+import { LoginPage } from '@/roles/guest/views/LoginPage';
+import { RegisterPage } from '@/roles/guest/views/RegisterPage';
+
+const WorkspaceRedirect: React.FC = () => {
+  const { workspaceId, '*': rest } = useParams<{ workspaceId: string; '*'?: string }>();
+  return <Navigate to={`/workspaces/${workspaceId}${rest ? `/${rest}` : ''}`} replace />;
+};
+import { seriesService } from '@/services/series.service';
 import { WorkspaceView } from '@/shared/features/production-workspace/WorkspaceView';
 import { TaskEditorView } from '@/shared/features/production-workspace/TaskEditorView';
 import { ExportView } from '@/roles/producer/views/ExportView';
 import { DashboardView } from '@/roles/producer/views/DashboardView';
-import { ProducerWorkspaceView } from '@/roles/producer/views/ProducerWorkspaceView';
+import { StudioOverviewView } from '@/shared/views/StudioOverviewView';
 import { AdminDashboard } from '@/roles/admin/views';
 import { ArtistDeskView } from '@/roles/artist/views/ArtistDeskView';
 import { ReviewView } from '@/roles/editor/views/ReviewView';
@@ -20,7 +37,7 @@ import { SeriesBibleView } from '@/shared/features/series-bible/SeriesBibleView'
 import { MyWorkView } from '@/shared/features/collaboration/MyWorkView';
 import { PublisherDeskView } from '@/roles/publisher/views/PublisherDeskView';
 import { ScriptEditorView } from '@/roles/writer/views/ScriptEditorView';
-import LettererWorkspace from '@/roles/letterer/views/LettererWorkspace';
+import LettererDeskView from '@/roles/letterer/views/LettererDeskView';
 import {
   SystemRole,
   WorkspaceRole,
@@ -38,8 +55,10 @@ export const PrivateRoute = ({
   isAuthenticated: boolean;
   children: React.ReactNode;
 }) => {
+  const location = useLocation();
   if (!isAuthenticated) {
-    return <Navigate to='/login' replace />;
+    const redirectParam = encodeURIComponent(location.pathname + location.search);
+    return <Navigate to={`/login?redirect=${redirectParam}`} replace />;
   }
   return <>{children}</>;
 };
@@ -91,6 +110,7 @@ export interface AppRoutesProps {
   setIsChangePasswordModalOpen: (open: boolean) => void;
   setIsLoginModalOpen: (open: boolean) => void;
   setIsRegisterModalOpen: (open: boolean) => void;
+  setIsCommandPaletteOpen?: (open: boolean) => void;
   members: StudioMember[];
   setMembers: React.Dispatch<React.SetStateAction<StudioMember[]>>;
   handleInviteMember: (m: StudioMember) => void;
@@ -98,6 +118,8 @@ export interface AppRoutesProps {
   provenanceLogs: any[];
   handleAddEntity: (e: BibleEntity) => void;
   isDevMode?: boolean;
+  onApiLoginSuccess?: (authResponse: any) => void;
+  onRegisterSuccess?: (authResponse: any) => void;
 }
 
 export const AppRoutes: React.FC<AppRoutesProps> = ({
@@ -118,6 +140,7 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
   setIsChangePasswordModalOpen,
   setIsLoginModalOpen,
   setIsRegisterModalOpen,
+  setIsCommandPaletteOpen,
   members,
   setMembers,
   handleInviteMember,
@@ -125,8 +148,11 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
   provenanceLogs,
   handleAddEntity,
   isDevMode = false,
+  onApiLoginSuccess,
+  onRegisterSuccess,
 }) => {
   const navigate = useNavigate();
+  const location = useLocation();
 
   return (
     <Routes>
@@ -135,8 +161,8 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
         element={
           !isAuthenticated ? (
             <LandingPageView
-              onOpenLogin={() => setIsLoginModalOpen(true)}
-              onOpenRegister={() => setIsRegisterModalOpen(true)}
+              onOpenLogin={() => navigate(`/login${location.search}`)}
+              onOpenRegister={() => navigate(`/register${location.search}`)}
             />
           ) : (
             <Navigate to={defaultRedirectPath} replace />
@@ -148,10 +174,22 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
         path='/login'
         element={
           !isAuthenticated ? (
-            <LandingPageView
-              onOpenLogin={() => setIsLoginModalOpen(true)}
-              onOpenRegister={() => setIsRegisterModalOpen(true)}
-            />
+            <AuthLayout mode='login'>
+              <LoginPage onLoginSuccess={onApiLoginSuccess} />
+            </AuthLayout>
+          ) : (
+            <Navigate to={defaultRedirectPath} replace />
+          )
+        }
+      />
+
+      <Route
+        path='/register'
+        element={
+          !isAuthenticated ? (
+            <AuthLayout mode='register'>
+              <RegisterPage onRegisterSuccess={onRegisterSuccess} />
+            </AuthLayout>
           ) : (
             <Navigate to={defaultRedirectPath} replace />
           )
@@ -192,6 +230,8 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
         />
 
         <Route path='projects' element={<Navigate to='/workspaces' replace />} />
+        <Route path='workspace/:workspaceId/*' element={<WorkspaceRedirect />} />
+        <Route path='workspace/:workspaceId' element={<WorkspaceRedirect />} />
 
         <Route
           element={
@@ -221,14 +261,44 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
               onLeaveFeedback={() => showToast('Feedback', 'Thanks for your feedback!')}
               onOpenTwoFactor={() => setIsTwoFactorModalOpen(true)}
               onOpenChangePassword={() => setIsChangePasswordModalOpen(true)}
+              onOpenCommandPalette={() => setIsCommandPaletteOpen?.(true)}
+              onSelectSeries={(newSeriesId) => {
+                seriesService
+                  .getSeriesById(newSeriesId)
+                  .then((series) => {
+                    const adapted: MangaProject = {
+                      id: series.id,
+                      title: series.title,
+                      subtitle: series.synopsis || 'N/A',
+                      arc: 'Arc 01',
+                      chapter: 1,
+                      format: series.format || 'B5 Tankōbon Master (600 DPI)',
+                      status: 'In Production',
+                      progressPercent: 50,
+                      completedPages: 16,
+                      totalPages: 32,
+                      dueDate: 'Dec 2026',
+                      daysLeft: 30,
+                      genres: [series.genre || 'Manga'],
+                      coverStyle: 'halftone-cyber',
+                      coverText: series.title,
+                      tagline: series.synopsis || 'Studio Production',
+                      lastUpdated: new Date(series.createdAt).toLocaleDateString(),
+                    };
+                    setActiveProject(adapted);
+                  })
+                  .catch((err) => console.warn('Failed to load series on select:', err));
+              }}
             />
           }
         >
           <Route path='workspaces/:workspaceId'>
-            <Route index element={<ProducerWorkspaceView />} />
-            <Route path='overview' element={<ProducerWorkspaceView />} />
+            <Route index element={<StudioOverviewView />} />
+            <Route path='overview' element={<StudioOverviewView />} />
+            <Route path='series' element={<StudioOverviewView />} />
 
             <Route path='series/:seriesId'>
+              <Route index element={<Navigate to='dashboard' replace />} />
               <Route
                 path='dashboard'
                 element={
@@ -304,13 +374,20 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                 path='artist'
                 element={<ArtistDeskView workspaceRole={currentWorkspaceRole} />}
               />
-              <Route path='letterer' element={<LettererWorkspace />} />
+              <Route path='letterer' element={<LettererDeskView />} />
               <Route path='export' element={<ExportView onShowToast={showToast} />} />
             </Route>
           </Route>
 
-          {/* Flat routes for backward compatibility / other views */}
-          <Route path='producer' element={<ProducerWorkspaceView />} />
+          {/* Flat legacy routes: safely redirect to /workspaces or /catalog */}
+          <Route path='producer' element={<Navigate to='/workspaces' replace />} />
+          <Route path='reader' element={<Navigate to='/catalog' replace />} />
+          <Route path='artist' element={<Navigate to='/workspaces' replace />} />
+          <Route path='letterer' element={<Navigate to='/workspaces' replace />} />
+          <Route
+            path='profile'
+            element={<UserProfileView user={firebaseUser} onLogout={handleLogout} />}
+          />
           <Route
             path='review/:taskId'
             element={
@@ -321,14 +398,6 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
               />
             }
           />
-          {/* 5.8: màn đọc tĩnh cũ đã thay bằng catalog thật (đọc chương đã phát hành) */}
-          <Route path='reader' element={<Navigate to='/catalog' replace />} />
-          <Route
-            path='profile'
-            element={<UserProfileView user={firebaseUser} onLogout={handleLogout} />}
-          />
-          <Route path='artist' element={<ArtistDeskView />} />
-          <Route path='letterer' element={<LettererWorkspace />} />
           <Route
             path='catalog'
             element={<PublicCatalogView onBackToWorkspaces={() => navigate('/workspaces')} />}

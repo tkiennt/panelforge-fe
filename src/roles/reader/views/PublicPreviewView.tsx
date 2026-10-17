@@ -206,7 +206,7 @@ export const PublicPreviewView: React.FC = () => {
               {errorMsg || 'Link xem thử không hợp lệ, đã hết hạn hoặc đã bị thu hồi.'}
             </p>
           </div>
-          <p className='text-[11px] text-neutral-400'>
+          <p className='text-xs text-neutral-400'>
             Liên kết này chỉ có hiệu lực tạm thời hoặc đã bị Studio thu hồi để bảo vệ bản quyền tác
             phẩm. Vui lòng liên hệ người gửi để được cấp liên kết mới.
           </p>
@@ -241,11 +241,11 @@ export const PublicPreviewView: React.FC = () => {
               <h1 className='text-xs sm:text-sm font-bold text-white truncate max-w-[200px] sm:max-w-md'>
                 {chapterData.seriesTitle}
               </h1>
-              <span className='px-1.5 py-0.5 rounded bg-orange-950/80 text-orange-400 border border-orange-800 text-[10px] font-mono shrink-0'>
+              <span className='px-1.5 py-0.5 rounded bg-orange-950/80 text-orange-400 border border-orange-800 text-xs font-mono shrink-0'>
                 {isRTL ? 'Manga (RTL: Phải qua Trái)' : 'Comic (LTR: Trái qua Phải)'}
               </span>
             </div>
-            <div className='text-[10px] text-neutral-400 font-mono truncate'>
+            <div className='text-xs text-neutral-400 font-mono truncate'>
               Chương #{chapterData.chapterNumber}
               {chapterData.chapterTitle ? `: ${chapterData.chapterTitle}` : ''} • Người nhận:{' '}
               <span className='text-neutral-300'>{chapterData.recipientEmail}</span>
@@ -255,7 +255,7 @@ export const PublicPreviewView: React.FC = () => {
 
         {/* Right actions */}
         <div className='flex items-center gap-2 shrink-0'>
-          <div className='hidden sm:flex items-center gap-1.5 px-2 py-1 rounded-lg bg-neutral-900 border border-neutral-800 text-[10px] font-mono text-neutral-400'>
+          <div className='hidden sm:flex items-center gap-1.5 px-2 py-1 rounded-lg bg-neutral-900 border border-neutral-800 text-xs font-mono text-neutral-400'>
             <span>Hạn:</span>
             <span className='text-amber-400 font-semibold'>
               {new Date(chapterData.expiresAt).toLocaleString('vi-VN')}
@@ -300,9 +300,7 @@ export const PublicPreviewView: React.FC = () => {
                 {currentPageIndex + 1} / {totalPages}
               </span>
               {currentPage && (
-                <span className='text-[10px] text-neutral-500'>
-                  (Bản v{currentPage.versionNumber})
-                </span>
+                <span className='text-xs text-neutral-500'>(Bản v{currentPage.versionNumber})</span>
               )}
             </div>
 
@@ -381,7 +379,7 @@ export const PublicPreviewView: React.FC = () => {
                         data-testid={`preview-panel-box-${p.panelId}`}
                       >
                         <span
-                          className={`absolute top-1 left-1 px-1.5 py-0.5 rounded text-[9px] font-mono font-bold transition-opacity ${
+                          className={`absolute top-1 left-1 px-1.5 py-0.5 rounded text-xs font-mono font-bold transition-opacity ${
                             isSelected
                               ? 'bg-orange-500 text-white opacity-100'
                               : 'bg-black/70 text-orange-300 opacity-0 group-hover:opacity-100'
@@ -418,7 +416,7 @@ export const PublicPreviewView: React.FC = () => {
           </div>
 
           {/* Reading hint */}
-          <div className='mt-2 text-[11px] text-neutral-500 font-mono text-center'>
+          <div className='mt-2 text-xs text-neutral-500 font-mono text-center'>
             💡 Dùng phím mũi tên ← → trên bàn phím để lật trang. Bấm vào khung tranh để khoanh vùng
             phản hồi.
           </div>
@@ -448,10 +446,10 @@ export const PublicPreviewView: React.FC = () => {
 
             {/* Scope selector */}
             <div className='mb-3'>
-              <label className='block text-[11px] font-semibold text-neutral-300 mb-1.5'>
+              <label className='block text-xs font-semibold text-neutral-300 mb-1.5'>
                 Phạm vi nhận xét:
               </label>
-              <div className='grid grid-cols-3 gap-1 bg-neutral-900 p-1 rounded-lg border border-neutral-800 text-[10px] font-mono'>
+              <div className='grid grid-cols-3 gap-1 bg-neutral-900 p-1 rounded-lg border border-neutral-800 text-xs font-mono'>
                 <button
                   type='button'
                   onClick={() => {
@@ -498,7 +496,7 @@ export const PublicPreviewView: React.FC = () => {
             </div>
 
             {/* Scope details badge */}
-            <div className='mb-3 p-2 rounded-lg bg-neutral-900/80 border border-neutral-800 text-[11px] text-neutral-300 flex items-start gap-1.5'>
+            <div className='mb-3 p-2 rounded-lg bg-neutral-900/80 border border-neutral-800 text-xs text-neutral-300 flex items-start gap-1.5'>
               <Sparkles className='w-3.5 h-3.5 text-[#F97316] shrink-0 mt-0.5' />
               <div>
                 {feedbackScope === 'chapter' && (
@@ -549,7 +547,7 @@ export const PublicPreviewView: React.FC = () => {
             {/* Feedback input form */}
             <form onSubmit={handleSubmitFeedback} className='flex-1 flex flex-col space-y-3'>
               <div className='flex-1 flex flex-col'>
-                <label className='block text-[11px] font-semibold text-neutral-300 mb-1'>
+                <label className='block text-xs font-semibold text-neutral-300 mb-1'>
                   Nội dung nhận xét (tối đa 2.000 ký tự):
                 </label>
                 <textarea
@@ -561,7 +559,7 @@ export const PublicPreviewView: React.FC = () => {
                   className='w-full flex-1 min-h-[160px] p-3 bg-neutral-900 border border-neutral-800 rounded-xl text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-[#F97316] resize-none custom-scrollbar'
                   data-testid='feedback-message-input'
                 />
-                <div className='text-right text-[10px] text-neutral-500 font-mono mt-1'>
+                <div className='text-right text-xs text-neutral-500 font-mono mt-1'>
                   {message.length} / 2000 ký tự
                 </div>
               </div>
@@ -573,7 +571,7 @@ export const PublicPreviewView: React.FC = () => {
                   !message.trim() ||
                   (feedbackScope === 'panel' && !selectedPanel)
                 }
-                className='w-full py-2.5 rounded-xl bg-[#F97316] hover:bg-[#EA580C] disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer'
+                className='w-full py-2.5 rounded-xl bg-[#292524] hover:bg-[#0c0a09] disabled:opacity-40 disabled:cursor-not-allowed text-white font-medium text-xs flex items-center justify-center gap-2 shadow-soft-sm transition-all cursor-pointer rounded-full'
                 data-testid='submit-feedback-btn'
               >
                 {submittingFeedback ? (

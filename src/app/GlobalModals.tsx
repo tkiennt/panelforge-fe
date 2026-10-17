@@ -4,7 +4,6 @@ import { LoginModal } from '@/roles/guest/modals/LoginModal';
 import { RegisterModal } from '@/roles/guest/modals/RegisterModal';
 import { TwoFactorSetupModal } from '@/shared/features/account/TwoFactorSetupModal';
 import { ChangePasswordModal } from '@/shared/features/account/ChangePasswordModal';
-import { SpreadWorkbenchModal } from '@/shared/modals/SpreadWorkbenchModal';
 import { PageDetailModal } from '@/roles/artist/modals/PageDetailModal';
 import { AuditLogModal } from '@/shared/modals/AuditLogModal';
 import { NewPageCardModal } from '@/roles/artist/modals/NewPageCardModal';
@@ -14,8 +13,8 @@ interface GlobalModalsProps {
   // States
   commandPaletteOpen: boolean;
   setCommandPaletteOpen: (open: boolean) => void;
-  spreadModalOpen: boolean;
-  setSpreadModalOpen: (open: boolean) => void;
+  spreadModalOpen?: boolean;
+  setSpreadModalOpen?: (open: boolean) => void;
   auditLogOpen: boolean;
   setAuditLogOpen: (open: boolean) => void;
   newCardOpen: boolean;
@@ -39,8 +38,8 @@ interface GlobalModalsProps {
 export const GlobalModals: React.FC<GlobalModalsProps> = ({
   commandPaletteOpen,
   setCommandPaletteOpen,
-  spreadModalOpen,
-  setSpreadModalOpen,
+  spreadModalOpen: _spreadModalOpen,
+  setSpreadModalOpen: _setSpreadModalOpen,
   auditLogOpen,
   setAuditLogOpen,
   newCardOpen,
@@ -58,12 +57,6 @@ export const GlobalModals: React.FC<GlobalModalsProps> = ({
 }) => {
   return (
     <>
-      <SpreadWorkbenchModal
-        isOpen={spreadModalOpen}
-        onClose={() => setSpreadModalOpen(false)}
-        onShowToast={showToast}
-        userRole={activeProjectRoles[0] || 'ARTIST'}
-      />
       <PageDetailModal
         card={selectedCardForDetail}
         onClose={() => setSelectedCardForDetail(null)}

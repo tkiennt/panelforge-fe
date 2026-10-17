@@ -9,14 +9,18 @@ vi.mock('@/shared/features/collaboration/NotificationBell', () => ({
 }));
 
 describe('AppShell Component', () => {
-  const renderInRouter = (user: CurrentUser, route = '/workspaces/ws-1/series/ser-1/dashboard') => {
+  const renderInRouter = (
+    user: CurrentUser,
+    route = '/workspaces/ws-1/series/ser-1/dashboard',
+    props: Partial<React.ComponentProps<typeof AppShell>> = {},
+  ) => {
     return render(
       <MemoryRouter initialEntries={[route]}>
         <Routes>
           <Route
             path='/workspaces/:workspaceId/series/:seriesId/*'
             element={
-              <AppShell currentUser={user}>
+              <AppShell currentUser={user} {...props}>
                 <div data-testid='outlet-content'>Content</div>
               </AppShell>
             }
@@ -24,7 +28,7 @@ describe('AppShell Component', () => {
           <Route
             path='/*'
             element={
-              <AppShell currentUser={user}>
+              <AppShell currentUser={user} {...props}>
                 <div data-testid='outlet-content'>Content</div>
               </AppShell>
             }
@@ -160,5 +164,41 @@ describe('AppShell Component', () => {
     fireEvent.click(closeBtn);
     expect(hamburgerBtn).toHaveAttribute('aria-expanded', 'false');
     expect(screen.queryByRole('dialog', { name: /menu điều hướng/i })).not.toBeInTheDocument();
+  });
+
+  it('kích hoạt onOpenCommandPalette khi click vào nút tìm kiếm nhanh ⌘K', () => {
+    const producerUser: CurrentUser = {
+      name: 'Phạm Nhà Sản Xuất',
+      role: 'USER',
+      workspaceRole: 'PRODUCER' as any,
+      activeRoles: ['PRODUCER'],
+      avatarInitials: 'PN',
+    };
+    const onOpenCommandPalette = vi.fn();
+
+    renderInRouter(producerUser, '/workspaces/ws-1/series/ser-1/dashboard', {
+      onOpenCommandPalette,
+    });
+
+    const triggerBtn = screen.getByTestId('header-command-palette-trigger');
+    expect(triggerBtn).toBeInTheDocument();
+    fireEvent.click(triggerBtn);
+    expect(onOpenCommandPalette).toHaveBeenCalledTimes(1);
+  });
+
+  it('hiển thị breadcrumb Chapter khi URL có tham số chapterId trong ngữ cảnh Series', () => {
+    const artistUser: CurrentUser = {
+      name: 'Nguyễn Văn Họa Sĩ',
+      role: 'USER',
+      workspaceRole: 'ARTIST' as any,
+      activeRoles: ['ARTIST'],
+      avatarInitials: 'AH',
+    };
+
+    renderInRouter(artistUser, '/workspaces/ws-1/series/ser-1/artist?chapterId=01');
+
+    const chapterBreadcrumb = screen.getByTestId('header-chapter-breadcrumb');
+    expect(chapterBreadcrumb).toBeInTheDocument();
+    expect(chapterBreadcrumb).toHaveTextContent('Chapter 01');
   });
 });

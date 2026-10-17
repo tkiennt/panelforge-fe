@@ -1782,8 +1782,14 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
           <Type className='w-4 h-4 text-emerald-600 shrink-0' />
           <h3 className='font-bold text-xs text-[#171717] truncate'>Bàn Làm Việc Chèn Chữ</h3>
           {pageSnapshot && (
-            <span className='font-mono text-[10px] px-1.5 py-0.5 bg-zinc-100 rounded-full text-zinc-600 shrink-0'>
+            <span className='font-mono text-xs px-2 py-0.5 bg-zinc-100 rounded-full text-zinc-600 shrink-0'>
               v{pageSnapshot.version} • {pageDim.width}×{pageDim.height}px
+            </span>
+          )}
+          {(pageSnapshot?.warnings?.length ?? 0) > 0 && (
+            <span className='text-xs font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300 flex items-center gap-1 shrink-0'>
+              <AlertTriangle className='w-3 h-3 text-amber-600' />
+              {pageSnapshot!.warnings!.length} cảnh báo an toàn
             </span>
           )}
         </div>
@@ -1806,7 +1812,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
 
             {showLayerFilterMenu && (
               <div className='absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-zinc-200 p-2.5 z-50 space-y-1.5 text-xs'>
-                <div className='font-bold text-zinc-500 uppercase text-[10px] px-2 py-1'>
+                <div className='font-bold text-zinc-500 uppercase text-xs font-mono px-2 py-1'>
                   Hiển thị lớp vẽ trên canvas
                 </div>
                 {IMAGE_LAYER_TYPES.map((layerKey) => {
@@ -1902,9 +1908,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                     <BookOpen className='w-4 h-4 text-purple-600' />
                     <span>Kịch Bản Chương</span>
                   </span>
-                  <span className='text-[11px] font-mono text-zinc-500'>
-                    {sceneLines.length} dòng
-                  </span>
+                  <span className='text-xs font-mono text-zinc-500'>{sceneLines.length} dòng</span>
                 </div>
 
                 {/* Scene Selector */}
@@ -1977,19 +1981,19 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                         }`}
                       >
                         <div className='flex items-center justify-between gap-2'>
-                          <span className='font-mono font-bold text-[10px] text-zinc-500 flex items-center gap-1 min-w-0'>
+                          <span className='font-mono font-bold text-xs text-zinc-500 flex items-center gap-1 min-w-0'>
                             {canDrag && <GripVertical className='w-3 h-3 text-zinc-400 shrink-0' />}
                             <span className='truncate'>
                               #{line.lineOrder} • {speaker || 'Người dẫn truyện'}
                             </span>
                           </span>
                           {isPlaced ? (
-                            <span className='text-[9px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.2 rounded-full flex items-center gap-0.5 shrink-0'>
-                              <CheckCircle2 className='w-2.5 h-2.5' /> Đã đặt
+                            <span className='text-xs font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full flex items-center gap-0.5 shrink-0'>
+                              <CheckCircle2 className='w-3 h-3' /> Đã đặt
                             </span>
                           ) : (
                             <span
-                              className={`text-[9px] font-bold px-1.5 py-0.2 rounded-full shrink-0 ${
+                              className={`text-xs font-bold px-2 py-0.5 rounded-full shrink-0 ${
                                 narrator
                                   ? 'bg-amber-100 text-amber-800'
                                   : 'bg-zinc-200 text-zinc-700'
@@ -2003,8 +2007,9 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                           {line.dialogueText || line.stageDirection}
                         </p>
                         {isSelected && (
-                          <div className='text-[10px] font-semibold text-purple-700 flex items-center gap-1 pt-1 border-t border-purple-200'>
-                            <Plus className='w-3 h-3' /> Bấm hoặc kéo thả lên trang để đặt dòng này
+                          <div className='text-xs font-semibold text-purple-700 flex items-center gap-1 pt-1 border-t border-purple-200'>
+                            <Plus className='w-3.5 h-3.5' /> Bấm hoặc kéo thả lên trang để đặt dòng
+                            này
                           </div>
                         )}
                       </div>
@@ -2087,7 +2092,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
               <Eye className='w-3.5 h-3.5' /> <span className='hidden 2xl:inline'>Xem ảnh</span>
             </button>
             <label
-              className='flex items-center gap-1 px-1.5 text-[11px] font-semibold text-zinc-600'
+              className='flex items-center gap-1 px-1.5 text-xs font-semibold text-zinc-600'
               title='Độ đục nền bóng thoại (chữ vẫn rõ)'
             >
               Nền
@@ -2675,7 +2680,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                         testId='element-text-editor'
                         className='w-full p-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg text-xs resize-y focus:outline-none focus:ring-2 focus:ring-emerald-300'
                       />
-                      <p className='text-[10px] text-zinc-400'>
+                      <p className='text-xs text-zinc-400'>
                         Lưu khi rời ô (hoặc Ctrl+Enter). Esc để hoàn tác.
                       </p>
                     </div>
@@ -2684,15 +2689,15 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                   {/* AI Dialogue Shortening (Letterer Agent CF2 2.4) */}
                   <div className='p-3 bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-200 rounded-xl space-y-2.5'>
                     <div className='flex items-center justify-between'>
-                      <span className='font-bold text-purple-900 text-[11px] flex items-center gap-1.5'>
+                      <span className='font-bold text-purple-900 text-xs flex items-center gap-1.5'>
                         <Sparkles className='w-3.5 h-3.5 text-purple-600' />
                         <span>Letterer Agent (Rút gọn thoại)</span>
                       </span>
-                      <span className='text-[10px] font-mono text-purple-600 font-semibold'>
+                      <span className='text-xs font-mono text-purple-600 font-semibold'>
                         {selectedElement.content?.length || 0} ký tự
                       </span>
                     </div>
-                    <p className='text-[10px] text-purple-700 leading-tight'>
+                    <p className='text-xs text-purple-700 leading-tight'>
                       AI phân tích giới hạn kích thước balloon và đề xuất rút gọn thoại tự nhiên,
                       vừa vặn khung tranh.
                     </p>
@@ -2706,14 +2711,14 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                       );
                       if (matchSug) {
                         return (
-                          <div className='bg-white p-2.5 rounded-lg border border-purple-200 space-y-1.5 text-[11px]'>
-                            <div className='text-zinc-500 text-[10px]'>
+                          <div className='bg-white p-2.5 rounded-lg border border-purple-200 space-y-1.5 text-xs'>
+                            <div className='text-zinc-500 text-xs'>
                               Gợi ý hiện có cho bóng thoại này:
                             </div>
                             <div className='font-bold text-zinc-800 italic bg-purple-50/50 p-1.5 rounded'>
                               "{matchSug.suggestedText}"
                             </div>
-                            <div className='flex items-center justify-between text-[10px] text-zinc-500'>
+                            <div className='flex items-center justify-between text-xs text-zinc-500'>
                               <span>
                                 {matchSug.suggestedText.length} ký tự (ước lượng tối đa:{' '}
                                 {matchSug.maxChars})
@@ -2732,7 +2737,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                             </div>
                             <button
                               onClick={() => handleApplySuggestionToElement(matchSug)}
-                              className='w-full py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded font-semibold text-[11px] flex items-center justify-center gap-1 transition-colors cursor-pointer'
+                              className='w-full py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded font-semibold text-xs flex items-center justify-center gap-1 transition-colors cursor-pointer'
                             >
                               <Check className='w-3.5 h-3.5' /> Áp dụng gợi ý này
                             </button>
@@ -2743,7 +2748,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                         <button
                           onClick={handleRunLettererAgent}
                           disabled={aiLoading || !activeSeriesId}
-                          className='w-full py-1.5 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-semibold rounded-lg text-[11px] flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer'
+                          className='w-full py-1.5 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-semibold rounded-lg text-xs flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer'
                         >
                           {aiLoading ? (
                             <>
@@ -2771,7 +2776,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                         <AlertTriangle className='w-4 h-4 text-red-600 shrink-0' />
                         <span>Chữ không vừa khung</span>
                       </div>
-                      <p className='text-[11px] leading-relaxed'>
+                      <p className='text-xs leading-relaxed'>
                         Chữ cao khoảng {Math.round(overflowInfo[selectedElement.elementId])}px,
                         khung chỉ chứa{' '}
                         {Math.max(0, Math.round(selectedElementBox.pxH - 2 * LETTERING_PADDING_PX))}
@@ -2781,12 +2786,12 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                         <button
                           onClick={() => growToFit(selectedElement.elementId)}
                           data-testid='grow-to-fit'
-                          className='w-full py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold text-[11px] transition-colors cursor-pointer'
+                          className='w-full py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold text-xs transition-colors cursor-pointer'
                         >
                           Tăng khung cho vừa chữ
                         </button>
                       )}
-                      <p className='text-[10px] text-red-700/80'>
+                      <p className='text-xs text-red-700/80'>
                         Cỡ chữ cố định {LETTERING_FONT_PX}px theo chuẩn của hệ thống (chưa có trường
                         cỡ chữ riêng cho từng bóng).
                       </p>
@@ -2794,15 +2799,31 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                   )}
 
                   {selectedWarnings.length > 0 && (
-                    <div className='space-y-1'>
-                      {selectedWarnings.map((w, i) => (
-                        <div
-                          key={`${w.code}-${i}`}
-                          className='p-2 bg-amber-50 border border-amber-200 rounded-lg text-[11px] text-amber-900'
-                        >
-                          <span className='font-mono font-bold'>{w.code}</span>: {w.message}
-                        </div>
-                      ))}
+                    <div className='space-y-1.5'>
+                      {selectedWarnings.map((w, i) => {
+                        const isOverflow = w.code === 'TEXT_OVERFLOW';
+                        const isReadingOrder = w.code === 'READING_ORDER_MISMATCH';
+                        return (
+                          <div
+                            key={`${w.code}-${i}`}
+                            className={`p-2.5 rounded-xl border text-xs space-y-1 ${
+                              isOverflow
+                                ? 'bg-red-50 border-red-200 text-red-900'
+                                : isReadingOrder
+                                  ? 'bg-blue-50 border-blue-200 text-blue-900'
+                                  : 'bg-amber-50 border-amber-200 text-amber-900'
+                            }`}
+                          >
+                            <div className='font-bold flex items-center gap-1.5'>
+                              <AlertTriangle className='w-3.5 h-3.5 shrink-0' />
+                              <span className='font-mono uppercase font-bold text-xs'>
+                                {w.code}
+                              </span>
+                            </div>
+                            <p className='leading-relaxed text-xs'>{w.message}</p>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
 
@@ -2813,12 +2834,12 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                         <AlertTriangle className='w-4 h-4 text-amber-600 shrink-0' />
                         <span>Thoại gốc đã đổi trong kịch bản (BR-05)</span>
                       </div>
-                      <p className='text-[11px] text-amber-800 leading-relaxed'>
+                      <p className='text-xs text-amber-800 leading-relaxed'>
                         Nội dung kịch bản mới: <strong>"{selectedElement.currentLineText}"</strong>
                       </p>
                       <button
                         onClick={() => handleSyncStaleText(selectedElement)}
-                        className='w-full py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-semibold text-[11px] transition-colors cursor-pointer'
+                        className='w-full py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-semibold text-xs transition-colors cursor-pointer'
                       >
                         Cập nhật theo kịch bản mới
                       </button>
@@ -2827,7 +2848,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
 
                   {/* Tọa độ và kích thước pixel thực tế trên canvas (Lỗi 1) */}
                   <div className='p-3 bg-[#FAF8F5] rounded-xl border border-[#E7E7E7] space-y-2'>
-                    <div className='flex items-center justify-between text-zinc-500 text-[10px] uppercase font-mono'>
+                    <div className='flex items-center justify-between text-zinc-500 text-xs uppercase font-mono'>
                       <span>Tọa độ canvas trang (px)</span>
                       <span className='text-emerald-700 font-bold'>
                         {pageDim.width}×{pageDim.height}px
@@ -2835,7 +2856,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                     </div>
                     <div className='grid grid-cols-2 gap-2 text-xs font-mono'>
                       <div>
-                        <label className='block text-zinc-400 text-[10px]'>X (px):</label>
+                        <label className='block text-zinc-400 text-xs'>X (px):</label>
                         <input
                           type='number'
                           value={Math.round(selectedElementBox.pxX || 0)}
@@ -2851,7 +2872,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                         />
                       </div>
                       <div>
-                        <label className='block text-zinc-400 text-[10px]'>Y (px):</label>
+                        <label className='block text-zinc-400 text-xs'>Y (px):</label>
                         <input
                           type='number'
                           value={Math.round(selectedElementBox.pxY || 0)}
@@ -2867,7 +2888,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                         />
                       </div>
                       <div>
-                        <label className='block text-zinc-400 text-[10px]'>Rộng (px):</label>
+                        <label className='block text-zinc-400 text-xs'>Rộng (px):</label>
                         <input
                           type='number'
                           value={Math.round(selectedElementBox.pxW || 0)}
@@ -2885,7 +2906,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                         />
                       </div>
                       <div>
-                        <label className='block text-zinc-400 text-[10px]'>Cao (px):</label>
+                        <label className='block text-zinc-400 text-xs'>Cao (px):</label>
                         <input
                           type='number'
                           value={Math.round(selectedElementBox.pxH || 0)}
@@ -2907,12 +2928,12 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
 
                   {/* Reading Order Override */}
                   <div className='space-y-1.5'>
-                    <label className='block font-semibold text-zinc-700 flex items-center justify-between'>
+                    <label className='block font-semibold text-zinc-700 flex items-center justify-between text-xs'>
                       <span className='flex items-center gap-1'>
                         <ListOrdered className='w-3.5 h-3.5 text-blue-600' />
                         <span>Thứ Tự Đọc (Reading Order)</span>
                       </span>
-                      <span className='font-mono text-[10px] text-zinc-400'>
+                      <span className='font-mono text-xs text-zinc-400'>
                         v{selectedElement.version || 1}
                       </span>
                     </label>
@@ -2931,7 +2952,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                       />
                       <button
                         onClick={() => handleSetReadingOrder(selectedElement.elementId, null)}
-                        className='px-2.5 py-1 text-[11px] bg-zinc-100 hover:bg-zinc-200 text-zinc-600 rounded-lg cursor-pointer'
+                        className='px-2.5 py-1 text-xs bg-zinc-100 hover:bg-zinc-200 text-zinc-600 rounded-lg cursor-pointer'
                       >
                         Reset
                       </button>
@@ -2940,22 +2961,24 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
 
                   {/* Element Type Details */}
                   <div className='p-3 bg-[#FAF8F5] rounded-xl border border-[#E7E7E7] space-y-1.5'>
-                    <div className='text-zinc-500 text-[10px] uppercase font-mono'>
+                    <div className='text-zinc-500 text-xs uppercase font-mono'>
                       Loại phần tử &amp; ID
                     </div>
-                    <div className='font-bold text-[#171717]'>{selectedElement.elementType}</div>
-                    <div className='font-mono text-[10px] text-zinc-400 truncate select-all'>
+                    <div className='font-bold text-[#171717] text-xs'>
+                      {selectedElement.elementType}
+                    </div>
+                    <div className='font-mono text-xs text-zinc-400 truncate select-all'>
                       {selectedElement.elementId}
                     </div>
                   </div>
 
                   {/* Overflow Acknowledgment Section */}
                   <div className='p-3 bg-zinc-50 border border-zinc-200 rounded-xl space-y-2'>
-                    <div className='font-semibold text-zinc-800 text-[11px]'>
+                    <div className='font-semibold text-zinc-800 text-xs'>
                       Xác nhận cảnh báo tràn chữ (Overflow)
                     </div>
                     {selectedElement.overflowAcknowledgedReason ? (
-                      <div className='text-[10px] text-emerald-800 bg-emerald-50 p-2 rounded border border-emerald-200'>
+                      <div className='text-xs text-emerald-800 bg-emerald-50 p-2 rounded border border-emerald-200'>
                         ✓ Đã xác nhận: {selectedElement.overflowAcknowledgedReason}
                       </div>
                     ) : (
@@ -2965,11 +2988,11 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                           value={ackReason}
                           onChange={(e) => setAckReason(e.target.value)}
                           placeholder='Lý do chấp nhận tràn chữ...'
-                          className='w-full p-1.5 bg-white border border-zinc-300 rounded text-[11px]'
+                          className='w-full p-1.5 bg-white border border-zinc-300 rounded text-xs'
                         />
                         <button
                           onClick={() => handleAckOverflow(selectedElement.elementId)}
-                          className='w-full py-1 bg-zinc-800 hover:bg-black text-white text-[11px] font-semibold rounded transition-colors cursor-pointer'
+                          className='w-full py-1.5 bg-zinc-800 hover:bg-black text-white text-xs font-semibold rounded transition-colors cursor-pointer'
                         >
                           Xác nhận tràn chữ
                         </button>
@@ -2993,7 +3016,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                 <div className='p-8 text-center text-xs text-zinc-400 flex-1 flex flex-col items-center justify-center'>
                   <MessageCircle className='w-8 h-8 mb-2 opacity-40' />
                   <p className='font-semibold text-zinc-600'>Chưa chọn bóng thoại</p>
-                  <p className='text-[11px] text-zinc-400 mt-1 max-w-xs'>
+                  <p className='text-xs text-zinc-400 mt-1 max-w-xs'>
                     Bấm vào một bóng thoại trên canvas hoặc chọn dòng kịch bản để đặt bóng mới.
                   </p>
                 </div>
@@ -3016,7 +3039,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                 <div>
                   <h3 className='font-bold text-sm text-zinc-900 flex items-center gap-2'>
                     <span>Đề Xuất Rút Gọn Thoại (Letterer Agent)</span>
-                    <span className='px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-700 font-mono'>
+                    <span className='px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-100 text-purple-700 font-mono'>
                       {aiSuggestions.length} đề xuất
                     </span>
                   </h3>
@@ -3049,23 +3072,23 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                   >
                     <div className='flex items-center justify-between text-xs'>
                       <div className='flex items-center gap-2'>
-                        <span className='font-mono font-bold text-zinc-700 bg-white px-2 py-0.5 rounded border border-zinc-200 text-[11px]'>
+                        <span className='font-mono font-bold text-zinc-700 bg-white px-2 py-0.5 rounded border border-zinc-200 text-xs'>
                           #{idx + 1}
                         </span>
                         {targetBalloon ? (
-                          <span className='text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 flex items-center gap-1'>
+                          <span className='text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 flex items-center gap-1'>
                             <CheckCircle2 className='w-3 h-3' /> Bóng thoại #
                             {targetBalloon.readingOrder || ''}
                           </span>
                         ) : (
-                          <span className='text-[11px] text-zinc-500 bg-zinc-100 px-2 py-0.5 rounded'>
+                          <span className='text-xs text-zinc-500 bg-zinc-100 px-2 py-0.5 rounded'>
                             Chưa đặt trên trang
                           </span>
                         )}
                       </div>
                       <div className='flex items-center gap-2'>
                         <span
-                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          className={`text-xs font-bold px-2 py-0.5 rounded-full ${
                             sug.withinEstimatedLimit
                               ? 'bg-emerald-100 text-emerald-800'
                               : 'bg-amber-100 text-amber-800'
@@ -3073,7 +3096,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                         >
                           {sug.withinEstimatedLimit ? '✓ Vừa balloon' : 'Ước lượng dài'}
                         </span>
-                        <span className='text-[10px] font-mono text-zinc-500'>
+                        <span className='text-xs font-mono text-zinc-500'>
                           Tối đa: ~{sug.maxChars} ký tự
                         </span>
                       </div>
@@ -3082,7 +3105,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                     {/* Comparison Box */}
                     <div className='grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs'>
                       <div className='p-2.5 bg-red-50/60 rounded-lg border border-red-200/70 space-y-1'>
-                        <div className='text-[10px] font-bold text-red-700 uppercase tracking-wide flex items-center justify-between'>
+                        <div className='text-xs font-bold text-red-700 uppercase tracking-wide flex items-center justify-between font-mono'>
                           <span>Thoại gốc</span>
                           <span className='font-mono'>{sug.originalText.length} ký tự</span>
                         </div>
@@ -3092,7 +3115,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                       </div>
 
                       <div className='p-2.5 bg-emerald-50/70 rounded-lg border border-emerald-200 space-y-1'>
-                        <div className='text-[10px] font-bold text-emerald-800 uppercase tracking-wide flex items-center justify-between'>
+                        <div className='text-xs font-bold text-emerald-800 uppercase tracking-wide flex items-center justify-between font-mono'>
                           <span>Đề xuất rút gọn</span>
                           <span className='font-mono'>{sug.suggestedText.length} ký tự</span>
                         </div>
@@ -3103,7 +3126,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                     </div>
 
                     {sug.reason && (
-                      <p className='text-[11px] text-zinc-600 bg-white/70 p-2 rounded border border-zinc-200/60 leading-tight'>
+                      <p className='text-xs text-zinc-600 bg-white/70 p-2 rounded border border-zinc-200/60 leading-tight'>
                         <span className='font-semibold text-zinc-700'>Lý do: </span>
                         {sug.reason}
                       </p>

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   ArrowRight,
   Play,
@@ -24,9 +25,11 @@ import {
   ChevronRight,
   User,
 } from 'lucide-react';
+import { AtmosphericOrbBackground } from '@/shared/components/ui/AtmosphericOrbBackground';
+import { HeroMangaPage } from '../components/HeroMangaPage';
 
 interface LandingPageViewProps {
-  onOpenLogin: () => void;
+  onOpenLogin?: () => void;
   onOpenRegister?: () => void;
 }
 
@@ -34,6 +37,25 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
   onOpenLogin,
   onOpenRegister,
 }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const handleLoginClick = () => {
+    if (onOpenLogin) {
+      onOpenLogin();
+    } else {
+      navigate(`/login${location.search}`);
+    }
+  };
+
+  const handleRegisterClick = () => {
+    if (onOpenRegister) {
+      onOpenRegister();
+    } else {
+      navigate(`/register${location.search}`);
+    }
+  };
+
   const observerRef = useRef<IntersectionObserver | null>(null);
 
   useEffect(() => {
@@ -57,59 +79,54 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
   }, []);
 
   return (
-    <div className='antialiased text-[#171717] bg-[#EAE6DF]'>
+    <div className='antialiased text-[#0c0a09] bg-[#f5f5f5] overflow-x-hidden'>
       {/* ===== NAV ===== */}
-      <header className='sticky top-0 z-40 glass border-b border-[#e7e7e7]/60'>
-        <div className='max-w-7xl mx-auto px-6 lg:px-8 h-16 flex items-center justify-between'>
-          <a href='#' className='flex items-center gap-2.5 group'>
-            <div className='relative w-9 h-9 rounded-lg tangerine-gradient flex items-center justify-center soft-shadow group-hover:rotate-3 transition-transform'>
+      <header className='sticky top-0 z-40 bg-[#f5f5f5]/90 backdrop-blur-md border-b border-[#e7e5e4]'>
+        <div className='max-w-[1440px] mx-auto px-[clamp(24px,4vw,64px)] h-16 flex items-center justify-between'>
+          <a href='#' className='flex items-center gap-2 group shrink-0'>
+            <div className='relative w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#292524] flex items-center justify-center text-white shadow-soft-sm group-hover:scale-105 transition-transform'>
               <svg
-                width='18'
-                height='18'
+                width='17'
+                height='17'
                 viewBox='0 0 24 24'
                 fill='none'
                 stroke='white'
-                strokeWidth='2.5'
+                strokeWidth='2'
                 strokeLinecap='round'
                 strokeLinejoin='round'
               >
                 <path d='M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z' />
               </svg>
             </div>
-            <span className='font-serif text-xl font-bold tracking-tight text-[#171717]'>
+            <span className='font-serif text-lg sm:text-xl font-medium tracking-tight text-[#0c0a09]'>
               PanelForge
             </span>
           </a>
-          <nav className='hidden md:flex items-center gap-8 text-sm text-[#404040]'>
-            <a href='#block-features' className='nav-link hover:text-[#171717] transition'>
-              Features
+          <nav className='hidden md:flex items-center gap-8 text-xs font-medium text-[#777169]'>
+            <a href='#block-features' className='hover:text-[#0c0a09] transition-colors'>
+              Tính năng
             </a>
-            <a href='#block-workflow' className='nav-link hover:text-[#171717] transition'>
-              Workflow
+            <a href='#block-workflow' className='hover:text-[#0c0a09] transition-colors'>
+              Quy trình
             </a>
-            <a href='#block-showcase' className='nav-link hover:text-[#171717] transition'>
-              Showcase
-            </a>
-            <a href='#block-[#171717]' className='nav-link hover:text-[#171717] transition'>
-              Studios
-            </a>
-            <a href='#' className='nav-link hover:text-[#171717] transition'>
-              Docs
+            <a href='#block-showcase' className='hover:text-[#0c0a09] transition-colors'>
+              Trưng bày
             </a>
           </nav>
-          <div className='flex items-center gap-3'>
+          <div className='flex items-center gap-2 sm:gap-3 shrink-0'>
             <button
-              onClick={onOpenLogin}
-              aria-label='Sign in'
-              className='text-xs sm:text-sm text-[#404040] font-medium hover:text-white hover:bg-[#f97316] hover:shadow-[0_8px_20px_rgba(249,115,22,0.3)] hover:-translate-y-1 border border-zinc-200 sm:border-transparent px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-full transition-all duration-300 cursor-pointer whitespace-nowrap'
+              onClick={handleLoginClick}
+              aria-label='Đăng nhập'
+              className='text-xs sm:text-sm text-[#0c0a09] font-medium hover:bg-[#f0efed] border border-[#e7e5e4] hover:border-[#0c0a09] px-3 sm:px-4 py-1.5 sm:py-2 rounded-full transition-all duration-200 cursor-pointer whitespace-nowrap'
             >
-              Sign in
+              Đăng nhập
             </button>
             <button
-              onClick={() => (onOpenRegister ? onOpenRegister() : onOpenLogin())}
-              className='inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#171717] text-white text-sm font-medium hover:bg-[#404040] transition soft-shadow cursor-pointer'
+              onClick={handleRegisterClick}
+              aria-label='Tạo tài khoản'
+              className='inline-flex items-center gap-1.5 px-3.5 sm:px-5 py-1.5 sm:py-2 rounded-full bg-[#292524] text-white text-xs sm:text-sm font-medium hover:bg-[#0c0a09] shadow-soft-sm transition-all duration-200 cursor-pointer whitespace-nowrap'
             >
-              Onboard Studio
+              Tạo tài khoản
               <ArrowRight className='w-3.5 h-3.5' />
             </button>
           </div>
@@ -117,58 +134,102 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
       </header>
 
       {/* ===== HERO ===== */}
-      <div className='relative w-full min-h-[90vh] bg-[#EAE6DF] overflow-hidden border-b-[1.5px] border-[#171717] flex items-center justify-center pt-16 pb-16'>
-        {/* Halftone / Dot Grid Pattern */}
-        <div className='absolute inset-0 opacity-[0.03] bg-[radial-gradient(#171717_1px,transparent_1px)] [background-size:24px_24px]'></div>
+      <section
+        id='hero-section'
+        className='hero-desktop-screen relative w-full border-b border-[#e7e5e4] bg-[#FAF8F5] flex flex-col justify-between py-6 sm:py-8 lg:py-0 overflow-hidden'
+      >
+        {/* Subtle Drafting Grid (< 5% opacity) */}
+        <div
+          className='absolute inset-0 pointer-events-none opacity-[0.035] manuscript-grid'
+          aria-hidden='true'
+        />
 
-        <div className='relative z-20 text-center flex flex-col items-center max-w-4xl px-6 animate-on-scroll'>
-          <h1 className='font-serif text-6xl md:text-7xl lg:text-8xl font-bold text-[#171717] tracking-tight leading-[1.05]'>
-            <span className='relative inline-block'>
-              <em className='font-normal text-[#f97316] not-italic italic relative z-10'>
-                Architect
-              </em>
-            </span>{' '}
-            Your
-            <br />
-            Manga Production.
-          </h1>
+        {/* Content Container (Vertically centered) */}
+        <div className='flex-1 flex items-center max-w-[1440px] mx-auto px-[clamp(24px,4vw,64px)] w-full relative z-20 py-2 sm:py-3 lg:py-4'>
+          <div className='grid grid-cols-1 hero-grid-layout gap-8 lg:gap-[clamp(32px,4vw,80px)] items-center w-full'>
+            {/* Left Column: Headline, Description, CTAs, Feature Badges (Aligned with Navbar logo) */}
+            <div className='flex flex-col items-start text-left w-full animate-on-scroll'>
+              {/* Monospace Pill */}
+              <div className='inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/95 border border-[#e7e5e4] shadow-soft-sm text-[13px] sm:text-[14px] font-mono font-medium text-[#777169] mb-[clamp(14px,2.2vh,24px)]'>
+                <span className='w-2 h-2 rounded-full bg-[#f97316]' />
+                Không gian cộng tác sản xuất manga
+              </div>
 
-          <p className='mt-8 text-[#171717] font-sans text-lg md:text-xl font-medium tracking-wide max-w-2xl leading-relaxed mx-auto'>
-            From first script to final approval, PanelForge is the{' '}
-            <span className='bg-[#171717] text-[#EAE6DF] px-2 py-0.5 rounded-sm font-mono text-sm uppercase'>
-              Data Layer
-            </span>{' '}
-            for Modern Manga Studios.
-          </p>
+              {/* H1 Heading */}
+              <h1 className='font-serif font-light text-[#0c0a09] tracking-[-0.02em] leading-[1.02] text-[clamp(2.75rem,8vw,3rem)] lg:text-[clamp(3.5rem,4.2vw+1.5vh,7rem)] mb-[clamp(14px,2.2vh,24px)]'>
+                <span className='block whitespace-nowrap'>Từ ý tưởng đến</span>
+                <span className='block whitespace-nowrap'>
+                  <em className='font-light italic text-[#292524]'>từng khung truyện.</em>
+                </span>
+              </h1>
 
-          <div className='mt-10 flex flex-wrap items-center justify-center gap-5'>
-            <button
-              onClick={onOpenLogin}
-              className='group inline-flex items-center gap-2 px-8 py-3.5 bg-[#f97316] border-[1.5px] border-[#171717] shadow-[6px_6px_0px_#171717] text-white font-bold text-sm uppercase tracking-wide hover:shadow-[2px_2px_0px_#171717] hover:translate-x-[4px] hover:translate-y-[4px] transition-all cursor-pointer rounded'
-            >
-              Sign In to Studio
-              <ArrowRight className='w-4 h-4 group-hover:translate-x-1 transition-transform' />
-            </button>
-          </div>
+              {/* Subtitle */}
+              <p className='text-[#4e4e4e] font-sans text-[clamp(1.125rem,0.6vw+0.9rem,1.375rem)] max-w-[36rem] font-normal tracking-wide leading-[1.55] mb-[clamp(20px,3.5vh,36px)]'>
+                Kết nối kịch bản, bản vẽ và phản hồi trong một không gian. Theo dõi từng phiên bản,
+                với AI hỗ trợ kiểm tra tính nhất quán.
+              </p>
 
-          <div className='mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-xs font-bold text-[#404040] uppercase tracking-wide'>
-            <div className='flex items-center gap-2'>
-              <Check className='w-4 h-4 text-[#f97316]' /> 14-day studio trial
+              {/* Dual CTA */}
+              <div
+                id='hero-cta-group'
+                className='flex flex-wrap items-center gap-3.5 mb-[clamp(16px,2.4vh,24px)]'
+              >
+                <button
+                  onClick={handleLoginClick}
+                  className='group inline-flex items-center justify-center gap-2 h-[52px] sm:h-[56px] px-7 sm:px-8 text-[16px] sm:text-[17px] bg-[#292524] text-white font-medium rounded-full hover:bg-[#0c0a09] shadow-soft-sm transition-all duration-200 cursor-pointer'
+                >
+                  Đăng nhập
+                  <ArrowRight className='w-4 h-4 group-hover:translate-x-0.5 transition-transform' />
+                </button>
+                <button
+                  onClick={handleRegisterClick}
+                  className='inline-flex items-center justify-center gap-2 h-[52px] sm:h-[56px] px-7 sm:px-8 text-[16px] sm:text-[17px] bg-white border border-[#e7e5e4] text-[#0c0a09] font-medium rounded-full hover:border-[#0c0a09] hover:bg-[#fafafa] shadow-soft-sm transition-all duration-200 cursor-pointer'
+                >
+                  Tạo tài khoản
+                </button>
+              </div>
+
+              {/* Three Verified Feature Badges */}
+              <div className='flex flex-wrap items-center gap-2.5 text-[14px] font-medium text-[#777169]'>
+                <div className='flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 border border-[#e7e5e4] shadow-soft-sm'>
+                  <Check className='w-4 h-4 text-emerald-600 shrink-0' />
+                  <span>Kịch bản có cấu trúc</span>
+                </div>
+                <div className='flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 border border-[#e7e5e4] shadow-soft-sm'>
+                  <Check className='w-4 h-4 text-emerald-600 shrink-0' />
+                  <span>Phản hồi theo khung truyện</span>
+                </div>
+                <div className='flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 border border-[#e7e5e4] shadow-soft-sm'>
+                  <Check className='w-4 h-4 text-emerald-600 shrink-0' />
+                  <span>Truy vết phiên bản</span>
+                </div>
+              </div>
             </div>
-            <div className='flex items-center gap-2'>
-              <Check className='w-4 h-4 text-[#f97316]' /> Migrate from any tool
-            </div>
-            <div className='flex items-center gap-2'>
-              <Check className='w-4 h-4 text-[#f97316]' /> SOC 2 ready
+
+            {/* Right Column: Hero Manga Manuscript Page */}
+            <div className='flex items-center justify-center lg:justify-end w-full animate-on-scroll delay-100 overflow-visible'>
+              <HeroMangaPage />
             </div>
           </div>
         </div>
-      </div>
+
+        {/* Scroll Hint (Anchored to real workflow block) */}
+        <div className='w-full pb-3 pt-1 flex justify-center relative z-20 shrink-0'>
+          <a
+            id='hero-scroll-hint'
+            href='#block-workflow'
+            className='inline-flex items-center gap-1.5 text-xs text-stone-500 hover:text-stone-800 transition-colors cursor-pointer select-none font-medium'
+          >
+            <span>↓</span>
+            <span>Khám phá quy trình</span>
+          </a>
+        </div>
+      </section>
 
       {/* ===== CREATOR FIRST SECTION ===== */}
-      <div className='py-24 bg-[#171717] relative border-b-[1.5px] border-[#171717]'>
+      <div className='py-20 lg:py-24 bg-[#171717] relative border-b-[1.5px] border-[#171717] border-t border-stone-800'>
         <div className='max-w-4xl mx-auto px-6 text-center animate-on-scroll'>
-          <div className='inline-flex items-center gap-3 text-xs font-semibold text-[#f97316] uppercase tracking-[0.2em] mb-10'>
+          <div className='inline-flex items-center gap-3 text-xs font-semibold text-[#f97316] uppercase tracking-[0.2em] mb-8'>
             <span className='w-12 h-[1.5px] bg-[#f97316]'></span>
             Built for the Modern Studio
             <span className='w-12 h-[1.5px] bg-[#f97316]'></span>
@@ -185,8 +246,9 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
           </h2>
         </div>
       </div>
-      {/* ===== VALUE PROPOSITION ===== */}
-      <div className='py-16 md:py-24 relative bg-[#E2E2E2]'>
+
+      {/* ===== VALUE PROPOSITION / FEATURES ===== */}
+      <div id='block-features' className='py-16 md:py-24 relative bg-[#E2E2E2]'>
         <div className='max-w-6xl mx-auto px-6 lg:px-8'>
           <div className='text-center max-w-3xl mx-auto animate-on-scroll'>
             <div className='inline-flex items-center gap-2 text-[11px] font-semibold text-[#f97316] uppercase tracking-[0.2em] mb-6'>
@@ -1140,14 +1202,14 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             </p>
             <div className='mt-10 flex flex-col sm:flex-row items-center justify-center gap-3'>
               <button
-                onClick={onOpenLogin}
+                onClick={handleRegisterClick}
                 className='group inline-flex items-center gap-2 px-7 py-4 rounded-full tangerine-gradient text-white font-semibold text-base tangerine-shadow-lg hover:shadow-[0_18px_50px_rgba(249,115,22,0.45)] transition-all hover:-translate-y-0.5 cursor-pointer'
               >
                 Onboard Your Studio
                 <ArrowRight className='w-4 h-4 group-hover:translate-x-0.5 transition-transform' />
               </button>
               <button
-                onClick={onOpenLogin}
+                onClick={handleLoginClick}
                 className='inline-flex items-center gap-2 px-7 py-4 rounded-full bg-white border border-[#e7e7e7] text-[#171717] font-medium text-base hover:border-[#404040]/30 transition soft-shadow cursor-pointer'
               >
                 Talk to a specialist

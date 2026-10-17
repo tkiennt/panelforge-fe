@@ -17,6 +17,7 @@ export interface BoardCard {
   stageName: string;
   stageOrder: number;
   stageColor?: string | null;
+  isStageEnabled?: boolean;
   assigneeUserId: string;
   assigneeName: string;
   assigneeEmail?: string;

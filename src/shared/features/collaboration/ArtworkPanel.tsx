@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
+  BookOpen,
   ChevronDown,
   ChevronUp,
   Eye,
@@ -31,6 +32,7 @@ interface ArtworkPanelProps {
   canUpload: boolean;
   onChanged: () => void;
   onToast?: (title: string, desc: string) => void;
+  onOpenBible?: (panelId: string, panelNumber?: number) => void;
 }
 
 const formatSize = (bytes: number) =>
@@ -56,6 +58,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
   canUpload,
   onChanged,
   onToast,
+  onOpenBible,
 }) => {
   const fileInput = useRef<HTMLInputElement>(null);
   const panelFileInput = useRef<HTMLInputElement>(null);
@@ -282,7 +285,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
               title={`#${idx + 1}: ${cr.description} (${st})`}
             >
               <span
-                className={`absolute -top-3 -left-1 px-1 py-0.2 rounded text-[9px] font-bold shadow-xs ${badgeBg}`}
+                className={`absolute -top-3.5 -left-1.5 px-1.5 py-0.5 rounded text-xs font-bold font-mono shadow-xs ${badgeBg}`}
               >
                 #{idx + 1}
               </span>
@@ -296,7 +299,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
   return (
     <div className='space-y-3' data-testid='artwork-panel'>
       <div className='flex items-center justify-between gap-2 flex-wrap'>
-        <span className='flex items-center gap-1.5 text-[11px] font-bold text-[#171717]'>
+        <span className='flex items-center gap-1.5 text-xs font-bold text-[#171717]'>
           <ImageIcon className='w-3.5 h-3.5 text-[#F97316]' />
           Artwork của trang ({mine.length} phiên bản)
         </span>
@@ -315,7 +318,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
               type='button'
               disabled={busy || !pageId}
               onClick={() => fileInput.current?.click()}
-              className='px-2.5 py-1 rounded-lg bg-[#171717] hover:bg-black text-white text-[11px] font-semibold flex items-center gap-1.5 disabled:opacity-50 cursor-pointer transition-colors shadow-2xs'
+              className='px-2.5 py-1 rounded-lg bg-[#171717] hover:bg-black text-white text-xs font-semibold flex items-center gap-1.5 disabled:opacity-50 cursor-pointer transition-colors shadow-2xs'
             >
               {busy ? (
                 <Loader2 className='w-3 h-3 animate-spin' />
@@ -345,7 +348,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
       </div>
 
       {!pageId && canUpload && (
-        <p className='text-[11px] text-amber-700'>
+        <p className='text-xs text-amber-700'>
           Chưa xác định được trang của việc này (việc cấp Panel cần có Panel đã bắt đầu).
         </p>
       )}
@@ -353,7 +356,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
       {error && (
         <div
           role='alert'
-          className='p-2 bg-red-50 border border-red-200 text-red-700 rounded-lg text-[11px]'
+          className='p-2 bg-red-50 border border-red-200 text-red-700 rounded-lg text-xs'
         >
           {error}
         </div>
@@ -364,12 +367,12 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
           className='p-3 rounded-xl bg-[#FBF9F5] border border-[#EBE6DB] space-y-2.5'
           data-testid='panel-artworks-section'
         >
-          <div className='flex items-center justify-between text-[11px] font-bold text-[#171717]'>
+          <div className='flex items-center justify-between text-xs font-bold text-[#171717]'>
             <span className='flex items-center gap-1.5'>
               <LayoutTemplate className='w-3.5 h-3.5 text-blue-600' />
               <span>Ảnh theo từng khung ({panels.length} Panels)</span>
             </span>
-            <span className='text-[10px] text-zinc-500 font-normal'>
+            <span className='text-xs text-zinc-500 font-normal'>
               Mỗi khung quản lý bản hiện tại và lịch sử riêng biệt
             </span>
           </div>
@@ -388,23 +391,21 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                 >
                   <div className='flex items-center justify-between gap-2 flex-wrap'>
                     <div className='flex items-center gap-2 flex-wrap min-w-0'>
-                      <span className='font-mono font-bold px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-800 text-[11px] border border-zinc-200'>
+                      <span className='font-mono font-bold px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-800 text-xs border border-zinc-200'>
                         Khung #{p.panelNumber}
                       </span>
-                      <span className='text-zinc-500 font-mono text-[10px]'>
-                        Đọc #{p.readingOrder}
-                      </span>
+                      <span className='text-zinc-500 font-mono text-xs'>Đọc #{p.readingOrder}</span>
                       {latestPanelArt ? (
                         <div className='flex items-center gap-1.5 flex-wrap'>
-                          <span className='font-mono font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded text-[10px]'>
+                          <span className='font-mono font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded text-xs'>
                             v{latestPanelArt.versionNumber}
                           </span>
-                          <span className='inline-flex items-center gap-1 font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded text-[9px]'>
+                          <span className='inline-flex items-center gap-1 font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded text-xs'>
                             <span className='w-1.5 h-1.5 rounded-full bg-emerald-500' />
                             Bản hiện tại
                           </span>
                           <span
-                            className='text-zinc-700 font-medium text-[11px] truncate max-w-[200px]'
+                            className='text-zinc-700 font-medium text-xs truncate max-w-[200px]'
                             title={latestPanelArt.fileName}
                           >
                             {latestPanelArt.fileName}
@@ -412,14 +413,14 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                           {getStatusBadges(latestPanelArt).map((b) => (
                             <span
                               key={b.label}
-                              className={`px-1.5 py-0.2 rounded border text-[9px] font-bold ${b.cls}`}
+                              className={`px-1.5 py-0.5 rounded border text-xs font-bold ${b.cls}`}
                             >
                               {b.label}
                             </span>
                           ))}
                         </div>
                       ) : (
-                        <span className='text-zinc-400 italic text-[11px]'>Chưa có ảnh</span>
+                        <span className='text-zinc-400 italic text-xs'>Chưa có ảnh</span>
                       )}
                     </div>
 
@@ -430,7 +431,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                           onClick={() =>
                             setExpandedPanelHistory((prev) => ({ ...prev, [p.id]: !prev[p.id] }))
                           }
-                          className='px-2 py-1 rounded-md border border-zinc-200 bg-zinc-50 hover:bg-zinc-100 text-[10px] font-semibold text-zinc-700 flex items-center gap-1 cursor-pointer transition-colors'
+                          className='px-2 py-1 rounded-md border border-zinc-200 bg-zinc-50 hover:bg-zinc-100 text-xs font-semibold text-zinc-700 flex items-center gap-1 cursor-pointer transition-colors'
                         >
                           {isHistoryOpen ? (
                             <ChevronUp className='w-3 h-3 text-zinc-500' />
@@ -444,10 +445,22 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                         <button
                           type='button'
                           onClick={() => void handlePreview(latestPanelArt)}
-                          className='px-2.5 py-1 rounded-md border border-zinc-200 bg-white hover:bg-zinc-50 text-[10px] font-semibold flex items-center gap-1 cursor-pointer transition-colors shadow-2xs'
+                          className='px-2.5 py-1 rounded-md border border-zinc-200 bg-white hover:bg-zinc-50 text-xs font-semibold flex items-center gap-1 cursor-pointer transition-colors shadow-2xs'
                         >
                           <Eye className='w-3 h-3' />
                           <span>{previews[latestPanelArt.id] ? 'Ẩn' : 'Xem'}</span>
+                        </button>
+                      )}
+                      {onOpenBible && (
+                        <button
+                          type='button'
+                          onClick={() => onOpenBible(p.id, p.panelNumber)}
+                          data-testid={`panel-bible-btn-${p.id}`}
+                          title='Xem tham chiếu thiết kế nhân vật trong khung tranh này'
+                          className='px-2.5 py-1 rounded-md border border-orange-200 bg-orange-50 hover:bg-orange-100 text-[10px] font-semibold text-orange-800 flex items-center gap-1 cursor-pointer transition-colors shadow-2xs'
+                        >
+                          <BookOpen className='w-3 h-3 text-[#F97316]' />
+                          <span>Bible</span>
                         </button>
                       )}
                       {canUpload && (
@@ -459,7 +472,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                             setActiveUploadPanelId(p.id);
                             panelFileInput.current?.click();
                           }}
-                          className='px-2.5 py-1 rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 text-[10px] font-semibold flex items-center gap-1 cursor-pointer disabled:opacity-50 transition-colors'
+                          className='px-2.5 py-1 rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 text-xs font-semibold flex items-center gap-1 cursor-pointer disabled:opacity-50 transition-colors'
                         >
                           <Upload className='w-3 h-3' />
                           <span>Tải ảnh cho khung</span>
@@ -497,31 +510,31 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
 
                   {olderPanelArts.length > 0 && isHistoryOpen && (
                     <div className='mt-2 pt-2 border-t border-dashed border-zinc-200 space-y-1.5 pl-2 border-l-2 border-l-amber-400'>
-                      <p className='text-[10px] font-semibold text-zinc-500 uppercase tracking-wider'>
+                      <p className='text-xs font-semibold text-zinc-500 uppercase tracking-wider'>
                         Lịch sử bản vẽ cũ của Khung #{p.panelNumber} ({olderPanelArts.length} bản
                         cũ):
                       </p>
                       {olderPanelArts.map((art) => (
                         <div
                           key={art.id}
-                          className='p-2 rounded-lg bg-zinc-50 border border-zinc-200 text-[11px] space-y-1.5'
+                          className='p-2 rounded-lg bg-zinc-50 border border-zinc-200 text-xs space-y-1.5'
                         >
                           <div className='flex items-center justify-between gap-2 flex-wrap'>
                             <div className='flex items-center gap-2 flex-wrap min-w-0'>
-                              <span className='font-mono font-semibold px-1.5 py-0.2 rounded bg-zinc-200 text-zinc-700 text-[10px]'>
+                              <span className='font-mono font-semibold px-1.5 py-0.5 rounded bg-zinc-200 text-zinc-700 text-xs'>
                                 v{art.versionNumber} (Bản cũ)
                               </span>
-                              <span className='text-zinc-700 font-medium text-[11px] truncate max-w-[200px]'>
+                              <span className='text-zinc-700 font-medium text-xs truncate max-w-[200px]'>
                                 {art.fileName}
                               </span>
-                              <span className='text-[10px] text-zinc-500 font-mono'>
+                              <span className='text-xs text-zinc-500 font-mono'>
                                 {formatSize(art.sizeBytes)} ·{' '}
                                 {new Date(art.createdAt).toLocaleString('vi-VN')}
                               </span>
                               {getStatusBadges(art).map((b) => (
                                 <span
                                   key={b.label}
-                                  className={`px-1.5 py-0.2 rounded border text-[9px] font-bold ${b.cls}`}
+                                  className={`px-1.5 py-0.5 rounded border text-xs font-bold ${b.cls}`}
                                 >
                                   {b.label}
                                 </span>
@@ -536,7 +549,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                                     [art.id]: !prev[art.id],
                                   }))
                                 }
-                                className='text-[10px] text-zinc-500 hover:text-zinc-800 flex items-center gap-0.5 cursor-pointer font-medium'
+                                className='text-xs text-zinc-500 hover:text-zinc-800 flex items-center gap-0.5 cursor-pointer font-medium'
                               >
                                 <Info className='w-3 h-3' />
                                 {detailsExpanded[art.id] ? 'Ẩn chi tiết' : 'Chi tiết'}
@@ -544,7 +557,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                               <button
                                 type='button'
                                 onClick={() => void handlePreview(art)}
-                                className='px-2 py-0.5 rounded border border-zinc-200 bg-white hover:bg-zinc-50 text-[10px] font-semibold flex items-center gap-1 cursor-pointer shadow-2xs'
+                                className='px-2 py-0.5 rounded border border-zinc-200 bg-white hover:bg-zinc-50 text-xs font-semibold flex items-center gap-1 cursor-pointer shadow-2xs'
                               >
                                 <Eye className='w-3 h-3' />
                                 <span>{previews[art.id] ? 'Ẩn' : 'Xem bản cũ'}</span>
@@ -554,7 +567,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                           {detailsExpanded[art.id] && (
                             <div
                               data-testid={`artwork-details-${art.id}`}
-                              className='p-2 rounded bg-white border border-zinc-200 text-[10px] font-mono text-zinc-600 space-y-0.5'
+                              className='p-2 rounded bg-white border border-zinc-200 text-xs font-mono text-zinc-600 space-y-0.5'
                             >
                               <div>
                                 Tên file:{' '}
@@ -608,11 +621,11 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
       )}
 
       {mine.length === 0 ? (
-        <p className='text-[11px] text-[#888888]'>Chưa có artwork nào ở công đoạn này.</p>
+        <p className='text-xs text-[#888888]'>Chưa có artwork nào ở công đoạn này.</p>
       ) : panels.length === 0 || fullPageArts.length > 0 ? (
         <div className='space-y-2'>
           {panels.length > 0 && fullPageArts.length > 0 && (
-            <p className='text-[11px] font-bold text-zinc-800 flex items-center gap-1.5'>
+            <p className='text-xs font-bold text-zinc-800 flex items-center gap-1.5'>
               <ImageIcon className='w-3.5 h-3.5 text-orange-600' />
               <span>Ảnh artwork cả trang ({fullPageArts.length} phiên bản)</span>
             </p>
@@ -625,7 +638,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
               return (
                 <li
                   key={art.id}
-                  className={`p-2.5 rounded-xl border text-[11px] space-y-2 transition-all ${
+                  className={`p-2.5 rounded-xl border text-xs space-y-2 transition-all ${
                     isCurrent
                       ? 'bg-emerald-50/30 border-emerald-200/90 shadow-2xs'
                       : 'bg-zinc-50/70 border-zinc-200'
@@ -638,7 +651,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                           v{art.versionNumber}
                         </span>
                         <span
-                          className={`px-1.5 py-0.2 rounded text-[10px] font-semibold ${
+                          className={`px-1.5 py-0.5 rounded text-xs font-semibold ${
                             isCurrent
                               ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                               : 'bg-zinc-200 text-zinc-700'
@@ -648,18 +661,18 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                         </span>
                         <span className='truncate font-semibold text-zinc-900'>{art.fileName}</span>
                         {matchedPanel ? (
-                          <span className='px-1.5 py-0.2 rounded border text-[10px] font-bold bg-indigo-50 text-indigo-700 border-indigo-200'>
+                          <span className='px-1.5 py-0.5 rounded border text-xs font-bold bg-indigo-50 text-indigo-700 border-indigo-200'>
                             Khung #{matchedPanel.panelNumber}
                           </span>
                         ) : (
-                          <span className='px-1.5 py-0.2 rounded border text-[10px] font-bold bg-zinc-100 text-zinc-700 border-zinc-200'>
+                          <span className='px-1.5 py-0.5 rounded border text-xs font-bold bg-zinc-100 text-zinc-700 border-zinc-200'>
                             Cả trang
                           </span>
                         )}
                         {getStatusBadges(art).map((b) => (
                           <span
                             key={b.label}
-                            className={`px-1.5 py-0.2 rounded border text-[10px] font-bold ${b.cls}`}
+                            className={`px-1.5 py-0.5 rounded border text-xs font-bold ${b.cls}`}
                           >
                             {b.label}
                           </span>
@@ -671,12 +684,12 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                           onClick={() =>
                             setDetailsExpanded((prev) => ({ ...prev, [art.id]: !prev[art.id] }))
                           }
-                          className='text-[10px] text-zinc-500 hover:text-zinc-800 flex items-center gap-0.5 cursor-pointer font-medium'
+                          className='text-xs text-zinc-500 hover:text-zinc-800 flex items-center gap-0.5 cursor-pointer font-medium'
                         >
                           <Info className='w-3 h-3' />
                           {detailsExpanded[art.id] ? 'Ẩn chi tiết' : 'Chi tiết'}
                         </button>
-                        <span className='text-[10px] text-zinc-500 font-mono'>
+                        <span className='text-xs text-zinc-500 font-mono'>
                           {formatSize(art.sizeBytes)} · sha256 {art.sha256.slice(0, 10)}… ·{' '}
                           {new Date(art.createdAt).toLocaleString('vi-VN')}
                         </span>
@@ -699,7 +712,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                   {detailsExpanded[art.id] && (
                     <div
                       data-testid={`artwork-details-${art.id}`}
-                      className='mt-1 p-2 rounded-lg bg-white border border-zinc-200 text-[10px] font-mono text-zinc-600 space-y-0.5'
+                      className='mt-1 p-2 rounded-lg bg-white border border-zinc-200 text-xs font-mono text-zinc-600 space-y-0.5'
                     >
                       <div>
                         Tên file: <span className='text-zinc-900 font-medium'>{art.fileName}</span>
@@ -747,7 +760,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
             <button
               type='button'
               onClick={() => setShowOlder((prev) => !prev)}
-              className='w-full py-1.5 text-center text-[11px] font-semibold text-zinc-600 hover:text-zinc-900 bg-white hover:bg-zinc-50 border border-zinc-200 rounded-lg flex items-center justify-center gap-1 cursor-pointer transition-colors shadow-2xs'
+              className='w-full py-1.5 text-center text-xs font-semibold text-zinc-600 hover:text-zinc-900 bg-white hover:bg-zinc-50 border border-zinc-200 rounded-lg flex items-center justify-center gap-1 cursor-pointer transition-colors shadow-2xs'
             >
               {showOlder ? (
                 <ChevronUp className='w-3.5 h-3.5' />
@@ -766,7 +779,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
           <button
             type='button'
             onClick={() => setShowOlder((prev) => !prev)}
-            className='w-full py-1.5 text-center text-[11px] font-semibold text-zinc-600 hover:text-zinc-900 bg-white hover:bg-zinc-50 border border-zinc-200 rounded-lg flex items-center justify-center gap-1 cursor-pointer transition-colors shadow-2xs'
+            className='w-full py-1.5 text-center text-xs font-semibold text-zinc-600 hover:text-zinc-900 bg-white hover:bg-zinc-50 border border-zinc-200 rounded-lg flex items-center justify-center gap-1 cursor-pointer transition-colors shadow-2xs'
           >
             {showOlder ? (
               <ChevronUp className='w-3.5 h-3.5' />
@@ -781,7 +794,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
           </button>
           {showOlder && (
             <div className='mt-2 space-y-2'>
-              <p className='text-[10px] font-semibold text-zinc-500 uppercase tracking-wider'>
+              <p className='text-xs font-semibold text-zinc-500 uppercase tracking-wider'>
                 Lịch sử tải lên toàn trang ({mine.length} bản ghi):
               </p>
               <ul className='space-y-2'>
@@ -798,7 +811,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                   return (
                     <li
                       key={art.id}
-                      className={`p-2.5 rounded-xl border text-[11px] space-y-1.5 ${
+                      className={`p-2.5 rounded-xl border text-xs space-y-1.5 ${
                         isCurrent
                           ? 'bg-emerald-50/30 border-emerald-200'
                           : 'bg-zinc-50/70 border-zinc-200'
@@ -811,7 +824,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                               v{art.versionNumber}
                             </span>
                             <span
-                              className={`px-1.5 py-0.2 rounded text-[10px] font-semibold ${
+                              className={`px-1.5 py-0.5 rounded text-xs font-semibold ${
                                 isCurrent
                                   ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                                   : 'bg-zinc-200 text-zinc-700'
@@ -823,14 +836,14 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                               {art.fileName}
                             </span>
                             {matchedPanel && (
-                              <span className='px-1.5 py-0.2 rounded border text-[10px] font-bold bg-indigo-50 text-indigo-700 border-indigo-200'>
+                              <span className='px-1.5 py-0.5 rounded border text-xs font-bold bg-indigo-50 text-indigo-700 border-indigo-200'>
                                 Khung #{matchedPanel.panelNumber}
                               </span>
                             )}
                             {getStatusBadges(art).map((b) => (
                               <span
                                 key={b.label}
-                                className={`px-1.5 py-0.2 rounded border text-[10px] font-bold ${b.cls}`}
+                                className={`px-1.5 py-0.5 rounded border text-xs font-bold ${b.cls}`}
                               >
                                 {b.label}
                               </span>
@@ -845,12 +858,12 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                                   [art.id]: !prev[art.id],
                                 }))
                               }
-                              className='text-[10px] text-zinc-500 hover:text-zinc-800 flex items-center gap-0.5 cursor-pointer font-medium'
+                              className='text-xs text-zinc-500 hover:text-zinc-800 flex items-center gap-0.5 cursor-pointer font-medium'
                             >
                               <Info className='w-3 h-3' />
                               {detailsExpanded[art.id] ? 'Ẩn chi tiết' : 'Chi tiết'}
                             </button>
-                            <span className='text-[10px] text-zinc-500 font-mono'>
+                            <span className='text-xs text-zinc-500 font-mono'>
                               {formatSize(art.sizeBytes)} · sha256 {art.sha256.slice(0, 10)}… ·{' '}
                               {new Date(art.createdAt).toLocaleString('vi-VN')}
                             </span>
@@ -873,7 +886,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                       {detailsExpanded[art.id] && (
                         <div
                           data-testid={`artwork-details-${art.id}`}
-                          className='p-2 rounded-lg bg-white border border-zinc-200 text-[10px] font-mono text-zinc-600 space-y-0.5'
+                          className='p-2 rounded-lg bg-white border border-zinc-200 text-xs font-mono text-zinc-600 space-y-0.5'
                         >
                           <div>
                             Tên file:{' '}

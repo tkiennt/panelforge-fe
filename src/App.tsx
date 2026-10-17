@@ -12,16 +12,9 @@ import {
   normalizeSystemRole,
   normalizeWorkspaceRole,
   getRoleFromToken,
+  ProvenanceLogItem,
+  AssistantRosterItem,
 } from './types';
-import {
-  INITIAL_PROJECTS,
-  INITIAL_KANBAN_CARDS,
-  INITIAL_BIBLE_ENTITIES,
-  INITIAL_MEMBERS,
-  INITIAL_PROVENANCE_LOGS,
-  INITIAL_ASSISTANTS,
-  INITIAL_PROJECT_MEMBERSHIPS,
-} from '@/mocks/mockData';
 import { BrowserRouter, useNavigate, useLocation } from 'react-router-dom';
 import { GlobalModals } from './app/GlobalModals';
 import { AppRoutes } from './app/routes';
@@ -223,6 +216,8 @@ function AppContent() {
     setViewScope('project');
 
     let firstSeriesId: string | null = null;
+    // Clear stale project before loading new workspace's series
+    setActiveProject(null as any);
     // Tải danh sách Series thật từ Backend API PostgreSQL cho Workspace này
     try {
       const realSeriesList = await seriesService.getSeriesList(ws.id);
@@ -254,25 +249,9 @@ function AppContent() {
       console.warn('Không thể nạp Series thật cho Workspace:', err);
     }
 
-    // Smart Landing by Persona & Series Availability
-    if (wsRole === 'PRODUCER' || currentRole === 'ADMINISTRATOR') {
-      navigate(`/workspaces/${ws.id}/overview`);
-    } else if (wsRole === 'PUBLISHER') {
-      navigateToWorkspaceRoleView(wsRole);
-      navigate(
-        firstSeriesId
-          ? `/workspaces/${ws.id}/series/${firstSeriesId}/publishing`
-          : `/workspaces/${ws.id}/overview`,
-      );
-    } else {
-      // Artist, Writer, Letterer, Editor: Vào thẳng bàn làm việc thật (My Work) của Series đầu tiên kết nối Backend API; Workspace chưa có Series thì vào trang tổng quan
-      navigateToWorkspaceRoleView(wsRole);
-      navigate(
-        firstSeriesId
-          ? `/workspaces/${ws.id}/series/${firstSeriesId}/my-work`
-          : `/workspaces/${ws.id}/overview`,
-      );
-    }
+    // Strict UI flow: Workspaces list (/workspaces) -> Select a Workspace -> Series Selection Screen (/workspaces/{id}/series)
+    navigateToWorkspaceRoleView(wsRole);
+    navigate(`/workspaces/${ws.id}/series`);
   };
 
   // Khôi phục vai trò và phiên làm việc: nạp nhanh từ localStorage, xác thực qua GET /Auth/me
@@ -367,13 +346,13 @@ function AppContent() {
     }
   }, [currentRole, viewScope]);
 
-  const [projects, setProjects] = useState<MangaProject[]>(INITIAL_PROJECTS);
+  const [projects, setProjects] = useState<MangaProject[]>([]);
   const [activeProject, setActiveProject] = useState<MangaProject | undefined>(() => {
     try {
       const saved = localStorage.getItem('activeProject');
-      return saved ? JSON.parse(saved) : INITIAL_PROJECTS[0];
+      return saved ? JSON.parse(saved) : undefined;
     } catch {
-      return INITIAL_PROJECTS[0];
+      return undefined;
     }
   });
 
@@ -452,11 +431,11 @@ function AppContent() {
     }
   }, [location.pathname, activeWorkspace?.id, currentWorkspaceRole, currentRole]);
 
-  const [cards, setCards] = useState<KanbanCard[]>(INITIAL_KANBAN_CARDS);
-  const [entities, setEntities] = useState<BibleEntity[]>(INITIAL_BIBLE_ENTITIES);
-  const [members, setMembers] = useState<StudioMember[]>(INITIAL_MEMBERS);
-  const [provenanceLogs, setProvenanceLogs] = useState(INITIAL_PROVENANCE_LOGS);
-  const [assistants] = useState(INITIAL_ASSISTANTS);
+  const [cards, setCards] = useState<KanbanCard[]>([]);
+  const [entities, setEntities] = useState<BibleEntity[]>([]);
+  const [members, setMembers] = useState<StudioMember[]>([]);
+  const [provenanceLogs, setProvenanceLogs] = useState<ProvenanceLogItem[]>([]);
+  const [assistants] = useState<AssistantRosterItem[]>([]);
 
   // Modals
   const [spreadModalOpen, setSpreadModalOpen] = useState(false);
@@ -561,18 +540,8 @@ function AppContent() {
   const handleEnterProject = (proj: MangaProject, targetView: ViewMode | string = 'workspace') => {
     setActiveProject(proj);
 
-    // Find roles for the current user in this project
-    const userId = currentUserInfo?.id || 'member-tf'; // default to TF for testing
-    const membership = INITIAL_PROJECT_MEMBERSHIPS.find(
-      (m) => m.projectId === proj.id && m.userId === userId,
-    );
-
-    if (membership && membership.roles.length > 0) {
-      setActiveProjectRoles(membership.roles);
-    } else {
-      // Default fallback
-      setActiveProjectRoles(['READER']);
-    }
+    const defaultRole = currentWorkspaceRole || 'PRODUCER';
+    setActiveProjectRoles([defaultRole]);
 
     navigate(targetView === 'workspace' ? '/workspace' : `/${targetView}`);
     showToast('Entered Studio Workspace', `Active workspace: ${proj.title}`);
@@ -612,6 +581,73 @@ function AppContent() {
       ? '/admin'
       : '/workspaces';
 
+  const handleApiLoginSuccess = (authResponse: any, customRedirect?: string) => {
+    setIsLoginModalOpen(false);
+    setIsRegisterModalOpen(false);
+    setIsAuthenticated(true);
+    localStorage.removeItem('demoRole');
+    localStorage.removeItem('isDemoMode');
+    const role = normalizeSystemRole(authResponse?.user?.role);
+    setCurrentRole(role);
+    setCurrentUserInfo({
+      id: authResponse?.user?.id,
+      name: authResponse?.user?.fullName || authResponse?.user?.email?.split('@')[0] || 'User',
+      email: authResponse?.user?.email || '',
+      role,
+      canCreateStudio: authResponse?.user?.canCreateStudio,
+      isTwoFactorEnabled: authResponse?.user?.isTwoFactorEnabled,
+    });
+    if (authResponse?.user) {
+      localStorage.setItem('user', JSON.stringify(authResponse.user));
+    }
+    localStorage.setItem('userRole', role);
+
+    if (authResponse?.token) {
+      localStorage.setItem('token', authResponse.token);
+    }
+    if (authResponse?.refreshToken) {
+      localStorage.setItem('refreshToken', authResponse.refreshToken);
+    }
+
+    if (customRedirect) {
+      navigate(customRedirect);
+      showToast(
+        'Đăng nhập thành công',
+        `Chào mừng ${authResponse?.user?.fullName || 'bạn'} (Vai trò: ${role})!`,
+      );
+      return;
+    }
+
+    // BR-23 / F3: Điều hướng theo suggestedLanding từ landing-context API
+    authService
+      .getLandingContext()
+      .then((landing) => {
+        if (landing?.suggestedLanding === 'AdminDashboard') {
+          navigate('/admin');
+        } else if (landing?.suggestedLanding === 'YourWorkspaces') {
+          navigate('/workspaces');
+        } else if (landing?.suggestedLanding === 'StudioCreation') {
+          navigate(landing.canCreateStudio ? '/producer' : '/workspaces');
+        } else if (landing?.suggestedLanding === 'PublicCatalog') {
+          navigate('/catalog');
+        } else {
+          navigate(role === 'ADMINISTRATOR' ? '/admin' : '/workspaces');
+        }
+      })
+      .catch(() => {
+        navigate(role === 'ADMINISTRATOR' ? '/admin' : '/workspaces');
+      });
+
+    showToast(
+      'Đăng nhập thành công',
+      `Chào mừng ${authResponse?.user?.fullName || 'bạn'} (Vai trò: ${role})!`,
+    );
+  };
+
+  const handleRegisterSuccess = (authResponse: any, customRedirect?: string) => {
+    handleApiLoginSuccess(authResponse, customRedirect);
+  };
+
   return (
     <div className='min-h-screen bg-[#F8F6F0] text-[#171717] font-sans antialiased selection:bg-[#F97316]/20 selection:text-[#EA580C] relative'>
       <AppRoutes
@@ -632,6 +668,7 @@ function AppContent() {
         setIsChangePasswordModalOpen={setIsChangePasswordModalOpen}
         setIsLoginModalOpen={setIsLoginModalOpen}
         setIsRegisterModalOpen={setIsRegisterModalOpen}
+        setIsCommandPaletteOpen={setCommandPaletteOpen}
         members={members}
         setMembers={setMembers}
         handleInviteMember={handleInviteMember}
@@ -639,6 +676,8 @@ function AppContent() {
         provenanceLogs={provenanceLogs}
         handleAddEntity={handleAddEntity}
         isDevMode={IS_DEV_MODE}
+        onApiLoginSuccess={handleApiLoginSuccess}
+        onRegisterSuccess={handleRegisterSuccess}
       />
 
       {/* Các Modals dùng chung */}
@@ -742,59 +781,7 @@ function AppContent() {
             const roleLabel = role === 'ADMINISTRATOR' ? 'Administrator' : 'User';
             showToast('Đăng nhập thành công', `Chào mừng ${displayName} (Vai trò: ${roleLabel})!`);
           }}
-          onApiLoginSuccess={(authResponse) => {
-            setIsLoginModalOpen(false);
-            setIsAuthenticated(true);
-            localStorage.removeItem('demoRole');
-            localStorage.removeItem('isDemoMode');
-            const role = normalizeSystemRole(authResponse?.user?.role);
-            setCurrentRole(role);
-            setCurrentUserInfo({
-              id: authResponse?.user?.id,
-              name:
-                authResponse?.user?.fullName || authResponse?.user?.email?.split('@')[0] || 'User',
-              email: authResponse?.user?.email || '',
-              role,
-              canCreateStudio: authResponse?.user?.canCreateStudio,
-              isTwoFactorEnabled: authResponse?.user?.isTwoFactorEnabled,
-            });
-            if (authResponse?.user) {
-              localStorage.setItem('user', JSON.stringify(authResponse.user));
-            }
-            localStorage.setItem('userRole', role);
-
-            if (authResponse?.token) {
-              localStorage.setItem('token', authResponse.token);
-            }
-            if (authResponse?.refreshToken) {
-              localStorage.setItem('refreshToken', authResponse.refreshToken);
-            }
-
-            // BR-23 / F3: Điều hướng theo suggestedLanding từ landing-context API
-            authService
-              .getLandingContext()
-              .then((landing) => {
-                if (landing?.suggestedLanding === 'AdminDashboard') {
-                  navigate('/admin');
-                } else if (landing?.suggestedLanding === 'YourWorkspaces') {
-                  navigate('/workspaces');
-                } else if (landing?.suggestedLanding === 'StudioCreation') {
-                  navigate(landing.canCreateStudio ? '/producer' : '/workspaces');
-                } else if (landing?.suggestedLanding === 'PublicCatalog') {
-                  navigate('/catalog');
-                } else {
-                  navigate(role === 'ADMINISTRATOR' ? '/admin' : '/workspaces');
-                }
-              })
-              .catch(() => {
-                navigate(role === 'ADMINISTRATOR' ? '/admin' : '/workspaces');
-              });
-
-            showToast(
-              'Đăng nhập thành công',
-              `Chào mừng ${authResponse?.user?.fullName || 'bạn'} (Vai trò: ${role})!`,
-            );
-          }}
+          onApiLoginSuccess={handleApiLoginSuccess}
         />
       )}
 
@@ -805,28 +792,7 @@ function AppContent() {
             setIsRegisterModalOpen(false);
             setIsLoginModalOpen(true);
           }}
-          onSuccess={(authResponse) => {
-            setIsRegisterModalOpen(false);
-            setIsAuthenticated(true);
-            const role = normalizeSystemRole(authResponse?.user?.role);
-            setCurrentRole(role);
-            setCurrentUserInfo({
-              id: authResponse?.user?.id,
-              name:
-                authResponse?.user?.fullName || authResponse?.user?.email?.split('@')[0] || 'User',
-              email: authResponse?.user?.email || '',
-              role,
-            });
-            if (authResponse?.user) {
-              localStorage.setItem('user', JSON.stringify(authResponse.user));
-            }
-            localStorage.setItem('userRole', role);
-            navigate(role === 'ADMINISTRATOR' ? '/admin' : '/workspaces');
-            showToast(
-              'Kích hoạt thành công',
-              `Chào mừng ${authResponse?.user?.fullName || 'bạn'} (Vai trò: ${role})!`,
-            );
-          }}
+          onSuccess={handleRegisterSuccess}
         />
       )}
 
@@ -873,7 +839,7 @@ function AppContent() {
           <div className='glass rounded-full shadow-[0_8px_30px_rgba(0,0,0,0.14)] border border-[#e7e7e7]/80 p-1.5 flex items-center gap-1'>
             <div className='hidden sm:flex items-center gap-1.5 pl-2 pr-1.5 py-1'>
               <span className='w-1.5 h-1.5 rounded-full bg-[#f97316] pulse-dot'></span>
-              <span className='text-[10px] font-semibold text-[#404040] uppercase tracking-[0.15em]'>
+              <span className='text-xs font-semibold text-[#404040] uppercase tracking-[0.15em]'>
                 Preview
               </span>
             </div>
@@ -904,7 +870,7 @@ function AppContent() {
                   >
                     <Icon className='w-4 h-4' />
                   </button>
-                  <div className='absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-[#171717] text-white text-[10px] rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none'>
+                  <div className='absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-[#171717] text-white text-xs rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none'>
                     {label}
                     <div className='absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[#171717]'></div>
                   </div>
@@ -926,7 +892,7 @@ function AppContent() {
             <CheckCircle2 className='w-4 h-4 text-[#10B981] shrink-0 mt-0.5' />
             <div>
               <div className='text-xs font-bold text-white font-display'>{toast.title}</div>
-              <div className='text-[11px] text-[#CCCCCC] mt-0.5 leading-snug'>{toast.desc}</div>
+              <div className='text-xs text-[#CCCCCC] mt-0.5 leading-snug'>{toast.desc}</div>
             </div>
           </div>
         ))}

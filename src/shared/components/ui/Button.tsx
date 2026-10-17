@@ -2,14 +2,24 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
+  variant?: 'primary' | 'secondary' | 'ghost' | 'danger' | 'outline' | 'accent';
   size?: 'sm' | 'md' | 'lg' | 'icon';
+  pill?: boolean;
   isLoading?: boolean;
 }
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   (
-    { className, variant = 'primary', size = 'md', isLoading, children, disabled, ...props },
+    {
+      className,
+      variant = 'primary',
+      size = 'md',
+      pill = true,
+      isLoading,
+      children,
+      disabled,
+      ...props
+    },
     ref,
   ) => {
     return (
@@ -17,24 +27,29 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         disabled={disabled || isLoading}
         className={cn(
-          'inline-flex items-center justify-center font-semibold transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed',
-          // Base style: Flat design, solid ink borders (Manga Aesthetic)
-          'border-[1.5px] rounded-md shadow-none',
+          'inline-flex items-center justify-center font-medium transition-all duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed select-none active:scale-[0.98]',
+          // Pill or rounded-xl
+          pill ? 'rounded-full' : 'rounded-xl',
 
           // Variants
           variant === 'primary' &&
-            'bg-[#F97316] text-white border-[#F97316] hover:bg-[#EA580C] hover:border-[#EA580C]',
+            'bg-[#292524] text-white hover:bg-[#0c0a09] active:bg-black shadow-soft-sm border border-transparent',
           variant === 'secondary' &&
-            'bg-[#FFFFFF] text-[#171717] border-[#171717] hover:bg-[#FAF8F5]',
+            'bg-white text-[#0c0a09] border border-[#e7e5e4] hover:bg-[#f5f5f5] hover:border-[#d6d3d1] shadow-soft-sm',
+          variant === 'outline' &&
+            'bg-transparent text-[#0c0a09] border border-[#e7e5e4] hover:bg-[#f5f5f5] hover:border-[#0c0a09]',
           variant === 'ghost' &&
-            'bg-transparent text-[#555555] border-transparent hover:text-[#171717] hover:bg-[#EAE6DF] hover:border-[#EAE6DF]',
-          variant === 'danger' && 'bg-[#FEF2F2] text-[#DC2626] border-[#DC2626] hover:bg-[#FEE2E2]',
+            'bg-transparent text-[#292524] border-transparent hover:text-[#0c0a09] hover:bg-[#f0efed]',
+          variant === 'danger' &&
+            'bg-[#fef2f2] text-[#b91c1c] border border-[#fecaca] hover:bg-[#fee2e2]',
+          variant === 'accent' &&
+            'bg-[#f97316] text-white border-transparent hover:bg-[#ea580c] shadow-soft-sm',
 
-          // Sizes
-          size === 'sm' && 'px-3 py-1.5 text-[11px]',
-          size === 'md' && 'px-4 py-2 text-xs',
-          size === 'lg' && 'px-5 py-2.5 text-sm',
-          size === 'icon' && 'p-1.5',
+          // Sizes (Min text size text-xs per DESIGN_RULES)
+          size === 'sm' && 'h-8 px-3 text-xs gap-1.5',
+          size === 'md' && 'h-10 px-4 text-xs font-semibold gap-2',
+          size === 'lg' && 'h-12 px-6 text-sm font-semibold gap-2.5',
+          size === 'icon' && 'h-9 w-9 p-0 aspect-square',
 
           className,
         )}
@@ -42,7 +57,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       >
         {isLoading && (
           <svg
-            className='animate-spin -ml-1 mr-2 h-3.5 w-3.5 text-current'
+            className='animate-spin h-3.5 w-3.5 text-current'
             xmlns='http://www.w3.org/2000/svg'
             fill='none'
             viewBox='0 0 24 24'

@@ -73,17 +73,17 @@ const CHAPTER_STATUS_STYLE: Record<string, { label: string; className: string }>
   },
   Locked: {
     label: 'Đã khoá',
-    className: 'bg-zinc-100 text-zinc-600 border-zinc-200',
+    className: 'bg-stone-100 text-stone-600 border-stone-200',
   },
 };
 
 const ROLE_COLOR_MAP: Record<string, string> = {
-  WRITER: 'bg-blue-100 text-blue-800 border-blue-200',
-  ARTIST: 'bg-purple-100 text-purple-800 border-purple-200',
-  LETTERER: 'bg-amber-100 text-amber-800 border-amber-200',
-  EDITOR: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-  PRODUCER: 'bg-orange-100 text-orange-800 border-orange-200',
-  PUBLISHER: 'bg-indigo-100 text-indigo-800 border-indigo-200',
+  WRITER: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  ARTIST: 'bg-blue-50 text-blue-700 border-blue-200',
+  LETTERER: 'bg-pink-50 text-pink-700 border-pink-200',
+  EDITOR: 'bg-amber-50 text-amber-700 border-amber-200',
+  PRODUCER: 'bg-purple-50 text-purple-700 border-purple-200',
+  PUBLISHER: 'bg-indigo-50 text-indigo-700 border-indigo-200',
 };
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
@@ -1041,11 +1041,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 </p>
               </div>
             ) : (
-              <div className='py-10 text-center text-xs text-[#888888] bg-[#FAF8F5] rounded-lg border border-dashed border-[#E7E7E7] space-y-2'>
-                <GitBranch className='w-6 h-6 mx-auto text-[#CCCCCC]' />
-                <p>Chưa có dữ liệu lịch sử Burndown.</p>
-                <p className='text-[10px] text-[#AAAAAA]'>
-                  Khi có công việc được tạo và phân công trong Series, đồ thị sẽ tự động hiển thị.
+              <div className='py-10 text-center text-xs text-stone-500 bg-[#FAF8F5] rounded-xl border border-dashed border-stone-300 space-y-2 p-6'>
+                <div className='w-10 h-10 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center mx-auto'>
+                  <GitBranch className='w-5 h-5' />
+                </div>
+                <p className='font-semibold text-stone-800 text-xs'>
+                  Chưa có dữ liệu lịch sử Burndown
+                </p>
+                <p className='text-xs text-stone-500'>
+                  Khi các công việc được phân công và xử lý trong Series, đồ thị tiến độ sẽ tự động
+                  hiển thị.
                 </p>
               </div>
             )}

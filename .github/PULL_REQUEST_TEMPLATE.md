@@ -18,6 +18,15 @@ Please describe the tests that you ran to verify your changes.
 ## Checklist:
 - [ ] My code follows the style guidelines of this project
 - [ ] I have performed a self-review of my own code
-- [ ] I have commented my code, particularly in hard-to-understand areas
-- [ ] I have made corresponding changes to the documentation
+- [ ] I have run `npm run quality` (typecheck, lint, test) and all checks pass
 - [ ] My changes generate no new warnings
+
+### 📚 Documentation Sync Verification (per docs/DOCUMENTATION_PROCESS.md):
+- [ ] I have updated corresponding documentation if code changed:
+  - [ ] `docs/DESIGN_RULES.md` (if modified styling, colors, font, buttons, or design tokens)
+  - [ ] `PRODUCT.md` (if modified business logic, core flows, or permissions)
+  - [ ] `src/roles/{role}/README.md` (if added/updated role views or modals)
+  - [ ] `src/shared/README.md` (if added/updated shared components or boards)
+- [ ] If this was a planned feature:
+  - [ ] Task list updated and moved from `docs/implement-plan/ongoing/` to `docs/implement-plan/completed/`
+- [ ] No broken markdown links in `docs/`

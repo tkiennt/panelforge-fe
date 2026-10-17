@@ -57,8 +57,29 @@ export const ROLE_MANIFEST = {
     label: 'Reader',
     scope: 'external',
     folder: 'roles/reader',
-    defaultRoute: 'reader',
+    defaultRoute: 'catalog',
   },
 } as const;
 
 export type AppRoleKey = keyof typeof ROLE_MANIFEST;
+
+/**
+ * Tạo đường dẫn điều hướng mặc định chuẩn hóa theo role và ngữ cảnh
+ */
+export function getRoleDefaultPath(
+  role: string | number | null | undefined,
+  workspaceId?: string | number | null,
+  seriesId?: string | number | null,
+): string {
+  if (!role) return '/workspaces';
+  const upperRole = String(role).toUpperCase();
+  if (upperRole === 'ADMINISTRATOR') return '/admin';
+  if (upperRole === 'READER') return '/catalog';
+
+  if (!workspaceId) return '/workspaces';
+  if (!seriesId) return `/workspaces/${workspaceId}/series`;
+
+  const manifest = ROLE_MANIFEST[upperRole as AppRoleKey];
+  const subPath = manifest?.defaultRoute || 'dashboard';
+  return `/workspaces/${workspaceId}/series/${seriesId}/${subPath}`;
+}

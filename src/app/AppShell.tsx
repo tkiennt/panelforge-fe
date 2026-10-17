@@ -47,6 +47,7 @@ import { AppShellSidebar } from './AppShellSidebar';
 import { AppShellRail } from './AppShellRail';
 import { NotificationBell } from '@/shared/features/collaboration/NotificationBell';
 import { SidebarDrawer } from '@/shared/components/SidebarDrawer';
+import { getRoleDefaultPath } from '@/roles/roles';
 
 export interface CurrentUser {
   name: string;
@@ -58,7 +59,7 @@ export interface CurrentUser {
 
 interface GlobalAppShellProps {
   currentUser: CurrentUser;
-  activeWorkspace?: { name: string } | null;
+  activeWorkspace?: { id?: string; name: string } | null;
   activeSeries?: MangaProject | { title: string; subtitle: string } | null;
   aiState?: 'active' | 'degraded' | 'unavailable';
   children?: React.ReactNode;
@@ -67,6 +68,8 @@ interface GlobalAppShellProps {
   onLeaveFeedback?: () => void;
   onOpenTwoFactor?: () => void;
   onOpenChangePassword?: () => void;
+  onOpenCommandPalette?: () => void;
+  onSelectSeries?: (seriesId: string) => void;
 }
 
 const ROLE_NAV_CONFIG: Record<string, { section: string; items: any[] }[]> = {
@@ -184,11 +187,15 @@ export function AppShell({
   onLeaveFeedback,
   onOpenTwoFactor,
   onOpenChangePassword,
+  onOpenCommandPalette,
+  onSelectSeries,
 }: GlobalAppShellProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { workspaceId, seriesId } = useParams();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const searchParams = new URLSearchParams(location.search);
+  const chapterId = searchParams.get('chapterId');
 
   const isReader =
     currentUser.activeRoles?.includes('READER') ||
@@ -281,7 +288,7 @@ export function AppShell({
               {
                 icon: LayoutDashboard,
                 label: 'Studio Workspaces',
-                href: `/workspaces/${workspaceId}/overview`,
+                href: `/workspaces/${workspaceId}/series`,
               },
             ],
           },
@@ -321,8 +328,8 @@ export function AppShell({
             items: [
               {
                 icon: LayoutDashboard,
-                label: 'Studio Workspaces',
-                href: `/workspaces/${workspaceId}/overview`,
+                label: 'Danh sách Series',
+                href: `/workspaces/${workspaceId}/series`,
               },
               {
                 icon: BookOpen,
@@ -401,7 +408,7 @@ export function AppShell({
               {
                 icon: LayoutDashboard,
                 label: 'Danh sách Series',
-                href: `/workspaces/${workspaceId}/overview`,
+                href: `/workspaces/${workspaceId}/series`,
               },
             ],
           },
@@ -433,7 +440,21 @@ export function AppShell({
     if (onNavigate) {
       onNavigate(href);
     }
-    navigate(href.startsWith('/') ? href : `/${href}`);
+    let target = href;
+    if (
+      workspaceId &&
+      seriesId &&
+      !href.startsWith('/workspaces') &&
+      !href.startsWith('/workspace') &&
+      !href.startsWith('/catalog') &&
+      !href.startsWith('/admin') &&
+      !href.startsWith('/notifications') &&
+      !href.startsWith('/profile')
+    ) {
+      const cleanHref = href.startsWith('/') ? href.slice(1) : href;
+      target = `/workspaces/${workspaceId}/series/${seriesId}/${cleanHref}`;
+    }
+    navigate(target.startsWith('/') ? target : `/${target}`);
   };
 
   // Set isActive based on location pathname
@@ -452,7 +473,7 @@ export function AppShell({
     if (badge.type === 'text') {
       return (
         <span
-          className={`ml-auto text-[10px] font-mono px-1.5 py-0.5 rounded font-semibold ${badge.color} shrink-0`}
+          className={`ml-auto text-xs font-mono px-2 py-0.5 rounded-full font-semibold ${badge.color} shrink-0`}
         >
           {badge.text}
         </span>
@@ -466,14 +487,14 @@ export function AppShell({
       case 'active':
         return {
           icon: Sparkles,
-          color: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+          color: 'bg-emerald-50 text-emerald-800 border-emerald-200/80',
           dot: 'bg-emerald-500',
           label: 'AI: Sẵn sàng',
         };
       case 'degraded':
         return {
           icon: AlertTriangle,
-          color: 'bg-amber-50 text-amber-700 border-amber-200',
+          color: 'bg-amber-50 text-amber-800 border-amber-200/80',
           dot: 'bg-amber-500 animate-pulse',
           label: 'AI: Phản hồi chậm',
         };
@@ -481,7 +502,7 @@ export function AppShell({
       default:
         return {
           icon: AlertCircle,
-          color: 'bg-rose-50 text-rose-700 border-rose-200',
+          color: 'bg-rose-50 text-rose-800 border-rose-200/80',
           dot: 'bg-rose-500',
           label: 'AI: Ngoại tuyến',
         };
@@ -491,7 +512,7 @@ export function AppShell({
   const aiConfig = getAiBadgeConfig(aiState);
 
   return (
-    <div className='h-screen w-full flex overflow-hidden text-[#171717] bg-[#F8F6F0]'>
+    <div className='h-screen w-full flex overflow-hidden text-[#0c0a09] bg-[#f5f5f5]'>
       {/* --- MOBILE DRAWER (< md) --- */}
       {!isReader && (
         <SidebarDrawer
@@ -501,7 +522,10 @@ export function AppShell({
         >
           <AppShellSidebar
             currentUser={currentUser}
+            activeWorkspace={activeWorkspace}
             activeSeries={effectiveActiveSeries as any}
+            workspaceId={workspaceId}
+            seriesId={seriesId}
             isReader={isReader}
             navSections={navSections}
             handleNavClick={handleNavClick}
@@ -514,6 +538,7 @@ export function AppShell({
               setIsMobileDrawerOpen(false);
               onLogout?.();
             }}
+            onSelectSeries={onSelectSeries}
             isRailExpanded={true}
             isMobileDrawer={true}
           />
@@ -540,13 +565,17 @@ export function AppShell({
             >
               <AppShellSidebar
                 currentUser={currentUser}
+                activeWorkspace={activeWorkspace}
                 activeSeries={effectiveActiveSeries as any}
+                workspaceId={workspaceId}
+                seriesId={seriesId}
                 isReader={isReader}
                 navSections={navSections}
                 handleNavClick={handleNavClick}
                 renderBadge={renderBadge}
                 onOpenTwoFactor={onOpenTwoFactor}
                 onLogout={onLogout}
+                onSelectSeries={onSelectSeries}
                 isRailExpanded={true}
                 isMobileDrawer={false}
               />
@@ -562,13 +591,17 @@ export function AppShell({
       ) : (
         <AppShellSidebar
           currentUser={currentUser}
+          activeWorkspace={activeWorkspace}
           activeSeries={effectiveActiveSeries as any}
+          workspaceId={workspaceId}
+          seriesId={seriesId}
           isReader={isReader}
           navSections={navSections}
           handleNavClick={handleNavClick}
           renderBadge={renderBadge}
           onOpenTwoFactor={onOpenTwoFactor}
           onLogout={onLogout}
+          onSelectSeries={onSelectSeries}
           isRailExpanded={isRailExpanded}
           onToggleRail={() => setIsRailExpanded((prev) => !prev)}
           isMobileDrawer={false}
@@ -576,8 +609,8 @@ export function AppShell({
       )}
 
       {/* --- RIGHT WRAPPER --- */}
-      <div className='flex-1 flex flex-col min-w-0 h-full bg-[#FFFFFF] relative'>
-        <header className='h-16 bg-[#FFFFFF] border-b border-[#E7E7E7] flex items-center justify-between px-4 md:px-6 shrink-0 z-20'>
+      <div className='flex-1 flex flex-col min-w-0 h-full bg-[#f5f5f5] relative'>
+        <header className='h-16 bg-[#f5f5f5]/90 backdrop-blur-md border-b border-[#e7e5e4] flex items-center justify-between px-4 md:px-6 shrink-0 z-20'>
           <div className='flex items-center gap-2 min-w-0'>
             {!isReader && (
               <button
@@ -585,7 +618,7 @@ export function AppShell({
                 onClick={() => setIsMobileDrawerOpen(true)}
                 aria-label='Mở menu điều hướng'
                 aria-expanded={isMobileDrawerOpen}
-                className='md:hidden p-2 -ml-2 mr-1 rounded-lg text-[#555555] hover:text-[#171717] hover:bg-[#F3F1EB] transition-colors cursor-pointer shrink-0'
+                className='md:hidden p-2 -ml-2 mr-1 rounded-full text-[#777169] hover:text-[#0c0a09] hover:bg-[#f0efed] transition-colors cursor-pointer shrink-0'
                 data-testid='appshell-hamburger-btn'
               >
                 <Menu className='w-5 h-5' />
@@ -593,83 +626,122 @@ export function AppShell({
             )}
             {isReader ? (
               <div className='flex items-center gap-3'>
-                <div className='w-8 h-8 rounded-lg bg-[#171717] flex items-center justify-center text-white font-heading font-bold text-base shadow-sm tracking-tighter'>
+                <div className='w-8 h-8 rounded-full bg-[#292524] flex items-center justify-center text-white font-heading font-bold text-sm shadow-soft-sm tracking-tighter'>
                   PF
                 </div>
                 <div>
-                  <span className='text-[#171717] font-semibold text-sm'>
+                  <span className='text-[#0c0a09] font-serif font-medium text-sm'>
                     {activeSeries?.title || 'PanelForge Studio'}
                   </span>
                 </div>
               </div>
             ) : (
-              <nav className='flex items-center text-xs font-medium text-[#555555] truncate'>
+              <nav className='flex items-center text-xs font-medium text-[#777169] truncate'>
                 <button
                   type='button'
                   data-testid='back-to-workspaces-breadcrumb'
-                  className='hover:text-[#171717] cursor-pointer transition-colors flex items-center gap-1.5 px-1.5 py-1 rounded hover:bg-[#FAF8F5]'
+                  className='hover:text-[#0c0a09] cursor-pointer transition-colors flex items-center gap-1.5 px-2.5 py-1 rounded-full hover:bg-white hover:shadow-soft-sm'
                   onClick={() => navigate('/workspaces')}
                   title='Quay lại danh sách Workspace (Workspaces Catalog)'
                 >
-                  <Briefcase className='w-3.5 h-3.5 text-[#F97316]' />
+                  <Briefcase className='w-3.5 h-3.5 text-[#292524]' />
                   <span className='font-semibold'>Workspaces</span>
                 </button>
-                <span className='mx-1.5 text-[#B8B8B8] font-normal select-none'>/</span>
+                <span className='mx-1.5 text-[#d6d3d1] font-normal select-none'>/</span>
 
                 {/* Studio / Series Name Segment */}
                 <button
                   type='button'
                   onClick={() =>
-                    navigate(workspaceId ? `/workspaces/${workspaceId}/overview` : '/producer')
+                    navigate(workspaceId ? `/workspaces/${workspaceId}/series` : '/workspaces')
                   }
-                  className='hover:text-[#171717] cursor-pointer transition-colors truncate px-1.5 py-1 rounded hover:bg-[#FAF8F5] flex items-center gap-1 font-semibold text-[#171717]'
-                  title='Mở Studio Workspace'
+                  className='hover:text-[#0c0a09] cursor-pointer transition-colors truncate px-2.5 py-1 rounded-full hover:bg-white hover:shadow-soft-sm flex items-center gap-1 font-semibold text-[#0c0a09]'
+                  title='Mở danh sách Series của Workspace'
                 >
-                  <Briefcase className='w-3.5 h-3.5 text-[#8B5CF6]' />
+                  <Briefcase className='w-3.5 h-3.5 text-[#292524]' />
                   <span className='truncate'>{activeWorkspace?.name || 'Studio Workspace'}</span>
                 </button>
                 {isSeriesContext && (
                   <>
-                    <span className='mx-1.5 text-[#B8B8B8] font-normal select-none'>/</span>
+                    <span className='mx-1.5 text-[#d6d3d1] font-normal select-none'>/</span>
                     <button
                       type='button'
                       onClick={() =>
-                        navigate(`/workspaces/${workspaceId}/series/${seriesId}/dashboard`)
+                        navigate(
+                          getRoleDefaultPath(
+                            currentUser.workspaceRole || currentUser.role,
+                            workspaceId,
+                            seriesId,
+                          ),
+                        )
                       }
-                      className='text-[#171717] font-semibold truncate flex items-center gap-1.5 px-1.5 py-1 rounded hover:bg-[#FAF8F5] transition-colors cursor-pointer'
-                      title='Chuyển đến Series'
+                      className={`font-semibold truncate flex items-center gap-1.5 px-2.5 py-1 rounded-full hover:bg-white hover:shadow-soft-sm transition-colors cursor-pointer ${
+                        chapterId
+                          ? 'text-[#777169] font-normal hover:text-[#0c0a09]'
+                          : 'text-[#0c0a09]'
+                      }`}
+                      title='Chuyển đến Series Workspace'
                     >
-                      <BookOpen className='w-3.5 h-3.5 text-[#10B981]' />
+                      <BookOpen className='w-3.5 h-3.5 text-[#292524]' />
                       <span className='truncate'>{activeSeries?.title || 'Active Series'}</span>
                     </button>
+                    {chapterId && (
+                      <>
+                        <span className='mx-1.5 text-[#d6d3d1] font-normal select-none'>/</span>
+                        <div
+                          className='flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-[#0c0a09] truncate bg-white rounded-full border border-[#e7e5e4] shadow-soft-sm'
+                          data-testid='header-chapter-breadcrumb'
+                          title={`Chương đang mở: ${chapterId}`}
+                        >
+                          <FileText className='w-3.5 h-3.5 text-[#292524]' />
+                          <span className='truncate'>
+                            {chapterId.toLowerCase().startsWith('ch') || !isNaN(Number(chapterId))
+                              ? `Chapter ${chapterId.replace(/^chapter-?/i, '')}`
+                              : `Chapter (${chapterId.slice(0, 8)})`}
+                          </span>
+                        </div>
+                      </>
+                    )}
                   </>
                 )}
               </nav>
             )}
           </div>
 
-          <div className='flex items-center gap-4 shrink-0'>
+          <div className='flex items-center gap-3 shrink-0'>
             {!isReader && (
-              <div className='relative flex items-center'>
-                <Search className='w-3.5 h-3.5 text-[#555555] absolute left-3 pointer-events-none stroke-[2]' />
-                <input
-                  type='text'
-                  placeholder='Search frames, dialogues, assets...'
-                  className='pl-8 pr-12 py-1.5 bg-[#FAF8F3] hover:bg-[#F3EFE6] focus:bg-white text-xs rounded-md border border-[#E7E7E7] focus:border-[#F97316] focus:outline-none w-64 transition-all'
-                />
-                <span className='absolute right-2 px-1.5 py-0.5 text-[10px] font-mono text-[#555555] bg-[#E7E7E7] rounded select-none'>
+              <button
+                type='button'
+                onClick={() => {
+                  if (onOpenCommandPalette) {
+                    onOpenCommandPalette();
+                  } else {
+                    window.dispatchEvent(
+                      new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true }),
+                    );
+                  }
+                }}
+                className='relative flex items-center text-left cursor-pointer group'
+                title='Tìm kiếm nhanh hoặc mở bảng lệnh (⌘K / Ctrl+K)'
+                data-testid='header-command-palette-trigger'
+              >
+                <Search className='w-3.5 h-3.5 text-[#777169] absolute left-3.5 pointer-events-none stroke-[2] group-hover:text-[#0c0a09] transition-colors' />
+                <div className='pl-9 pr-12 py-2 bg-white group-hover:bg-white text-xs text-[#777169] rounded-full border border-[#e7e5e4] group-hover:border-[#292524] shadow-soft-sm w-64 transition-all truncate select-none'>
+                  Search frames, dialogues, assets...
+                </div>
+                <span className='absolute right-2 px-2 py-0.5 text-xs font-mono text-[#777169] bg-[#f0efed] rounded-full select-none group-hover:bg-[#e7e5e4]'>
                   ⌘K
                 </span>
-              </div>
+              </button>
             )}
 
             {/* AI Status Badge */}
             <div
-              className={`flex items-center gap-2 px-2.5 py-1 rounded-md text-xs font-medium border ${aiConfig.color}`}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border shadow-soft-sm ${aiConfig.color}`}
               title={aiConfig.label}
             >
               <span className={`w-2 h-2 rounded-full ${aiConfig.dot}`} />
-              <span className='font-mono text-[11px] hidden sm:inline'>{aiConfig.label}</span>
+              <span className='font-mono text-xs hidden sm:inline'>{aiConfig.label}</span>
             </div>
 
             {/* Chuông thông báo thật (UC-14): số chưa đọc và danh sách lấy từ Backend */}
@@ -681,9 +753,9 @@ export function AppShell({
                 type='button'
                 data-testid='header-user-menu-btn'
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
-                className='flex items-center gap-2.5 p-1 rounded-lg hover:bg-neutral-100 transition-colors cursor-pointer'
+                className='flex items-center gap-2.5 p-1 rounded-full hover:bg-white hover:shadow-soft-sm transition-all cursor-pointer'
               >
-                <div className='w-8 h-8 rounded-full bg-[#171717] text-white flex items-center justify-center font-bold text-xs shadow-xs'>
+                <div className='w-8 h-8 rounded-full bg-[#292524] text-white flex items-center justify-center font-bold text-xs shadow-soft-sm'>
                   {currentUser.avatarInitials}
                 </div>
                 <div className='hidden md:flex flex-col text-left'>

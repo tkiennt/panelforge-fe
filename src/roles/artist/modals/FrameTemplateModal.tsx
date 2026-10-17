@@ -107,7 +107,7 @@ export const FrameTemplateModal: React.FC<FrameTemplateModalProps> = ({
               <h3 className='text-sm font-bold text-[#171717]'>
                 Áp Dụng Mẫu Khung Tranh (Frame Templates)
               </h3>
-              <p className='text-[11px] text-[#737373]'>
+              <p className='text-xs text-[#737373]'>
                 Trang {pageNumber} • Chọn mẫu khung dựng sẵn để tự động sinh ô Panel theo thứ tự đọc
               </p>
             </div>
@@ -126,7 +126,7 @@ export const FrameTemplateModal: React.FC<FrameTemplateModalProps> = ({
             <ShieldAlert className='w-4 h-4 text-amber-600 shrink-0 mt-0.5' />
             <div>
               <div className='font-bold'>Trang đã có khung tranh (Panels)</div>
-              <p className='text-[11px] text-amber-800 mt-0.5'>
+              <p className='text-xs text-amber-800 mt-0.5'>
                 Trang này đã có các ô panel. Việc áp dụng mẫu khung mới có thể gây xung đột thứ tự
                 đọc hoặc tạo thêm các ô mới. Hãy chắc chắn trước khi tiếp tục.
               </p>
@@ -170,17 +170,17 @@ export const FrameTemplateModal: React.FC<FrameTemplateModalProps> = ({
                       <div className='font-bold text-xs text-[#171717] flex items-center gap-1.5'>
                         <span>{tpl.name}</span>
                         {tpl.isBuiltIn && (
-                          <span className='px-1.5 py-0.5 rounded text-[9px] font-bold bg-zinc-100 text-zinc-600'>
+                          <span className='px-1.5 py-0.5 rounded text-xs font-bold bg-zinc-100 text-zinc-600'>
                             Mặc định
                           </span>
                         )}
                       </div>
-                      <span className='font-mono text-[10px] text-blue-600 font-semibold bg-blue-50 px-1.5 py-0.5 rounded'>
+                      <span className='font-mono text-xs text-blue-600 font-semibold bg-blue-50 px-1.5 py-0.5 rounded'>
                         {tpl.panelCount} ô
                       </span>
                     </div>
 
-                    <div className='text-[10px] text-[#737373] mb-3'>
+                    <div className='text-xs text-[#737373] mb-3'>
                       Khổ: <span className='font-mono'>{tpl.layoutFormat}</span>
                     </div>
 
@@ -192,7 +192,7 @@ export const FrameTemplateModal: React.FC<FrameTemplateModalProps> = ({
                       {tpl.slots.map((s, idx) => (
                         <div
                           key={idx}
-                          className={`absolute border ${s.borderless ? 'border-dashed border-blue-300' : 'border-blue-400'} bg-blue-500/15 flex items-center justify-center font-mono text-[9px] font-bold text-blue-700`}
+                          className={`absolute border ${s.borderless ? 'border-dashed border-blue-300' : 'border-blue-400'} bg-blue-500/15 flex items-center justify-center font-mono text-xs font-bold text-blue-700`}
                           style={{
                             left: `${s.x * 100}%`,
                             top: `${s.y * 100}%`,

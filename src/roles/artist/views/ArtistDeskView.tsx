@@ -50,6 +50,8 @@ import {
 } from '@/services/element.service';
 import { bibleService, BibleEntryDto } from '@/services/bible.service';
 import { FrameTemplateModal } from '@/roles/artist/modals/FrameTemplateModal';
+import { BibleReferenceDrawer } from '@/shared/features/collaboration/BibleReferenceDrawer';
+import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { OfflineStatusBanner } from '@/shared/components/OfflineStatusBanner';
 import { offlineQueueService } from '@/services/offlineQueue.service';
 import {
@@ -238,6 +240,8 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
   const [panelConsistencyResult, setPanelConsistencyResult] = useState<
     Record<string, ImageConsistencyResultDto>
   >({});
+  const [bibleDrawerOpen, setBibleDrawerOpen] = useState(false);
+  const [selectedDrawerPanelId, setSelectedDrawerPanelId] = useState<string | null>(null);
 
   const [toast, setToast] = useState<{ title: string; desc: string } | null>(null);
 
@@ -1550,7 +1554,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
           <CheckCircle2 className='w-4 h-4 text-emerald-400 shrink-0' />
           <div>
             <div className='text-xs font-bold'>{toast.title}</div>
-            <div className='text-[11px] text-[#A3A3A3]'>{toast.desc}</div>
+            <div className='text-xs text-[#A3A3A3]'>{toast.desc}</div>
           </div>
           <button onClick={() => setToast(null)} className='ml-2 text-[#737373] hover:text-white'>
             <X className='w-3.5 h-3.5' />
@@ -1564,7 +1568,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
       {/* Header */}
       <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-6 rounded-2xl border border-[#E7E7E7] shadow-xs'>
         <div>
-          <div className='mb-1 text-[11px] font-mono font-semibold uppercase tracking-wider text-[#555555]'>
+          <div className='mb-1 text-xs font-mono font-semibold uppercase tracking-wider text-[#555555]'>
             Bàn vẽ
           </div>
           <h1 className='text-2xl font-serif font-bold text-[#171717] tracking-tight'>
@@ -1614,6 +1618,19 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             <span>Làm mới</span>
+          </button>
+          <button
+            type='button'
+            onClick={() => {
+              setSelectedDrawerPanelId(selectedPanelId || null);
+              setBibleDrawerOpen(true);
+            }}
+            data-testid='artist-desk-bible-reference-btn'
+            className='inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-zinc-700 bg-white hover:bg-zinc-50 border border-[#E7E7E7] rounded-xl shadow-2xs transition-all cursor-pointer'
+            title='Mở tham chiếu nhân vật và thiết kế của Series Bible'
+          >
+            <BookOpen className='w-3.5 h-3.5 text-purple-600' />
+            <span>Tham chiếu Bible</span>
           </button>
           <button
             onClick={() => setCreateModalOpen(true)}
@@ -1684,13 +1701,13 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                 className='p-4 rounded-xl border border-[#E7E7E7] bg-[#FAF8F5] space-y-2'
               >
                 <div className='flex items-center justify-between'>
-                  <span className='px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800'>
+                  <span className='px-2 py-0.5 rounded text-xs font-bold bg-blue-100 text-blue-800'>
                     {task.pipelineStageId}
                   </span>
-                  <span className='text-[10px] font-mono text-zinc-500'>{task.status}</span>
+                  <span className='text-xs font-mono text-zinc-500'>{task.status}</span>
                 </div>
                 <div className='text-xs font-bold text-[#171717]'>{task.brief}</div>
-                <div className='text-[10px] text-zinc-500'>Hạn chót: {task.dueDate}</div>
+                <div className='text-xs text-zinc-500'>Hạn chót: {task.dueDate}</div>
               </div>
             ))}
           </div>
@@ -1711,7 +1728,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                     : ''}
                 </span>
               </span>
-              <span className='font-mono text-[11px] text-[#888888]'>
+              <span className='font-mono text-xs text-[#888888]'>
                 Tổng cộng: {pages.length} trang
               </span>
             </div>
@@ -1738,15 +1755,15 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                     >
                       <div className='aspect-[2/3] bg-white border border-[#E7E7E7] rounded-lg flex flex-col items-center justify-center p-2 mb-2 relative overflow-hidden group shadow-2xs'>
                         <FileImage className='w-8 h-8 text-blue-400 mb-1' />
-                        <span className='text-[10px] font-mono text-[#888888]'>
+                        <span className='text-xs font-mono text-[#888888]'>
                           {p.widthPx}x{p.heightPx}
                         </span>
-                        <span className='text-[9px] font-mono font-bold text-blue-600 bg-blue-50 px-1 py-0.2 rounded mt-1'>
+                        <span className='text-xs font-mono font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded mt-1'>
                           {p.dpi} DPI
                         </span>
                       </div>
                       <div className='text-xs font-bold text-[#171717]'>Trang {p.pageNumber}</div>
-                      <div className='text-[10px] text-[#888888] font-mono truncate'>
+                      <div className='text-xs text-[#888888] font-mono truncate'>
                         {p.layoutFormat}
                       </div>
                     </div>
@@ -1767,7 +1784,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                       <Layers className='w-4 h-4 text-blue-600' />
                       <span>Trang {selectedPage.pageNumber} — Bố Cục Khung Tranh (Panels)</span>
                     </h3>
-                    <span className='text-[11px] font-mono text-[#888888]'>
+                    <span className='text-xs font-mono text-[#888888]'>
                       {panels.length} ô khung panel • Khổ: {selectedPage.widthPx} x{' '}
                       {selectedPage.heightPx} px ({selectedPage.dpi} DPI)
                     </span>
@@ -1844,7 +1861,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                   const symmetric = Math.abs(left - rightM) <= 0.2;
                   return (
                     <div
-                      className='mb-2 px-2.5 py-1.5 bg-zinc-900 text-zinc-100 rounded-lg font-mono text-[10px] flex flex-wrap gap-x-3 gap-y-0.5'
+                      className='mb-2 px-2.5 py-1.5 bg-zinc-900 text-zinc-100 rounded-lg font-mono text-xs flex flex-wrap gap-x-3 gap-y-0.5'
                       data-testid='panel-readout'
                     >
                       <span className='text-orange-300'>Khung #{selP.panelNumber}</span>
@@ -1871,15 +1888,14 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                 })()}
 
                 {/* Canvas Container */}
-                <div className='bg-[#F8F6F0] rounded-xl border border-dashed border-[#CCCCCC] p-6 flex items-center justify-center min-h-[460px] relative overflow-hidden'>
+                <div className='bg-[#F8F6F0] rounded-xl border border-dashed border-[#CCCCCC] p-4 sm:p-6 flex items-center justify-center min-h-[520px] relative overflow-hidden'>
                   <div
                     ref={canvasRef}
                     tabIndex={0}
                     onKeyDown={handleCanvasKeyDown}
                     data-testid='panel-canvas'
-                    className='bg-white shadow-xl border-2 border-[#171717] relative outline-none focus:ring-2 focus:ring-blue-300'
+                    className='bg-white shadow-xl border-2 border-[#171717] relative outline-none focus:ring-2 focus:ring-blue-300 w-full max-w-[460px]'
                     style={{
-                      width: '380px',
                       aspectRatio: '1 / 1.414',
                     }}
                   >
@@ -1890,7 +1906,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                       <div className='absolute inset-0 flex flex-col items-center justify-center p-4 text-center text-zinc-400'>
                         <LayoutTemplate className='w-8 h-8 mb-2 opacity-50' />
                         <span className='text-xs font-semibold'>Chưa có khung panel</span>
-                        <p className='text-[10px] mt-1 text-zinc-500'>
+                        <p className='text-xs mt-1 text-zinc-500'>
                           Bấm "Áp Dụng Mẫu Khung" hoặc "Thêm Panel" để chia ô phân cảnh trên trang.
                         </p>
                       </div>
@@ -1944,24 +1960,24 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                             )}
 
                             <div className='flex items-center justify-between pointer-events-none relative z-10'>
-                              <span className='font-mono font-bold text-[9px] bg-[#171717] text-white px-1 rounded shadow-2xs'>
+                              <span className='font-mono font-bold text-xs bg-[#171717] text-white px-1.5 py-0.5 rounded shadow-2xs'>
                                 #{p.panelNumber}
                               </span>
                               <div className='flex items-center gap-1'>
                                 {panelArt && (
-                                  <span className='font-mono font-bold text-[8px] bg-emerald-600 text-white px-1 rounded shadow-2xs'>
+                                  <span className='font-mono font-bold text-xs bg-emerald-600 text-white px-1.5 py-0.5 rounded shadow-2xs'>
                                     v{panelArt.versionNumber}
                                   </span>
                                 )}
-                                <span className='font-mono font-semibold text-[8px] bg-blue-50 text-blue-700 px-1 rounded border border-blue-200'>
+                                <span className='font-mono font-semibold text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded border border-blue-200'>
                                   Đọc #{p.readingOrder}
                                 </span>
                               </div>
                             </div>
 
-                            <div className='flex items-center justify-between text-[8px] text-zinc-500 pointer-events-none'>
+                            <div className='flex items-center justify-between text-xs text-zinc-500 pointer-events-none'>
                               {p.sceneId && (
-                                <span className='bg-purple-100 text-purple-800 px-1 rounded truncate max-w-[80px]'>
+                                <span className='bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded truncate max-w-[80px]'>
                                   Scene
                                 </span>
                               )}
@@ -2056,17 +2072,17 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                                 {el.elementType === 'ARTWORK_LAYER' && (
                                   <Palette className='w-4 h-4 text-blue-500 mb-0.5' />
                                 )}
-                                <span className='text-[8px] font-bold text-zinc-700 truncate max-w-full'>
+                                <span className='text-xs font-bold text-zinc-700 truncate max-w-full'>
                                   {bibleEntry
                                     ? bibleEntry.name
                                     : LAYER_LABELS[el.elementType] || el.elementType}
                                 </span>
                                 {el.rotation ? (
-                                  <span className='text-[7px] text-zinc-500'>{el.rotation}°</span>
+                                  <span className='text-xs text-zinc-500'>{el.rotation}°</span>
                                 ) : null}
                               </div>
                             )}
-                            <div className='absolute top-0.5 right-0.5 bg-black/60 text-white text-[7px] px-1 rounded font-mono'>
+                            <div className='absolute top-0.5 right-0.5 bg-black/60 text-white text-xs px-1 rounded font-mono'>
                               z:{el.zIndex || 1}
                             </div>
                           </div>
@@ -2111,7 +2127,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                       <Layers className='w-3.5 h-3.5' />
                       <span>Lớp Vẽ &amp; Layer Ảnh</span>
                       {visibleElements.length > 0 && (
-                        <span className='ml-1 px-1.5 py-0.2 bg-purple-200 text-purple-800 rounded-full text-[10px] font-mono'>
+                        <span className='ml-1 px-1.5 py-0.5 bg-purple-200 text-purple-800 rounded-full text-xs font-mono'>
                           {visibleElements.length}
                         </span>
                       )}
@@ -2138,11 +2154,11 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                       <div className='p-3 bg-[#FAF8F5] rounded-xl border border-[#E7E7E7] space-y-2'>
                         <div className='font-bold text-[#171717] flex items-center justify-between'>
                           <span>Vị trí &amp; Thứ tự đọc (BR-11)</span>
-                          <span className='font-mono text-[10px] text-zinc-500'>
+                          <span className='font-mono text-xs text-zinc-500'>
                             ID: {selectedPanelDetail.id.slice(0, 8)}...
                           </span>
                         </div>
-                        <div className='grid grid-cols-2 gap-2 text-[11px]'>
+                        <div className='grid grid-cols-2 gap-2 text-xs'>
                           <div>
                             <label className='block text-zinc-500 mb-0.5'>Thứ tự đọc:</label>
                             <input
@@ -2225,7 +2241,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                           })}
                         </div>
                         {splitBlockedReason('vertical') && splitBlockedReason('horizontal') && (
-                          <p className='text-[10px] text-zinc-500 mt-1'>
+                          <p className='text-xs text-zinc-500 mt-1'>
                             {splitBlockedReason('vertical')}
                           </p>
                         )}
@@ -2248,7 +2264,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                                 <span>Ảnh Artwork Khung #{selectedPanelDetail.panelNumber}</span>
                               </span>
                               {panelArt && (
-                                <span className='font-mono font-bold text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded'>
+                                <span className='font-mono font-bold text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded'>
                                   v{panelArt.versionNumber}
                                 </span>
                               )}
@@ -2267,17 +2283,17 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                                     />
                                   </div>
                                 ) : (
-                                  <p className='text-[10px] text-zinc-400 font-mono'>
+                                  <p className='text-xs text-zinc-400 font-mono'>
                                     Đang nạp link xem ảnh...
                                   </p>
                                 )}
-                                <div className='text-[10px] text-zinc-500 font-mono flex items-center justify-between'>
+                                <div className='text-xs text-zinc-500 font-mono flex items-center justify-between'>
                                   <span className='truncate'>{panelArt.fileName}</span>
                                   <span>{Math.round(panelArt.sizeBytes / 1024)} KB</span>
                                 </div>
                               </div>
                             ) : (
-                              <p className='text-[11px] text-zinc-500 italic p-2 bg-white rounded border border-[#E7E7E7]'>
+                              <p className='text-xs text-zinc-500 italic p-2 bg-white rounded border border-[#E7E7E7]'>
                                 Khung này chưa có ảnh riêng. Bấm "Tải ảnh cho khung" để nạp ảnh bản
                                 vẽ.
                               </p>
@@ -2297,7 +2313,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                                 </button>
                                 {!findStageAssignment(selectedPanelDetail.id) && (
                                   <p
-                                    className='text-[10px] text-amber-700'
+                                    className='text-xs text-amber-700'
                                     data-testid='desk-upload-panel-blocked'
                                   >
                                     Cần đang làm (bấm "Bắt đầu") một việc được giao cho Page hoặc
@@ -2306,6 +2322,21 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                                 )}
                               </>
                             )}
+
+                            <button
+                              type='button'
+                              data-testid={`panel-bible-reference-btn-${selectedPanelDetail.id}`}
+                              onClick={() => {
+                                setSelectedDrawerPanelId(selectedPanelDetail.id);
+                                setBibleDrawerOpen(true);
+                              }}
+                              className='w-full py-1.5 bg-white hover:bg-purple-50 text-purple-700 border border-purple-200 rounded-lg font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs'
+                            >
+                              <BookOpen className='w-3.5 h-3.5 text-purple-600' />
+                              <span>
+                                Tham chiếu Bible (Khung #{selectedPanelDetail.panelNumber})
+                              </span>
+                            </button>
 
                             {panelArt && (
                               <button
@@ -2344,7 +2375,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                                         : 'bg-amber-50/70 border-amber-300 text-amber-950'
                                     }`}
                                   >
-                                    <div className='flex items-center justify-between font-bold text-[11px]'>
+                                    <div className='flex items-center justify-between font-bold text-xs'>
                                       <span className='flex items-center gap-1'>
                                         {r.passed ? (
                                           <CheckCircle2 className='w-3.5 h-3.5 text-emerald-600' />
@@ -2356,7 +2387,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                                         </span>
                                       </span>
                                       <span
-                                        className={`font-mono px-1.5 py-0.5 rounded text-[10px] ${
+                                        className={`font-mono px-1.5 py-0.5 rounded text-xs ${
                                           r.passed
                                             ? 'bg-emerald-100 text-emerald-800'
                                             : 'bg-amber-100 text-amber-900 font-bold'
@@ -2367,7 +2398,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                                     </div>
 
                                     {r.characterName && (
-                                      <div className='text-[10px] text-zinc-600'>
+                                      <div className='text-xs text-zinc-600'>
                                         So với Character Sheet:{' '}
                                         <strong className='text-zinc-800'>{r.characterName}</strong>
                                         {r.characterSheetVersion != null &&
@@ -2376,17 +2407,17 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                                     )}
 
                                     {r.summaryReason && (
-                                      <p className='text-[10px] leading-relaxed bg-white/70 p-1.5 rounded border border-black/5'>
+                                      <p className='text-xs leading-relaxed bg-white/70 p-1.5 rounded border border-black/5'>
                                         {r.summaryReason}
                                       </p>
                                     )}
 
                                     {r.deviations && r.deviations.length > 0 && (
                                       <div className='space-y-1 pt-1 border-t border-black/5'>
-                                        <div className='text-[9px] font-bold uppercase tracking-wider text-amber-900'>
+                                        <div className='text-xs font-bold uppercase tracking-wider text-amber-900'>
                                           Chi tiết độ lệch ({r.deviations.length}):
                                         </div>
-                                        <ul className='space-y-1 text-[10px]'>
+                                        <ul className='space-y-1 text-xs'>
                                           {r.deviations.map((dev, idx) => (
                                             <li
                                               key={idx}
@@ -2443,20 +2474,20 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                             <MessageSquare className='w-3.5 h-3.5 text-blue-600' />
                             <span>Neo Dòng Kịch Bản Vào Panel (CF2)</span>
                           </span>
-                          <span className='text-[10px] text-zinc-500 font-mono'>
+                          <span className='text-xs text-zinc-500 font-mono'>
                             {selectedPanelDetail.scriptLineIds?.length || 0} dòng
                           </span>
                         </div>
 
                         {!selectedPanelDetail.sceneId ? (
-                          <p className='text-[11px] text-zinc-500 italic p-2 bg-white rounded border border-[#E7E7E7]'>
+                          <p className='text-xs text-zinc-500 italic p-2 bg-white rounded border border-[#E7E7E7]'>
                             Vui lòng gán Phân cảnh (Scene) ở trên trước khi chọn các dòng thoại neo
                             vào panel này.
                           </p>
                         ) : loadingSceneLines ? (
-                          <p className='text-[11px] text-zinc-500 p-2'>Đang nạp kịch bản...</p>
+                          <p className='text-xs text-zinc-500 p-2'>Đang nạp kịch bản...</p>
                         ) : sceneLines.length === 0 ? (
-                          <p className='text-[11px] text-zinc-500 italic p-2 bg-white rounded border border-[#E7E7E7]'>
+                          <p className='text-xs text-zinc-500 italic p-2 bg-white rounded border border-[#E7E7E7]'>
                             Phân cảnh này chưa có dòng thoại kịch bản nào.
                           </p>
                         ) : (
@@ -2481,7 +2512,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                                     <Square className='w-4 h-4 text-zinc-400 shrink-0 mt-0.5' />
                                   )}
                                   <div className='flex-1 min-w-0'>
-                                    <div className='flex items-center gap-1 text-[10px] font-mono font-bold text-zinc-500'>
+                                    <div className='flex items-center gap-1 text-xs font-mono font-bold text-zinc-500'>
                                       <span>#{line.lineOrder}</span>
                                       {line.speakerCharacterId && (
                                         <span className='bg-zinc-100 px-1 rounded text-zinc-700'>
@@ -2489,7 +2520,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                                         </span>
                                       )}
                                     </div>
-                                    <p className='text-[11px] truncate font-medium'>
+                                    <p className='text-xs truncate font-medium'>
                                       {line.dialogueText ||
                                         line.stageDirection ||
                                         '(Chỉ dẫn diễn xuất)'}
@@ -2517,7 +2548,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                     <div className='p-8 text-center text-xs text-zinc-400 border border-dashed border-[#E7E7E7] rounded-xl flex-1 flex flex-col items-center justify-center'>
                       <Move className='w-8 h-8 mb-2 opacity-40' />
                       <p className='font-semibold text-zinc-600'>Chưa chọn ô Panel</p>
-                      <p className='text-[11px] text-zinc-400 mt-1 max-w-xs'>
+                      <p className='text-xs text-zinc-400 mt-1 max-w-xs'>
                         Bấm vào bất kỳ ô khung panel nào trên canvas bên trái để chỉnh sửa thứ tự
                         đọc, liên kết Scene và neo các dòng thoại kịch bản.
                       </p>
@@ -2544,13 +2575,13 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                             type='button'
                             data-testid='toggle-all-page-layers'
                             onClick={() => setShowAllPageLayers((v) => !v)}
-                            className='text-[10px] font-bold text-purple-700 hover:text-purple-900 underline cursor-pointer'
+                            className='text-xs font-bold text-purple-700 hover:text-purple-900 underline cursor-pointer'
                           >
                             {showAllPageLayers ? 'Chỉ xem panel đang chọn' : 'Xem cả trang'}
                           </button>
                         )}
                       </div>
-                      <p className='text-[11px] text-purple-800/80'>
+                      <p className='text-xs text-purple-800/80'>
                         Tách layer nhân vật, bối cảnh, đạo cụ, hiệu ứng trực quan trên canvas. Hỗ
                         trợ xoay góc và đổi thứ tự hiển thị z-index.
                       </p>
@@ -2566,7 +2597,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                         <Layers className='w-8 h-8 text-purple-300' />
                         <div>
                           <p className='font-semibold text-zinc-700'>Chưa có layer ảnh nào</p>
-                          <p className='text-[11px] text-zinc-400 mt-0.5 max-w-xs'>
+                          <p className='text-xs text-zinc-400 mt-0.5 max-w-xs'>
                             Bấm "+ Thêm Layer" để thêm nhân vật, bối cảnh, đạo cụ, hiệu ứng hoặc lớp
                             artwork riêng trên trang.
                           </p>
@@ -2598,7 +2629,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                             >
                               <div className='flex items-center justify-between'>
                                 <div className='flex items-center gap-1.5 font-bold text-zinc-800'>
-                                  <span className='px-1.5 py-0.5 rounded text-[10px] bg-purple-100 text-purple-800 font-mono'>
+                                  <span className='px-1.5 py-0.5 rounded text-xs bg-purple-100 text-purple-800 font-mono'>
                                     z:{selectedElem.zIndex}
                                   </span>
                                   <span className='truncate max-w-[160px]'>
@@ -2608,37 +2639,33 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                                         selectedElem.elementType}
                                   </span>
                                 </div>
-                                <span className='font-mono text-[10px] text-zinc-400'>
+                                <span className='font-mono text-xs text-zinc-400'>
                                   ID: {selectedElem.elementId.slice(0, 8)}...
                                 </span>
                               </div>
 
-                              <div className='grid grid-cols-2 gap-2 text-[11px]'>
+                              <div className='grid grid-cols-2 gap-2 text-xs'>
                                 <div>
-                                  <span className='text-zinc-500 block text-[10px]'>
-                                    Loại Layer:
-                                  </span>
+                                  <span className='text-zinc-500 block text-xs'>Loại Layer:</span>
                                   <span className='font-semibold text-zinc-700'>
                                     {LAYER_LABELS[selectedElem.elementType] ||
                                       selectedElem.elementType}
                                   </span>
                                 </div>
                                 <div>
-                                  <span className='text-zinc-500 block text-[10px]'>Góc xoay:</span>
+                                  <span className='text-zinc-500 block text-xs'>Góc xoay:</span>
                                   <span className='font-mono font-semibold text-zinc-700'>
                                     {selectedElem.rotation || 0}°
                                   </span>
                                 </div>
                                 <div>
-                                  <span className='text-zinc-500 block text-[10px]'>Toạ độ:</span>
+                                  <span className='text-zinc-500 block text-xs'>Toạ độ:</span>
                                   <span className='font-mono text-zinc-700'>
                                     {selectedElem.x}, {selectedElem.y} px
                                   </span>
                                 </div>
                                 <div>
-                                  <span className='text-zinc-500 block text-[10px]'>
-                                    Kích thước:
-                                  </span>
+                                  <span className='text-zinc-500 block text-xs'>Kích thước:</span>
                                   <span className='font-mono text-zinc-700'>
                                     {selectedElem.width} × {selectedElem.height} px
                                   </span>
@@ -2648,14 +2675,14 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                               {bible && (
                                 <div className='p-2 bg-white rounded-lg border border-[#E7E7E7] flex items-center gap-2'>
                                   {bible.referenceImageUrl && (
-                                    <img
+                                    <AuthenticatedImage
                                       src={bible.referenceImageUrl}
                                       alt={bible.name}
                                       className='w-7 h-7 rounded object-cover border border-zinc-200'
                                     />
                                   )}
                                   <div className='min-w-0 flex-1'>
-                                    <span className='text-[10px] text-zinc-400 block'>
+                                    <span className='text-xs text-zinc-400 block'>
                                       Series Bible:
                                     </span>
                                     <p className='text-xs font-bold text-zinc-800 truncate'>
@@ -2671,7 +2698,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                                   <button
                                     type='button'
                                     onClick={() => handleRotateLayer(selectedElem, -15)}
-                                    className='px-2 py-1 bg-white border border-[#E7E7E7] hover:bg-zinc-50 rounded text-zinc-700 flex items-center gap-1 text-[11px] font-semibold cursor-pointer'
+                                    className='px-2 py-1 bg-white border border-[#E7E7E7] hover:bg-zinc-50 rounded text-zinc-700 flex items-center gap-1 text-xs font-semibold cursor-pointer'
                                     title='Xoay trái 15 độ'
                                   >
                                     <RotateCw className='w-3 h-3 -scale-x-100' />
@@ -2680,7 +2707,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                                   <button
                                     type='button'
                                     onClick={() => handleRotateLayer(selectedElem, 15)}
-                                    className='px-2 py-1 bg-white border border-[#E7E7E7] hover:bg-zinc-50 rounded text-zinc-700 flex items-center gap-1 text-[11px] font-semibold cursor-pointer'
+                                    className='px-2 py-1 bg-white border border-[#E7E7E7] hover:bg-zinc-50 rounded text-zinc-700 flex items-center gap-1 text-xs font-semibold cursor-pointer'
                                     title='Xoay phải 15 độ'
                                   >
                                     <RotateCw className='w-3 h-3' />
@@ -2724,7 +2751,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                         <div className='space-y-1.5'>
                           {visibleElements.length === 0 && (
                             <p
-                              className='p-3 text-center text-[11px] text-zinc-400 border border-dashed border-[#E7E7E7] rounded-xl'
+                              className='p-3 text-center text-xs text-zinc-400 border border-dashed border-[#E7E7E7] rounded-xl'
                               data-testid='no-panel-layers'
                             >
                               Panel #{selectedPanelNumber ?? '?'} chưa có layer nào (trang có{' '}
@@ -2770,12 +2797,12 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                                       )}
                                     </div>
                                     <div className='min-w-0'>
-                                      <p className='font-bold text-zinc-800 text-[11px] truncate'>
+                                      <p className='font-bold text-zinc-800 text-xs truncate'>
                                         {bible
                                           ? bible.name
                                           : LAYER_LABELS[el.elementType] || el.elementType}
                                       </p>
-                                      <div className='flex items-center gap-1.5 text-[9px] text-zinc-500'>
+                                      <div className='flex items-center gap-1.5 text-xs text-zinc-500'>
                                         <span className='font-mono'>z:{el.zIndex}</span>
                                         {el.rotation ? (
                                           <span className='font-mono'>• {el.rotation}°</span>
@@ -3054,7 +3081,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                   <h3 className='font-bold text-sm text-[#171717]'>
                     Thêm Layer / Element Ảnh Canvas
                   </h3>
-                  <p className='text-[11px] text-zinc-500'>
+                  <p className='text-xs text-zinc-500'>
                     Tạo layer nhân vật, bối cảnh, đạo cụ hoặc hiệu ứng (CF2)
                   </p>
                 </div>
@@ -3137,7 +3164,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                 <select
                   value={newLayerAssetId}
                   onChange={(e) => setNewLayerAssetId(e.target.value)}
-                  className='w-full px-3 py-2 border border-[#E7E7E7] rounded-lg bg-white font-mono text-[11px]'
+                  className='w-full px-3 py-2 border border-[#E7E7E7] rounded-lg bg-white font-mono text-xs'
                   data-testid='select-layer-asset'
                 >
                   <option value=''>Không dùng assetId sẵn có</option>
@@ -3160,7 +3187,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                   value={newLayerContent}
                   onChange={(e) => setNewLayerContent(e.target.value)}
                   placeholder='https://... hoặc data:image/... hoặc mô tả layer'
-                  className='w-full px-3 py-2 border border-[#E7E7E7] rounded-lg font-mono text-[11px]'
+                  className='w-full px-3 py-2 border border-[#E7E7E7] rounded-lg font-mono text-xs'
                   data-testid='input-layer-content'
                 />
               </div>
@@ -3269,6 +3296,29 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
         className='hidden'
         data-testid='desk-panel-file-input'
         onChange={handlePanelFileSelected}
+      />
+
+      {/* Drawer Tham chiếu Series Bible (FR-Artist-04) */}
+      <BibleReferenceDrawer
+        isOpen={bibleDrawerOpen}
+        onClose={() => setBibleDrawerOpen(false)}
+        seriesId={seriesId}
+        chapterId={currentChapterId || undefined}
+        chapterNumber={chapters.find((c) => c.id === currentChapterId)?.chapterNumber ?? 1}
+        panelId={selectedDrawerPanelId || selectedPanelId || (panels[0]?.id ?? null)}
+        panelNumber={
+          panels.find((p) => p.id === (selectedDrawerPanelId || selectedPanelId))?.panelNumber ??
+          null
+        }
+        availablePanels={panels.map((p) => ({
+          id: p.id,
+          panelNumber: p.panelNumber,
+          readingOrder: p.readingOrder,
+        }))}
+        onSelectPanel={(pid) => {
+          setSelectedDrawerPanelId(pid);
+          setSelectedPanelId(pid);
+        }}
       />
     </div>
   );

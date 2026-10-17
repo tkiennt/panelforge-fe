@@ -372,27 +372,29 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
   const isStudioTab = tab === 'studio';
 
   return (
-    <PageContainer className='space-y-5 py-6' data-testid='my-work-view'>
-      <header className='flex flex-wrap items-center justify-between gap-3'>
-        <div className='flex items-center gap-3'>
-          <div className='w-9 h-9 rounded-xl bg-[#FFF7ED] border border-[#FDBA74] flex items-center justify-center text-[#F97316]'>
+    <PageContainer className='space-y-6 py-6 text-[#0c0a09]' data-testid='my-work-view'>
+      <header className='flex flex-wrap items-center justify-between gap-4'>
+        <div className='flex items-center gap-3.5'>
+          <div className='w-10 h-10 rounded-full bg-[#292524] flex items-center justify-center text-white shadow-soft-sm'>
             <ClipboardList className='w-5 h-5' />
           </div>
           <div>
-            <h1 className='text-lg font-bold text-[#171717]'>Công việc của tôi</h1>
-            <p className='text-xs text-[#737373]'>
+            <h1 className='text-2xl font-serif font-light text-[#0c0a09] tracking-tight'>
+              Công việc của tôi
+            </h1>
+            <p className='text-xs text-[#777169]'>
               Bắt đầu, tải artwork, nộp bài và xử lý yêu cầu sửa của từng chương.
             </p>
           </div>
         </div>
 
-        <div className='flex items-center gap-2'>
+        <div className='flex items-center gap-2.5'>
           <select
             value={chapterId}
             onChange={(e) => selectChapter(e.target.value)}
             aria-label='Chọn chương'
             disabled={loadingChapters && chapters.length === 0}
-            className='px-3 py-1.5 bg-white border border-[#E7E7E7] rounded-lg text-xs font-semibold'
+            className='px-4 py-2 bg-white border border-[#e7e5e4] rounded-full text-xs font-medium text-[#0c0a09] shadow-soft-sm focus:outline-none focus:ring-2 focus:ring-[#292524]/10 cursor-pointer'
           >
             <option value='ALL_STUDIO'>✨ Toàn bộ Studio (Tất cả các chương)</option>
             {chapters.map((c) => (
@@ -406,38 +408,38 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
             type='button'
             onClick={() => void (isStudioTab ? loadStudioWork() : loadWork())}
             aria-label='Tải lại'
-            className='p-2 rounded-lg border border-[#E7E7E7] bg-white hover:bg-zinc-50 cursor-pointer'
+            className='p-2.5 rounded-full border border-[#e7e5e4] bg-white hover:bg-[#f0efed] shadow-soft-sm cursor-pointer transition-colors'
           >
             <RefreshCw
-              className={`w-3.5 h-3.5 ${(isStudioTab ? loadingStudio : loadingWork) ? 'animate-spin' : ''}`}
+              className={`w-3.5 h-3.5 text-[#0c0a09] ${(isStudioTab ? loadingStudio : loadingWork) ? 'animate-spin' : ''}`}
             />
           </button>
         </div>
       </header>
 
-      <nav className='flex gap-1.5' aria-label='Bộ lọc việc'>
+      <nav className='flex flex-wrap gap-2' aria-label='Bộ lọc việc'>
         {tabs.map((t) => (
           <button
             key={t.key}
             type='button'
             onClick={() => setTab(t.key)}
             aria-pressed={tab === t.key}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold border cursor-pointer inline-flex items-center gap-1.5 transition-colors ${
+            className={`px-4 py-2 rounded-full text-xs font-medium border cursor-pointer inline-flex items-center gap-2 transition-all shadow-soft-sm ${
               tab === t.key
-                ? 'bg-[#171717] text-white border-[#171717]'
-                : 'bg-white text-[#555555] border-[#E7E7E7] hover:bg-zinc-50'
+                ? 'bg-[#292524] text-white border-[#292524]'
+                : 'bg-white text-[#4e4e4e] border-[#e7e5e4] hover:bg-[#f0efed] hover:text-[#0c0a09]'
             }`}
           >
             <span>{t.label}</span>
             <span
-              className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono leading-none ${
+              className={`px-2 py-0.5 rounded-full text-xs font-mono font-medium leading-none ${
                 t.badgeAlert
                   ? tab === t.key
                     ? 'bg-amber-500 text-white font-bold'
                     : 'bg-amber-100 text-amber-800 font-bold border border-amber-300'
                   : tab === t.key
-                    ? 'bg-zinc-700 text-zinc-200'
-                    : 'bg-zinc-100 text-zinc-600'
+                    ? 'bg-white/20 text-white'
+                    : 'bg-[#f0efed] text-[#4e4e4e]'
               }`}
             >
               {counts[t.key]}
@@ -449,7 +451,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
       {/* Lọc theo Phân cảnh trong Chương (CF2 & CF3) */}
       {chapterId !== 'ALL_STUDIO' && scenes.length > 0 && !isStudioTab && (
         <div className='flex items-center gap-2 overflow-x-auto pb-1.5 pt-1 text-xs border-t border-[#F0ECE1]'>
-          <span className='flex items-center gap-1 font-bold text-zinc-600 whitespace-nowrap text-[11px] uppercase tracking-wider shrink-0'>
+          <span className='flex items-center gap-1 font-bold text-zinc-600 whitespace-nowrap text-xs uppercase tracking-wider shrink-0'>
             <Clapperboard className='w-3.5 h-3.5 text-[#F97316]' />
             Phân cảnh:
           </span>
@@ -464,7 +466,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
           >
             <span>Tất cả các cảnh</span>
             <span
-              className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+              className={`px-1.5 py-0.5 rounded-full text-xs font-mono ${
                 selectedSceneId === 'ALL'
                   ? 'bg-orange-200/80 text-orange-950 font-bold'
                   : 'bg-zinc-100 text-zinc-600'
@@ -495,7 +497,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
                     {s.heading ? `: ${s.heading}` : ''}
                   </span>
                   <span
-                    className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+                    className={`px-1.5 py-0.5 rounded-full text-xs font-mono ${
                       isSelected
                         ? 'bg-orange-200/80 text-orange-950 font-bold'
                         : 'bg-zinc-100 text-zinc-600'
@@ -518,7 +520,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
             >
               <span>Chung / Chưa gắn cảnh</span>
               <span
-                className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+                className={`px-1.5 py-0.5 rounded-full text-xs font-mono ${
                   selectedSceneId === 'UNASSIGNED'
                     ? 'bg-orange-200/80 text-orange-950 font-bold'
                     : 'bg-zinc-100 text-zinc-600'
@@ -557,7 +559,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
           <div className='space-y-3' data-testid='studio-work-list'>
             {studioWork.map((a) => (
               <div key={a.id} className='space-y-1'>
-                <p className='text-[11px] font-semibold text-[#737373]'>
+                <p className='text-xs font-semibold text-[#737373]'>
                   {a.seriesTitle} · Chương {a.chapterNumber}
                   {a.chapterTitle ? `: ${a.chapterTitle}` : ''}
                 </p>
@@ -626,7 +628,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
           {filteredAssignments.map((a) => (
             <div key={a.id} className='space-y-1.5'>
               {(a as any).seriesTitle && (
-                <div className='flex items-center gap-1.5 text-[11px] font-semibold text-orange-800 bg-orange-50 px-2.5 py-1 rounded-md border border-orange-200/80 w-fit'>
+                <div className='flex items-center gap-1.5 text-xs font-semibold text-orange-800 bg-orange-50 px-2.5 py-1 rounded-md border border-orange-200/80 w-fit'>
                   <span>{(a as any).seriesTitle}</span>
                   <span className='text-orange-400'>•</span>
                   <span>
@@ -676,19 +678,17 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
                     <div className='min-w-0'>
                       <div className='flex items-center gap-2'>
                         <h2 className='text-xs font-bold text-zinc-900 truncate'>{group.title}</h2>
-                        <span className='px-2 py-0.2 rounded-full text-[10px] font-mono font-bold bg-white border border-zinc-200 text-zinc-700'>
+                        <span className='px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-white border border-zinc-200 text-zinc-700'>
                           {group.assignments.length} công việc
                         </span>
                       </div>
                       {group.summary && (
-                        <p className='text-[11px] text-zinc-500 truncate max-w-xl'>
-                          {group.summary}
-                        </p>
+                        <p className='text-xs text-zinc-500 truncate max-w-xl'>{group.summary}</p>
                       )}
                     </div>
                   </div>
                   <div className='flex items-center gap-2 shrink-0'>
-                    <span className='text-[11px] font-semibold text-zinc-500'>
+                    <span className='text-xs font-semibold text-zinc-500'>
                       {isCollapsed ? 'Mở rộng' : 'Thu gọn'}
                     </span>
                     <div className='p-1 rounded-md hover:bg-zinc-200/60 text-zinc-600 transition-colors'>
@@ -706,7 +706,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
                     {group.assignments.map((a) => (
                       <div key={a.id} className='space-y-1.5'>
                         {(a as any).seriesTitle && (
-                          <div className='flex items-center gap-1.5 text-[11px] font-semibold text-orange-800 bg-orange-50 px-2.5 py-1 rounded-md border border-orange-200/80 w-fit'>
+                          <div className='flex items-center gap-1.5 text-xs font-semibold text-orange-800 bg-orange-50 px-2.5 py-1 rounded-md border border-orange-200/80 w-fit'>
                             <span>{(a as any).seriesTitle}</span>
                             <span className='text-orange-400'>•</span>
                             <span>

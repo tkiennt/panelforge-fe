@@ -219,25 +219,23 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
             {features.map((feature, index) => (
               <div
                 key={index}
-                className={`group relative bg-[#FFFFFF] border-[1.5px] border-[#E7E7E7] hover:border-[#171717] rounded-sm p-4 flex items-start gap-4 hover:shadow-[4px_4px_0px_#171717] hover:-translate-y-0.5 transition-all cursor-default overflow-hidden animate-in slide-in-from-bottom-8 fade-in duration-500 fill-mode-both ${feature.delay}`}
+                className={`group relative bg-[#FFFFFF] border border-[#f0efed] hover:border-[#292524] rounded-xl p-4 flex items-start gap-4 shadow-soft-sm hover:-translate-y-0.5 transition-all cursor-default overflow-hidden animate-in slide-in-from-bottom-8 fade-in duration-500 fill-mode-both ${feature.delay}`}
               >
-                <div className='absolute inset-0 bg-[radial-gradient(#171717_1.5px,transparent_1.5px)] bg-[size:10px_10px] opacity-0 group-hover:opacity-[0.04] transition-opacity pointer-events-none'></div>
-
-                <div className='absolute top-0 right-0 bg-[#E7E7E7] group-hover:bg-[#171717] text-[#555555] group-hover:text-white text-[9px] font-mono font-bold px-1.5 py-0.5 transition-colors border-b border-l border-transparent group-hover:border-[#171717]'>
+                <div className='absolute top-0 right-0 bg-[#f0efed] group-hover:bg-[#292524] text-[#777169] group-hover:text-white text-xs font-mono font-medium px-2 py-0.5 rounded-bl-lg transition-colors'>
                   P.{String(index + 1).padStart(2, '0')}
                 </div>
 
                 <div
-                  className={`relative z-10 mt-0.5 rounded-sm p-2 flex-shrink-0 border border-transparent group-hover:border-[#171717] group-hover:shadow-[2px_2px_0px_#171717] transition-all ${feature.iconColor}`}
+                  className={`relative z-10 mt-0.5 rounded-lg p-2 flex-shrink-0 transition-all ${feature.iconColor}`}
                 >
                   {feature.icon}
                 </div>
 
                 <div className='relative z-10 pr-6'>
-                  <h4 className='text-[#171717] font-bold text-sm tracking-tight'>
+                  <h4 className='text-[#0c0a09] font-semibold text-xs tracking-tight'>
                     {feature.title}
                   </h4>
-                  <p className='text-[#555555] text-xs leading-relaxed mt-1'>{feature.desc}</p>
+                  <p className='text-[#777169] text-xs leading-relaxed mt-1'>{feature.desc}</p>
                 </div>
               </div>
             ))}
@@ -248,7 +246,7 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
         <div className='w-full md:w-1/2 bg-[#FFFFFF] flex flex-col justify-center px-8 md:px-10 py-10 relative overflow-y-auto custom-scrollbar'>
           <div className='max-w-sm w-full mx-auto'>
             {/* Header Icon */}
-            <div className='w-10 h-10 rounded-xl tangerine-gradient flex items-center justify-center mb-5 shadow-xs'>
+            <div className='w-10 h-10 rounded-full bg-[#292524] text-white flex items-center justify-center mb-5 shadow-soft-sm'>
               {step === 'register' ? (
                 <KeyRound className='w-5 h-5 text-white' />
               ) : (
@@ -259,8 +257,8 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
             {/* Title & Subtitle */}
             {step === 'register' ? (
               <>
-                <h2 className='font-serif text-3xl font-bold text-[#171717]'>Create Account</h2>
-                <p className='text-[#555555] text-sm mt-1.5'>
+                <h2 className='font-serif font-light text-3xl text-[#0c0a09]'>Create Account</h2>
+                <p className='text-[#777169] text-xs mt-1.5'>
                   Join PanelForge studio to start serializing.
                 </p>
               </>
@@ -269,23 +267,23 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
                 <div className='flex items-center gap-2 mb-1'>
                   <button
                     onClick={() => setStep('register')}
-                    className='text-[#888888] hover:text-[#171717] transition-colors p-1 -ml-1 rounded-md hover:bg-[#FAF8F5]'
+                    className='text-[#777169] hover:text-[#0c0a09] transition-colors p-1.5 -ml-1 rounded-full hover:bg-[#f0efed]'
                     title='Quay lại form đăng ký'
                   >
                     <ArrowLeft className='w-4 h-4' />
                   </button>
-                  <h2 className='font-serif text-3xl font-bold text-[#171717]'>Verify PIN</h2>
+                  <h2 className='font-serif font-light text-3xl text-[#0c0a09]'>Verify PIN</h2>
                 </div>
-                <p className='text-[#555555] text-sm mt-1 leading-relaxed'>
+                <p className='text-[#777169] text-xs mt-1 leading-relaxed'>
                   Nhập mã PIN 6 số đã gửi tới <br />
-                  <span className='font-semibold text-[#171717] font-mono'>{email}</span>
+                  <span className='font-semibold text-[#0c0a09] font-mono'>{email}</span>
                 </p>
               </>
             )}
 
             {/* Thông báo lỗi nếu có */}
             {error && (
-              <div className='mt-4 p-3 bg-red-50 text-red-600 text-xs rounded-lg border border-red-100 flex items-start gap-2 animate-in fade-in duration-200'>
+              <div className='mt-4 p-3 bg-red-50 text-red-600 text-xs rounded-xl border border-red-200 flex items-start gap-2 animate-in fade-in duration-200'>
                 <span className='font-bold mt-0.5'>•</span>
                 <span>{error}</span>
               </div>
@@ -293,7 +291,7 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
 
             {/* Thông báo thành công nếu có */}
             {successMsg && (
-              <div className='mt-4 p-3 bg-emerald-50 text-emerald-700 text-xs rounded-lg border border-emerald-100 flex items-start gap-2 animate-in fade-in duration-200'>
+              <div className='mt-4 p-3 bg-emerald-50 text-emerald-700 text-xs rounded-xl border border-emerald-200 flex items-start gap-2 animate-in fade-in duration-200'>
                 <CheckCircle2 className='w-4 h-4 shrink-0 text-emerald-600 mt-0.5' />
                 <span>{successMsg}</span>
               </div>
@@ -303,7 +301,7 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
             {step === 'register' ? (
               <form className='mt-6 space-y-3.5' onSubmit={handleRegister}>
                 <div>
-                  <label className='block text-xs font-semibold uppercase tracking-wider text-[#555555] mb-1'>
+                  <label className='block text-xs font-semibold text-[#0c0a09] mb-1'>
                     Full Name
                   </label>
                   <input
@@ -311,27 +309,25 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     placeholder='Eiichiro Oda'
-                    className='w-full border border-[#E7E7E7] rounded-lg px-3.5 py-2.5 focus:border-[#171717] focus:ring-1 focus:ring-[#171717] outline-none transition-all text-sm'
+                    className='w-full border border-[#e7e5e4] rounded-xl px-4 py-2.5 focus:border-[#292524] focus:ring-2 focus:ring-[#292524]/10 outline-none transition-all text-xs text-[#0c0a09] placeholder:text-[#a8a29e]'
                     required
                   />
                 </div>
 
                 <div>
-                  <label className='block text-xs font-semibold uppercase tracking-wider text-[#555555] mb-1'>
-                    Email
-                  </label>
+                  <label className='block text-xs font-semibold text-[#0c0a09] mb-1'>Email</label>
                   <input
                     type='email'
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder='creator@studio.com'
-                    className='w-full border border-[#E7E7E7] rounded-lg px-3.5 py-2.5 focus:border-[#171717] focus:ring-1 focus:ring-[#171717] outline-none transition-all text-sm'
+                    className='w-full border border-[#e7e5e4] rounded-xl px-4 py-2.5 focus:border-[#292524] focus:ring-2 focus:ring-[#292524]/10 outline-none transition-all text-xs text-[#0c0a09] placeholder:text-[#a8a29e]'
                     required
                   />
                 </div>
 
                 <div>
-                  <label className='block text-xs font-semibold uppercase tracking-wider text-[#555555] mb-1'>
+                  <label className='block text-xs font-semibold text-[#0c0a09] mb-1'>
                     Password
                   </label>
                   <input
@@ -339,46 +335,46 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder='•••••••• (Tối thiểu 6 ký tự)'
-                    className='w-full border border-[#E7E7E7] rounded-lg px-3.5 py-2.5 focus:border-[#171717] focus:ring-1 focus:ring-[#171717] outline-none transition-all text-sm'
+                    className='w-full border border-[#e7e5e4] rounded-xl px-4 py-2.5 focus:border-[#292524] focus:ring-2 focus:ring-[#292524]/10 outline-none transition-all text-xs text-[#0c0a09] placeholder:text-[#a8a29e]'
                     required
                   />
                 </div>
 
                 <div>
-                  <label className='block text-xs font-semibold uppercase tracking-wider text-[#555555] mb-1'>
-                    Phone Number <span className='text-gray-400 font-normal'>(Tùy chọn)</span>
+                  <label className='block text-xs font-semibold text-[#0c0a09] mb-1'>
+                    Phone Number <span className='text-stone-400 font-normal'>(Tùy chọn)</span>
                   </label>
                   <input
                     type='tel'
                     value={phoneNumber}
                     onChange={(e) => setPhoneNumber(e.target.value)}
                     placeholder='+84 901 234 567'
-                    className='w-full border border-[#E7E7E7] rounded-lg px-3.5 py-2.5 focus:border-[#171717] focus:ring-1 focus:ring-[#171717] outline-none transition-all text-sm'
+                    className='w-full border border-[#e7e5e4] rounded-xl px-4 py-2.5 focus:border-[#292524] focus:ring-2 focus:ring-[#292524]/10 outline-none transition-all text-xs text-[#0c0a09] placeholder:text-[#a8a29e]'
                   />
                 </div>
 
                 <button
                   type='submit'
                   disabled={isLoading}
-                  className='w-full bg-[#F97316] hover:bg-[#EA580C] disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium py-2.5 rounded-lg shadow-sm transition-all mt-5 cursor-pointer flex justify-center items-center gap-2 text-sm'
+                  className='w-full bg-[#292524] hover:bg-[#0c0a09] disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium py-3 rounded-full shadow-soft-sm transition-all mt-5 cursor-pointer flex justify-center items-center gap-2 text-xs sm:text-sm'
                 >
                   {isLoading ? 'Đang gửi mã PIN...' : 'Register & Receive PIN'}
                   {!isLoading && <ArrowRight className='w-4 h-4' />}
                 </button>
 
                 <div className='flex items-center my-4'>
-                  <div className='flex-1 border-t border-[#E7E7E7]'></div>
-                  <span className='px-3 text-[11px] text-[#B8B8B8] uppercase tracking-wider font-semibold'>
+                  <div className='flex-1 border-t border-[#e7e5e4]'></div>
+                  <span className='px-3 text-xs text-[#a8a29e] uppercase tracking-wider font-semibold font-mono'>
                     or continue with
                   </span>
-                  <div className='flex-1 border-t border-[#E7E7E7]'></div>
+                  <div className='flex-1 border-t border-[#e7e5e4]'></div>
                 </div>
 
                 <button
                   type='button'
                   onClick={handleGoogleSignIn}
                   disabled={isLoading}
-                  className='w-full border border-[#E7E7E7] bg-white text-[#171717] text-sm font-medium py-2 rounded-lg flex items-center justify-center gap-2 hover:border-[#171717] hover:bg-[#FAF8F5] transition-colors cursor-pointer disabled:opacity-50'
+                  className='w-full border border-[#e7e5e4] bg-white text-[#0c0a09] text-xs sm:text-sm font-medium py-2.5 rounded-full flex items-center justify-center gap-2 hover:border-[#292524] hover:bg-[#fafafa] shadow-soft-sm transition-colors cursor-pointer disabled:opacity-50'
                 >
                   <svg className='w-4 h-4' viewBox='0 0 24 24' fill='currentColor'>
                     <path
@@ -401,12 +397,12 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
                   Sign in with Google
                 </button>
 
-                <p className='text-xs text-[#555555] text-center mt-5'>
+                <p className='text-xs text-[#777169] text-center mt-5'>
                   Already have an account?{' '}
                   <button
                     type='button'
                     onClick={onSwitchToLogin}
-                    className='text-[#F97316] font-semibold hover:text-[#EA580C] cursor-pointer'
+                    className='text-[#0c0a09] font-semibold hover:underline cursor-pointer'
                   >
                     Log In
                   </button>

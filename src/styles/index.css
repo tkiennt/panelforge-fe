@@ -35,6 +35,42 @@
   --color-status-amber-dark: #d97706;
   --color-status-amber-surface: #fffbeb;
 
+  /* Editorial AI Studio Design Tokens (Quiet Editorial & Atmospheric Canvas) */
+  --color-canvas-editorial: #f5f5f5;
+  --color-canvas-soft: #fafafa;
+  --color-canvas-deep: #0c0a09;
+  --color-ink: #0c0a09;
+  --color-ink-primary: #292524;
+  --color-ink-primary-active: #0c0a09;
+  --color-body-editorial: #4e4e4e;
+  --color-body-strong: #292524;
+  --color-muted-editorial: #777169;
+  --color-muted-soft: #a8a29e;
+  --color-hairline: #e7e5e4;
+  --color-hairline-soft: #f0efed;
+  --color-hairline-strong: #d6d3d1;
+  --color-surface-card: #ffffff;
+  --color-surface-strong: #f0efed;
+
+  /* Shared Hero & Auth Identity Tokens */
+  --color-charcoal-ink: #0c0a09;
+  --color-charcoal-deep: #171717;
+  --color-charcoal-cta: #292524;
+  --color-charcoal-cta-hover: #0c0a09;
+  --color-charcoal-desk: #1a1714;
+  --color-editorial-muted: #777169;
+  --color-editorial-body: #4e4e4e;
+  --color-paper-base: #faf8f5;
+  --color-paper-card: #fffefa;
+  --color-tangerine-accent: #f97316;
+
+  /* Atmospheric Gradient Orbs */
+  --color-orb-mint: #a7e5d3;
+  --color-orb-peach: #f4c5a8;
+  --color-orb-lavender: #c8b8e0;
+  --color-orb-sky: #a8c8e8;
+  --color-orb-rose: #e8b8c4;
+
   --shadow-manga: 3px 3px 0px #171717;
   --shadow-manga-lg: 5px 5px 0px #171717;
   --shadow-manga-sm: 2px 2px 0px #171717;
@@ -55,6 +91,8 @@
   --animate-float-slow: float 7s ease-in-out infinite;
   --animate-float-delayed: float 8s ease-in-out 2.5s infinite;
   --animate-pulse-subtle: pulseSubtle 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-orb-float-slow: orbFloat 20s ease-in-out infinite;
+  --animate-orb-float-reverse: orbFloat 25s ease-in-out infinite reverse;
 }
 
 @keyframes float {
@@ -78,6 +116,26 @@
   }
 }
 
+@keyframes orbFloat {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(32px, -38px) scale(1.07);
+  }
+  66% {
+    transform: translate(-28px, 24px) scale(0.96);
+  }
+}
+
+.orb-glow {
+  filter: blur(90px);
+  will-change: transform;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
 html {
   scroll-behavior: smooth;
 }
@@ -93,24 +151,26 @@ body {
   font-variant-numeric: lining-nums;
 }
 
-h1,
-h2,
-h3,
-h4,
-.font-heading,
-.font-display,
-.font-serif {
-  font-variant-numeric: lining-nums;
-  font-feature-settings: 'lnum' 1;
-}
+@layer base {
+  h1,
+  h2,
+  h3,
+  h4,
+  .font-heading,
+  .font-display,
+  .font-serif {
+    font-variant-numeric: lining-nums;
+    font-feature-settings: 'lnum' 1;
+  }
 
-h1,
-h2,
-h3,
-h4,
-.font-heading,
-.font-display {
-  font-family: 'Playfair Display', Georgia, serif;
+  h1,
+  h2,
+  h3,
+  h4,
+  .font-heading,
+  .font-display {
+    font-family: 'Playfair Display', Georgia, serif;
+  }
 }
 
 @keyframes float-y {
@@ -320,3 +380,65 @@ h4,
 .animation-delay-3000 {
   animation-delay: 3s;
 }
+
+/* ============================================================== */
+/* AUTH DIALOG CARD ANIMATION (180ms fade + scale 0.98 -> 1)      */
+/* ============================================================== */
+@keyframes authDialogIn {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-auth-dialog-in {
+  animation: authDialogIn 180ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ============================================================== */
+/* THE VERSIONED BLUEPRINT & ACCESSIBILITY RULES                  */
+/* ============================================================== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.001s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001s !important;
+    scroll-behavior: auto !important;
+  }
+
+  .animate-auth-dialog-in {
+    animation: none !important;
+    transform: none !important;
+  }
+
+  /* Disable dynamic 3D tilt and translate when user prefers reduced motion */
+  [style*='transformStyle: preserve-3d'],
+  [style*='preserve-3d'] {
+    transform: none !important;
+  }
+}
+
+/* ============================================================== */
+/* HERO VIEWPORT SIZING (EXACT DESKTOP FIT)                       */
+/* ============================================================== */
+@media (min-width: 1024px) {
+  .hero-desktop-screen {
+    height: calc(100vh - 4rem);
+    height: calc(100svh - 4rem);
+    min-height: calc(100vh - 4rem);
+    min-height: calc(100svh - 4rem);
+    max-height: calc(100vh - 4rem);
+    max-height: calc(100svh - 4rem);
+  }
+
+  .hero-grid-layout {
+    grid-template-columns: 52fr 48fr !important;
+  }
+}
+

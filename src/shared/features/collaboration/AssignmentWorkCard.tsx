@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   AlertTriangle,
+  BookOpen,
   Calendar,
   ChevronDown,
   ChevronRight,
@@ -12,6 +13,10 @@ import {
   User,
   ScanSearch,
   Eye,
+  PenTool,
+  Palette,
+  Type,
+  AlertOctagon,
 } from 'lucide-react';
 import { assignmentService } from '@/services/assignment.service';
 import { artworkService } from '@/services/artwork.service';
@@ -29,6 +34,8 @@ import { ChangeRequestPanel } from './ChangeRequestPanel';
 import { ReviewDecisionPanel } from './ReviewDecisionPanel';
 import { SubmitPreviewModal } from './SubmitPreviewModal';
 import { SubmissionHistory } from './SubmissionHistory';
+import { BibleReferenceDrawer } from './BibleReferenceDrawer';
+import { ChapterReviewArtworkOverview } from './ChapterReviewArtworkOverview';
 import {
   describeStartError,
   errorMessage,
@@ -100,6 +107,8 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
   const [highlightedCrId, setHighlightedCrId] = useState<string | null>(null);
   const [targetArtworkId, setTargetArtworkId] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [bibleDrawerOpen, setBibleDrawerOpen] = useState(false);
+  const [selectedBiblePanelId, setSelectedBiblePanelId] = useState<string | null>(null);
 
   const pageId = resolvePageId(assignment, stageProgress);
   const artworkRelevant = needsArtwork(assignment);
@@ -159,6 +168,9 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
     hasCurrentArtwork: artworkOk,
   });
 
+  const isChapterAssignment = String(assignment.entityType) === 'Chapter';
+  const showChapterOverview = isChapterAssignment && (actions.isReviewer || actions.isAssignee);
+
   const changed = (updated?: AssignmentDto) => {
     onChanged(updated);
     void loadDetails();
@@ -204,19 +216,23 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
     <article
       id={`assignment-${assignment.id}`}
       data-testid={`assignment-card-${assignment.id}`}
-      className={`p-4 bg-white border rounded-xl space-y-3 shadow-2xs ${
-        highlighted ? 'border-[#F97316] ring-2 ring-[#F97316]/30' : 'border-[#E7E7E7]'
+      className={`p-4 bg-white border rounded-xl space-y-3 shadow-2xs transition-all ${
+        status === 'ReworkRequired'
+          ? 'border-red-400 ring-2 ring-red-300/40 bg-red-50/10'
+          : highlighted
+            ? 'border-[#F97316] ring-2 ring-[#F97316]/30'
+            : 'border-[#E7E7E7]'
       }`}
     >
       <div className='flex flex-wrap items-center justify-between gap-2'>
         <div className='flex items-center gap-2 min-w-0'>
-          <span className='px-2 py-0.5 rounded bg-zinc-800 text-white font-mono text-[9px] font-bold shrink-0'>
+          <span className='px-2 py-0.5 rounded bg-zinc-800 text-white font-mono text-xs font-bold shrink-0'>
             {String(assignment.entityType)}
           </span>
           <span className='font-bold text-sm text-[#171717] truncate'>{stageName}</span>
         </div>
         <span
-          className={`px-2 py-0.5 rounded border text-[10px] font-mono font-semibold ${style.className}`}
+          className={`px-2 py-0.5 rounded border text-xs font-mono font-semibold ${style.className}`}
         >
           {style.label}
         </span>
@@ -226,18 +242,26 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
         {assignment.brief}
       </div>
 
-      {assignment.lastFeedbackComment && status === 'ReworkRequired' && (
-        <div className='text-xs p-2.5 rounded-lg bg-red-50 border border-red-200 text-red-800'>
-          <strong>Editor trả về:</strong> {assignment.lastFeedbackComment}
+      {status === 'ReworkRequired' && (
+        <div className='p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-800 space-y-1.5 animate-in fade-in duration-150'>
+          <div className='flex items-center gap-2 font-bold'>
+            <AlertOctagon className='w-4 h-4 text-red-600 shrink-0' />
+            <span>Yêu cầu sửa lại (Rework Required)</span>
+          </div>
+          {assignment.lastFeedbackComment && (
+            <p className='text-xs text-red-700 leading-relaxed font-serif bg-white/70 p-2.5 rounded-lg border border-red-200/60'>
+              <strong>Editor phản hồi:</strong> {assignment.lastFeedbackComment}
+            </p>
+          )}
           {openCrCount > 0 && (
-            <span className='block mt-1 font-semibold'>
-              Còn {openCrCount} yêu cầu sửa cần xử lý bên dưới.
-            </span>
+            <p className='text-xs font-semibold text-red-700'>
+              Có {openCrCount} yêu cầu sửa cần xử lý bên dưới trước khi nộp lại.
+            </p>
           )}
         </div>
       )}
 
-      <div className='flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-[#737373]'>
+      <div className='flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-mono text-[#737373]'>
         <span className='flex items-center gap-1'>
           <User className='w-3 h-3 text-[#F97316]' />
           <strong>Người làm:</strong> {assigneeName}
@@ -253,7 +277,7 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
       {error && (
         <div
           role='alert'
-          className='p-2 bg-red-50 border border-red-200 text-red-700 rounded-lg text-[11px] flex items-center gap-1.5'
+          className='p-2 bg-red-50 border border-red-200 text-red-700 rounded-lg text-xs flex items-center gap-1.5'
         >
           <AlertTriangle className='w-3.5 h-3.5 shrink-0' />
           <span>{error}</span>
@@ -288,12 +312,51 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
           )}
           {actions.canStart && startLockedReason && (
             <span
-              className='text-[11px] text-amber-700 flex items-center gap-1'
+              className='text-xs text-amber-700 flex items-center gap-1'
               data-testid='start-blocked-reason'
             >
               <AlertTriangle className='w-3.5 h-3.5 shrink-0' />
               {startLockedReason}
             </span>
+          )}
+
+          {/* Context-aware direct jump CTA buttons */}
+          {actions.isAssignee && (
+            <>
+              {String(assignment.assignedRole).toUpperCase() === 'WRITER' && (
+                <Link
+                  to={`../script?chapterId=${chapterId}&assignmentId=${assignment.id}`}
+                  relative='path'
+                  data-testid='open-writer-desk'
+                  className='px-3 py-1.5 rounded-lg border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs'
+                >
+                  <PenTool className='w-3.5 h-3.5 text-blue-600' />
+                  <span>Mở Script Editor</span>
+                </Link>
+              )}
+              {String(assignment.assignedRole).toUpperCase() === 'ARTIST' && (
+                <Link
+                  to={`../artist?chapterId=${chapterId}&assignmentId=${assignment.id}`}
+                  relative='path'
+                  data-testid='open-artist-desk'
+                  className='px-3 py-1.5 rounded-lg border border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs'
+                >
+                  <Palette className='w-3.5 h-3.5 text-amber-600' />
+                  <span>Mở Bàn Vẽ</span>
+                </Link>
+              )}
+              {String(assignment.assignedRole).toUpperCase() === 'LETTERER' && (
+                <Link
+                  to={`../letterer?chapterId=${chapterId}&assignmentId=${assignment.id}`}
+                  relative='path'
+                  data-testid='open-letterer-desk'
+                  className='px-3 py-1.5 rounded-lg border border-pink-200 bg-pink-50 hover:bg-pink-100 text-pink-700 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs'
+                >
+                  <Type className='w-3.5 h-3.5 text-pink-600' />
+                  <span>Mở Lettering Canvas</span>
+                </Link>
+              )}
+            </>
           )}
 
           {status === 'InProgress' &&
@@ -312,6 +375,21 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
                 Xem trước trang truyện
               </button>
             )}
+
+          {(artworkRelevant || assignment.entityType === 'Panel') && (
+            <button
+              type='button'
+              data-testid='open-bible-reference'
+              onClick={() => {
+                setSelectedBiblePanelId(null);
+                setBibleDrawerOpen(true);
+              }}
+              className='px-3 py-1.5 rounded-lg border border-[#E7E7E7] bg-white hover:bg-zinc-50 text-[#171717] text-xs font-semibold flex items-center gap-1.5 cursor-pointer'
+            >
+              <BookOpen className='w-3.5 h-3.5 text-[#F97316]' />
+              Tham chiếu Bible
+            </button>
+          )}
 
           {status === 'InProgress' && actions.isAssignee && (
             <button
@@ -337,7 +415,7 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
       {status === 'InProgress' &&
         actions.isAssignee &&
         String(assignment.assignedRole).toUpperCase() === 'LETTERER' && (
-          <div className='text-[10px] text-zinc-600 bg-zinc-50 border border-zinc-200 p-2 rounded-lg flex items-start gap-1.5'>
+          <div className='text-xs text-zinc-600 bg-zinc-50 border border-zinc-200 p-2.5 rounded-lg flex items-start gap-1.5'>
             <Info className='w-3.5 h-3.5 text-zinc-400 shrink-0 mt-0.5' />
             <span>
               <strong>Cổng nộp Lettering:</strong> Đảm bảo mọi dòng thoại đã neo vào panel đều có
@@ -348,7 +426,7 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
 
       {actions.submitBlockedReason && (
         <p
-          className='text-[11px] text-amber-700 flex items-start gap-1.5'
+          className='text-xs text-amber-700 flex items-start gap-1.5'
           data-testid='submit-blocked-reason'
         >
           <AlertTriangle className='w-3.5 h-3.5 shrink-0 mt-px' />
@@ -356,16 +434,25 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
         </p>
       )}
 
-      {actions.isReviewer && !actions.isAssignee && artworkRelevant && (
+      {actions.isReviewer && !actions.isAssignee && !showChapterOverview && (
         <Link
           to={`../review/${assignment.id}?chapterId=${chapterId}`}
           relative='path'
           data-testid='open-review-board'
-          className='inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#F97316] hover:underline'
+          className='px-3 py-1.5 rounded-lg border border-orange-200 bg-orange-50 hover:bg-orange-100 text-orange-800 text-xs font-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs'
         >
-          <ScanSearch className='w-3.5 h-3.5' /> Mở màn duyệt (so sánh phiên bản, khoanh vùng cần
-          sửa)
+          <ScanSearch className='w-3.5 h-3.5 text-orange-600' />
+          <span>Mở Màn Duyệt (Review View)</span>
         </Link>
+      )}
+
+      {showChapterOverview && (
+        <ChapterReviewArtworkOverview
+          chapterId={chapterId}
+          seriesId={assignment.seriesId}
+          assignmentId={assignment.id}
+          onToast={onToast}
+        />
       )}
 
       <ReviewDecisionPanel
@@ -395,6 +482,10 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
               canUpload={actions.canUploadArtwork}
               onChanged={() => void loadDetails()}
               onToast={onToast}
+              onOpenBible={(pid) => {
+                setSelectedBiblePanelId(pid);
+                setBibleDrawerOpen(true);
+              }}
             />
           );
 
@@ -430,7 +521,7 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
         <button
           type='button'
           onClick={() => setExpanded((e) => !e)}
-          className='text-[11px] font-semibold text-[#555555] hover:text-[#171717] flex items-center gap-1 cursor-pointer'
+          className='text-xs font-mono font-medium text-[#555555] hover:text-[#171717] flex items-center gap-1 cursor-pointer'
           aria-expanded={expanded}
         >
           {expanded ? <ChevronDown className='w-3 h-3' /> : <ChevronRight className='w-3 h-3' />}
@@ -466,6 +557,30 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
           }}
         />
       )}
+
+      <BibleReferenceDrawer
+        isOpen={bibleDrawerOpen}
+        onClose={() => setBibleDrawerOpen(false)}
+        seriesId={assignment.seriesId}
+        chapterId={chapterId}
+        panelId={
+          selectedBiblePanelId ||
+          (assignment.entityType === 'Panel' ? assignment.targetEntityId : panels[0]?.id || null)
+        }
+        panelNumber={
+          selectedBiblePanelId
+            ? panels.find((p) => p.id === selectedBiblePanelId)?.panelNumber || null
+            : assignment.entityType === 'Panel'
+              ? panels.find((p) => p.id === assignment.targetEntityId)?.panelNumber || null
+              : panels[0]?.panelNumber || null
+        }
+        availablePanels={panels.map((p) => ({
+          id: p.id,
+          panelNumber: p.panelNumber,
+          readingOrder: p.readingOrder,
+        }))}
+        onSelectPanel={(pid) => setSelectedBiblePanelId(pid)}
+      />
     </article>
   );
 };

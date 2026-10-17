@@ -431,4 +431,40 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
       screen.queryByRole('button', { name: /làm rõ|needsclarification/i }),
     ).not.toBeInTheDocument();
   });
+
+  it('formatChapterOption không làm lặp "Chương 1: Chương 1"', async () => {
+    const { formatChapterOption } = await import('./ScriptEditorView');
+    expect(formatChapterOption(1, 'Chương 1: Cơn Bão Deadline')).toBe('Chương 1: Cơn Bão Deadline');
+    expect(formatChapterOption(1, 'Chương 1')).toBe('Chương 1');
+    expect(formatChapterOption(1, 'chương 1 - Tiếng sấm')).toBe('Chương 1: Tiếng sấm');
+    expect(formatChapterOption(2, 'Khởi đầu mới')).toBe('Chương 2: Khởi đầu mới');
+    expect(formatChapterOption(3, null)).toBe('Chương 3');
+    expect(formatChapterOption(3, '')).toBe('Chương 3');
+  });
+
+  it('cho phép thu gọn và mở rộng thanh điều hướng phân cảnh', async () => {
+    const user = userEvent.setup();
+    renderView();
+
+    const collapseBtn = await screen.findByTitle('Thu gọn danh sách cảnh');
+    await user.click(collapseBtn);
+
+    expect(screen.getByTitle('Mở rộng danh sách cảnh')).toBeInTheDocument();
+
+    const expandBtn = screen.getByTitle('Mở rộng danh sách cảnh');
+    await user.click(expandBtn);
+
+    expect(await screen.findByTitle('Thu gọn danh sách cảnh')).toBeInTheDocument();
+  });
+
+  it('cho phép mở danh mục Nhân vật Series Bible qua nút trên header', async () => {
+    const user = userEvent.setup();
+    renderView();
+
+    const bibleBtn = await screen.findByRole('button', { name: /Nhân vật Bible/i });
+    await user.click(bibleBtn);
+
+    expect(await screen.findByText('Nhân vật Series Bible (1)')).toBeInTheDocument();
+    expect(screen.getByText('Nhân vật chính 20 tuổi')).toBeInTheDocument();
+  });
 });

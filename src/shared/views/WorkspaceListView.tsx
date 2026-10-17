@@ -78,19 +78,19 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
   const getRoleBadgeColor = (role?: WorkspaceRole | null) => {
     switch (role) {
       case 'PRODUCER':
-        return 'bg-purple-100 text-purple-700 border-purple-200';
+        return 'bg-purple-50 text-purple-700 border-purple-200';
       case 'ARTIST':
-        return 'bg-blue-100 text-blue-700 border-blue-200';
+        return 'bg-blue-50 text-blue-700 border-blue-200';
       case 'WRITER':
-        return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+        return 'bg-emerald-50 text-emerald-700 border-emerald-200';
       case 'EDITOR':
-        return 'bg-amber-100 text-amber-700 border-amber-200';
+        return 'bg-amber-50 text-amber-700 border-amber-200';
       case 'LETTERER':
-        return 'bg-pink-100 text-pink-700 border-pink-200';
+        return 'bg-pink-50 text-pink-700 border-pink-200';
       case 'PUBLISHER':
-        return 'bg-indigo-100 text-indigo-700 border-indigo-200';
+        return 'bg-indigo-50 text-indigo-700 border-indigo-200';
       default:
-        return 'bg-gray-100 text-gray-700 border-gray-200';
+        return 'bg-stone-100 text-stone-700 border-stone-200';
     }
   };
 
@@ -110,35 +110,33 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
   };
 
   return (
-    <div className='min-h-screen bg-[#F8F6F0] flex flex-col'>
+    <div className='min-h-screen bg-[#f5f5f5] flex flex-col text-[#0c0a09]'>
       {/* Top Navigation Bar with Brand, User Info and Logout */}
-      <header className='sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-[#E7E7E7] px-4 md:px-6 lg:px-8 py-3.5 shadow-2xs'>
+      <header className='sticky top-0 z-30 bg-[#f5f5f5]/90 backdrop-blur-md border-b border-[#e7e5e4] px-4 md:px-6 lg:px-8 py-3.5 shadow-soft-sm'>
         <div className='w-full flex items-center justify-between'>
           {/* Logo & Brand */}
           <div className='flex items-center gap-3'>
-            <div className='w-9 h-9 rounded-xl bg-gradient-to-tr from-[#EA580C] to-[#F97316] flex items-center justify-center text-white shadow-xs'>
-              <Layers className='w-5 h-5' />
+            <div className='w-9 h-9 rounded-full bg-[#292524] flex items-center justify-center text-white shadow-soft-sm'>
+              <Layers className='w-4 h-4' />
             </div>
             <div>
               <div className='flex items-center gap-2'>
-                <span className='font-bold text-base text-[#171717] tracking-tight'>
+                <span className='font-serif font-medium text-base text-[#0c0a09] tracking-tight'>
                   PanelForge
                 </span>
-                <span className='text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-orange-50 text-[#EA580C] border border-orange-200/60 uppercase tracking-wider'>
+                <span className='text-xs font-mono font-medium px-2.5 py-0.5 rounded-full bg-[#f0efed] text-[#292524] border border-[#e7e5e4] uppercase tracking-wider'>
                   Studio Hub
                 </span>
               </div>
-              <p className='text-[11px] text-[#888888] hidden sm:block'>
-                Production Workspace Catalog
-              </p>
+              <p className='text-xs text-[#777169] hidden sm:block'>Production Workspace Catalog</p>
             </div>
           </div>
 
           {/* User Profile & Logout Button */}
           <div className='flex items-center gap-3 sm:gap-4'>
             {currentUser && (
-              <div className='flex items-center gap-3 pr-2 sm:pr-4 sm:border-r border-[#E7E7E7]'>
-                <div className='w-9 h-9 rounded-full bg-[#171717] text-white flex items-center justify-center font-bold text-sm shadow-2xs overflow-hidden'>
+              <div className='flex items-center gap-3 pr-2 sm:pr-4 sm:border-r border-[#e7e5e4]'>
+                <div className='w-9 h-9 rounded-full bg-[#292524] text-white flex items-center justify-center font-bold text-xs shadow-soft-sm overflow-hidden'>
                   {currentUser.avatarUrl && currentUser.avatarUrl.trim() ? (
                     <img
                       src={currentUser.avatarUrl}
@@ -151,14 +149,14 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                 </div>
                 <div className='hidden sm:block text-left'>
                   <div className='flex items-center gap-1.5'>
-                    <span className='text-sm font-semibold text-[#171717] truncate max-w-[140px]'>
+                    <span className='text-xs font-semibold text-[#0c0a09] truncate max-w-[140px]'>
                       {currentUser.name}
                     </span>
-                    <span className='text-[10px] font-mono px-1.5 py-0.2 bg-gray-100 text-gray-700 rounded font-bold uppercase'>
+                    <span className='text-xs font-mono px-2 py-0.5 bg-[#f0efed] text-[#292524] rounded-full font-medium uppercase'>
                       {currentUser.role || 'USER'}
                     </span>
                   </div>
-                  <p className='text-xs text-[#888888] truncate max-w-[160px]'>
+                  <p className='text-xs text-[#777169] truncate max-w-[160px]'>
                     {currentUser.email}
                   </p>
                 </div>
@@ -168,10 +166,10 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
             {onLogout && (
               <button
                 onClick={onLogout}
-                className='flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 text-xs sm:text-sm font-medium text-red-600 hover:text-red-700 bg-red-50/60 hover:bg-red-50 border border-red-200 rounded-xl transition-all duration-200 cursor-pointer shadow-2xs hover:shadow-xs'
+                className='flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 text-xs font-medium text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100/60 border border-red-200 rounded-full transition-all duration-200 cursor-pointer shadow-soft-sm'
                 title='Đăng xuất khỏi tài khoản'
               >
-                <LogOut className='w-3.5 h-3.5 sm:w-4 sm:h-4' />
+                <LogOut className='w-3.5 h-3.5' />
                 <span>Đăng xuất</span>
               </button>
             )}
@@ -212,9 +210,9 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                   title={
                     isAdmin ? 'Quản trị viên không thể tạo Studio (BR-07)' : 'Create Workspace'
                   }
-                  className='w-full bg-[#171717] hover:bg-[#2A2A2A] disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer shadow-xs hover:shadow-md'
+                  className='w-full bg-[#292524] hover:bg-[#0c0a09] disabled:opacity-40 disabled:cursor-not-allowed text-white font-medium text-xs sm:text-sm py-3 px-6 rounded-full transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer shadow-soft-sm hover:shadow-soft-md'
                 >
-                  <Plus className='w-5 h-5' />
+                  <Plus className='w-4 h-4' />
                   <span>Create Workspace (Tạo Studio Mới)</span>
                 </button>
               </div>
@@ -224,10 +222,10 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
             <>
               <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 sm:mb-10'>
                 <div>
-                  <h1 className='text-3xl font-bold text-[#171717] tracking-tight mb-2'>
+                  <h1 className='text-3xl font-serif font-light text-[#0c0a09] tracking-tight mb-2'>
                     Your Workspaces
                   </h1>
-                  <p className='text-[#555555] text-sm sm:text-base'>
+                  <p className='text-[#777169] text-xs sm:text-sm'>
                     Chọn một Studio Workspace để tiếp tục công việc sản xuất truyện tranh của bạn.
                   </p>
                 </div>
@@ -236,7 +234,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                   aria-label='Create Workspace'
                   disabled={isAdmin}
                   title={isAdmin ? 'Quản trị viên không thể tạo Studio (BR-07)' : 'Tạo Studio Mới'}
-                  className='self-start sm:self-auto flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#171717] hover:bg-[#2A2A2A] disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold transition-all shadow-xs hover:shadow-md cursor-pointer'
+                  className='self-start sm:self-auto flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#292524] hover:bg-[#0c0a09] disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs sm:text-sm font-medium transition-all shadow-soft-sm cursor-pointer'
                 >
                   <Plus className='w-4 h-4' />
                   <span>Tạo Studio Mới</span>
@@ -248,58 +246,55 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                   <div
                     key={ws.id}
                     onClick={() => onSelectWorkspace(ws)}
-                    className='group bg-white rounded-2xl border border-[#E7E7E7] hover:border-[#F97316] shadow-2xs hover:shadow-md transition-all duration-300 cursor-pointer overflow-hidden flex flex-col relative'
+                    className='group bg-white rounded-2xl border border-[#f0efed] hover:border-[#292524] shadow-soft-sm hover:shadow-soft-md transition-all duration-200 cursor-pointer overflow-hidden flex flex-col relative'
                   >
-                    {/* Highlight bar on hover */}
-                    <div className='absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#F97316] to-[#F59E0B] transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-300' />
-
                     <div className='p-6 flex-1'>
                       <div className='flex items-start justify-between mb-4'>
-                        <div className='w-12 h-12 bg-gray-50 rounded-xl border border-[#E7E7E7] flex items-center justify-center text-[#171717] group-hover:scale-110 transition-transform duration-300'>
-                          <Layers className='w-6 h-6' />
+                        <div className='w-12 h-12 bg-[#fafafa] rounded-full border border-[#e7e5e4] flex items-center justify-center text-[#292524] group-hover:scale-105 transition-transform duration-200'>
+                          <Layers className='w-5 h-5' />
                         </div>
                         <div
-                          className={`px-3 py-1 rounded-full border text-xs font-semibold font-mono tracking-wide ${getRoleBadgeColor(ws.currentUserRole)}`}
+                          className={`px-3 py-0.5 rounded-full border text-xs font-semibold font-mono tracking-wide ${getRoleBadgeColor(ws.currentUserRole)}`}
                         >
                           {getRoleDisplayName(ws.currentUserRole)}
                         </div>
                       </div>
 
-                      <h3 className='text-lg font-bold text-[#171717] mb-2 group-hover:text-[#F97316] transition-colors line-clamp-1'>
+                      <h3 className='text-lg font-serif font-medium text-[#0c0a09] mb-2 group-hover:text-[#292524] transition-colors line-clamp-1'>
                         {ws.name}
                       </h3>
 
-                      <div className='text-xs text-[#555555] mb-6 flex flex-col gap-1.5'>
+                      <div className='text-xs text-[#777169] mb-6 flex flex-col gap-1.5 font-sans'>
                         <div className='flex items-center gap-1.5'>
-                          <span className='w-1.5 h-1.5 rounded-full bg-gray-300'></span>
+                          <span className='w-1.5 h-1.5 rounded-full bg-stone-300'></span>
                           <span>{ws.memberCount || 1} Members</span>
                         </div>
                         <div className='flex items-center gap-1.5'>
-                          <span className='w-1.5 h-1.5 rounded-full bg-gray-300'></span>
+                          <span className='w-1.5 h-1.5 rounded-full bg-stone-300'></span>
                           <span>{getTimeAgo(ws.createdAt)}</span>
                         </div>
                       </div>
                     </div>
 
-                    <div className='px-6 py-3.5 bg-[#FAF8F4] border-t border-[#E7E7E7] flex items-center justify-between group-hover:bg-[#FFF7ED] transition-colors'>
+                    <div className='px-6 py-3.5 bg-[#fafafa] border-t border-[#f0efed] flex items-center justify-between transition-colors'>
                       <div className='flex items-center gap-2'>
                         {ws.pendingTasks > 0 ? (
                           <>
-                            <div className='w-2 h-2 rounded-full bg-[#F97316] animate-pulse' />
-                            <span className='text-xs font-semibold text-[#171717]'>
+                            <div className='w-2 h-2 rounded-full bg-amber-500 animate-pulse' />
+                            <span className='text-xs font-medium text-[#0c0a09] font-mono'>
                               {ws.pendingTasks} Pending Tasks
                             </span>
                           </>
                         ) : (
                           <>
                             <div className='w-2 h-2 rounded-full bg-emerald-500' />
-                            <span className='text-xs font-semibold text-[#555555]'>
+                            <span className='text-xs font-medium text-[#777169] font-mono'>
                               All caught up
                             </span>
                           </>
                         )}
                       </div>
-                      <ArrowRight className='w-4 h-4 text-[#888888] group-hover:text-[#F97316] transform group-hover:translate-x-1 transition-all' />
+                      <ArrowRight className='w-4 h-4 text-[#777169] group-hover:text-[#0c0a09] transform group-hover:translate-x-1 transition-all' />
                     </div>
                   </div>
                 ))}
@@ -307,13 +302,15 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                 {/* Create New Workspace Card */}
                 <div
                   onClick={handleOpenCreate}
-                  className='bg-white/50 hover:bg-white rounded-2xl border-2 border-dashed border-[#D4D4D4] hover:border-[#171717] transition-all duration-300 cursor-pointer flex flex-col items-center justify-center p-6 min-h-[240px] text-center group shadow-2xs hover:shadow-sm'
+                  className='bg-white/60 hover:bg-white rounded-2xl border border-dashed border-[#d6d3d1] hover:border-[#292524] transition-all duration-200 cursor-pointer flex flex-col items-center justify-center p-6 min-h-[240px] text-center group shadow-soft-sm hover:shadow-soft-md'
                 >
-                  <div className='w-12 h-12 rounded-full bg-gray-100 group-hover:bg-[#171717] text-[#888888] group-hover:text-white flex items-center justify-center mb-3 transition-colors'>
-                    <Plus className='w-6 h-6' />
+                  <div className='w-12 h-12 rounded-full bg-[#f0efed] group-hover:bg-[#292524] text-[#777169] group-hover:text-white flex items-center justify-center mb-3 transition-colors'>
+                    <Plus className='w-5 h-5' />
                   </div>
-                  <h3 className='text-base font-bold text-[#171717] mb-1'>Bắt đầu Studio mới</h3>
-                  <p className='text-[#666666] text-xs max-w-[200px]'>
+                  <h3 className='text-base font-semibold text-[#0c0a09] mb-1'>
+                    Bắt đầu Studio mới
+                  </h3>
+                  <p className='text-[#777169] text-xs max-w-[200px]'>
                     Tạo Studio và mời các họa sĩ, tác giả cộng tác sản xuất.
                   </p>
                 </div>

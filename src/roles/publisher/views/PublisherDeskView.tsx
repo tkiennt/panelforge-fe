@@ -88,7 +88,7 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
               <h1 className='text-xl font-display font-bold text-[#171717]'>
                 Bàn Làm Việc Publisher // Cổng Duyệt Xuất Bản
               </h1>
-              <span className='px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200 text-[10px] font-mono font-bold'>
+              <span className='px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200 text-xs font-mono font-bold'>
                 STAGE: PUBLISHING
               </span>
             </div>
@@ -135,7 +135,7 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
           <div className='text-2xl font-bold font-mono text-[#171717] mt-1.5'>
             {approvedChapters.length}
           </div>
-          <p className='text-[11px] text-amber-700 mt-1 font-medium'>
+          <p className='text-xs text-amber-700 mt-1 font-medium'>
             Producer đã duyệt hoàn tất sản xuất
           </p>
         </div>
@@ -155,7 +155,7 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
           <div className='text-2xl font-bold font-mono text-[#171717] mt-1.5'>
             {publishedChapters.length}
           </div>
-          <p className='text-[11px] text-purple-700 mt-1 font-medium'>
+          <p className='text-xs text-purple-700 mt-1 font-medium'>
             Sẵn sàng đọc hoặc đang đếm ngược
           </p>
         </div>
@@ -175,7 +175,7 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
           <div className='text-2xl font-bold font-mono text-[#171717] mt-1.5'>
             {chapters.length}
           </div>
-          <p className='text-[11px] text-[#737373] mt-1 font-medium'>
+          <p className='text-xs text-[#737373] mt-1 font-medium'>
             Tất cả các chương trong bộ truyện
           </p>
         </div>
@@ -193,7 +193,7 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
                   ? 'Danh Sách Chương Đã Phát Hành & Lên Lịch'
                   : 'Tất Cả Các Chương Trong Series'}
             </span>
-            <span className='px-2 py-0.5 rounded-full bg-neutral-200 text-[#171717] text-[10px] font-mono font-bold'>
+            <span className='px-2 py-0.5 rounded-full bg-neutral-200 text-[#171717] text-xs font-mono font-bold'>
               {filteredChapters.length}
             </span>
           </div>
@@ -266,14 +266,14 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
                         {chap.title || 'Chưa đặt tiêu đề'}
                       </h3>
                       {chap.status === 'Approved' && (
-                        <span className='px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1'>
+                        <span className='px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1'>
                           <Clock className='w-3 h-3 text-amber-600' />
                           <span>CHỜ DUYỆT XUẤT BẢN</span>
                         </span>
                       )}
                       {chap.status === 'Published' && (
                         <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold border flex items-center gap-1 ${
+                          className={`px-2 py-0.5 rounded-full text-xs font-mono font-bold border flex items-center gap-1 ${
                             isScheduled
                               ? 'bg-purple-50 text-purple-700 border-purple-200'
                               : 'bg-emerald-50 text-emerald-700 border-emerald-200'
@@ -290,7 +290,7 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
                         </span>
                       )}
                       {chap.status === 'InProduction' && (
-                        <span className='px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-blue-50 text-blue-700 border border-blue-200'>
+                        <span className='px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-blue-50 text-blue-700 border border-blue-200'>
                           ĐANG SẢN XUẤT
                         </span>
                       )}
