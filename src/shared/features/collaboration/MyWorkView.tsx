@@ -359,13 +359,15 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
     );
   };
 
-  const baseTabs: {
+  type TabItem = {
     key: Tab;
     label: string;
     icon: React.ReactNode;
     tooltip: string;
     badgeAlert?: boolean;
-  }[] = reviewer
+  };
+
+  const baseTabs: TabItem[] = reviewer
     ? [
         {
           key: 'review',
@@ -401,7 +403,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
           tooltip: 'Tất cả công việc trong series hiện tại',
         },
       ];
-  const tabs = workspaceId
+  const tabs: TabItem[] = workspaceId
     ? [
         ...baseTabs,
         {
