@@ -120,6 +120,18 @@ axiosClient.interceptors.request.use(
     ) {
       return Promise.reject(new axios.CanceledError('Phiên đăng nhập đã kết thúc'));
     }
+
+    // Tránh bị duplicate /api/api khi url đầu vào đã có tiền tố /api
+    if (config.url) {
+      if (config.url.startsWith('/api/')) {
+        config.url = config.url.substring(4);
+      } else if (config.url.startsWith('api/')) {
+        config.url = config.url.substring(3);
+      } else if (config.url.includes('/api/api/')) {
+        config.url = config.url.replace(/\/api\/api\//g, '/api/');
+      }
+    }
+
     config.withCredentials = true;
     if (config.headers) {
       if (!config.headers['X-Requested-With']) {
