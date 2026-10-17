@@ -312,6 +312,138 @@ export interface AiWorkflowAvailabilityResponse {
 }
 
 /** Lỗi API có mã máy đọc được: AI_UNAVAILABLE (503), CONFLICT (409), AI_DISABLED / FORBIDDEN (403)... */
+// ── CF4: lịch sử AI run, so sánh revision, Provenance Report ──
+
+export interface AiRunSummaryDto {
+  id: string;
+  chapterId: string;
+  sceneId?: string | null;
+  requestedByUserId: string;
+  status: AiRunStatus;
+  workflowType: AiWorkflowType;
+  provider: string;
+  model: string;
+  brief: string;
+  revisionRounds: number;
+  maxRevisionRounds: number;
+  baseChapterVersion: number;
+  errorCode?: string | null;
+  createdAt: string;
+  lastActivityAtUtc: string;
+  completedAtUtc?: string | null;
+  stepCount: number;
+  suggestionCount: number;
+  acceptedCount: number;
+  rejectedCount: number;
+}
+
+export interface AiRunHistoryResponse {
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  items: AiRunSummaryDto[];
+}
+
+export interface AiRunHistoryFilter {
+  chapterId?: string;
+  sceneId?: string;
+  status?: AiRunStatus;
+  workflowType?: AiWorkflowType;
+  page?: number;
+  pageSize?: number;
+}
+
+export type DiffChangeType = 'Added' | 'Removed' | 'Modified' | 'Moved';
+
+export interface RevisionDiffEntry {
+  /** Script: `line:{lineId}`; loại khác: khoá JSON hoặc `[i]`; `$` = toàn bộ. */
+  path: string;
+  changeType: DiffChangeType;
+  oldValue?: string | null;
+  newValue?: string | null;
+}
+
+export interface RevisionSideDto {
+  id: string;
+  versionNumber: number;
+  kind: ContentRevisionKind;
+  summary: string;
+  contentHash: string;
+  sourceSuggestionId?: string | null;
+  createdBy?: string | null;
+  createdAt: string;
+}
+
+export interface RevisionDiffResponse {
+  left: RevisionSideDto;
+  right: RevisionSideDto;
+  differences: RevisionDiffEntry[];
+  leftPayload?: unknown;
+  rightPayload?: unknown;
+}
+
+export type ProvenanceNodeType =
+  'Run' | 'Step' | 'Suggestion' | 'Decision' | 'Revision' | 'Snapshot';
+
+export interface ProvenanceNode {
+  nodeType: ProvenanceNodeType;
+  id: string;
+  timestamp: string;
+  summary: string;
+  /** Trường provenance theo loại node (model, promptRef, người quyết, mức sửa, hash...). */
+  details?: Record<string, unknown> | null;
+}
+
+export interface ProvenanceEdge {
+  fromId: string;
+  toId: string;
+  relationship: string;
+}
+
+export interface ProvenanceStats {
+  totalRuns: number;
+  totalSteps: number;
+  totalSuggestions: number;
+  acceptedSuggestions: number;
+  rejectedSuggestions: number;
+  pendingSuggestions: number;
+  modifiedByHumanDecisions: number;
+  totalRevisions: number;
+  aiOriginatedRevisions: number;
+  manualRevisions: number;
+  totalSnapshots: number;
+  totalPromptTokens: number;
+  totalCompletionTokens: number;
+}
+
+export type ProvenanceEventType =
+  | 'RunStarted'
+  | 'RunCompleted'
+  | 'RunFailed'
+  | 'StepCompleted'
+  | 'SuggestionCreated'
+  | 'DecisionMade'
+  | 'RevisionCreated'
+  | 'SnapshotCreated';
+
+export interface ProvenanceTimelineEntry {
+  timestamp: string;
+  eventType: ProvenanceEventType;
+  summary: string;
+  entityId: string;
+  relatedRunId?: string | null;
+}
+
+export interface ProvenanceReportResponse {
+  chapterId: string;
+  sceneId?: string | null;
+  generatedAtUtc: string;
+  stats: ProvenanceStats;
+  nodes: ProvenanceNode[];
+  edges: ProvenanceEdge[];
+  timeline: ProvenanceTimelineEntry[];
+}
+
 export class AiApiError extends Error {
   code?: string;
   status?: number;
@@ -388,6 +520,55 @@ export const aiAgentsService = {
       return res.data;
     } catch (e) {
       throw toError(e, 'Không thể tải lịch sử revision.');
+    }
+  },
+
+  /** CF4: lịch sử AI run của Series, mới nhất trước (thành viên Workspace). */
+  async getRunHistory(
+    seriesId: string,
+    filter: AiRunHistoryFilter = {},
+  ): Promise<AiRunHistoryResponse> {
+    try {
+      const res = await axiosClient.get(`/series/${seriesId}/ai/runs`, { params: filter });
+      return res.data;
+    } catch (e) {
+      throw toError(e, 'Không thể tải lịch sử AI.');
+    }
+  },
+
+  /** CF4 / UC-18: so sánh hai revision cùng loại của một Scene (script so theo từng dòng). */
+  async compareRevisions(
+    seriesId: string,
+    sceneId: string,
+    left: string,
+    right: string,
+  ): Promise<RevisionDiffResponse> {
+    try {
+      const res = await axiosClient.get(
+        `/series/${seriesId}/ai/scenes/${sceneId}/revisions/compare`,
+        {
+          params: { left, right },
+        },
+      );
+      return res.data;
+    } catch (e) {
+      throw toError(e, 'Không thể so sánh hai revision.');
+    }
+  },
+
+  /** CF4 / UC-19: Provenance Report của chương (Producer; Editor chỉ đọc). Lọc thêm theo Scene nếu cần. */
+  async getProvenanceReport(
+    seriesId: string,
+    chapterId: string,
+    sceneId?: string,
+  ): Promise<ProvenanceReportResponse> {
+    try {
+      const res = await axiosClient.get(`/series/${seriesId}/ai/chapters/${chapterId}/provenance`, {
+        params: sceneId ? { sceneId } : undefined,
+      });
+      return res.data;
+    } catch (e) {
+      throw toError(e, 'Không thể tải Provenance Report.');
     }
   },
 

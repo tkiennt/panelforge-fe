@@ -321,6 +321,8 @@ export interface PanelDto {
   updatedAt?: string | null;
   createdBy?: string | null;
   sceneId?: string | null;
+  /** BR-11 / CF4 4.2: gửi lại làm expectedVersion khi sửa toạ độ (thiếu ở BE cũ). */
+  version?: number;
 }
 
 export interface PanelDetailDto extends PanelDto {
@@ -336,6 +338,8 @@ export interface CreatePanelRequest {
 export interface UpdatePanelCoordinatesRequest {
   boundingBox: string;
   readingOrder?: number;
+  /** Version panel lúc tải (BR-11). Lệch → 409 CONFLICT; bỏ trống = không kiểm (hàng chờ ngoại tuyến). */
+  expectedVersion?: number;
 }
 
 export interface AssignPanelSceneRequest {

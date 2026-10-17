@@ -14,11 +14,13 @@ import {
   ArrowRight,
   Filter,
   RefreshCw,
+  FileStack,
 } from 'lucide-react';
 import { chapterService, ChapterDto } from '@/services/chapter.service';
 import { PublishScheduleModal } from '../modals/PublishScheduleModal';
 import { RejectChapterModal } from '../modals/RejectChapterModal';
 import { ChapterReviewsModal } from '@/shared/modals/ChapterReviewsModal';
+import { ChapterProvenanceModal } from '@/shared/features/provenance/ChapterProvenanceModal';
 import { ChapterReaderModal } from '@/shared/modals/ChapterReaderModal';
 
 interface PublisherDeskViewProps {
@@ -38,6 +40,7 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
   const [rejectingChapter, setRejectingChapter] = useState<ChapterDto | null>(null);
   const [reviewingChapter, setReviewingChapter] = useState<ChapterDto | null>(null);
   const [readingChapter, setReadingChapter] = useState<ChapterDto | null>(null);
+  const [snapshotChapter, setSnapshotChapter] = useState<ChapterDto | null>(null);
 
   const fetchChapters = useCallback(async () => {
     if (!seriesId) return;
@@ -335,6 +338,16 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
                       <span>Lịch sử</span>
                     </button>
 
+                    <button
+                      type='button'
+                      onClick={() => setSnapshotChapter(chap)}
+                      className='px-3.5 py-1.5 rounded-full border border-stone-200 bg-white hover:bg-stone-50 text-xs font-semibold text-stone-700 flex items-center gap-1.5 transition-colors cursor-pointer shadow-soft-sm'
+                      title='Bản duyệt bất biến của chương: đúng bản Producer đã duyệt (CF4)'
+                    >
+                      <FileStack className='w-3.5 h-3.5 text-stone-500' />
+                      <span>Bản duyệt</span>
+                    </button>
+
                     {chap.status === 'Published' && (
                       <button
                         type='button'
@@ -410,6 +423,17 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
           chapterNumber={reviewingChapter.chapterNumber}
           chapterTitle={reviewingChapter.title}
           onClose={() => setReviewingChapter(null)}
+        />
+      )}
+
+      {snapshotChapter && seriesId && (
+        <ChapterProvenanceModal
+          seriesId={seriesId}
+          chapterId={snapshotChapter.id}
+          chapterNumber={snapshotChapter.chapterNumber}
+          chapterTitle={snapshotChapter.title}
+          viewerRole='Publisher'
+          onClose={() => setSnapshotChapter(null)}
         />
       )}
 

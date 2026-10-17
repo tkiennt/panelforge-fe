@@ -3,7 +3,7 @@ import type { PanelDto } from '@/types/pipeline';
 export interface SplitPanelDeps {
   updateCoordinates: (
     panelId: string,
-    data: { boundingBox: string; readingOrder?: number },
+    data: { boundingBox: string; readingOrder?: number; expectedVersion?: number },
   ) => Promise<PanelDto>;
   createPanel: (
     pageId: string,
@@ -12,7 +12,7 @@ export interface SplitPanelDeps {
 }
 
 export interface SplitPanelArgs {
-  panel: Pick<PanelDto, 'id' | 'readingOrder' | 'boundingBox'>;
+  panel: Pick<PanelDto, 'id' | 'readingOrder' | 'boundingBox' | 'version'>;
   pageId: string;
   firstBox: string;
   secondBox: string;
@@ -23,7 +23,8 @@ export interface SplitPanelArgs {
 /**
  * Chia đôi khung trên máy chủ: (1) PUT thu khung gốc về nửa đầu, (2) POST tạo khung ở nửa sau.
  * Hai lời gọi không nguyên tử: nếu (2) lỗi thì PUT trả khung gốc về kích thước cũ rồi ném lại lỗi
- * của BE, không để lại nửa khung trống.
+ * của BE, không để lại nửa khung trống. BR-11: (1) gửi version khung đã thấy (người khác vừa sửa → 409, không
+ * chia); bước hoàn tác gửi version vừa nhận từ (1).
  */
 export async function splitPanelWithRollback(
   deps: SplitPanelDeps,
@@ -33,6 +34,7 @@ export async function splitPanelWithRollback(
   const updated = await deps.updateCoordinates(panel.id, {
     boundingBox: args.firstBox,
     readingOrder: panel.readingOrder,
+    expectedVersion: panel.version,
   });
   try {
     const created = await deps.createPanel(args.pageId, {
@@ -46,6 +48,7 @@ export async function splitPanelWithRollback(
       await deps.updateCoordinates(panel.id, {
         boundingBox: panel.boundingBox ?? '',
         readingOrder: panel.readingOrder,
+        expectedVersion: updated.version,
       });
     } catch {
       /* hoàn tác thất bại: vẫn báo lỗi gốc của lần tạo */

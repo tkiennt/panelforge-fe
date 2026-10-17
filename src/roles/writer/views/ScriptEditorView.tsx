@@ -521,6 +521,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           heading: sceneHeadingInput.trim() || null,
           summary: sceneSummaryInput.trim() || null,
           defaultNarrationMode: sceneDefaultNarrationMode,
+          expectedVersion: selectedScene.version,
         };
         const updated = await scriptLineService.updateScene(selectedScene.id, req);
         notify('Thành công', `Đã cập nhật Phân cảnh ${updated.sceneNumber}`);
@@ -540,7 +541,17 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       }
       setSceneModalOpen(false);
     } catch (err: any) {
-      notify('Lỗi thao tác phân cảnh', err.message);
+      if (err?.code === 'CONFLICT' && isEditingScene && selectedScene) {
+        // BR-11: người khác vừa sửa phân cảnh → nạp lại bản mới (kèm version mới), giữ form mở; KHÔNG tự gửi lại.
+        // Người dùng xem bản mới rồi quyết định lưu lại nội dung của mình hay không.
+        notify(
+          'Phân cảnh vừa được người khác sửa',
+          `${err.message} Đã nạp bản mới nhất, kiểm tra lại rồi lưu.`,
+        );
+        await loadSceneDetail(selectedScene.id);
+      } else {
+        notify('Lỗi thao tác phân cảnh', err.message);
+      }
     } finally {
       setSubmitting(false);
     }

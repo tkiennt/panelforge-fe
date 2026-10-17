@@ -56,6 +56,45 @@ export interface ChapterReviewDto {
   createdAt: string;
 }
 
+/** CF4 / 4.1: bản chụp bất biến của chương lúc Producer duyệt (append-only). */
+export interface ChapterSnapshotDto {
+  id: string;
+  chapterId: string;
+  snapshotNumber: number;
+  chapterVersion: number;
+  createdByUserId: string;
+  createdByName?: string | null;
+  manifestHash: string;
+  /** Bản mới nhất = bản duyệt hiện hành (xem thử, xuất file, phát hành trỏ vào đây). */
+  isLatest: boolean;
+  createdAt: string;
+}
+
+export interface SnapshotPage {
+  pageId: string;
+  pageNumber: number;
+  /** Version event stream canvas; -1 = trang chưa có event nào. */
+  canvasStreamVersion: number;
+  /** null = trang chưa có artwork cả trang lúc duyệt. */
+  artworkReferenceId?: string | null;
+  artworkSha256?: string | null;
+}
+
+export interface SnapshotManifest {
+  chapterId: string;
+  chapterVersion: number;
+  pages: SnapshotPage[];
+  scriptRevisionIds: string[];
+  bibleRevisionIds: string[];
+}
+
+export interface ChapterSnapshotDetailDto {
+  snapshot: ChapterSnapshotDto;
+  manifest: SnapshotManifest;
+  /** SHA-256 của manifest đang lưu vẫn khớp manifestHash (không bị sửa sau khi tạo). */
+  hashVerified: boolean;
+}
+
 export interface ReopenChapterRequest {
   comment: string;
 }
@@ -189,6 +228,29 @@ export const chapterService = {
       return response.data;
     } catch (error) {
       throw new Error(extractError(error, 'Không thể lấy lịch sử phê duyệt của chương.'));
+    }
+  },
+
+  /**
+   * CF4 / 4.1: các bản chụp bất biến lúc Producer duyệt chương, mới nhất trước
+   * (GET /api/chapters/{chapterId}/snapshots). Quyền: thành viên Workspace.
+   */
+  getSnapshots: async (chapterId: string): Promise<ChapterSnapshotDto[]> => {
+    try {
+      const response = await axiosClient.get(`/chapters/${chapterId}/snapshots`);
+      return response.data ?? [];
+    } catch (error) {
+      throw new Error(extractError(error, 'Không thể tải các bản duyệt của chương.'));
+    }
+  },
+
+  /** Manifest của một snapshot kèm kết quả kiểm hash (GET /api/chapters/{chapterId}/snapshots/{snapshotId}). */
+  getSnapshot: async (chapterId: string, snapshotId: string): Promise<ChapterSnapshotDetailDto> => {
+    try {
+      const response = await axiosClient.get(`/chapters/${chapterId}/snapshots/${snapshotId}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(extractError(error, 'Không thể tải chi tiết bản duyệt.'));
     }
   },
 

@@ -16,7 +16,8 @@ import {
 import { ScriptEditor } from '@/roles/writer/components/ScriptEditor';
 import { ArtworkCanvas } from '@/roles/artist/components/ArtworkCanvas';
 import { LetteringWorkspace } from '@/roles/letterer/views/LetteringWorkspace';
-import { VersionHistoryModal, AIProvenanceModal } from '@/shared/modals/ProvenanceModals';
+import { ChapterProvenanceModal } from '@/shared/features/provenance/ChapterProvenanceModal';
+import { canViewProvenanceReport } from '@/shared/features/provenance/provenanceRules';
 import { KanbanCard, AssignmentDto } from '@/types';
 import { assignmentService } from '@/services/assignment.service';
 
@@ -31,7 +32,11 @@ export const TaskEditorView: React.FC<TaskEditorProps> = ({
   onShowToast,
   isDevMode = false,
 }) => {
-  const { taskId, workspaceId } = useParams<{ taskId: string; workspaceId?: string }>();
+  const { taskId, workspaceId, seriesId } = useParams<{
+    taskId: string;
+    workspaceId?: string;
+    seriesId?: string;
+  }>();
   const [searchParams] = useSearchParams();
   const chapterId = searchParams.get('chapterId') || '';
   const navigate = useNavigate();
@@ -40,8 +45,7 @@ export const TaskEditorView: React.FC<TaskEditorProps> = ({
   const [assignment, setAssignment] = useState<AssignmentDto | null>(null);
   const [task, setTask] = useState<KanbanCard | null>(null);
   const [taskStatus, setTaskStatus] = useState<string>('Assigned');
-  const [showVersionHistory, setShowVersionHistory] = useState(false);
-  const [showAIProvenance, setShowAIProvenance] = useState(false);
+  const [showProvenance, setShowProvenance] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
 
   useEffect(() => {
@@ -252,18 +256,15 @@ export const TaskEditorView: React.FC<TaskEditorProps> = ({
         </div>
 
         <div className='flex items-center gap-3'>
-          <button
-            onClick={() => setShowVersionHistory(true)}
-            className='px-3 py-1.5 flex items-center gap-1.5 border border-[#D4D4D4] rounded-lg text-xs font-semibold text-[#555555] hover:bg-[#F3F3F3] cursor-pointer'
-          >
-            <History className='w-4 h-4' /> Version History
-          </button>
-          <button
-            onClick={() => setShowAIProvenance(true)}
-            className='px-3 py-1.5 flex items-center gap-1.5 border border-[#DDD6FE] bg-[#F5F3FF] rounded-lg text-xs font-semibold text-[#8B5CF6] hover:bg-[#EDE9FE] cursor-pointer'
-          >
-            <Sparkles className='w-4 h-4' /> AI Provenance
-          </button>
+          {seriesId && chapterId && (
+            <button
+              type='button'
+              onClick={() => setShowProvenance(true)}
+              className='px-3 py-1.5 flex items-center gap-1.5 border border-[#DDD6FE] bg-[#F5F3FF] rounded-lg text-xs font-semibold text-[#8B5CF6] hover:bg-[#EDE9FE] cursor-pointer'
+            >
+              <History className='w-4 h-4' /> Lịch sử & nguồn gốc
+            </button>
+          )}
 
           {canEdit && (
             <>
@@ -327,11 +328,15 @@ export const TaskEditorView: React.FC<TaskEditorProps> = ({
       <div className='flex-1 flex overflow-hidden'>{renderStageComponent()}</div>
 
       {/* MODALS */}
-      <VersionHistoryModal
-        isOpen={showVersionHistory}
-        onClose={() => setShowVersionHistory(false)}
-      />
-      <AIProvenanceModal isOpen={showAIProvenance} onClose={() => setShowAIProvenance(false)} />
+      {showProvenance && seriesId && chapterId && (
+        <ChapterProvenanceModal
+          seriesId={seriesId}
+          chapterId={chapterId}
+          // Tab Provenance Report chỉ cho Producer/Editor (BE vẫn kiểm quyền thật)
+          viewerRole={activeRoles.find((r) => canViewProvenanceReport(r)) ?? activeRoles[0]}
+          onClose={() => setShowProvenance(false)}
+        />
+      )}
     </div>
   );
 };

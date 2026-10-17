@@ -1015,6 +1015,20 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
     }
   };
 
+  /**
+   * BR-11 / CF4 4.2: 409 CONFLICT khi sửa khung = có người vừa sửa cùng khung (version lệch).
+   * Báo và tải lại bố cục mới nhất, KHÔNG tự gửi lại bản cũ. Trả true nếu đã xử lý.
+   */
+  const handlePanelVersionConflict = (err: any): boolean => {
+    if (err?.code !== 'CONFLICT' || !selectedPage) return false;
+    showToast(
+      'Khung vừa được người khác sửa',
+      `${err.message || 'Phiên bản khung đã thay đổi.'} Đã tải lại bố cục mới nhất.`,
+    );
+    void loadPanels(selectedPage.id);
+    return true;
+  };
+
   // Cập nhật tọa độ Panel (PUT /api/panels/{panelId}/coordinates)
   const handleSavePanelCoords = async () => {
     if (!selectedPanelId) return;
@@ -1066,6 +1080,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
       const updated = await panelService.updatePanelCoordinates(selectedPanelId, {
         boundingBox: boxJson,
         readingOrder: Number(panelReadingOrder),
+        expectedVersion: panels.find((p) => p.id === selectedPanelId)?.version,
       });
       setPanels((prev) => prev.map((p) => (p.id === selectedPanelId ? updated : p)));
       if (selectedPanelDetail) {
@@ -1110,7 +1125,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
           'Đã lưu ngoại tuyến',
           'Mất mạng: Tọa độ panel đã được lưu tạm trên máy (NFR-09).',
         );
-      } else {
+      } else if (!handlePanelVersionConflict(err)) {
         showMutationError('Lỗi lưu tọa độ', err);
       }
     }
@@ -1152,7 +1167,11 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
           const offline = typeof navigator !== 'undefined' && !navigator.onLine;
           if (!offline) {
             try {
-              return await panelService.updatePanelCoordinates(id, payload);
+              // BR-11: online gửi version đã thấy; hàng chờ ngoại tuyến không gửi để các lần sửa nối tiếp không tự xung đột
+              return await panelService.updatePanelCoordinates(id, {
+                ...payload,
+                expectedVersion: p.version,
+              });
             } catch (err: any) {
               // Chỉ lỗi mạng (không có status HTTP) mới chuyển sang hàng chờ ngoại tuyến
               if (err?.status !== undefined) throw err;
@@ -1180,7 +1199,8 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
         setSelectedPanelDetail((d) => (d ? { ...d, boundingBox: sel.boundingBox } : d));
       }
     } catch (err: any) {
-      showMutationError('Lỗi lưu bố cục', err, 'Không lưu được vị trí khung.');
+      if (!handlePanelVersionConflict(err))
+        showMutationError('Lỗi lưu bố cục', err, 'Không lưu được vị trí khung.');
     }
   };
   useEffect(() => {
@@ -1389,8 +1409,9 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
           `Khung #${p.panelNumber} được chia đôi; khung mới #${created.panelNumber} cần tải ảnh riêng.`,
         );
       } catch (err: any) {
-        // BE từ chối (vd 409: chương không còn ở trạng thái sản xuất): giữ nguyên bố cục
-        showMutationError('Không chia được khung', err, 'Bố cục được giữ nguyên.');
+        // BE từ chối (vd 409: chương không còn ở trạng thái sản xuất, hoặc khung vừa bị người khác sửa): giữ nguyên bố cục
+        if (!handlePanelVersionConflict(err))
+          showMutationError('Không chia được khung', err, 'Bố cục được giữ nguyên.');
       }
     });
 
