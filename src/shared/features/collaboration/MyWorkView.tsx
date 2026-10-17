@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import {
   ChevronDown,
   ChevronUp,
@@ -9,6 +9,9 @@ import {
   Layers,
   Loader2,
   RefreshCw,
+  CheckCircle2,
+  Globe,
+  User,
 } from 'lucide-react';
 import { assignmentService } from '@/services/assignment.service';
 import { chapterService, type ChapterDto } from '@/services/chapter.service';
@@ -356,23 +359,93 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
     );
   };
 
-  const baseTabs: { key: Tab; label: string; badgeAlert?: boolean }[] = reviewer
+  const baseTabs: {
+    key: Tab;
+    label: string;
+    icon: React.ReactNode;
+    tooltip: string;
+    badgeAlert?: boolean;
+  }[] = reviewer
     ? [
-        { key: 'review', label: 'Chờ duyệt', badgeAlert: counts.review > 0 },
-        { key: 'all', label: 'Tất cả công việc' },
-        { key: 'mine', label: 'Việc của tôi' },
+        {
+          key: 'review',
+          label: 'Chờ duyệt',
+          icon: <CheckCircle2 className='w-3.5 h-3.5 text-amber-600' />,
+          tooltip: 'Các panel/artwork đang chờ review hoặc kiểm tra chất lượng',
+          badgeAlert: counts.review > 0,
+        },
+        {
+          key: 'all',
+          label: 'Tất cả',
+          icon: <Layers className='w-3.5 h-3.5' />,
+          tooltip: 'Tất cả công việc trong series hiện tại',
+        },
+        {
+          key: 'mine',
+          label: 'Của tôi',
+          icon: <User className='w-3.5 h-3.5' />,
+          tooltip: 'Công việc được giao cho bạn trong series này',
+        },
       ]
     : [
-        { key: 'mine', label: 'Việc của tôi' },
-        { key: 'all', label: 'Tất cả' },
+        {
+          key: 'mine',
+          label: 'Của tôi',
+          icon: <User className='w-3.5 h-3.5' />,
+          tooltip: 'Công việc được giao cho bạn trong series này',
+        },
+        {
+          key: 'all',
+          label: 'Tất cả',
+          icon: <Layers className='w-3.5 h-3.5' />,
+          tooltip: 'Tất cả công việc trong series hiện tại',
+        },
       ];
   const tabs = workspaceId
-    ? [...baseTabs, { key: 'studio' as Tab, label: 'Việc của tôi – toàn Studio' }]
+    ? [
+        ...baseTabs,
+        {
+          key: 'studio' as Tab,
+          label: 'Toàn Studio',
+          icon: <Globe className='w-3.5 h-3.5' />,
+          tooltip: 'Công việc của bạn trên toàn bộ các series trong Studio',
+        },
+      ]
     : baseTabs;
   const isStudioTab = tab === 'studio';
 
   return (
     <PageContainer className='space-y-6 py-6 text-[#0c0a09]' data-testid='my-work-view'>
+      {/* Contextual Quick Breadcrumbs */}
+      {workspaceId && seriesId && (
+        <nav
+          aria-label='Đường dẫn ngữ cảnh'
+          className='flex items-center gap-1.5 text-xs text-[#777169] font-medium'
+        >
+          <Link
+            to={`/workspaces/${workspaceId}`}
+            className='hover:text-[#0c0a09] hover:underline transition-colors'
+          >
+            Workspace
+          </Link>
+          <span className='text-[#a8a29e]'>/</span>
+          <Link
+            to={`/workspaces/${workspaceId}/series/${seriesId}`}
+            className='hover:text-[#0c0a09] hover:underline transition-colors'
+          >
+            Series
+          </Link>
+          <span className='text-[#a8a29e]'>/</span>
+          <span className='text-[#0c0a09] font-bold'>
+            {chapterId === 'ALL_STUDIO'
+              ? 'Toàn bộ Studio'
+              : chapters.find((c) => c.id === chapterId)
+                ? `Chương ${chapters.find((c) => c.id === chapterId)?.chapterNumber}`
+                : 'Công việc của tôi'}
+          </span>
+        </nav>
+      )}
+
       <header className='flex flex-wrap items-center justify-between gap-4'>
         <div className='flex items-center gap-3.5'>
           <div className='w-10 h-10 rounded-full bg-[#292524] flex items-center justify-center text-white shadow-soft-sm'>
@@ -423,20 +496,22 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
             key={t.key}
             type='button'
             onClick={() => setTab(t.key)}
+            title={t.tooltip}
             aria-pressed={tab === t.key}
-            className={`px-4 py-2 rounded-full text-xs font-medium border cursor-pointer inline-flex items-center gap-2 transition-all shadow-soft-sm ${
+            className={`h-9 px-3.5 rounded-full text-xs font-medium border cursor-pointer inline-flex items-center gap-2 transition-all shadow-soft-sm ${
               tab === t.key
-                ? 'bg-[#292524] text-white border-[#292524]'
-                : 'bg-white text-[#4e4e4e] border-[#e7e5e4] hover:bg-[#f0efed] hover:text-[#0c0a09]'
+                ? 'bg-[#292524] text-white border-[#292524] font-semibold'
+                : 'bg-white text-stone-700 border-[#e7e5e4] hover:bg-[#f0efed] hover:text-[#0c0a09]'
             }`}
           >
+            <span className={tab === t.key ? 'text-white' : 'text-stone-500'}>{t.icon}</span>
             <span>{t.label}</span>
             <span
               className={`px-2 py-0.5 rounded-full text-xs font-mono font-medium leading-none ${
                 t.badgeAlert
                   ? tab === t.key
                     ? 'bg-amber-500 text-white font-bold'
-                    : 'bg-amber-100 text-amber-800 font-bold border border-amber-300'
+                    : 'bg-amber-100 text-amber-900 font-bold border border-amber-300'
                   : tab === t.key
                     ? 'bg-white/20 text-white'
                     : 'bg-[#f0efed] text-[#4e4e4e]'

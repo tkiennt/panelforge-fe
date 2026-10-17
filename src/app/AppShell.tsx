@@ -636,18 +636,18 @@ export function AppShell({
                 </div>
               </div>
             ) : (
-              <nav className='flex items-center text-xs font-medium text-[#777169] truncate'>
+              <nav className='flex items-center text-xs font-semibold text-[#171717] truncate'>
                 <button
                   type='button'
                   data-testid='back-to-workspaces-breadcrumb'
-                  className='hover:text-[#0c0a09] cursor-pointer transition-colors flex items-center gap-1.5 px-2.5 py-1 rounded-full hover:bg-white hover:shadow-soft-sm'
+                  className='text-[#292524] hover:text-[#0c0a09] cursor-pointer transition-all flex items-center gap-1.5 px-2.5 py-1 rounded-full hover:bg-white hover:shadow-soft-sm'
                   onClick={() => navigate('/workspaces')}
                   title='Quay lại danh sách Workspace (Workspaces Catalog)'
                 >
                   <Briefcase className='w-3.5 h-3.5 text-[#292524]' />
-                  <span className='font-semibold'>Workspaces</span>
+                  <span className='font-bold'>Workspaces</span>
                 </button>
-                <span className='mx-1.5 text-[#d6d3d1] font-normal select-none'>/</span>
+                <span className='mx-1.5 text-[#a8a29e] font-bold select-none'>/</span>
 
                 {/* Studio / Series Name Segment */}
                 <button
@@ -655,7 +655,7 @@ export function AppShell({
                   onClick={() =>
                     navigate(workspaceId ? `/workspaces/${workspaceId}/series` : '/workspaces')
                   }
-                  className='hover:text-[#0c0a09] cursor-pointer transition-colors truncate px-2.5 py-1 rounded-full hover:bg-white hover:shadow-soft-sm flex items-center gap-1 font-semibold text-[#0c0a09]'
+                  className='text-[#0c0a09] hover:text-black cursor-pointer transition-all truncate px-2.5 py-1 rounded-full hover:bg-white hover:shadow-soft-sm flex items-center gap-1 font-bold'
                   title='Mở danh sách Series của Workspace'
                 >
                   <Briefcase className='w-3.5 h-3.5 text-[#292524]' />
@@ -663,7 +663,7 @@ export function AppShell({
                 </button>
                 {isSeriesContext && (
                   <>
-                    <span className='mx-1.5 text-[#d6d3d1] font-normal select-none'>/</span>
+                    <span className='mx-1.5 text-[#a8a29e] font-bold select-none'>/</span>
                     <button
                       type='button'
                       onClick={() =>
@@ -675,9 +675,9 @@ export function AppShell({
                           ),
                         )
                       }
-                      className={`font-semibold truncate flex items-center gap-1.5 px-2.5 py-1 rounded-full hover:bg-white hover:shadow-soft-sm transition-colors cursor-pointer ${
+                      className={`font-bold truncate flex items-center gap-1.5 px-2.5 py-1 rounded-full hover:bg-white hover:shadow-soft-sm transition-all cursor-pointer ${
                         chapterId
-                          ? 'text-[#777169] font-normal hover:text-[#0c0a09]'
+                          ? 'text-[#57534e] hover:text-[#0c0a09]'
                           : 'text-[#0c0a09]'
                       }`}
                       title='Chuyển đến Series Workspace'
@@ -687,13 +687,13 @@ export function AppShell({
                     </button>
                     {chapterId && (
                       <>
-                        <span className='mx-1.5 text-[#d6d3d1] font-normal select-none'>/</span>
+                        <span className='mx-1.5 text-[#a8a29e] font-bold select-none'>/</span>
                         <div
-                          className='flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-[#0c0a09] truncate bg-white rounded-full border border-[#e7e5e4] shadow-soft-sm'
+                          className='flex items-center gap-1.5 px-3 py-1 text-xs font-bold text-[#0c0a09] truncate bg-white rounded-full border border-[#d6d3d1] shadow-soft-sm'
                           data-testid='header-chapter-breadcrumb'
                           title={`Chương đang mở: ${chapterId}`}
                         >
-                          <FileText className='w-3.5 h-3.5 text-[#292524]' />
+                          <FileText className='w-3.5 h-3.5 text-[#EA580C]' />
                           <span className='truncate'>
                             {chapterId.toLowerCase().startsWith('ch') || !isNaN(Number(chapterId))
                               ? `Chapter ${chapterId.replace(/^chapter-?/i, '')}`
