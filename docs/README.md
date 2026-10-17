@@ -27,6 +27,7 @@ Thư mục: [`docs/implement-plan/`](./implement-plan/)
 ### 🟢 Đã Hoàn Thành (`completed/`)
 > *Chứa các kế hoạch đã hoàn thành 100% nhiệm vụ, pass typecheck, lint và unit test.*
 
+- [**SCRIPT_UI_COMPREHENSIVE_REFACTOR_PLAN.md**](./implement-plan/completed/SCRIPT_UI_COMPREHENSIVE_REFACTOR_PLAN.md): Kế hoạch refactor toàn diện UI trang Script (Kịch bản) trên tất cả các roles – chữ, khoảng cách, độ to, màu sắc, thẻ, canh lề, modal.
 - [**ARTIST_UI_COMPREHENSIVE_REFACTOR_PLAN.md**](./implement-plan/completed/ARTIST_UI_COMPREHENSIVE_REFACTOR_PLAN.md): Kế hoạch refactor toàn diện không gian làm việc của Họa Sĩ (Artist Desk UI) – chữ, khoảng cách, độ to, màu sắc, thẻ, canh lề, modal.
 - [**COLOR_SYSTEM_AND_STATUS_ENHANCEMENT_PLAN.md**](./implement-plan/completed/COLOR_SYSTEM_AND_STATUS_ENHANCEMENT_PLAN.md): Kế hoạch bổ sung & đồng bộ hệ thống màu sắc trạng thái, nút bấm và các yếu tố cần chú ý (Artisan Ink Pigments).
 - [**EDITORIAL_STUDIO_DESIGN_PLAN.md**](./implement-plan/completed/EDITORIAL_STUDIO_DESIGN_PLAN.md): Kế hoạch áp dụng Editorial AI Studio Design System vào PanelForge.

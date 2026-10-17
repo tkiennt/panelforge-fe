@@ -37,7 +37,7 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
             <h3 className='text-sm font-bold text-zinc-900 truncate font-serif'>
               Nhân vật Series Bible ({characters.length})
             </h3>
-            <p className='text-[11px] text-zinc-500 truncate'>
+            <p className='text-xs text-zinc-500 truncate'>
               Danh sách nhân vật Canon đối chiếu kịch bản
             </p>
           </div>
@@ -94,12 +94,12 @@ export const BibleCharactersDrawer: React.FC<BibleCharactersDrawerProps> = ({
                   {char.name}
                 </div>
                 {char.subtitle && (
-                  <div className='text-[10px] text-orange-600 font-mono truncate font-semibold'>
+                  <div className='text-xs text-orange-600 font-mono truncate font-semibold'>
                     {char.subtitle}
                   </div>
                 )}
                 {char.description && (
-                  <p className='text-[11px] text-zinc-500 line-clamp-2 mt-1 leading-snug break-words'>
+                  <p className='text-xs text-zinc-500 line-clamp-2 mt-1 leading-snug break-words'>
                     {char.description}
                   </p>
                 )}

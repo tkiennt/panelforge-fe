@@ -43,7 +43,7 @@ export const SpeakerAutocomplete: React.FC<SpeakerAutocompleteProps> = ({
       >
         <User className={`w-3.5 h-3.5 ${selectedChar ? 'text-[#171717]' : 'text-[#A3A3A3]'}`} />
         <span
-          className={`text-[11px] font-mono font-semibold uppercase truncate ${selectedChar ? 'text-[#171717]' : 'text-[#A3A3A3]'}`}
+          className={`text-xs font-mono font-semibold uppercase truncate ${selectedChar ? 'text-[#171717]' : 'text-[#A3A3A3]'}`}
         >
           {displayValue || 'Select Speaker...'}
         </span>
@@ -73,7 +73,7 @@ export const SpeakerAutocomplete: React.FC<SpeakerAutocompleteProps> = ({
                   }}
                 >
                   <span className='font-semibold text-[#171717]'>{char.name}</span>
-                  <span className='text-[10px] text-[#A3A3A3] font-mono opacity-0 group-hover:opacity-100 transition-opacity'>
+                  <span className='text-xs text-[#A3A3A3] font-mono opacity-0 group-hover:opacity-100 transition-opacity'>
                     Select
                   </span>
                 </div>

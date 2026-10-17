@@ -102,12 +102,12 @@ export const ConsistencyFindingsDrawer: React.FC<ConsistencyFindingsDrawerProps>
                 Vấn đề nhất quán ({findings.length})
               </h3>
               {blockingCount > 0 && (
-                <span className='px-2 py-0.5 rounded-full bg-rose-600 text-white font-mono text-[10px] font-bold animate-pulse'>
+                <span className='px-2.5 py-0.5 rounded-full bg-rose-600 text-white font-mono text-xs font-bold animate-pulse'>
                   {blockingCount} lỗi chặn
                 </span>
               )}
             </div>
-            <p className='text-[11px] text-zinc-500 truncate'>
+            <p className='text-xs text-zinc-500 truncate'>
               {openFindings.length} cần xử lý · {staleFindings.length} đã cũ
             </p>
           </div>
@@ -174,7 +174,7 @@ export const ConsistencyFindingsDrawer: React.FC<ConsistencyFindingsDrawerProps>
           </button>
         </div>
 
-        <span className='text-[10px] text-zinc-400 hidden sm:inline'>
+        <span className='text-xs text-zinc-500 hidden sm:inline'>
           Bấm &ldquo;Xem dòng&rdquo; để cuộn tới vị trí
         </span>
       </div>
@@ -189,7 +189,7 @@ export const ConsistencyFindingsDrawer: React.FC<ConsistencyFindingsDrawerProps>
                 ? 'Không có vấn đề nào cần xử lý!'
                 : 'Chưa phát hiện vấn đề nhất quán nào.'}
             </p>
-            <p className='text-[11px] text-zinc-400 mt-1'>
+            <p className='text-xs text-zinc-500 mt-1'>
               Kịch bản đồng bộ hoàn toàn với dữ liệu Series Bible.
             </p>
           </div>
@@ -213,16 +213,16 @@ export const ConsistencyFindingsDrawer: React.FC<ConsistencyFindingsDrawerProps>
                 <div className='flex items-center justify-between gap-2 flex-wrap'>
                   <div className='flex items-center gap-1.5 flex-wrap'>
                     <span
-                      className={`px-2 py-0.5 rounded-md text-[11px] border ${sevInfo.badgeClass}`}
+                      className={`px-2.5 py-0.5 rounded-md text-xs font-semibold border ${sevInfo.badgeClass}`}
                     >
                       {sevInfo.label}
                     </span>
-                    <span className='font-mono text-[10px] px-1.5 py-0.5 rounded bg-black/5 text-zinc-700'>
+                    <span className='font-mono text-xs px-2 py-0.5 rounded-md bg-black/5 text-zinc-700 font-semibold'>
                       {f.ruleCode}
                     </span>
                   </div>
 
-                  <span className='text-[10px] text-zinc-500 font-medium'>
+                  <span className='text-xs text-zinc-500 font-medium'>
                     Trạng thái: <strong>{getStatusLabel(f.status)}</strong>
                   </span>
                 </div>
@@ -234,14 +234,14 @@ export const ConsistencyFindingsDrawer: React.FC<ConsistencyFindingsDrawerProps>
 
                 {/* Evidence */}
                 {f.evidence && (
-                  <p className='font-mono text-[11px] bg-white/90 p-2 rounded-xl border border-black/5 text-zinc-700 leading-relaxed break-words'>
+                  <p className='font-mono text-xs bg-white/90 p-2.5 rounded-xl border border-black/5 text-zinc-700 leading-relaxed break-words'>
                     Bằng chứng: &ldquo;{f.evidence}&rdquo;
                   </p>
                 )}
 
                 {/* Action footer */}
                 <div className='flex items-center justify-between pt-1'>
-                  <span className='text-[10px] text-zinc-400 font-mono'>
+                  <span className='text-xs text-zinc-500 font-mono'>
                     {f.scriptLineId ? `Dòng #${f.scriptLineId.slice(0, 8)}` : 'Cấp chương'}
                   </span>
                   {f.scriptLineId && (

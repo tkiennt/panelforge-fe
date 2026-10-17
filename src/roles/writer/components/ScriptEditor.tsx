@@ -21,7 +21,7 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({ isReadOnly, onAIBrea
             Script Manuscript
           </h3>
           {isReadOnly && (
-            <span className='px-2 py-1 bg-[#F3F3F3] text-[#737373] text-[10px] font-bold rounded uppercase'>
+            <span className='px-2.5 py-0.5 bg-[#F3F3F3] text-zinc-600 text-xs font-bold rounded-full uppercase'>
               Read-Only
             </span>
           )}
@@ -59,7 +59,7 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({ isReadOnly, onAIBrea
       {/* Right Panel: AI Tools */}
       <div className='w-full md:w-[320px] shrink-0 bg-white border-l border-[#E7E7E7] flex flex-col'>
         <div className='p-4 border-b border-[#E7E7E7] flex items-center gap-2'>
-          <Wand2 className='w-4 h-4 text-[#8B5CF6]' />
+          <Wand2 className='w-4 h-4 text-violet-600' />
           <h4 className='font-bold text-sm uppercase tracking-wider text-[#171717]'>
             Script Tools
           </h4>
@@ -67,7 +67,7 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({ isReadOnly, onAIBrea
         <div className='p-4 space-y-4'>
           <div className='p-4 bg-[#F5F3FF] border border-[#DDD6FE] rounded-xl'>
             <div className='flex items-center gap-2 mb-2'>
-              <Sparkles className='w-4 h-4 text-[#8B5CF6]' />
+              <Sparkles className='w-4 h-4 text-violet-600' />
               <span className='font-bold text-sm text-[#171717]'>AI Panel Breakdown</span>
             </div>
             <p className='text-xs text-[#555555] mb-4'>
@@ -77,17 +77,17 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({ isReadOnly, onAIBrea
             <button
               onClick={onAIBreakdown}
               disabled={isReadOnly}
-              className='w-full py-2 bg-[#8B5CF6] text-white text-xs font-bold uppercase tracking-wider rounded-lg hover:bg-[#7C3AED] disabled:opacity-50 transition-colors'
+              className='w-full py-2 bg-violet-600 text-white text-xs font-bold uppercase tracking-wider rounded-lg hover:bg-violet-700 disabled:opacity-50 transition-colors shadow-soft-sm'
             >
               Generate Panels
             </button>
           </div>
 
           <div className='space-y-2'>
-            <h5 className='text-[10px] font-bold text-[#A3A3A3] uppercase'>Detected Characters</h5>
+            <h5 className='text-xs font-bold text-zinc-500 uppercase tracking-wider'>Detected Characters</h5>
             <div className='flex items-center justify-between p-2 bg-[#F3F3F3] rounded-lg'>
               <span className='text-sm font-semibold text-[#171717]'>AKIRA</span>
-              <span className='text-xs bg-[#171717] text-white px-1.5 py-0.5 rounded'>
+              <span className='text-xs bg-[#171717] text-white px-2 py-0.5 rounded'>
                 1 Dialogue
               </span>
             </div>

@@ -101,7 +101,7 @@ export const AIBreakdownDiff: React.FC<AIBreakdownDiffProps> = ({
                   <p className='text-sm font-bold text-[#F97316]'>WHOOOSH</p>
 
                   <div className='w-full h-px border-t border-dashed border-[#B8B8B8] my-4 relative'>
-                    <span className='absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-2 text-[10px] font-mono text-[#A3A3A3]'>
+                    <span className='absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-2.5 py-0.5 rounded text-xs font-mono font-semibold text-zinc-500'>
                       AI PANEL BREAK
                     </span>
                   </div>

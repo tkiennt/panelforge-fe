@@ -171,17 +171,17 @@ export const ScriptHistoryModal: React.FC<ScriptHistoryModalProps> = ({
   const renderLine = (l: (LineLike & { id: string }) | null, emptyText: string) =>
     l ? (
       <div className='space-y-0.5'>
-        <div className='text-[10px] font-mono text-zinc-500'>
+        <div className='text-xs font-mono text-zinc-600 font-semibold'>
           #{l.lineOrder}
           {speaker(l.speakerCharacterId) ? ` · ${speaker(l.speakerCharacterId)}` : ''}
         </div>
-        {l.dialogueText && <div className='text-xs text-[#171717]'>{l.dialogueText}</div>}
+        {l.dialogueText && <div className='text-xs text-[#171717] font-medium'>{l.dialogueText}</div>}
         {l.stageDirection && (
-          <div className='text-[11px] italic text-zinc-500'>({l.stageDirection})</div>
+          <div className='text-xs italic text-zinc-500'>({l.stageDirection})</div>
         )}
       </div>
     ) : (
-      <div className='text-[11px] text-zinc-400 italic'>{emptyText}</div>
+      <div className='text-xs text-zinc-400 italic'>{emptyText}</div>
     );
 
   // Nhấn Esc để đóng (không đóng khi đang khôi phục để tránh bỏ giữa chừng)
@@ -248,20 +248,20 @@ export const ScriptHistoryModal: React.FC<ScriptHistoryModalProps> = ({
                       }`}
                     >
                       <div className='flex items-center gap-1.5'>
-                        <span className='font-mono text-[11px] font-bold'>v{r.versionNumber}</span>
+                        <span className='font-mono text-xs font-bold'>v{r.versionNumber}</span>
                         {idx === 0 && (
-                          <span className='text-[9px] font-bold px-1.5 rounded bg-emerald-100 text-emerald-800'>
+                          <span className='text-xs font-bold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800'>
                             Hiện tại
                           </span>
                         )}
                         {r.sourceSuggestionId && (
-                          <span className='text-[9px] font-bold px-1.5 rounded bg-purple-100 text-purple-800'>
+                          <span className='text-xs font-bold px-2 py-0.5 rounded-md bg-purple-100 text-purple-800'>
                             AI
                           </span>
                         )}
                       </div>
-                      <div className='text-[11px] text-zinc-600 line-clamp-2'>{r.summary}</div>
-                      <div className='text-[10px] text-zinc-400 font-mono'>
+                      <div className='text-xs text-zinc-700 line-clamp-2 mt-0.5'>{r.summary}</div>
+                      <div className='text-xs text-zinc-500 font-mono mt-0.5'>
                         {fmtDate(r.createdAt)}
                       </div>
                     </button>
@@ -291,7 +291,7 @@ export const ScriptHistoryModal: React.FC<ScriptHistoryModalProps> = ({
                     <div className='text-xs font-bold'>
                       v{detail.versionNumber} · {detail.summary}
                     </div>
-                    <div className='text-[10px] text-zinc-500 font-mono'>
+                    <div className='text-xs text-zinc-500 font-mono'>
                       {fmtDate(detail.createdAt)}
                       {detail.createdBy ? ` · ${detail.createdBy}` : ''}
                     </div>
@@ -299,7 +299,7 @@ export const ScriptHistoryModal: React.FC<ScriptHistoryModalProps> = ({
                   {detail.isCurrent ? (
                     <span
                       data-testid='script-revision-current-badge'
-                      className='text-[11px] font-semibold text-emerald-700'
+                      className='text-xs font-semibold text-emerald-700'
                     >
                       Đây là bản hiện tại
                     </span>
@@ -361,7 +361,7 @@ export const ScriptHistoryModal: React.FC<ScriptHistoryModalProps> = ({
                 )}
 
                 <div className='flex-1 overflow-y-auto p-5 space-y-2'>
-                  <div className='grid grid-cols-2 gap-3 text-[10px] font-mono font-bold uppercase tracking-wider text-zinc-500'>
+                  <div className='grid grid-cols-2 gap-3 text-xs font-mono font-bold uppercase tracking-wider text-zinc-600'>
                     <span>v{detail.versionNumber}</span>
                     <span>Bản hiện tại</span>
                   </div>
@@ -374,7 +374,7 @@ export const ScriptHistoryModal: React.FC<ScriptHistoryModalProps> = ({
                       {renderLine(row.revision, 'Không có trong phiên bản này')}
                       {renderLine(row.current, 'Đã bị xoá ở bản hiện tại')}
                       {row.status !== 'same' && (
-                        <div className='col-span-2 text-[10px] font-semibold text-zinc-500'>
+                        <div className='col-span-2 text-xs font-semibold text-zinc-600'>
                           {STATUS_LABEL[row.status]}
                         </div>
                       )}

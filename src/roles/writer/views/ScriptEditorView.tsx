@@ -828,18 +828,18 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             </div>
             <div>
               <div className='flex items-center gap-1.5'>
-                <span className='px-1.5 py-0.2 rounded bg-orange-600 text-white font-mono text-[9px] font-bold uppercase tracking-wider'>
+                <span className='px-2 py-0.5 rounded-full bg-orange-600 text-white font-mono text-xs font-bold uppercase tracking-wider'>
                   Kịch bản
                 </span>
                 {currentChapter && (
                   <span
-                    className={`text-[10px] font-semibold px-2.5 py-0.5 rounded-full border ${
+                    className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border ${
                       currentChapter.status === 'Approved'
                         ? 'badge-status-approved'
                         : currentChapter.status === 'Published'
                           ? 'badge-status-published'
-                          : currentChapter.status === 'InReview'
-                            ? 'badge-status-inreview'
+                          : currentChapter.status === 'Locked'
+                            ? 'badge-status-locked'
                             : 'badge-status-inproduction'
                     }`}
                   >
@@ -847,13 +847,13 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                       ? 'Đã duyệt'
                       : currentChapter.status === 'Published'
                         ? 'Đã phát hành'
-                        : currentChapter.status === 'InReview'
-                          ? 'Đang duyệt'
+                        : currentChapter.status === 'Locked'
+                          ? 'Đã khóa'
                           : 'Đang sản xuất'}
                   </span>
                 )}
                 {currentChapter && (
-                  <span className='text-[10px] font-mono text-zinc-500 bg-zinc-100 px-1.5 py-0.5 rounded'>
+                  <span className='text-xs font-mono font-semibold text-zinc-600 bg-zinc-100 px-2 py-0.5 rounded-md'>
                     v{currentChapter.versionVector}
                   </span>
                 )}
@@ -866,8 +866,8 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
           {/* Bộ chọn chương không lặp "Chương 1: Chương 1" */}
           {chapters.length > 0 && (
-            <div className='flex items-center gap-1.5 bg-[#F8F6F0] px-2.5 py-1 rounded-xl border border-[#E7E2D9] shadow-2xs'>
-              <BookOpen className='w-3.5 h-3.5 text-orange-600 shrink-0' />
+            <div className='flex items-center gap-1.5 bg-[#F8F6F0] px-3 py-1.5 rounded-xl border border-[#E7E2D9] shadow-2xs'>
+              <BookOpen className='w-4 h-4 text-orange-600 shrink-0' />
               <label
                 htmlFor='script-chapter-select'
                 className='text-xs font-semibold text-zinc-600'
@@ -892,18 +892,18 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           {/* Trạng thái lưu dữ liệu */}
           <div className='hidden lg:flex items-center text-xs'>
             {savingStoryArc || savingOutline || submitting ? (
-              <span className='flex items-center gap-1.5 text-[11px] font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-lg'>
-                <RefreshCw className='w-3 h-3 animate-spin' />
+              <span className='flex items-center gap-1.5 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg'>
+                <RefreshCw className='w-3.5 h-3.5 animate-spin' />
                 <span>Đang lưu...</span>
               </span>
             ) : hasUnsavedChanges ? (
-              <span className='flex items-center gap-1.5 text-[11px] font-semibold text-amber-800 bg-amber-50 border border-amber-300 px-2 py-0.5 rounded-lg'>
+              <span className='flex items-center gap-1.5 text-xs font-semibold text-amber-800 bg-amber-50 border border-amber-300 px-2.5 py-1 rounded-lg'>
                 <span className='w-2 h-2 rounded-full bg-amber-500 animate-pulse' />
                 <span>Chưa lưu thay đổi</span>
               </span>
             ) : (
-              <span className='flex items-center gap-1 text-[11px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg'>
-                <Check className='w-3 h-3 text-emerald-600' />
+              <span className='flex items-center gap-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg'>
+                <Check className='w-3.5 h-3.5 text-emerald-600' />
                 <span>Đã lưu</span>
               </span>
             )}
@@ -930,7 +930,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             <span className='hidden sm:inline'>Đề cương & Bối cảnh</span>
             <span className='sm:hidden'>Đề cương</span>
             {outlineWordCount > 0 && (
-              <span className='text-[10px] font-mono font-bold bg-white px-1.5 py-0.2 rounded-md border border-zinc-200 text-zinc-600'>
+              <span className='text-xs font-mono font-bold bg-white px-2 py-0.5 rounded-md border border-zinc-200 text-zinc-600'>
                 {outlineWordCount} từ
               </span>
             )}
@@ -960,11 +960,11 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             </span>
             <span className='sm:hidden'>Nhất quán</span>
             {openFindingsCount > 0 ? (
-              <span className='px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[10px] font-mono font-bold shadow-xs'>
+              <span className='px-2 py-0.5 rounded-full bg-rose-500 text-white text-xs font-mono font-bold shadow-xs'>
                 {openFindingsCount}
               </span>
             ) : totalFindingsCount > 0 ? (
-              <span className='px-1.5 py-0.2 rounded-full bg-zinc-200 text-zinc-700 text-[10px] font-mono font-bold'>
+              <span className='px-2 py-0.5 rounded-full bg-zinc-200 text-zinc-700 text-xs font-mono font-bold'>
                 {totalFindingsCount}
               </span>
             ) : null}
@@ -1011,15 +1011,15 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
       {/* 2. Thanh thông báo ngắn gọn gom thông báo chỉ đọc & xung đột */}
       {(concurrencyError || isChapterLocked || !canEditScript || loadError) && (
-        <div className='px-4 py-2 bg-white border-b border-[#E7E2D9] shrink-0 text-xs space-y-1.5'>
+        <div className='px-4 py-2.5 bg-white border-b border-[#E7E2D9] shrink-0 text-xs space-y-2'>
           {concurrencyError && (
             <div
               data-testid='concurrency-error-banner'
-              className='p-2 bg-rose-50 border border-rose-200 rounded-xl flex items-center justify-between text-rose-800'
+              className='p-2.5 bg-rose-50 border border-rose-200 rounded-xl flex items-center justify-between text-rose-800'
             >
               <div className='flex items-center gap-2'>
                 <AlertTriangle className='w-4 h-4 text-rose-600 shrink-0' />
-                <span>{concurrencyError}</span>
+                <span className='text-xs font-medium'>{concurrencyError}</span>
               </div>
               <button
                 type='button'
@@ -1032,10 +1032,10 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           )}
 
           {loadError && (
-            <div className='p-2 bg-rose-50 border border-rose-200 rounded-xl flex items-center justify-between text-rose-800'>
+            <div className='p-2.5 bg-rose-50 border border-rose-200 rounded-xl flex items-center justify-between text-rose-800'>
               <div className='flex items-center gap-2'>
                 <AlertTriangle className='w-4 h-4 text-rose-600 shrink-0' />
-                <span>{loadError}</span>
+                <span className='text-xs font-medium'>{loadError}</span>
               </div>
               <button
                 type='button'
@@ -1052,16 +1052,16 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           {isChapterLocked && (
             <div
               data-testid='chapter-locked-banner'
-              className='p-2 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between gap-2 text-amber-900'
+              className='p-2.5 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between gap-2 text-amber-900'
             >
               <div className='flex items-center gap-2'>
                 <ShieldAlert className='w-4 h-4 text-amber-600 shrink-0' />
-                <span>
+                <span className='text-xs font-medium'>
                   Chương này đã ở trạng thái <strong>{currentChapter?.status}</strong> — Kịch bản ở
                   chế độ chỉ đọc để bảo vệ tính toàn vẹn sản xuất.
                 </span>
               </div>
-              <span className='text-[10px] font-bold uppercase tracking-wider bg-amber-200/80 text-amber-900 px-2 py-0.5 rounded'>
+              <span className='text-xs font-bold uppercase tracking-wider bg-amber-200/90 text-amber-900 px-2.5 py-0.5 rounded-full shrink-0'>
                 Chỉ đọc
               </span>
             </div>
@@ -1070,17 +1070,17 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           {!canEditScript && !isChapterLocked && (
             <div
               data-testid='role-view-only-banner'
-              className='p-2 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between gap-2 text-blue-900'
+              className='p-2.5 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between gap-2 text-blue-900'
             >
               <div className='flex items-center gap-2'>
                 <Info className='w-4 h-4 text-blue-600 shrink-0' />
-                <span>
+                <span className='text-xs font-medium'>
                   Chế độ xem: Bạn đang xem kịch bản với quyền tham khảo. Chỉ vai trò{' '}
                   <strong>Producer</strong> hoặc <strong>Writer</strong> mới có quyền tạo và chỉnh
                   sửa kịch bản.
                 </span>
               </div>
-              <span className='text-[10px] font-bold uppercase tracking-wider bg-blue-200/80 text-blue-900 px-2 py-0.5 rounded'>
+              <span className='text-xs font-bold uppercase tracking-wider bg-blue-200/90 text-blue-900 px-2.5 py-0.5 rounded-full shrink-0'>
                 Tham khảo
               </span>
             </div>
@@ -1191,7 +1191,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                           >
                             Cảnh {s.sceneNumber}
                           </span>
-                          <span className='font-mono text-[10px] text-zinc-500 bg-zinc-100 px-1.5 py-0.2 rounded-full'>
+                          <span className='font-mono text-xs text-zinc-600 bg-zinc-100 px-2 py-0.5 rounded-md'>
                             {s.scriptLinesCount} dòng
                           </span>
                         </div>
@@ -1199,7 +1199,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                           {s.heading || 'Chưa đặt tiêu đề'}
                         </div>
                         {s.summary && (
-                          <p className='text-[10px] text-zinc-500 line-clamp-1 mt-0.5'>
+                          <p className='text-xs text-zinc-500 line-clamp-1 mt-0.5'>
                             {s.summary}
                           </p>
                         )}
@@ -1242,15 +1242,15 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               <div className='shrink-0 bg-white border-b border-[#E5DFD7] px-6 py-3.5 flex flex-wrap items-center justify-between gap-3 shadow-2xs'>
                 <div className='min-w-0 flex-1'>
                   <div className='flex items-center gap-2 flex-wrap'>
-                    <span className='px-2 py-0.5 rounded-md bg-zinc-900 text-white font-mono text-[10px] font-bold tracking-wider'>
+                    <span className='px-2.5 py-0.5 rounded-md bg-zinc-900 text-white font-mono text-xs font-bold tracking-wider'>
                       CẢNH {selectedScene.sceneNumber}
                     </span>
-                    <span className='text-[11px] font-mono text-zinc-400'>
+                    <span className='text-xs font-mono text-zinc-500'>
                       ID: {selectedScene.id.substring(0, 8)}...
                     </span>
                     {selectedScene.defaultNarrationMode &&
                       selectedScene.defaultNarrationMode !== 'Present' && (
-                        <span className='text-[10px] font-medium text-purple-700 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-full'>
+                        <span className='text-xs font-medium text-purple-700 bg-purple-50 border border-purple-200 px-2.5 py-0.5 rounded-full'>
                           Mặc định: {selectedScene.defaultNarrationMode}
                         </span>
                       )}
@@ -1594,7 +1594,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                     Người kể không đáng tin (Unreliable Narrator)
                   </option>
                 </select>
-                <p className='text-[10px] text-zinc-400 mt-1'>
+                <p className='text-xs text-zinc-500 mt-1'>
                   Các dòng kịch bản mới thêm vào phân cảnh này sẽ tự động kế thừa chế độ kể chuyện
                   tương ứng.
                 </p>
@@ -1632,7 +1632,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                     ? `Sửa Dòng Kịch Bản #${editingLine.lineOrder}`
                     : 'Thêm Dòng Kịch Bản Mới (UC-06)'}
                 </h3>
-                <p className='text-[11px] text-zinc-500'>
+                <p className='text-xs text-zinc-500'>
                   Phiên bản chương hiện tại: <strong>v{currentChapter?.versionVector}</strong>
                 </p>
               </div>
@@ -1664,7 +1664,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                     </option>
                   ))}
                 </select>
-                <p className='text-[10px] text-zinc-400 mt-1'>
+                <p className='text-xs text-zinc-500 mt-1'>
                   * Nhân vật được lấy từ Series Bible. Gắn đúng nhân vật giúp Letterer sinh balloon
                   tương ứng.
                 </p>
@@ -1709,13 +1709,13 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                     <BookOpen className='w-3.5 h-3.5 text-purple-600' />
                     <span>Liên kết Series Bible (Địa điểm, Đạo cụ, Nhân vật, Thuật ngữ...)</span>
                   </div>
-                  <span className='text-[10px] text-zinc-400 font-normal'>
+                  <span className='text-xs text-zinc-500 font-normal'>
                     Đã chọn {lineBibleEntryIds.length}/20 mục
                   </span>
                 </label>
                 <div className='max-h-28 overflow-y-auto border border-[#E7E7E7] rounded-xl p-2.5 bg-zinc-50/50 custom-scrollbar'>
                   {allBibleEntries.length === 0 ? (
-                    <p className='text-[11px] text-zinc-400 italic'>
+                    <p className='text-xs text-zinc-400 italic'>
                       Series Bible chưa có mục nào hoặc đang tải.
                     </p>
                   ) : (
@@ -1735,7 +1735,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                                     : prev,
                               );
                             }}
-                            className={`inline-flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full border transition-all cursor-pointer ${
+                            className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border transition-all cursor-pointer ${
                               isChecked
                                 ? 'bg-purple-100 border-purple-300 text-purple-800 font-semibold shadow-2xs'
                                 : 'bg-white border-zinc-200 text-zinc-600 hover:border-purple-200 hover:bg-purple-50/30'
@@ -1743,9 +1743,9 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                           >
                             <span>{entry.name}</span>
                             {isChecked ? (
-                              <CheckCircle2 className='w-3 h-3 text-purple-700' />
+                              <CheckCircle2 className='w-3.5 h-3.5 text-purple-700' />
                             ) : (
-                              <Plus className='w-3 h-3 text-zinc-400' />
+                              <Plus className='w-3.5 h-3.5 text-zinc-400' />
                             )}
                           </button>
                         );
@@ -1762,7 +1762,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                     <Compass className='w-3.5 h-3.5 text-purple-600' />
                     <span>Ngoại lệ trần thuật (Narration Mode)</span>
                   </div>
-                  <span className='text-[10px] text-zinc-400 font-normal'>Bỏ qua báo sai</span>
+                  <span className='text-xs text-zinc-500 font-normal'>Bỏ qua báo sai</span>
                 </label>
                 <select
                   data-testid='line-narration-mode-select'
@@ -1790,7 +1790,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                     Người kể không đáng tin (Hạ cảnh báo xuống Warning)
                   </option>
                 </select>
-                <p className='text-[10px] text-zinc-400 mt-1'>
+                <p className='text-xs text-zinc-500 mt-1'>
                   * Chọn ngoại lệ có chủ ý để hệ thống Kiểm tra Nhất quán không báo lỗi sai (False
                   Positives).
                 </p>
@@ -1809,7 +1809,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                     onChange={(e) => setLineOrderInput(parseInt(e.target.value, 10) || 1)}
                     className='w-32 px-3 py-1.5 text-xs border border-[#E7E7E7] rounded-xl outline-none focus:border-orange-500'
                   />
-                  <span className='text-[10px] text-zinc-400 ml-2'>
+                  <span className='text-xs text-zinc-500 ml-2'>
                     Trùng số sẽ tự động chèn và dịch các dòng sau xuống.
                   </span>
                 </div>
