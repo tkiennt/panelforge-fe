@@ -84,7 +84,9 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({ isReadOnly, onAIBrea
           </div>
 
           <div className='space-y-2'>
-            <h5 className='text-xs font-bold text-zinc-500 uppercase tracking-wider'>Detected Characters</h5>
+            <h5 className='text-xs font-bold text-zinc-500 uppercase tracking-wider'>
+              Detected Characters
+            </h5>
             <div className='flex items-center justify-between p-2 bg-[#F3F3F3] rounded-lg'>
               <span className='text-sm font-semibold text-[#171717]'>AKIRA</span>
               <span className='text-xs bg-[#171717] text-white px-2 py-0.5 rounded'>

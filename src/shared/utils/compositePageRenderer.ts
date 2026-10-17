@@ -5,6 +5,16 @@ import type { AssetReferenceDto, PanelDto } from '@/types';
 import type { ElementSnapshotDto } from '@/services/element.service';
 import { IMAGE_LAYER_TYPES } from '@/services/element.service';
 import { parseBoundingBox, type ParsedBoundingBox } from '@/shared/utils/panelBoundingBox';
+import { canvasFont, resolveTextStyle } from '@/roles/letterer/lib/textStyle';
+import {
+  appearanceFromStyle,
+  balloonPath,
+  tailFromStyle,
+  fillRgba,
+  layoutText,
+  resolveAppearance,
+  type BalloonAppearance,
+} from '@/roles/letterer/lib/balloonRender';
 
 /** Phần tối thiểu của một khung để ghép trang (dùng chung cho PanelDto và SubmissionPanelDto). */
 export type CompositePanel = Pick<PanelDto, 'id' | 'boundingBox'>;
@@ -97,6 +107,19 @@ export function selectDrawableElements(elements: ElementSnapshotDto[]): ElementS
     .sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0));
 }
 
+/** Element chữ của Letterer (bóng thoại, dẫn truyện…): không bị xoá, không phải layer ảnh, có nội dung. */
+export function selectTextElements(elements: ElementSnapshotDto[]): ElementSnapshotDto[] {
+  const imageTypes = new Set<string>(IMAGE_LAYER_TYPES);
+  return elements
+    .filter(
+      (el) =>
+        !el.isRemoved &&
+        !imageTypes.has(el.elementType) &&
+        !!(el.renderedText ?? el.content ?? '').trim(),
+    )
+    .sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0));
+}
+
 /** Bản mới nhất của mỗi Panel: danh sách đã sắp theo stage → panelId → versionNumber nên lấy phần tử có version lớn nhất. */
 export function latestArtworkByPanel(
   artworks: AssetReferenceDto[],
@@ -163,6 +186,64 @@ function tracePath(ctx: Ctx2D, points: ClipPoint[]) {
   ctx.closePath();
 }
 
+/**
+ * Vẽ lớp chữ cho màn duyệt và bản xuất bằng đúng quy tắc của bàn Letterer (`balloonRender`): cùng hình bóng, nền,
+ * viền, vùng chữ an toàn, ngắt dòng và cỡ chữ đã chọn (không tự thu nhỏ). Không vẽ khung chọn/tay nắm/đường gióng.
+ * Hình bóng/nền/viền/đuôi đọc từ `style` đã lưu (BE TextStyle); thiếu thì mặc định theo loại — giống bàn Letterer và bản xuất BE.
+ */
+export function drawTextElement(
+  ctx: Ctx2D,
+  el: ElementSnapshotDto,
+  rect: PixelRect,
+  appearance: BalloonAppearance = resolveAppearance(el.elementType, appearanceFromStyle(el.style)),
+) {
+  const text = (el.renderedText ?? el.content ?? '').trim();
+  const style = resolveTextStyle(el);
+
+  ctx.save();
+  ctx.translate(rect.x + rect.w / 2, rect.y + rect.h / 2);
+  ctx.rotate(((el.rotation || 0) * Math.PI) / 180);
+  ctx.translate(-rect.w / 2, -rect.h / 2);
+
+  const d = balloonPath(appearance.shape, rect.w, rect.h, tailFromStyle(el.style) ?? undefined);
+  if (d && typeof Path2D !== 'undefined') {
+    const shape = new Path2D(d);
+    if (appearance.fillOpacity > 0) {
+      ctx.fillStyle = fillRgba(appearance);
+      ctx.fill(shape);
+    }
+    if (appearance.borderWidth > 0) {
+      ctx.strokeStyle = appearance.borderColor;
+      ctx.lineWidth = appearance.borderWidth;
+      ctx.stroke(shape);
+    }
+  }
+
+  const layout = layoutText(text, style, appearance.shape, rect.w, rect.h, (s, font) => {
+    ctx.font = font;
+    return ctx.measureText(s).width;
+  });
+  const { area, lines, lineHeightPx } = layout;
+  const align = style.align ?? 'center';
+  ctx.font = layout.font;
+  ctx.textAlign = align;
+  ctx.textBaseline = 'middle';
+  const x = align === 'left' ? area.x : align === 'right' ? area.x + area.w : area.x + area.w / 2;
+  const top = area.y + area.h / 2 - layout.textHeight / 2 + lineHeightPx / 2;
+  lines.forEach((line, i) => {
+    const y = top + i * lineHeightPx;
+    if (style.strokeColor && style.strokeWidth) {
+      ctx.strokeStyle = style.strokeColor;
+      ctx.lineWidth = style.strokeWidth * 2; // stroke canvas nằm giữa nét chữ, nhân đôi cho giống -webkit-text-stroke
+      ctx.lineJoin = 'round';
+      ctx.strokeText(line, x, y);
+    }
+    ctx.fillStyle = style.color ?? '#171717';
+    ctx.fillText(line, x, y);
+  });
+  ctx.restore();
+}
+
 function drawPlaceholder(ctx: Ctx2D, rect: PixelRect) {
   ctx.save();
   ctx.fillStyle = '#F4F4F5';
@@ -181,6 +262,8 @@ export interface RenderCompositeInput {
   /** Element ảnh vẽ chồng lên (đã nạp snapshot của trang). */
   elements?: ElementSnapshotDto[];
   elementSources?: ElementImageSources;
+  /** Vẽ cả element chữ (bóng thoại, dẫn truyện) — dùng cho màn duyệt Letter. Mặc định chỉ vẽ ảnh. */
+  drawText?: boolean;
   width?: number;
   height?: number;
   env?: Partial<CompositeEnv>;
@@ -270,6 +353,23 @@ export async function renderCompositePage(
       ctx.restore();
     }
 
+    if (input.drawText) {
+      const texts = selectTextElements(input.elements ?? []);
+      // Canvas không tự chờ webfont: nạp trước các font Letterer đã chọn, lỗi thì vẽ bằng font dự phòng
+      // Nạp cả kiểu mặc định theo loại (không chỉ kiểu đã lưu) và đúng đậm/nghiêng, tránh đo bằng font dự phòng
+      const fonts = new Set(texts.map((el) => canvasFont(resolveTextStyle(el), 24)));
+      await Promise.all(
+        [...fonts].map((f) =>
+          (typeof document !== 'undefined' ? document.fonts?.load(f) : undefined)?.catch(
+            () => undefined,
+          ),
+        ),
+      );
+      for (const el of texts) {
+        drawTextElement(ctx, el, resolveElementRect(el, width, height));
+      }
+    }
+
     dataUrl = canvas.toDataURL('image/png');
   } catch {
     // Môi trường thiếu canvas đầy đủ hoặc canvas bị taint: trả về rỗng thay vì làm hỏng màn hình.
@@ -282,6 +382,8 @@ export interface BuildPageCompositeInput {
   /** Artwork của trang ở đúng stage (và đã lọc theo phạm vi cần ghép). */
   artworks: AssetReferenceDto[];
   elements?: ElementSnapshotDto[];
+  /** Vẽ cả element chữ (màn duyệt Letter). */
+  drawText?: boolean;
   bibleImageUrls?: Record<string, string>;
   /** Xin link tải của một AssetReference (vd artworkService.getArtworkAccessLink + resolveArtworkUrl). */
   getAccessUrl: (assetReferenceId: string) => Promise<string>;
@@ -332,6 +434,9 @@ export async function buildPageComposite(
         } as PanelDto,
       ],
       panelImageUrls: url ? { __page__: url } : {},
+      // Duyệt Letter: chữ vẫn phải chồng lên ảnh cả trang
+      elements: input.drawText ? selectTextElements(input.elements ?? []) : undefined,
+      drawText: input.drawText,
     });
     return { ...result, failedImages: result.failedImages + (url ? 0 : 1), mode: 'page' };
   }
@@ -366,6 +471,7 @@ export async function buildPageComposite(
     panelImageUrls,
     elements: input.elements,
     elementSources: { assetUrls, bibleImageUrls: input.bibleImageUrls },
+    drawText: input.drawText,
     width,
     height,
     env: input.env,

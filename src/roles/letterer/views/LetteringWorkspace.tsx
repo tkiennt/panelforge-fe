@@ -32,6 +32,10 @@ import {
   Check,
   X,
   GripVertical,
+  ShieldAlert,
+  Smartphone,
+  Split,
+  Compass,
 } from 'lucide-react';
 import {
   elementService,
@@ -40,6 +44,7 @@ import {
   MoveElementRequest,
   IMAGE_LAYER_TYPES,
   LAYER_LABELS,
+  type TextStyleDto,
 } from '@/services/element.service';
 import { pageService } from '@/services/page.service';
 import { chapterService } from '@/services/chapter.service';
@@ -62,6 +67,9 @@ import {
   LETTERING_FONT_PX,
   LETTERING_LINE_HEIGHT_EM,
   LETTERING_PADDING_PX,
+  MIN_LETTERING_FONT_PX,
+  MAX_WORDS_PER_BALLOON,
+  countWords,
   estimateBoxHeight,
   fitView,
   keepCenter,
@@ -77,7 +85,41 @@ import {
   type FitMode,
   type Size,
   type ViewState,
+  evaluateTextConstraints,
+  splitTextIntoTwoBalloons,
+  rectsOverlap,
+  findKeepOutCollision,
+  suggestBalloonPosition,
+  calculatePanelTextDensity,
+  sortBalloonsReadingOrder,
+  checkReadingOrderMismatch,
+  hasTimeMarker,
+  createThoughtTailDots,
+  type KeepOutZone,
+  type Rect,
+  type PanelTextDensity,
 } from '../lib/lettererView';
+import { canvasFont, resolveTextStyle, textStyleCss } from '../lib/textStyle';
+import { TextFormatToolbar } from '../components/TextFormatToolbar';
+import { BalloonAppearancePanel } from '../components/BalloonAppearancePanel';
+import {
+  BALLOON_SHAPES,
+  balloonPath,
+  defaultAppearance,
+  defaultTail,
+  fillRgba,
+  fitBoxHeight,
+  fitFontSize,
+  layoutText,
+  resolveAppearance,
+  appearanceFromStyle,
+  mergeTextStyle,
+  tailFromStyle,
+  withAppearance,
+  resizeFromCorner,
+  type ResizeCorner,
+  type BalloonAppearance,
+} from '../lib/balloonRender';
 
 interface LetteringWorkspaceProps {
   pageId?: string;
@@ -87,7 +129,7 @@ interface LetteringWorkspaceProps {
   onShowToast?: (title: string, desc: string) => void;
 }
 
-type ToolMode = 'select' | 'hand' | 'balloon' | 'thought' | 'narration' | 'sfx';
+type ToolMode = 'select' | 'hand' | 'balloon' | 'thought' | 'narration' | 'sfx' | 'keepout';
 
 const TOOL_TO_TYPE: Record<string, string> = {
   balloon: 'SPEECH_BALLOON',
@@ -133,6 +175,27 @@ interface LayoutPrefs {
 }
 
 const DEFAULT_LAYOUT: LayoutPrefs = { leftOpen: true, rightOpen: true, leftW: 288, rightW: 288 };
+
+const DEFAULT_KEEPOUT_ZONES: KeepOutZone[] = [
+  {
+    id: 'kz-face-minh',
+    panelId: 'panel-minh',
+    label: 'Mặt nhân vật Minh',
+    x: 140,
+    y: 180,
+    width: 220,
+    height: 240,
+  },
+  {
+    id: 'kz-face-hoa',
+    panelId: 'panel-hoa',
+    label: 'Mặt & tay nhân vật Hoà',
+    x: 680,
+    y: 650,
+    width: 240,
+    height: 280,
+  },
+];
 
 function loadLayout(): LayoutPrefs {
   try {
@@ -299,6 +362,46 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
 
   const [pageSnapshot, setPageSnapshot] = useState<PageSnapshotDto | null>(null);
   const [elements, setElements] = useState<ElementSnapshotDto[]>([]);
+
+  // ── Ghi theo phiên bản (BR-11): mỗi element ghi tuần tự, luôn gửi phiên bản mới nhất đã biết ──
+  // Trước đây thao tác thứ hai (vd resize liên tiếp) gửi trước khi thao tác đầu trả về, mang phiên bản cũ → 409 giả.
+  const [writes] = useState(() => ({
+    versions: new Map<string, number>(),
+    queue: new Map<string, Promise<unknown>>(),
+  }));
+  useEffect(() => {
+    // Phản chiếu đúng phiên bản trong state (kể cả khi tải lại sau xung đột làm phiên bản đổi)
+    for (const b of elements) writes.versions.set(b.elementId, b.version || 1);
+  }, [elements, writes]);
+  const sendVersioned = (
+    elementId: string,
+    send: (version: number) => Promise<{ elementVersion?: number } | unknown>,
+  ) => {
+    const run = async () => {
+      const version =
+        writes.versions.get(elementId) ??
+        elements.find((e) => e.elementId === elementId)?.version ??
+        1;
+      const res = (await send(version)) as { elementVersion?: number } | undefined;
+      // Dùng phiên bản thật máy chủ trả về: thao tác không đổi gì (thả đúng chỗ cũ, cùng kiểu chữ) thì máy chủ
+      // không tăng phiên bản — tự +1 ở đây là nguyên nhân 409 khi làm xong bóng này rồi sang bóng khác.
+      let next = res?.elementVersion;
+      if (typeof next !== 'number') {
+        // API cũ chưa trả elementVersion: đọc lại phiên bản từ máy chủ thay vì đoán
+        const snap = await elementService.getPageSnapshot(activePageId).catch(() => null);
+        next = snap?.elements.find((e) => e.elementId === elementId)?.version ?? version + 1;
+      }
+      const confirmed = next;
+      writes.versions.set(elementId, confirmed);
+      setElements((prev) =>
+        prev.map((b) => (b.elementId === elementId ? { ...b, version: confirmed } : b)),
+      );
+    };
+    const prev = writes.queue.get(elementId) ?? Promise.resolve();
+    const next = prev.catch(() => undefined).then(run);
+    writes.queue.set(elementId, next);
+    return next;
+  };
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -347,9 +450,69 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
   // ── Bố cục: bảng kịch bản / thuộc tính thu-mở, đổi rộng, chế độ tập trung ──
   const [layout, setLayout] = useState<LayoutPrefs>(loadLayout);
   const [focusMode, setFocusMode] = useState(false);
-  const leftVisible = layout.leftOpen && !focusMode;
-  const rightVisible = layout.rightOpen && !focusMode;
+  const [readerMode, setReaderMode] = useState(false);
+  const leftVisible = layout.leftOpen && !focusMode && !readerMode;
+  const rightVisible = layout.rightOpen && !focusMode && !readerMode;
   useEffect(() => saveLayout(layout), [layout]);
+
+  // ── Manga Lettering State: Đuôi bóng, Vùng cấm, Thứ tự đọc RTL ──
+  // Hình bóng / nền / viền / đuôi lưu trong `style` của element (PUT .../style) — cùng nguồn với màn duyệt và bản xuất.
+  // `tailDraft` chỉ giữ vị trí đuôi trong lúc đang kéo; thả chuột mới lưu.
+  const [tailDraft, setTailDraft] = useState<Record<string, { x: number; y: number }>>({});
+  const appearanceOf = (b: { elementType: string; style?: TextStyleDto | null }) =>
+    resolveAppearance(b.elementType, appearanceFromStyle(b.style));
+  // patch = null: bỏ phần chỉnh bóng, về giao diện mặc định theo loại
+  const updateAppearance = (
+    elementId: string,
+    patch: (Partial<BalloonAppearance> & { tail?: { x: number; y: number } | null }) | null,
+  ) => {
+    const target = elements.find((e) => e.elementId === elementId);
+    if (!target) return;
+    const next = withAppearance(
+      target.style,
+      resolveTextStyle({ elementType: target.elementType }),
+      patch,
+    );
+    void handleUpdateStyle(elementId, next);
+  };
+
+  // Đo chữ phải chờ webfont, nếu không sẽ đo bằng font dự phòng rồi lệch với màn duyệt
+  const [fontsReady, setFontsReady] = useState(0);
+  useEffect(() => {
+    const fonts = typeof document !== 'undefined' ? document.fonts : undefined;
+    if (!fonts) return;
+    const bump = () => setFontsReady((n) => n + 1);
+    fonts.ready?.then(bump).catch(() => undefined);
+    fonts.addEventListener?.('loadingdone', bump);
+    return () => fonts.removeEventListener?.('loadingdone', bump);
+  }, []);
+
+  const [localKeepOutZones, setLocalKeepOutZones] = useState<KeepOutZone[]>(() => {
+    try {
+      const raw = localStorage.getItem(`pf.letterer.keepout.${activePageId}`);
+      if (raw) return JSON.parse(raw);
+    } catch {
+      /* ignore */
+    }
+    return DEFAULT_KEEPOUT_ZONES;
+  });
+  useEffect(() => {
+    if (!activePageId) return;
+    try {
+      localStorage.setItem(
+        `pf.letterer.keepout.${activePageId}`,
+        JSON.stringify(localKeepOutZones),
+      );
+    } catch {
+      /* ignore */
+    }
+  }, [localKeepOutZones, activePageId]);
+
+  const [drawingKeepOut, setDrawingKeepOut] = useState<Rect | null>(null);
+  const drawingKeepOutStartRef = useRef<{ x: number; y: number } | null>(null);
+
+  const [isRTL, setIsRTL] = useState(true); // Manga mặc định: Phải → Trái
+  const [showReadingOrder, setShowReadingOrder] = useState(true);
 
   // ── Góc nhìn zoom/pan: artwork và lớp lettering cùng nằm trong một "stage" chịu chung phép biến đổi ──
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -378,6 +541,22 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
   // Tạm ẩn toàn bộ lớp chữ để xem tranh gốc (chỉ hiển thị, không lưu).
   const [hideLettering, setHideLettering] = useState(false);
   // Độ đục nền bóng thoại (0–100%), chữ và viền vẫn rõ; chỉ hiển thị, nhớ trong localStorage.
+  // Tự co chữ khi kéo đổi kích thước bóng (tuỳ chọn của người dùng, nhớ trên máy)
+  const [autoFitText, setAutoFitText] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('letterer.autoFitText') !== '0';
+    } catch {
+      return true;
+    }
+  });
+  const toggleAutoFitText = (on: boolean) => {
+    setAutoFitText(on);
+    try {
+      localStorage.setItem('letterer.autoFitText', on ? '1' : '0');
+    } catch {
+      // chế độ riêng tư: chỉ giữ trong phiên
+    }
+  };
   const [bgOpacity, setBgOpacity] = useState<number>(() => {
     try {
       const v = Number(localStorage.getItem('letterer.bgOpacity'));
@@ -406,8 +585,8 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
 
   // Chữ tràn khung: elementId → chiều cao chữ thực đo được (px trang) khi vượt khung
   const [overflowInfo, setOverflowInfo] = useState<Record<string, number>>({});
-  const textRefs = useRef(new Map<string, HTMLElement>());
 
+  const [draggingId, setDraggingId] = useState<string | null>(null);
   const draggingRef = useRef<{
     elementId: string;
     startX: number;
@@ -672,6 +851,56 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
   const isPanIntent = (button: number) => button === 1 || spacePressed || toolMode === 'hand';
 
   const handleViewportPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (toolMode === 'keepout' && !isReadOnly && e.button === 0) {
+      e.preventDefault();
+      e.stopPropagation();
+      const pt = clientToPage(e.clientX, e.clientY);
+      drawingKeepOutStartRef.current = pt;
+      setDrawingKeepOut({ x: pt.x, y: pt.y, width: 0, height: 0 });
+
+      const onMove = (m: PointerEvent) => {
+        if (!drawingKeepOutStartRef.current) return;
+        const cur = clientToPage(m.clientX, m.clientY);
+        const x1 = Math.min(drawingKeepOutStartRef.current.x, cur.x);
+        const y1 = Math.min(drawingKeepOutStartRef.current.y, cur.y);
+        const x2 = Math.max(drawingKeepOutStartRef.current.x, cur.x);
+        const y2 = Math.max(drawingKeepOutStartRef.current.y, cur.y);
+        setDrawingKeepOut({
+          x: Math.max(0, Math.round(x1)),
+          y: Math.max(0, Math.round(y1)),
+          width: Math.min(pageDimRef.current.width - x1, Math.round(x2 - x1)),
+          height: Math.min(pageDimRef.current.height - y1, Math.round(y2 - y1)),
+        });
+      };
+
+      const onUp = () => {
+        window.removeEventListener('pointermove', onMove);
+        window.removeEventListener('pointerup', onUp);
+        if (drawingKeepOutStartRef.current) {
+          setDrawingKeepOut((box) => {
+            if (box && box.width > 20 && box.height > 20) {
+              const newZone: KeepOutZone = {
+                id: `kz-${Date.now()}`,
+                label: `Vùng cấm ${localKeepOutZones.length + 1}`,
+                x: box.x,
+                y: box.y,
+                width: box.width,
+                height: box.height,
+              };
+              setLocalKeepOutZones((prev) => [...prev, newZone]);
+              showToast('Đã thêm vùng cấm', `Vùng cấm (${box.width}×${box.height}px) đã được tạo.`);
+            }
+            return null;
+          });
+        }
+        drawingKeepOutStartRef.current = null;
+      };
+
+      window.addEventListener('pointermove', onMove);
+      window.addEventListener('pointerup', onUp);
+      return;
+    }
+
     if (!isPanIntent(e.button)) return;
     e.preventDefault();
     setFitMode(null);
@@ -756,7 +985,8 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
     const clientElementId =
       typeof crypto !== 'undefined' && crypto.randomUUID
         ? crypto.randomUUID()
-        : `elem-${Date.now()}`;
+        : // eslint-disable-next-line react-hooks/purity
+          `elem-${Date.now()}`;
 
     const newReq = {
       elementType: elemType,
@@ -802,8 +1032,9 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
 
     try {
       const res = await elementService.addElement(activePageId, newReq);
-      setElements((prev) => [...prev, { ...tempItem, elementId: res.elementId }]);
-      setSelectedElementId(res.elementId);
+      const newElemId = res?.elementId || tempItem.elementId;
+      setElements((prev) => [...prev, { ...tempItem, elementId: newElemId }]);
+      setSelectedElementId(newElemId);
       setSelectedScriptLine(null);
     } catch (err: any) {
       const isNetworkError = checkIsNetworkError(err);
@@ -909,9 +1140,11 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
     }
 
     try {
-      await elementService.moveElement(activePageId, elementId, payload);
-      setElements((prev) =>
-        prev.map((b) => (b.elementId === elementId ? { ...b, version: (b.version || 1) + 1 } : b)),
+      await sendVersioned(elementId, (v) =>
+        elementService.moveElement(activePageId, elementId, {
+          ...payload,
+          expectedElementVersion: v,
+        }),
       );
     } catch (err: any) {
       const isNetworkError = checkIsNetworkError(err);
@@ -932,6 +1165,9 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
 
   // Bắt đầu kéo thả bóng thoại trên canvas (độ dời màn hình được chia cho scale để ra px trang)
   const handleBalloonPointerDown = (e: React.PointerEvent<HTMLDivElement>, elementId: string) => {
+    // Tay nắm 4 góc không gắn handler riêng: bấm vào tay nắm (data-corner) thì chuyển sang đổi kích thước
+    const corner = (e.target as HTMLElement).dataset?.corner as ResizeCorner | undefined;
+    if (corner) return handleResizePointerDown(e, elementId, corner);
     if (isPanIntent(e.button)) return; // để viewport xử lý pan
     if (isReadOnly || editingId === elementId) return;
     e.stopPropagation();
@@ -984,6 +1220,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
     };
 
     const handlePointerUp = (upEvt: PointerEvent) => {
+      setDraggingId(null);
       window.removeEventListener('pointermove', handlePointerMove);
       window.removeEventListener('pointerup', handlePointerUp);
       setSnapGuides({ x: null, y: null });
@@ -1004,12 +1241,18 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
       draggingRef.current = null;
     };
 
+    setDraggingId(elementId);
     window.addEventListener('pointermove', handlePointerMove);
     window.addEventListener('pointerup', handlePointerUp);
   };
 
-  // Kéo góc dưới-phải để đổi kích thước bóng thoại; chỉ gửi request khi thả chuột (PUT .../position)
-  const handleResizePointerDown = (e: React.PointerEvent<HTMLDivElement>, elementId: string) => {
+  // Kéo 1 trong 4 góc để đổi kích thước bóng (góc đối diện đứng yên); chỉ gửi request khi thả chuột (PUT .../position).
+  // Bật "Tự co chữ": cỡ chữ co theo bóng (không lớn hơn cỡ lúc bắt đầu kéo), lưu qua PUT .../style sau khi lưu vị trí.
+  const handleResizePointerDown = (
+    e: React.PointerEvent<HTMLDivElement>,
+    elementId: string,
+    corner: ResizeCorner = 'se',
+  ) => {
     if (isReadOnly || e.button !== 0) return;
     e.stopPropagation();
     e.preventDefault();
@@ -1018,30 +1261,65 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
     const box = getNormalizedElementBox(target);
     const startX = e.clientX;
     const startY = e.clientY;
-    const sizeAt = (evt: PointerEvent) => {
-      const scale = viewRef.current.scale || 1;
-      const w = box.pxW + (evt.clientX - startX) / scale;
-      const h = box.pxH + (evt.clientY - startY) / scale;
-      return {
-        w: Math.round(Math.max(MIN_BOX_W, Math.min(pageDimRef.current.width - box.pxX, w))),
-        h: Math.round(Math.max(MIN_BOX_H, Math.min(pageDimRef.current.height - box.pxY, h))),
-      };
-    };
+    const startStyle = resolveTextStyle(target);
+    const shape = appearanceOf(target).shape;
+    const rectAt = (evt: PointerEvent) =>
+      resizeFromCorner(
+        { x: box.pxX, y: box.pxY, w: box.pxW, h: box.pxH },
+        corner,
+        (evt.clientX - startX) / (viewRef.current.scale || 1), // toạ độ trang gốc, không phụ thuộc zoom
+        (evt.clientY - startY) / (viewRef.current.scale || 1),
+        { w: MIN_BOX_W, h: MIN_BOX_H },
+        pageDimRef.current,
+      );
+    const fontFor = (r: { w: number; h: number }) =>
+      autoFitText && target.content
+        ? Math.min(startStyle.fontSize, fitFontSize(target.content, startStyle, shape, r.w, r.h))
+        : startStyle.fontSize;
 
     const onMove = (evt: PointerEvent) => {
-      const { w, h } = sizeAt(evt);
+      const r = rectAt(evt);
+      const fontSize = fontFor(r);
       setElements((prev) =>
         prev.map((b) =>
-          b.elementId === elementId ? { ...b, x: box.pxX, y: box.pxY, width: w, height: h } : b,
+          b.elementId === elementId
+            ? {
+                ...b,
+                x: r.x,
+                y: r.y,
+                width: r.w,
+                height: r.h,
+                // xem trước cỡ chữ ngay khi kéo, chưa lưu
+                style:
+                  fontSize !== startStyle.fontSize
+                    ? { ...(b.style ?? startStyle), fontSize, preset: null }
+                    : target.style,
+              }
+            : b,
         ),
       );
     };
     const onUp = (evt: PointerEvent) => {
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
-      const { w, h } = sizeAt(evt);
-      if (w !== Math.round(box.pxW) || h !== Math.round(box.pxH)) {
-        moveBalloon(elementId, box.pxX, box.pxY, w, h);
+      const r = rectAt(evt);
+      const changed =
+        r.x !== Math.round(box.pxX) ||
+        r.y !== Math.round(box.pxY) ||
+        r.w !== Math.round(box.pxW) ||
+        r.h !== Math.round(box.pxH);
+      if (!changed) return;
+      void moveBalloon(elementId, r.x, r.y, r.w, r.h);
+      const fontSize = fontFor(r);
+      if (fontSize !== startStyle.fontSize) {
+        void handleUpdateStyle(
+          elementId,
+          mergeTextStyle(
+            { ...startStyle, fontSize, preset: null },
+            target.style,
+            resolveTextStyle({ elementType: target.elementType }),
+          ),
+        );
       }
     };
     window.addEventListener('pointermove', onMove);
@@ -1076,9 +1354,11 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
     }
 
     try {
-      await elementService.updateElementText(activePageId, elementId, payload);
-      setElements((prev) =>
-        prev.map((b) => (b.elementId === elementId ? { ...b, version: (b.version || 1) + 1 } : b)),
+      await sendVersioned(elementId, (v) =>
+        elementService.updateElementText(activePageId, elementId, {
+          ...payload,
+          expectedElementVersion: v,
+        }),
       );
     } catch (err: any) {
       const isNetworkError = checkIsNetworkError(err);
@@ -1124,9 +1404,11 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
     }
 
     try {
-      await elementService.setReadingOrder(activePageId, elementId, payload);
-      setElements((prev) =>
-        prev.map((b) => (b.elementId === elementId ? { ...b, version: (b.version || 1) + 1 } : b)),
+      await sendVersioned(elementId, (v) =>
+        elementService.setReadingOrder(activePageId, elementId, {
+          ...payload,
+          expectedElementVersion: v,
+        }),
       );
       showToast('Thứ tự đọc', `Đã cập nhật thứ tự đọc #${order}.`);
     } catch (err: any) {
@@ -1146,11 +1428,46 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
     }
   };
 
+  // Kiểu chữ (PUT /api/pages/{pageId}/elements/{elementId}/style): cập nhật lạc quan, lỗi thì trả lại kiểu cũ
+  const handleUpdateStyle = async (elementId: string, style: TextStyleDto | null) => {
+    if (!activePageId || isReadOnly) return;
+    const target = elements.find((b) => b.elementId === elementId);
+    if (!target) return;
+    const previous = target.style ?? null;
+    setElements((prev) => prev.map((b) => (b.elementId === elementId ? { ...b, style } : b)));
+    try {
+      await sendVersioned(elementId, (v) =>
+        elementService.updateElementStyle(activePageId, elementId, {
+          style,
+          expectedElementVersion: v,
+        }),
+      );
+    } catch (err: any) {
+      setElements((prev) =>
+        prev.map((b) => (b.elementId === elementId ? { ...b, style: previous } : b)),
+      );
+      handleConcurrencyError(err, elementId);
+    }
+  };
+
   // Xác nhận tràn chữ (POST /api/pages/{pageId}/elements/{elementId}/overflow-ack)
   const handleAckOverflow = async (elementId: string) => {
+    const hasBackendWarning = (pageSnapshot?.warnings ?? []).some(
+      (w) => w.elementId === elementId && w.code === 'TEXT_OVERFLOW',
+    );
+    if (!hasBackendWarning) {
+      showToast(
+        'Không thể xác nhận',
+        'Bóng thoại này hiện không bị tràn chữ trên hệ thống. Hãy chọn bóng thoại có cảnh báo tràn (viền đỏ) để xác nhận.',
+      );
+      return;
+    }
     const reason = ackReason.trim() || 'Letterer đã xem xét và chấp nhận bố cục';
     try {
-      await elementService.acknowledgeOverflow(activePageId, elementId, { reason });
+      // Lệnh này cũng tăng phiên bản element ở máy chủ: đi qua hàng đợi để cập nhật đúng số
+      await sendVersioned(elementId, () =>
+        elementService.acknowledgeOverflow(activePageId, elementId, { reason }),
+      );
       setElements((prev) =>
         prev.map((b) =>
           b.elementId === elementId ? { ...b, overflowAcknowledgedReason: reason } : b,
@@ -1206,6 +1523,106 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
         handleConcurrencyError(err, elementId);
       }
     }
+  };
+
+  // Gợi ý vị trí thoáng nhất không chạm vùng cấm, ưu tiên theo thứ tự đọc (P3)
+  const handleSuggestPosition = (elementId: string) => {
+    const target = elements.find((e) => e.elementId === elementId);
+    if (!target) return;
+    const box = getNormalizedElementBox(target);
+
+    // Tìm panel chứa bóng thoại hoặc fallback toàn bộ trang
+    let targetPanelRect: Rect = { x: 0, y: 0, width: pageDim.width, height: pageDim.height };
+    for (const panel of panels) {
+      const pBox = parseBoundingBox(panel.boundingBox, pageDim.width, pageDim.height);
+      const pr: Rect = { x: pBox.pixelX, y: pBox.pixelY, width: pBox.pixelW, height: pBox.pixelH };
+      if (rectsOverlap({ x: box.pxX, y: box.pxY, width: box.pxW, height: box.pxH }, pr)) {
+        targetPanelRect = pr;
+        break;
+      }
+    }
+
+    const suggested = suggestBalloonPosition(
+      { width: box.pxW, height: box.pxH },
+      targetPanelRect,
+      localKeepOutZones,
+      isRTL,
+    );
+
+    void moveBalloon(elementId, suggested.x, suggested.y, box.pxW, box.pxH);
+    showToast('Gợi ý vị trí', 'Đã dời bóng thoại đến vị trí thoáng nhất trong khung.');
+  };
+
+  // Tách văn bản thành 2 bóng thoại khi quá dài (>30 từ hoặc tràn khung) (P2)
+  const handleSplitBalloon = async (elementId: string) => {
+    if (isReadOnly) return;
+    const target = elements.find((e) => e.elementId === elementId);
+    if (!target || !target.content) return;
+
+    const { part1, part2 } = splitTextIntoTwoBalloons(target.content);
+    if (!part2) {
+      showToast('Không thể tách', 'Nội dung thoại quá ngắn để tách thành hai bóng.');
+      return;
+    }
+
+    const box = getNormalizedElementBox(target);
+    await updateBalloonText(elementId, part1);
+
+    const matchingLine = sceneLines.find((l) => l.id === target.scriptLineId) || null;
+    const newY = Math.min(pageDim.height - box.pxH, box.pxY + box.pxH + 16);
+    await placeElement({
+      elemType: target.elementType,
+      x: box.pxX,
+      y: newY,
+      width: box.pxW,
+      height: Math.max(
+        MIN_BOX_H,
+        estimateBoxHeight(part2, box.pxW, DEFAULT_SIZE[target.elementType]?.h ?? 160),
+      ),
+      line: matchingLine ? { ...matchingLine, dialogueText: part2 } : null,
+    });
+
+    showToast('Đã tách thành 2 bóng', 'Đoạn thoại dài đã được chia làm 2 bóng liên kết.');
+  };
+
+  // Xoá vùng cấm chữ (P3)
+  const handleDeleteKeepOut = (zoneId: string) => {
+    setLocalKeepOutZones((prev) => prev.filter((z) => z.id !== zoneId));
+    showToast('Đã xoá vùng cấm', 'Bóng thoại có thể đặt vào khu vực này.');
+  };
+
+  // Kéo chỉnh đuôi bóng thoại (P1)
+  const handleTailPointerDown = (e: React.PointerEvent<HTMLDivElement>, elementId: string) => {
+    if (isReadOnly || e.button !== 0) return;
+    e.stopPropagation();
+    e.preventDefault();
+
+    const target = elements.find((el) => el.elementId === elementId);
+    if (!target) return;
+    const box = getNormalizedElementBox(target);
+
+    let last: { x: number; y: number } | null = null;
+    const onMove = (moveEvt: PointerEvent) => {
+      const curPagePt = clientToPage(moveEvt.clientX, moveEvt.clientY);
+      const relX = Math.round(curPagePt.x - box.pxX);
+      const relY = Math.round(curPagePt.y - box.pxY);
+      last = { x: relX, y: relY };
+      setTailDraft((prev) => ({
+        ...prev,
+        [elementId]: { x: relX, y: relY },
+      }));
+    };
+
+    const onUp = () => {
+      // Thả chuột mới lưu đuôi (toạ độ trang gốc tương đối góc bóng, không phụ thuộc zoom)
+      if (last) updateAppearance(elementId, { tail: last });
+      setTailDraft(({ [elementId]: _done, ...rest }) => rest);
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
   };
 
   // Đồng bộ lại thoại kịch bản khi kịch bản bị sửa đổi sau khi đặt (BR-05 / isStale)
@@ -1620,7 +2037,8 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
         if (pending?.dropped) confirmPending();
         break;
       case 'Escape':
-        if (pending) cancelPending();
+        if (readerMode) setReaderMode(false);
+        else if (pending) cancelPending();
         else if (focusMode) setFocusMode(false);
         break;
       default:
@@ -1646,14 +2064,26 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
   }, []);
 
   // ── Đo chữ thật trong từng bóng: chữ cao hơn khung thì cảnh báo (không âm thầm cắt) ──
+  // Dùng cùng `layoutText` với màn duyệt (vùng chữ an toàn theo hình bóng), không đo DOM, để hai nơi báo tràn giống nhau.
+  useEffect(() => {
+    const fonts = typeof document !== 'undefined' ? document.fonts : undefined;
+    if (!fonts?.load) return;
+    const used = new Set(
+      elements
+        .filter((b) => !IMAGE_LAYER_TYPES.includes(b.elementType as any))
+        .map((b) => canvasFont(resolveTextStyle(b), 24)),
+    );
+    used.forEach((f) => void fonts.load(f).catch(() => undefined));
+  }, [elements]);
+
   useLayoutEffect(() => {
     const next: Record<string, number> = {};
     for (const b of elements) {
-      const node = textRefs.current.get(b.elementId);
-      if (!node) continue;
+      if (IMAGE_LAYER_TYPES.includes(b.elementType as any) || !b.content) continue;
       const box = getNormalizedElementBox(b);
-      const available = box.pxH - 2 * LETTERING_PADDING_PX;
-      if (node.offsetHeight > available + 1) next[b.elementId] = node.offsetHeight;
+      const shape = appearanceOf(b).shape;
+      const layout = layoutText(b.content, resolveTextStyle(b), shape, box.pxW, box.pxH);
+      if (layout.overflow) next[b.elementId] = layout.textHeight;
     }
     setOverflowInfo((prev) => {
       const prevKeys = Object.keys(prev);
@@ -1663,14 +2093,15 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
       }
       return next;
     });
-  }, [elements, getNormalizedElementBox, editingId, hideLettering]);
+  }, [elements, getNormalizedElementBox, fontsReady]);
 
+  // "Vừa bóng theo chữ": giữ cỡ chữ + bề rộng, đổi bề cao (toạ độ trang gốc, không phụ thuộc zoom)
   const growToFit = (elementId: string) => {
     const target = elements.find((e) => e.elementId === elementId);
-    const textHeight = overflowInfo[elementId];
-    if (!target || !textHeight) return;
+    if (!target?.content) return;
     const box = getNormalizedElementBox(target);
-    const needed = Math.ceil((textHeight + 2 * LETTERING_PADDING_PX) / 10) * 10;
+    const shape = appearanceOf(target).shape;
+    const needed = fitBoxHeight(target.content, resolveTextStyle(target), shape, box.pxW, box.pxH);
     const height = Math.min(pageDim.height - box.pxY, needed);
     if (height < needed) {
       showToast(
@@ -1678,7 +2109,19 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
         'Hãy kéo bóng lên cao hơn hoặc mở rộng chiều ngang rồi thử lại.',
       );
     }
-    moveBalloon(elementId, box.pxX, box.pxY, box.pxW, Math.max(box.pxH, height));
+    moveBalloon(elementId, box.pxX, box.pxY, box.pxW, height);
+  };
+
+  // "Vừa chữ trong bóng": giữ kích thước bóng, chọn cỡ chữ lớn nhất còn vừa (14–160px), lưu qua API kiểu chữ
+  const fitTextToBox = (elementId: string) => {
+    const target = elements.find((e) => e.elementId === elementId);
+    if (!target?.content) return;
+    const box = getNormalizedElementBox(target);
+    const style = resolveTextStyle(target);
+    const shape = appearanceOf(target).shape;
+    const fontSize = fitFontSize(target.content, style, shape, box.pxW, box.pxH);
+    if (fontSize !== style.fontSize)
+      void handleUpdateStyle(elementId, { ...style, fontSize, preset: null });
   };
 
   const polygons = useMemo(
@@ -1699,6 +2142,110 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
   const selectedWarnings = (pageSnapshot?.warnings ?? []).filter(
     (w) => w.elementId === selectedElementId,
   );
+
+  // Thứ tự đọc không gian & phát hiện thứ tự ngược kịch bản (P5)
+  const placedBalloonsForOrder = useMemo(() => {
+    return elements
+      .filter((el) => !IMAGE_LAYER_TYPES.includes(el.elementType as any))
+      .map((el) => {
+        const box = getNormalizedElementBox(el);
+        const scriptLine = sceneLines.find((l) => l.id === el.scriptLineId);
+        return {
+          id: el.elementId,
+          x: box.pxX,
+          y: box.pxY,
+          width: box.pxW,
+          height: box.pxH,
+          scriptLineOrder: scriptLine?.lineOrder ?? el.readingOrder ?? null,
+        };
+      });
+  }, [elements, sceneLines, getNormalizedElementBox]);
+
+  const readingOrderMismatches = useMemo(() => {
+    return checkReadingOrderMismatch(placedBalloonsForOrder, isRTL);
+  }, [placedBalloonsForOrder, isRTL]);
+
+  // Các panel chứa dòng thoại hồi tưởng (Flashback) để hiển thị viền/khoảng đệm tối (P4)
+  const flashbackPanelIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const el of elements) {
+      const line = sceneLines.find((l) => l.id === el.scriptLineId);
+      if (line?.narrationMode === 'Flashback') {
+        const box = getNormalizedElementBox(el);
+        for (const p of panels) {
+          const pBox = parseBoundingBox(p.boundingBox, pageDim.width, pageDim.height);
+          const pr = { x: pBox.pixelX, y: pBox.pixelY, width: pBox.pixelW, height: pBox.pixelH };
+          if (rectsOverlap({ x: box.pxX, y: box.pxY, width: box.pxW, height: box.pxH }, pr)) {
+            ids.add(p.id);
+          }
+        }
+      }
+    }
+    return ids;
+  }, [elements, sceneLines, panels, pageDim.width, pageDim.height, getNormalizedElementBox]);
+
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
+  const containingPanel = useMemo(() => {
+    if (!selectedElement) return null;
+    const box = getNormalizedElementBox(selectedElement);
+    for (const p of panels) {
+      const pBox = parseBoundingBox(p.boundingBox, pageDim.width, pageDim.height);
+      const pr = { x: pBox.pixelX, y: pBox.pixelY, width: pBox.pixelW, height: pBox.pixelH };
+      if (rectsOverlap({ x: box.pxX, y: box.pxY, width: box.pxW, height: box.pxH }, pr)) {
+        return { panel: p, rect: pr };
+      }
+    }
+    return null;
+  }, [selectedElement, panels, pageDim.width, pageDim.height, getNormalizedElementBox]);
+
+  const panelDensity = useMemo(() => {
+    if (!containingPanel) return null;
+    const panelBalloons = elements
+      .filter((e) => !IMAGE_LAYER_TYPES.includes(e.elementType as any))
+      .map((e) => {
+        const b = getNormalizedElementBox(e);
+        return { x: b.pxX, y: b.pxY, width: b.pxW, height: b.pxH };
+      });
+    return calculatePanelTextDensity(containingPanel.rect, panelBalloons);
+  }, [containingPanel, elements, getNormalizedElementBox]);
+
+  const selectedTextConstraints = useMemo(() => {
+    if (!selectedElement || !selectedElementBox) return null;
+    return evaluateTextConstraints(
+      selectedElement.content || '',
+      selectedElementBox.pxW,
+      selectedElementBox.pxH,
+      overflowInfo[selectedElement.elementId],
+    );
+  }, [selectedElement, selectedElementBox, overflowInfo]);
+
+  const selectedKeepOutCollision = useMemo(() => {
+    if (!selectedElementBox) return null;
+    return findKeepOutCollision(
+      {
+        x: selectedElementBox.pxX,
+        y: selectedElementBox.pxY,
+        width: selectedElementBox.pxW,
+        height: selectedElementBox.pxH,
+      },
+      localKeepOutZones,
+    );
+  }, [selectedElementBox, localKeepOutZones]);
+
+  const selectedOrderMismatch = useMemo(() => {
+    if (!selectedElementId) return null;
+    return readingOrderMismatches.find((m) => m.elementId === selectedElementId) || null;
+  }, [selectedElementId, readingOrderMismatches]);
+
+  const selectedHasOverflow = useMemo(() => {
+    if (!selectedElementId) return false;
+    const hasBackendWarning = (pageSnapshot?.warnings ?? []).some(
+      (w) => w.elementId === selectedElementId && w.code === 'TEXT_OVERFLOW',
+    );
+    const hasClientOverflow =
+      overflowInfo[selectedElementId] != null || (selectedTextConstraints?.isOverflowing ?? false);
+    return hasBackendWarning || hasClientOverflow;
+  }, [selectedElementId, pageSnapshot?.warnings, overflowInfo, selectedTextConstraints]);
 
   const startSideResize = (side: 'left' | 'right') => (e: React.PointerEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -1941,6 +2488,16 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                         ? (speakerNames[line.speakerCharacterId] ?? 'Nhân vật')
                         : null);
                     const canDrag = !isReadOnly && !isPlaced;
+
+                    const narrationMode = (line as any).narrationMode || 'Present';
+                    const lineText = line.dialogueText || line.stageDirection || '';
+                    const lineWordCount = countWords(lineText);
+                    const isTooLong = lineWordCount > MAX_WORDS_PER_BALLOON;
+                    const isFlashback = narrationMode === 'Flashback';
+                    const isDream = narrationMode === 'Dream';
+                    const isImagination = narrationMode === 'Imagination';
+                    const isMissingTime = isFlashback && !hasTimeMarker(lineText);
+
                     return (
                       <div
                         key={line.id}
@@ -1977,35 +2534,91 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                             ? 'border-purple-600 bg-purple-50/50 ring-2 ring-purple-400/20 shadow-xs'
                             : isPlaced
                               ? 'border-emerald-200 bg-emerald-50/30'
-                              : 'border-[#E7E7E7] bg-[#FAF8F5] hover:bg-white hover:border-zinc-300'
+                              : isFlashback
+                                ? 'border-zinc-700 bg-zinc-900/5'
+                                : 'border-[#E7E7E7] bg-[#FAF8F5] hover:bg-white hover:border-zinc-300'
                         }`}
                       >
-                        <div className='flex items-center justify-between gap-2'>
+                        <div className='flex items-center justify-between gap-1.5 flex-wrap'>
                           <span className='font-mono font-bold text-xs text-zinc-500 flex items-center gap-1 min-w-0'>
                             {canDrag && <GripVertical className='w-3 h-3 text-zinc-400 shrink-0' />}
                             <span className='truncate'>
                               #{line.lineOrder} • {speaker || 'Người dẫn truyện'}
                             </span>
                           </span>
-                          {isPlaced ? (
-                            <span className='text-xs font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full flex items-center gap-0.5 shrink-0'>
-                              <CheckCircle2 className='w-3 h-3' /> Đã đặt
-                            </span>
-                          ) : (
-                            <span
-                              className={`text-xs font-bold px-2 py-0.5 rounded-full shrink-0 ${
-                                narrator
-                                  ? 'bg-amber-100 text-amber-800'
-                                  : 'bg-zinc-200 text-zinc-700'
-                              }`}
-                            >
-                              {narrator ? 'Dẫn truyện' : 'Thoại'}
-                            </span>
-                          )}
+
+                          <div className='flex items-center gap-1 shrink-0'>
+                            {isFlashback && (
+                              <span
+                                data-testid={`badge-mode-${line.id}`}
+                                className='text-[10px] font-bold px-2 py-0.5 rounded-full bg-zinc-900 text-white shrink-0 shadow-2xs'
+                              >
+                                HỒI TƯỞNG
+                              </span>
+                            )}
+                            {isDream && (
+                              <span
+                                data-testid={`badge-mode-${line.id}`}
+                                className='text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 border border-sky-300 shrink-0'
+                              >
+                                GIẤC MƠ
+                              </span>
+                            )}
+                            {isImagination && (
+                              <span
+                                data-testid={`badge-mode-${line.id}`}
+                                className='text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 border border-purple-300 shrink-0'
+                              >
+                                TƯỞNG TƯỢNG
+                              </span>
+                            )}
+
+                            {isPlaced ? (
+                              <span className='text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full flex items-center gap-0.5 shrink-0'>
+                                <CheckCircle2 className='w-3 h-3' /> Đã đặt
+                              </span>
+                            ) : (
+                              <span
+                                className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${
+                                  narrator
+                                    ? 'bg-amber-100 text-amber-800'
+                                    : 'bg-zinc-200 text-zinc-700'
+                                }`}
+                              >
+                                {narrator ? 'Dẫn truyện' : 'Thoại'}
+                              </span>
+                            )}
+                          </div>
                         </div>
-                        <p className='font-medium text-zinc-800 line-clamp-2'>
-                          {line.dialogueText || line.stageDirection}
+
+                        <p
+                          className={`font-medium text-zinc-800 line-clamp-2 ${isFlashback ? 'italic' : ''}`}
+                        >
+                          {lineText}
                         </p>
+
+                        {/* Badges cảnh báo độ dài và mốc thời gian */}
+                        {(isTooLong || isMissingTime) && (
+                          <div className='flex items-center gap-1.5 flex-wrap pt-0.5'>
+                            {isTooLong && (
+                              <span
+                                data-testid={`badge-toolong-${line.id}`}
+                                className='text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-700 border border-red-300 flex items-center gap-0.5'
+                              >
+                                <AlertTriangle className='w-3 h-3' /> Quá dài ({lineWordCount} từ)
+                              </span>
+                            )}
+                            {isMissingTime && (
+                              <span
+                                data-testid={`badge-missing-time-${line.id}`}
+                                className='text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300 flex items-center gap-0.5'
+                              >
+                                <Compass className='w-3 h-3' /> Thiếu mốc thời gian
+                              </span>
+                            )}
+                          </div>
+                        )}
+
                         {isSelected && (
                           <div className='text-xs font-semibold text-purple-700 flex items-center gap-1 pt-1 border-t border-purple-200'>
                             <Plus className='w-3.5 h-3.5' /> Bấm hoặc kéo thả lên trang để đặt dòng
@@ -2082,6 +2695,45 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
               <span className='font-display font-black text-xs'>SFX</span>{' '}
               <span className='hidden 2xl:inline'>Hiệu ứng âm</span>
             </button>
+            <button
+              onClick={() => setToolMode('keepout')}
+              title='Vẽ vùng cấm chữ trên tranh (tránh mặt/tay nhân vật)'
+              data-testid='tool-keepout'
+              className={toolBtn(toolMode === 'keepout', 'bg-red-600')}
+            >
+              <ShieldAlert className='w-3.5 h-3.5' />{' '}
+              <span className='hidden 2xl:inline'>Vùng cấm</span>
+            </button>
+            <div className='w-px h-4 bg-zinc-200 mx-1'></div>
+            <button
+              onClick={() => setShowReadingOrder((v) => !v)}
+              aria-pressed={showReadingOrder}
+              title='Bật/tắt số thứ tự đọc trên bóng thoại'
+              data-testid='toggle-reading-order'
+              className={toolBtn(showReadingOrder, 'bg-zinc-800')}
+            >
+              <ListOrdered className='w-3.5 h-3.5' />{' '}
+              <span className='hidden 2xl:inline'>Thứ tự</span>
+            </button>
+            <button
+              onClick={() => setIsRTL((v) => !v)}
+              title='Hướng đọc manga: Phải qua Trái (RTL)'
+              data-testid='reading-direction-indicator'
+              className='px-2 py-1 rounded-xl text-xs font-bold border border-zinc-200 text-zinc-700 hover:bg-zinc-100 cursor-pointer flex items-center gap-1'
+            >
+              <Compass className='w-3 h-3 text-purple-600' />
+              <span>{isRTL ? 'RTL (Manga)' : 'LTR (Tây)'}</span>
+            </button>
+            <button
+              onClick={() => setReaderMode((v) => !v)}
+              aria-pressed={readerMode}
+              title='Xem thử như người đọc manga trên điện thoại (~390px)'
+              data-testid='toggle-reader-mode'
+              className={toolBtn(readerMode, 'bg-emerald-600')}
+            >
+              <Smartphone className='w-3.5 h-3.5' />{' '}
+              <span className='hidden 2xl:inline'>Xem như người đọc</span>
+            </button>
             <div className='w-px h-4 bg-zinc-200 mx-1'></div>
             <button
               onClick={() => setSeeThrough((v) => !v)}
@@ -2139,8 +2791,28 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
             onDragOver={handleViewportDragOver}
             onDrop={handleViewportDrop}
             onDragLeave={handleViewportDragLeave}
-            className={`relative flex-1 min-h-0 overflow-hidden select-none touch-none overscroll-contain ${viewportCursor}`}
+            className={`relative flex-1 min-h-0 overflow-hidden select-none touch-none overscroll-contain ${viewportCursor} ${
+              readerMode ? 'w-full max-w-[420px] mx-auto shadow-2xl border-x border-zinc-300' : ''
+            }`}
           >
+            {readerMode && (
+              <div
+                className='absolute top-3 left-1/2 transform -translate-x-1/2 z-50 bg-[#171717]/90 text-white backdrop-blur px-4 py-1.5 rounded-full flex items-center gap-3 text-xs shadow-xl'
+                data-testid='reader-mode-banner'
+              >
+                <span className='flex items-center gap-1.5 font-medium'>
+                  <Smartphone className='w-3.5 h-3.5 text-emerald-400' />
+                  Xem như người đọc (390px)
+                </span>
+                <button
+                  onClick={() => setReaderMode(false)}
+                  data-testid='exit-reader-mode'
+                  className='px-2.5 py-0.5 rounded-full bg-zinc-700 hover:bg-zinc-600 text-xs font-bold cursor-pointer transition-colors'
+                >
+                  ✕ Thoát xem thử
+                </button>
+              </div>
+            )}
             <div
               data-testid='letterer-stage'
               className='absolute left-0 top-0 bg-white shadow-2xl'
@@ -2243,13 +2915,81 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                 </svg>
               )}
 
+              {/* Keep-out Zones ("Vùng cấm chữ" - P3) */}
+              {localKeepOutZones.map((kz) => (
+                <div
+                  key={kz.id}
+                  data-testid={`keep-out-zone-${kz.id}`}
+                  className={`absolute border-2 border-dashed border-red-500 bg-red-500/15 pointer-events-auto rounded z-15 flex flex-col justify-between p-1 select-none ${
+                    readerMode ? 'hidden' : 'flex'
+                  }`}
+                  style={{
+                    left: kz.x,
+                    top: kz.y,
+                    width: kz.width,
+                    height: kz.height,
+                  }}
+                >
+                  <div className='flex items-center justify-between text-[11px] font-bold text-red-700 bg-white/95 px-1.5 py-0.5 rounded shadow-xs max-w-full'>
+                    <span className='truncate flex items-center gap-1'>
+                      <ShieldAlert className='w-3 h-3 text-red-500 shrink-0' />
+                      <span className='truncate'>{kz.label || 'Vùng cấm'}</span>
+                    </span>
+                    {!isReadOnly && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteKeepOut(kz.id);
+                        }}
+                        title='Xoá vùng cấm này'
+                        className='ml-1 text-zinc-400 hover:text-red-600 cursor-pointer'
+                      >
+                        <X className='w-3 h-3' />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+
+              {/* Live drawing keep-out preview */}
+              {drawingKeepOut && (
+                <div
+                  className='absolute border-2 border-dashed border-red-600 bg-red-500/25 pointer-events-none z-30'
+                  style={{
+                    left: drawingKeepOut.x,
+                    top: drawingKeepOut.y,
+                    width: drawingKeepOut.width,
+                    height: drawingKeepOut.height,
+                  }}
+                />
+              )}
+
+              {/* Flashback panels overlay: dark gutter and soft border (P4) */}
+              {Array.from(flashbackPanelIds).map((pId) => {
+                const panel = panels.find((p) => p.id === pId);
+                if (!panel) return null;
+                const pBox = parseBoundingBox(panel.boundingBox, pageDim.width, pageDim.height);
+                return (
+                  <div
+                    key={`flashback-overlay-${pId}`}
+                    data-testid={`flashback-panel-overlay-${pId}`}
+                    className='absolute pointer-events-none border-2 border-zinc-900/70 shadow-[0_0_24px_rgba(0,0,0,0.45)_inset] rounded-sm z-5'
+                    style={{
+                      left: pBox.pixelX,
+                      top: pBox.pixelY,
+                      width: pBox.pixelW,
+                      height: pBox.pixelH,
+                    }}
+                  />
+                );
+              })}
+
               {/* Elements on canvas (px trang gốc, dùng chung phép biến đổi của stage) */}
               {elements.map((b) => {
                 const isSelected = selectedElementId === b.elementId;
+                // Ẩn nhãn cảnh báo trong lúc kéo để chỉ thấy bóng di chuyển
+                const hideBadges = readerMode || draggingId === b.elementId;
                 const isImageLayer = IMAGE_LAYER_TYPES.includes(b.elementType as any);
-                const isThought = b.elementType === 'THOUGHT_BALLOON';
-                const isNarration = b.elementType === 'NARRATION_BOX';
-                const isSfx = b.elementType === 'SOUND_EFFECT';
                 const box = getNormalizedElementBox(b);
 
                 if (isImageLayer) {
@@ -2289,24 +3029,57 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                   );
                 }
 
-                const overflowing = overflowInfo[b.elementId] != null;
-                const solidBorder = isSelected
-                  ? '#10B981'
-                  : b.isStale
-                    ? '#F59E0B'
-                    : overflowing
-                      ? '#EF4444'
-                      : '#171717';
-                // Viền + vòng sáng mờ theo thanh trượt "Nền" để nhìn rõ tranh bên dưới
-                const fade = bgOpacity / 100;
-                const borderColor = `color-mix(in srgb, ${solidBorder} ${bgOpacity}%, transparent)`;
-                const ring = isSelected
-                  ? `0 0 0 calc(var(--inv) * 4px) rgba(16,185,129,${0.25 * fade})`
-                  : overflowing
-                    ? `0 0 0 calc(var(--inv) * 3px) rgba(239,68,68,${0.35 * fade})`
-                    : b.isStale
-                      ? `0 0 0 calc(var(--inv) * 3px) rgba(245,158,11,${0.35 * fade})`
-                      : undefined;
+                const textConstraints = evaluateTextConstraints(
+                  b.content || '',
+                  box.pxW,
+                  box.pxH,
+                  overflowInfo[b.elementId],
+                );
+                const keepOutCollision = findKeepOutCollision(
+                  { x: box.pxX, y: box.pxY, width: box.pxW, height: box.pxH },
+                  localKeepOutZones,
+                );
+                const isOrderMismatch = readingOrderMismatches.some(
+                  (m) => m.elementId === b.elementId,
+                );
+
+                const hasCollision = keepOutCollision != null;
+                const isTooLong = textConstraints.isTooLong;
+                const overflowing =
+                  overflowInfo[b.elementId] != null || textConstraints.isOverflowing;
+
+                // Giao diện thật của bóng — đọc từ style đã lưu, cùng quy tắc với màn duyệt và bản xuất
+                const appearance = appearanceOf(b);
+                const currentTail =
+                  tailDraft[b.elementId] ?? tailFromStyle(b.style) ?? defaultTail(box.pxW, box.pxH);
+                const shapePath = balloonPath(appearance.shape, box.pxW, box.pxH, currentTail);
+                const textStyle = resolveTextStyle(b);
+                const textLayout = layoutText(
+                  b.content || '',
+                  textStyle,
+                  appearance.shape,
+                  box.pxW,
+                  box.pxH,
+                );
+                // Thanh "Nền" chỉ làm mờ nền khi làm việc; viền thật theo cấu hình, không bị ép hiện hay ẩn
+                const fillColor = fillRgba(appearance, readerMode ? 1 : bgOpacity / 100);
+                // Khung chọn/cảnh báo chỉ là trợ giúp chỉnh sửa (box-shadow), không thuộc sản phẩm
+                const ring = readerMode
+                  ? undefined
+                  : isSelected
+                    ? '0 0 0 calc(var(--inv) * 2px) #10B981'
+                    : hasCollision || overflowing || isTooLong
+                      ? '0 0 0 calc(var(--inv) * 2px) rgba(239,68,68,0.8)'
+                      : b.isStale
+                        ? '0 0 0 calc(var(--inv) * 2px) rgba(245,158,11,0.8)'
+                        : undefined;
+                // Không nền, không viền: vẫn cần vùng bấm thấy được trong editor
+                const invisibleShape =
+                  !shapePath || (appearance.fillOpacity === 0 && appearance.borderWidth === 0);
+                const hitHint =
+                  !readerMode && invisibleShape && !ring
+                    ? '1px dashed rgba(113,113,122,0.6)'
+                    : undefined;
                 const editing = editingId === b.elementId;
 
                 return (
@@ -2334,49 +3107,110 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                       width: box.pxW,
                       height: box.pxH,
                       boxSizing: 'border-box',
-                      padding: LETTERING_PADDING_PX,
-                      background: isSfx
-                        ? 'transparent'
-                        : isNarration
-                          ? `rgba(255, 251, 235, ${bgOpacity / 100})`
-                          : `rgba(255, 255, 255, ${bgOpacity / 100})`,
-                      color: isSfx ? '#DC2626' : '#171717',
-                      border: isSfx
-                        ? 'none'
-                        : `calc(var(--inv) * 3px) ${isThought ? 'dashed' : 'solid'} ${borderColor}`,
-                      borderRadius: isNarration
-                        ? 0
-                        : isThought
-                          ? Math.min(80, box.pxH / 2)
-                          : Math.min(56, box.pxH / 3),
+                      padding: 0,
+                      background: 'transparent',
+                      color: textStyle.color,
+                      border: 'none',
+                      borderRadius: 0,
+                      outline: hitHint,
                       boxShadow: ring,
                       opacity: seeThrough ? 0.3 : 1,
                       visibility: hideLettering ? 'hidden' : 'visible',
-                      zIndex: isSelected ? 30 : b.isStale || overflowing ? 20 : 10,
+                      zIndex: isSelected ? 30 : b.isStale || overflowing || hasCollision ? 20 : 10,
                     }}
                   >
-                    {isSelected && !isReadOnly && (
-                      <div
-                        onPointerDown={(e) => handleResizePointerDown(e, b.elementId)}
-                        title='Kéo để đổi kích thước'
-                        data-testid={`letterer-resize-${b.elementId}`}
-                        className='absolute bg-[#10B981] border-white rounded-sm cursor-nwse-resize shadow'
-                        style={{
-                          width: 'calc(var(--inv) * 14px)',
-                          height: 'calc(var(--inv) * 14px)',
-                          right: 'calc(var(--inv) * -7px)',
-                          bottom: 'calc(var(--inv) * -7px)',
-                          borderWidth: 'calc(var(--inv) * 2px)',
-                          borderStyle: 'solid',
-                          zIndex: 40,
-                        }}
-                      />
+                    {/* Hình bóng thật — cùng path/nền/viền với màn duyệt (balloonRender); "Chỉ chữ" thì không vẽ */}
+                    {shapePath && (
+                      <svg
+                        className='absolute inset-0 pointer-events-none'
+                        data-testid={`balloon-shape-${b.elementId}`}
+                        data-shape={appearance.shape}
+                        style={{ width: box.pxW, height: box.pxH, overflow: 'visible' }}
+                      >
+                        <path
+                          d={shapePath}
+                          fill={fillColor}
+                          stroke={appearance.borderWidth > 0 ? appearance.borderColor : 'none'}
+                          strokeWidth={appearance.borderWidth}
+                        />
+                        {appearance.shape === 'cloud' &&
+                          createThoughtTailDots(box.pxW, box.pxH, currentTail.x, currentTail.y).map(
+                            (dot, dotIdx) => (
+                              <circle
+                                key={dotIdx}
+                                cx={dot.cx}
+                                cy={dot.cy}
+                                r={dot.r}
+                                fill={fillColor}
+                                stroke={
+                                  appearance.borderWidth > 0 ? appearance.borderColor : 'none'
+                                }
+                                strokeWidth={appearance.borderWidth}
+                              />
+                            ),
+                          )}
+                      </svg>
                     )}
 
+                    {/* Draggable tail handle (P1) */}
+                    {isSelected &&
+                      !isReadOnly &&
+                      (appearance.shape === 'oval' || appearance.shape === 'cloud') &&
+                      !readerMode && (
+                        <div
+                          data-testid={`tail-handle-${b.elementId}`}
+                          onPointerDown={(e) => handleTailPointerDown(e, b.elementId)}
+                          title='Kéo chỉnh đuôi bóng thoại'
+                          className='absolute bg-emerald-500 border-2 border-white rounded-full cursor-crosshair shadow-md z-40 transform -translate-x-1/2 -translate-y-1/2 hover:scale-125 transition-transform'
+                          style={{
+                            left: currentTail.x,
+                            top: currentTail.y,
+                            width: 'calc(var(--inv) * 14px)',
+                            height: 'calc(var(--inv) * 14px)',
+                          }}
+                        />
+                      )}
+
+                    {/* Tay nắm đổi kích thước ở 4 góc (góc đối diện đứng yên) */}
+                    {isSelected &&
+                      !isReadOnly &&
+                      !readerMode &&
+                      (['nw', 'ne', 'sw', 'se'] as const).map((corner) => (
+                        <div
+                          key={corner}
+                          data-corner={corner}
+                          title={
+                            autoFitText
+                              ? 'Kéo để đổi kích thước (chữ tự co theo bóng)'
+                              : 'Kéo để đổi kích thước'
+                          }
+                          data-testid={
+                            corner === 'se'
+                              ? `letterer-resize-${b.elementId}`
+                              : `letterer-resize-${corner}-${b.elementId}`
+                          }
+                          className={`absolute bg-[#10B981] border-white rounded-sm shadow ${
+                            corner === 'nw' || corner === 'se'
+                              ? 'cursor-nwse-resize'
+                              : 'cursor-nesw-resize'
+                          }`}
+                          style={{
+                            width: 'calc(var(--inv) * 14px)',
+                            height: 'calc(var(--inv) * 14px)',
+                            [corner.includes('w') ? 'left' : 'right']: 'calc(var(--inv) * -7px)',
+                            [corner.includes('n') ? 'top' : 'bottom']: 'calc(var(--inv) * -7px)',
+                            borderWidth: 'calc(var(--inv) * 2px)',
+                            borderStyle: 'solid',
+                            zIndex: 40,
+                          }}
+                        />
+                      ))}
+
                     {/* Badge Thứ tự đọc */}
-                    {b.readingOrder != null && (
+                    {showReadingOrder && !hideBadges && (
                       <span
-                        className='absolute bg-[#171717] text-white font-mono font-bold rounded-full shadow-2xs'
+                        data-testid={`reading-order-badge-${b.elementId}`}
+                        className='absolute bg-[#171717] text-white font-mono font-bold rounded-full shadow-2xs z-30'
                         style={{
                           top: 'calc(var(--inv) * -10px)',
                           left: 'calc(var(--inv) * -8px)',
@@ -2384,14 +3218,14 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                           padding: 'calc(var(--inv) * 1px) calc(var(--inv) * 6px)',
                         }}
                       >
-                        #{b.readingOrder}
+                        #{b.readingOrder ?? elements.indexOf(b) + 1}
                       </span>
                     )}
 
                     {/* Stale Warning Badge (BR-05) */}
-                    {b.isStale && (
+                    {b.isStale && !hideBadges && (
                       <span
-                        className='absolute bg-amber-500 text-white font-bold rounded shadow-2xs flex items-center gap-1 animate-pulse'
+                        className='absolute bg-amber-500 text-white font-bold rounded shadow-2xs flex items-center gap-1 animate-pulse z-30'
                         style={{
                           top: 'calc(var(--inv) * -10px)',
                           right: 'calc(var(--inv) * 4px)',
@@ -2409,11 +3243,38 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                       </span>
                     )}
 
-                    {/* Cảnh báo chữ tràn khung: chữ vẫn hiện đủ, không bị cắt */}
-                    {overflowing && (
+                    {/* Badge Va chạm vùng cấm chữ (P3) */}
+                    {hasCollision && !hideBadges && (
                       <span
-                        data-testid={`overflow-badge-${b.elementId}`}
-                        className='absolute bg-red-600 text-white font-bold rounded shadow-2xs flex items-center gap-1'
+                        data-testid={`keepout-collision-badge-${b.elementId}`}
+                        className='absolute bg-red-600 text-white font-bold rounded shadow-2xs flex items-center gap-1 z-30 animate-pulse'
+                        style={{
+                          top: 'calc(var(--inv) * -10px)',
+                          right: b.isStale ? 'calc(var(--inv) * 60px)' : 'calc(var(--inv) * 4px)',
+                          fontSize: 'calc(var(--inv) * 10px)',
+                          padding: 'calc(var(--inv) * 1px) calc(var(--inv) * 6px)',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        <ShieldAlert
+                          style={{
+                            width: 'calc(var(--inv) * 10px)',
+                            height: 'calc(var(--inv) * 10px)',
+                          }}
+                        />{' '}
+                        Che mặt/tay
+                      </span>
+                    )}
+
+                    {/* Cảnh báo chữ tràn khung hoặc quá dài */}
+                    {(overflowing || isTooLong) && !hideBadges && (
+                      <span
+                        data-testid={
+                          isTooLong
+                            ? `toolong-badge-${b.elementId}`
+                            : `overflow-badge-${b.elementId}`
+                        }
+                        className='absolute bg-red-600 text-white font-bold rounded shadow-2xs flex items-center gap-1 z-30'
                         style={{
                           bottom: 'calc(var(--inv) * -22px)',
                           left: 0,
@@ -2428,7 +3289,34 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                             height: 'calc(var(--inv) * 10px)',
                           }}
                         />{' '}
-                        Chữ tràn khung
+                        {isTooLong
+                          ? overflowing
+                            ? `Quá dài (${textConstraints.wordCount} từ) · Tràn`
+                            : `Quá dài (${textConstraints.wordCount} từ)`
+                          : 'Chữ tràn khung'}
+                      </span>
+                    )}
+
+                    {/* Cảnh báo thứ tự đọc ngược */}
+                    {isOrderMismatch && !hideBadges && (
+                      <span
+                        data-testid={`order-mismatch-badge-${b.elementId}`}
+                        className='absolute bg-blue-600 text-white font-bold rounded shadow-2xs flex items-center gap-1 z-30'
+                        style={{
+                          bottom: 'calc(var(--inv) * -22px)',
+                          right: 0,
+                          fontSize: 'calc(var(--inv) * 10px)',
+                          padding: 'calc(var(--inv) * 2px) calc(var(--inv) * 6px)',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        <Compass
+                          style={{
+                            width: 'calc(var(--inv) * 10px)',
+                            height: 'calc(var(--inv) * 10px)',
+                          }}
+                        />{' '}
+                        Thứ tự ngược
                       </span>
                     )}
 
@@ -2441,50 +3329,40 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                         onCommit={(text) => updateBalloonText(b.elementId, text)}
                         onDone={() => setEditingId(null)}
                         testId={`inline-editor-${b.elementId}`}
-                        className='absolute inset-0 w-full h-full resize-none bg-white/95 text-center font-bold focus:outline-none'
+                        className='absolute inset-0 w-full h-full resize-none text-center font-bold focus:outline-none bg-white/95 text-zinc-900'
                         style={{
-                          fontSize: LETTERING_FONT_PX,
-                          lineHeight: LETTERING_LINE_HEIGHT_EM,
+                          ...textStyleCss(resolveTextStyle(b)),
+                          color: undefined, // ô sửa dùng màu của lớp nền ô (đen/trắng) để luôn đọc được
+                          WebkitTextStroke: undefined,
                           padding: LETTERING_PADDING_PX,
                           borderRadius: 'inherit',
+                          zIndex: 35,
                         }}
                       />
                     ) : (
-                      <div className='w-full h-full flex items-center justify-center'>
-                        <span
-                          ref={(node) => {
-                            if (node) textRefs.current.set(b.elementId, node);
-                            else textRefs.current.delete(b.elementId);
-                          }}
-                          className={isSfx ? 'font-display font-black' : 'font-bold'}
-                          style={{
-                            display: 'block',
-                            maxWidth: '100%',
-                            fontSize: LETTERING_FONT_PX,
-                            lineHeight: LETTERING_LINE_HEIGHT_EM,
-                            textAlign: 'center',
-                            whiteSpace: 'pre-wrap',
-                            overflowWrap: 'anywhere',
-                          }}
-                        >
-                          {b.content || ''}
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Balloon tail indicator */}
-                    {!isNarration && !isThought && !isSfx && (
+                      // Chữ theo đúng các dòng `layoutText` đã ngắt (cùng thuật toán và vùng an toàn với màn duyệt);
+                      // tràn thì chữ vẫn hiện ra ngoài vùng để thấy, kèm cảnh báo — không tự thu nhỏ.
                       <div
-                        className='absolute left-1/2 bg-white pointer-events-none'
+                        data-testid={`balloon-text-${b.elementId}`}
+                        className='absolute z-20 flex flex-col justify-center pointer-events-none'
                         style={{
-                          width: 22,
-                          height: 22,
-                          bottom: -13,
-                          transform: 'translateX(-50%) rotate(45deg)',
-                          borderBottom: `calc(var(--inv) * 3px) solid ${borderColor}`,
-                          borderRight: `calc(var(--inv) * 3px) solid ${borderColor}`,
+                          left: textLayout.area.x,
+                          top: textLayout.area.y,
+                          width: textLayout.area.w,
+                          height: textLayout.area.h,
+                          ...textStyleCss(textStyle),
+                          lineHeight: `${textLayout.lineHeightPx}px`,
                         }}
-                      ></div>
+                      >
+                        {textLayout.lines.map((line, i) => (
+                          <div
+                            key={i}
+                            style={{ whiteSpace: 'pre', minHeight: textLayout.lineHeightPx }}
+                          >
+                            {line}
+                          </div>
+                        ))}
+                      </div>
                     )}
                   </div>
                 );
@@ -2686,6 +3564,50 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                     </div>
                   )}
 
+                  {/* Thanh định dạng chữ (kiểu có sẵn, font, cỡ, B/I, căn lề, màu, viền, giãn dòng) */}
+                  {!IMAGE_LAYER_TYPES.includes(selectedElement.elementType as any) && (
+                    <TextFormatToolbar
+                      key={`fmt-${selectedElement.elementId}`}
+                      style={resolveTextStyle(selectedElement)}
+                      isCustom={!!selectedElement.style}
+                      disabled={isReadOnly}
+                      // Thanh định dạng chỉ đổi thuộc tính chữ: giữ phần bóng/đuôi đã lưu
+                      onChange={(style) =>
+                        void handleUpdateStyle(
+                          selectedElement.elementId,
+                          mergeTextStyle(
+                            style,
+                            selectedElement.style,
+                            resolveTextStyle({ elementType: selectedElement.elementType }),
+                          ),
+                        )
+                      }
+                    />
+                  )}
+
+                  {/* Hình bóng: độc lập với loại nội dung (loại đã lưu ở BE, không đổi được sau khi tạo) */}
+                  {!IMAGE_LAYER_TYPES.includes(selectedElement.elementType as any) && (
+                    <BalloonAppearancePanel
+                      appearance={appearanceOf(selectedElement)}
+                      defaultShapeLabel={
+                        BALLOON_SHAPES.find(
+                          (s) => s.value === defaultAppearance(selectedElement.elementType).shape,
+                        )?.label ?? ''
+                      }
+                      isCustom={
+                        Object.keys(appearanceFromStyle(selectedElement.style)).length > 0 ||
+                        tailFromStyle(selectedElement.style) != null
+                      }
+                      disabled={isReadOnly}
+                      onChange={(patch) => updateAppearance(selectedElement.elementId, patch)}
+                      onReset={() => updateAppearance(selectedElement.elementId, null)}
+                      onFitBox={() => growToFit(selectedElement.elementId)}
+                      onFitText={() => fitTextToBox(selectedElement.elementId)}
+                      autoFitText={autoFitText}
+                      onToggleAutoFit={toggleAutoFitText}
+                    />
+                  )}
+
                   {/* AI Dialogue Shortening (Letterer Agent CF2 2.4) */}
                   <div className='p-3 bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-200 rounded-xl space-y-2.5'>
                     <div className='flex items-center justify-between'>
@@ -2766,35 +3688,145 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                     })()}
                   </div>
 
-                  {/* Chữ tràn khung: cảnh báo rõ, cho tăng khung — không âm thầm cắt chữ */}
-                  {overflowInfo[selectedElement.elementId] != null && (
+                  {/* Mật độ chữ của Panel (P2) */}
+                  {panelDensity && (
+                    <div
+                      className='p-3 bg-zinc-50 border border-zinc-200 rounded-xl space-y-1.5'
+                      data-testid='panel-density-card'
+                    >
+                      <div className='flex items-center justify-between text-xs'>
+                        <span className='font-bold text-zinc-700'>Mật độ chữ khung</span>
+                        <span className='font-bold' style={{ color: panelDensity.color }}>
+                          {panelDensity.percentage}% • {panelDensity.label}
+                        </span>
+                      </div>
+                      <div className='w-full bg-zinc-200 h-2 rounded-full overflow-hidden'>
+                        <div
+                          className='h-full transition-all duration-300 rounded-full'
+                          style={{
+                            width: `${Math.min(100, panelDensity.percentage)}%`,
+                            backgroundColor: panelDensity.color,
+                          }}
+                        />
+                      </div>
+                      <div className='flex items-center justify-between text-[11px] text-zinc-500'>
+                        <span>&lt;15%: Thoáng</span>
+                        <span>15–25%: Vừa</span>
+                        <span>&gt;25%: Dày</span>
+                      </div>
+                      {!isReadOnly && (
+                        <button
+                          onClick={() => handleSuggestPosition(selectedElement.elementId)}
+                          data-testid='suggest-position-btn'
+                          className='mt-1 w-full py-1 bg-white hover:bg-zinc-100 border border-zinc-300 text-zinc-700 rounded text-xs font-semibold flex items-center justify-center gap-1 cursor-pointer transition-colors'
+                        >
+                          <Compass className='w-3 h-3 text-purple-600' /> Gợi ý vị trí thoáng
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Cảnh báo bóng thoại đè vùng cấm chữ (P3) */}
+                  {selectedKeepOutCollision && (
+                    <div
+                      data-testid='keepout-callout'
+                      className='p-3 bg-red-50 border border-red-300 rounded-xl space-y-2 text-red-900'
+                    >
+                      <div className='font-bold flex items-center gap-1.5 text-xs'>
+                        <ShieldAlert className='w-4 h-4 text-red-600 shrink-0' />
+                        <span>Bóng thoại che vùng cấm</span>
+                      </div>
+                      <p className='text-xs leading-relaxed'>
+                        Bóng thoại đang che khuất{' '}
+                        <strong>{selectedKeepOutCollision.label || 'mặt/tay nhân vật'}</strong>. Hãy
+                        dời bóng thoại hoặc bấm nút gợi ý bên dưới.
+                      </p>
+                      {!isReadOnly && (
+                        <button
+                          onClick={() => handleSuggestPosition(selectedElement.elementId)}
+                          data-testid='suggest-position-btn-collision'
+                          className='w-full py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold text-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-xs'
+                        >
+                          <Compass className='w-3.5 h-3.5' /> Gợi ý vị trí thoáng nhất
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Cảnh báo chữ không vừa khung hoặc quá dài (>30 từ) (P2) */}
+                  {(overflowInfo[selectedElement.elementId] != null ||
+                    selectedTextConstraints?.isTooLong) && (
                     <div
                       data-testid='overflow-callout'
                       className='p-3 bg-red-50 border border-red-300 rounded-xl space-y-2 text-red-900'
                     >
-                      <div className='font-bold flex items-center gap-1.5 text-xs'>
-                        <AlertTriangle className='w-4 h-4 text-red-600 shrink-0' />
-                        <span>Chữ không vừa khung</span>
+                      <div className='font-bold flex items-center justify-between text-xs'>
+                        <div className='flex items-center gap-1.5'>
+                          <AlertTriangle className='w-4 h-4 text-red-600 shrink-0' />
+                          <span>
+                            {selectedTextConstraints?.isTooLong
+                              ? 'Thoại quá dài (>30 từ)'
+                              : 'Chữ không vừa khung'}
+                          </span>
+                        </div>
+                        {selectedTextConstraints && (
+                          <span className='font-mono text-xs font-bold text-red-700'>
+                            {selectedTextConstraints.wordCount} từ
+                          </span>
+                        )}
                       </div>
                       <p className='text-xs leading-relaxed'>
-                        Chữ cao khoảng {Math.round(overflowInfo[selectedElement.elementId])}px,
-                        khung chỉ chứa{' '}
-                        {Math.max(0, Math.round(selectedElementBox.pxH - 2 * LETTERING_PADDING_PX))}
-                        px. Tăng khung, rút gọn chữ hoặc xác nhận tràn chữ bên dưới.
+                        {selectedTextConstraints?.isTooLong
+                          ? 'Câu dài bị nhồi thành khối dày làm giảm trải nghiệm đọc manga. Khuyên dùng rút gọn hoặc tách đôi.'
+                          : `Chữ cao khoảng ${Math.round(overflowInfo[selectedElement.elementId] || 0)}px, khung chỉ chứa ${Math.max(0, Math.round(selectedElementBox.pxH - 2 * LETTERING_PADDING_PX))}px.`}
                       </p>
                       {!isReadOnly && (
-                        <button
-                          onClick={() => growToFit(selectedElement.elementId)}
-                          data-testid='grow-to-fit'
-                          className='w-full py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold text-xs transition-colors cursor-pointer'
-                        >
-                          Tăng khung cho vừa chữ
-                        </button>
+                        <div className='flex flex-col gap-1.5 pt-0.5'>
+                          <button
+                            onClick={handleRunLettererAgent}
+                            disabled={aiLoading || !activeSeriesId}
+                            data-testid='ai-shorten-btn'
+                            className='w-full py-1.5 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white rounded-lg font-semibold text-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-xs'
+                          >
+                            <Sparkles className='w-3.5 h-3.5 text-amber-300' /> AI Rút Gọn Thoại
+                          </button>
+                          <button
+                            onClick={() => handleSplitBalloon(selectedElement.elementId)}
+                            data-testid='split-balloon-btn'
+                            className='w-full py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-semibold text-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-xs'
+                          >
+                            <Split className='w-3.5 h-3.5' /> Tách thành 2 bóng
+                          </button>
+                          {overflowInfo[selectedElement.elementId] != null && (
+                            <button
+                              onClick={() => growToFit(selectedElement.elementId)}
+                              data-testid='grow-to-fit'
+                              className='w-full py-1.5 bg-zinc-700 hover:bg-zinc-800 text-white rounded-lg font-semibold text-xs transition-colors cursor-pointer'
+                            >
+                              Tăng khung cho vừa chữ
+                            </button>
+                          )}
+                        </div>
                       )}
                       <p className='text-xs text-red-700/80'>
-                        Cỡ chữ cố định {LETTERING_FONT_PX}px theo chuẩn của hệ thống (chưa có trường
-                        cỡ chữ riêng cho từng bóng).
+                        Cỡ chữ cố định {Math.max(MIN_LETTERING_FONT_PX, LETTERING_FONT_PX)}px theo
+                        chuẩn hệ thống (không tự thu nhỏ dưới mức tối thiểu {MIN_LETTERING_FONT_PX}
+                        px).
                       </p>
+                    </div>
+                  )}
+
+                  {/* Cảnh báo thứ tự đọc ngược kịch bản (P5) */}
+                  {selectedOrderMismatch && (
+                    <div
+                      data-testid='reading-order-mismatch-callout'
+                      className='p-3 bg-blue-50 border border-blue-300 rounded-xl space-y-1.5 text-blue-900'
+                    >
+                      <div className='font-bold flex items-center gap-1.5 text-xs'>
+                        <Compass className='w-4 h-4 text-blue-600 shrink-0' />
+                        <span>Thứ tự đọc ngược kịch bản</span>
+                      </div>
+                      <p className='text-xs leading-relaxed'>{selectedOrderMismatch.message}</p>
                     </div>
                   )}
 
@@ -2981,13 +4013,17 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                       <div className='text-xs text-emerald-800 bg-emerald-50 p-2 rounded border border-emerald-200'>
                         ✓ Đã xác nhận: {selectedElement.overflowAcknowledgedReason}
                       </div>
-                    ) : (
+                    ) : selectedHasOverflow ? (
                       <>
+                        <p className='text-xs text-amber-700 leading-relaxed'>
+                          Bóng thoại đang bị tràn chữ so với kích thước hộp. Bạn có thể nhập lý do
+                          bên dưới để xác nhận cho phép nộp bài.
+                        </p>
                         <input
                           type='text'
                           value={ackReason}
                           onChange={(e) => setAckReason(e.target.value)}
-                          placeholder='Lý do chấp nhận tràn chữ...'
+                          placeholder='Lý do chấp nhận tràn chữ (vd: Chữ nhỏ vừa đọc được)...'
                           className='w-full p-1.5 bg-white border border-zinc-300 rounded text-xs'
                         />
                         <button
@@ -2997,6 +4033,11 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                           Xác nhận tràn chữ
                         </button>
                       </>
+                    ) : (
+                      <div className='text-xs text-emerald-700 bg-emerald-50/60 p-2 rounded border border-emerald-200/60 flex items-center gap-1.5'>
+                        <CheckCircle2 className='w-3.5 h-3.5 shrink-0 text-emerald-600' />
+                        <span>Kích thước bóng vừa vặn với nội dung chữ (không bị tràn).</span>
+                      </div>
                     )}
                   </div>
 

@@ -21,6 +21,7 @@ import {
   ConsistencyFindingDto,
   VisualDeviationDto,
   VisualConsistencyReportDto,
+  ReturnWorkFromReviewRequest,
 } from '@/types';
 
 export type {
@@ -42,6 +43,7 @@ export type {
   ConsistencyFindingDto,
   VisualDeviationDto,
   VisualConsistencyReportDto,
+  ReturnWorkFromReviewRequest,
 };
 
 export function extractError(error: any, defaultMsg: string): string {
@@ -455,6 +457,30 @@ export const assignmentService = {
       return response.data;
     } catch (error: any) {
       throw new Error(extractError(error, 'Không thể từ chối yêu cầu'));
+    }
+  },
+
+  /**
+   * CF3: Màn duyệt cả chương (7. Review): trả việc của một trang/khung về người làm
+   * (POST /api/chapters/{chapterId}/assignments/{reviewAssignmentId}/return-work)
+   */
+  returnWorkFromReview: async (
+    chapterId: string,
+    reviewAssignmentId: string,
+    data: ReturnWorkFromReviewRequest,
+  ): Promise<ChangeRequestDto> => {
+    try {
+      const response = await axiosClient.post(
+        `/chapters/${chapterId}/assignments/${reviewAssignmentId}/return-work`,
+        data,
+      );
+      return response.data;
+    } catch (error: any) {
+      const err = new Error(extractError(error, 'Không thể trả việc từ bước duyệt chương'));
+      (err as any).status = error?.response?.status;
+      (err as any).data = error?.response?.data;
+      (err as any).rawError = error;
+      throw err;
     }
   },
 

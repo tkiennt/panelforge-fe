@@ -424,7 +424,11 @@ export type ProvenanceEventType =
   | 'SuggestionCreated'
   | 'DecisionMade'
   | 'RevisionCreated'
-  | 'SnapshotCreated';
+  | 'SnapshotCreated'
+  | 'ArtworkUploaded'
+  | 'LetteringChanged'
+  | 'WorkSubmitted'
+  | 'ReviewDecided';
 
 export interface ProvenanceTimelineEntry {
   timestamp: string;

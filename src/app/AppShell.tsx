@@ -676,9 +676,7 @@ export function AppShell({
                         )
                       }
                       className={`font-bold truncate flex items-center gap-1.5 px-2.5 py-1 rounded-full hover:bg-white hover:shadow-soft-sm transition-all cursor-pointer ${
-                        chapterId
-                          ? 'text-[#57534e] hover:text-[#0c0a09]'
-                          : 'text-[#0c0a09]'
+                        chapterId ? 'text-[#57534e] hover:text-[#0c0a09]' : 'text-[#0c0a09]'
                       }`}
                       title='Chuyển đến Series Workspace'
                     >

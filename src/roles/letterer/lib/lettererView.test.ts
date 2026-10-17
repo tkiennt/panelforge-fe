@@ -13,6 +13,19 @@ import {
   zoomAt,
   zoomAtCenter,
   type ViewState,
+  evaluateTextConstraints,
+  splitTextIntoTwoBalloons,
+  rectsOverlap,
+  findKeepOutCollision,
+  suggestBalloonPosition,
+  calculatePanelTextDensity,
+  sortBalloonsReadingOrder,
+  checkReadingOrderMismatch,
+  hasTimeMarker,
+  createSpeechBalloonPath,
+  createThoughtBalloonPath,
+  createThoughtTailDots,
+  createShoutBalloonPath,
 } from './lettererView';
 
 const PAGE = { width: 1200, height: 1800 };
@@ -124,5 +137,143 @@ describe('lettererView – ước lượng chữ khớp Backend (LetteringLimits
     const h = estimateBoxHeight(long, 280, 160);
     expect(h).toBeGreaterThan(160);
     expect(h % 10).toBe(0);
+  });
+});
+
+describe('lettererView – Giới hạn chữ & tách bóng (P2)', () => {
+  it('đếm đúng số từ và phát hiện câu quá dài (>30 từ)', () => {
+    const shortText = 'Đây là câu ngắn.';
+    const evalShort = evaluateTextConstraints(shortText, 280, 160);
+    expect(evalShort.wordCount).toBe(4);
+    expect(evalShort.isTooLong).toBe(false);
+
+    const longWords = Array(35).fill('từ').join(' ');
+    const evalLong = evaluateTextConstraints(longWords, 280, 300);
+    expect(evalLong.wordCount).toBe(35);
+    expect(evalLong.isTooLong).toBe(true);
+    expect(evalLong.reason).toContain('Quá dài (>30 từ)');
+  });
+
+  it('phát hiện chữ tràn khung khi chiều cao chữ vượt quá khung', () => {
+    const text = 'Một câu thoại rất dài bị ép vào một khung bóng quá bé sẽ bị tràn khung.';
+    // Hộp rất thấp (50px) chắc chắn bị tràn
+    const evalOverflow = evaluateTextConstraints(text, 200, 50);
+    expect(evalOverflow.isOverflowing).toBe(true);
+    expect(evalOverflow.reason).toBeDefined();
+  });
+
+  it('tách bóng đôi thông minh tại dấu câu hoặc từ gần giữa', () => {
+    const sentence = 'Tôi đã cố gắng rất nhiều! Nhưng mọi thứ vẫn không như mong đợi.';
+    const split = splitTextIntoTwoBalloons(sentence);
+    expect(split.part1).toBe('Tôi đã cố gắng rất nhiều!');
+    expect(split.part2).toBe('Nhưng mọi thứ vẫn không như mong đợi.');
+
+    const noPunct = 'Một hai ba bốn năm sáu bảy tám chín mười';
+    const splitWords = splitTextIntoTwoBalloons(noPunct);
+    expect(splitWords.part1.length).toBeGreaterThan(0);
+    expect(splitWords.part2.length).toBeGreaterThan(0);
+  });
+});
+
+describe('lettererView – Vùng cấm chữ & Gợi ý vị trí (P3)', () => {
+  it('phát hiện va chạm giữa bóng thoại và vùng cấm (rectsOverlap, findKeepOutCollision)', () => {
+    const keepOut = [
+      {
+        id: 'face-minh',
+        panelId: 'p1',
+        x: 100,
+        y: 100,
+        width: 150,
+        height: 150,
+        label: 'Mặt Minh',
+      },
+    ];
+    // Bóng đè lên vùng cấm
+    const collidingBalloon = { x: 150, y: 120, width: 200, height: 100 };
+    expect(findKeepOutCollision(collidingBalloon, keepOut)).toEqual(keepOut[0]);
+
+    // Bóng ở vị trí khác an toàn
+    const safeBalloon = { x: 300, y: 300, width: 200, height: 100 };
+    expect(findKeepOutCollision(safeBalloon, keepOut)).toBeNull();
+  });
+
+  it('gợi ý vị trí không chạm vùng cấm và ưu tiên góc trên-phải trong manga RTL', () => {
+    const panel = { x: 0, y: 0, width: 800, height: 600 };
+    const keepOut = [
+      { id: 'face-hoa', panelId: 'p1', x: 500, y: 20, width: 250, height: 250, label: 'Mặt Hoà' },
+    ];
+    const balloonSize = { width: 200, height: 120 };
+
+    const suggested = suggestBalloonPosition(balloonSize, panel, keepOut, true);
+    // Gợi ý không được đè lên vùng cấm
+    const suggestedRect = { ...suggested, ...balloonSize };
+    expect(findKeepOutCollision(suggestedRect, keepOut)).toBeNull();
+    // Nằm trong biên panel
+    expect(suggested.x).toBeGreaterThanOrEqual(panel.x);
+    expect(suggested.x + balloonSize.width).toBeLessThanOrEqual(panel.x + panel.width);
+    expect(suggested.y).toBeGreaterThanOrEqual(panel.y);
+  });
+});
+
+describe('lettererView – Mật độ chữ trên Panel (P2)', () => {
+  it('tính tỷ lệ mật độ diện tích và phân loại mức độ xanh / vàng / đỏ', () => {
+    const panel = { x: 0, y: 0, width: 1000, height: 1000 }; // Diện tích = 1,000,000 px
+
+    // 1 bóng nhỏ (200x200 = 40,000 px = 4%) -> Thoáng (xanh)
+    const lowDensity = calculatePanelTextDensity(panel, [
+      { x: 100, y: 100, width: 200, height: 200 },
+    ]);
+    expect(lowDensity.level).toBe('low');
+    expect(lowDensity.color).toBe('#10B981');
+
+    // Các bóng chiếm ~20% -> Vừa phải (vàng)
+    const medDensity = calculatePanelTextDensity(panel, [
+      { x: 100, y: 100, width: 400, height: 250 }, // 100,000
+      { x: 100, y: 400, width: 400, height: 250 }, // 100,000 => tổng 20%
+    ]);
+    expect(medDensity.level).toBe('medium');
+    expect(medDensity.color).toBe('#F59E0B');
+
+    // Các bóng chiếm >25% -> Quá dày (đỏ)
+    const highDensity = calculatePanelTextDensity(panel, [
+      { x: 0, y: 0, width: 600, height: 600 }, // 360,000 = 36%
+    ]);
+    expect(highDensity.level).toBe('high');
+    expect(highDensity.color).toBe('#EF4444');
+  });
+});
+
+describe('lettererView – Thứ tự đọc manga RTL & Cảnh báo lệch kịch bản (P5)', () => {
+  it('sắp xếp bóng thoại phải→trái, trên→dưới', () => {
+    const b1 = { id: 'top-right', x: 600, y: 100, width: 150, height: 80 }; // Đọc 1
+    const b2 = { id: 'top-left', x: 100, y: 110, width: 150, height: 80 }; // Đọc 2 (cùng dải ngang)
+    const b3 = { id: 'bottom', x: 400, y: 500, width: 150, height: 80 }; // Đọc 3
+
+    const orderRTL = sortBalloonsReadingOrder([b2, b3, b1], true);
+    expect(orderRTL).toEqual(['top-right', 'top-left', 'bottom']);
+
+    const orderLTR = sortBalloonsReadingOrder([b1, b3, b2], false);
+    expect(orderLTR).toEqual(['top-left', 'top-right', 'bottom']);
+  });
+
+  it('phát hiện vị trí bóng ngược với thứ tự dòng trong kịch bản', () => {
+    const balloons = [
+      { id: 'b-later-script', x: 700, y: 100, width: 150, height: 80, scriptLineOrder: 5 }, // Ở vị trí đọc trước nhưng dòng kịch bản #5
+      { id: 'b-first-script', x: 200, y: 100, width: 150, height: 80, scriptLineOrder: 1 }, // Ở vị trí đọc sau nhưng dòng kịch bản #1
+    ];
+
+    const mismatches = checkReadingOrderMismatch(balloons, true);
+    expect(mismatches.length).toBeGreaterThan(0);
+    expect(mismatches[0].elementId).toBe('b-later-script');
+    expect(mismatches[0].message).toContain('dòng #5 đứng trước dòng #1');
+  });
+});
+
+describe('lettererView – Hồi tưởng & SVG Paths (P1, P4)', () => {
+  it('nhận diện mốc thời gian trong lời thoại hồi tưởng (hasTimeMarker)', () => {
+    expect(hasTimeMarker('Ba năm trước, chúng tôi từng hứa...')).toBe(true);
+    expect(hasTimeMarker('[Mùa hè năm 2018] Trời mưa tầm tã.')).toBe(true);
+    expect(hasTimeMarker('Hồi đó tôi còn chưa biết vẽ manga.')).toBe(true);
+    expect(hasTimeMarker('Hôm nay trời đẹp quá.')).toBe(false);
   });
 });

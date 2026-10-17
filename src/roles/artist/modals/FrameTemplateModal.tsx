@@ -181,7 +181,10 @@ export const FrameTemplateModal: React.FC<FrameTemplateModalProps> = ({
                     </div>
 
                     <div className='text-xs text-stone-500 mb-3'>
-                      Khổ: <span className='font-mono font-medium text-stone-700'>{tpl.layoutFormat}</span>
+                      Khổ:{' '}
+                      <span className='font-mono font-medium text-stone-700'>
+                        {tpl.layoutFormat}
+                      </span>
                     </div>
 
                     {/* Miniature Slot Layout Visualization */}
@@ -219,8 +222,8 @@ export const FrameTemplateModal: React.FC<FrameTemplateModalProps> = ({
           <div className='text-xs text-stone-500'>
             {selectedTemplate && (
               <span>
-                Đang chọn: <strong className='text-stone-800'>{selectedTemplate.name}</strong> ({selectedTemplate.panelCount} ô
-                Panel)
+                Đang chọn: <strong className='text-stone-800'>{selectedTemplate.name}</strong> (
+                {selectedTemplate.panelCount} ô Panel)
               </span>
             )}
           </div>

@@ -9,9 +9,13 @@ import {
   resolveElementImageUrl,
   resolveElementRect,
   selectDrawableElements,
+  selectTextElements,
+  drawTextElement,
 } from './compositePageRenderer';
 import { parseBoundingBox } from './panelBoundingBox';
 import { panelArtworkCoverage } from '@/shared/features/collaboration/collaborationRules';
+import { layoutText, resolveAppearance } from '@/roles/letterer/lib/balloonRender';
+import { resolveTextStyle } from '@/roles/letterer/lib/textStyle';
 
 const rectBox = JSON.stringify({
   x: 100,
@@ -370,5 +374,157 @@ describe('panelArtworkCoverage (checklist theo luật BE)', () => {
       ['p1'],
     );
     expect(r.covered).toBe(0);
+  });
+});
+
+describe('lớp chữ cho màn duyệt Letter', () => {
+  const text = (over: Partial<ElementSnapshotDto>): ElementSnapshotDto =>
+    ({
+      elementId: crypto.randomUUID(),
+      elementType: 'SPEECH_BALLOON',
+      zIndex: 1,
+      x: 10,
+      y: 10,
+      width: 200,
+      height: 120,
+      content: 'Xin chào',
+      isRemoved: false,
+      ...over,
+    }) as ElementSnapshotDto;
+
+  it('chỉ lấy element chữ còn sống, có nội dung, theo zIndex', () => {
+    const picked = selectTextElements([
+      text({ zIndex: 3, elementType: 'NARRATION_BOX', content: 'Dẫn truyện' }),
+      text({ zIndex: 1 }),
+      text({ isRemoved: true }),
+      text({ content: '   ' }),
+      text({ elementType: 'BACKGROUND', content: 'ảnh nền' }),
+    ]);
+    expect(picked.map((e) => e.content)).toEqual(['Xin chào', 'Dẫn truyện']);
+  });
+
+  // Ghi lại lệnh vẽ để kiểm tra màn duyệt/bản xuất dựng đúng như bàn Letterer
+  const recorder = () => {
+    const calls: string[] = [];
+    const texts: { fill: string; text: string; font: string }[] = [];
+    const ctx = {
+      font: '',
+      fillStyle: '',
+      strokeStyle: '',
+      lineWidth: 0,
+      textAlign: 'center',
+      textBaseline: 'middle',
+      lineJoin: 'miter',
+      save: () => calls.push('save'),
+      restore: () => calls.push('restore'),
+      translate: () => undefined,
+      rotate: () => undefined,
+      fill: () => calls.push(`fill:${ctx.fillStyle}`),
+      stroke: () => calls.push(`stroke:${ctx.strokeStyle}:${ctx.lineWidth}`),
+      strokeRect: () => calls.push('strokeRect'),
+      setLineDash: () => calls.push('setLineDash'),
+      measureText: (s: string) => ({ width: Array.from(s).length * 10 }),
+      fillText: (s: string) => texts.push({ fill: String(ctx.fillStyle), text: s, font: ctx.font }),
+      strokeText: (s: string) => calls.push(`strokeText:${ctx.strokeStyle}:${s}`),
+    };
+    return { ctx: ctx as unknown as CanvasRenderingContext2D, calls, texts };
+  };
+  const rect = { x: 0, y: 0, w: 300, h: 200 };
+
+  it('mặc định vẽ oval nền trắng, viền đen; không vẽ khung chọn/đường gióng', () => {
+    vi.stubGlobal('Path2D', class {});
+    const { ctx, calls } = recorder();
+    drawTextElement(ctx, text({}), rect);
+    expect(calls).toContain('fill:rgba(255, 255, 255, 1)');
+    expect(calls).toContain('stroke:#171717:2.5');
+    expect(calls).not.toContain('strokeRect');
+    expect(calls).not.toContain('setLineDash');
+    vi.unstubAllGlobals();
+  });
+
+  it('chữ trắng viền đen trên nền trong suốt: không tô nền trắng, giữ màu chữ và viền chữ', () => {
+    vi.stubGlobal('Path2D', class {});
+    const { ctx, calls, texts } = recorder();
+    drawTextElement(
+      ctx,
+      text({
+        content: 'Chữ trắng',
+        style: {
+          fontFamily: 'Mali',
+          fontSize: 26,
+          color: '#FFFFFF',
+          strokeColor: '#000000',
+          strokeWidth: 2,
+        },
+      }),
+      rect,
+      {
+        shape: 'oval',
+        fillColor: '#FFFFFF',
+        fillOpacity: 0,
+        borderColor: '#171717',
+        borderWidth: 0,
+      },
+    );
+    expect(calls.some((c) => c.startsWith('fill:'))).toBe(false);
+    expect(calls.some((c) => c.startsWith('stroke:'))).toBe(false);
+    expect(texts.every((t) => t.fill === '#FFFFFF')).toBe(true);
+    expect(calls).toContain('strokeText:#000000:Chữ trắng');
+    vi.unstubAllGlobals();
+  });
+
+  it('nền bán trong suốt và "Chỉ chữ" (không hình bóng)', () => {
+    vi.stubGlobal('Path2D', class {});
+    const half = recorder();
+    drawTextElement(half.ctx, text({}), rect, {
+      shape: 'box',
+      fillColor: '#FFFBEB',
+      fillOpacity: 0.5,
+      borderColor: '#171717',
+      borderWidth: 2.5,
+    });
+    expect(half.calls).toContain('fill:rgba(255, 251, 235, 0.5)');
+
+    const none = recorder();
+    drawTextElement(
+      none.ctx,
+      text({}),
+      rect,
+      resolveAppearance('SPEECH_BALLOON', { shape: 'none' }),
+    );
+    expect(none.calls.some((c) => c.startsWith('fill:') || c.startsWith('stroke:'))).toBe(false);
+    expect(none.texts.map((t) => t.text)).toEqual(['Xin chào']);
+    vi.unstubAllGlobals();
+  });
+
+  it('cùng cỡ chữ và cách ngắt dòng với bàn Letterer (không tự thu nhỏ), giữ xuống dòng thủ công', () => {
+    const content = 'Đêm thứ tư liên tiếp, đèn phòng lab chưa từng tắt.\n72 giờ nữa!';
+    const el = text({ content });
+    const { ctx, texts } = recorder();
+    drawTextElement(ctx, el, rect);
+    const expected = layoutText(
+      content,
+      resolveTextStyle(el),
+      'oval',
+      300,
+      200,
+      (s) => Array.from(s).length * 10,
+    );
+    expect(texts.map((t) => t.text)).toEqual(expected.lines);
+    expect(texts[0].font).toBe(expected.font);
+    expect(texts.at(-1)!.text).toBe('72 giờ nữa!');
+  });
+
+  it('đọc hình bóng đã lưu trong style (giống bàn Letterer và bản xuất BE)', () => {
+    vi.stubGlobal('Path2D', class {});
+    const { ctx, calls, texts } = recorder();
+    drawTextElement(
+      ctx,
+      text({ style: { fontFamily: 'Mali', fontSize: 26, color: '#FFFFFF', balloonShape: 'none' } }),
+      rect,
+    );
+    expect(calls.some((c) => c.startsWith('fill:') || c.startsWith('stroke:'))).toBe(false);
+    expect(texts[0].fill).toBe('#FFFFFF');
+    vi.unstubAllGlobals();
   });
 });

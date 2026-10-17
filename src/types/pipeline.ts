@@ -96,6 +96,8 @@ export interface AssignmentDto {
   entityType: WorkflowEntityType;
   targetEntityId: string;
   pipelineStageId: string;
+  stageName?: string;
+  stageOrder?: number;
   assigneeUserId: string;
   assignedRole: WorkspaceRole;
   brief: string;
@@ -191,6 +193,8 @@ export interface SubmissionDto {
   chapterVersion?: number;
   /** Bố cục khung lúc nộp; mảng rỗng với lần nộp có trước bản sửa BE và việc không có Panel. */
   panelLayout?: SubmissionPanelDto[];
+  /** pageId → version canvas (event stream) lúc nộp; dùng dựng lại lớp chữ của việc Letter. Rỗng với lần nộp cũ. */
+  canvasVersions?: Record<string, number>;
 }
 
 export type ChangeRequestStatus = 'Open' | 'Resolved' | 'Verified' | 'Rejected' | number;
@@ -239,6 +243,15 @@ export interface RequestAssignmentChangesRequest {
 export interface ApproveAssignmentRequest {
   /** Chống quyết định nhầm: id của lần nộp Pending đang xem; lệch → 409. */
   expectedSubmissionId?: string;
+}
+
+export interface ReturnWorkFromReviewRequest {
+  targetAssignmentId: string;
+  description: string;
+  regionJson?: string;
+  panelId?: string;
+  assetReferenceId?: string;
+  dueDate?: string;
 }
 
 // ==========================================

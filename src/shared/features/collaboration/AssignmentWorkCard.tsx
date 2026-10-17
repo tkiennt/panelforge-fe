@@ -85,7 +85,10 @@ const STATUS_STYLE: Record<string, { label: string; className: string }> = {
     label: 'Cần sửa lại',
     className: 'bg-rose-50 text-rose-900 border-rose-300 font-semibold',
   },
-  Blocked: { label: 'Bị chặn', className: 'bg-stone-100 text-stone-600 border-stone-200 font-semibold' },
+  Blocked: {
+    label: 'Bị chặn',
+    className: 'bg-stone-100 text-stone-600 border-stone-200 font-semibold',
+  },
 };
 
 /**
@@ -178,7 +181,11 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
   });
 
   const isChapterAssignment = String(assignment.entityType) === 'Chapter';
-  const showChapterOverview = isChapterAssignment && (actions.isReviewer || actions.isAssignee);
+  // Việc Script (Writer) là kịch bản chữ, không có bản vẽ: dẫn tới trang kịch bản thay cho tổng quan ảnh
+  const isScriptAssignment =
+    isChapterAssignment && String(assignment.assignedRole).toUpperCase() === 'WRITER';
+  const showChapterOverview =
+    isChapterAssignment && !isScriptAssignment && (actions.isReviewer || actions.isAssignee);
 
   const changed = (updated?: AssignmentDto) => {
     onChanged(updated);
@@ -280,7 +287,8 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
         {assignment.dueDate && (
           <span className='flex items-center gap-1.5 font-mono'>
             <Calendar className='w-3.5 h-3.5 text-stone-400' />
-            <strong className='text-stone-700'>Hạn:</strong> {new Date(assignment.dueDate).toLocaleDateString('vi-VN')}
+            <strong className='text-stone-700'>Hạn:</strong>{' '}
+            {new Date(assignment.dueDate).toLocaleDateString('vi-VN')}
           </span>
         )}
       </div>
@@ -449,7 +457,19 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
         </p>
       )}
 
-      {actions.isReviewer && !actions.isAssignee && !showChapterOverview && (
+      {isScriptAssignment && (
+        <Link
+          to={`../script?chapterId=${chapterId}`}
+          relative='path'
+          data-testid='open-chapter-script'
+          className='h-9 px-3.5 py-1.5 rounded-xl border border-orange-200 bg-orange-50 hover:bg-orange-100 text-orange-900 text-xs font-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs w-fit'
+        >
+          <ScanSearch className='w-3.5 h-3.5 text-orange-600' />
+          <span>Mở kịch bản chương</span>
+        </Link>
+      )}
+
+      {actions.isReviewer && !actions.isAssignee && !showChapterOverview && !isScriptAssignment && (
         <Link
           to={`../review/${assignment.id}?chapterId=${chapterId}`}
           relative='path'

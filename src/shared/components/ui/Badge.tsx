@@ -39,8 +39,7 @@ export const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(
             'bg-[#ecfdf5] text-[#047857] border border-[#a7f3d0]',
 
           // Published
-          variant === 'published' &&
-            'bg-[#f0fdf4] text-[#15803d] border border-[#bbf7d0]',
+          variant === 'published' && 'bg-[#f0fdf4] text-[#15803d] border border-[#bbf7d0]',
 
           // Warning / Peach / Amber
           (variant === 'warning' || variant === 'peach' || variant === 'amber') &&

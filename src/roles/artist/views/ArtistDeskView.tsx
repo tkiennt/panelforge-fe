@@ -103,6 +103,8 @@ import {
 } from '@/roles/artist/components/PanelLayoutControls';
 
 import { splitPanelWithRollback } from '../utils/splitPanel';
+import { pipelineService, type PipelineStageDto } from '@/services/pipeline.service';
+import { pickPanelArtwork } from '@/shared/utils/stageArtworks';
 
 /** Chỉ lỗi mạng (không có status HTTP) mới xếp hàng chờ ngoại tuyến; 4xx/409 của BE phải hiện cho người dùng. */
 const isNetworkFailure = (err: any): boolean =>
@@ -233,6 +235,23 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
 
   // Quản lý Artwork của Page và Panel
   const [pageArtworks, setPageArtworks] = useState<AssetReferenceDto[]>([]);
+  // Công đoạn của Series (để biết thứ tự + stage nào đang tắt) và công đoạn đang xem ảnh ('AUTO' = tự chọn)
+  const [stages, setStages] = useState<PipelineStageDto[]>([]);
+  const [viewStageId, setViewStageId] = useState<string>('AUTO');
+  useEffect(() => {
+    if (!seriesId) return;
+    let alive = true;
+    pipelineService
+      .getSeriesPipeline(seriesId)
+      .then(
+        (p) =>
+          alive && setStages([...(p?.stages ?? [])].sort((a, b) => a.stageOrder - b.stageOrder)),
+      )
+      .catch(() => alive && setStages([]));
+    return () => {
+      alive = false;
+    };
+  }, [seriesId]);
   const [panelArtworkUrls, setPanelArtworkUrls] = useState<Record<string, string>>({});
   const panelFileInputRef = React.useRef<HTMLInputElement>(null);
   const [uploadingPanelId, setUploadingPanelId] = useState<string | null>(null);
@@ -402,6 +421,17 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
       alive = false;
     };
   }, [workspaceId, currentChapterId]);
+
+  // Công đoạn đang xem: chọn tay, hoặc (Tự động) công đoạn mình đang làm trên trang này; null = công đoạn cao nhất có ảnh
+  const myStageOnPage =
+    currentChapterId && selectedPage
+      ? findUploadAssignment(myInProgress, { chapterId: currentChapterId, pageId: selectedPage.id })
+          ?.pipelineStageId
+      : undefined;
+  const effectiveStageId = viewStageId !== 'AUTO' ? viewStageId : (myStageOnPage ?? null);
+  const artFor = (panelId: string) =>
+    pickPanelArtwork(pageArtworks, panelId, stages, effectiveStageId);
+  const stageLabel = (stageId: string) => stages.find((s) => s.id === stageId)?.name ?? '';
 
   const findStageAssignment = (panelId: string) =>
     currentChapterId && selectedPage
@@ -1632,11 +1662,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
             </div>
           )}
 
-          <button
-            onClick={loadPages}
-            disabled={loading}
-            className='btn-cta-secondary'
-          >
+          <button onClick={loadPages} disabled={loading} className='btn-cta-secondary'>
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             <span>Làm mới</span>
           </button>
@@ -1775,17 +1801,23 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                       }`}
                     >
                       <div className='aspect-[2/3] bg-white border border-stone-200/90 rounded-lg flex flex-col items-center justify-center p-1.5 mb-2 relative overflow-hidden group shadow-2xs'>
-                        <FileImage className={`w-7 h-7 mb-1 transition-colors ${isSel ? 'text-orange-600' : 'text-stone-400'}`} />
+                        <FileImage
+                          className={`w-7 h-7 mb-1 transition-colors ${isSel ? 'text-orange-600' : 'text-stone-400'}`}
+                        />
                         <span className='text-[10px] font-mono text-stone-500'>
                           {p.widthPx}x{p.heightPx}
                         </span>
-                        <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-full mt-1 ${
-                          isSel ? 'bg-orange-100 text-orange-800' : 'bg-stone-100 text-stone-600'
-                        }`}>
+                        <span
+                          className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-full mt-1 ${
+                            isSel ? 'bg-orange-100 text-orange-800' : 'bg-stone-100 text-stone-600'
+                          }`}
+                        >
                           {p.dpi} DPI
                         </span>
                       </div>
-                      <div className={`text-xs font-bold truncate ${isSel ? 'text-orange-950' : 'text-stone-800'}`}>
+                      <div
+                        className={`text-xs font-bold truncate ${isSel ? 'text-orange-950' : 'text-stone-800'}`}
+                      >
                         Trang {p.pageNumber}
                       </div>
                       <div className='text-[10px] text-stone-500 font-mono truncate'>
@@ -1859,7 +1891,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                   </div>
                 </div>
 
-                {canEditPages && panels.length > 0 && (
+                {selectedPage && panels.length > 0 && (
                   <PanelLayoutToolbar
                     panelCount={panels.length}
                     selectedCount={Math.max(multiIds.length, selectedPanelId ? 1 : 0)}
@@ -1867,52 +1899,26 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                       panels.map((p) => liveRects[p.id] ?? rectOfPanel(p)),
                     )}
                     busy={layoutBusy}
+                    canEdit={canEditPages}
                     onRelayout={handleRelayout}
                     onAlign={handleAlign}
                     onDistribute={handleDistribute}
                     onStraighten={handleStraighten}
                     onSelectAll={() => setMultiIds(panels.map((p) => p.id))}
+                    stages={stages}
+                    viewStageId={viewStageId}
+                    onSelectStage={(id) => setViewStageId(id)}
+                    activeStageName={myStageOnPage ? stageLabel(myStageOnPage) : undefined}
+                    selectedPanel={panels.find((p) => p.id === selectedPanelId)}
+                    selectedPage={selectedPage}
+                    panelRect={
+                      selectedPanelId
+                        ? (liveRects[selectedPanelId] ??
+                          rectOfPanel(panels.find((p) => p.id === selectedPanelId)!))
+                        : null
+                    }
                   />
                 )}
-                {(() => {
-                  const selP = panels.find((p) => p.id === selectedPanelId);
-                  if (!selP || !selectedPage) return null;
-                  const r = liveRects[selP.id] ?? rectOfPanel(selP);
-                  const pw = selectedPage.widthPx || 1200;
-                  const ph = selectedPage.heightPx || 1800;
-                  const px = (v: number, total: number) => Math.round((v / 100) * total);
-                  const left = round1(r.x);
-                  const rightM = round1(100 - r.x - r.w);
-                  const symmetric = Math.abs(left - rightM) <= 0.2;
-                  return (
-                    <div
-                      className='mb-3 px-3.5 py-2 bg-stone-900/95 text-stone-200 rounded-xl font-mono text-xs flex flex-wrap items-center gap-x-3.5 gap-y-1.5 border border-stone-800 shadow-soft-sm'
-                      data-testid='panel-readout'
-                    >
-                      <span className='px-2 py-0.5 rounded-md bg-orange-500/20 text-orange-400 font-bold border border-orange-500/30'>
-                        Khung #{selP.panelNumber}
-                      </span>
-                      <span>
-                        X {round1(r.x)}% ({px(r.x, pw)}px)
-                      </span>
-                      <span>
-                        Y {round1(r.y)}% ({px(r.y, ph)}px)
-                      </span>
-                      <span>
-                        Rộng {round1(r.w)}% ({px(r.w, pw)}px)
-                      </span>
-                      <span>
-                        Cao {round1(r.h)}% ({px(r.h, ph)}px)
-                      </span>
-                      <span className={symmetric ? 'text-emerald-400 font-medium' : 'text-amber-300'}>
-                        Lề trái {left}% · phải {rightM}% {symmetric ? '✓ cân giữa' : ''}
-                      </span>
-                      <span className='text-stone-400'>
-                        Lề trên {round1(r.y)}% · dưới {round1(100 - r.y - r.h)}%
-                      </span>
-                    </div>
-                  );
-                })()}
 
                 {/* Canvas Container */}
                 <div className='bg-[#F8F6F0] rounded-xl border border-dashed border-[#CCCCCC] p-4 sm:p-6 flex items-center justify-center min-h-[520px] relative overflow-hidden'>
@@ -1948,7 +1954,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                         const isPrimary = selectedPanelId === p.id;
                         const isSelected = isPrimary || multiIds.includes(p.id);
                         const dragging = Boolean(liveRect);
-                        const panelArt = pageArtworks.filter((a) => a.panelId === p.id).pop();
+                        const panelArt = artFor(p.id);
                         const panelArtUrl = panelArt ? panelArtworkUrls[panelArt.id] : null;
                         return (
                           <div
@@ -1993,7 +1999,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                               <div className='flex items-center gap-1'>
                                 {panelArt && (
                                   <span className='font-mono font-bold text-xs bg-emerald-600 text-white px-1.5 py-0.5 rounded shadow-2xs'>
-                                    v{panelArt.versionNumber}
+                                    {stageLabel(panelArt.pipelineStageId)} v{panelArt.versionNumber}
                                   </span>
                                 )}
                                 <span className='font-mono font-semibold text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded border border-blue-200'>
@@ -2187,7 +2193,9 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                         </div>
                         <div className='grid grid-cols-2 gap-2.5 text-xs'>
                           <div>
-                            <label className='block text-stone-500 mb-1 font-medium'>Thứ tự đọc:</label>
+                            <label className='block text-stone-500 mb-1 font-medium'>
+                              Thứ tự đọc:
+                            </label>
                             <input
                               type='number'
                               value={panelReadingOrder}
@@ -2216,7 +2224,9 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                             />
                           </div>
                           <div>
-                            <label className='block text-stone-500 mb-1 font-medium'>Rộng × Cao (%):</label>
+                            <label className='block text-stone-500 mb-1 font-medium'>
+                              Rộng × Cao (%):
+                            </label>
                             <div className='flex gap-1.5'>
                               <input
                                 type='number'
@@ -2276,9 +2286,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
 
                       {/* Ảnh Artwork Của Khung (CF2) */}
                       {(() => {
-                        const panelArt = pageArtworks
-                          .filter((a) => a.panelId === selectedPanelDetail.id)
-                          .pop();
+                        const panelArt = artFor(selectedPanelDetail.id);
                         const panelArtUrl = panelArt ? panelArtworkUrls[panelArt.id] : null;
                         return (
                           <div
@@ -2292,7 +2300,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                               </span>
                               {panelArt && (
                                 <span className='font-mono font-bold text-xs text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md'>
-                                  v{panelArt.versionNumber}
+                                  {stageLabel(panelArt.pipelineStageId)} v{panelArt.versionNumber}
                                 </span>
                               )}
                             </div>
@@ -2427,7 +2435,9 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                                     {r.characterName && (
                                       <div className='text-xs text-stone-600'>
                                         So với Character Sheet:{' '}
-                                        <strong className='text-stone-800'>{r.characterName}</strong>
+                                        <strong className='text-stone-800'>
+                                          {r.characterName}
+                                        </strong>
                                         {r.characterSheetVersion != null &&
                                           ` (v${r.characterSheetVersion})`}
                                       </div>

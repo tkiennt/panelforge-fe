@@ -399,7 +399,9 @@ export const BibleReferenceDrawer: React.FC<BibleReferenceDrawerProps> = ({
 
                       {entry.effectiveRevision && (
                         <div className='pt-2.5 border-t border-[#F0ECE1] flex items-center justify-between text-xs font-mono text-stone-500'>
-                          <span className='font-semibold'>Bản khoá v{entry.effectiveRevision.versionNumber}</span>
+                          <span className='font-semibold'>
+                            Bản khoá v{entry.effectiveRevision.versionNumber}
+                          </span>
                           <span>
                             Hiệu lực từ Chương {entry.effectiveRevision.effectiveFromChapterNumber}
                           </span>

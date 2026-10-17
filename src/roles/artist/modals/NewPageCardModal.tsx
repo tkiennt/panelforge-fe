@@ -84,9 +84,7 @@ export const NewPageCardModal: React.FC<NewPageCardModalProps> = ({
         <form onSubmit={handleSubmit} className='p-6 space-y-4 text-xs'>
           <div className='grid grid-cols-2 gap-3'>
             <div>
-              <label className='block font-semibold text-stone-700 mb-1.5'>
-                Số Trang (Page #)
-              </label>
+              <label className='block font-semibold text-stone-700 mb-1.5'>Số Trang (Page #)</label>
               <input
                 type='text'
                 required
@@ -129,9 +127,7 @@ export const NewPageCardModal: React.FC<NewPageCardModalProps> = ({
 
           <div className='grid grid-cols-2 gap-3'>
             <div>
-              <label className='block font-semibold text-stone-700 mb-1.5'>
-                Công Đoạn Ban Đầu
-              </label>
+              <label className='block font-semibold text-stone-700 mb-1.5'>Công Đoạn Ban Đầu</label>
               <select
                 value={stage}
                 onChange={(e) => setStage(e.target.value as KanbanStageKey)}
@@ -149,9 +145,7 @@ export const NewPageCardModal: React.FC<NewPageCardModalProps> = ({
             </div>
 
             <div>
-              <label className='block font-semibold text-stone-700 mb-1.5'>
-                Người Phụ Trách
-              </label>
+              <label className='block font-semibold text-stone-700 mb-1.5'>Người Phụ Trách</label>
               <select
                 value={assignee}
                 onChange={(e) => setAssignee(e.target.value)}

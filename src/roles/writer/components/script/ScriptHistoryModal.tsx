@@ -175,7 +175,9 @@ export const ScriptHistoryModal: React.FC<ScriptHistoryModalProps> = ({
           #{l.lineOrder}
           {speaker(l.speakerCharacterId) ? ` · ${speaker(l.speakerCharacterId)}` : ''}
         </div>
-        {l.dialogueText && <div className='text-xs text-[#171717] font-medium'>{l.dialogueText}</div>}
+        {l.dialogueText && (
+          <div className='text-xs text-[#171717] font-medium'>{l.dialogueText}</div>
+        )}
         {l.stageDirection && (
           <div className='text-xs italic text-zinc-500'>({l.stageDirection})</div>
         )}

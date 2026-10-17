@@ -19,9 +19,16 @@ import { pipelineService, type PipelineStageDto } from '@/services/pipeline.serv
 import { workspaceService, type WorkspaceMemberDto } from '@/services/workspace.service';
 import { scriptLineService, type SceneDto } from '@/services/scriptLine.service';
 import { pageService, type PageDto } from '@/services/page.service';
-import type { AssignmentDto, StageProgressDto, WorkspaceAssignmentDto } from '@/types';
+import { panelService } from '@/services/panel.service';
+import type { AssignmentDto, PanelDto, StageProgressDto, WorkspaceAssignmentDto } from '@/types';
 import { AssignmentWorkCard } from './AssignmentWorkCard';
-import { errorMessage, isReviewerRole, resolvePageId } from './collaborationRules';
+import {
+  compareWorkOrder,
+  errorMessage,
+  isReviewerRole,
+  resolveWorkScene,
+  type WorkOrderContext,
+} from './collaborationRules';
 import { PageContainer } from '@/shared/components/PageContainer';
 
 interface MyWorkViewProps {
@@ -50,6 +57,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
   const [members, setMembers] = useState<WorkspaceMemberDto[]>([]);
   const [scenes, setScenes] = useState<SceneDto[]>([]);
   const [pages, setPages] = useState<PageDto[]>([]);
+  const [panels, setPanels] = useState<PanelDto[]>([]);
   const [selectedSceneId, setSelectedSceneId] = useState<string>('ALL');
   const [collapsedScenes, setCollapsedScenes] = useState<Record<string, boolean>>({});
   const [chapterId, setChapterId] = useState<string>(searchParams.get('chapterId') ?? '');
@@ -107,6 +115,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
         setProgress([]);
         setScenes([]);
         setPages([]);
+        setPanels([]);
         setSelectedSceneId('ALL');
       } else {
         const [list, prog, sceneList, pageList] = await Promise.all([
@@ -115,10 +124,17 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
           scriptLineService.getScenesByChapter(chapterId).catch(() => [] as SceneDto[]),
           pageService.getPagesByChapter(chapterId).catch(() => [] as PageDto[]),
         ]);
+        // Cảnh gắn trên Panel (Page không có sceneId), nên cần panel của từng trang để quy việc vào cảnh
+        const panelLists = await Promise.all(
+          (pageList || []).map((p) =>
+            panelService.getPanelsByPage(p.id).catch(() => [] as PanelDto[]),
+          ),
+        );
         setAssignments(list);
         setProgress(prog);
         setScenes(sceneList || []);
         setPages(pageList || []);
+        setPanels(panelLists.flat());
       }
     } finally {
       setLoadingWork(false);
@@ -179,23 +195,34 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
     studio: studioWork.length,
   };
 
+  const orderCtx = useMemo<WorkOrderContext>(
+    () => ({
+      stageOrder: Object.fromEntries(stages.map((s) => [s.id, s.stageOrder])),
+      pageNumber: Object.fromEntries(pages.map((p) => [p.id, p.pageNumber])),
+      panels,
+      sceneNumber: Object.fromEntries(scenes.map((s) => [s.id, s.sceneNumber])),
+    }),
+    [stages, pages, panels, scenes],
+  );
+
   const getAssignmentSceneInfo = useCallback(
-    (a: AssignmentDto) => {
-      const pageId = resolvePageId(a, progress);
-      if (!pageId) {
-        return { sceneId: 'UNASSIGNED', scene: null, page: null };
-      }
-      const page = pages.find((p) => p.id === pageId);
-      if (!page || !page.sceneId) {
-        return { sceneId: 'UNASSIGNED', scene: null, page: page ?? null };
-      }
-      const scene = scenes.find((s) => s.id === page.sceneId);
-      if (!scene) {
-        return { sceneId: 'UNASSIGNED', scene: null, page };
-      }
-      return { sceneId: scene.id, scene, page };
-    },
-    [progress, pages, scenes],
+    (a: AssignmentDto) => resolveWorkScene(a, orderCtx),
+    [orderCtx],
+  );
+
+  // Toàn Studio: theo số chương rồi công đoạn 1 → 7; trong chương: công đoạn, trang, thứ tự đọc
+  const byWorkOrder = useCallback(
+    (list: AssignmentDto[]) =>
+      [...list].sort((a, b) => {
+        const ca = (a as Partial<WorkspaceAssignmentDto>).chapterNumber ?? 0;
+        const cb = (b as Partial<WorkspaceAssignmentDto>).chapterNumber ?? 0;
+        if (ca !== cb) return ca - cb;
+        const sa = (a as Partial<WorkspaceAssignmentDto>).stageOrder;
+        const sb = (b as Partial<WorkspaceAssignmentDto>).stageOrder;
+        if (sa !== undefined && sb !== undefined && sa !== sb) return sa - sb;
+        return compareWorkOrder(a, b, orderCtx);
+      }),
+    [orderCtx],
   );
 
   const sceneFilterCounts = useMemo(() => {
@@ -213,9 +240,17 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
   }, [visible, getAssignmentSceneInfo]);
 
   const filteredAssignments = useMemo(() => {
-    if (selectedSceneId === 'ALL') return visible;
-    return visible.filter((a) => getAssignmentSceneInfo(a).sceneId === selectedSceneId);
-  }, [visible, selectedSceneId, getAssignmentSceneInfo]);
+    const list =
+      selectedSceneId === 'ALL'
+        ? visible
+        : visible.filter((a) => getAssignmentSceneInfo(a).sceneId === selectedSceneId);
+    return byWorkOrder(list); // nhóm cảnh dựng từ danh sách này nên giữ luôn thứ tự
+  }, [visible, selectedSceneId, getAssignmentSceneInfo, byWorkOrder]);
+
+  const sortedStudioWork = useMemo(
+    () => byWorkOrder(studioWork) as WorkspaceAssignmentDto[],
+    [studioWork, byWorkOrder],
+  );
 
   interface SceneGroup {
     sceneId: string;
@@ -258,8 +293,8 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
               {
                 sceneId: 'UNASSIGNED',
                 scene: null,
-                title: 'Công việc chung / Toàn chương',
-                summary: 'Các công việc cấp chương hoặc chưa gắn vào phân cảnh cụ thể',
+                title: 'Toàn chương',
+                summary: 'Việc cấp chương (Script, Review) hoặc trang chưa gắn cảnh',
                 assignments: unassignedTasks,
               },
             ]
@@ -300,8 +335,8 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
       groups.push({
         sceneId: 'UNASSIGNED',
         scene: null,
-        title: 'Công việc chung / Toàn chương',
-        summary: 'Các công việc cấp chương hoặc chưa gắn vào phân cảnh cụ thể',
+        title: 'Toàn chương',
+        summary: 'Việc cấp chương (Script, Review) hoặc trang chưa gắn cảnh',
         assignments: unassignedTasks,
       });
     }
@@ -595,7 +630,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
                   : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50'
               }`}
             >
-              <span>Chung / Chưa gắn cảnh</span>
+              <span>Toàn chương</span>
               <span
                 className={`px-1.5 py-0.5 rounded-full text-xs font-mono ${
                   selectedSceneId === 'UNASSIGNED'
@@ -634,7 +669,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
           </div>
         ) : (
           <div className='space-y-3' data-testid='studio-work-list'>
-            {studioWork.map((a) => (
+            {sortedStudioWork.map((a) => (
               <div key={a.id} className='space-y-1'>
                 <p className='text-xs font-semibold text-[#737373]'>
                   {a.seriesTitle} · Chương {a.chapterNumber}

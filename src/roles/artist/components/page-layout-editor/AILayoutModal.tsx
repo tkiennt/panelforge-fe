@@ -74,8 +74,10 @@ export const AILayoutModal: React.FC<AILayoutModalProps> = ({ isOpen, onClose, o
           <div className='p-6'>
             <p className='text-xs text-stone-600 leading-relaxed'>
               Việc áp dụng bố cục AI này sẽ{' '}
-              <strong className='text-stone-900'>thay thế toàn bộ các ô khung và phiên bản artwork hiện tại</strong> trên canvas.
-              Hành động này không thể hoàn tác.
+              <strong className='text-stone-900'>
+                thay thế toàn bộ các ô khung và phiên bản artwork hiện tại
+              </strong>{' '}
+              trên canvas. Hành động này không thể hoàn tác.
             </p>
             <div className='mt-6 flex justify-end gap-2.5'>
               <button
@@ -99,10 +101,7 @@ export const AILayoutModal: React.FC<AILayoutModalProps> = ({ isOpen, onClose, o
 
   return (
     <>
-      <div
-        className='fixed inset-0 bg-stone-900/60 backdrop-blur-xs z-[100]'
-        onClick={onClose}
-      />
+      <div className='fixed inset-0 bg-stone-900/60 backdrop-blur-xs z-[100]' onClick={onClose} />
       <div className='fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl bg-white rounded-2xl shadow-2xl z-[110] flex flex-col max-h-[90vh] overflow-hidden border border-stone-200 animate-in zoom-in-95 duration-200'>
         {/* Header */}
         <div className='p-4.5 border-b border-stone-100 bg-stone-50/50 flex items-center justify-between shrink-0'>

@@ -129,7 +129,6 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               Tạo tài khoản
               <ArrowRight className='w-3.5 h-3.5' />
             </button>
-
           </div>
         </div>
       </header>

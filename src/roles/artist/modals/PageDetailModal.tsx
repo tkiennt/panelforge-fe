@@ -67,7 +67,9 @@ export const PageDetailModal: React.FC<PageDetailModalProps> = ({
             <span className='px-2.5 py-1 rounded-lg bg-stone-900 text-white font-mono text-xs font-bold shadow-2xs'>
               {card.pageNumber}
             </span>
-            <span className='text-xs font-mono text-stone-500 font-medium'>{card.pageType} • Chi Tiết Phân Cảnh</span>
+            <span className='text-xs font-mono text-stone-500 font-medium'>
+              {card.pageType} • Chi Tiết Phân Cảnh
+            </span>
           </div>
 
           <button
@@ -211,7 +213,10 @@ export const PageDetailModal: React.FC<PageDetailModalProps> = ({
         <div className='p-4 bg-stone-50/50 border-t border-stone-100 flex items-center justify-between'>
           <button
             onClick={() => {
-              onShowToast('Duyệt Trang Thành Công', `${card.pageNumber} đã được ký duyệt bản in Tankōbon.`);
+              onShowToast(
+                'Duyệt Trang Thành Công',
+                `${card.pageNumber} đã được ký duyệt bản in Tankōbon.`,
+              );
               handleStageChange('approved');
               onClose();
             }}

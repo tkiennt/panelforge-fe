@@ -994,7 +994,9 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             }`}
             title='Xem danh sách nhân vật Canon từ Series Bible'
           >
-            <User className={`w-3.5 h-3.5 ${activeSideDrawer === 'characters' ? 'text-white' : 'text-purple-600'}`} />
+            <User
+              className={`w-3.5 h-3.5 ${activeSideDrawer === 'characters' ? 'text-white' : 'text-purple-600'}`}
+            />
             <span className='hidden sm:inline'>Nhân vật Bible ({characters.length})</span>
             <span className='sm:hidden'>Bible</span>
           </button>
@@ -1210,9 +1212,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                           {s.heading || 'Chưa đặt tiêu đề'}
                         </div>
                         {s.summary && (
-                          <p className='text-xs text-zinc-500 line-clamp-1 mt-0.5'>
-                            {s.summary}
-                          </p>
+                          <p className='text-xs text-zinc-500 line-clamp-1 mt-0.5'>{s.summary}</p>
                         )}
                       </div>
                     );

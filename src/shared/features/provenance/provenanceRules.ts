@@ -26,14 +26,24 @@ export const EVENT_LABEL: Record<ProvenanceEventType, string> = {
   DecisionMade: 'Người quyết định',
   RevisionCreated: 'Tạo phiên bản nội dung',
   SnapshotCreated: 'Producer duyệt chương',
+  ArtworkUploaded: 'Họa sĩ tải artwork',
+  LetteringChanged: 'Letterer chỉnh sửa chữ',
+  WorkSubmitted: 'Nộp công đoạn',
+  ReviewDecided: 'Biên tập viên thẩm định',
 };
 
 /** Nhóm màu: AI (tím), người (xanh lá), lỗi (đỏ), duyệt (cam). */
 export const eventTone = (type: ProvenanceEventType): 'ai' | 'human' | 'error' | 'approval' => {
   if (type === 'RunFailed') return 'error';
-  if (type === 'DecisionMade') return 'human';
-  if (type === 'SnapshotCreated') return 'approval';
-  if (type === 'RevisionCreated') return 'human';
+  if (
+    type === 'DecisionMade' ||
+    type === 'RevisionCreated' ||
+    type === 'ArtworkUploaded' ||
+    type === 'LetteringChanged' ||
+    type === 'WorkSubmitted'
+  )
+    return 'human';
+  if (type === 'SnapshotCreated' || type === 'ReviewDecided') return 'approval';
   return 'ai';
 };
 
@@ -63,6 +73,7 @@ export interface RevisionTrace {
   decision?: ProvenanceNode;
   step?: ProvenanceNode;
   run?: ProvenanceNode;
+  previousVersion?: ProvenanceNode;
   /** Revision gốc nếu đây là bản khôi phục. */
   restoredFrom?: ProvenanceNode;
   /** Các bản duyệt chương có chứa revision này. */
@@ -97,6 +108,7 @@ export function traceRevision(
     ? pick(incoming(report.edges, suggestion.id, 'produced'), 'Step')
     : undefined;
   const run = step ? pick(incoming(report.edges, step.id, 'produced'), 'Run') : undefined;
+  const previousVersion = pick(incoming(report.edges, revisionId, 'previousVersion'), 'Revision');
   const restoredFrom = pick(incoming(report.edges, revisionId, 'restoredFrom'), 'Revision');
   const snapshots = outgoing(report.edges, revisionId, 'includedIn')
     .map((id) => byId.get(id))
@@ -109,6 +121,7 @@ export function traceRevision(
     decision,
     step,
     run,
+    previousVersion,
     restoredFrom,
     snapshots,
   };

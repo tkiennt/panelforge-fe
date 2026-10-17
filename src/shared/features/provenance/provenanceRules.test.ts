@@ -106,6 +106,7 @@ describe('traceRevision (BR-10)', () => {
     expect(t.step?.id).toBe('step');
     expect(t.run?.id).toBe('run');
     expect(t.decision?.id).toBe('dec');
+    expect(t.previousVersion?.id).toBe('v1');
     expect(detail(t.step, 'promptRef')).toBe('Prompts/writer.md@v3');
     expect(detail(t.decision, 'decidedBy')).toBe('Emma Editor');
     expect(t.snapshots.map((s) => s.summary)).toEqual(['Bản duyệt #1']);
@@ -150,6 +151,10 @@ describe('tiện ích hiển thị', () => {
   it('eventTone tách AI, người, lỗi, duyệt', () => {
     expect(eventTone('StepCompleted')).toBe('ai');
     expect(eventTone('DecisionMade')).toBe('human');
+    expect(eventTone('ArtworkUploaded')).toBe('human');
+    expect(eventTone('LetteringChanged')).toBe('human');
+    expect(eventTone('WorkSubmitted')).toBe('human');
+    expect(eventTone('ReviewDecided')).toBe('approval');
     expect(eventTone('RunFailed')).toBe('error');
     expect(eventTone('SnapshotCreated')).toBe('approval');
   });
