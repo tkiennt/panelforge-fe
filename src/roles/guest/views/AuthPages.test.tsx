@@ -49,21 +49,22 @@ describe('AuthLayout and VersionedBlueprintVisual', () => {
     expect(screen.getByTestId('auth-close-btn')).toHaveAttribute('aria-label', 'Đóng');
     expect(screen.getByText('Về trang chủ')).toBeInTheDocument();
 
-    // Kiểm tra huy hiệu Minh họa quy trình
+    // Kiểm tra huy hiệu Minh họa quy trình & trạng thái
     expect(screen.getByText(/Minh họa quy trình/i)).toBeInTheDocument();
+    expect(screen.getByText(/Bản thảo hoàn thiện/i)).toBeInTheDocument();
 
-    // Kiểm tra 3 tờ giấy bản thảo manga
-    expect(screen.getByText(/Lớp 1: Kịch bản/i)).toBeInTheDocument();
-    expect(screen.getByText(/Lớp 2: Phác thảo/i)).toBeInTheDocument();
-    expect(screen.getByText(/Khung truyện · v3/i)).toBeInTheDocument();
-    expect(screen.getByText(/Lưu bởi Artist · 14:32/i)).toBeInTheDocument();
+    // Kiểm tra 3 tờ giấy bản thảo manga với các asset thực tế
+    const manuscriptRegion = screen.getByRole('region', {
+      name: /Bản thảo manga hoàn thiện/i,
+    });
+    expect(manuscriptRegion).toBeInTheDocument();
+    expect(screen.getByAltText(/Bản thảo manga hoàn thiện/i)).toBeInTheDocument();
 
-    // Kiểm tra Series Bible tag và AI Note
-    expect(screen.getByText(/CHR-AN · Trang phục: áo khoác xám/i)).toBeInTheDocument();
-    expect(screen.getByText(/AI gợi ý:/i)).toBeInTheDocument();
-
-    // Kiểm tra sticky note review của Editor
-    expect(screen.getByText(/Editor · Điều chỉnh góc nhìn/i)).toBeInTheDocument();
+    const imgs = Array.from(dialog.querySelectorAll('img'));
+    const imgSources = imgs.map((img) => img.getAttribute('src'));
+    expect(imgSources).toContain('/images/auth-manga-script.jpg');
+    expect(imgSources).toContain('/images/auth-manga-sketch.jpg');
+    expect(imgSources).toContain('/images/auth-manga-finished.jpg');
 
     // Kiểm tra 3 nhãn phía dưới bên trong dialog card
     expect(within(dialog).getByText('Nội dung có cấu trúc')).toBeInTheDocument();
