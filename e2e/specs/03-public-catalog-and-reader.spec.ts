@@ -23,13 +23,16 @@ test.describe('E2E: Public Catalog & Manga Reader (CF5, BR-14, BR-24)', () => {
       });
     });
 
-    await page.route('**/api/catalog/series/d2b3993d-8b27-4b0a-ab8c-d3683d54a5b9', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify(MOCK_SERIES_DETAIL),
-      });
-    });
+    await page.route(
+      '**/api/catalog/series/d2b3993d-8b27-4b0a-ab8c-d3683d54a5b9',
+      async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify(MOCK_SERIES_DETAIL),
+        });
+      },
+    );
 
     await page.route('**/api/catalog/chapters/**', async (route) => {
       await route.fulfill({
@@ -43,7 +46,9 @@ test.describe('E2E: Public Catalog & Manga Reader (CF5, BR-14, BR-24)', () => {
     await catalogPage.goto();
   });
 
-  test('TC-CATALOG-01: Hiển thị danh mục tác phẩm đã phát hành từ API công khai', async ({ page }) => {
+  test('TC-CATALOG-01: Hiển thị danh mục tác phẩm đã phát hành từ API công khai', async ({
+    page,
+  }) => {
     // 1. Kiểm tra tiêu đề chính
     await expect(catalogPage.title).toBeVisible();
 

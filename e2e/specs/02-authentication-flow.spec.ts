@@ -28,16 +28,22 @@ test.describe('E2E: Authentication Flow', () => {
     await expect(loginPage.submitButton).toBeVisible();
   });
 
-  test('TC-AUTH-02: Hiển thị lỗi hoặc yêu cầu nhập khi để trống các trường bắt buộc', async ({ page }) => {
+  test('TC-AUTH-02: Hiển thị lỗi hoặc yêu cầu nhập khi để trống các trường bắt buộc', async ({
+    page,
+  }) => {
     // Thử click Đăng nhập khi chưa điền thông tin
     await loginPage.submitButton.click();
 
     // HTML5 validation: input email sẽ có trạng thái invalid
-    const isEmailValid = await loginPage.emailInput.evaluate((el: HTMLInputElement) => el.checkValidity());
+    const isEmailValid = await loginPage.emailInput.evaluate((el: HTMLInputElement) =>
+      el.checkValidity(),
+    );
     expect(isEmailValid).toBe(false);
   });
 
-  test('TC-AUTH-03: Đăng nhập thành công với tài khoản demo Writer chuyển hướng vào Workspace', async ({ page }) => {
+  test('TC-AUTH-03: Đăng nhập thành công với tài khoản demo Writer chuyển hướng vào Workspace', async ({
+    page,
+  }) => {
     let isAuthenticated = false;
 
     // Ghi đè route /api/auth/me: sau khi login thì trả về thông tin user

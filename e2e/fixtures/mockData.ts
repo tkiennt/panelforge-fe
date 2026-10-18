@@ -6,7 +6,8 @@ export const MOCK_PUBLIC_SERIES = {
     {
       id: 'd2b3993d-8b27-4b0a-ab8c-d3683d54a5b9',
       title: 'Lantern of the Tide',
-      synopsis: 'A lone lighthouse keeper in a drowned archipelago discovers an ancient mechanical whale.',
+      synopsis:
+        'A lone lighthouse keeper in a drowned archipelago discovers an ancient mechanical whale.',
       genre: 'Fantasy / Isekai',
       format: 'B5 Tankobon',
       readingDirection: 'RightToLeft',
@@ -35,7 +36,8 @@ export const MOCK_PUBLIC_SERIES = {
 export const MOCK_SERIES_DETAIL = {
   id: 'd2b3993d-8b27-4b0a-ab8c-d3683d54a5b9',
   title: 'Lantern of the Tide',
-  synopsis: 'A lone lighthouse keeper in a drowned archipelago discovers an ancient mechanical whale.',
+  synopsis:
+    'A lone lighthouse keeper in a drowned archipelago discovers an ancient mechanical whale.',
   genre: 'Fantasy / Isekai',
   format: 'B5 Tankobon',
   readingDirection: 'RightToLeft',

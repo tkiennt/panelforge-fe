@@ -10,8 +10,12 @@ export class WorkspacePage {
   constructor(page: Page) {
     this.page = page;
     this.title = page.locator('h1:has-text("Không Gian Làm Việc"), h2:has-text("Studio")').first();
-    this.createStudioButton = page.locator('button:has-text("Tạo Studio"), button:has-text("Tạo Workspace")').first();
-    this.workspaceCards = page.locator('[data-testid^="workspace-card"], .cursor-pointer').filter({ hasText: /Studio|Workspace/i });
+    this.createStudioButton = page
+      .locator('button:has-text("Tạo Studio"), button:has-text("Tạo Workspace")')
+      .first();
+    this.workspaceCards = page
+      .locator('[data-testid^="workspace-card"], .cursor-pointer')
+      .filter({ hasText: /Studio|Workspace/i });
     this.logoutButton = page.locator('button:has-text("Đăng xuất")').first();
   }
 
