@@ -219,5 +219,53 @@ describe('adminService', () => {
       expect(put).toHaveBeenCalledWith(`/Admin/workspaces/${workspaceId}/ai-config`, payload);
       expect(result.monthlyImageQuota).toBe(250);
     });
+
+    it('gọi GET /Admin/workspaces và trả về danh sách Studio Workspaces (BR-16)', async () => {
+      const mockWorkspaces = [
+        {
+          id: 'ws-1',
+          name: 'Studio Alpha',
+          ownerId: 'user-1',
+          ownerName: 'Owner One',
+          ownerEmail: 'owner1@test.com',
+          storageQuotaBytes: 10737418240,
+          usedStorageBytes: 1073741824,
+          memberCount: 3,
+          seriesCount: 2,
+          createdAt: '2026-03-01T00:00:00Z',
+        },
+      ];
+      get.mockResolvedValueOnce({ data: mockWorkspaces });
+
+      const result = await adminService.getWorkspaces();
+
+      expect(get).toHaveBeenCalledWith('/Admin/workspaces');
+      expect(result).toEqual(mockWorkspaces);
+    });
+
+    it('gọi PUT /Admin/workspaces/:id/quota để cập nhật hạn mức lưu trữ (BR-16)', async () => {
+      const workspaceId = 'ws-1';
+      const quotaBytes = 21474836480;
+      const mockUpdated = {
+        id: workspaceId,
+        name: 'Studio Alpha',
+        ownerId: 'user-1',
+        ownerName: 'Owner One',
+        ownerEmail: 'owner1@test.com',
+        storageQuotaBytes: quotaBytes,
+        usedStorageBytes: 1073741824,
+        memberCount: 3,
+        seriesCount: 2,
+        createdAt: '2026-03-01T00:00:00Z',
+      };
+      put.mockResolvedValueOnce({ data: mockUpdated });
+
+      const result = await adminService.updateWorkspaceQuota(workspaceId, quotaBytes);
+
+      expect(put).toHaveBeenCalledWith(`/Admin/workspaces/${workspaceId}/quota`, {
+        storageQuotaBytes: quotaBytes,
+      });
+      expect(result.storageQuotaBytes).toBe(quotaBytes);
+    });
   });
 });

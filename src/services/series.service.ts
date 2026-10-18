@@ -33,6 +33,11 @@ export interface SeriesDetailDto extends SeriesDto {
 export interface CreateSeriesRequest {
   title: string;
   format?: string;
+  readingDirection?: number | string;
+  synopsis?: string;
+  genre?: string;
+  storyArc?: string;
+  pipelineTemplateId?: string;
 }
 
 export interface UpdateSeriesRequest {

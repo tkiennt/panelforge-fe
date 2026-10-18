@@ -230,4 +230,25 @@ describe('BibleEntityDetailModal UX/UI', () => {
     fireEvent.click(closeBtn);
     expect(defaultProps.onClose).toHaveBeenCalledTimes(2);
   });
+
+  it('renders turnaround gallery thumbnails and switches active view on click (Step 3)', () => {
+    const entityWithGallery: BibleEntity = {
+      ...mockEntityWithImage,
+      gallery: [
+        { url: 'https://example.com/side.png', label: 'Góc nghiêng (Side)' },
+        { url: 'https://example.com/expr.png', label: 'Biểu cảm vui' },
+      ],
+    };
+
+    render(<BibleEntityDetailModal {...defaultProps} entity={entityWithGallery} />);
+
+    expect(screen.getByText(/Góc nhìn & Biểu cảm \(2\):/i)).toBeInTheDocument();
+    expect(screen.getByText('Góc nghiêng (Side)')).toBeInTheDocument();
+    expect(screen.getByText('Biểu cảm vui')).toBeInTheDocument();
+
+    const sideThumb = screen.getByText('Góc nghiêng (Side)');
+    fireEvent.click(sideThumb);
+
+    expect(screen.getByText('Tần Mục - Góc nghiêng (Side)')).toBeInTheDocument();
+  });
 });

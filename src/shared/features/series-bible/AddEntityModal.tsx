@@ -53,6 +53,14 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
   const [showUrlInput, setShowUrlInput] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Step 3: Character Sheet Gallery (Turnaround & Expressions)
+  const [gallery, setGallery] = useState<Array<{ url: string; label: string; sha256?: string }>>(
+    [],
+  );
+  const [uploadingGallery, setUploadingGallery] = useState(false);
+  const [galleryLabel, setGalleryLabel] = useState('Chính diện (Front)');
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     if (!isOpen) return;
     const originalOverflow = document.body.style.overflow;
@@ -106,6 +114,43 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
     }
   };
 
+  const handleGalleryUpload = async (file: File) => {
+    if (!file) return;
+
+    const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      onShowToast('Định dạng ảnh không hợp lệ', 'Hệ thống chỉ nhận ảnh PNG, JPEG hoặc WebP.');
+      return;
+    }
+
+    const maxBytes = 10 * 1024 * 1024;
+    if (file.size > maxBytes) {
+      onShowToast('Dung lượng ảnh vượt giới hạn', 'Ảnh phác thảo không được vượt quá 10 MB.');
+      return;
+    }
+
+    if (!seriesId) {
+      const localUrl = URL.createObjectURL(file);
+      setGallery((prev) => [...prev, { url: localUrl, label: galleryLabel }]);
+      onShowToast('Đã thêm phác thảo cục bộ', `${galleryLabel} - ${file.name}`);
+      return;
+    }
+
+    setUploadingGallery(true);
+    try {
+      const res = await bibleService.uploadReferenceImage(seriesId, file);
+      setGallery((prev) => [...prev, { url: res.url, label: galleryLabel, sha256: res.sha256 }]);
+      onShowToast(
+        'Đã thêm góc phác thảo',
+        `${galleryLabel} (${Math.round(res.sizeBytes / 1024)} KB)`,
+      );
+    } catch (err: any) {
+      onShowToast('Lỗi tải ảnh phác thảo', err.message || 'Không thể tải ảnh góc vẽ.');
+    } finally {
+      setUploadingGallery(false);
+    }
+  };
+
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragActive(false);
@@ -146,6 +191,7 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
       effectiveFromChapterNumber: effectiveFromChapter,
       effectiveToChapterNumber:
         typeof effectiveToChapter === 'number' ? effectiveToChapter : undefined,
+      gallery: gallery.length > 0 ? gallery : undefined,
     };
 
     onAdd(newEntity);
@@ -157,6 +203,7 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
     setEffectiveToChapter('');
     setDescription('');
     setImageUrl('');
+    setGallery([]);
     onClose();
   };
 
@@ -478,6 +525,107 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
                   onChange={(e) => setImageUrl(e.target.value)}
                   className='w-full px-3 py-1.5 bg-[#FAF8F5] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-zinc-900 focus:outline-none focus:border-[#F97316]'
                 />
+              </div>
+            )}
+          </div>
+
+          {/* Step 3: Turnaround / Expression Sketch Gallery */}
+          <div className='space-y-2.5 pt-3 border-t border-[#E7E7E7]'>
+            <div className='flex items-center justify-between'>
+              <label className='font-semibold text-[#171717] flex items-center gap-1.5'>
+                <span>Bộ Sưu Tập Phác Thảo Góc Nhìn &amp; Biểu Cảm (Character Sheet Gallery)</span>
+              </label>
+              <span className='text-[10px] font-mono text-zinc-500 bg-zinc-100 px-2 py-0.5 rounded'>
+                {gallery.length} góc phác thảo
+              </span>
+            </div>
+            <p className='text-[11px] text-[#737373]'>
+              Tải lên nhiều góc nhìn (Turnaround 360°, Góc 3/4, Biểu cảm, Trang phục) để hoạ sĩ đối
+              chiếu đa chiều.
+            </p>
+
+            {/* Upload controls */}
+            <div className='flex items-center gap-2'>
+              <select
+                value={galleryLabel}
+                onChange={(e) => setGalleryLabel(e.target.value)}
+                className='h-8 px-2.5 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg text-xs font-semibold text-zinc-800 cursor-pointer focus:outline-none focus:border-[#F97316]'
+              >
+                <option value='Chính diện (Front)'>Chính diện (Front)</option>
+                <option value='Góc nghiêng 3/4'>Góc nghiêng 3/4</option>
+                <option value='Góc nghiêng (Profile / Side)'>Góc nghiêng (Profile / Side)</option>
+                <option value='Phía sau (Back)'>Phía sau (Back)</option>
+                <option value='Biểu cảm (Expressions)'>Biểu cảm (Expressions)</option>
+                <option value='Trang phục (Costume)'>Trang phục (Costume)</option>
+              </select>
+
+              <input
+                type='file'
+                ref={galleryInputRef}
+                accept='image/png,image/jpeg,image/webp'
+                className='hidden'
+                onChange={(e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    void handleGalleryUpload(e.target.files[0]);
+                    e.target.value = '';
+                  }
+                }}
+              />
+
+              <button
+                type='button'
+                onClick={() => galleryInputRef.current?.click()}
+                disabled={uploadingGallery}
+                className='h-8 px-3 rounded-lg bg-[#FAF8F5] hover:bg-[#F3F1EB] border border-[#E7E7E7] text-zinc-800 font-semibold text-xs inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50 transition-colors'
+              >
+                {uploadingGallery ? (
+                  <>
+                    <Loader2 className='w-3.5 h-3.5 animate-spin text-[#F97316]' />
+                    <span>Đang tải...</span>
+                  </>
+                ) : (
+                  <>
+                    <Plus className='w-3.5 h-3.5 text-[#F97316]' />
+                    <span>Thêm góc vẽ này</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Thumbnails grid */}
+            {gallery.length > 0 && (
+              <div className='grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1'>
+                {gallery.map((item, idx) => (
+                  <div
+                    key={idx}
+                    className='p-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl flex items-center gap-2 relative group hover:border-[#F97316]/50 transition-colors'
+                  >
+                    <div className='w-11 h-11 rounded-lg overflow-hidden bg-zinc-900 shrink-0 border border-zinc-200'>
+                      <AuthenticatedImage
+                        src={item.url}
+                        alt={item.label}
+                        className='w-full h-full object-cover'
+                      />
+                    </div>
+                    <div className='min-w-0 flex-1'>
+                      <div
+                        className='text-[11px] font-bold text-zinc-900 truncate'
+                        title={item.label}
+                      >
+                        {item.label}
+                      </div>
+                      <div className='text-[9px] text-[#737373] font-mono'>Góc #{idx + 1}</div>
+                    </div>
+                    <button
+                      type='button'
+                      onClick={() => setGallery((prev) => prev.filter((_, i) => i !== idx))}
+                      className='p-1 rounded-md text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-colors'
+                      title='Xóa góc này'
+                    >
+                      <Trash2 className='w-3 h-3' />
+                    </button>
+                  </div>
+                ))}
               </div>
             )}
           </div>

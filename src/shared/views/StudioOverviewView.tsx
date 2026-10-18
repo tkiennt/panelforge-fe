@@ -107,6 +107,10 @@ export const StudioOverviewView: React.FC = () => {
   const [createSeriesModalOpen, setCreateSeriesModalOpen] = useState(false);
   const [newSeriesTitle, setNewSeriesTitle] = useState('');
   const [newSeriesFormat, setNewSeriesFormat] = useState('WEBTOON');
+  const [newSeriesDirection, setNewSeriesDirection] = useState(2);
+  const [newSeriesGenre, setNewSeriesGenre] = useState('Shonen / Action');
+  const [newSeriesSynopsis, setNewSeriesSynopsis] = useState('');
+  const [newSeriesStoryArc, setNewSeriesStoryArc] = useState('');
   const [creatingSeries, setCreatingSeries] = useState(false);
 
   // Pipeline Templates (B1 / UC-03)
@@ -346,14 +350,24 @@ export const StudioOverviewView: React.FC = () => {
       const created = await seriesService.createSeries(activeWorkspace.id, {
         title: newSeriesTitle.trim(),
         format: newSeriesFormat,
+        readingDirection: Number(newSeriesDirection),
+        genre: newSeriesGenre.trim() || undefined,
+        synopsis: newSeriesSynopsis.trim() || undefined,
+        storyArc: newSeriesStoryArc.trim() || undefined,
+        pipelineTemplateId: newSeriesTemplateId || undefined,
       });
 
       setSeriesList((prev) => [created, ...prev]);
       setCreateSeriesModalOpen(false);
       setNewSeriesTitle('');
+      setNewSeriesSynopsis('');
+      setNewSeriesStoryArc('');
+      setNewSeriesGenre('Shonen / Action');
+      setNewSeriesFormat('WEBTOON');
+      setNewSeriesDirection(2);
       showToast(
         'Tạo Series thành công',
-        `Đã tạo bộ truyện "${created.title}" với cấu hình mặc định (8-stage pipeline).`,
+        `Đã tạo bộ truyện "${created.title}" với cấu hình pipeline và metadata hoàn chỉnh.`,
       );
     } catch (err: any) {
       showToast('Lỗi tạo Series', err.message);
@@ -1448,14 +1462,20 @@ export const StudioOverviewView: React.FC = () => {
                 />
               </div>
 
-              <div className='grid grid-cols-1 gap-3'>
+              <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
                 <div>
                   <label className='block font-semibold text-[#171717] mb-1'>
                     Định Dạng (Format)
                   </label>
                   <select
                     value={newSeriesFormat}
-                    onChange={(e) => setNewSeriesFormat(e.target.value)}
+                    onChange={(e) => {
+                      const fmt = e.target.value;
+                      setNewSeriesFormat(fmt);
+                      if (fmt === 'MANGA') setNewSeriesDirection(1);
+                      else if (fmt === 'COMIC') setNewSeriesDirection(0);
+                      else if (fmt === 'WEBTOON') setNewSeriesDirection(2);
+                    }}
                     className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg focus:outline-none focus:border-[#F97316]'
                   >
                     <option value='WEBTOON'>Webtoon (Cuộn dọc)</option>
@@ -1463,6 +1483,79 @@ export const StudioOverviewView: React.FC = () => {
                     <option value='COMIC'>Comic (Trái sang Phải)</option>
                   </select>
                 </div>
+                <div>
+                  <label className='block font-semibold text-[#171717] mb-1'>
+                    Hướng Đọc (Reading Direction - BR-14)
+                  </label>
+                  <select
+                    value={newSeriesDirection}
+                    onChange={(e) => setNewSeriesDirection(Number(e.target.value))}
+                    className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg focus:outline-none focus:border-[#F97316]'
+                  >
+                    <option value={1}>Phải sang Trái (Manga RTL - BR-14)</option>
+                    <option value={0}>Trái sang Phải (Comic LTR)</option>
+                    <option value={2}>Cuộn Dọc (Webtoon Vertical)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
+                <div>
+                  <label className='block font-semibold text-[#171717] mb-1'>
+                    Thể Loại (Genre)
+                  </label>
+                  <input
+                    type='text'
+                    value={newSeriesGenre}
+                    onChange={(e) => setNewSeriesGenre(e.target.value)}
+                    placeholder='Ví dụ: Shonen, Action, Sci-Fi...'
+                    className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg focus:outline-none focus:border-[#F97316]'
+                  />
+                </div>
+                <div>
+                  <label className='block font-semibold text-[#171717] mb-1'>
+                    Tuyến Truyện / Phần (Story Arc)
+                  </label>
+                  <input
+                    type='text'
+                    value={newSeriesStoryArc}
+                    onChange={(e) => setNewSeriesStoryArc(e.target.value)}
+                    placeholder='Ví dụ: Arc 1: Khởi nguồn'
+                    className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg focus:outline-none focus:border-[#F97316]'
+                  />
+                </div>
+              </div>
+
+              {pipelineTemplates.length > 0 && (
+                <div>
+                  <label className='block font-semibold text-[#171717] mb-1'>
+                    Mẫu Quy Trình Sản Xuất (Pipeline Template)
+                  </label>
+                  <select
+                    value={newSeriesTemplateId}
+                    onChange={(e) => setNewSeriesTemplateId(e.target.value)}
+                    className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg focus:outline-none focus:border-[#F97316]'
+                  >
+                    {pipelineTemplates.map((tpl) => (
+                      <option key={tpl.id} value={tpl.id}>
+                        {tpl.name} {tpl.isDefault ? '(Mặc định)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div>
+                <label className='block font-semibold text-[#171717] mb-1'>
+                  Tóm Tắt Cốt Truyện (Synopsis)
+                </label>
+                <textarea
+                  rows={2}
+                  value={newSeriesSynopsis}
+                  onChange={(e) => setNewSeriesSynopsis(e.target.value)}
+                  placeholder='Mô tả ngắn gọn bối cảnh và cốt truyện chính của dự án...'
+                  className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg focus:outline-none focus:border-[#F97316] resize-none'
+                />
               </div>
 
               <div className='p-3 bg-[#FAF8F5] rounded-xl border border-[#E7E7E7] space-y-1 text-xs text-[#737373]'>

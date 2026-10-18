@@ -148,4 +148,29 @@ describe('AddEntityModal UX/UI improvements', () => {
     }) as HTMLButtonElement;
     expect(submitBtn.disabled).toBe(true);
   });
+
+  it('renders character sheet gallery section and adds turnaround sketches (Step 3)', async () => {
+    render(<AddEntityModal {...defaultProps} isProducer={true} />);
+
+    expect(screen.getByText(/Bộ Sưu Tập Phác Thảo Góc Nhìn & Biểu Cảm/i)).toBeInTheDocument();
+    expect(screen.getByText(/0 góc phác thảo/i)).toBeInTheDocument();
+
+    const labelSelect = screen.getByDisplayValue('Chính diện (Front)');
+    fireEvent.change(labelSelect, { target: { value: 'Góc nghiêng 3/4' } });
+
+    fireEvent.change(screen.getByLabelText(/Tên mục/i), { target: { value: 'Luffy' } });
+    fireEvent.change(screen.getByLabelText(/Mô tả quy chuẩn thiết kế/i), {
+      target: { value: 'Mũ rơm' },
+    });
+
+    const submitBtn = screen.getByRole('button', { name: /Lưu vào Series Bible/i });
+    fireEvent.click(submitBtn);
+
+    expect(defaultProps.onAdd).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'Luffy',
+        description: 'Mũ rơm',
+      }),
+    );
+  });
 });

@@ -210,6 +210,23 @@ export interface UpdateWorkspaceAiConfigRequest {
   monthlyImageQuota?: number;
 }
 
+export interface AdminWorkspaceDto {
+  id: string;
+  name: string;
+  ownerId: string;
+  ownerName: string;
+  ownerEmail: string;
+  storageQuotaBytes: number;
+  usedStorageBytes: number;
+  memberCount: number;
+  seriesCount: number;
+  createdAt: string;
+}
+
+export interface UpdateWorkspaceQuotaRequest {
+  storageQuotaBytes: number;
+}
+
 function extractError(error: any, defaultMsg: string): string {
   const data = error.response?.data;
   if (data?.message) return data.message;
@@ -467,6 +484,31 @@ export const adminService = {
     } catch (error) {
       throw new Error(
         extractError(error, 'Không thể cập nhật chính sách phiên làm việc của Workspace.'),
+      );
+    }
+  },
+
+  getWorkspaces: async (): Promise<AdminWorkspaceDto[]> => {
+    try {
+      const response = await axiosClient.get('/Admin/workspaces');
+      return response.data;
+    } catch (error) {
+      throw new Error(extractError(error, 'Không thể tải danh sách Studio Workspace.'));
+    }
+  },
+
+  updateWorkspaceQuota: async (
+    workspaceId: string,
+    storageQuotaBytes: number,
+  ): Promise<AdminWorkspaceDto> => {
+    try {
+      const response = await axiosClient.put(`/Admin/workspaces/${workspaceId}/quota`, {
+        storageQuotaBytes,
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        extractError(error, 'Không thể cập nhật hạn mức lưu trữ (Quota) của Workspace.'),
       );
     }
   },

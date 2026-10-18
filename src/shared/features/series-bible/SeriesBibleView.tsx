@@ -125,6 +125,16 @@ const getCategoryIcon = (category: string, className = 'w-4 h-4') => {
 };
 
 const mapEntryToBibleEntity = (entry: BibleEntryDto): BibleEntity => {
+  let gallery: Array<{ url: string; label?: string; sha256?: string }> = [];
+  try {
+    const details = JSON.parse(entry.detailsJson || '{}');
+    if (Array.isArray(details.turnaroundGallery)) {
+      gallery = details.turnaroundGallery;
+    }
+  } catch {
+    // ignore
+  }
+
   return {
     id: entry.id,
     code: entry.code || `ENT-${entry.id.substring(0, 4)}`,
@@ -137,6 +147,7 @@ const mapEntryToBibleEntity = (entry: BibleEntryDto): BibleEntity => {
     status: entry.isActive ? 'Active' : 'Draft',
     isLocked: entry.effectiveRevision?.isLocked ?? false,
     lockedAt: entry.effectiveRevision?.lockedAt ?? null,
+    gallery,
   };
 };
 
@@ -504,12 +515,17 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
       else if (newEntity.category === 'style' || newEntity.category === 'rule')
         catPayload = 'StyleRule';
 
+      const detailsPayload = JSON.stringify({
+        turnaroundGallery: newEntity.gallery || [],
+      });
+
       const created = await bibleService.createBibleEntry(effectiveSeries.id, {
         category: catPayload,
         code: newEntity.code,
         name: newEntity.name,
         subtitle: newEntity.subtitle,
         description: newEntity.description,
+        detailsJson: detailsPayload,
         referenceImageUrl: newEntity.imageUrl || undefined,
         priority: 'Standard',
         strictCheck: true,
