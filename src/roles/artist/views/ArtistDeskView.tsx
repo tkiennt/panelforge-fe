@@ -105,10 +105,20 @@ import {
 import { splitPanelWithRollback } from '../utils/splitPanel';
 import { pipelineService, type PipelineStageDto } from '@/services/pipeline.service';
 import { pickPanelArtwork } from '@/shared/utils/stageArtworks';
+import { ElementConflictModal } from '@/shared/modals/ElementConflictModal';
 
 /** Chỉ lỗi mạng (không có status HTTP) mới xếp hàng chờ ngoại tuyến; 4xx/409 của BE phải hiện cho người dùng. */
 const isNetworkFailure = (err: any): boolean =>
   err?.status === undefined && (!err?.response || err?.code === 'ERR_NETWORK');
+
+let localIdSeq = 0;
+function generateClientId(prefix: string): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  localIdSeq += 1;
+  return `${prefix}-local-${localIdSeq}`;
+}
 
 interface ArtistDeskViewProps {
   workspaceRole?: string | null;
@@ -264,10 +274,47 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
 
   const [toast, setToast] = useState<{ title: string; desc: string } | null>(null);
 
+  // Concurrency Conflict Modal (BR-11 / NFR-09)
+  const [conflictModalOpen, setConflictModalOpen] = useState(false);
+  const [conflictErrorMsg, setConflictErrorMsg] = useState<string | undefined>(undefined);
+  const [conflictPanelId, setConflictPanelId] = useState<string | undefined>(undefined);
+
+  // Lắng nghe sự kiện xung đột từ hàng đợi offline (BR-11 / NFR-09)
+  useEffect(() => {
+    const handleOfflineConflict = (e: any) => {
+      const detail = e.detail;
+      if (detail) {
+        setConflictPanelId(detail.item?.clientRefId);
+        setConflictErrorMsg(
+          detail.message ||
+            'Xung đột phiên bản khung tranh khi đồng bộ ngoại tuyến (409 Conflict).',
+        );
+        setConflictModalOpen(true);
+      }
+    };
+    window.addEventListener('panelforge:offline_conflict', handleOfflineConflict);
+    return () => {
+      window.removeEventListener('panelforge:offline_conflict', handleOfflineConflict);
+    };
+  }, []);
+
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const showToast = (title: string, desc: string) => {
     setToast({ title, desc });
-    setTimeout(() => setToast(null), 3500);
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => {
+      if (typeof window !== 'undefined') {
+        setToast(null);
+      }
+    }, 3500);
   };
+
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    };
+  }, []);
 
   const handleCheckPanelConsistency = async (panelId: string) => {
     setCheckingConsistencyPanelId(panelId);
@@ -637,10 +684,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
   const handleCreateLayer = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!selectedPage) return;
-    const clientElementId =
-      typeof crypto !== 'undefined' && crypto.randomUUID
-        ? crypto.randomUUID()
-        : `elem-${Date.now()}`;
+    const clientElementId = generateClientId('elem');
 
     const req: AddElementRequest = {
       elementType: newLayerType,
@@ -917,10 +961,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
     const defaultBox = buildBoundingBoxJson(10, defaultY, 80, 22, pageWidth, pageHeight);
 
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
-      const clientPanelId =
-        typeof crypto !== 'undefined' && crypto.randomUUID
-          ? crypto.randomUUID()
-          : `panel-${Date.now()}`;
+      const clientPanelId = generateClientId('panel');
       offlineQueueService.enqueue({
         type: 'CREATE_PANEL',
         endpoint: `/pages/${selectedPage.id}/panels`,
@@ -961,10 +1002,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
     } catch (err: any) {
       const isNetworkError = isNetworkFailure(err);
       if (isNetworkError) {
-        const clientPanelId =
-          typeof crypto !== 'undefined' && crypto.randomUUID
-            ? crypto.randomUUID()
-            : `panel-${Date.now()}`;
+        const clientPanelId = generateClientId('panel');
         offlineQueueService.enqueue({
           type: 'CREATE_PANEL',
           endpoint: `/pages/${selectedPage.id}/panels`,
@@ -1051,9 +1089,14 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
    */
   const handlePanelVersionConflict = (err: any): boolean => {
     if (err?.code !== 'CONFLICT' || !selectedPage) return false;
+    setConflictPanelId(selectedPanelId || undefined);
+    setConflictErrorMsg(
+      err.message || 'Phiên bản khung tranh đã thay đổi trên máy chủ bởi người dùng khác.',
+    );
+    setConflictModalOpen(true);
     showToast(
-      'Khung vừa được người khác sửa',
-      `${err.message || 'Phiên bản khung đã thay đổi.'} Đã tải lại bố cục mới nhất.`,
+      'Khung vừa được người khác sửa (409 Conflict)',
+      `${err.message || 'Phiên bản khung đã thay đổi.'} Vui lòng kiểm tra xung đột.`,
     );
     void loadPanels(selectedPage.id);
     return true;
@@ -3356,6 +3399,20 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
           setSelectedDrawerPanelId(pid);
           setSelectedPanelId(pid);
         }}
+      />
+
+      {/* Concurrency Conflict Modal (BR-11 / NFR-09) */}
+      <ElementConflictModal
+        isOpen={conflictModalOpen}
+        title='Xung Đột Phiên Bản Khung Tranh (BR-11)'
+        subtitle='Optimistic Concurrency Control — PANEL_VERSION_CONFLICT'
+        entityType='Khung tranh'
+        elementId={conflictPanelId}
+        errorMessage={conflictErrorMsg}
+        onReload={() => {
+          if (selectedPage) void loadPanels(selectedPage.id);
+        }}
+        onClose={() => setConflictModalOpen(false)}
       />
     </div>
   );

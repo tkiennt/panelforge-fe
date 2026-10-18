@@ -1,8 +1,11 @@
 import React from 'react';
 import { AlertTriangle, RefreshCw, X, ArrowRight, ShieldAlert } from 'lucide-react';
 
-interface ElementConflictModalProps {
+export interface ElementConflictModalProps {
   isOpen: boolean;
+  title?: string;
+  subtitle?: string;
+  entityType?: string;
   elementId?: string;
   errorMessage?: string;
   onReload: () => void;
@@ -12,6 +15,9 @@ interface ElementConflictModalProps {
 
 export const ElementConflictModal: React.FC<ElementConflictModalProps> = ({
   isOpen,
+  title,
+  subtitle,
+  entityType,
   elementId,
   errorMessage,
   onReload,
@@ -19,6 +25,8 @@ export const ElementConflictModal: React.FC<ElementConflictModalProps> = ({
   onClose,
 }) => {
   if (!isOpen) return null;
+
+  const currentEntity = entityType || 'Phần tử';
 
   return (
     <div className='fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200'>
@@ -31,10 +39,10 @@ export const ElementConflictModal: React.FC<ElementConflictModalProps> = ({
             </div>
             <div>
               <h3 className='text-sm font-bold text-[#171717]'>
-                Xung Đột Phiên Bản Phần Tử (BR-11)
+                {title || 'Xung Đột Phiên Bản Phần Tử (BR-11)'}
               </h3>
               <p className='text-xs text-[#737373]'>
-                Optimistic Concurrency Control — ELEMENT_VERSION_CONFLICT
+                {subtitle || 'Optimistic Concurrency Control — ELEMENT_VERSION_CONFLICT'}
               </p>
             </div>
           </div>
@@ -51,7 +59,7 @@ export const ElementConflictModal: React.FC<ElementConflictModalProps> = ({
           <div className='p-3.5 bg-amber-50/70 border border-amber-200 rounded-xl text-amber-900 space-y-1.5'>
             <div className='font-bold flex items-center gap-1.5'>
               <ShieldAlert className='w-4 h-4 text-amber-600' />
-              <span>Phần tử đã được cập nhật bởi một người dùng khác</span>
+              <span>{currentEntity} đã được cập nhật bởi một người dùng khác</span>
             </div>
             <p className='text-xs text-amber-800 leading-relaxed'>
               Phiên bản trên máy chủ hiện tại đã tăng lên (khác với phiên bản bạn đang giữ trên màn
@@ -60,7 +68,7 @@ export const ElementConflictModal: React.FC<ElementConflictModalProps> = ({
             </p>
             {elementId && (
               <div className='text-xs font-mono text-amber-700 bg-amber-100/60 px-2 py-0.5 rounded'>
-                Element ID: {elementId}
+                {entityType ? `${entityType} ID:` : 'Element ID:'} {elementId}
               </div>
             )}
           </div>
@@ -132,4 +140,5 @@ export const ElementConflictModal: React.FC<ElementConflictModalProps> = ({
   );
 };
 
+export const ConflictResolutionModal = ElementConflictModal;
 export default ElementConflictModal;

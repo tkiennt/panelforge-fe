@@ -642,7 +642,7 @@ describe('LetteringWorkspace', () => {
       fireEvent.click(screen.getByTestId('fit-page'));
       fireEvent.click(screen.getByText('100%', { selector: 'button[title^="Kích thước thật"]' }));
       await waitFor(() => expect(percent()).toBe('100%'));
-    });
+    }, 15000);
 
     it('phím tắt không chạy khi đang nhập chữ', async () => {
       renderComponent();

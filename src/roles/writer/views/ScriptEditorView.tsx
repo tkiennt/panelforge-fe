@@ -59,6 +59,9 @@ import { ScriptLineItem } from '../components/script/ScriptLineItem';
 import { NarrativeContextDrawer } from '../components/script/NarrativeContextDrawer';
 import { ConsistencyFindingsDrawer } from '../components/script/ConsistencyFindingsDrawer';
 import { BibleCharactersDrawer } from '../components/script/BibleCharactersDrawer';
+import { offlineQueueService } from '@/services/offlineQueue.service';
+import { OfflineStatusBanner } from '@/shared/components/OfflineStatusBanner';
+import { ElementConflictModal } from '@/shared/modals/ElementConflictModal';
 
 interface ScriptEditorViewProps {
   onShowToast?: (title: string, desc: string) => void;
@@ -146,8 +149,29 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   );
   const [highlightedLineId, setHighlightedLineId] = useState<string | null>(null);
 
-  // Banner xung đột phiên bản (409 CONFLICT)
+  // Banner & Modal xung đột phiên bản (BR-11 / 409 CONFLICT)
   const [concurrencyError, setConcurrencyError] = useState<string | null>(null);
+  const [conflictModalOpen, setConflictModalOpen] = useState(false);
+  const [conflictErrorMsg, setConflictErrorMsg] = useState<string | undefined>(undefined);
+  const [conflictEntityId, setConflictEntityId] = useState<string | undefined>(undefined);
+
+  // Lắng nghe sự kiện xung đột từ hàng đợi offline (BR-11 / NFR-09)
+  useEffect(() => {
+    const handleOfflineConflict = (e: any) => {
+      const detail = e.detail;
+      if (detail) {
+        setConflictEntityId(detail.item?.clientRefId);
+        setConflictErrorMsg(
+          detail.message || 'Xung đột phiên bản kịch bản khi đồng bộ ngoại tuyến (409 Conflict).',
+        );
+        setConflictModalOpen(true);
+      }
+    };
+    window.addEventListener('panelforge:offline_conflict', handleOfflineConflict);
+    return () => {
+      window.removeEventListener('panelforge:offline_conflict', handleOfflineConflict);
+    };
+  }, []);
 
   // Side Drawer phụ (Đề cương, Nhất quán, Nhân vật Bible)
   const isTestEnvironment =
@@ -544,6 +568,9 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       if (err?.code === 'CONFLICT' && isEditingScene && selectedScene) {
         // BR-11: người khác vừa sửa phân cảnh → nạp lại bản mới (kèm version mới), giữ form mở; KHÔNG tự gửi lại.
         // Người dùng xem bản mới rồi quyết định lưu lại nội dung của mình hay không.
+        setConflictEntityId(selectedScene.id);
+        setConflictErrorMsg(err.message || 'Phân cảnh vừa được người khác chỉnh sửa trên máy chủ.');
+        setConflictModalOpen(true);
         notify(
           'Phân cảnh vừa được người khác sửa',
           `${err.message} Đã nạp bản mới nhất, kiểm tra lại rồi lưu.`,
@@ -626,6 +653,41 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           bibleEntryIds: lineBibleEntryIds,
           narrationMode: lineNarrationMode,
         };
+
+        if (typeof navigator !== 'undefined' && !navigator.onLine) {
+          offlineQueueService.enqueue({
+            type: 'UPDATE_SCRIPT_LINE',
+            endpoint: `/chapters/${currentChapter.id}/script-lines/${editingLine.id}`,
+            method: 'PUT',
+            payload: req,
+            clientRefId: editingLine.id,
+          });
+          setSelectedScene((prev) => {
+            if (!prev) return null;
+            return {
+              ...prev,
+              scriptLines: prev.scriptLines.map((l) =>
+                l.id === editingLine.id
+                  ? {
+                      ...l,
+                      dialogueText: lineDialogue.trim() || null,
+                      stageDirection: lineStageDirection.trim() || null,
+                      speakerCharacterId: lineSpeakerId || null,
+                      bibleEntryIds: lineBibleEntryIds,
+                      narrationMode: lineNarrationMode || undefined,
+                    }
+                  : l,
+              ),
+            };
+          });
+          notify(
+            'Đã lưu ngoại tuyến (NFR-09)',
+            `Thay đổi dòng kịch bản #${editingLine.lineOrder} đã được lưu vào hàng đợi và sẽ tự đồng bộ khi có mạng.`,
+          );
+          setLineModalOpen(false);
+          return;
+        }
+
         const res = await scriptLineService.updateScriptLine(
           currentChapter.id,
           editingLine.id,
@@ -650,6 +712,46 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           clientLineId,
           narrationMode: lineNarrationMode,
         };
+
+        if (typeof navigator !== 'undefined' && !navigator.onLine) {
+          offlineQueueService.enqueue({
+            type: 'CREATE_SCRIPT_LINE',
+            endpoint: `/chapters/${currentChapter.id}/scenes/${selectedScene.id}/script-lines`,
+            method: 'POST',
+            payload: req,
+            clientRefId: clientLineId,
+          });
+          setSelectedScene((prev) => {
+            if (!prev) return null;
+            const newLine: SceneScriptLineSummaryDto = {
+              id: clientLineId,
+              lineOrder: lineOrderInput,
+              dialogueText: lineDialogue.trim() || null,
+              stageDirection: lineStageDirection.trim() || null,
+              speakerCharacterId: lineSpeakerId || null,
+              bibleEntryIds: lineBibleEntryIds,
+              narrationMode: lineNarrationMode || undefined,
+            };
+            return {
+              ...prev,
+              scriptLines: [...(prev.scriptLines || []), newLine],
+            };
+          });
+          setScenes((prevScenes) =>
+            prevScenes.map((s) =>
+              s.id === selectedScene.id
+                ? { ...s, scriptLinesCount: (s.scriptLinesCount || 0) + 1 }
+                : s,
+            ),
+          );
+          notify(
+            'Đã lưu ngoại tuyến (NFR-09)',
+            `Dòng kịch bản mới #${lineOrderInput} đã được lưu vào hàng đợi trên thiết bị và sẽ tự đồng bộ khi có kết nối mạng.`,
+          );
+          setLineModalOpen(false);
+          return;
+        }
+
         const res = await scriptLineService.createScriptLine(
           currentChapter.id,
           selectedScene.id,
@@ -671,6 +773,9 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           err.message ||
           'Xung đột phiên bản: Kịch bản đã được chỉnh sửa ở tab/thiết bị khác. Đang nạp lại dữ liệu mới nhất...';
         setConcurrencyError(msg);
+        setConflictEntityId(editingLine?.id || selectedScene.id);
+        setConflictErrorMsg(msg);
+        setConflictModalOpen(true);
         notify('Xung đột phiên bản (409 CONFLICT)', msg);
         await refreshChapterDetail(currentChapter.id);
         await loadSceneDetail(selectedScene.id);
@@ -686,6 +791,37 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     if (!currentChapter?.id || !selectedScene?.id) return;
     if (!confirm(`Bạn có chắc muốn xoá dòng kịch bản #${line.lineOrder}?`)) return;
 
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      offlineQueueService.enqueue({
+        type: 'DELETE_SCRIPT_LINE',
+        endpoint: `/chapters/${currentChapter.id}/script-lines/${line.id}`,
+        method: 'DELETE',
+        payload: {
+          expectedChapterVersion: currentChapter.versionVector,
+        },
+        clientRefId: line.id,
+      });
+      setSelectedScene((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          scriptLines: prev.scriptLines.filter((l) => l.id !== line.id),
+        };
+      });
+      setScenes((prevScenes) =>
+        prevScenes.map((s) =>
+          s.id === selectedScene.id
+            ? { ...s, scriptLinesCount: Math.max(0, (s.scriptLinesCount || 1) - 1) }
+            : s,
+        ),
+      );
+      notify(
+        'Đã xoá ngoại tuyến (NFR-09)',
+        `Dòng #${line.lineOrder} đã được đánh dấu xoá và sẽ đồng bộ khi có kết nối mạng.`,
+      );
+      return;
+    }
+
     try {
       const res = await scriptLineService.deleteScriptLine(
         currentChapter.id,
@@ -699,6 +835,9 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       if (err.code === 'CONFLICT' || err.status === 409) {
         const msg = err.message || 'Xung đột phiên bản khi xoá dòng kịch bản.';
         setConcurrencyError(msg);
+        setConflictEntityId(line.id);
+        setConflictErrorMsg(msg);
+        setConflictModalOpen(true);
         notify('Xung đột phiên bản', msg);
         await refreshChapterDetail(currentChapter.id);
         await loadSceneDetail(selectedScene.id);
@@ -1021,6 +1160,9 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           </button>
         </div>
       </header>
+
+      {/* NFR-09: Thanh trạng thái kết nối & hàng đợi ngoại tuyến */}
+      <OfflineStatusBanner className='px-4 py-2 border-b border-[#E7E2D9]' />
 
       {/* 2. Thanh thông báo ngắn gọn gom thông báo chỉ đọc & xung đột */}
       {(concurrencyError || isChapterLocked || !canEditScript || loadError) && (
@@ -1847,6 +1989,22 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           </div>
         </div>
       )}
+
+      {/* Concurrency Conflict Modal (BR-11 / NFR-09) */}
+      <ElementConflictModal
+        isOpen={conflictModalOpen}
+        title='Xung Đột Phiên Bản Kịch Bản (BR-11)'
+        subtitle='Optimistic Concurrency Control — SCRIPT_VERSION_CONFLICT'
+        entityType='Dòng kịch bản / Phân cảnh'
+        elementId={conflictEntityId}
+        errorMessage={conflictErrorMsg}
+        onReload={async () => {
+          if (currentChapter?.id) await refreshChapterDetail(currentChapter.id);
+          if (selectedScene?.id) await loadSceneDetail(selectedScene.id);
+          setConcurrencyError(null);
+        }}
+        onClose={() => setConflictModalOpen(false)}
+      />
     </div>
   );
 };
