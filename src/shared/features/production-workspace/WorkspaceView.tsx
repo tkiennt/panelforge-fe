@@ -1,20 +1,11 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { KanbanBoard } from '@/shared/features/pipeline-board/KanbanBoard';
+import { ProductionBoard } from '@/shared/features/pipeline-board/ProductionBoard';
+import { formatChapterLabel } from '@/shared/features/pipeline-board/productionBoard.utils';
 import { CreateAssignmentModal } from '@/roles/producer/modals/CreateAssignmentModal';
 import { SystemRole, WorkspaceRole } from '@/types';
-import {
-  Layers,
-  BookOpen,
-  RefreshCw,
-  Clock,
-  CheckCircle2,
-  AlertTriangle,
-  ArrowUpRight,
-  ShieldAlert,
-} from 'lucide-react';
+import { BookOpen, RefreshCw, ArrowUpRight, ShieldAlert, Lock } from 'lucide-react';
 import { chapterService, ChapterDto } from '@/services/chapter.service';
-import { seriesService, SeriesProgressDto } from '@/services/series.service';
 
 export interface WorkspaceViewProps {
   currentUserRole?: WorkspaceRole | null;
@@ -24,6 +15,15 @@ export interface WorkspaceViewProps {
   onShowToast: (title: string, desc: string) => void;
   isReaderMode?: boolean;
 }
+
+const CHAPTER_STATUS_META: Record<string, { label: string; cls: string }> = {
+  InProduction: { label: 'Đang sản xuất', cls: 'text-amber-900 bg-amber-50 border-amber-300' },
+  Approved: { label: 'Đã duyệt chương', cls: 'text-emerald-900 bg-emerald-50 border-emerald-300' },
+  Published: { label: 'Đã xuất bản', cls: 'text-violet-900 bg-violet-50 border-violet-300' },
+};
+
+const focusRing =
+  'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-landing-ink';
 
 export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
   currentUserRole,
@@ -45,11 +45,9 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
       : [...(systemRole ? [systemRole] : []), ...(currentUserRole ? [currentUserRole] : [])];
   }, [userRoles, systemRole, currentUserRole]);
 
-  const [filterType, setFilterType] = useState<'all' | 'my-tasks' | 'overdue'>('all');
   const [chapters, setChapters] = useState<ChapterDto[]>([]);
   const [currentChapterId, setCurrentChapterId] = useState<string>('');
   const [loadingChapters, setLoadingChapters] = useState(false);
-  const [seriesProgress, setSeriesProgress] = useState<SeriesProgressDto | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -87,23 +85,9 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
     }
   }, [seriesId, chapterIdFromUrl, setSearchParams, onShowToast]);
 
-  // Nạp tiến độ sản xuất SeriesProgress (chỉ dành cho Producer)
-  const loadProgress = useCallback(async () => {
-    if (!seriesId || !isProducer) return;
-    try {
-      const prog = await seriesService.getSeriesProgress(seriesId);
-      setSeriesProgress(prog);
-    } catch (err) {
-      console.warn('Không thể nạp tiến độ SeriesProgress:', err);
-    }
-  }, [seriesId, isProducer]);
-
   useEffect(() => {
     loadChapters();
-    if (isProducer) {
-      loadProgress();
-    }
-  }, [loadChapters, loadProgress, isProducer]);
+  }, [loadChapters]);
 
   // Xử lý chuyển đổi chương
   const handleChapterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -116,30 +100,9 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
     });
   };
 
-  // Tính toán KPI cho chương hiện tại
   const currentChapter = useMemo(() => {
     return chapters.find((c) => c.id === currentChapterId);
   }, [chapters, currentChapterId]);
-
-  const currentChapterProgress = useMemo(() => {
-    if (!seriesProgress?.chapters || !currentChapterId) return null;
-    return seriesProgress.chapters.find((c) => c.chapterId === currentChapterId);
-  }, [seriesProgress, currentChapterId]);
-
-  const completionPercent = currentChapterProgress
-    ? Math.round(currentChapterProgress.percentComplete)
-    : 0;
-
-  const overdueCount =
-    (currentChapterProgress?.overdueAssignments || 0) +
-    (currentChapterProgress?.overdueChangeRequests || 0);
-
-  const waitingReviewCount = useMemo(() => {
-    if (!currentChapterProgress?.assignmentsByStatus) return 0;
-    const submitted = currentChapterProgress.assignmentsByStatus['Submitted'] || 0;
-    const underReview = currentChapterProgress.assignmentsByStatus['UnderReview'] || 0;
-    return submitted + underReview;
-  }, [currentChapterProgress]);
 
   // Chặn độc giả không phận sự
   if (isReaderMode || isReaderOnly) {
@@ -166,184 +129,111 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
     );
   }
 
-  return (
-    <div className='w-full h-full flex flex-col bg-white overflow-hidden'>
-      {/* Sub-header / Board Controls */}
-      <div className='shrink-0 border-b border-zinc-200 px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white z-20 shadow-2xs'>
-        {/* Left: Chương Dropdown & KPI Metrics */}
-        <div className='flex flex-wrap items-center gap-6'>
-          {/* Chapter Selector */}
-          <div className='flex items-center gap-3'>
-            <div className='flex items-center gap-2 px-3 py-1.5 bg-zinc-50 border border-zinc-200 rounded-xl shadow-2xs'>
-              <BookOpen className='w-4 h-4 text-zinc-500' />
-              <label
-                htmlFor='pipeline-chapter-select'
-                className='text-xs font-medium text-zinc-500'
-              >
-                Chương:
-              </label>
-              <select
-                id='pipeline-chapter-select'
-                value={currentChapterId}
-                onChange={handleChapterChange}
-                disabled={loadingChapters || chapters.length === 0}
-                className='bg-transparent text-xs font-bold text-zinc-900 outline-none cursor-pointer pr-2'
-              >
-                {chapters.length === 0 ? (
-                  <option value=''>Đang nạp danh sách chương...</option>
-                ) : (
-                  chapters.map((chap) => (
-                    <option key={chap.id} value={chap.id}>
-                      Chương {chap.chapterNumber}: {chap.title || 'Bản thảo'}
-                    </option>
-                  ))
-                )}
-              </select>
-            </div>
+  const statusMeta = currentChapter
+    ? (CHAPTER_STATUS_META[String(currentChapter.status)] ?? {
+        label: String(currentChapter.status),
+        cls: 'text-stone-800 bg-stone-100 border-stone-300',
+      })
+    : null;
 
-            {/* Trạng thái Chapter Badge */}
-            {currentChapter && (
-              <span
-                className={`text-xs font-mono font-medium uppercase tracking-wider px-3 py-1 rounded-full border shadow-soft-sm ${
-                  currentChapter.status === 'Approved'
-                    ? 'text-emerald-700 bg-emerald-50 border-emerald-200'
-                    : currentChapter.status === 'Published'
-                      ? 'text-purple-700 bg-purple-50 border-purple-200'
-                      : 'text-amber-700 bg-amber-50 border-amber-200'
-                }`}
+  return (
+    <div className='w-full h-full min-w-0 overflow-x-hidden overflow-y-auto bg-landing-paper font-sans text-landing-ink'>
+      <div className='flex min-w-0 flex-col gap-5 px-4 py-5 sm:px-6 lg:px-8 lg:py-7'>
+        {/* Header chương */}
+        <header className='flex min-w-0 flex-col gap-4 lg:flex-row lg:items-end lg:justify-between'>
+          <div className='min-w-0'>
+            <h1 className='font-serif text-2xl font-semibold text-landing-ink sm:text-3xl'>
+              Quy trình sản xuất
+            </h1>
+            <div className='mt-3 flex flex-wrap items-center gap-3'>
+              <div className='flex min-h-11 min-w-0 items-center gap-2 rounded-lg border border-landing-border bg-landing-paper-light px-3'>
+                <BookOpen className='h-4 w-4 shrink-0 text-landing-ink-muted' aria-hidden='true' />
+                <label
+                  htmlFor='pipeline-chapter-select'
+                  className='text-sm font-medium text-landing-ink-muted'
+                >
+                  Chương:
+                </label>
+                <select
+                  id='pipeline-chapter-select'
+                  value={currentChapterId}
+                  onChange={handleChapterChange}
+                  disabled={loadingChapters || chapters.length === 0}
+                  className={`min-h-10 max-w-[60vw] min-w-0 truncate rounded bg-transparent pr-2 text-sm font-semibold text-landing-ink cursor-pointer sm:max-w-md ${focusRing}`}
+                >
+                  {chapters.length === 0 ? (
+                    <option value=''>Đang nạp danh sách chương...</option>
+                  ) : (
+                    chapters.map((chap) => (
+                      <option key={chap.id} value={chap.id}>
+                        {formatChapterLabel(chap.chapterNumber, chap.title || 'Bản thảo')}
+                      </option>
+                    ))
+                  )}
+                </select>
+              </div>
+
+              {statusMeta && (
+                <span
+                  className={`inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-semibold ${statusMeta.cls}`}
+                >
+                  {statusMeta.label}
+                </span>
+              )}
+              {currentChapter &&
+                ['Approved', 'Published'].includes(String(currentChapter.status)) && (
+                  <span className='inline-flex items-center gap-1.5 text-xs text-landing-ink-muted'>
+                    <Lock className='h-3.5 w-3.5' aria-hidden='true' />
+                    Bị khoá: nội dung chương chỉ còn xem, không sửa được
+                  </span>
+                )}
+            </div>
+          </div>
+
+          <div className='flex flex-wrap items-center gap-2'>
+            <button
+              type='button'
+              onClick={() => {
+                loadChapters();
+                setRefreshKey((k) => k + 1);
+              }}
+              aria-label='Làm mới dữ liệu'
+              title='Làm mới dữ liệu'
+              className={`inline-flex min-h-11 items-center gap-2 rounded-lg border border-landing-border bg-landing-paper-light px-3.5 text-sm font-semibold text-landing-ink hover:bg-white transition-colors cursor-pointer ${focusRing}`}
+            >
+              <RefreshCw className='h-4 w-4' aria-hidden='true' />
+              <span className='max-sm:sr-only'>Làm mới</span>
+            </button>
+
+            {workspaceId && seriesId && (
+              <button
+                type='button'
+                onClick={() =>
+                  navigate(
+                    `/workspaces/${workspaceId}/series/${seriesId}/my-work${
+                      currentChapterId ? `?chapterId=${currentChapterId}` : ''
+                    }`,
+                  )
+                }
+                className={`inline-flex min-h-11 items-center gap-1.5 rounded-lg bg-landing-ink px-4 text-sm font-semibold text-white hover:bg-black transition-colors cursor-pointer ${focusRing}`}
               >
-                {currentChapter.status === 'InProduction'
-                  ? 'Đang sản xuất'
-                  : currentChapter.status === 'Approved'
-                    ? 'Đã duyệt chương'
-                    : currentChapter.status === 'Published'
-                      ? 'Đã xuất bản'
-                      : currentChapter.status}
-              </span>
+                <span>Công việc &amp; Xét duyệt</span>
+                <ArrowUpRight className='h-4 w-4' aria-hidden='true' />
+              </button>
             )}
           </div>
+        </header>
 
-          {/* Real KPIs from Backend (Chỉ hiển thị cho Producer) */}
-          {isProducer && (
-            <div className='hidden lg:flex items-center gap-5 pl-6 border-l border-[#e7e5e4]'>
-              <div className='flex flex-col'>
-                <span className='text-xs text-[#777169] uppercase tracking-wider font-mono'>
-                  Hoàn thành
-                </span>
-                <span className='text-sm font-mono font-semibold text-[#0c0a09]'>
-                  {completionPercent}%
-                </span>
-              </div>
-
-              <div className='flex flex-col'>
-                <span className='text-xs text-[#777169] uppercase tracking-wider font-mono'>
-                  Chờ xét duyệt
-                </span>
-                <span className='text-sm font-mono font-semibold text-purple-700'>
-                  {waitingReviewCount}
-                </span>
-              </div>
-
-              <div className='flex flex-col'>
-                <span className='text-xs text-[#777169] uppercase tracking-wider font-mono'>
-                  Quá hạn
-                </span>
-                <span
-                  className={`text-sm font-mono font-semibold ${
-                    overdueCount > 0 ? 'text-rose-600' : 'text-emerald-600'
-                  }`}
-                >
-                  {overdueCount}
-                </span>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Right: Bộ lọc & Phím chuyển hướng nhanh */}
-        <div className='flex items-center gap-3'>
-          {/* Bộ lọc Thẻ */}
-          <div className='flex items-center bg-[#f0efed] p-1 rounded-full border border-[#e7e5e4]'>
-            <button
-              type='button'
-              onClick={() => setFilterType('all')}
-              className={`px-3.5 py-1 text-xs font-medium rounded-full transition-all cursor-pointer ${
-                filterType === 'all'
-                  ? 'bg-[#292524] text-white shadow-soft-sm'
-                  : 'text-[#4e4e4e] hover:text-[#0c0a09]'
-              }`}
-            >
-              Tất cả
-            </button>
-            <button
-              type='button'
-              onClick={() => setFilterType('my-tasks')}
-              className={`px-3.5 py-1 text-xs font-medium rounded-full transition-all cursor-pointer ${
-                filterType === 'my-tasks'
-                  ? 'bg-[#292524] text-white shadow-soft-sm'
-                  : 'text-[#4e4e4e] hover:text-[#0c0a09]'
-              }`}
-            >
-              Của tôi
-            </button>
-            <button
-              type='button'
-              onClick={() => setFilterType('overdue')}
-              className={`px-3.5 py-1 text-xs font-medium rounded-full transition-all cursor-pointer ${
-                filterType === 'overdue'
-                  ? 'bg-[#292524] text-white shadow-soft-sm'
-                  : 'text-[#4e4e4e] hover:text-[#0c0a09]'
-              }`}
-            >
-              Quá hạn
-            </button>
-          </div>
-
-          {/* Nút Làm mới */}
-          <button
-            type='button'
-            onClick={() => {
-              loadChapters();
-              loadProgress();
-            }}
-            title='Làm mới dữ liệu'
-            className='p-2 text-[#777169] hover:text-[#0c0a09] bg-white hover:bg-[#f0efed] border border-[#e7e5e4] rounded-full shadow-soft-sm transition-colors cursor-pointer'
-          >
-            <RefreshCw className='w-4 h-4' />
-          </button>
-
-          {/* Nút chuyển sang Bàn làm việc & Xét duyệt */}
-          {workspaceId && seriesId && (
-            <button
-              type='button'
-              onClick={() =>
-                navigate(
-                  `/workspaces/${workspaceId}/series/${seriesId}/my-work${
-                    currentChapterId ? `?chapterId=${currentChapterId}` : ''
-                  }`,
-                )
-              }
-              className='inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium text-white bg-[#292524] hover:bg-[#0c0a09] rounded-full shadow-soft-sm transition-all cursor-pointer shrink-0'
-            >
-              <span>Công việc & Xét duyệt</span>
-              <ArrowUpRight className='w-4 h-4' />
-            </button>
-          )}
-        </div>
+        <ProductionBoard
+          chapterId={currentChapterId}
+          refreshKey={refreshKey}
+          currentUserRole={currentUserRole}
+          isProducer={isProducer}
+          currentUserId={currentUserId}
+          onShowToast={onShowToast}
+          onOpenCreateAssignment={() => setIsCreateModalOpen(true)}
+        />
       </div>
-
-      {/* Board Area */}
-      <KanbanBoard
-        key={`${currentChapterId}-${refreshKey}`}
-        chapterId={currentChapterId}
-        filterType={filterType}
-        currentUserRole={currentUserRole}
-        systemRole={systemRole}
-        userRoles={effectiveRoles}
-        currentUserId={currentUserId}
-        onShowToast={onShowToast}
-        onOpenCreateAssignment={() => setIsCreateModalOpen(true)}
-      />
 
       {/* Modal giao việc trực tiếp */}
       {workspaceId && seriesId && currentChapterId && isCreateModalOpen && (
@@ -357,7 +247,6 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
           onSuccess={() => {
             setIsCreateModalOpen(false);
             setRefreshKey((k) => k + 1);
-            loadProgress();
             onShowToast('Giao việc thành công', 'Nhiệm vụ mới đã được thêm vào bảng tiến độ');
           }}
           onShowToast={onShowToast}

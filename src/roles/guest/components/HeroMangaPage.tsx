@@ -1,5 +1,4 @@
 import React from 'react';
-import { History } from 'lucide-react';
 
 interface HeroMangaPageProps {
   highlightTarget?: 'editor' | 'artist' | null;
@@ -7,287 +6,282 @@ interface HeroMangaPageProps {
 
 export const HeroMangaPage: React.FC<HeroMangaPageProps> = ({ highlightTarget = null }) => {
   return (
-    <div className='relative w-full flex flex-col items-center select-none py-1 px-1'>
-      {/* Scoped CSS animations for gentle floating & staggered entry */}
+    <div className='relative w-full flex flex-col items-center select-none py-1 px-1 overflow-visible'>
+      {/* Scoped CSS animations for entrance and manuscript fanning */}
       <style>{`
         @keyframes heroFadeInUp {
           0% {
             opacity: 0;
-            transform: translateY(14px);
+            transform: translateY(12px);
           }
           100% {
             opacity: 1;
             transform: translateY(0);
           }
         }
-        @keyframes heroFloatLayer1 {
-          0%, 100% {
-            transform: translateY(0px);
-          }
-          50% {
-            transform: translateY(-3.5px);
-          }
-        }
-        @keyframes heroFloatLayer2 {
-          0%, 100% {
-            transform: translateY(0px);
-          }
-          50% {
-            transform: translateY(3px);
-          }
-        }
-        @keyframes heroFloatMain {
-          0%, 100% {
-            transform: translateY(0px);
-          }
-          50% {
-            transform: translateY(-2.5px);
-          }
-        }
         .hero-sheet-enter-1 {
-          animation: heroFadeInUp 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
-          animation-delay: 120ms;
+          animation: heroFadeInUp 550ms cubic-bezier(0.16, 1, 0.3, 1) both;
+          animation-delay: 100ms;
+        }
+        .hero-sheet-enter-center {
+          animation: heroFadeInUp 580ms cubic-bezier(0.16, 1, 0.3, 1) both;
+          animation-delay: 160ms;
         }
         .hero-sheet-enter-2 {
-          animation: heroFadeInUp 650ms cubic-bezier(0.16, 1, 0.3, 1) both;
-          animation-delay: 240ms;
+          animation: heroFadeInUp 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
+          animation-delay: 220ms;
         }
         .hero-sheet-enter-main {
-          animation: heroFadeInUp 700ms cubic-bezier(0.16, 1, 0.3, 1) both;
-          animation-delay: 380ms;
+          animation: heroFadeInUp 650ms cubic-bezier(0.16, 1, 0.3, 1) both;
+          animation-delay: 320ms;
         }
-        .hero-float-1 {
-          animation: heroFloatLayer1 8.4s ease-in-out infinite;
+
+        /* Default resting state: slight offsets to reveal manuscript paper edges */
+        .hero-fanning-sheet {
+          transform-origin: 50% 95%;
+          transition: transform 440ms cubic-bezier(0.16, 1, 0.3, 1);
+          will-change: transform;
         }
-        .hero-float-2 {
-          animation: heroFloatLayer2 7.6s ease-in-out infinite;
-          animation-delay: 1.5s;
+
+        #hero-sheet-left {
+          transform: translate3d(-14px, 0, 0) rotate(-3.2deg);
         }
-        .hero-float-main {
-          animation: heroFloatMain 8s ease-in-out infinite;
-          animation-delay: 0.8s;
+        #hero-sheet-center {
+          transform: translate3d(0, -6px, 0) rotate(0deg);
         }
+        #hero-sheet-right {
+          transform: translate3d(14px, 0, 0) rotate(3.2deg);
+        }
+
+        /* Hover on pointer devices: fan out wider, pivoting near bottom center */
+        @media (hover: hover) and (pointer: fine) {
+          /* Ultrawide screens: full wide fanning (-11deg, +11deg, offset up to 64px) */
+          @media (min-width: 1600px) {
+            #hero-manga-sheet-wrapper:hover #hero-sheet-left {
+              transform: translate3d(-54px, 0, 0) rotate(-11deg);
+            }
+            #hero-manga-sheet-wrapper:hover #hero-sheet-center {
+              transform: translate3d(0, -18px, 0) rotate(-0.5deg);
+            }
+            #hero-manga-sheet-wrapper:hover #hero-sheet-right {
+              transform: translate3d(54px, 0, 0) rotate(11deg);
+            }
+          }
+
+          /* Standard desktop (1366px - 1599px): scaled fanning adapted to available clearance */
+          @media (min-width: 1201px) and (max-width: 1599px) {
+            #hero-manga-sheet-wrapper:hover #hero-sheet-left {
+              transform: translate3d(-24px, 0, 0) rotate(-6.5deg);
+            }
+            #hero-manga-sheet-wrapper:hover #hero-sheet-center {
+              transform: translate3d(0, -15px, 0) rotate(0deg);
+            }
+            #hero-manga-sheet-wrapper:hover #hero-sheet-right {
+              transform: translate3d(24px, 0, 0) rotate(6.5deg);
+            }
+          }
+
+          /* Tablet landscape / compact desktop (769px - 1200px) */
+          @media (min-width: 769px) and (max-width: 1200px) {
+            #hero-manga-sheet-wrapper:hover #hero-sheet-left {
+              transform: translate3d(-18px, 0, 0) rotate(-4.5deg);
+            }
+            #hero-manga-sheet-wrapper:hover #hero-sheet-center {
+              transform: translate3d(0, -12px, 0) rotate(0deg);
+            }
+            #hero-manga-sheet-wrapper:hover #hero-sheet-right {
+              transform: translate3d(18px, 0, 0) rotate(4.5deg);
+            }
+          }
+        }
+
+        /* prefers-reduced-motion: zero hover movement, keep static stacked manuscript */
         @media (prefers-reduced-motion: reduce) {
           .hero-sheet-enter-1,
+          .hero-sheet-enter-center,
           .hero-sheet-enter-2,
-          .hero-sheet-enter-main,
-          .hero-float-1,
-          .hero-float-2,
-          .hero-float-main {
+          .hero-sheet-enter-main {
             animation: none !important;
+          }
+          .hero-fanning-sheet {
+            transition: none !important;
+          }
+          #hero-manga-sheet-wrapper:hover #hero-sheet-left {
+            transform: translate3d(-14px, 0, 0) rotate(-3.2deg) !important;
+          }
+          #hero-manga-sheet-wrapper:hover #hero-sheet-center {
+            transform: translate3d(0, -6px, 0) rotate(0deg) !important;
+          }
+          #hero-manga-sheet-wrapper:hover #hero-sheet-right {
+            transform: translate3d(14px, 0, 0) rotate(3.2deg) !important;
           }
         }
       `}</style>
 
-      {/* Main Manga Manuscript Stack Wrapper */}
-      <div className='group relative w-full max-w-[390px] sm:max-w-[420px] lg:max-w-none lg:w-auto lg:h-[min(calc(83svh-4.2rem),715px)] aspect-[3/4]'>
-        {/* ============================================================== */}
-        {/* SHEET 1 (BACK): BẢN THẢO PHÁC THẢO (ROUGH SKETCH SHEET)       */}
-        {/* Lệch phải 12–20px, xoay +3.2°, không trễ xuống dưới mép chính  */}
-        {/* ============================================================== */}
-        <div className='hero-sheet-enter-1 absolute inset-0 pointer-events-none z-0'>
-          <div className='hero-float-1 w-full h-full group-hover:[animation-play-state:paused]'>
-            <div
-              className='w-full h-full rounded-xl bg-[#FAF7F0] border border-[#E2D9C5] shadow-md overflow-hidden transition-transform duration-500 ease-out transform translate-x-3 sm:translate-x-5 -translate-y-1 sm:-translate-y-1.5 rotate-[3.2deg] group-hover:translate-x-5 sm:group-hover:translate-x-6 group-hover:translate-y-0 group-hover:rotate-[4.5deg] motion-reduce:transform-none'
-              aria-hidden='true'
-            >
-              <img
-                src='/images/hero-manga-sketch.jpg'
-                alt=''
-                className='w-full h-full object-cover opacity-85 select-none'
-                loading='eager'
-                decoding='async'
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* ============================================================== */}
-        {/* SHEET 2 (MIDDLE): BẢN TRUYỆN MÀU (FULL COLOR COMIC SHEET)       */}
-        {/* Lệch trái 10–16px, xoay ngược chiều -2.5°, không trễ xuống     */}
-        {/* ============================================================== */}
-        <div className='hero-sheet-enter-2 absolute inset-0 pointer-events-none z-10'>
-          <div className='hero-float-2 w-full h-full group-hover:[animation-play-state:paused]'>
-            <div
-              className='w-full h-full rounded-xl bg-[#FAF7F0] border border-[#E2D9C5] shadow-lg overflow-hidden transition-transform duration-500 ease-out transform -translate-x-2.5 sm:-translate-x-4 -translate-y-1.5 sm:-translate-y-2 -rotate-[2.5deg] group-hover:-translate-x-4 sm:group-hover:-translate-x-5 group-hover:translate-y-0 group-hover:-rotate-[3.5deg] motion-reduce:transform-none'
-              aria-hidden='true'
-            >
-              <img
-                src='/images/hero-manga-color.jpg'
-                alt=''
-                className='w-full h-full object-cover opacity-90 select-none'
-                loading='eager'
-                decoding='async'
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* ============================================================== */}
-        {/* SHEET 3 (FOREGROUND): TRANG MANGA CHÍNH (HD B&W / COLOR SPLIT) */}
-        {/* Nằm trên cùng, chuẩn tỷ lệ 3:4                                */}
-        {/* ============================================================== */}
-        <div className='hero-sheet-enter-main relative w-full h-full z-20'>
-          <div className='hero-float-main w-full h-full group-hover:[animation-play-state:paused]'>
-            <div
-              id='hero-manuscript-card'
-              className='relative w-full h-full rounded-xl bg-[#FFFEFA] border border-stone-300 shadow-[0_20px_50px_rgba(28,25,23,0.14)] overflow-hidden transition-transform duration-300 ease-out transform hover:-translate-y-1 motion-reduce:transform-none'
-              role='region'
-              aria-label='Bản thảo manga PanelForge: Trắng đen và Truyện màu'
-            >
-              {/* Main HD Artwork Image */}
-              <img
-                src='/images/hero-manga-main.jpg'
-                alt='Bản thảo truyện tranh PanelForge phân chia chéo trắng đen và truyện màu hoàn chỉnh. Lời thoại: Câu chuyện vẫn tiếp diễn. Họa sĩ: v3'
-                className='w-full h-full object-contain pointer-events-none select-none'
-                width={896}
-                height={1200}
-                loading='eager'
-                decoding='async'
-              />
-
-              {/* Yellow sticky note: v1.3 Cập nhật cảnh thành phố (đêm) */}
-              <div
-                id='hero-sticky-note'
-                className='absolute top-2.5 right-2.5 sm:top-3 sm:right-3.5 w-[92px] sm:w-[104px] bg-[#FEF08A] rounded-[2px] p-2 shadow-md border border-amber-300/80 rotate-[3deg] z-30 select-none pointer-events-none'
-                aria-hidden='true'
-              >
-                {/* Red pushpin */}
-                <div className='absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-red-600 border border-white shadow-xs flex items-center justify-center'>
-                  <div className='w-1 h-1 rounded-full bg-red-200' />
-                </div>
-                <div className='text-right font-mono font-bold text-[9px] sm:text-[10px] text-stone-900'>
-                  v1.3
-                </div>
-                <div className='text-[8px] sm:text-[9px] text-stone-800 font-sans font-medium leading-tight mt-0.5'>
-                  Cập nhật cảnh thành phố (đêm)
-                </div>
-                <div className='text-right text-[7px] sm:text-[8px] text-stone-500 font-mono mt-0.5'>
-                  12/06/2024
-                </div>
-              </div>
-
-              {/* Đường nối mảnh từ khung truyện tới Ghim Editor (chỉ hiển thị desktop để giữ ổn định) */}
-              <div
-                className='hidden sm:block absolute top-[57%] right-[19%] z-25 pointer-events-none select-none'
-                aria-hidden='true'
-              >
-                <div className='relative'>
-                  <span className='block w-2 h-2 rounded-full bg-amber-500 border border-white shadow-xs' />
-                  <svg
-                    className='absolute top-1 left-1 w-9 h-7 overflow-visible pointer-events-none'
-                    viewBox='0 0 36 28'
-                    fill='none'
-                  >
-                    <path
-                      d='M 0 0 L 22 20 H 32'
-                      stroke='#D97706'
-                      strokeWidth='1.2'
-                      strokeDasharray='2.5 2'
-                    />
-                  </svg>
-                </div>
-              </div>
-
-              {/* Ghim nhỏ biên tập: “Biên tập · Góp ý theo khung” */}
-              <div
-                id='hero-editor-pin'
-                className={`absolute top-[63%] right-3 sm:right-3.5 flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] sm:text-[12px] font-sans font-medium pointer-events-none z-30 select-none backdrop-blur-xs transition-all duration-200 motion-reduce:transform-none ${
-                  highlightTarget === 'editor'
-                    ? 'bg-[#FEF08A] border-2 border-amber-400 shadow-md -translate-y-0.5 ring-2 ring-amber-300/80 rotate-0'
-                    : 'bg-[#FEF9C3]/95 border border-[#FDE047] shadow-sm rotate-1'
-                } text-stone-900`}
-                title='Góp ý theo khung'
-              >
-                <div className='w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0' />
-                <span className='font-semibold text-stone-900'>Biên tập · Góp ý theo khung</span>
-              </div>
-
-              {/* Điểm nhấn nổi nhẹ quanh nhãn Artist · v3 khi hover nhãn Truy vết phiên bản */}
-              {highlightTarget === 'artist' && (
-                <div
-                  id='hero-artist-highlight'
-                  className='absolute bottom-2.5 sm:bottom-3 left-3 sm:left-3.5 w-[114px] h-[30px] rounded-md border-2 border-[#F97316] ring-2 ring-orange-400/50 -translate-y-0.5 pointer-events-none z-30 transition-all duration-200 motion-reduce:transform-none'
-                  aria-hidden='true'
-                />
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* ============================================================== */}
-        {/* THẺ MINH HỌA LỊCH SỬ PHIÊN BẢN (DESKTOP)                      */}
-        {/* Đặt ở mép trái phía dưới trang manga, liên kết tính năng PB    */}
-        {/* ============================================================== */}
-        <div
-          id='hero-version-card-desktop'
-          className='hidden sm:block absolute bottom-4 -left-4 lg:-left-6 z-30 w-auto min-w-[250px] max-w-[280px] bg-[#FFFEFA]/98 border border-[#D8D2C5] rounded-[11px] p-2.5 shadow-[0_4px_16px_rgba(28,25,23,0.08)] select-none pointer-events-none transition-transform duration-300'
-          aria-label='Minh họa lịch sử khung truyện'
-        >
-          {/* Tiêu đề & tag Minh họa */}
-          <div className='flex items-center justify-between gap-2 mb-2'>
-            <div className='flex items-center gap-1.5 shrink-0'>
-              <History className='w-3.5 h-3.5 text-[#57534E] shrink-0' />
-              <span className='font-sans font-semibold text-[12.5px] text-[#1C1917] whitespace-nowrap'>
-                Lịch sử khung truyện
-              </span>
-            </div>
-            <span className='text-[10px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded bg-[#FAF8F5] text-[#57534E] font-medium border border-[#D8D2C5] shrink-0'>
-              Minh họa
-            </span>
-          </div>
-
-          {/* Danh sách các phiên bản */}
-          <div className='flex flex-col gap-1.5 pt-1.5 border-t border-[#D8D2C5]/60'>
-            {/* v2: màu xám nhưng vẫn đủ tương phản */}
-            <div className='flex items-center gap-2 text-[11.5px] font-sans text-[#57534E] pl-1'>
-              <span className='w-1.5 h-1.5 rounded-full bg-stone-400 shrink-0' />
-              <span>v2 · Phác thảo</span>
-            </div>
-
-            {/* v3: nhấn mạnh bằng điểm cam */}
-            <div className='flex items-center gap-2 text-[12px] font-sans font-medium text-[#1C1917] pl-1'>
-              <span className='w-1.5 h-1.5 rounded-full bg-[#F97316] ring-2 ring-orange-100 shrink-0' />
-              <span className='text-[#1C1917] font-semibold'>v3 · Bổ sung màu và ánh sáng</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* THẺ MINH HỌA LỊCH SỬ PHIÊN BẢN TRÊN MOBILE (Normal Flow dưới tranh) */}
+      {/* Main Manga Manuscript Stack Wrapper (Hover target for fanning) */}
       <div
-        id='hero-version-card-mobile'
-        className='sm:hidden mt-3.5 w-full max-w-[290px] bg-[#FFFEFA] border border-[#D8D2C5] rounded-[11px] p-2.5 shadow-xs select-none'
-        aria-label='Minh họa lịch sử khung truyện'
+        id='hero-manga-sheet-wrapper'
+        className='group relative w-full max-w-[390px] sm:max-w-[420px] lg:max-w-none lg:w-auto lg:h-[min(calc(83svh-4.2rem),715px)] aspect-[3/4]'
       >
-        <div className='flex items-center justify-between gap-2 mb-1.5'>
-          <div className='flex items-center gap-1.5 shrink-0'>
-            <History className='w-3.5 h-3.5 text-[#57534E] shrink-0' />
-            <span className='font-sans font-semibold text-[12px] text-[#1C1917] whitespace-nowrap'>
-              Lịch sử khung truyện
-            </span>
+        {/* Expanded stable hover hit-zone covering the fanning spread to prevent flutter */}
+        <div
+          className='absolute -inset-x-12 sm:-inset-x-16 -top-6 bottom-0 -z-10 pointer-events-auto'
+          aria-hidden='true'
+        />
+
+        {/* ============================================================== */}
+        {/* SHEET 1 (BACK LEFT): BẢN THẢO PHÁC THẢO (ROUGH SKETCH)         */}
+        {/* ============================================================== */}
+        <div className='hero-sheet-enter-1 absolute inset-0 pointer-events-none z-[4]'>
+          <div
+            id='hero-sheet-left'
+            className='hero-fanning-sheet w-full h-full rounded-xl bg-[#FAF7F0] border border-[#E2D9C5] shadow-md overflow-hidden motion-reduce:transform-none'
+            aria-hidden='true'
+          >
+            <img
+              src='/images/hero-manga-sketch.jpg'
+              alt=''
+              className='w-full h-full object-cover opacity-90 select-none'
+              loading='eager'
+              decoding='async'
+              draggable={false}
+            />
           </div>
-          <span className='text-[9.5px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded bg-[#FAF8F5] text-[#57534E] font-medium border border-[#D8D2C5] shrink-0'>
-            Minh họa
-          </span>
         </div>
-        <div className='flex flex-col gap-1 pt-1.5 border-t border-[#D8D2C5]/60 text-[11.5px] font-sans'>
-          <div className='flex items-center gap-2 text-[#57534E] pl-1'>
-            <span className='w-1.5 h-1.5 rounded-full bg-stone-400 shrink-0' />
-            <span>v2 · Phác thảo</span>
+
+        {/* ============================================================== */}
+        {/* SHEET 2 (BACK CENTER): BẢN THẢO ĐI NÉT (INKING / REFERENCE)    */}
+        {/* ============================================================== */}
+        <div className='hero-sheet-enter-center absolute inset-0 pointer-events-none z-[2]'>
+          <div
+            id='hero-sheet-center'
+            className='hero-fanning-sheet w-full h-full rounded-xl bg-[#FAF7F0] border border-[#E2D9C5] shadow-sm overflow-hidden motion-reduce:transform-none'
+            aria-hidden='true'
+          >
+            <img
+              src='/images/landing/journey-ink.webp'
+              alt=''
+              className='w-full h-full object-cover opacity-85 select-none'
+              loading='eager'
+              decoding='async'
+              draggable={false}
+            />
           </div>
-          <div className='flex items-center gap-2 text-[#1C1917] font-medium pl-1'>
-            <span className='w-1.5 h-1.5 rounded-full bg-[#F97316] ring-2 ring-orange-100 shrink-0' />
-            <span className='font-semibold'>v3 · Bổ sung màu và ánh sáng</span>
+        </div>
+
+        {/* ============================================================== */}
+        {/* SHEET 3 (BACK RIGHT): BẢN MÀU / HOÀN THIỆN (COLOR FINISHED)    */}
+        {/* ============================================================== */}
+        <div className='hero-sheet-enter-2 absolute inset-0 pointer-events-none z-[6]'>
+          <div
+            id='hero-sheet-right'
+            className='hero-fanning-sheet w-full h-full rounded-xl bg-[#FAF7F0] border border-[#E2D9C5] shadow-lg overflow-hidden motion-reduce:transform-none'
+            aria-hidden='true'
+          >
+            <img
+              src='/images/hero-manga-color.jpg'
+              alt=''
+              className='w-full h-full object-cover opacity-90 select-none'
+              loading='eager'
+              decoding='async'
+              draggable={false}
+            />
+          </div>
+        </div>
+
+        {/* ============================================================== */}
+        {/* SHEET 4 (FOREGROUND): TRANG MANGA CHÍNH (HD B&W / COLOR SPLIT) */}
+        {/* Nằm trên cùng, chuẩn tỷ lệ 3:4, đứng yên hoàn toàn khi hover   */}
+        {/* ============================================================== */}
+        <div className='hero-sheet-enter-main relative w-full h-full z-20 pointer-events-none'>
+          <div
+            id='hero-manuscript-card'
+            className='relative w-full h-full rounded-xl bg-[#FFFEFA] border border-stone-300 shadow-[0_20px_50px_rgba(28,25,23,0.14)] overflow-hidden motion-reduce:transform-none'
+            role='region'
+            aria-label='Bản thảo manga PanelForge: Trắng đen và Truyện màu'
+          >
+            {/* Main HD Artwork Image */}
+            <img
+              src='/images/hero-manga-main.jpg'
+              alt='Bản thảo truyện tranh PanelForge phân chia chéo trắng đen và truyện màu hoàn chỉnh. Lời thoại: Câu chuyện vẫn tiếp diễn. Họa sĩ: v3'
+              className='w-full h-full object-contain pointer-events-none select-none'
+              width={896}
+              height={1200}
+              loading='eager'
+              decoding='async'
+              draggable={false}
+            />
+
+            {/* Yellow sticky note: Biên tập · Giữ ánh sáng nhất quán ở khung 3 */}
+            <div
+              id='hero-sticky-note'
+              className='absolute top-2.5 right-2.5 sm:top-3 sm:right-3.5 w-[112px] sm:w-[126px] bg-[#FEF08A] rounded-[2px] p-2 shadow-md border border-amber-300/80 rotate-[3deg] z-30 select-none pointer-events-none'
+              aria-hidden='true'
+            >
+              {/* Red pushpin */}
+              <div className='absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-red-600 border border-white shadow-xs flex items-center justify-center'>
+                <div className='w-1 h-1 rounded-full bg-red-200' />
+              </div>
+              <div className='text-right font-mono font-bold text-[8.5px] sm:text-[9.5px] text-stone-900'>
+                v1.3
+              </div>
+              <div className='text-[8px] sm:text-[9px] text-stone-900 font-sans font-medium leading-tight mt-0.5'>
+                Biên tập · Giữ ánh sáng nhất quán ở khung 3
+              </div>
+              <div className='text-right text-[7px] sm:text-[8px] text-stone-500 font-mono mt-0.5'>
+                12/06/2024
+              </div>
+            </div>
+
+            {/* Đường nối mảnh từ khung truyện tới Ghim Editor */}
+            <div
+              className='hidden sm:block absolute top-[57%] right-[19%] z-25 pointer-events-none select-none'
+              aria-hidden='true'
+            >
+              <div className='relative'>
+                <span className='block w-2 h-2 rounded-full bg-amber-500 border border-white shadow-xs' />
+                <svg
+                  className='absolute top-1 left-1 w-9 h-7 overflow-visible pointer-events-none'
+                  viewBox='0 0 36 28'
+                  fill='none'
+                >
+                  <path
+                    d='M 0 0 L 22 20 H 32'
+                    stroke='#D97706'
+                    strokeWidth='1.2'
+                    strokeDasharray='2.5 2'
+                  />
+                </svg>
+              </div>
+            </div>
+
+            {/* Ghim nhỏ biên tập: “Biên tập · Góp ý theo khung” */}
+            <div
+              id='hero-editor-pin'
+              className={`absolute top-[63%] right-3 sm:right-3.5 flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] sm:text-[12px] font-sans font-medium pointer-events-none z-30 select-none backdrop-blur-xs transition-all duration-200 motion-reduce:transform-none ${
+                highlightTarget === 'editor'
+                  ? 'bg-[#FEF08A] border-2 border-amber-400 shadow-md -translate-y-0.5 ring-2 ring-amber-300/80 rotate-0'
+                  : 'bg-[#FEF9C3]/95 border border-[#FDE047] shadow-sm rotate-1'
+              } text-stone-900`}
+              title='Góp ý theo khung'
+            >
+              <div className='w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0' />
+              <span className='font-semibold text-stone-900'>Biên tập · Góp ý theo khung</span>
+            </div>
+
+            {/* Điểm nhấn nổi nhẹ quanh nhãn Artist · v3 khi hover nhãn Truy vết phiên bản */}
+            {highlightTarget === 'artist' && (
+              <div
+                id='hero-artist-highlight'
+                className='absolute bottom-2.5 sm:bottom-3 left-3 sm:left-3.5 w-[114px] h-[30px] rounded-md border-2 border-[#F97316] ring-2 ring-orange-400/50 -translate-y-0.5 pointer-events-none z-30 transition-all duration-200 motion-reduce:transform-none'
+                aria-hidden='true'
+              />
+            )}
           </div>
         </div>
       </div>
 
-      {/* ============================================================== */}
-      {/* CAPTION & TIẾN TRÌNH: HOÀN TOÀN TRONG NORMAL FLOW BÊN DƯỚI     */}
-      {/* Cách mép thấp nhất của chồng giấy tối thiểu 24px (mt-7 sm:mt-8)  */}
-      {/* Không dùng transform chồng lấn hay z-index che đè              */}
-      {/* ============================================================== */}
+      {/* CAPTION & TIẾN TRÌNH: TRONG NORMAL FLOW BÊN DƯỚI */}
       <div
         id='hero-pipeline-strip'
         className='mt-6 sm:mt-7 flex flex-col items-center gap-1.5 text-center'

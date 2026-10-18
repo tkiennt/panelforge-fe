@@ -3,7 +3,6 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { WorkspaceView } from './WorkspaceView';
 import { chapterService } from '@/services/chapter.service';
-import { seriesService } from '@/services/series.service';
 
 vi.mock('@/services/chapter.service', () => ({
   chapterService: {
@@ -11,28 +10,34 @@ vi.mock('@/services/chapter.service', () => ({
   },
 }));
 
-vi.mock('@/services/series.service', () => ({
-  seriesService: {
-    getSeriesProgress: vi.fn(),
-  },
-}));
-
-vi.mock('@/shared/features/pipeline-board/KanbanBoard', () => ({
-  KanbanBoard: ({ chapterId, filterType }: { chapterId?: string; filterType: string }) => (
-    <div data-testid='kanban-board-mock'>
-      <span>Mock Kanban Board - Chapter: {chapterId}</span>
-      <span>Filter: {filterType}</span>
+vi.mock('@/shared/features/pipeline-board/ProductionBoard', () => ({
+  ProductionBoard: ({
+    chapterId,
+    refreshKey,
+    isProducer,
+    currentUserId,
+  }: {
+    chapterId?: string;
+    refreshKey?: number;
+    isProducer?: boolean;
+    currentUserId?: string;
+  }) => (
+    <div data-testid='production-board-mock'>
+      <span>Board chapter: {chapterId}</span>
+      <span>Refresh: {refreshKey}</span>
+      <span>Producer: {String(isProducer)}</span>
+      <span>User: {currentUserId}</span>
     </div>
   ),
 }));
 
-describe('WorkspaceView Component', () => {
+describe('WorkspaceView (Quy trình sản xuất)', () => {
   const mockChapters = [
     {
       id: 'chap-1',
       seriesId: 'series-1',
       chapterNumber: 1,
-      title: 'Khởi đầu cuộc hành trình',
+      title: 'Chương 1: Khởi đầu cuộc hành trình',
       status: 'InProduction',
       versionVector: 1,
       scenesCount: 2,
@@ -54,7 +59,6 @@ describe('WorkspaceView Component', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-
     vi.mocked(chapterService.getChaptersBySeries).mockResolvedValue({
       items: mockChapters as any,
       totalCount: 2,
@@ -62,36 +66,10 @@ describe('WorkspaceView Component', () => {
       pageSize: 50,
       totalPages: 1,
     });
-
-    vi.mocked(seriesService.getSeriesProgress).mockResolvedValue({
-      seriesId: 'series-1',
-      generatedAt: '2026-10-08T00:00:00Z',
-      chapters: [
-        {
-          chapterId: 'chap-1',
-          chapterNumber: 1,
-          title: 'Khởi đầu cuộc hành trình',
-          status: 'InProduction',
-          targetReleaseDate: null,
-          pageCount: 15,
-          panelCount: 45,
-          percentComplete: 65,
-          stages: [],
-          assignmentsByStatus: {
-            Submitted: 2,
-            UnderReview: 1,
-          },
-          overdueAssignments: 1,
-        },
-      ],
-      workload: [],
-      overdue: [],
-      burndown: [],
-    });
   });
 
-  const renderComponent = (props: Partial<Parameters<typeof WorkspaceView>[0]> = {}) => {
-    return render(
+  const renderComponent = (props: Partial<Parameters<typeof WorkspaceView>[0]> = {}) =>
+    render(
       <MemoryRouter initialEntries={['/workspaces/ws-1/series/series-1/workspace']}>
         <Routes>
           <Route
@@ -101,56 +79,43 @@ describe('WorkspaceView Component', () => {
         </Routes>
       </MemoryRouter>,
     );
-  };
 
-  it('nạp danh sách chương thật và hiển thị KPI từ Backend', async () => {
-    renderComponent();
+  it('hiển thị tiêu đề, chương (không lặp tiền tố), trạng thái chương và truyền chương cho bảng', async () => {
+    renderComponent({ currentUserId: 'u-1' });
 
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Quy trình sản xuất' }),
+    ).toBeInTheDocument();
     await waitFor(() => {
-      // Dropdown chương
       expect(screen.getByText('Chương 1: Khởi đầu cuộc hành trình')).toBeInTheDocument();
-      // Badge trạng thái
       expect(screen.getByText('Đang sản xuất')).toBeInTheDocument();
-      // KPI hoàn thành
-      expect(screen.getByText('65%')).toBeInTheDocument();
-      // KPI chờ duyệt (Submitted 2 + UnderReview 1 = 3)
-      expect(screen.getByText('3')).toBeInTheDocument();
-      // KPI quá hạn
-      expect(screen.getByText('1')).toBeInTheDocument();
+      expect(screen.getByText('Board chapter: chap-1')).toBeInTheDocument();
     });
-
-    expect(screen.getByText(/Mock Kanban Board - Chapter: chap-1/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Chương 1: Chương 1/)).not.toBeInTheDocument();
+    expect(screen.getByText('Producer: true')).toBeInTheDocument();
+    expect(screen.getByText('User: u-1')).toBeInTheDocument();
   });
 
-  it('cho phép chuyển đổi bộ lọc All, My Tasks, Overdue', async () => {
+  it('đổi chương truyền đúng chapterId; làm mới tăng refreshKey thay vì remount', async () => {
     renderComponent();
+    await waitFor(() => expect(screen.getByText('Board chapter: chap-1')).toBeInTheDocument());
 
-    await waitFor(() => {
-      expect(screen.getByText('Filter: all')).toBeInTheDocument();
-    });
+    fireEvent.change(screen.getByLabelText('Chương:'), { target: { value: 'chap-2' } });
+    await waitFor(() => expect(screen.getByText('Board chapter: chap-2')).toBeInTheDocument());
+    expect(screen.getByText('Đã duyệt chương')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Của tôi' }));
-    expect(screen.getByText('Filter: my-tasks')).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Quá hạn' }));
-    expect(screen.getByText('Filter: overdue')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Làm mới dữ liệu' }));
+    await waitFor(() => expect(screen.getByText('Refresh: 1')).toBeInTheDocument());
   });
 
-  it('chặn quyền truy cập đối với độc giả (READER mode)', async () => {
+  it('chặn quyền truy cập đối với độc giả (READER mode)', () => {
     renderComponent({ isReaderMode: true });
-
     expect(screen.getByText('Khu Vực Sản Xuất Giới Hạn')).toBeInTheDocument();
-    expect(screen.queryByTestId('kanban-board-mock')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('production-board-mock')).not.toBeInTheDocument();
   });
 
-  it('không gọi getSeriesProgress và ẩn KPI đối với vai không phải Producer (ví dụ WRITER)', async () => {
+  it('vai không phải Producer (WRITER) được đánh dấu để bảng chọn mặc định "Cần tôi xử lý"', async () => {
     renderComponent({ currentUserRole: 'WRITER' });
-
-    await waitFor(() => {
-      expect(screen.getByText('Chương 1: Khởi đầu cuộc hành trình')).toBeInTheDocument();
-    });
-
-    expect(seriesService.getSeriesProgress).not.toHaveBeenCalled();
-    expect(screen.queryByText('Hoàn thành')).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText('Producer: false')).toBeInTheDocument());
   });
 });

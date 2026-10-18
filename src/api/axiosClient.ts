@@ -38,6 +38,9 @@ const axiosClient = axios.create({
 const AUTH_ENDPOINTS =
   /\/Auth\/(login|register|verify-email|verify-2fa|disable-2fa|external-login|forgot-password|reset-password|resend-verification|refresh|logout)/i;
 
+// Các endpoint công khai (AllowAnonymous) như catalog, preview reader... không yêu cầu đăng nhập và không bị chặn khi sessionEnded
+const PUBLIC_ENDPOINTS = /(?:^|\/)(catalog|preview)(\/|$)/i;
+
 type RetriableConfig = InternalAxiosRequestConfig & { _retry?: boolean };
 
 // Đã hết phiên (refresh bị từ chối): chặn các request khác để không lần lượt báo 401, chỉ phát sự kiện một lần.
@@ -113,9 +116,11 @@ export function refreshAccessToken(): Promise<string | null> {
 axiosClient.interceptors.request.use(
   (config) => {
     // Hết phiên rồi thì huỷ các request cần đăng nhập (tránh chuỗi 401 notifications, workspace...)
+    // Ngoại lệ: Auth endpoints, Public endpoints (catalog, preview), và token demo trong test
     if (
       sessionEnded &&
       !AUTH_ENDPOINTS.test(config.url ?? '') &&
+      !PUBLIC_ENDPOINTS.test(config.url ?? '') &&
       !localStorage.getItem('token')?.startsWith('mock-')
     ) {
       return Promise.reject(new axios.CanceledError('Phiên đăng nhập đã kết thúc'));
@@ -157,7 +162,12 @@ axiosClient.interceptors.response.use(
   },
   async (error: AxiosError) => {
     const original = error.config as RetriableConfig | undefined;
-    if (error.response?.status !== 401 || !original || AUTH_ENDPOINTS.test(original.url ?? '')) {
+    if (
+      error.response?.status !== 401 ||
+      !original ||
+      AUTH_ENDPOINTS.test(original.url ?? '') ||
+      PUBLIC_ENDPOINTS.test(original.url ?? '')
+    ) {
       return Promise.reject(error);
     }
 

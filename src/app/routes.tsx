@@ -328,6 +328,7 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                     currentUserRole={currentWorkspaceRole}
                     systemRole={currentRole}
                     userRoles={activeProjectRoles}
+                    currentUserId={currentUserInfo?.id}
                     onShowToast={showToast}
                   />
                 }

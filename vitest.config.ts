@@ -16,11 +16,7 @@ export default defineConfig({
       '**/.{idea,git,cache,output,temp}/**',
     ],
     pool: 'forks',
-    poolOptions: {
-      forks: {
-        singleFork: true,
-      },
-    },
+    maxWorkers: 1,
   },
   resolve: {
     alias: {

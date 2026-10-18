@@ -173,7 +173,7 @@ describe('DashboardView Component (UC-16 Progress Dashboard)', () => {
 
     // Verify loading and then data display
     await waitFor(() => {
-      expect(screen.getByText(/Dashboard: Neon Odyssey/i)).toBeInTheDocument();
+      expect(screen.getByText(/Tổng quan bộ truyện: Neon Odyssey/i)).toBeInTheDocument();
     });
 
     // Header badges
@@ -199,7 +199,7 @@ describe('DashboardView Component (UC-16 Progress Dashboard)', () => {
     expect(screen.getByText('25%')).toBeInTheDocument();
 
     // Stage Matrix for Chapter 1 (default selected)
-    expect(screen.getByText(/Ma Trận Công Đoạn: Chương 1 \(Neon Awakening\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/Tiến độ công đoạn · Chương 1/i)).toBeInTheDocument();
     expect(screen.getByText('Thumbnail')).toBeInTheDocument();
     expect(screen.getByText('Inking & Tone')).toBeInTheDocument();
 
@@ -227,7 +227,7 @@ describe('DashboardView Component (UC-16 Progress Dashboard)', () => {
 
     // Matrix updates to Chapter 2
     await waitFor(() => {
-      expect(screen.getByText(/Ma Trận Công Đoạn: Chương 2 \(Cyber Heist\)/i)).toBeInTheDocument();
+      expect(screen.getByText(/Tiến độ công đoạn · Chương 2/i)).toBeInTheDocument();
     });
   });
 
