@@ -23,6 +23,18 @@
   --color-tangerine-light: #fff7ed;
   --color-tangerine-border: #fdba74;
 
+  /* PanelForge Landing Page Manuscript & Paper Design Tokens */
+  --color-landing-paper: #f3f0e9;
+  --color-landing-paper-light: #fcfbf8;
+  --color-landing-paper-secondary: #eae5dc;
+  --color-landing-paper-card: #fffefa;
+  --color-landing-paper-deckle: #faf7f0;
+  --color-landing-ink: #1c1917;
+  --color-landing-ink-muted: #57534e;
+  --color-landing-border: #d8d2c5;
+  --color-landing-orange: #f97316;
+  --color-landing-orange-hover: #ea580c;
+
   --color-ai-violet: #8b5cf6;
   --color-ai-violet-light: #f5f3ff;
   --color-ai-deep: #6d28d9;
@@ -203,17 +215,44 @@ body {
   }
 }
 
+/* Scroll Reveal with Progressive Enhancement:
+   1. Default: Content is fully visible (no blank page if JS or observer fails)
+   2. When JS observer is initialized and ready, elements animate in smoothly
+   3. Always fully visible in print mode and when prefers-reduced-motion is active */
 .animate-on-scroll {
-  opacity: 0;
-  transform: translateY(28px);
-  transition:
-    opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1),
-    transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.animate-on-scroll.is-visible {
   opacity: 1;
-  transform: translateY(0);
+  transform: none;
 }
+
+@media screen and (prefers-reduced-motion: no-preference) {
+  .js-observer-ready .animate-on-scroll:not(.is-visible) {
+    opacity: 0;
+    transform: translateY(22px);
+    transition:
+      opacity 0.75s cubic-bezier(0.16, 1, 0.3, 1),
+      transform 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: opacity, transform;
+  }
+
+  .js-observer-ready .animate-on-scroll.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+    transition:
+      opacity 0.75s cubic-bezier(0.16, 1, 0.3, 1),
+      transform 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce), print {
+  .animate-on-scroll,
+  .animate-on-scroll:not(.is-visible),
+  .animate-on-scroll.is-visible {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}
+
 .delay-100 {
   transition-delay: 0.1s;
 }
