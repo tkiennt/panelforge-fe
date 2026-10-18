@@ -252,8 +252,8 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
 
       const sortedPages = [...pagesRes].sort((a, b) => a.pageNumber - b.pageNumber);
       setPages(sortedPages);
-      if (sortedPages.length > 0 && !selectedPageId) {
-        setSelectedPageId(sortedPages[0].id);
+      if (sortedPages.length > 0) {
+        setSelectedPageId((prev) => (prev ? prev : sortedPages[0].id));
       }
 
       // Load panels for all pages to support progress summary and unfinished warning
@@ -293,7 +293,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [chapterId, seriesId, assignment.id, effectiveWsId, selectedPageId, visualThreshold, toast]);
+  }, [chapterId, seriesId, assignment.id, effectiveWsId, visualThreshold, toast]);
 
   useEffect(() => {
     // Clear in-memory composite cache on initial review mount to ensure fresh render

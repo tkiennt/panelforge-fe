@@ -317,9 +317,13 @@ describe('ChapterReviewView Component', () => {
       </MemoryRouter>,
     );
 
-    await waitFor(() => {
-      expect(screen.getByText(/Trả việc cho Trang 1/i)).toBeInTheDocument();
-    });
+    await waitFor(
+      () => {
+        expect(screen.getByText(/Trả việc cho Trang 1/i)).toBeInTheDocument();
+        expect(screen.getByTestId('btn-submit-return-work')).toBeInTheDocument();
+      },
+      { timeout: 5000 },
+    );
 
     // Fill description
     const descTextarea = screen.getByTestId('input-return-description');
