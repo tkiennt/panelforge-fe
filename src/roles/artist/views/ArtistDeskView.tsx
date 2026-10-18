@@ -60,7 +60,7 @@ import {
   SceneScriptLineSummaryDto,
 } from '@/services/scriptLine.service';
 import { artworkService, computeFileSha256, resolveArtworkUrl } from '@/services/artwork.service';
-import { assignmentService } from '@/services/assignment.service';
+import { assignmentService, type AssignmentDto } from '@/services/assignment.service';
 import {
   findUploadAssignment,
   needsArtworkLink,
@@ -138,45 +138,43 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
   const normRole = workspaceRole ? normalizeWorkspaceRole(workspaceRole) : null;
   const canEditPages = !normRole || normRole === 'PRODUCER' || normRole === 'ARTIST';
 
-  // Tasks Queue Data
-  const [tasks] = useState([
-    {
-      id: 'a-1',
-      entityType: 'Page',
-      targetEntityId: 'p-1',
-      pipelineStageId: 'Thumbnail',
-      brief: 'Draw rough thumbnails for Page 1',
-      status: 'Assigned',
-      dueDate: '2026-10-01',
-    },
-    {
-      id: 'a-2',
-      entityType: 'Page',
-      targetEntityId: 'p-2',
-      pipelineStageId: 'Pencil',
-      brief: 'Pencil line art for Page 2',
-      status: 'InProgress',
-      dueDate: '2026-10-02',
-    },
-    {
-      id: 'a-3',
-      entityType: 'Page',
-      targetEntityId: 'p-3',
-      pipelineStageId: 'Ink',
-      brief: 'Ink Page 3 based on approved pencils',
-      status: 'Assigned',
-      dueDate: '2026-10-03',
-    },
-    {
-      id: 'a-4',
-      entityType: 'Page',
-      targetEntityId: 'p-4',
-      pipelineStageId: 'Color',
-      brief: 'Flat and shade Page 4',
-      status: 'Assigned',
-      dueDate: '2026-10-04',
-    },
-  ]);
+  // Tasks Queue Data (nạp từ assignmentService)
+  const [tasks, setTasks] = useState<AssignmentDto[]>([]);
+  const [loadingTasks, setLoadingTasks] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    if (currentChapterId && assignmentService.getAssignments) {
+      setLoadingTasks(true);
+      Promise.resolve(assignmentService.getAssignments(currentChapterId))
+        .then((list) => {
+          if (alive) setTasks(Array.isArray(list) ? list : []);
+        })
+        .catch(() => {
+          if (alive) setTasks([]);
+        })
+        .finally(() => {
+          if (alive) setLoadingTasks(false);
+        });
+    } else if (workspaceId && assignmentService.getMyAssignments) {
+      setLoadingTasks(true);
+      Promise.resolve(assignmentService.getMyAssignments(workspaceId))
+        .then((list) => {
+          if (alive) setTasks(Array.isArray(list) ? list : []);
+        })
+        .catch(() => {
+          if (alive) setTasks([]);
+        })
+        .finally(() => {
+          if (alive) setLoadingTasks(false);
+        });
+    } else {
+      setTasks([]);
+    }
+    return () => {
+      alive = false;
+    };
+  }, [currentChapterId, workspaceId]);
 
   const [pages, setPages] = useState<PageDto[]>([]);
   const [selectedPage, setSelectedPage] = useState<PageDto | null>(null);
@@ -1783,24 +1781,43 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
               <Clock className='w-4 h-4 text-orange-600' />
               <span>Hàng Đợi Công Việc Theo Công Đoạn</span>
             </span>
+            {loadingTasks && (
+              <span className='text-xs text-stone-400 flex items-center gap-1.5'>
+                <Loader2 className='w-3.5 h-3.5 animate-spin text-orange-500' /> Đang tải...
+              </span>
+            )}
           </div>
-          <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
-            {tasks.map((task) => (
-              <div
-                key={task.id}
-                className='p-4 rounded-xl border border-stone-200 bg-stone-50/70 space-y-2'
-              >
-                <div className='flex items-center justify-between'>
-                  <span className='px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-blue-50 text-blue-800 border border-blue-200'>
-                    {task.pipelineStageId}
-                  </span>
-                  <span className='text-xs font-mono text-stone-500'>{task.status}</span>
+          {tasks.length === 0 ? (
+            <div className='p-8 text-center text-xs text-stone-500 border border-dashed border-stone-200 rounded-xl bg-stone-50/50'>
+              {currentChapterId
+                ? 'Chưa có nhiệm vụ nào được phân công trong chương này.'
+                : 'Vui lòng chọn một Chương để hiển thị hàng đợi nhiệm vụ.'}
+            </div>
+          ) : (
+            <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
+              {tasks.map((task) => (
+                <div
+                  key={task.id}
+                  className='p-4 rounded-xl border border-stone-200 bg-stone-50/70 space-y-2'
+                >
+                  <div className='flex items-center justify-between'>
+                    <span className='px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-blue-50 text-blue-800 border border-blue-200'>
+                      {stages.find((s) => s.id === task.pipelineStageId)?.name ||
+                        task.pipelineStageId}
+                    </span>
+                    <span className='text-xs font-mono text-stone-500'>{task.status}</span>
+                  </div>
+                  <div className='text-xs font-bold text-stone-900'>
+                    {task.brief || 'Không có mô tả'}
+                  </div>
+                  <div className='text-xs text-stone-500'>
+                    Hạn chót:{' '}
+                    {task.dueDate ? new Date(task.dueDate).toLocaleDateString('vi-VN') : 'Không có'}
+                  </div>
                 </div>
-                <div className='text-xs font-bold text-stone-900'>{task.brief}</div>
-                <div className='text-xs text-stone-500'>Hạn chót: {task.dueDate}</div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

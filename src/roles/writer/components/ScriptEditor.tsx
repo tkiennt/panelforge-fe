@@ -4,12 +4,15 @@ import { FileText, Sparkles, Wand2, Type } from 'lucide-react';
 interface ScriptEditorProps {
   isReadOnly?: boolean;
   onAIBreakdown?: () => void;
+  initialContent?: string;
 }
 
-export const ScriptEditor: React.FC<ScriptEditorProps> = ({ isReadOnly, onAIBreakdown }) => {
-  const [content, setContent] = useState(
-    'EXT. NEO TOKYO STREETS - NIGHT\n\nRain pours heavily over the neon-lit streets. AKIRA (20s, cyber-enhanced) stands over the edge of a skyscraper, looking down at the corporate convoy below.\n\nAKIRA\n(into comms)\nThey are moving. Get ready.',
-  );
+export const ScriptEditor: React.FC<ScriptEditorProps> = ({
+  isReadOnly,
+  onAIBreakdown,
+  initialContent = '',
+}) => {
+  const [content, setContent] = useState(initialContent);
 
   return (
     <div className='flex-1 flex flex-col md:flex-row bg-[#FAF8F4] overflow-hidden'>
@@ -87,11 +90,8 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({ isReadOnly, onAIBrea
             <h5 className='text-xs font-bold text-zinc-500 uppercase tracking-wider'>
               Detected Characters
             </h5>
-            <div className='flex items-center justify-between p-2 bg-[#F3F3F3] rounded-lg'>
-              <span className='text-sm font-semibold text-[#171717]'>AKIRA</span>
-              <span className='text-xs bg-[#171717] text-white px-2 py-0.5 rounded'>
-                1 Dialogue
-              </span>
+            <div className='p-3 bg-[#F8F6F0] rounded-lg text-xs text-stone-500 border border-[#E7E7E7] text-center'>
+              Chưa phát hiện nhân vật nào trong phân cảnh hiện tại.
             </div>
           </div>
         </div>

@@ -14,8 +14,8 @@ Cấu trúc được tổ chức theo kiến trúc **Role-Based Feature Director
 |---|---|---|---|---|---|
 | **ADMINISTRATOR** | System Administrator | `system` | `src/roles/admin/` | `/admin` | `AdminDashboardView`, `AdminUserManagementView`, `AdminSystemSettingsView`, `AdminAuditLogView` |
 | **PRODUCER** | Production Producer / Lead | `workspace` | `src/roles/producer/` | `dashboard` (`/workspaces/:wsId/series/:seriesId/dashboard`) | `ProducerWorkspaceView`, `DashboardView`, `MembersRolesView`, `SeriesMembersView`, `ExportView` |
-| **WRITER** | Biên kịch / Writer | `workspace` | `src/roles/writer/` | `script` (`/workspaces/:wsId/series/:seriesId/script`) | `ScriptEditorView`, `WriterWorkspace`, `components/script/*` (7 block editors & diffs) |
-| **ARTIST** | Họa sĩ / Artist | `workspace` | `src/roles/artist/` | `layout` (`/workspaces/:wsId/series/:seriesId/layout` hoặc `/artist`) | `ArtistDeskView`, `ArtistWorkspace`, `components/page-layout-editor/*`, `ArtworkCanvas` |
+| **WRITER** | Biên kịch / Writer | `workspace` | `src/roles/writer/` | `script` (`/workspaces/:wsId/series/:seriesId/script`) | `ScriptEditorView`, `components/script/*` (ScriptLineItem, Bible & Consistency Drawers, History Modal) |
+| **ARTIST** | Họa sĩ / Artist | `workspace` | `src/roles/artist/` | `artist` (`/workspaces/:wsId/series/:seriesId/artist`) | `ArtistDeskView`, `PanelLayoutControls`, `FrameTemplateModal`, `ArtworkCanvas` |
 | **LETTERER** | Kỹ thuật chèn chữ / Letterer | `workspace` | `src/roles/letterer/` | `canvas` (`/workspaces/:wsId/series/:seriesId/canvas`) | `LettererWorkspace`, `LetteringWorkspace` (canvas bóng thoại, phông chữ, script binding) |
 | **EDITOR** | Biên tập viên / Editor | `workspace` | `src/roles/editor/` | `review` (`/review/:taskId`) | `ReviewView`, `EditorWorkspace` (đối chiếu tiêu chí duyệt, cảnh báo AI) |
 | **READER** | Độc giả / Người đọc thử | `external` | `src/roles/reader/` | `/catalog` (`/reader` chuyển về đây) | `PublicCatalogView` (`/catalog`), `PublicPreviewView` (`/preview/:token`) |

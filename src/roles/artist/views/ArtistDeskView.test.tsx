@@ -89,6 +89,7 @@ describe('ArtistDeskView', () => {
 
     vi.mocked(artworkService.getArtworks).mockResolvedValue([]);
     vi.mocked(assignmentService.getMyAssignments).mockResolvedValue([]);
+    vi.mocked(assignmentService.getAssignments).mockResolvedValue([]);
     vi.mocked(computeFileSha256).mockResolvedValue('sha-1');
     vi.mocked(resolveArtworkUrl).mockImplementation((u: string) => `http://localhost${u}`);
 
