@@ -35,3 +35,9 @@ jobs:
 
       - name: Production Bundle Verification (Vite Build)
         run: npm run build
+
+      - name: Install Playwright Browsers
+        run: npx playwright install chromium --with-deps
+
+      - name: Automated End-to-End Tests (Playwright)
+        run: npm run test:e2e
