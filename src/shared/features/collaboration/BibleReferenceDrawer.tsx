@@ -151,34 +151,34 @@ export const BibleReferenceDrawer: React.FC<BibleReferenceDrawerProps> = ({
       aria-modal='true'
       data-testid='bible-reference-drawer'
     >
-      {/* Backdrop */}
+      {/* Backdrop with subtle overlay for seamless side-by-side art review */}
       <div
-        className='fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200'
+        className='fixed inset-0 bg-black/30 md:bg-black/15 backdrop-blur-[1px] transition-opacity animate-in fade-in duration-200'
         onClick={onClose}
       />
 
       {/* Drawer Container */}
-      <div className='fixed inset-y-0 right-0 max-w-full flex pl-10'>
-        <div className='w-screen max-w-md md:max-w-lg bg-white border-l border-[#E7E7E7] shadow-2xl flex flex-col text-xs text-[#171717] animate-in slide-in-from-right duration-200'>
+      <div className='fixed inset-y-0 right-0 max-w-full flex pl-6 md:pl-10 pointer-events-none'>
+        <div className='w-screen max-w-md md:max-w-lg lg:max-w-xl bg-white border-l border-stone-200 shadow-2xl flex flex-col text-xs text-[#0c0a09] animate-in slide-in-from-right duration-200 pointer-events-auto'>
           {/* Header */}
-          <div className='p-4 border-b border-[#E7E7E7] bg-[#FAF8F5] flex items-center justify-between'>
+          <div className='p-4 border-b border-stone-200 bg-[#FAF8F5] flex items-center justify-between'>
             <div className='flex items-center gap-2.5 min-w-0'>
-              <div className='w-8 h-8 rounded-lg bg-orange-50 border border-orange-200 flex items-center justify-center text-[#F97316] shrink-0 shadow-2xs'>
+              <div className='w-9 h-9 rounded-xl bg-orange-50 border border-orange-200 flex items-center justify-center text-[#F97316] shrink-0 shadow-2xs'>
                 <BookOpen className='w-4 h-4' />
               </div>
               <div className='min-w-0'>
                 <div className='flex items-center gap-1.5'>
-                  <span className='px-1.5 py-0.5 rounded bg-[#171717] text-white font-mono text-[9px] font-bold'>
+                  <span className='px-2 py-0.5 rounded bg-[#0c0a09] text-white font-mono text-xs font-bold'>
                     BIBLE REFERENCE
                   </span>
-                  <span className='text-[10px] text-zinc-500 font-mono'>
+                  <span className='text-xs text-stone-500 font-mono'>
                     Chương {chapterNumber}
                     {displayPanelNumber ? ` • Khung #${displayPanelNumber}` : ''}
                   </span>
                 </div>
                 <h3
                   id='bible-reference-drawer-title'
-                  className='text-sm font-bold text-[#171717] truncate font-serif mt-0.5'
+                  className='text-sm font-bold text-[#0c0a09] truncate font-serif mt-0.5 tracking-tight'
                 >
                   Tham Chiếu Thiết Kế &amp; Nhân Vật
                 </h3>
@@ -188,7 +188,7 @@ export const BibleReferenceDrawer: React.FC<BibleReferenceDrawerProps> = ({
             <button
               type='button'
               onClick={onClose}
-              className='w-7 h-7 rounded-lg hover:bg-white border border-transparent hover:border-[#E7E7E7] flex items-center justify-center text-zinc-400 hover:text-zinc-800 transition-colors'
+              className='w-8 h-8 rounded-lg hover:bg-stone-200/60 border border-transparent hover:border-stone-200 flex items-center justify-center text-stone-400 hover:text-stone-800 transition-colors cursor-pointer'
               data-testid='close-bible-drawer-btn'
               aria-label='Đóng tham chiếu Bible'
             >
@@ -197,15 +197,15 @@ export const BibleReferenceDrawer: React.FC<BibleReferenceDrawerProps> = ({
           </div>
 
           {/* Mode Switcher & Panel selector */}
-          <div className='p-3 bg-white border-b border-[#E7E7E7] space-y-2.5'>
+          <div className='p-3 bg-white border-b border-stone-200 space-y-2.5'>
             <div className='flex items-center gap-1.5 bg-[#F4F2EB] p-1 rounded-xl'>
               <button
                 type='button'
                 onClick={() => setActiveMode('panel')}
-                className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1.5 ${
+                className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                   activeMode === 'panel'
-                    ? 'bg-white text-[#171717] shadow-xs'
-                    : 'text-zinc-600 hover:text-zinc-900'
+                    ? 'bg-white text-[#0c0a09] shadow-xs'
+                    : 'text-stone-600 hover:text-stone-900'
                 }`}
                 data-testid='tab-panel-bible'
               >
@@ -215,10 +215,10 @@ export const BibleReferenceDrawer: React.FC<BibleReferenceDrawerProps> = ({
               <button
                 type='button'
                 onClick={() => setActiveMode('chapter')}
-                className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1.5 ${
+                className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                   activeMode === 'chapter'
-                    ? 'bg-white text-[#171717] shadow-xs'
-                    : 'text-zinc-600 hover:text-zinc-900'
+                    ? 'bg-white text-[#0c0a09] shadow-xs'
+                    : 'text-stone-600 hover:text-stone-900'
                 }`}
                 data-testid='tab-chapter-bible'
               >
@@ -230,7 +230,7 @@ export const BibleReferenceDrawer: React.FC<BibleReferenceDrawerProps> = ({
             {/* Panel Selector (only in panel mode when panels exist) */}
             {activeMode === 'panel' && availablePanels.length > 1 && (
               <div className='flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar'>
-                <span className='text-[10px] font-mono text-zinc-500 whitespace-nowrap'>
+                <span className='text-xs font-mono text-stone-500 whitespace-nowrap font-medium'>
                   Chọn khung:
                 </span>
                 {availablePanels.map((p, idx) => {
@@ -244,10 +244,10 @@ export const BibleReferenceDrawer: React.FC<BibleReferenceDrawerProps> = ({
                         setSelectedPanelId(p.id);
                         onSelectPanel?.(p.id);
                       }}
-                      className={`px-2.5 py-1 rounded-lg font-mono text-[11px] font-semibold whitespace-nowrap transition-colors cursor-pointer ${
+                      className={`px-2.5 py-1 rounded-lg font-mono text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
                         isSelected
-                          ? 'bg-[#171717] text-white'
-                          : 'bg-[#FAF8F5] text-zinc-700 hover:bg-[#F0ECE1] border border-[#E7E7E7]'
+                          ? 'bg-[#0c0a09] text-white shadow-xs ring-2 ring-[#F97316]/30'
+                          : 'bg-[#FAF8F5] text-stone-700 hover:bg-[#F0ECE1] border border-stone-200'
                       }`}
                       data-testid={`select-panel-${p.id}`}
                     >
@@ -263,7 +263,7 @@ export const BibleReferenceDrawer: React.FC<BibleReferenceDrawerProps> = ({
           <div className='flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar bg-[#FAF8F5]'>
             {loading ? (
               <div
-                className='py-16 text-center text-zinc-500 space-y-2'
+                className='py-16 text-center text-stone-500 space-y-2'
                 data-testid='bible-drawer-loading'
               >
                 <Loader2 className='w-6 h-6 animate-spin text-[#F97316] mx-auto' />
@@ -274,21 +274,21 @@ export const BibleReferenceDrawer: React.FC<BibleReferenceDrawerProps> = ({
                 <AlertCircle className='w-4 h-4 text-red-500 shrink-0 mt-0.5' />
                 <div>
                   <p className='font-semibold'>Không thể tải Bible Reference</p>
-                  <p className='text-[11px] text-red-700 mt-0.5'>{error}</p>
+                  <p className='text-xs text-red-700 mt-0.5'>{error}</p>
                 </div>
               </div>
             ) : currentEntries.length === 0 ? (
-              <div className='p-8 bg-white border border-dashed border-[#D4D4D4] rounded-2xl text-center space-y-3'>
-                <div className='w-10 h-10 rounded-full bg-zinc-100 flex items-center justify-center text-zinc-400 mx-auto'>
+              <div className='p-8 bg-white border border-dashed border-stone-300 rounded-2xl text-center space-y-3 shadow-2xs'>
+                <div className='w-10 h-10 rounded-full bg-stone-100 flex items-center justify-center text-stone-400 mx-auto'>
                   <BookOpen className='w-5 h-5' />
                 </div>
                 <div>
-                  <h4 className='font-bold text-sm text-[#171717]'>
+                  <h4 className='font-bold text-sm text-[#0c0a09]'>
                     {activeMode === 'panel'
                       ? 'Chưa có nhân vật gắn trong khung này'
                       : 'Chưa có nhân vật nào được duyệt khoá'}
                   </h4>
-                  <p className='text-[11px] text-zinc-500 mt-1 max-w-xs mx-auto'>
+                  <p className='text-xs text-stone-500 mt-1 max-w-xs mx-auto leading-relaxed'>
                     {activeMode === 'panel'
                       ? 'Khung tranh chưa neo dòng thoại của nhân vật có bản character sheet được khoá tham chiếu.'
                       : 'Chưa có mục nhân vật nào được Producer duyệt và khoá tham chiếu ở chương này.'}
@@ -310,18 +310,18 @@ export const BibleReferenceDrawer: React.FC<BibleReferenceDrawerProps> = ({
             ) : (
               <div className='space-y-4'>
                 {activeMode === 'panel' && (
-                  <div className='flex items-center justify-between text-[11px] text-zinc-500 px-1'>
+                  <div className='flex items-center justify-between text-xs text-stone-500 px-1 font-medium'>
                     <span>
                       Nhân vật có thoại trong khung: <strong>{currentEntries.length}</strong>
                     </span>
                     <button
                       type='button'
                       onClick={() => setActiveMode('chapter')}
-                      className='text-[#F97316] hover:underline font-semibold flex items-center gap-1'
+                      className='text-[#F97316] hover:underline font-semibold flex items-center gap-1 cursor-pointer'
                       data-testid='switch-to-all-chapter-bible-btn'
                     >
                       <span>Xem toàn bộ ({chapterEntries.length || '...'})</span>
-                      <ChevronRight className='w-3 h-3' />
+                      <ChevronRight className='w-3.5 h-3.5' />
                     </button>
                   </div>
                 )}
@@ -329,11 +329,11 @@ export const BibleReferenceDrawer: React.FC<BibleReferenceDrawerProps> = ({
                 {currentEntries.map((entry) => (
                   <div
                     key={entry.id}
-                    className='bg-white border border-[#E7E7E7] rounded-xl overflow-hidden shadow-2xs hover:border-zinc-400 transition-all'
+                    className='bg-white border border-stone-200 rounded-2xl overflow-hidden shadow-soft-sm hover:border-stone-400 hover:shadow-md transition-all'
                     data-testid={`bible-reference-card-${entry.id}`}
                   >
                     {/* Visual Reference Image */}
-                    <div className='relative w-full h-48 bg-zinc-900 overflow-hidden flex items-center justify-center border-b border-[#E7E7E7]'>
+                    <div className='relative w-full h-52 bg-zinc-950 overflow-hidden flex items-center justify-center border-b border-stone-200'>
                       {entry.referenceImageUrl ? (
                         <div
                           className='w-full h-full relative cursor-pointer group'
@@ -350,28 +350,28 @@ export const BibleReferenceDrawer: React.FC<BibleReferenceDrawerProps> = ({
                             alt={entry.name}
                             className='w-full h-full object-contain group-hover:scale-102 transition-transform duration-200'
                           />
-                          <div className='absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold gap-1.5'>
+                          <div className='absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold gap-1.5 backdrop-blur-[1px]'>
                             <Eye className='w-4 h-4' />
                             <span>Phóng to Reference Sheet</span>
                           </div>
                         </div>
                       ) : (
-                        <div className='w-full h-full flex flex-col items-center justify-center bg-zinc-900 text-zinc-500 p-4 text-center'>
-                          <BookOpen className='w-8 h-8 mb-1.5 opacity-50' />
-                          <span className='text-[10px] font-mono uppercase tracking-wider text-zinc-400'>
+                        <div className='w-full h-full flex flex-col items-center justify-center bg-zinc-950 text-stone-500 p-4 text-center'>
+                          <BookOpen className='w-8 h-8 mb-1.5 opacity-40' />
+                          <span className='text-xs font-mono uppercase tracking-wider text-stone-400'>
                             Chưa có ảnh Reference Sheet
                           </span>
                         </div>
                       )}
 
                       {/* Canon Locked Badge */}
-                      <div className='absolute top-2.5 left-2.5 flex items-center gap-1'>
-                        <span className='px-2 py-0.5 rounded bg-amber-500 text-white text-[9px] font-mono font-bold uppercase tracking-wider flex items-center gap-1 shadow-sm'>
-                          <Lock className='w-2.5 h-2.5' />
+                      <div className='absolute top-2.5 left-2.5 flex items-center gap-1.5'>
+                        <span className='px-2.5 py-0.5 rounded-full bg-amber-500 text-white text-xs font-mono font-bold uppercase tracking-wider flex items-center gap-1 shadow-xs'>
+                          <Lock className='w-3 h-3' />
                           CANON LOCKED
                         </span>
                         {entry.code && (
-                          <span className='px-1.5 py-0.5 rounded bg-black/75 backdrop-blur-xs text-white text-[9px] font-mono'>
+                          <span className='px-2 py-0.5 rounded-full bg-black/80 backdrop-blur-xs text-white text-xs font-mono'>
                             {entry.code}
                           </span>
                         )}
@@ -379,27 +379,29 @@ export const BibleReferenceDrawer: React.FC<BibleReferenceDrawerProps> = ({
                     </div>
 
                     {/* Content Details */}
-                    <div className='p-3.5 space-y-2'>
+                    <div className='p-4 space-y-2.5'>
                       <div>
-                        <h4 className='text-sm font-bold text-[#171717] font-serif'>
+                        <h4 className='text-base font-bold text-[#0c0a09] font-serif tracking-tight'>
                           {entry.name}
                         </h4>
                         {entry.subtitle && (
-                          <p className='text-[11px] text-[#F97316] font-mono font-semibold'>
+                          <p className='text-xs text-[#F97316] font-mono font-semibold'>
                             {entry.subtitle}
                           </p>
                         )}
                       </div>
 
                       {entry.description && (
-                        <p className='text-xs text-[#555555] leading-relaxed line-clamp-3 hover:line-clamp-none transition-all'>
+                        <p className='text-xs md:text-sm text-stone-600 leading-relaxed line-clamp-3 hover:line-clamp-none transition-all'>
                           {entry.description}
                         </p>
                       )}
 
                       {entry.effectiveRevision && (
-                        <div className='pt-2 border-t border-[#F0ECE1] flex items-center justify-between text-[10px] font-mono text-zinc-500'>
-                          <span>Bản khoá v{entry.effectiveRevision.versionNumber}</span>
+                        <div className='pt-2.5 border-t border-[#F0ECE1] flex items-center justify-between text-xs font-mono text-stone-500'>
+                          <span className='font-semibold'>
+                            Bản khoá v{entry.effectiveRevision.versionNumber}
+                          </span>
                           <span>
                             Hiệu lực từ Chương {entry.effectiveRevision.effectiveFromChapterNumber}
                           </span>
@@ -413,15 +415,15 @@ export const BibleReferenceDrawer: React.FC<BibleReferenceDrawerProps> = ({
           </div>
 
           {/* Footer */}
-          <div className='p-3.5 bg-white border-t border-[#E7E7E7] flex items-center justify-between'>
-            <div className='flex items-center gap-1.5 text-[11px] text-zinc-500'>
+          <div className='p-4 bg-white border-t border-stone-200 flex items-center justify-between'>
+            <div className='flex items-center gap-1.5 text-xs text-stone-500 font-medium'>
               <ShieldCheck className='w-4 h-4 text-emerald-600' />
               <span>FR-Artist-04 // Tham chiếu chuẩn Canon</span>
             </div>
             <button
               type='button'
               onClick={onClose}
-              className='px-3.5 py-1.5 bg-[#171717] hover:bg-black text-white text-xs font-semibold rounded-lg'
+              className='px-4 py-2 bg-[#0c0a09] hover:bg-stone-800 text-white text-xs font-semibold rounded-xl transition-colors cursor-pointer shadow-soft-sm'
             >
               Đóng
             </button>

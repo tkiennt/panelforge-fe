@@ -3,6 +3,7 @@ import type {
   AssignmentDto,
   ChangeRequestDto,
   ChangeRequestItemRequest,
+  PanelDto,
   StageProgressDto,
   SubmissionDto,
 } from '@/types';
@@ -354,6 +355,83 @@ export const errorMessage = (err: unknown, fallback: string): string => {
         .join('; ')
     : '';
   return data?.error || data?.message || validation || data?.title || e?.message || fallback;
+};
+
+/** Dữ liệu chương dùng để quy việc vào cảnh và sắp thứ tự trong "Công việc của tôi". */
+export interface WorkOrderContext {
+  stageOrder: Record<string, number>; // pipelineStageId → stageOrder
+  pageNumber: Record<string, number>; // pageId → pageNumber
+  panels: Pick<PanelDto, 'id' | 'pageId' | 'sceneId' | 'readingOrder'>[];
+  sceneNumber: Record<string, number>; // sceneId → sceneNumber
+}
+
+export const UNASSIGNED_SCENE = 'UNASSIGNED';
+
+export interface WorkScene {
+  sceneId: string; // UNASSIGNED_SCENE = việc cấp chương hoặc chưa gắn cảnh
+  pageId: string | null;
+  /** Trang chứa panel của nhiều cảnh: việc hiện ở cảnh đầu tiên, không nhân bản. */
+  multiScene: boolean;
+}
+
+/**
+ * Cảnh nằm trên Panel, không phải Page: việc cấp Panel lấy cảnh của panel; việc cấp Page lấy cảnh nhỏ nhất
+ * trong các panel của trang; việc cấp Chapter (hoặc chưa gắn cảnh) vào nhóm "Toàn chương".
+ */
+export const resolveWorkScene = (
+  a: Pick<AssignmentDto, 'entityType' | 'targetEntityId'>,
+  ctx: WorkOrderContext,
+): WorkScene => {
+  const known = (sceneId?: string | null): sceneId is string =>
+    !!sceneId && ctx.sceneNumber[sceneId] !== undefined;
+  const type = status(a.entityType);
+  if (type === 'Panel') {
+    const panel = ctx.panels.find((p) => p.id === a.targetEntityId);
+    return {
+      sceneId: known(panel?.sceneId) ? panel!.sceneId! : UNASSIGNED_SCENE,
+      pageId: panel?.pageId ?? null,
+      multiScene: false,
+    };
+  }
+  if (type === 'Page') {
+    const sceneIds = [
+      ...new Set(
+        ctx.panels
+          .filter((p) => p.pageId === a.targetEntityId)
+          .map((p) => p.sceneId)
+          .filter(known),
+      ),
+    ].sort((x, y) => ctx.sceneNumber[x] - ctx.sceneNumber[y]);
+    return {
+      sceneId: sceneIds[0] ?? UNASSIGNED_SCENE,
+      pageId: a.targetEntityId,
+      multiScene: sceneIds.length > 1,
+    };
+  }
+  return { sceneId: UNASSIGNED_SCENE, pageId: null, multiScene: false };
+};
+
+/** Thứ tự trong một nhóm: công đoạn 1 → 7, rồi số trang, rồi thứ tự đọc của panel. Thiếu dữ liệu thì xếp cuối. */
+export const compareWorkOrder = (
+  a: Pick<AssignmentDto, 'entityType' | 'targetEntityId' | 'pipelineStageId'>,
+  b: Pick<AssignmentDto, 'entityType' | 'targetEntityId' | 'pipelineStageId'>,
+  ctx: WorkOrderContext,
+): number => {
+  const MAX = Number.MAX_SAFE_INTEGER;
+  const key = (x: typeof a) => {
+    const type = status(x.entityType);
+    const panel = type === 'Panel' ? ctx.panels.find((p) => p.id === x.targetEntityId) : undefined;
+    const pageId = type === 'Page' ? x.targetEntityId : panel?.pageId;
+    return [
+      ctx.stageOrder[x.pipelineStageId] ?? MAX,
+      pageId ? (ctx.pageNumber[pageId] ?? MAX) : -1,
+      panel?.readingOrder ?? -1,
+    ];
+  };
+  const ka = key(a);
+  const kb = key(b);
+  for (let i = 0; i < ka.length; i++) if (ka[i] !== kb[i]) return ka[i] < kb[i] ? -1 : 1;
+  return 0;
 };
 
 export const isOverdue = (dueDate?: string | null, now: Date = new Date()): boolean =>

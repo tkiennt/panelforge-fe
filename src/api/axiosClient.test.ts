@@ -72,6 +72,15 @@ describe('axiosClient', () => {
     expect(adapter.mock.calls[0][0].headers['X-Requested-With']).toBe('XMLHttpRequest');
   });
 
+  it('tự động loại bỏ tiền tố /api thừa để tránh lỗi /api/api', async () => {
+    const adapter = vi.fn(async (config: InternalAxiosRequestConfig) => ok(config));
+    axiosClient.defaults.adapter = adapter;
+
+    await axiosClient.get('/api/series/123/bible/assets/abc');
+
+    expect(adapter.mock.calls[0][0].url).toBe('/series/123/bible/assets/abc');
+  });
+
   it('gặp 401 thì gọi refresh token không body (dùng cookie), gửi lại request thành công', async () => {
     localStorage.setItem('token', 'old-access');
     const adapter = useAdapter();

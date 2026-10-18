@@ -14,12 +14,14 @@ import { elementService } from '@/services/element.service';
 import { bibleService } from '@/services/bible.service';
 import { artworkService, computeFileSha256, resolveArtworkUrl } from '@/services/artwork.service';
 import { assignmentService } from '@/services/assignment.service';
+import { pipelineService } from '@/services/pipeline.service';
 
 vi.mock('@/services/chapter.service');
 vi.mock('@/services/page.service');
 vi.mock('@/services/panel.service');
 vi.mock('@/services/scriptLine.service');
 vi.mock('@/services/frameTemplate.service');
+vi.mock('@/services/pipeline.service');
 vi.mock('@/services/element.service', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/services/element.service')>();
   return {
@@ -87,6 +89,7 @@ describe('ArtistDeskView', () => {
 
     vi.mocked(artworkService.getArtworks).mockResolvedValue([]);
     vi.mocked(assignmentService.getMyAssignments).mockResolvedValue([]);
+    vi.mocked(assignmentService.getAssignments).mockResolvedValue([]);
     vi.mocked(computeFileSha256).mockResolvedValue('sha-1');
     vi.mocked(resolveArtworkUrl).mockImplementation((u: string) => `http://localhost${u}`);
 
@@ -171,6 +174,16 @@ describe('ArtistDeskView', () => {
     ]);
 
     vi.mocked(frameTemplateService.getFrameTemplates).mockResolvedValue([]);
+    vi.mocked(pipelineService.getSeriesPipeline).mockResolvedValue({
+      id: 'pipe-1',
+      seriesId: 'series-1',
+      stages: [
+        { id: 'stg-1', name: 'Thumbnail', stageOrder: 2, isEnabled: true },
+        { id: 'stg-2', name: 'Pencil', stageOrder: 3, isEnabled: true },
+        { id: 'stg-3', name: 'Ink', stageOrder: 4, isEnabled: true },
+        { id: 'stg-4', name: 'Color', stageOrder: 5, isEnabled: false },
+      ] as any,
+    } as any);
   });
 
   const renderComponent = () =>
@@ -511,6 +524,36 @@ describe('ArtistDeskView', () => {
       } finally {
         vi.useRealTimers();
       }
+    });
+  });
+
+  describe('thanh điều khiển canvas mới (role Artist)', () => {
+    it('hiển thị thanh điều khiển nền sáng, segmented control công đoạn và toạ độ khung', async () => {
+      renderComponent();
+
+      await waitFor(() => {
+        expect(screen.getByTestId('panel-layout-toolbar')).toBeInTheDocument();
+        expect(screen.getByTestId('desk-stage-switcher')).toBeInTheDocument();
+        expect(screen.getByTestId('panel-readout')).toBeInTheDocument();
+      });
+
+      // Kiểm tra thanh không dùng nền đen
+      expect(screen.getByTestId('panel-layout-toolbar').className).not.toContain('bg-stone-900');
+      expect(screen.getByTestId('panel-readout').className).not.toContain('bg-stone-900');
+
+      // Click chọn panel-1 trên canvas
+      const panelBox = await screen.findByTestId('panel-box-panel-1');
+      fireEvent.click(panelBox);
+
+      // Thẻ readout hiển thị Khung #1 và thông số toạ độ
+      await waitFor(() => {
+        expect(screen.getByTestId('panel-readout')).toHaveTextContent('Khung #1');
+        expect(screen.getByTestId('panel-readout')).toHaveTextContent('Vị trí:');
+        expect(screen.getByTestId('panel-readout')).toHaveTextContent('Kích thước:');
+      });
+
+      // Stage switcher có nút công đoạn tắt kèm lock icon
+      expect(screen.getByRole('button', { name: /5\. Color đã tắt/i })).toBeInTheDocument();
     });
   });
 });

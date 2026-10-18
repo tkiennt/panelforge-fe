@@ -12,9 +12,19 @@ interface AuthenticatedImageProps extends React.ImgHTMLAttributes<HTMLImageEleme
 // In-memory cache for blob URLs to avoid re-fetching the same hash repeatedly in the same session
 const blobCache = new Map<string, string>();
 
+const isDirectUrl = (url: string): boolean => {
+  return (
+    url.startsWith('data:') ||
+    url.startsWith('blob:') ||
+    url.startsWith('http://') ||
+    url.startsWith('https://') ||
+    (url.startsWith('/') && !url.startsWith('/api/') && !url.startsWith('/api'))
+  );
+};
+
 /**
  * Component hiển thị ảnh cần xác thực (Bearer / cookie HttpOnly) như /api/series/.../bible/assets/{sha256}.
- * Tự động gọi API lấy blob và gán URL.createObjectURL, đồng thời tương thích với URL ngoại bộ và data-uri.
+ * Tự động gọi API lấy blob và gán URL.createObjectURL, đồng thời tương thích với URL ngoại bộ, static assets và data-uri.
  */
 export const AuthenticatedImage: React.FC<AuthenticatedImageProps> = ({
   src,
@@ -26,24 +36,14 @@ export const AuthenticatedImage: React.FC<AuthenticatedImageProps> = ({
 }) => {
   const [resolvedUrl, setResolvedUrl] = useState<string | null>(() => {
     if (!src) return null;
-    if (
-      src.startsWith('data:') ||
-      src.startsWith('blob:') ||
-      src.startsWith('http://') ||
-      src.startsWith('https://')
-    ) {
+    if (isDirectUrl(src)) {
       return src;
     }
     return blobCache.get(src) || null;
   });
   const [loading, setLoading] = useState<boolean>(() => {
     if (!src) return false;
-    if (
-      src.startsWith('data:') ||
-      src.startsWith('blob:') ||
-      src.startsWith('http://') ||
-      src.startsWith('https://')
-    ) {
+    if (isDirectUrl(src)) {
       return false;
     }
     return !blobCache.has(src);
@@ -58,13 +58,8 @@ export const AuthenticatedImage: React.FC<AuthenticatedImageProps> = ({
       return;
     }
 
-    // Direct image URL
-    if (
-      src.startsWith('data:') ||
-      src.startsWith('blob:') ||
-      src.startsWith('http://') ||
-      src.startsWith('https://')
-    ) {
+    // Direct image URL (data:, blob:, static frontend assets, or external http/https)
+    if (isDirectUrl(src)) {
       setResolvedUrl(src);
       setLoading(false);
       setHasError(false);

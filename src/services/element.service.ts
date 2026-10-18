@@ -55,6 +55,31 @@ export interface ElementSnapshotDto {
   panelId?: string | null;
   rotation?: number;
   bibleEntryId?: string | null;
+  /** Kiểu chữ Letterer chọn; null = mặc định theo loại element. */
+  style?: TextStyleDto | null;
+}
+
+/** Khớp TextStyle.cs (Backend): font trong danh sách cho phép, cỡ 14–160px, màu #RRGGBB. */
+export interface TextStyleDto {
+  fontFamily: string;
+  fontSize: number;
+  bold?: boolean;
+  italic?: boolean;
+  align?: 'center' | 'left' | 'right';
+  color?: string;
+  strokeColor?: string | null;
+  strokeWidth?: number;
+  lineHeight?: number;
+  preset?: string | null;
+  // Hình bóng chứa chữ (BE TextStyle). null/thiếu = mặc định theo loại element (balloonRender.defaultAppearance)
+  balloonShape?: 'none' | 'oval' | 'cloud' | 'spiky' | 'box' | null;
+  fillColor?: string | null; // #RRGGBB
+  fillOpacity?: number | null; // 0..1
+  borderColor?: string | null; // #RRGGBB
+  borderWidth?: number | null; // px trang, 0 = không viền
+  /** Chóp đuôi bóng: px trang tính từ góc trên-trái của bóng (có thể âm). null = đuôi mặc định. */
+  tailX?: number | null;
+  tailY?: number | null;
 }
 
 export interface PageSnapshotDto {
@@ -172,11 +197,16 @@ export const toValidElementGuid = (id?: string): string => {
 export const MOCK_ELEMENTS: ElementSnapshotDto[] = [];
 
 export const elementService = {
-  getPageSnapshot: async (pageId: string, includeRemoved = false): Promise<PageSnapshotDto> => {
+  /** `version`: dựng lại canvas tại version stream đó (bản Letter đã nộp); bỏ trống = hiện tại. */
+  getPageSnapshot: async (
+    pageId: string,
+    includeRemoved = false,
+    version?: number,
+  ): Promise<PageSnapshotDto> => {
     const validPageId = toValidPageGuid(pageId);
     try {
       const response = await axiosClient.get(`/pages/${validPageId}/elements`, {
-        params: { includeRemoved },
+        params: version ? { includeRemoved, version } : { includeRemoved },
       });
       return response.data;
     } catch (error: any) {
@@ -204,7 +234,7 @@ export const elementService = {
     pageId: string,
     elementId: string,
     request: MoveElementRequest,
-  ): Promise<{ message: string }> => {
+  ): Promise<{ message: string; elementVersion?: number }> => {
     const validPageId = toValidPageGuid(pageId);
     const validElemId = toValidElementGuid(elementId);
     try {
@@ -227,6 +257,8 @@ export const elementService = {
     content?: string;
     scriptLineId?: string;
     speakerId?: string;
+    /** Phiên bản thật sau khi lưu (BE mới); dùng cho lệnh kế tiếp thay vì tự +1. */
+    elementVersion?: number;
   }> => {
     const validPageId = toValidPageGuid(pageId);
     const validElemId = toValidElementGuid(elementId);
@@ -245,7 +277,7 @@ export const elementService = {
     pageId: string,
     elementId: string,
     request: SetReadingOrderRequest,
-  ): Promise<{ message: string }> => {
+  ): Promise<{ message: string; elementVersion?: number }> => {
     const validPageId = toValidPageGuid(pageId);
     const validElemId = toValidElementGuid(elementId);
     try {
@@ -259,11 +291,30 @@ export const elementService = {
     }
   },
 
+  /** PUT /pages/{pageId}/elements/{elementId}/style — style null = về kiểu mặc định. */
+  updateElementStyle: async (
+    pageId: string,
+    elementId: string,
+    request: { style: TextStyleDto | null; expectedElementVersion?: number },
+  ): Promise<{ message: string; elementVersion?: number }> => {
+    const validPageId = toValidPageGuid(pageId);
+    const validElemId = toValidElementGuid(elementId);
+    try {
+      const response = await axiosClient.put(
+        `/pages/${validPageId}/elements/${validElemId}/style`,
+        request,
+      );
+      return response.data;
+    } catch (error) {
+      throw extractError(error, 'Cập nhật kiểu chữ thất bại.');
+    }
+  },
+
   acknowledgeOverflow: async (
     pageId: string,
     elementId: string,
     request: AcknowledgeOverflowRequest,
-  ): Promise<{ message: string }> => {
+  ): Promise<{ message: string; elementVersion?: number }> => {
     const validPageId = toValidPageGuid(pageId);
     const validElemId = toValidElementGuid(elementId);
     try {

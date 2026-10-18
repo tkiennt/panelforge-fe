@@ -43,6 +43,28 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
 }) => {
   const [copiedHash, setCopiedHash] = useState(false);
   const [techOpen, setTechOpen] = useState(false);
+
+  // Step 3: Turnaround / Character Sheet Gallery Active View State
+  const initialUrl = entity.imageUrl || (entity.gallery?.[0]?.url ?? '');
+  const initialTitle = entity.imageUrl
+    ? entity.name
+    : entity.gallery?.[0]?.label
+      ? `${entity.name} - ${entity.gallery[0].label}`
+      : entity.name;
+  const [selectedImageUrl, setSelectedImageUrl] = useState<string>(initialUrl);
+  const [selectedImageTitle, setSelectedImageTitle] = useState<string>(initialTitle);
+
+  useEffect(() => {
+    setSelectedImageUrl(entity.imageUrl || (entity.gallery?.[0]?.url ?? ''));
+    setSelectedImageTitle(
+      entity.imageUrl
+        ? entity.name
+        : entity.gallery?.[0]?.label
+          ? `${entity.name} - ${entity.gallery[0].label}`
+          : entity.name,
+    );
+  }, [entity]);
+
   const modalContainerRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const lastActiveElementRef = useRef<HTMLElement | null>(null);
@@ -246,7 +268,9 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
       <div
         ref={modalContainerRef}
         className={`bg-white border border-[#E7E7E7] rounded-2xl w-full max-h-[min(90vh,calc(100dvh-1.5rem))] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 ${
-          entity.imageUrl ? 'max-w-2xl lg:max-w-4xl' : 'max-w-2xl sm:max-w-3xl'
+          entity.imageUrl || (entity.gallery && entity.gallery.length > 0)
+            ? 'max-w-2xl lg:max-w-4xl'
+            : 'max-w-2xl sm:max-w-3xl'
         }`}
       >
         {/* Sticky Header: Tiêu đề chính duy nhất, Mã, Phân loại, Nút đóng */}
@@ -335,46 +359,132 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
           )}
 
           {/* Bố cục nội dung chính: Chia 2 cột trên Desktop nếu có ảnh, 1 cột gọn gàng nếu không có ảnh */}
-          {entity.imageUrl ? (
+          {entity.imageUrl || (entity.gallery && entity.gallery.length > 0) ? (
             <div className='grid grid-cols-1 md:grid-cols-12 gap-4 sm:gap-5 items-start'>
-              {/* Cột trái: Ảnh Reference Sheet */}
-              <div className='md:col-span-5 space-y-2'>
+              {/* Cột trái: Ảnh Reference Sheet & Gallery Thumbnails */}
+              <div className='md:col-span-5 space-y-3'>
                 <div className='flex items-center justify-between text-xs font-semibold text-zinc-700'>
-                  <span>Ảnh Reference Sheet</span>
-                  <button
-                    type='button'
-                    onClick={() =>
-                      onZoomImage({
-                        url: entity.imageUrl!,
-                        title: entity.name,
-                      })
-                    }
-                    className='text-[11px] text-[#F97316] hover:underline flex items-center gap-1 cursor-pointer font-medium'
-                  >
-                    <Eye className='w-3.5 h-3.5' />
-                    <span>Phóng to ảnh</span>
-                  </button>
+                  <span className='truncate max-w-[200px]'>
+                    {selectedImageTitle || 'Ảnh Reference Sheet'}
+                  </span>
+                  {selectedImageUrl && (
+                    <button
+                      type='button'
+                      onClick={() =>
+                        onZoomImage({
+                          url: selectedImageUrl,
+                          title: selectedImageTitle || entity.name,
+                        })
+                      }
+                      className='text-[11px] text-[#F97316] hover:underline flex items-center gap-1 cursor-pointer font-medium shrink-0'
+                    >
+                      <Eye className='w-3.5 h-3.5' />
+                      <span>Phóng to ảnh</span>
+                    </button>
+                  )}
                 </div>
 
                 <div
                   className='relative w-full max-h-72 md:max-h-80 bg-zinc-950 rounded-xl overflow-hidden border border-zinc-200 cursor-pointer group flex items-center justify-center p-2'
-                  onClick={() =>
-                    onZoomImage({
-                      url: entity.imageUrl!,
-                      title: entity.name,
-                    })
-                  }
+                  onClick={() => {
+                    if (selectedImageUrl) {
+                      onZoomImage({
+                        url: selectedImageUrl,
+                        title: selectedImageTitle || entity.name,
+                      });
+                    }
+                  }}
                 >
-                  <AuthenticatedImage
-                    src={entity.imageUrl}
-                    alt={entity.name}
-                    className='w-full h-full max-h-68 md:max-h-76 object-contain'
-                  />
-                  <div className='absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold gap-1.5'>
-                    <Eye className='w-4 h-4' />
-                    <span>Bấm để phóng to xem đầy đủ</span>
-                  </div>
+                  {selectedImageUrl ? (
+                    <AuthenticatedImage
+                      src={selectedImageUrl}
+                      alt={selectedImageTitle || entity.name}
+                      className='w-full h-full max-h-68 md:max-h-76 object-contain'
+                    />
+                  ) : (
+                    <div className='text-xs text-zinc-400'>Chưa có ảnh hiển thị</div>
+                  )}
+                  {selectedImageUrl && (
+                    <div className='absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold gap-1.5'>
+                      <Eye className='w-4 h-4' />
+                      <span>Bấm để phóng to xem đầy đủ</span>
+                    </div>
+                  )}
                 </div>
+
+                {/* Step 3: Character Sheet Gallery (Turnaround & Expressions Thumbnail Strip) */}
+                {entity.gallery && entity.gallery.length > 0 && (
+                  <div className='space-y-1.5 pt-2 border-t border-zinc-200'>
+                    <div className='flex items-center justify-between text-[11px] font-semibold text-zinc-700'>
+                      <span>Góc nhìn &amp; Biểu cảm ({entity.gallery.length}):</span>
+                      <span className='text-[10px] text-zinc-500 font-normal'>
+                        Bấm để đổi góc xem
+                      </span>
+                    </div>
+                    <div className='flex items-center gap-2 overflow-x-auto pb-1.5 custom-scrollbar'>
+                      {entity.imageUrl && (
+                        <button
+                          type='button'
+                          onClick={() => {
+                            setSelectedImageUrl(entity.imageUrl!);
+                            setSelectedImageTitle(`${entity.name} (Bản chính)`);
+                          }}
+                          className={`flex-shrink-0 w-14 rounded-lg overflow-hidden border p-0.5 text-center transition-all cursor-pointer ${
+                            selectedImageUrl === entity.imageUrl
+                              ? 'border-[#F97316] ring-2 ring-[#F97316]/30 bg-orange-50'
+                              : 'border-zinc-200 hover:border-zinc-300 bg-white'
+                          }`}
+                        >
+                          <div className='w-full h-12 bg-zinc-900 rounded overflow-hidden'>
+                            <AuthenticatedImage
+                              src={entity.imageUrl}
+                              alt='Bản chính'
+                              className='w-full h-full object-cover'
+                            />
+                          </div>
+                          <div className='text-[9px] font-bold text-zinc-700 truncate mt-1 px-0.5'>
+                            Bản chính
+                          </div>
+                        </button>
+                      )}
+
+                      {entity.gallery.map((item, idx) => {
+                        const isSelected = selectedImageUrl === item.url;
+                        return (
+                          <button
+                            key={idx}
+                            type='button'
+                            onClick={() => {
+                              setSelectedImageUrl(item.url);
+                              setSelectedImageTitle(
+                                `${entity.name} - ${item.label || `Góc #${idx + 1}`}`,
+                              );
+                            }}
+                            className={`flex-shrink-0 w-14 rounded-lg overflow-hidden border p-0.5 text-center transition-all cursor-pointer ${
+                              isSelected
+                                ? 'border-[#F97316] ring-2 ring-[#F97316]/30 bg-orange-50'
+                                : 'border-zinc-200 hover:border-zinc-300 bg-white'
+                            }`}
+                          >
+                            <div className='w-full h-12 bg-zinc-900 rounded overflow-hidden'>
+                              <AuthenticatedImage
+                                src={item.url}
+                                alt={item.label || `Góc #${idx + 1}`}
+                                className='w-full h-full object-cover'
+                              />
+                            </div>
+                            <div
+                              className='text-[9px] font-bold text-zinc-700 truncate mt-1 px-0.5'
+                              title={item.label}
+                            >
+                              {item.label || `Góc #${idx + 1}`}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Cột phải: Vai trò, Mô tả, Thông tin phiên bản */}
@@ -457,9 +567,9 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                 onClose();
                 onOpenHistory(entity);
               }}
-              className='px-3 py-1.5 bg-white hover:bg-zinc-50 border border-zinc-200 text-zinc-700 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs'
+              className='px-3.5 py-1.5 bg-white hover:bg-stone-50 border border-stone-200 text-stone-700 text-xs font-semibold rounded-full flex items-center gap-1.5 transition-colors cursor-pointer shadow-soft-sm'
             >
-              <History className='w-3.5 h-3.5 text-[#F97316]' />
+              <History className='w-3.5 h-3.5 text-[#EA580C]' />
               <span>Xem lịch sử phiên bản</span>
             </button>
 
@@ -470,7 +580,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                   onClose();
                   onOpenAddRevision(entity);
                 }}
-                className='px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer'
+                className='px-3.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-semibold rounded-full flex items-center gap-1.5 transition-colors cursor-pointer shadow-soft-sm'
               >
                 <GitCommit className='w-3.5 h-3.5' />
                 <span>{isProducer ? '+ Tạo phiên bản mới' : '+ Tạo bản nháp mới'}</span>
@@ -483,7 +593,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
           <button
             type='button'
             onClick={onClose}
-            className='px-4 py-1.5 bg-[#171717] hover:bg-black text-white text-xs font-semibold rounded-lg transition-colors cursor-pointer active:scale-95'
+            className='px-4 py-1.5 bg-[#292524] hover:bg-black text-white text-xs font-semibold rounded-full transition-colors cursor-pointer active:scale-95 shadow-soft-sm'
           >
             Đóng
           </button>

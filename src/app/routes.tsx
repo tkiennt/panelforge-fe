@@ -199,6 +199,17 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
       {/* CF5: Public Preview Link Route (No Auth Guard, No Bearer Header) */}
       <Route path='/preview/:token' element={<PublicPreviewView />} />
 
+      {/* Public Catalog Route (BR-24: Public AllowAnonymous) */}
+      <Route
+        path='/catalog'
+        element={
+          <PublicCatalogView
+            onBackToWorkspaces={() => navigate(isAuthenticated ? '/workspaces' : '/')}
+            onOpenLogin={() => navigate(`/login?redirect=${encodeURIComponent('/catalog')}`)}
+          />
+        }
+      />
+
       <Route
         element={
           <PrivateRoute isAuthenticated={isAuthenticated}>

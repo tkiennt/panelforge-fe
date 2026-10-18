@@ -21,6 +21,7 @@ import {
   History,
   RotateCcw,
   Share2,
+  GitBranch,
 } from 'lucide-react';
 import {
   chapterService,
@@ -30,6 +31,7 @@ import {
 } from '@/services/chapter.service';
 import { ChapterAssignmentsModal } from './ChapterAssignmentsModal';
 import { ChapterReviewsModal } from '@/shared/modals/ChapterReviewsModal';
+import { ChapterProvenanceModal } from '@/shared/features/provenance/ChapterProvenanceModal';
 import { PreviewLinksModal } from './PreviewLinksModal';
 
 interface SeriesChaptersModalProps {
@@ -64,6 +66,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
   const [assigningChapter, setAssigningChapter] = useState<ChapterDto | null>(null);
   const [reviewingChapter, setReviewingChapter] = useState<ChapterDto | null>(null);
   const [previewChapter, setPreviewChapter] = useState<ChapterDto | null>(null);
+  const [provenanceChapter, setProvenanceChapter] = useState<ChapterDto | null>(null);
   const [totalCount, setTotalCount] = useState(0);
   const [pageIndex, setPageIndex] = useState(1);
   const [pageSize] = useState(10);
@@ -746,6 +749,16 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
 
                             <button
                               type='button'
+                              onClick={() => setProvenanceChapter(chap)}
+                              className='p-1.5 rounded-lg hover:bg-white border border-transparent hover:border-[#E7E7E7] text-[#555555] hover:text-[#171717] transition-all cursor-pointer'
+                              title='Bản duyệt, Provenance Report và lịch sử AI (CF4)'
+                              aria-label={`Lịch sử và nguồn gốc chương ${chap.chapterNumber}`}
+                            >
+                              <GitBranch className='w-3.5 h-3.5' />
+                            </button>
+
+                            <button
+                              type='button'
                               onClick={() => handleStartEdit(chap)}
                               disabled={chap.status === 'Approved' || chap.status === 'Published'}
                               className='p-1.5 rounded-lg hover:bg-white border border-transparent hover:border-[#E7E7E7] text-[#555555] hover:text-[#171717] transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed'
@@ -844,6 +857,18 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
           chapterNumber={reviewingChapter.chapterNumber}
           chapterTitle={reviewingChapter.title}
           onClose={() => setReviewingChapter(null)}
+        />
+      )}
+
+      {/* CF4: Bản duyệt, Provenance Report, lịch sử AI */}
+      {provenanceChapter && (
+        <ChapterProvenanceModal
+          seriesId={seriesId}
+          chapterId={provenanceChapter.id}
+          chapterNumber={provenanceChapter.chapterNumber}
+          chapterTitle={provenanceChapter.title}
+          viewerRole='Producer'
+          onClose={() => setProvenanceChapter(null)}
         />
       )}
 

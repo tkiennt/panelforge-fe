@@ -59,6 +59,9 @@ import { ScriptLineItem } from '../components/script/ScriptLineItem';
 import { NarrativeContextDrawer } from '../components/script/NarrativeContextDrawer';
 import { ConsistencyFindingsDrawer } from '../components/script/ConsistencyFindingsDrawer';
 import { BibleCharactersDrawer } from '../components/script/BibleCharactersDrawer';
+import { offlineQueueService } from '@/services/offlineQueue.service';
+import { OfflineStatusBanner } from '@/shared/components/OfflineStatusBanner';
+import { ElementConflictModal } from '@/shared/modals/ElementConflictModal';
 
 interface ScriptEditorViewProps {
   onShowToast?: (title: string, desc: string) => void;
@@ -146,8 +149,29 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   );
   const [highlightedLineId, setHighlightedLineId] = useState<string | null>(null);
 
-  // Banner xung đột phiên bản (409 CONFLICT)
+  // Banner & Modal xung đột phiên bản (BR-11 / 409 CONFLICT)
   const [concurrencyError, setConcurrencyError] = useState<string | null>(null);
+  const [conflictModalOpen, setConflictModalOpen] = useState(false);
+  const [conflictErrorMsg, setConflictErrorMsg] = useState<string | undefined>(undefined);
+  const [conflictEntityId, setConflictEntityId] = useState<string | undefined>(undefined);
+
+  // Lắng nghe sự kiện xung đột từ hàng đợi offline (BR-11 / NFR-09)
+  useEffect(() => {
+    const handleOfflineConflict = (e: any) => {
+      const detail = e.detail;
+      if (detail) {
+        setConflictEntityId(detail.item?.clientRefId);
+        setConflictErrorMsg(
+          detail.message || 'Xung đột phiên bản kịch bản khi đồng bộ ngoại tuyến (409 Conflict).',
+        );
+        setConflictModalOpen(true);
+      }
+    };
+    window.addEventListener('panelforge:offline_conflict', handleOfflineConflict);
+    return () => {
+      window.removeEventListener('panelforge:offline_conflict', handleOfflineConflict);
+    };
+  }, []);
 
   // Side Drawer phụ (Đề cương, Nhất quán, Nhân vật Bible)
   const isTestEnvironment =
@@ -521,6 +545,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           heading: sceneHeadingInput.trim() || null,
           summary: sceneSummaryInput.trim() || null,
           defaultNarrationMode: sceneDefaultNarrationMode,
+          expectedVersion: selectedScene.version,
         };
         const updated = await scriptLineService.updateScene(selectedScene.id, req);
         notify('Thành công', `Đã cập nhật Phân cảnh ${updated.sceneNumber}`);
@@ -540,7 +565,20 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       }
       setSceneModalOpen(false);
     } catch (err: any) {
-      notify('Lỗi thao tác phân cảnh', err.message);
+      if (err?.code === 'CONFLICT' && isEditingScene && selectedScene) {
+        // BR-11: người khác vừa sửa phân cảnh → nạp lại bản mới (kèm version mới), giữ form mở; KHÔNG tự gửi lại.
+        // Người dùng xem bản mới rồi quyết định lưu lại nội dung của mình hay không.
+        setConflictEntityId(selectedScene.id);
+        setConflictErrorMsg(err.message || 'Phân cảnh vừa được người khác chỉnh sửa trên máy chủ.');
+        setConflictModalOpen(true);
+        notify(
+          'Phân cảnh vừa được người khác sửa',
+          `${err.message} Đã nạp bản mới nhất, kiểm tra lại rồi lưu.`,
+        );
+        await loadSceneDetail(selectedScene.id);
+      } else {
+        notify('Lỗi thao tác phân cảnh', err.message);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -615,6 +653,41 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           bibleEntryIds: lineBibleEntryIds,
           narrationMode: lineNarrationMode,
         };
+
+        if (typeof navigator !== 'undefined' && !navigator.onLine) {
+          offlineQueueService.enqueue({
+            type: 'UPDATE_SCRIPT_LINE',
+            endpoint: `/chapters/${currentChapter.id}/script-lines/${editingLine.id}`,
+            method: 'PUT',
+            payload: req,
+            clientRefId: editingLine.id,
+          });
+          setSelectedScene((prev) => {
+            if (!prev) return null;
+            return {
+              ...prev,
+              scriptLines: prev.scriptLines.map((l) =>
+                l.id === editingLine.id
+                  ? {
+                      ...l,
+                      dialogueText: lineDialogue.trim() || null,
+                      stageDirection: lineStageDirection.trim() || null,
+                      speakerCharacterId: lineSpeakerId || null,
+                      bibleEntryIds: lineBibleEntryIds,
+                      narrationMode: lineNarrationMode || undefined,
+                    }
+                  : l,
+              ),
+            };
+          });
+          notify(
+            'Đã lưu ngoại tuyến (NFR-09)',
+            `Thay đổi dòng kịch bản #${editingLine.lineOrder} đã được lưu vào hàng đợi và sẽ tự đồng bộ khi có mạng.`,
+          );
+          setLineModalOpen(false);
+          return;
+        }
+
         const res = await scriptLineService.updateScriptLine(
           currentChapter.id,
           editingLine.id,
@@ -639,6 +712,46 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           clientLineId,
           narrationMode: lineNarrationMode,
         };
+
+        if (typeof navigator !== 'undefined' && !navigator.onLine) {
+          offlineQueueService.enqueue({
+            type: 'CREATE_SCRIPT_LINE',
+            endpoint: `/chapters/${currentChapter.id}/scenes/${selectedScene.id}/script-lines`,
+            method: 'POST',
+            payload: req,
+            clientRefId: clientLineId,
+          });
+          setSelectedScene((prev) => {
+            if (!prev) return null;
+            const newLine: SceneScriptLineSummaryDto = {
+              id: clientLineId,
+              lineOrder: lineOrderInput,
+              dialogueText: lineDialogue.trim() || null,
+              stageDirection: lineStageDirection.trim() || null,
+              speakerCharacterId: lineSpeakerId || null,
+              bibleEntryIds: lineBibleEntryIds,
+              narrationMode: lineNarrationMode || undefined,
+            };
+            return {
+              ...prev,
+              scriptLines: [...(prev.scriptLines || []), newLine],
+            };
+          });
+          setScenes((prevScenes) =>
+            prevScenes.map((s) =>
+              s.id === selectedScene.id
+                ? { ...s, scriptLinesCount: (s.scriptLinesCount || 0) + 1 }
+                : s,
+            ),
+          );
+          notify(
+            'Đã lưu ngoại tuyến (NFR-09)',
+            `Dòng kịch bản mới #${lineOrderInput} đã được lưu vào hàng đợi trên thiết bị và sẽ tự đồng bộ khi có kết nối mạng.`,
+          );
+          setLineModalOpen(false);
+          return;
+        }
+
         const res = await scriptLineService.createScriptLine(
           currentChapter.id,
           selectedScene.id,
@@ -660,6 +773,9 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           err.message ||
           'Xung đột phiên bản: Kịch bản đã được chỉnh sửa ở tab/thiết bị khác. Đang nạp lại dữ liệu mới nhất...';
         setConcurrencyError(msg);
+        setConflictEntityId(editingLine?.id || selectedScene.id);
+        setConflictErrorMsg(msg);
+        setConflictModalOpen(true);
         notify('Xung đột phiên bản (409 CONFLICT)', msg);
         await refreshChapterDetail(currentChapter.id);
         await loadSceneDetail(selectedScene.id);
@@ -675,6 +791,37 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     if (!currentChapter?.id || !selectedScene?.id) return;
     if (!confirm(`Bạn có chắc muốn xoá dòng kịch bản #${line.lineOrder}?`)) return;
 
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      offlineQueueService.enqueue({
+        type: 'DELETE_SCRIPT_LINE',
+        endpoint: `/chapters/${currentChapter.id}/script-lines/${line.id}`,
+        method: 'DELETE',
+        payload: {
+          expectedChapterVersion: currentChapter.versionVector,
+        },
+        clientRefId: line.id,
+      });
+      setSelectedScene((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          scriptLines: prev.scriptLines.filter((l) => l.id !== line.id),
+        };
+      });
+      setScenes((prevScenes) =>
+        prevScenes.map((s) =>
+          s.id === selectedScene.id
+            ? { ...s, scriptLinesCount: Math.max(0, (s.scriptLinesCount || 1) - 1) }
+            : s,
+        ),
+      );
+      notify(
+        'Đã xoá ngoại tuyến (NFR-09)',
+        `Dòng #${line.lineOrder} đã được đánh dấu xoá và sẽ đồng bộ khi có kết nối mạng.`,
+      );
+      return;
+    }
+
     try {
       const res = await scriptLineService.deleteScriptLine(
         currentChapter.id,
@@ -688,6 +835,9 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       if (err.code === 'CONFLICT' || err.status === 409) {
         const msg = err.message || 'Xung đột phiên bản khi xoá dòng kịch bản.';
         setConcurrencyError(msg);
+        setConflictEntityId(line.id);
+        setConflictErrorMsg(msg);
+        setConflictModalOpen(true);
         notify('Xung đột phiên bản', msg);
         await refreshChapterDetail(currentChapter.id);
         await loadSceneDetail(selectedScene.id);
@@ -828,28 +978,32 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             </div>
             <div>
               <div className='flex items-center gap-1.5'>
-                <span className='px-1.5 py-0.2 rounded bg-orange-600 text-white font-mono text-[9px] font-bold uppercase tracking-wider'>
+                <span className='px-2 py-0.5 rounded-full bg-orange-600 text-white font-mono text-xs font-bold uppercase tracking-wider'>
                   Kịch bản
                 </span>
                 {currentChapter && (
                   <span
-                    className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                    className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border ${
                       currentChapter.status === 'Approved'
-                        ? 'bg-emerald-100 text-emerald-800'
+                        ? 'badge-status-approved'
                         : currentChapter.status === 'Published'
-                          ? 'bg-indigo-100 text-indigo-800'
-                          : 'bg-amber-100 text-amber-800'
+                          ? 'badge-status-published'
+                          : currentChapter.status === 'Locked'
+                            ? 'badge-status-locked'
+                            : 'badge-status-inproduction'
                     }`}
                   >
                     {currentChapter.status === 'Approved'
                       ? 'Đã duyệt'
                       : currentChapter.status === 'Published'
                         ? 'Đã phát hành'
-                        : 'Đang sản xuất'}
+                        : currentChapter.status === 'Locked'
+                          ? 'Đã khóa'
+                          : 'Đang sản xuất'}
                   </span>
                 )}
                 {currentChapter && (
-                  <span className='text-[10px] font-mono text-zinc-500 bg-zinc-100 px-1.5 py-0.5 rounded'>
+                  <span className='text-xs font-mono font-semibold text-zinc-600 bg-zinc-100 px-2 py-0.5 rounded-md'>
                     v{currentChapter.versionVector}
                   </span>
                 )}
@@ -862,8 +1016,8 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
           {/* Bộ chọn chương không lặp "Chương 1: Chương 1" */}
           {chapters.length > 0 && (
-            <div className='flex items-center gap-1.5 bg-[#F8F6F0] px-2.5 py-1 rounded-xl border border-[#E7E2D9] shadow-2xs'>
-              <BookOpen className='w-3.5 h-3.5 text-orange-600 shrink-0' />
+            <div className='flex items-center gap-1.5 bg-[#F8F6F0] px-3 py-1.5 rounded-xl border border-[#E7E2D9] shadow-2xs'>
+              <BookOpen className='w-4 h-4 text-orange-600 shrink-0' />
               <label
                 htmlFor='script-chapter-select'
                 className='text-xs font-semibold text-zinc-600'
@@ -888,18 +1042,18 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           {/* Trạng thái lưu dữ liệu */}
           <div className='hidden lg:flex items-center text-xs'>
             {savingStoryArc || savingOutline || submitting ? (
-              <span className='flex items-center gap-1.5 text-[11px] font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-lg'>
-                <RefreshCw className='w-3 h-3 animate-spin' />
+              <span className='flex items-center gap-1.5 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg'>
+                <RefreshCw className='w-3.5 h-3.5 animate-spin' />
                 <span>Đang lưu...</span>
               </span>
             ) : hasUnsavedChanges ? (
-              <span className='flex items-center gap-1.5 text-[11px] font-semibold text-amber-800 bg-amber-50 border border-amber-300 px-2 py-0.5 rounded-lg'>
+              <span className='flex items-center gap-1.5 text-xs font-semibold text-amber-800 bg-amber-50 border border-amber-300 px-2.5 py-1 rounded-lg'>
                 <span className='w-2 h-2 rounded-full bg-amber-500 animate-pulse' />
                 <span>Chưa lưu thay đổi</span>
               </span>
             ) : (
-              <span className='flex items-center gap-1 text-[11px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg'>
-                <Check className='w-3 h-3 text-emerald-600' />
+              <span className='flex items-center gap-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg'>
+                <Check className='w-3.5 h-3.5 text-emerald-600' />
                 <span>Đã lưu</span>
               </span>
             )}
@@ -926,7 +1080,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             <span className='hidden sm:inline'>Đề cương & Bối cảnh</span>
             <span className='sm:hidden'>Đề cương</span>
             {outlineWordCount > 0 && (
-              <span className='text-[10px] font-mono font-bold bg-white px-1.5 py-0.2 rounded-md border border-zinc-200 text-zinc-600'>
+              <span className='text-xs font-mono font-bold bg-white px-2 py-0.5 rounded-md border border-zinc-200 text-zinc-600'>
                 {outlineWordCount} từ
               </span>
             )}
@@ -941,26 +1095,26 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             data-testid='run-consistency-check-btn'
             onClick={handleRunConsistencyCheck}
             disabled={loadingConsistency || !currentChapter?.id}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer shadow-2xs disabled:opacity-50 ${
+            className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-full border transition-all cursor-pointer shadow-soft-sm disabled:opacity-50 ${
               activeSideDrawer === 'consistency'
-                ? 'bg-amber-100 text-amber-950 border-amber-300 font-bold'
-                : 'text-orange-800 bg-orange-50 hover:bg-orange-100 border-orange-200'
+                ? 'bg-[#7c3aed] text-white border-transparent shadow-glow-violet font-bold'
+                : 'text-violet-900 bg-violet-50 hover:bg-violet-100 border-violet-200'
             }`}
             title={`Kiểm tra nhất quán (${openFindingsCount} cần xử lý / ${totalFindingsCount} tổng số)`}
           >
             <ShieldCheck
-              className={`w-3.5 h-3.5 text-orange-600 ${loadingConsistency ? 'animate-spin' : ''}`}
+              className={`w-3.5 h-3.5 ${activeSideDrawer === 'consistency' ? 'text-white' : 'text-violet-600'} ${loadingConsistency ? 'animate-spin' : ''}`}
             />
             <span className='hidden sm:inline'>
               {loadingConsistency ? 'Đang kiểm tra...' : 'Kiểm tra nhất quán'}
             </span>
             <span className='sm:hidden'>Nhất quán</span>
             {openFindingsCount > 0 ? (
-              <span className='px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[10px] font-mono font-bold'>
+              <span className='px-2 py-0.5 rounded-full bg-rose-500 text-white text-xs font-mono font-bold shadow-xs'>
                 {openFindingsCount}
               </span>
             ) : totalFindingsCount > 0 ? (
-              <span className='px-1.5 py-0.2 rounded-full bg-zinc-200 text-zinc-700 text-[10px] font-mono font-bold'>
+              <span className='px-2 py-0.5 rounded-full bg-zinc-200 text-zinc-700 text-xs font-mono font-bold'>
                 {totalFindingsCount}
               </span>
             ) : null}
@@ -972,14 +1126,16 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             onClick={() =>
               setActiveSideDrawer((prev) => (prev === 'characters' ? null : 'characters'))
             }
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer shadow-2xs ${
+            className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-full border transition-all cursor-pointer shadow-soft-sm ${
               activeSideDrawer === 'characters'
-                ? 'bg-purple-100 text-purple-900 border-purple-300 font-bold'
-                : 'bg-[#F8F6F0] text-zinc-700 hover:bg-[#EAE6DF] border-[#E7E2D9]'
+                ? 'bg-purple-700 text-white border-transparent font-bold'
+                : 'bg-purple-50 text-purple-900 hover:bg-purple-100 border-purple-200'
             }`}
             title='Xem danh sách nhân vật Canon từ Series Bible'
           >
-            <User className='w-3.5 h-3.5 text-purple-600' />
+            <User
+              className={`w-3.5 h-3.5 ${activeSideDrawer === 'characters' ? 'text-white' : 'text-purple-600'}`}
+            />
             <span className='hidden sm:inline'>Nhân vật Bible ({characters.length})</span>
             <span className='sm:hidden'>Bible</span>
           </button>
@@ -1005,17 +1161,20 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         </div>
       </header>
 
+      {/* NFR-09: Thanh trạng thái kết nối & hàng đợi ngoại tuyến */}
+      <OfflineStatusBanner className='px-4 py-2 border-b border-[#E7E2D9]' />
+
       {/* 2. Thanh thông báo ngắn gọn gom thông báo chỉ đọc & xung đột */}
       {(concurrencyError || isChapterLocked || !canEditScript || loadError) && (
-        <div className='px-4 py-2 bg-white border-b border-[#E7E2D9] shrink-0 text-xs space-y-1.5'>
+        <div className='px-4 py-2.5 bg-white border-b border-[#E7E2D9] shrink-0 text-xs space-y-2'>
           {concurrencyError && (
             <div
               data-testid='concurrency-error-banner'
-              className='p-2 bg-rose-50 border border-rose-200 rounded-xl flex items-center justify-between text-rose-800'
+              className='p-2.5 bg-rose-50 border border-rose-200 rounded-xl flex items-center justify-between text-rose-800'
             >
               <div className='flex items-center gap-2'>
                 <AlertTriangle className='w-4 h-4 text-rose-600 shrink-0' />
-                <span>{concurrencyError}</span>
+                <span className='text-xs font-medium'>{concurrencyError}</span>
               </div>
               <button
                 type='button'
@@ -1028,10 +1187,10 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           )}
 
           {loadError && (
-            <div className='p-2 bg-rose-50 border border-rose-200 rounded-xl flex items-center justify-between text-rose-800'>
+            <div className='p-2.5 bg-rose-50 border border-rose-200 rounded-xl flex items-center justify-between text-rose-800'>
               <div className='flex items-center gap-2'>
                 <AlertTriangle className='w-4 h-4 text-rose-600 shrink-0' />
-                <span>{loadError}</span>
+                <span className='text-xs font-medium'>{loadError}</span>
               </div>
               <button
                 type='button'
@@ -1048,16 +1207,16 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           {isChapterLocked && (
             <div
               data-testid='chapter-locked-banner'
-              className='p-2 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between gap-2 text-amber-900'
+              className='p-2.5 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between gap-2 text-amber-900'
             >
               <div className='flex items-center gap-2'>
                 <ShieldAlert className='w-4 h-4 text-amber-600 shrink-0' />
-                <span>
+                <span className='text-xs font-medium'>
                   Chương này đã ở trạng thái <strong>{currentChapter?.status}</strong> — Kịch bản ở
                   chế độ chỉ đọc để bảo vệ tính toàn vẹn sản xuất.
                 </span>
               </div>
-              <span className='text-[10px] font-bold uppercase tracking-wider bg-amber-200/80 text-amber-900 px-2 py-0.5 rounded'>
+              <span className='text-xs font-bold uppercase tracking-wider bg-amber-200/90 text-amber-900 px-2.5 py-0.5 rounded-full shrink-0'>
                 Chỉ đọc
               </span>
             </div>
@@ -1066,17 +1225,17 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           {!canEditScript && !isChapterLocked && (
             <div
               data-testid='role-view-only-banner'
-              className='p-2 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between gap-2 text-blue-900'
+              className='p-2.5 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between gap-2 text-blue-900'
             >
               <div className='flex items-center gap-2'>
                 <Info className='w-4 h-4 text-blue-600 shrink-0' />
-                <span>
+                <span className='text-xs font-medium'>
                   Chế độ xem: Bạn đang xem kịch bản với quyền tham khảo. Chỉ vai trò{' '}
                   <strong>Producer</strong> hoặc <strong>Writer</strong> mới có quyền tạo và chỉnh
                   sửa kịch bản.
                 </span>
               </div>
-              <span className='text-[10px] font-bold uppercase tracking-wider bg-blue-200/80 text-blue-900 px-2 py-0.5 rounded'>
+              <span className='text-xs font-bold uppercase tracking-wider bg-blue-200/90 text-blue-900 px-2.5 py-0.5 rounded-full shrink-0'>
                 Tham khảo
               </span>
             </div>
@@ -1187,7 +1346,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                           >
                             Cảnh {s.sceneNumber}
                           </span>
-                          <span className='font-mono text-[10px] text-zinc-500 bg-zinc-100 px-1.5 py-0.2 rounded-full'>
+                          <span className='font-mono text-xs text-zinc-600 bg-zinc-100 px-2 py-0.5 rounded-md'>
                             {s.scriptLinesCount} dòng
                           </span>
                         </div>
@@ -1195,9 +1354,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                           {s.heading || 'Chưa đặt tiêu đề'}
                         </div>
                         {s.summary && (
-                          <p className='text-[10px] text-zinc-500 line-clamp-1 mt-0.5'>
-                            {s.summary}
-                          </p>
+                          <p className='text-xs text-zinc-500 line-clamp-1 mt-0.5'>{s.summary}</p>
                         )}
                       </div>
                     );
@@ -1238,15 +1395,15 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               <div className='shrink-0 bg-white border-b border-[#E5DFD7] px-6 py-3.5 flex flex-wrap items-center justify-between gap-3 shadow-2xs'>
                 <div className='min-w-0 flex-1'>
                   <div className='flex items-center gap-2 flex-wrap'>
-                    <span className='px-2 py-0.5 rounded-md bg-zinc-900 text-white font-mono text-[10px] font-bold tracking-wider'>
+                    <span className='px-2.5 py-0.5 rounded-md bg-zinc-900 text-white font-mono text-xs font-bold tracking-wider'>
                       CẢNH {selectedScene.sceneNumber}
                     </span>
-                    <span className='text-[11px] font-mono text-zinc-400'>
+                    <span className='text-xs font-mono text-zinc-500'>
                       ID: {selectedScene.id.substring(0, 8)}...
                     </span>
                     {selectedScene.defaultNarrationMode &&
                       selectedScene.defaultNarrationMode !== 'Present' && (
-                        <span className='text-[10px] font-medium text-purple-700 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-full'>
+                        <span className='text-xs font-medium text-purple-700 bg-purple-50 border border-purple-200 px-2.5 py-0.5 rounded-full'>
                           Mặc định: {selectedScene.defaultNarrationMode}
                         </span>
                       )}
@@ -1288,7 +1445,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                     type='button'
                     data-testid='open-script-history-btn'
                     onClick={() => setHistoryOpen(true)}
-                    className='inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-zinc-700 bg-white hover:bg-zinc-100 border border-[#E5DFD7] rounded-xl transition-all cursor-pointer shadow-2xs'
+                    className='inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-zinc-700 bg-white hover:bg-zinc-100 border border-[#E5DFD7] rounded-full transition-all cursor-pointer shadow-soft-sm'
                   >
                     <History className='w-3.5 h-3.5 text-zinc-500' />
                     <span className='hidden sm:inline'>Lịch sử phiên bản</span>
@@ -1299,9 +1456,9 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                       type='button'
                       data-testid='open-ai-draft-btn'
                       onClick={() => setAiPanelOpen(true)}
-                      className='inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-orange-700 bg-orange-50 hover:bg-orange-100 border border-orange-200 rounded-xl transition-all cursor-pointer shadow-2xs'
+                      className='inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-violet-800 bg-violet-50 hover:bg-violet-100 border border-violet-200 rounded-full transition-all cursor-pointer shadow-soft-sm'
                     >
-                      <Sparkles className='w-3.5 h-3.5 text-orange-600' />
+                      <Sparkles className='w-3.5 h-3.5 text-violet-600' />
                       <span className='hidden sm:inline'>Viết nháp bằng AI</span>
                     </button>
                   )}
@@ -1311,7 +1468,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                       type='button'
                       data-testid='open-add-line-btn'
                       onClick={handleOpenAddLine}
-                      className='inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-white bg-orange-600 hover:bg-orange-700 active:scale-95 rounded-xl shadow-xs transition-all cursor-pointer'
+                      className='btn-cta-primary'
                     >
                       <Plus className='w-4 h-4' />
                       <span>Thêm Dòng Kịch Bản</span>
@@ -1590,7 +1747,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                     Người kể không đáng tin (Unreliable Narrator)
                   </option>
                 </select>
-                <p className='text-[10px] text-zinc-400 mt-1'>
+                <p className='text-xs text-zinc-500 mt-1'>
                   Các dòng kịch bản mới thêm vào phân cảnh này sẽ tự động kế thừa chế độ kể chuyện
                   tương ứng.
                 </p>
@@ -1628,7 +1785,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                     ? `Sửa Dòng Kịch Bản #${editingLine.lineOrder}`
                     : 'Thêm Dòng Kịch Bản Mới (UC-06)'}
                 </h3>
-                <p className='text-[11px] text-zinc-500'>
+                <p className='text-xs text-zinc-500'>
                   Phiên bản chương hiện tại: <strong>v{currentChapter?.versionVector}</strong>
                 </p>
               </div>
@@ -1660,7 +1817,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                     </option>
                   ))}
                 </select>
-                <p className='text-[10px] text-zinc-400 mt-1'>
+                <p className='text-xs text-zinc-500 mt-1'>
                   * Nhân vật được lấy từ Series Bible. Gắn đúng nhân vật giúp Letterer sinh balloon
                   tương ứng.
                 </p>
@@ -1705,13 +1862,13 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                     <BookOpen className='w-3.5 h-3.5 text-purple-600' />
                     <span>Liên kết Series Bible (Địa điểm, Đạo cụ, Nhân vật, Thuật ngữ...)</span>
                   </div>
-                  <span className='text-[10px] text-zinc-400 font-normal'>
+                  <span className='text-xs text-zinc-500 font-normal'>
                     Đã chọn {lineBibleEntryIds.length}/20 mục
                   </span>
                 </label>
                 <div className='max-h-28 overflow-y-auto border border-[#E7E7E7] rounded-xl p-2.5 bg-zinc-50/50 custom-scrollbar'>
                   {allBibleEntries.length === 0 ? (
-                    <p className='text-[11px] text-zinc-400 italic'>
+                    <p className='text-xs text-zinc-400 italic'>
                       Series Bible chưa có mục nào hoặc đang tải.
                     </p>
                   ) : (
@@ -1731,7 +1888,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                                     : prev,
                               );
                             }}
-                            className={`inline-flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full border transition-all cursor-pointer ${
+                            className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border transition-all cursor-pointer ${
                               isChecked
                                 ? 'bg-purple-100 border-purple-300 text-purple-800 font-semibold shadow-2xs'
                                 : 'bg-white border-zinc-200 text-zinc-600 hover:border-purple-200 hover:bg-purple-50/30'
@@ -1739,9 +1896,9 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                           >
                             <span>{entry.name}</span>
                             {isChecked ? (
-                              <CheckCircle2 className='w-3 h-3 text-purple-700' />
+                              <CheckCircle2 className='w-3.5 h-3.5 text-purple-700' />
                             ) : (
-                              <Plus className='w-3 h-3 text-zinc-400' />
+                              <Plus className='w-3.5 h-3.5 text-zinc-400' />
                             )}
                           </button>
                         );
@@ -1758,7 +1915,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                     <Compass className='w-3.5 h-3.5 text-purple-600' />
                     <span>Ngoại lệ trần thuật (Narration Mode)</span>
                   </div>
-                  <span className='text-[10px] text-zinc-400 font-normal'>Bỏ qua báo sai</span>
+                  <span className='text-xs text-zinc-500 font-normal'>Bỏ qua báo sai</span>
                 </label>
                 <select
                   data-testid='line-narration-mode-select'
@@ -1786,7 +1943,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                     Người kể không đáng tin (Hạ cảnh báo xuống Warning)
                   </option>
                 </select>
-                <p className='text-[10px] text-zinc-400 mt-1'>
+                <p className='text-xs text-zinc-500 mt-1'>
                   * Chọn ngoại lệ có chủ ý để hệ thống Kiểm tra Nhất quán không báo lỗi sai (False
                   Positives).
                 </p>
@@ -1805,7 +1962,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                     onChange={(e) => setLineOrderInput(parseInt(e.target.value, 10) || 1)}
                     className='w-32 px-3 py-1.5 text-xs border border-[#E7E7E7] rounded-xl outline-none focus:border-orange-500'
                   />
-                  <span className='text-[10px] text-zinc-400 ml-2'>
+                  <span className='text-xs text-zinc-500 ml-2'>
                     Trùng số sẽ tự động chèn và dịch các dòng sau xuống.
                   </span>
                 </div>
@@ -1832,6 +1989,22 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           </div>
         </div>
       )}
+
+      {/* Concurrency Conflict Modal (BR-11 / NFR-09) */}
+      <ElementConflictModal
+        isOpen={conflictModalOpen}
+        title='Xung Đột Phiên Bản Kịch Bản (BR-11)'
+        subtitle='Optimistic Concurrency Control — SCRIPT_VERSION_CONFLICT'
+        entityType='Dòng kịch bản / Phân cảnh'
+        elementId={conflictEntityId}
+        errorMessage={conflictErrorMsg}
+        onReload={async () => {
+          if (currentChapter?.id) await refreshChapterDetail(currentChapter.id);
+          if (selectedScene?.id) await loadSceneDetail(selectedScene.id);
+          setConcurrencyError(null);
+        }}
+        onClose={() => setConflictModalOpen(false)}
+      />
     </div>
   );
 };

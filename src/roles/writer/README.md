@@ -12,10 +12,8 @@ Biên kịch (Writer) chịu trách nhiệm sáng tác kịch bản truyện tra
 ## 3. Thành phần (Components)
 - `ScriptEditor.tsx`: Trình soạn thảo kịch bản tích hợp trong Task Editor đa vai trò.
 - `components/script/`:
-  - `ScriptBlockEditor.tsx`: Danh sách khối kịch bản có hỗ trợ kéo thả và thêm mới.
-  - `ScriptBlockItem.tsx`: Biên tập chi tiết từng khối kịch bản (loại khối, nhân vật, nội dung, AI prompt và Bible link).
-  - `ScriptOutline.tsx`: Cây cấu trúc đề cương phân cảnh / khối kịch bản.
-  - `SpeakerAutocomplete.tsx`: Gợi ý tự động tên nhân vật từ danh mục Bible.
-  - `BibleLinkPopover.tsx`: Popover xem nhanh và gán liên kết thực thể Bible vào câu thoại/hành động.
-  - `AIBreakdownDiff.tsx`: Xem và đối chiếu so sánh kết quả phân rã kịch bản từ AI.
-  - `VersionCompareView.tsx`: So sánh đối chiếu kịch bản giữa các bản sửa đổi (diff revisions).
+  - `ScriptLineItem.tsx`: Biên tập chi tiết từng dòng kịch bản (Speaker, loại thoại, nội dung, ghi chú âm thanh/hành động).
+  - `BibleCharactersDrawer.tsx`: Drawer tra cứu và gán nhanh nhân vật/thực thể Bible vào dòng kịch bản.
+  - `ConsistencyFindingsDrawer.tsx`: Drawer hiển thị kết quả kiểm tra nhất quán kịch bản và cuộn tới dòng thoại tương ứng.
+  - `NarrativeContextDrawer.tsx`: Drawer xem mạch truyện (Story Arc) và đề cương chương (Outline).
+  - `ScriptHistoryModal.tsx`: Hộp thoại lịch sử phiên bản kịch bản phân cảnh, so sánh đối chiếu diff và khôi phục revision (UC-18, UC-13).

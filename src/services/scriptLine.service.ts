@@ -16,6 +16,8 @@ export interface SceneDto {
   scriptLinesCount: number;
   pagesCount: number;
   defaultNarrationMode?: NarrationMode;
+  /** BR-11 / CF4 4.2: gửi lại làm expectedVersion khi sửa scene (thiếu ở BE cũ). */
+  version?: number;
 }
 
 export interface SceneScriptLineSummaryDto {
@@ -40,6 +42,8 @@ export interface SceneDetailDto {
   createdBy?: string | null;
   scriptLines: SceneScriptLineSummaryDto[];
   defaultNarrationMode?: NarrationMode;
+  /** BR-11 / CF4 4.2: gửi lại làm expectedVersion khi sửa scene. */
+  version?: number;
 }
 
 export interface ScriptLineDto {
@@ -68,6 +72,8 @@ export interface UpdateSceneRequest {
   heading?: string | null;
   summary?: string | null;
   defaultNarrationMode?: NarrationMode | null;
+  /** Version scene lúc mở form (BR-11). Lệch → 409 CONFLICT. */
+  expectedVersion?: number;
 }
 
 export interface ReorderSceneItem {

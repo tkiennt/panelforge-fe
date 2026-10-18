@@ -76,6 +76,19 @@ describe('splitPanelWithRollback', () => {
     });
   });
 
+  it('BR-11: PUT đầu gửi version khung đã thấy; hoàn tác gửi version vừa nhận', async () => {
+    const updateCoordinates = vi.fn().mockResolvedValue({ id: 'p1', version: 6 });
+    const createPanel = vi.fn().mockRejectedValue(new Error('lỗi tạo'));
+    await expect(
+      splitPanelWithRollback(
+        { updateCoordinates, createPanel },
+        { ...args, panel: { ...panel, version: 5 } },
+      ),
+    ).rejects.toThrow('lỗi tạo');
+    expect(updateCoordinates.mock.calls[0][1]).toMatchObject({ expectedVersion: 5 });
+    expect(updateCoordinates.mock.calls[1][1]).toMatchObject({ expectedVersion: 6 });
+  });
+
   it('PUT đầu lỗi thì không tạo khung mới', async () => {
     const updateCoordinates = vi.fn().mockRejectedValue(new Error('409'));
     const createPanel = vi.fn();

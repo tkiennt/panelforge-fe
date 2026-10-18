@@ -41,6 +41,8 @@ import type {
 import { assignmentService } from '@/services/assignment.service';
 import { artworkService, resolveArtworkUrl } from '@/services/artwork.service';
 import { panelService } from '@/services/panel.service';
+import { elementService } from '@/services/element.service';
+import { pipelineService } from '@/services/pipeline.service';
 import { workspaceService, type WorkspaceMemberDto } from '@/services/workspace.service';
 import { seriesService } from '@/services/series.service';
 import { authService } from '@/services/auth.service';
@@ -51,9 +53,11 @@ import {
   resolvePageId,
 } from '@/shared/features/collaboration/collaborationRules';
 import { parseBoundingBox } from '@/shared/utils/panelBoundingBox';
+import { loadPreviousStageArtworks } from '@/shared/utils/stageArtworks';
 import { buildPageComposite, type CompositePanel } from '@/shared/utils/compositePageRenderer';
 import { needsArtworkLink, parseLinkExpiry } from '@/shared/utils/artworkLinks';
 import { PreviewLinksModal } from '@/shared/modals/PreviewLinksModal';
+import { ChapterReviewView } from './ChapterReviewView';
 
 interface ReviewViewProps {
   currentUserId?: string | null;
@@ -126,6 +130,57 @@ async function buildCompositeSubmissionArtwork(
   };
 
   return { artwork: compositeArt, dataUrl };
+}
+
+/**
+ * Việc Letter không nộp artwork: chữ nằm trong canvas (event stream của Page). Dựng trang để duyệt = ảnh của công đoạn
+ * gần nhất trước đó có ảnh (thường là Color) + lớp chữ dựng lại đúng version canvas lúc nộp (BR-01).
+ * Lần nộp cũ chưa có canvasVersions thì dùng canvas hiện tại.
+ */
+async function buildLetteringSubmissionArtwork(
+  chapterId: string,
+  submission: SubmissionDto,
+  pageId: string,
+  stageId: string,
+  baseArts: AssetReferenceDto[],
+  panels: CompositePanel[],
+): Promise<{ artwork: AssetReferenceDto; dataUrl: string } | null> {
+  const version = submission.canvasVersions?.[pageId];
+  const snapshot = await elementService.getPageSnapshot(
+    pageId,
+    false,
+    version !== undefined && version > 0 ? version : undefined,
+  );
+  const { dataUrl } = await buildPageComposite({
+    panels,
+    artworks: baseArts,
+    elements: snapshot.elements ?? [],
+    drawText: true,
+    getAccessUrl: async (assetReferenceId) => {
+      const link = await artworkService.getArtworkAccessLink(chapterId, assetReferenceId);
+      return resolveArtworkUrl(link.url);
+    },
+  });
+  if (!dataUrl) return null;
+
+  return {
+    dataUrl,
+    artwork: {
+      id: `composite-sub-${submission.id}`,
+      assetId: `composite-asset-${submission.id}`,
+      chapterId,
+      pageId,
+      pipelineStageId: stageId,
+      versionNumber: submission.attemptNumber,
+      fileName: `Trang chèn chữ (Lần nộp ${submission.attemptNumber})`,
+      contentType: 'image/png',
+      sizeBytes: 0,
+      sha256: '',
+      reused: false,
+      uploadedByUserId: submission.submittedByUserId || '',
+      createdAt: submission.submittedAt || new Date().toISOString(),
+    },
+  };
 }
 
 const parsePanelNormalizedBox = (bboxJson?: string | null): Box | null => {
@@ -498,8 +553,35 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
         const newUrls: Record<string, string> = {};
 
         const orphans: Array<{ subId: string; attempt: number; arts: AssetReferenceDto[] }> = [];
+        let letteringBase: AssetReferenceDto[] | null = null;
 
         for (const s of sortedSubs) {
+          // Việc Letter: lần nộp không có artwork nhưng có trang → ảnh công đoạn trước + lớp chữ canvas
+          if (pageId && (!s.artworkReferenceIds || s.artworkReferenceIds.length === 0)) {
+            letteringBase ??= await loadPreviousStageArtworks(
+              chapterId,
+              a.seriesId,
+              pageId,
+              a.pipelineStageId,
+            );
+            const layoutPanels: CompositePanel[] =
+              s.panelLayout && s.panelLayout.length > 0
+                ? s.panelLayout.filter((p) => p.pageId === pageId)
+                : pagePanels;
+            const lettered = await buildLetteringSubmissionArtwork(
+              chapterId,
+              s,
+              pageId,
+              a.pipelineStageId,
+              letteringBase,
+              layoutPanels,
+            ).catch(() => null);
+            if (lettered) {
+              compositeArts.push(lettered.artwork);
+              newUrls[lettered.artwork.id] = lettered.dataUrl;
+            }
+            continue;
+          }
           const hasWholePage = arts.some(
             (x) => !x.panelId && s.artworkReferenceIds?.includes(x.id),
           );
@@ -1274,6 +1356,24 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
   if (!assignment) {
     return (
       <div className='p-8 text-center text-sm text-[#737373]'>Không tìm thấy việc cần duyệt.</div>
+    );
+  }
+
+  const isChapterReview =
+    assignment.entityType === 'Chapter' &&
+    ((assignment.stageOrder ?? 0) > 1 || !assignment.stageName?.toLowerCase().includes('script'));
+
+  if (isChapterReview) {
+    return (
+      <ChapterReviewView
+        assignment={assignment}
+        chapterId={chapterId}
+        seriesId={seriesId || assignment.seriesId || ''}
+        effectiveWsId={effectiveWsId}
+        effectiveRole={effectiveRole}
+        currentUserId={effectiveUser}
+        onShowToast={onShowToast}
+      />
     );
   }
 

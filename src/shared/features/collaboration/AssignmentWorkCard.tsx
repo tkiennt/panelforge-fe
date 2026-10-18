@@ -64,19 +64,31 @@ interface AssignmentWorkCardProps {
 }
 
 const STATUS_STYLE: Record<string, { label: string; className: string }> = {
-  Assigned: { label: 'Đã giao', className: 'bg-blue-50 text-blue-700 border-blue-200' },
-  InProgress: { label: 'Đang làm', className: 'bg-amber-50 text-amber-700 border-amber-200' },
+  Assigned: { label: 'Đã giao', className: 'bg-sky-50 text-sky-800 border-sky-300 font-semibold' },
+  InProgress: {
+    label: 'Đang làm',
+    className: 'bg-amber-50 text-amber-900 border-amber-300 font-semibold',
+  },
   Submitted: {
     label: 'Đã nộp, chờ duyệt',
-    className: 'bg-purple-50 text-purple-700 border-purple-200',
+    className: 'bg-violet-50 text-violet-900 border-violet-300 font-semibold',
   },
   UnderReview: {
     label: 'Đang xét duyệt',
-    className: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+    className: 'bg-indigo-50 text-indigo-900 border-indigo-300 font-semibold',
   },
-  Approved: { label: 'Đã duyệt', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-  ReworkRequired: { label: 'Cần sửa lại', className: 'bg-red-50 text-red-700 border-red-200' },
-  Blocked: { label: 'Bị chặn', className: 'bg-zinc-100 text-zinc-600 border-zinc-200' },
+  Approved: {
+    label: 'Đã duyệt',
+    className: 'bg-emerald-50 text-emerald-900 border-emerald-300 font-semibold',
+  },
+  ReworkRequired: {
+    label: 'Cần sửa lại',
+    className: 'bg-rose-50 text-rose-900 border-rose-300 font-semibold',
+  },
+  Blocked: {
+    label: 'Bị chặn',
+    className: 'bg-stone-100 text-stone-600 border-stone-200 font-semibold',
+  },
 };
 
 /**
@@ -169,7 +181,11 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
   });
 
   const isChapterAssignment = String(assignment.entityType) === 'Chapter';
-  const showChapterOverview = isChapterAssignment && (actions.isReviewer || actions.isAssignee);
+  // Việc Script (Writer) là kịch bản chữ, không có bản vẽ: dẫn tới trang kịch bản thay cho tổng quan ảnh
+  const isScriptAssignment =
+    isChapterAssignment && String(assignment.assignedRole).toUpperCase() === 'WRITER';
+  const showChapterOverview =
+    isChapterAssignment && !isScriptAssignment && (actions.isReviewer || actions.isAssignee);
 
   const changed = (updated?: AssignmentDto) => {
     onChanged(updated);
@@ -216,60 +232,63 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
     <article
       id={`assignment-${assignment.id}`}
       data-testid={`assignment-card-${assignment.id}`}
-      className={`p-4 bg-white border rounded-xl space-y-3 shadow-2xs transition-all ${
+      className={`p-5 md:p-6 bg-white border rounded-2xl space-y-4 shadow-soft-sm transition-all ${
         status === 'ReworkRequired'
-          ? 'border-red-400 ring-2 ring-red-300/40 bg-red-50/10'
+          ? 'border-rose-300 ring-2 ring-rose-200/50 bg-rose-50/20'
           : highlighted
             ? 'border-[#F97316] ring-2 ring-[#F97316]/30'
-            : 'border-[#E7E7E7]'
+            : 'border-stone-200 hover:border-stone-300'
       }`}
     >
-      <div className='flex flex-wrap items-center justify-between gap-2'>
-        <div className='flex items-center gap-2 min-w-0'>
-          <span className='px-2 py-0.5 rounded bg-zinc-800 text-white font-mono text-xs font-bold shrink-0'>
+      <div className='flex flex-wrap items-center justify-between gap-2.5'>
+        <div className='flex items-center gap-2.5 min-w-0'>
+          <span className='px-2.5 py-1 rounded-md bg-[#292524] text-white font-mono text-xs font-bold shrink-0 shadow-2xs'>
             {String(assignment.entityType)}
           </span>
-          <span className='font-bold text-sm text-[#171717] truncate'>{stageName}</span>
+          <span className='font-bold text-base text-[#0c0a09] truncate tracking-tight'>
+            {stageName}
+          </span>
         </div>
         <span
-          className={`px-2 py-0.5 rounded border text-xs font-mono font-semibold ${style.className}`}
+          className={`px-2.5 py-1 rounded-full border text-xs font-mono font-semibold ${style.className}`}
         >
           {style.label}
         </span>
       </div>
 
-      <div className='text-xs text-[#333333] leading-relaxed bg-[#FAF8F5] p-3 rounded-lg border border-[#F0ECE1]'>
+      <div className='text-xs md:text-sm text-[#292524] leading-relaxed bg-[#FAF8F5] p-3.5 rounded-xl border border-[#F0ECE1] font-sans shadow-2xs'>
         {assignment.brief}
       </div>
 
       {status === 'ReworkRequired' && (
-        <div className='p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-800 space-y-1.5 animate-in fade-in duration-150'>
+        <div className='p-4 bg-rose-50/70 border border-rose-200 rounded-2xl text-xs text-rose-900 space-y-2 animate-in fade-in duration-150'>
           <div className='flex items-center gap-2 font-bold'>
-            <AlertOctagon className='w-4 h-4 text-red-600 shrink-0' />
+            <AlertOctagon className='w-4 h-4 text-rose-600 shrink-0' />
             <span>Yêu cầu sửa lại (Rework Required)</span>
           </div>
           {assignment.lastFeedbackComment && (
-            <p className='text-xs text-red-700 leading-relaxed font-serif bg-white/70 p-2.5 rounded-lg border border-red-200/60'>
+            <p className='text-xs md:text-sm text-rose-900 leading-relaxed font-sans bg-white/80 p-3 rounded-xl border border-rose-200/60 shadow-2xs'>
               <strong>Editor phản hồi:</strong> {assignment.lastFeedbackComment}
             </p>
           )}
           {openCrCount > 0 && (
-            <p className='text-xs font-semibold text-red-700'>
+            <p className='text-xs font-semibold text-rose-800 font-medium'>
               Có {openCrCount} yêu cầu sửa cần xử lý bên dưới trước khi nộp lại.
             </p>
           )}
         </div>
       )}
 
-      <div className='flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-mono text-[#737373]'>
-        <span className='flex items-center gap-1'>
-          <User className='w-3 h-3 text-[#F97316]' />
-          <strong>Người làm:</strong> {assigneeName}
+      <div className='flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs font-mono text-stone-500'>
+        <span className='flex items-center gap-1.5'>
+          <User className='w-3.5 h-3.5 text-[#F97316]' />
+          <strong className='text-stone-700'>Người làm:</strong> {assigneeName}
         </span>
         {assignment.dueDate && (
-          <span className='flex items-center gap-1 font-mono'>
-            <Calendar className='w-3 h-3' />
-            <strong>Hạn:</strong> {new Date(assignment.dueDate).toLocaleDateString('vi-VN')}
+          <span className='flex items-center gap-1.5 font-mono'>
+            <Calendar className='w-3.5 h-3.5 text-stone-400' />
+            <strong className='text-stone-700'>Hạn:</strong>{' '}
+            {new Date(assignment.dueDate).toLocaleDateString('vi-VN')}
           </span>
         )}
       </div>
@@ -277,15 +296,15 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
       {error && (
         <div
           role='alert'
-          className='p-2 bg-red-50 border border-red-200 text-red-700 rounded-lg text-xs flex items-center gap-1.5'
+          className='p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs flex items-center gap-2'
         >
-          <AlertTriangle className='w-3.5 h-3.5 shrink-0' />
+          <AlertTriangle className='w-4 h-4 shrink-0 text-red-500' />
           <span>{error}</span>
         </div>
       )}
 
       {(actions.canStart || actions.isAssignee) && status !== 'Approved' && (
-        <div className='flex flex-wrap items-center gap-2'>
+        <div className='flex flex-wrap items-center gap-2.5 pt-1'>
           {actions.canStart && (
             <button
               type='button'
@@ -300,19 +319,19 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
                   describeStartError,
                 )
               }
-              className='px-3 py-1.5 rounded-lg bg-[#171717] hover:bg-black text-white text-xs font-semibold flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'
+              className='btn-cta-primary'
             >
               {busy ? (
-                <Loader2 className='w-3 h-3 animate-spin' />
+                <Loader2 className='w-3.5 h-3.5 animate-spin' />
               ) : (
-                <Play className='w-3 h-3 text-[#F97316]' />
+                <Play className='w-3.5 h-3.5 text-white' />
               )}
-              {status === 'ReworkRequired' ? 'Bắt đầu sửa' : 'Bắt đầu làm'}
+              <span>{status === 'ReworkRequired' ? 'Bắt đầu sửa' : 'Bắt đầu làm'}</span>
             </button>
           )}
           {actions.canStart && startLockedReason && (
             <span
-              className='text-xs text-amber-700 flex items-center gap-1'
+              className='text-xs text-amber-700 flex items-center gap-1 font-medium'
               data-testid='start-blocked-reason'
             >
               <AlertTriangle className='w-3.5 h-3.5 shrink-0' />
@@ -328,7 +347,7 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
                   to={`../script?chapterId=${chapterId}&assignmentId=${assignment.id}`}
                   relative='path'
                   data-testid='open-writer-desk'
-                  className='px-3 py-1.5 rounded-lg border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs'
+                  className='h-9 px-3.5 py-1.5 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-800 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs'
                 >
                   <PenTool className='w-3.5 h-3.5 text-blue-600' />
                   <span>Mở Script Editor</span>
@@ -339,7 +358,7 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
                   to={`../artist?chapterId=${chapterId}&assignmentId=${assignment.id}`}
                   relative='path'
                   data-testid='open-artist-desk'
-                  className='px-3 py-1.5 rounded-lg border border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs'
+                  className='h-9 px-3.5 py-1.5 rounded-xl border border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs'
                 >
                   <Palette className='w-3.5 h-3.5 text-amber-600' />
                   <span>Mở Bàn Vẽ</span>
@@ -350,7 +369,7 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
                   to={`../letterer?chapterId=${chapterId}&assignmentId=${assignment.id}`}
                   relative='path'
                   data-testid='open-letterer-desk'
-                  className='px-3 py-1.5 rounded-lg border border-pink-200 bg-pink-50 hover:bg-pink-100 text-pink-700 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs'
+                  className='h-9 px-3.5 py-1.5 rounded-xl border border-pink-200 bg-pink-50 hover:bg-pink-100 text-pink-900 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs'
                 >
                   <Type className='w-3.5 h-3.5 text-pink-600' />
                   <span>Mở Lettering Canvas</span>
@@ -369,10 +388,10 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
                 disabled={busy || !detailsLoaded}
                 data-testid='open-submit-preview'
                 onClick={() => setPreviewOpen(true)}
-                className='px-3 py-1.5 rounded-lg border border-[#E7E7E7] bg-white hover:bg-zinc-50 text-[#171717] text-xs font-semibold flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
+                className='h-9 px-3.5 py-1.5 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 text-[#0c0a09] text-xs font-semibold inline-flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-2xs transition-colors'
               >
-                <Eye className='w-3 h-3 text-[#F97316]' />
-                Xem trước trang truyện
+                <Eye className='w-3.5 h-3.5 text-[#F97316]' />
+                <span>Xem trước trang truyện</span>
               </button>
             )}
 
@@ -384,10 +403,10 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
                 setSelectedBiblePanelId(null);
                 setBibleDrawerOpen(true);
               }}
-              className='px-3 py-1.5 rounded-lg border border-[#E7E7E7] bg-white hover:bg-zinc-50 text-[#171717] text-xs font-semibold flex items-center gap-1.5 cursor-pointer'
+              className='h-9 px-3.5 py-1.5 rounded-xl border border-orange-200 bg-orange-50 hover:bg-orange-100 text-orange-900 text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors'
             >
               <BookOpen className='w-3.5 h-3.5 text-[#F97316]' />
-              Tham chiếu Bible
+              <span>Tham chiếu Bible</span>
             </button>
           )}
 
@@ -403,10 +422,14 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
                   `${stageName}: chờ xét duyệt.`,
                 )
               }
-              className='px-3 py-1.5 rounded-lg bg-[#10B981] hover:bg-[#059669] text-white text-xs font-semibold flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
+              className='btn-cta-success'
             >
-              {busy ? <Loader2 className='w-3 h-3 animate-spin' /> : <Send className='w-3 h-3' />}
-              Nộp bài
+              {busy ? (
+                <Loader2 className='w-3.5 h-3.5 animate-spin' />
+              ) : (
+                <Send className='w-3.5 h-3.5' />
+              )}
+              <span>Nộp bài</span>
             </button>
           )}
         </div>
@@ -415,8 +438,8 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
       {status === 'InProgress' &&
         actions.isAssignee &&
         String(assignment.assignedRole).toUpperCase() === 'LETTERER' && (
-          <div className='text-xs text-zinc-600 bg-zinc-50 border border-zinc-200 p-2.5 rounded-lg flex items-start gap-1.5'>
-            <Info className='w-3.5 h-3.5 text-zinc-400 shrink-0 mt-0.5' />
+          <div className='text-xs text-stone-600 bg-stone-50 border border-stone-200 p-3 rounded-xl flex items-start gap-2 leading-relaxed'>
+            <Info className='w-3.5 h-3.5 text-stone-400 shrink-0 mt-0.5' />
             <span>
               <strong>Cổng nộp Lettering:</strong> Đảm bảo mọi dòng thoại đã neo vào panel đều có
               balloon/caption/SFX gắn dòng đó và đã xác nhận cảnh báo tràn chữ (nếu có).
@@ -426,7 +449,7 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
 
       {actions.submitBlockedReason && (
         <p
-          className='text-xs text-amber-700 flex items-start gap-1.5'
+          className='text-xs text-amber-700 flex items-start gap-1.5 font-medium'
           data-testid='submit-blocked-reason'
         >
           <AlertTriangle className='w-3.5 h-3.5 shrink-0 mt-px' />
@@ -434,12 +457,24 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
         </p>
       )}
 
-      {actions.isReviewer && !actions.isAssignee && !showChapterOverview && (
+      {isScriptAssignment && (
+        <Link
+          to={`../script?chapterId=${chapterId}`}
+          relative='path'
+          data-testid='open-chapter-script'
+          className='h-9 px-3.5 py-1.5 rounded-xl border border-orange-200 bg-orange-50 hover:bg-orange-100 text-orange-900 text-xs font-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs w-fit'
+        >
+          <ScanSearch className='w-3.5 h-3.5 text-orange-600' />
+          <span>Mở kịch bản chương</span>
+        </Link>
+      )}
+
+      {actions.isReviewer && !actions.isAssignee && !showChapterOverview && !isScriptAssignment && (
         <Link
           to={`../review/${assignment.id}?chapterId=${chapterId}`}
           relative='path'
           data-testid='open-review-board'
-          className='px-3 py-1.5 rounded-lg border border-orange-200 bg-orange-50 hover:bg-orange-100 text-orange-800 text-xs font-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs'
+          className='h-9 px-3.5 py-1.5 rounded-xl border border-orange-200 bg-orange-50 hover:bg-orange-100 text-orange-900 text-xs font-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs'
         >
           <ScanSearch className='w-3.5 h-3.5 text-orange-600' />
           <span>Mở Màn Duyệt (Review View)</span>

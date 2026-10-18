@@ -87,9 +87,9 @@ export const AdminAssignRoleModal: React.FC<AdminAssignRoleModalProps> = ({
                       </div>
                     </div>
                     <span
-                      className={`font-mono text-[10px] px-2 py-0.5 rounded font-bold uppercase shrink-0 ${
+                      className={`font-mono text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase shrink-0 ${
                         r.key === 'Producer'
-                          ? 'bg-[#F97316] text-white'
+                          ? 'bg-[#EA580C] text-white'
                           : 'bg-stone-200 text-stone-700'
                       }`}
                     >
@@ -119,7 +119,7 @@ export const AdminAssignRoleModal: React.FC<AdminAssignRoleModalProps> = ({
             <Button type='button' onClick={onClose} variant='ghost' className='text-[#555555]'>
               Hủy
             </Button>
-            <Button type='submit' isLoading={isSubmitting}>
+            <Button type='submit' variant='accent' isLoading={isSubmitting}>
               Xác Nhận Cập Nhật
             </Button>
           </div>

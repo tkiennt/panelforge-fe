@@ -22,6 +22,7 @@ interface AdminDashboardViewProps {
   onNavigateToSettings?: () => void;
   onNavigateToAudit?: () => void;
   onNavigateToSessionPolicy?: () => void;
+  onNavigateToStorage?: () => void;
 }
 
 export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
@@ -29,6 +30,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
   onNavigateToSettings,
   onNavigateToAudit,
   onNavigateToSessionPolicy,
+  onNavigateToStorage,
 }) => {
   const [stats, setStats] = useState<SystemStatsResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -241,7 +243,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
               </button>
 
               <button
-                onClick={onNavigateToSettings}
+                onClick={onNavigateToStorage || onNavigateToSettings}
                 className='p-4 rounded-xl border border-[#E7E7E7] hover:border-blue-500 hover:bg-blue-50/20 text-left transition-all group cursor-pointer'
               >
                 <div className='flex items-center justify-between'>

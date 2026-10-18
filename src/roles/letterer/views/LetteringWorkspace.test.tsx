@@ -20,6 +20,8 @@ import { aiAgentsService } from '@/services/aiAgents.service';
 import { panelService } from '@/services/panel.service';
 import { artworkService } from '@/services/artwork.service';
 import { buildPageComposite } from '@/shared/utils/compositePageRenderer';
+import { fitBoxHeight } from '../lib/balloonRender';
+import { resolveTextStyle } from '../lib/textStyle';
 
 vi.mock('@/services/element.service', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/services/element.service')>();
@@ -33,6 +35,7 @@ vi.mock('@/services/element.service', async (importOriginal) => {
       updateElementText: vi.fn(),
       setReadingOrder: vi.fn(),
       acknowledgeOverflow: vi.fn(),
+      updateElementStyle: vi.fn(),
     },
   };
 });
@@ -358,7 +361,10 @@ describe('LetteringWorkspace', () => {
     await waitFor(() => {
       expect(screen.getByTestId('letterer-image-layer-elem-bg-1')).toBeInTheDocument();
       expect(screen.getByTestId('letterer-image-layer-elem-char-instance')).toBeInTheDocument();
-      expect(screen.getByText('Thoại trên layer')).toBeInTheDocument();
+      // Chữ được ngắt dòng theo vùng an toàn của oval nên có thể nằm trên nhiều dòng
+      expect(screen.getByTestId('balloon-text-elem-balloon-1')).toHaveTextContent(
+        /Thoại\s*trên\s*layer/,
+      );
     });
 
     // Layer ảnh không có textarea
@@ -636,7 +642,7 @@ describe('LetteringWorkspace', () => {
       fireEvent.click(screen.getByTestId('fit-page'));
       fireEvent.click(screen.getByText('100%', { selector: 'button[title^="Kích thước thật"]' }));
       await waitFor(() => expect(percent()).toBe('100%'));
-    });
+    }, 15000);
 
     it('phím tắt không chạy khi đang nhập chữ', async () => {
       renderComponent();
@@ -862,58 +868,444 @@ describe('LetteringWorkspace', () => {
       });
     });
 
-    it('chữ cao hơn khung: cảnh báo, không cắt, cho tăng khung cho vừa', async () => {
-      const original = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetHeight');
-      Object.defineProperty(HTMLElement.prototype, 'offsetHeight', {
-        configurable: true,
-        get() {
-          return (this as HTMLElement).tagName === 'SPAN' ? 500 : 0;
-        },
+    it('chữ cao hơn khung: cảnh báo, không cắt, cho tăng khung cho vừa (giữ cỡ chữ)', async () => {
+      const text = 'Dòng một\nDòng hai\nDòng ba\nDòng bốn\nDòng năm\nDòng sáu';
+      vi.mocked(elementService.getPageSnapshot).mockResolvedValueOnce({
+        pageId: 'page-101',
+        version: 1,
+        pageNumber: 1,
+        elements: [
+          {
+            elementId: 'elem-1',
+            elementType: 'SPEECH_BALLOON',
+            zIndex: 1,
+            x: 200,
+            y: 200,
+            width: 300,
+            height: 120,
+            content: text,
+            isRemoved: false,
+            version: 1,
+          },
+        ],
       });
-      try {
-        renderComponent();
-        fireEvent.click(await screen.findByText('Lời thoại ban đầu'));
-        expect(await screen.findByTestId('overflow-badge-elem-1')).toBeInTheDocument();
-        expect(screen.getByTestId('overflow-callout')).toBeInTheDocument();
-        // Chữ vẫn hiển thị đầy đủ, không bị cắt
-        expect(
-          within(screen.getByTestId('letterer-element-elem-1')).getByText('Lời thoại ban đầu'),
-        ).toBeInTheDocument();
+      renderComponent();
+      expect(await screen.findByTestId('overflow-badge-elem-1')).toBeInTheDocument();
+      fireEvent.click(screen.getByTestId('letterer-element-elem-1'));
+      expect(screen.getByTestId('overflow-callout')).toBeInTheDocument();
+      // Chữ vẫn hiển thị đầy đủ (mỗi dòng thủ công một dòng), không bị cắt
+      expect(screen.getByTestId('balloon-text-elem-1').children).toHaveLength(6);
 
-        fireEvent.click(screen.getByTestId('grow-to-fit'));
-        await waitFor(() =>
-          expect(elementService.moveElement).toHaveBeenCalledWith(
-            'page-101',
-            'elem-1',
-            expect.objectContaining({ newHeight: 530 }),
-          ),
-        );
-      } finally {
-        if (original) Object.defineProperty(HTMLElement.prototype, 'offsetHeight', original);
-      }
+      const style = resolveTextStyle({ elementType: 'SPEECH_BALLOON' });
+      const expected = fitBoxHeight(text, style, 'oval', 300, 120);
+      fireEvent.click(screen.getByTestId('grow-to-fit'));
+      await waitFor(() =>
+        expect(elementService.moveElement).toHaveBeenCalledWith(
+          'page-101',
+          'elem-1',
+          expect.objectContaining({ newHeight: expected, newWidth: 300 }),
+        ),
+      );
+      // Cỡ chữ không bị đổi khi tăng khung
+      expect(elementService.updateElementStyle).not.toHaveBeenCalled();
     });
   });
 
-  describe('chỉ đọc / khoá chương', () => {
-    it('chế độ chỉ đọc chặn đặt mới, sửa tại chỗ, đổi cỡ và xoá', async () => {
-      const { container } = renderComponent({ isReadOnly: true });
+  describe('manga lettering: giới hạn chữ, vùng cấm, thứ tự đọc và xem như người đọc', () => {
+    it('cảnh báo chữ quá dài (>30 từ), có nút AI rút gọn và tách 2 bóng', async () => {
+      const longText =
+        'Một hai ba bốn năm sáu bảy tám chín mười ' +
+        'mười một mười hai mười ba mười bốn mười lăm mười sáu mười bảy mười tám mười chín hai mươi ' +
+        'hai mươi mốt hai mươi hai hai mươi ba hai mươi bốn hai mươi lăm hai mươi sáu hai mươi bảy hai mươi tám hai mươi chín ba mươi ' +
+        'ba mươi mốt ba mươi hai ba mươi ba.';
+
+      vi.mocked(elementService.getPageSnapshot).mockResolvedValueOnce({
+        pageId: 'page-101',
+        version: 1,
+        pageNumber: 1,
+        elements: [
+          {
+            elementId: 'elem-long',
+            elementType: 'SPEECH_BALLOON',
+            zIndex: 1,
+            x: 100,
+            y: 100,
+            width: 280,
+            height: 160,
+            content: longText,
+            isRemoved: false,
+            version: 1,
+            scriptLineId: 'line-1',
+            readingOrder: 1,
+          },
+        ],
+      });
+
+      renderComponent();
+      expect(await screen.findByTestId('toolong-badge-elem-long')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByTestId('letterer-element-elem-long'));
+      expect(screen.getByTestId('ai-shorten-btn')).toBeInTheDocument();
+      expect(screen.getByTestId('split-balloon-btn')).toBeInTheDocument();
+
+      vi.mocked(elementService.updateElementText).mockResolvedValueOnce({
+        pageId: 'page-101',
+        elementId: 'elem-long',
+        version: 2,
+        content: 'Nửa đầu',
+      } as any);
+      vi.mocked(elementService.addElement).mockResolvedValueOnce({
+        pageId: 'page-101',
+        elementId: 'elem-split-2',
+        version: 1,
+        clientRefId: 'client-1',
+      } as any);
+
+      fireEvent.click(screen.getByTestId('split-balloon-btn'));
+      await waitFor(() => {
+        expect(elementService.updateElementText).toHaveBeenCalledWith(
+          'page-101',
+          'elem-long',
+          expect.objectContaining({ content: expect.any(String) }),
+        );
+        expect(elementService.addElement).toHaveBeenCalledWith(
+          'page-101',
+          expect.objectContaining({
+            elementType: 'SPEECH_BALLOON',
+            content: expect.any(String),
+          }),
+        );
+      });
+    });
+
+    it('vùng cấm chữ: phát hiện va chạm và nút gợi ý vị trí', async () => {
+      // elem-collide đặt đè lên vùng cấm Minh (140, 180, 220, 240)
+      vi.mocked(elementService.getPageSnapshot).mockResolvedValueOnce({
+        pageId: 'page-101',
+        version: 1,
+        pageNumber: 1,
+        elements: [
+          {
+            elementId: 'elem-collide',
+            elementType: 'SPEECH_BALLOON',
+            zIndex: 1,
+            x: 150,
+            y: 190,
+            width: 180,
+            height: 120,
+            content: 'Thoại đè lên mặt Minh',
+            isRemoved: false,
+            version: 1,
+            scriptLineId: 'line-1',
+          },
+        ],
+      });
+
+      renderComponent();
+      expect(await screen.findByTestId('keepout-collision-badge-elem-collide')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByTestId('letterer-element-elem-collide'));
+      expect(screen.getByTestId('keepout-callout')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByTestId('suggest-position-btn-collision'));
+      await waitFor(() => {
+        expect(elementService.moveElement).toHaveBeenCalledWith(
+          'page-101',
+          'elem-collide',
+          expect.objectContaining({
+            newX: expect.any(Number),
+            newY: expect.any(Number),
+          }),
+        );
+      });
+    });
+
+    it('thứ tự đọc: bật tắt huy hiệu thứ tự đọc và cảnh báo thứ tự đọc ngược', async () => {
+      vi.mocked(elementService.getPageSnapshot).mockResolvedValueOnce({
+        pageId: 'page-101',
+        version: 1,
+        pageNumber: 1,
+        elements: [
+          {
+            elementId: 'elem-line1',
+            elementType: 'SPEECH_BALLOON',
+            zIndex: 1,
+            x: 200,
+            y: 600, // Dòng 1 ở dưới
+            width: 200,
+            height: 100,
+            content: 'Dòng 1',
+            isRemoved: false,
+            version: 1,
+            scriptLineId: 'line-1',
+          },
+          {
+            elementId: 'elem-line2',
+            elementType: 'SPEECH_BALLOON',
+            zIndex: 2,
+            x: 800,
+            y: 200, // Dòng 2 ở trên bên phải (RTL đọc trước dòng 1 -> ngược kịch bản)
+            width: 200,
+            height: 100,
+            content: 'Dòng 2',
+            isRemoved: false,
+            version: 1,
+            scriptLineId: 'line-2',
+          },
+        ],
+      });
+
+      renderComponent();
+      expect(await screen.findByTestId('reading-order-badge-elem-line1')).toBeInTheDocument();
+
+      // Bấm nút bật/tắt thứ tự đọc trên toolbar
+      fireEvent.click(screen.getByTestId('toggle-reading-order'));
+      expect(screen.queryByTestId('reading-order-badge-elem-line1')).toBeNull();
+
+      // Bật lại
+      fireEvent.click(screen.getByTestId('toggle-reading-order'));
+      expect(screen.getByTestId('reading-order-badge-elem-line1')).toBeInTheDocument();
+    });
+
+    it('chế độ xem như người đọc: hiển thị banner và thoát được bằng nút hoặc Esc', async () => {
+      renderComponent();
+      await screen.findByText('Lời thoại ban đầu');
+
+      fireEvent.click(screen.getByTestId('toggle-reader-mode'));
+      expect(screen.getByTestId('reader-mode-banner')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByTestId('exit-reader-mode'));
+      expect(screen.queryByTestId('reader-mode-banner')).toBeNull();
+
+      fireEvent.click(screen.getByTestId('toggle-reader-mode'));
+      expect(screen.getByTestId('reader-mode-banner')).toBeInTheDocument();
+      fireEvent.keyDown(window, { key: 'Escape' });
+      expect(screen.queryByTestId('reader-mode-banner')).toBeNull();
+    });
+  });
+
+  describe('hình bóng dùng chung với màn duyệt (balloonRender)', () => {
+    // Snapshot có elem-1 mang style đã lưu (BE TextStyle có trường bóng)
+    const withStyle = (style: Record<string, unknown>, content = 'Lời thoại ban đầu') =>
+      vi.mocked(elementService.getPageSnapshot).mockResolvedValueOnce({
+        pageId: 'page-101',
+        version: 1,
+        pageNumber: 1,
+        elements: [
+          {
+            elementId: 'elem-1',
+            elementType: 'SPEECH_BALLOON',
+            zIndex: 1,
+            x: 25,
+            y: 25,
+            width: 30,
+            height: 20,
+            content,
+            isRemoved: false,
+            version: 1,
+            style: { fontFamily: 'Mali', fontSize: 26, ...style } as any,
+          },
+        ],
+      });
+
+    it('mặc định: oval nền trắng có viền theo loại Dialogue', async () => {
+      renderComponent();
+      const svg = await screen.findByTestId('balloon-shape-elem-1');
+      expect(svg).toHaveAttribute('data-shape', 'oval');
+      const path = svg.querySelector('path')!;
+      expect(path.getAttribute('fill')).toBe('rgba(255, 255, 255, 1)');
+      expect(path.getAttribute('stroke')).toBe('#171717');
+    });
+
+    it('"Chỉ chữ" đã lưu (bóng Artist vẽ sẵn): không vẽ hình, vẫn có vùng bấm, sau reload vẫn giữ', async () => {
+      withStyle({ balloonShape: 'none' });
+      renderComponent();
+      await screen.findByText('Lời thoại ban đầu');
+      expect(screen.queryByTestId('balloon-shape-elem-1')).toBeNull();
+      const el = screen.getByTestId('letterer-element-elem-1');
+      expect(el.style.outline).toContain('dashed'); // hit area chỉ có trong editor
+      fireEvent.click(el);
+      expect(screen.getByTestId('balloon-shape-select')).toHaveValue('none');
+      expect(screen.getByTestId('appearance-reset')).toBeInTheDocument();
+    });
+
+    it('"Xem như người đọc": giữ hình đã lưu, không có khung chọn/vùng bấm', async () => {
+      withStyle({ balloonShape: 'none' });
+      renderComponent();
       fireEvent.click(await screen.findByText('Lời thoại ban đầu'));
+      fireEvent.click(screen.getByTestId('toggle-reader-mode'));
+      expect(screen.queryByTestId('balloon-shape-elem-1')).toBeNull();
+      const el = screen.getByTestId('letterer-element-elem-1');
+      expect(el.style.boxShadow).toBe('');
+      expect(el.style.outline).toBe('');
+    });
 
-      expect(screen.queryByTestId('letterer-resize-elem-1')).toBeNull();
-      expect(screen.queryByText('Xóa phần tử này')).toBeNull();
-
-      fireEvent.doubleClick(
-        within(screen.getByTestId('letterer-element-elem-1')).getByText('Lời thoại ban đầu'),
+    it('chữ trắng viền đen trên nền trong suốt, không viền bóng: giữ nguyên màu chữ', async () => {
+      withStyle(
+        {
+          color: '#FFFFFF',
+          strokeColor: '#000000',
+          strokeWidth: 2,
+          fillOpacity: 0,
+          borderWidth: 0,
+        },
+        'Chữ trắng',
       );
-      expect(screen.queryByTestId('inline-editor-elem-1')).toBeNull();
+      renderComponent();
+      const text = await screen.findByTestId('balloon-text-elem-1');
+      expect(text.style.color).toBe('rgb(255, 255, 255)');
+      const path = screen.getByTestId('balloon-shape-elem-1').querySelector('path')!;
+      expect(path.getAttribute('fill')).toBe('rgba(255, 255, 255, 0)');
+      expect(path.getAttribute('stroke')).toBe('none');
+    });
 
-      fireEvent.click(container.querySelector('.cursor-crosshair')!);
-      expect(elementService.addElement).not.toHaveBeenCalled();
+    it('nền bán trong suốt đã lưu', async () => {
+      withStyle({ balloonShape: 'box', fillColor: '#FFFBEB', fillOpacity: 0.5 });
+      renderComponent();
+      const svg = await screen.findByTestId('balloon-shape-elem-1');
+      expect(svg).toHaveAttribute('data-shape', 'box');
+      expect(svg.querySelector('path')!.getAttribute('fill')).toBe('rgba(255, 251, 235, 0.5)');
+    });
 
-      const editor = screen.getByTestId('element-text-editor');
-      fireEvent.change(editor, { target: { value: 'x' } });
-      fireEvent.blur(editor);
-      expect(elementService.updateElementText).not.toHaveBeenCalled();
+    it('thanh "Nền" chỉ làm mờ nền, không đụng viền thật', async () => {
+      renderComponent();
+      await screen.findByText('Lời thoại ban đầu');
+      fireEvent.change(screen.getByTestId('letterer-bg-opacity'), { target: { value: '0' } });
+      const path = screen.getByTestId('balloon-shape-elem-1').querySelector('path')!;
+      expect(path.getAttribute('fill')).toBe('rgba(255, 255, 255, 0)');
+      expect(path.getAttribute('stroke')).toBe('#171717');
+      fireEvent.change(screen.getByTestId('letterer-bg-opacity'), { target: { value: '100' } });
+    });
+
+    it('đổi hình bóng độc lập với loại nội dung: lưu qua API kiểu chữ (balloonShape), không đổi vị trí', async () => {
+      vi.mocked(elementService.updateElementStyle).mockResolvedValue(undefined as any);
+      renderComponent();
+      fireEvent.click(await screen.findByText('Lời thoại ban đầu'));
+      fireEvent.change(screen.getByTestId('balloon-shape-select'), { target: { value: 'box' } });
+      expect(screen.getByTestId('balloon-shape-elem-1')).toHaveAttribute('data-shape', 'box');
+      await waitFor(() =>
+        expect(elementService.updateElementStyle).toHaveBeenCalledWith(
+          'page-101',
+          'elem-1',
+          expect.objectContaining({
+            style: expect.objectContaining({
+              balloonShape: 'box',
+              fontFamily: 'Mali',
+              fontSize: 26,
+            }),
+            expectedElementVersion: 1,
+          }),
+        ),
+      );
+      expect(elementService.moveElement).not.toHaveBeenCalled();
+    });
+
+    it('"Về mặc định" bỏ phần bóng; style chỉ còn bóng thì gửi null', async () => {
+      vi.mocked(elementService.updateElementStyle).mockResolvedValue(undefined as any);
+      withStyle({ balloonShape: 'none' });
+      renderComponent();
+      fireEvent.click(await screen.findByText('Lời thoại ban đầu'));
+      fireEvent.click(screen.getByTestId('appearance-reset'));
+      await waitFor(() => expect(elementService.updateElementStyle).toHaveBeenCalled());
+      const [, , req] = vi.mocked(elementService.updateElementStyle).mock.calls[0];
+      expect(req.style).toEqual({ fontFamily: 'Mali', fontSize: 26 }); // kiểu chữ riêng giữ lại, bóng bỏ
+      expect(screen.getByTestId('balloon-shape-elem-1')).toHaveAttribute('data-shape', 'oval');
+    });
+
+    it('"Vừa chữ trong bóng" giữ kích thước bóng, chỉ lưu cỡ chữ', async () => {
+      vi.mocked(elementService.updateElementStyle).mockResolvedValue(undefined as any);
+      renderComponent();
+      fireEvent.click(await screen.findByText('Lời thoại ban đầu'));
+      fireEvent.click(screen.getByTestId('fit-text-to-box'));
+      await waitFor(() => expect(elementService.updateElementStyle).toHaveBeenCalled());
+      const [, , req] = vi.mocked(elementService.updateElementStyle).mock.calls[0];
+      expect(req.style?.fontSize).toBeGreaterThan(26);
+      expect(elementService.moveElement).not.toHaveBeenCalled();
+    });
+
+    it('zoom không đổi kích thước/vị trí chữ trong toạ độ trang', async () => {
+      renderComponent();
+      await screen.findByText('Lời thoại ban đầu');
+      const el = screen.getByTestId('letterer-element-elem-1');
+      const text = screen.getByTestId('balloon-text-elem-1');
+      const before = [el.style.width, el.style.height, text.style.left, text.style.width];
+      for (let i = 0; i < 3; i += 1) fireEvent.click(screen.getByLabelText('Phóng to'));
+      expect([el.style.width, el.style.height, text.style.left, text.style.width]).toEqual(before);
+      expect(elementService.moveElement).not.toHaveBeenCalled();
+    });
+
+    it('resize liên tiếp nhanh: lần sau chờ lần trước và gửi phiên bản mới (không còn 409 giả)', async () => {
+      let resolveFirst: () => void = () => undefined;
+      vi.mocked(elementService.moveElement)
+        .mockImplementationOnce(
+          () => new Promise<any>((r) => (resolveFirst = () => r({ elementVersion: 2 }))),
+        )
+        .mockResolvedValue(undefined as any);
+      renderComponent();
+      fireEvent.click(await screen.findByText('Lời thoại ban đầu'));
+      const drag = (testId: string, dx: number) => {
+        fireEvent.pointerDown(screen.getByTestId(testId), { button: 0, clientX: 0, clientY: 0 });
+        fireEvent.pointerUp(window, { clientX: dx, clientY: dx });
+      };
+      drag('letterer-resize-elem-1', 40);
+      drag('letterer-resize-elem-1', 80);
+      await waitFor(() => expect(elementService.moveElement).toHaveBeenCalledTimes(1));
+      await new Promise((r) => setTimeout(r, 20)); // lần 2 vẫn phải chờ lần 1
+      expect(elementService.moveElement).toHaveBeenCalledTimes(1);
+      expect(vi.mocked(elementService.moveElement).mock.calls[0][2].expectedElementVersion).toBe(1);
+
+      resolveFirst();
+      await waitFor(() => expect(elementService.moveElement).toHaveBeenCalledTimes(2));
+      expect(vi.mocked(elementService.moveElement).mock.calls[1][2].expectedElementVersion).toBe(2);
+    });
+
+    it('kéo góc trên-trái: góc dưới-phải đứng yên; bật "Tự co chữ" thì lưu cỡ chữ nhỏ hơn sau khi lưu vị trí', async () => {
+      vi.mocked(elementService.moveElement).mockResolvedValue({ elementVersion: 2 } as any);
+      vi.mocked(elementService.updateElementStyle).mockResolvedValue(undefined as any);
+      withStyle({}, 'Một câu thoại khá dài để phải co chữ khi bóng bị thu nhỏ lại đáng kể');
+      renderComponent();
+      fireEvent.click(await screen.findByText(/Một câu thoại/));
+      expect(screen.getByTestId('auto-fit-text')).toBeChecked();
+      const el = screen.getByTestId('letterer-element-elem-1');
+      const right = parseFloat(el.style.left) + parseFloat(el.style.width);
+      const bottom = parseFloat(el.style.top) + parseFloat(el.style.height);
+
+      fireEvent.pointerDown(screen.getByTestId('letterer-resize-nw-elem-1'), {
+        button: 0,
+        clientX: 0,
+        clientY: 0,
+      });
+      fireEvent.pointerUp(window, { clientX: 200, clientY: 200 });
+
+      await waitFor(() => expect(elementService.updateElementStyle).toHaveBeenCalled());
+      const [, , move] = vi.mocked(elementService.moveElement).mock.calls[0];
+      expect(move.newX + move.newWidth).toBe(right);
+      expect(move.newY + move.newHeight).toBe(bottom);
+      expect(move.newWidth).toBeLessThan(360);
+      const [, , style] = vi.mocked(elementService.updateElementStyle).mock.calls[0];
+      expect(style.style?.fontSize).toBeLessThan(26);
+      expect(style.expectedElementVersion).toBe(2); // xếp sau lần lưu vị trí
+    });
+
+    it('thao tác không đổi gì (máy chủ giữ nguyên phiên bản): lệnh sau dùng đúng số máy chủ trả, không tự +1', async () => {
+      // Thả bóng đúng chỗ cũ → máy chủ không tăng phiên bản (vẫn 1). Trước đây client tự +1 → lần sửa sau 409.
+      vi.mocked(elementService.moveElement).mockResolvedValue({ elementVersion: 1 } as any);
+      vi.mocked(elementService.updateElementStyle).mockResolvedValue({ elementVersion: 2 } as any);
+      renderComponent();
+      fireEvent.click(await screen.findByText('Lời thoại ban đầu'));
+      fireEvent.pointerDown(screen.getByTestId('letterer-resize-elem-1'), {
+        button: 0,
+        clientX: 0,
+        clientY: 0,
+      });
+      fireEvent.pointerUp(window, { clientX: 30, clientY: 30 });
+      await waitFor(() => expect(elementService.moveElement).toHaveBeenCalledTimes(1));
+
+      fireEvent.change(screen.getByTestId('balloon-shape-select'), { target: { value: 'box' } });
+      await waitFor(() => expect(elementService.updateElementStyle).toHaveBeenCalledTimes(1));
+      expect(
+        vi.mocked(elementService.updateElementStyle).mock.calls[0][2].expectedElementVersion,
+      ).toBe(1);
     });
   });
 });

@@ -75,7 +75,7 @@ export const NarrativeContextDrawer: React.FC<NarrativeContextDrawerProps> = ({
             <h3 className='text-sm font-bold text-zinc-900 truncate font-serif'>
               Định hướng cốt truyện & đề cương
             </h3>
-            <p className='text-[11px] text-zinc-500 truncate'>
+            <p className='text-xs text-zinc-500 truncate'>
               Ngữ cảnh sáng tác cho Writer và AI Agent
             </p>
           </div>
@@ -148,7 +148,7 @@ export const NarrativeContextDrawer: React.FC<NarrativeContextDrawerProps> = ({
         </div>
 
         {(isStoryArcDirty || isOutlineDirty) && (
-          <span className='text-[10px] text-amber-700 font-semibold bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md'>
+          <span className='text-xs text-amber-700 font-semibold bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-md'>
             Có sửa đổi chưa lưu
           </span>
         )}
@@ -164,7 +164,7 @@ export const NarrativeContextDrawer: React.FC<NarrativeContextDrawerProps> = ({
                 <BookOpen className='w-4 h-4 text-orange-600' />
                 <div>
                   <h4 className='text-xs font-bold text-zinc-900'>Story Arc của Series</h4>
-                  <p className='text-[10px] text-zinc-500'>Cung truyện dài hạn</p>
+                  <p className='text-xs text-zinc-500'>Cung truyện dài hạn</p>
                 </div>
               </div>
 
@@ -174,7 +174,7 @@ export const NarrativeContextDrawer: React.FC<NarrativeContextDrawerProps> = ({
                   onClick={onSaveStoryArc}
                   disabled={savingStoryArc || !isStoryArcDirty}
                   data-testid='save-story-arc-btn'
-                  className='inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-orange-600 hover:bg-orange-700 disabled:opacity-40 rounded-xl shadow-xs transition-all cursor-pointer'
+                  className='btn-cta-primary'
                 >
                   <Save className='w-3.5 h-3.5' />
                   <span>{savingStoryArc ? 'Đang lưu...' : 'Lưu Story Arc'}</span>
@@ -192,7 +192,7 @@ export const NarrativeContextDrawer: React.FC<NarrativeContextDrawerProps> = ({
               className='w-full p-3 text-xs md:text-sm leading-relaxed border border-[#E4DFD7] rounded-xl outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/10 bg-white disabled:bg-zinc-100 disabled:cursor-not-allowed resize-y transition-all text-zinc-900'
             />
 
-            <div className='flex items-center justify-between text-[11px] text-zinc-400'>
+            <div className='flex items-center justify-between text-xs text-zinc-500'>
               <span>
                 {storyArcWordCount} từ · {storyArcInput.length} ký tự
               </span>
@@ -211,7 +211,7 @@ export const NarrativeContextDrawer: React.FC<NarrativeContextDrawerProps> = ({
                   <h4 className='text-xs font-bold text-zinc-900'>
                     Đề cương Chương {currentChapter?.chapterNumber ?? ''} (Outline)
                   </h4>
-                  <p className='text-[10px] text-zinc-500'>Dàn ý và diễn biến then chốt</p>
+                  <p className='text-xs text-zinc-500'>Dàn ý và diễn biến then chốt</p>
                 </div>
               </div>
 
@@ -221,7 +221,7 @@ export const NarrativeContextDrawer: React.FC<NarrativeContextDrawerProps> = ({
                   onClick={onSaveOutline}
                   disabled={savingOutline || !isOutlineDirty}
                   data-testid='save-chapter-outline-btn'
-                  className='inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-orange-600 hover:bg-orange-700 disabled:opacity-40 rounded-xl shadow-xs transition-all cursor-pointer'
+                  className='btn-cta-primary'
                 >
                   <Save className='w-3.5 h-3.5' />
                   <span>{savingOutline ? 'Đang lưu...' : 'Lưu Đề Cương'}</span>
@@ -239,7 +239,7 @@ export const NarrativeContextDrawer: React.FC<NarrativeContextDrawerProps> = ({
               className='w-full p-3 text-xs md:text-sm leading-relaxed border border-[#E4DFD7] rounded-xl outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/10 bg-white disabled:bg-zinc-100 disabled:cursor-not-allowed resize-y transition-all text-zinc-900'
             />
 
-            <div className='flex items-center justify-between text-[11px] text-zinc-400'>
+            <div className='flex items-center justify-between text-xs text-zinc-500'>
               <span>
                 {outlineWordCount} từ · {outlineInput.length} ký tự
               </span>

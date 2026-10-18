@@ -9,10 +9,14 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
     | 'mint'
     | 'warning'
     | 'peach'
+    | 'amber'
     | 'danger'
     | 'error'
     | 'ai'
     | 'lavender'
+    | 'inproduction'
+    | 'blue'
+    | 'published'
     | 'outline';
   pill?: boolean;
 }
@@ -34,9 +38,12 @@ export const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(
           (variant === 'success' || variant === 'mint') &&
             'bg-[#ecfdf5] text-[#047857] border border-[#a7f3d0]',
 
-          // Warning / Peach
-          (variant === 'warning' || variant === 'peach') &&
-            'bg-[#fff7ed] text-[#c2410c] border border-[#fed7aa]',
+          // Published
+          variant === 'published' && 'bg-[#f0fdf4] text-[#15803d] border border-[#bbf7d0]',
+
+          // Warning / Peach / Amber
+          (variant === 'warning' || variant === 'peach' || variant === 'amber') &&
+            'bg-[#fffbeb] text-[#b45309] border border-[#fde68a]',
 
           // Danger / Error
           (variant === 'danger' || variant === 'error') &&
@@ -45,6 +52,10 @@ export const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(
           // AI / Lavender
           (variant === 'ai' || variant === 'lavender') &&
             'bg-[#f5f3ff] text-[#6d28d9] border border-[#ddd6fe]',
+
+          // In Production / Blue
+          (variant === 'inproduction' || variant === 'blue') &&
+            'bg-[#eff6ff] text-[#1d4ed8] border border-[#bfdbfe]',
 
           // Outline
           variant === 'outline' && 'bg-transparent text-[#292524] border border-[#e7e5e4]',

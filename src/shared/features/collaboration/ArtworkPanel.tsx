@@ -171,7 +171,10 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
       : mine.filter((a) => !a.panelId);
     const isLatestInScope = scopeArts.length > 0 && scopeArts[scopeArts.length - 1].id === art.id;
     if (isLatestInScope) {
-      badges.push({ label: 'Mới nhất', cls: 'bg-blue-50 text-blue-700 border-blue-200' });
+      badges.push({
+        label: 'Mới nhất',
+        cls: 'bg-violet-100 text-violet-900 border-violet-300 font-bold',
+      });
     }
     if (submissions && submissions.length > 0) {
       const isPending = submissions.some(
@@ -187,14 +190,20 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
           (s.status === 'Rejected' || s.status === 2) && s.artworkReferenceIds?.includes(art.id),
       );
       if (isPending) {
-        badges.push({ label: 'Đang duyệt', cls: 'bg-amber-50 text-amber-700 border-amber-200' });
+        badges.push({
+          label: 'Đang duyệt',
+          cls: 'bg-amber-100 text-amber-900 border-amber-300 font-semibold',
+        });
       } else if (isApproved) {
         badges.push({
           label: 'Đã duyệt',
-          cls: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+          cls: 'bg-emerald-100 text-emerald-900 border-emerald-300 font-semibold',
         });
       } else if (isRejected) {
-        badges.push({ label: 'Bị trả về', cls: 'bg-red-50 text-red-700 border-red-200' });
+        badges.push({
+          label: 'Bị trả về',
+          cls: 'bg-rose-100 text-rose-900 border-rose-300 font-semibold',
+        });
       }
     }
     return badges;
@@ -387,7 +396,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
               return (
                 <div
                   key={p.id}
-                  className='p-2.5 bg-white rounded-xl border border-zinc-200 shadow-2xs space-y-2 transition-all'
+                  className='p-2.5 bg-white rounded-xl border border-zinc-200 shadow-2xs space-y-2 transition-all group hover:border-zinc-300 hover:shadow-soft-sm'
                 >
                   <div className='flex items-center justify-between gap-2 flex-wrap'>
                     <div className='flex items-center gap-2 flex-wrap min-w-0'>
@@ -410,6 +419,9 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                           >
                             {latestPanelArt.fileName}
                           </span>
+                          <strong className='font-mono font-bold text-emerald-800 text-xs'>
+                            (v{latestPanelArt.versionNumber})
+                          </strong>
                           {getStatusBadges(latestPanelArt).map((b) => (
                             <span
                               key={b.label}
@@ -457,9 +469,9 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                           onClick={() => onOpenBible(p.id, p.panelNumber)}
                           data-testid={`panel-bible-btn-${p.id}`}
                           title='Xem tham chiếu thiết kế nhân vật trong khung tranh này'
-                          className='px-2.5 py-1 rounded-md border border-orange-200 bg-orange-50 hover:bg-orange-100 text-[10px] font-semibold text-orange-800 flex items-center gap-1 cursor-pointer transition-colors shadow-2xs'
+                          className='px-2.5 py-1 rounded-md border border-orange-300 bg-orange-50 hover:bg-orange-100 text-xs font-semibold text-orange-900 flex items-center gap-1 cursor-pointer transition-colors shadow-2xs'
                         >
-                          <BookOpen className='w-3 h-3 text-[#F97316]' />
+                          <BookOpen className='w-3.5 h-3.5 text-[#F97316]' />
                           <span>Bible</span>
                         </button>
                       )}
@@ -472,9 +484,9 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                             setActiveUploadPanelId(p.id);
                             panelFileInput.current?.click();
                           }}
-                          className='px-2.5 py-1 rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 text-xs font-semibold flex items-center gap-1 cursor-pointer disabled:opacity-50 transition-colors'
+                          className='px-2.5 py-1 rounded-md bg-stone-900 text-white hover:bg-stone-800 border border-stone-900 text-xs font-semibold flex items-center gap-1 cursor-pointer disabled:opacity-50 transition-colors shadow-2xs'
                         >
-                          <Upload className='w-3 h-3' />
+                          <Upload className='w-3.5 h-3.5' />
                           <span>Tải ảnh cho khung</span>
                         </button>
                       )}
@@ -527,6 +539,9 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                               <span className='text-zinc-700 font-medium text-xs truncate max-w-[200px]'>
                                 {art.fileName}
                               </span>
+                              <strong className='font-mono font-bold text-zinc-600 text-xs'>
+                                (v{art.versionNumber})
+                              </strong>
                               <span className='text-xs text-zinc-500 font-mono'>
                                 {formatSize(art.sizeBytes)} ·{' '}
                                 {new Date(art.createdAt).toLocaleString('vi-VN')}
@@ -660,6 +675,9 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                           {isCurrent ? 'Bản hiện tại' : 'Bản cũ'}
                         </span>
                         <span className='truncate font-semibold text-zinc-900'>{art.fileName}</span>
+                        <strong className='font-mono font-bold text-emerald-800 text-xs'>
+                          (v{art.versionNumber})
+                        </strong>
                         {matchedPanel ? (
                           <span className='px-1.5 py-0.5 rounded border text-xs font-bold bg-indigo-50 text-indigo-700 border-indigo-200'>
                             Khung #{matchedPanel.panelNumber}

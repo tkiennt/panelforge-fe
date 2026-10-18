@@ -291,6 +291,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, curren
               onNavigateToSettings={() => setActiveTab('ai-config')}
               onNavigateToAudit={() => setActiveTab('audit')}
               onNavigateToSessionPolicy={() => setActiveTab('session-policy')}
+              onNavigateToStorage={() => setActiveTab('storage')}
             />
           )}
 

@@ -13,6 +13,10 @@ import {
   needsArtwork,
   normalizeRole,
   resolvePageId,
+  resolveWorkScene,
+  compareWorkOrder,
+  UNASSIGNED_SCENE,
+  type WorkOrderContext,
 } from './collaborationRules';
 
 const assignment = (over: Partial<AssignmentDto> = {}): AssignmentDto => ({
@@ -311,5 +315,62 @@ describe('isOverdue', () => {
     expect(isOverdue('2026-10-05T00:00:00Z', now)).toBe(true);
     expect(isOverdue('2026-10-07T00:00:00Z', now)).toBe(false);
     expect(isOverdue(null, now)).toBe(false);
+  });
+});
+
+describe('resolveWorkScene / compareWorkOrder (Công việc của tôi: Chương → Cảnh → 1..7)', () => {
+  const ctx: WorkOrderContext = {
+    stageOrder: { script: 1, thumb: 2, pencil: 3, review: 7 },
+    pageNumber: { p1: 1, p2: 2, p3: 3 },
+    sceneNumber: { s1: 1, s2: 2 },
+    panels: [
+      { id: 'k1', pageId: 'p1', sceneId: 's2', readingOrder: 1 },
+      { id: 'k2', pageId: 'p1', sceneId: 's1', readingOrder: 2 },
+      { id: 'k3', pageId: 'p2', sceneId: null, readingOrder: 1 },
+      { id: 'k4', pageId: 'p3', sceneId: 's2', readingOrder: 1 },
+    ],
+  };
+  const work = (entityType: string, targetEntityId: string, pipelineStageId = 'thumb') =>
+    assignment({ entityType: entityType as never, targetEntityId, pipelineStageId });
+
+  it('lấy cảnh từ Panel, không từ Page', () => {
+    expect(resolveWorkScene(work('Panel', 'k4'), ctx)).toEqual({
+      sceneId: 's2',
+      pageId: 'p3',
+      multiScene: false,
+    });
+  });
+
+  it('trang nhiều cảnh vào cảnh nhỏ nhất, đánh dấu multiScene, không nhân bản', () => {
+    expect(resolveWorkScene(work('Page', 'p1'), ctx)).toEqual({
+      sceneId: 's1',
+      pageId: 'p1',
+      multiScene: true,
+    });
+  });
+
+  it('việc cấp Chapter và trang chưa gắn cảnh vào Toàn chương', () => {
+    expect(resolveWorkScene(work('Chapter', 'c1'), ctx).sceneId).toBe(UNASSIGNED_SCENE);
+    expect(resolveWorkScene(work('Page', 'p2'), ctx).sceneId).toBe(UNASSIGNED_SCENE);
+  });
+
+  it('sắp theo công đoạn 1 → 7, rồi số trang, rồi thứ tự đọc', () => {
+    const list = [
+      work('Chapter', 'c1', 'review'),
+      work('Page', 'p3', 'pencil'),
+      work('Panel', 'k2', 'thumb'),
+      work('Page', 'p2', 'thumb'),
+      work('Panel', 'k1', 'thumb'),
+      work('Chapter', 'c1', 'script'),
+    ];
+    const sorted = [...list].sort((a, b) => compareWorkOrder(a, b, ctx));
+    expect(sorted.map((a) => `${a.pipelineStageId}:${a.targetEntityId}`)).toEqual([
+      'script:c1',
+      'thumb:k1',
+      'thumb:k2',
+      'thumb:p2',
+      'pencil:p3',
+      'review:c1',
+    ]);
   });
 });

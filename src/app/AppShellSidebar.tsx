@@ -308,7 +308,7 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
                 const baseClass =
                   'group flex items-center gap-3 px-3 py-2 rounded-full text-xs font-medium transition-all duration-150 ';
                 const activeClass = item.isActive
-                  ? 'bg-[#292524] text-white shadow-soft-sm font-semibold'
+                  ? 'bg-[#292524] text-white shadow-soft-sm font-semibold border-l-2 border-orange-500'
                   : 'text-[#4e4e4e] hover:bg-[#f0efed] hover:text-[#0c0a09] cursor-pointer';
 
                 const iconClass = `w-4 h-4 shrink-0 transition-colors ${
