@@ -79,8 +79,8 @@ export const FrameTemplateModal: React.FC<FrameTemplateModalProps> = ({
       );
       if (onShowToast) {
         onShowToast(
-          'Áp dụng mẫu khung thành công',
-          `Đã áp dụng mẫu khung với ${createdPanels.length} ô panel cho Trang ${pageNumber}.`,
+          'Đã áp dụng mẫu khung',
+          `Áp dụng mẫu khung ${createdPanels.length} ô cho Trang ${pageNumber}.`,
         );
       }
       onApplied(createdPanels);
@@ -125,10 +125,9 @@ export const FrameTemplateModal: React.FC<FrameTemplateModalProps> = ({
           <div className='mx-6 mt-4 p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-2.5 text-xs text-amber-900'>
             <ShieldAlert className='w-4 h-4 text-amber-600 shrink-0 mt-0.5' />
             <div>
-              <div className='font-bold'>Trang đã có khung tranh (Panels)</div>
+              <div className='font-bold'>Trang đã có khung tranh</div>
               <p className='text-xs text-amber-800 mt-0.5'>
-                Trang này đã có các ô panel. Việc áp dụng mẫu khung mới có thể gây xung đột thứ tự
-                đọc hoặc tạo thêm các ô mới. Hãy chắc chắn trước khi tiếp tục.
+                Trang này đã có ô panel. Thao tác này sẽ bổ sung các ô mới và có thể thay đổi thứ tự đọc hiện tại.
               </p>
             </div>
           </div>

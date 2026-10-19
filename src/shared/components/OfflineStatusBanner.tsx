@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { WifiOff, RefreshCw, CheckCircle2, CloudUpload } from 'lucide-react';
 import { offlineQueueService, OfflineQueueState } from '@/services/offlineQueue.service';
+import { useTranslation } from '@/lib/i18n';
 
 export const OfflineStatusBanner: React.FC<{ className?: string }> = ({ className = '' }) => {
+  const { t } = useTranslation();
   const [queueState, setQueueState] = useState<OfflineQueueState>(offlineQueueService.getState());
   const [justSynced, setJustSynced] = useState(false);
 
@@ -46,20 +48,18 @@ export const OfflineStatusBanner: React.FC<{ className?: string }> = ({ classNam
         <span>
           {!queueState.isOnline ? (
             <>
-              <strong>Chế độ ngoại tuyến:</strong> Mất kết nối mạng.{' '}
+              <strong>{t('common.offline.title')}</strong>{' '}
               {queueState.pendingCount > 0 ? (
                 <>
-                  Có <strong>{queueState.pendingCount}</strong> thao tác đã được lưu tạm trên máy và
-                  sẽ tự động đồng bộ khi có kết nối lại (NFR-09 Idempotent).
+                  Có <strong>{queueState.pendingCount}</strong> thao tác đã lưu tạm, sẽ tự động đồng bộ khi có mạng.
                 </>
               ) : (
-                'Các thao tác thêm/sửa sẽ được lưu tạm an toàn trên máy.'
+                t('common.offline.noConnection')
               )}
             </>
           ) : justSynced ? (
             <>
-              <strong>Đã đồng bộ thành công!</strong> Mọi thao tác ngoại tuyến đã được gửi lên máy
-              chủ an toàn.
+              <strong>{t('common.offline.synced')}</strong>
             </>
           ) : (
             <>
@@ -76,7 +76,7 @@ export const OfflineStatusBanner: React.FC<{ className?: string }> = ({ classNam
           className='inline-flex items-center gap-1.5 px-3 py-1 bg-white hover:bg-white/80 border border-current rounded-lg font-semibold text-[11px] shadow-2xs transition-all shrink-0 cursor-pointer disabled:opacity-50'
         >
           <RefreshCw className={`w-3 h-3 ${queueState.isSyncing ? 'animate-spin' : ''}`} />
-          <span>{queueState.isSyncing ? 'Đang đồng bộ...' : 'Đồng bộ ngay'}</span>
+          <span>{queueState.isSyncing ? t('common.offline.syncing') : t('common.offline.syncNow')}</span>
         </button>
       )}
     </div>

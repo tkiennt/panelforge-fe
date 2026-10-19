@@ -625,7 +625,7 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                       <AlertTriangle className='w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5' />
                       <div>
                         Chưa có thành viên nào trong Workspace có vai trò{' '}
-                        <strong>{requiredRole}</strong>. Vui lòng mời thành viên{' '}
+                        <strong>{requiredRole}</strong>. Cần mời thành viên{' '}
                         <strong>{requiredRole}</strong> vào Workspace trước khi giao việc stage này.
                       </div>
                     </div>

@@ -34,6 +34,34 @@ export function pickPanelArtwork(
   return latestOf(pool.filter((a) => order(a.pipelineStageId) === top));
 }
 
+/**
+ * Ảnh hiển thị cho toàn bộ Trang (Full-page Composite) trên Bàn vẽ (không gọi API).
+ * - Lọc những artwork không gắn với panelId cụ thể (!a.panelId).
+ * - `stageId` có giá trị: bản mới nhất của trang ở đúng công đoạn đó.
+ * - Không có: công đoạn ĐANG BẬT có stageOrder cao nhất mà trang đã có ảnh; không có thì xét cả công đoạn đã tắt.
+ */
+export function pickPageArtwork(
+  arts: AssetReferenceDto[],
+  stages: Pick<PipelineStageDto, 'id' | 'stageOrder' | 'isEnabled'>[],
+  stageId?: string | null,
+): AssetReferenceDto | null {
+  const latestOf = (list: AssetReferenceDto[]) =>
+    list.reduce<AssetReferenceDto | null>(
+      (best, a) => (!best || a.versionNumber > best.versionNumber ? a : best),
+      null,
+    );
+  const ofPage = arts.filter((a) => !a.panelId);
+  if (stageId) return latestOf(ofPage.filter((a) => a.pipelineStageId === stageId));
+
+  const order = (id: string) => stages.find((s) => s.id === id)?.stageOrder ?? -1;
+  const enabled = (id: string) => stages.find((s) => s.id === id)?.isEnabled !== false;
+  const pool = ofPage.some((a) => enabled(a.pipelineStageId))
+    ? ofPage.filter((a) => enabled(a.pipelineStageId))
+    : ofPage;
+  const top = Math.max(-1, ...pool.map((a) => order(a.pipelineStageId)));
+  return latestOf(pool.filter((a) => order(a.pipelineStageId) === top));
+}
+
 export interface LoadPreviousStageArtworksOptions {
   /** Danh sách stage đã nạp sẵn (nếu có) để tránh gọi lại API pipeline nhiều lần */
   stages?: PipelineStageDto[];

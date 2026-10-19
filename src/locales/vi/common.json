@@ -1,0 +1,72 @@
+{
+  "actions": {
+    "save": "Lưu",
+    "saving": "Đang lưu...",
+    "cancel": "Hủy",
+    "delete": "Xóa",
+    "deleting": "Đang xóa...",
+    "edit": "Sửa",
+    "create": "Tạo mới",
+    "creating": "Đang tạo...",
+    "confirm": "Xác nhận",
+    "close": "Đóng",
+    "back": "Quay lại",
+    "refresh": "Làm mới",
+    "search": "Tìm kiếm",
+    "filter": "Lọc",
+    "upload": "Tải lên",
+    "uploading": "Đang tải lên...",
+    "download": "Tải về",
+    "apply": "Áp dụng",
+    "start": "Bắt đầu",
+    "starting": "Đang bắt đầu...",
+    "submit": "Nộp bài",
+    "submitting": "Đang nộp...",
+    "viewDetails": "Xem chi tiết",
+    "selectAll": "Chọn tất cả",
+    "deselectAll": "Bỏ chọn"
+  },
+  "status": {
+    "all": "Tất cả",
+    "active": "Đang hoạt động",
+    "inactive": "Tạm dừng",
+    "draft": "Bản nháp",
+    "pending": "Chờ xử lý",
+    "inProgress": "Đang làm",
+    "completed": "Hoàn tất",
+    "approved": "Đã duyệt",
+    "rejected": "Đã trả về",
+    "cancelled": "Đã hủy",
+    "assigned": "Đã phân công",
+    "unassigned": "Chưa phân công",
+    "locked": "Đã khoá chuẩn",
+    "offline": "Ngoại tuyến",
+    "online": "Trực tuyến"
+  },
+  "messages": {
+    "loading": "Đang tải dữ liệu...",
+    "noData": "Không có dữ liệu hiển thị.",
+    "saveSuccess": "Lưu thành công.",
+    "saveError": "Lưu thất bại. Vui lòng thử lại.",
+    "deleteConfirm": "Bạn có chắc chắn muốn xóa mục này không?",
+    "networkError": "Mất kết nối mạng. Đã lưu thao tác ngoại tuyến.",
+    "unauthorized": "Bạn không có quyền thực hiện thao tác này.",
+    "conflictError": "Dữ liệu vừa được cập nhật bởi thành viên khác. Vui lòng làm mới."
+  },
+  "time": {
+    "today": "Hôm nay",
+    "yesterday": "Hôm qua",
+    "daysAgo": "{count} ngày trước",
+    "dueDate": "Hạn chót: {date}",
+    "noDueDate": "Không có hạn chót"
+  },
+  "offline": {
+    "title": "Chế độ ngoại tuyến:",
+    "noConnection": "Mất kết nối mạng. Đã lưu tạm an toàn trên máy.",
+    "pendingCount": "Có {count} thao tác đã lưu tạm, sẽ tự động đồng bộ khi có mạng.",
+    "synced": "Đã đồng bộ. Mọi thao tác đã lưu an toàn.",
+    "waitingSync": "Có {count} thao tác đang chờ đồng bộ.",
+    "syncNow": "Đồng bộ ngay",
+    "syncing": "Đang đồng bộ..."
+  }
+}

@@ -418,7 +418,7 @@ export const BibleReferenceDrawer: React.FC<BibleReferenceDrawerProps> = ({
           <div className='p-4 bg-white border-t border-stone-200 flex items-center justify-between'>
             <div className='flex items-center gap-1.5 text-xs text-stone-500 font-medium'>
               <ShieldCheck className='w-4 h-4 text-emerald-600' />
-              <span>FR-Artist-04 // Tham chiếu chuẩn Canon</span>
+              <span>Tham chiếu chuẩn Canon</span>
             </div>
             <button
               type='button'

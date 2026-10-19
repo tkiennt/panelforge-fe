@@ -1,0 +1,30 @@
+{
+  "roles": {
+    "producer": "Producer",
+    "writer": "Writer",
+    "artist": "Artist",
+    "letterer": "Letterer",
+    "editor": "Editor",
+    "publisher": "Publisher",
+    "admin": "Admin",
+    "reader": "Reader"
+  },
+  "menu": {
+    "myWork": "My Work",
+    "production": "Production",
+    "script": "Script",
+    "desk": "Artist Desk",
+    "lettering": "Lettering",
+    "review": "Review",
+    "bible": "Series Bible",
+    "settings": "Studio Settings",
+    "switchStudio": "Switch Studio",
+    "logout": "Log Out"
+  },
+  "breadcrumbs": {
+    "studios": "Studio",
+    "series": "Series",
+    "chapters": "Chapter",
+    "pages": "Page"
+  }
+}
