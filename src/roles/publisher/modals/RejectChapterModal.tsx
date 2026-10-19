@@ -53,24 +53,24 @@ export const RejectChapterModal: React.FC<RejectChapterModalProps> = ({
   };
 
   return (
-    <div className='fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-150'>
-      <div className='bg-white border border-[#E7E7E7] rounded-2xl max-w-md w-full shadow-2xl overflow-hidden'>
+    <div className='fixed inset-0 bg-[#1C1917]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-150'>
+      <div className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl max-w-md w-full shadow-2xl overflow-hidden'>
         {/* Header */}
-        <div className='p-4 bg-[#FAF8F4] border-b border-[#E7E7E7] flex items-center justify-between'>
+        <div className='p-4 bg-[#F8F6F0] border-b border-[#D8D2C5] flex items-center justify-between'>
           <div className='flex items-center gap-2.5'>
             <div className='w-8 h-8 rounded-xl bg-rose-50 text-rose-600 border border-rose-200 flex items-center justify-center shadow-2xs'>
               <AlertTriangle className='w-4 h-4' />
             </div>
             <div>
-              <h3 className='font-bold text-sm text-[#171717]'>Từ Chối & Yêu Cầu Chỉnh Sửa</h3>
-              <p className='text-xs text-[#737373]'>
+              <h3 className='font-serif font-bold text-sm text-[#1C1917]'>Từ Chối &amp; Yêu Cầu Chỉnh Sửa</h3>
+              <p className='text-xs text-[#57534E]'>
                 Chương {chapterNumber}: {chapterTitle || 'Không tiêu đề'}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className='w-7 h-7 rounded-lg hover:bg-white border border-transparent hover:border-[#E7E7E7] flex items-center justify-center text-[#888888] hover:text-[#171717] transition-all cursor-pointer'
+            className='w-7 h-7 rounded-lg hover:bg-[#F3F0E9] border border-transparent hover:border-[#D8D2C5] flex items-center justify-center text-[#57534E] hover:text-[#1C1917] transition-all cursor-pointer'
           >
             <X className='w-4 h-4' />
           </button>
@@ -85,7 +85,7 @@ export const RejectChapterModal: React.FC<RejectChapterModalProps> = ({
           )}
 
           <div>
-            <label className='block text-xs font-bold text-[#171717] mb-1.5'>
+            <label className='block text-xs font-bold text-[#1C1917] mb-1.5'>
               Lý do từ chối xuất bản <span className='text-rose-600'>*</span>
             </label>
             <textarea
@@ -94,9 +94,9 @@ export const RejectChapterModal: React.FC<RejectChapterModalProps> = ({
               placeholder='Nhập chi tiết các điểm cần hoàn thiện hoặc sửa đổi (lỗi chính tả, lỗi nét vẽ, lệch khung, vi phạm bản quyền...)...'
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              className='w-full px-3 py-2 bg-[#FAF8F5] focus:bg-white border border-[#E7E7E7] rounded-xl text-xs text-[#171717] focus:outline-none focus:border-rose-500 custom-scrollbar leading-relaxed'
+              className='w-full px-3 py-2 bg-[#FCFBF8] focus:bg-white border border-[#D8D2C5] rounded-xl text-xs text-[#1C1917] focus:outline-none focus:border-rose-500 custom-scrollbar leading-relaxed'
             />
-            <p className='text-[10px] text-[#737373] mt-1'>
+            <p className='text-[10px] text-[#57534E] mt-1'>
               * Producer và nhóm sản xuất sẽ nhận được thông báo kèm lý do này để thực hiện khắc
               phục.
             </p>
@@ -108,12 +108,12 @@ export const RejectChapterModal: React.FC<RejectChapterModalProps> = ({
           </div>
 
           {/* Actions */}
-          <div className='flex items-center justify-end gap-2 pt-2 border-t border-[#E7E7E7]'>
+          <div className='flex items-center justify-end gap-2 pt-2 border-t border-[#D8D2C5]'>
             <button
               type='button'
               onClick={onClose}
               disabled={loading}
-              className='px-3.5 py-1.5 text-xs text-[#555555] hover:bg-[#FAF8F5] rounded-xl border border-[#E7E7E7] transition-colors cursor-pointer'
+              className='px-3.5 py-1.5 text-xs text-[#57534E] hover:bg-[#F3F0E9] hover:text-[#1C1917] rounded-xl border border-[#D8D2C5] transition-colors cursor-pointer'
             >
               Hủy
             </button>
@@ -121,7 +121,7 @@ export const RejectChapterModal: React.FC<RejectChapterModalProps> = ({
               type='submit'
               disabled={loading || !comment.trim()}
               title={!comment.trim() ? 'Vui lòng nhập lý do từ chối' : undefined}
-              className='px-4 py-1.5 text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-xs flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer'
+              className='px-4 py-1.5 text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-xs flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer active:scale-95'
             >
               {loading ? (
                 <Loader2 className='w-3.5 h-3.5 animate-spin' />

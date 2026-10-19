@@ -170,13 +170,13 @@ describe('App Integration Smoke Test', () => {
 
     // Phải render Admin Console và System Admin Zone
     await waitFor(() => {
-      expect(screen.getByText('Global System Admin')).toBeInTheDocument();
-      expect(screen.getByText('PanelForge System Administration Console')).toBeInTheDocument();
+      expect(screen.getByText('Quản trị hệ thống')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Tổng quan hệ thống' })).toBeInTheDocument();
       // Menu của Admin phải hiện đầy đủ
-      expect(screen.getByText('Overview & Health')).toBeInTheDocument();
-      expect(screen.getByText('Global User Management')).toBeInTheDocument();
-      expect(screen.getByText('AI Credentials & Quotas')).toBeInTheDocument();
-      expect(screen.getByText('System Audit Log')).toBeInTheDocument();
+      expect(screen.getAllByText('Tổng quan').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('Người dùng & quyền').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('Cấu hình AI').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('Nhật ký hệ thống').length).toBeGreaterThan(0);
       // TUYỆT ĐỐI KHÔNG bị redirect về màn hình danh sách Workspace
       expect(screen.queryByText('Active Studio Workspaces')).not.toBeInTheDocument();
     });
@@ -315,7 +315,7 @@ describe('App Integration Smoke Test', () => {
 
     // Kiểm tra: ở lại /admin, render Admin Dashboard, KHÔNG bị bật ngược về /workspaces
     await waitFor(() => {
-      expect(screen.getByText('PanelForge System Administration Console')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Tổng quan hệ thống' })).toBeInTheDocument();
       expect(screen.queryByText('Production Workspace Catalog')).not.toBeInTheDocument();
     });
 
@@ -340,11 +340,11 @@ describe('App Integration Smoke Test', () => {
 
     // Tìm và nhấn nút Đăng xuất trong App shell
     await waitFor(() => {
-      expect(screen.getByText('PanelForge System Administration Console')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Tổng quan hệ thống' })).toBeInTheDocument();
     });
 
     // Trang Admin có nút Đăng xuất riêng ở chân sidebar
-    fireEvent.click(screen.getByRole('button', { name: /Đăng xuất System Root/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Đăng xuất' }));
 
     // Xác nhận toàn bộ localStorage liên quan đến auth đã được dọn sạch 100%
     await waitFor(() => {

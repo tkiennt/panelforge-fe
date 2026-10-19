@@ -4,6 +4,7 @@ import {
   Ban,
   CalendarClock,
   CheckCircle2,
+  ChevronRight,
   Circle,
   Eye,
   FileText,
@@ -32,6 +33,7 @@ import {
   statusKey,
   statusLabel,
 } from './productionBoard.utils';
+import { useTaskThumbnail } from './useTaskThumbnail';
 
 // ── Mảnh hiển thị dùng chung cho Lưới và Danh sách ──
 
@@ -51,7 +53,7 @@ export const StatusBadge: React.FC<{ status: BoardCard['status'] }> = ({ status 
   const { Icon } = style;
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-semibold whitespace-nowrap ${style.cls}`}
+      className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-semibold whitespace-nowrap shadow-2xs ${style.cls}`}
     >
       <Icon className='h-3.5 w-3.5 shrink-0' aria-hidden='true' />
       {statusLabel(status)}
@@ -81,7 +83,7 @@ export const StageIcon: React.FC<{ stageName: string; className?: string }> = ({
 export const StageLabel: React.FC<{ card: BoardCard }> = ({ card }) => (
   <span className='inline-flex min-w-0 items-center gap-1.5 text-xs font-semibold text-landing-ink'>
     <span
-      className='inline-flex h-5 w-5 shrink-0 items-center justify-center rounded border border-landing-border'
+      className='inline-flex h-5 w-5 shrink-0 items-center justify-center rounded border border-landing-border shadow-2xs'
       style={{ backgroundColor: card.stageColor || '#F3F0E9' }}
       aria-hidden='true'
     >
@@ -126,7 +128,7 @@ export const DueInfo: React.FC<{ card: BoardCard; now: number }> = ({ card, now 
 
 export const Avatar: React.FC<{ card: BoardCard }> = ({ card }) => (
   <span
-    className='inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-landing-border bg-landing-paper text-[11px] font-bold text-landing-ink'
+    className='inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-landing-border bg-[#F3F0E9] text-[11px] font-bold text-landing-ink'
     aria-hidden='true'
   >
     {card.assigneeAvatarInitials}
@@ -142,14 +144,14 @@ export const StatusNotes: React.FC<{ card: BoardCard; blockedReason: string | nu
   return (
     <>
       {card.isStageEnabled === false && (
-        <p className='flex items-start gap-1.5 rounded-md border border-dashed border-stone-400 bg-stone-50 px-2 py-1.5 text-xs text-stone-800'>
-          <Ban className='mt-px h-3.5 w-3.5 shrink-0' aria-hidden='true' />
+        <p className='flex items-start gap-1.5 rounded-md border border-dashed border-stone-400 bg-stone-50 px-2.5 py-1.5 text-xs text-stone-800'>
+          <Ban className='mt-px h-3.5 w-3.5 shrink-0 text-stone-600' aria-hidden='true' />
           <span>Công đoạn đang tắt trong quy trình — không tính là hoàn tất.</span>
         </p>
       )}
       {st === 'Blocked' && blockedReason && (
-        <p className='flex items-start gap-1.5 text-xs text-stone-800'>
-          <Lock className='mt-px h-3.5 w-3.5 shrink-0' aria-hidden='true' />
+        <p className='flex items-start gap-1.5 rounded-md border border-stone-300 bg-stone-100/80 px-2.5 py-1.5 text-xs text-stone-800'>
+          <Lock className='mt-px h-3.5 w-3.5 shrink-0 text-stone-600' aria-hidden='true' />
           <span className='line-clamp-2'>
             <span className='font-semibold'>Bị khoá: </span>
             {blockedReason}
@@ -157,8 +159,11 @@ export const StatusNotes: React.FC<{ card: BoardCard; blockedReason: string | nu
         </p>
       )}
       {st === 'ReworkRequired' && (
-        <p className='flex items-start gap-1.5 text-xs text-rose-900'>
-          <MessageSquareWarning className='mt-px h-3.5 w-3.5 shrink-0' aria-hidden='true' />
+        <p className='flex items-start gap-1.5 rounded-md border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-xs text-rose-900'>
+          <MessageSquareWarning
+            className='mt-px h-3.5 w-3.5 shrink-0 text-rose-600'
+            aria-hidden='true'
+          />
           <span className='line-clamp-2'>
             <span className='font-semibold'>Có yêu cầu sửa</span>
             {card.lastFeedbackComment ? `: ${card.lastFeedbackComment}` : ''}
@@ -169,7 +174,7 @@ export const StatusNotes: React.FC<{ card: BoardCard; blockedReason: string | nu
   );
 };
 
-// ── Thẻ "phiếu sản xuất" ──
+// ── Thẻ "phiếu sản xuất manga/comic" ──
 
 interface ProductionTaskCardProps {
   card: BoardCard;
@@ -188,67 +193,164 @@ export const ProductionTaskCard: React.FC<ProductionTaskCardProps> = ({
   onOpenDetails,
   onAction,
 }) => {
+  const thumbnail = useTaskThumbnail(card);
+
   return (
     <article
-      className='relative flex h-full min-w-0 flex-col rounded-xl border border-landing-border bg-landing-paper-light p-4 shadow-[0_1px_2px_rgba(28,25,23,0.06)]'
+      className='group relative flex h-full min-w-0 flex-col rounded-xl border border-landing-border bg-[#FCFBF8] shadow-[0_1px_3px_rgba(28,25,23,0.06)] hover:border-landing-ink-muted/50 hover:shadow-[0_4px_12px_rgba(28,25,23,0.08)] transition-all'
       data-testid='production-task-card'
       aria-label={card.brief}
     >
-      {/* 1. Công đoạn + trạng thái */}
-      <div className='flex items-start justify-between gap-2'>
-        <StageLabel card={card} />
-        <StatusBadge status={card.status} />
-      </div>
-
-      {/* 2. Tên công việc: nút phủ toàn thẻ (stretched), không lồng nút */}
-      <h3 className='mt-3 text-[15px] leading-snug font-semibold text-landing-ink'>
-        <button
-          type='button'
-          onClick={(e) => onOpenDetails(card, e.currentTarget)}
-          className='block w-full text-left after:absolute after:inset-0 after:rounded-xl after:content-[""] focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-landing-ink cursor-pointer'
-        >
-          <span className='line-clamp-2'>{card.brief}</span>
-        </button>
-      </h3>
-
-      {/* 3. Phạm vi */}
-      <p className='mt-1 text-xs font-medium text-landing-ink-muted'>{card.targetLabel}</p>
-
-      {/* 4. Đoạn trích / icon công đoạn (không có thumbnail giả) */}
-      <div className='mt-3 flex flex-col gap-2'>
-        {card.referenceNotes ? (
-          <p className='line-clamp-3 text-sm leading-relaxed text-landing-ink-muted'>
-            {card.referenceNotes}
-          </p>
-        ) : (
-          <p className='flex items-center gap-1.5 text-sm text-landing-ink-muted'>
-            <StageIcon stageName={card.stageName} className='h-4 w-4 shrink-0' />
-            Chưa có ghi chú tham chiếu
-          </p>
-        )}
-        <StatusNotes card={card} blockedReason={blockedReason} />
-      </div>
-
-      {/* 5 + 6. Người phụ trách, hạn, hành động: luôn neo đáy thẻ */}
-      <div className='mt-auto pt-4'>
-        <div className='flex items-center justify-between gap-2 border-t border-landing-border pt-3'>
-          <span className='flex min-w-0 items-center gap-2'>
-            <Avatar card={card} />
-            <span className='truncate text-sm text-landing-ink' title={card.assigneeName}>
-              {card.assigneeName}
+      {/* 1. Vùng Thumbnail bản thảo manga */}
+      <div className='relative w-full h-38 bg-[#F3F0E9] rounded-t-xl overflow-hidden border-b border-landing-border flex items-center justify-center select-none'>
+        {/* Floating Badges: Cấp đối tượng bên trái, Trạng thái bên phải */}
+        <div className='absolute top-2.5 left-2.5 z-10 flex items-center gap-1.5'>
+          {card.entityType === 'Page' ? (
+            <span className='inline-flex items-center px-2 py-0.5 rounded-md bg-[#1C1917]/85 backdrop-blur-xs text-[#FCFBF8] font-mono text-xs font-semibold shadow-xs'>
+              {card.targetLabel || `Trang ${card.pageNumber ?? '?'}`}
             </span>
-          </span>
-          <DueInfo card={card} now={now} />
+          ) : card.entityType === 'Panel' ? (
+            <span className='inline-flex items-center px-2 py-0.5 rounded-md bg-stone-800/85 backdrop-blur-xs text-[#FCFBF8] font-mono text-xs font-semibold shadow-xs'>
+              Khung tranh
+            </span>
+          ) : (
+            <span className='inline-flex items-center px-2 py-0.5 rounded-md bg-amber-950/85 backdrop-blur-xs text-amber-200 font-mono text-xs font-semibold shadow-xs'>
+              Toàn chương
+            </span>
+          )}
         </div>
-        <div className='mt-3 flex justify-end'>
+
+        <div className='absolute top-2.5 right-2.5 z-10'>
+          <StatusBadge status={card.status} />
+        </div>
+
+        {/* Nội dung Thumbnail: Ảnh thật (contain) HOẶC Khung bản thảo fallback */}
+        {thumbnail.status === 'success' && thumbnail.url ? (
+          <div className='w-full h-full p-2 flex items-center justify-center relative'>
+            <img
+              src={thumbnail.url}
+              alt={card.brief}
+              className='max-h-full max-w-full object-contain drop-shadow-xs transition-transform duration-200 group-hover:scale-[1.02]'
+              loading='lazy'
+            />
+            {thumbnail.isPreviousStage && (
+              <span className='absolute bottom-2 left-2 z-10 text-[10px] font-mono bg-stone-900/80 text-amber-200 px-1.5 py-0.5 rounded shadow-xs backdrop-blur-xs'>
+                {thumbnail.label}
+              </span>
+            )}
+          </div>
+        ) : (
+          <div className='w-full h-full flex flex-col items-center justify-center p-3 text-center'>
+            {/* Manga manuscript page wireframe */}
+            <div className='w-20 h-24 border border-dashed border-[#D8D2C5] rounded bg-[#FCFBF8]/90 shadow-2xs flex flex-col items-center justify-center gap-1.5 p-2'>
+              <StageIcon stageName={card.stageName} className='w-5 h-5 text-stone-400 stroke-1' />
+              <span className='text-[10px] leading-tight text-stone-500 font-medium'>
+                {thumbnail.label ||
+                  (card.entityType === 'Chapter' ? 'Kế hoạch chương' : 'Chưa có bản vẽ')}
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 2. Nội dung thẻ */}
+      <div className='flex flex-1 flex-col p-4'>
+        {/* Công đoạn + Priority */}
+        <div className='flex items-center justify-between gap-2 mb-2'>
+          <StageLabel card={card} />
+          {card.priority && ['High', 'Urgent', '2', '3'].includes(String(card.priority)) && (
+            <span className='px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-rose-50 text-rose-800 border border-rose-200'>
+              {String(card.priority) === 'Urgent' || String(card.priority) === '3'
+                ? 'Khẩn'
+                : 'Ưu tiên'}
+            </span>
+          )}
+        </div>
+
+        {/* Tên công việc: nút mở chi tiết, không dùng stretched-link phủ thẻ */}
+        <h3 className='text-[15px] leading-snug font-semibold text-landing-ink'>
           <button
             type='button'
-            onClick={(e) => onAction(card, action, e.currentTarget)}
-            className={actionButtonClass(action)}
-            aria-label={`${action.label}: ${card.brief}`}
+            onClick={(e) => onOpenDetails(card, e.currentTarget)}
+            className='w-full text-left hover:text-[#C2410C] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-landing-ink rounded transition-colors cursor-pointer'
           >
-            {action.label}
+            <span className='line-clamp-2'>{card.brief}</span>
           </button>
+        </h3>
+
+        {/* Ghi chú tham chiếu */}
+        {card.referenceNotes && (
+          <p className='mt-2 line-clamp-2 text-xs leading-relaxed text-landing-ink-muted'>
+            {card.referenceNotes}
+          </p>
+        )}
+
+        {/* Cảnh báo / phản hồi đặc biệt */}
+        <div className='mt-2.5 flex flex-col gap-1.5'>
+          <StatusNotes card={card} blockedReason={blockedReason} />
+        </div>
+
+        {/* 3. Footer: Người phụ trách, hạn, hành động */}
+        <div className='mt-auto pt-4'>
+          <div className='flex items-center justify-between gap-2 border-t border-landing-border pt-3'>
+            <span className='flex min-w-0 items-center gap-2'>
+              <Avatar card={card} />
+              <span
+                className='truncate text-xs font-medium text-landing-ink'
+                title={card.assigneeName}
+              >
+                {card.assigneeName}
+              </span>
+            </span>
+            <DueInfo card={card} now={now} />
+          </div>
+
+          <div className='mt-3 flex items-center justify-between gap-2 flex-wrap'>
+            {action.kind !== 'details' ? (
+              <>
+                <button
+                  type='button'
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOpenDetails(card, e.currentTarget);
+                  }}
+                  className='inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-landing-border bg-[#FCFBF8] px-2.5 py-1.5 text-xs font-semibold text-landing-ink hover:bg-[#FFF2E6] hover:border-[#C2410C]/50 hover:text-[#C2410C] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C2410C] transition-colors cursor-pointer shadow-2xs'
+                  aria-label={`Xem chi tiết: ${card.brief}`}
+                  title='Xem chi tiết phiếu công việc'
+                >
+                  <Eye className='h-3.5 w-3.5 text-stone-500' aria-hidden='true' />
+                  <span>Chi tiết</span>
+                  <ChevronRight className='h-3 w-3 text-stone-400' aria-hidden='true' />
+                </button>
+                <button
+                  type='button'
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAction(card, action, e.currentTarget);
+                  }}
+                  className={actionButtonClass(action)}
+                  aria-label={`${action.label}: ${card.brief}`}
+                >
+                  {action.label}
+                </button>
+              </>
+            ) : (
+              <button
+                type='button'
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenDetails(card, e.currentTarget);
+                }}
+                className='inline-flex min-h-9 w-full items-center justify-center gap-1.5 rounded-lg border border-landing-border bg-[#FCFBF8] px-3.5 py-1.5 text-xs font-semibold text-landing-ink hover:bg-[#FFF2E6] hover:border-[#C2410C]/50 hover:text-[#C2410C] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C2410C] transition-colors cursor-pointer shadow-2xs'
+                aria-label={`Xem chi tiết: ${card.brief}`}
+                title='Xem chi tiết phiếu công việc'
+              >
+                <Eye className='h-3.5 w-3.5 text-stone-500' aria-hidden='true' />
+                <span>Xem chi tiết</span>
+                <ChevronRight className='h-3.5 w-3.5 text-stone-400' aria-hidden='true' />
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </article>

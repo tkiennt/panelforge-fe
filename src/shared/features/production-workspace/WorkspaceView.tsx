@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams, Link } from 'react-router-dom';
 import { ProductionBoard } from '@/shared/features/pipeline-board/ProductionBoard';
 import { formatChapterLabel } from '@/shared/features/pipeline-board/productionBoard.utils';
 import { CreateAssignmentModal } from '@/roles/producer/modals/CreateAssignmentModal';
 import { SystemRole, WorkspaceRole } from '@/types';
-import { BookOpen, RefreshCw, ArrowUpRight, ShieldAlert, Lock } from 'lucide-react';
+import { BookOpen, RefreshCw, ArrowUpRight, ShieldAlert, Lock, ChevronRight } from 'lucide-react';
 import { chapterService, ChapterDto } from '@/services/chapter.service';
+import { workspaceService } from '@/services/workspace.service';
+import { seriesService } from '@/services/series.service';
 
 export interface WorkspaceViewProps {
   currentUserRole?: WorkspaceRole | null;
@@ -51,10 +53,34 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
+  // Metadata cho breadcrumb Studio / Series
+  const [workspaceName, setWorkspaceName] = useState<string>('');
+  const [seriesTitle, setSeriesTitle] = useState<string>('');
+
   const isReaderOnly = effectiveRoles.length === 1 && effectiveRoles[0] === 'READER';
   const isProducer = useMemo(() => {
     return effectiveRoles.some((r) => r.toUpperCase() === 'PRODUCER');
   }, [effectiveRoles]);
+
+  // Nạp metadata ngữ cảnh Studio và Series
+  useEffect(() => {
+    if (workspaceId) {
+      workspaceService
+        .getWorkspaceById(workspaceId)
+        .then((ws) => {
+          if (ws?.name) setWorkspaceName(ws.name);
+        })
+        .catch(() => {});
+    }
+    if (seriesId) {
+      seriesService
+        .getSeriesById(seriesId)
+        .then((s) => {
+          if (s?.title) setSeriesTitle(s.title);
+        })
+        .catch(() => {});
+    }
+  }, [workspaceId, seriesId]);
 
   // Nạp danh sách chương của Series
   const loadChapters = useCallback(async () => {
@@ -104,6 +130,11 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
     return chapters.find((c) => c.id === currentChapterId);
   }, [chapters, currentChapterId]);
 
+  const currentChapterFormattedTitle = useMemo(() => {
+    if (!currentChapter) return 'Đang nạp chương...';
+    return formatChapterLabel(currentChapter.chapterNumber, currentChapter.title || 'Bản thảo');
+  }, [currentChapter]);
+
   // Chặn độc giả không phận sự
   if (isReaderMode || isReaderOnly) {
     return (
@@ -137,29 +168,89 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
     : null;
 
   return (
-    <div className='w-full h-full min-w-0 overflow-x-hidden overflow-y-auto bg-landing-paper font-sans text-landing-ink'>
-      <div className='flex min-w-0 flex-col gap-5 px-4 py-5 sm:px-6 lg:px-8 lg:py-7'>
-        {/* Header chương */}
-        <header className='flex min-w-0 flex-col gap-4 lg:flex-row lg:items-end lg:justify-between'>
+    <div className='w-full min-h-screen min-w-0 bg-[#F3F0E9] font-sans text-landing-ink'>
+      <div className='flex min-w-0 flex-col gap-5 px-4 py-5 sm:px-6 lg:px-8 lg:py-6'>
+        {/* A. Header ngữ cảnh Editorial Studio */}
+        <header className='flex min-w-0 flex-col gap-4 border-b border-landing-border pb-5 lg:flex-row lg:items-end lg:justify-between'>
           <div className='min-w-0'>
-            <h1 className='font-serif text-2xl font-semibold text-landing-ink sm:text-3xl'>
-              Quy trình sản xuất
-            </h1>
+            {/* Breadcrumb Studio / Series / Chương */}
+            <nav
+              aria-label='Đường dẫn ngữ cảnh'
+              className='flex items-center gap-1.5 text-xs text-landing-ink-muted mb-2 flex-wrap'
+            >
+              <Link
+                to={workspaceId ? `/workspaces/${workspaceId}` : '#'}
+                className='hover:text-landing-ink transition-colors max-w-[140px] truncate'
+                title={workspaceName || 'Studio'}
+              >
+                {workspaceName || 'Studio'}
+              </Link>
+              <ChevronRight className='h-3 w-3 text-stone-400 shrink-0' aria-hidden='true' />
+              <Link
+                to={workspaceId && seriesId ? `/workspaces/${workspaceId}/series/${seriesId}` : '#'}
+                className='hover:text-landing-ink transition-colors max-w-[160px] truncate'
+                title={seriesTitle || 'Series'}
+              >
+                {seriesTitle || 'Series'}
+              </Link>
+              <ChevronRight className='h-3 w-3 text-stone-400 shrink-0' aria-hidden='true' />
+              <span
+                className='font-semibold text-landing-ink max-w-[200px] truncate'
+                title={currentChapterFormattedTitle}
+              >
+                {currentChapter ? `Chương ${currentChapter.chapterNumber}` : 'Chương'}
+              </span>
+            </nav>
+
+            {/* Nhãn chức năng phụ + Tên chương nổi bật */}
+            <div className='flex items-center gap-2 mb-1.5'>
+              <h1 className='inline-flex items-center rounded border border-stone-300 bg-stone-200/70 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-stone-700'>
+                Quy trình sản xuất
+              </h1>
+              {statusMeta && (
+                <span
+                  className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-semibold ${statusMeta.cls}`}
+                >
+                  {statusMeta.label}
+                </span>
+              )}
+              {currentChapter &&
+                ['Approved', 'Published'].includes(String(currentChapter.status)) && (
+                  <span className='inline-flex items-center gap-1 text-xs text-landing-ink-muted'>
+                    <Lock className='h-3.5 w-3.5 text-stone-500' aria-hidden='true' />
+                    <span className='hidden sm:inline'>
+                      Bị khoá: nội dung chương chỉ còn xem, không sửa được
+                    </span>
+                  </span>
+                )}
+            </div>
+
+            {/* Tiêu đề chương nổi bật */}
+            <h2 className='font-serif text-2xl font-bold tracking-tight text-landing-ink sm:text-3xl'>
+              {currentChapter
+                ? currentChapter.title
+                  ? currentChapter.title.replace(/^\s*chương\s*\d+\s*[:.\-–—]?\s*/i, '').trim()
+                  : `Bản thảo Chương ${currentChapter.chapterNumber}`
+                : 'Đang nạp chương...'}
+            </h2>
+
+            {/* Bộ chọn chương */}
             <div className='mt-3 flex flex-wrap items-center gap-3'>
-              <div className='flex min-h-11 min-w-0 items-center gap-2 rounded-lg border border-landing-border bg-landing-paper-light px-3'>
+              <div className='flex min-h-10 min-w-0 items-center gap-2 rounded-lg border border-landing-border bg-[#FCFBF8] px-3 shadow-2xs'>
                 <BookOpen className='h-4 w-4 shrink-0 text-landing-ink-muted' aria-hidden='true' />
                 <label
                   htmlFor='pipeline-chapter-select'
-                  className='text-sm font-medium text-landing-ink-muted'
+                  className='text-xs font-semibold text-landing-ink-muted uppercase tracking-wider'
                 >
                   Chương:
                 </label>
                 <select
                   id='pipeline-chapter-select'
+                  aria-label='Chương:'
                   value={currentChapterId}
                   onChange={handleChapterChange}
                   disabled={loadingChapters || chapters.length === 0}
-                  className={`min-h-10 max-w-[60vw] min-w-0 truncate rounded bg-transparent pr-2 text-sm font-semibold text-landing-ink cursor-pointer sm:max-w-md ${focusRing}`}
+                  className={`min-h-9 max-w-[60vw] min-w-0 truncate rounded bg-transparent pr-2 text-sm font-semibold text-landing-ink cursor-pointer sm:max-w-md ${focusRing}`}
                 >
                   {chapters.length === 0 ? (
                     <option value=''>Đang nạp danh sách chương...</option>
@@ -172,25 +263,11 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                   )}
                 </select>
               </div>
-
-              {statusMeta && (
-                <span
-                  className={`inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-semibold ${statusMeta.cls}`}
-                >
-                  {statusMeta.label}
-                </span>
-              )}
-              {currentChapter &&
-                ['Approved', 'Published'].includes(String(currentChapter.status)) && (
-                  <span className='inline-flex items-center gap-1.5 text-xs text-landing-ink-muted'>
-                    <Lock className='h-3.5 w-3.5' aria-hidden='true' />
-                    Bị khoá: nội dung chương chỉ còn xem, không sửa được
-                  </span>
-                )}
             </div>
           </div>
 
-          <div className='flex flex-wrap items-center gap-2'>
+          {/* Nhóm hành động: tối đa 1 CTA chính nổi bật */}
+          <div className='flex flex-wrap items-center gap-2.5'>
             <button
               type='button'
               onClick={() => {
@@ -199,9 +276,9 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
               }}
               aria-label='Làm mới dữ liệu'
               title='Làm mới dữ liệu'
-              className={`inline-flex min-h-11 items-center gap-2 rounded-lg border border-landing-border bg-landing-paper-light px-3.5 text-sm font-semibold text-landing-ink hover:bg-white transition-colors cursor-pointer ${focusRing}`}
+              className={`inline-flex min-h-10 items-center gap-2 rounded-lg border border-landing-border bg-[#FCFBF8] px-3.5 text-sm font-semibold text-landing-ink hover:bg-white shadow-2xs transition-colors cursor-pointer ${focusRing}`}
             >
-              <RefreshCw className='h-4 w-4' aria-hidden='true' />
+              <RefreshCw className='h-4 w-4 text-landing-ink-muted' aria-hidden='true' />
               <span className='max-sm:sr-only'>Làm mới</span>
             </button>
 
@@ -215,7 +292,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                     }`,
                   )
                 }
-                className={`inline-flex min-h-11 items-center gap-1.5 rounded-lg bg-landing-ink px-4 text-sm font-semibold text-white hover:bg-black transition-colors cursor-pointer ${focusRing}`}
+                className={`inline-flex min-h-10 items-center gap-1.5 rounded-lg bg-[#1C1917] px-4 text-sm font-semibold text-white shadow-xs hover:bg-stone-800 transition-colors cursor-pointer ${focusRing}`}
               >
                 <span>Công việc &amp; Xét duyệt</span>
                 <ArrowUpRight className='h-4 w-4' aria-hidden='true' />
@@ -224,6 +301,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
           </div>
         </header>
 
+        {/* Bàn điều phối sản xuất */}
         <ProductionBoard
           chapterId={currentChapterId}
           refreshKey={refreshKey}

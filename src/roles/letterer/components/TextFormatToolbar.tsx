@@ -32,8 +32,8 @@ interface TextFormatToolbarProps {
 const btn = (active: boolean) =>
   `h-7 min-w-7 px-1.5 inline-flex items-center justify-center rounded-md border text-xs transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
     active
-      ? 'bg-emerald-600 border-emerald-600 text-white'
-      : 'bg-white border-[#E7E7E7] text-zinc-700 hover:bg-[#F0EFED]'
+      ? 'bg-[#FFF2E6] border-[#C2410C] text-[#C2410C] font-semibold'
+      : 'bg-[#FCFBF8] border-[#D8D2C5] text-[#57534E] hover:bg-[#F3F0E9] hover:text-[#1C1917]'
   }`;
 
 /**
@@ -62,12 +62,12 @@ export const TextFormatToolbar: React.FC<TextFormatToolbarProps> = ({
   return (
     <div className='space-y-2' data-testid='text-format-toolbar'>
       <div className='flex items-center justify-between'>
-        <label className='font-semibold text-zinc-700'>Định dạng chữ</label>
+        <label className='font-semibold text-[#1C1917]'>Định dạng chữ</label>
         <button
           type='button'
           disabled={disabled || !isCustom}
           onClick={() => onChange(null)}
-          className='text-xs text-zinc-500 hover:text-zinc-900 inline-flex items-center gap-1 disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed'
+          className='text-xs text-[#57534E] hover:text-[#1C1917] inline-flex items-center gap-1 disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed transition-colors'
           title='Về kiểu mặc định theo loại bóng'
         >
           <RotateCcw className='w-3 h-3' /> Mặc định
@@ -83,7 +83,7 @@ export const TextFormatToolbar: React.FC<TextFormatToolbarProps> = ({
           const preset = TEXT_PRESETS.find((p) => p.name === e.target.value);
           if (preset) onChange(preset.style);
         }}
-        className='w-full h-8 px-2 bg-white border border-[#E7E7E7] rounded-lg text-xs'
+        className='w-full h-8 px-2 bg-[#FCFBF8] border border-[#D8D2C5] rounded-lg text-xs text-[#1C1917] focus:border-[#F97316] focus:outline-none'
       >
         <option value='' disabled>
           (Tuỳ chỉnh)
@@ -101,7 +101,7 @@ export const TextFormatToolbar: React.FC<TextFormatToolbarProps> = ({
           disabled={disabled}
           value={style.fontFamily}
           onChange={(e) => apply({ fontFamily: e.target.value })}
-          className='flex-1 min-w-0 h-8 px-2 bg-white border border-[#E7E7E7] rounded-lg text-xs'
+          className='flex-1 min-w-0 h-8 px-2 bg-[#FCFBF8] border border-[#D8D2C5] rounded-lg text-xs text-[#1C1917] focus:border-[#F97316] focus:outline-none'
           style={{ fontFamily: `'${style.fontFamily}', sans-serif` }}
         >
           {TEXT_FONTS.map((f) => (
@@ -131,7 +131,7 @@ export const TextFormatToolbar: React.FC<TextFormatToolbarProps> = ({
           onChange={(e) => setSizeDraft(e.target.value.replace(/[^0-9]/g, ''))}
           onBlur={commitSize}
           onKeyDown={(e) => e.key === 'Enter' && (e.currentTarget as HTMLInputElement).blur()}
-          className='w-11 h-7 text-center bg-white border border-[#E7E7E7] rounded-md text-xs font-mono'
+          className='w-11 h-7 text-center bg-[#FCFBF8] border border-[#D8D2C5] rounded-md text-xs font-mono text-[#1C1917] focus:border-[#F97316] focus:outline-none'
         />
         <button
           type='button'
@@ -165,7 +165,7 @@ export const TextFormatToolbar: React.FC<TextFormatToolbarProps> = ({
         >
           <Italic className='w-3.5 h-3.5' />
         </button>
-        <span className='w-px h-5 bg-[#E7E7E7] mx-0.5' />
+        <span className='w-px h-5 bg-[#D8D2C5] mx-0.5' />
         {(
           [
             ['left', AlignLeft, 'Căn trái'],
@@ -185,13 +185,13 @@ export const TextFormatToolbar: React.FC<TextFormatToolbarProps> = ({
             <Icon className='w-3.5 h-3.5' />
           </button>
         ))}
-        <span className='w-px h-5 bg-[#E7E7E7] mx-0.5' />
+        <span className='w-px h-5 bg-[#D8D2C5] mx-0.5' />
         <select
           aria-label='Giãn dòng'
           disabled={disabled}
           value={String(style.lineHeight ?? 1.3)}
           onChange={(e) => apply({ lineHeight: Number(e.target.value) })}
-          className='h-7 px-1 bg-white border border-[#E7E7E7] rounded-md text-xs'
+          className='h-7 px-1 bg-[#FCFBF8] border border-[#D8D2C5] rounded-md text-xs text-[#1C1917] focus:border-[#F97316] focus:outline-none'
           title='Giãn dòng'
         >
           {LINE_HEIGHTS.map((h) => (
@@ -202,7 +202,7 @@ export const TextFormatToolbar: React.FC<TextFormatToolbarProps> = ({
         </select>
       </div>
 
-      <div className='flex items-center gap-3 text-zinc-600'>
+      <div className='flex items-center gap-3 text-[#57534E]'>
         <label className='inline-flex items-center gap-1.5'>
           Màu
           <input
@@ -211,7 +211,7 @@ export const TextFormatToolbar: React.FC<TextFormatToolbarProps> = ({
             disabled={disabled}
             value={style.color ?? '#171717'}
             onChange={(e) => apply({ color: e.target.value.toUpperCase() })}
-            className='w-7 h-7 p-0.5 bg-white border border-[#E7E7E7] rounded-md cursor-pointer'
+            className='w-7 h-7 p-0.5 bg-[#FCFBF8] border border-[#D8D2C5] rounded-md cursor-pointer'
           />
         </label>
         <label className='inline-flex items-center gap-1.5'>
@@ -227,7 +227,7 @@ export const TextFormatToolbar: React.FC<TextFormatToolbarProps> = ({
                 strokeWidth: style.strokeWidth || 2,
               })
             }
-            className='w-7 h-7 p-0.5 bg-white border border-[#E7E7E7] rounded-md cursor-pointer'
+            className='w-7 h-7 p-0.5 bg-[#FCFBF8] border border-[#D8D2C5] rounded-md cursor-pointer'
           />
           <select
             aria-label='Độ dày viền chữ'
@@ -237,7 +237,7 @@ export const TextFormatToolbar: React.FC<TextFormatToolbarProps> = ({
               const w = Number(e.target.value);
               apply({ strokeWidth: w, strokeColor: w ? (style.strokeColor ?? '#FFFFFF') : null });
             }}
-            className='h-7 px-1 bg-white border border-[#E7E7E7] rounded-md text-xs'
+            className='h-7 px-1 bg-[#FCFBF8] border border-[#D8D2C5] rounded-md text-xs text-[#1C1917] focus:border-[#F97316] focus:outline-none'
           >
             {[0, 2, 4, 6].map((w) => (
               <option key={w} value={String(w)}>

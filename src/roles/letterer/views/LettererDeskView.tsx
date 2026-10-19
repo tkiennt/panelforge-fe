@@ -50,27 +50,27 @@ export default function LettererDeskView() {
   }, [currentChapterId, pageIdFromUrl]);
 
   return (
-    <div className='flex flex-col h-full bg-[#f5f5f5] text-[#0c0a09] font-sans overflow-hidden'>
+    <div className='flex flex-col h-full bg-[#F3F0E9] text-[#1C1917] font-sans overflow-hidden'>
       {/* Header with Chapter & Page Selectors */}
-      <div className='flex flex-wrap items-center justify-between px-4 py-2 border-b border-[#e7e5e4] bg-[#fafafa]/90 backdrop-blur-md shrink-0 gap-2 shadow-soft-sm'>
+      <div className='flex flex-wrap items-center justify-between px-4 py-2 border-b border-[#D8D2C5] bg-[#FCFBF8] shrink-0 gap-2 shadow-soft-sm'>
         <div className='flex items-center gap-2.5'>
-          <div className='w-8 h-8 rounded-full bg-[#292524] text-white flex items-center justify-center shadow-soft-sm'>
+          <div className='w-8 h-8 rounded-full bg-[#FFF2E6] text-[#C2410C] border border-[#FDBA74] flex items-center justify-center shadow-soft-sm'>
             <Type className='w-4 h-4' />
           </div>
           <h2
-            className='text-xs font-semibold tracking-tight text-[#0c0a09]'
+            className='text-sm font-serif font-bold tracking-tight text-[#1C1917]'
             title='Balloon Placement • Script Anchoring • Concurrency Control (BR-11, NFR-09)'
           >
-            Letterer Desk
+            Bàn Làm Việc Thoại &amp; Chữ (Letterer Desk)
           </h2>
         </div>
 
         <div className='flex items-center gap-3 flex-wrap'>
           {/* Chapter Selector */}
           {chapters.length > 0 && (
-            <div className='flex items-center gap-1.5 bg-white px-3.5 py-1.5 rounded-full border border-[#e7e5e4] text-xs shadow-soft-sm'>
-              <BookOpen className='w-3.5 h-3.5 text-blue-600' />
-              <label htmlFor='letterer-chapter-select' className='text-[#777169] font-medium'>
+            <div className='flex items-center gap-1.5 bg-[#FCFBF8] px-3.5 py-1.5 rounded-full border border-[#D8D2C5] text-xs shadow-soft-sm'>
+              <BookOpen className='w-3.5 h-3.5 text-[#C2410C]' />
+              <label htmlFor='letterer-chapter-select' className='text-[#57534E] font-medium'>
                 Chương:
               </label>
               <select
@@ -85,7 +85,7 @@ export default function LettererDeskView() {
                     return p;
                   });
                 }}
-                className='bg-transparent text-xs font-medium text-[#0c0a09] outline-none cursor-pointer'
+                className='bg-transparent text-xs font-semibold text-[#1C1917] outline-none cursor-pointer'
               >
                 {chapters.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -99,9 +99,9 @@ export default function LettererDeskView() {
 
           {/* Page Selector */}
           {pages.length > 0 && (
-            <div className='flex items-center gap-1.5 bg-white px-3.5 py-1.5 rounded-full border border-[#e7e5e4] text-xs shadow-soft-sm'>
+            <div className='flex items-center gap-1.5 bg-[#FCFBF8] px-3.5 py-1.5 rounded-full border border-[#D8D2C5] text-xs shadow-soft-sm'>
               <FileImage className='w-3.5 h-3.5 text-emerald-600' />
-              <label htmlFor='letterer-page-select' className='text-[#777169] font-medium'>
+              <label htmlFor='letterer-page-select' className='text-[#57534E] font-medium'>
                 Trang:
               </label>
               <select
@@ -116,7 +116,7 @@ export default function LettererDeskView() {
                     return p;
                   });
                 }}
-                className='bg-transparent text-xs font-medium text-[#0c0a09] outline-none cursor-pointer'
+                className='bg-transparent text-xs font-semibold text-[#1C1917] outline-none cursor-pointer'
               >
                 {pages.map((p) => (
                   <option key={p.id} value={p.id}>

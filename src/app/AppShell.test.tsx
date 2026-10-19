@@ -105,7 +105,7 @@ describe('AppShell Component', () => {
     renderInRouter(producerUser, '/workspaces/ws-1/series/ser-1/dashboard');
 
     expect(screen.getByText('Series Dashboard')).toBeInTheDocument();
-    expect(screen.getByText('Production Pipeline')).toBeInTheDocument();
+    expect(screen.getByText('Quy trình sản xuất')).toBeInTheDocument();
     expect(screen.getByText('Bàn vẽ & Khung trang')).toBeInTheDocument();
     expect(screen.getByText('Chèn chữ & Bóng thoại')).toBeInTheDocument();
     expect(screen.getByText('Cổng Duyệt Xuất Bản')).toBeInTheDocument();
@@ -252,5 +252,46 @@ describe('AppShell Component', () => {
     expect(sidebar).toHaveClass('w-64');
     expect(sidebar).not.toHaveClass('w-16');
     expect(localStorage.getItem('pf.sidebar.collapsed')).toBe('false');
+  });
+
+  it('mục điều hướng đang chọn có nền cam ngà #FFF2E6, chữ than #1C1917, aria-current="page" và không có nền đen', () => {
+    const producerUser: CurrentUser = {
+      name: 'Phạm Nhà Sản Xuất',
+      role: 'USER',
+      workspaceRole: 'PRODUCER' as any,
+      activeRoles: ['PRODUCER'],
+      avatarInitials: 'PN',
+    };
+
+    renderInRouter(producerUser, '/workspaces/ws-1/series/ser-1/dashboard');
+
+    const activeLink = screen.getByRole('link', { name: /Series Dashboard/i });
+    expect(activeLink).toBeInTheDocument();
+    expect(activeLink).toHaveAttribute('aria-current', 'page');
+
+    // Nền cam ngà nhạt #FFF2E6, chữ than #1C1917, bo góc 8px (rounded-lg)
+    expect(activeLink).toHaveClass('bg-[#FFF2E6]');
+    expect(activeLink).toHaveClass('text-[#1C1917]');
+    expect(activeLink).toHaveClass('rounded-lg');
+
+    // Không có nền đen cũ #292524 hay rounded-full
+    expect(activeLink).not.toHaveClass('bg-[#292524]');
+    expect(activeLink).not.toHaveClass('rounded-full');
+  });
+
+  it('sidebar áp dụng màu nền trắng ngà #FCFBF8 và viền phải #E7E2D9', () => {
+    const producerUser: CurrentUser = {
+      name: 'Phạm Nhà Sản Xuất',
+      role: 'USER',
+      workspaceRole: 'PRODUCER' as any,
+      activeRoles: ['PRODUCER'],
+      avatarInitials: 'PN',
+    };
+
+    renderInRouter(producerUser, '/workspaces/ws-1/series/ser-1/dashboard');
+
+    const sidebar = screen.getByTestId('app-shell-sidebar');
+    expect(sidebar).toHaveClass('bg-[#FCFBF8]');
+    expect(sidebar).toHaveClass('border-[#E7E2D9]');
   });
 });

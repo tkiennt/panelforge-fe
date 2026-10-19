@@ -114,8 +114,8 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
     <aside
       className={
         isMobileDrawer
-          ? 'w-full bg-[#fafafa] flex flex-col select-none h-full overflow-hidden'
-          : `hidden md:flex flex-col shrink-0 select-none z-20 h-full bg-[#fafafa] border-r border-[#e7e5e4] transition-all duration-200 ${
+          ? 'w-full bg-[#FCFBF8] flex flex-col select-none h-full overflow-hidden'
+          : `hidden md:flex flex-col shrink-0 select-none z-20 h-full bg-[#FCFBF8] border-r border-[#E7E2D9] transition-all duration-200 ${
               isCollapsed ? 'w-16' : 'w-64'
             }`
       }
@@ -131,10 +131,10 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
           <BrandMark size={28} className='shrink-0' />
           {showFullContent && (
             <div className='min-w-0'>
-              <div className='font-serif font-medium text-sm leading-tight text-[#0c0a09] tracking-tight truncate'>
+              <div className='font-serif font-medium text-sm leading-tight text-[#1C1917] tracking-tight truncate'>
                 PanelForge
               </div>
-              <div className='text-xs uppercase font-mono tracking-wider text-[#777169] font-medium truncate'>
+              <div className='text-xs uppercase font-mono tracking-wider text-[#78716C] font-medium truncate'>
                 Studio Edition
               </div>
             </div>
@@ -143,7 +143,7 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
 
         <div className='flex items-center gap-1'>
           {showFullContent && (
-            <span className='items-center px-2 py-0.5 rounded-full text-xs font-mono font-medium bg-[#f0efed] text-[#777169] inline-flex'>
+            <span className='items-center px-2 py-0.5 rounded-md text-xs font-mono font-medium bg-[#F1EEE8] text-[#78716C] inline-flex'>
               v2.4
             </span>
           )}
@@ -153,7 +153,7 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
               onClick={handleToggle}
               aria-label={showFullContent ? 'Thu gọn menu' : 'Mở rộng menu'}
               title={showFullContent ? 'Thu gọn menu' : 'Mở rộng menu'}
-              className='p-1.5 rounded-lg hover:bg-[#f0efed] text-[#777169] hover:text-[#0c0a09] transition-colors cursor-pointer'
+              className='p-1.5 rounded-lg hover:bg-[#F1EEE8] text-[#78716C] hover:text-[#1C1917] transition-colors cursor-pointer focus:outline-none focus-visible:outline-2 focus-visible:outline-[#C2410C] focus-visible:outline-offset-1'
               data-testid='sidebar-rail-toggle-btn'
             >
               {showFullContent ? (
@@ -170,11 +170,11 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
       <div className={`mt-3 space-y-1.5 ${showFullContent ? 'mx-3' : 'mx-2'}`}>
         {currentUser.activeRoles?.includes('ADMINISTRATOR') && (
           <div
-            className={`flex items-center gap-2 px-1 mb-2 text-[#171717] ${
+            className={`flex items-center gap-2 px-1 mb-2 text-[#1C1917] ${
               showFullContent ? 'justify-start' : 'justify-center'
             }`}
           >
-            <Server className='w-3.5 h-3.5 text-[#555555] shrink-0' />
+            <Server className='w-3.5 h-3.5 text-[#78716C] shrink-0' />
             {showFullContent && <span className='text-xs font-bold inline'>System Admin Zone</span>}
           </div>
         )}
@@ -183,27 +183,29 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
         <div
           data-testid='sidebar-workspace-switcher'
           onClick={(e) => handleNavClick(e, '/workspaces')}
-          className={`group flex items-center cursor-pointer p-2 rounded-xl bg-white border border-[#e7e5e4] hover:border-[#292524] transition-all shadow-soft-sm ${
-            showFullContent ? 'justify-between' : 'justify-center'
+          className={`group flex items-center cursor-pointer p-2 rounded-lg bg-white border border-[#E7E2D9] hover:border-[#C2410C]/40 hover:bg-[#F1EEE8]/50 transition-colors focus:outline-none focus-visible:outline-2 focus-visible:outline-[#C2410C] focus-visible:outline-offset-1 ${
+            showFullContent
+              ? 'justify-between min-h-[42px]'
+              : 'justify-center w-10 h-10 p-0 mx-auto'
           }`}
           title={`Workspace: ${activeWorkspace?.name || 'Chọn Workspace'}`}
           aria-label={`Workspace: ${activeWorkspace?.name || 'Chọn Workspace'}`}
         >
           <div className='flex items-center gap-2.5 min-w-0'>
-            <Briefcase className='w-4 h-4 stroke-[2] text-[#292524] shrink-0' />
+            <Briefcase className='w-4 h-4 stroke-[2] text-[#1C1917] shrink-0' />
             {showFullContent && (
               <div className='min-w-0'>
-                <p className='text-xs font-semibold text-[#0c0a09] truncate leading-tight'>
+                <p className='text-xs font-semibold text-[#1C1917] truncate leading-tight'>
                   {activeWorkspace?.name || 'PanelForge Studio'}
                 </p>
-                <p className='text-xs text-[#777169] font-mono truncate'>
+                <p className='text-[11px] text-[#78716C] font-mono truncate'>
                   {currentUser.workspaceRole || 'Studio Workspace'}
                 </p>
               </div>
             )}
           </div>
           {showFullContent && (
-            <ChevronDown className='w-3.5 h-3.5 text-[#777169] group-hover:text-[#0c0a09] transition-colors shrink-0' />
+            <ChevronDown className='w-3.5 h-3.5 text-[#78716C] group-hover:text-[#1C1917] transition-colors shrink-0' />
           )}
         </div>
 
@@ -222,20 +224,22 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
                 }
                 setSeriesDropdownOpen((prev) => !prev);
               }}
-              className={`group flex items-center cursor-pointer p-2 rounded-xl bg-white border border-[#e7e5e4] hover:border-[#292524] transition-all shadow-soft-sm ${
-                showFullContent ? 'justify-between' : 'justify-center'
+              className={`group flex items-center cursor-pointer p-2 rounded-lg bg-white border border-[#E7E2D9] hover:border-[#C2410C]/40 hover:bg-[#F1EEE8]/50 transition-colors focus:outline-none focus-visible:outline-2 focus-visible:outline-[#C2410C] focus-visible:outline-offset-1 ${
+                showFullContent
+                  ? 'justify-between min-h-[42px]'
+                  : 'justify-center w-10 h-10 p-0 mx-auto'
               }`}
               title={`Series: ${seriesId ? activeSeries?.title || 'Bộ truyện' : 'Chọn Series'}`}
               aria-label={`Series: ${seriesId ? activeSeries?.title || 'Bộ truyện' : 'Chọn Series'}`}
             >
               <div className='flex items-center gap-2.5 min-w-0'>
-                <BookOpen className='w-4 h-4 stroke-[2] text-[#292524] shrink-0' />
+                <BookOpen className='w-4 h-4 stroke-[2] text-[#1C1917] shrink-0' />
                 {showFullContent && (
                   <div className='min-w-0'>
-                    <p className='text-xs font-semibold text-[#0c0a09] truncate leading-tight'>
+                    <p className='text-xs font-semibold text-[#1C1917] truncate leading-tight'>
                       {seriesId ? activeSeries?.title || 'Active Series' : 'Chọn Series...'}
                     </p>
-                    <p className='text-xs text-[#777169] font-mono truncate'>
+                    <p className='text-[11px] text-[#78716C] font-mono truncate'>
                       {seriesId ? activeSeries?.subtitle || 'Chương hiện tại' : 'Danh sách Series'}
                     </p>
                   </div>
@@ -243,7 +247,7 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
               </div>
               {showFullContent && (
                 <ChevronDown
-                  className={`w-3.5 h-3.5 text-[#777169] group-hover:text-[#0c0a09] transition-transform shrink-0 ${
+                  className={`w-3.5 h-3.5 text-[#78716C] group-hover:text-[#1C1917] transition-transform shrink-0 ${
                     seriesDropdownOpen ? 'rotate-180' : ''
                   }`}
                 />
@@ -252,8 +256,8 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
 
             {/* Dropdown Popover */}
             {seriesDropdownOpen && showFullContent && (
-              <div className='absolute left-0 right-0 mt-1 bg-white border border-stone-200 rounded-lg shadow-lg z-50 py-1 max-h-60 overflow-y-auto animate-in fade-in-50 zoom-in-95'>
-                <div className='px-3 py-1.5 border-b border-stone-100 flex items-center justify-between text-[11px] font-semibold text-stone-600'>
+              <div className='absolute left-0 right-0 mt-1 bg-white border border-[#E7E2D9] rounded-lg shadow-lg z-50 py-1 max-h-60 overflow-y-auto animate-in fade-in-50 zoom-in-95'>
+                <div className='px-3 py-1.5 border-b border-[#E7E2D9]/70 flex items-center justify-between text-[11px] font-semibold text-[#57534E]'>
                   <span>Bộ truyện trong Studio</span>
                   <button
                     type='button'
@@ -261,16 +265,16 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
                       setSeriesDropdownOpen(false);
                       handleNavClick(e, `/workspaces/${workspaceId}/series`);
                     }}
-                    className='text-orange-600 hover:text-orange-700 text-[10px] cursor-pointer'
+                    className='text-[#C2410C] hover:text-[#9A3412] text-[11px] font-medium cursor-pointer'
                   >
                     Xem tất cả
                   </button>
                 </div>
                 {loadingSeries && (
-                  <div className='p-3 text-xs text-stone-400 text-center'>Đang tải...</div>
+                  <div className='p-3 text-xs text-[#78716C] text-center'>Đang tải...</div>
                 )}
                 {!loadingSeries && seriesList.length === 0 && (
-                  <div className='p-3 text-xs text-stone-400 text-center'>
+                  <div className='p-3 text-xs text-[#78716C] text-center'>
                     Chưa có bộ truyện nào
                   </div>
                 )}
@@ -289,17 +293,17 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
                         }}
                         className={`px-3 py-2 text-xs flex items-center justify-between cursor-pointer transition-colors ${
                           isSelected
-                            ? 'bg-orange-50 text-orange-900 font-semibold'
-                            : 'hover:bg-stone-50 text-stone-700'
+                            ? 'bg-[#FFF2E6] text-[#1C1917] font-semibold'
+                            : 'hover:bg-[#F1EEE8] text-[#57534E]'
                         }`}
                       >
                         <div className='truncate pr-2'>
                           <p className='truncate'>{s.title}</p>
-                          <p className='text-xs text-stone-500 font-mono'>
+                          <p className='text-xs text-[#78716C] font-mono'>
                             {s.genre || 'Manga'} • {s.chaptersCount || 0} chương
                           </p>
                         </div>
-                        {isSelected && <Check className='w-3.5 h-3.5 text-[#292524] shrink-0' />}
+                        {isSelected && <Check className='w-3.5 h-3.5 text-[#C2410C] shrink-0' />}
                       </div>
                     );
                   })}
@@ -311,29 +315,30 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
 
       {/* Nav List */}
       <nav
-        className={`mt-5 flex-1 overflow-y-auto space-y-4 custom-scrollbar ${
-          showFullContent ? 'px-3' : 'px-1.5'
+        className={`mt-4 flex-1 overflow-y-auto space-y-4 custom-scrollbar ${
+          showFullContent ? 'px-3' : 'px-2'
         }`}
+        aria-label='Điều hướng chính'
       >
         {navSections.map((section, idx) => (
           <div key={idx}>
             {showFullContent && (
-              <div className='text-xs text-[#a8a29e] font-semibold px-3 mb-2 uppercase tracking-wider font-mono'>
+              <div className='text-[11px] text-[#78716C] font-semibold px-3 mb-1.5 uppercase tracking-wide font-sans'>
                 {section.section}
               </div>
             )}
             <div className='space-y-1'>
               {section.items.map((item: any, i: number) => {
                 const baseClass =
-                  'group flex items-center text-xs font-medium transition-all duration-150 ';
+                  'group relative flex items-center rounded-lg transition-colors duration-150 motion-reduce:transition-none focus:outline-none focus-visible:outline-2 focus-visible:outline-[#C2410C] focus-visible:outline-offset-1 ';
                 const activeClass = item.isActive
-                  ? 'bg-[#292524] text-white shadow-soft-sm font-semibold border-l-2 border-orange-500'
-                  : 'text-[#4e4e4e] hover:bg-[#f0efed] hover:text-[#0c0a09] cursor-pointer';
+                  ? 'bg-[#FFF2E6] hover:bg-[#FFF2E6] text-[#1C1917] font-semibold'
+                  : 'bg-transparent text-[#57534E] hover:bg-[#F1EEE8] hover:text-[#1C1917] font-medium cursor-pointer';
 
-                const iconClass = `w-4 h-4 shrink-0 transition-colors ${
+                const iconClass = `w-5 h-5 shrink-0 transition-colors ${
                   item.isActive
-                    ? 'text-white stroke-[2]'
-                    : 'text-[#777169] group-hover:text-[#0c0a09] stroke-[1.8]'
+                    ? 'text-[#C2410C] stroke-[2]'
+                    : 'text-[#78716C] group-hover:text-[#1C1917] stroke-[1.8]'
                 }`;
                 const IconComp = item.icon;
 
@@ -344,18 +349,32 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
                     onClick={(e) => handleNavClick(e, item.href)}
                     className={`${baseClass} ${activeClass} ${
                       showFullContent
-                        ? 'justify-start gap-3 px-3 py-2 rounded-full'
-                        : 'justify-center p-2.5 rounded-full mx-auto w-10 h-10'
+                        ? `justify-start gap-3 px-3 py-2.5 ${isMobileDrawer ? 'min-h-[44px]' : 'min-h-[42px]'}`
+                        : 'justify-center w-10 h-10 min-h-[40px] p-2 mx-auto'
                     }`}
                     aria-current={item.isActive ? 'page' : undefined}
                     title={item.label}
                     aria-label={item.label}
                   >
-                    <IconComp className={iconClass} />
+                    {/* Vạch cam bên trái rộng 3px, cao khoảng 20-22px, căn giữa theo chiều dọc */}
+                    {item.isActive && (
+                      <span
+                        className='absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[22px] bg-[#C2410C] rounded-r-[2px]'
+                        aria-hidden='true'
+                      />
+                    )}
+
+                    {IconComp && <IconComp className={iconClass} />}
                     {showFullContent && (
                       <>
-                        <span className='truncate'>{item.label}</span>
-                        <span className='ml-auto'>{renderBadge(item.badge)}</span>
+                        <span className='font-sans text-[14px] leading-5 line-clamp-2 break-words flex-1 text-left'>
+                          {item.label}
+                        </span>
+                        {item.badge && (
+                          <span className='ml-auto shrink-0 flex items-center'>
+                            {renderBadge(item.badge)}
+                          </span>
+                        )}
                       </>
                     )}
                   </a>
@@ -368,76 +387,79 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
 
       {/* Footer Navigation & System Controls */}
       <div
-        className={`mt-auto border-t border-[#e7e5e4] bg-[#fafafa] ${
-          showFullContent ? 'p-3' : 'p-1.5'
+        className={`mt-auto border-t border-[#E7E2D9] bg-[#FCFBF8] ${
+          showFullContent ? 'p-3' : 'p-2'
         }`}
       >
-        <div className='space-y-1 mb-2'>
+        <div className='space-y-1 mb-1'>
           <button
+            type='button'
             title='Notifications'
             aria-label='Notifications'
-            className={`w-full flex items-center text-xs text-[#777169] hover:text-[#0c0a09] hover:bg-[#f0efed] rounded-full transition-colors group cursor-pointer ${
+            className={`w-full flex items-center text-[13px] font-sans font-medium text-[#57534E] hover:text-[#1C1917] hover:bg-[#F1EEE8] rounded-lg transition-colors duration-150 motion-reduce:transition-none group cursor-pointer focus:outline-none focus-visible:outline-2 focus-visible:outline-[#C2410C] focus-visible:outline-offset-1 ${
               showFullContent
-                ? 'justify-start gap-2.5 px-3 py-2'
-                : 'justify-center p-2.5 mx-auto w-10 h-10'
+                ? `justify-start gap-3 px-3 py-2 ${isMobileDrawer ? 'min-h-[44px]' : 'min-h-[40px]'}`
+                : 'justify-center w-10 h-10 min-h-[40px] p-2 mx-auto'
             }`}
           >
-            <Bell className='w-4 h-4 text-[#777169] group-hover:text-[#0c0a09] stroke-[1.8] shrink-0' />
-            {showFullContent && <span className='font-medium text-xs truncate'>Notifications</span>}
+            <Bell className='w-5 h-5 text-[#78716C] group-hover:text-[#1C1917] stroke-[1.8] shrink-0' />
+            {showFullContent && <span className='truncate text-[14px]'>Notifications</span>}
           </button>
           <button
+            type='button'
             title='Global Search'
             aria-label='Global Search'
-            className={`w-full flex items-center text-xs text-[#777169] hover:text-[#0c0a09] hover:bg-[#f0efed] rounded-full transition-colors group cursor-pointer ${
+            className={`w-full flex items-center text-[13px] font-sans font-medium text-[#57534E] hover:text-[#1C1917] hover:bg-[#F1EEE8] rounded-lg transition-colors duration-150 motion-reduce:transition-none group cursor-pointer focus:outline-none focus-visible:outline-2 focus-visible:outline-[#C2410C] focus-visible:outline-offset-1 ${
               showFullContent
-                ? 'justify-start gap-2.5 px-3 py-2'
-                : 'justify-center p-2.5 mx-auto w-10 h-10'
+                ? `justify-start gap-3 px-3 py-2 ${isMobileDrawer ? 'min-h-[44px]' : 'min-h-[40px]'}`
+                : 'justify-center w-10 h-10 min-h-[40px] p-2 mx-auto'
             }`}
           >
-            <Search className='w-4 h-4 text-[#777169] group-hover:text-[#0c0a09] stroke-[1.8] shrink-0' />
-            {showFullContent && <span className='font-medium text-xs truncate'>Global Search</span>}
+            <Search className='w-5 h-5 text-[#78716C] group-hover:text-[#1C1917] stroke-[1.8] shrink-0' />
+            {showFullContent && <span className='truncate text-[14px]'>Global Search</span>}
           </button>
           <button
+            type='button'
             title='My Activity / History'
             aria-label='My Activity / History'
-            className={`w-full flex items-center text-xs text-[#777169] hover:text-[#0c0a09] hover:bg-[#f0efed] rounded-full transition-colors group cursor-pointer ${
+            className={`w-full flex items-center text-[13px] font-sans font-medium text-[#57534E] hover:text-[#1C1917] hover:bg-[#F1EEE8] rounded-lg transition-colors duration-150 motion-reduce:transition-none group cursor-pointer focus:outline-none focus-visible:outline-2 focus-visible:outline-[#C2410C] focus-visible:outline-offset-1 ${
               showFullContent
-                ? 'justify-start gap-2.5 px-3 py-2'
-                : 'justify-center p-2.5 mx-auto w-10 h-10'
+                ? `justify-start gap-3 px-3 py-2 ${isMobileDrawer ? 'min-h-[44px]' : 'min-h-[40px]'}`
+                : 'justify-center w-10 h-10 min-h-[40px] p-2 mx-auto'
             }`}
           >
-            <History className='w-4 h-4 text-[#777169] group-hover:text-[#0c0a09] stroke-[1.8] shrink-0' />
-            {showFullContent && (
-              <span className='font-medium text-xs truncate'>My Activity / History</span>
-            )}
+            <History className='w-5 h-5 text-[#78716C] group-hover:text-[#1C1917] stroke-[1.8] shrink-0' />
+            {showFullContent && <span className='truncate text-[14px]'>My Activity / History</span>}
           </button>
           <button
+            type='button'
             onClick={onOpenTwoFactor}
             title='Profile & Security (2FA)'
             aria-label='Profile & Security (2FA)'
-            className={`w-full flex items-center text-xs text-[#777169] hover:text-[#0c0a09] hover:bg-[#f0efed] rounded-full transition-colors group cursor-pointer ${
+            className={`w-full flex items-center text-[13px] font-sans font-medium text-[#57534E] hover:text-[#1C1917] hover:bg-[#F1EEE8] rounded-lg transition-colors duration-150 motion-reduce:transition-none group cursor-pointer focus:outline-none focus-visible:outline-2 focus-visible:outline-[#C2410C] focus-visible:outline-offset-1 ${
               showFullContent
-                ? 'justify-start gap-2.5 px-3 py-2'
-                : 'justify-center p-2.5 mx-auto w-10 h-10'
+                ? `justify-start gap-3 px-3 py-2 ${isMobileDrawer ? 'min-h-[44px]' : 'min-h-[40px]'}`
+                : 'justify-center w-10 h-10 min-h-[40px] p-2 mx-auto'
             }`}
           >
-            <UserCircle className='w-4 h-4 text-[#777169] group-hover:text-[#0c0a09] stroke-[1.8] shrink-0' />
+            <UserCircle className='w-5 h-5 text-[#78716C] group-hover:text-[#1C1917] stroke-[1.8] shrink-0' />
             {showFullContent && (
-              <span className='font-medium text-xs truncate'>Profile & Security (2FA)</span>
+              <span className='truncate text-[14px]'>Profile & Security (2FA)</span>
             )}
           </button>
           <button
+            type='button'
             onClick={onLogout}
             title='Logout'
             aria-label='Logout'
-            className={`w-full flex items-center text-xs text-[#777169] hover:text-red-600 hover:bg-red-50 rounded-full transition-colors group mt-1 cursor-pointer ${
+            className={`w-full flex items-center text-[13px] font-sans font-medium text-[#57534E] hover:text-rose-600 hover:bg-rose-50/70 rounded-lg transition-colors duration-150 motion-reduce:transition-none group mt-1 cursor-pointer focus:outline-none focus-visible:outline-2 focus-visible:outline-rose-500 focus-visible:outline-offset-1 ${
               showFullContent
-                ? 'justify-start gap-2.5 px-3 py-2'
-                : 'justify-center p-2.5 mx-auto w-10 h-10'
+                ? `justify-start gap-3 px-3 py-2 ${isMobileDrawer ? 'min-h-[44px]' : 'min-h-[40px]'}`
+                : 'justify-center w-10 h-10 min-h-[40px] p-2 mx-auto'
             }`}
           >
-            <LogOut className='w-4 h-4 text-[#777169] group-hover:text-red-600 stroke-[1.8] shrink-0' />
-            {showFullContent && <span className='font-medium text-xs truncate'>Logout</span>}
+            <LogOut className='w-5 h-5 text-[#78716C] group-hover:text-rose-600 stroke-[1.8] shrink-0' />
+            {showFullContent && <span className='truncate text-[14px]'>Logout</span>}
           </button>
         </div>
       </div>

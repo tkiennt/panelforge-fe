@@ -75,6 +75,10 @@ All statuses for `AssignmentStatus`, `StageProgress`, `ChapterStatus`, `ChangeRe
 
 ---
 
+### 1.6. Admin Portal Tokens (`/admin` only)
+
+The admin area uses its own `--color-admin-*` tokens so production-role screens are unaffected: page `admin-bg` #F3F0E9, cards `admin-card` #FCFBF8, fields/modals `admin-field` #FFFFFF, border `admin-line` #D8D2C5, accent `admin-accent` #F97316 / hover #EA580C, text `admin-ink` #44403C, headings and text on orange `admin-ink-strong` #292524, secondary text `admin-muted` #716B65 (#78716C is only 4.2:1 on the page background). No black surfaces or buttons. Primitives live in `src/roles/admin/views/components/AdminUi.tsx`.
+
 ## 2. TYPOGRAPHY & ICONOGRAPHY HIERARCHY
 
 **⛔ STRICT PROHIBITION:** Never use micro font sizes such as `text-[9px]`, `text-[10px]`, or `text-[11px]` for readable UI text. The minimum allowed font size across the entire application is `text-xs` (`12px`).

@@ -773,7 +773,7 @@ export const StudioOverviewView: React.FC = () => {
   };
 
   return (
-    <div className='flex-1 bg-[#FAF8F5] min-h-screen p-6 md:p-8 space-y-6'>
+    <div className='flex-1 bg-[#F3F0E9] min-h-screen p-6 md:p-8 space-y-6 text-[#1C1917] font-sans'>
       <input
         ref={coverInputRef}
         type='file'
@@ -784,7 +784,7 @@ export const StudioOverviewView: React.FC = () => {
       />
       {/* Toast */}
       {toast && (
-        <div className='fixed top-6 right-6 z-50 bg-[#171717] text-white px-4 py-3 rounded-xl shadow-2xl border border-white/10 flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-200'>
+        <div className='fixed top-6 right-6 z-50 bg-[#1C1917] text-white px-4 py-3 rounded-xl shadow-editorial border border-white/10 flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-200'>
           <CheckCircle2 className='w-4 h-4 text-emerald-400 shrink-0' />
           <div>
             <div className='text-xs font-bold'>{toast.title}</div>
@@ -797,17 +797,17 @@ export const StudioOverviewView: React.FC = () => {
       )}
 
       {/* Header Banner: Studio Series Library Header */}
-      <div className='bg-white p-6 rounded-2xl border border-stone-200/80 shadow-2xs space-y-4'>
+      <div className='bg-[#FCFBF8] p-6 rounded-xl border border-[#D8D2C5] shadow-2xs space-y-4'>
         <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'>
           <div>
-            <div className='flex items-center gap-2 text-xs font-semibold text-stone-500 uppercase tracking-wider font-mono'>
-              <Briefcase className='w-4 h-4 text-orange-500 shrink-0' />
+            <div className='flex items-center gap-2 text-xs font-semibold text-[#57534E] uppercase tracking-wider font-mono'>
+              <Briefcase className='w-4 h-4 text-[#F97316] shrink-0' />
               <span>{activeWorkspace?.name || 'Studio Workspace'}</span>
             </div>
-            <h1 className='text-2xl sm:text-3xl font-serif font-bold text-stone-900 tracking-tight mt-1'>
+            <h1 className='text-2xl sm:text-3xl font-serif font-bold text-[#1C1917] tracking-tight mt-1'>
               Thư viện Bộ truyện
             </h1>
-            <p className='text-xs sm:text-sm text-stone-600 mt-1 leading-relaxed max-w-2xl'>
+            <p className='text-xs sm:text-sm text-[#57534E] mt-1 leading-relaxed max-w-2xl'>
               Không gian quản lý, theo dõi tiến độ sản xuất và điều phối các bộ truyện tranh trong
               Studio.
             </p>
@@ -818,7 +818,7 @@ export const StudioOverviewView: React.FC = () => {
               <button
                 type='button'
                 onClick={() => setCreateSeriesModalOpen(true)}
-                className='inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-xs sm:text-sm font-semibold shadow-xs hover:shadow-sm active:scale-[0.98] transition-all cursor-pointer'
+                className='inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white text-xs sm:text-sm font-semibold shadow-2xs active:scale-[0.98] transition-all cursor-pointer'
               >
                 <Plus className='w-4 h-4' />
                 <span>Tạo bộ truyện</span>
@@ -1217,19 +1217,21 @@ export const StudioOverviewView: React.FC = () => {
               aria-selected={activeTab === 'series'}
               aria-controls='tabpanel-series'
               onClick={() => setActiveTab('series')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
                 activeTab === 'series'
-                  ? 'bg-stone-900 text-white shadow-soft-sm'
-                  : 'bg-white/80 text-stone-600 hover:text-stone-900 hover:bg-white border border-stone-200/70'
+                  ? 'bg-[#FFF2E6] text-[#1C1917] border border-[#C2410C] shadow-2xs'
+                  : 'bg-[#FCFBF8] text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9] border border-[#D8D2C5]'
               }`}
             >
               <BookOpen
-                className={`w-4 h-4 ${activeTab === 'series' ? 'text-orange-400' : 'text-stone-400'}`}
+                className={`w-4 h-4 ${activeTab === 'series' ? 'text-[#C2410C]' : 'text-[#57534E]'}`}
               />
               <span>Bộ truyện</span>
               <span
                 className={`px-2 py-0.5 rounded-full text-xs font-mono font-bold ${
-                  activeTab === 'series' ? 'bg-white/20 text-white' : 'bg-stone-100 text-stone-600'
+                  activeTab === 'series'
+                    ? 'bg-[#F97316] text-white'
+                    : 'bg-[#F3F0E9] text-[#57534E]'
                 }`}
               >
                 {seriesList.length}
@@ -1244,21 +1246,21 @@ export const StudioOverviewView: React.FC = () => {
                 aria-selected={activeTab === 'members'}
                 aria-controls='tabpanel-members'
                 onClick={() => setActiveTab('members')}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
                   activeTab === 'members'
-                    ? 'bg-stone-900 text-white shadow-soft-sm'
-                    : 'bg-white/80 text-stone-600 hover:text-stone-900 hover:bg-white border border-stone-200/70'
+                    ? 'bg-[#FFF2E6] text-[#1C1917] border border-[#C2410C] shadow-2xs'
+                    : 'bg-[#FCFBF8] text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9] border border-[#D8D2C5]'
                 }`}
               >
                 <Users
-                  className={`w-4 h-4 ${activeTab === 'members' ? 'text-blue-400' : 'text-stone-400'}`}
+                  className={`w-4 h-4 ${activeTab === 'members' ? 'text-[#C2410C]' : 'text-[#57534E]'}`}
                 />
                 <span>Thành viên Studio</span>
                 <span
                   className={`px-2 py-0.5 rounded-full text-xs font-mono font-bold ${
                     activeTab === 'members'
-                      ? 'bg-white/20 text-white'
-                      : 'bg-stone-100 text-stone-600'
+                      ? 'bg-[#F97316] text-white'
+                      : 'bg-[#F3F0E9] text-[#57534E]'
                   }`}
                 >
                   {members.length}
@@ -1273,9 +1275,9 @@ export const StudioOverviewView: React.FC = () => {
               <button
                 type='button'
                 onClick={() => setInviteModalOpen(true)}
-                className='inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold shadow-soft-sm transition-all cursor-pointer'
+                className='inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold shadow-2xs transition-all cursor-pointer'
               >
-                <UserPlus className='w-4 h-4 text-orange-400' />
+                <UserPlus className='w-4 h-4' />
                 <span>Mời thành viên mới</span>
               </button>
             )}
@@ -1283,7 +1285,7 @@ export const StudioOverviewView: React.FC = () => {
               <button
                 type='button'
                 onClick={() => setCreateSeriesModalOpen(true)}
-                className='inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold shadow-soft-sm transition-all cursor-pointer'
+                className='inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold shadow-2xs transition-all cursor-pointer'
               >
                 <Plus className='w-4 h-4' />
                 <span>Tạo bộ truyện mới</span>

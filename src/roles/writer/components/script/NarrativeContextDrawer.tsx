@@ -63,19 +63,19 @@ export const NarrativeContextDrawer: React.FC<NarrativeContextDrawerProps> = ({
   return (
     <div
       data-testid='narrative-context-section'
-      className='w-full xl:w-[460px] 2xl:w-[500px] shrink-0 border-l border-[#E5DFD7] bg-white flex flex-col h-full shadow-lg z-20 animate-in slide-in-from-right duration-200'
+      className='w-full xl:w-[460px] 2xl:w-[500px] shrink-0 border-l border-[#D8D2C5] bg-[#FCFBF8] flex flex-col h-full shadow-lg z-20 animate-in slide-in-from-right duration-200'
     >
       {/* Drawer Header */}
-      <div className='p-4 border-b border-[#E5DFD7] bg-[#FAF8F5] flex items-center justify-between gap-3'>
+      <div className='p-4 border-b border-[#D8D2C5] bg-[#F8F6F0] flex items-center justify-between gap-3'>
         <div className='flex items-center gap-2.5 min-w-0'>
-          <div className='p-2 bg-orange-100 text-orange-600 rounded-xl shrink-0'>
+          <div className='p-2 bg-[#FFF2E6] text-[#C2410C] rounded-xl shrink-0 border border-[#F97316]/20'>
             <Compass className='w-4 h-4' />
           </div>
           <div className='min-w-0'>
-            <h3 className='text-sm font-bold text-zinc-900 truncate font-serif'>
+            <h3 className='text-sm font-bold text-[#1C1917] truncate font-serif'>
               Định hướng cốt truyện & đề cương
             </h3>
-            <p className='text-xs text-zinc-500 truncate'>
+            <p className='text-xs text-[#57534E] truncate'>
               Ngữ cảnh sáng tác cho Writer và AI Agent
             </p>
           </div>
@@ -86,7 +86,7 @@ export const NarrativeContextDrawer: React.FC<NarrativeContextDrawerProps> = ({
           <button
             type='button'
             onClick={() => setIsExpandedHeight((prev) => !prev)}
-            className='p-1.5 text-zinc-500 hover:text-zinc-800 hover:bg-zinc-200/60 rounded-lg cursor-pointer transition-colors'
+            className='p-1.5 text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9] rounded-lg cursor-pointer transition-colors'
             title={isExpandedHeight ? 'Thu nhỏ khung' : 'Phóng to khung'}
           >
             {isExpandedHeight ? (
@@ -99,7 +99,7 @@ export const NarrativeContextDrawer: React.FC<NarrativeContextDrawerProps> = ({
           <button
             type='button'
             onClick={onClose}
-            className='p-1.5 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-200/60 rounded-lg cursor-pointer transition-colors'
+            className='p-1.5 text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9] rounded-lg cursor-pointer transition-colors'
             title='Đóng bảng đề cương'
           >
             <X className='w-4 h-4' />
@@ -108,15 +108,15 @@ export const NarrativeContextDrawer: React.FC<NarrativeContextDrawerProps> = ({
       </div>
 
       {/* Tabs Switcher: Song song / Story Arc / Đề Cương */}
-      <div className='px-4 pt-3 pb-2 border-b border-zinc-100 flex items-center justify-between gap-2 bg-zinc-50/50'>
-        <div className='flex items-center p-1 bg-zinc-200/70 rounded-xl text-xs font-semibold'>
+      <div className='px-4 pt-3 pb-2 border-b border-[#D8D2C5] flex items-center justify-between gap-2 bg-[#F8F6F0]/60'>
+        <div className='flex items-center p-1 bg-[#F3F0E9] border border-[#D8D2C5] rounded-xl text-xs font-semibold'>
           <button
             type='button'
             onClick={() => setTab('both')}
             className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
               tab === 'both'
-                ? 'bg-white text-zinc-900 shadow-xs font-bold'
-                : 'text-zinc-600 hover:text-zinc-900'
+                ? 'bg-[#FFF2E6] text-[#1C1917] shadow-2xs font-bold'
+                : 'text-[#57534E] hover:text-[#1C1917]'
             }`}
           >
             Cả hai
@@ -126,8 +126,8 @@ export const NarrativeContextDrawer: React.FC<NarrativeContextDrawerProps> = ({
             onClick={() => setTab('storyArc')}
             className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
               tab === 'storyArc'
-                ? 'bg-white text-orange-900 shadow-xs font-bold'
-                : 'text-zinc-600 hover:text-zinc-900'
+                ? 'bg-[#FFF2E6] text-[#C2410C] shadow-2xs font-bold'
+                : 'text-[#57534E] hover:text-[#1C1917]'
             }`}
           >
             <span>Story Arc</span>
@@ -138,8 +138,8 @@ export const NarrativeContextDrawer: React.FC<NarrativeContextDrawerProps> = ({
             onClick={() => setTab('outline')}
             className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
               tab === 'outline'
-                ? 'bg-white text-blue-900 shadow-xs font-bold'
-                : 'text-zinc-600 hover:text-zinc-900'
+                ? 'bg-[#FFF2E6] text-[#1C1917] shadow-2xs font-bold'
+                : 'text-[#57534E] hover:text-[#1C1917]'
             }`}
           >
             <span>Đề cương Ch.{currentChapter?.chapterNumber ?? ''}</span>
@@ -155,16 +155,16 @@ export const NarrativeContextDrawer: React.FC<NarrativeContextDrawerProps> = ({
       </div>
 
       {/* Scrollable Content */}
-      <div className='flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar bg-[#FAF8F5]/30'>
+      <div className='flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar bg-[#F3F0E9]'>
         {/* SERIES STORY ARC */}
         {(tab === 'both' || tab === 'storyArc') && (
-          <div className='p-4 bg-white rounded-2xl border border-[#E7E2D9] shadow-2xs space-y-3'>
-            <div className='flex items-center justify-between pb-2 border-b border-zinc-100'>
+          <div className='p-4 bg-[#FCFBF8] rounded-2xl border border-[#D8D2C5] shadow-2xs space-y-3'>
+            <div className='flex items-center justify-between pb-2 border-b border-[#D8D2C5]'>
               <div className='flex items-center gap-2'>
-                <BookOpen className='w-4 h-4 text-orange-600' />
+                <BookOpen className='w-4 h-4 text-[#C2410C]' />
                 <div>
-                  <h4 className='text-xs font-bold text-zinc-900'>Story Arc của Series</h4>
-                  <p className='text-xs text-zinc-500'>Cung truyện dài hạn</p>
+                  <h4 className='text-xs font-bold text-[#1C1917]'>Story Arc của Series</h4>
+                  <p className='text-xs text-[#57534E]'>Cung truyện dài hạn</p>
                 </div>
               </div>
 
@@ -189,10 +189,10 @@ export const NarrativeContextDrawer: React.FC<NarrativeContextDrawerProps> = ({
               disabled={!canEditScript}
               placeholder='Nhập tóm lược Story Arc của Series (ví dụ: Hành trình khám phá bí mật cổ xưa...)'
               data-testid='story-arc-textarea'
-              className='w-full p-3 text-xs md:text-sm leading-relaxed border border-[#E4DFD7] rounded-xl outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/10 bg-white disabled:bg-zinc-100 disabled:cursor-not-allowed resize-y transition-all text-zinc-900'
+              className='w-full p-3 text-xs md:text-sm leading-relaxed border border-[#D8D2C5] rounded-xl outline-none focus:border-[#F97316] bg-[#FCFBF8] disabled:bg-[#F3F0E9] disabled:cursor-not-allowed resize-y transition-all text-[#1C1917]'
             />
 
-            <div className='flex items-center justify-between text-xs text-zinc-500'>
+            <div className='flex items-center justify-between text-xs text-[#57534E]'>
               <span>
                 {storyArcWordCount} từ · {storyArcInput.length} ký tự
               </span>
@@ -203,15 +203,15 @@ export const NarrativeContextDrawer: React.FC<NarrativeContextDrawerProps> = ({
 
         {/* CHAPTER OUTLINE */}
         {(tab === 'both' || tab === 'outline') && (
-          <div className='p-4 bg-white rounded-2xl border border-[#E7E2D9] shadow-2xs space-y-3'>
-            <div className='flex items-center justify-between pb-2 border-b border-zinc-100'>
+          <div className='p-4 bg-[#FCFBF8] rounded-2xl border border-[#D8D2C5] shadow-2xs space-y-3'>
+            <div className='flex items-center justify-between pb-2 border-b border-[#D8D2C5]'>
               <div className='flex items-center gap-2'>
                 <FileText className='w-4 h-4 text-blue-600' />
                 <div>
-                  <h4 className='text-xs font-bold text-zinc-900'>
+                  <h4 className='text-xs font-bold text-[#1C1917]'>
                     Đề cương Chương {currentChapter?.chapterNumber ?? ''} (Outline)
                   </h4>
-                  <p className='text-xs text-zinc-500'>Dàn ý và diễn biến then chốt</p>
+                  <p className='text-xs text-[#57534E]'>Dàn ý và diễn biến then chốt</p>
                 </div>
               </div>
 
@@ -236,10 +236,10 @@ export const NarrativeContextDrawer: React.FC<NarrativeContextDrawerProps> = ({
               disabled={!canEditScript || isChapterLocked}
               placeholder='Nhập đề cương phân cảnh / nhịp điệu của chương...'
               data-testid='chapter-outline-textarea'
-              className='w-full p-3 text-xs md:text-sm leading-relaxed border border-[#E4DFD7] rounded-xl outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/10 bg-white disabled:bg-zinc-100 disabled:cursor-not-allowed resize-y transition-all text-zinc-900'
+              className='w-full p-3 text-xs md:text-sm leading-relaxed border border-[#D8D2C5] rounded-xl outline-none focus:border-[#F97316] bg-[#FCFBF8] disabled:bg-[#F3F0E9] disabled:cursor-not-allowed resize-y transition-all text-[#1C1917]'
             />
 
-            <div className='flex items-center justify-between text-xs text-zinc-500'>
+            <div className='flex items-center justify-between text-xs text-[#57534E]'>
               <span>
                 {outlineWordCount} từ · {outlineInput.length} ký tự
               </span>

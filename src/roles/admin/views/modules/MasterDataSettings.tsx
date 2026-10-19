@@ -60,25 +60,25 @@ export const MasterDataSettings: React.FC = () => {
   };
 
   return (
-    <div className='space-y-6 w-full'>
-      <div className='flex items-center justify-between bg-white p-6 rounded-2xl border border-[#E7E7E7] shadow-xs'>
+    <div className='space-y-6 w-full text-[#1C1917]'>
+      <div className='flex items-center justify-between bg-[#FCFBF8] p-6 rounded-2xl border border-[#D8D2C5] shadow-xs'>
         <div>
           <div className='flex items-center gap-2 mb-1'>
-            <span className='px-2 py-0.5 rounded bg-[#171717] text-white font-mono text-[10px] font-bold'>
+            <span className='px-2 py-0.5 rounded bg-[#1C1917] text-white font-mono text-[10px] font-bold'>
               MASTER DATA // PRESETS
             </span>
           </div>
-          <h1 className='text-2xl font-serif font-bold text-[#171717] tracking-tight'>
+          <h1 className='text-2xl font-serif font-bold text-[#1C1917] tracking-tight'>
             Master Data & Pipeline Templates
           </h1>
-          <p className='text-xs text-[#737373]'>
+          <p className='text-xs text-[#57534E]'>
             Cấu hình mẫu quy trình sản xuất Manga, phân loại Series Bible và chuẩn xuất bản toàn hệ
             thống.
           </p>
         </div>
 
         {savedSuccess && (
-          <div className='inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-semibold animate-in fade-in'>
+          <div className='inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-semibold animate-in fade-in'>
             <CheckCircle2 className='w-4 h-4' />
             <span>Đã lưu Master Data!</span>
           </div>
@@ -88,8 +88,8 @@ export const MasterDataSettings: React.FC = () => {
       <form onSubmit={handleSave} className='space-y-6'>
         <div className='grid grid-cols-1 xl:grid-cols-2 gap-6'>
           {/* Pipeline Stage Templates */}
-          <div className='bg-white p-6 rounded-2xl border border-[#E7E7E7] shadow-xs space-y-4'>
-            <h3 className='text-sm font-bold text-[#171717] flex items-center gap-2'>
+          <div className='bg-[#FCFBF8] p-6 rounded-2xl border border-[#D8D2C5] shadow-xs space-y-4'>
+            <h3 className='text-sm font-serif font-bold text-[#1C1917] flex items-center gap-2'>
               <Layers className='w-4 h-4 text-[#F97316]' />
               <span>Mẫu Giai Đoạn Pipeline Sản Xuất (Pipeline Stage Templates)</span>
             </h3>
@@ -98,12 +98,12 @@ export const MasterDataSettings: React.FC = () => {
               {stages.map((stage, idx) => (
                 <div
                   key={stage.key}
-                  className='flex items-center justify-between p-3 rounded-xl border border-[#E7E7E7] bg-[#FAF8F5] text-xs'
+                  className='flex items-center justify-between p-3 rounded-xl border border-[#D8D2C5] bg-[#F8F6F0] text-xs'
                 >
                   <div className='flex items-center gap-2.5'>
                     <span className={`w-3 h-3 rounded-full ${stage.color}`} />
-                    <span className='font-bold text-[#171717]'>{stage.name}</span>
-                    <span className='font-mono text-[10px] text-[#737373]'>({stage.key})</span>
+                    <span className='font-bold text-[#1C1917]'>{stage.name}</span>
+                    <span className='font-mono text-[10px] text-[#57534E]/70'>({stage.key})</span>
                   </div>
                   {idx > 2 && (
                     <button
@@ -123,12 +123,12 @@ export const MasterDataSettings: React.FC = () => {
                 placeholder='Tên giai đoạn sản xuất mới...'
                 value={newStageName}
                 onChange={(e) => setNewStageName(e.target.value)}
-                className='text-xs h-9'
+                className='text-xs h-9 bg-[#F8F6F0] border-[#D8D2C5] text-[#1C1917]'
               />
               <Button
                 type='button'
                 onClick={handleAddStage}
-                className='h-9 bg-[#171717] hover:bg-black text-white text-xs shrink-0 cursor-pointer'
+                className='h-9 bg-[#1C1917] hover:bg-[#292524] text-white text-xs shrink-0 cursor-pointer rounded-lg'
               >
                 <Plus className='w-3.5 h-3.5 mr-1' /> Thêm Stage
               </Button>
@@ -136,8 +136,8 @@ export const MasterDataSettings: React.FC = () => {
           </div>
 
           {/* Manga Element Types */}
-          <div className='bg-white p-6 rounded-2xl border border-[#E7E7E7] shadow-xs space-y-4'>
-            <h3 className='text-sm font-bold text-[#171717] flex items-center gap-2'>
+          <div className='bg-[#FCFBF8] p-6 rounded-2xl border border-[#D8D2C5] shadow-xs space-y-4'>
+            <h3 className='text-sm font-serif font-bold text-[#1C1917] flex items-center gap-2'>
               <Layout className='w-4 h-4 text-[#F97316]' />
               <span>Phân Loại Thực Thể Series Bible (Manga Element Types)</span>
             </h3>
@@ -146,7 +146,7 @@ export const MasterDataSettings: React.FC = () => {
               {elementTypes.map((type, idx) => (
                 <span
                   key={idx}
-                  className='inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#FAF8F5] border border-[#E7E7E7] text-xs font-semibold text-[#171717]'
+                  className='inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#F8F6F0] border border-[#D8D2C5] text-xs font-semibold text-[#1C1917]'
                 >
                   {type}
                   {idx > 1 && (
@@ -167,12 +167,12 @@ export const MasterDataSettings: React.FC = () => {
                 placeholder='Loại thực thể Bible mới...'
                 value={newElementType}
                 onChange={(e) => setNewElementType(e.target.value)}
-                className='text-xs h-9'
+                className='text-xs h-9 bg-[#F8F6F0] border-[#D8D2C5] text-[#1C1917]'
               />
               <Button
                 type='button'
                 onClick={handleAddElementType}
-                className='h-9 bg-[#171717] hover:bg-black text-white text-xs shrink-0 cursor-pointer'
+                className='h-9 bg-[#1C1917] hover:bg-[#292524] text-white text-xs shrink-0 cursor-pointer rounded-lg'
               >
                 <Plus className='w-3.5 h-3.5 mr-1' /> Thêm Element Type
               </Button>
@@ -181,27 +181,27 @@ export const MasterDataSettings: React.FC = () => {
         </div>
 
         {/* Export Presets */}
-        <div className='bg-white p-6 rounded-2xl border border-[#E7E7E7] shadow-xs space-y-4'>
-          <h3 className='text-sm font-bold text-[#171717] flex items-center gap-2'>
+        <div className='bg-[#FCFBF8] p-6 rounded-2xl border border-[#D8D2C5] shadow-xs space-y-4'>
+          <h3 className='text-sm font-serif font-bold text-[#1C1917] flex items-center gap-2'>
             <FileOutput className='w-4 h-4 text-[#F97316]' />
             <span>Chuẩn Xuất Bản Đơn Hàng (Export & Pre-Press Presets)</span>
           </h3>
 
           <div className='grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs'>
-            <div className='p-4 rounded-xl border border-[#E7E7E7] bg-[#FAF8F5] space-y-1.5'>
-              <div className='font-bold text-[#171717] text-sm'>B5 Tankōbon Master Print</div>
-              <div className='text-[#737373] text-[11px]'>
+            <div className='p-4 rounded-xl border border-[#D8D2C5] bg-[#F8F6F0] space-y-1.5'>
+              <div className='font-bold text-[#1C1917] text-sm'>B5 Tankōbon Master Print</div>
+              <div className='text-[#57534E] text-[11px]'>
                 600 DPI Greyscale + Halftone Screentone Layering
               </div>
               <div className='text-emerald-700 font-mono font-bold text-[10px]'>
                 Default Active Preset
               </div>
             </div>
-            <div className='p-4 rounded-xl border border-[#E7E7E7] bg-[#FAF8F5] space-y-1.5'>
-              <div className='font-bold text-[#171717] text-sm'>
+            <div className='p-4 rounded-xl border border-[#D8D2C5] bg-[#F8F6F0] space-y-1.5'>
+              <div className='font-bold text-[#1C1917] text-sm'>
                 Digital Webtoon Vertical Scroll
               </div>
-              <div className='text-[#737373] text-[11px]'>
+              <div className='text-[#57534E] text-[11px]'>
                 RGB Color Space 800px Width Continuous Canvas
               </div>
               <div className='text-[#F97316] font-mono font-bold text-[10px]'>
@@ -214,7 +214,7 @@ export const MasterDataSettings: React.FC = () => {
         <div className='flex justify-end'>
           <Button
             type='submit'
-            className='bg-[#F97316] hover:bg-[#EA580C] text-white px-6 py-2.5 rounded-xl font-bold text-xs shadow-md cursor-pointer'
+            className='bg-[#F97316] hover:bg-[#EA580C] text-white px-6 py-2.5 rounded-full font-bold text-xs shadow-xs cursor-pointer'
           >
             <Save className='w-4 h-4 mr-1.5' /> Lưu Master Data
           </Button>

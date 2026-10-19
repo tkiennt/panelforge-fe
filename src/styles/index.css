@@ -38,6 +38,21 @@
   --color-landing-orange: #f97316;
   --color-landing-orange-hover: #ea580c;
 
+  /* Admin portal (/admin only) — warm paper, no black surfaces */
+  --color-admin-bg: #f3f0e9;
+  --color-admin-card: #fcfbf8;
+  --color-admin-field: #ffffff;
+  --color-admin-subtle: #f7f4ee;
+  --color-admin-hover: #efebe3;
+  --color-admin-line: #d8d2c5;
+  --color-admin-accent: #f97316;
+  --color-admin-accent-hover: #ea580c;
+  --color-admin-accent-soft: #fff1e6;
+  --color-admin-accent-text: #c2410c;
+  --color-admin-ink: #44403c;
+  --color-admin-ink-strong: #292524;
+  --color-admin-muted: #716b65;
+
   --color-ai-violet: #8b5cf6;
   --color-ai-violet-light: #f5f3ff;
   --color-ai-deep: #6d28d9;

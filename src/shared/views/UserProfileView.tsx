@@ -78,49 +78,49 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
   })();
 
   return (
-    <div className='flex flex-col items-center justify-center min-h-screen bg-[#f5f5f5] p-6 text-[#0c0a09]'>
-      <div className='bg-white rounded-2xl shadow-soft-sm p-8 w-full max-w-md border border-[#f0efed] space-y-6'>
+    <div className='flex flex-col items-center justify-center min-h-screen bg-[#F3F0E9] p-6 text-[#1C1917]'>
+      <div className='bg-[#FCFBF8] rounded-2xl shadow-soft-sm p-8 w-full max-w-md border border-[#D8D2C5] space-y-6'>
         <div className='flex flex-col items-center'>
           {photoUrl && photoUrl.trim() ? (
             <img
               src={photoUrl}
               alt='Profile'
-              className='w-24 h-24 rounded-full border-2 border-[#e7e5e4] mb-4 shadow-soft-sm object-cover'
+              className='w-24 h-24 rounded-full border-2 border-[#D8D2C5] mb-4 shadow-soft-sm object-cover'
             />
           ) : (
-            <div className='w-24 h-24 rounded-full bg-[#fafafa] border-2 border-[#e7e5e4] mb-4 shadow-soft-sm flex items-center justify-center text-[#292524]'>
+            <div className='w-24 h-24 rounded-full bg-[#F8F6F0] border-2 border-[#D8D2C5] mb-4 shadow-soft-sm flex items-center justify-center text-[#C2410C]'>
               <UserIcon className='w-10 h-10' />
             </div>
           )}
-          <h2 className='text-2xl font-serif font-light text-[#0c0a09] mb-1 tracking-tight'>
-            Hello, {displayName}!
+          <h2 className='text-2xl font-serif font-bold text-[#1C1917] mb-1 tracking-tight'>
+            Xin chào, {displayName}!
           </h2>
-          <p className='text-xs text-[#777169]'>{email}</p>
+          <p className='text-xs text-[#57534E]'>{email}</p>
         </div>
 
         {/* 2FA Security Section */}
-        <div className='bg-[#fafafa] border border-[#f0efed] rounded-xl p-4'>
+        <div className='bg-[#F8F6F0] border border-[#D8D2C5] rounded-xl p-4'>
           <div className='flex items-start gap-3'>
-            <div className='w-8 h-8 rounded-full bg-orange-50 border border-orange-200 flex items-center justify-center text-[#c2410c] shrink-0 mt-0.5'>
+            <div className='w-8 h-8 rounded-full bg-[#FFF2E6] border border-[#FDBA74] flex items-center justify-center text-[#C2410C] shrink-0 mt-0.5 shadow-2xs'>
               <ShieldCheck className='w-4 h-4' />
             </div>
             <div className='flex-1'>
               <div className='flex items-center gap-1.5'>
-                <h4 className='text-xs font-semibold text-[#0c0a09]'>Bảo mật 2FA (RFC 6238)</h4>
-                <span className='text-xs font-mono font-medium bg-[#f0efed] text-[#292524] px-2 py-0.5 rounded-full uppercase'>
+                <h4 className='text-xs font-bold text-[#1C1917]'>Bảo mật 2FA (RFC 6238)</h4>
+                <span className='text-xs font-mono font-bold bg-[#FFF2E6] text-[#C2410C] border border-[#FDBA74] px-2 py-0.5 rounded-full uppercase'>
                   TOTP
                 </span>
               </div>
-              <p className='text-xs text-[#777169] mt-1 leading-relaxed'>
+              <p className='text-xs text-[#57534E] mt-1 leading-relaxed'>
                 Tích hợp mã xác thực 6 số trên Google Authenticator để bảo vệ bản thảo manga và tài
                 sản studio.
               </p>
               <button
                 type='button'
                 onClick={handleOpen2FA}
-                className='mt-3 w-full bg-white hover:bg-[#f0efed] text-[#0c0a09] border border-[#e7e5e4] hover:border-[#292524] text-xs font-medium py-2 px-3 rounded-full shadow-soft-sm transition-all flex items-center justify-center gap-2 cursor-pointer'
+                className='mt-3 w-full bg-[#FCFBF8] hover:bg-[#F3F0E9] text-[#1C1917] border border-[#D8D2C5] hover:border-[#F97316] text-xs font-semibold py-2 px-3 rounded-xl shadow-2xs transition-all flex items-center justify-center gap-2 cursor-pointer'
               >
-                <Key className='w-3.5 h-3.5 text-[#292524]' />
+                <Key className='w-3.5 h-3.5 text-[#C2410C]' />
                 Cài đặt Google Authenticator (2FA)
               </button>
               <button
@@ -130,19 +130,19 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                   setActiveJwtToken(token);
                   setIsChangePasswordOpen(true);
                 }}
-                className='mt-2 w-full bg-white hover:bg-[#f0efed] text-[#0c0a09] border border-[#e7e5e4] hover:border-[#292524] text-xs font-medium py-2 px-3 rounded-full shadow-soft-sm transition-all flex items-center justify-center gap-2 cursor-pointer'
+                className='mt-2 w-full bg-[#FCFBF8] hover:bg-[#F3F0E9] text-[#1C1917] border border-[#D8D2C5] hover:border-[#F97316] text-xs font-semibold py-2 px-3 rounded-xl shadow-2xs transition-all flex items-center justify-center gap-2 cursor-pointer'
               >
-                <KeyRound className='w-3.5 h-3.5 text-[#292524]' />
+                <KeyRound className='w-3.5 h-3.5 text-[#57534E]' />
                 Đổi mật khẩu
               </button>
             </div>
           </div>
         </div>
 
-        <div className='pt-2 border-t border-[#f0efed] flex justify-center'>
+        <div className='pt-2 border-t border-[#D8D2C5] flex justify-center'>
           <button
             onClick={handleLogout}
-            className='flex items-center gap-2 bg-[#292524] hover:bg-[#0c0a09] text-white px-6 py-2.5 rounded-full text-xs font-medium shadow-soft-sm transition-all duration-200 cursor-pointer'
+            className='flex items-center gap-2 bg-[#1C1917] hover:bg-[#57534E] text-[#FCFBF8] px-6 py-2.5 rounded-xl text-xs font-semibold shadow-soft-sm transition-all duration-200 cursor-pointer active:scale-95'
           >
             <LogOut className='w-3.5 h-3.5' />
             Đăng xuất

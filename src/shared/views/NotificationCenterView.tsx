@@ -61,13 +61,13 @@ export const NotificationCenterView: React.FC<NotificationCenterViewProps> = ({
   };
 
   return (
-    <div className='w-full max-w-sm bg-white border border-[#E7E7E7] rounded-xl shadow-lg flex flex-col overflow-hidden relative'>
-      <div className='px-4 py-3 border-b border-[#E7E7E7] flex justify-between items-center bg-[#FAF8F4]'>
-        <h3 className='font-bold text-[#171717]'>Notifications</h3>
+    <div className='w-full max-w-sm bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl shadow-xl flex flex-col overflow-hidden relative'>
+      <div className='px-4 py-3 border-b border-[#D8D2C5] flex justify-between items-center bg-[#F8F6F0]'>
+        <h3 className='font-serif font-bold text-sm text-[#1C1917] tracking-tight'>Notifications</h3>
         {onClose && (
           <button
             onClick={onClose}
-            className='text-[#888888] hover:text-[#171717] transition-colors cursor-pointer'
+            className='text-[#57534E] hover:text-[#1C1917] transition-colors cursor-pointer p-1 rounded-md hover:bg-[#EFECE6]'
           >
             <X className='w-4 h-4' />
           </button>
@@ -75,31 +75,31 @@ export const NotificationCenterView: React.FC<NotificationCenterViewProps> = ({
       </div>
       <div className='flex-1 overflow-y-auto max-h-[400px]'>
         {notifications.length === 0 ? (
-          <div className='p-8 text-center text-[#888888] text-sm'>No new notifications.</div>
+          <div className='p-8 text-center text-[#57534E] text-sm'>No new notifications.</div>
         ) : (
-          <div className='divide-y divide-[#E7E7E7]'>
+          <div className='divide-y divide-[#D8D2C5]'>
             {notifications.map((n) => (
               <div
                 key={n.id}
-                className={`p-4 flex gap-3 hover:bg-gray-50 transition-colors cursor-pointer ${!n.read ? 'bg-blue-50/30' : ''}`}
+                className={`p-4 flex gap-3 hover:bg-[#F3F0E9]/60 transition-colors cursor-pointer ${!n.read ? 'bg-[#FFF2E6]/40' : ''}`}
                 onClick={() => onNavigateToWorkspace(n.workspaceId, n.targetView, n.targetRole)}
               >
                 <div className='shrink-0 mt-0.5'>{getIcon(n.type)}</div>
                 <div className='flex-1 min-w-0'>
                   <div className='flex justify-between items-start mb-1'>
                     <h4
-                      className={`text-sm font-semibold truncate ${!n.read ? 'text-[#171717]' : 'text-[#555555]'}`}
+                      className={`text-sm font-semibold truncate ${!n.read ? 'text-[#1C1917]' : 'text-[#57534E]'}`}
                     >
                       {n.title}
                     </h4>
-                    <span className='text-xs text-[#888888] whitespace-nowrap ml-2'>
+                    <span className='text-xs text-[#57534E]/70 whitespace-nowrap ml-2 font-mono'>
                       {n.timeAgo}
                     </span>
                   </div>
-                  <p className='text-xs text-[#555555] line-clamp-2 leading-relaxed mb-2'>
+                  <p className='text-xs text-[#57534E] line-clamp-2 leading-relaxed mb-2'>
                     {n.message}
                   </p>
-                  <div className='flex items-center text-[#F97316] text-xs font-semibold group'>
+                  <div className='flex items-center text-[#F97316] hover:text-[#EA580C] text-xs font-semibold group'>
                     <span>View Details</span>
                     <ArrowRight className='w-3 h-3 ml-1 transform group-hover:translate-x-1 transition-transform' />
                   </div>
@@ -109,8 +109,8 @@ export const NotificationCenterView: React.FC<NotificationCenterViewProps> = ({
           </div>
         )}
       </div>
-      <div className='p-3 border-t border-[#E7E7E7] bg-gray-50 text-center cursor-pointer hover:bg-gray-100 transition-colors'>
-        <span className='text-xs font-semibold text-[#555555]'>Mark all as read</span>
+      <div className='p-3 border-t border-[#D8D2C5] bg-[#F8F6F0] text-center cursor-pointer hover:bg-[#F3F0E9] transition-colors'>
+        <span className='text-xs font-semibold text-[#57534E] hover:text-[#1C1917]'>Mark all as read</span>
       </div>
     </div>
   );

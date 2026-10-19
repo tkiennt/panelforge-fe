@@ -2266,12 +2266,12 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
 
   if (!activePageId) {
     return (
-      <div className='flex flex-col items-center justify-center h-full p-8 text-center bg-[#FAF8F5]'>
-        <div className='w-16 h-16 rounded-2xl bg-zinc-100 border border-zinc-200 flex items-center justify-center text-zinc-400 mb-4'>
+      <div className='flex flex-col items-center justify-center h-full p-8 text-center bg-[#F3F0E9]'>
+        <div className='w-16 h-16 rounded-2xl bg-[#FCFBF8] border border-[#D8D2C5] flex items-center justify-center text-[#C2410C] mb-4 shadow-soft-sm'>
           <Type className='w-8 h-8' />
         </div>
-        <h3 className='text-base font-bold text-zinc-800 mb-1'>Chọn một trang để bắt đầu</h3>
-        <p className='text-xs text-zinc-500 max-w-sm'>
+        <h3 className='text-base font-serif font-bold text-[#1C1917] mb-1'>Chọn một trang để bắt đầu</h3>
+        <p className='text-xs text-[#57534E] max-w-sm'>
           Vui lòng chọn một chương và trang truyện từ danh sách phía trên để mở bàn làm việc chèn
           chữ.
         </p>
@@ -2289,8 +2289,8 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
         : 'cursor-crosshair';
 
   const toolBtn = (active: boolean, activeClass: string) =>
-    `px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-      active ? `${activeClass} text-white shadow-xs` : 'text-zinc-600 hover:bg-zinc-100'
+    `px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+      active ? `${activeClass} text-white shadow-xs` : 'text-[#57534E] hover:bg-[#F3F0E9] hover:text-[#1C1917]'
     }`;
 
   const pendingScreen = pending
@@ -2299,7 +2299,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
 
   const workspace = (
     <div
-      className={`flex flex-col bg-[#FAF8F5] text-[#171717] overflow-hidden ${
+      className={`flex flex-col bg-[#F3F0E9] text-[#1C1917] overflow-hidden ${
         focusMode ? 'fixed inset-0 z-[150]' : 'h-full'
       }`}
       data-testid='lettering-workspace'
@@ -2309,7 +2309,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
       <OfflineStatusBanner />
 
       {/* Thanh trên cùng gọn: tên, kích thước, thu/mở bảng, chế độ tập trung */}
-      <div className='h-10 border-b border-[#E7E7E7] bg-white px-2 flex items-center justify-between shrink-0 gap-2'>
+      <div className='h-10 border-b border-[#D8D2C5] bg-[#FCFBF8] px-2 flex items-center justify-between shrink-0 gap-2 shadow-soft-sm'>
         <div className='flex items-center gap-1.5 min-w-0'>
           <button
             onClick={() => setLayout((l) => ({ ...l, leftOpen: !l.leftOpen }))}
@@ -2318,7 +2318,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
             aria-pressed={layout.leftOpen}
             title='Thu/mở bảng kịch bản'
             data-testid='toggle-left-panel'
-            className='p-1.5 rounded-lg text-zinc-600 hover:bg-zinc-100 disabled:opacity-40 cursor-pointer'
+            className='p-1.5 rounded-lg text-[#57534E] hover:bg-[#F3F0E9] hover:text-[#1C1917] disabled:opacity-40 cursor-pointer transition-colors'
           >
             {layout.leftOpen ? (
               <PanelLeftClose className='w-4 h-4' />
@@ -2326,10 +2326,10 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
               <PanelLeftOpen className='w-4 h-4' />
             )}
           </button>
-          <Type className='w-4 h-4 text-emerald-600 shrink-0' />
-          <h3 className='font-bold text-xs text-[#171717] truncate'>Bàn Làm Việc Chèn Chữ</h3>
+          <Type className='w-4 h-4 text-[#C2410C] shrink-0' />
+          <h3 className='font-serif font-bold text-xs text-[#1C1917] truncate'>Bàn Làm Việc Chèn Chữ</h3>
           {pageSnapshot && (
-            <span className='font-mono text-xs px-2 py-0.5 bg-zinc-100 rounded-full text-zinc-600 shrink-0'>
+            <span className='font-mono text-xs px-2 py-0.5 bg-[#FFF2E6] text-[#C2410C] border border-[#FDBA74] rounded-full shrink-0 font-medium'>
               v{pageSnapshot.version} • {pageDim.width}×{pageDim.height}px
             </span>
           )}
@@ -2348,18 +2348,18 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
               onClick={() => setShowLayerFilterMenu(!showLayerFilterMenu)}
               className={`px-3 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
                 showLayerFilterMenu
-                  ? 'bg-zinc-800 text-white border-zinc-800'
-                  : 'bg-white border-[#E7E7E7] text-zinc-700 hover:bg-zinc-50'
+                  ? 'bg-[#1C1917] text-white border-[#1C1917]'
+                  : 'bg-[#FCFBF8] border-[#D8D2C5] text-[#57534E] hover:bg-[#F3F0E9] hover:text-[#1C1917]'
               }`}
               title='Bật / tắt hiển thị các lớp vẽ (Background, Character, Prop, Effect)'
             >
-              <Layers className='w-4 h-4 text-purple-600' />
+              <Layers className='w-4 h-4 text-[#C2410C]' />
               <span>Lớp vẽ (Layers)</span>
             </button>
 
             {showLayerFilterMenu && (
-              <div className='absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-zinc-200 p-2.5 z-50 space-y-1.5 text-xs'>
-                <div className='font-bold text-zinc-500 uppercase text-xs font-mono px-2 py-1'>
+              <div className='absolute right-0 mt-2 w-56 bg-[#FCFBF8] rounded-2xl shadow-xl border border-[#D8D2C5] p-2.5 z-50 space-y-1.5 text-xs'>
+                <div className='font-bold text-[#57534E] uppercase text-xs font-mono px-2 py-1'>
                   Hiển thị lớp vẽ trên canvas
                 </div>
                 {IMAGE_LAYER_TYPES.map((layerKey) => {
@@ -2370,13 +2370,13 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                       onClick={() =>
                         setVisibleLayers((prev) => ({ ...prev, [layerKey]: !isVisible }))
                       }
-                      className='w-full px-2 py-1.5 rounded-lg flex items-center justify-between hover:bg-zinc-100 transition-colors text-zinc-700 cursor-pointer'
+                      className='w-full px-2 py-1.5 rounded-lg flex items-center justify-between hover:bg-[#F3F0E9] transition-colors text-[#1C1917] cursor-pointer'
                     >
                       <span className='font-medium'>{LAYER_LABELS[layerKey] || layerKey}</span>
                       {isVisible ? (
                         <Eye className='w-3.5 h-3.5 text-emerald-600' />
                       ) : (
-                        <EyeOff className='w-3.5 h-3.5 text-zinc-400' />
+                        <EyeOff className='w-3.5 h-3.5 text-[#57534E]' />
                       )}
                     </button>
                   );
@@ -2389,13 +2389,13 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
           <button
             onClick={handleRunLettererAgent}
             disabled={aiLoading || !activeSeriesId}
-            className='px-3.5 py-1.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white rounded-full text-xs font-semibold flex items-center gap-1.5 shadow-soft-sm transition-all cursor-pointer'
+            className='px-3.5 py-1.5 bg-[#F97316] hover:bg-[#EA580C] disabled:opacity-50 text-white rounded-full text-xs font-semibold flex items-center gap-1.5 shadow-soft-sm transition-all cursor-pointer'
             title='Chạy Letterer Agent để rút gọn các dòng thoại cho vừa bóng thoại'
           >
             {aiLoading ? (
               <RefreshCw className='w-3.5 h-3.5 animate-spin' />
             ) : (
-              <Sparkles className='w-3.5 h-3.5 text-amber-300' />
+              <Sparkles className='w-3.5 h-3.5 text-amber-200' />
             )}
             <span>AI Rút Gọn Thoại</span>
           </button>
@@ -2403,7 +2403,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
           <button
             onClick={loadElements}
             disabled={loading}
-            className='p-1.5 hover:bg-[#FAF8F5] rounded-lg text-zinc-600 transition-colors flex items-center gap-1.5 text-xs font-semibold cursor-pointer'
+            className='p-1.5 hover:bg-[#F3F0E9] rounded-lg text-[#57534E] hover:text-[#1C1917] transition-colors flex items-center gap-1.5 text-xs font-semibold cursor-pointer'
             title='Tải lại canvas'
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -2415,7 +2415,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
             title={focusMode ? 'Thoát chế độ tập trung (Esc)' : 'Chế độ tập trung: ẩn các bảng phụ'}
             data-testid='toggle-focus-mode'
             className={`p-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer ${
-              focusMode ? 'bg-zinc-800 text-white' : 'text-zinc-600 hover:bg-zinc-100'
+              focusMode ? 'bg-[#1C1917] text-white' : 'text-[#57534E] hover:bg-[#F3F0E9] hover:text-[#1C1917]'
             }`}
           >
             {focusMode ? <Minimize2 className='w-4 h-4' /> : <Maximize2 className='w-4 h-4' />}
@@ -2428,7 +2428,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
             aria-pressed={layout.rightOpen}
             title='Thu/mở bảng thuộc tính'
             data-testid='toggle-right-panel'
-            className='p-1.5 rounded-lg text-zinc-600 hover:bg-zinc-100 disabled:opacity-40 cursor-pointer'
+            className='p-1.5 rounded-lg text-[#57534E] hover:bg-[#F3F0E9] hover:text-[#1C1917] disabled:opacity-40 cursor-pointer transition-colors'
           >
             {layout.rightOpen ? (
               <PanelRightClose className='w-4 h-4' />
@@ -2446,23 +2446,23 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
           <>
             <div
               style={{ width: layout.leftW }}
-              className='shrink-0 bg-white border-r border-[#E7E7E7] flex flex-col overflow-hidden'
+              className='shrink-0 bg-[#FCFBF8] border-r border-[#D8D2C5] flex flex-col overflow-hidden'
               data-testid='left-panel'
             >
-              <div className='p-3 border-b border-[#E7E7E7] bg-[#FAF8F5] space-y-2'>
+              <div className='p-3 border-b border-[#D8D2C5] bg-[#F8F6F0] space-y-2'>
                 <div className='flex items-center justify-between'>
-                  <span className='text-xs font-bold text-[#171717] flex items-center gap-1.5'>
-                    <BookOpen className='w-4 h-4 text-purple-600' />
+                  <span className='text-xs font-serif font-bold text-[#1C1917] flex items-center gap-1.5'>
+                    <BookOpen className='w-4 h-4 text-[#C2410C]' />
                     <span>Kịch Bản Chương</span>
                   </span>
-                  <span className='text-xs font-mono text-zinc-500'>{sceneLines.length} dòng</span>
+                  <span className='text-xs font-mono text-[#57534E]'>{sceneLines.length} dòng</span>
                 </div>
 
                 {/* Scene Selector */}
                 <select
                   value={selectedSceneId || ''}
                   onChange={(e) => setSelectedSceneId(e.target.value)}
-                  className='w-full p-2 bg-white border border-[#E7E7E7] rounded-xl text-xs font-semibold'
+                  className='w-full p-2 bg-[#FCFBF8] border border-[#D8D2C5] text-[#1C1917] rounded-xl text-xs font-semibold focus:border-[#F97316] focus:outline-none'
                 >
                   {scenes.map((s) => (
                     <option key={s.id} value={s.id}>
@@ -2474,7 +2474,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
 
               <div className='flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar'>
                 {sceneLines.length === 0 ? (
-                  <div className='p-6 text-center text-xs text-zinc-400'>
+                  <div className='p-6 text-center text-xs text-[#57534E]'>
                     Chưa có dòng kịch bản nào trong phân cảnh này.
                   </div>
                 ) : (
@@ -2531,17 +2531,17 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                           canDrag ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'
                         } ${
                           isSelected
-                            ? 'border-purple-600 bg-purple-50/50 ring-2 ring-purple-400/20 shadow-xs'
+                            ? 'border-[#F97316] bg-[#FFF2E6] ring-2 ring-[#F97316]/20 shadow-xs'
                             : isPlaced
-                              ? 'border-emerald-200 bg-emerald-50/30'
+                              ? 'border-emerald-300 bg-emerald-50/40 text-emerald-900'
                               : isFlashback
-                                ? 'border-zinc-700 bg-zinc-900/5'
-                                : 'border-[#E7E7E7] bg-[#FAF8F5] hover:bg-white hover:border-zinc-300'
+                                ? 'border-[#57534E] bg-[#1C1917]/5'
+                                : 'border-[#D8D2C5] bg-[#FCFBF8] hover:bg-white hover:border-[#F97316]/60'
                         }`}
                       >
                         <div className='flex items-center justify-between gap-1.5 flex-wrap'>
-                          <span className='font-mono font-bold text-xs text-zinc-500 flex items-center gap-1 min-w-0'>
-                            {canDrag && <GripVertical className='w-3 h-3 text-zinc-400 shrink-0' />}
+                          <span className='font-mono font-bold text-xs text-[#57534E] flex items-center gap-1 min-w-0'>
+                            {canDrag && <GripVertical className='w-3 h-3 text-[#57534E]/60 shrink-0' />}
                             <span className='truncate'>
                               #{line.lineOrder} • {speaker || 'Người dẫn truyện'}
                             </span>
@@ -2551,7 +2551,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                             {isFlashback && (
                               <span
                                 data-testid={`badge-mode-${line.id}`}
-                                className='text-[10px] font-bold px-2 py-0.5 rounded-full bg-zinc-900 text-white shrink-0 shadow-2xs'
+                                className='text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#1C1917] text-white shrink-0 shadow-2xs'
                               >
                                 HỒI TƯỞNG
                               </span>
@@ -2581,8 +2581,8 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                               <span
                                 className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${
                                   narrator
-                                    ? 'bg-amber-100 text-amber-800'
-                                    : 'bg-zinc-200 text-zinc-700'
+                                    ? 'bg-[#FFF2E6] text-[#C2410C] border border-[#FDBA74]'
+                                    : 'bg-[#F3F0E9] text-[#57534E]'
                                 }`}
                               >
                                 {narrator ? 'Dẫn truyện' : 'Thoại'}
@@ -2592,7 +2592,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                         </div>
 
                         <p
-                          className={`font-medium text-zinc-800 line-clamp-2 ${isFlashback ? 'italic' : ''}`}
+                          className={`font-medium text-[#1C1917] line-clamp-2 ${isFlashback ? 'italic' : ''}`}
                         >
                           {lineText}
                         </p>
@@ -2620,7 +2620,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                         )}
 
                         {isSelected && (
-                          <div className='text-xs font-semibold text-purple-700 flex items-center gap-1 pt-1 border-t border-purple-200'>
+                          <div className='text-xs font-semibold text-[#C2410C] flex items-center gap-1 pt-1 border-t border-[#FDBA74]'>
                             <Plus className='w-3.5 h-3.5' /> Bấm hoặc kéo thả lên trang để đặt dòng
                             này
                           </div>
@@ -2637,19 +2637,19 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
               aria-orientation='vertical'
               aria-label='Đổi chiều rộng bảng kịch bản'
               data-testid='left-resizer'
-              className='w-1.5 shrink-0 cursor-col-resize bg-transparent hover:bg-emerald-400/40 active:bg-emerald-500/50'
+              className='w-1.5 shrink-0 cursor-col-resize bg-transparent hover:bg-[#F97316]/40 active:bg-[#EA580C]/50'
             />
           </>
         )}
 
         {/* Center: toolbar + viewport zoom/pan */}
-        <div className='flex-1 min-w-0 flex flex-col overflow-hidden bg-[#EFECE6]'>
+        <div className='flex-1 min-w-0 flex flex-col overflow-hidden bg-[#F3F0E9]'>
           {/* Thanh công cụ gọn (không đè lên trang) */}
-          <div className='shrink-0 z-20 bg-white/95 border-b border-black/5 px-2 py-1 flex flex-wrap items-center gap-1'>
+          <div className='shrink-0 z-20 bg-[#FCFBF8] border-b border-[#D8D2C5] px-2 py-1 flex flex-wrap items-center gap-1 shadow-2xs'>
             <button
               onClick={() => setToolMode('select')}
               title='Chọn / Kéo (V)'
-              className={toolBtn(toolMode === 'select', 'bg-[#171717]')}
+              className={toolBtn(toolMode === 'select', 'bg-[#1C1917]')}
             >
               <Move className='w-3.5 h-3.5' /> <span className='hidden 2xl:inline'>Chọn / Kéo</span>
             </button>
@@ -2658,15 +2658,15 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
               title='Bàn tay: kéo để di chuyển trang (H, hoặc giữ Space)'
               aria-pressed={toolMode === 'hand'}
               data-testid='tool-hand'
-              className={toolBtn(toolMode === 'hand', 'bg-zinc-700')}
+              className={toolBtn(toolMode === 'hand', 'bg-[#57534E]')}
             >
               <Hand className='w-3.5 h-3.5' /> <span className='hidden 2xl:inline'>Bàn tay</span>
             </button>
-            <div className='w-px h-4 bg-zinc-200 mx-1'></div>
+            <div className='w-px h-4 bg-[#D8D2C5] mx-1'></div>
             <button
               onClick={() => setToolMode('balloon')}
               title='Thoại thường'
-              className={toolBtn(toolMode === 'balloon', 'bg-emerald-600')}
+              className={toolBtn(toolMode === 'balloon', 'bg-[#F97316]')}
             >
               <MessageCircle className='w-3.5 h-3.5' />{' '}
               <span className='hidden 2xl:inline'>Thoại thường</span>
@@ -2674,7 +2674,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
             <button
               onClick={() => setToolMode('thought')}
               title='Suy nghĩ'
-              className={toolBtn(toolMode === 'thought', 'bg-blue-600')}
+              className={toolBtn(toolMode === 'thought', 'bg-sky-600')}
             >
               <Sparkles className='w-3.5 h-3.5' />{' '}
               <span className='hidden 2xl:inline'>Suy nghĩ</span>
@@ -2704,13 +2704,13 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
               <ShieldAlert className='w-3.5 h-3.5' />{' '}
               <span className='hidden 2xl:inline'>Vùng cấm</span>
             </button>
-            <div className='w-px h-4 bg-zinc-200 mx-1'></div>
+            <div className='w-px h-4 bg-[#D8D2C5] mx-1'></div>
             <button
               onClick={() => setShowReadingOrder((v) => !v)}
               aria-pressed={showReadingOrder}
               title='Bật/tắt số thứ tự đọc trên bóng thoại'
               data-testid='toggle-reading-order'
-              className={toolBtn(showReadingOrder, 'bg-zinc-800')}
+              className={toolBtn(showReadingOrder, 'bg-[#C2410C]')}
             >
               <ListOrdered className='w-3.5 h-3.5' />{' '}
               <span className='hidden 2xl:inline'>Thứ tự</span>
@@ -2719,9 +2719,9 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
               onClick={() => setIsRTL((v) => !v)}
               title='Hướng đọc manga: Phải qua Trái (RTL)'
               data-testid='reading-direction-indicator'
-              className='px-2 py-1 rounded-xl text-xs font-bold border border-zinc-200 text-zinc-700 hover:bg-zinc-100 cursor-pointer flex items-center gap-1'
+              className='px-2 py-1 rounded-xl text-xs font-bold border border-[#D8D2C5] bg-[#FCFBF8] text-[#1C1917] hover:bg-[#F3F0E9] cursor-pointer flex items-center gap-1 transition-colors'
             >
-              <Compass className='w-3 h-3 text-purple-600' />
+              <Compass className='w-3 h-3 text-[#C2410C]' />
               <span>{isRTL ? 'RTL (Manga)' : 'LTR (Tây)'}</span>
             </button>
             <button
@@ -2729,22 +2729,22 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
               aria-pressed={readerMode}
               title='Xem thử như người đọc manga trên điện thoại (~390px)'
               data-testid='toggle-reader-mode'
-              className={toolBtn(readerMode, 'bg-emerald-600')}
+              className={toolBtn(readerMode, 'bg-[#F97316]')}
             >
               <Smartphone className='w-3.5 h-3.5' />{' '}
               <span className='hidden 2xl:inline'>Xem như người đọc</span>
             </button>
-            <div className='w-px h-4 bg-zinc-200 mx-1'></div>
+            <div className='w-px h-4 bg-[#D8D2C5] mx-1'></div>
             <button
               onClick={() => setSeeThrough((v) => !v)}
               aria-pressed={seeThrough}
               title='Làm mờ bóng thoại để nhìn ảnh bên dưới'
-              className={toolBtn(seeThrough, 'bg-zinc-800')}
+              className={toolBtn(seeThrough, 'bg-[#57534E]')}
             >
               <Eye className='w-3.5 h-3.5' /> <span className='hidden 2xl:inline'>Xem ảnh</span>
             </button>
             <label
-              className='flex items-center gap-1 px-1.5 text-xs font-semibold text-zinc-600'
+              className='flex items-center gap-1 px-1.5 text-xs font-semibold text-[#57534E]'
               title='Độ đục nền bóng thoại (chữ vẫn rõ)'
             >
               Nền
@@ -2757,7 +2757,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                 onChange={(e) => setBgOpacity(Number(e.target.value))}
                 data-testid='letterer-bg-opacity'
                 aria-label='Độ đục nền bóng thoại'
-                className='w-16 accent-emerald-600 cursor-pointer'
+                className='w-16 accent-[#F97316] cursor-pointer'
               />
               <span className='w-8 tabular-nums'>{bgOpacity}%</span>
             </label>
@@ -2766,7 +2766,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
               aria-pressed={hideLettering}
               title='Tạm ẩn toàn bộ chữ để xem tranh gốc'
               data-testid='toggle-hide-lettering'
-              className={toolBtn(hideLettering, 'bg-zinc-800')}
+              className={toolBtn(hideLettering, 'bg-[#57534E]')}
             >
               <EyeOff className='w-3.5 h-3.5' /> <span className='hidden 2xl:inline'>Ẩn chữ</span>
             </button>
@@ -3533,12 +3533,12 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
             />
             <div
               style={{ width: layout.rightW }}
-              className='shrink-0 bg-white border-l border-[#E7E7E7] flex flex-col overflow-hidden'
+              className='shrink-0 bg-[#FCFBF8] border-l border-[#D8D2C5] flex flex-col overflow-hidden'
               data-testid='right-panel'
             >
-              <div className='p-3 border-b border-[#E7E7E7] flex items-center gap-2 bg-[#FAF8F5]'>
-                <Type className='w-4 h-4 text-emerald-600' />
-                <h4 className='font-bold text-xs uppercase tracking-wider text-[#171717]'>
+              <div className='p-3 border-b border-[#D8D2C5] flex items-center gap-2 bg-[#F8F6F0]'>
+                <Type className='w-4 h-4 text-[#C2410C]' />
+                <h4 className='font-serif font-bold text-xs uppercase tracking-wider text-[#1C1917]'>
                   Thuộc Tính Phần Tử
                 </h4>
               </div>
@@ -3548,7 +3548,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                   {/* Nội dung chữ: sửa ở đây hoặc bấm đúp bóng trên trang; chỉ lưu khi rời ô */}
                   {!IMAGE_LAYER_TYPES.includes(selectedElement.elementType as any) && (
                     <div className='space-y-1.5'>
-                      <label className='block font-semibold text-zinc-700'>Nội dung chữ</label>
+                      <label className='block font-semibold text-[#1C1917]'>Nội dung chữ</label>
                       <CommitTextarea
                         key={selectedElement.elementId}
                         value={selectedElement.content || ''}
@@ -3556,9 +3556,9 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                         onCommit={(text) => updateBalloonText(selectedElement.elementId, text)}
                         rows={4}
                         testId='element-text-editor'
-                        className='w-full p-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg text-xs resize-y focus:outline-none focus:ring-2 focus:ring-emerald-300'
+                        className='w-full p-2 bg-[#FCFBF8] border border-[#D8D2C5] rounded-lg text-xs text-[#1C1917] resize-y focus:outline-none focus:border-[#F97316]'
                       />
-                      <p className='text-xs text-zinc-400'>
+                      <p className='text-xs text-[#57534E]'>
                         Lưu khi rời ô (hoặc Ctrl+Enter). Esc để hoàn tác.
                       </p>
                     </div>
@@ -3609,17 +3609,17 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                   )}
 
                   {/* AI Dialogue Shortening (Letterer Agent CF2 2.4) */}
-                  <div className='p-3 bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-200 rounded-xl space-y-2.5'>
+                  <div className='p-3 bg-[#FFF2E6] border border-[#FDBA74] rounded-xl space-y-2.5'>
                     <div className='flex items-center justify-between'>
-                      <span className='font-bold text-purple-900 text-xs flex items-center gap-1.5'>
-                        <Sparkles className='w-3.5 h-3.5 text-purple-600' />
+                      <span className='font-serif font-bold text-[#1C1917] text-xs flex items-center gap-1.5'>
+                        <Sparkles className='w-3.5 h-3.5 text-[#C2410C]' />
                         <span>Letterer Agent (Rút gọn thoại)</span>
                       </span>
-                      <span className='text-xs font-mono text-purple-600 font-semibold'>
+                      <span className='text-xs font-mono text-[#C2410C] font-semibold'>
                         {selectedElement.content?.length || 0} ký tự
                       </span>
                     </div>
-                    <p className='text-xs text-purple-700 leading-tight'>
+                    <p className='text-xs text-[#57534E] leading-tight'>
                       AI phân tích giới hạn kích thước balloon và đề xuất rút gọn thoại tự nhiên,
                       vừa vặn khung tranh.
                     </p>
@@ -3633,14 +3633,14 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                       );
                       if (matchSug) {
                         return (
-                          <div className='bg-white p-2.5 rounded-lg border border-purple-200 space-y-1.5 text-xs'>
-                            <div className='text-zinc-500 text-xs'>
+                          <div className='bg-[#FCFBF8] p-2.5 rounded-lg border border-[#D8D2C5] space-y-1.5 text-xs'>
+                            <div className='text-[#57534E] text-xs'>
                               Gợi ý hiện có cho bóng thoại này:
                             </div>
-                            <div className='font-bold text-zinc-800 italic bg-purple-50/50 p-1.5 rounded'>
+                            <div className='font-bold text-[#1C1917] italic bg-[#F8F6F0] p-1.5 rounded'>
                               "{matchSug.suggestedText}"
                             </div>
-                            <div className='flex items-center justify-between text-xs text-zinc-500'>
+                            <div className='flex items-center justify-between text-xs text-[#57534E]'>
                               <span>
                                 {matchSug.suggestedText.length} ký tự (ước lượng tối đa:{' '}
                                 {matchSug.maxChars})
@@ -3648,8 +3648,8 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                               <span
                                 className={
                                   matchSug.withinEstimatedLimit
-                                    ? 'text-emerald-600 font-bold'
-                                    : 'text-amber-600 font-bold'
+                                    ? 'text-emerald-700 font-bold'
+                                    : 'text-amber-700 font-bold'
                                 }
                               >
                                 {matchSug.withinEstimatedLimit
@@ -3659,7 +3659,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                             </div>
                             <button
                               onClick={() => handleApplySuggestionToElement(matchSug)}
-                              className='w-full py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded font-semibold text-xs flex items-center justify-center gap-1 transition-colors cursor-pointer'
+                              className='w-full py-1.5 bg-[#F97316] hover:bg-[#EA580C] text-white rounded font-semibold text-xs flex items-center justify-center gap-1 transition-colors cursor-pointer'
                             >
                               <Check className='w-3.5 h-3.5' /> Áp dụng gợi ý này
                             </button>
@@ -3670,7 +3670,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                         <button
                           onClick={handleRunLettererAgent}
                           disabled={aiLoading || !activeSeriesId}
-                          className='w-full py-1.5 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-semibold rounded-lg text-xs flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer'
+                          className='w-full py-1.5 bg-[#F97316] hover:bg-[#EA580C] disabled:opacity-50 text-white font-semibold rounded-lg text-xs flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer'
                         >
                           {aiLoading ? (
                             <>
@@ -3679,7 +3679,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                             </>
                           ) : (
                             <>
-                              <Sparkles className='w-3 h-3 text-amber-300' />
+                              <Sparkles className='w-3 h-3 text-amber-200' />
                               <span>Chạy Letterer Agent</span>
                             </>
                           )}
@@ -3691,16 +3691,16 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                   {/* Mật độ chữ của Panel (P2) */}
                   {panelDensity && (
                     <div
-                      className='p-3 bg-zinc-50 border border-zinc-200 rounded-xl space-y-1.5'
+                      className='p-3 bg-[#F8F6F0] border border-[#D8D2C5] rounded-xl space-y-1.5'
                       data-testid='panel-density-card'
                     >
                       <div className='flex items-center justify-between text-xs'>
-                        <span className='font-bold text-zinc-700'>Mật độ chữ khung</span>
-                        <span className='font-bold' style={{ color: panelDensity.color }}>
+                        <span className='font-bold text-[#1C1917]'>Mật độ chữ khung</span>
+                        <span className='font-bold font-mono' style={{ color: panelDensity.color }}>
                           {panelDensity.percentage}% • {panelDensity.label}
                         </span>
                       </div>
-                      <div className='w-full bg-zinc-200 h-2 rounded-full overflow-hidden'>
+                      <div className='w-full bg-[#D8D2C5] h-2 rounded-full overflow-hidden'>
                         <div
                           className='h-full transition-all duration-300 rounded-full'
                           style={{
@@ -3709,7 +3709,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                           }}
                         />
                       </div>
-                      <div className='flex items-center justify-between text-[11px] text-zinc-500'>
+                      <div className='flex items-center justify-between text-[11px] text-[#57534E]'>
                         <span>&lt;15%: Thoáng</span>
                         <span>15–25%: Vừa</span>
                         <span>&gt;25%: Dày</span>
@@ -3718,9 +3718,9 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                         <button
                           onClick={() => handleSuggestPosition(selectedElement.elementId)}
                           data-testid='suggest-position-btn'
-                          className='mt-1 w-full py-1 bg-white hover:bg-zinc-100 border border-zinc-300 text-zinc-700 rounded text-xs font-semibold flex items-center justify-center gap-1 cursor-pointer transition-colors'
+                          className='mt-1 w-full py-1 bg-[#FCFBF8] hover:bg-[#F3F0E9] border border-[#D8D2C5] text-[#1C1917] rounded text-xs font-semibold flex items-center justify-center gap-1 cursor-pointer transition-colors'
                         >
-                          <Compass className='w-3 h-3 text-purple-600' /> Gợi ý vị trí thoáng
+                          <Compass className='w-3 h-3 text-[#C2410C]' /> Gợi ý vị trí thoáng
                         </button>
                       )}
                     </div>

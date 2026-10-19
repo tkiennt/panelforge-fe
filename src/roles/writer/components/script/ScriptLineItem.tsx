@@ -90,12 +90,12 @@ export const ScriptLineItem: React.FC<ScriptLineItemProps> = ({
       onDrop={(e) => onDrop(e, index)}
       className={`p-4 md:p-5 rounded-2xl border transition-all duration-200 group relative ${
         isDragging
-          ? 'opacity-40 border-dashed border-orange-400 bg-orange-50/20'
+          ? 'opacity-40 border-dashed border-[#F97316] bg-[#FFF2E6]/40'
           : isDragOver
-            ? 'border-orange-500 ring-2 ring-orange-300 bg-orange-50/60 scale-[1.01]'
+            ? 'border-[#F97316] ring-2 ring-[#F97316]/30 bg-[#FFF2E6]/60 scale-[1.01]'
             : isHighlighted
-              ? 'border-orange-500 ring-4 ring-orange-400/80 bg-orange-50/90 shadow-md scale-[1.01]'
-              : 'border-[#E7E2D9] bg-white hover:border-orange-300 shadow-2xs hover:shadow-xs'
+              ? 'border-[#F97316] ring-3 ring-[#F97316]/40 bg-[#FFF2E6]/80 shadow-md scale-[1.01]'
+              : 'border-[#D8D2C5] bg-[#FCFBF8] hover:border-[#F97316]/60 shadow-2xs hover:shadow-xs'
       }`}
     >
       {/* Header bar of script line */}
@@ -103,26 +103,26 @@ export const ScriptLineItem: React.FC<ScriptLineItemProps> = ({
         <div className='flex items-center gap-2 flex-wrap min-w-0'>
           {canEditScript && !isChapterLocked && (
             <div
-              className='cursor-grab active:cursor-grabbing text-zinc-400 hover:text-orange-600 p-1 rounded-md hover:bg-zinc-100 transition-colors'
+              className='cursor-grab active:cursor-grabbing text-[#57534E] hover:text-[#C2410C] p-1 rounded-md hover:bg-[#F3F0E9] transition-colors'
               title='Kéo thả để đổi thứ tự dòng'
             >
               <GripVertical className='w-4 h-4' />
             </div>
           )}
 
-          <span className='font-mono text-xs font-bold text-zinc-600 bg-zinc-100 px-2 py-0.5 rounded-md'>
+          <span className='font-mono text-xs font-bold text-[#57534E] bg-[#F3F0E9] px-2 py-0.5 rounded-md border border-[#D8D2C5]'>
             #{line.lineOrder}
           </span>
 
           {/* Speaker pill: Character name if present, else distinct Narration pill */}
           {speakerName ? (
-            <span className='inline-flex items-center gap-1.5 text-xs font-bold text-orange-950 bg-orange-100/90 border border-orange-200/90 px-2.5 py-0.5 rounded-full shadow-2xs'>
-              <User className='w-3 h-3 text-orange-600' />
+            <span className='inline-flex items-center gap-1.5 text-xs font-bold text-[#1C1917] bg-[#FFF2E6] border border-[#F97316]/40 px-2.5 py-0.5 rounded-full shadow-2xs'>
+              <User className='w-3 h-3 text-[#C2410C]' />
               <span>{speakerName}</span>
             </span>
           ) : (
-            <span className='inline-flex items-center gap-1.5 text-xs font-medium text-zinc-600 bg-zinc-100 border border-zinc-200 px-2.5 py-0.5 rounded-full'>
-              <Clapperboard className='w-3 h-3 text-zinc-400' />
+            <span className='inline-flex items-center gap-1.5 text-xs font-medium text-[#57534E] bg-[#F3F0E9] border border-[#D8D2C5] px-2.5 py-0.5 rounded-full'>
+              <Clapperboard className='w-3 h-3 text-[#57534E]' />
               <span>Lời dẫn / Hành động</span>
             </span>
           )}
@@ -198,15 +198,15 @@ export const ScriptLineItem: React.FC<ScriptLineItemProps> = ({
 
       {/* Stage Direction (Chỉ dẫn hành động/bối cảnh) */}
       {line.stageDirection && (
-        <div className='mt-2.5 text-xs md:text-sm italic text-zinc-700 bg-amber-50/50 p-2.5 rounded-xl border-l-3 border-amber-400 font-sans leading-relaxed break-words whitespace-pre-wrap'>
-          <span className='font-semibold not-italic text-amber-800 mr-1.5'>[Chỉ dẫn]:</span>
+        <div className='mt-2.5 text-xs md:text-sm italic text-[#57534E] bg-[#F8F6F0] p-2.5 rounded-xl border-l-3 border-[#C2410C] font-sans leading-relaxed break-words whitespace-pre-wrap border border-[#D8D2C5]/50'>
+          <span className='font-semibold not-italic text-[#C2410C] mr-1.5'>[Chỉ dẫn]:</span>
           {line.stageDirection}
         </div>
       )}
 
       {/* Dialogue (Lời thoại nhân vật) */}
       {line.dialogueText && (
-        <div className='mt-3 text-[15px] md:text-base text-zinc-900 font-serif leading-relaxed tracking-wide break-words whitespace-pre-wrap'>
+        <div className='mt-3 text-[15px] md:text-base text-[#1C1917] font-serif leading-relaxed tracking-wide break-words whitespace-pre-wrap'>
           &ldquo;{line.dialogueText}&rdquo;
         </div>
       )}

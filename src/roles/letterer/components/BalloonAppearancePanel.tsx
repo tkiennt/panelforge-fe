@@ -33,16 +33,16 @@ export function BalloonAppearancePanel({
   return (
     <div
       data-testid='balloon-appearance-panel'
-      className='p-3 border border-zinc-200 rounded-xl space-y-2 text-xs'
+      className='p-3 bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl space-y-2 text-xs'
     >
-      <div className='flex items-center justify-between font-bold text-zinc-800'>
-        <span>Hình bóng</span>
+      <div className='flex items-center justify-between font-bold text-[#1C1917]'>
+        <span>Hình bóng thoại</span>
         {isCustom && !disabled && (
           <button
             onClick={onReset}
             data-testid='appearance-reset'
             title={`Về hình bóng mặc định: ${defaultShapeLabel}`}
-            className='text-zinc-500 hover:text-zinc-800 font-normal cursor-pointer'
+            className='text-[#57534E] hover:text-[#1C1917] font-normal cursor-pointer transition-colors'
           >
             Về mặc định
           </button>
@@ -54,7 +54,7 @@ export function BalloonAppearancePanel({
         onChange={(e) => onChange({ shape: e.target.value as BalloonAppearance['shape'] })}
         data-testid='balloon-shape-select'
         aria-label='Hình bóng'
-        className='w-full border border-zinc-300 rounded-lg px-2 py-1.5'
+        className='w-full border border-[#D8D2C5] bg-[#FCFBF8] text-[#1C1917] rounded-lg px-2 py-1.5 focus:border-[#F97316] focus:outline-none'
       >
         {BALLOON_SHAPES.map((s) => (
           <option key={s.value} value={s.value}>
@@ -63,7 +63,7 @@ export function BalloonAppearancePanel({
         ))}
       </select>
       {ap.shape !== 'none' && (
-        <div className='grid grid-cols-2 gap-2'>
+        <div className='grid grid-cols-2 gap-2 text-[#57534E]'>
           <label className='flex items-center gap-1.5'>
             Nền
             <input
@@ -86,7 +86,7 @@ export function BalloonAppearancePanel({
               onChange={(e) => onChange({ fillOpacity: Number(e.target.value) / 100 })}
               data-testid='balloon-fill-opacity'
               aria-label='Độ đục nền bóng'
-              className='w-16'
+              className='w-16 accent-[#F97316]'
             />
           </label>
           <label className='flex items-center gap-1.5'>
@@ -107,7 +107,7 @@ export function BalloonAppearancePanel({
               onChange={(e) => onChange({ borderWidth: Number(e.target.value) })}
               data-testid='balloon-border-width'
               aria-label='Độ dày viền bóng'
-              className='border border-zinc-300 rounded px-1'
+              className='border border-[#D8D2C5] bg-[#FCFBF8] text-[#1C1917] rounded px-1'
             >
               {BORDER_WIDTHS.map((w) => (
                 <option key={w} value={w}>
@@ -119,12 +119,13 @@ export function BalloonAppearancePanel({
         </div>
       )}
       {!disabled && (
-        <label className='flex items-center gap-2 text-zinc-700 cursor-pointer'>
+        <label className='flex items-center gap-2 text-[#57534E] hover:text-[#1C1917] cursor-pointer'>
           <input
             type='checkbox'
             checked={autoFitText}
             onChange={(e) => onToggleAutoFit(e.target.checked)}
             data-testid='auto-fit-text'
+            className='accent-[#F97316]'
           />
           Tự co chữ khi kéo góc bóng
         </label>
@@ -135,7 +136,7 @@ export function BalloonAppearancePanel({
             onClick={onFitBox}
             data-testid='fit-box-to-text'
             title='Giữ cỡ chữ và bề rộng, đổi chiều cao bóng cho vừa chữ'
-            className='py-1.5 border border-zinc-300 rounded-lg hover:bg-zinc-50 cursor-pointer'
+            className='py-1.5 border border-[#D8D2C5] rounded-lg bg-[#FCFBF8] hover:bg-[#F3F0E9] text-[#1C1917] font-medium cursor-pointer transition-colors'
           >
             Vừa bóng theo chữ
           </button>
@@ -143,7 +144,7 @@ export function BalloonAppearancePanel({
             onClick={onFitText}
             data-testid='fit-text-to-box'
             title='Giữ kích thước bóng, chọn cỡ chữ lớn nhất còn vừa (14–160px)'
-            className='py-1.5 border border-zinc-300 rounded-lg hover:bg-zinc-50 cursor-pointer'
+            className='py-1.5 border border-[#D8D2C5] rounded-lg bg-[#FCFBF8] hover:bg-[#F3F0E9] text-[#1C1917] font-medium cursor-pointer transition-colors'
           >
             Vừa chữ trong bóng
           </button>

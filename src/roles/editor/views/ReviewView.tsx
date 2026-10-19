@@ -1575,7 +1575,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
         </div>
       )}
       {/* HEADER */}
-      <div className='shrink-0 bg-white border-b border-[#E7E7E7] px-6 py-2.5 flex items-center justify-between gap-4 z-10 shadow-xs'>
+      <div className='shrink-0 bg-[#FCFBF8] border-b border-[#D8D2C5] px-6 py-2.5 flex items-center justify-between gap-4 z-10 shadow-xs'>
         <div className='flex items-center gap-3 min-w-0'>
           <button
             type='button'
@@ -1591,23 +1591,23 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
               }
             }}
             aria-label='Quay lại'
-            className='w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#F3F3F3] text-[#737373] cursor-pointer'
+            className='w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#F3F0E9] text-[#57534E] hover:text-[#1C1917] cursor-pointer transition-colors'
           >
             <ArrowLeft className='w-4 h-4' />
           </button>
           <div className='min-w-0'>
             <div className='flex items-center gap-2'>
-              <h2 className='text-sm font-bold text-[#171717] truncate'>
+              <h2 className='text-sm sm:text-base font-serif font-bold text-[#1C1917] truncate'>
                 Duyệt: {assignment.brief}
               </h2>
               {current && (
-                <span className='px-2 py-0.5 rounded text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200'>
+                <span className='px-2 py-0.5 rounded text-xs font-bold bg-[#FFF2E6] text-[#C2410C] border border-[#F97316]/30'>
                   Đang duyệt: {label(current)}
                   {pendingSub ? ` (lần nộp ${pendingSub.attemptNumber})` : ''}
                 </span>
               )}
             </div>
-            <p className='text-xs text-[#A3A3A3] uppercase tracking-wider font-bold'>
+            <p className='text-xs text-[#57534E] uppercase tracking-wider font-semibold'>
               Trạng thái: {st} · {String(assignment.entityType)}
               {effectiveRole ? ` · Vai trò: ${effectiveRole}` : ''}
             </p>
@@ -1627,9 +1627,9 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
                   assignment.brief,
                 )
               }
-              className='px-3.5 py-1.5 flex items-center gap-1.5 border border-[#e7e5e4] rounded-full text-xs font-medium hover:bg-[#f0efed] disabled:opacity-50 cursor-pointer shadow-soft-sm'
+              className='px-3.5 py-1.5 flex items-center gap-1.5 border border-[#D8D2C5] bg-[#FCFBF8] rounded-full text-xs font-semibold text-[#1C1917] hover:bg-[#F3F0E9] disabled:opacity-50 cursor-pointer shadow-xs transition-colors'
             >
-              <Eye className='w-3.5 h-3.5' /> Mở xét duyệt
+              <Eye className='w-3.5 h-3.5 text-[#F97316]' /> Mở xét duyệt
             </button>
           )}
 
@@ -1637,7 +1637,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
             <button
               type='button'
               onClick={() => setIsPreviewFeedbackOpen(true)}
-              className='px-3.5 py-1.5 flex items-center gap-1.5 border border-indigo-200 bg-indigo-50/70 hover:bg-indigo-100/70 text-indigo-800 text-xs font-medium rounded-full cursor-pointer transition-colors shadow-soft-sm'
+              className='px-3.5 py-1.5 flex items-center gap-1.5 border border-indigo-200 bg-indigo-50/70 hover:bg-indigo-100/70 text-indigo-800 text-xs font-medium rounded-full cursor-pointer transition-colors shadow-xs'
               data-testid='editor-preview-feedback-btn'
               title='Xem & Triage phản hồi từ liên kết xem thử độc giả (CF5)'
             >
@@ -1657,7 +1657,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
                   : 'Duyệt công đoạn này')
               }
               onClick={() => void onApprove()}
-              className='px-5 py-2 flex items-center gap-1.5 bg-[#292524] text-white text-xs font-medium rounded-full hover:bg-[#0c0a09] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-soft-sm transition-all'
+              className='px-5 py-2 flex items-center gap-1.5 bg-[#F97316] text-white text-xs font-semibold rounded-full hover:bg-[#EA580C] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-sm transition-all active:scale-98'
             >
               <CheckCircle2 className='w-4 h-4' /> Duyệt
             </button>
@@ -1666,27 +1666,27 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
       </div>
 
       {/* TOOLBAR SO SÁNH & ĐIỀU KHIỂN GÓC NHÌN */}
-      <div className='shrink-0 bg-[#fafafa] border-b border-[#e7e5e4] px-6 py-2 flex items-center justify-between gap-4 text-xs z-10 flex-wrap'>
+      <div className='shrink-0 bg-[#F8F6F0] border-b border-[#D8D2C5] px-6 py-2 flex items-center justify-between gap-4 text-xs z-10 flex-wrap'>
         {/* Nhóm chế độ hiển thị */}
-        <div className='flex items-center gap-1 border border-[#e7e5e4] rounded-full bg-[#f0efed] p-1 shadow-soft-sm'>
+        <div className='flex items-center gap-1 border border-[#D8D2C5] rounded-xl bg-[#F3F0E9] p-0.5 shadow-xs'>
           <button
             type='button'
             onClick={() => setCompareMode('side-by-side')}
-            className={`px-3 py-1 rounded-full flex items-center gap-1.5 font-medium text-xs cursor-pointer transition-all ${
+            className={`px-3 py-1 rounded-lg flex items-center gap-1.5 font-semibold text-xs cursor-pointer transition-all ${
               compareMode === 'side-by-side'
-                ? 'bg-[#292524] text-white shadow-soft-sm'
-                : 'text-[#4e4e4e] hover:text-[#0c0a09]'
+                ? 'bg-[#FFF2E6] text-[#1C1917] border border-[#C2410C] shadow-xs'
+                : 'text-[#57534E] hover:text-[#1C1917] border border-transparent'
             }`}
           >
-            <Columns className='w-3.5 h-3.5' /> Cạnh nhau
+            <Columns className='w-3.5 h-3.5 text-[#C2410C]' /> Cạnh nhau
           </button>
           <button
             type='button'
             onClick={() => setCompareMode('swipe')}
-            className={`px-3 py-1 rounded-full flex items-center gap-1.5 font-medium text-xs cursor-pointer transition-all ${
+            className={`px-3 py-1 rounded-lg flex items-center gap-1.5 font-semibold text-xs cursor-pointer transition-all ${
               compareMode === 'swipe'
-                ? 'bg-[#292524] text-white shadow-soft-sm'
-                : 'text-[#4e4e4e] hover:text-[#0c0a09]'
+                ? 'bg-[#FFF2E6] text-[#1C1917] border border-[#C2410C] shadow-xs'
+                : 'text-[#57534E] hover:text-[#1C1917] border border-transparent'
             }`}
           >
             Thanh trượt
@@ -1694,29 +1694,29 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
           <button
             type='button'
             onClick={() => setCompareMode('onion-skin')}
-            className={`px-3 py-1 rounded-full flex items-center gap-1.5 font-medium text-xs cursor-pointer transition-all ${
+            className={`px-3 py-1 rounded-lg flex items-center gap-1.5 font-semibold text-xs cursor-pointer transition-all ${
               compareMode === 'onion-skin'
-                ? 'bg-[#292524] text-white shadow-soft-sm'
-                : 'text-[#4e4e4e] hover:text-[#0c0a09]'
+                ? 'bg-[#FFF2E6] text-[#1C1917] border border-[#C2410C] shadow-xs'
+                : 'text-[#57534E] hover:text-[#1C1917] border border-transparent'
             }`}
           >
-            <Layers className='w-3.5 h-3.5' /> Chồng ảnh
+            <Layers className='w-3.5 h-3.5 text-[#C2410C]' /> Chồng ảnh
           </button>
         </div>
 
         {/* Thanh trượt Onion Skin nếu đang ở mode onion-skin */}
         {compareMode === 'onion-skin' && (
           <div className='flex items-center gap-2'>
-            <span className='text-xs text-zinc-600 font-medium'>Độ mờ bản sau:</span>
+            <span className='text-xs text-[#57534E] font-medium'>Độ mờ bản sau:</span>
             <input
               type='range'
               min='0'
               max='100'
               value={onionOpacity}
               onChange={(e) => setOnionOpacity(Number(e.target.value))}
-              className='w-24 accent-[#171717]'
+              className='w-24 accent-[#F97316]'
             />
-            <span className='text-xs font-mono text-zinc-500 w-8'>{onionOpacity}%</span>
+            <span className='text-xs font-mono text-[#57534E] w-8'>{onionOpacity}%</span>
           </div>
         )}
 
@@ -1726,18 +1726,18 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
             type='button'
             onClick={() => handleZoom(0.2)}
             title='Phóng to'
-            className='p-1 border border-[#D4D4D4] rounded bg-white hover:bg-zinc-50 cursor-pointer'
+            className='p-1 border border-[#D8D2C5] rounded-lg bg-[#FCFBF8] hover:bg-[#F3F0E9] text-[#1C1917] cursor-pointer'
           >
             <ZoomIn className='w-3.5 h-3.5' />
           </button>
-          <span className='px-1.5 font-mono text-xs text-zinc-600 font-medium'>
+          <span className='px-1.5 font-mono text-xs text-[#1C1917] font-semibold tabular-nums'>
             {Math.round(zoomTransform.scale * 100)}%
           </span>
           <button
             type='button'
             onClick={() => handleZoom(-0.2)}
             title='Thu nhỏ'
-            className='p-1 border border-[#D4D4D4] rounded bg-white hover:bg-zinc-50 cursor-pointer'
+            className='p-1 border border-[#D8D2C5] rounded-lg bg-[#FCFBF8] hover:bg-[#F3F0E9] text-[#1C1917] cursor-pointer'
           >
             <ZoomOut className='w-3.5 h-3.5' />
           </button>
@@ -1745,21 +1745,21 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
             type='button'
             onClick={resetZoom}
             title='Đặt lại góc nhìn'
-            className='px-2 py-1 border border-[#D4D4D4] rounded bg-white hover:bg-zinc-50 font-medium text-xs flex items-center gap-1 cursor-pointer'
+            className='px-2 py-1 border border-[#D8D2C5] rounded-lg bg-[#FCFBF8] hover:bg-[#F3F0E9] font-semibold text-xs flex items-center gap-1 cursor-pointer text-[#1C1917]'
           >
-            <RotateCcw className='w-3 h-3' /> Đặt lại
+            <RotateCcw className='w-3 h-3 text-[#78716C]' /> Đặt lại
           </button>
           <button
             type='button'
             onClick={() => setZoomSync((s) => !s)}
             title='Đồng bộ zoom/pan cả hai khung'
-            className={`px-2 py-1 border rounded font-medium text-xs flex items-center gap-1 cursor-pointer ${
+            className={`px-2 py-1 border rounded-lg font-semibold text-xs flex items-center gap-1 cursor-pointer ${
               zoomSync
-                ? 'bg-blue-50 text-blue-700 border-blue-200'
-                : 'bg-white text-zinc-600 border-zinc-200'
+                ? 'bg-[#FFF2E6] text-[#1C1917] border-[#C2410C]'
+                : 'bg-[#FCFBF8] text-[#57534E] border-[#D8D2C5] hover:bg-[#F3F0E9]'
             }`}
           >
-            {zoomSync ? <Lock className='w-3 h-3' /> : <Unlock className='w-3 h-3' />}
+            {zoomSync ? <Lock className='w-3 h-3 text-[#C2410C]' /> : <Unlock className='w-3 h-3 text-[#78716C]' />}
             <span>Đồng bộ: {zoomSync ? 'Bật' : 'Tắt'}</span>
           </button>
         </div>
@@ -1768,24 +1768,24 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
         <div className='flex items-center gap-1.5'>
           {canDraw && (
             <div className='flex items-center gap-1.5'>
-              <div className='flex items-center border border-[#D4D4D4] rounded bg-white p-0.5'>
+              <div className='flex items-center border border-[#D8D2C5] rounded-lg bg-[#F3F0E9] p-0.5'>
                 <button
                   type='button'
                   onClick={() => setIsDrawTool(true)}
                   className={`px-2 py-0.5 rounded text-xs font-semibold flex items-center gap-1 cursor-pointer ${
-                    isDrawTool ? 'bg-[#F97316] text-white' : 'text-[#737373]'
+                    isDrawTool ? 'bg-[#FFF2E6] text-[#1C1917] border border-[#C2410C]' : 'text-[#57534E]'
                   }`}
                 >
-                  <Square className='w-3 h-3' /> Khoanh vùng
+                  <Square className='w-3 h-3 text-[#C2410C]' /> Khoanh vùng
                 </button>
                 <button
                   type='button'
                   onClick={() => setIsDrawTool(false)}
                   className={`px-2 py-0.5 rounded text-xs font-semibold flex items-center gap-1 cursor-pointer ${
-                    !isDrawTool ? 'bg-[#171717] text-white' : 'text-[#737373]'
+                    !isDrawTool ? 'bg-[#FFF2E6] text-[#1C1917] border border-[#C2410C]' : 'text-[#57534E]'
                   }`}
                 >
-                  <Move className='w-3 h-3' /> Di chuyển
+                  <Move className='w-3 h-3 text-[#C2410C]' /> Di chuyển
                 </button>
               </div>
               {drawingHint && (
@@ -1875,18 +1875,18 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
 
       {/* MAIN VIEWPORT */}
       <div className='flex-1 flex overflow-hidden' ref={comparisonContainerRef}>
-        <div className='flex-1 flex flex-col min-w-0 bg-[#EFEFEF] overflow-hidden'>
+        <div className='flex-1 flex flex-col min-w-0 bg-[#F3F0E9] overflow-hidden'>
           {/* HEADER CHỌN PHIÊN BẢN */}
-          <div className='p-2 bg-white border-b border-[#E7E7E7] flex items-center justify-between gap-4 text-xs'>
+          <div className='p-2 bg-[#FCFBF8] border-b border-[#D8D2C5] flex items-center justify-between gap-4 text-xs text-[#1C1917]'>
             <div className='flex-1 flex items-center gap-2'>
-              <span className='uppercase tracking-wider font-bold text-[#737373] text-xs shrink-0'>
+              <span className='uppercase tracking-wider font-bold text-[#57534E] text-xs shrink-0'>
                 Phiên bản trước:
               </span>
               <select
                 aria-label='Chọn phiên bản để so sánh'
                 value={previousId ?? ''}
                 onChange={(e) => setPreviousId(e.target.value || null)}
-                className='border border-[#D4D4D4] rounded px-2 py-0.5 text-xs bg-white max-w-sm truncate'
+                className='border border-[#D8D2C5] rounded-lg px-2 py-1 text-xs bg-[#F8F6F0] text-[#1C1917] max-w-sm truncate cursor-pointer'
               >
                 <option value=''>(không so sánh)</option>
                 {artworks
@@ -1900,14 +1900,14 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
             </div>
 
             <div className='flex-1 flex items-center justify-end gap-2'>
-              <span className='uppercase tracking-wider font-bold text-[#F97316] text-xs shrink-0'>
+              <span className='uppercase tracking-wider font-bold text-[#C2410C] text-xs shrink-0'>
                 Bản đang duyệt:
               </span>
               <select
                 aria-label='Chọn bản đang duyệt'
                 value={currentId ?? ''}
                 onChange={(e) => setCurrentId(e.target.value || null)}
-                className='border border-[#FED7AA] bg-[#FFF7ED] rounded px-2 py-0.5 text-xs text-[#9A3412] font-semibold max-w-sm truncate'
+                className='border border-[#F97316]/40 bg-[#FFF2E6] rounded-lg px-2 py-1 text-xs text-[#C2410C] font-semibold max-w-sm truncate cursor-pointer'
               >
                 {artworks.map((a) => (
                   <option key={a.id} value={a.id}>
@@ -2022,8 +2022,8 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
         </div>
 
         {/* SIDEBAR TABS: YÊU CẦU SỬA & KIỂM TRA NHẤT QUÁN */}
-        <div className='w-[380px] shrink-0 bg-white border-l border-[#E7E7E7] flex flex-col h-full z-10'>
-          <div className='flex border-b border-[#E7E7E7]' role='tablist'>
+        <div className='w-[380px] shrink-0 bg-[#FCFBF8] border-l border-[#D8D2C5] flex flex-col h-full z-10'>
+          <div className='flex border-b border-[#D8D2C5]' role='tablist'>
             {(
               [
                 [
@@ -2041,13 +2041,13 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
                 role='tab'
                 aria-selected={tab === key}
                 onClick={() => setTab(key)}
-                className={`flex-1 py-3 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer ${
+                className={`flex-1 py-3 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors ${
                   tab === key
-                    ? 'text-[#171717] border-b-2 border-[#171717]'
-                    : 'text-[#A3A3A3] bg-[#FAF8F4]'
+                    ? 'text-[#1C1917] border-b-2 border-[#C2410C] bg-[#FFF2E6]/60'
+                    : 'text-[#57534E] bg-[#FCFBF8] hover:text-[#1C1917] hover:bg-[#F3F0E9]'
                 }`}
               >
-                <Icon className='w-3.5 h-3.5' /> {tabLabel}
+                <Icon className={`w-3.5 h-3.5 ${tab === key ? 'text-[#C2410C]' : 'text-[#78716C]'}`} /> {tabLabel}
               </button>
             ))}
           </div>

@@ -95,26 +95,26 @@ export const FrameTemplateModal: React.FC<FrameTemplateModalProps> = ({
   const selectedTemplate = templates.find((t) => t.id === selectedTemplateId);
 
   return (
-    <div className='fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200'>
-      <div className='bg-white rounded-2xl border border-stone-200 shadow-2xl max-w-2xl w-full flex flex-col max-h-[85vh] overflow-hidden'>
+    <div className='fixed inset-0 z-50 bg-[#1C1917]/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200'>
+      <div className='bg-[#FCFBF8] rounded-2xl border border-[#D8D2C5] shadow-2xl max-w-2xl w-full flex flex-col max-h-[85vh] overflow-hidden'>
         {/* Header */}
-        <div className='p-5 border-b border-stone-100 flex items-center justify-between bg-stone-50/50'>
+        <div className='p-5 border-b border-[#D8D2C5] flex items-center justify-between bg-[#F8F6F0]'>
           <div className='flex items-center gap-3'>
-            <div className='p-2.5 bg-orange-50 text-orange-600 rounded-xl border border-orange-100'>
+            <div className='p-2.5 bg-[#FFF2E6] text-[#C2410C] rounded-xl border border-[#FDBA74]'>
               <LayoutTemplate className='w-5 h-5' />
             </div>
             <div>
-              <h3 className='text-sm font-bold text-stone-900'>
+              <h3 className='text-sm font-serif font-bold text-[#1C1917]'>
                 Áp Dụng Mẫu Khung Tranh (Frame Templates)
               </h3>
-              <p className='text-xs text-stone-500'>
+              <p className='text-xs text-[#57534E]'>
                 Trang {pageNumber} • Chọn mẫu khung dựng sẵn để tự động sinh ô Panel theo thứ tự đọc
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className='p-1.5 text-stone-400 hover:text-stone-700 hover:bg-stone-100 rounded-lg transition-colors cursor-pointer'
+            className='p-1.5 text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9] rounded-lg transition-colors cursor-pointer'
           >
             <X className='w-4 h-4' />
           </button>
@@ -145,11 +145,11 @@ export const FrameTemplateModal: React.FC<FrameTemplateModalProps> = ({
         {/* Content body */}
         <div className='p-6 flex-1 overflow-y-auto custom-scrollbar space-y-4'>
           {loading ? (
-            <div className='p-12 text-center text-xs text-stone-500'>
+            <div className='p-12 text-center text-xs text-[#57534E]'>
               Đang tải danh sách mẫu khung...
             </div>
           ) : templates.length === 0 ? (
-            <div className='p-12 text-center text-xs text-stone-500 border border-dashed border-stone-200 rounded-xl'>
+            <div className='p-12 text-center text-xs text-[#57534E] border border-dashed border-[#D8D2C5] rounded-xl'>
               Chưa có mẫu khung nào trong Studio.
             </div>
           ) : (
@@ -162,40 +162,39 @@ export const FrameTemplateModal: React.FC<FrameTemplateModalProps> = ({
                     onClick={() => setSelectedTemplateId(tpl.id)}
                     className={`p-4 rounded-xl border text-left cursor-pointer transition-all ${
                       isSelected
-                        ? 'border-orange-500 bg-orange-50/40 ring-2 ring-orange-500/20 shadow-soft-sm'
-                        : 'border-stone-200 bg-white hover:border-orange-300'
+                        ? 'border-[#F97316] bg-[#FFF2E6] ring-2 ring-[#F97316]/20 shadow-soft-sm'
+                        : 'border-[#D8D2C5] bg-[#FCFBF8] hover:border-[#F97316]'
                     }`}
                   >
                     <div className='flex items-center justify-between mb-2'>
-                      <div className='font-bold text-xs text-stone-900 flex items-center gap-1.5'>
+                      <div className='font-bold text-xs text-[#1C1917] flex items-center gap-1.5'>
                         <span>{tpl.name}</span>
                         {tpl.isBuiltIn && (
-                          <span className='px-1.5 py-0.5 rounded text-xs font-bold bg-stone-100 text-stone-600'>
+                          <span className='px-1.5 py-0.5 rounded text-xs font-bold bg-[#F3F0E9] text-[#57534E]'>
                             Mặc định
                           </span>
                         )}
                       </div>
-                      <span className='font-mono text-xs text-orange-700 font-bold bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-md'>
+                      <span className='font-mono text-xs text-[#C2410C] font-bold bg-[#FFF2E6] border border-[#FDBA74] px-2 py-0.5 rounded-md'>
                         {tpl.panelCount} ô
                       </span>
                     </div>
 
-                    <div className='text-xs text-stone-500 mb-3'>
+                    <div className='text-xs text-[#57534E] mb-3'>
                       Khổ:{' '}
-                      <span className='font-mono font-medium text-stone-700'>
+                      <span className='font-mono font-medium text-[#1C1917]'>
                         {tpl.layoutFormat}
                       </span>
                     </div>
 
                     {/* Miniature Slot Layout Visualization */}
-                    {/* BE trả x/y/w/h chuẩn hoá 0–1 theo trang; corners 0–1 trong hộp khung (khung nghiêng) */}
                     <div
-                      className={`${tpl.layoutFormat === 'SpreadDouble' ? 'aspect-[3/2]' : 'aspect-[2/3]'} bg-stone-50 border border-stone-200 rounded-lg relative overflow-hidden`}
+                      className={`${tpl.layoutFormat === 'SpreadDouble' ? 'aspect-[3/2]' : 'aspect-[2/3]'} bg-[#F8F6F0] border border-[#D8D2C5] rounded-lg relative overflow-hidden`}
                     >
                       {tpl.slots.map((s, idx) => (
                         <div
                           key={idx}
-                          className={`absolute border ${s.borderless ? 'border-dashed border-orange-400' : 'border-stone-800'} ${isSelected ? 'bg-orange-500/20 text-orange-900' : 'bg-stone-200/60 text-stone-700'} flex items-center justify-center font-mono text-xs font-bold`}
+                          className={`absolute border ${s.borderless ? 'border-dashed border-[#F97316]' : 'border-[#1C1917]'} ${isSelected ? 'bg-[#F97316]/20 text-[#C2410C]' : 'bg-[#E7E2D9] text-[#1C1917]'} flex items-center justify-center font-mono text-xs font-bold`}
                           style={{
                             left: `${s.x * 100}%`,
                             top: `${s.y * 100}%`,
@@ -218,11 +217,11 @@ export const FrameTemplateModal: React.FC<FrameTemplateModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className='p-4 border-t border-stone-100 flex items-center justify-between bg-stone-50/50'>
-          <div className='text-xs text-stone-500'>
+        <div className='p-4 border-t border-[#D8D2C5] flex items-center justify-between bg-[#F8F6F0]'>
+          <div className='text-xs text-[#57534E]'>
             {selectedTemplate && (
               <span>
-                Đang chọn: <strong className='text-stone-800'>{selectedTemplate.name}</strong> (
+                Đang chọn: <strong className='text-[#1C1917]'>{selectedTemplate.name}</strong> (
                 {selectedTemplate.panelCount} ô Panel)
               </span>
             )}
@@ -230,14 +229,14 @@ export const FrameTemplateModal: React.FC<FrameTemplateModalProps> = ({
           <div className='flex items-center gap-2'>
             <button
               onClick={onClose}
-              className='px-3.5 py-2 text-xs text-stone-600 hover:text-stone-900 font-semibold cursor-pointer'
+              className='px-3.5 py-2 text-xs text-[#57534E] hover:text-[#1C1917] font-semibold cursor-pointer'
             >
               Hủy
             </button>
             <button
               onClick={handleApply}
               disabled={applying || !selectedTemplateId}
-              className='px-4 py-2 bg-[#EA580C] hover:bg-[#C2410C] disabled:bg-stone-300 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-soft-sm transition-all cursor-pointer active:scale-95'
+              className='px-4 py-2 bg-[#F97316] hover:bg-[#EA580C] disabled:bg-stone-300 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-soft-sm transition-all cursor-pointer active:scale-95'
             >
               <span>{applying ? 'Đang áp dụng...' : 'Áp Dụng Mẫu Khung'}</span>
               <ArrowRight className='w-3.5 h-3.5' />
