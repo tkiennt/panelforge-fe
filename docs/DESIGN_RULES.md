@@ -79,9 +79,12 @@ All statuses for `AssignmentStatus`, `StageProgress`, `ChapterStatus`, `ChangeRe
 
 **⛔ STRICT PROHIBITION:** Never use micro font sizes such as `text-[9px]`, `text-[10px]`, or `text-[11px]` for readable UI text. The minimum allowed font size across the entire application is `text-xs` (`12px`).
 
-### 2.1. Font Families
+### 2.1. Font Families (Standardized Studio Stack)
+- **Body / Interface:** `font-sans` (`Plus Jakarta Sans`, system-ui, sans-serif) — High clarity, modern geometric grotesque, perfect at 12px–14px.
 - **Headings / Studio Brand:** `font-serif` (`Playfair Display`, Georgia, serif) with `lining-nums`
-- **Body / Interface:** `font-sans` (`Plus Jakarta Sans`, Inter, sans-serif)
+- **Manga Studio Headings / Shonen Titles:** `font-studio` (`Be Vietnam Pro`, sans-serif, weights 700/900) — Bold, impactful, 100% Vietnamese diacritic support.
+- **Manga Lettering & Speech Balloons:** `font-comic` (`Patrick Hand SC`, `Patrick Hand`, cursive) — Authentic manga pencil/ink lettering, 100% Vietnamese diacritic support.
+- **Manuscript Notes & Handwritten Annotations:** `font-handwriting` (`Patrick Hand`, cursive) — Tactile manuscript memo notes.
 - **Data / Codes / Panel IDs / Metrics / Timestamps:** `font-mono` (`JetBrains Mono`, monospace)
 
 ### 2.2. Typography Hierarchy Table

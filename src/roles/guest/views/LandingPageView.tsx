@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { BrandMark } from '@/shared/components/BrandMark';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   ArrowRight,
@@ -357,21 +358,10 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             className='flex items-center gap-2 group shrink-0'
             aria-label='PanelForge - Về đầu trang'
           >
-            <div className='relative w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#1C1917] flex items-center justify-center text-white shadow-soft-sm group-hover:scale-105 transition-transform'>
-              <svg
-                width='17'
-                height='17'
-                viewBox='0 0 24 24'
-                fill='none'
-                stroke='white'
-                strokeWidth='2'
-                strokeLinecap='round'
-                strokeLinejoin='round'
-                aria-hidden='true'
-              >
-                <path d='M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z' />
-              </svg>
-            </div>
+            <BrandMark
+              size={30}
+              className='shrink-0 group-hover:scale-105 transition-transform motion-reduce:transform-none'
+            />
             <span className='font-serif text-lg sm:text-xl font-medium tracking-tight text-[#1C1917]'>
               PanelForge
             </span>
@@ -596,7 +586,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               <h1
                 style={{
                   fontFamily:
-                    "'Patrick Hand SC', 'Anton', 'Mali', 'Be Vietnam Pro', cursive, sans-serif",
+                    "'Patrick Hand SC', 'Patrick Hand', 'Be Vietnam Pro', cursive, sans-serif",
                 }}
                 className='hero-stagger-2 font-black text-[#1C1917] tracking-normal leading-[1.08] text-[clamp(2.9rem,5.6vw+0.2rem,5.65rem)] mb-[clamp(16px,2.2vh,26px)] select-none overflow-visible uppercase'
               >
@@ -850,7 +840,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                   </div>
                   <h2
                     style={{
-                      fontFamily: "'Patrick Hand', 'Mali', cursive, sans-serif",
+                      fontFamily: "'Patrick Hand', 'Be Vietnam Pro', cursive, sans-serif",
                     }}
                     className='text-2xl sm:text-3xl lg:text-[2.45rem] text-[#1C1917] leading-[1.22] font-medium [text-wrap:balance] max-w-[28ch]'
                   >
@@ -2564,20 +2554,11 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 className='inline-flex items-center gap-2.5 group'
                 aria-label='PanelForge - Về đầu trang'
               >
-                <div className='w-8 h-8 rounded-full bg-[#FAF8F5] flex items-center justify-center text-[#1C1917] group-hover:scale-105 transition-transform'>
-                  <svg
-                    width='16'
-                    height='16'
-                    viewBox='0 0 24 24'
-                    fill='none'
-                    stroke='#1C1917'
-                    strokeWidth='2'
-                    strokeLinecap='round'
-                    strokeLinejoin='round'
-                  >
-                    <path d='M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z' />
-                  </svg>
-                </div>
+                <BrandMark
+                  size={30}
+                  tone='paper'
+                  className='shrink-0 group-hover:scale-105 transition-transform motion-reduce:transform-none'
+                />
                 <span className='font-serif text-xl font-bold tracking-tight text-[#FAF8F5]'>
                   PanelForge
                 </span>

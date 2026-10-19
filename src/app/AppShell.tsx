@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { BrandMark } from '@/shared/components/BrandMark';
 import { Outlet, useNavigate, useLocation, useParams } from 'react-router-dom';
 import { MangaProject, SystemRole, WorkspaceRole } from '@/types';
 import {
@@ -596,9 +597,7 @@ export function AppShell({
             )}
             {isReader ? (
               <div className='flex items-center gap-3'>
-                <div className='w-8 h-8 rounded-full bg-[#292524] flex items-center justify-center text-white font-heading font-bold text-sm shadow-soft-sm tracking-tighter'>
-                  PF
-                </div>
+                <BrandMark size={28} className='shrink-0' />
                 <div>
                   <span className='text-[#0c0a09] font-serif font-medium text-sm'>
                     {activeSeries?.title || 'PanelForge Studio'}

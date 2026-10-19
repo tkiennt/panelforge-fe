@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { BrandMark } from '@/shared/components/BrandMark';
 import {
   Server,
   BookOpen,
@@ -127,9 +128,7 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
         }`}
       >
         <div className='flex items-center gap-2.5 min-w-0'>
-          <div className='w-8 h-8 rounded-full bg-[#292524] flex items-center justify-center text-white font-heading font-bold text-sm shadow-soft-sm tracking-tighter shrink-0'>
-            PF
-          </div>
+          <BrandMark size={28} className='shrink-0' />
           {showFullContent && (
             <div className='min-w-0'>
               <div className='font-serif font-medium text-sm leading-tight text-[#0c0a09] tracking-tight truncate'>

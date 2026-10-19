@@ -60,6 +60,7 @@ import { NarrativeContextDrawer } from '../components/script/NarrativeContextDra
 import { ConsistencyFindingsDrawer } from '../components/script/ConsistencyFindingsDrawer';
 import { BibleCharactersDrawer } from '../components/script/BibleCharactersDrawer';
 import { offlineQueueService } from '@/services/offlineQueue.service';
+import { saveDraft, clearDraft, readRestorableDraft, type LocalDraft } from '@/lib/localDraft';
 import { OfflineStatusBanner } from '@/shared/components/OfflineStatusBanner';
 import { ElementConflictModal } from '@/shared/modals/ElementConflictModal';
 
@@ -209,6 +210,44 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   );
 
   const hasUnsavedChanges = isStoryArcDirty || isOutlineDirty;
+
+  // Bản nháp cục bộ: lưu chữ đang gõ (debounce 1s) để không mất khi hết phiên / rớt mạng / đóng tab.
+  const storyArcDraftKey = seriesId ? `storyArc.${seriesId}` : null;
+  const outlineDraftKey = currentChapter?.id ? `outline.${currentChapter.id}` : null;
+  const [restorable, setRestorable] = useState<{ storyArc?: LocalDraft; outline?: LocalDraft }>({});
+
+  useEffect(() => {
+    if (!storyArcDraftKey || !isStoryArcDirty) return;
+    const t = setTimeout(() => {
+      saveDraft(storyArcDraftKey, storyArcInput);
+      setRestorable((p) => ({ ...p, storyArc: undefined }));
+    }, 1000);
+    return () => clearTimeout(t);
+  }, [storyArcDraftKey, isStoryArcDirty, storyArcInput]);
+
+  useEffect(() => {
+    // Cleanup huỷ timer khi đổi chương, nên chữ của chương cũ không bị ghi vào khoá chương mới.
+    if (!outlineDraftKey || !isOutlineDirty) return;
+    const t = setTimeout(() => {
+      saveDraft(outlineDraftKey, outlineInput);
+      setRestorable((p) => ({ ...p, outline: undefined }));
+    }, 1000);
+    return () => clearTimeout(t);
+  }, [outlineDraftKey, isOutlineDirty, outlineInput]);
+
+  // Khi dữ liệu server đã tải: nếu còn bản nháp khác bản đã lưu thì đề nghị khôi phục.
+  const seriesLoaded = !!seriesDetail;
+  useEffect(() => {
+    if (!storyArcDraftKey || !seriesLoaded || !canEditScript) return;
+    const d = readRestorableDraft(storyArcDraftKey, seriesDetail?.storyArc);
+    setRestorable((p) => ({ ...p, storyArc: d ?? undefined }));
+  }, [storyArcDraftKey, seriesLoaded, seriesDetail?.storyArc, canEditScript]);
+
+  useEffect(() => {
+    if (!outlineDraftKey || !canEditScript) return;
+    const d = readRestorableDraft(outlineDraftKey, currentChapter?.outline);
+    setRestorable((p) => ({ ...p, outline: d ?? undefined }));
+  }, [outlineDraftKey, currentChapter?.outline, canEditScript]);
 
   // Bảo vệ thay đổi chưa lưu khi đóng hoặc tải lại trang
   useEffect(() => {
@@ -394,6 +433,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     try {
       const res = await seriesService.updateStoryArc(seriesId, storyArcInput.trim() || null);
       setStoryArcInput(res.value || '');
+      clearDraft(`storyArc.${seriesId}`);
       setSeriesDetail((prev) => (prev ? { ...prev, storyArc: res.value } : null));
       notify('Thành công', 'Đã cập nhật Story Arc của Series.');
     } catch (err: any) {
@@ -416,6 +456,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         outlineInput.trim() || null,
       );
       setOutlineInput(res.value || '');
+      clearDraft(`outline.${currentChapter.id}`);
       setCurrentChapter((prev) => (prev ? { ...prev, outline: res.value } : null));
       notify('Thành công', `Đã cập nhật đề cương Chương ${currentChapter.chapterNumber}.`);
     } catch (err: any) {
@@ -1163,6 +1204,55 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
       {/* NFR-09: Thanh trạng thái kết nối & hàng đợi ngoại tuyến */}
       <OfflineStatusBanner className='px-4 py-2 border-b border-[#E7E2D9]' />
+
+      {/* Khôi phục bản nháp cục bộ chưa lưu (sau khi hết phiên / rớt mạng / đóng tab) */}
+      {(['storyArc', 'outline'] as const).map((kind) => {
+        const draft = restorable[kind];
+        const key = kind === 'storyArc' ? storyArcDraftKey : outlineDraftKey;
+        if (!draft || !key) return null;
+        const label =
+          kind === 'storyArc'
+            ? 'Story Arc'
+            : `Đề cương Chương ${currentChapter?.chapterNumber ?? ''}`;
+        return (
+          <div
+            key={kind}
+            role='status'
+            data-testid={`draft-restore-${kind}`}
+            className='px-4 py-2 bg-amber-50 border-b border-amber-200 flex flex-wrap items-center gap-2 text-xs text-amber-900'
+          >
+            <span className='font-medium'>
+              Có bản nháp {label} chưa lưu lúc{' '}
+              {new Date(draft.savedAt).toLocaleString('vi-VN', {
+                dateStyle: 'short',
+                timeStyle: 'short',
+              })}
+              .
+            </span>
+            <button
+              type='button'
+              onClick={() => {
+                (kind === 'storyArc' ? setStoryArcInput : setOutlineInput)(draft.text);
+                if (kind === 'outline') setActiveSideDrawer('narrative');
+                setRestorable((p) => ({ ...p, [kind]: undefined }));
+              }}
+              className='px-2.5 py-1 rounded-lg bg-amber-600 text-white font-semibold hover:bg-amber-700 cursor-pointer'
+            >
+              Khôi phục
+            </button>
+            <button
+              type='button'
+              onClick={() => {
+                clearDraft(key);
+                setRestorable((p) => ({ ...p, [kind]: undefined }));
+              }}
+              className='px-2.5 py-1 rounded-lg border border-amber-300 font-semibold hover:bg-amber-100 cursor-pointer'
+            >
+              Bỏ bản nháp
+            </button>
+          </div>
+        );
+      })}
 
       {/* 2. Thanh thông báo ngắn gọn gom thông báo chỉ đọc & xung đột */}
       {(concurrencyError || isChapterLocked || !canEditScript || loadError) && (

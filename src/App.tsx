@@ -22,6 +22,7 @@ import { ROLE_MANIFEST } from './roles/roles';
 import { CheckCircle2 } from 'lucide-react';
 import { authService } from './services/auth.service';
 import { refreshAccessToken } from './api/axiosClient';
+import { startSessionKeepAlive } from './api/sessionKeepAlive';
 import { seriesService } from './services/series.service';
 import { workspaceService } from './services/workspace.service';
 import { offlineQueueService } from './services/offlineQueue.service';
@@ -48,6 +49,12 @@ function AppContent() {
   });
   const [authMode, setAuthMode] = useState<'landing' | 'login' | 'register'>('landing');
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
+
+  // Giữ phiên khi người dùng còn thao tác (không áp dụng cho token demo 'mock-...').
+  useEffect(() => {
+    if (!isAuthenticated || localStorage.getItem('token')?.startsWith('mock-')) return;
+    return startSessionKeepAlive();
+  }, [isAuthenticated]);
 
   // Navigation & Data State
   const [viewScope, setViewScope] = useState<'hub' | 'project'>('hub');
@@ -572,6 +579,8 @@ function AppContent() {
     setIsAuthenticated(false);
     setCurrentRole('USER');
     setCurrentWorkspaceRole(null);
+    // Chủ động đăng xuất: về trang chủ sạch, không để PrivateRoute đẩy sang /login?redirect=<trang cũ>.
+    navigate('/', { replace: true });
     showToast('Đăng xuất', 'Đã đăng xuất khỏi phiên làm việc.');
   };
 
