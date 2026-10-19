@@ -768,6 +768,7 @@ function AppContent() {
         setIsLoginModalOpen={setIsLoginModalOpen}
         setIsRegisterModalOpen={setIsRegisterModalOpen}
         setIsCommandPaletteOpen={setCommandPaletteOpen}
+        setIsAuditLogOpen={setAuditLogOpen}
         members={members}
         setMembers={setMembers}
         handleInviteMember={handleInviteMember}
@@ -795,6 +796,8 @@ function AppContent() {
         entities={entities}
         provenanceLogs={provenanceLogs}
         activeProjectRoles={activeProjectRoles}
+        activeWorkspace={activeWorkspace}
+        currentRole={currentRole}
         setCurrentView={(v) => navigate(`/${v}`)}
         showToast={showToast}
         handleUpdateCardStage={handleUpdateCardStage}

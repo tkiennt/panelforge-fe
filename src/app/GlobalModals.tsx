@@ -27,6 +27,8 @@ interface GlobalModalsProps {
   entities: BibleEntity[];
   provenanceLogs: any[];
   activeProjectRoles: string[];
+  activeWorkspace?: { id?: string; name?: string; currentUserRole?: string } | null;
+  currentRole?: SystemRole | string;
 
   // Callbacks
   setCurrentView: (view: string) => void;
@@ -50,6 +52,8 @@ export const GlobalModals: React.FC<GlobalModalsProps> = ({
   entities,
   provenanceLogs,
   activeProjectRoles,
+  activeWorkspace,
+  currentRole,
   setCurrentView,
   showToast,
   handleUpdateCardStage,
@@ -78,6 +82,9 @@ export const GlobalModals: React.FC<GlobalModalsProps> = ({
       <AuditLogModal
         isOpen={auditLogOpen}
         onClose={() => setAuditLogOpen(false)}
+        workspaceId={activeWorkspace?.id}
+        workspaceName={activeWorkspace?.name}
+        userRole={activeWorkspace?.currentUserRole || currentRole}
         logs={provenanceLogs}
         onShowToast={showToast}
       />

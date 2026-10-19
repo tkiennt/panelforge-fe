@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrandMark } from '@/shared/components/BrandMark';
 import { Outlet, useNavigate, useLocation, useParams } from 'react-router-dom';
 import { MangaProject, SystemRole, WorkspaceRole } from '@/types';
@@ -49,6 +49,7 @@ import { NotificationBell } from '@/shared/features/collaboration/NotificationBe
 import { SidebarDrawer } from '@/shared/components/SidebarDrawer';
 import { getRoleDefaultPath } from '@/roles/roles';
 import { LanguageSwitcher } from '@/lib/i18n';
+import { notificationService } from '@/services/notification.service';
 
 export interface CurrentUser {
   name: string;
@@ -70,6 +71,8 @@ interface GlobalAppShellProps {
   onOpenTwoFactor?: () => void;
   onOpenChangePassword?: () => void;
   onOpenCommandPalette?: () => void;
+  onOpenNotifications?: () => void;
+  onOpenActivityHistory?: () => void;
   onSelectSeries?: (seriesId: string) => void;
 }
 
@@ -189,6 +192,8 @@ export function AppShell({
   onOpenTwoFactor,
   onOpenChangePassword,
   onOpenCommandPalette,
+  onOpenNotifications,
+  onOpenActivityHistory,
   onSelectSeries,
 }: GlobalAppShellProps) {
   const navigate = useNavigate();
@@ -423,6 +428,60 @@ export function AppShell({
   const rawSections = getNavSections();
 
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
+  // Polling unread notification count for sidebar badge
+  const [unreadNotifications, setUnreadNotifications] = useState<number>(0);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchUnread = async () => {
+      try {
+        const res = await notificationService.getNotifications(true, 1, 1);
+        if (isMounted && typeof res?.unreadCount === 'number') {
+          setUnreadNotifications(res.unreadCount);
+        }
+      } catch {
+        // silent fallback
+      }
+    };
+    void fetchUnread();
+    const interval = window.setInterval(() => {
+      if (!document.hidden) void fetchUnread();
+    }, 30_000);
+    return () => {
+      isMounted = false;
+      window.clearInterval(interval);
+    };
+  }, []);
+
+  const handleOpenNotifications = () => {
+    setIsMobileDrawerOpen(false);
+    if (onOpenNotifications) {
+      onOpenNotifications();
+    } else {
+      navigate('/notifications');
+    }
+  };
+
+  const handleOpenCommandPalette = () => {
+    setIsMobileDrawerOpen(false);
+    if (onOpenCommandPalette) {
+      onOpenCommandPalette();
+    } else {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true }),
+      );
+    }
+  };
+
+  const handleOpenActivityHistory = () => {
+    setIsMobileDrawerOpen(false);
+    if (onOpenActivityHistory) {
+      onOpenActivityHistory();
+    } else if (workspaceId) {
+      navigate(`/workspaces/${workspaceId}/overview`);
+    }
+  };
+
   // Sidebar thu gọn / mở rộng được lưu trạng thái trong localStorage, cố định trên mọi màn hình
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
     try {
@@ -559,6 +618,10 @@ export function AppShell({
             navSections={navSections}
             handleNavClick={handleNavClick}
             renderBadge={renderBadge}
+            unreadNotificationCount={unreadNotifications}
+            onOpenNotifications={handleOpenNotifications}
+            onOpenCommandPalette={handleOpenCommandPalette}
+            onOpenActivityHistory={handleOpenActivityHistory}
             onOpenTwoFactor={() => {
               setIsMobileDrawerOpen(false);
               onOpenTwoFactor?.();
@@ -585,6 +648,10 @@ export function AppShell({
         navSections={navSections}
         handleNavClick={handleNavClick}
         renderBadge={renderBadge}
+        unreadNotificationCount={unreadNotifications}
+        onOpenNotifications={handleOpenNotifications}
+        onOpenCommandPalette={handleOpenCommandPalette}
+        onOpenActivityHistory={handleOpenActivityHistory}
         onOpenTwoFactor={onOpenTwoFactor}
         onLogout={onLogout}
         onSelectSeries={onSelectSeries}

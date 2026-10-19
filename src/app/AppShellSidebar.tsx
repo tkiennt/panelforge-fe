@@ -28,6 +28,10 @@ export interface AppShellSidebarProps {
   navSections: any[];
   handleNavClick: (e: React.MouseEvent, href: string) => void;
   renderBadge: (badge: any) => React.ReactNode;
+  onOpenNotifications?: () => void;
+  onOpenCommandPalette?: () => void;
+  onOpenActivityHistory?: () => void;
+  unreadNotificationCount?: number;
   onOpenTwoFactor?: () => void;
   onLogout?: () => void;
   onSelectSeries?: (seriesId: string) => void;
@@ -48,6 +52,10 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
   navSections,
   handleNavClick,
   renderBadge,
+  onOpenNotifications,
+  onOpenCommandPalette,
+  onOpenActivityHistory,
+  unreadNotificationCount,
   onOpenTwoFactor,
   onLogout,
   onSelectSeries,
@@ -394,21 +402,53 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
         <div className='space-y-1 mb-1'>
           <button
             type='button'
-            title='Notifications'
-            aria-label='Notifications'
+            onClick={onOpenNotifications}
+            title={
+              (unreadNotificationCount ?? 0) > 0
+                ? `Notifications (${unreadNotificationCount} chưa đọc)`
+                : 'Notifications'
+            }
+            aria-label={
+              (unreadNotificationCount ?? 0) > 0
+                ? `Notifications (${unreadNotificationCount} chưa đọc)`
+                : 'Notifications'
+            }
+            data-testid='sidebar-notifications-btn'
             className={`w-full flex items-center text-[13px] font-sans font-medium text-[#57534E] hover:text-[#1C1917] hover:bg-[#F1EEE8] rounded-lg transition-colors duration-150 motion-reduce:transition-none group cursor-pointer focus:outline-none focus-visible:outline-2 focus-visible:outline-[#C2410C] focus-visible:outline-offset-1 ${
               showFullContent
                 ? `justify-start gap-3 px-3 py-2 ${isMobileDrawer ? 'min-h-[44px]' : 'min-h-[40px]'}`
-                : 'justify-center w-10 h-10 min-h-[40px] p-2 mx-auto'
+                : 'justify-center w-10 h-10 min-h-[40px] p-2 mx-auto relative'
             }`}
           >
-            <Bell className='w-5 h-5 text-[#78716C] group-hover:text-[#1C1917] stroke-[1.8] shrink-0' />
-            {showFullContent && <span className='truncate text-[14px]'>Notifications</span>}
+            <div className='relative shrink-0'>
+              <Bell className='w-5 h-5 text-[#78716C] group-hover:text-[#1C1917] stroke-[1.8]' />
+              {!showFullContent && (unreadNotificationCount ?? 0) > 0 && (
+                <span
+                  data-testid='sidebar-notifications-dot'
+                  className='absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-[#F97316] ring-2 ring-[#FCFBF8]'
+                />
+              )}
+            </div>
+            {showFullContent && (
+              <>
+                <span className='truncate text-[14px]'>Notifications</span>
+                {(unreadNotificationCount ?? 0) > 0 && (
+                  <span
+                    data-testid='sidebar-notifications-badge'
+                    className='ml-auto px-1.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-[#F97316]/15 text-[#C2410C] border border-[#F97316]/30'
+                  >
+                    {unreadNotificationCount! > 99 ? '99+' : unreadNotificationCount}
+                  </span>
+                )}
+              </>
+            )}
           </button>
           <button
             type='button'
-            title='Global Search'
+            onClick={onOpenCommandPalette}
+            title='Global Search (⌘K / Ctrl+K)'
             aria-label='Global Search'
+            data-testid='sidebar-global-search-btn'
             className={`w-full flex items-center text-[13px] font-sans font-medium text-[#57534E] hover:text-[#1C1917] hover:bg-[#F1EEE8] rounded-lg transition-colors duration-150 motion-reduce:transition-none group cursor-pointer focus:outline-none focus-visible:outline-2 focus-visible:outline-[#C2410C] focus-visible:outline-offset-1 ${
               showFullContent
                 ? `justify-start gap-3 px-3 py-2 ${isMobileDrawer ? 'min-h-[44px]' : 'min-h-[40px]'}`
@@ -416,12 +456,21 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
             }`}
           >
             <Search className='w-5 h-5 text-[#78716C] group-hover:text-[#1C1917] stroke-[1.8] shrink-0' />
-            {showFullContent && <span className='truncate text-[14px]'>Global Search</span>}
+            {showFullContent && (
+              <>
+                <span className='truncate text-[14px]'>Global Search</span>
+                <span className='ml-auto text-[10px] font-mono text-[#78716C] bg-[#EFECE6] px-1.5 py-0.5 rounded border border-[#D8D2C5]'>
+                  ⌘K
+                </span>
+              </>
+            )}
           </button>
           <button
             type='button'
+            onClick={onOpenActivityHistory}
             title='My Activity / History'
             aria-label='My Activity / History'
+            data-testid='sidebar-activity-history-btn'
             className={`w-full flex items-center text-[13px] font-sans font-medium text-[#57534E] hover:text-[#1C1917] hover:bg-[#F1EEE8] rounded-lg transition-colors duration-150 motion-reduce:transition-none group cursor-pointer focus:outline-none focus-visible:outline-2 focus-visible:outline-[#C2410C] focus-visible:outline-offset-1 ${
               showFullContent
                 ? `justify-start gap-3 px-3 py-2 ${isMobileDrawer ? 'min-h-[44px]' : 'min-h-[40px]'}`
