@@ -153,4 +153,52 @@ describe('UserProfileView Component', () => {
     expect(screen.getByText('CHẾ ĐỘ XEM')).toBeInTheDocument();
     expect(screen.getAllByText('Tatsuki Fujimoto').length).toBeGreaterThan(0);
   });
+
+  it('hiển thị tên tác giả với hiệu ứng mực in loang mép (pf-ink-bleed-title) và nét cọ cam quệt qua', async () => {
+    const { container } = render(
+      <MemoryRouter>
+        <UserProfileView onLogout={vi.fn()} />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getAllByText('Tatsuki Fujimoto').length).toBeGreaterThan(0);
+    });
+
+    // Tiêu đề tên hiển thị có class hiệu ứng mực loang
+    const nameHeading = screen.getByRole('heading', { name: 'Tatsuki Fujimoto', level: 2 });
+    expect(nameHeading).toHaveClass('pf-ink-bleed-title');
+
+    // Bộ lọc SVG filter #pf-manuscript-ink-bleed hiện diện trong DOM
+    const filterDef = container.querySelector('#pf-manuscript-ink-bleed');
+    expect(filterDef).toBeInTheDocument();
+    expect(filterDef?.querySelector('feTurbulence')).toBeInTheDocument();
+    expect(filterDef?.querySelector('feDisplacementMap')).toBeInTheDocument();
+
+    // Nét cọ cam SVG (#F97316) hiện diện ngay bên dưới tên
+    const brushSvg = container.querySelector('svg.pointer-events-none path[fill="#F97316"]');
+    expect(brushSvg).toBeInTheDocument();
+  });
+
+  it('hỗ trợ tên tiếng Việt có dấu phức tạp với đầy đủ cấu trúc nhận diện và hiệu ứng', async () => {
+    const vietnameseUser = {
+      ...mockUser,
+      username: 'Nguyễn Đắc Thắng Long',
+    };
+    vi.spyOn(userService, 'getMyProfile').mockResolvedValue(vietnameseUser);
+
+    render(
+      <MemoryRouter>
+        <UserProfileView onLogout={vi.fn()} />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getAllByText('Nguyễn Đắc Thắng Long').length).toBeGreaterThan(0);
+    });
+
+    const heading = screen.getByRole('heading', { name: 'Nguyễn Đắc Thắng Long', level: 2 });
+    expect(heading).toHaveClass('pf-ink-bleed-title');
+    expect(heading).toBeInTheDocument();
+  });
 });

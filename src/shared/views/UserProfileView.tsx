@@ -36,10 +36,18 @@ const focusRing =
   'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#44403C]';
 
 const AVATAR_PRESETS = [
-  { id: 'p1', name: 'Shonen Mangaka', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=mangaka1' },
+  {
+    id: 'p1',
+    name: 'Shonen Mangaka',
+    url: 'https://api.dicebear.com/7.x/bottts/svg?seed=mangaka1',
+  },
   { id: 'p2', name: 'Master Inker', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=inker' },
   { id: 'p3', name: 'Script Writer', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=writer' },
-  { id: 'p4', name: 'Studio Producer', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=producer' },
+  {
+    id: 'p4',
+    name: 'Studio Producer',
+    url: 'https://api.dicebear.com/7.x/bottts/svg?seed=producer',
+  },
 ];
 
 const WORKSPACE_ROLE_CONFIG: Record<
@@ -107,7 +115,11 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
   const [editPhone, setEditPhone] = useState<string>('');
   const [editAvatar, setEditAvatar] = useState<string>('');
   const [saving, setSaving] = useState<boolean>(false);
-  const [formErrors, setFormErrors] = useState<{ username?: string; phone?: string; avatar?: string }>({});
+  const [formErrors, setFormErrors] = useState<{
+    username?: string;
+    phone?: string;
+    avatar?: string;
+  }>({});
 
   // Modals state
   const [isTwoFactorOpen, setIsTwoFactorOpen] = useState<boolean>(false);
@@ -116,7 +128,10 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
   const [activeJwtToken, setActiveJwtToken] = useState<string>('');
 
   // Toast / feedback message
-  const [localFeedback, setLocalFeedback] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [localFeedback, setLocalFeedback] = useState<{
+    message: string;
+    type: 'success' | 'error';
+  } | null>(null);
 
   // Entrance animation played state - ensures entrance animations only execute once on initial mount
   const [hasAnimatedMount, setHasAnimatedMount] = useState<boolean>(false);
@@ -417,7 +432,7 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
       return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
     }
     return profile.username.slice(0, 2).toUpperCase();
-  }, [profile?.username]);
+  }, [profile]);
 
   const formattedJoinDate = useMemo(() => {
     if (!profile?.createdAt) return 'Gia nhập: Mới đây';
@@ -429,7 +444,7 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
     } catch {
       return 'Gia nhập: Mới đây';
     }
-  }, [profile?.createdAt]);
+  }, [profile]);
 
   if (loadingProfile && !profile) {
     return (
@@ -477,17 +492,31 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
           }
         }
 
-        @keyframes profileBrushStroke {
+        /* Hiệu ứng mực in manga hơi loang nhẹ và sần viền chữ (Manga Manuscript Ink Bleed) */
+        .pf-ink-bleed-title {
+          filter: url(#pf-manuscript-ink-bleed);
+          color: #1c1917;
+          text-rendering: geometricPrecision;
+          -webkit-font-smoothing: subpixel-antialiased;
+        }
+        @supports not (filter: url(#pf-manuscript-ink-bleed)) {
+          .pf-ink-bleed-title {
+            filter: none;
+          }
+        }
+
+        /* Quệt nét cọ cam từ trái sang phải bằng clip-path giữ nguyên tỷ lệ tự nhiên */
+        @keyframes brushWipeReveal {
           0% {
-            transform: scaleX(0);
+            clip-path: inset(0 100% 0 0);
             opacity: 0;
           }
-          35% {
+          20% {
             opacity: 0.95;
           }
           100% {
-            transform: scaleX(1);
-            opacity: 0.8;
+            clip-path: inset(0 0% 0 0);
+            opacity: 0.82;
           }
         }
 
@@ -512,9 +541,10 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
           animation: mangaInfoReveal 480ms cubic-bezier(0.16, 1, 0.3, 1) 200ms both;
         }
 
-        .pf-brush-stroke-enter {
-          transform-origin: left center;
-          animation: profileBrushStroke 400ms cubic-bezier(0.16, 1, 0.3, 1) 320ms both;
+        .pf-brush-wipe {
+          clip-path: inset(0 100% 0 0);
+          animation: brushWipeReveal 620ms cubic-bezier(0.16, 1, 0.3, 1) 200ms forwards;
+          will-change: clip-path, opacity;
         }
 
         /* Micro-interactions: Card Hover Lift (max 2-3px) */
@@ -533,10 +563,11 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
           .pf-cover-enter,
           .pf-portrait-enter,
           .pf-info-enter,
-          .pf-brush-stroke-enter {
+          .pf-brush-wipe {
             animation: none !important;
             transform: none !important;
-            opacity: 1 !important;
+            opacity: 0.82 !important;
+            clip-path: none !important;
           }
           .pf-editorial-card {
             transition: none !important;
@@ -544,6 +575,49 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
           }
         }
       `}</style>
+
+      {/* SVG Filter cho hiệu ứng mực in loang sần mép (Manga Manuscript Ink Bleed) */}
+      <svg
+        width='0'
+        height='0'
+        className='absolute pointer-events-none -z-50 overflow-hidden'
+        aria-hidden='true'
+        focusable='false'
+      >
+        <defs>
+          <filter
+            id='pf-manuscript-ink-bleed'
+            x='-10%'
+            y='-10%'
+            width='120%'
+            height='120%'
+            filterUnits='objectBoundingBox'
+          >
+            {/* Nhiễu hạt vi mô mô phỏng xơ sợi giấy bản thảo Nhật Bản */}
+            <feTurbulence
+              type='fractalNoise'
+              baseFrequency='0.065 0.065'
+              numOctaves='2'
+              seed='23'
+              result='paperGrain'
+            />
+            {/* Độ dịch chuyển tinh tế (1.25px) giúp mép chữ sần tự nhiên nhưng thân chữ và dấu tiếng Việt sắc nét */}
+            <feDisplacementMap
+              in='SourceGraphic'
+              in2='paperGrain'
+              scale='1.25'
+              xChannelSelector='R'
+              yChannelSelector='G'
+              result='raggedEdge'
+            />
+            {/* Ghép lớp mép sần với bản gốc để bảo toàn 100% độ đậm và nét dấu tiếng Việt */}
+            <feMerge>
+              <feMergeNode in='raggedEdge' />
+              <feMergeNode in='SourceGraphic' opacity='0.92' />
+            </feMerge>
+          </filter>
+        </defs>
+      </svg>
 
       <div className='flex min-w-0 flex-col gap-6 px-4 py-5 sm:px-6 lg:px-8 lg:py-6 w-full'>
         {/* Header ngữ cảnh đồng bộ với WorkspaceView (Quy trình sản xuất) */}
@@ -564,7 +638,8 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
               Hồ Sơ Tác Giả &amp; Không Gian Sáng Tác
             </h2>
             <p className='text-xs sm:text-sm text-[#57534E] mt-1'>
-              Quản lý định danh tác giả manga, thông tin liên lạc và vai trò trong các xưởng sáng tác.
+              Quản lý định danh tác giả manga, thông tin liên lạc và vai trò trong các xưởng sáng
+              tác.
             </p>
           </div>
 
@@ -815,30 +890,40 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
 
                 {/* Hàng 2: Typography Tên Tác Giả & Nét Bút Cam Bản Thảo */}
                 <div className='my-auto py-3'>
-                  <div className='inline-block relative max-w-full'>
+                  <div className='relative inline-block max-w-full'>
                     {/* Tên hiển thị là text thật, có thể bôi đen & đọc bằng screen reader */}
                     <h2
                       style={{
                         fontFamily: "'Playfair Display', Georgia, serif",
                       }}
-                      className='text-2xl sm:text-3xl lg:text-4xl xl:text-[2.65rem] font-bold text-[#44403C] tracking-tight leading-[1.12] select-text break-words relative z-10'
+                      className='pf-ink-bleed-title text-2xl sm:text-3xl lg:text-4xl xl:text-[2.65rem] font-bold text-[#1C1917] tracking-tight leading-[1.12] select-text break-words relative z-10'
                     >
                       {profile?.username || 'Tác Giả PanelForge'}
                     </h2>
 
-                    {/* Nét bút cam vẽ từ trái sang phải dưới tên (350-450ms) không che dấu tiếng Việt */}
+                    {/* Nét cọ cam quệt từ trái sang phải dưới baseline (620ms clip-path reveal) */}
                     <svg
-                      className={`absolute -bottom-1.5 left-0 w-full h-[6px] pointer-events-none z-0 overflow-visible ${
-                        !hasAnimatedMount ? 'pf-brush-stroke-enter' : ''
+                      className={`absolute -bottom-1 sm:-bottom-1.5 left-0 w-full max-w-[260px] sm:max-w-[320px] h-[10px] sm:h-[14px] pointer-events-none z-0 overflow-visible ${
+                        !hasAnimatedMount ? 'pf-brush-wipe' : ''
                       }`}
-                      viewBox='0 0 100 8'
-                      preserveAspectRatio='none'
+                      viewBox='0 0 320 16'
+                      fill='none'
+                      xmlns='http://www.w3.org/2000/svg'
                       aria-hidden='true'
                     >
+                      {/* Dáng nét cọ thư pháp manga với đầu vào thuôn, thân mở rộng và đuôi vuốt nhọn tự nhiên */}
                       <path
-                        d='M 0,5 Q 25,2 50,5 T 100,4 Q 85,7 45,6 T 0,5 Z'
+                        d='M 3 10 C 14 6.2, 40 8.5, 78 7.2 C 126 5.5, 192 9.5, 248 7.0 C 278 5.6, 304 7.2, 317 6.0 C 314 9.0, 286 11.2, 252 10.8 C 196 10.2, 134 13.0, 82 11.6 C 46 10.5, 16 12.2, 3 10 Z'
                         fill='#F97316'
-                        opacity='0.8'
+                        opacity='0.82'
+                      />
+                      {/* Vệt xước cọ khô phụ tạo chiều sâu mực vẽ */}
+                      <path
+                        d='M 24 9.2 C 68 8.0, 142 10.5, 220 8.6 C 258 7.8, 290 8.5, 306 7.2'
+                        stroke='#EA580C'
+                        strokeWidth='1.2'
+                        strokeLinecap='round'
+                        opacity='0.4'
                       />
                     </svg>
                   </div>
@@ -879,11 +964,13 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                   <div className='flex items-center gap-3 text-[11px] font-mono text-[#57534E]'>
                     <span className='inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#FAF8F5] border border-[#D8D2C5]'>
                       <Building2 className='w-3 h-3 text-[#F97316]' />
-                      Tham gia: <strong className='text-[#44403C]'>{workspaces.length} Studio</strong>
+                      Tham gia:{' '}
+                      <strong className='text-[#44403C]'>{workspaces.length} Studio</strong>
                     </span>
                     <span className='inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#FAF8F5] border border-[#D8D2C5]'>
                       <Key className='w-3 h-3 text-[#C2410C]' />
-                      2FA: <strong className={is2faActive ? 'text-emerald-700' : 'text-amber-700'}>
+                      2FA:{' '}
+                      <strong className={is2faActive ? 'text-emerald-700' : 'text-amber-700'}>
                         {is2faActive ? 'BẢO VỆ' : 'CHƯA BẬT'}
                       </strong>
                     </span>
@@ -911,7 +998,8 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                     Thông Tin Hồ Sơ Cá Nhân
                   </h3>
                   <p className='text-xs text-[#57534E] mt-0.5'>
-                    Thông tin định danh của bạn được hiển thị trong các dự án và phân công công việc.
+                    Thông tin định danh của bạn được hiển thị trong các dự án và phân công công
+                    việc.
                   </p>
                 </div>
                 <span
@@ -1025,7 +1113,10 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                 </div>
               ) : (
                 /* EDIT MODE: Form chỉnh sửa ổn định, không remount */
-                <form onSubmit={handleSaveProfile} className='space-y-4 animate-in fade-in-50 duration-200'>
+                <form
+                  onSubmit={handleSaveProfile}
+                  className='space-y-4 animate-in fade-in-50 duration-200'
+                >
                   {/* Field: Username */}
                   <div>
                     <label
@@ -1175,7 +1266,8 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                       <Lock className='w-4 h-4 text-[#57534E] absolute right-3.5 top-1/2 -translate-y-1/2' />
                     </div>
                     <span className='text-[10px] text-[#57534E] mt-1 block'>
-                      Email định danh tài khoản không thể chỉnh sửa trực tiếp vì lý do an toàn bảo mật.
+                      Email định danh tài khoản không thể chỉnh sửa trực tiếp vì lý do an toàn bảo
+                      mật.
                     </span>
                   </div>
 
@@ -1249,9 +1341,7 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                 >
                   <Key className='w-3.5 h-3.5 text-[#C2410C]' />
                   <span>
-                    {is2faActive
-                      ? 'Quản lý Google Authenticator'
-                      : 'Cài đặt 2FA Authenticator'}
+                    {is2faActive ? 'Quản lý Google Authenticator' : 'Cài đặt 2FA Authenticator'}
                   </span>
                 </button>
               </div>

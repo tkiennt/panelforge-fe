@@ -456,4 +456,54 @@ describe('LandingPageView Component', () => {
       expect(comparisonSlider).toHaveAttribute('value', '75');
     });
   });
+
+  describe('10. Hero Left Section: Typography loang mực & Nét cọ cam quệt', () => {
+    it('render tiêu đề Hero với hiệu ứng loang mực, text chọn được và đầy đủ dấu tiếng Việt', () => {
+      render(
+        <MemoryRouter>
+          <LandingPageView />
+        </MemoryRouter>,
+      );
+
+      const headline = screen.getByRole('heading', { level: 1 });
+      expect(headline).toBeInTheDocument();
+      expect(headline).toHaveTextContent('TỪ Ý TƯỞNG ĐẾN');
+      expect(headline).toHaveTextContent('TỪNG KHUNG TRUYỆN.');
+
+      // Class hiệu ứng loang mực và text thật chọn được
+      expect(headline.className).toContain('hero-ink-bleed');
+      expect(headline.className).toContain('select-text');
+      expect(headline.className).not.toContain('select-none');
+
+      // SVG filter định nghĩa hạt vi mô giấy và mao dẫn mực
+      const filter = document.getElementById('pf-hero-ink-bleed');
+      expect(filter).toBeInTheDocument();
+      expect(filter?.querySelector('feTurbulence')).toBeInTheDocument();
+      expect(filter?.querySelector('feDisplacementMap')).toBeInTheDocument();
+      expect(filter?.querySelector('feMerge')).toBeInTheDocument();
+    });
+
+    it('render nét cọ cam hữu cơ dưới cụm "TỪNG KHUNG TRUYỆN." với wipe animation và không che text', () => {
+      render(
+        <MemoryRouter>
+          <LandingPageView />
+        </MemoryRouter>,
+      );
+
+      const headline = screen.getByRole('heading', { level: 1 });
+      const brushSvg = headline.querySelector('svg.hero-brush-svg');
+      expect(brushSvg).toBeInTheDocument();
+      expect(brushSvg).toHaveAttribute('aria-hidden', 'true');
+
+      // Nét cọ cam chính #F97316
+      const brushPath = brushSvg?.querySelector('.hero-brush-path');
+      expect(brushPath).toBeInTheDocument();
+      expect(brushPath).toHaveAttribute('fill', '#F97316');
+
+      // Text cụm TỪNG KHUNG TRUYỆN được bảo vệ ở z-10 trên nét cọ
+      const tungKhungText = screen.getByText('TỪNG KHUNG TRUYỆN.');
+      expect(tungKhungText.className).toContain('relative');
+      expect(tungKhungText.className).toContain('z-10');
+    });
+  });
 });

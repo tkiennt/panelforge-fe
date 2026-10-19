@@ -787,6 +787,87 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
     };
   }, [isAuthActive, prefersReducedMotion]);
 
+  // Hiệu ứng chữ loang mực tiêu đề Hero: mực vừa chạm giấy và thấm sâu vào thớ sợi (chạy một lần duy nhất khi mount)
+  useEffect(() => {
+    if (prefersReducedMotion) return;
+
+    let rafId: number | null = null;
+    let isCancelled = false;
+
+    const runInkSoak = () => {
+      if (isCancelled) return;
+      const disp = document.getElementById(
+        'pf-hero-disp',
+      ) as unknown as SVGFEDisplacementMapElement | null;
+      const halo = document.getElementById(
+        'pf-hero-halo-matrix',
+      ) as unknown as SVGFEColorMatrixElement | null;
+      if (!disp) return;
+
+      const duration = 850; // 850ms soaking duration (trong khoảng 700-1000ms)
+      const startDelay = 160; // đồng bộ với hero-stagger-2 bắt đầu xuất hiện
+      let startTime: number | null = null;
+
+      const step = (now: number) => {
+        if (isCancelled) return;
+        if (!startTime) startTime = now + startDelay;
+
+        if (now < startTime) {
+          rafId = requestAnimationFrame(step);
+          return;
+        }
+
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        // Easing tự nhiên đồng bộ với Hero: cubic-bezier(0.16, 1, 0.3, 1)
+        const ease = 1 - Math.pow(1 - progress, 3);
+
+        // Mực ướt lúc chạm giấy loang mạnh (8.2px) rồi hút sâu vào thớ giấy, ổn định ở mép sần tự nhiên (3.6px)
+        const currentScale = 8.2 - 4.6 * ease;
+        disp.setAttribute('scale', currentScale.toFixed(2));
+
+        // Quầng mao dẫn mực thấm nhạt dần theo quá trình khô tự nhiên
+        if (halo) {
+          const haloAlpha = (0.65 - 0.35 * ease).toFixed(2);
+          halo.setAttribute(
+            'values',
+            `0 0 0 0 0.11 0 0 0 0 0.10 0 0 0 0 0.09 0 0 0 ${haloAlpha} 0`,
+          );
+        }
+
+        if (progress < 1) {
+          rafId = requestAnimationFrame(step);
+        } else {
+          // Trạng thái kết thúc: cố định vĩnh viễn ở texture mép sần mực in manga, không lặp lại
+          disp.setAttribute('scale', '3.60');
+          if (halo) {
+            halo.setAttribute('values', '0 0 0 0 0.11 0 0 0 0 0.10 0 0 0 0 0.09 0 0 0 0.30 0');
+          }
+        }
+      };
+
+      rafId = requestAnimationFrame(step);
+    };
+
+    // Đợi font Patrick Hand SC / Patrick Hand tải xong để hiệu ứng không chạy trước khi chữ hiển thị
+    if (typeof document !== 'undefined' && document.fonts && document.fonts.ready) {
+      document.fonts.ready
+        .then(() => {
+          runInkSoak();
+        })
+        .catch(() => {
+          runInkSoak();
+        });
+    } else {
+      runInkSoak();
+    }
+
+    return () => {
+      isCancelled = true;
+      if (rafId) cancelAnimationFrame(rafId);
+    };
+  }, [prefersReducedMotion]);
+
   return (
     <div className='antialiased text-[#1C1917] bg-[#F3F0E9] overflow-x-hidden min-h-screen flex flex-col justify-between font-sans'>
       {/* Scoped CSS for Comic Typography, Speech Balloon CTA, Brush Underline, and Pushpin Drop */}
@@ -801,13 +882,54 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             transform: translateY(0);
           }
         }
-        @keyframes heroStrokeDraw {
+        .hero-stagger-1 {
+          animation: heroFadeIn 500ms cubic-bezier(0.16, 1, 0.3, 1) 60ms both;
+        }
+        .hero-stagger-2 {
+          animation: heroFadeIn 520ms cubic-bezier(0.16, 1, 0.3, 1) 160ms both;
+        }
+        .hero-stagger-3 {
+          animation: heroFadeIn 520ms cubic-bezier(0.16, 1, 0.3, 1) 280ms both;
+        }
+        .hero-stagger-4 {
+          animation: heroFadeIn 520ms cubic-bezier(0.16, 1, 0.3, 1) 380ms both;
+        }
+        .hero-stagger-5 {
+          animation: heroFadeIn 520ms cubic-bezier(0.16, 1, 0.3, 1) 480ms both;
+        }
+
+        /* Hiệu ứng mực in manga hơi loang nhẹ và sần viền chữ (Manga Ink Bleed) */
+        .hero-ink-bleed {
+          filter: url(#pf-hero-ink-bleed);
+          color: #1C1917;
+          text-rendering: geometricPrecision;
+          -webkit-font-smoothing: subpixel-antialiased;
+        }
+        @supports not (filter: url(#pf-hero-ink-bleed)) {
+          .hero-ink-bleed {
+            filter: none;
+          }
+        }
+
+        /* Quệt nét cọ cam từ trái sang phải bằng clip-path giữ nguyên dáng hữu cơ */
+        @keyframes heroBrushWipe {
           0% {
-            stroke-dashoffset: 280;
+            clip-path: inset(0 100% 0 0);
+            opacity: 0;
+          }
+          15% {
+            opacity: 0.95;
           }
           100% {
-            stroke-dashoffset: 0;
+            clip-path: inset(0 0% 0 0);
+            opacity: 0.85;
           }
+        }
+        .hero-brush-svg {
+          opacity: 0;
+          clip-path: inset(0 100% 0 0);
+          animation: heroBrushWipe 680ms cubic-bezier(0.16, 1, 0.3, 1) 440ms forwards;
+          will-change: clip-path, opacity;
         }
         /* 650ms Multi-phase Realistic Pin Strike - Left Note (-8deg to -3deg to settle) */
         @keyframes pinStrikeLeft {
@@ -935,8 +1057,11 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             opacity: 1 !important;
             transform: none !important;
           }
+          .hero-brush-svg,
           .hero-brush-path {
             animation: none !important;
+            clip-path: none !important;
+            opacity: 0.85 !important;
             stroke-dashoffset: 0 !important;
           }
           .pin-drop-left,
@@ -952,6 +1077,97 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
           }
         }
       `}</style>
+
+      {/* SVG Filter cho hiệu ứng chữ loang mực tiêu đề Hero (Manga Manuscript Ink Bleed) */}
+      <svg
+        width='0'
+        height='0'
+        className='absolute pointer-events-none -z-50 overflow-hidden'
+        aria-hidden='true'
+        focusable='false'
+      >
+        <defs>
+          <filter
+            id='pf-hero-ink-bleed'
+            x='-20%'
+            y='-20%'
+            width='140%'
+            height='140%'
+            filterUnits='objectBoundingBox'
+          >
+            {/* Nhiễu hạt vi mô mô phỏng xơ sợi giấy bản thảo và mao dẫn mực */}
+            <feTurbulence
+              type='fractalNoise'
+              baseFrequency='0.042 0.042'
+              numOctaves='3'
+              seed='38'
+              result='paperNoise'
+            />
+
+            {/* Lớp sần mép mực chính (Displacement Map: loang sần lúc ướt -> thấm sâu ổn định vào xơ giấy) */}
+            <feDisplacementMap
+              id='pf-hero-disp'
+              in='SourceGraphic'
+              in2='paperNoise'
+              scale='3.6'
+              xChannelSelector='R'
+              yChannelSelector='G'
+              result='displacedText'
+            >
+              <animate
+                id='pf-hero-disp-anim'
+                attributeName='scale'
+                values='8.2; 6.5; 4.6; 3.6'
+                keyTimes='0; 0.25; 0.65; 1'
+                dur='850ms'
+                begin='160ms'
+                fill='freeze'
+                calcMode='spline'
+                keySplines='0.16 1 0.3 1; 0.16 1 0.3 1; 0.16 1 0.3 1'
+              />
+            </feDisplacementMap>
+
+            {/* Lớp thấm mực mao dẫn (Capillary Bleed Spread): mô phỏng mực ướt ngấm theo thớ giấy quanh mép */}
+            <feMorphology operator='dilate' radius='0.6' in='SourceGraphic' result='dilatedText' />
+            <feDisplacementMap
+              in='dilatedText'
+              in2='paperNoise'
+              scale='5.5'
+              xChannelSelector='R'
+              yChannelSelector='G'
+              result='capillaryFringe'
+            />
+            <feColorMatrix
+              id='pf-hero-halo-matrix'
+              in='capillaryFringe'
+              type='matrix'
+              values='0 0 0 0 0.11
+                      0 0 0 0 0.10
+                      0 0 0 0 0.09
+                      0 0 0 0 0.30 0'
+              result='faintBleedHalo'
+            >
+              <animate
+                attributeName='values'
+                values='0 0 0 0 0.11  0 0 0 0 0.10  0 0 0 0 0.09  0 0 0 0 0.65 0;
+                        0 0 0 0 0.11  0 0 0 0 0.10  0 0 0 0 0.09  0 0 0 0 0.45 0;
+                        0 0 0 0 0.11  0 0 0 0 0.10  0 0 0 0 0.09  0 0 0 0 0.30 0'
+                keyTimes='0; 0.4; 1'
+                dur='850ms'
+                begin='160ms'
+                fill='freeze'
+              />
+            </feColorMatrix>
+
+            {/* Ghép lớp: Lớp mao dẫn mờ ở đáy, lớp mép sần chính ở trên, và lớp lõi SourceGraphic tăng độ sắc nét */}
+            <feMerge>
+              <feMergeNode in='faintBleedHalo' />
+              <feMergeNode in='displacedText' />
+              <feMergeNode in='SourceGraphic' opacity='0.40' />
+            </feMerge>
+          </filter>
+        </defs>
+      </svg>
 
       {/* ===== HEADER / NAVBAR ===== */}
       <header className='sticky top-0 z-40 bg-[#F3F0E9]/95 backdrop-blur-md border-b border-[#D8D2C5]'>
@@ -1193,29 +1409,37 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                   fontFamily:
                     "'Patrick Hand SC', 'Patrick Hand', 'Be Vietnam Pro', cursive, sans-serif",
                 }}
-                className='hero-stagger-2 font-black text-[#1C1917] tracking-normal leading-[1.08] text-[clamp(2.9rem,5.6vw+0.2rem,5.65rem)] mb-[clamp(16px,2.2vh,26px)] select-none overflow-visible uppercase'
+                className='hero-stagger-2 hero-ink-bleed font-black text-[#1C1917] tracking-normal leading-[1.08] text-[clamp(2.9rem,5.6vw+0.2rem,5.65rem)] mb-[clamp(16px,2.2vh,26px)] select-text overflow-visible uppercase'
               >
                 <span className='block whitespace-nowrap transform -skew-x-[3.5deg]'>
                   TỪ Ý TƯỞNG ĐẾN
                 </span>
                 <span className='block whitespace-nowrap transform -skew-x-[3.5deg] mt-1'>
                   <span className='relative inline-block'>
-                    <span>TỪNG KHUNG TRUYỆN.</span>
-                    {/* Natural ink-brush underline in signature orange — positioned clear of diacritic dot under Ệ */}
+                    <span className='relative z-10'>TỪNG KHUNG TRUYỆN.</span>
+                    {/* Natural organic calligraphic brush wipe in signature orange — positioned clear of diacritic dot under Ệ */}
                     <svg
-                      className='absolute -bottom-2.5 sm:-bottom-3.5 left-0 w-[96%] h-[12px] sm:h-[14px] pointer-events-none overflow-visible'
-                      viewBox='0 0 280 12'
+                      className='hero-brush-svg absolute -bottom-2 sm:-bottom-2.5 lg:-bottom-3 left-0 w-[98%] max-w-[580px] h-[12px] sm:h-[15px] lg:h-[17px] pointer-events-none z-0 overflow-visible'
+                      viewBox='0 0 400 16'
+                      preserveAspectRatio='none'
                       fill='none'
                       xmlns='http://www.w3.org/2000/svg'
                       aria-hidden='true'
                     >
+                      {/* Dáng nét cọ hữu cơ với đầu thuôn, thân mở rộng tự nhiên và đuôi vuốt nhọn */}
                       <path
-                        d='M 2 6 Q 70 10 140 7 T 276 5'
-                        stroke='#F97316'
-                        strokeWidth='4.5'
-                        strokeLinecap='round'
-                        strokeLinejoin='round'
+                        d='M 3 9 C 18 5.5, 55 7.8, 105 6.2 C 170 4.2, 255 8.2, 325 5.8 C 360 4.6, 388 6.0, 397 5.2 C 394 8.5, 362 10.8, 322 10.2 C 252 9.5, 172 13.2, 105 11.8 C 55 10.8, 18 12.5, 3 9 Z'
+                        fill='#F97316'
+                        opacity='0.85'
                         className='hero-brush-path'
+                      />
+                      {/* Vệt xước cọ khô phụ tạo chiều sâu mực vẽ bản thảo */}
+                      <path
+                        d='M 28 8.0 C 85 7.0, 178 9.2, 275 7.5 C 322 6.8, 368 7.6, 385 6.2'
+                        stroke='#EA580C'
+                        strokeWidth='1.2'
+                        strokeLinecap='round'
+                        opacity='0.38'
                       />
                     </svg>
                   </span>
