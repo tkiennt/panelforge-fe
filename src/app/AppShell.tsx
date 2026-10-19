@@ -47,6 +47,7 @@ import { AppShellSidebar } from './AppShellSidebar';
 import { NotificationBell } from '@/shared/features/collaboration/NotificationBell';
 import { SidebarDrawer } from '@/shared/components/SidebarDrawer';
 import { getRoleDefaultPath } from '@/roles/roles';
+import { LanguageSwitcher } from '@/lib/i18n';
 
 export interface CurrentUser {
   name: string;
@@ -711,6 +712,9 @@ export function AppShell({
               <span className={`w-2 h-2 rounded-full ${aiConfig.dot}`} />
               <span className='font-mono text-xs hidden sm:inline'>{aiConfig.label}</span>
             </div>
+
+            {/* Chuyển đổi ngôn ngữ VI / EN */}
+            <LanguageSwitcher />
 
             {/* Chuông thông báo thật (UC-14): số chưa đọc và danh sách lấy từ Backend */}
             {!isReader && <NotificationBell workspaceId={workspaceId} seriesId={seriesId} />}

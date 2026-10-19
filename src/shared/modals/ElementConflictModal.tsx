@@ -39,7 +39,7 @@ export const ElementConflictModal: React.FC<ElementConflictModalProps> = ({
             </div>
             <div>
               <h3 className='text-sm font-bold text-[#171717]'>
-                {title || 'Xung Đột Phiên Bản Phần Tử (BR-11)'}
+                {title || 'Xung Đột Phiên Bản Phần Tử'}
               </h3>
               <p className='text-xs text-[#737373]'>
                 {subtitle || 'Optimistic Concurrency Control — ELEMENT_VERSION_CONFLICT'}
@@ -80,7 +80,7 @@ export const ElementConflictModal: React.FC<ElementConflictModalProps> = ({
           )}
 
           <p className='text-[#555555] font-medium'>
-            Vui lòng chọn cách bạn muốn xử lý xung đột này:
+            Chọn cách bạn muốn xử lý xung đột này:
           </p>
 
           <div className='space-y-2 pt-1'>

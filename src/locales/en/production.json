@@ -1,0 +1,79 @@
+{
+  "canvas": {
+    "title": "Panel Layout",
+    "pageInfo": "Dimensions: {width} x {height} px ({dpi} DPI)",
+    "panelsCount": "{count} panels",
+    "readingOrder": "Reading Order #{order}",
+    "readingDirection": {
+      "rtl": "Right-to-Left (Manga RTL)",
+      "ltr": "Left-to-Right (Webtoon LTR)"
+    },
+    "dropzonePrompt": "Drop image into Panel #{number}",
+    "noPanelImage": "No panel artwork",
+    "dropOrSelect": "Drag & drop image or browse",
+    "uploadPanel": "+ Upload",
+    "changeImage": "Change image",
+    "startAndUpload": "Start & Upload",
+    "startAndUploadFull": "Start assignment & Upload now",
+    "fullPageTitle": "Full-Page Composite Mode",
+    "fullPageDesc": "Drop a full-page artwork to align linework across panels.",
+    "uploadPageBtn": "Upload full-page artwork",
+    "changePageBtn": "Change page artwork"
+  },
+  "modes": {
+    "toggleLabel": "Upload Mode",
+    "panelSlice": "Panel Slice",
+    "fullPage": "Full-Page"
+  },
+  "toolbar": {
+    "applyTemplate": "Apply Template",
+    "addPanel": "Add Panel",
+    "canvasSettings": "Canvas Settings",
+    "deletePage": "Delete Page",
+    "splitVertical": "Split Vertical",
+    "splitHorizontal": "Split Horizontal",
+    "bible": "Bible",
+    "deletePanel": "Delete Panel",
+    "align": "Align",
+    "distribute": "Distribute",
+    "straighten": "Straighten"
+  },
+  "inspector": {
+    "panelTab": "Panel Box",
+    "layersTab": "Layers",
+    "positionAndOrder": "Position & Reading Order",
+    "readingOrderLabel": "Reading order:",
+    "saveCoordinates": "Save Coordinates & Reading Order",
+    "panelArtwork": "Artwork for Panel #{number}",
+    "needInProgress": "Requires an In-Progress assignment for this Page or Panel to upload artwork.",
+    "hasAssignedTask": "You have an assigned task for {target}. Start now:"
+  },
+  "script": {
+    "anchoredLines": "Anchored Script Lines",
+    "linesCount": "{count} lines",
+    "selectScenePrompt": "Assign a Scene before anchoring dialogue lines to this panel.",
+    "noLines": "No dialogue lines in this scene.",
+    "characterLabel": "Character",
+    "stageDirection": "(Stage direction)"
+  },
+  "lettering": {
+    "balloons": "Balloons",
+    "dialogueBalloon": "Dialogue Balloon",
+    "thoughtBalloon": "Thought Balloon",
+    "narrationBox": "Narration Box",
+    "shoutBalloon": "Shout Balloon",
+    "textOverflow": "Text Overflow Warning",
+    "textOverflowDesc": "Text exceeds balloon bounds. Decrease font size or expand balloon bounds.",
+    "typography": "Typography",
+    "fontFamily": "Font Family",
+    "fontSize": "Font Size",
+    "lineHeight": "Line Height",
+    "tailDirection": "Tail Direction"
+  },
+  "template": {
+    "title": "Frame Templates",
+    "subtitle": "Choose a preset panel grid for this page",
+    "applyConfirm": "Applying this template will replace existing panels on this page.",
+    "noTemplates": "No templates available."
+  }
+}

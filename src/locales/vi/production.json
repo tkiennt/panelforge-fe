@@ -1,0 +1,79 @@
+{
+  "canvas": {
+    "title": "Bố Cục Khung Tranh (Panels)",
+    "pageInfo": "Khổ: {width} x {height} px ({dpi} DPI)",
+    "panelsCount": "{count} ô khung",
+    "readingOrder": "Thứ tự đọc #{order}",
+    "readingDirection": {
+      "rtl": "Phải qua trái (Manga RTL)",
+      "ltr": "Trái qua phải (Webtoon LTR)"
+    },
+    "dropzonePrompt": "Thả ảnh vào Khung #{number}",
+    "noPanelImage": "Chưa có ảnh riêng",
+    "dropOrSelect": "Kéo thả ảnh hoặc chọn tệp",
+    "uploadPanel": "+ Tải ảnh",
+    "changeImage": "Đổi ảnh",
+    "startAndUpload": "Bắt đầu & Tải",
+    "startAndUploadFull": "Bắt đầu việc & Tải ảnh ngay",
+    "fullPageTitle": "Tải cả trang (Full-page Composite)",
+    "fullPageDesc": "Kéo thả file ảnh toàn trang để tải và đối chiếu khớp nét với các ô khung.",
+    "uploadPageBtn": "Tải ảnh cả trang",
+    "changePageBtn": "Đổi ảnh trang"
+  },
+  "modes": {
+    "toggleLabel": "Chế độ tải",
+    "panelSlice": "Tải từng khung",
+    "fullPage": "Tải cả trang"
+  },
+  "toolbar": {
+    "applyTemplate": "Áp Dụng Mẫu Khung",
+    "addPanel": "Thêm Panel",
+    "canvasSettings": "Cài đặt Canvas",
+    "deletePage": "Xóa trang",
+    "splitVertical": "Chia đôi dọc",
+    "splitHorizontal": "Chia đôi ngang",
+    "bible": "Bible",
+    "deletePanel": "Xóa khung",
+    "align": "Canh lề",
+    "distribute": "Phân bổ đều",
+    "straighten": "Thẳng hàng"
+  },
+  "inspector": {
+    "panelTab": "Khung Panel",
+    "layersTab": "Layers",
+    "positionAndOrder": "Vị trí & Thứ tự đọc",
+    "readingOrderLabel": "Thứ tự đọc:",
+    "saveCoordinates": "Lưu Tọa Độ & Thứ Tự Đọc",
+    "panelArtwork": "Ảnh Artwork Khung #{number}",
+    "needInProgress": "Cần đang làm (bấm \"Bắt đầu\") một việc được giao cho Page hoặc Panel này mới tải được ảnh.",
+    "hasAssignedTask": "Bạn đã được giao việc cho {target}. Bắt đầu ngay:"
+  },
+  "script": {
+    "anchoredLines": "Dòng Kịch Bản Phân Cảnh",
+    "linesCount": "{count} dòng",
+    "selectScenePrompt": "Chọn Phân cảnh trước khi neo các dòng thoại vào khung này.",
+    "noLines": "Phân cảnh này chưa có dòng kịch bản nào.",
+    "characterLabel": "Nhân vật",
+    "stageDirection": "(Chỉ dẫn diễn xuất)"
+  },
+  "lettering": {
+    "balloons": "Bóng thoại",
+    "dialogueBalloon": "Bóng thoại",
+    "thoughtBalloon": "Bóng suy nghĩ",
+    "narrationBox": "Hộp dẫn chuyện",
+    "shoutBalloon": "Bóng hét / Kịch tính",
+    "textOverflow": "Cảnh báo tràn chữ",
+    "textOverflowDesc": "Văn bản vượt quá kích thước bóng thoại. Hãy thu nhỏ phông chữ hoặc mở rộng bóng thoại.",
+    "typography": "Định dạng chữ",
+    "fontFamily": "Phông chữ",
+    "fontSize": "Cỡ chữ",
+    "lineHeight": "Giãn dòng",
+    "tailDirection": "Hướng đuôi bóng thoại"
+  },
+  "template": {
+    "title": "Mẫu Khung Tranh (Frame Templates)",
+    "subtitle": "Chọn mẫu phân chia ô tranh dựng sẵn cho trang",
+    "applyConfirm": "Áp dụng mẫu này sẽ thay thế các khung hiện tại trên trang.",
+    "noTemplates": "Chưa có mẫu khung nào."
+  }
+}

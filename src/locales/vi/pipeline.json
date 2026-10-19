@@ -1,0 +1,40 @@
+{
+  "title": "Điều Phối Công Đoạn & Nhiệm Vụ",
+  "subtitle": "Quản lý tiến độ sản xuất và phân công hoạ sĩ",
+  "stages": {
+    "script": "Kịch bản (Script)",
+    "storyboard": "Phân cảnh nháp (Storyboard)",
+    "pencil": "Phác thảo (Pencil)",
+    "lineart": "Đi nét (Lineart)",
+    "color": "Lên màu (Color)",
+    "lettering": "Thoại & Chữ (Lettering)",
+    "qualityCheck": "Kiểm định xuất bản (QC)"
+  },
+  "assignment": {
+    "title": "Nhiệm vụ",
+    "create": "Giao việc mới",
+    "assignee": "Người thực hiện",
+    "target": "Mục tiêu (Trang / Khung)",
+    "stage": "Công đoạn phụ trách",
+    "dueDate": "Hạn chót",
+    "brief": "Yêu cầu chi tiết",
+    "myAssignments": "Việc của tôi",
+    "status": {
+      "assigned": "Đã giao việc",
+      "inProgress": "Đang làm",
+      "submitted": "Đã nộp",
+      "completed": "Hoàn tất"
+    }
+  },
+  "progress": {
+    "title": "Tiến độ công đoạn (StageProgress)",
+    "completedPages": "{completed}/{total} trang",
+    "percent": "{percent}% hoàn thành",
+    "bottlenecks": "Điểm nghẽn tiến độ"
+  },
+  "queue": {
+    "title": "Hàng Đợi Nhiệm Vụ Theo Công Đoạn",
+    "empty": "Chưa có nhiệm vụ nào trong hàng đợi.",
+    "selectChapter": "Chọn một Chương để hiển thị hàng đợi nhiệm vụ."
+  }
+}

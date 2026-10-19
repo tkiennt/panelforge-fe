@@ -1,0 +1,59 @@
+{
+  "title": "Editorial Review",
+  "subtitle": "Artwork comparison, consistency check, and submission triage",
+  "submission": {
+    "title": "Submission",
+    "status": {
+      "pendingReview": "Pending Review",
+      "approved": "Approved",
+      "rejected": "Rejected"
+    },
+    "approveAction": "Approve Submission",
+    "rejectAction": "Reject & Request Changes",
+    "notes": "Review Notes"
+  },
+  "changeRequest": {
+    "title": "Change Request",
+    "create": "Create Change Request",
+    "severity": {
+      "blocking": "Blocking",
+      "warning": "Warning",
+      "info": "Info"
+    },
+    "status": {
+      "open": "Open",
+      "fixed": "Fixed",
+      "verified": "Verified"
+    },
+    "description": "Revision Details",
+    "markFixed": "Mark as Fixed",
+    "markVerified": "Verify Fix"
+  },
+  "diff": {
+    "title": "Artwork Diff Comparison",
+    "previousStage": "Previous Stage",
+    "currentSubmission": "Current Submission",
+    "slider": "Comparison Slider",
+    "sideBySide": "Side by Side",
+    "onionSkin": "Onion Skin"
+  },
+  "consistency": {
+    "title": "AI Consistency Check",
+    "passed": "Visual Consistency: PASSED",
+    "failed": "Character Deviation Warning",
+    "score": "Similarity Score: {score}%",
+    "threshold": "Required Threshold: {threshold}%",
+    "findingsCount": "{count} findings",
+    "findingsSeverity": {
+      "blocking": "Blocking Error",
+      "warning": "Detail Deviation",
+      "info": "Stylistic Hint"
+    }
+  },
+  "provenance": {
+    "title": "Provenance Report",
+    "humanContribution": "Human Contribution: {percent}%",
+    "aiAssisted": "AI Assisted: {percent}%",
+    "auditTrail": "Audit Trail"
+  }
+}

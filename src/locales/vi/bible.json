@@ -1,0 +1,39 @@
+{
+  "title": "Series Bible",
+  "subtitle": "Hồ sơ chuẩn tắc thế giới và nhân vật của tác phẩm",
+  "categories": {
+    "all": "Tất cả mục",
+    "character": "Nhân vật",
+    "location": "Bối cảnh & Địa điểm",
+    "item": "Đạo cụ & Trang bị",
+    "lore": "Quy tắc thế giới & Thiết lập"
+  },
+  "fields": {
+    "name": "Tên mục",
+    "alias": "Biệt hiệu / Tên khác",
+    "role": "Vai trò cốt truyện",
+    "visualDescription": "Mô tả ngoại hình",
+    "personality": "Tính cách & Đặc điểm",
+    "referenceImages": "Ảnh tư liệu tham chiếu",
+    "traits": "Đặc trưng",
+    "tags": "Nhãn phân loại",
+    "version": "Phiên bản"
+  },
+  "canonLock": {
+    "badge": "Đã khoá chuẩn (Canon Locked)",
+    "lockedTooltip": "Mục này đã khoá chuẩn tắc canon. Không thể sửa trực tiếp.",
+    "supersedeAction": "Thay thế bản khoá",
+    "supersedeTitle": "Tạo bản sửa đổi thay thế (Supersede Revision)",
+    "supersedeDesc": "Bản sửa đổi mới sẽ được gửi đến Biên tập duyệt trước khi thay thế bản khoá hiện tại.",
+    "supersedeConfirm": "Xác nhận tạo bản thay thế",
+    "lockedWarning": "Mục này đã được duyệt và khoá chuẩn. Cần quyền Biên tập để tạo bản thay thế."
+  },
+  "drawer": {
+    "title": "Tham Chiếu Series Bible",
+    "panelReference": "Tham chiếu cho Khung #{number}",
+    "noPanelSelection": "Chưa chọn khung tranh",
+    "selectToView": "Chọn một khung để xem tài liệu nhân vật và bối cảnh xuất hiện trong phân cảnh.",
+    "copyPrompt": "Sao chép Prompt AI",
+    "promptCopied": "Đã sao chép prompt tham chiếu."
+  }
+}

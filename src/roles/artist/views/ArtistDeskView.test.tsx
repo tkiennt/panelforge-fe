@@ -600,12 +600,11 @@ describe('ArtistDeskView', () => {
         panelId: 'panel-1',
         pipelineStageId: 'stage-guid-lineart',
         versionNumber: 2,
-        storagePath: 'path/drop.png',
         fileName: 'dropped-sketch.png',
         fileSha256: 'dummy-sha256',
         sizeBytes: 1024,
         createdAtUtc: '2026-03-31T00:00:00Z',
-      });
+      } as any);
 
       renderComponent();
 
@@ -656,12 +655,11 @@ describe('ArtistDeskView', () => {
         panelId: 'panel-1',
         pipelineStageId: 'stage-guid-lineart',
         versionNumber: 3,
-        storagePath: 'path/pasted.png',
         fileName: 'clipboard-image.png',
         fileSha256: 'dummy-sha256',
         sizeBytes: 2048,
         createdAtUtc: '2026-03-31T00:00:00Z',
-      });
+      } as any);
 
       renderComponent();
 
