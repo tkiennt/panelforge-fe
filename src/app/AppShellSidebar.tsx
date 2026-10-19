@@ -31,7 +31,9 @@ export interface AppShellSidebarProps {
   onLogout?: () => void;
   onSelectSeries?: (seriesId: string) => void;
   isRailExpanded?: boolean;
+  isCollapsed?: boolean;
   onToggleRail?: () => void;
+  onToggleCollapse?: () => void;
   isMobileDrawer?: boolean;
 }
 
@@ -48,11 +50,23 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
   onOpenTwoFactor,
   onLogout,
   onSelectSeries,
-  isRailExpanded = false,
+  isRailExpanded,
+  isCollapsed: isCollapsedProp,
   onToggleRail,
+  onToggleCollapse,
   isMobileDrawer = false,
 }) => {
-  const showFullContent = isMobileDrawer || isRailExpanded;
+  // Ưu tiên isCollapsedProp, nếu không có thì dựa theo isRailExpanded (false nghĩa là thu gọn, true là mở rộng)
+  const isCollapsed =
+    !isMobileDrawer &&
+    (isCollapsedProp !== undefined
+      ? isCollapsedProp
+      : isRailExpanded !== undefined
+        ? !isRailExpanded
+        : false);
+  const showFullContent = isMobileDrawer || !isCollapsed;
+  const handleToggle = onToggleCollapse || onToggleRail;
+
   const [seriesDropdownOpen, setSeriesDropdownOpen] = useState(false);
   const [seriesList, setSeriesList] = useState<SeriesDto[]>([]);
   const [loadingSeries, setLoadingSeries] = useState(false);
@@ -101,49 +115,49 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
         isMobileDrawer
           ? 'w-full bg-[#fafafa] flex flex-col select-none h-full overflow-hidden'
           : `hidden md:flex flex-col shrink-0 select-none z-20 h-full bg-[#fafafa] border-r border-[#e7e5e4] transition-all duration-200 ${
-              isRailExpanded ? 'w-64' : 'w-16 lg:w-64'
+              isCollapsed ? 'w-16' : 'w-64'
             }`
       }
       data-testid={isMobileDrawer ? 'mobile-sidebar-nav' : 'app-shell-sidebar'}
     >
       {/* Brand Header */}
       <div
-        className={`px-4 pt-4 pb-2 flex items-center ${
-          showFullContent ? 'justify-between' : 'justify-center lg:justify-between'
+        className={`px-3 pt-4 pb-2 flex items-center ${
+          showFullContent ? 'justify-between' : 'flex-col gap-2 justify-center'
         }`}
       >
         <div className='flex items-center gap-2.5 min-w-0'>
           <div className='w-8 h-8 rounded-full bg-[#292524] flex items-center justify-center text-white font-heading font-bold text-sm shadow-soft-sm tracking-tighter shrink-0'>
             PF
           </div>
-          <div className={showFullContent ? 'block' : 'hidden lg:block'}>
-            <div className='font-serif font-medium text-sm leading-tight text-[#0c0a09] tracking-tight truncate'>
-              PanelForge
+          {showFullContent && (
+            <div className='min-w-0'>
+              <div className='font-serif font-medium text-sm leading-tight text-[#0c0a09] tracking-tight truncate'>
+                PanelForge
+              </div>
+              <div className='text-xs uppercase font-mono tracking-wider text-[#777169] font-medium truncate'>
+                Studio Edition
+              </div>
             </div>
-            <div className='text-xs uppercase font-mono tracking-wider text-[#777169] font-medium truncate'>
-              Studio Edition
-            </div>
-          </div>
+          )}
         </div>
 
         <div className='flex items-center gap-1'>
-          <span
-            className={`items-center px-2 py-0.5 rounded-full text-xs font-mono font-medium bg-[#f0efed] text-[#777169] ${
-              showFullContent ? 'inline-flex' : 'hidden lg:inline-flex'
-            }`}
-          >
-            v2.4
-          </span>
-          {onToggleRail && !isMobileDrawer && (
+          {showFullContent && (
+            <span className='items-center px-2 py-0.5 rounded-full text-xs font-mono font-medium bg-[#f0efed] text-[#777169] inline-flex'>
+              v2.4
+            </span>
+          )}
+          {handleToggle && !isMobileDrawer && (
             <button
               type='button'
-              onClick={onToggleRail}
-              aria-label={isRailExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
-              title={isRailExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
-              className='hidden md:flex lg:hidden p-1.5 rounded-full hover:bg-[#f0efed] text-[#777169] hover:text-[#0c0a09] transition-colors cursor-pointer'
+              onClick={handleToggle}
+              aria-label={showFullContent ? 'Thu gọn menu' : 'Mở rộng menu'}
+              title={showFullContent ? 'Thu gọn menu' : 'Mở rộng menu'}
+              className='p-1.5 rounded-lg hover:bg-[#f0efed] text-[#777169] hover:text-[#0c0a09] transition-colors cursor-pointer'
               data-testid='sidebar-rail-toggle-btn'
             >
-              {isRailExpanded ? (
+              {showFullContent ? (
                 <PanelLeftClose className='w-4 h-4' />
               ) : (
                 <PanelLeftOpen className='w-4 h-4' />
@@ -154,19 +168,15 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
       </div>
 
       {/* Workspace & Series Context Switchers */}
-      <div className='mx-2 lg:mx-4 mt-3 space-y-1.5'>
+      <div className={`mt-3 space-y-1.5 ${showFullContent ? 'mx-3' : 'mx-2'}`}>
         {currentUser.activeRoles?.includes('ADMINISTRATOR') && (
           <div
             className={`flex items-center gap-2 px-1 mb-2 text-[#171717] ${
-              showFullContent ? 'justify-start' : 'justify-center lg:justify-start'
+              showFullContent ? 'justify-start' : 'justify-center'
             }`}
           >
             <Server className='w-3.5 h-3.5 text-[#555555] shrink-0' />
-            <span
-              className={`text-xs font-bold ${showFullContent ? 'inline' : 'hidden lg:inline'}`}
-            >
-              System Admin Zone
-            </span>
+            {showFullContent && <span className='text-xs font-bold inline'>System Admin Zone</span>}
           </div>
         )}
 
@@ -175,27 +185,27 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
           data-testid='sidebar-workspace-switcher'
           onClick={(e) => handleNavClick(e, '/workspaces')}
           className={`group flex items-center cursor-pointer p-2 rounded-xl bg-white border border-[#e7e5e4] hover:border-[#292524] transition-all shadow-soft-sm ${
-            showFullContent ? 'justify-between' : 'justify-center lg:justify-between'
+            showFullContent ? 'justify-between' : 'justify-center'
           }`}
           title={`Workspace: ${activeWorkspace?.name || 'Chọn Workspace'}`}
           aria-label={`Workspace: ${activeWorkspace?.name || 'Chọn Workspace'}`}
         >
           <div className='flex items-center gap-2.5 min-w-0'>
             <Briefcase className='w-4 h-4 stroke-[2] text-[#292524] shrink-0' />
-            <div className={`min-w-0 ${showFullContent ? 'block' : 'hidden lg:block'}`}>
-              <p className='text-xs font-semibold text-[#0c0a09] truncate leading-tight'>
-                {activeWorkspace?.name || 'PanelForge Studio'}
-              </p>
-              <p className='text-xs text-[#777169] font-mono truncate'>
-                {currentUser.workspaceRole || 'Studio Workspace'}
-              </p>
-            </div>
+            {showFullContent && (
+              <div className='min-w-0'>
+                <p className='text-xs font-semibold text-[#0c0a09] truncate leading-tight'>
+                  {activeWorkspace?.name || 'PanelForge Studio'}
+                </p>
+                <p className='text-xs text-[#777169] font-mono truncate'>
+                  {currentUser.workspaceRole || 'Studio Workspace'}
+                </p>
+              </div>
+            )}
           </div>
-          <ChevronDown
-            className={`w-3.5 h-3.5 text-[#777169] group-hover:text-[#0c0a09] transition-colors shrink-0 ${
-              showFullContent ? 'block' : 'hidden lg:block'
-            }`}
-          />
+          {showFullContent && (
+            <ChevronDown className='w-3.5 h-3.5 text-[#777169] group-hover:text-[#0c0a09] transition-colors shrink-0' />
+          )}
         </div>
 
         {/* 2. Series Selector (hiển thị khi đang trong ngữ cảnh Workspace) */}
@@ -204,33 +214,41 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
             <div
               data-testid='sidebar-series-selector'
               onClick={() => {
+                if (!showFullContent) {
+                  handleToggle?.();
+                  return;
+                }
                 if (!seriesDropdownOpen && seriesList.length === 0) {
                   loadSeries();
                 }
                 setSeriesDropdownOpen((prev) => !prev);
               }}
               className={`group flex items-center cursor-pointer p-2 rounded-xl bg-white border border-[#e7e5e4] hover:border-[#292524] transition-all shadow-soft-sm ${
-                showFullContent ? 'justify-between' : 'justify-center lg:justify-between'
+                showFullContent ? 'justify-between' : 'justify-center'
               }`}
               title={`Series: ${seriesId ? activeSeries?.title || 'Bộ truyện' : 'Chọn Series'}`}
               aria-label={`Series: ${seriesId ? activeSeries?.title || 'Bộ truyện' : 'Chọn Series'}`}
             >
               <div className='flex items-center gap-2.5 min-w-0'>
                 <BookOpen className='w-4 h-4 stroke-[2] text-[#292524] shrink-0' />
-                <div className={`min-w-0 ${showFullContent ? 'block' : 'hidden lg:block'}`}>
-                  <p className='text-xs font-semibold text-[#0c0a09] truncate leading-tight'>
-                    {seriesId ? activeSeries?.title || 'Active Series' : 'Chọn Series...'}
-                  </p>
-                  <p className='text-xs text-[#777169] font-mono truncate'>
-                    {seriesId ? activeSeries?.subtitle || 'Chương hiện tại' : 'Danh sách Series'}
-                  </p>
-                </div>
+                {showFullContent && (
+                  <div className='min-w-0'>
+                    <p className='text-xs font-semibold text-[#0c0a09] truncate leading-tight'>
+                      {seriesId ? activeSeries?.title || 'Active Series' : 'Chọn Series...'}
+                    </p>
+                    <p className='text-xs text-[#777169] font-mono truncate'>
+                      {seriesId ? activeSeries?.subtitle || 'Chương hiện tại' : 'Danh sách Series'}
+                    </p>
+                  </div>
+                )}
               </div>
-              <ChevronDown
-                className={`w-3.5 h-3.5 text-[#777169] group-hover:text-[#0c0a09] transition-transform shrink-0 ${
-                  seriesDropdownOpen ? 'rotate-180' : ''
-                } ${showFullContent ? 'block' : 'hidden lg:block'}`}
-              />
+              {showFullContent && (
+                <ChevronDown
+                  className={`w-3.5 h-3.5 text-[#777169] group-hover:text-[#0c0a09] transition-transform shrink-0 ${
+                    seriesDropdownOpen ? 'rotate-180' : ''
+                  }`}
+                />
+              )}
             </div>
 
             {/* Dropdown Popover */}
@@ -293,20 +311,22 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
       </div>
 
       {/* Nav List */}
-      <nav className='mt-5 flex-1 overflow-y-auto px-3 space-y-4 custom-scrollbar'>
+      <nav
+        className={`mt-5 flex-1 overflow-y-auto space-y-4 custom-scrollbar ${
+          showFullContent ? 'px-3' : 'px-1.5'
+        }`}
+      >
         {navSections.map((section, idx) => (
           <div key={idx}>
-            <div
-              className={`text-xs text-[#a8a29e] font-semibold px-3 mb-2 uppercase tracking-wider font-mono ${
-                showFullContent ? 'block' : 'hidden lg:block'
-              }`}
-            >
-              {section.section}
-            </div>
+            {showFullContent && (
+              <div className='text-xs text-[#a8a29e] font-semibold px-3 mb-2 uppercase tracking-wider font-mono'>
+                {section.section}
+              </div>
+            )}
             <div className='space-y-1'>
               {section.items.map((item: any, i: number) => {
                 const baseClass =
-                  'group flex items-center gap-3 px-3 py-2 rounded-full text-xs font-medium transition-all duration-150 ';
+                  'group flex items-center text-xs font-medium transition-all duration-150 ';
                 const activeClass = item.isActive
                   ? 'bg-[#292524] text-white shadow-soft-sm font-semibold border-l-2 border-orange-500'
                   : 'text-[#4e4e4e] hover:bg-[#f0efed] hover:text-[#0c0a09] cursor-pointer';
@@ -324,21 +344,21 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
                     href={`#${item.href}`}
                     onClick={(e) => handleNavClick(e, item.href)}
                     className={`${baseClass} ${activeClass} ${
-                      showFullContent ? 'justify-start' : 'justify-center lg:justify-start'
+                      showFullContent
+                        ? 'justify-start gap-3 px-3 py-2 rounded-full'
+                        : 'justify-center p-2.5 rounded-full mx-auto w-10 h-10'
                     }`}
                     aria-current={item.isActive ? 'page' : undefined}
                     title={item.label}
                     aria-label={item.label}
                   >
                     <IconComp className={iconClass} />
-                    <span className={`truncate ${showFullContent ? 'inline' : 'hidden lg:inline'}`}>
-                      {item.label}
-                    </span>
-                    <span
-                      className={showFullContent ? 'inline ml-auto' : 'hidden lg:inline lg:ml-auto'}
-                    >
-                      {renderBadge(item.badge)}
-                    </span>
+                    {showFullContent && (
+                      <>
+                        <span className='truncate'>{item.label}</span>
+                        <span className='ml-auto'>{renderBadge(item.badge)}</span>
+                      </>
+                    )}
                   </a>
                 );
               })}
@@ -348,89 +368,77 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
       </nav>
 
       {/* Footer Navigation & System Controls */}
-      <div className='mt-auto p-3 border-t border-[#e7e5e4] bg-[#fafafa]'>
+      <div
+        className={`mt-auto border-t border-[#e7e5e4] bg-[#fafafa] ${
+          showFullContent ? 'p-3' : 'p-1.5'
+        }`}
+      >
         <div className='space-y-1 mb-2'>
           <button
             title='Notifications'
             aria-label='Notifications'
-            className={`w-full text-left flex items-center gap-2.5 text-xs text-[#777169] hover:text-[#0c0a09] hover:bg-[#f0efed] px-3 py-2 rounded-full transition-colors group cursor-pointer ${
-              showFullContent ? 'justify-start' : 'justify-center lg:justify-start'
+            className={`w-full flex items-center text-xs text-[#777169] hover:text-[#0c0a09] hover:bg-[#f0efed] rounded-full transition-colors group cursor-pointer ${
+              showFullContent
+                ? 'justify-start gap-2.5 px-3 py-2'
+                : 'justify-center p-2.5 mx-auto w-10 h-10'
             }`}
           >
             <Bell className='w-4 h-4 text-[#777169] group-hover:text-[#0c0a09] stroke-[1.8] shrink-0' />
-            <span
-              className={`font-medium text-xs truncate ${
-                showFullContent ? 'inline' : 'hidden lg:inline'
-              }`}
-            >
-              Notifications
-            </span>
+            {showFullContent && <span className='font-medium text-xs truncate'>Notifications</span>}
           </button>
           <button
             title='Global Search'
             aria-label='Global Search'
-            className={`w-full text-left flex items-center gap-2.5 text-xs text-[#777169] hover:text-[#0c0a09] hover:bg-[#f0efed] px-3 py-2 rounded-full transition-colors group cursor-pointer ${
-              showFullContent ? 'justify-start' : 'justify-center lg:justify-start'
+            className={`w-full flex items-center text-xs text-[#777169] hover:text-[#0c0a09] hover:bg-[#f0efed] rounded-full transition-colors group cursor-pointer ${
+              showFullContent
+                ? 'justify-start gap-2.5 px-3 py-2'
+                : 'justify-center p-2.5 mx-auto w-10 h-10'
             }`}
           >
             <Search className='w-4 h-4 text-[#777169] group-hover:text-[#0c0a09] stroke-[1.8] shrink-0' />
-            <span
-              className={`font-medium text-xs truncate ${
-                showFullContent ? 'inline' : 'hidden lg:inline'
-              }`}
-            >
-              Global Search
-            </span>
+            {showFullContent && <span className='font-medium text-xs truncate'>Global Search</span>}
           </button>
           <button
             title='My Activity / History'
             aria-label='My Activity / History'
-            className={`w-full text-left flex items-center gap-2.5 text-xs text-[#777169] hover:text-[#0c0a09] hover:bg-[#f0efed] px-3 py-2 rounded-full transition-colors group cursor-pointer ${
-              showFullContent ? 'justify-start' : 'justify-center lg:justify-start'
+            className={`w-full flex items-center text-xs text-[#777169] hover:text-[#0c0a09] hover:bg-[#f0efed] rounded-full transition-colors group cursor-pointer ${
+              showFullContent
+                ? 'justify-start gap-2.5 px-3 py-2'
+                : 'justify-center p-2.5 mx-auto w-10 h-10'
             }`}
           >
             <History className='w-4 h-4 text-[#777169] group-hover:text-[#0c0a09] stroke-[1.8] shrink-0' />
-            <span
-              className={`font-medium text-xs truncate ${
-                showFullContent ? 'inline' : 'hidden lg:inline'
-              }`}
-            >
-              My Activity / History
-            </span>
+            {showFullContent && (
+              <span className='font-medium text-xs truncate'>My Activity / History</span>
+            )}
           </button>
           <button
             onClick={onOpenTwoFactor}
             title='Profile & Security (2FA)'
             aria-label='Profile & Security (2FA)'
-            className={`w-full text-left flex items-center gap-2.5 text-xs text-[#777169] hover:text-[#0c0a09] hover:bg-[#f0efed] px-3 py-2 rounded-full transition-colors group cursor-pointer ${
-              showFullContent ? 'justify-start' : 'justify-center lg:justify-start'
+            className={`w-full flex items-center text-xs text-[#777169] hover:text-[#0c0a09] hover:bg-[#f0efed] rounded-full transition-colors group cursor-pointer ${
+              showFullContent
+                ? 'justify-start gap-2.5 px-3 py-2'
+                : 'justify-center p-2.5 mx-auto w-10 h-10'
             }`}
           >
             <UserCircle className='w-4 h-4 text-[#777169] group-hover:text-[#0c0a09] stroke-[1.8] shrink-0' />
-            <span
-              className={`font-medium text-xs truncate ${
-                showFullContent ? 'inline' : 'hidden lg:inline'
-              }`}
-            >
-              Profile & Security (2FA)
-            </span>
+            {showFullContent && (
+              <span className='font-medium text-xs truncate'>Profile & Security (2FA)</span>
+            )}
           </button>
           <button
             onClick={onLogout}
             title='Logout'
             aria-label='Logout'
-            className={`w-full text-left flex items-center gap-2.5 text-xs text-[#777169] hover:text-red-600 hover:bg-red-50 px-3 py-2 rounded-full transition-colors group mt-1 cursor-pointer ${
-              showFullContent ? 'justify-start' : 'justify-center lg:justify-start'
+            className={`w-full flex items-center text-xs text-[#777169] hover:text-red-600 hover:bg-red-50 rounded-full transition-colors group mt-1 cursor-pointer ${
+              showFullContent
+                ? 'justify-start gap-2.5 px-3 py-2'
+                : 'justify-center p-2.5 mx-auto w-10 h-10'
             }`}
           >
             <LogOut className='w-4 h-4 text-[#777169] group-hover:text-red-600 stroke-[1.8] shrink-0' />
-            <span
-              className={`font-medium text-xs truncate ${
-                showFullContent ? 'inline' : 'hidden lg:inline'
-              }`}
-            >
-              Logout
-            </span>
+            {showFullContent && <span className='font-medium text-xs truncate'>Logout</span>}
           </button>
         </div>
       </div>

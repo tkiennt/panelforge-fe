@@ -71,3 +71,6 @@ blob-report/
 **/.impeccable/live/deferred-svelte-component-accepts.json
 **/.impeccable/live/*.png
 # impeccable-ignore-end
+
+# Local third-party agent skill (14MB SVG library)
+.agents/skills/logo-design/

@@ -310,4 +310,150 @@ describe('LandingPageView Component', () => {
       });
     });
   });
+
+  describe('7. Chuyển tiếp nét mực, mép giấy và khung card', () => {
+    const renderLanding = () =>
+      render(
+        <MemoryRouter>
+          <LandingPageView />
+        </MemoryRouter>,
+      );
+
+    it('không có IntersectionObserver: nội dung intro và 3 card hiện ngay, không bật trạng thái chờ', () => {
+      delete window.IntersectionObserver;
+      const { container } = renderLanding();
+
+      const reveals = container.querySelectorAll('[data-reveal]');
+      expect(reveals).toHaveLength(4); // ink transition + 3 value cards
+      reveals.forEach((el) => expect(el).toHaveClass('is-visible'));
+      expect(document.documentElement).not.toHaveClass('js-observer-ready');
+      expect(screen.getByText('Để đội ngũ tập trung vào câu chuyện.')).toBeVisible();
+    });
+
+    it('khởi tạo observer lỗi: gỡ js-observer-ready và hiện nội dung ngay', () => {
+      window.IntersectionObserver = class {
+        constructor() {
+          throw new Error('boom');
+        }
+      } as unknown as typeof IntersectionObserver;
+      const { container } = renderLanding();
+
+      container
+        .querySelectorAll('[data-reveal]')
+        .forEach((el) => expect(el).toHaveClass('is-visible'));
+      expect(document.documentElement).not.toHaveClass('js-observer-ready');
+    });
+
+    it('prefers-reduced-motion: phần tử data-reveal nhận is-visible ngay', () => {
+      window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+        matches: query.includes('prefers-reduced-motion: reduce'),
+        media: query,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      }));
+      const { container } = renderLanding();
+
+      container
+        .querySelectorAll('[data-reveal]')
+        .forEach((el) => expect(el).toHaveClass('is-visible'));
+    });
+
+    it('observe các phần tử chuyển tiếp và disconnect khi unmount', () => {
+      const instances: MockIntersectionObserver[] = [];
+      window.IntersectionObserver = class extends MockIntersectionObserver {
+        constructor() {
+          super();
+          instances.push(this);
+        }
+      } as unknown as typeof IntersectionObserver;
+      const { container, unmount } = renderLanding();
+
+      expect(instances).toHaveLength(1);
+      const observed = instances[0].observe.mock.calls.map(([el]) => el);
+      container.querySelectorAll('[data-reveal]').forEach((el) => expect(observed).toContain(el));
+
+      unmount();
+      expect(instances[0].disconnect).toHaveBeenCalled();
+      expect(document.documentElement).not.toHaveClass('js-observer-ready');
+    });
+
+    it('nét mực và khung card chỉ là trang trí: aria-hidden', () => {
+      const { container } = renderLanding();
+      expect(container.querySelector('.ink-guide')).toHaveAttribute('aria-hidden', 'true');
+      expect(container.querySelectorAll('.frame-ink')).toHaveLength(3);
+      container
+        .querySelectorAll('.frame-ink')
+        .forEach((el) => expect(el).toHaveAttribute('aria-hidden', 'true'));
+    });
+  });
+
+  describe('8. Khối Hero và Quy trình bản thảo theo thiết kế Image 2', () => {
+    it('hiển thị đúng đề mục bản thảo "PF / 01 — XƯỞNG SÁNG TÁC TRUYỆN TRANH" và tiêu đề comic in hoa', () => {
+      render(
+        <MemoryRouter>
+          <LandingPageView />
+        </MemoryRouter>,
+      );
+
+      // Đề mục không còn dùng pill bo tròn cũ
+      expect(screen.getByText('PF / 01')).toBeInTheDocument();
+      expect(screen.getByText('XƯỞNG SÁNG TÁC TRUYỆN TRANH')).toBeInTheDocument();
+
+      // Tiêu đề comic in hoa
+      expect(screen.getByText('TỪ Ý TƯỞNG ĐẾN')).toBeInTheDocument();
+      expect(screen.getByText('TỪNG KHUNG TRUYỆN.')).toBeInTheDocument();
+
+      // Mô tả sản phẩm
+      expect(
+        screen.getByText('Cùng viết, vẽ và duyệt truyện trong một không gian.'),
+      ).toBeInTheDocument();
+    });
+
+    it('hiển thị 4 công đoạn sản xuất truyện tranh với đúng asset WebP và Kịch bản HTML/CSS', () => {
+      render(
+        <MemoryRouter>
+          <LandingPageView />
+        </MemoryRouter>,
+      );
+
+      // 4 bước
+      expect(screen.getByText('01 / Kịch bản')).toBeInTheDocument();
+      expect(screen.getByText('02 / Phác thảo')).toBeInTheDocument();
+      expect(screen.getByText('03 / Đi nét')).toBeInTheDocument();
+      expect(screen.getByText('04 / Hoàn thiện')).toBeInTheDocument();
+
+      // Kịch bản dùng HTML/CSS
+      expect(screen.getByText('Cảnh 04 · Khung 02')).toBeInTheDocument();
+
+      // 3 ảnh WebP local từ /images/landing/
+      const sketchImg = screen.getByAltText('Công đoạn phác thảo khung truyện (Sketch)');
+      expect(sketchImg).toHaveAttribute('src', '/images/landing/journey-sketch.webp');
+
+      const inkImg = screen.getByAltText('Công đoạn đi nét mực đen (Inking)');
+      expect(inkImg).toHaveAttribute('src', '/images/landing/journey-ink.webp');
+
+      const colorImg = screen.getByAltText('Công đoạn hoàn thiện màu sắc và ánh sáng (Color)');
+      expect(colorImg).toHaveAttribute('src', '/images/landing/journey-color.webp');
+    });
+
+    it('thanh so sánh tương tác giữa bản phác thảo và bản hoàn thiện có slider điều chỉnh', () => {
+      render(
+        <MemoryRouter>
+          <LandingPageView />
+        </MemoryRouter>,
+      );
+
+      const comparisonSlider = screen.getByRole('slider', {
+        name: /Thanh so sánh bản phác thảo và bản hoàn thiện/i,
+      });
+      expect(comparisonSlider).toBeInTheDocument();
+      expect(comparisonSlider).toHaveAttribute('min', '0');
+      expect(comparisonSlider).toHaveAttribute('max', '100');
+      expect(comparisonSlider).toHaveAttribute('value', '50');
+
+      // Tương tác kéo slider
+      fireEvent.change(comparisonSlider, { target: { value: '75' } });
+      expect(comparisonSlider).toHaveAttribute('value', '75');
+    });
+  });
 });

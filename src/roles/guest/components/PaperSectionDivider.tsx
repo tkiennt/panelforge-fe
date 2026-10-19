@@ -15,6 +15,12 @@ export interface PaperSectionDividerProps {
   pulpColor?: string;
   /** Extra wrapper classes (e.g. for custom heights or z-index) */
   className?: string;
+  /**
+   * Classes for the moving edge layer (e.g. a reveal animation). When set, the wrapper
+   * backs the edge with sheet color above / section color below so a small translateY
+   * never exposes a gap.
+   */
+  edgeClassName?: string;
 }
 
 /**
@@ -27,6 +33,7 @@ export const PaperSectionDivider: React.FC<PaperSectionDividerProps> = ({
   direction = 'top-over-bottom',
   pulpColor,
   className = '',
+  edgeClassName,
 }) => {
   const isTopOverBottom = direction === 'top-over-bottom';
 
@@ -67,11 +74,19 @@ export const PaperSectionDivider: React.FC<PaperSectionDividerProps> = ({
   return (
     <div
       className={`w-full overflow-hidden select-none pointer-events-none relative z-10 -mt-px -mb-px ${className}`}
-      style={{ backgroundColor: containerBgColor }}
+      style={
+        edgeClassName
+          ? {
+              background: isTopOverBottom
+                ? `linear-gradient(to bottom, ${paperSheetColor} 0 45%, ${containerBgColor} 45%)`
+                : `linear-gradient(to bottom, ${containerBgColor} 0 55%, ${paperSheetColor} 55%)`,
+            }
+          : { backgroundColor: containerBgColor }
+      }
       aria-hidden='true'
     >
       <svg
-        className='w-full h-6 sm:h-8 md:h-9 block'
+        className={`w-full h-6 sm:h-8 md:h-9 block ${edgeClassName ?? ''}`}
         viewBox='0 0 1000 32'
         preserveAspectRatio='none'
         style={{

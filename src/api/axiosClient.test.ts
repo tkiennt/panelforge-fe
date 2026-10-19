@@ -4,6 +4,7 @@ import axiosClient, {
   refreshAccessToken,
   clearLegacyTokens,
   resetSessionEnded,
+  clearSession,
 } from './axiosClient';
 
 // Cờ "hết phiên" là state cấp module: đặt lại để các test không ảnh hưởng nhau
@@ -391,5 +392,18 @@ describe('HttpOnly Cookie Authentication & Refresh Flow', () => {
     expect(localStorage.getItem('user')).not.toBeNull();
     expect(localStorage.getItem('userRole')).toBe('ARTIST');
     expect(unauthorizedEvents).toBe(0);
+  });
+
+  it('cho phép gọi các endpoint công khai (catalog, preview) ngay cả khi phiên đã kết thúc (sessionEnded)', async () => {
+    clearSession(); // sessionEnded = true
+
+    const adapter = vi.fn(async (config: InternalAxiosRequestConfig) => {
+      return ok(config, { items: [{ id: 'series-1', title: 'Public Series' }] });
+    });
+    axiosClient.defaults.adapter = adapter;
+
+    const res = await axiosClient.get('/catalog/series');
+    expect(res.data).toEqual({ items: [{ id: 'series-1', title: 'Public Series' }] });
+    expect(adapter).toHaveBeenCalledTimes(1);
   });
 });

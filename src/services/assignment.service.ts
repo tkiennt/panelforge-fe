@@ -115,6 +115,15 @@ export const assignmentService = {
   },
 
   /**
+   * Cùng endpoint với getAssignments nhưng ném lỗi thay vì trả [] để màn Quy trình sản xuất
+   * phân biệt "chương chưa có việc" với "lỗi tải" (GET /api/chapters/{chapterId}/assignments).
+   */
+  getAssignmentsStrict: async (chapterId: string): Promise<AssignmentDto[]> => {
+    const response = await axiosClient.get(`/chapters/${chapterId}/assignments`);
+    return response.data || [];
+  },
+
+  /**
    * Danh sách toàn bộ việc được giao của một hoạ sĩ/biên kịch trên tất cả các chương trong Studio (Cross-Chapter Worklist).
    * GET /api/workspaces/{workspaceId}/my-assignments
    */

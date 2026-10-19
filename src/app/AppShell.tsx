@@ -44,7 +44,6 @@ import {
   Menu,
 } from 'lucide-react';
 import { AppShellSidebar } from './AppShellSidebar';
-import { AppShellRail } from './AppShellRail';
 import { NotificationBell } from '@/shared/features/collaboration/NotificationBell';
 import { SidebarDrawer } from '@/shared/components/SidebarDrawer';
 import { getRoleDefaultPath } from '@/roles/roles';
@@ -423,10 +422,26 @@ export function AppShell({
   const rawSections = getNavSections();
 
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
-  const [isRailExpanded, setIsRailExpanded] = useState(false);
-  // Màn Letterer cần tối đa diện tích canvas: menu hệ thống thu thành thanh icon, bấm để mở lớp phủ.
-  const [isRailOverlayOpen, setIsRailOverlayOpen] = useState(false);
-  const compactRail = !isReader && /\/letterer\/?$/.test(location.pathname);
+  // Sidebar thu gọn / mở rộng được lưu trạng thái trong localStorage, cố định trên mọi màn hình
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem('pf.sidebar.collapsed') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const handleToggleSidebar = () => {
+    setIsSidebarCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('pf.sidebar.collapsed', String(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  };
 
   const navSections = rawSections.map((sec) => ({
     ...sec,
@@ -436,7 +451,6 @@ export function AppShell({
   const handleNavClick = (e: React.MouseEvent, href: string) => {
     e.preventDefault();
     setIsMobileDrawerOpen(false);
-    setIsRailOverlayOpen(false);
     if (onNavigate) {
       onNavigate(href);
     }
@@ -545,68 +559,24 @@ export function AppShell({
         </SidebarDrawer>
       )}
 
-      {/* --- PERMANENT SIDEBAR (>= md); thanh icon ở màn Letterer --- */}
-      {compactRail ? (
-        <>
-          <AppShellRail
-            navSections={navSections}
-            handleNavClick={handleNavClick}
-            onExpand={() => setIsRailOverlayOpen(true)}
-          />
-          {isRailOverlayOpen && (
-            <div
-              className='fixed inset-0 z-[1000] hidden md:flex'
-              role='dialog'
-              aria-label='Menu hệ thống'
-              data-testid='app-shell-rail-overlay'
-              onKeyDown={(e) => {
-                if (e.key === 'Escape') setIsRailOverlayOpen(false);
-              }}
-            >
-              <AppShellSidebar
-                currentUser={currentUser}
-                activeWorkspace={activeWorkspace}
-                activeSeries={effectiveActiveSeries as any}
-                workspaceId={workspaceId}
-                seriesId={seriesId}
-                isReader={isReader}
-                navSections={navSections}
-                handleNavClick={handleNavClick}
-                renderBadge={renderBadge}
-                onOpenTwoFactor={onOpenTwoFactor}
-                onLogout={onLogout}
-                onSelectSeries={onSelectSeries}
-                isRailExpanded={true}
-                isMobileDrawer={false}
-              />
-              <div
-                className='flex-1 bg-black/40'
-                onClick={() => setIsRailOverlayOpen(false)}
-                data-testid='app-shell-rail-overlay-backdrop'
-                aria-hidden='true'
-              />
-            </div>
-          )}
-        </>
-      ) : (
-        <AppShellSidebar
-          currentUser={currentUser}
-          activeWorkspace={activeWorkspace}
-          activeSeries={effectiveActiveSeries as any}
-          workspaceId={workspaceId}
-          seriesId={seriesId}
-          isReader={isReader}
-          navSections={navSections}
-          handleNavClick={handleNavClick}
-          renderBadge={renderBadge}
-          onOpenTwoFactor={onOpenTwoFactor}
-          onLogout={onLogout}
-          onSelectSeries={onSelectSeries}
-          isRailExpanded={isRailExpanded}
-          onToggleRail={() => setIsRailExpanded((prev) => !prev)}
-          isMobileDrawer={false}
-        />
-      )}
+      {/* --- PERMANENT SIDEBAR (>= md) --- */}
+      <AppShellSidebar
+        currentUser={currentUser}
+        activeWorkspace={activeWorkspace}
+        activeSeries={effectiveActiveSeries as any}
+        workspaceId={workspaceId}
+        seriesId={seriesId}
+        isReader={isReader}
+        navSections={navSections}
+        handleNavClick={handleNavClick}
+        renderBadge={renderBadge}
+        onOpenTwoFactor={onOpenTwoFactor}
+        onLogout={onLogout}
+        onSelectSeries={onSelectSeries}
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={handleToggleSidebar}
+        isMobileDrawer={false}
+      />
 
       {/* --- RIGHT WRAPPER --- */}
       <div className='flex-1 flex flex-col min-w-0 h-full bg-[#f5f5f5] relative'>

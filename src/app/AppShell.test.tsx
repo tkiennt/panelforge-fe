@@ -201,4 +201,56 @@ describe('AppShell Component', () => {
     expect(chapterBreadcrumb).toBeInTheDocument();
     expect(chapterBreadcrumb).toHaveTextContent('Chapter 01');
   });
+
+  it('sidebar mở rộng mặc định trên màn hình letterer thay vì tự động co lại thành rail', () => {
+    localStorage.clear();
+    const lettererUser: CurrentUser = {
+      name: 'Lê Văn Chữ',
+      role: 'USER',
+      workspaceRole: 'LETTERER' as any,
+      activeRoles: ['LETTERER'],
+      avatarInitials: 'LC',
+    };
+
+    renderInRouter(lettererUser, '/workspaces/ws-1/series/ser-1/letterer');
+
+    const sidebar = screen.getByTestId('app-shell-sidebar');
+    expect(sidebar).toBeInTheDocument();
+    // Không bị co thành rail mà có class w-64 mở rộng mặc định
+    expect(sidebar).toHaveClass('w-64');
+    expect(sidebar).not.toHaveClass('w-16');
+  });
+
+  it('cho phép người dùng bấm nút tự thu gọn và mở rộng sidebar, trạng thái được lưu localStorage', () => {
+    localStorage.clear();
+    const producerUser: CurrentUser = {
+      name: 'Phạm Nhà Sản Xuất',
+      role: 'USER',
+      workspaceRole: 'PRODUCER' as any,
+      activeRoles: ['PRODUCER'],
+      avatarInitials: 'PN',
+    };
+
+    renderInRouter(producerUser, '/workspaces/ws-1/series/ser-1/dashboard');
+
+    const sidebar = screen.getByTestId('app-shell-sidebar');
+    expect(sidebar).toHaveClass('w-64');
+
+    const toggleBtn = screen.getByTestId('sidebar-rail-toggle-btn');
+    expect(toggleBtn).toBeInTheDocument();
+    expect(toggleBtn).toHaveAttribute('aria-label', 'Thu gọn menu');
+
+    // Bấm thu gọn
+    fireEvent.click(toggleBtn);
+    expect(sidebar).toHaveClass('w-16');
+    expect(sidebar).not.toHaveClass('w-64');
+    expect(localStorage.getItem('pf.sidebar.collapsed')).toBe('true');
+    expect(toggleBtn).toHaveAttribute('aria-label', 'Mở rộng menu');
+
+    // Bấm mở rộng lại
+    fireEvent.click(toggleBtn);
+    expect(sidebar).toHaveClass('w-64');
+    expect(sidebar).not.toHaveClass('w-16');
+    expect(localStorage.getItem('pf.sidebar.collapsed')).toBe('false');
+  });
 });

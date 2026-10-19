@@ -168,6 +168,7 @@ Shared screens (such as the Studio Overview / Series Selection screen) must insp
 - **Contrast Ratios:** Minimum 4.5:1 for body and label text against light backgrounds.
 - **Transitions:** `transition-all duration-150` for micro-interactions (buttons, hovers); `duration-200` to `300` for drawers and modals.
 - **Scale on Click:** `active:scale-[0.98]` on primary CTA buttons.
+- **Landing scroll reveal:** one shared observer in `LandingPageView` handles `.animate-on-scroll` and `[data-reveal]` (adds `.is-visible` once, never replays). Hero → intro uses `data-reveal='ink'` (orange ink guide 600ms, paper edge lift −12px / −5px mobile, intro copy stagger); the three value cards use `data-reveal='frame'` (ink frame trace, 90ms stagger on desktop). Hidden states apply only under `.js-observer-ready` + `prefers-reduced-motion: no-preference`; no observer, reduced motion and print show the final state.
 
 ---
 
