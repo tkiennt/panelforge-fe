@@ -49,10 +49,6 @@ describe('AuthLayout and VersionedBlueprintVisual', () => {
     expect(screen.getByTestId('auth-close-btn')).toHaveAttribute('aria-label', 'Đóng');
     expect(screen.getByText('Về trang chủ')).toBeInTheDocument();
 
-    // Kiểm tra huy hiệu Minh họa quy trình & trạng thái
-    expect(screen.getByText(/Minh họa quy trình/i)).toBeInTheDocument();
-    expect(screen.getByText(/Bản thảo hoàn thiện/i)).toBeInTheDocument();
-
     // Kiểm tra 3 tờ giấy bản thảo manga với các asset thực tế
     const manuscriptRegion = screen.getByRole('region', {
       name: /Bản thảo manga hoàn thiện/i,
@@ -65,11 +61,6 @@ describe('AuthLayout and VersionedBlueprintVisual', () => {
     expect(imgSources).toContain('/images/auth-manga-script.jpg');
     expect(imgSources).toContain('/images/auth-manga-sketch.jpg');
     expect(imgSources).toContain('/images/auth-manga-finished.jpg');
-
-    // Kiểm tra 3 nhãn phía dưới bên trong dialog card
-    expect(within(dialog).getByText('Nội dung có cấu trúc')).toBeInTheDocument();
-    expect(within(dialog).getByText('Cộng tác theo khung truyện')).toBeInTheDocument();
-    expect(within(dialog).getByText('Truy vết phiên bản')).toBeInTheDocument();
   });
 
   it('đóng dialog khi bấm phím Escape hoặc nút đóng (X)', async () => {

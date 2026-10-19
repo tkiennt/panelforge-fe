@@ -16,6 +16,8 @@ export interface SeriesDto {
   updatedAt?: string | null;
   createdBy?: string | null;
   chaptersCount: number;
+  /** `/api/series/{id}/cover?v=…` (cần Bearer → hiển thị qua AuthenticatedImage); null = chưa có bìa. */
+  coverUrl?: string | null;
 }
 
 export interface SeriesDetailDto extends SeriesDto {
@@ -262,6 +264,27 @@ export const seriesService = {
       return res.data;
     } catch (err: any) {
       throw new Error(extractError(err, 'Không thể lấy thông tin Series.'));
+    }
+  },
+
+  /** PUT /api/series/{id}/cover (Producer) — trả coverUrl mới. */
+  async setCover(seriesId: string, file: File): Promise<string | null> {
+    const form = new FormData();
+    form.append('file', file);
+    try {
+      const res = await axiosClient.put(`/series/${seriesId}/cover`, form);
+      return res.data?.value ?? null;
+    } catch (err: any) {
+      throw new Error(extractError(err, 'Không thể cập nhật ảnh bìa.'));
+    }
+  },
+
+  /** DELETE /api/series/{id}/cover (Producer). */
+  async clearCover(seriesId: string): Promise<void> {
+    try {
+      await axiosClient.delete(`/series/${seriesId}/cover`);
+    } catch (err: any) {
+      throw new Error(extractError(err, 'Không thể xoá ảnh bìa.'));
     }
   },
 

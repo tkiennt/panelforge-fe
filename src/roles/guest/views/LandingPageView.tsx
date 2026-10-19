@@ -29,6 +29,281 @@ interface LandingPageViewProps {
 // Shared by the scroll-reveal observer: classic fade-ins plus the hero→intro ink transition and card frames.
 const REVEAL_SELECTOR = '.animate-on-scroll, [data-reveal]';
 
+// Shared pushpin anchor coordinates for mathematical alignment with transform-origin
+const PIN_ANCHOR_Y_PX = 28.5; // Needle enters paper at 28.5px from note container top
+const LEFT_PIN_ANCHOR_X_PERCENT = 50; // Left note pin centered at 50% width
+const RIGHT_PIN_ANCHOR_X_PERCENT = 58; // Right note pin placed at 58% width
+
+// Deckle torn paper SVG paths matching the concept image
+// 1. LEFT NOTE (Giấy phác thảo kem - Sketch Sheet, ViewBox 0 0 520 480)
+const LEFT_NOTE_PAPER_BODY_PATH =
+  'M 16 12.4 Q 16 12.4, 25.9 12.4 Q 35.9 12.3, 45.8 12.3 Q 55.8 12.2, 65.8 12.3 Q 75.8 12.3, 85.8 12.3 Q 95.7 12.2, 105.7 12.1 Q 115.6 11.9, 125.5 11.7 Q 135.5 11.5, 145.4 11.4 Q 155.4 11.4, 165.4 11.6 Q 175.3 11.7, 185.3 11.9 Q 195.3 12.1, 205.3 12.1 Q 215.2 12.2, 225.1 12.1 Q 235.1 12.1, 245.1 12.1 Q 255 12, 264.9 12 Q 274.9 12, 284.9 12 Q 294.8 12, 304.8 11.9 Q 314.8 11.9, 324.8 11.9 Q 334.7 11.8, 344.6 12 Q 354.6 12.2, 364.6 12.6 Q 374.5 12.9, 384.4 12.8 Q 394.4 12.7, 404.4 12.3 Q 414.3 12, 424.3 11.8 Q 434.3 11.5, 444.3 11.6 Q 454.2 11.7, 464.1 11.8 Q 474.1 11.9, 484.1 11.9 L 494 11.8 L 493.5 12 Q 493.5 12, 493.6 20.9 Q 493.6 29.8, 493.3 38.6 Q 493 47.5, 493 56.4 Q 493 65.3, 493.4 74.2 Q 493.9 83, 493.8 91.9 Q 493.6 100.8, 493.5 109.7 Q 493.4 118.6, 493.8 127.5 Q 494.1 136.3, 494.1 145.2 Q 494.1 154.1, 493.8 163 Q 493.5 171.9, 493.2 180.8 Q 492.9 189.6, 492.6 198.5 Q 492.4 207.4, 492.2 216.3 Q 492 225.1, 491.8 234 Q 491.6 242.9, 492.1 251.8 Q 492.6 260.7, 493.1 269.5 Q 493.7 278.4, 493.4 287.3 Q 493.2 296.2, 493.1 305.1 Q 493 314, 492.9 322.9 Q 492.9 331.7, 492.3 340.6 Q 491.6 349.5, 491.4 358.4 Q 491.2 367.2, 491.4 376.1 L 491.6 385 L 462 430 L 424 468 L 424 464.7 Q 424 464.7, 419 465.4 Q 414 466.2, 409.1 465.4 Q 404.1 464.5, 399.1 465.4 Q 394.1 466.2, 389.1 466.6 Q 384.2 467.1, 379.2 466.8 Q 374.2 466.4, 369.3 467.9 Q 364.3 469.5, 359.3 470.1 Q 354.3 470.7, 349.4 471 Q 344.4 471.4, 339.4 473.2 Q 334.4 475, 329.4 474.4 Q 324.5 473.9, 319.5 472.5 Q 314.5 471.1, 309.6 471.6 Q 304.6 472, 299.6 470.4 Q 294.6 468.9, 289.6 467.5 Q 284.7 466.2, 279.7 466.4 Q 274.7 466.7, 269.8 465.4 Q 264.8 464.1, 259.8 463.8 Q 254.8 463.4, 249.9 464.1 Q 244.9 464.9, 239.9 464.5 Q 234.9 464.1, 229.9 466.6 Q 225 469, 220 472.4 Q 215 475.9, 210.1 476.5 Q 205.1 477.1, 200.1 477.4 Q 195.1 477.6, 190.1 476.5 Q 185.2 475.3, 180.2 472.7 Q 175.2 470.1, 170.3 470.1 Q 165.3 470, 160.3 469.1 Q 155.3 468.3, 150.4 466.3 Q 145.4 464.3, 140.4 464.6 Q 135.4 464.9, 130.4 464.9 Q 125.5 464.9, 120.5 464.8 Q 115.5 464.6, 110.5 466.3 Q 105.6 468, 100.6 468.7 Q 95.6 469.4, 90.7 469.9 Q 85.7 470.3, 80.7 471.4 Q 75.7 472.4, 70.8 471.1 Q 65.8 469.9, 60.8 469.7 Q 55.8 469.5, 50.8 470.5 Q 45.9 471.5, 40.9 470.5 Q 35.9 469.5, 30.9 469.7 Q 26 469.9, 21 470.8 L 16 471.7 L 19 468 Q 19 468, 18.1 463.1 Q 17.3 458.1, 16.7 453.1 Q 16.1 448.2, 16.3 443.3 Q 16.5 438.3, 15.2 433.3 Q 13.9 428.3, 13.9 423.4 Q 14 418.4, 14.9 413.4 Q 15.9 408.5, 14.9 403.6 Q 13.8 398.6, 13.8 393.6 Q 13.7 388.7, 14.1 383.8 Q 14.4 378.8, 13.2 373.9 Q 11.9 368.9, 11.8 363.9 Q 11.6 359, 11.6 354 Q 11.6 349, 11.3 344.1 Q 11.1 339.1, 13.4 334.1 Q 15.7 329.2, 17.4 324.3 Q 19 319.3, 18.9 314.4 Q 18.9 309.4, 19.9 304.4 Q 20.9 299.5, 20.3 294.6 Q 19.7 289.6, 18.4 284.6 Q 17 279.7, 17.4 274.7 Q 17.7 269.7, 16.7 264.8 Q 15.7 259.8, 14.3 254.9 Q 12.9 249.9, 12.9 244.9 Q 12.8 240, 11 235.1 Q 9.2 230.1, 8.1 225.1 Q 6.9 220.2, 8 215.3 Q 9 210.3, 9.2 205.3 Q 9.4 200.3, 10.9 195.4 Q 12.5 190.4, 15.1 185.4 Q 17.7 180.5, 17.9 175.6 Q 18.1 170.6, 18.9 165.6 Q 19.6 160.7, 20.1 155.8 Q 20.7 150.8, 19.1 145.9 Q 17.6 140.9, 17.5 135.9 Q 17.3 131, 17.6 126 Q 17.8 121, 16.6 116 Q 15.5 111.1, 14.9 106.2 Q 14.3 101.2, 12.9 96.3 Q 11.6 91.3, 10.7 86.3 Q 9.8 81.4, 11.9 76.5 Q 14 71.5, 14.6 66.5 Q 15.1 61.6, 14.1 56.7 Q 13.1 51.7, 13.7 46.7 Q 14.3 41.7, 14.1 36.8 Q 13.9 31.8, 13.8 26.9 Q 13.7 21.9, 15.3 16.9 L 16.9 12 Z';
+
+const LEFT_NOTE_BOTTOM_PULP_PATH =
+  'M 424 464.7 L 424 464.7 Q 424 464.7, 419 465.4 Q 414 466.2, 409.1 465.4 Q 404.1 464.5, 399.1 465.4 Q 394.1 466.2, 389.1 466.6 Q 384.2 467.1, 379.2 466.8 Q 374.2 466.4, 369.3 467.9 Q 364.3 469.5, 359.3 470.1 Q 354.3 470.7, 349.4 471 Q 344.4 471.4, 339.4 473.2 Q 334.4 475, 329.4 474.4 Q 324.5 473.9, 319.5 472.5 Q 314.5 471.1, 309.6 471.6 Q 304.6 472, 299.6 470.4 Q 294.6 468.9, 289.6 467.5 Q 284.7 466.2, 279.7 466.4 Q 274.7 466.7, 269.8 465.4 Q 264.8 464.1, 259.8 463.8 Q 254.8 463.4, 249.9 464.1 Q 244.9 464.9, 239.9 464.5 Q 234.9 464.1, 229.9 466.6 Q 225 469, 220 472.4 Q 215 475.9, 210.1 476.5 Q 205.1 477.1, 200.1 477.4 Q 195.1 477.6, 190.1 476.5 Q 185.2 475.3, 180.2 472.7 Q 175.2 470.1, 170.3 470.1 Q 165.3 470, 160.3 469.1 Q 155.3 468.3, 150.4 466.3 Q 145.4 464.3, 140.4 464.6 Q 135.4 464.9, 130.4 464.9 Q 125.5 464.9, 120.5 464.8 Q 115.5 464.6, 110.5 466.3 Q 105.6 468, 100.6 468.7 Q 95.6 469.4, 90.7 469.9 Q 85.7 470.3, 80.7 471.4 Q 75.7 472.4, 70.8 471.1 Q 65.8 469.9, 60.8 469.7 Q 55.8 469.5, 50.8 470.5 Q 45.9 471.5, 40.9 470.5 Q 35.9 469.5, 30.9 469.7 Q 26 469.9, 21 470.8 L 16 471.7 L 18 471.3 L 18 471.3 Q 18 471.3, 22.9 470.7 Q 27.9 470.1, 32.8 470.5 Q 37.7 470.8, 42.7 470.5 Q 47.6 470.2, 52.5 469.2 Q 57.4 468.2, 62.3 469.4 Q 67.3 470.6, 72.2 471.5 Q 77.1 472.3, 82 471 Q 87 469.7, 91.9 468.9 Q 96.8 468.2, 101.8 467.4 Q 106.7 466.5, 111.6 465.9 Q 116.5 465.2, 121.5 465.9 Q 126.4 466.6, 131.3 466 Q 136.2 465.4, 141.1 465.3 Q 146.1 465.1, 151.1 466.9 Q 156 468.7, 160.9 469.3 Q 165.8 469.9, 170.8 470.4 Q 175.7 471, 180.6 472.9 Q 185.5 474.9, 190.4 475.2 Q 195.4 475.5, 200.3 475.4 Q 205.2 475.3, 210.1 474.6 Q 215.1 473.8, 220 470.8 Q 224.9 467.7, 229.9 466.3 Q 234.8 464.9, 239.7 464.9 Q 244.6 465, 249.6 464.4 Q 254.5 463.7, 259.4 464.6 Q 264.3 465.5, 269.3 466.6 Q 274.2 467.6, 279.1 467.2 Q 284 466.8, 288.9 468 Q 293.9 469.2, 298.9 470.3 Q 303.8 471.3, 308.7 471 Q 313.6 470.7, 318.6 472.1 Q 323.5 473.6, 328.4 473.8 Q 333.3 473.9, 338.3 472.1 Q 343.2 470.4, 348.1 470.3 Q 353 470.1, 357.9 469.8 Q 362.9 469.4, 367.8 468.1 Q 372.7 466.9, 377.6 467.2 Q 382.6 467.5, 387.5 467 Q 392.4 466.5, 397.4 465.9 Q 402.3 465.2, 407.2 465.9 Q 412.1 466.6, 417.1 466 L 422 465.4 Z';
+
+const LEFT_NOTE_LEFT_PULP_PATH =
+  'M 19 468 L 19 468 Q 19 468, 18.1 463.1 Q 17.3 458.1, 16.7 453.1 Q 16.1 448.2, 16.3 443.3 Q 16.5 438.3, 15.2 433.3 Q 13.9 428.3, 13.9 423.4 Q 14 418.4, 14.9 413.4 Q 15.9 408.5, 14.9 403.6 Q 13.8 398.6, 13.8 393.6 Q 13.7 388.7, 14.1 383.8 Q 14.4 378.8, 13.2 373.9 Q 11.9 368.9, 11.8 363.9 Q 11.6 359, 11.6 354 Q 11.6 349, 11.3 344.1 Q 11.1 339.1, 13.4 334.1 Q 15.7 329.2, 17.4 324.3 Q 19 319.3, 18.9 314.4 Q 18.9 309.4, 19.9 304.4 Q 20.9 299.5, 20.3 294.6 Q 19.7 289.6, 18.4 284.6 Q 17 279.7, 17.4 274.7 Q 17.7 269.7, 16.7 264.8 Q 15.7 259.8, 14.3 254.9 Q 12.9 249.9, 12.9 244.9 Q 12.8 240, 11 235.1 Q 9.2 230.1, 8.1 225.1 Q 6.9 220.2, 8 215.3 Q 9 210.3, 9.2 205.3 Q 9.4 200.3, 10.9 195.4 Q 12.5 190.4, 15.1 185.4 Q 17.7 180.5, 17.9 175.6 Q 18.1 170.6, 18.9 165.6 Q 19.6 160.7, 20.1 155.8 Q 20.7 150.8, 19.1 145.9 Q 17.6 140.9, 17.5 135.9 Q 17.3 131, 17.6 126 Q 17.8 121, 16.6 116 Q 15.5 111.1, 14.9 106.2 Q 14.3 101.2, 12.9 96.3 Q 11.6 91.3, 10.7 86.3 Q 9.8 81.4, 11.9 76.5 Q 14 71.5, 14.6 66.5 Q 15.1 61.6, 14.1 56.7 Q 13.1 51.7, 13.7 46.7 Q 14.3 41.7, 14.1 36.8 Q 13.9 31.8, 13.8 26.9 Q 13.7 21.9, 15.3 16.9 L 16.9 12 L 15 14 L 15 14 Q 15 14, 14.5 18.9 Q 14 23.8, 14.6 28.8 Q 15.2 33.7, 14.4 38.6 Q 13.7 43.5, 13.3 48.4 Q 12.9 53.3, 13.9 58.2 Q 15 63.1, 14.3 68 Q 13.7 73, 12.6 77.9 Q 11.4 82.8, 12.3 87.7 Q 13.2 92.6, 13.8 97.5 Q 14.3 102.4, 15 107.3 Q 15.7 112.3, 16.9 117.2 Q 18.2 122.1, 17.7 127 Q 17.2 131.9, 17.4 136.8 Q 17.7 141.7, 18.5 146.6 Q 19.4 151.6, 18.9 156.5 Q 18.3 161.4, 18.4 166.3 Q 18.4 171.2, 17.9 176.1 Q 17.4 181, 14.7 185.9 Q 12 190.9, 10.8 195.8 Q 9.7 200.7, 9.6 205.6 Q 9.5 210.5, 9.3 215.4 Q 9.1 220.3, 10.3 225.3 Q 11.6 230.2, 12.1 235.1 Q 12.7 240, 12.8 244.9 Q 12.8 249.8, 14.5 254.8 Q 16.2 259.7, 16.9 264.6 Q 17.7 269.5, 17.4 274.4 Q 17.1 279.3, 18.1 284.2 Q 19.2 289.1, 19.4 294.1 Q 19.5 299, 18.9 303.9 Q 18.4 308.8, 18.6 313.7 Q 18.8 318.6, 17.2 323.5 Q 15.6 328.4, 13.6 333.4 Q 11.5 338.3, 11.8 343.2 Q 12 348.1, 12.2 353 Q 12.4 357.9, 12.8 362.8 Q 13.2 367.7, 13.8 372.6 Q 14.4 377.6, 13.9 382.5 Q 13.5 387.4, 13.7 392.3 Q 13.9 397.2, 14.8 402.1 Q 15.7 407, 14.9 411.9 Q 14.1 416.9, 14.1 421.8 Q 14.1 426.7, 15.1 431.6 Q 16.2 436.5, 16.1 441.4 Q 15.9 446.3, 16.4 451.3 Q 17 456.2, 17.7 461.1 L 18.4 466 Z';
+
+const LEFT_NOTE_TEAR_CONTOUR_PATH =
+  'M 424 464.7 Q 424 464.7, 419 465.4 Q 414 466.2, 409.1 465.4 Q 404.1 464.5, 399.1 465.4 Q 394.1 466.2, 389.1 466.6 Q 384.2 467.1, 379.2 466.8 Q 374.2 466.4, 369.3 467.9 Q 364.3 469.5, 359.3 470.1 Q 354.3 470.7, 349.4 471 Q 344.4 471.4, 339.4 473.2 Q 334.4 475, 329.4 474.4 Q 324.5 473.9, 319.5 472.5 Q 314.5 471.1, 309.6 471.6 Q 304.6 472, 299.6 470.4 Q 294.6 468.9, 289.6 467.5 Q 284.7 466.2, 279.7 466.4 Q 274.7 466.7, 269.8 465.4 Q 264.8 464.1, 259.8 463.8 Q 254.8 463.4, 249.9 464.1 Q 244.9 464.9, 239.9 464.5 Q 234.9 464.1, 229.9 466.6 Q 225 469, 220 472.4 Q 215 475.9, 210.1 476.5 Q 205.1 477.1, 200.1 477.4 Q 195.1 477.6, 190.1 476.5 Q 185.2 475.3, 180.2 472.7 Q 175.2 470.1, 170.3 470.1 Q 165.3 470, 160.3 469.1 Q 155.3 468.3, 150.4 466.3 Q 145.4 464.3, 140.4 464.6 Q 135.4 464.9, 130.4 464.9 Q 125.5 464.9, 120.5 464.8 Q 115.5 464.6, 110.5 466.3 Q 105.6 468, 100.6 468.7 Q 95.6 469.4, 90.7 469.9 Q 85.7 470.3, 80.7 471.4 Q 75.7 472.4, 70.8 471.1 Q 65.8 469.9, 60.8 469.7 Q 55.8 469.5, 50.8 470.5 Q 45.9 471.5, 40.9 470.5 Q 35.9 469.5, 30.9 469.7 Q 26 469.9, 21 470.8 L 16 471.7 L 19 468 Q 19 468, 18.1 463.1 Q 17.3 458.1, 16.7 453.1 Q 16.1 448.2, 16.3 443.3 Q 16.5 438.3, 15.2 433.3 Q 13.9 428.3, 13.9 423.4 Q 14 418.4, 14.9 413.4 Q 15.9 408.5, 14.9 403.6 Q 13.8 398.6, 13.8 393.6 Q 13.7 388.7, 14.1 383.8 Q 14.4 378.8, 13.2 373.9 Q 11.9 368.9, 11.8 363.9 Q 11.6 359, 11.6 354 Q 11.6 349, 11.3 344.1 Q 11.1 339.1, 13.4 334.1 Q 15.7 329.2, 17.4 324.3 Q 19 319.3, 18.9 314.4 Q 18.9 309.4, 19.9 304.4 Q 20.9 299.5, 20.3 294.6 Q 19.7 289.6, 18.4 284.6 Q 17 279.7, 17.4 274.7 Q 17.7 269.7, 16.7 264.8 Q 15.7 259.8, 14.3 254.9 Q 12.9 249.9, 12.9 244.9 Q 12.8 240, 11 235.1 Q 9.2 230.1, 8.1 225.1 Q 6.9 220.2, 8 215.3 Q 9 210.3, 9.2 205.3 Q 9.4 200.3, 10.9 195.4 Q 12.5 190.4, 15.1 185.4 Q 17.7 180.5, 17.9 175.6 Q 18.1 170.6, 18.9 165.6 Q 19.6 160.7, 20.1 155.8 Q 20.7 150.8, 19.1 145.9 Q 17.6 140.9, 17.5 135.9 Q 17.3 131, 17.6 126 Q 17.8 121, 16.6 116 Q 15.5 111.1, 14.9 106.2 Q 14.3 101.2, 12.9 96.3 Q 11.6 91.3, 10.7 86.3 Q 9.8 81.4, 11.9 76.5 Q 14 71.5, 14.6 66.5 Q 15.1 61.6, 14.1 56.7 Q 13.1 51.7, 13.7 46.7 Q 14.3 41.7, 14.1 36.8 Q 13.9 31.8, 13.8 26.9 Q 13.7 21.9, 15.3 16.9 L 16.9 12';
+
+const LEFT_NOTE_FIBERS = [
+  {
+    x1: 334,
+    y1: 467,
+    x2: 337,
+    y2: 470.5,
+  },
+  {
+    x1: 204,
+    y1: 465,
+    x2: 206,
+    y2: 469,
+  },
+  {
+    x1: 84,
+    y1: 466,
+    x2: 87,
+    y2: 470,
+  },
+  {
+    x1: 15,
+    y1: 348,
+    x2: 12,
+    y2: 351,
+  },
+  {
+    x1: 14,
+    y1: 208,
+    x2: 11,
+    y2: 211,
+  },
+  {
+    x1: 15,
+    y1: 88,
+    x2: 12.5,
+    y2: 91,
+  },
+];
+
+const LEFT_NOTE_CURL_FLAP_PATH =
+  'M 424 468 C 445 476, 480 472, 498 435 C 504 412, 498 393, 492 385 Q 462 430, 424 468 Z';
+
+const LEFT_NOTE_CURL_RIM_HIGHLIGHT =
+  'M 424 468 C 445 476, 480 472, 498 435 C 504 412, 498 393, 492 385';
+
+// 2. RIGHT NOTE (Giấy ghi chú kẻ dòng - Lined Note Sheet, ViewBox 0 0 740 430)
+const RIGHT_NOTE_PAPER_BODY_PATH =
+  'M 14 12.4 Q 14 12.4, 23.9 12.4 Q 33.8 12.3, 43.7 12.3 Q 53.6 12.2, 63.5 12.3 Q 73.3 12.3, 83.2 12.3 Q 93.1 12.3, 103 12.1 Q 112.9 11.9, 122.8 11.7 Q 132.7 11.5, 142.6 11.4 Q 152.4 11.4, 162.3 11.6 Q 172.2 11.7, 182.1 11.9 Q 192 12.2, 201.9 12.3 Q 211.8 12.5, 221.7 12.6 Q 231.6 12.7, 241.4 12.6 Q 251.3 12.5, 261.2 12.3 Q 271.1 12, 281 11.6 Q 290.9 11.2, 300.8 11.1 Q 310.7 11, 320.5 11.3 Q 330.4 11.6, 340.3 12.1 Q 350.2 12.5, 360.1 12.4 Q 370 12.4, 379.9 12.3 Q 389.8 12.1, 399.7 12.1 Q 409.6 12, 419.5 12 Q 429.3 12, 439.2 12 Q 449.1 12, 459 12 Q 468.9 12, 478.8 11.9 Q 488.7 11.9, 498.5 11.8 Q 508.4 11.7, 518.3 11.8 Q 528.2 12, 538.1 12.5 Q 548 13, 557.9 13.1 Q 567.8 13.2, 577.7 12.8 Q 587.6 12.3, 597.5 11.8 Q 607.3 11.2, 617.2 11.1 Q 627.1 11.1, 637 11.3 Q 646.9 11.6, 656.8 11.9 Q 666.7 12.2, 676.5 12.3 Q 686.4 12.3, 696.3 12.3 Q 706.2 12.2, 716.1 12.3 L 726 12.3 L 722.6 12 Q 722.6 12, 723.9 16.9 Q 725.1 21.9, 724.5 26.8 Q 723.8 31.7, 724.1 36.6 Q 724.5 41.6, 725.8 46.5 Q 727.1 51.4, 726.8 56.3 Q 726.5 61.3, 727 66.2 Q 727.5 71.1, 728 76 Q 728.5 81, 727.5 85.9 Q 726.6 90.8, 727.7 95.8 Q 728.8 100.7, 730.6 105.6 Q 732.5 110.5, 732 115.5 Q 731.5 120.4, 730.9 125.3 Q 730.3 130.2, 728.5 135.1 Q 726.7 140.1, 724.7 145.1 Q 722.6 150, 723 154.9 Q 723.5 159.8, 723.1 164.8 Q 722.8 169.7, 721.8 174.6 Q 720.9 179.5, 722.5 184.4 Q 724 189.4, 725.1 194.3 Q 726.3 199.2, 726.9 204.1 Q 727.5 209.1, 729.5 214 Q 731.6 218.9, 732.5 223.9 Q 733.3 228.8, 733.5 233.7 Q 733.7 238.6, 734.2 243.6 Q 734.7 248.5, 732.3 253.4 Q 729.8 258.3, 727.2 263.3 Q 724.6 268.2, 724.4 273.1 Q 724.1 278, 723.1 282.9 Q 722.1 287.9, 722.4 292.9 Q 722.6 297.8, 723.9 302.7 Q 725.1 307.6, 724.5 312.6 Q 723.8 317.5, 724.1 322.4 Q 724.5 327.3, 726.6 332.3 Q 728.7 337.2, 729.5 342.1 Q 730.3 347, 730.8 351.9 Q 731.4 356.9, 730.8 361.8 Q 730.2 366.7, 728.4 371.6 Q 726.6 376.6, 727.4 381.5 Q 728.2 386.4, 728.9 391.4 Q 729.6 396.3, 728.4 401.2 Q 727.1 406.1, 726.9 411.1 L 726.7 416 L 726 413.1 Q 726 413.1, 721 413.1 Q 716 413.1, 711 412.7 Q 706.1 412.3, 701.1 413.5 Q 696.1 414.7, 691.1 414.2 Q 686.1 413.7, 681.2 413.4 Q 676.2 413, 671.2 414.6 Q 666.2 416.3, 661.2 416.1 Q 656.2 416, 651.2 415.9 Q 646.2 415.9, 641.3 416.8 Q 636.3 417.6, 631.3 416.7 Q 626.3 415.8, 621.3 416.4 Q 616.3 416.9, 611.3 418.8 Q 606.4 420.7, 601.4 421 Q 596.4 421.3, 591.4 422.2 Q 586.4 423.1, 581.5 423 Q 576.5 422.8, 571.5 420.7 Q 566.5 418.6, 561.5 418.8 Q 556.5 418.9, 551.5 418.8 Q 546.5 418.7, 541.5 416.9 Q 536.6 415, 531.6 415 Q 526.6 415, 521.6 414.6 Q 516.6 414.1, 511.6 413 Q 506.7 411.9, 501.7 412.5 Q 496.7 413.2, 491.7 412.4 Q 486.7 411.7, 481.8 410.9 Q 476.8 410.2, 471.8 411.9 Q 466.8 413.5, 461.8 413.9 Q 456.8 414.2, 451.8 414.8 Q 446.8 415.3, 441.9 417 Q 436.9 418.6, 431.9 419.1 Q 426.9 419.6, 421.9 421.5 Q 416.9 423.3, 411.9 425.5 Q 407 427.6, 402 426.3 Q 397 425, 392 423.6 Q 387 422.1, 382.1 421 Q 377.1 419.9, 372.1 418 Q 367.1 416.2, 362.1 416.4 Q 357.1 416.6, 352.1 416.5 Q 347.2 416.3, 342.2 414.5 Q 337.2 412.6, 332.2 412.8 Q 327.2 412.9, 322.2 413 Q 317.2 413.1, 312.3 412.6 Q 307.3 412, 302.3 413.3 Q 297.3 414.6, 292.3 414.5 Q 287.3 414.3, 282.4 413.6 Q 277.4 412.8, 272.4 414.3 Q 267.4 415.7, 262.4 416.3 Q 257.4 416.8, 252.4 417.9 Q 247.5 418.9, 242.5 420.7 Q 237.5 422.5, 232.5 421.2 Q 227.5 419.9, 222.5 418.8 Q 217.5 417.7, 212.6 418.5 Q 207.6 419.3, 202.6 418.7 Q 197.6 418.1, 192.6 418.2 Q 187.6 418.3, 182.6 418.9 Q 177.7 419.4, 172.7 418.3 Q 167.7 417.2, 162.7 417.8 Q 157.7 418.3, 152.8 418.7 Q 147.8 419.1, 142.8 417.4 Q 137.8 415.6, 132.8 415.3 Q 127.8 415, 122.8 414.6 Q 117.8 414.2, 112.8 412.9 Q 107.9 411.7, 102.9 412.4 Q 97.9 413.1, 92.9 412.7 Q 87.9 412.3, 83 411.3 Q 78 410.2, 73 411.5 L 68 412.9 L 38 392 L 14 362 L 14.5 362 Q 14.5 362, 14.4 353.3 Q 14.3 344.5, 14.6 335.8 Q 14.9 327, 14.8 318.3 Q 14.7 309.5, 14.2 300.8 Q 13.7 292, 13.9 283.3 Q 14.1 274.5, 14 265.8 Q 13.9 257, 13.6 248.3 Q 13.3 239.5, 13.3 230.8 Q 13.2 222, 13.4 213.3 Q 13.6 204.5, 13.8 195.8 Q 14.1 187, 14.2 178.3 Q 14.3 169.5, 14.8 160.8 Q 15.2 152, 15.2 143.3 Q 15.2 134.5, 14.5 125.8 Q 13.8 117, 13.7 108.3 Q 13.5 99.5, 13.4 90.8 Q 13.3 82, 13.1 73.3 Q 12.8 64.5, 13.2 55.8 Q 13.6 47, 14.1 38.3 Q 14.5 29.5, 14.6 20.8 L 14.7 12 Z';
+
+const RIGHT_NOTE_RIGHT_PULP_PATH =
+  'M 722.6 12 L 722.6 12 Q 722.6 12, 723.9 16.9 Q 725.1 21.9, 724.5 26.8 Q 723.8 31.7, 724.1 36.6 Q 724.5 41.6, 725.8 46.5 Q 727.1 51.4, 726.8 56.3 Q 726.5 61.3, 727 66.2 Q 727.5 71.1, 728 76 Q 728.5 81, 727.5 85.9 Q 726.6 90.8, 727.7 95.8 Q 728.8 100.7, 730.6 105.6 Q 732.5 110.5, 732 115.5 Q 731.5 120.4, 730.9 125.3 Q 730.3 130.2, 728.5 135.1 Q 726.7 140.1, 724.7 145.1 Q 722.6 150, 723 154.9 Q 723.5 159.8, 723.1 164.8 Q 722.8 169.7, 721.8 174.6 Q 720.9 179.5, 722.5 184.4 Q 724 189.4, 725.1 194.3 Q 726.3 199.2, 726.9 204.1 Q 727.5 209.1, 729.5 214 Q 731.6 218.9, 732.5 223.9 Q 733.3 228.8, 733.5 233.7 Q 733.7 238.6, 734.2 243.6 Q 734.7 248.5, 732.3 253.4 Q 729.8 258.3, 727.2 263.3 Q 724.6 268.2, 724.4 273.1 Q 724.1 278, 723.1 282.9 Q 722.1 287.9, 722.4 292.9 Q 722.6 297.8, 723.9 302.7 Q 725.1 307.6, 724.5 312.6 Q 723.8 317.5, 724.1 322.4 Q 724.5 327.3, 726.6 332.3 Q 728.7 337.2, 729.5 342.1 Q 730.3 347, 730.8 351.9 Q 731.4 356.9, 730.8 361.8 Q 730.2 366.7, 728.4 371.6 Q 726.6 376.6, 727.4 381.5 Q 728.2 386.4, 728.9 391.4 Q 729.6 396.3, 728.4 401.2 Q 727.1 406.1, 726.9 411.1 L 726.7 416 L 726.5 414 L 726.5 414 Q 726.5 414, 726.9 409 Q 727.2 404, 728.1 399 Q 729 394, 728.4 389 Q 727.8 384, 728 379 Q 728.2 374, 729.1 369 Q 730 364, 729.6 359 Q 729.3 354, 729 349 Q 728.8 344, 727.9 339 Q 727 334, 725.9 329 Q 724.8 324, 724.8 319 Q 724.8 314, 724.1 309 Q 723.5 304, 722.9 299 Q 722.3 294, 723.5 289 Q 724.7 284, 725 279 Q 725.2 274, 725.8 269 Q 726.4 264, 729 259 Q 731.6 254, 732.5 249 Q 733.3 244, 733.1 239 Q 732.9 234, 732.4 229 Q 731.9 224, 729.9 219 Q 727.9 214, 726.9 209 Q 725.9 204, 725.6 199 Q 725.3 194, 724 189 Q 722.8 184, 723 179 Q 723.1 174, 723.5 169 Q 723.8 164, 723.3 159 Q 722.7 154, 724.2 149 Q 725.6 144, 727.7 139 Q 729.8 134, 730.4 129 Q 731 124, 731.1 119 Q 731.3 114, 729.9 109 Q 728.5 104, 727.6 99 Q 726.8 94, 727.6 89 Q 728.5 84, 728.1 79 Q 727.8 74, 727.1 69 Q 726.5 64, 726.8 59 Q 727 54, 726 49 Q 725.1 44, 724.8 39 Q 724.4 34, 724.9 29 Q 725.4 24, 724.3 19 L 723.2 14 Z';
+
+const RIGHT_NOTE_BOTTOM_PULP_PATH =
+  'M 726 413.1 L 726 413.1 Q 726 413.1, 721 413.1 Q 716 413.1, 711 412.7 Q 706.1 412.3, 701.1 413.5 Q 696.1 414.7, 691.1 414.2 Q 686.1 413.7, 681.2 413.4 Q 676.2 413, 671.2 414.6 Q 666.2 416.3, 661.2 416.1 Q 656.2 416, 651.2 415.9 Q 646.2 415.9, 641.3 416.8 Q 636.3 417.6, 631.3 416.7 Q 626.3 415.8, 621.3 416.4 Q 616.3 416.9, 611.3 418.8 Q 606.4 420.7, 601.4 421 Q 596.4 421.3, 591.4 422.2 Q 586.4 423.1, 581.5 423 Q 576.5 422.8, 571.5 420.7 Q 566.5 418.6, 561.5 418.8 Q 556.5 418.9, 551.5 418.8 Q 546.5 418.7, 541.5 416.9 Q 536.6 415, 531.6 415 Q 526.6 415, 521.6 414.6 Q 516.6 414.1, 511.6 413 Q 506.7 411.9, 501.7 412.5 Q 496.7 413.2, 491.7 412.4 Q 486.7 411.7, 481.8 410.9 Q 476.8 410.2, 471.8 411.9 Q 466.8 413.5, 461.8 413.9 Q 456.8 414.2, 451.8 414.8 Q 446.8 415.3, 441.9 417 Q 436.9 418.6, 431.9 419.1 Q 426.9 419.6, 421.9 421.5 Q 416.9 423.3, 411.9 425.5 Q 407 427.6, 402 426.3 Q 397 425, 392 423.6 Q 387 422.1, 382.1 421 Q 377.1 419.9, 372.1 418 Q 367.1 416.2, 362.1 416.4 Q 357.1 416.6, 352.1 416.5 Q 347.2 416.3, 342.2 414.5 Q 337.2 412.6, 332.2 412.8 Q 327.2 412.9, 322.2 413 Q 317.2 413.1, 312.3 412.6 Q 307.3 412, 302.3 413.3 Q 297.3 414.6, 292.3 414.5 Q 287.3 414.3, 282.4 413.6 Q 277.4 412.8, 272.4 414.3 Q 267.4 415.7, 262.4 416.3 Q 257.4 416.8, 252.4 417.9 Q 247.5 418.9, 242.5 420.7 Q 237.5 422.5, 232.5 421.2 Q 227.5 419.9, 222.5 418.8 Q 217.5 417.7, 212.6 418.5 Q 207.6 419.3, 202.6 418.7 Q 197.6 418.1, 192.6 418.2 Q 187.6 418.3, 182.6 418.9 Q 177.7 419.4, 172.7 418.3 Q 167.7 417.2, 162.7 417.8 Q 157.7 418.3, 152.8 418.7 Q 147.8 419.1, 142.8 417.4 Q 137.8 415.6, 132.8 415.3 Q 127.8 415, 122.8 414.6 Q 117.8 414.2, 112.8 412.9 Q 107.9 411.7, 102.9 412.4 Q 97.9 413.1, 92.9 412.7 Q 87.9 412.3, 83 411.3 Q 78 410.2, 73 411.5 L 68 412.9 L 70 413.2 L 70 413.2 Q 70 413.2, 75 412.3 Q 79.9 411.4, 84.8 412.1 Q 89.8 412.8, 94.8 412.6 Q 99.7 412.4, 104.7 413 Q 109.6 413.6, 114.5 414.9 Q 119.5 416.2, 124.5 415.7 Q 129.5 415.2, 134.4 415.6 Q 139.4 416.1, 144.4 417.4 Q 149.3 418.7, 154.3 418.4 Q 159.2 418, 164.1 418.4 Q 169.1 418.8, 174.1 419 Q 179 419.2, 183.9 418.1 Q 188.9 417, 193.9 417.6 Q 198.8 418.1, 203.8 418.5 Q 208.7 418.9, 213.6 418.4 Q 218.6 418, 223.6 419.3 Q 228.5 420.5, 233.5 420.4 Q 238.5 420.2, 243.4 418.5 Q 248.4 416.8, 253.4 416.9 Q 258.3 416.9, 263.3 416.4 Q 268.2 415.9, 273.1 414.7 Q 278.1 413.5, 283.1 414 Q 288 414.5, 292.9 414.1 Q 297.9 413.8, 302.9 413.4 Q 307.8 413, 312.8 413.8 Q 317.7 414.6, 322.6 413.9 Q 327.6 413.2, 332.6 413.2 Q 337.5 413.2, 342.5 414.9 Q 347.5 416.5, 352.4 416.6 Q 357.4 416.7, 362.4 417.1 Q 367.3 417.6, 372.3 418.7 Q 377.2 419.8, 382.1 420.2 Q 387.1 420.6, 392.1 422.4 Q 397 424.1, 401.9 425.1 Q 406.9 426.1, 411.9 423.9 Q 416.8 421.7, 421.8 420.2 Q 426.7 418.7, 431.6 418.1 Q 436.6 417.5, 441.6 416.1 Q 446.5 414.8, 451.5 414.9 Q 456.5 414.9, 461.4 414.4 Q 466.4 414, 471.4 412.6 Q 476.3 411.1, 481.3 411.8 Q 486.2 412.4, 491.1 412.9 Q 496.1 413.3, 501.1 413.1 Q 506 412.9, 510.9 414 Q 515.9 415.2, 520.8 415.3 Q 525.8 415.3, 530.8 415.3 Q 535.7 415.3, 540.7 417 Q 545.6 418.6, 550.5 418.6 Q 555.5 418.6, 560.5 418.6 Q 565.5 418.5, 570.5 420.3 Q 575.4 422.1, 580.3 422 Q 585.3 421.8, 590.3 421 Q 595.2 420.2, 600.2 419.9 Q 605.1 419.7, 610 418.4 Q 615 417, 620 416.6 Q 624.9 416.2, 629.8 416.8 Q 634.8 417.4, 639.8 416.7 Q 644.7 416, 649.7 416.1 Q 654.6 416.3, 659.5 416.4 Q 664.5 416.4, 669.5 415 Q 674.5 413.6, 679.5 413.9 Q 684.4 414.2, 689.3 414.5 Q 694.3 414.9, 699.3 413.9 Q 704.2 413, 709.2 413.4 Q 714.1 413.7, 719 413.7 L 724 413.7 Z';
+
+const RIGHT_NOTE_TEAR_CONTOUR_PATH =
+  'M 722.6 12 Q 722.6 12, 723.9 16.9 Q 725.1 21.9, 724.5 26.8 Q 723.8 31.7, 724.1 36.6 Q 724.5 41.6, 725.8 46.5 Q 727.1 51.4, 726.8 56.3 Q 726.5 61.3, 727 66.2 Q 727.5 71.1, 728 76 Q 728.5 81, 727.5 85.9 Q 726.6 90.8, 727.7 95.8 Q 728.8 100.7, 730.6 105.6 Q 732.5 110.5, 732 115.5 Q 731.5 120.4, 730.9 125.3 Q 730.3 130.2, 728.5 135.1 Q 726.7 140.1, 724.7 145.1 Q 722.6 150, 723 154.9 Q 723.5 159.8, 723.1 164.8 Q 722.8 169.7, 721.8 174.6 Q 720.9 179.5, 722.5 184.4 Q 724 189.4, 725.1 194.3 Q 726.3 199.2, 726.9 204.1 Q 727.5 209.1, 729.5 214 Q 731.6 218.9, 732.5 223.9 Q 733.3 228.8, 733.5 233.7 Q 733.7 238.6, 734.2 243.6 Q 734.7 248.5, 732.3 253.4 Q 729.8 258.3, 727.2 263.3 Q 724.6 268.2, 724.4 273.1 Q 724.1 278, 723.1 282.9 Q 722.1 287.9, 722.4 292.9 Q 722.6 297.8, 723.9 302.7 Q 725.1 307.6, 724.5 312.6 Q 723.8 317.5, 724.1 322.4 Q 724.5 327.3, 726.6 332.3 Q 728.7 337.2, 729.5 342.1 Q 730.3 347, 730.8 351.9 Q 731.4 356.9, 730.8 361.8 Q 730.2 366.7, 728.4 371.6 Q 726.6 376.6, 727.4 381.5 Q 728.2 386.4, 728.9 391.4 Q 729.6 396.3, 728.4 401.2 Q 727.1 406.1, 726.9 411.1 L 726.7 416 L 726 413.1 Q 726 413.1, 721 413.1 Q 716 413.1, 711 412.7 Q 706.1 412.3, 701.1 413.5 Q 696.1 414.7, 691.1 414.2 Q 686.1 413.7, 681.2 413.4 Q 676.2 413, 671.2 414.6 Q 666.2 416.3, 661.2 416.1 Q 656.2 416, 651.2 415.9 Q 646.2 415.9, 641.3 416.8 Q 636.3 417.6, 631.3 416.7 Q 626.3 415.8, 621.3 416.4 Q 616.3 416.9, 611.3 418.8 Q 606.4 420.7, 601.4 421 Q 596.4 421.3, 591.4 422.2 Q 586.4 423.1, 581.5 423 Q 576.5 422.8, 571.5 420.7 Q 566.5 418.6, 561.5 418.8 Q 556.5 418.9, 551.5 418.8 Q 546.5 418.7, 541.5 416.9 Q 536.6 415, 531.6 415 Q 526.6 415, 521.6 414.6 Q 516.6 414.1, 511.6 413 Q 506.7 411.9, 501.7 412.5 Q 496.7 413.2, 491.7 412.4 Q 486.7 411.7, 481.8 410.9 Q 476.8 410.2, 471.8 411.9 Q 466.8 413.5, 461.8 413.9 Q 456.8 414.2, 451.8 414.8 Q 446.8 415.3, 441.9 417 Q 436.9 418.6, 431.9 419.1 Q 426.9 419.6, 421.9 421.5 Q 416.9 423.3, 411.9 425.5 Q 407 427.6, 402 426.3 Q 397 425, 392 423.6 Q 387 422.1, 382.1 421 Q 377.1 419.9, 372.1 418 Q 367.1 416.2, 362.1 416.4 Q 357.1 416.6, 352.1 416.5 Q 347.2 416.3, 342.2 414.5 Q 337.2 412.6, 332.2 412.8 Q 327.2 412.9, 322.2 413 Q 317.2 413.1, 312.3 412.6 Q 307.3 412, 302.3 413.3 Q 297.3 414.6, 292.3 414.5 Q 287.3 414.3, 282.4 413.6 Q 277.4 412.8, 272.4 414.3 Q 267.4 415.7, 262.4 416.3 Q 257.4 416.8, 252.4 417.9 Q 247.5 418.9, 242.5 420.7 Q 237.5 422.5, 232.5 421.2 Q 227.5 419.9, 222.5 418.8 Q 217.5 417.7, 212.6 418.5 Q 207.6 419.3, 202.6 418.7 Q 197.6 418.1, 192.6 418.2 Q 187.6 418.3, 182.6 418.9 Q 177.7 419.4, 172.7 418.3 Q 167.7 417.2, 162.7 417.8 Q 157.7 418.3, 152.8 418.7 Q 147.8 419.1, 142.8 417.4 Q 137.8 415.6, 132.8 415.3 Q 127.8 415, 122.8 414.6 Q 117.8 414.2, 112.8 412.9 Q 107.9 411.7, 102.9 412.4 Q 97.9 413.1, 92.9 412.7 Q 87.9 412.3, 83 411.3 Q 78 410.2, 73 411.5 L 68 412.9';
+
+const RIGHT_NOTE_FIBERS = [
+  {
+    x1: 726,
+    y1: 122,
+    x2: 729.5,
+    y2: 124,
+  },
+  {
+    x1: 725,
+    y1: 242,
+    x2: 728.5,
+    y2: 245,
+  },
+  {
+    x1: 726,
+    y1: 352,
+    x2: 729,
+    y2: 355,
+  },
+  {
+    x1: 586,
+    y1: 415,
+    x2: 588.5,
+    y2: 419,
+  },
+  {
+    x1: 406,
+    y1: 414,
+    x2: 408,
+    y2: 418,
+  },
+  {
+    x1: 236,
+    y1: 415,
+    x2: 238.5,
+    y2: 419,
+  },
+];
+
+const RIGHT_NOTE_FOLD_FLAP_PATH =
+  'M 14 362 C 20 388, 30 412, 48 420 C 58 424, 64 420, 68 416 Q 38 392, 14 362 Z';
+
+const RIGHT_NOTE_FOLD_RIM_HIGHLIGHT = 'M 14 362 C 20 388, 30 412, 48 420 C 58 424, 64 420, 68 416';
+
+// Realistic 3D Tactile Pushpin with Steel Needle piercing through paper puncture slit
+const RealisticTornNotePin: React.FC<{
+  tilted?: 'left' | 'right';
+  isDropped: boolean;
+  paperBg?: string;
+  isImmediate?: boolean;
+}> = ({ tilted = 'left', isDropped, paperBg = '#FFF8DF', isImmediate = false }) => {
+  const isRight = tilted === 'right';
+  const pinAnimClass = isImmediate
+    ? 'opacity-100 translate-y-[3px]'
+    : isDropped
+      ? isRight
+        ? 'pin-drop-right'
+        : 'pin-drop-left'
+      : 'opacity-0 -translate-y-7';
+
+  const holeAnimClass = isImmediate
+    ? 'opacity-100 scale-100'
+    : isDropped
+      ? isRight
+        ? 'hole-drop-right'
+        : 'hole-drop-left'
+      : 'opacity-0 scale-50';
+
+  return (
+    <div
+      className='absolute pointer-events-none select-none z-20'
+      style={{
+        left: isRight ? `${RIGHT_PIN_ANCHOR_X_PERCENT}%` : `${LEFT_PIN_ANCHOR_X_PERCENT}%`,
+        top: '-12px',
+        transform: 'translateX(-50%)',
+      }}
+      aria-hidden='true'
+    >
+      {/* 1. Under-layer: Contact puncture hole, paper stress dimple & pin base contact shadow */}
+      <div
+        className={`absolute left-1/2 top-[40.5px] -translate-x-1/2 -translate-y-1/2 pointer-events-none ${holeAnimClass}`}
+      >
+        <svg width='32' height='16' viewBox='0 0 32 16' fill='none'>
+          {/* Subtle paper stress crease / depression dimple */}
+          <ellipse cx='16' cy='8' rx='10' ry='4.5' fill='rgba(28,25,23,0.16)' />
+          {/* Contact shadow of pin base */}
+          <ellipse cx='16.5' cy='8.5' rx='6.8' ry='2.6' fill='rgba(28,25,23,0.26)' />
+          {/* Dark puncture hole base */}
+          <ellipse cx='16' cy='8' rx='3.5' ry='1.3' fill='#1C1917' />
+        </svg>
+      </div>
+
+      {/* 2. Middle-layer: Pushpin Body (Head + Metal Pin Needle) */}
+      <div className={pinAnimClass}>
+        <svg
+          width='36'
+          height='44'
+          viewBox='0 0 36 44'
+          fill='none'
+          xmlns='http://www.w3.org/2000/svg'
+          className='drop-shadow-[0_4px_8px_rgba(28,25,23,0.32)]'
+        >
+          {/* Metal Needle Shadow */}
+          <line
+            x1='18.8'
+            y1='24'
+            x2='18.8'
+            y2='40.5'
+            stroke='rgba(28,25,23,0.35)'
+            strokeWidth='1.5'
+          />
+          {/* Metallic Steel Pin Needle */}
+          <line
+            x1='18'
+            y1='23.5'
+            x2='18'
+            y2='40.5'
+            stroke='#78716C'
+            strokeWidth='2.4'
+            strokeLinecap='round'
+          />
+          {/* Needle Specular Highlight */}
+          <line
+            x1='17.4'
+            y1='24'
+            x2='17.4'
+            y2='39.5'
+            stroke='#F5F5F4'
+            strokeWidth='0.75'
+            strokeLinecap='round'
+          />
+
+          {/* Pin Head - Lower Base Flange */}
+          <ellipse cx='18' cy='24.8' rx='7.5' ry='2.4' fill='#7C2D12' />
+          <ellipse cx='18' cy='24' rx='6.2' ry='1.8' fill='#9A3412' />
+
+          {/* Pin Head - Waist / Contoured Body */}
+          <path
+            d='M12.5 12 C12.5 17.5, 14.5 22, 12 24.5 L24 24.5 C21.5 22, 23.5 17.5, 23.5 12 Z'
+            fill='#C2410C'
+          />
+          {/* Waist Highlight */}
+          <path
+            d='M15.5 12.5 C15.5 16.5, 16.8 20.5, 15 23 L21 23 C19.2 20.5, 20.5 16.5, 20.5 12.5 Z'
+            fill='#EA580C'
+            opacity='0.7'
+          />
+
+          {/* Pin Head - Upper Collar Rim */}
+          <ellipse cx='18' cy='12' rx='10' ry='3.4' fill='#C2410C' />
+          <ellipse cx='18' cy='11.3' rx='8.8' ry='2.6' fill='#EA580C' />
+
+          {/* Pin Head - Top Dome */}
+          <path d='M9 11.5 C9 4.8, 27 4.8, 27 11.5 Z' fill='#F97316' />
+          {/* Dome 3D Highlight Curve */}
+          <ellipse
+            cx='15.5'
+            cy='7.8'
+            rx='4.5'
+            ry='2'
+            fill='#FFFFFF'
+            opacity='0.75'
+            transform='rotate(-12 15.5 7.8)'
+          />
+        </svg>
+      </div>
+
+      {/* 3. Over-layer: Paper Surface Slit & Lower Lip - cleanly conceals needle tip penetrating under paper */}
+      <div
+        className={`absolute left-1/2 top-[40.5px] -translate-x-1/2 -translate-y-1/2 pointer-events-none z-10 ${holeAnimClass}`}
+      >
+        <svg width='32' height='16' viewBox='0 0 32 16' fill='none'>
+          {/* Paper mask in exact sheet background color covering the penetrating needle tip */}
+          <path d='M8 8 C12 8.6, 20 8.6, 24 8 L24 16 L8 16 Z' fill={paperBg} />
+          {/* Dark puncture slit entrance mouth */}
+          <ellipse cx='16' cy='8' rx='2.8' ry='1.1' fill='#1C1917' />
+          {/* Specular fiber highlight on torn entrance edge */}
+          <path
+            d='M13 7.4 Q16 6.4 19 7.4'
+            stroke='rgba(255,255,255,0.85)'
+            strokeWidth='0.75'
+            strokeLinecap='round'
+            fill='none'
+          />
+          {/* Paper stress crease below entry */}
+          <path
+            d='M13 8.8 Q16 9.8 19 8.8'
+            stroke='rgba(28,25,23,0.32)'
+            strokeWidth='0.6'
+            strokeLinecap='round'
+            fill='none'
+          />
+        </svg>
+      </div>
+    </div>
+  );
+};
+
 // Thin ink outline traced over a value card's border once, then faded out (see .frame-ink CSS).
 const FrameInk = () => (
   <svg className='frame-ink' aria-hidden='true' focusable='false'>
@@ -53,9 +328,39 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
   // Comparison Slider state (Phác thảo vs Hoàn thiện): 0 to 100%
   const [comparisonSliderPos, setComparisonSliderPos] = useState<number>(50);
 
-  // Pushpin drop animation trigger state (runs once)
+  // Refs for the swaying paper sheets (for direct GPU transform without React re-renders)
+  const leftNoteSwayRef = useRef<HTMLDivElement | null>(null);
+  const rightNoteSwayRef = useRef<HTMLDivElement | null>(null);
+
+  // Pushpin drop animation trigger states (run once per note)
   const [isPinDropped, setIsPinDropped] = useState<boolean>(false);
+  const [isLeftPinDropped, setIsLeftPinDropped] = useState<boolean>(false);
+  const [isRightPinDropped, setIsRightPinDropped] = useState<boolean>(false);
   const introSectionRef = useRef<HTMLDivElement | null>(null);
+
+  const isAuthActive =
+    location.pathname.startsWith('/login') || location.pathname.startsWith('/register');
+  const prefersReducedMotion =
+    typeof window !== 'undefined' && window.matchMedia
+      ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      : false;
+  const isImmediatePinned = isAuthActive || prefersReducedMotion;
+
+  // Track whether pushpin strike animation has completed before enabling scroll wind physics
+  const pinsSettledRef = useRef<boolean>(isImmediatePinned);
+
+  useEffect(() => {
+    if (isImmediatePinned) {
+      pinsSettledRef.current = true;
+      return;
+    }
+    if (isLeftPinDropped || isRightPinDropped) {
+      const timer = setTimeout(() => {
+        pinsSettledRef.current = true;
+      }, 850);
+      return () => clearTimeout(timer);
+    }
+  }, [isLeftPinDropped, isRightPinDropped, isImmediatePinned]);
 
   const tabKeys: Array<'pipeline' | 'script' | 'bible' | 'events' | 'references'> = [
     'pipeline',
@@ -195,7 +500,16 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
         el.classList.add('is-visible');
       });
       setIsPinDropped(true);
+      setIsLeftPinDropped(true);
+      setIsRightPinDropped(true);
       return;
+    }
+
+    // If currently at auth route or dialog, present immediately in pinned state
+    if (location.pathname.startsWith('/login') || location.pathname.startsWith('/register')) {
+      setIsPinDropped(true);
+      setIsLeftPinDropped(true);
+      setIsRightPinDropped(true);
     }
 
     // Signal CSS that JS observer is active
@@ -207,11 +521,28 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
           entries.forEach((entry) => {
             if (entry.isIntersecting) {
               entry.target.classList.add('is-visible');
+              if (entry.target.id === 'block-intro-note-left') {
+                setIsLeftPinDropped(true);
+                if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
+                  setIsRightPinDropped(true);
+                }
+              }
+              if (entry.target.id === 'block-intro-note-right') {
+                setIsRightPinDropped(true);
+                if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
+                  setIsLeftPinDropped(true);
+                }
+              }
               if (
                 entry.target.id === 'block-intro' ||
                 entry.target.getAttribute('data-reveal') === 'ink'
               ) {
                 setIsPinDropped(true);
+                // On desktop: if the whole intro block is in view, drop both
+                if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
+                  setIsLeftPinDropped(true);
+                  setIsRightPinDropped(true);
+                }
               }
               observerRef.current?.unobserve(entry.target);
             }
@@ -223,6 +554,11 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
       document.querySelectorAll(REVEAL_SELECTOR).forEach((el) => {
         observerRef.current?.observe(el);
       });
+
+      const leftNoteEl = document.getElementById('block-intro-note-left');
+      const rightNoteEl = document.getElementById('block-intro-note-right');
+      if (leftNoteEl) observerRef.current?.observe(leftNoteEl);
+      if (rightNoteEl) observerRef.current?.observe(rightNoteEl);
     } catch {
       // Fallback on initialization error
       document.documentElement.classList.remove('js-observer-ready');
@@ -230,13 +566,226 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
         el.classList.add('is-visible');
       });
       setIsPinDropped(true);
+      setIsLeftPinDropped(true);
+      setIsRightPinDropped(true);
     }
 
     return () => {
       observerRef.current?.disconnect();
       document.documentElement.classList.remove('js-observer-ready');
     };
-  }, []);
+  }, [location.pathname]);
+
+  // Scroll-driven gentle wind sway physics around stationary pin puncture point
+  useEffect(() => {
+    if (prefersReducedMotion) return;
+
+    let isRunning = false;
+    let rafId: number | null = null;
+
+    let lastScrollY = window.scrollY;
+    let lastScrollTime = performance.now();
+    let scrollVelocity = 0; // smoothed velocity (px/ms)
+
+    // Current physics state
+    let z1 = 0;
+    let vz1 = 0;
+    let x1 = 0;
+    let vx1 = 0;
+
+    let z2 = 0;
+    let vz2 = 0;
+    let x2 = 0;
+    let vx2 = 0;
+
+    // Spring constants (calibrated for 600-900ms settling time):
+    // Note 1: slightly lower natural frequency
+    const k1z = 175;
+    const c1z = 18.5;
+    const k1x = 180;
+    const c1x = 22.0;
+
+    // Note 2: slightly stiffer, oscillating out of sync
+    const k2z = 200;
+    const c2z = 21.0;
+    const k2x = 195;
+    const c2x = 23.5;
+
+    const updateTransforms = (
+      angleZ1: number,
+      angleX1: number,
+      angleZ2: number,
+      angleX2: number,
+    ) => {
+      const isDesktop = window.innerWidth >= 1024;
+      const baseZ1 = isDesktop ? -1.5 : 0;
+      const baseZ2 = isDesktop ? 1.0 : 0;
+
+      if (leftNoteSwayRef.current) {
+        leftNoteSwayRef.current.style.transform = `perspective(1000px) rotate(${baseZ1 + angleZ1}deg) rotateX(${angleX1}deg)`;
+      }
+      if (rightNoteSwayRef.current) {
+        rightNoteSwayRef.current.style.transform = `perspective(1000px) rotate(${baseZ2 + angleZ2}deg) rotateX(${angleX2}deg)`;
+      }
+    };
+
+    const applyRestTransforms = () => {
+      z1 = 0;
+      vz1 = 0;
+      x1 = 0;
+      vx1 = 0;
+      z2 = 0;
+      vz2 = 0;
+      x2 = 0;
+      vx2 = 0;
+      scrollVelocity = 0;
+      updateTransforms(0, 0, 0, 0);
+    };
+
+    let lastFrameTime = performance.now();
+
+    const tick = (now: number) => {
+      const rawDt = (now - lastFrameTime) / 1000;
+      lastFrameTime = now;
+      // Clamp dt to avoid physics explosion on background tab wake
+      const dt = Math.min(0.033, Math.max(0.005, rawDt));
+
+      // Velocity decay towards 0
+      scrollVelocity *= 0.86;
+      if (Math.abs(scrollVelocity) < 0.0005) {
+        scrollVelocity = 0;
+      }
+
+      const isDesktop = window.innerWidth >= 1024;
+      const maxZ = isDesktop ? 1.0 : 0.35;
+      const maxX = isDesktop ? 0.8 : 0.25;
+
+      // Aerodynamic target deflections based on scroll direction & velocity
+      const targetZ1 = Math.max(-maxZ, Math.min(maxZ, scrollVelocity * 1.4));
+      const targetX1 = Math.max(0, Math.min(maxX, scrollVelocity * 1.0));
+
+      const targetZ2 = Math.max(-maxZ, Math.min(maxZ, -scrollVelocity * 1.3));
+      const targetX2 = Math.max(0, Math.min(maxX, scrollVelocity * 0.9));
+
+      // Spring integration for Note 1
+      const f1z = -k1z * (z1 - targetZ1) - c1z * vz1;
+      vz1 += f1z * dt;
+      z1 += vz1 * dt;
+
+      const f1x = -k1x * (x1 - targetX1) - c1x * vx1;
+      vx1 += f1x * dt;
+      x1 += vx1 * dt;
+
+      // Spring integration for Note 2
+      const f2z = -k2z * (z2 - targetZ2) - c2z * vz2;
+      vz2 += f2z * dt;
+      z2 += vz2 * dt;
+
+      const f2x = -k2x * (x2 - targetX2) - c2x * vx2;
+      vx2 += f2x * dt;
+      x2 += vx2 * dt;
+
+      // Clamp strictly within safe angle bounds
+      z1 = Math.max(-maxZ, Math.min(maxZ, z1));
+      x1 = Math.max(0, Math.min(maxX, x1));
+      z2 = Math.max(-maxZ, Math.min(maxZ, z2));
+      x2 = Math.max(0, Math.min(maxX, x2));
+
+      updateTransforms(z1, x1, z2, x2);
+
+      // Check if motion has settled into rest state
+      const isSettled =
+        Math.abs(scrollVelocity) === 0 &&
+        Math.abs(z1) < 0.02 &&
+        Math.abs(vz1) < 0.02 &&
+        Math.abs(x1) < 0.02 &&
+        Math.abs(vx1) < 0.02 &&
+        Math.abs(z2) < 0.02 &&
+        Math.abs(vz2) < 0.02 &&
+        Math.abs(x2) < 0.02 &&
+        Math.abs(vx2) < 0.02;
+
+      if (isSettled || document.hidden || isAuthActive) {
+        applyRestTransforms();
+        isRunning = false;
+        rafId = null;
+        return;
+      }
+
+      rafId = requestAnimationFrame(tick);
+    };
+
+    const startLoop = () => {
+      if (isRunning) return;
+      if (!pinsSettledRef.current) return;
+      if (document.hidden || isAuthActive) return;
+      isRunning = true;
+      lastFrameTime = performance.now();
+      rafId = requestAnimationFrame(tick);
+    };
+
+    const onScroll = () => {
+      if (!pinsSettledRef.current) return;
+      if (document.hidden || isAuthActive) return;
+
+      const introEl = introSectionRef.current;
+      if (introEl) {
+        const rect = introEl.getBoundingClientRect();
+        const inView = rect.bottom > 0 && rect.top < window.innerHeight;
+        if (!inView) {
+          if (isRunning) {
+            if (rafId) cancelAnimationFrame(rafId);
+            isRunning = false;
+            applyRestTransforms();
+          }
+          return;
+        }
+      }
+
+      const now = performance.now();
+      const currentY = window.scrollY;
+      const timeSinceLastScroll = now - lastScrollTime;
+      const dt = timeSinceLastScroll > 120 ? 16 : Math.max(1, timeSinceLastScroll);
+      const dy = currentY - lastScrollY;
+      lastScrollY = currentY;
+      lastScrollTime = now;
+
+      const rawV = dy / dt;
+      scrollVelocity =
+        timeSinceLastScroll > 120 ? rawV * 0.45 : scrollVelocity * 0.55 + rawV * 0.45;
+
+      if (Math.abs(scrollVelocity) > 0.015) {
+        startLoop();
+      }
+    };
+
+    const onVisibilityChange = () => {
+      if (document.hidden && isRunning) {
+        if (rafId) cancelAnimationFrame(rafId);
+        isRunning = false;
+        applyRestTransforms();
+      }
+    };
+
+    const onResize = () => {
+      if (!isRunning) {
+        applyRestTransforms();
+      }
+    };
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onResize, { passive: true });
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    applyRestTransforms();
+
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onResize);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+  }, [isAuthActive, prefersReducedMotion]);
 
   return (
     <div className='antialiased text-[#1C1917] bg-[#F3F0E9] overflow-x-hidden min-h-screen flex flex-col justify-between font-sans'>
@@ -260,56 +809,122 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             stroke-dashoffset: 0;
           }
         }
-        @keyframes pushpinDropAnim {
+        /* 650ms Multi-phase Realistic Pin Strike - Left Note (-8deg to -3deg to settle) */
+        @keyframes pinStrikeLeft {
           0% {
             opacity: 0;
-            transform: translateY(-24px) scale(1.22);
+            transform: translateY(-28px) rotate(-8deg);
+          }
+          46% {
+            opacity: 1;
+            transform: translateY(0px) rotate(-3deg);
           }
           65% {
-            opacity: 1;
-            transform: translateY(2px) scale(0.98);
+            transform: translateY(3.5px) rotate(0deg);
           }
-          85% {
-            transform: translateY(-1px) scale(1.01);
+          82% {
+            transform: translateY(2.6px) rotate(0deg);
           }
           100% {
             opacity: 1;
-            transform: translateY(0px) scale(1);
+            transform: translateY(3px) rotate(0deg);
           }
         }
-        .hero-stagger-1 {
-          animation: heroFadeIn 500ms cubic-bezier(0.16, 1, 0.3, 1) both;
-          animation-delay: 40ms;
+
+        /* 650ms Multi-phase Realistic Pin Strike - Right Note (+8deg to +3deg to settle) */
+        @keyframes pinStrikeRight {
+          0% {
+            opacity: 0;
+            transform: translateY(-28px) rotate(8deg);
+          }
+          46% {
+            opacity: 1;
+            transform: translateY(0px) rotate(3deg);
+          }
+          65% {
+            transform: translateY(3.5px) rotate(0deg);
+          }
+          82% {
+            transform: translateY(2.6px) rotate(0deg);
+          }
+          100% {
+            opacity: 1;
+            transform: translateY(3px) rotate(0deg);
+          }
         }
-        .hero-stagger-2 {
-          animation: heroFadeIn 550ms cubic-bezier(0.16, 1, 0.3, 1) both;
-          animation-delay: 140ms;
+
+        /* Puncture Hole & Impact Dimple: appears precisely upon needle impact at ~300ms (46%) */
+        @keyframes punctureHoleImpact {
+          0%, 44% {
+            opacity: 0;
+            transform: scale(0.35);
+          }
+          48% {
+            opacity: 1;
+            transform: scale(1.22);
+          }
+          68% {
+            transform: scale(0.96);
+          }
+          100% {
+            opacity: 1;
+            transform: scale(1);
+          }
         }
-        .hero-stagger-3 {
-          animation: heroFadeIn 550ms cubic-bezier(0.16, 1, 0.3, 1) both;
-          animation-delay: 260ms;
+
+        /* Paper Depresses 1.5px upon pin strike and springs back to rest (420ms - 650ms) */
+        @keyframes paperImpactSettle {
+          0%, 46% {
+            transform: translateY(0px);
+          }
+          65% {
+            transform: translateY(1.5px);
+          }
+          85% {
+            transform: translateY(0.4px);
+          }
+          100% {
+            transform: translateY(0px);
+          }
         }
-        .hero-stagger-4 {
-          animation: heroFadeIn 550ms cubic-bezier(0.16, 1, 0.3, 1) both;
-          animation-delay: 380ms;
-        }
-        .hero-stagger-5 {
-          animation: heroFadeIn 550ms cubic-bezier(0.16, 1, 0.3, 1) both;
-          animation-delay: 500ms;
-        }
-        .hero-brush-path {
-          stroke-dasharray: 280;
-          stroke-dashoffset: 280;
-          animation: heroStrokeDraw 550ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
-          animation-delay: 480ms;
-        }
-        .pin-drop-effect,
+
         .pin-drop-left {
-          animation: pushpinDropAnim 520ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          animation: pinStrikeLeft 650ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
         .pin-drop-right {
-          animation: pushpinDropAnim 520ms cubic-bezier(0.16, 1, 0.3, 1) 140ms forwards;
+          animation: pinStrikeRight 650ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
+        .hole-drop-left {
+          animation: punctureHoleImpact 650ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .hole-drop-right {
+          animation: punctureHoleImpact 650ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .paper-settle-left {
+          animation: paperImpactSettle 650ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .paper-settle-right {
+          animation: paperImpactSettle 650ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @media (min-width: 1024px) {
+          .pin-drop-right {
+            animation-delay: 140ms;
+          }
+          .hole-drop-right {
+            animation-delay: 140ms;
+          }
+          .paper-settle-right {
+            animation-delay: 140ms;
+          }
+          #block-intro-note-left .note-content {
+            transform: rotate(1.5deg);
+          }
+          #block-intro-note-right .note-content {
+            transform: rotate(-1.0deg);
+          }
+        }
+
         @media (prefers-reduced-motion: reduce) {
           .hero-stagger-1,
           .hero-stagger-2,
@@ -324,26 +939,16 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             animation: none !important;
             stroke-dashoffset: 0 !important;
           }
-          .pin-drop-effect,
           .pin-drop-left,
-          .pin-drop-right {
+          .pin-drop-right,
+          .hole-drop-left,
+          .hole-drop-right,
+          .paper-settle-left,
+          .paper-settle-right,
+          .note-paper-sway {
             animation: none !important;
             opacity: 1 !important;
             transform: none !important;
-          }
-        }
-        @media (min-width: 1024px) {
-          #block-intro-note-left {
-            transform: rotate(-1deg);
-          }
-          #block-intro-note-right {
-            transform: rotate(1deg);
-          }
-          #block-intro-note-left .note-content {
-            transform: rotate(1deg);
-          }
-          #block-intro-note-right .note-content {
-            transform: rotate(-1deg);
           }
         }
       `}</style>
@@ -753,186 +1358,327 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
         aria-label='Mục tiêu sản phẩm'
       >
         <div className='max-w-[1780px] mx-auto px-[clamp(20px,4.2vw,72px)] w-full'>
-          {/* Two Separate Manuscript Notes on Manga Drafting Desk */}
-          <div className='grid grid-cols-1 lg:grid-cols-[minmax(0,45%)_minmax(0,55%)] gap-7 sm:gap-8 lg:gap-10 xl:gap-12 items-start w-full'>
-            {/* NOTE 1 (LEFT): Tờ giấy kem nhạt #FFF8DF - Góc -1° desktop, Ghim riêng */}
-            <div id='block-intro-note-left' className='w-full transition-transform'>
-              <article
-                className={`relative w-full p-7 sm:p-9 lg:p-10 bg-[#FFF8DF] rounded-lg sm:rounded-[10px] border border-[#E6DCB8] transition-transform duration-300 ${
-                  isPinDropped ? 'translate-y-[1.5px]' : 'translate-y-0'
+          {/* Two Distinct Manuscript Notes: Warm Cream Sketch Sheet (Left) & Ivory Lined Note Sheet (Right) */}
+          <div className='grid grid-cols-1 lg:grid-cols-[minmax(0,42%)_minmax(0,58%)] gap-8 sm:gap-10 lg:gap-12 xl:gap-14 items-start w-full'>
+            {/* NOTE 1 (LEFT): Giấy phác thảo kem ấm #FAF5E8 - Dáng gần vuông, mép trái và dưới xé xơ, góc dưới phải cong lên, ghim cam tại 50% 28.5px */}
+            <div
+              id='block-intro-note-left'
+              className='relative w-full max-w-[560px] mx-auto lg:max-w-none'
+            >
+              {/* Paper Impact wrapper for initial pin strike bounce (stays stationary after settle) */}
+              <div
+                className={`relative w-full ${
+                  isLeftPinDropped && !isImmediatePinned ? 'paper-settle-left' : ''
                 }`}
-                style={{
-                  filter: 'drop-shadow(0 6px 18px rgba(28,25,23,0.06))',
-                  clipPath:
-                    'polygon(0% 0%, 100% 0%, 100% calc(100% - 5px), 94% 100%, 78% calc(100% - 3px), 62% calc(100% - 6px), 46% calc(100% - 2px), 30% calc(100% - 5px), 14% 100%, 0% calc(100% - 4px))',
-                }}
               >
-                {/* Pushpin 1: Đâm xuyên mép trên, lệch tâm 28%, đầu màu đất nung */}
+                {/* Swaying Paper Container (Paper Body + Torn Edges + Shadows + Content) */}
                 <div
-                  className='absolute -top-4 left-[28%] -translate-x-1/2 flex flex-col items-center pointer-events-none select-none z-20'
-                  aria-hidden='true'
+                  ref={leftNoteSwayRef}
+                  className='note-paper-sway relative w-full'
+                  style={{
+                    transformOrigin: `${LEFT_PIN_ANCHOR_X_PERCENT}% ${PIN_ANCHOR_Y_PX}px`,
+                    willChange: 'transform',
+                  }}
                 >
-                  <div className={isPinDropped ? 'pin-drop-left' : 'opacity-0 -translate-y-6'}>
+                  {/* Visual Torn Paper Sheet (SVG Background with Deckle Torn Edges matching Concept Image) */}
+                  <div
+                    className='absolute inset-0 w-full h-full pointer-events-none select-none z-0'
+                    style={{
+                      filter:
+                        'drop-shadow(0 2px 3px rgba(28,25,23,0.08)) drop-shadow(0 8px 18px rgba(28,25,23,0.06))',
+                    }}
+                    aria-hidden='true'
+                  >
                     <svg
-                      width='28'
-                      height='34'
-                      viewBox='0 0 28 34'
-                      fill='none'
-                      xmlns='http://www.w3.org/2000/svg'
-                      className='drop-shadow-[0_3px_5px_rgba(28,25,23,0.3)]'
+                      className='w-full h-full overflow-visible'
+                      viewBox='0 0 520 480'
+                      preserveAspectRatio='none'
                     >
+                      <defs>
+                        {/* Soft contact shadow filter for curled corner */}
+                        <filter id='left-curl-shadow' x='-30%' y='-30%' width='160%' height='160%'>
+                          <feGaussianBlur in='SourceGraphic' stdDeviation='5' />
+                        </filter>
+                        {/* Paper underside color gradient for bottom-right curl */}
+                        <linearGradient
+                          id='left-curl-back-grad'
+                          x1='0%'
+                          y1='100%'
+                          x2='100%'
+                          y2='0%'
+                        >
+                          <stop offset='0%' stopColor='#C2B8A3' />
+                          <stop offset='35%' stopColor='#DDD5C3' />
+                          <stop offset='75%' stopColor='#ECE5D6' />
+                          <stop offset='100%' stopColor='#F7F3E9' />
+                        </linearGradient>
+                      </defs>
+
+                      {/* Contact shadow on desk under curled bottom-right flap */}
+                      <ellipse
+                        cx='466'
+                        cy='450'
+                        rx='34'
+                        ry='14'
+                        fill='rgba(28,25,23,0.22)'
+                        transform='rotate(-18 466 450)'
+                        filter='url(#left-curl-shadow)'
+                      />
+
+                      {/* Main warm cream sketch paper body */}
+                      <path d={LEFT_NOTE_PAPER_BODY_PATH} fill='#FAF5E8' />
+
+                      {/* Exposed inner pulp deckle ribbons along bottom and left torn edges */}
+                      <path d={LEFT_NOTE_BOTTOM_PULP_PATH} fill='#FFFEF5' opacity='0.96' />
+                      <path d={LEFT_NOTE_LEFT_PULP_PATH} fill='#FFFEF5' opacity='0.96' />
+
+                      {/* Fine outer tear contour */}
                       <path
-                        d='M14 23 L14 32'
-                        stroke='#78716C'
-                        strokeWidth='2'
+                        d={LEFT_NOTE_TEAR_CONTOUR_PATH}
+                        fill='none'
+                        stroke='#FFFFFF'
+                        strokeWidth='0.85'
                         strokeLinecap='round'
+                        strokeLinejoin='round'
+                        opacity='0.85'
+                      />
+
+                      {/* Micro-fiber strands extending from torn notches */}
+                      {LEFT_NOTE_FIBERS.map((fiber, idx) => (
+                        <line
+                          key={`l-fiber-${idx}`}
+                          x1={fiber.x1}
+                          y1={fiber.y1}
+                          x2={fiber.x2}
+                          y2={fiber.y2}
+                          stroke='#FFFFFF'
+                          strokeWidth='0.8'
+                          strokeLinecap='round'
+                          opacity='0.9'
+                        />
+                      ))}
+
+                      {/* Curled corner flap showing shaded paper underside */}
+                      <path
+                        d={LEFT_NOTE_CURL_FLAP_PATH}
+                        fill='url(#left-curl-back-grad)'
+                        filter='drop-shadow(-1px -1px 2px rgba(28,25,23,0.12))'
                       />
                       <path
-                        d='M13.5 24 L13.5 30'
-                        stroke='#E7E5E4'
-                        strokeWidth='0.8'
+                        d={LEFT_NOTE_CURL_RIM_HIGHLIGHT}
+                        fill='none'
+                        stroke='#FFFEEF'
+                        strokeWidth='0.85'
                         strokeLinecap='round'
+                        opacity='0.9'
                       />
-                      <ellipse cx='14' cy='22.5' rx='6' ry='2' fill='#9A3412' />
-                      <path
-                        d='M9 11.5 C9 16, 11 21.5, 14 22.5 C17 21.5, 19 16, 19 11.5 Z'
-                        fill='#C2410C'
-                      />
-                      <ellipse cx='14' cy='11' rx='9' ry='3' fill='#EA580C' />
-                      <ellipse cx='14' cy='7.5' rx='5.5' ry='2.2' fill='#F97316' />
-                      <ellipse cx='12.5' cy='6.8' rx='2' ry='0.8' fill='white' opacity='0.75' />
+
+                      {/* Faint blue drafting construction marks in bottom-left margin (không đè chữ) */}
+                      <g opacity='0.32' stroke='#38BDF8' strokeLinecap='round' aria-hidden='true'>
+                        <line x1='38' y1='340' x2='38' y2='450' strokeWidth='1' />
+                        <line x1='22' y1='432' x2='108' y2='432' strokeWidth='1' />
+                        <path d='M 38 372 A 60 60 0 0 1 98 432' fill='none' strokeWidth='1' />
+                      </g>
                     </svg>
                   </div>
-                  <div
-                    className={`w-2 h-1 rounded-full bg-[#1C1917]/75 -mt-1 transition-opacity duration-300 ${
-                      isPinDropped ? 'opacity-100' : 'opacity-0'
-                    }`}
-                  />
-                </div>
 
-                {/* Decorative draft pencil lines in corner */}
-                <svg
-                  className='absolute bottom-3 right-4 w-12 h-6 pointer-events-none opacity-40 select-none'
-                  viewBox='0 0 48 24'
-                  fill='none'
-                  aria-hidden='true'
-                >
-                  <path
-                    d='M2 18 C14 16, 28 20, 44 14'
-                    stroke='#9DB4C8'
-                    strokeWidth='1'
-                    strokeLinecap='round'
-                    strokeDasharray='3 2'
-                  />
-                  <path
-                    d='M8 22 C20 20, 32 23, 46 19'
-                    stroke='#9DB4C8'
-                    strokeWidth='0.8'
-                    strokeLinecap='round'
-                  />
-                </svg>
-
-                {/* Inner Content (Kept level and upright) */}
-                <div className='note-content relative z-10 w-full pt-2 transition-transform'>
-                  <div className='inline-flex items-center gap-2 text-[11px] font-semibold text-[#F97316] uppercase tracking-[0.2em] font-mono mb-3 select-none'>
-                    <span className='w-7 h-px bg-[#F97316]' aria-hidden='true' />
-                    Dành cho đội ngũ sáng tác truyện tranh
-                  </div>
-                  <h2
-                    style={{
-                      fontFamily: "'Patrick Hand', 'Be Vietnam Pro', cursive, sans-serif",
-                    }}
-                    className='text-2xl sm:text-3xl lg:text-[2.45rem] text-[#1C1917] leading-[1.22] font-medium [text-wrap:balance] max-w-[28ch]'
-                  >
-                    Để đội ngũ tập trung vào câu chuyện.
-                  </h2>
+                  {/* Torn Paper Sheet Article */}
+                  <article className='relative z-10 w-full select-text'>
+                    {/* Inner Content (Kept level and upright) */}
+                    <div className='note-content relative z-10 w-full p-8 sm:p-10 lg:p-12 pt-12 sm:pt-14 lg:pt-16 pb-12 sm:pb-14 lg:pb-16 transition-transform'>
+                      <div className='inline-flex items-center gap-2.5 text-[11px] font-semibold text-[#9A3412] uppercase tracking-[0.2em] font-mono mb-3.5 select-none'>
+                        <span className='w-7 h-px bg-[#C2410C]' aria-hidden='true' />
+                        Dành cho đội ngũ sáng tác truyện tranh
+                      </div>
+                      <div className='relative inline-block'>
+                        <h2
+                          style={{
+                            fontFamily: "'Patrick Hand', 'Be Vietnam Pro', cursive, sans-serif",
+                          }}
+                          className='text-2xl sm:text-3xl lg:text-[2.5rem] xl:text-[2.75rem] text-[#1C1917] leading-[1.22] font-medium [text-wrap:balance] max-w-[14ch] sm:max-w-[15ch]'
+                        >
+                          Để đội ngũ tập trung vào câu chuyện.
+                        </h2>
+                        {/* Spontaneous orange brush stroke under 'câu chuyện.' */}
+                        <svg
+                          className='absolute -bottom-1 sm:-bottom-1.5 right-1 sm:right-3 w-28 sm:w-36 lg:w-40 h-3 sm:h-3.5 pointer-events-none select-none overflow-visible'
+                          viewBox='0 0 160 14'
+                          preserveAspectRatio='none'
+                          fill='none'
+                          aria-hidden='true'
+                        >
+                          <path
+                            d='M 2 7 Q 40 12, 80 8 Q 125 4, 158 7'
+                            stroke='#EA580C'
+                            strokeWidth='3.8'
+                            strokeLinecap='round'
+                            opacity='0.88'
+                          />
+                        </svg>
+                      </div>
+                    </div>
+                  </article>
                 </div>
-              </article>
+              </div>
+
+              {/* Realistic Pushpin 1 with Puncture mark (Stationary, outside swaying wrapper) */}
+              <RealisticTornNotePin
+                tilted='left'
+                isDropped={isLeftPinDropped}
+                paperBg='#FAF5E8'
+                isImmediate={isImmediatePinned}
+              />
             </div>
 
-            {/* NOTE 2 (RIGHT): Tờ giấy trắng ngà #FCFBF8 - Góc +1° desktop, Ghim riêng */}
-            <div id='block-intro-note-right' className='w-full transition-transform'>
-              <article
-                className={`relative w-full p-7 sm:p-9 lg:p-10 bg-[#FCFBF8] rounded-lg sm:rounded-[10px] border border-[#E2DDD5] transition-transform duration-300 delay-150 ${
-                  isPinDropped ? 'translate-y-[1.5px]' : 'translate-y-0'
+            {/* NOTE 2 (RIGHT): Giấy ghi chú kẻ dòng trắng ngà #FCFBF8 - Dáng ngang, có dòng kẻ chì xanh mờ, mép phải & dưới xé, góc dưới trái gấp nhẹ, thấp hơn 32px */}
+            <div id='block-intro-note-right' className='relative w-full lg:mt-8'>
+              {/* Paper Impact wrapper for initial pin strike bounce (stays stationary after settle) */}
+              <div
+                className={`relative w-full ${
+                  isRightPinDropped && !isImmediatePinned ? 'paper-settle-right' : ''
                 }`}
-                style={{
-                  filter: 'drop-shadow(0 6px 18px rgba(28,25,23,0.06))',
-                  clipPath:
-                    'polygon(0% 0%, 100% 0%, 100% calc(100% - 4px), 88% calc(100% - 7px), 72% 100%, 56% calc(100% - 3px), 38% calc(100% - 6px), 22% 100%, 10% calc(100% - 4px), 0% calc(100% - 6px))',
-                }}
               >
-                {/* Pushpin 2: Đâm xuyên mép trên, lệch tâm 70%, rơi sau 140ms */}
+                {/* Swaying Paper Container (Paper Body + Torn Edges + Shadows + Content) */}
                 <div
-                  className='absolute -top-4 left-[70%] -translate-x-1/2 flex flex-col items-center pointer-events-none select-none z-20'
-                  aria-hidden='true'
+                  ref={rightNoteSwayRef}
+                  className='note-paper-sway relative w-full'
+                  style={{
+                    transformOrigin: `${RIGHT_PIN_ANCHOR_X_PERCENT}% ${PIN_ANCHOR_Y_PX}px`,
+                    willChange: 'transform',
+                  }}
                 >
-                  <div className={isPinDropped ? 'pin-drop-right' : 'opacity-0 -translate-y-6'}>
+                  {/* Visual Torn Paper Sheet (SVG Background with Deckle Torn Edges matching Hero) */}
+                  <div
+                    className='absolute inset-0 w-full h-full pointer-events-none select-none z-0'
+                    style={{
+                      filter:
+                        'drop-shadow(0 2px 3px rgba(28,25,23,0.08)) drop-shadow(0 8px 18px rgba(28,25,23,0.06))',
+                    }}
+                    aria-hidden='true'
+                  >
                     <svg
-                      width='28'
-                      height='34'
-                      viewBox='0 0 28 34'
-                      fill='none'
-                      xmlns='http://www.w3.org/2000/svg'
-                      className='drop-shadow-[0_3px_5px_rgba(28,25,23,0.3)]'
+                      className='w-full h-full overflow-visible'
+                      viewBox='0 0 740 430'
+                      preserveAspectRatio='none'
                     >
-                      <path
-                        d='M14 23 L14 32'
-                        stroke='#78716C'
-                        strokeWidth='2'
-                        strokeLinecap='round'
+                      <defs>
+                        {/* Soft contact shadow filter for folded corner */}
+                        <filter id='right-fold-shadow' x='-30%' y='-30%' width='160%' height='160%'>
+                          <feGaussianBlur in='SourceGraphic' stdDeviation='4' />
+                        </filter>
+                        {/* Paper underside color gradient for bottom-left fold */}
+                        <linearGradient
+                          id='right-fold-back-grad'
+                          x1='0%'
+                          y1='0%'
+                          x2='100%'
+                          y2='100%'
+                        >
+                          <stop offset='0%' stopColor='#DDD7C8' />
+                          <stop offset='50%' stopColor='#EDE8DC' />
+                          <stop offset='100%' stopColor='#FAF8F3' />
+                        </linearGradient>
+                      </defs>
+
+                      {/* Contact shadow on desk under folded bottom-left flap */}
+                      <ellipse
+                        cx='38'
+                        cy='410'
+                        rx='26'
+                        ry='10'
+                        fill='rgba(28,25,23,0.18)'
+                        transform='rotate(20 38 410)'
+                        filter='url(#right-fold-shadow)'
                       />
+
+                      {/* Main ivory white paper body */}
+                      <path d={RIGHT_NOTE_PAPER_BODY_PATH} fill='#FCFBF8' />
+
+                      {/* Faint blue notebook ruling lines across sheet */}
+                      <g stroke='#94A3B8' strokeWidth='0.75' opacity='0.22' aria-hidden='true'>
+                        <line x1='35' y1='80' x2='715' y2='80' />
+                        <line x1='35' y1='120' x2='715' y2='120' />
+                        <line x1='35' y1='160' x2='715' y2='160' />
+                        <line x1='35' y1='200' x2='715' y2='200' />
+                        <line x1='35' y1='240' x2='715' y2='240' />
+                        <line x1='35' y1='280' x2='715' y2='280' />
+                        <line x1='35' y1='320' x2='715' y2='320' />
+                        <line x1='35' y1='360' x2='715' y2='360' />
+                        <line x1='75' y1='400' x2='715' y2='400' />
+                      </g>
+
+                      {/* Exposed inner pulp deckle ribbons along right and bottom torn edges */}
+                      <path d={RIGHT_NOTE_RIGHT_PULP_PATH} fill='#FFFFFF' opacity='0.98' />
+                      <path d={RIGHT_NOTE_BOTTOM_PULP_PATH} fill='#FFFFFF' opacity='0.98' />
+
+                      {/* Fine outer tear contour */}
                       <path
-                        d='M13.5 24 L13.5 30'
-                        stroke='#E7E5E4'
+                        d={RIGHT_NOTE_TEAR_CONTOUR_PATH}
+                        fill='none'
+                        stroke='#FFFFFF'
                         strokeWidth='0.8'
                         strokeLinecap='round'
+                        strokeLinejoin='round'
+                        opacity='0.8'
                       />
-                      <ellipse cx='14' cy='22.5' rx='6' ry='2' fill='#9A3412' />
+
+                      {/* Micro-fiber strands extending from torn notches */}
+                      {RIGHT_NOTE_FIBERS.map((fiber, idx) => (
+                        <line
+                          key={`r-fiber-${idx}`}
+                          x1={fiber.x1}
+                          y1={fiber.y1}
+                          x2={fiber.x2}
+                          y2={fiber.y2}
+                          stroke='#FFFFFF'
+                          strokeWidth='0.75'
+                          strokeLinecap='round'
+                          opacity='0.85'
+                        />
+                      ))}
+
+                      {/* Folded corner flap showing ivory paper underside */}
                       <path
-                        d='M9 11.5 C9 16, 11 21.5, 14 22.5 C17 21.5, 19 16, 19 11.5 Z'
-                        fill='#C2410C'
+                        d={RIGHT_NOTE_FOLD_FLAP_PATH}
+                        fill='url(#right-fold-back-grad)'
+                        filter='drop-shadow(1px -1px 2px rgba(28,25,23,0.1))'
                       />
-                      <ellipse cx='14' cy='11' rx='9' ry='3' fill='#EA580C' />
-                      <ellipse cx='14' cy='7.5' rx='5.5' ry='2.2' fill='#F97316' />
-                      <ellipse cx='12.5' cy='6.8' rx='2' ry='0.8' fill='white' opacity='0.75' />
+                      <path
+                        d={RIGHT_NOTE_FOLD_RIM_HIGHLIGHT}
+                        fill='none'
+                        stroke='#FFFFFF'
+                        strokeWidth='0.8'
+                        strokeLinecap='round'
+                        opacity='0.85'
+                      />
                     </svg>
                   </div>
-                  <div
-                    className={`w-2 h-1 rounded-full bg-[#1C1917]/75 -mt-1 transition-opacity duration-300 delay-150 ${
-                      isPinDropped ? 'opacity-100' : 'opacity-0'
-                    }`}
-                  />
-                </div>
 
-                {/* Decorative guide line in corner */}
-                <svg
-                  className='absolute top-3.5 right-4 w-8 h-8 pointer-events-none opacity-40 select-none'
-                  viewBox='0 0 32 32'
-                  fill='none'
-                  aria-hidden='true'
-                >
-                  <path
-                    d='M4 6 L28 6 M28 6 L28 26'
-                    stroke='#9DB4C8'
-                    strokeWidth='0.9'
-                    strokeDasharray='3 2'
-                  />
-                </svg>
-
-                {/* Inner Content (Kept level and upright) */}
-                <div className='note-content relative z-10 w-full pt-2 transition-transform'>
-                  <p className='text-base sm:text-lg text-[#57534E] leading-relaxed [text-wrap:pretty] max-w-[55ch]'>
-                    Kết nối kịch bản, bản vẽ và phản hồi trong cùng một quy trình sản xuất có cấu
-                    trúc và đáng tin cậy. Loại bỏ trao đổi rải rác và thất lạc ý tưởng qua từng
-                    chương truyện.
-                  </p>
-                  <div className='mt-5 flex items-center gap-2 text-xs font-mono text-[#78716C]'>
-                    <span className='w-2 h-2 rounded-full bg-[#F97316]' />
-                    <span>Bản thảo đồng bộ · Không ghi đè</span>
-                  </div>
+                  {/* Torn Paper Sheet Article */}
+                  <article className='relative z-10 w-full select-text'>
+                    {/* Inner Content (Kept level and upright) */}
+                    <div className='note-content relative z-10 w-full p-8 sm:p-10 lg:p-12 pt-12 sm:pt-14 lg:pt-16 pb-10 sm:pb-12 lg:pb-14 transition-transform'>
+                      <p className='text-base sm:text-lg lg:text-[1.12rem] text-[#374151] leading-relaxed [text-wrap:pretty] max-w-[50ch]'>
+                        Kết nối kịch bản, bản vẽ và phản hồi trong cùng một quy trình sản xuất có
+                        cấu trúc và đáng tin cậy. Loại bỏ trao đổi rải rác và thất lạc ý tưởng qua
+                        từng chương truyện.
+                      </p>
+                      <div className='mt-6 sm:mt-7 flex items-center gap-2.5 text-xs sm:text-[13px] font-sans font-medium text-[#57534E]'>
+                        <span className='w-2.5 h-2.5 rounded-full bg-[#EA580C] shrink-0' />
+                        <span>Bản thảo đồng bộ · Không ghi đè</span>
+                      </div>
+                    </div>
+                  </article>
                 </div>
-              </article>
+              </div>
+
+              {/* Realistic Pushpin 2 with Puncture mark (Stationary, outside swaying wrapper) */}
+              <RealisticTornNotePin
+                tilted='right'
+                isDropped={isRightPinDropped}
+                paperBg='#FCFBF8'
+                isImmediate={isImmediatePinned}
+              />
             </div>
           </div>
         </div>

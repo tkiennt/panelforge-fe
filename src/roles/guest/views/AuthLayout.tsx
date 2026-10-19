@@ -165,7 +165,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({ mode, children }) => {
           {/* ============================================================== */}
           {/* RIGHT COLUMN: THE VERSIONED BLUEPRINT VISUAL (55% on desktop)  */}
           {/* ============================================================== */}
-          <div className='hidden md:flex md:w-[55%] h-full min-h-0 max-h-full bg-[#EDE6DA] border-l border-[#D6CCBC] relative overflow-hidden items-center justify-center'>
+          <div className='hidden md:flex md:w-[55%] h-full min-h-0 max-h-full bg-[#F3F0E9] border-l border-[#D6CCBC] relative overflow-hidden items-center justify-center'>
             <VersionedBlueprintVisual mode={mode} />
           </div>
         </div>

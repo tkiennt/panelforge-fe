@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
 import App from './App';
 import { workspaceService } from './services/workspace.service';
 import { seriesService } from './services/series.service';
@@ -355,6 +355,43 @@ describe('App Integration Smoke Test', () => {
       expect(localStorage.getItem('isDemoMode')).toBeNull();
       expect(localStorage.getItem('pf_remember_device')).toBeNull();
       expect(localStorage.getItem('refreshToken')).toBeNull();
+    });
+
+    // Xác nhận hiển thị đúng toast đăng xuất chủ động
+    await waitFor(() => {
+      expect(screen.getByText('Đã đăng xuất')).toBeInTheDocument();
+      expect(screen.getByText('Bạn đã đăng xuất khỏi PanelForge.')).toBeInTheDocument();
+      expect(screen.getByTestId('toast-icon-logout')).toBeInTheDocument();
+    });
+  });
+
+  it('sự kiện auth:unauthorized hiển thị toast "Phiên đăng nhập đã hết hạn" và deduplicate khi nhiều lỗi đồng thời', async () => {
+    localStorage.setItem('token', 'mock-user-token');
+    localStorage.setItem('userRole', 'USER');
+    localStorage.setItem(
+      'user',
+      JSON.stringify({
+        id: 'u-123',
+        fullName: 'Test User',
+        email: 'user@panelforge.com',
+      }),
+    );
+
+    render(<App />);
+
+    // Giả lập 3 request đồng thời cùng nhận lỗi hết phiên và phát auth:unauthorized
+    act(() => {
+      window.dispatchEvent(new Event('auth:unauthorized'));
+      window.dispatchEvent(new Event('auth:unauthorized'));
+      window.dispatchEvent(new Event('auth:unauthorized'));
+    });
+
+    // Kiểm tra: Chỉ có duy nhất 1 toast xuất hiện, không bị nhân bản
+    await waitFor(() => {
+      const toasts = screen.getAllByText('Phiên đăng nhập đã hết hạn');
+      expect(toasts).toHaveLength(1);
+      expect(screen.getByText('Vui lòng đăng nhập lại để tiếp tục.')).toBeInTheDocument();
+      expect(screen.getByTestId('toast-icon-warning')).toBeInTheDocument();
     });
   });
 });

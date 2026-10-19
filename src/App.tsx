@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   ViewMode,
   MangaProject,
@@ -19,7 +19,12 @@ import { BrowserRouter, useNavigate, useLocation } from 'react-router-dom';
 import { GlobalModals } from './app/GlobalModals';
 import { AppRoutes } from './app/routes';
 import { ROLE_MANIFEST } from './roles/roles';
-import { CheckCircle2 } from 'lucide-react';
+import {
+  ToastItemData,
+  ToastOptions,
+  ToastType,
+  ToastStack,
+} from '@/shared/components/ToastNotification';
 import { authService } from './services/auth.service';
 import { refreshAccessToken } from './api/axiosClient';
 import { startSessionKeepAlive } from './api/sessionKeepAlive';
@@ -33,11 +38,8 @@ import { ChangePasswordModal } from '@/shared/features/account/ChangePasswordMod
 import { auth, onAuthStateChanged } from '@/config/firebase';
 import { User } from 'firebase/auth';
 
-interface Toast {
-  id: string;
-  title: string;
-  desc: string;
-}
+export type Toast = ToastItemData;
+export type { ToastOptions, ToastType };
 
 const IS_DEV_MODE = import.meta.env.VITE_DEV_MODE === 'true';
 
@@ -455,19 +457,81 @@ function AppContent() {
   const [isTwoFactorModalOpen, setIsTwoFactorModalOpen] = useState(false);
 
   // Toast System
-  const [toasts, setToasts] = useState<Toast[]>([]);
+  const [toasts, setToasts] = useState<ToastItemData[]>([]);
+  const lastToastTimestamps = useRef<Map<string, number>>(new Map());
 
-  const showToast = (title: string, desc: string) => {
-    const id = `toast-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-    setToasts((prev) => [...prev, { id, title, desc }]);
+  const showToast = (title: string, desc: string, options?: ToastOptions) => {
+    const toastId =
+      options?.id || `toast-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    const dedupeKey = options?.id || `${title}:${desc}`;
+    const now = Date.now();
+    const lastTime = lastToastTimestamps.current.get(dedupeKey) || 0;
+
+    // Chống trùng lặp thông báo nếu cùng sự kiện/id trong khoảng 3.5s
+    if (now - lastTime < 3500) {
+      return;
+    }
+    lastToastTimestamps.current.set(dedupeKey, now);
+
+    let resolvedType: ToastType = options?.type || 'success';
+    if (!options?.type) {
+      const lowerTitle = title.toLowerCase();
+      const lowerDesc = desc.toLowerCase();
+      if (
+        lowerTitle.includes('lỗi') ||
+        lowerTitle.includes('error') ||
+        lowerTitle.includes('thất bại')
+      ) {
+        resolvedType = 'error';
+      } else if (
+        lowerTitle.includes('hết hạn') ||
+        lowerTitle.includes('kết thúc') ||
+        lowerTitle.includes('warning') ||
+        lowerTitle.includes('cảnh báo')
+      ) {
+        resolvedType = 'warning';
+      } else if (lowerTitle.includes('đăng xuất') || lowerTitle.includes('logout')) {
+        resolvedType = 'logout';
+      }
+    }
+
+    setToasts((prev) => {
+      if (prev.some((t) => t.id === toastId)) return prev;
+      return [
+        ...prev,
+        {
+          id: toastId,
+          title,
+          desc,
+          type: resolvedType,
+          action: options?.action,
+          duration: options?.duration,
+        },
+      ];
+    });
+
+    const duration = options?.duration ?? 6000;
     setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 4000);
+      setToasts((prev) => prev.filter((t) => t.id !== toastId));
+    }, duration);
+  };
+
+  const closeToast = (id: string) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
   // axiosClient phát 'auth:unauthorized' khi hết phiên (refresh token bị từ chối / 401 không phục hồi được)
+  const lastUnauthorizedAtRef = useRef<number>(0);
+
   useEffect(() => {
     const onUnauthorized = () => {
+      const now = Date.now();
+      // Chống xử lý trùng lặp khi nhiều request đồng thời nhận 401
+      if (now - lastUnauthorizedAtRef.current < 4000) {
+        return;
+      }
+      lastUnauthorizedAtRef.current = now;
+
       localStorage.removeItem('user');
       localStorage.removeItem('userRole');
       localStorage.removeItem('activeWorkspace');
@@ -475,11 +539,33 @@ function AppContent() {
       setIsAuthenticated(false);
       setCurrentRole('USER');
       setCurrentWorkspaceRole(null);
-      showToast('Phiên đăng nhập đã kết thúc', 'Vui lòng đăng nhập lại.');
+
+      const currentPath = window.location.pathname;
+      const isAlreadyOnLogin = currentPath.startsWith('/login');
+      const isPublicPath =
+        currentPath === '/' ||
+        currentPath.startsWith('/catalog') ||
+        currentPath.startsWith('/terms');
+
+      // Nếu hệ thống đã chuyển tới /login (hoặc được PrivateRoute chuyển tới /login),
+      // không thêm nút "Đăng nhập lại" dư thừa.
+      // Chỉ khi người dùng đang ở các màn public (như / landing), cơ chế cho phép thì mới cung cấp action "Đăng nhập lại".
+      showToast('Phiên đăng nhập đã hết hạn', 'Vui lòng đăng nhập lại để tiếp tục.', {
+        id: 'session-expired',
+        type: 'warning',
+        duration: 7000,
+        action:
+          !isAlreadyOnLogin && isPublicPath
+            ? {
+                label: 'Đăng nhập lại',
+                onClick: () => navigate('/login'),
+              }
+            : undefined,
+      });
     };
     window.addEventListener('auth:unauthorized', onUnauthorized);
     return () => window.removeEventListener('auth:unauthorized', onUnauthorized);
-  }, []);
+  }, [navigate]);
 
   // Keyboard shortcut for Command Palette
   useEffect(() => {
@@ -581,7 +667,11 @@ function AppContent() {
     setCurrentWorkspaceRole(null);
     // Chủ động đăng xuất: về trang chủ sạch, không để PrivateRoute đẩy sang /login?redirect=<trang cũ>.
     navigate('/', { replace: true });
-    showToast('Đăng xuất', 'Đã đăng xuất khỏi phiên làm việc.');
+    showToast('Đã đăng xuất', 'Bạn đã đăng xuất khỏi PanelForge.', {
+      id: 'auth-logout',
+      type: 'logout',
+      duration: 5000,
+    });
   };
 
   const verifiedRole = getRoleFromToken();
@@ -892,20 +982,7 @@ function AppContent() {
       */}
 
       {/* Floating Toast Notification Stack */}
-      <div className='fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none'>
-        {toasts.map((toast) => (
-          <div
-            key={toast.id}
-            className='pointer-events-auto bg-[#171717] text-white px-4 py-3 rounded-xl shadow-2xl border border-[#333333] flex items-start gap-3 max-w-sm animate-in slide-in-from-bottom-5 fade-in duration-200'
-          >
-            <CheckCircle2 className='w-4 h-4 text-[#10B981] shrink-0 mt-0.5' />
-            <div>
-              <div className='text-xs font-bold text-white font-display'>{toast.title}</div>
-              <div className='text-xs text-[#CCCCCC] mt-0.5 leading-snug'>{toast.desc}</div>
-            </div>
-          </div>
-        ))}
-      </div>
+      <ToastStack toasts={toasts} onClose={closeToast} />
     </div>
   );
 }
