@@ -1,0 +1,38 @@
+{
+  "title": "Studio Workspaces",
+  "subtitle": "Select a Studio Workspace to start collaborating or create a new one",
+  "catalog": "Production Workspace Catalog",
+  "hub": "Studio Hub",
+  "loading": "Loading Workspaces...",
+  "emptyTitle": "Welcome to PanelForge",
+  "emptyDesc": "You are not a member of any Studio Workspace yet. Create a new Studio or request an invitation from a Producer.",
+  "createStudio": "Create New Studio",
+  "joinStudio": "Join Studio",
+  "myWorkspaces": "Your Studios ({count})",
+  "joinedDate": "Joined {days}",
+  "today": "today",
+  "yesterday": "yesterday",
+  "daysAgo": "{count} days ago",
+  "pendingTasks": "{count} pending tasks",
+  "enterStudio": "Enter Studio",
+  "adminNotice": "Administrator accounts cannot create or own a Studio Workspace. Please use the System Administration page.",
+  "producerNotice": "Your account does not have Producer privileges to create a Studio. Please contact an Administrator.",
+  "overview": {
+    "title": "Studio Overview",
+    "seriesList": "Series List",
+    "noSeries": "No series in this studio yet.",
+    "createSeries": "Create New Series",
+    "members": "Studio Members",
+    "settings": "Studio Settings"
+  },
+  "roles": {
+    "producer": "Producer",
+    "artist": "Artist",
+    "writer": "Writer",
+    "editor": "Editor",
+    "letterer": "Letterer",
+    "publisher": "Publisher",
+    "reader": "Reader",
+    "member": "Member"
+  }
+}

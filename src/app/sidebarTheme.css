@@ -1,0 +1,121 @@
+/* Sidebar appearance presets — scoped to .pf-sidebar only (never global tokens). */
+.pf-sidebar {
+  --sb-bg: #1c1917;
+  --sb-surface: rgba(255, 255, 255, 0.06);
+  --sb-surface-hover: rgba(255, 255, 255, 0.1);
+  --sb-text: #fcfbf8;
+  --sb-muted: #a8a29e;
+  --sb-border: #292524;
+  --sb-hover: rgba(255, 255, 255, 0.08);
+  --sb-active-bg: rgba(255, 255, 255, 0.12);
+  --sb-accent: #f97316;
+  --sb-popover: #24201e;
+  --sb-ease: cubic-bezier(0.16, 1, 0.3, 1);
+
+  background-color: var(--sb-bg);
+  color: var(--sb-text);
+  transition:
+    width 200ms var(--sb-ease),
+    background-color 150ms ease,
+    color 150ms ease,
+    border-color 150ms ease;
+}
+.pf-sidebar[data-sb-theme='paper'] {
+  --sb-bg: #f7f3ea;
+  --sb-surface: rgba(28, 25, 23, 0.04);
+  --sb-surface-hover: rgba(28, 25, 23, 0.08);
+  --sb-text: #1c1917;
+  --sb-muted: #57534e;
+  --sb-border: #e2dacb;
+  --sb-hover: rgba(28, 25, 23, 0.06);
+  --sb-active-bg: rgba(234, 88, 12, 0.12);
+  --sb-accent: #c2410c;
+  --sb-popover: #fcfbf8;
+}
+.pf-sidebar[data-sb-theme='ocean'] {
+  --sb-bg: #0f1b2d;
+  --sb-text: #f1f5f9;
+  --sb-muted: #9fb0c6;
+  --sb-border: #1e2d44;
+  --sb-accent: #2dd4bf;
+  --sb-popover: #16253b;
+}
+.pf-sidebar[data-sb-theme='plum'] {
+  --sb-bg: #241b2f;
+  --sb-text: #f5f3ff;
+  --sb-muted: #b9aecb;
+  --sb-border: #352a44;
+  --sb-accent: #c4b5fd;
+  --sb-popover: #2e2440;
+}
+
+/* Popovers/tooltips rendered position:fixed reuse the same scoped variables. */
+.pf-sb-popover {
+  background: var(--sb-popover);
+  color: var(--sb-text);
+  border: 1px solid var(--sb-border);
+}
+.pf-sb-item {
+  color: var(--sb-muted);
+  transition:
+    background-color 150ms ease,
+    color 150ms ease;
+}
+.pf-sb-item:hover {
+  background-color: var(--sb-hover);
+  color: var(--sb-text);
+}
+.pf-sb-item:focus-visible {
+  outline: 2px solid var(--sb-accent);
+  outline-offset: 1px;
+}
+.pf-sb-item[aria-current='page'] {
+  background-color: var(--sb-active-bg);
+  color: var(--sb-text);
+  font-weight: 700;
+}
+.pf-sb-item[aria-current='page'] .pf-sb-icon {
+  color: var(--sb-accent);
+}
+.pf-sb-surface {
+  background-color: var(--sb-surface);
+  border: 1px solid var(--sb-border);
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease;
+}
+.pf-sb-surface:hover {
+  background-color: var(--sb-surface-hover);
+  border-color: var(--sb-accent);
+}
+.pf-sb-surface:focus-visible {
+  outline: 2px solid var(--sb-accent);
+  outline-offset: 1px;
+}
+
+/* Labels: single line, fade in after width has room; removed instantly on collapse. */
+.pf-sb-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  animation: pf-sb-label-in 120ms ease 80ms both;
+}
+@keyframes pf-sb-label-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pf-sidebar,
+  .pf-sb-item,
+  .pf-sb-surface {
+    transition: none;
+  }
+  .pf-sb-label {
+    animation: none;
+  }
+}

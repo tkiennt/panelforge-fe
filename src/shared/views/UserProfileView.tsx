@@ -18,12 +18,20 @@ import {
   Lock,
   ArrowRight,
   Calendar,
+  Mail,
+  Shield,
+  Image as ImageIcon,
 } from 'lucide-react';
+import { ProfileCoverPickerDialog } from '@/shared/features/profile/ProfileCoverPickerDialog';
+import { resolveProfileCover } from '@/shared/utils/profileCovers';
 import { TwoFactorSetupModal } from '@/shared/features/account/TwoFactorSetupModal';
 import { ChangePasswordModal } from '@/shared/features/account/ChangePasswordModal';
 import { authService } from '@/services/auth.service';
 import { userService, UserProfileDto, UpdateUserProfileRequest } from '@/services/user.service';
+import { SYSTEM_AVATARS, isSystemAvatarUrl } from '@/shared/utils/systemImages';
+import { PROFILE_UPDATED_EVENT } from '@/shared/utils/profileEvents';
 import { workspaceService, WorkspaceDto } from '@/services/workspace.service';
+import { useTranslation } from '@/lib/i18n';
 
 export interface UserProfileProps {
   user?: User | null;
@@ -35,20 +43,7 @@ export interface UserProfileProps {
 const focusRing =
   'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#44403C]';
 
-const AVATAR_PRESETS = [
-  {
-    id: 'p1',
-    name: 'Shonen Mangaka',
-    url: 'https://api.dicebear.com/7.x/bottts/svg?seed=mangaka1',
-  },
-  { id: 'p2', name: 'Master Inker', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=inker' },
-  { id: 'p3', name: 'Script Writer', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=writer' },
-  {
-    id: 'p4',
-    name: 'Studio Producer',
-    url: 'https://api.dicebear.com/7.x/bottts/svg?seed=producer',
-  },
-];
+const AVATAR_PRESETS = SYSTEM_AVATARS;
 
 const WORKSPACE_ROLE_CONFIG: Record<
   string,
@@ -98,6 +93,7 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
   onOpenTwoFactor,
   onShowToast,
 }) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   // Profile data state
@@ -136,11 +132,14 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
   // Entrance animation played state - ensures entrance animations only execute once on initial mount
   const [hasAnimatedMount, setHasAnimatedMount] = useState<boolean>(false);
 
-  // Parallax refs for Manga Cover Spread background paper layers (zero re-renders on mousemove)
+  // Banner hồ sơ: chỉ lớp ảnh bìa dịch nhẹ theo con trỏ (chữ/avatar/nút đứng yên)
   const mangaSpreadRef = useRef<HTMLDivElement | null>(null);
-  const paperBacking1Ref = useRef<HTMLDivElement | null>(null);
-  const paperBacking2Ref = useRef<HTMLDivElement | null>(null);
-  const halftoneBgRef = useRef<HTMLDivElement | null>(null);
+  const coverImgRef = useRef<HTMLImageElement | null>(null);
+  const [isCoverPickerOpen, setIsCoverPickerOpen] = useState(false);
+  // undefined = không xem trước; null = xem trước bìa mặc định
+  const [coverPreviewId, setCoverPreviewId] = useState<string | null | undefined>(undefined);
+  const [coverImgError, setCoverImgError] = useState(false);
+  const [avatarImgError, setAvatarImgError] = useState(false);
 
   const showFeedback = useCallback(
     (message: string, type: 'success' | 'error' = 'success') => {
@@ -232,61 +231,66 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
     }
   }, [profile, hasAnimatedMount]);
 
-  // Parallax chiều sâu theo con trỏ chuột cho khối Bìa truyện (chỉ di chuyển các lớp giấy phía sau, biên độ 6-10px)
+  // Parallax rất nhẹ cho riêng ảnh bìa (±6px), chỉ trên chuột/trackpad và khi không bật giảm chuyển động
   useEffect(() => {
     const container = mangaSpreadRef.current;
-    if (!container) return;
-
-    if (typeof window === 'undefined') return;
-    const isPointerFine = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
-    const isReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!container || typeof window === 'undefined') return;
+    const isPointerFine = window.matchMedia?.('(hover: hover) and (pointer: fine)').matches;
+    const isReduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
     if (!isPointerFine || isReduced) return;
 
     let rafId: number | null = null;
-
+    const setShift = (x: number, y: number) => {
+      if (coverImgRef.current) {
+        coverImgRef.current.style.transform = `translate3d(${x}px, ${y}px, 0) scale(1.04)`;
+      }
+    };
     const handleMouseMove = (e: MouseEvent) => {
       if (rafId) cancelAnimationFrame(rafId);
       rafId = requestAnimationFrame(() => {
         const rect = container.getBoundingClientRect();
-        const x = (e.clientX - (rect.left + rect.width / 2)) / (rect.width / 2);
-        const y = (e.clientY - (rect.top + rect.height / 2)) / (rect.height / 2);
-        const clampedX = Math.max(-1, Math.min(1, x));
-        const clampedY = Math.max(-1, Math.min(1, y));
-
-        if (paperBacking1Ref.current) {
-          paperBacking1Ref.current.style.transform = `translate3d(${-clampedX * 8}px, ${-clampedY * 6}px, 0) rotate(-1.5deg)`;
-        }
-        if (paperBacking2Ref.current) {
-          paperBacking2Ref.current.style.transform = `translate3d(${clampedX * 6}px, ${clampedY * 4}px, 0) rotate(1.2deg)`;
-        }
-        if (halftoneBgRef.current) {
-          halftoneBgRef.current.style.transform = `translate3d(${-clampedX * 3.5}px, ${-clampedY * 2.5}px, 0)`;
-        }
+        const x = Math.max(
+          -1,
+          Math.min(1, (e.clientX - (rect.left + rect.width / 2)) / (rect.width / 2)),
+        );
+        const y = Math.max(
+          -1,
+          Math.min(1, (e.clientY - (rect.top + rect.height / 2)) / (rect.height / 2)),
+        );
+        setShift(-x * 6, -y * 4);
       });
     };
-
     const handleMouseLeave = () => {
       if (rafId) cancelAnimationFrame(rafId);
-      if (paperBacking1Ref.current) {
-        paperBacking1Ref.current.style.transform = 'translate3d(0, 0, 0) rotate(-1.5deg)';
-      }
-      if (paperBacking2Ref.current) {
-        paperBacking2Ref.current.style.transform = 'translate3d(0, 0, 0) rotate(1.2deg)';
-      }
-      if (halftoneBgRef.current) {
-        halftoneBgRef.current.style.transform = 'translate3d(0, 0, 0)';
-      }
+      setShift(0, 0);
     };
-
     container.addEventListener('mousemove', handleMouseMove, { passive: true });
     container.addEventListener('mouseleave', handleMouseLeave, { passive: true });
-
     return () => {
       if (rafId) cancelAnimationFrame(rafId);
       container.removeEventListener('mousemove', handleMouseMove);
       container.removeEventListener('mouseleave', handleMouseLeave);
     };
-  }, []);
+  }, [profile]);
+
+  // Ảnh avatar đổi thì thử tải lại
+  useEffect(() => {
+    setAvatarImgError(false);
+  }, [profile?.avatar]);
+
+  // Bìa hồ sơ: lựa chọn đã lưu trên tài khoản (null = mặc định) và bìa đang hiển thị (có thể là xem trước)
+  const savedCoverId = profile?.profileCoverPresetId ?? null;
+  const shownCover = resolveProfileCover(
+    coverPreviewId !== undefined ? coverPreviewId : savedCoverId,
+  );
+
+  const handleApplyCover = async (presetId: string | null) => {
+    const updated = await userService.setMyProfileCover(presetId);
+    setProfile((p) =>
+      p ? { ...p, profileCoverPresetId: updated.profileCoverPresetId ?? null } : p,
+    );
+    showFeedback('Đã lưu ảnh bìa hồ sơ.');
+  };
 
   // Validation form chỉnh sửa
   const validateForm = (): boolean => {
@@ -309,11 +313,13 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
       if (editAvatar.length > 2048) {
         errors.avatar = 'Đường dẫn ảnh avatar không được vượt quá 2048 ký tự.';
       } else if (
+        !isSystemAvatarUrl(editAvatar.trim()) &&
         !editAvatar.startsWith('http://') &&
         !editAvatar.startsWith('https://') &&
         !editAvatar.startsWith('data:image/')
       ) {
-        errors.avatar = 'Link ảnh đại diện phải bắt đầu bằng https://, http:// hoặc data:image/';
+        errors.avatar =
+          'Hãy chọn ảnh có sẵn của hệ thống, hoặc dán link bắt đầu bằng https://, http:// hoặc data:image/';
       }
     }
 
@@ -349,6 +355,9 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
 
       if (updated) {
         setProfile(updated);
+        window.dispatchEvent(
+          new CustomEvent(PROFILE_UPDATED_EVENT, { detail: { avatar: updated.avatar ?? null } }),
+        );
         try {
           const storedStr = localStorage.getItem('user');
           const stored = storedStr ? JSON.parse(storedStr) : {};
@@ -529,6 +538,31 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
           }
         }
 
+        .pf-cover-scrim {
+          background: linear-gradient(180deg, rgba(252,251,248,0) 0px, rgba(252,251,248,0) 128px, rgba(252,251,248,0.9) 184px, #FCFBF8 196px);
+        }
+        @media (min-width: 640px) {
+          .pf-cover-scrim {
+            background: linear-gradient(180deg, rgba(252,251,248,0) 0px, rgba(252,251,248,0) 160px, rgba(252,251,248,0.9) 216px, #FCFBF8 228px);
+          }
+        }
+        @media (min-width: 768px) {
+          .pf-cover-scrim {
+            background: linear-gradient(90deg, rgba(252,251,248,0) 0%, rgba(252,251,248,0.06) 34%, rgba(252,251,248,0.8) 50%, rgba(252,251,248,0.93) 62%, rgba(252,251,248,0.96) 100%);
+          }
+        }
+        .pf-cover-swap {
+          transform: scale(1.04);
+          transition: transform 400ms cubic-bezier(0.16, 1, 0.3, 1);
+          animation: pfCoverSwap 420ms ease-out both;
+        }
+        @keyframes pfCoverSwap {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .pf-cover-swap { animation: none; transition: none; }
+        }
         .pf-cover-enter {
           animation: mangaCoverSpreadEnter 550ms cubic-bezier(0.16, 1, 0.3, 1) both;
         }
@@ -726,264 +760,193 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
         )}
 
         {/* ========================================================================= */}
-        {/* KHỐI NHẬN DIỆN: BÌA TRUYỆN CÁ NHÂN CỦA TÁC GIẢ (MANGA COVER SPREAD BANNER) */}
-        {/* Lấy cảm hứng trực tiếp từ bố cục bản thảo HeroMangaPage & LandingPageView   */}
+        {/* BANNER HỒ SƠ: ảnh bìa liền mạch · lớp phủ kem (trong → đậm sang phải) · nội dung */}
         {/* ========================================================================= */}
         <section
           ref={mangaSpreadRef}
-          aria-label='Bìa truyện cá nhân của tác giả'
-          className={`relative w-full min-w-0 select-none ${
+          aria-label='Ảnh bìa và thông tin tác giả'
+          data-testid='profile-banner'
+          className={`pf-profile-banner relative isolate w-full min-w-0 overflow-hidden rounded-2xl border border-[#D8D2C5] bg-[#FCFBF8] shadow-[0_12px_36px_rgba(68,64,60,0.08)] ${
             !hasAnimatedMount ? 'pf-cover-enter' : ''
           }`}
         >
-          {/* Lớp giấy bản thảo lệch phía sau tạo chiều sâu 3D (Hero-inspired manuscript paper stack) */}
+          {/* Lớp 1: ảnh bìa (mobile: dải ảnh phía trên; từ md: phủ toàn banner) */}
           <div
-            ref={paperBacking1Ref}
-            className='absolute -inset-1.5 rounded-2xl bg-[#FAF7F0] border border-[#D8D2C5] shadow-xs pointer-events-none -z-20 transition-transform duration-300 ease-out motion-reduce:hidden'
-            style={{ transform: 'translate3d(0, 0, 0) rotate(-1.5deg)' }}
+            className='absolute inset-x-0 top-0 h-48 sm:h-56 md:h-full overflow-hidden bg-[#ECE7DC] -z-20'
             aria-hidden='true'
-          />
+            data-testid='profile-cover-layer'
+          >
+            {coverImgError ? (
+              <div className='w-full h-full bg-[linear-gradient(135deg,#FFF2E6_0%,#F3F0E9_55%,#ECE7DC_100%)]' />
+            ) : (
+              <img
+                key={shownCover.id}
+                ref={coverImgRef}
+                src={shownCover.src}
+                alt=''
+                decoding='async'
+                data-testid='profile-cover-img'
+                data-cover-id={shownCover.id}
+                onError={() => setCoverImgError(true)}
+                className='pf-cover-swap w-full h-full object-cover will-change-transform'
+                style={{ objectPosition: shownCover.position }}
+              />
+            )}
+          </div>
+
+          {/* Lớp 2: phủ kem — ngang trên desktop, dọc trên mobile; không phủ lên nội dung */}
           <div
-            ref={paperBacking2Ref}
-            className='absolute -inset-0.5 rounded-2xl bg-[#F5F1E8] border border-[#E0D8C8] pointer-events-none -z-10 transition-transform duration-300 ease-out motion-reduce:hidden'
-            style={{ transform: 'translate3d(0, 0, 0) rotate(1.2deg)' }}
+            className='pf-cover-scrim absolute inset-0 -z-10 pointer-events-none'
             aria-hidden='true'
+            data-testid='profile-cover-scrim'
           />
 
-          {/* Khung Bìa Truyện Chính (Main Manga Spread Frame) */}
-          <div className='relative w-full rounded-2xl bg-[#FCFBF8] border-2 border-[#D8D2C5] shadow-[0_12px_36px_rgba(68,64,60,0.08)] overflow-hidden z-10'>
-            {/* Dấu định vị cúp góc bản thảo truyện tranh (Registration Marks) */}
-            <div
-              className='absolute top-2.5 left-3 text-[#D8D2C5] font-mono text-[10px] select-none pointer-events-none tracking-widest'
-              aria-hidden='true'
-            >
-              ⌜ PF-COVER
-            </div>
-            <div
-              className='absolute top-2.5 right-3 text-[#D8D2C5] font-mono text-[10px] select-none pointer-events-none tracking-widest'
-              aria-hidden='true'
-            >
-              MANGA SPREAD ⌝
-            </div>
-            <div
-              className='absolute bottom-2 left-3 text-[#D8D2C5] font-mono text-[9px] select-none pointer-events-none hidden sm:block'
-              aria-hidden='true'
-            >
-              ⌞ CHAPTER: AUTHOR PROFILE
-            </div>
-            <div
-              className='absolute bottom-2 right-3 text-[#D8D2C5] font-mono text-[9px] select-none pointer-events-none'
-              aria-hidden='true'
-            >
-              ⌟
-            </div>
+          {/* Nút đổi ảnh bìa: góc trên trái, chỉ đổi bìa */}
+          <button
+            type='button'
+            onClick={() => setIsCoverPickerOpen(true)}
+            data-testid='change-cover-btn'
+            className={`absolute top-3 left-3 z-20 inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-[#FCFBF8]/90 hover:bg-white border border-[#D8D2C5] px-3 text-xs font-semibold text-[#44403C] shadow-xs backdrop-blur-sm cursor-pointer ${focusRing}`}
+          >
+            <ImageIcon className='w-3.5 h-3.5 text-[#C2410C]' aria-hidden='true' />
+            Đổi ảnh bìa
+          </button>
 
-            {/* Bố cục hai panel manga có thứ bậc rõ rệt & đường phân chia gutter thống nhất */}
-            <div className='grid grid-cols-1 lg:grid-cols-[minmax(280px,34%)_minmax(0,1fr)] w-full items-stretch min-h-[290px]'>
-              {/* ================= PANEL CHÂN DUNG (BÊN TRÁI ~34%) ================= */}
-              <div className='relative p-6 sm:p-7 flex flex-col items-center justify-center border-b lg:border-b-0 lg:border-r border-[#D8D2C5] bg-[#FAF8F5]/80 overflow-hidden'>
-                {/* Họa tiết Halftone Manga tinh tế phía sau avatar (chỉ ở vùng trang trí) */}
-                <div
-                  ref={halftoneBgRef}
-                  className='absolute inset-0 pointer-events-none opacity-20 -z-0 transition-transform duration-300 ease-out'
-                  aria-hidden='true'
-                >
-                  <svg className='w-full h-full' xmlns='http://www.w3.org/2000/svg'>
-                    <defs>
-                      <pattern
-                        id='portrait-manga-halftone'
-                        width='10'
-                        height='10'
-                        patternUnits='userSpaceOnUse'
-                      >
-                        <circle cx='2.5' cy='2.5' r='1.1' fill='#44403C' />
-                        <circle cx='7.5' cy='7.5' r='1.1' fill='#44403C' />
-                      </pattern>
-                    </defs>
-                    <rect width='100%' height='100%' fill='url(#portrait-manga-halftone)' />
-                  </svg>
-                </div>
-
-                {/* Nhãn docket góc panel chân dung */}
-                <div className='w-full flex items-center justify-between mb-3 text-[10px] font-mono text-[#57534E] font-bold uppercase tracking-wider relative z-10'>
-                  <span>PANEL 01 · CHÂN DUNG</span>
-                  <span className='text-stone-400'>[ 1:1 ]</span>
-                </div>
-
-                {/* Khung Chân Dung Lớn (Portrait Frame with Breathing Room & Double Ink Border) */}
-                <div
-                  className={`relative group/avatar my-1 ${
-                    !hasAnimatedMount ? 'pf-portrait-enter' : ''
-                  }`}
-                >
-                  <div className='w-32 h-32 sm:w-40 sm:h-40 lg:w-44 lg:h-44 rounded-2xl border-2 border-[#D8D2C5] p-1.5 bg-[#FCFBF8] shadow-soft-sm relative transition-transform duration-200 group-hover/avatar:border-[#C2410C]/60'>
-                    {profile?.avatar && profile.avatar.trim() ? (
-                      <img
-                        src={profile.avatar}
-                        alt={profile.username}
-                        className='w-full h-full rounded-xl object-cover bg-stone-100 shadow-2xs select-none'
-                        onError={(e) => {
-                          (e.target as HTMLElement).style.display = 'none';
-                        }}
-                      />
-                    ) : (
-                      <div className='w-full h-full rounded-xl bg-[#FFF2E6] border border-[#FDBA74]/50 flex items-center justify-center text-[#C2410C] font-serif font-black text-4xl sm:text-5xl shadow-2xs select-none'>
-                        {userInitials}
-                      </div>
-                    )}
-
-                    {/* Nút đổi ảnh đại diện (Hiển thị mượt mà trên hover/focus 180ms) */}
-                    <button
-                      type='button'
-                      onClick={() => setIsAvatarPickerOpen(true)}
-                      title='Đổi ảnh đại diện'
-                      aria-label='Đổi ảnh đại diện'
-                      className={`absolute -bottom-2 -right-2 w-9 h-9 rounded-full bg-[#FCFBF8] border-2 border-[#D8D2C5] text-[#44403C] hover:border-[#F97316] hover:text-[#C2410C] flex items-center justify-center shadow-md transition-all duration-200 cursor-pointer sm:opacity-95 sm:group-hover/avatar:scale-105 sm:group-hover/avatar:opacity-100 focus-visible:opacity-100 focus-visible:scale-105 active:scale-95 ${focusRing}`}
+          {/* Lớp 3: nội dung */}
+          <div className='relative z-10 grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,1.08fr)] gap-x-6 min-h-0 md:min-h-[300px] lg:min-h-[320px]'>
+            {/* Vùng trái: avatar trên nền ảnh rõ */}
+            <div className='flex items-end px-5 pt-32 sm:pt-40 md:pt-6 md:pb-6 md:px-7'>
+              <div className='relative'>
+                <div className='w-28 h-28 sm:w-32 sm:h-32 lg:w-36 lg:h-36 rounded-2xl border-[3px] border-[#FCFBF8] bg-[#FCFBF8] p-0.5 shadow-[0_8px_24px_rgba(28,25,23,0.25)]'>
+                  {profile?.avatar && profile.avatar.trim() && !avatarImgError ? (
+                    <img
+                      src={profile.avatar}
+                      alt={`Ảnh đại diện của ${profile.username}`}
+                      className='w-full h-full rounded-[13px] object-cover bg-stone-100 select-none'
+                      onError={() => setAvatarImgError(true)}
+                      data-testid='profile-avatar-img'
+                    />
+                  ) : (
+                    <div
+                      className='w-full h-full rounded-[13px] bg-[#FFF2E6] flex items-center justify-center text-[#C2410C] font-serif font-black text-4xl select-none'
+                      data-testid='profile-avatar-fallback'
                     >
-                      <Camera className='w-4 h-4' />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Trạng thái xác thực & hoạt động dưới chân dung */}
-                <div className='mt-3.5 flex flex-col items-center gap-1 text-center relative z-10'>
-                  <span className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-mono font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200/80'>
-                    <span className='w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse' />
-                    Đang hoạt động
-                  </span>
-                  <span className='text-[10px] text-[#57534E] font-mono'>
-                    Xác thực bởi PanelForge Studio
-                  </span>
-                </div>
-              </div>
-
-              {/* ================= PANEL THÔNG TIN TÁC GIẢ (BÊN PHẢI ~66%) ================= */}
-              <div
-                className={`p-6 sm:p-7 flex flex-col justify-between relative bg-[#FCFBF8] ${
-                  !hasAnimatedMount ? 'pf-info-enter' : ''
-                }`}
-              >
-                {/* Hàng 1: Docket Header & Nút Chỉnh Sửa Hồ Sơ */}
-                <div className='flex items-center justify-between gap-3 pb-2 border-b border-[#EAE5DC]'>
-                  <div className='flex items-center gap-2 text-xs font-mono text-[#57534E]'>
-                    <span className='font-bold text-[#1C1917] tracking-wider uppercase'>
-                      PF / MANGA COVER
-                    </span>
-                    <span className='text-[#D8D2C5]'>—</span>
-                    <span className='uppercase tracking-wider hidden sm:inline'>
-                      TẬP HỒ SƠ TÁC GIẢ
-                    </span>
-                  </div>
-
-                  {/* Nút “Chỉnh sửa hồ sơ” đặt nổi bật ngay tại đây */}
-                  {!isEditing && (
-                    <button
-                      type='button'
-                      onClick={() => setIsEditing(true)}
-                      className={`inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-[#F97316] hover:bg-[#EA580C] px-3.5 sm:px-4 py-1.5 text-xs sm:text-sm font-semibold text-white shadow-xs transition-all cursor-pointer active:scale-[0.99] ${focusRing}`}
-                    >
-                      <Edit3 className='h-3.5 w-3.5' aria-hidden='true' />
-                      <span>Chỉnh sửa hồ sơ</span>
-                    </button>
+                      {userInitials}
+                    </div>
                   )}
                 </div>
-
-                {/* Hàng 2: Typography Tên Tác Giả & Nét Bút Cam Bản Thảo */}
-                <div className='my-auto py-3'>
-                  <div className='relative inline-block max-w-full'>
-                    {/* Tên hiển thị là text thật, có thể bôi đen & đọc bằng screen reader */}
-                    <h2
-                      style={{
-                        fontFamily: "'Playfair Display', Georgia, serif",
-                      }}
-                      className='pf-ink-bleed-title text-2xl sm:text-3xl lg:text-4xl xl:text-[2.65rem] font-bold text-[#1C1917] tracking-tight leading-[1.12] select-text break-words relative z-10'
-                    >
-                      {profile?.username || 'Tác Giả PanelForge'}
-                    </h2>
-
-                    {/* Nét cọ cam quệt từ trái sang phải dưới baseline (620ms clip-path reveal) */}
-                    <svg
-                      className={`absolute -bottom-1 sm:-bottom-1.5 left-0 w-full max-w-[260px] sm:max-w-[320px] h-[10px] sm:h-[14px] pointer-events-none z-0 overflow-visible ${
-                        !hasAnimatedMount ? 'pf-brush-wipe' : ''
-                      }`}
-                      viewBox='0 0 320 16'
-                      fill='none'
-                      xmlns='http://www.w3.org/2000/svg'
-                      aria-hidden='true'
-                    >
-                      {/* Dáng nét cọ thư pháp manga với đầu vào thuôn, thân mở rộng và đuôi vuốt nhọn tự nhiên */}
-                      <path
-                        d='M 3 10 C 14 6.2, 40 8.5, 78 7.2 C 126 5.5, 192 9.5, 248 7.0 C 278 5.6, 304 7.2, 317 6.0 C 314 9.0, 286 11.2, 252 10.8 C 196 10.2, 134 13.0, 82 11.6 C 46 10.5, 16 12.2, 3 10 Z'
-                        fill='#F97316'
-                        opacity='0.82'
-                      />
-                      {/* Vệt xước cọ khô phụ tạo chiều sâu mực vẽ */}
-                      <path
-                        d='M 24 9.2 C 68 8.0, 142 10.5, 220 8.6 C 258 7.8, 290 8.5, 306 7.2'
-                        stroke='#EA580C'
-                        strokeWidth='1.2'
-                        strokeLinecap='round'
-                        opacity='0.4'
-                      />
-                    </svg>
-                  </div>
-
-                  {/* Username định danh & Vai trò hệ thống */}
-                  <div className='mt-2.5 flex flex-wrap items-center gap-2.5 sm:gap-3'>
-                    <span className='text-xs sm:text-sm font-mono text-[#57534E] font-medium'>
-                      @{profile?.username?.toLowerCase().replace(/\s+/g, '_') || 'creator'}
-                    </span>
-                    <span className='text-stone-300'>·</span>
-                    <span
-                      className={`text-[11px] font-mono px-2.5 py-0.5 rounded-full font-semibold border ${
-                        profile?.role === 'ADMINISTRATOR'
-                          ? 'bg-purple-50 text-purple-700 border-purple-200'
-                          : 'bg-[#F3F0E9] text-[#44403C] border-[#D8D2C5]'
-                      }`}
-                    >
-                      {profile?.role === 'ADMINISTRATOR'
-                        ? 'Quản Trị Viên Hệ Thống'
-                        : 'Thành Viên Studio'}
-                    </span>
-                    <span className='text-stone-300'>·</span>
-                    <span className='inline-flex items-center gap-1 text-[11px] text-[#57534E] font-mono'>
-                      <Calendar className='w-3 h-3 text-stone-400' />
-                      {formattedJoinDate}
-                    </span>
-                  </div>
-
-                  {/* Lời tựa / Định hướng sáng tác manga */}
-                  <p className='text-xs sm:text-[13px] text-[#57534E] mt-3 leading-relaxed max-w-2xl select-text'>
-                    Không gian quản lý tác phẩm, kịch bản bản thảo và phối hợp sản xuất truyện tranh
-                    chuyên nghiệp cùng các nghệ sĩ trong hệ thống PanelForge.
-                  </p>
-                </div>
-
-                {/* Hàng 3: Metadata Chip Tóm Tắt Không Gian Sáng Tác */}
-                <div className='pt-3 border-t border-[#EAE5DC] flex flex-wrap items-center justify-between gap-3 text-xs'>
-                  <div className='flex items-center gap-3 text-[11px] font-mono text-[#57534E]'>
-                    <span className='inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#FAF8F5] border border-[#D8D2C5]'>
-                      <Building2 className='w-3 h-3 text-[#F97316]' />
-                      Tham gia:{' '}
-                      <strong className='text-[#44403C]'>{workspaces.length} Studio</strong>
-                    </span>
-                    <span className='inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#FAF8F5] border border-[#D8D2C5]'>
-                      <Key className='w-3 h-3 text-[#C2410C]' />
-                      2FA:{' '}
-                      <strong className={is2faActive ? 'text-emerald-700' : 'text-amber-700'}>
-                        {is2faActive ? 'BẢO VỆ' : 'CHƯA BẬT'}
-                      </strong>
-                    </span>
-                  </div>
-
-                  <span className='text-[10px] font-mono text-stone-400 select-none'>
-                    PANELFORGE STUDIO ARCHIVE
-                  </span>
-                </div>
+                <button
+                  type='button'
+                  onClick={() => setIsAvatarPickerOpen(true)}
+                  title='Đổi ảnh đại diện'
+                  aria-label='Đổi ảnh đại diện'
+                  data-testid='change-avatar-btn'
+                  className={`absolute -bottom-2 -right-2 w-9 h-9 rounded-full bg-[#FCFBF8] border-2 border-[#D8D2C5] text-[#44403C] hover:border-[#F97316] hover:text-[#C2410C] flex items-center justify-center shadow-md cursor-pointer active:scale-95 ${focusRing}`}
+                >
+                  <Camera className='w-4 h-4' aria-hidden='true' />
+                </button>
               </div>
+            </div>
+
+            {/* Vùng phải: chữ thật, rõ nét trên lớp phủ kem */}
+            <div
+              className={`min-w-0 flex flex-col justify-center gap-3 px-5 pb-6 pt-4 md:py-8 md:pr-8 md:pl-2 ${
+                !hasAnimatedMount ? 'pf-info-enter' : ''
+              }`}
+              data-testid='profile-banner-info'
+            >
+              <div className='min-w-0'>
+                <div className='relative inline-block max-w-full'>
+                  <h2
+                    style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
+                    className='pf-ink-bleed-title relative z-10 text-2xl sm:text-3xl lg:text-4xl font-bold text-[#1C1917] tracking-tight leading-tight break-words [overflow-wrap:anywhere] select-text'
+                    data-testid='profile-display-name'
+                  >
+                    {profile?.username || 'Tác Giả PanelForge'}
+                  </h2>
+                  {/* Nét cọ cam dưới tên (giữ ngôn ngữ thiết kế cũ) */}
+                  <svg
+                    className={`absolute -bottom-1.5 left-0 w-full max-w-[280px] h-[12px] pointer-events-none z-0 overflow-visible ${
+                      !hasAnimatedMount ? 'pf-brush-wipe' : ''
+                    }`}
+                    viewBox='0 0 320 16'
+                    fill='none'
+                    aria-hidden='true'
+                  >
+                    <path
+                      d='M 3 10 C 14 6.2, 40 8.5, 78 7.2 C 126 5.5, 192 9.5, 248 7.0 C 278 5.6, 304 7.2, 317 6.0 C 314 9.0, 286 11.2, 252 10.8 C 196 10.2, 134 13.0, 82 11.6 C 46 10.5, 16 12.2, 3 10 Z'
+                      fill='#F97316'
+                      opacity='0.8'
+                    />
+                  </svg>
+                </div>
+                <p className='mt-1 text-sm font-mono text-[#57534E] break-all'>
+                  @{profile?.username?.toLowerCase().replace(/\s+/g, '_') || 'creator'}
+                </p>
+              </div>
+
+              <dl className='flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-[#44403C]'>
+                <div className='inline-flex items-center gap-1.5 min-w-0'>
+                  <dt className='sr-only'>Email</dt>
+                  <Mail className='w-3.5 h-3.5 text-[#C2410C] shrink-0' aria-hidden='true' />
+                  <dd className='break-all'>{profile?.email}</dd>
+                </div>
+                <div className='inline-flex items-center gap-1.5'>
+                  <dt className='sr-only'>Vai trò hệ thống</dt>
+                  <Shield className='w-3.5 h-3.5 text-[#C2410C] shrink-0' aria-hidden='true' />
+                  <dd>
+                    {profile?.role === 'ADMINISTRATOR' ? 'Quản trị viên hệ thống' : 'Thành viên'}
+                  </dd>
+                </div>
+                <div className='inline-flex items-center gap-1.5'>
+                  <dt className='sr-only'>Ngày tham gia</dt>
+                  <Calendar className='w-3.5 h-3.5 text-[#C2410C] shrink-0' aria-hidden='true' />
+                  <dd>{formattedJoinDate}</dd>
+                </div>
+                <div className='inline-flex items-center gap-1.5'>
+                  <dt className='sr-only'>Studio đang tham gia</dt>
+                  <Building2 className='w-3.5 h-3.5 text-[#C2410C] shrink-0' aria-hidden='true' />
+                  <dd>{loadingWorkspaces ? 'Đang tải…' : `${workspaces.length} studio`}</dd>
+                </div>
+                <div className='inline-flex items-center gap-1.5'>
+                  <dt className='sr-only'>Xác thực hai lớp</dt>
+                  <Key className='w-3.5 h-3.5 text-[#C2410C] shrink-0' aria-hidden='true' />
+                  <dd className={is2faActive ? 'text-emerald-800' : 'text-amber-800'}>
+                    2FA {is2faActive ? 'đã bật' : 'chưa bật'}
+                  </dd>
+                </div>
+              </dl>
+
+              {!isEditing && (
+                <div>
+                  <button
+                    type='button'
+                    onClick={() => setIsEditing(true)}
+                    className={`inline-flex min-h-10 items-center gap-1.5 rounded-lg bg-[#F97316] hover:bg-[#EA580C] px-4 text-sm font-semibold text-white shadow-xs cursor-pointer active:scale-[0.99] ${focusRing}`}
+                  >
+                    <Edit3 className='h-3.5 w-3.5' aria-hidden='true' />
+                    Chỉnh sửa hồ sơ
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </section>
+
+        {isCoverPickerOpen && (
+          <ProfileCoverPickerDialog
+            savedId={savedCoverId}
+            onPreview={(id) => {
+              setCoverImgError(false);
+              setCoverPreviewId(id);
+            }}
+            onApply={handleApplyCover}
+            onClose={() => {
+              setIsCoverPickerOpen(false);
+              setCoverPreviewId(undefined);
+            }}
+          />
+        )}
 
         {/* ========================================================================= */}
         {/* PHẦN THÔNG TIN PHÍA DƯỚI: FORM CÁ NHÂN, BẢO MẬT & WORKSPACE THỰC TẾ       */}
@@ -1219,7 +1182,7 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                           setFormErrors((prev) => ({ ...prev, avatar: undefined }));
                         }
                       }}
-                      placeholder='https://... hoặc chọn mẫu avatar bên dưới'
+                      placeholder='Chọn ảnh có sẵn, hoặc dán link https://...'
                       className={`min-h-10 w-full px-3.5 py-2 bg-white border rounded-lg text-xs sm:text-sm text-[#44403C] transition-colors ${focusRing} ${
                         formErrors.avatar
                           ? 'border-rose-400 focus:border-rose-500'
@@ -1484,12 +1447,12 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
           aria-labelledby='avatar-modal-title'
           className='fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4'
         >
-          <div className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl shadow-2xl max-w-md w-full p-5 space-y-4 animate-in fade-in zoom-in-95 duration-150'>
+          <div className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl shadow-2xl max-w-lg w-full p-5 space-y-4 animate-in fade-in zoom-in-95 duration-150'>
             <div className='flex items-center justify-between pb-3 border-b border-[#E7E2D9]'>
               <div className='flex items-center gap-2'>
                 <Camera className='w-4 h-4 text-[#F97316]' />
                 <h3 id='avatar-modal-title' className='text-sm font-bold text-[#44403C]'>
-                  Chọn Mẫu Ảnh Đại Diện Tác Giả
+                  Chọn ảnh đại diện có sẵn
                 </h3>
               </div>
               <button
@@ -1503,25 +1466,27 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
             </div>
 
             <p className='text-xs text-[#57534E]'>
-              Chọn nhanh avatar phong cách sáng tác manga hoặc dán link ảnh cá nhân của bạn:
+              Chọn một ảnh có sẵn của hệ thống (không cần tải ảnh từ máy):
             </p>
 
-            <div className='grid grid-cols-2 gap-3'>
+            <div className='grid grid-cols-3 gap-3' data-testid='system-avatar-grid'>
               {AVATAR_PRESETS.map((preset) => (
                 <button
                   key={preset.id}
                   type='button'
                   onClick={() => {
                     setEditAvatar(preset.url);
+                    setFormErrors((prev) => ({ ...prev, avatar: undefined }));
                     setIsAvatarPickerOpen(false);
                     if (!isEditing) setIsEditing(true);
                   }}
-                  className={`p-3 rounded-lg border border-[#D8D2C5] hover:border-[#F97316] bg-white hover:bg-[#FFF2E6]/50 flex flex-col items-center gap-2 transition-all cursor-pointer ${focusRing}`}
+                  aria-pressed={editAvatar === preset.url}
+                  className={`p-2 rounded-lg border ${editAvatar === preset.url ? 'border-[#F97316] bg-[#FFF2E6]' : 'border-[#D8D2C5]'} hover:border-[#F97316] bg-white hover:bg-[#FFF2E6]/50 flex flex-col items-center gap-2 transition-all cursor-pointer ${focusRing}`}
                 >
                   <img
                     src={preset.url}
                     alt={preset.name}
-                    className='w-14 h-14 rounded-full border border-[#D8D2C5] bg-[#FAF8F5]'
+                    className='w-full aspect-square rounded-xl object-cover border border-[#D8D2C5] bg-[#FAF8F5]'
                   />
                   <span className='text-[11px] font-semibold text-[#44403C] text-center'>
                     {preset.name}

@@ -36,5 +36,17 @@
     "title": "Task Queue by Stage",
     "empty": "No tasks in the queue.",
     "selectChapter": "Select a Chapter to view task queue."
+  },
+  "dashboard": {
+    "seriesOverview": "Series Overview: {title}",
+    "totalProgress": "Total Series Progress",
+    "waitingReview": "Awaiting Review Gate",
+    "submittedWork": "Submissions",
+    "overdueRisk": "Overdue & Risk Tasks",
+    "manageChapters": "Manage Chapters (Review)",
+    "overdueList": "Overdue Task List ({count})",
+    "stageProgress": "Stage Progress · Chapter {chapterNumber}",
+    "burndownChart": "Burndown Chart",
+    "remainingTasks": "Remaining: {count} tasks"
   }
 }

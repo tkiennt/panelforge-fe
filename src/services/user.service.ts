@@ -11,6 +11,8 @@ export interface UserProfileDto {
   isActive: boolean;
   role: string;
   createdAt: string;
+  /** ID bìa hồ sơ mẫu (null/thiếu = bìa mặc định). Đổi qua PUT /api/users/me/profile-cover. */
+  profileCoverPresetId?: string | null;
 }
 
 export interface UpdateUserProfileRequest {
@@ -45,6 +47,21 @@ export const userService = {
       return response.data;
     } catch (error) {
       throw new Error(await parseErrorResponse(error, 'Không thể tải thông tin hồ sơ người dùng.'));
+    }
+  },
+
+  /**
+   * Đặt bìa hồ sơ của chính mình từ bộ mẫu hệ thống (PUT /api/users/me/profile-cover).
+   * presetId = null → về bìa mặc định. ID không hợp lệ → 400.
+   */
+  setMyProfileCover: async (presetId: string | null): Promise<UserProfileDto> => {
+    try {
+      const response = await axiosClient.put<UserProfileDto>('/Users/me/profile-cover', {
+        presetId,
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(await parseErrorResponse(error, 'Không thể lưu ảnh bìa hồ sơ.'));
     }
   },
 

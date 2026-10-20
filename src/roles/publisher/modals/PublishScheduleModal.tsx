@@ -90,7 +90,9 @@ export const PublishScheduleModal: React.FC<PublishScheduleModalProps> = ({
               <Send className='w-4 h-4' />
             </div>
             <div>
-              <h3 className='font-serif font-bold text-sm text-[#1C1917]'>Xuất Bản &amp; Lên Lịch Phát Hành</h3>
+              <h3 className='font-serif font-bold text-sm text-[#1C1917]'>
+                Xuất Bản &amp; Lên Lịch Phát Hành
+              </h3>
               <p className='text-xs text-[#57534E]'>
                 Chương {chapterNumber}: {chapterTitle || 'Không tiêu đề'}
               </p>

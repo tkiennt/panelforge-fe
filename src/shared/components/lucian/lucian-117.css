@@ -1,0 +1,124 @@
+/* Lucian UX/UI Prompt #117 · Spacing ruler · (c) 2026 Seokwoo Lee · MIT License */
+/* Adapted for PanelForge Editorial AI Studio Design System */
+
+.pf-gutter-ruler {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-family: var(--font-sans, system-ui, sans-serif);
+  background: var(--ux-bg-canvas, #FCFBF8);
+  border: 1px solid var(--ux-border-default, #D8D2C5);
+  border-radius: 12px;
+  padding: 14px;
+  box-shadow: 0 1px 3px rgba(28, 25, 23, 0.05);
+}
+
+.pf-gutter-stage {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 90px;
+  position: relative;
+  background: #F5F2EA;
+  border-radius: 8px;
+  border: 1px dashed var(--ux-border-default, #D8D2C5);
+  overflow: hidden;
+}
+
+.pf-gutter-panel-mock {
+  width: 60px;
+  height: 60px;
+  background: #FFFFFF;
+  border: 2px solid #1C1917;
+  border-radius: 6px;
+  box-shadow: 0 4px 10px rgba(28, 25, 23, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: #78716C;
+  user-select: none;
+  transition: all 0.15s ease-out;
+}
+
+.pf-gutter-measure-line {
+  position: absolute;
+  top: 14px;
+  height: 10px;
+  border: 1.5px solid var(--ux-brand-primary, #F97316);
+  border-bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: width 0.15s ease-out;
+}
+
+.pf-gutter-badge {
+  position: absolute;
+  top: -12px;
+  background: #1C1917;
+  color: #FCFBF8;
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.pf-gutter-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pf-gutter-slider {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: #E7E5E4;
+  accent-color: var(--ux-brand-primary, #F97316);
+  cursor: pointer;
+}
+
+.pf-gutter-presets {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.pf-gutter-preset-btn {
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid var(--ux-border-default, #D8D2C5);
+  background: #FFFFFF;
+  color: #57534E;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pf-gutter-preset-btn:hover {
+  border-color: var(--ux-brand-primary, #F97316);
+  color: #1C1917;
+  background: #FFF2E6;
+}
+
+.pf-gutter-preset-btn.active {
+  background: #FFF2E6;
+  border-color: var(--ux-brand-primary, #F97316);
+  color: #C2410C;
+  font-weight: 700;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pf-gutter-panel-mock,
+  .pf-gutter-measure-line {
+    transition: none;
+  }
+}

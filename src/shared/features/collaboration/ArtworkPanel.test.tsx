@@ -441,4 +441,329 @@ describe('ArtworkPanel Component', () => {
     const latestBadges = screen.getAllByText('Mới nhất');
     expect(latestBadges.length).toBeGreaterThanOrEqual(1);
   });
+
+  it('khung chưa có ảnh riêng: hiện "Dùng ảnh cả trang" và xem phần cắt đúng khung', async () => {
+    vi.mocked(artworkService.getArtworkAccessLink).mockResolvedValueOnce({
+      url: '/api/assets/download?token=page',
+    } as never);
+    render(
+      <ArtworkPanel
+        chapterId='chap-1'
+        pageId='page-101'
+        stageId='stage-thumbnail'
+        artworks={mockArtworks}
+        panels={[
+          {
+            id: 'p-1',
+            pageId: 'page-101',
+            panelNumber: 1,
+            readingOrder: 1,
+            boundingBox: JSON.stringify({
+              normalized: { x: 0.5, y: 0, w: 0.5, h: 0.25 },
+              pageWidthPx: 1200,
+              pageHeightPx: 1800,
+            }),
+            createdAt: '2026-01-01T00:00:00Z',
+          },
+        ]}
+        canUpload={false}
+        onChanged={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId('panel-uses-page-art-p-1')).toHaveTextContent('Dùng ảnh cả trang v1');
+    expect(screen.queryByText('Chưa có ảnh')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('panel-page-art-preview-btn-p-1'));
+    const crop = await screen.findByTestId('panel-page-art-crop-p-1');
+    expect(crop.style.backgroundSize).toBe('200% 400%');
+    expect(crop.style.backgroundPosition).toBe('100% 0%');
+  });
+
+  it('không lấy v4 của khung đã xoá làm "bản hiện tại" của ảnh cả trang', () => {
+    const base = mockArtworks[0];
+    const deletedPanelV4 = {
+      ...base,
+      id: 'old-4',
+      versionNumber: 4,
+      fileName: 'old-panel.png',
+      panelId: 'deleted-panel',
+      createdAt: '2026-10-20T06:53:00Z',
+    };
+    const pageV1 = { ...base, id: 'page-1', versionNumber: 1, createdAt: '2026-10-20T09:17:00Z' };
+    render(
+      <ArtworkPanel
+        chapterId='chap-1'
+        pageId='page-101'
+        stageId='stage-thumbnail'
+        artworks={[deletedPanelV4, pageV1]}
+        panels={[
+          {
+            id: 'p-new',
+            pageId: 'page-101',
+            panelNumber: 1,
+            readingOrder: 1,
+            boundingBox: '{"x":10,"y":10,"width":80,"height":35}',
+            createdAt: '2026-10-20T09:18:00Z',
+          },
+        ]}
+        canUpload={false}
+        onChanged={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId('artwork-version-breakdown')).toHaveTextContent(
+      '1 cả trang · 0 theo khung · 1 của khung đã xoá',
+    );
+    expect(screen.getByText(/Ảnh artwork cả trang \(1 phiên bản\)/)).toBeInTheDocument();
+    expect(screen.getByText('Bản hiện tại').closest('li')).toHaveTextContent('v1');
+    expect(screen.queryByText('old-panel.png')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText(/Xem 1 phiên bản của khung đã xoá/));
+    expect(screen.getByText('old-panel.png').closest('li')).toHaveTextContent('Khung đã xoá');
+  });
+
+  it('bảo toàn tỷ lệ ảnh với object-contain, nền trung tính, nút Mở lớn và không bóp méo ảnh dọc', async () => {
+    vi.mocked(artworkService.getArtworkAccessLink).mockResolvedValueOnce({
+      url: 'https://cdn.example.com/artworks/portrait_page.png',
+      expiresAtUtc: '2026-10-08T11:00:00Z',
+    });
+
+    render(
+      <ArtworkPanel
+        chapterId='chap-1'
+        pageId='page-101'
+        stageId='stage-thumbnail'
+        artworks={mockArtworks}
+        canUpload={false}
+        onChanged={vi.fn()}
+      />,
+    );
+
+    // Mở preview inline
+    fireEvent.click(screen.getByRole('button', { name: /Xem/i }));
+
+    const zoomButton = await screen.findByTitle('Bấm để phóng to');
+    const previewImg = zoomButton.querySelector('img');
+    expect(previewImg).toBeInTheDocument();
+
+    // Xác nhận class giữ tỷ lệ và object-contain
+    expect(previewImg?.className).toContain('object-contain');
+    expect(previewImg?.className).toContain('max-h-[440px]');
+    expect(previewImg?.className).toContain('max-w-full');
+    expect(previewImg?.className).not.toContain('basis-full');
+
+    // Xác nhận có nút "Mở lớn"
+    expect(screen.getByRole('button', { name: /Mở lớn/i })).toBeInTheDocument();
+  });
+
+  it('chuyển UUID kỹ thuật dài vào chi tiết và dùng fallback trung thực cho khung đã xoá', () => {
+    const uuidArt: AssetReferenceDto = {
+      ...mockArtworks[0],
+      id: 'art-uuid-1',
+      fileName: '07566405-b98d-4a12-87a1-8d2b3c4d5e6f.png',
+      panelId: 'deleted-panel-uuid',
+      versionNumber: 1,
+    };
+
+    render(
+      <ArtworkPanel
+        chapterId='chap-1'
+        pageId='page-101'
+        stageId='stage-thumbnail'
+        artworks={[uuidArt]}
+        canUpload={false}
+        onChanged={vi.fn()}
+      />,
+    );
+
+    // Mở xem phiên bản của khung đã xoá
+    fireEvent.click(screen.getByText(/Xem 1 phiên bản của khung đã xoá/));
+
+    // Tiêu đề chính không hiển thị nguyên chuỗi UUID mà hiển thị tên trung thực
+    expect(screen.getByText('Ảnh của khung đã xóa (v1)')).toBeInTheDocument();
+
+    // Mở Chi tiết để kiểm tra tên file UUID gốc được lưu giữ
+    fireEvent.click(screen.getByRole('button', { name: /Chi tiết/i }));
+    const details = screen.getByTestId('artwork-details-art-uuid-1');
+    expect(details).toHaveTextContent('07566405-b98d-4a12-87a1-8d2b3c4d5e6f.png');
+    expect(details).toHaveTextContent('deleted-panel-uuid');
+  });
+
+  it('nhóm các phiên bản của các khung đã xoá khác nhau theo panelId', () => {
+    const deletedPanelArts: AssetReferenceDto[] = [
+      {
+        ...mockArtworks[0],
+        id: 'old-p1-v1',
+        panelId: 'panel-alpha',
+        versionNumber: 1,
+        fileName: 'alpha_v1.png',
+        createdAt: '2026-10-20T08:00:00Z',
+      },
+      {
+        ...mockArtworks[0],
+        id: 'old-p1-v2',
+        panelId: 'panel-alpha',
+        versionNumber: 2,
+        fileName: 'alpha_v2.png',
+        createdAt: '2026-10-20T09:00:00Z',
+      },
+      {
+        ...mockArtworks[0],
+        id: 'old-p2-v1',
+        panelId: 'panel-beta',
+        versionNumber: 1,
+        fileName: 'beta_v1.png',
+        createdAt: '2026-10-20T08:30:00Z',
+      },
+    ];
+
+    render(
+      <ArtworkPanel
+        chapterId='chap-1'
+        pageId='page-101'
+        stageId='stage-thumbnail'
+        artworks={deletedPanelArts}
+        canUpload={false}
+        onChanged={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByText(/Xem 3 phiên bản của khung đã xoá/));
+
+    // Phải có 2 nhóm khung cũ tách biệt
+    expect(screen.getByText(/Khung trước đây #1 \(2 phiên bản\)/)).toBeInTheDocument();
+    expect(screen.getByText(/Khung trước đây #2 \(1 phiên bản\)/)).toBeInTheDocument();
+
+    // Cả 2 nhóm đều có bản cuối của chính nó
+    expect(screen.getAllByText('Bản cuối của khung')).toHaveLength(2);
+    expect(screen.getByText('alpha_v2.png')).toBeInTheDocument();
+    expect(screen.getByText('alpha_v1.png')).toBeInTheDocument();
+    expect(screen.getByText('beta_v1.png')).toBeInTheDocument();
+  });
+
+  it('hỗ trợ điều khiển zoom trong lightbox (phóng to, thu nhỏ, vừa khung, 100%)', async () => {
+    vi.mocked(artworkService.getArtworkAccessLink).mockResolvedValueOnce({
+      url: 'https://cdn.example.com/artworks/page1_v1.png',
+      expiresAtUtc: '2026-10-08T11:00:00Z',
+    });
+
+    render(
+      <ArtworkPanel
+        chapterId='chap-1'
+        pageId='page-101'
+        stageId='stage-thumbnail'
+        artworks={mockArtworks}
+        canUpload={false}
+        onChanged={vi.fn()}
+      />,
+    );
+
+    // Mở preview
+    fireEvent.click(screen.getByRole('button', { name: /Xem/i }));
+
+    // Bấm nút "Mở lớn"
+    const openLightboxBtn = await screen.findByRole('button', { name: /Mở lớn/i });
+    fireEvent.click(openLightboxBtn);
+
+    const dialog = screen.getByTestId('artwork-zoom');
+    expect(dialog).toBeInTheDocument();
+
+    // Mặc định ở chế độ "Vừa khung" (có badge hiển thị trạng thái)
+    expect(screen.getAllByText('Vừa khung').length).toBeGreaterThanOrEqual(1);
+
+    // Bấm nút phóng to (+)
+    const zoomInBtn = screen.getByTitle('Phóng to (+)');
+    fireEvent.click(zoomInBtn);
+    expect(screen.getByText('125%')).toBeInTheDocument();
+
+    // Bấm nút thu nhỏ (-)
+    const zoomOutBtn = screen.getByTitle('Thu nhỏ (-)');
+    fireEvent.click(zoomOutBtn);
+    expect(screen.getAllByText('100%').length).toBeGreaterThanOrEqual(1);
+
+    // Bấm nút "Vừa khung" để reset
+    const fitBtn = screen.getByTitle('Vừa khung hình');
+    fireEvent.click(fitBtn);
+    expect(screen.getAllByText('Vừa khung').length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('hiển thị nút Thử tải lại khi ảnh lỗi và nạp link mới', async () => {
+    vi.mocked(artworkService.getArtworkAccessLink)
+      .mockResolvedValueOnce({
+        url: 'https://cdn.example.com/artworks/expired_link.png',
+        expiresAtUtc: '2026-10-08T10:00:00Z',
+      })
+      .mockResolvedValueOnce({
+        url: 'https://cdn.example.com/artworks/fresh_link.png',
+        expiresAtUtc: '2026-10-08T11:00:00Z',
+      });
+
+    render(
+      <ArtworkPanel
+        chapterId='chap-1'
+        pageId='page-101'
+        stageId='stage-thumbnail'
+        artworks={mockArtworks}
+        canUpload={false}
+        onChanged={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Xem/i }));
+
+    const img = await screen.findByAltText(/Artwork v1 của page1_thumbnail_v1.png/i);
+
+    // Giả lập lỗi tải ảnh (link hết hạn)
+    fireEvent.error(img);
+
+    // Nút "Thử tải lại" xuất hiện
+    const retryBtn = await screen.findByRole('button', { name: /Thử tải lại/i });
+    expect(retryBtn).toBeInTheDocument();
+    expect(
+      screen.getByText(/Không thể tải ảnh \(link tạm thời có thể đã hết hạn\)/i),
+    ).toBeInTheDocument();
+
+    // Bấm thử tải lại
+    fireEvent.click(retryBtn);
+
+    await waitFor(() => {
+      expect(artworkService.getArtworkAccessLink).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it('giữ cache ảnh khi ẩn/hiện lại mà không gọi getArtworkAccessLink thêm lần nữa', async () => {
+    vi.mocked(artworkService.getArtworkAccessLink).mockResolvedValueOnce({
+      url: 'https://cdn.example.com/artworks/cached_page.png',
+      expiresAtUtc: '2026-10-08T11:00:00Z',
+    });
+
+    render(
+      <ArtworkPanel
+        chapterId='chap-1'
+        pageId='page-101'
+        stageId='stage-thumbnail'
+        artworks={mockArtworks}
+        canUpload={false}
+        onChanged={vi.fn()}
+      />,
+    );
+
+    const viewButton = screen.getByRole('button', { name: /Xem/i });
+    fireEvent.click(viewButton);
+
+    await waitFor(() => {
+      expect(artworkService.getArtworkAccessLink).toHaveBeenCalledTimes(1);
+    });
+
+    // Bấm Ẩn bằng nút trên preview card
+    const hideButton = screen.getByTitle('Ẩn xem nhanh');
+    fireEvent.click(hideButton);
+
+    // Bấm Xem lại
+    const viewAgainButton = screen.getByRole('button', { name: /Xem/i });
+    fireEvent.click(viewAgainButton);
+
+    // Không gọi thêm lần nữa
+    expect(artworkService.getArtworkAccessLink).toHaveBeenCalledTimes(1);
+    expect(screen.getByTitle('Bấm để phóng to')).toBeInTheDocument();
+  });
 });

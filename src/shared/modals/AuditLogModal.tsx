@@ -186,8 +186,7 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({
         log.action.toLowerCase().includes(searchQuery.toLowerCase());
 
       const matchAction =
-        filterAction === 'ALL' ||
-        log.action.toUpperCase().includes(filterAction.toUpperCase());
+        filterAction === 'ALL' || log.action.toUpperCase().includes(filterAction.toUpperCase());
 
       return matchSearch && matchAction;
     });
@@ -214,7 +213,10 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
 
-    onShowToast('Đã xuất nhật ký', `Đã tải về file JSON chứa ${filteredLogs.length} bản ghi kiểm toán.`);
+    onShowToast(
+      'Đã xuất nhật ký',
+      `Đã tải về file JSON chứa ${filteredLogs.length} bản ghi kiểm toán.`,
+    );
   };
 
   if (!isOpen) return null;
@@ -363,9 +365,7 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({
                     </span>
                   </div>
 
-                  <p className='text-xs text-[#57534E] font-sans leading-relaxed'>
-                    {log.details}
-                  </p>
+                  <p className='text-xs text-[#57534E] font-sans leading-relaxed'>{log.details}</p>
 
                   <div className='flex items-center justify-between pt-1 text-[11px] font-mono'>
                     {log.hash ? (
@@ -376,7 +376,9 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({
                       <span className='text-[#A8A29E] text-[10px]'>AUDIT-RECORD-VERIFIED</span>
                     )}
                     {log.statusTag && (
-                      <span className={`font-semibold px-2 py-0.5 rounded text-[10px] ${log.statusTagColor}`}>
+                      <span
+                        className={`font-semibold px-2 py-0.5 rounded text-[10px] ${log.statusTagColor}`}
+                      >
                         {log.statusTag}
                       </span>
                     )}
