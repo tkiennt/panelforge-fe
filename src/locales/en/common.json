@@ -68,5 +68,13 @@
     "waitingSync": "{count} actions pending sync.",
     "syncNow": "Sync Now",
     "syncing": "Syncing..."
+  },
+  "unsaved": {
+    "title": "Unsaved changes",
+    "plural": "{count} unsaved changes",
+    "saved": "Saved",
+    "discard": "Discard",
+    "save": "Save",
+    "saving": "Saving..."
   }
 }

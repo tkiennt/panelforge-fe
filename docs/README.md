@@ -22,7 +22,7 @@ Thư mục: [`docs/implement-plan/`](./implement-plan/)
 ### 🟡 Đang Thực Hiện (`ongoing/`)
 > *Chứa các kế hoạch tính năng hoặc đợt refactor đang trong quá trình phát triển.*
 
-*(Hiện tại không có kế hoạch nào đang dở dang)*
+- [**LUCIAN_UXUI_ENHANCEMENT_INTEGRATION_PLAN.md**](./implement-plan/ongoing/LUCIAN_UXUI_ENHANCEMENT_INTEGRATION_PLAN.md): Kế hoạch nghiên cứu, tuyển chọn 20+ elements tiêu biểu từ thư viện Lucian UX/UI Prompt và tích hợp vào PanelForge Manga Studio (Bàn vẽ Artist, Kịch bản Writer, Kiểm duyệt Editor, Điều phối Producer, AI Multi-Agent Studio và Cổng xuất bản Publisher).
 
 ### 🟢 Đã Hoàn Thành (`completed/`)
 > *Chứa các kế hoạch đã hoàn thành 100% nhiệm vụ, pass typecheck, lint và unit test.*

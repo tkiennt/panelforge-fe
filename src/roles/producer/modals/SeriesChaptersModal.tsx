@@ -33,6 +33,7 @@ import { ChapterAssignmentsModal } from './ChapterAssignmentsModal';
 import { ChapterReviewsModal } from '@/shared/modals/ChapterReviewsModal';
 import { ChapterProvenanceModal } from '@/shared/features/provenance/ChapterProvenanceModal';
 import { PreviewLinksModal } from './PreviewLinksModal';
+import { TypeToConfirmModal } from '@/shared/components/lucian';
 
 interface SeriesChaptersModalProps {
   isOpen: boolean;
@@ -86,6 +87,10 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
   const [editTitle, setEditTitle] = useState('');
   const [editTargetReleaseDate, setEditTargetReleaseDate] = useState('');
   const [editOutline, setEditOutline] = useState('');
+
+  // Delete Chapter Confirmation State (Lucian #269)
+  const [deleteTargetChapter, setDeleteTargetChapter] = useState<ChapterDto | null>(null);
+  const [isDeletingChapter, setIsDeletingChapter] = useState(false);
 
   const fetchChapters = useCallback(async () => {
     if (!seriesId) return;
@@ -185,23 +190,23 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
     }
   };
 
-  const handleDeleteChapter = async (chap: ChapterDto) => {
-    if (
-      !window.confirm(
-        `Bạn có chắc chắn muốn xóa Chương ${chap.chapterNumber}: "${chap.title || 'Không tiêu đề'}"? Dữ liệu trang và phân cảnh sẽ được đánh dấu xóa mềm.`,
-      )
-    ) {
-      return;
-    }
+  const handleDeleteChapter = (chap: ChapterDto) => {
+    setDeleteTargetChapter(chap);
+  };
 
+  const executeDeleteChapter = async () => {
+    if (!deleteTargetChapter) return;
+    setIsDeletingChapter(true);
     setActionLoading(true);
     try {
-      await chapterService.deleteChapter(chap.id);
-      onShowToast?.('Đã xóa chương', `Đã xóa Chương ${chap.chapterNumber}.`);
+      await chapterService.deleteChapter(deleteTargetChapter.id);
+      onShowToast?.('Đã xóa chương', `Đã xóa Chương ${deleteTargetChapter.chapterNumber}.`);
       await fetchChapters();
+      setDeleteTargetChapter(null);
     } catch (err: any) {
       onShowToast?.('Lỗi xóa chương', err.message);
     } finally {
+      setIsDeletingChapter(false);
       setActionLoading(false);
     }
   };
@@ -887,6 +892,19 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
               setPreviewChapter({ ...previewChapter, status: 'InProduction' });
           }}
           onShowToast={onShowToast}
+        />
+      )}
+
+      {/* Lucian #269: Type-to-confirm Delete Chapter Modal */}
+      {deleteTargetChapter && (
+        <TypeToConfirmModal
+          isOpen={!!deleteTargetChapter}
+          targetName={deleteTargetChapter.title?.trim() || `Chương ${deleteTargetChapter.chapterNumber}`}
+          title="Xác nhận xóa chương"
+          description={`Bạn có chắc chắn muốn xóa Chương ${deleteTargetChapter.chapterNumber}? Dữ liệu trang và phân cảnh sẽ được đánh dấu xóa mềm. Vui lòng nhập chính xác tên chương bên dưới để xác nhận:`}
+          onConfirm={executeDeleteChapter}
+          onCancel={() => setDeleteTargetChapter(null)}
+          isDeleting={isDeletingChapter}
         />
       )}
     </>,

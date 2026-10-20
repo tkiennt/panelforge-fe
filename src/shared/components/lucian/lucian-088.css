@@ -1,0 +1,114 @@
+/* Lucian UX/UI Prompt #088 · Empty folder that swallows paper · (c) 2026 Seokwoo Lee · MIT License */
+/* Adapted for PanelForge Editorial AI Studio Design System */
+
+.pf-empty-folder-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+  background: var(--ux-bg-canvas, #FCFBF8);
+  border: 1px dashed var(--ux-border-default, #D8D2C5);
+  border-radius: 18px;
+  color: var(--ux-text-primary, #1C1917);
+  font-family: var(--font-sans, system-ui, sans-serif);
+  transition: all 0.25s ease;
+}
+
+.pf-empty-folder-box:hover {
+  border-color: var(--ux-brand-primary, #F97316);
+  background: #FFFFFF;
+  box-shadow: 0 10px 30px -10px rgba(28, 25, 23, 0.08);
+}
+
+.pf-empty-art {
+  position: relative;
+  width: 120px;
+  height: 90px;
+  margin-bottom: 20px;
+}
+
+.pf-empty-folder-back {
+  fill: #EBE7DE;
+  transition: fill 0.25s ease;
+}
+
+.pf-empty-folder-box:hover .pf-empty-folder-back {
+  fill: #E5E0D5;
+}
+
+.pf-empty-sheet-a {
+  transform: translateY(0);
+  transition: transform 0.35s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+
+.pf-empty-sheet-b {
+  transform: translateY(0);
+  transition: transform 0.35s cubic-bezier(0.3, 1.4, 0.5, 1) 0.05s;
+}
+
+.pf-empty-folder-box:hover .pf-empty-sheet-a {
+  transform: translateY(-8px) rotate(-3deg);
+}
+
+.pf-empty-folder-box:hover .pf-empty-sheet-b {
+  transform: translateY(-12px) rotate(4deg);
+}
+
+.pf-empty-folder-front {
+  fill: #D8D2C5;
+  transition: fill 0.25s ease;
+}
+
+.pf-empty-folder-box:hover .pf-empty-folder-front {
+  fill: #C9C2B3;
+}
+
+.pf-empty-title {
+  margin: 0 0 6px 0;
+  font-family: var(--font-serif, Georgia, serif);
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ux-text-primary, #1C1917);
+}
+
+.pf-empty-subtitle {
+  max-width: 340px;
+  margin: 0 0 20px 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ux-text-secondary, #57534E);
+}
+
+.pf-empty-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 20px;
+  border: none;
+  border-radius: 9px;
+  background: var(--ux-brand-primary, #F97316);
+  color: #FFFFFF;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(249, 115, 22, 0.35);
+  transition: all 0.2s ease;
+}
+
+.pf-empty-action-btn:hover {
+  background: var(--ux-brand-hover, #EA580C);
+  transform: translateY(-1px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pf-empty-sheet-a,
+  .pf-empty-sheet-b,
+  .pf-empty-action-btn {
+    transition: none;
+    transform: none !important;
+  }
+}

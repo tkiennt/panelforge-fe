@@ -63,6 +63,7 @@ import { offlineQueueService } from '@/services/offlineQueue.service';
 import { saveDraft, clearDraft, readRestorableDraft, type LocalDraft } from '@/lib/localDraft';
 import { OfflineStatusBanner } from '@/shared/components/OfflineStatusBanner';
 import { ElementConflictModal } from '@/shared/modals/ElementConflictModal';
+import { UnsavedChangesBar } from '@/shared/components/lucian';
 import { useTranslation } from '@/lib/i18n';
 
 interface ScriptEditorViewProps {
@@ -212,6 +213,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   );
 
   const hasUnsavedChanges = isStoryArcDirty || isOutlineDirty;
+  const [barWarn, setBarWarn] = useState(false);
 
   // Bản nháp cục bộ: lưu chữ đang gõ (debounce 1s) để không mất khi hết phiên / rớt mạng / đóng tab.
   const storyArcDraftKey = seriesId ? `storyArc.${seriesId}` : null;
@@ -404,10 +406,13 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   // Chọn Chapter từ dropdown (bảo vệ thay đổi chưa lưu)
   const handleSelectChapter = (chapId: string) => {
     if (hasUnsavedChanges) {
-      const confirmSwitch = window.confirm(
-        'Bạn có thay đổi đề cương hoặc Story Arc chưa lưu. Bạn có muốn bỏ qua các thay đổi này để chuyển chương không?',
+      setBarWarn(true);
+      setTimeout(() => setBarWarn(false), 800);
+      notify(
+        'Thay đổi chưa lưu',
+        'Vui lòng Lưu lại hoặc Hủy bỏ các thay đổi trên thanh thông báo trước khi chuyển chương.',
       );
-      if (!confirmSwitch) return;
+      return;
     }
 
     // Xoá kết quả kiểm tra nhất quán của chương cũ ngay lập tức
@@ -1011,6 +1016,22 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
   return (
     <div className='flex-1 flex flex-col bg-[#F3F0E9] h-[calc(100vh-64px)] overflow-hidden text-[#1C1917]'>
+      <UnsavedChangesBar
+        isDirty={hasUnsavedChanges}
+        isWarn={barWarn}
+        count={(isStoryArcDirty ? 1 : 0) + (isOutlineDirty ? 1 : 0)}
+        onSave={async () => {
+          if (isStoryArcDirty) await handleSaveStoryArc();
+          if (isOutlineDirty) await handleSaveOutline();
+        }}
+        onDiscard={() => {
+          setStoryArcInput(seriesDetail?.storyArc || '');
+          setOutlineInput(currentChapter?.outline || '');
+          if (storyArcDraftKey) clearDraft(storyArcDraftKey);
+          if (outlineDraftKey) clearDraft(outlineDraftKey);
+        }}
+        isSaving={savingStoryArc || savingOutline}
+      />
       {/* 1. Gọn gàng Header Toolbar */}
       <header className='shrink-0 bg-[#FCFBF8] border-b border-[#D8D2C5] px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 shadow-2xs z-30'>
         {/* Left: Tên trang, Chương, Trạng thái & Phiên bản */}

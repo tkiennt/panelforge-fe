@@ -38,6 +38,7 @@ import { PageContainer } from '@/shared/components/PageContainer';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { createPortal } from 'react-dom';
 import { useTranslation } from '@/lib/i18n';
+import { EmptyFolderState } from '@/shared/components/lucian';
 
 interface SeriesBibleViewProps {
   activeProject?: MangaProject;
@@ -934,50 +935,34 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
           </button>
         </div>
       ) : filteredEntities.length === 0 ? (
-        <div className='bg-[#FCFBF8] border border-dashed border-[#D8D2C5] rounded-xl p-10 text-center space-y-3'>
-          <div className='w-12 h-12 rounded-full bg-[#FFF2E6] border border-[#F97316]/30 flex items-center justify-center text-[#F97316] mx-auto'>
-            <BookOpen className='w-6 h-6' />
+        localEntities.length === 0 ? (
+          <EmptyFolderState
+            title="Series Bible chưa có mục nào"
+            subtitle="Thêm các nhân vật, địa điểm, đạo cụ hoặc quy tắc mỹ thuật để hỗ trợ họa sĩ và hệ thống kiểm tra nhất quán."
+            actionText={canCreateDraft ? (isProducer ? 'Tạo mục đầu tiên' : 'Tạo bản nháp đầu tiên') : undefined}
+            onAction={canCreateDraft ? () => setAddEntityOpen(true) : undefined}
+          />
+        ) : (
+          <div className='bg-[#FCFBF8] border border-dashed border-[#D8D2C5] rounded-xl p-10 text-center space-y-3'>
+            <div className='w-12 h-12 rounded-full bg-[#FFF2E6] border border-[#F97316]/30 flex items-center justify-center text-[#F97316] mx-auto'>
+              <BookOpen className='w-6 h-6' />
+            </div>
+            <h3 className='font-bold font-serif text-base text-[#1C1917]'>
+              Không tìm thấy mục phù hợp
+            </h3>
+            <p className='text-xs text-[#57534E] max-w-md mx-auto'>
+              Không có mục tri thức nào khớp với điều kiện lọc hiện tại. Thử đổi từ khóa hoặc xóa bộ lọc.
+            </p>
+            <button
+              type='button'
+              onClick={handleResetFilters}
+              className='px-3.5 py-1.5 bg-[#F3F0E9] hover:bg-[#E7E2D6] text-[#1C1917] text-xs font-semibold rounded-lg inline-flex items-center gap-1.5 transition-colors cursor-pointer'
+            >
+              <RotateCcw className='w-3.5 h-3.5' />
+              <span>Xóa bộ lọc</span>
+            </button>
           </div>
-          {localEntities.length === 0 ? (
-            <>
-              <h3 className='font-bold font-serif text-base text-[#1C1917]'>
-                Series Bible chưa có mục nào
-              </h3>
-              <p className='text-xs text-[#57534E] max-w-md mx-auto'>
-                Thêm các nhân vật, địa điểm, đạo cụ hoặc quy tắc mỹ thuật để hỗ trợ họa sĩ và hệ
-                thống kiểm tra nhất quán.
-              </p>
-              {canCreateDraft && (
-                <button
-                  type='button'
-                  onClick={() => setAddEntityOpen(true)}
-                  className='px-4 py-2 rounded-xl bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold inline-flex items-center gap-1.5 shadow-sm cursor-pointer'
-                >
-                  <Plus className='w-4 h-4' />
-                  <span>{isProducer ? 'Tạo mục đầu tiên' : 'Tạo bản nháp đầu tiên'}</span>
-                </button>
-              )}
-            </>
-          ) : (
-            <>
-              <h3 className='font-bold font-serif text-base text-[#1C1917]'>
-                Không tìm thấy mục phù hợp
-              </h3>
-              <p className='text-xs text-[#57534E] max-w-md mx-auto'>
-                Không có mục tri thức nào khớp với điều kiện lọc hiện tại. Thử đổi từ khóa hoặc xóa
-                bộ lọc.
-              </p>
-              <button
-                type='button'
-                onClick={handleResetFilters}
-                className='px-3.5 py-1.5 bg-[#F3F0E9] hover:bg-[#E7E2D6] text-[#1C1917] text-xs font-semibold rounded-lg inline-flex items-center gap-1.5 transition-colors cursor-pointer'
-              >
-                <RotateCcw className='w-3.5 h-3.5' />
-                <span>Xóa bộ lọc</span>
-              </button>
-            </>
-          )}
-        </div>
+        )
       ) : viewMode === 'grid' ? (
         /* GRID VIEW */
         <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4'>
