@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import './lucian-tokens.css';
 
 @theme {
   --font-serif: 'Playfair Display', Georgia, serif;
