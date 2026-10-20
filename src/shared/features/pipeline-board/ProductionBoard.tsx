@@ -11,6 +11,9 @@ import {
   SearchX,
   UserCheck,
   X,
+  FileCheck2,
+  AlertTriangle,
+  RotateCcw,
 } from 'lucide-react';
 import { KanbanColumn } from './KanbanColumn';
 import { SideDrawer } from './SideDrawer';
@@ -76,7 +79,7 @@ const VIEW_META: Record<ViewMode, { label: string; Icon: React.ElementType }> = 
 
 const focusRing =
   'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-landing-ink';
-const controlCls = `min-h-11 w-full rounded-lg border border-landing-border bg-white px-3 text-sm text-landing-ink ${focusRing}`;
+const controlCls = `min-h-10 w-full rounded-lg border border-landing-border bg-[#FCFBF8] px-3 text-xs sm:text-sm text-landing-ink ${focusRing}`;
 
 export const ProductionBoard: React.FC<ProductionBoardProps> = ({
   chapterId,
@@ -93,6 +96,7 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
 
   // ── Dữ liệu ──
   const [cards, setCards] = useState<BoardCard[] | null>(null);
+  const [pages, setPages] = useState<PageDto[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
@@ -102,23 +106,27 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
   const loadBoard = useCallback(async () => {
     if (!chapterId || !seriesId || !workspaceId) {
       setCards(null);
+      setPages([]);
       loadedChapterRef.current = null;
       return;
     }
     const requestId = ++requestRef.current;
-    // Đổi chương: bỏ dữ liệu chương cũ. Làm mới cùng chương: giữ dữ liệu cũ trong lúc tải.
-    if (loadedChapterRef.current !== chapterId) setCards(null);
+    if (loadedChapterRef.current !== chapterId) {
+      setCards(null);
+      setPages([]);
+    }
     setLoading(true);
     setError(null);
     try {
-      const [assignments, pipeline, pages, members] = await Promise.all([
+      const [assignments, pipeline, pagesRes, members] = await Promise.all([
         assignmentService.getAssignmentsStrict(chapterId),
         pipelineService.getSeriesPipeline(seriesId).catch(() => null),
         pageService.getPagesByChapter(chapterId).catch(() => [] as PageDto[]),
         workspaceService.getMembers(workspaceId).catch(() => [] as WorkspaceMemberDto[]),
       ]);
       if (requestId !== requestRef.current) return;
-      setCards(mapAssignmentsToCards(assignments, pipeline?.stages ?? [], pages, members));
+      setCards(mapAssignmentsToCards(assignments, pipeline?.stages ?? [], pagesRes, members));
+      setPages(pagesRes);
       loadedChapterRef.current = chapterId;
       setNow(Date.now());
     } catch (err) {
@@ -135,7 +143,7 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
     loadBoard();
   }, [loadBoard, refreshKey]);
 
-  // ── Trạng thái lọc & cách xem (URL cho lọc nhanh/cách xem/nhóm; bộ lọc chi tiết trong state) ──
+  // ── Trạng thái lọc & cách xem ──
   const userCtx: UserContext = useMemo(
     () => ({
       userId: currentUserId ?? null,
@@ -149,7 +157,6 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
     [canUseNeedsMe],
   );
 
-  // URL hợp lệ được ưu tiên; nếu không: Producer xem toàn chương, thành viên xem "Cần tôi xử lý".
   const quickFilter = resolveQuickFilter(searchParams.get('filter'), canUseNeedsMe, isProducer);
   const viewMode = resolveViewMode(searchParams.get('view'));
   const groupBy = resolveGroupBy(searchParams.get('group'));
@@ -172,7 +179,7 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
   const [filters, setFilters] = useState<DetailFilters>(EMPTY_DETAIL_FILTERS);
   const deferredSearch = useDeferredValue(filters.search);
 
-  // Phạm vi trang phụ thuộc chương: đổi chương thì bỏ lọc phạm vi để không lọc theo trang không tồn tại.
+  // Đổi chương: reset filter phạm vi trang
   const [scopeChapter, setScopeChapter] = useState(chapterId);
   if (scopeChapter !== chapterId) {
     setScopeChapter(chapterId);
@@ -231,11 +238,10 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
 
   const clearFilters = () => {
     setFilters(EMPTY_DETAIL_FILTERS);
-    // 'all' được ghi rõ để không quay về mặc định "Cần tôi xử lý" của thành viên.
     setParam('filter', 'all');
   };
 
-  // ── Chi tiết công việc (drawer hiện có) + trả focus về đúng chỗ khi đóng ──
+  // ── Chi tiết công việc (drawer) ──
   const [selectedCard, setSelectedCard] = useState<BoardCard | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const triggerRef = useRef<HTMLElement | null>(null);
@@ -298,10 +304,15 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
 
   return (
     <div className='flex min-w-0 flex-col gap-5'>
-      <MetricsBar metrics={metrics} />
+      {/* B. Dải tóm tắt tiến độ gọn, phân biệt số trang và số công việc */}
+      <ProgressSummaryStrip metrics={metrics} pageCount={pages.length} />
 
-      {/* Lọc nhanh theo trạng thái thật */}
-      <div role='group' aria-label='Lọc nhanh theo trạng thái' className='flex flex-wrap gap-2'>
+      {/* C. Lọc nhanh theo trạng thái: warm active style #FFF2E6 / #1C1917 / #C2410C */}
+      <div
+        role='group'
+        aria-label='Lọc nhanh theo trạng thái'
+        className='flex flex-wrap items-center gap-2'
+      >
         {availableQuickFilters.map((f) => {
           const active = quickFilter === f;
           return (
@@ -310,20 +321,20 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
               type='button'
               aria-pressed={active}
               onClick={() => setParam('filter', f)}
-              className={`inline-flex min-h-11 items-center gap-1.5 rounded-full border px-4 text-sm font-semibold transition-colors cursor-pointer ${focusRing} ${
+              className={`inline-flex min-h-10 items-center gap-1.5 rounded-lg border px-3.5 text-xs font-semibold transition-all cursor-pointer ${focusRing} ${
                 active
-                  ? 'border-landing-ink bg-landing-ink text-white'
-                  : 'border-landing-border bg-landing-paper-light text-landing-ink hover:border-landing-ink-muted'
+                  ? 'border-[#C2410C] bg-[#FFF2E6] text-[#1C1917] shadow-2xs ring-1 ring-[#C2410C]/25'
+                  : 'border-landing-border bg-[#FCFBF8] text-landing-ink hover:bg-[#F3F0E9] hover:border-stone-400'
               }`}
             >
-              {f === 'needs-me' && <UserCheck className='h-4 w-4' aria-hidden='true' />}
-              {QUICK_FILTER_LABELS[f]}
+              {f === 'needs-me' && (
+                <UserCheck className='h-3.5 w-3.5 text-[#C2410C]' aria-hidden='true' />
+              )}
+              <span>{QUICK_FILTER_LABELS[f]}</span>
               {quickCounts && !initialLoading && (
                 <span
-                  className={`rounded-full px-1.5 text-xs tabular-nums ${
-                    active
-                      ? 'bg-landing-orange text-landing-ink'
-                      : 'bg-landing-paper text-landing-ink-muted'
+                  className={`rounded-full px-1.5 py-0.2 text-[11px] tabular-nums font-bold ${
+                    active ? 'bg-[#C2410C]/15 text-[#C2410C]' : 'bg-stone-200/70 text-stone-600'
                   }`}
                 >
                   {quickCounts[f]}
@@ -334,8 +345,8 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
         })}
       </div>
 
-      {/* Bộ lọc chi tiết */}
-      <div className='grid min-w-0 gap-3 rounded-xl border border-landing-border bg-landing-paper-light p-4 [grid-template-columns:repeat(auto-fit,minmax(min(100%,12rem),1fr))]'>
+      {/* C. Bộ lọc chi tiết: Toolbar gọn */}
+      <div className='grid min-w-0 gap-3 rounded-xl border border-landing-border bg-[#FCFBF8] p-3.5 shadow-2xs [grid-template-columns:repeat(auto-fit,minmax(min(100%,11rem),1fr))]'>
         <div className='min-w-0 [grid-column:span_2] max-[640px]:[grid-column:auto]'>
           <label
             htmlFor='pb-search'
@@ -353,11 +364,12 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
               type='search'
               value={filters.search}
               onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value }))}
-              placeholder='Tên, ghi chú, người phụ trách…'
+              placeholder='Tên việc, ghi chú, người phụ trách…'
               className={`${controlCls} pl-9`}
             />
           </div>
         </div>
+
         <FilterSelect
           id='pb-assignee'
           label='Người phụ trách'
@@ -366,6 +378,7 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
           options={assigneeOptions.map((o) => ({ value: o.id, label: o.name }))}
           allLabel='Mọi người'
         />
+
         <FilterSelect
           id='pb-stage'
           label='Công đoạn'
@@ -374,6 +387,7 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
           options={stageOptions.map((o) => ({ value: o.id, label: o.name }))}
           allLabel='Mọi công đoạn'
         />
+
         <FilterSelect
           id='pb-scope'
           label='Phạm vi'
@@ -382,38 +396,41 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
           options={scopeOptions.map((o) => ({ value: o.key, label: o.label }))}
           allLabel='Mọi phạm vi'
         />
+
         <div className='flex min-w-0 items-end'>
           <label
             htmlFor='pb-overdue'
-            className='flex min-h-11 w-full cursor-pointer items-center gap-2 rounded-lg border border-landing-border bg-white px-3 text-sm text-landing-ink has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-landing-ink'
+            className='flex min-h-10 w-full cursor-pointer items-center gap-2 rounded-lg border border-landing-border bg-[#FCFBF8] px-3 text-xs sm:text-sm text-landing-ink has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-landing-ink hover:bg-stone-50 transition-colors'
           >
             <input
               id='pb-overdue'
               type='checkbox'
               checked={filters.overdueOnly}
               onChange={(e) => setFilters((f) => ({ ...f, overdueOnly: e.target.checked }))}
-              className='h-4 w-4 accent-[#1C1917]'
+              className='h-4 w-4 accent-[#C2410C]'
             />
-            Chỉ việc quá hạn
+            <span className='font-medium'>Chỉ việc quá hạn</span>
           </label>
         </div>
       </div>
 
-      {/* Thanh kết quả: số lượng, cách xem, nhóm */}
-      <div className='flex flex-wrap items-center justify-between gap-3'>
+      {/* Thanh trạng thái kết quả, cách xem, nhóm */}
+      <div className='flex flex-wrap items-center justify-between gap-3 border-b border-landing-border pb-3'>
         <div className='flex flex-wrap items-center gap-3'>
           <h2
             ref={resultsHeadingRef}
             tabIndex={-1}
-            className='text-sm text-landing-ink focus:outline-none'
+            className='text-xs sm:text-sm text-landing-ink focus:outline-none'
             aria-live='polite'
           >
             {cards === null ? (
               <span className='text-landing-ink-muted'>Đang tải công việc…</span>
             ) : (
               <>
-                Đang hiển thị <strong className='tabular-nums'>{filteredCards.length}</strong> /{' '}
-                <span className='tabular-nums'>{cards.length}</span> công việc của chương
+                Đang hiển thị{' '}
+                <strong className='tabular-nums font-bold'>{filteredCards.length}</strong> /{' '}
+                <span className='tabular-nums font-semibold'>{cards.length}</span> công việc của
+                chương
                 {anyFilterActive && <span className='text-landing-ink-muted'> (đã lọc)</span>}
               </>
             )}
@@ -422,10 +439,10 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
             <button
               type='button'
               onClick={clearFilters}
-              className={`inline-flex min-h-11 items-center gap-1.5 rounded-lg px-3 text-sm font-semibold text-landing-ink underline-offset-2 hover:underline cursor-pointer ${focusRing}`}
+              className={`inline-flex min-h-9 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold text-[#C2410C] bg-[#FFF2E6] border border-[#C2410C]/30 hover:bg-[#FFE5CC] transition-colors cursor-pointer ${focusRing}`}
             >
-              <X className='h-4 w-4' aria-hidden='true' />
-              Xoá bộ lọc
+              <X className='h-3.5 w-3.5' aria-hidden='true' />
+              <span>Xoá bộ lọc</span>
             </button>
           )}
           {loading && cards !== null && (
@@ -452,7 +469,7 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
                 id='pb-group'
                 value={groupBy}
                 onChange={(e) => setParam('group', e.target.value, 'none')}
-                className={`${controlCls} w-auto`}
+                className={`${controlCls} w-auto text-xs py-1`}
               >
                 {GROUP_BYS.map((g) => (
                   <option key={g} value={g}>
@@ -462,10 +479,12 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
               </select>
             </div>
           )}
+
+          {/* Cách xem Lưới / Danh sách / Kanban */}
           <div
             role='group'
             aria-label='Cách xem'
-            className='inline-flex rounded-lg border border-landing-border bg-landing-paper-light p-1'
+            className='inline-flex rounded-lg border border-landing-border bg-[#FCFBF8] p-0.5 shadow-2xs'
           >
             {VIEW_MODES.map((v) => {
               const { label, Icon } = VIEW_META[v];
@@ -476,11 +495,13 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
                   type='button'
                   aria-pressed={active}
                   onClick={() => setParam('view', v, 'grid')}
-                  className={`inline-flex min-h-10 min-w-11 items-center justify-center gap-1.5 rounded-md px-3 text-sm font-semibold transition-colors cursor-pointer ${focusRing} ${
-                    active ? 'bg-landing-ink text-white' : 'text-landing-ink hover:bg-landing-paper'
+                  className={`inline-flex min-h-8 min-w-9 items-center justify-center gap-1.5 rounded-md px-2.5 text-xs font-semibold transition-colors cursor-pointer ${focusRing} ${
+                    active
+                      ? 'bg-[#FFF2E6] text-[#1C1917] border border-[#C2410C]/40 font-bold shadow-2xs'
+                      : 'text-landing-ink-muted hover:text-landing-ink hover:bg-[#F3F0E9]'
                   }`}
                 >
-                  <Icon className='h-4 w-4' aria-hidden='true' />
+                  <Icon className='h-3.5 w-3.5' aria-hidden='true' />
                   <span className={v === 'kanban' ? 'max-[480px]:sr-only' : ''}>{label}</span>
                 </button>
               );
@@ -499,14 +520,14 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
           <button
             type='button'
             onClick={loadBoard}
-            className={`inline-flex min-h-11 items-center gap-1.5 rounded-lg px-3 font-semibold cursor-pointer ${focusRing}`}
+            className={`inline-flex min-h-9 items-center gap-1.5 rounded-lg px-3 font-semibold cursor-pointer ${focusRing}`}
           >
             <RefreshCw className='h-4 w-4' aria-hidden='true' /> Thử lại
           </button>
         </div>
       )}
 
-      {/* Nội dung */}
+      {/* D. Vùng công việc chính */}
       {initialLoading ? (
         <GridSkeleton />
       ) : fatalError ? (
@@ -563,7 +584,7 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
           />
         )
       ) : viewMode === 'kanban' ? (
-        <div className='min-w-0 overflow-x-auto pb-2'>
+        <div className='min-w-0 overflow-x-auto pb-4'>
           <div className='flex w-max items-start gap-4'>
             {BOARD_COLUMNS.map((column) => (
               <KanbanColumn
@@ -621,6 +642,7 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
         </div>
       )}
 
+      {/* Drawer chi tiết công việc */}
       <SideDrawer
         isOpen={isDrawerOpen}
         onClose={closeDrawer}
@@ -637,8 +659,8 @@ export const ProductionBoard: React.FC<ProductionBoardProps> = ({
 
 // ── Thành phần phụ ──
 
-const primaryCta = `inline-flex min-h-11 items-center gap-2 rounded-lg bg-landing-orange px-4 text-sm font-semibold text-landing-ink hover:bg-landing-orange-hover cursor-pointer ${focusRing}`;
-const secondaryCta = `inline-flex min-h-11 items-center gap-2 rounded-lg border border-landing-border bg-white px-4 text-sm font-semibold text-landing-ink hover:bg-landing-paper cursor-pointer ${focusRing}`;
+const primaryCta = `inline-flex min-h-10 items-center gap-2 rounded-lg bg-[#C2410C] px-4 text-xs sm:text-sm font-semibold text-white hover:bg-[#EA580C] shadow-xs cursor-pointer ${focusRing}`;
+const secondaryCta = `inline-flex min-h-10 items-center gap-2 rounded-lg border border-landing-border bg-[#FCFBF8] px-4 text-xs sm:text-sm font-semibold text-landing-ink hover:bg-[#F3F0E9] cursor-pointer ${focusRing}`;
 
 const FilterSelect: React.FC<{
   id: string;
@@ -663,87 +685,120 @@ const FilterSelect: React.FC<{
   </div>
 );
 
-const MetricsBar: React.FC<{ metrics: ChapterMetrics | null }> = ({ metrics }) => {
-  const items: { label: string; value: (m: ChapterMetrics) => number; alert?: boolean }[] = [
-    { label: 'Đang làm', value: (m) => m.inProgress },
-    { label: 'Chờ xét duyệt', value: (m) => m.waitingReview },
-    { label: 'Cần sửa', value: (m) => m.rework, alert: true },
-    { label: 'Quá hạn', value: (m) => m.overdue, alert: true },
-    { label: 'Bị chặn', value: (m) => m.blocked },
-  ];
+/** B. Dải tiến độ gọn, phân biệt số trang và số công việc */
+const ProgressSummaryStrip: React.FC<{ metrics: ChapterMetrics | null; pageCount: number }> = ({
+  metrics,
+  pageCount,
+}) => {
   return (
     <section aria-label='Tổng quan toàn chương' className='min-w-0'>
-      <div className='grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(min(100%,9.5rem),1fr))]'>
-        <div className='rounded-xl border border-landing-border bg-landing-paper-light px-4 py-3 [grid-column:span_2] max-[480px]:[grid-column:auto]'>
-          <p className='text-xs font-semibold text-landing-ink-muted'>Hoàn thành (toàn chương)</p>
-          {metrics ? (
-            <>
-              <p className='mt-1 flex items-baseline gap-2 text-landing-ink'>
-                <span className='text-2xl font-semibold tabular-nums'>
-                  {metrics.done}/{metrics.total}
+      <div className='flex flex-wrap items-center justify-between gap-3 rounded-xl border border-landing-border bg-[#FCFBF8] p-3.5 shadow-2xs'>
+        {/* Nhóm tiến độ hoàn thành công việc */}
+        <div className='flex flex-wrap items-center gap-4 sm:gap-6 min-w-0'>
+          <div className='min-w-0'>
+            <div className='flex items-center gap-2 flex-wrap'>
+              <span className='text-xs font-bold uppercase tracking-wider text-landing-ink-muted'>
+                Tiến độ công việc
+              </span>
+              {pageCount > 0 && (
+                <span className='inline-flex items-center gap-1 rounded bg-[#F3F0E9] border border-stone-200 px-2 py-0.5 text-xs font-medium text-stone-700'>
+                  <FileCheck2 className='h-3.5 w-3.5 text-stone-500' aria-hidden='true' />
+                  <span>{pageCount} trang bản thảo</span>
                 </span>
-                {metrics.percent !== null && (
-                  <span className='text-sm text-landing-ink-muted tabular-nums'>
-                    {metrics.percent}%
-                  </span>
-                )}
-              </p>
-              <div
-                className='mt-2 h-1.5 overflow-hidden rounded-full bg-landing-paper'
-                role='progressbar'
-                aria-label='Tiến độ hoàn thành chương'
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-valuenow={metrics.percent ?? 0}
-              >
-                <div
-                  className='h-full rounded-full bg-landing-orange'
-                  style={{ width: `${metrics.percent ?? 0}%` }}
-                />
-              </div>
-              {metrics.disabledStage > 0 && (
-                <p className='mt-1.5 text-xs text-landing-ink-muted'>
-                  {metrics.disabledStage} việc thuộc công đoạn đang tắt (không tính là hoàn tất)
-                </p>
-              )}
-            </>
-          ) : (
-            <SkeletonLine className='mt-2 h-7 w-24' />
-          )}
-        </div>
-        {items.map((it) => {
-          const value = metrics ? it.value(metrics) : null;
-          return (
-            <div
-              key={it.label}
-              className='rounded-xl border border-landing-border bg-landing-paper-light px-4 py-3'
-            >
-              <p className='text-xs font-semibold text-landing-ink-muted'>{it.label}</p>
-              {value === null ? (
-                <SkeletonLine className='mt-2 h-7 w-10' />
-              ) : (
-                <p
-                  className={`mt-1 text-2xl font-semibold tabular-nums ${
-                    it.alert && value > 0 ? 'text-rose-800' : 'text-landing-ink'
-                  }`}
-                >
-                  {value}
-                </p>
               )}
             </div>
-          );
-        })}
+
+            <div className='mt-1 flex items-baseline gap-2 text-landing-ink'>
+              <span className='text-xl sm:text-2xl font-bold tabular-nums tracking-tight'>
+                {metrics ? `${metrics.done}/${metrics.total}` : '0/0'}
+              </span>
+              {metrics?.percent !== null && (
+                <span className='text-xs sm:text-sm font-semibold text-landing-ink-muted tabular-nums'>
+                  {metrics?.percent}%
+                </span>
+              )}
+              {metrics && (
+                <div
+                  className='ml-2 h-2 w-20 sm:w-28 overflow-hidden rounded-full bg-[#E7E2D7]'
+                  role='progressbar'
+                  aria-label='Tiến độ hoàn thành chương'
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={metrics.percent ?? 0}
+                >
+                  <div
+                    className='h-full rounded-full bg-[#C2410C]'
+                    style={{ width: `${metrics.percent ?? 0}%` }}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Các chỉ số công việc theo trạng thái */}
+          <div className='flex flex-wrap items-center gap-2 border-t sm:border-t-0 sm:border-l border-landing-border pt-2 sm:pt-0 sm:pl-4'>
+            <div className='flex items-center gap-1.5 rounded-lg bg-[#F3F0E9] border border-landing-border px-2.5 py-1 text-xs'>
+              <span className='text-landing-ink-muted'>Đang làm:</span>
+              <span className='font-bold tabular-nums text-landing-ink'>
+                {metrics?.inProgress ?? 0}
+              </span>
+            </div>
+
+            <div className='flex items-center gap-1.5 rounded-lg bg-[#F3F0E9] border border-landing-border px-2.5 py-1 text-xs'>
+              <span className='text-landing-ink-muted'>Chờ duyệt:</span>
+              <span className='font-bold tabular-nums text-sky-900'>
+                {metrics?.waitingReview ?? 0}
+              </span>
+            </div>
+
+            {/* Cần sửa - nổi bật cảnh báo nếu > 0 */}
+            <div
+              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs border ${
+                metrics && metrics.rework > 0
+                  ? 'bg-rose-50 border-rose-300 text-rose-900 font-semibold'
+                  : 'bg-[#F3F0E9] border-landing-border text-landing-ink-muted'
+              }`}
+            >
+              {metrics && metrics.rework > 0 && (
+                <RotateCcw className='h-3 w-3 text-rose-600' aria-hidden='true' />
+              )}
+              <span>Cần sửa:</span>
+              <span className='font-bold tabular-nums'>{metrics?.rework ?? 0}</span>
+            </div>
+
+            {/* Quá hạn - nổi bật cảnh báo nếu > 0 */}
+            <div
+              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs border ${
+                metrics && metrics.overdue > 0
+                  ? 'bg-amber-50 border-amber-300 text-amber-900 font-semibold'
+                  : 'bg-[#F3F0E9] border-landing-border text-landing-ink-muted'
+              }`}
+            >
+              {metrics && metrics.overdue > 0 && (
+                <AlertTriangle className='h-3 w-3 text-amber-600' aria-hidden='true' />
+              )}
+              <span>Quá hạn:</span>
+              <span className='font-bold tabular-nums'>{metrics?.overdue ?? 0}</span>
+            </div>
+
+            {metrics && metrics.blocked > 0 && (
+              <div className='flex items-center gap-1.5 rounded-lg bg-stone-100 border border-stone-300 px-2.5 py-1 text-xs text-stone-700'>
+                <span>Bị chặn:</span>
+                <span className='font-bold tabular-nums'>{metrics.blocked}</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {metrics && metrics.disabledStage > 0 && (
+          <p className='text-[11px] text-landing-ink-muted'>
+            {metrics.disabledStage} việc thuộc công đoạn đang tắt (không tính là hoàn tất)
+          </p>
+        )}
       </div>
     </section>
   );
 };
-
-const SkeletonLine: React.FC<{ className?: string }> = ({ className = '' }) => (
-  <div
-    className={`animate-pulse rounded bg-landing-paper motion-reduce:animate-none ${className}`}
-    aria-hidden='true'
-  />
-);
 
 const GridSkeleton: React.FC = () => (
   <div
@@ -751,21 +806,21 @@ const GridSkeleton: React.FC = () => (
     role='status'
     aria-label='Đang tải công việc'
   >
-    {Array.from({ length: 8 }).map((_, i) => (
+    {Array.from({ length: 6 }).map((_, i) => (
       <div
         key={i}
-        className='flex h-64 flex-col gap-3 rounded-xl border border-landing-border bg-landing-paper-light p-4'
+        className='flex h-64 flex-col gap-3 rounded-xl border border-landing-border bg-[#FCFBF8] p-4 animate-pulse'
       >
         <div className='flex justify-between'>
-          <SkeletonLine className='h-5 w-24' />
-          <SkeletonLine className='h-5 w-20' />
+          <div className='h-5 w-24 rounded bg-[#E7E2D7]' />
+          <div className='h-5 w-20 rounded bg-[#E7E2D7]' />
         </div>
-        <SkeletonLine className='h-5 w-4/5' />
-        <SkeletonLine className='h-3 w-16' />
-        <SkeletonLine className='h-12 w-full' />
+        <div className='h-5 w-4/5 rounded bg-[#E7E2D7]' />
+        <div className='h-3 w-16 rounded bg-[#E7E2D7]' />
+        <div className='h-12 w-full rounded bg-[#E7E2D7]' />
         <div className='mt-auto flex justify-between border-t border-landing-border pt-3'>
-          <SkeletonLine className='h-7 w-28' />
-          <SkeletonLine className='h-7 w-20' />
+          <div className='h-7 w-28 rounded bg-[#E7E2D7]' />
+          <div className='h-7 w-20 rounded bg-[#E7E2D7]' />
         </div>
       </div>
     ))}
@@ -781,11 +836,11 @@ const EmptyState: React.FC<{
 }> = ({ icon: Icon, title, description, action, tone = 'neutral' }) => (
   <div
     role={tone === 'error' ? 'alert' : undefined}
-    className='flex flex-col items-center justify-center rounded-xl border border-dashed border-landing-border bg-landing-paper-light px-6 py-14 text-center'
+    className='flex flex-col items-center justify-center rounded-xl border border-dashed border-landing-border bg-[#FCFBF8] px-6 py-14 text-center shadow-2xs'
   >
     <span
       className={`mb-3 inline-flex h-12 w-12 items-center justify-center rounded-xl ${
-        tone === 'error' ? 'bg-rose-50 text-rose-800' : 'bg-landing-paper text-landing-ink'
+        tone === 'error' ? 'bg-rose-50 text-rose-800' : 'bg-[#F3F0E9] text-landing-ink'
       }`}
       aria-hidden='true'
     >

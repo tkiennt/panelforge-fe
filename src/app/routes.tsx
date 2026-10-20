@@ -111,6 +111,7 @@ export interface AppRoutesProps {
   setIsLoginModalOpen: (open: boolean) => void;
   setIsRegisterModalOpen: (open: boolean) => void;
   setIsCommandPaletteOpen?: (open: boolean) => void;
+  setIsAuditLogOpen?: (open: boolean) => void;
   members: StudioMember[];
   setMembers: React.Dispatch<React.SetStateAction<StudioMember[]>>;
   handleInviteMember: (m: StudioMember) => void;
@@ -141,6 +142,7 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
   setIsLoginModalOpen,
   setIsRegisterModalOpen,
   setIsCommandPaletteOpen,
+  setIsAuditLogOpen,
   members,
   setMembers,
   handleInviteMember,
@@ -273,6 +275,8 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
               onOpenTwoFactor={() => setIsTwoFactorModalOpen(true)}
               onOpenChangePassword={() => setIsChangePasswordModalOpen(true)}
               onOpenCommandPalette={() => setIsCommandPaletteOpen?.(true)}
+              onOpenActivityHistory={() => setIsAuditLogOpen?.(true)}
+              onOpenNotifications={() => navigate('/notifications')}
               onSelectSeries={(newSeriesId) => {
                 seriesService
                   .getSeriesById(newSeriesId)
@@ -398,7 +402,13 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
           <Route path='letterer' element={<Navigate to='/workspaces' replace />} />
           <Route
             path='profile'
-            element={<UserProfileView user={firebaseUser} onLogout={handleLogout} />}
+            element={
+              <UserProfileView
+                user={firebaseUser}
+                onLogout={handleLogout}
+                onShowToast={showToast}
+              />
+            }
           />
           <Route
             path='review/:taskId'

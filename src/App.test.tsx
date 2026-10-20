@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
 import App from './App';
 import { workspaceService } from './services/workspace.service';
 import { seriesService } from './services/series.service';
@@ -170,13 +170,13 @@ describe('App Integration Smoke Test', () => {
 
     // Phải render Admin Console và System Admin Zone
     await waitFor(() => {
-      expect(screen.getByText('Global System Admin')).toBeInTheDocument();
-      expect(screen.getByText('PanelForge System Administration Console')).toBeInTheDocument();
+      expect(screen.getByText('Quản trị hệ thống')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Tổng quan hệ thống' })).toBeInTheDocument();
       // Menu của Admin phải hiện đầy đủ
-      expect(screen.getByText('Overview & Health')).toBeInTheDocument();
-      expect(screen.getByText('Global User Management')).toBeInTheDocument();
-      expect(screen.getByText('AI Credentials & Quotas')).toBeInTheDocument();
-      expect(screen.getByText('System Audit Log')).toBeInTheDocument();
+      expect(screen.getAllByText('Tổng quan').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('Người dùng & quyền').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('Cấu hình AI').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('Nhật ký hệ thống').length).toBeGreaterThan(0);
       // TUYỆT ĐỐI KHÔNG bị redirect về màn hình danh sách Workspace
       expect(screen.queryByText('Active Studio Workspaces')).not.toBeInTheDocument();
     });
@@ -315,7 +315,7 @@ describe('App Integration Smoke Test', () => {
 
     // Kiểm tra: ở lại /admin, render Admin Dashboard, KHÔNG bị bật ngược về /workspaces
     await waitFor(() => {
-      expect(screen.getByText('PanelForge System Administration Console')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Tổng quan hệ thống' })).toBeInTheDocument();
       expect(screen.queryByText('Production Workspace Catalog')).not.toBeInTheDocument();
     });
 
@@ -340,11 +340,11 @@ describe('App Integration Smoke Test', () => {
 
     // Tìm và nhấn nút Đăng xuất trong App shell
     await waitFor(() => {
-      expect(screen.getByText('PanelForge System Administration Console')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Tổng quan hệ thống' })).toBeInTheDocument();
     });
 
     // Trang Admin có nút Đăng xuất riêng ở chân sidebar
-    fireEvent.click(screen.getByRole('button', { name: /Đăng xuất System Root/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Đăng xuất' }));
 
     // Xác nhận toàn bộ localStorage liên quan đến auth đã được dọn sạch 100%
     await waitFor(() => {
@@ -355,6 +355,43 @@ describe('App Integration Smoke Test', () => {
       expect(localStorage.getItem('isDemoMode')).toBeNull();
       expect(localStorage.getItem('pf_remember_device')).toBeNull();
       expect(localStorage.getItem('refreshToken')).toBeNull();
+    });
+
+    // Xác nhận hiển thị đúng toast đăng xuất chủ động
+    await waitFor(() => {
+      expect(screen.getByText('Đã đăng xuất')).toBeInTheDocument();
+      expect(screen.getByText('Bạn đã đăng xuất khỏi PanelForge.')).toBeInTheDocument();
+      expect(screen.getByTestId('toast-icon-logout')).toBeInTheDocument();
+    });
+  });
+
+  it('sự kiện auth:unauthorized hiển thị toast "Phiên đăng nhập đã hết hạn" và deduplicate khi nhiều lỗi đồng thời', async () => {
+    localStorage.setItem('token', 'mock-user-token');
+    localStorage.setItem('userRole', 'USER');
+    localStorage.setItem(
+      'user',
+      JSON.stringify({
+        id: 'u-123',
+        fullName: 'Test User',
+        email: 'user@panelforge.com',
+      }),
+    );
+
+    render(<App />);
+
+    // Giả lập 3 request đồng thời cùng nhận lỗi hết phiên và phát auth:unauthorized
+    act(() => {
+      window.dispatchEvent(new Event('auth:unauthorized'));
+      window.dispatchEvent(new Event('auth:unauthorized'));
+      window.dispatchEvent(new Event('auth:unauthorized'));
+    });
+
+    // Kiểm tra: Chỉ có duy nhất 1 toast xuất hiện, không bị nhân bản
+    await waitFor(() => {
+      const toasts = screen.getAllByText('Phiên đăng nhập đã hết hạn');
+      expect(toasts).toHaveLength(1);
+      expect(screen.getByText('Vui lòng đăng nhập lại để tiếp tục.')).toBeInTheDocument();
+      expect(screen.getByTestId('toast-icon-warning')).toBeInTheDocument();
     });
   });
 });

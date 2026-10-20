@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { BrandMark } from '@/shared/components/BrandMark';
 import { Outlet, useNavigate, useLocation, useParams } from 'react-router-dom';
 import { MangaProject, SystemRole, WorkspaceRole } from '@/types';
 import {
@@ -47,6 +48,8 @@ import { AppShellSidebar } from './AppShellSidebar';
 import { NotificationBell } from '@/shared/features/collaboration/NotificationBell';
 import { SidebarDrawer } from '@/shared/components/SidebarDrawer';
 import { getRoleDefaultPath } from '@/roles/roles';
+import { LanguageSwitcher } from '@/lib/i18n';
+import { notificationService } from '@/services/notification.service';
 
 export interface CurrentUser {
   name: string;
@@ -68,6 +71,8 @@ interface GlobalAppShellProps {
   onOpenTwoFactor?: () => void;
   onOpenChangePassword?: () => void;
   onOpenCommandPalette?: () => void;
+  onOpenNotifications?: () => void;
+  onOpenActivityHistory?: () => void;
   onSelectSeries?: (seriesId: string) => void;
 }
 
@@ -96,7 +101,7 @@ const ROLE_NAV_CONFIG: Record<string, { section: string; items: any[] }[]> = {
         { icon: Briefcase, label: 'Studio Workspaces', href: '/producer' },
         {
           icon: Kanban,
-          label: 'Production Pipeline',
+          label: 'Quy trình sản xuất',
           href: '/workspace',
           badge: { type: 'text', text: 'Ch. 5', color: 'bg-[#F97316]/10 text-[#F97316]' },
         },
@@ -187,6 +192,8 @@ export function AppShell({
   onOpenTwoFactor,
   onOpenChangePassword,
   onOpenCommandPalette,
+  onOpenNotifications,
+  onOpenActivityHistory,
   onSelectSeries,
 }: GlobalAppShellProps) {
   const navigate = useNavigate();
@@ -236,9 +243,8 @@ export function AppShell({
 
               {
                 icon: Kanban,
-                label: 'Production Pipeline',
+                label: 'Quy trình sản xuất',
                 href: `/workspaces/${workspaceId}/series/${seriesId}/workspace`,
-                badge: { type: 'text', text: 'Active', color: 'bg-[#F97316]/10 text-[#F97316]' },
               },
               {
                 icon: Layers,
@@ -422,6 +428,60 @@ export function AppShell({
   const rawSections = getNavSections();
 
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
+  // Polling unread notification count for sidebar badge
+  const [unreadNotifications, setUnreadNotifications] = useState<number>(0);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchUnread = async () => {
+      try {
+        const res = await notificationService.getNotifications(true, 1, 1);
+        if (isMounted && typeof res?.unreadCount === 'number') {
+          setUnreadNotifications(res.unreadCount);
+        }
+      } catch {
+        // silent fallback
+      }
+    };
+    void fetchUnread();
+    const interval = window.setInterval(() => {
+      if (!document.hidden) void fetchUnread();
+    }, 30_000);
+    return () => {
+      isMounted = false;
+      window.clearInterval(interval);
+    };
+  }, []);
+
+  const handleOpenNotifications = () => {
+    setIsMobileDrawerOpen(false);
+    if (onOpenNotifications) {
+      onOpenNotifications();
+    } else {
+      navigate('/notifications');
+    }
+  };
+
+  const handleOpenCommandPalette = () => {
+    setIsMobileDrawerOpen(false);
+    if (onOpenCommandPalette) {
+      onOpenCommandPalette();
+    } else {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true }),
+      );
+    }
+  };
+
+  const handleOpenActivityHistory = () => {
+    setIsMobileDrawerOpen(false);
+    if (onOpenActivityHistory) {
+      onOpenActivityHistory();
+    } else if (workspaceId) {
+      navigate(`/workspaces/${workspaceId}/overview`);
+    }
+  };
+
   // Sidebar thu gọn / mở rộng được lưu trạng thái trong localStorage, cố định trên mọi màn hình
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
     try {
@@ -471,23 +531,37 @@ export function AppShell({
     navigate(target.startsWith('/') ? target : `/${target}`);
   };
 
-  // Set isActive based on location pathname
+  // Set isActive based on location pathname: ưu tiên route khớp chính xác nhất/dài nhất để tránh nhiều mục cùng active ngoài chủ đích
+  let bestMatch: any = null;
+  let bestMatchLength = 0;
+
   navSections.forEach((section) => {
     section.items.forEach((item: any) => {
-      item.isActive =
-        location.pathname === item.href || location.pathname.startsWith(`${item.href}/`);
+      const isMatch =
+        location.pathname === item.href ||
+        (item.href !== '/' && location.pathname.startsWith(`${item.href}/`));
+      if (isMatch && item.href.length > bestMatchLength) {
+        bestMatch = item;
+        bestMatchLength = item.href.length;
+      }
+    });
+  });
+
+  navSections.forEach((section) => {
+    section.items.forEach((item: any) => {
+      item.isActive = item === bestMatch;
     });
   });
 
   const renderBadge = (badge: any) => {
     if (!badge) return null;
     if (badge.type === 'dot') {
-      return <span className={`w-2 h-2 rounded-full ${badge.color} ml-auto shrink-0`} />;
+      return <span className={`w-2 h-2 rounded-full ${badge.color} shrink-0`} />;
     }
     if (badge.type === 'text') {
       return (
         <span
-          className={`ml-auto text-xs font-mono px-2 py-0.5 rounded-full font-semibold ${badge.color} shrink-0`}
+          className={`text-[11px] font-mono px-1.5 py-0.5 rounded font-semibold ${badge.color} shrink-0 max-w-[80px] truncate`}
         >
           {badge.text}
         </span>
@@ -526,7 +600,7 @@ export function AppShell({
   const aiConfig = getAiBadgeConfig(aiState);
 
   return (
-    <div className='h-screen w-full flex overflow-hidden text-[#0c0a09] bg-[#f5f5f5]'>
+    <div className='h-screen w-full flex overflow-hidden text-[#1C1917] bg-[#F3F0E9]'>
       {/* --- MOBILE DRAWER (< md) --- */}
       {!isReader && (
         <SidebarDrawer
@@ -544,6 +618,10 @@ export function AppShell({
             navSections={navSections}
             handleNavClick={handleNavClick}
             renderBadge={renderBadge}
+            unreadNotificationCount={unreadNotifications}
+            onOpenNotifications={handleOpenNotifications}
+            onOpenCommandPalette={handleOpenCommandPalette}
+            onOpenActivityHistory={handleOpenActivityHistory}
             onOpenTwoFactor={() => {
               setIsMobileDrawerOpen(false);
               onOpenTwoFactor?.();
@@ -570,6 +648,10 @@ export function AppShell({
         navSections={navSections}
         handleNavClick={handleNavClick}
         renderBadge={renderBadge}
+        unreadNotificationCount={unreadNotifications}
+        onOpenNotifications={handleOpenNotifications}
+        onOpenCommandPalette={handleOpenCommandPalette}
+        onOpenActivityHistory={handleOpenActivityHistory}
         onOpenTwoFactor={onOpenTwoFactor}
         onLogout={onLogout}
         onSelectSeries={onSelectSeries}
@@ -579,8 +661,8 @@ export function AppShell({
       />
 
       {/* --- RIGHT WRAPPER --- */}
-      <div className='flex-1 flex flex-col min-w-0 h-full bg-[#f5f5f5] relative'>
-        <header className='h-16 bg-[#f5f5f5]/90 backdrop-blur-md border-b border-[#e7e5e4] flex items-center justify-between px-4 md:px-6 shrink-0 z-20'>
+      <div className='flex-1 flex flex-col min-w-0 h-full bg-[#F3F0E9] relative'>
+        <header className='h-16 bg-[#FCFBF8]/95 backdrop-blur-md border-b border-[#D8D2C5] flex items-center justify-between px-4 md:px-6 shrink-0 z-20'>
           <div className='flex items-center gap-2 min-w-0'>
             {!isReader && (
               <button
@@ -588,7 +670,7 @@ export function AppShell({
                 onClick={() => setIsMobileDrawerOpen(true)}
                 aria-label='Mở menu điều hướng'
                 aria-expanded={isMobileDrawerOpen}
-                className='md:hidden p-2 -ml-2 mr-1 rounded-full text-[#777169] hover:text-[#0c0a09] hover:bg-[#f0efed] transition-colors cursor-pointer shrink-0'
+                className='md:hidden p-2 -ml-2 mr-1 rounded-full text-[#57534E] hover:text-[#1C1917] hover:bg-[#FFF2E6] transition-colors cursor-pointer shrink-0'
                 data-testid='appshell-hamburger-btn'
               >
                 <Menu className='w-5 h-5' />
@@ -596,25 +678,23 @@ export function AppShell({
             )}
             {isReader ? (
               <div className='flex items-center gap-3'>
-                <div className='w-8 h-8 rounded-full bg-[#292524] flex items-center justify-center text-white font-heading font-bold text-sm shadow-soft-sm tracking-tighter'>
-                  PF
-                </div>
+                <BrandMark size={28} className='shrink-0' />
                 <div>
-                  <span className='text-[#0c0a09] font-serif font-medium text-sm'>
+                  <span className='text-[#1C1917] font-serif font-medium text-sm'>
                     {activeSeries?.title || 'PanelForge Studio'}
                   </span>
                 </div>
               </div>
             ) : (
-              <nav className='flex items-center text-xs font-semibold text-[#171717] truncate'>
+              <nav className='flex items-center text-xs font-semibold text-[#1C1917] truncate'>
                 <button
                   type='button'
                   data-testid='back-to-workspaces-breadcrumb'
-                  className='text-[#292524] hover:text-[#0c0a09] cursor-pointer transition-all flex items-center gap-1.5 px-2.5 py-1 rounded-full hover:bg-white hover:shadow-soft-sm'
+                  className='text-[#1C1917] hover:text-black cursor-pointer transition-all flex items-center gap-1.5 px-2.5 py-1 rounded-full hover:bg-[#FFF2E6] hover:shadow-2xs'
                   onClick={() => navigate('/workspaces')}
                   title='Quay lại danh sách Workspace (Workspaces Catalog)'
                 >
-                  <Briefcase className='w-3.5 h-3.5 text-[#292524]' />
+                  <Briefcase className='w-3.5 h-3.5 text-[#57534E]' />
                   <span className='font-bold'>Workspaces</span>
                 </button>
                 <span className='mx-1.5 text-[#a8a29e] font-bold select-none'>/</span>
@@ -625,10 +705,10 @@ export function AppShell({
                   onClick={() =>
                     navigate(workspaceId ? `/workspaces/${workspaceId}/series` : '/workspaces')
                   }
-                  className='text-[#0c0a09] hover:text-black cursor-pointer transition-all truncate px-2.5 py-1 rounded-full hover:bg-white hover:shadow-soft-sm flex items-center gap-1 font-bold'
+                  className='text-[#1C1917] hover:text-black cursor-pointer transition-all truncate px-2.5 py-1 rounded-full hover:bg-[#FFF2E6] hover:shadow-2xs flex items-center gap-1 font-bold'
                   title='Mở danh sách Series của Workspace'
                 >
-                  <Briefcase className='w-3.5 h-3.5 text-[#292524]' />
+                  <Briefcase className='w-3.5 h-3.5 text-[#57534E]' />
                   <span className='truncate'>{activeWorkspace?.name || 'Studio Workspace'}</span>
                 </button>
                 {isSeriesContext && (
@@ -693,11 +773,11 @@ export function AppShell({
                 title='Tìm kiếm nhanh hoặc mở bảng lệnh (⌘K / Ctrl+K)'
                 data-testid='header-command-palette-trigger'
               >
-                <Search className='w-3.5 h-3.5 text-[#777169] absolute left-3.5 pointer-events-none stroke-[2] group-hover:text-[#0c0a09] transition-colors' />
-                <div className='pl-9 pr-12 py-2 bg-white group-hover:bg-white text-xs text-[#777169] rounded-full border border-[#e7e5e4] group-hover:border-[#292524] shadow-soft-sm w-64 transition-all truncate select-none'>
+                <Search className='w-3.5 h-3.5 text-[#57534E] absolute left-3.5 pointer-events-none stroke-[2] group-hover:text-[#1C1917] transition-colors' />
+                <div className='pl-9 pr-12 py-2 bg-[#FCFBF8] group-hover:bg-[#FCFBF8] text-xs text-[#57534E] rounded-full border border-[#D8D2C5] group-hover:border-[#1C1917] shadow-2xs w-64 transition-all truncate select-none'>
                   Search frames, dialogues, assets...
                 </div>
-                <span className='absolute right-2 px-2 py-0.5 text-xs font-mono text-[#777169] bg-[#f0efed] rounded-full select-none group-hover:bg-[#e7e5e4]'>
+                <span className='absolute right-2 px-2 py-0.5 text-xs font-mono text-[#57534E] bg-[#F3F0E9] rounded-full select-none group-hover:bg-[#EAE5DC]'>
                   ⌘K
                 </span>
               </button>
@@ -712,6 +792,9 @@ export function AppShell({
               <span className='font-mono text-xs hidden sm:inline'>{aiConfig.label}</span>
             </div>
 
+            {/* Chuyển đổi ngôn ngữ VI / EN */}
+            <LanguageSwitcher />
+
             {/* Chuông thông báo thật (UC-14): số chưa đọc và danh sách lấy từ Backend */}
             {!isReader && <NotificationBell workspaceId={workspaceId} seriesId={seriesId} />}
 
@@ -721,29 +804,29 @@ export function AppShell({
                 type='button'
                 data-testid='header-user-menu-btn'
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
-                className='flex items-center gap-2.5 p-1 rounded-full hover:bg-white hover:shadow-soft-sm transition-all cursor-pointer'
+                className='flex items-center gap-2.5 p-1 rounded-full hover:bg-[#FFF2E6] transition-all cursor-pointer'
               >
-                <div className='w-8 h-8 rounded-full bg-[#292524] text-white flex items-center justify-center font-bold text-xs shadow-soft-sm'>
+                <div className='w-8 h-8 rounded-full bg-[#1C1917] text-white flex items-center justify-center font-bold text-xs shadow-2xs'>
                   {currentUser.avatarInitials}
                 </div>
                 <div className='hidden md:flex flex-col text-left'>
-                  <span className='text-xs font-semibold text-[#171717] leading-tight'>
+                  <span className='text-xs font-semibold text-[#1C1917] leading-tight'>
                     {currentUser.name}
                   </span>
-                  <span className='text-[10px] text-[#555555] font-mono leading-tight'>
+                  <span className='text-[10px] text-[#57534E] font-mono leading-tight'>
                     {currentUser.role}
                   </span>
                 </div>
-                <ChevronDown className='w-3 h-3 text-[#555555]' />
+                <ChevronDown className='w-3 h-3 text-[#57534E]' />
               </button>
 
               {userMenuOpen && (
                 <>
                   <div className='fixed inset-0 z-40' onClick={() => setUserMenuOpen(false)} />
-                  <div className='absolute right-0 mt-2 w-56 bg-white border border-[#E7E7E7] rounded-xl shadow-lg z-50 p-1.5 text-xs animate-in fade-in-50 zoom-in-95'>
-                    <div className='px-3 py-2 border-b border-[#E7E7E7] mb-1'>
-                      <p className='font-semibold text-[#171717]'>{currentUser.name}</p>
-                      <p className='text-[10px] text-[#555555] font-mono'>{currentUser.role}</p>
+                  <div className='absolute right-0 mt-2 w-56 bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl shadow-editorial z-50 p-1.5 text-xs animate-in fade-in-50 zoom-in-95'>
+                    <div className='px-3 py-2 border-b border-[#D8D2C5] mb-1'>
+                      <p className='font-semibold text-[#1C1917]'>{currentUser.name}</p>
+                      <p className='text-[10px] text-[#57534E] font-mono'>{currentUser.role}</p>
                     </div>
 
                     <button
@@ -752,9 +835,9 @@ export function AppShell({
                         setUserMenuOpen(false);
                         navigate('/profile');
                       }}
-                      className='w-full text-left flex items-center gap-2 text-xs text-[#171717] hover:bg-neutral-100 px-3 py-2 rounded-lg transition-colors cursor-pointer'
+                      className='w-full text-left flex items-center gap-2 text-xs text-[#1C1917] hover:bg-[#FFF2E6] px-3 py-2 rounded-lg transition-colors cursor-pointer'
                     >
-                      <UserCircle className='w-3.5 h-3.5 text-[#555555]' />
+                      <UserCircle className='w-3.5 h-3.5 text-[#57534E]' />
                       <span>Hồ sơ cá nhân</span>
                     </button>
 
@@ -764,9 +847,9 @@ export function AppShell({
                         setUserMenuOpen(false);
                         onOpenChangePassword?.();
                       }}
-                      className='w-full text-left flex items-center gap-2 text-xs text-[#171717] hover:bg-neutral-100 px-3 py-2 rounded-lg transition-colors cursor-pointer'
+                      className='w-full text-left flex items-center gap-2 text-xs text-[#1C1917] hover:bg-[#FFF2E6] px-3 py-2 rounded-lg transition-colors cursor-pointer'
                     >
-                      <KeyRound className='w-3.5 h-3.5 text-[#555555]' />
+                      <KeyRound className='w-3.5 h-3.5 text-[#57534E]' />
                       <span>Đổi mật khẩu</span>
                     </button>
 
@@ -776,7 +859,7 @@ export function AppShell({
                         setUserMenuOpen(false);
                         onOpenTwoFactor?.();
                       }}
-                      className='w-full text-left flex items-center gap-2 text-xs text-[#171717] hover:bg-neutral-100 px-3 py-2 rounded-lg transition-colors cursor-pointer'
+                      className='w-full text-left flex items-center gap-2 text-xs text-[#1C1917] hover:bg-[#FFF2E6] px-3 py-2 rounded-lg transition-colors cursor-pointer'
                     >
                       <Shield className='w-3.5 h-3.5 text-[#F97316]' />
                       <span>Bảo mật hai lớp (2FA)</span>
@@ -790,13 +873,13 @@ export function AppShell({
                         if (onNavigate) onNavigate('/workspaces');
                         navigate('/workspaces');
                       }}
-                      className='w-full text-left flex items-center gap-2 text-xs text-[#555555] hover:text-[#171717] hover:bg-neutral-100 px-3 py-2 rounded-lg transition-colors cursor-pointer'
+                      className='w-full text-left flex items-center gap-2 text-xs text-[#57534E] hover:text-[#1C1917] hover:bg-[#FFF2E6] px-3 py-2 rounded-lg transition-colors cursor-pointer'
                     >
                       <Briefcase className='w-3.5 h-3.5 text-[#F97316]' />
                       <span>Đổi Workspace (Workspaces)</span>
                     </button>
 
-                    <div className='my-1 border-t border-[#E7E7E7]' />
+                    <div className='my-1 border-t border-[#D8D2C5]' />
 
                     <button
                       type='button'
@@ -860,8 +943,8 @@ export function AppShell({
           </div>
         </header>
 
-        <main className='flex-1 overflow-y-auto custom-scrollbar flex flex-col relative min-h-0 bg-[#F3F3F3]'>
-          <div className='w-full min-h-full flex-1 flex flex-col'>
+        <main className='flex-1 overflow-y-auto custom-scrollbar flex flex-col relative min-h-0 bg-[#F3F0E9]'>
+          <div className='relative z-10 w-full min-h-full flex-1 flex flex-col'>
             {children || <Outlet />}
           </div>
         </main>

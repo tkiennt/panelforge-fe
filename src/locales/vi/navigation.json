@@ -1,0 +1,30 @@
+{
+  "roles": {
+    "producer": "Điều Phối",
+    "writer": "Biên Kịch",
+    "artist": "Họa Sĩ",
+    "letterer": "Thoại & Chữ",
+    "editor": "Biên Tập",
+    "publisher": "Phát Hành",
+    "admin": "Quản Trị",
+    "reader": "Độc Giả"
+  },
+  "menu": {
+    "myWork": "Công việc của tôi",
+    "production": "Bàn sản xuất",
+    "script": "Kịch bản",
+    "desk": "Bàn vẽ",
+    "lettering": "Bóng thoại & Chữ",
+    "review": "Kiểm duyệt",
+    "bible": "Series Bible",
+    "settings": "Cài đặt Studio",
+    "switchStudio": "Chuyển Studio",
+    "logout": "Đăng xuất"
+  },
+  "breadcrumbs": {
+    "studios": "Studio",
+    "series": "Tác phẩm",
+    "chapters": "Chương",
+    "pages": "Trang"
+  }
+}

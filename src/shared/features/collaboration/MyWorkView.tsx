@@ -452,28 +452,28 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
   const isStudioTab = tab === 'studio';
 
   return (
-    <PageContainer className='space-y-6 py-6 text-[#0c0a09]' data-testid='my-work-view'>
+    <PageContainer className='space-y-6 py-6 text-[#1C1917] font-sans' data-testid='my-work-view'>
       {/* Contextual Quick Breadcrumbs */}
       {workspaceId && seriesId && (
         <nav
           aria-label='Đường dẫn ngữ cảnh'
-          className='flex items-center gap-1.5 text-xs text-[#777169] font-medium'
+          className='flex items-center gap-1.5 text-xs text-[#57534E] font-medium'
         >
           <Link
             to={`/workspaces/${workspaceId}`}
-            className='hover:text-[#0c0a09] hover:underline transition-colors'
+            className='hover:text-[#1C1917] hover:underline transition-colors'
           >
             Workspace
           </Link>
-          <span className='text-[#a8a29e]'>/</span>
+          <span className='text-[#D8D2C5]'>/</span>
           <Link
             to={`/workspaces/${workspaceId}/series/${seriesId}`}
-            className='hover:text-[#0c0a09] hover:underline transition-colors'
+            className='hover:text-[#1C1917] hover:underline transition-colors'
           >
             Series
           </Link>
-          <span className='text-[#a8a29e]'>/</span>
-          <span className='text-[#0c0a09] font-bold'>
+          <span className='text-[#D8D2C5]'>/</span>
+          <span className='text-[#1C1917] font-bold'>
             {chapterId === 'ALL_STUDIO'
               ? 'Toàn bộ Studio'
               : chapters.find((c) => c.id === chapterId)
@@ -485,14 +485,14 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
 
       <header className='flex flex-wrap items-center justify-between gap-4'>
         <div className='flex items-center gap-3.5'>
-          <div className='w-10 h-10 rounded-full bg-[#292524] flex items-center justify-center text-white shadow-soft-sm'>
+          <div className='w-10 h-10 rounded-xl bg-[#FFF2E6] border border-[#F97316]/30 flex items-center justify-center text-[#F97316] shadow-xs'>
             <ClipboardList className='w-5 h-5' />
           </div>
           <div>
-            <h1 className='text-2xl font-serif font-light text-[#0c0a09] tracking-tight'>
+            <h1 className='text-2xl sm:text-3xl font-serif font-bold text-[#1C1917] tracking-tight'>
               Công việc của tôi
             </h1>
-            <p className='text-xs text-[#777169]'>
+            <p className='text-xs text-[#57534E]'>
               Bắt đầu, tải artwork, nộp bài và xử lý yêu cầu sửa của từng chương.
             </p>
           </div>
@@ -504,7 +504,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
             onChange={(e) => selectChapter(e.target.value)}
             aria-label='Chọn chương'
             disabled={loadingChapters && chapters.length === 0}
-            className='px-4 py-2 bg-white border border-[#e7e5e4] rounded-full text-xs font-medium text-[#0c0a09] shadow-soft-sm focus:outline-none focus:ring-2 focus:ring-[#292524]/10 cursor-pointer'
+            className='px-4 py-2 bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl text-xs font-semibold text-[#1C1917] shadow-xs focus:outline-none focus:border-[#F97316] cursor-pointer'
           >
             <option value='ALL_STUDIO'>✨ Toàn bộ Studio (Tất cả các chương)</option>
             {chapters.map((c) => (
@@ -518,10 +518,10 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
             type='button'
             onClick={() => void (isStudioTab ? loadStudioWork() : loadWork())}
             aria-label='Tải lại'
-            className='p-2.5 rounded-full border border-[#e7e5e4] bg-white hover:bg-[#f0efed] shadow-soft-sm cursor-pointer transition-colors'
+            className='p-2.5 rounded-xl border border-[#D8D2C5] bg-[#FCFBF8] hover:bg-[#F3F0E9] shadow-xs cursor-pointer transition-colors text-[#1C1917]'
           >
             <RefreshCw
-              className={`w-3.5 h-3.5 text-[#0c0a09] ${(isStudioTab ? loadingStudio : loadingWork) ? 'animate-spin' : ''}`}
+              className={`w-3.5 h-3.5 ${(isStudioTab ? loadingStudio : loadingWork) ? 'animate-spin text-[#F97316]' : ''}`}
             />
           </button>
         </div>
@@ -535,23 +535,23 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
             onClick={() => setTab(t.key)}
             title={t.tooltip}
             aria-pressed={tab === t.key}
-            className={`h-9 px-3.5 rounded-full text-xs font-medium border cursor-pointer inline-flex items-center gap-2 transition-all shadow-soft-sm ${
+            className={`h-9 px-3.5 rounded-lg text-xs font-semibold border cursor-pointer inline-flex items-center gap-2 transition-all shadow-xs ${
               tab === t.key
-                ? 'bg-[#292524] text-white border-[#292524] font-semibold'
-                : 'bg-white text-stone-700 border-[#e7e5e4] hover:bg-[#f0efed] hover:text-[#0c0a09]'
+                ? 'bg-[#FFF2E6] text-[#1C1917] border-[#C2410C]'
+                : 'bg-[#FCFBF8] text-[#57534E] border-[#D8D2C5] hover:bg-[#F3F0E9] hover:text-[#1C1917]'
             }`}
           >
-            <span className={tab === t.key ? 'text-white' : 'text-stone-500'}>{t.icon}</span>
+            <span className={tab === t.key ? 'text-[#C2410C]' : 'text-[#78716C]'}>{t.icon}</span>
             <span>{t.label}</span>
             <span
               className={`px-2 py-0.5 rounded-full text-xs font-mono font-medium leading-none ${
                 t.badgeAlert
                   ? tab === t.key
-                    ? 'bg-amber-500 text-white font-bold'
+                    ? 'bg-[#F97316] text-white font-bold'
                     : 'bg-amber-100 text-amber-900 font-bold border border-amber-300'
                   : tab === t.key
-                    ? 'bg-white/20 text-white'
-                    : 'bg-[#f0efed] text-[#4e4e4e]'
+                    ? 'bg-[#F97316]/20 text-[#C2410C] font-semibold'
+                    : 'bg-[#F3F0E9] text-[#78716C]'
               }`}
             >
               {counts[t.key]}
@@ -562,8 +562,8 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
 
       {/* Lọc theo Phân cảnh trong Chương (CF2 & CF3) */}
       {chapterId !== 'ALL_STUDIO' && scenes.length > 0 && !isStudioTab && (
-        <div className='flex items-center gap-2 overflow-x-auto pb-1.5 pt-1 text-xs border-t border-[#F0ECE1]'>
-          <span className='flex items-center gap-1 font-bold text-zinc-600 whitespace-nowrap text-xs uppercase tracking-wider shrink-0'>
+        <div className='flex items-center gap-2 overflow-x-auto pb-1.5 pt-1 text-xs border-t border-[#D8D2C5]/60'>
+          <span className='flex items-center gap-1 font-bold text-[#57534E] whitespace-nowrap text-xs uppercase tracking-wider shrink-0'>
             <Clapperboard className='w-3.5 h-3.5 text-[#F97316]' />
             Phân cảnh:
           </span>
@@ -572,16 +572,16 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
             onClick={() => setSelectedSceneId('ALL')}
             className={`px-3 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer shrink-0 flex items-center gap-1.5 ${
               selectedSceneId === 'ALL'
-                ? 'bg-orange-50 border-orange-300 text-orange-900 shadow-2xs font-bold'
-                : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50'
+                ? 'bg-[#FFF2E6] border-[#C2410C] text-[#1C1917] font-bold shadow-xs'
+                : 'bg-[#FCFBF8] text-[#57534E] border-[#D8D2C5] hover:bg-[#F3F0E9] hover:text-[#1C1917]'
             }`}
           >
             <span>Tất cả các cảnh</span>
             <span
               className={`px-1.5 py-0.5 rounded-full text-xs font-mono ${
                 selectedSceneId === 'ALL'
-                  ? 'bg-orange-200/80 text-orange-950 font-bold'
-                  : 'bg-zinc-100 text-zinc-600'
+                  ? 'bg-[#F97316]/20 text-[#C2410C] font-bold'
+                  : 'bg-[#F3F0E9] text-[#78716C]'
               }`}
             >
               {visible.length}
@@ -600,8 +600,8 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
                   onClick={() => setSelectedSceneId(s.id)}
                   className={`px-3 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer shrink-0 flex items-center gap-1.5 ${
                     isSelected
-                      ? 'bg-orange-50 border-orange-300 text-orange-900 shadow-2xs font-bold'
-                      : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50'
+                      ? 'bg-[#FFF2E6] border-[#C2410C] text-[#1C1917] font-bold shadow-xs'
+                      : 'bg-[#FCFBF8] text-[#57534E] border-[#D8D2C5] hover:bg-[#F3F0E9] hover:text-[#1C1917]'
                   }`}
                 >
                   <span>
@@ -611,8 +611,8 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
                   <span
                     className={`px-1.5 py-0.5 rounded-full text-xs font-mono ${
                       isSelected
-                        ? 'bg-orange-200/80 text-orange-950 font-bold'
-                        : 'bg-zinc-100 text-zinc-600'
+                        ? 'bg-[#F97316]/20 text-[#C2410C] font-bold'
+                        : 'bg-[#F3F0E9] text-[#78716C]'
                     }`}
                   >
                     {count}
@@ -626,16 +626,16 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
               onClick={() => setSelectedSceneId('UNASSIGNED')}
               className={`px-3 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer shrink-0 flex items-center gap-1.5 ${
                 selectedSceneId === 'UNASSIGNED'
-                  ? 'bg-orange-50 border-orange-300 text-orange-900 shadow-2xs font-bold'
-                  : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50'
+                  ? 'bg-[#FFF2E6] border-[#C2410C] text-[#1C1917] font-bold shadow-xs'
+                  : 'bg-[#FCFBF8] text-[#57534E] border-[#D8D2C5] hover:bg-[#F3F0E9] hover:text-[#1C1917]'
               }`}
             >
               <span>Toàn chương</span>
               <span
                 className={`px-1.5 py-0.5 rounded-full text-xs font-mono ${
                   selectedSceneId === 'UNASSIGNED'
-                    ? 'bg-orange-200/80 text-orange-950 font-bold'
-                    : 'bg-zinc-100 text-zinc-600'
+                    ? 'bg-[#F97316]/20 text-[#C2410C] font-bold'
+                    : 'bg-[#F3F0E9] text-[#78716C]'
                 }`}
               >
                 {sceneFilterCounts['UNASSIGNED']}
@@ -662,7 +662,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
           </div>
         ) : studioWork.length === 0 ? (
           <div
-            className='py-12 text-center border border-dashed border-[#E7E7E7] rounded-xl text-xs text-[#737373]'
+            className='py-12 text-center border border-dashed border-[#D8D2C5] bg-[#FCFBF8] rounded-xl text-xs text-[#57534E]'
             data-testid='studio-work-empty'
           >
             Bạn chưa được giao việc nào trong Studio này.
@@ -671,7 +671,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
           <div className='space-y-3' data-testid='studio-work-list'>
             {sortedStudioWork.map((a) => (
               <div key={a.id} className='space-y-1'>
-                <p className='text-xs font-semibold text-[#737373]'>
+                <p className='text-xs font-semibold text-[#57534E]'>
                   {a.seriesTitle} · Chương {a.chapterNumber}
                   {a.chapterTitle ? `: ${a.chapterTitle}` : ''}
                 </p>
@@ -692,13 +692,13 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
           </div>
         )
       ) : loadingChapters || loadingWork ? (
-        <div className='py-12 text-center text-[#888888] text-xs'>
+        <div className='py-12 text-center text-[#78716C] text-xs'>
           <Loader2 className='w-6 h-6 animate-spin mx-auto mb-2 text-[#F97316]' />
           Đang tải công việc...
         </div>
       ) : visible.length === 0 ? (
         <div
-          className='py-12 text-center border border-dashed border-[#E7E7E7] rounded-xl text-xs text-[#737373] space-y-2'
+          className='py-12 text-center border border-dashed border-[#D8D2C5] bg-[#FCFBF8] rounded-xl text-xs text-[#57534E] space-y-2'
           data-testid='my-work-empty'
         >
           <p>
@@ -718,19 +718,19 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
             <button
               type='button'
               onClick={() => setTab('all')}
-              className='text-xs font-semibold text-[#F97316] hover:underline cursor-pointer'
+              className='text-xs font-semibold text-[#C2410C] hover:underline cursor-pointer'
             >
               Xem tất cả ({counts.all}) công việc trong chương →
             </button>
           )}
         </div>
       ) : filteredAssignments.length === 0 ? (
-        <div className='py-10 text-center border border-dashed border-[#E7E7E7] rounded-xl text-xs text-[#737373] space-y-2'>
+        <div className='py-10 text-center border border-dashed border-[#D8D2C5] bg-[#FCFBF8] rounded-xl text-xs text-[#57534E] space-y-2'>
           <p>Không có công việc nào thuộc phân cảnh này trong mục đã chọn.</p>
           <button
             type='button'
             onClick={() => setSelectedSceneId('ALL')}
-            className='text-xs font-semibold text-[#F97316] hover:underline cursor-pointer'
+            className='text-xs font-semibold text-[#C2410C] hover:underline cursor-pointer'
           >
             Xem tất cả ({visible.length}) công việc trong chương →
           </button>
@@ -740,9 +740,9 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
           {filteredAssignments.map((a) => (
             <div key={a.id} className='space-y-1.5'>
               {(a as any).seriesTitle && (
-                <div className='flex items-center gap-1.5 text-xs font-semibold text-orange-800 bg-orange-50 px-2.5 py-1 rounded-md border border-orange-200/80 w-fit'>
+                <div className='flex items-center gap-1.5 text-xs font-semibold text-[#C2410C] bg-[#FFF2E6] px-2.5 py-1 rounded-md border border-[#F97316]/30 w-fit'>
                   <span>{(a as any).seriesTitle}</span>
-                  <span className='text-orange-400'>•</span>
+                  <span className='text-[#F97316]'>•</span>
                   <span>
                     Chương {(a as any).chapterNumber}
                     {(a as any).chapterTitle ? `: ${(a as any).chapterTitle}` : ''}
@@ -772,7 +772,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
             return (
               <section
                 key={group.sceneId}
-                className='rounded-2xl border border-zinc-200/80 bg-zinc-50/40 p-3.5 space-y-3 shadow-2xs'
+                className='rounded-2xl border border-[#D8D2C5] bg-[#FCFBF8] p-3.5 space-y-3 shadow-xs'
               >
                 <div
                   onClick={() =>
@@ -784,26 +784,26 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
                   className='flex items-center justify-between gap-3 cursor-pointer select-none'
                 >
                   <div className='flex items-center gap-2.5 min-w-0'>
-                    <div className='w-7 h-7 rounded-lg bg-orange-100/90 border border-orange-200/80 flex items-center justify-center text-orange-700 shrink-0'>
+                    <div className='w-7 h-7 rounded-lg bg-[#FFF2E6] border border-[#F97316]/30 flex items-center justify-center text-[#F97316] shrink-0'>
                       {group.scene ? <Film className='w-4 h-4' /> : <Layers className='w-4 h-4' />}
                     </div>
                     <div className='min-w-0'>
                       <div className='flex items-center gap-2'>
-                        <h2 className='text-xs font-bold text-zinc-900 truncate'>{group.title}</h2>
-                        <span className='px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-white border border-zinc-200 text-zinc-700'>
+                        <h2 className='text-xs font-bold text-[#1C1917] truncate'>{group.title}</h2>
+                        <span className='px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-[#F3F0E9] border border-[#D8D2C5] text-[#57534E]'>
                           {group.assignments.length} công việc
                         </span>
                       </div>
                       {group.summary && (
-                        <p className='text-xs text-zinc-500 truncate max-w-xl'>{group.summary}</p>
+                        <p className='text-xs text-[#57534E] truncate max-w-xl'>{group.summary}</p>
                       )}
                     </div>
                   </div>
                   <div className='flex items-center gap-2 shrink-0'>
-                    <span className='text-xs font-semibold text-zinc-500'>
+                    <span className='text-xs font-semibold text-[#57534E]'>
                       {isCollapsed ? 'Mở rộng' : 'Thu gọn'}
                     </span>
-                    <div className='p-1 rounded-md hover:bg-zinc-200/60 text-zinc-600 transition-colors'>
+                    <div className='p-1 rounded-md hover:bg-[#F3F0E9] text-[#78716C] hover:text-[#1C1917] transition-colors'>
                       {isCollapsed ? (
                         <ChevronDown className='w-4 h-4' />
                       ) : (

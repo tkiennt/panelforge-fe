@@ -2,10 +2,13 @@
 
 @theme {
   --font-serif: 'Playfair Display', Georgia, serif;
-  --font-sans: 'Plus Jakarta Sans', Inter, sans-serif;
+  --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
   --font-display: 'Playfair Display', Georgia, serif;
   --font-heading: 'Playfair Display', Georgia, serif;
   --font-mono: 'JetBrains Mono', monospace;
+  --font-comic: 'Patrick Hand SC', 'Patrick Hand', 'Be Vietnam Pro', cursive, sans-serif;
+  --font-handwriting: 'Patrick Hand', 'Be Vietnam Pro', cursive, sans-serif;
+  --font-studio: 'Be Vietnam Pro', 'Plus Jakarta Sans', sans-serif;
 
   --color-ink-black: #171717;
   --color-ink-dark: #262626;
@@ -34,6 +37,21 @@
   --color-landing-border: #d8d2c5;
   --color-landing-orange: #f97316;
   --color-landing-orange-hover: #ea580c;
+
+  /* Admin portal (/admin only) — warm paper, no black surfaces */
+  --color-admin-bg: #f3f0e9;
+  --color-admin-card: #fcfbf8;
+  --color-admin-field: #ffffff;
+  --color-admin-subtle: #f7f4ee;
+  --color-admin-hover: #efebe3;
+  --color-admin-line: #d8d2c5;
+  --color-admin-accent: #f97316;
+  --color-admin-accent-hover: #ea580c;
+  --color-admin-accent-soft: #fff1e6;
+  --color-admin-accent-text: #c2410c;
+  --color-admin-ink: #44403c;
+  --color-admin-ink-strong: #292524;
+  --color-admin-muted: #716b65;
 
   --color-ai-violet: #8b5cf6;
   --color-ai-violet-light: #f5f3ff;

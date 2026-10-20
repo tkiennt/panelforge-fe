@@ -86,6 +86,7 @@ describe('ArtistDeskView', () => {
         } as any,
       ],
     });
+    vi.mocked(bibleService.getPanelBible).mockResolvedValue([]);
 
     vi.mocked(artworkService.getArtworks).mockResolvedValue([]);
     vi.mocked(assignmentService.getMyAssignments).mockResolvedValue([]);
@@ -556,4 +557,287 @@ describe('ArtistDeskView', () => {
       expect(screen.getByRole('button', { name: /5\. Color đã tắt/i })).toBeInTheDocument();
     });
   });
+
+  describe('Bàn Tải & Khớp Nét Panel Trực Quan (Giai đoạn 1 & 2)', () => {
+    it('hiển thị đầy đủ không gian làm việc 3 cột: Kịch Bản & Tham Chiếu, Canvas Bàn Vẽ, và Inspector', async () => {
+      renderComponent();
+
+      await waitFor(() => {
+        expect(screen.getByText('Kịch Bản & Tham Chiếu')).toBeInTheDocument();
+        expect(screen.getByTestId('panel-canvas')).toBeInTheDocument();
+        expect(screen.getByTestId('tab-panel')).toBeInTheDocument();
+      });
+
+      // Chọn khung panel 1 để xem thông tin ở cả 3 cột
+      const panelBox = await screen.findByTestId('panel-box-panel-1');
+      fireEvent.click(panelBox);
+
+      await waitFor(() => {
+        // Cột 1: Có nút tham chiếu Bible theo khung và selector phân cảnh
+        expect(screen.getByTestId('panel-bible-reference-btn-panel-1')).toBeInTheDocument();
+        expect(screen.getByText('Phân Cảnh (Scene)')).toBeInTheDocument();
+        // Cột 3: Có Inspector toạ độ và nút tải ảnh
+        expect(screen.getByTestId('panel-artwork-desk-card')).toBeInTheDocument();
+        expect(screen.getByTestId('desk-upload-panel-btn-panel-1')).toBeInTheDocument();
+      });
+    });
+
+    it('hỗ trợ kéo thả file ảnh trực tiếp (Drop) vào ô khung panel trên Canvas', async () => {
+      vi.mocked(assignmentService.getMyAssignments).mockResolvedValue([
+        {
+          id: 'as-1',
+          chapterId: 'chap-1',
+          entityType: 'Panel',
+          targetEntityId: 'panel-1',
+          pipelineStageId: 'stage-guid-lineart',
+          status: 'InProgress',
+        } as any,
+      ]);
+      vi.mocked(artworkService.uploadArtwork).mockResolvedValue({
+        id: 'art-drop-1',
+        chapterId: 'chap-1',
+        pageId: 'page-1',
+        panelId: 'panel-1',
+        pipelineStageId: 'stage-guid-lineart',
+        versionNumber: 2,
+        fileName: 'dropped-sketch.png',
+        fileSha256: 'dummy-sha256',
+        sizeBytes: 1024,
+        createdAtUtc: '2026-03-31T00:00:00Z',
+      } as any);
+
+      renderComponent();
+
+      const panelBox = await screen.findByTestId('panel-box-panel-1');
+
+      const mockFile = new File(['mock-image-content'], 'dropped-sketch.png', {
+        type: 'image/png',
+      });
+
+      // Kéo vào ô khung
+      fireEvent.dragOver(panelBox, {
+        dataTransfer: { files: [mockFile] },
+      });
+
+      // Thả vào ô khung
+      fireEvent.drop(panelBox, {
+        dataTransfer: { files: [mockFile] },
+      });
+
+      await waitFor(() => {
+        expect(artworkService.uploadArtwork).toHaveBeenCalledWith(
+          'chap-1',
+          'page-1',
+          mockFile,
+          'stage-guid-lineart',
+          expect.any(String),
+          undefined,
+          'panel-1',
+        );
+      });
+    });
+
+    it('hỗ trợ dán ảnh từ Clipboard (Ctrl+V) khi đang chọn panel', async () => {
+      vi.mocked(assignmentService.getMyAssignments).mockResolvedValue([
+        {
+          id: 'as-1',
+          chapterId: 'chap-1',
+          entityType: 'Panel',
+          targetEntityId: 'panel-1',
+          pipelineStageId: 'stage-guid-lineart',
+          status: 'InProgress',
+        } as any,
+      ]);
+      vi.mocked(artworkService.uploadArtwork).mockResolvedValue({
+        id: 'art-paste-1',
+        chapterId: 'chap-1',
+        pageId: 'page-1',
+        panelId: 'panel-1',
+        pipelineStageId: 'stage-guid-lineart',
+        versionNumber: 3,
+        fileName: 'clipboard-image.png',
+        fileSha256: 'dummy-sha256',
+        sizeBytes: 2048,
+        createdAtUtc: '2026-03-31T00:00:00Z',
+      } as any);
+
+      renderComponent();
+
+      // Click chọn panel-1
+      const panelBox = await screen.findByTestId('panel-box-panel-1');
+      fireEvent.click(panelBox);
+
+      const mockFile = new File(['clipboard-data'], 'clipboard-image.png', {
+        type: 'image/png',
+      });
+
+      // Bắn sự kiện paste trên window
+      fireEvent.paste(window, {
+        clipboardData: {
+          items: [
+            {
+              type: 'image/png',
+              getAsFile: () => mockFile,
+            },
+          ],
+        },
+      });
+
+      await waitFor(() => {
+        expect(artworkService.uploadArtwork).toHaveBeenCalledWith(
+          'chap-1',
+          'page-1',
+          mockFile,
+          'stage-guid-lineart',
+          expect.any(String),
+          undefined,
+          'panel-1',
+        );
+      });
+    });
+  });
+
+  describe('Bàn Tải & Khớp Nét Panel Trực Quan (Giai đoạn 3: Floating Toolbar & Assignment Gateway CTA)', () => {
+    it('hiển thị thanh Floating Toolbar trên Panel đang chọn với đầy đủ các nút thao tác nhanh', async () => {
+      renderComponent();
+
+      // Click chọn panel-1 trên canvas
+      const panelBox = await screen.findByTestId('panel-box-panel-1');
+      fireEvent.click(panelBox);
+
+      // Floating toolbar xuất hiện
+      await waitFor(() => {
+        expect(screen.getByTestId('floating-toolbar-panel-1')).toBeInTheDocument();
+        expect(screen.getByTestId('floating-upload-panel-1')).toBeInTheDocument();
+        expect(screen.getByTestId('floating-bible-panel-1')).toBeInTheDocument();
+        expect(screen.getByTestId('floating-split-v-panel-1')).toBeInTheDocument();
+        expect(screen.getByTestId('floating-split-h-panel-1')).toBeInTheDocument();
+        expect(screen.getByTestId('floating-delete-panel-1')).toBeInTheDocument();
+      });
+
+      // Bấm nút Bible trên toolbar để mở Drawer
+      fireEvent.click(screen.getByTestId('floating-bible-panel-1'));
+      await waitFor(() => {
+        expect(screen.getByTestId('bible-reference-drawer')).toBeInTheDocument();
+      });
+    });
+
+    it('hiển thị Assignment Gateway CTA chủ động khi có việc Assigned và tự động startAssignment khi bấm nút', async () => {
+      vi.mocked(assignmentService.getMyAssignments).mockImplementation(
+        async (_workspaceId, filter) => {
+          if (filter?.status === 'Assigned') {
+            return [
+              {
+                id: 'as-assigned-101',
+                chapterId: 'chap-1',
+                entityType: 'Panel',
+                targetEntityId: 'panel-1',
+                pipelineStageId: 'stage-guid-lineart',
+                status: 'Assigned',
+              } as any,
+            ];
+          }
+          return [];
+        },
+      );
+      vi.mocked(assignmentService.startAssignment).mockResolvedValue({
+        id: 'as-assigned-101',
+        status: 'InProgress',
+      } as any);
+
+      renderComponent();
+
+      // Click chọn panel-1
+      const panelBox = await screen.findByTestId('panel-box-panel-1');
+      fireEvent.click(panelBox);
+
+      // Floating toolbar hiển thị nút "Bắt đầu & Tải"
+      await waitFor(() => {
+        expect(screen.getByTestId('floating-start-upload-panel-1')).toHaveTextContent(
+          /Bắt đầu & Tải/i,
+        );
+      });
+
+      // Cột Inspector hiển thị nút "Bắt đầu việc & Tải ảnh ngay" trong khối blocked
+      await waitFor(() => {
+        expect(screen.getByTestId('desk-upload-panel-blocked')).toBeInTheDocument();
+        expect(screen.getByTestId('desk-start-and-upload-btn-panel-1')).toHaveTextContent(
+          /Bắt đầu việc & Tải ảnh ngay/i,
+        );
+      });
+
+      // Bấm nút CTA
+      fireEvent.click(screen.getByTestId('desk-start-and-upload-btn-panel-1'));
+
+      await waitFor(() => {
+        expect(assignmentService.startAssignment).toHaveBeenCalledWith('chap-1', 'as-assigned-101');
+      });
+    });
+  });
+
+  describe('Bàn Tải & Khớp Nét Panel Trực Quan (Giai đoạn 4: Hỗ trợ 2 Chế Độ Tải & Chuẩn Hóa UX Copy)', () => {
+    it('chuyển đổi giữa Chế độ Tải từng khung và Tải cả trang (Full-page Composite)', async () => {
+      renderComponent();
+
+      // Kiểm tra sự xuất hiện của toggle chuyển chế độ
+      await waitFor(() => {
+        expect(screen.getByTestId('upload-mode-toggle')).toBeInTheDocument();
+        expect(screen.getByTestId('mode-panel-slice')).toBeInTheDocument();
+        expect(screen.getByTestId('mode-full-page')).toBeInTheDocument();
+      });
+
+      // Mặc định ở chế độ tải từng khung, không có full-page-empty-banner
+      expect(screen.queryByTestId('full-page-empty-banner')).not.toBeInTheDocument();
+
+      // Chuyển sang chế độ Tải cả trang
+      fireEvent.click(screen.getByTestId('mode-full-page'));
+
+      // Xuất hiện banner hướng dẫn tải ảnh toàn trang
+      await waitFor(() => {
+        expect(screen.getByTestId('full-page-empty-banner')).toBeInTheDocument();
+        expect(screen.getByTestId('desk-upload-page-btn')).toBeInTheDocument();
+      });
+
+      // Chuyển lại về chế độ Tải từng khung
+      fireEvent.click(screen.getByTestId('mode-panel-slice'));
+      expect(screen.queryByTestId('full-page-empty-banner')).not.toBeInTheDocument();
+    });
+
+    it('hiển thị backdrop layer khi trang đã có ảnh toàn trang và hỗ trợ tải ảnh trang', async () => {
+      vi.mocked(artworkService.getArtworks).mockResolvedValue([
+        {
+          id: 'art-full-page-1',
+          chapterId: 'chap-1',
+          pageId: 'page-1',
+          panelId: null, // Không gắn panelId -> Artwork của cả trang
+          pipelineStageId: 'stage-guid-lineart',
+          versionNumber: 1,
+          storagePath: 'path/fullpage.png',
+          fileName: 'full-page-sketch.png',
+          fileSha256: 'sha-page-1',
+          sizeBytes: 8192,
+          createdAtUtc: '2026-03-31T00:00:00Z',
+        } as any,
+      ]);
+      vi.mocked(artworkService.getArtworkAccessLink).mockResolvedValue({
+        url: '/api/assets/download?token=fullpage-token',
+        expiresAtUtc: new Date(Date.now() + 300_000).toISOString(),
+      });
+
+      renderComponent();
+
+      // Backdrop layer hiển thị trên canvas
+      await waitFor(() => {
+        expect(screen.getByTestId('canvas-full-page-backdrop')).toBeInTheDocument();
+      });
+
+      // Chuyển sang chế độ cả trang để thấy nút Đổi ảnh trang
+      fireEvent.click(screen.getByTestId('mode-full-page'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('desk-upload-page-btn')).toHaveTextContent(/Đổi ảnh trang/i);
+      });
+    });
+  });
 });
+

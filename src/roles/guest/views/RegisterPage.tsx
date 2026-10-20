@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { BrandMark } from '@/shared/components/BrandMark';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   Eye,
@@ -287,20 +288,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess })
       {/* Brand Header */}
       <div className='mb-7'>
         <div className='flex items-center gap-3 mb-3'>
-          <div className='w-10 h-10 rounded-xl bg-[#171717] flex items-center justify-center text-white shadow-sm'>
-            <svg
-              width='20'
-              height='20'
-              viewBox='0 0 24 24'
-              fill='none'
-              stroke='white'
-              strokeWidth='2.2'
-              strokeLinecap='round'
-              strokeLinejoin='round'
-            >
-              <path d='M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z' />
-            </svg>
-          </div>
+          <BrandMark size={36} className='shrink-0' />
           <div>
             <span className='font-serif text-2xl font-bold tracking-tight text-[#171717]'>
               PanelForge

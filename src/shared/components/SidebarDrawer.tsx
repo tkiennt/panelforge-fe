@@ -59,14 +59,14 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
       <div
         ref={drawerRef}
         tabIndex={-1}
-        className='relative flex flex-col w-72 max-w-[85vw] h-full shadow-2xl focus:outline-none z-10'
+        className='relative flex flex-col w-72 max-w-[85vw] h-full shadow-2xl focus:outline-none z-10 bg-[#FCFBF8] border-r border-[#E7E2D9]'
       >
         {/* Close Button Header */}
         <div className='absolute top-3 right-3 z-30'>
           <button
             onClick={onClose}
             aria-label='Đóng menu điều hướng'
-            className='p-1.5 rounded-lg bg-black/20 hover:bg-black/40 text-current transition-colors cursor-pointer'
+            className='p-1.5 rounded-lg text-[#57534E] hover:text-[#1C1917] hover:bg-[#F1EEE8] transition-colors cursor-pointer focus:outline-none focus-visible:outline-2 focus-visible:outline-[#C2410C]'
           >
             <X className='w-5 h-5' />
           </button>

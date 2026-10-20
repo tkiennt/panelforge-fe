@@ -1,4 +1,5 @@
 import React from 'react';
+import { Eye, ChevronRight } from 'lucide-react';
 import type { BoardCard } from './pipelineBoard.types';
 import { type PrimaryAction, actionButtonClass, statusKey } from './productionBoard.utils';
 import { Avatar, DueInfo, StageLabel, StatusBadge, StatusNotes } from './ProductionTaskCard';
@@ -93,15 +94,51 @@ export const ProductionTaskList: React.FC<ProductionTaskListProps> = ({
               <CellLabel>Hạn</CellLabel>
               <DueInfo card={card} now={now} />
             </div>
-            <div className='flex @3xl:w-28 @3xl:justify-end'>
-              <button
-                type='button'
-                onClick={(e) => onAction(card, action, e.currentTarget)}
-                className={`${actionButtonClass(action)} w-full @3xl:w-auto`}
-                aria-label={`${action.label}: ${card.brief}`}
-              >
-                {action.label}
-              </button>
+            <div className='flex @3xl:w-40 @3xl:justify-end items-center gap-1.5'>
+              {action.kind !== 'details' ? (
+                <>
+                  <button
+                    type='button'
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onOpenDetails(card, e.currentTarget);
+                    }}
+                    className='inline-flex min-h-9 items-center gap-1 rounded-lg border border-landing-border bg-[#FCFBF8] px-2.5 py-1 text-xs font-semibold text-landing-ink hover:bg-[#FFF2E6] hover:border-[#C2410C]/50 hover:text-[#C2410C] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C2410C] transition-colors cursor-pointer shadow-2xs'
+                    aria-label={`Xem chi tiết: ${card.brief}`}
+                    title='Xem chi tiết phiếu công việc'
+                  >
+                    <Eye className='h-3.5 w-3.5 text-stone-500' aria-hidden='true' />
+                    <span className='hidden sm:inline'>Chi tiết</span>
+                    <ChevronRight className='h-3 w-3 text-stone-400' aria-hidden='true' />
+                  </button>
+                  <button
+                    type='button'
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onAction(card, action, e.currentTarget);
+                    }}
+                    className={`${actionButtonClass(action)} w-full @3xl:w-auto`}
+                    aria-label={`${action.label}: ${card.brief}`}
+                  >
+                    {action.label}
+                  </button>
+                </>
+              ) : (
+                <button
+                  type='button'
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOpenDetails(card, e.currentTarget);
+                  }}
+                  className='inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg border border-landing-border bg-[#FCFBF8] px-3 py-1 text-xs font-semibold text-landing-ink hover:bg-[#FFF2E6] hover:border-[#C2410C]/50 hover:text-[#C2410C] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C2410C] transition-colors cursor-pointer shadow-2xs w-full @3xl:w-auto'
+                  aria-label={`Xem chi tiết: ${card.brief}`}
+                  title='Xem chi tiết phiếu công việc'
+                >
+                  <Eye className='h-3.5 w-3.5 text-stone-500' aria-hidden='true' />
+                  <span>Xem chi tiết</span>
+                  <ChevronRight className='h-3.5 w-3.5 text-stone-400' aria-hidden='true' />
+                </button>
+              )}
             </div>
           </li>
         );

@@ -14,17 +14,19 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({ mode, children }) => {
   const navigate = useNavigate();
   const cardRef = useRef<HTMLDivElement>(null);
 
-  // Preserve any redirect / returnUrl query param when navigating back to homepage if needed
-  const searchParams = location.search;
-
-  // Handle closing dialog: navigate to previous page, or fallback to '/'
+  // Đóng dialog. Có ?redirect nghĩa là bị đẩy tới đây từ trang cần đăng nhập (hết phiên / đăng xuất):
+  // quay lại (-1) sẽ gặp đúng trang đó và bị đẩy về /login lần nữa → vòng lặp. Khi đó về trang công khai.
   const handleClose = useCallback(() => {
-    if (window.history.state && window.history.state.idx > 0) {
+    const redirect = new URLSearchParams(location.search).get('redirect');
+    if (redirect) {
+      const isPublic = /^\/(catalog|preview)(\/|$|\?)/.test(redirect);
+      navigate(isPublic ? redirect : '/', { replace: true });
+    } else if (window.history.state && window.history.state.idx > 0) {
       navigate(-1);
     } else {
-      navigate(`/${searchParams}`);
+      navigate('/', { replace: true });
     }
-  }, [navigate, searchParams]);
+  }, [navigate, location.search]);
 
   // Lock body scroll while modal is open, handle Esc key, and handle focus trap
   useEffect(() => {
@@ -137,7 +139,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({ mode, children }) => {
             {/* Top bar: Back to Home Link */}
             <div className='w-full max-w-[360px] mx-auto flex items-center justify-between mb-3'>
               <Link
-                to={`/${searchParams}`}
+                to='/'
                 onClick={(e) => {
                   e.preventDefault();
                   handleClose();
@@ -163,7 +165,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({ mode, children }) => {
           {/* ============================================================== */}
           {/* RIGHT COLUMN: THE VERSIONED BLUEPRINT VISUAL (55% on desktop)  */}
           {/* ============================================================== */}
-          <div className='hidden md:flex md:w-[55%] h-full min-h-0 max-h-full bg-[#EDE6DA] border-l border-[#D6CCBC] relative overflow-hidden items-center justify-center'>
+          <div className='hidden md:flex md:w-[55%] h-full min-h-0 max-h-full bg-[#F3F0E9] border-l border-[#D6CCBC] relative overflow-hidden items-center justify-center'>
             <VersionedBlueprintVisual mode={mode} />
           </div>
         </div>

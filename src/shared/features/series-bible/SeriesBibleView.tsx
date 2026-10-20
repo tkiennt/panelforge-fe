@@ -651,16 +651,16 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
       )}
 
       {/* Header gọn gàng: Breadcrumb, Tiêu đề, Mô tả, Chọn Series & Nút Thêm */}
-      <div className='bg-white border border-[#E7E7E7] rounded-xl p-4 sm:p-5 shadow-2xs'>
+      <div className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl p-4 sm:p-5 shadow-xs'>
         <div className='flex flex-col md:flex-row md:items-center justify-between gap-3.5'>
           <div className='min-w-0'>
             {/* Breadcrumb */}
-            <div className='flex items-center gap-1.5 text-xs text-zinc-500 mb-1 flex-wrap font-medium'>
+            <div className='flex items-center gap-1.5 text-xs text-[#57534E] mb-1 flex-wrap font-medium'>
               <span>Trang chủ</span>
               <span>/</span>
               {availableSeries.length > 1 ? (
                 <div className='inline-flex items-center gap-1'>
-                  <span className='text-zinc-600 font-semibold'>Series:</span>
+                  <span className='text-[#57534E] font-semibold'>Series:</span>
                   <select
                     value={effectiveSeries?.id || ''}
                     onChange={(e) => {
@@ -670,7 +670,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                         if (onSelectSeries) onSelectSeries(found);
                       }
                     }}
-                    className='px-2 py-0.5 bg-zinc-50 border border-zinc-200 rounded font-semibold text-xs text-zinc-800 focus:outline-none focus:border-[#F97316] cursor-pointer'
+                    className='px-2 py-0.5 bg-[#F8F6F0] border border-[#D8D2C5] rounded font-semibold text-xs text-[#1C1917] focus:outline-none focus:border-[#F97316] cursor-pointer'
                   >
                     {availableSeries.map((s) => (
                       <option key={s.id} value={s.id}>
@@ -680,24 +680,24 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                   </select>
                 </div>
               ) : (
-                <span className='font-semibold text-zinc-800'>
+                <span className='font-semibold text-[#1C1917]'>
                   {effectiveSeries?.title || 'PanelForge Series'}
                 </span>
               )}
               <span>/</span>
-              <span className='text-[#F97316] font-semibold'>Series Bible</span>
+              <span className='text-[#C2410C] font-semibold'>Series Bible</span>
             </div>
 
             {/* Title & Description */}
             <div className='flex items-center gap-2.5 flex-wrap'>
-              <h1 className='text-xl sm:text-2xl font-bold font-sans text-zinc-900 tracking-tight'>
+              <h1 className='text-xl sm:text-2xl font-bold font-serif text-[#1C1917] tracking-tight'>
                 Series Bible
               </h1>
-              <span className='px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-700 text-xs font-semibold border border-zinc-200'>
+              <span className='px-2 py-0.5 rounded-full bg-[#F3F0E9] text-[#57534E] text-xs font-semibold font-mono border border-[#D8D2C5]'>
                 {localEntities.length} mục tri thức
               </span>
             </div>
-            <p className='text-xs text-zinc-500 mt-1 max-w-2xl'>
+            <p className='text-xs text-[#57534E] mt-1 max-w-2xl'>
               Kho tra cứu chuẩn cho nhân vật, bối cảnh, thuật ngữ và quy tắc thiết kế nhằm đảm bảo
               tính nhất quán xuyên suốt tác phẩm.
             </p>
@@ -709,7 +709,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
               <button
                 type='button'
                 onClick={() => setAddEntityOpen(true)}
-                className='px-4 py-2 rounded-full bg-[#EA580C] hover:bg-[#C2410C] text-white text-xs font-semibold flex items-center gap-1.5 shadow-soft-sm transition-all cursor-pointer active:scale-95'
+                className='px-4 py-2 rounded-full bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer active:scale-95'
                 data-testid='add-bible-entry-btn'
               >
                 <Plus className='w-4 h-4' />
@@ -717,11 +717,11 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
               </button>
             ) : (
               <span
-                className='px-3 py-1.5 rounded-xl bg-zinc-100 border border-zinc-200 text-zinc-500 text-xs font-medium flex items-center gap-1.5'
+                className='px-3 py-1.5 rounded-xl bg-[#F3F0E9] border border-[#D8D2C5] text-[#57534E] text-xs font-medium flex items-center gap-1.5'
                 title='Chỉ Producer, Writer hoặc Artist mới có quyền thêm mục hoặc bản nháp trong Series Bible'
                 data-testid='bible-readonly-badge'
               >
-                <Lock className='w-3.5 h-3.5 text-zinc-400' />
+                <Lock className='w-3.5 h-3.5 text-[#78716C]' />
                 <span>Chế độ chỉ xem</span>
               </span>
             )}
@@ -730,9 +730,9 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
       </div>
 
       {/* Thanh công cụ tra cứu tích hợp (Category Tabs + Search + Chapter + Filters + View Mode) */}
-      <div className='bg-white border border-[#E7E7E7] rounded-xl p-3 sm:p-4 shadow-2xs space-y-3'>
+      <div className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl p-3 sm:p-4 shadow-xs space-y-3'>
         {/* Category Tabs */}
-        <div className='flex items-center gap-1.5 overflow-x-auto pb-1 custom-scrollbar border-b border-zinc-100'>
+        <div className='flex items-center gap-1.5 overflow-x-auto pb-1 custom-scrollbar border-b border-[#D8D2C5]/60'>
           {CATEGORIES.map((cat) => {
             const Icon = cat.icon;
             const count = categoryCounts[cat.key] || 0;
@@ -744,16 +744,16 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                 onClick={() => setActiveTab(cat.key)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
                   isActive
-                    ? 'bg-[#171717] text-white shadow-2xs'
-                    : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100'
+                    ? 'bg-[#FFF2E6] text-[#1C1917] border border-[#C2410C]'
+                    : 'text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9] border border-transparent'
                 }`}
                 data-testid={`tab-category-${cat.key}`}
               >
-                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-[#F97316]' : 'text-zinc-400'}`} />
+                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-[#C2410C]' : 'text-[#78716C]'}`} />
                 <span>{cat.label}</span>
                 <span
                   className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full ${
-                    isActive ? 'bg-white/20 text-white' : 'bg-zinc-100 text-zinc-600'
+                    isActive ? 'bg-[#F97316]/20 text-[#C2410C] font-semibold' : 'bg-[#F3F0E9] text-[#78716C]'
                   }`}
                 >
                   {count}
@@ -767,13 +767,13 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
         <div className='flex flex-col lg:flex-row lg:items-center justify-between gap-2.5'>
           {/* Search Input */}
           <div className='relative flex-1 min-w-[220px]'>
-            <Search className='w-4 h-4 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2' />
+            <Search className='w-4 h-4 text-[#78716C] absolute left-3 top-1/2 -translate-y-1/2' />
             <input
               type='text'
               placeholder={getSearchPlaceholder()}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className='w-full pl-9 pr-8 py-2 bg-zinc-50 focus:bg-white rounded-lg border border-zinc-200 text-xs text-zinc-900 placeholder-zinc-400 focus:outline-none focus:border-[#F97316] transition-colors'
+              className='w-full pl-9 pr-8 py-2 bg-[#F8F6F0] focus:bg-[#FCFBF8] rounded-lg border border-[#D8D2C5] text-xs text-[#1C1917] placeholder-[#A8A29E] focus:outline-none focus:border-[#F97316] transition-colors'
               data-testid='bible-search-input'
             />
             {searchQuery && (
@@ -781,7 +781,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                 type='button'
                 onClick={() => setSearchQuery('')}
                 aria-label='Xóa từ khóa tìm kiếm'
-                className='w-5 h-5 rounded-full hover:bg-zinc-200 text-zinc-400 hover:text-zinc-700 flex items-center justify-center absolute right-2.5 top-1/2 -translate-y-1/2'
+                className='w-5 h-5 rounded-full hover:bg-[#E7E2D6] text-[#78716C] hover:text-[#1C1917] flex items-center justify-center absolute right-2.5 top-1/2 -translate-y-1/2 cursor-pointer'
               >
                 <X className='w-3 h-3' />
               </button>
@@ -791,9 +791,9 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
           {/* Controls: Mốc chương, Trạng thái & Chế độ xem */}
           <div className='flex items-center gap-2 flex-wrap'>
             {/* Bộ chọn mốc chương */}
-            <div className='flex items-center gap-1.5 bg-zinc-50 border border-zinc-200 rounded-lg px-2.5 py-1 text-xs'>
-              <Layers className='w-3.5 h-3.5 text-zinc-400 shrink-0' />
-              <span className='text-zinc-500 font-medium text-[11px] whitespace-nowrap'>
+            <div className='flex items-center gap-1.5 bg-[#F8F6F0] border border-[#D8D2C5] rounded-lg px-2.5 py-1 text-xs'>
+              <Layers className='w-3.5 h-3.5 text-[#78716C] shrink-0' />
+              <span className='text-[#57534E] font-medium text-[11px] whitespace-nowrap'>
                 Hiệu lực tại:
               </span>
               <select
@@ -802,7 +802,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                   const val = e.target.value === 'all' ? 'all' : parseInt(e.target.value, 10);
                   setEffectiveChapter(val);
                 }}
-                className='bg-transparent font-medium text-xs text-zinc-800 focus:outline-none cursor-pointer pr-1'
+                className='bg-transparent font-medium text-xs text-[#1C1917] focus:outline-none cursor-pointer pr-1'
                 data-testid='bible-chapter-select'
                 aria-label='Phiên bản hiệu lực theo chương'
                 title='Chọn chương để xem phiên bản Bible có hiệu lực tại mốc chương đó'
@@ -818,12 +818,12 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
             </div>
 
             {/* Bộ lọc trạng thái khóa Canon */}
-            <div className='flex items-center gap-1.5 bg-zinc-50 border border-zinc-200 rounded-lg px-2.5 py-1 text-xs'>
-              <Lock className='w-3.5 h-3.5 text-zinc-400 shrink-0' />
+            <div className='flex items-center gap-1.5 bg-[#F8F6F0] border border-[#D8D2C5] rounded-lg px-2.5 py-1 text-xs'>
+              <Lock className='w-3.5 h-3.5 text-[#78716C] shrink-0' />
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value as any)}
-                className='bg-transparent font-medium text-xs text-zinc-800 focus:outline-none cursor-pointer pr-1'
+                className='bg-transparent font-medium text-xs text-[#1C1917] focus:outline-none cursor-pointer pr-1'
                 data-testid='bible-status-filter'
                 aria-label='Lọc trạng thái khóa Canon'
               >
@@ -834,14 +834,14 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
             </div>
 
             {/* Chế độ xem Lưới / Danh sách */}
-            <div className='flex items-center bg-zinc-100 p-0.5 rounded-lg border border-zinc-200'>
+            <div className='flex items-center bg-[#F3F0E9] p-0.5 rounded-lg border border-[#D8D2C5]'>
               <button
                 type='button'
                 onClick={() => handleToggleViewMode('grid')}
                 className={`p-1.5 rounded-md transition-all cursor-pointer ${
                   viewMode === 'grid'
-                    ? 'bg-white text-zinc-900 shadow-2xs'
-                    : 'text-zinc-400 hover:text-zinc-700'
+                    ? 'bg-[#FCFBF8] text-[#1C1917] shadow-xs'
+                    : 'text-[#78716C] hover:text-[#1C1917]'
                 }`}
                 title='Chế độ xem dạng lưới'
                 aria-label='Xem dạng lưới'
@@ -853,8 +853,8 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                 onClick={() => handleToggleViewMode('list')}
                 className={`p-1.5 rounded-md transition-all cursor-pointer ${
                   viewMode === 'list'
-                    ? 'bg-white text-zinc-900 shadow-2xs'
-                    : 'text-zinc-400 hover:text-zinc-700'
+                    ? 'bg-[#FCFBF8] text-[#1C1917] shadow-xs'
+                    : 'text-[#78716C] hover:text-[#1C1917]'
                 }`}
                 title='Chế độ xem danh sách'
                 aria-label='Xem dạng danh sách'
@@ -867,7 +867,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
 
         {/* Thanh kết quả lọc & Xóa bộ lọc */}
         {hasActiveFilters && (
-          <div className='pt-2 border-t border-zinc-100 flex items-center justify-between text-xs text-zinc-500'>
+          <div className='pt-2 border-t border-[#D8D2C5]/60 flex items-center justify-between text-xs text-[#57534E]'>
             <span>
               Tìm thấy <strong>{filteredEntities.length}</strong> / {localEntities.length} mục phù
               hợp
@@ -881,7 +881,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
             <button
               type='button'
               onClick={handleResetFilters}
-              className='text-[#F97316] hover:underline font-semibold flex items-center gap-1 cursor-pointer'
+              className='text-[#C2410C] hover:underline font-semibold flex items-center gap-1 cursor-pointer'
             >
               <RotateCcw className='w-3 h-3' />
               <span>Xóa bộ lọc</span>
@@ -896,12 +896,12 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
           {[...Array(6)].map((_, i) => (
             <div
               key={i}
-              className='bg-white border border-zinc-200 rounded-xl p-4 space-y-3 animate-pulse'
+              className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl p-4 space-y-3 animate-pulse'
             >
-              <div className='h-28 bg-zinc-100 rounded-lg'></div>
-              <div className='h-4 bg-zinc-200 rounded w-2/3'></div>
-              <div className='h-3 bg-zinc-100 rounded w-1/2'></div>
-              <div className='h-12 bg-zinc-50 rounded'></div>
+              <div className='h-28 bg-[#F3F0E9] rounded-lg'></div>
+              <div className='h-4 bg-[#E7E2D6] rounded w-2/3'></div>
+              <div className='h-3 bg-[#F3F0E9] rounded w-1/2'></div>
+              <div className='h-12 bg-[#F8F6F0] rounded'></div>
             </div>
           ))}
         </div>
@@ -909,7 +909,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
         <div className='bg-red-50 border border-red-200 rounded-xl p-6 text-center space-y-3'>
           <AlertCircle className='w-8 h-8 text-red-500 mx-auto' />
           <div>
-            <h3 className='font-bold font-sans text-sm text-red-900'>
+            <h3 className='font-bold font-serif text-sm text-red-900'>
               Không thể tải dữ liệu Series Bible
             </h3>
             <p className='text-xs text-red-700 mt-0.5'>{loadError}</p>
@@ -917,22 +917,22 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
           <button
             type='button'
             onClick={() => void fetchBible()}
-            className='px-3.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold transition-colors'
+            className='px-3.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer'
           >
             Thử tải lại
           </button>
         </div>
       ) : filteredEntities.length === 0 ? (
-        <div className='bg-white border border-dashed border-zinc-300 rounded-xl p-10 text-center space-y-3'>
-          <div className='w-12 h-12 rounded-full bg-orange-50 border border-orange-200 flex items-center justify-center text-[#F97316] mx-auto'>
+        <div className='bg-[#FCFBF8] border border-dashed border-[#D8D2C5] rounded-xl p-10 text-center space-y-3'>
+          <div className='w-12 h-12 rounded-full bg-[#FFF2E6] border border-[#F97316]/30 flex items-center justify-center text-[#F97316] mx-auto'>
             <BookOpen className='w-6 h-6' />
           </div>
           {localEntities.length === 0 ? (
             <>
-              <h3 className='font-bold font-sans text-base text-zinc-900'>
+              <h3 className='font-bold font-serif text-base text-[#1C1917]'>
                 Series Bible chưa có mục nào
               </h3>
-              <p className='text-xs text-zinc-500 max-w-md mx-auto'>
+              <p className='text-xs text-[#57534E] max-w-md mx-auto'>
                 Thêm các nhân vật, địa điểm, đạo cụ hoặc quy tắc mỹ thuật để hỗ trợ họa sĩ và hệ
                 thống kiểm tra nhất quán.
               </p>
@@ -940,7 +940,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                 <button
                   type='button'
                   onClick={() => setAddEntityOpen(true)}
-                  className='px-4 py-2 rounded-xl bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold inline-flex items-center gap-1.5 shadow-2xs cursor-pointer'
+                  className='px-4 py-2 rounded-xl bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold inline-flex items-center gap-1.5 shadow-sm cursor-pointer'
                 >
                   <Plus className='w-4 h-4' />
                   <span>{isProducer ? 'Tạo mục đầu tiên' : 'Tạo bản nháp đầu tiên'}</span>
@@ -949,17 +949,17 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
             </>
           ) : (
             <>
-              <h3 className='font-bold font-sans text-base text-zinc-900'>
+              <h3 className='font-bold font-serif text-base text-[#1C1917]'>
                 Không tìm thấy mục phù hợp
               </h3>
-              <p className='text-xs text-zinc-500 max-w-md mx-auto'>
+              <p className='text-xs text-[#57534E] max-w-md mx-auto'>
                 Không có mục tri thức nào khớp với điều kiện lọc hiện tại. Thử đổi từ khóa hoặc xóa
                 bộ lọc.
               </p>
               <button
                 type='button'
                 onClick={handleResetFilters}
-                className='px-3.5 py-1.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-semibold rounded-lg inline-flex items-center gap-1.5 transition-colors'
+                className='px-3.5 py-1.5 bg-[#F3F0E9] hover:bg-[#E7E2D6] text-[#1C1917] text-xs font-semibold rounded-lg inline-flex items-center gap-1.5 transition-colors cursor-pointer'
               >
                 <RotateCcw className='w-3.5 h-3.5' />
                 <span>Xóa bộ lọc</span>
@@ -978,13 +978,13 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
               <div
                 key={entity.id}
                 onClick={() => setSelectedEntity(entity)}
-                className='bg-white border border-[#E7E7E7] rounded-xl overflow-hidden shadow-2xs hover:border-[#F97316]/60 hover:shadow-md transition-all duration-200 flex flex-col justify-between group cursor-pointer'
+                className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl overflow-hidden shadow-xs hover:border-[#F97316] hover:shadow-md transition-all duration-200 flex flex-col justify-between group cursor-pointer'
                 data-testid={`bible-card-${entity.id}`}
               >
                 <div>
                   {/* Top Thumbnail / Visual Header: Không để khoảng đen khổng lồ khi không có ảnh */}
                   {entity.imageUrl ? (
-                    <div className='relative w-full h-36 bg-zinc-950 overflow-hidden flex items-center justify-center border-b border-[#F0ECE1]'>
+                    <div className='relative w-full h-36 bg-zinc-950 overflow-hidden flex items-center justify-center border-b border-[#D8D2C5]'>
                       <AuthenticatedImage
                         src={entity.imageUrl}
                         alt={entity.name}
@@ -1005,18 +1005,18 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                         )}
                       </div>
                       <div className='absolute bottom-2 right-2'>
-                        <span className='px-1.5 py-0.5 rounded bg-white/90 backdrop-blur-xs text-zinc-700 text-[10px] font-semibold border border-zinc-200 shadow-2xs'>
+                        <span className='px-1.5 py-0.5 rounded bg-[#FCFBF8]/95 backdrop-blur-xs text-[#57534E] text-[10px] font-semibold border border-[#D8D2C5] shadow-xs'>
                           {getCategoryLabel(entity.category)}
                         </span>
                       </div>
                     </div>
                   ) : (
-                    <div className='p-3 bg-gradient-to-r from-zinc-50 to-orange-50/40 border-b border-[#F0ECE1] flex items-center justify-between'>
+                    <div className='p-3 bg-[#F8F6F0] border-b border-[#D8D2C5] flex items-center justify-between'>
                       <div className='flex items-center gap-2'>
-                        <div className='w-7 h-7 rounded-lg bg-white border border-zinc-200 flex items-center justify-center text-[#F97316] shadow-2xs'>
+                        <div className='w-7 h-7 rounded-lg bg-[#FCFBF8] border border-[#D8D2C5] flex items-center justify-center text-[#F97316] shadow-xs'>
                           {getCategoryIcon(entity.category, 'w-3.5 h-3.5')}
                         </div>
-                        <span className='font-mono text-xs font-bold text-zinc-800 bg-white px-1.5 py-0.5 rounded border border-zinc-200'>
+                        <span className='font-mono text-xs font-bold text-[#1C1917] bg-[#FCFBF8] px-1.5 py-0.5 rounded border border-[#D8D2C5]'>
                           {entity.code}
                         </span>
                       </div>
@@ -1030,7 +1030,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                             Đã khoá Canon
                           </span>
                         ) : (
-                          <span className='px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-500 text-[10px] font-medium'>
+                          <span className='px-1.5 py-0.5 rounded bg-[#F3F0E9] text-[#57534E] text-[10px] font-medium'>
                             Bản thảo
                           </span>
                         )}
@@ -1041,35 +1041,35 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                   {/* Card Content */}
                   <div className='p-3.5 space-y-2'>
                     <div>
-                      <h3 className='font-bold font-sans text-sm sm:text-base text-zinc-900 group-hover:text-[#F97316] transition-colors line-clamp-1'>
+                      <h3 className='font-bold font-serif text-sm sm:text-base text-[#1C1917] group-hover:text-[#F97316] transition-colors line-clamp-1'>
                         {entity.name}
                         {effRev?.stageName ? (
-                          <span className='font-medium text-zinc-600'> · {effRev.stageName}</span>
+                          <span className='font-sans font-medium text-[#57534E]'> · {effRev.stageName}</span>
                         ) : null}
                       </h3>
                       {entity.subtitle && (
-                        <p className='text-xs text-zinc-500 font-medium line-clamp-1 mt-0.5'>
+                        <p className='text-xs text-[#57534E] font-medium line-clamp-1 mt-0.5'>
                           {entity.subtitle}
                         </p>
                       )}
                     </div>
 
                     <p
-                      className='text-xs text-zinc-600 leading-relaxed line-clamp-2'
+                      className='text-xs text-[#57534E] leading-relaxed line-clamp-2'
                       title={entity.description}
                     >
                       {entity.description || 'Chưa có mô tả chi tiết cho mục này.'}
                     </p>
 
                     {/* Stage & Chapter Range info */}
-                    <div className='pt-2 border-t border-zinc-100 flex items-center justify-between text-[11px] text-zinc-500'>
+                    <div className='pt-2 border-t border-[#D8D2C5]/60 flex items-center justify-between text-[11px] text-[#57534E]'>
                       <span
-                        className='font-medium text-zinc-700 truncate max-w-[150px]'
+                        className='font-medium text-[#1C1917] truncate max-w-[150px]'
                         title={effRev?.stageName || 'Giai đoạn chuẩn'}
                       >
                         {effRev?.stageName ? effRev.stageName : 'Giai đoạn chuẩn'}
                       </span>
-                      <span className='text-[#F97316] font-semibold font-mono'>
+                      <span className='text-[#C2410C] font-semibold font-mono'>
                         {effRev
                           ? effRev.effectiveToChapterNumber
                             ? `Ch.${effRev.effectiveFromChapterNumber}–${effRev.effectiveToChapterNumber}`
@@ -1081,7 +1081,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                 </div>
 
                 {/* Card Action Footer */}
-                <div className='p-2.5 bg-[#FAF8F5] border-t border-[#E7E7E7] flex items-center justify-between gap-1.5'>
+                <div className='p-2.5 bg-[#F8F6F0] border-t border-[#D8D2C5] flex items-center justify-between gap-1.5'>
                   <div className='flex items-center gap-1.5'>
                     <button
                       type='button'
@@ -1089,7 +1089,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                         e.stopPropagation();
                         setSelectedEntity(entity);
                       }}
-                      className='px-2.5 py-1 bg-white hover:bg-zinc-50 border border-[#E7E7E7] rounded-lg text-xs font-semibold text-zinc-700 flex items-center gap-1 transition-colors cursor-pointer shadow-2xs'
+                      className='px-2.5 py-1 bg-[#FCFBF8] hover:bg-[#F3F0E9] border border-[#D8D2C5] rounded-lg text-xs font-semibold text-[#1C1917] flex items-center gap-1 transition-colors cursor-pointer shadow-xs'
                     >
                       <Eye className='w-3 h-3 text-[#F97316]' />
                       <span>Xem chi tiết</span>
@@ -1100,10 +1100,10 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                         e.stopPropagation();
                         void handleOpenHistory(entity);
                       }}
-                      className='px-2 py-1 bg-white hover:bg-zinc-50 border border-[#E7E7E7] rounded-lg text-xs font-medium text-zinc-600 hover:text-zinc-900 flex items-center gap-1 transition-colors cursor-pointer'
+                      className='px-2 py-1 bg-[#FCFBF8] hover:bg-[#F3F0E9] border border-[#D8D2C5] rounded-lg text-xs font-medium text-[#57534E] hover:text-[#1C1917] flex items-center gap-1 transition-colors cursor-pointer'
                       title='Xem lịch sử phiên bản'
                     >
-                      <History className='w-3 h-3 text-zinc-500' />
+                      <History className='w-3 h-3 text-[#78716C]' />
                       <span>Lịch sử</span>
                     </button>
                   </div>
@@ -1116,7 +1116,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                           e.stopPropagation();
                           void handleOpenAddRevision(entity);
                         }}
-                        className='px-2 py-1 bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer shadow-2xs'
+                        className='px-2 py-1 bg-[#FCFBF8] hover:bg-emerald-50 text-emerald-700 border border-emerald-300 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer shadow-xs'
                         title={
                           isProducer
                             ? 'Tạo phiên bản mới có hiệu lực từ một chương'
@@ -1134,7 +1134,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                             e.stopPropagation();
                             onEditEntity(entity);
                           }}
-                          className='p-1 rounded-lg text-zinc-400 hover:text-zinc-800 hover:bg-white border border-transparent hover:border-zinc-200 transition-colors cursor-pointer'
+                          className='p-1 rounded-lg text-[#78716C] hover:text-[#1C1917] hover:bg-[#FCFBF8] border border-transparent hover:border-[#D8D2C5] transition-colors cursor-pointer'
                           title='Chỉnh sửa nhanh'
                           data-testid={`edit-entity-btn-${entity.id}`}
                         >
@@ -1159,12 +1159,12 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
               <div
                 key={entity.id}
                 onClick={() => setSelectedEntity(entity)}
-                className='bg-white rounded-xl border border-[#E7E7E7] hover:border-[#F97316]/60 p-3 sm:p-4 hover:shadow-2xs transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 cursor-pointer group'
+                className='bg-[#FCFBF8] rounded-xl border border-[#D8D2C5] hover:border-[#F97316] p-3 sm:p-4 hover:shadow-xs transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 cursor-pointer group'
                 data-testid={`bible-list-item-${entity.id}`}
               >
                 <div className='flex items-start sm:items-center gap-3.5 min-w-0 flex-1'>
                   {/* Thumbnail / Category Icon */}
-                  <div className='w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-zinc-900 overflow-hidden shrink-0 border border-zinc-200 flex items-center justify-center'>
+                  <div className='w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-[#F8F6F0] overflow-hidden shrink-0 border border-[#D8D2C5] flex items-center justify-center'>
                     {entity.imageUrl ? (
                       <AuthenticatedImage
                         src={entity.imageUrl}
@@ -1172,7 +1172,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                         className='w-full h-full object-cover'
                       />
                     ) : (
-                      <div className='w-full h-full bg-gradient-to-br from-zinc-50 to-orange-50/60 flex items-center justify-center text-[#F97316]'>
+                      <div className='w-full h-full bg-[#F3F0E9] flex items-center justify-center text-[#F97316]'>
                         {getCategoryIcon(entity.category, 'w-5 h-5')}
                       </div>
                     )}
@@ -1180,16 +1180,16 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
 
                   <div className='min-w-0 flex-1 space-y-1'>
                     <div className='flex items-center gap-2 flex-wrap'>
-                      <span className='font-mono text-xs font-bold px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-700 border border-zinc-200'>
+                      <span className='font-mono text-xs font-bold px-1.5 py-0.5 rounded bg-[#F3F0E9] text-[#1C1917] border border-[#D8D2C5]'>
                         {entity.code}
                       </span>
-                      <h3 className='font-bold font-sans text-sm sm:text-base text-zinc-900 group-hover:text-[#F97316] transition-colors truncate'>
+                      <h3 className='font-bold font-serif text-sm sm:text-base text-[#1C1917] group-hover:text-[#F97316] transition-colors truncate'>
                         {entity.name}
                         {effRev?.stageName ? (
-                          <span className='font-medium text-zinc-600'> · {effRev.stageName}</span>
+                          <span className='font-sans font-medium text-[#57534E]'> · {effRev.stageName}</span>
                         ) : null}
                       </h3>
-                      <span className='px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-600 text-[10px] font-medium'>
+                      <span className='px-1.5 py-0.5 rounded bg-[#F3F0E9] text-[#57534E] text-[10px] font-medium'>
                         {getCategoryLabel(entity.category)}
                       </span>
                       {entity.isLocked && (
@@ -1203,22 +1203,22 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                       )}
                     </div>
                     {entity.subtitle && (
-                      <p className='text-xs text-[#F97316] font-medium truncate'>
+                      <p className='text-xs text-[#C2410C] font-medium truncate'>
                         {entity.subtitle}
                       </p>
                     )}
-                    <p className='text-xs text-zinc-500 line-clamp-1'>
+                    <p className='text-xs text-[#57534E] line-clamp-1'>
                       {entity.description || 'Chưa có mô tả cho mục này.'}
                     </p>
                   </div>
                 </div>
 
-                <div className='flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-zinc-100'>
-                  <div className='text-right text-[11px] text-zinc-500 hidden md:block'>
-                    <div className='font-semibold text-zinc-800 truncate max-w-[140px]'>
+                <div className='flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-[#D8D2C5]/60'>
+                  <div className='text-right text-[11px] text-[#57534E] hidden md:block'>
+                    <div className='font-semibold text-[#1C1917] truncate max-w-[140px]'>
                       {effRev?.stageName || 'Giai đoạn chuẩn'}
                     </div>
-                    <div className='text-[#F97316] font-mono font-medium'>
+                    <div className='text-[#C2410C] font-mono font-medium'>
                       {effRev
                         ? effRev.effectiveToChapterNumber
                           ? `Ch.${effRev.effectiveFromChapterNumber}–${effRev.effectiveToChapterNumber}`
@@ -1234,7 +1234,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                         e.stopPropagation();
                         setSelectedEntity(entity);
                       }}
-                      className='px-2.5 py-1 bg-white hover:bg-zinc-50 border border-[#E7E7E7] rounded-lg text-xs font-semibold text-zinc-700 flex items-center gap-1 cursor-pointer transition-colors shadow-2xs'
+                      className='px-2.5 py-1 bg-[#FCFBF8] hover:bg-[#F3F0E9] border border-[#D8D2C5] rounded-lg text-xs font-semibold text-[#1C1917] flex items-center gap-1 cursor-pointer transition-colors shadow-xs'
                     >
                       <Eye className='w-3 h-3 text-[#F97316]' />
                       <span>Xem</span>
@@ -1245,10 +1245,10 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                         e.stopPropagation();
                         void handleOpenHistory(entity);
                       }}
-                      className='px-2 py-1 bg-white hover:bg-zinc-50 border border-[#E7E7E7] rounded-lg text-xs font-medium text-zinc-600 hover:text-zinc-900 flex items-center gap-1 transition-colors cursor-pointer'
+                      className='px-2 py-1 bg-[#FCFBF8] hover:bg-[#F3F0E9] border border-[#D8D2C5] rounded-lg text-xs font-medium text-[#57534E] hover:text-[#1C1917] flex items-center gap-1 transition-colors cursor-pointer'
                       title='Lịch sử'
                     >
-                      <History className='w-3 h-3 text-zinc-500' />
+                      <History className='w-3 h-3 text-[#78716C]' />
                     </button>
                     {canCreateDraft && (
                       <button
@@ -1257,7 +1257,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                           e.stopPropagation();
                           void handleOpenAddRevision(entity);
                         }}
-                        className='px-2 py-1 bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-semibold flex items-center gap-1 cursor-pointer transition-colors shadow-2xs'
+                        className='px-2 py-1 bg-[#FCFBF8] hover:bg-emerald-50 text-emerald-700 border border-emerald-300 rounded-lg text-xs font-semibold flex items-center gap-1 cursor-pointer transition-colors shadow-xs'
                         title={
                           isProducer ? 'Tạo phiên bản mới' : 'Tạo bản nháp mới – chờ Producer duyệt'
                         }

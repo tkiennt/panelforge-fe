@@ -1,0 +1,40 @@
+{
+  "title": "Pipeline & Assignments",
+  "subtitle": "Production progress tracking and artist task delegation",
+  "stages": {
+    "script": "Script",
+    "storyboard": "Storyboard",
+    "pencil": "Pencil",
+    "lineart": "Lineart",
+    "color": "Color",
+    "lettering": "Lettering",
+    "qualityCheck": "Publishing QC"
+  },
+  "assignment": {
+    "title": "Assignment",
+    "create": "Create Assignment",
+    "assignee": "Assignee",
+    "target": "Target (Page / Panel)",
+    "stage": "Pipeline Stage",
+    "dueDate": "Due Date",
+    "brief": "Task Brief",
+    "myAssignments": "My Assignments",
+    "status": {
+      "assigned": "Assigned",
+      "inProgress": "In Progress",
+      "submitted": "Submitted",
+      "completed": "Completed"
+    }
+  },
+  "progress": {
+    "title": "Stage Progress",
+    "completedPages": "{completed}/{total} pages",
+    "percent": "{percent}% completed",
+    "bottlenecks": "Bottlenecks"
+  },
+  "queue": {
+    "title": "Task Queue by Stage",
+    "empty": "No tasks in the queue.",
+    "selectChapter": "Select a Chapter to view task queue."
+  }
+}

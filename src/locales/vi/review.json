@@ -1,0 +1,59 @@
+{
+  "title": "Kiểm Duyệt Tác Phẩm",
+  "subtitle": "So sánh nét vẽ, kiểm tra bất nhất và xử lý bản nộp",
+  "submission": {
+    "title": "Bản nộp",
+    "status": {
+      "pendingReview": "Đang chờ duyệt",
+      "approved": "Đã duyệt",
+      "rejected": "Đã trả về"
+    },
+    "approveAction": "Phê duyệt bản nộp",
+    "rejectAction": "Trả về yêu cầu sửa",
+    "notes": "Ghi chú duyệt bài"
+  },
+  "changeRequest": {
+    "title": "Yêu Cầu Sửa Đổi (Change Request)",
+    "create": "Tạo yêu cầu sửa",
+    "severity": {
+      "blocking": "Ngăn chặn (Blocking)",
+      "warning": "Cảnh báo (Warning)",
+      "info": "Thông tin (Info)"
+    },
+    "status": {
+      "open": "Mới tạo",
+      "fixed": "Đã sửa",
+      "verified": "Đã xác minh"
+    },
+    "description": "Nội dung yêu cầu sửa",
+    "markFixed": "Đánh dấu đã sửa",
+    "markVerified": "Xác nhận đã khắc phục"
+  },
+  "diff": {
+    "title": "So Sánh Nét Vẽ (Diff View)",
+    "previousStage": "Công đoạn trước",
+    "currentSubmission": "Bản nộp hiện tại",
+    "slider": "Thanh trượt so sánh",
+    "sideBySide": "Xem song song",
+    "onionSkin": "Lớp bóng mờ (Onion Skin)"
+  },
+  "consistency": {
+    "title": "Kiểm Tra Tính Nhất Quán (AI Consistency)",
+    "passed": "Nhất quán hình ảnh: ĐẠT",
+    "failed": "Cảnh báo sai lệch nhân vật",
+    "score": "Độ tương đồng: {score}%",
+    "threshold": "Ngưỡng yêu cầu: {threshold}%",
+    "findingsCount": "{count} lỗi bất nhất",
+    "findingsSeverity": {
+      "blocking": "Lỗi nghiêm trọng",
+      "warning": "Độ lệch chi tiết",
+      "info": "Gợi ý khớp nét"
+    }
+  },
+  "provenance": {
+    "title": "Báo Cáo Nguồn Gốc Nội Dung (Provenance Report)",
+    "humanContribution": "Đóng góp hoạ sĩ: {percent}%",
+    "aiAssisted": "AI hỗ trợ: {percent}%",
+    "auditTrail": "Nhật ký kiểm toán"
+  }
+}

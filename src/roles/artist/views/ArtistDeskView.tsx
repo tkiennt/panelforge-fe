@@ -25,6 +25,7 @@ import {
   Edit3,
   Upload,
   ImageIcon,
+  ImagePlus,
   RotateCw,
   ArrowUp,
   ArrowDown,
@@ -35,6 +36,9 @@ import {
   Palette,
   Loader2,
   AlertTriangle,
+  Play,
+  Columns,
+  Rows,
 } from 'lucide-react';
 import { pageService, PageDto, PageDetailDto } from '@/services/page.service';
 import { chapterService, ChapterDto } from '@/services/chapter.service';
@@ -104,7 +108,7 @@ import {
 
 import { splitPanelWithRollback } from '../utils/splitPanel';
 import { pipelineService, type PipelineStageDto } from '@/services/pipeline.service';
-import { pickPanelArtwork } from '@/shared/utils/stageArtworks';
+import { pickPanelArtwork, pickPageArtwork } from '@/shared/utils/stageArtworks';
 import { ElementConflictModal } from '@/shared/modals/ElementConflictModal';
 
 /** Chỉ lỗi mạng (không có status HTTP) mới xếp hàng chờ ngoại tuyến; 4xx/409 của BE phải hiện cho người dùng. */
@@ -262,7 +266,12 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
   }, [seriesId]);
   const [panelArtworkUrls, setPanelArtworkUrls] = useState<Record<string, string>>({});
   const panelFileInputRef = React.useRef<HTMLInputElement>(null);
+  const pageFileInputRef = React.useRef<HTMLInputElement>(null);
+  const [uploadMode, setUploadMode] = useState<'panel' | 'page'>('panel');
   const [uploadingPanelId, setUploadingPanelId] = useState<string | null>(null);
+  const [uploadingPage, setUploadingPage] = useState(false);
+  const [uploadProgressMsg, setUploadProgressMsg] = useState<string | null>(null);
+  const [dragOverPanelId, setDragOverPanelId] = useState<string | null>(null);
   const [checkingConsistencyPanelId, setCheckingConsistencyPanelId] = useState<string | null>(null);
   const [panelConsistencyResult, setPanelConsistencyResult] = useState<
     Record<string, ImageConsistencyResultDto>
@@ -349,7 +358,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
     if (err?.code === 'CHAPTER_READ_ONLY') {
       showToast(
         'Chương chỉ đọc',
-        err?.message || 'Chương đã được duyệt hoặc phát hành nên không thể sửa nội dung (BR-12).',
+        err?.message || 'Chương đã được duyệt hoặc phát hành nên không thể sửa nội dung.',
       );
       return;
     }
@@ -450,11 +459,15 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
     if (artId) artworkLinkRetried.current.delete(artId);
   };
 
-  // Việc InProgress của chính mình: nguồn duy nhất của stageId (GUID) khi tải ảnh
+  // Việc InProgress & Assigned của chính mình: nguồn stageId (GUID) khi tải ảnh
   const [myInProgress, setMyInProgress] = useState<WorkspaceAssignmentDto[]>([]);
+  const [myAssigned, setMyAssigned] = useState<WorkspaceAssignmentDto[]>([]);
+  const [startingAssignmentPanelId, setStartingAssignmentPanelId] = useState<string | null>(null);
+
   useEffect(() => {
     if (!workspaceId) {
       setMyInProgress([]);
+      setMyAssigned([]);
       return;
     }
     let alive = true;
@@ -462,10 +475,59 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
       .getMyAssignments(workspaceId, { status: 'InProgress' })
       .then((list) => alive && setMyInProgress(list))
       .catch(() => alive && setMyInProgress([]));
+    assignmentService
+      .getMyAssignments(workspaceId, { status: 'Assigned' })
+      .then((list) => alive && setMyAssigned(list))
+      .catch(() => alive && setMyAssigned([]));
     return () => {
       alive = false;
     };
   }, [workspaceId, currentChapterId]);
+
+  const findPendingAssigned = (panelId: string) => {
+    if (!currentChapterId || !selectedPage) return undefined;
+    const assigned = myAssigned.filter((a) => a.chapterId === currentChapterId);
+    return (
+      assigned.find((a) => a.entityType === 'Panel' && a.targetEntityId === panelId) ??
+      assigned.find((a) => a.entityType === 'Page' && a.targetEntityId === selectedPage.id)
+    );
+  };
+
+  const handleStartAndUploadPanel = async (panelId: string) => {
+    const pending = findPendingAssigned(panelId);
+    if (!pending || !currentChapterId) {
+      handleTriggerUploadPanel(panelId);
+      return;
+    }
+    setStartingAssignmentPanelId(panelId);
+    try {
+      showToast('Đang bắt đầu việc', 'Đang cập nhật trạng thái việc sang Đang làm (InProgress)...');
+      await assignmentService.startAssignment(currentChapterId, pending.id);
+      showToast('Đã bắt đầu việc', 'Nhiệm vụ đã sẵn sàng! Đang mở hộp thoại chọn tệp ảnh...');
+      if (workspaceId) {
+        const [inProg, asg] = await Promise.all([
+          assignmentService
+            .getMyAssignments(workspaceId, { status: 'InProgress' })
+            .catch(() => []),
+          assignmentService
+            .getMyAssignments(workspaceId, { status: 'Assigned' })
+            .catch(() => []),
+        ]);
+        setMyInProgress(inProg);
+        setMyAssigned(asg);
+      }
+      setUploadingPanelId(panelId);
+      panelFileInputRef.current?.click();
+    } catch (err: any) {
+      showMutationError(
+        'Không thể bắt đầu việc',
+        err,
+        'Vui lòng kiểm tra lại điều kiện công đoạn.',
+      );
+    } finally {
+      setStartingAssignmentPanelId(null);
+    }
+  };
 
   // Công đoạn đang xem: chọn tay, hoặc (Tự động) công đoạn mình đang làm trên trang này; null = công đoạn cao nhất có ảnh
   const myStageOnPage =
@@ -476,6 +538,8 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
   const effectiveStageId = viewStageId !== 'AUTO' ? viewStageId : (myStageOnPage ?? null);
   const artFor = (panelId: string) =>
     pickPanelArtwork(pageArtworks, panelId, stages, effectiveStageId);
+  const pageArt = pickPageArtwork(pageArtworks, stages, effectiveStageId);
+  const pageArtUrl = pageArt ? panelArtworkUrls[pageArt.id] : null;
   const stageLabel = (stageId: string) => stages.find((s) => s.id === stageId)?.name ?? '';
 
   const findStageAssignment = (panelId: string) =>
@@ -486,6 +550,86 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
           panelId,
         })
       : undefined;
+
+  const findPageStageAssignment = () =>
+    currentChapterId && selectedPage
+      ? findUploadAssignment(myInProgress, {
+          chapterId: currentChapterId,
+          pageId: selectedPage.id,
+        })
+      : undefined;
+
+  const uploadArtworkFileForPanel = async (panelId: string, file: File) => {
+    if (!currentChapterId || !selectedPage) return;
+    const stageAssignment = findStageAssignment(panelId);
+    if (!stageAssignment) {
+      showToast(
+        'Chưa thể tải ảnh',
+        'Bạn cần đang làm (bấm "Bắt đầu") một việc được giao cho Page hoặc Panel này trước.',
+      );
+      return;
+    }
+    setUploadingPanelId(panelId);
+    try {
+      setUploadProgressMsg('Đang tính mã SHA-256...');
+      showToast('Đang xử lý', 'Đang tính mã SHA-256 cho ảnh panel...');
+      const sha256 = await computeFileSha256(file);
+      setUploadProgressMsg('Đang tải lên máy chủ...');
+      showToast('Đang tải lên', 'Đang tải artwork cho khung panel...');
+      const res = await artworkService.uploadArtwork(
+        currentChapterId,
+        selectedPage.id,
+        file,
+        stageAssignment.pipelineStageId,
+        sha256,
+        undefined,
+        panelId,
+      );
+      showToast('Thành công', `Đã tải artwork v${res.versionNumber} cho khung panel!`);
+      await loadPageArtworks(currentChapterId, selectedPage.id);
+    } catch (err: unknown) {
+      showToast('Lỗi tải ảnh', errorMessage(err, 'Không thể tải ảnh cho khung panel'));
+    } finally {
+      if (panelFileInputRef.current) panelFileInputRef.current.value = '';
+      setUploadingPanelId(null);
+      setUploadProgressMsg(null);
+    }
+  };
+
+  const uploadArtworkFileForPage = async (file: File) => {
+    if (!currentChapterId || !selectedPage) return;
+    const stageAssignment = findPageStageAssignment();
+    if (!stageAssignment) {
+      showToast(
+        'Chưa thể tải ảnh trang',
+        'Bạn cần đang làm một việc được giao cho Trang này trước (hoặc bấm "Bắt đầu").',
+      );
+      return;
+    }
+    setUploadingPage(true);
+    try {
+      setUploadProgressMsg('Đang tính mã SHA-256 cho ảnh trang...');
+      showToast('Đang xử lý', 'Đang tính mã SHA-256 cho ảnh trang...');
+      const sha256 = await computeFileSha256(file);
+      setUploadProgressMsg('Đang tải ảnh toàn trang lên máy chủ...');
+      showToast('Đang tải lên', 'Đang tải artwork toàn trang...');
+      const res = await artworkService.uploadArtwork(
+        currentChapterId,
+        selectedPage.id,
+        file,
+        stageAssignment.pipelineStageId,
+        sha256,
+      );
+      showToast('Thành công', `Đã tải artwork toàn trang v${res.versionNumber}!`);
+      await loadPageArtworks(currentChapterId, selectedPage.id);
+    } catch (err: unknown) {
+      showToast('Lỗi tải ảnh trang', errorMessage(err, 'Không thể tải ảnh cho trang'));
+    } finally {
+      if (pageFileInputRef.current) pageFileInputRef.current.value = '';
+      setUploadingPage(false);
+      setUploadProgressMsg(null);
+    }
+  };
 
   const handleTriggerUploadPanel = (panelId: string) => {
     if (!findStageAssignment(panelId)) {
@@ -499,38 +643,75 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
     panelFileInputRef.current?.click();
   };
 
-  const handlePanelFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !currentChapterId || !selectedPage || !uploadingPanelId) return;
-    const stageAssignment = findStageAssignment(uploadingPanelId);
-    if (!stageAssignment) {
-      showToast('Chưa thể tải ảnh', 'Không tìm thấy việc đang làm cho Page/Panel này.');
-      if (panelFileInputRef.current) panelFileInputRef.current.value = '';
-      setUploadingPanelId(null);
+  const handleTriggerUploadPage = () => {
+    if (!findPageStageAssignment()) {
+      showToast(
+        'Chưa thể tải ảnh trang',
+        'Bạn cần đang làm một việc được giao cho Trang này trước (hoặc bấm "Bắt đầu").',
+      );
       return;
     }
-    try {
-      showToast('Đang xử lý', 'Đang tính mã SHA-256 cho ảnh panel...');
-      const sha256 = await computeFileSha256(file);
-      showToast('Đang tải lên', 'Đang tải artwork cho khung panel...');
-      const res = await artworkService.uploadArtwork(
-        currentChapterId,
-        selectedPage.id,
-        file,
-        stageAssignment.pipelineStageId,
-        sha256,
-        undefined,
-        uploadingPanelId,
-      );
-      showToast('Thành công', `Đã tải artwork v${res.versionNumber} cho khung panel!`);
-      await loadPageArtworks(currentChapterId, selectedPage.id);
-    } catch (err: unknown) {
-      showToast('Lỗi tải ảnh', errorMessage(err, 'Không thể tải ảnh cho khung panel'));
-    } finally {
-      if (panelFileInputRef.current) panelFileInputRef.current.value = '';
-      setUploadingPanelId(null);
-    }
+    pageFileInputRef.current?.click();
   };
+
+  const handlePanelFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !uploadingPanelId) return;
+    await uploadArtworkFileForPanel(uploadingPanelId, file);
+  };
+
+  const handlePageFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    await uploadArtworkFileForPage(file);
+  };
+
+  const handlePanelFileDrop = async (panelId: string, file?: File) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      showToast(
+        'Tệp không hợp lệ',
+        'Vui lòng chỉ tải lên tệp định dạng hình ảnh (PNG, JPG, WEBP,...).',
+      );
+      return;
+    }
+    await uploadArtworkFileForPanel(panelId, file);
+  };
+
+  // Clipboard Paste (Ctrl+V) khi đang chọn một Panel hoặc đang ở chế độ Tải cả trang
+  useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      const activeEl = document.activeElement;
+      if (
+        activeEl &&
+        (activeEl.tagName === 'INPUT' ||
+          activeEl.tagName === 'TEXTAREA' ||
+          (activeEl as HTMLElement).isContentEditable)
+      ) {
+        return;
+      }
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf('image') !== -1) {
+          const file = items[i].getAsFile();
+          if (file) {
+            e.preventDefault();
+            if (uploadMode === 'page') {
+              void uploadArtworkFileForPage(file);
+            } else if (selectedPanelId) {
+              void uploadArtworkFileForPanel(selectedPanelId, file);
+            }
+            break;
+          }
+        }
+      }
+    };
+    window.addEventListener('paste', handlePaste);
+    return () => {
+      window.removeEventListener('paste', handlePaste);
+    };
+  }, [uploadMode, selectedPanelId, currentChapterId, selectedPage, myInProgress]);
 
   // Nạp danh sách Chapter thật của Series
   useEffect(() => {
@@ -1639,16 +1820,16 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
   };
 
   return (
-    <div className='flex-1 bg-[#FAF8F5] min-h-screen p-6 md:p-8 space-y-6'>
+    <div className='flex-1 bg-[#F3F0E9] min-h-screen p-6 md:p-8 space-y-6'>
       {/* Toast */}
       {toast && (
-        <div className='fixed top-6 right-6 z-50 bg-[#171717] text-white px-4 py-3 rounded-xl shadow-2xl border border-white/10 flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-200'>
+        <div className='fixed top-6 right-6 z-50 bg-[#1C1917] text-[#FCFBF8] px-4 py-3 rounded-xl shadow-2xl border border-[#D8D2C5]/30 flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-200'>
           <CheckCircle2 className='w-4 h-4 text-emerald-400 shrink-0' />
           <div>
             <div className='text-xs font-bold'>{toast.title}</div>
-            <div className='text-xs text-[#A3A3A3]'>{toast.desc}</div>
+            <div className='text-xs text-[#57534E]'>{toast.desc}</div>
           </div>
-          <button onClick={() => setToast(null)} className='ml-2 text-[#737373] hover:text-white'>
+          <button onClick={() => setToast(null)} className='ml-2 text-[#57534E] hover:text-white cursor-pointer'>
             <X className='w-3.5 h-3.5' />
           </button>
         </div>
@@ -1658,15 +1839,15 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
       <OfflineStatusBanner />
 
       {/* Header */}
-      <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-6 rounded-2xl border border-[#E7E7E7] shadow-xs'>
+      <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-[#FCFBF8] p-6 rounded-2xl border border-[#D8D2C5] shadow-xs'>
         <div>
-          <div className='mb-1 text-xs font-mono font-semibold uppercase tracking-wider text-[#555555]'>
+          <div className='mb-1 text-xs font-mono font-semibold uppercase tracking-wider text-[#C2410C]'>
             Bàn vẽ
           </div>
-          <h1 className='text-2xl font-serif font-bold text-[#171717] tracking-tight'>
+          <h1 className='text-2xl font-serif font-bold text-[#1C1917] tracking-tight'>
             Bàn Vẽ &amp; Bố Cục Khung Tranh Manga
           </h1>
-          <p className='text-xs text-[#737373]'>
+          <p className='text-xs text-[#57534E]'>
             Dựng khung tranh (Panels), áp dụng Frame Templates dựng sẵn, điều chỉnh thứ tự đọc và
             neo dòng kịch bản (Script Lines) vào từng ô phân cảnh.
           </p>
@@ -1674,9 +1855,9 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
 
         <div className='flex items-center gap-2.5 shrink-0 flex-wrap'>
           {chapters.length > 0 && (
-            <div className='flex items-center gap-1.5 bg-[#F8F6F0] px-3 py-1 rounded-xl border border-[#E7E7E7]'>
-              <BookOpen className='w-3.5 h-3.5 text-blue-600' />
-              <label htmlFor='artist-chapter-select' className='text-xs font-medium text-[#555555]'>
+            <div className='flex items-center gap-1.5 bg-[#F8F6F0] px-3 py-1 rounded-xl border border-[#D8D2C5]'>
+              <BookOpen className='w-3.5 h-3.5 text-[#C2410C]' />
+              <label htmlFor='artist-chapter-select' className='text-xs font-medium text-[#57534E]'>
                 Chương:
               </label>
               <select
@@ -1691,7 +1872,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                     return p;
                   });
                 }}
-                className='bg-transparent text-xs font-semibold text-[#171717] outline-none cursor-pointer pr-1'
+                className='bg-transparent text-xs font-semibold text-[#1C1917] outline-none cursor-pointer pr-1'
               >
                 {chapters.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -1725,7 +1906,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
             disabled={!canEditPages || !currentChapterId}
             title={
               !canEditPages
-                ? 'Chỉ Producer và Artist mới có quyền tạo trang (Breaking 152)'
+                ? 'Chỉ Producer và Artist mới có quyền tạo trang'
                 : !currentChapterId
                   ? 'Vui lòng chọn hoặc tạo Chương trước'
                   : undefined
@@ -1749,46 +1930,46 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
       )}
 
       {/* Tabs */}
-      <div className='flex items-center gap-2 border-b border-[#E7E7E7] pb-3'>
+      <div className='flex items-center gap-2 border-b border-[#D8D2C5] pb-3'>
         <button
           onClick={() => setActiveTab('pages')}
           className={`px-4 py-2 rounded-full text-xs font-semibold transition-all cursor-pointer flex items-center gap-2 ${
             activeTab === 'pages'
-              ? 'bg-[#292524] text-white shadow-soft-sm'
-              : 'bg-white text-stone-600 hover:bg-stone-50 border border-stone-200'
+              ? 'bg-[#FFF2E6] text-[#1C1917] border border-[#F97316]/30 shadow-2xs font-bold'
+              : 'bg-[#FCFBF8] text-[#57534E] hover:bg-[#F3F0E9] border border-[#D8D2C5]'
           }`}
         >
-          <Layout className='w-3.5 h-3.5 text-orange-400' />
+          <Layout className='w-3.5 h-3.5 text-[#C2410C]' />
           <span>Trang &amp; Bố Cục Manga ({pages.length})</span>
         </button>
         <button
           onClick={() => setActiveTab('queue')}
           className={`px-4 py-2 rounded-full text-xs font-semibold transition-all cursor-pointer flex items-center gap-2 ${
             activeTab === 'queue'
-              ? 'bg-[#292524] text-white shadow-soft-sm'
-              : 'bg-white text-stone-600 hover:bg-stone-50 border border-stone-200'
+              ? 'bg-[#FFF2E6] text-[#1C1917] border border-[#F97316]/30 shadow-2xs font-bold'
+              : 'bg-[#FCFBF8] text-[#57534E] hover:bg-[#F3F0E9] border border-[#D8D2C5]'
           }`}
         >
-          <KanbanSquare className='w-3.5 h-3.5 text-stone-400' />
+          <KanbanSquare className='w-3.5 h-3.5 text-[#57534E]' />
           <span>Hàng Đợi Nhiệm Vụ ({tasks.length})</span>
         </button>
       </div>
 
       {activeTab === 'queue' && (
-        <div className='bg-white p-6 rounded-2xl border border-stone-200 shadow-soft-sm space-y-4'>
-          <div className='flex items-center justify-between text-xs font-bold text-stone-900 border-b border-stone-200 pb-3'>
+        <div className='bg-[#FCFBF8] p-6 rounded-2xl border border-[#D8D2C5] shadow-soft-sm space-y-4'>
+          <div className='flex items-center justify-between text-xs font-bold text-[#1C1917] border-b border-[#D8D2C5] pb-3'>
             <span className='flex items-center gap-2'>
-              <Clock className='w-4 h-4 text-orange-600' />
+              <Clock className='w-4 h-4 text-[#C2410C]' />
               <span>Hàng Đợi Công Việc Theo Công Đoạn</span>
             </span>
             {loadingTasks && (
-              <span className='text-xs text-stone-400 flex items-center gap-1.5'>
-                <Loader2 className='w-3.5 h-3.5 animate-spin text-orange-500' /> Đang tải...
+              <span className='text-xs text-[#57534E] flex items-center gap-1.5'>
+                <Loader2 className='w-3.5 h-3.5 animate-spin text-[#F97316]' /> Đang tải...
               </span>
             )}
           </div>
           {tasks.length === 0 ? (
-            <div className='p-8 text-center text-xs text-stone-500 border border-dashed border-stone-200 rounded-xl bg-stone-50/50'>
+            <div className='p-8 text-center text-xs text-[#57534E] border border-dashed border-[#D8D2C5] rounded-xl bg-[#F8F6F0]'>
               {currentChapterId
                 ? 'Chưa có nhiệm vụ nào được phân công trong chương này.'
                 : 'Vui lòng chọn một Chương để hiển thị hàng đợi nhiệm vụ.'}
@@ -1798,19 +1979,19 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
               {tasks.map((task) => (
                 <div
                   key={task.id}
-                  className='p-4 rounded-xl border border-stone-200 bg-stone-50/70 space-y-2'
+                  className='p-4 rounded-xl border border-[#D8D2C5] bg-[#F8F6F0] space-y-2'
                 >
                   <div className='flex items-center justify-between'>
-                    <span className='px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-blue-50 text-blue-800 border border-blue-200'>
+                    <span className='px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-[#FFF2E6] text-[#C2410C] border border-[#F97316]/30'>
                       {stages.find((s) => s.id === task.pipelineStageId)?.name ||
                         task.pipelineStageId}
                     </span>
-                    <span className='text-xs font-mono text-stone-500'>{task.status}</span>
+                    <span className='text-xs font-mono text-[#57534E]'>{task.status}</span>
                   </div>
-                  <div className='text-xs font-bold text-stone-900'>
+                  <div className='text-xs font-bold text-[#1C1917]'>
                     {task.brief || 'Không có mô tả'}
                   </div>
-                  <div className='text-xs text-stone-500'>
+                  <div className='text-xs text-[#57534E]'>
                     Hạn chót:{' '}
                     {task.dueDate ? new Date(task.dueDate).toLocaleDateString('vi-VN') : 'Không có'}
                   </div>
@@ -1824,10 +2005,10 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
       {activeTab === 'pages' && (
         <>
           {/* Pages Filmstrip Strip */}
-          <div className='bg-white p-4 sm:p-5 rounded-2xl border border-stone-200 shadow-soft-sm space-y-3'>
-            <div className='flex items-center justify-between text-xs font-bold text-stone-900'>
+          <div className='bg-[#FCFBF8] p-4 sm:p-5 rounded-2xl border border-[#D8D2C5] shadow-soft-sm space-y-3'>
+            <div className='flex items-center justify-between text-xs font-bold text-[#1C1917]'>
               <span className='flex items-center gap-2'>
-                <Layout className='w-4 h-4 text-orange-600' />
+                <Layout className='w-4 h-4 text-[#C2410C]' />
                 <span>
                   Danh Sách Trang Bản Thảo{' '}
                   {currentChapterId
@@ -1835,13 +2016,13 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                     : ''}
                 </span>
               </span>
-              <span className='font-mono text-xs text-stone-500'>
+              <span className='font-mono text-xs text-[#57534E]'>
                 {pages.length} trang • Nhấp để chọn trang vẽ
               </span>
             </div>
 
             {pages.length === 0 ? (
-              <div className='p-8 text-center text-xs text-stone-500 border border-dashed border-stone-200 rounded-xl bg-stone-50/50'>
+              <div className='p-8 text-center text-xs text-[#57534E] border border-dashed border-[#D8D2C5] rounded-xl bg-[#F8F6F0]'>
                 {currentChapterId
                   ? 'Chương này chưa có trang bản thảo nào. Bấm "Tạo Trang Mới" để bắt đầu vẽ.'
                   : 'Vui lòng chọn một Chương để hiển thị danh sách trang.'}
@@ -1856,31 +2037,31 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                       onClick={() => handleSelectPage(p)}
                       className={`w-28 shrink-0 p-2.5 rounded-xl border transition-all cursor-pointer text-center relative ${
                         isSel
-                          ? 'border-orange-500 bg-orange-50/60 ring-2 ring-orange-500/20 shadow-soft-sm font-semibold'
-                          : 'border-stone-200 bg-stone-50/60 hover:bg-white hover:border-stone-400'
+                          ? 'border-[#F97316] bg-[#FFF2E6] ring-2 ring-[#F97316]/20 shadow-soft-sm font-semibold'
+                          : 'border-[#D8D2C5] bg-[#F8F6F0] hover:bg-[#FCFBF8] hover:border-[#D8D2C5]'
                       }`}
                     >
-                      <div className='aspect-[2/3] bg-white border border-stone-200/90 rounded-lg flex flex-col items-center justify-center p-1.5 mb-2 relative overflow-hidden group shadow-2xs'>
+                      <div className='aspect-[2/3] bg-[#FCFBF8] border border-[#D8D2C5] rounded-lg flex flex-col items-center justify-center p-1.5 mb-2 relative overflow-hidden group shadow-2xs'>
                         <FileImage
-                          className={`w-7 h-7 mb-1 transition-colors ${isSel ? 'text-orange-600' : 'text-stone-400'}`}
+                          className={`w-7 h-7 mb-1 transition-colors ${isSel ? 'text-[#C2410C]' : 'text-[#57534E]'}`}
                         />
-                        <span className='text-[10px] font-mono text-stone-500'>
+                        <span className='text-[10px] font-mono text-[#57534E]'>
                           {p.widthPx}x{p.heightPx}
                         </span>
                         <span
                           className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-full mt-1 ${
-                            isSel ? 'bg-orange-100 text-orange-800' : 'bg-stone-100 text-stone-600'
+                            isSel ? 'bg-[#FFF2E6] text-[#C2410C] border border-[#F97316]/30' : 'bg-[#F3F0E9] text-[#57534E] border border-[#D8D2C5]'
                           }`}
                         >
                           {p.dpi} DPI
                         </span>
                       </div>
                       <div
-                        className={`text-xs font-bold truncate ${isSel ? 'text-orange-950' : 'text-stone-800'}`}
+                        className={`text-xs font-bold truncate ${isSel ? 'text-[#1C1917]' : 'text-[#1C1917]'}`}
                       >
                         Trang {p.pageNumber}
                       </div>
-                      <div className='text-[10px] text-stone-500 font-mono truncate'>
+                      <div className='text-[10px] text-[#57534E] font-mono truncate'>
                         {p.layoutFormat}
                       </div>
                     </div>
@@ -1890,29 +2071,194 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
             )}
           </div>
 
-          {/* Selected Page Workbench & Interactive Panels Layout */}
+          {/* Selected Page Workbench & Interactive Panels Layout (3-Column Layout: Script - Canvas - Inspector) */}
           {selectedPage && (
-            <div className='grid grid-cols-1 lg:grid-cols-12 gap-6'>
-              {/* Left Column: Canvas Preview with Interactive Panels (7 cols) */}
-              <div className='lg:col-span-7 bg-white p-6 rounded-2xl border border-[#E7E7E7] shadow-xs space-y-4'>
-                <div className='flex items-center justify-between border-b border-[#E7E7E7] pb-3 flex-wrap gap-2'>
+            <div className='grid grid-cols-1 lg:grid-cols-12 gap-5 items-start'>
+              {/* CỘT TRÁI (3 cols): Kịch Bản & Tham Chiếu (Script Anchoring & References) */}
+              <div className='lg:col-span-3 bg-[#FCFBF8] p-4.5 rounded-2xl border border-[#D8D2C5] shadow-xs space-y-3.5 flex flex-col'>
+                <div className='flex items-center justify-between border-b border-[#D8D2C5] pb-3'>
+                  <div className='flex items-center gap-2'>
+                    <BookOpen className='w-4 h-4 text-[#C2410C]' />
+                    <h3 className='text-xs font-bold text-[#1C1917]'>Kịch Bản &amp; Tham Chiếu</h3>
+                  </div>
+                  {selectedPanelDetail && (
+                    <span className='px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-[#FFF2E6] text-[#C2410C] border border-[#FDBA74]'>
+                      Khung #{selectedPanelDetail.panelNumber}
+                    </span>
+                  )}
+                </div>
+
+                {selectedPanelDetail ? (
+                  <>
+                    {/* Tra cứu nhanh Series Bible */}
+                    <button
+                      type='button'
+                      data-testid={`panel-bible-reference-btn-${selectedPanelDetail.id}`}
+                      onClick={() => {
+                        setSelectedDrawerPanelId(selectedPanelDetail.id);
+                        setBibleDrawerOpen(true);
+                      }}
+                      className='w-full py-2 bg-[#FFF2E6] hover:bg-[#FDBA74]/30 text-[#C2410C] border border-[#FDBA74] rounded-xl font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs active:scale-98'
+                    >
+                      <BookOpen className='w-3.5 h-3.5 text-[#C2410C]' />
+                      <span>
+                        Tham chiếu Bible (Khung #{selectedPanelDetail.panelNumber})
+                      </span>
+                    </button>
+
+                    {/* Gán Phân cảnh (Scene) */}
+                    <div className='p-3 bg-[#F8F6F0] rounded-xl border border-[#D8D2C5] space-y-1.5'>
+                      <div className='font-bold text-[#1C1917] flex items-center gap-1.5 text-xs'>
+                        <Film className='w-3.5 h-3.5 text-[#C2410C]' />
+                        <span>Phân Cảnh (Scene)</span>
+                      </div>
+                      <select
+                        value={selectedPanelDetail.sceneId || ''}
+                        onChange={(e) =>
+                          handleAssignScene(e.target.value ? e.target.value : null)
+                        }
+                        className='w-full p-2 bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl text-xs font-semibold text-[#1C1917] focus:border-[#F97316] focus:outline-none cursor-pointer'
+                      >
+                        <option value=''>-- Chưa gán phân cảnh --</option>
+                        {scenes.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            Phân cảnh #{s.sceneNumber}: {s.heading || 'Không tiêu đề'} (
+                            {s.scriptLinesCount} dòng thoại)
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Neo dòng kịch bản (Script Lines) */}
+                    <div className='p-3 bg-[#F8F6F0] rounded-xl border border-[#D8D2C5] space-y-2 flex-1'>
+                      <div className='font-bold text-[#1C1917] flex items-center justify-between text-xs'>
+                        <span className='flex items-center gap-1.5'>
+                          <MessageSquare className='w-3.5 h-3.5 text-[#C2410C]' />
+                          <span>Dòng Kịch Bản Phân Cảnh</span>
+                        </span>
+                        <span className='text-xs text-[#57534E] font-mono'>
+                          {selectedPanelDetail.scriptLineIds?.length || 0} dòng
+                        </span>
+                      </div>
+
+                      {!selectedPanelDetail.sceneId ? (
+                        <p className='text-xs text-[#57534E] italic p-2.5 bg-[#FCFBF8] rounded-xl border border-[#D8D2C5]'>
+                          Vui lòng gán Phân cảnh (Scene) ở trên trước khi chọn các dòng thoại neo
+                          vào panel này.
+                        </p>
+                      ) : loadingSceneLines ? (
+                        <p className='text-xs text-[#57534E] p-2'>Đang nạp kịch bản...</p>
+                      ) : sceneLines.length === 0 ? (
+                        <p className='text-xs text-[#57534E] italic p-2.5 bg-[#FCFBF8] rounded-xl border border-[#D8D2C5]'>
+                          Phân cảnh này chưa có dòng thoại kịch bản nào.
+                        </p>
+                      ) : (
+                        <div className='space-y-1.5 max-h-64 overflow-y-auto custom-scrollbar'>
+                          {sceneLines.map((line) => {
+                            const isAnchored = selectedPanelDetail.scriptLineIds?.includes(
+                              line.id,
+                            );
+                            return (
+                              <div
+                                key={line.id}
+                                onClick={() => handleToggleScriptLine(line.id)}
+                                className={`p-2.5 rounded-xl border text-left cursor-pointer flex items-start gap-2.5 transition-all ${
+                                  isAnchored
+                                    ? 'bg-[#FFF2E6] border-[#F97316]/40 text-[#1C1917] shadow-2xs'
+                                    : 'bg-[#FCFBF8] border-[#D8D2C5] text-[#1C1917] hover:border-[#F97316]/40'
+                                }`}
+                              >
+                                {isAnchored ? (
+                                  <CheckSquare className='w-4 h-4 text-[#C2410C] shrink-0 mt-0.5' />
+                                ) : (
+                                  <Square className='w-4 h-4 text-[#57534E] shrink-0 mt-0.5' />
+                                )}
+                                <div className='flex-1 min-w-0'>
+                                  <div className='flex items-center gap-1 text-xs font-mono font-bold text-[#57534E]'>
+                                    <span>#{line.lineOrder}</span>
+                                    {line.speakerCharacterId && (
+                                      <span className='bg-[#F3F0E9] border border-[#D8D2C5] px-1.5 py-0.5 rounded text-[#1C1917]'>
+                                        Nhân vật
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className='text-xs truncate font-medium'>
+                                    {line.dialogueText ||
+                                      line.stageDirection ||
+                                      '(Chỉ dẫn diễn xuất)'}
+                                  </p>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div className='p-6 text-center text-xs text-[#57534E] border border-dashed border-[#D8D2C5] rounded-xl flex flex-col items-center justify-center space-y-2 flex-1 min-h-[300px]'>
+                    <BookOpen className='w-8 h-8 text-[#57534E]/50' />
+                    <span className='font-semibold text-[#1C1917]'>Chưa chọn khung panel</span>
+                    <p className='text-xs text-[#57534E] max-w-xs leading-relaxed'>
+                      Bấm chọn một ô khung panel trên Canvas để xem kịch bản thoại phân cảnh và tra cứu Series Bible.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* CỘT GIỮA (6 cols): Canvas Preview & Direct Dropzone */}
+              <div className='lg:col-span-6 bg-[#FCFBF8] p-5 rounded-2xl border border-[#D8D2C5] shadow-xs space-y-4'>
+                <div className='flex items-center justify-between border-b border-[#D8D2C5] pb-3 flex-wrap gap-2'>
                   <div>
-                    <h3 className='text-sm font-bold text-[#171717] flex items-center gap-2'>
-                      <Layers className='w-4 h-4 text-blue-600' />
+                    <h3 className='text-sm font-bold text-[#1C1917] flex items-center gap-2'>
+                      <Layers className='w-4 h-4 text-[#C2410C]' />
                       <span>Trang {selectedPage.pageNumber} — Bố Cục Khung Tranh (Panels)</span>
                     </h3>
-                    <span className='text-xs font-mono text-[#888888]'>
+                    <span className='text-xs font-mono text-[#57534E]'>
                       {panels.length} ô khung panel • Khổ: {selectedPage.widthPx} x{' '}
                       {selectedPage.heightPx} px ({selectedPage.dpi} DPI)
                     </span>
                   </div>
 
                   <div className='flex items-center gap-2 flex-wrap'>
+                    {/* Toggle Chế Độ Tải: Panel Slice vs Full-Page Composite (Giai đoạn 4) */}
+                    <div
+                      className='inline-flex items-center p-0.5 bg-stone-100 rounded-xl border border-stone-200 shadow-2xs'
+                      data-testid='upload-mode-toggle'
+                    >
+                      <button
+                        type='button'
+                        onClick={() => setUploadMode('panel')}
+                        data-testid='mode-panel-slice'
+                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
+                          uploadMode === 'panel'
+                            ? 'bg-white text-stone-900 shadow-2xs font-bold'
+                            : 'text-stone-500 hover:text-stone-800'
+                        }`}
+                      >
+                        <Layout className='w-3 h-3 text-orange-600' />
+                        <span>Tải từng khung</span>
+                      </button>
+                      <button
+                        type='button'
+                        onClick={() => setUploadMode('page')}
+                        data-testid='mode-full-page'
+                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
+                          uploadMode === 'page'
+                            ? 'bg-white text-stone-900 shadow-2xs font-bold'
+                            : 'text-stone-500 hover:text-stone-800'
+                        }`}
+                      >
+                        <FileImage className='w-3 h-3 text-blue-600' />
+                        <span>Tải cả trang</span>
+                      </button>
+                    </div>
+
                     {canEditPages && (
                       <>
                         <button
                           onClick={() => setFrameTemplateModalOpen(true)}
-                          className='px-3.5 py-1.5 text-xs font-semibold text-white bg-[#EA580C] hover:bg-[#C2410C] rounded-xl flex items-center gap-1.5 shadow-soft-sm cursor-pointer transition-all active:scale-95'
+                          className='px-3.5 py-1.5 text-xs font-semibold text-white bg-[#F97316] hover:bg-[#EA580C] rounded-xl flex items-center gap-1.5 shadow-soft-sm cursor-pointer transition-all active:scale-95'
                           title='Áp dụng mẫu khung tranh dựng sẵn vào trang'
                         >
                           <LayoutTemplate className='w-3.5 h-3.5' />
@@ -1920,10 +2266,10 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                         </button>
                         <button
                           onClick={handleCreatePanel}
-                          className='px-3 py-1.5 text-xs font-semibold text-stone-800 bg-white hover:bg-stone-50 border border-stone-200 rounded-xl flex items-center gap-1.5 shadow-2xs cursor-pointer transition-all active:scale-95'
+                          className='px-3 py-1.5 text-xs font-semibold text-[#1C1917] bg-[#FCFBF8] hover:bg-[#F3F0E9] border border-[#D8D2C5] rounded-xl flex items-center gap-1.5 shadow-2xs cursor-pointer transition-all active:scale-95'
                           title='Tạo thêm một ô panel thủ công'
                         >
-                          <Plus className='w-3.5 h-3.5 text-stone-500' />
+                          <Plus className='w-3.5 h-3.5 text-[#57534E]' />
                           <span>Thêm Panel</span>
                         </button>
                         <button
@@ -1934,7 +2280,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                             setEditLayout(selectedPage.layoutFormat);
                             setSettingsModalOpen(true);
                           }}
-                          className='p-2 text-stone-600 hover:text-stone-900 bg-white hover:bg-stone-50 border border-stone-200 rounded-xl cursor-pointer transition-all shadow-2xs'
+                          className='p-2 text-[#57534E] hover:text-[#1C1917] bg-[#FCFBF8] hover:bg-[#F3F0E9] border border-[#D8D2C5] rounded-xl cursor-pointer transition-all shadow-2xs'
                           title='Cài đặt Canvas'
                         >
                           <Settings className='w-3.5 h-3.5' />
@@ -1980,8 +2326,23 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                   />
                 )}
 
-                {/* Canvas Container */}
-                <div className='bg-[#F8F6F0] rounded-xl border border-dashed border-[#CCCCCC] p-4 sm:p-6 flex items-center justify-center min-h-[520px] relative overflow-hidden'>
+                {/* Canvas Container & Direct Dropzone */}
+                <div
+                  onDragOver={(e) => {
+                    if (uploadMode === 'page' && canEditPages) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }
+                  }}
+                  onDrop={(e) => {
+                    if (uploadMode === 'page' && canEditPages && e.dataTransfer.files?.[0]) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      void uploadArtworkFileForPage(e.dataTransfer.files[0]);
+                    }
+                  }}
+                  className='bg-[#F8F6F0] rounded-xl border border-dashed border-[#CCCCCC] p-4 sm:p-6 flex items-center justify-center min-h-[520px] relative overflow-hidden'
+                >
                   <div
                     ref={canvasRef}
                     tabIndex={0}
@@ -1994,6 +2355,82 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                   >
                     {/* Safe Margin Guides */}
                     <div className='absolute inset-3 border border-blue-200/60 pointer-events-none'></div>
+
+                    {/* Backdrop Layer: Ảnh Cả Trang (Full-page Composite) */}
+                    {pageArtUrl && (
+                      <img
+                        src={pageArtUrl}
+                        alt={`Page #${selectedPage.pageNumber}`}
+                        onError={() => handleArtworkImgError(pageArt?.id)}
+                        onLoad={() => handleArtworkImgLoad(pageArt?.id)}
+                        data-testid='canvas-full-page-backdrop'
+                        className={`absolute inset-0 w-full h-full object-contain pointer-events-none transition-opacity ${
+                          uploadMode === 'page' ? 'opacity-90 z-0' : 'opacity-25 z-0'
+                        }`}
+                      />
+                    )}
+
+                    {/* Banner / Dropzone khi ở chế độ Full-Page và chưa có ảnh */}
+                    {uploadMode === 'page' && !pageArtUrl && !uploadingPage && (
+                      <div
+                        className='absolute inset-0 flex flex-col items-center justify-center p-4 text-center pointer-events-none z-10 bg-white/75 backdrop-blur-2xs'
+                        data-testid='full-page-empty-banner'
+                      >
+                        <FileImage className='w-8 h-8 text-blue-500 mb-1.5 animate-pulse' />
+                        <span className='text-xs font-bold text-stone-800'>
+                          Chế độ Tải cả trang (Full-page Composite)
+                        </span>
+                        <p className='text-xs text-stone-500 mt-1 max-w-xs leading-relaxed'>
+                          Kéo thả file ảnh toàn trang hoặc bấm nút bên dưới để tải và đối chiếu khớp nét với các khung.
+                        </p>
+                        {canEditPages && (
+                          <button
+                            type='button'
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleTriggerUploadPage();
+                            }}
+                            data-testid='desk-upload-page-btn'
+                            className='mt-2.5 px-3 py-1.5 pointer-events-auto bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold cursor-pointer shadow-soft-sm transition-all active:scale-95 flex items-center gap-1.5'
+                          >
+                            <Upload className='w-3.5 h-3.5' />
+                            <span>Tải ảnh cả trang</span>
+                          </button>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Nút Đổi ảnh cả trang khi đã có tranh và đang ở chế độ Full-Page */}
+                    {uploadMode === 'page' && pageArtUrl && canEditPages && !uploadingPage && (
+                      <div className='absolute top-2 right-2 z-20 flex items-center gap-1.5'>
+                        <span className='font-mono font-bold text-xs bg-blue-600 text-white px-2 py-0.5 rounded shadow-2xs'>
+                          Trang {selectedPage.pageNumber} v{pageArt?.versionNumber}
+                        </span>
+                        <button
+                          type='button'
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleTriggerUploadPage();
+                          }}
+                          data-testid='desk-upload-page-btn'
+                          className='px-2 py-1 bg-stone-900/85 hover:bg-stone-900 text-white rounded-lg text-xs font-semibold shadow-soft-sm flex items-center gap-1 cursor-pointer transition-transform active:scale-95 backdrop-blur-xs'
+                          title='Đổi ảnh toàn trang'
+                        >
+                          <Upload className='w-3 h-3 text-blue-400' />
+                          <span>Đổi ảnh trang</span>
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Upload Spinner toàn trang */}
+                    {uploadingPage && (
+                      <div className='absolute inset-0 bg-stone-900/40 backdrop-blur-2xs flex flex-col items-center justify-center p-2 z-30 pointer-events-none'>
+                        <Loader2 className='w-7 h-7 text-white animate-spin mb-1.5' />
+                        <span className='text-xs font-semibold text-white bg-black/60 px-2.5 py-1 rounded'>
+                          {uploadProgressMsg || 'Đang tải artwork toàn trang...'}
+                        </span>
+                      </div>
+                    )}
 
                     {panels.length === 0 ? (
                       <div className='absolute inset-0 flex flex-col items-center justify-center p-4 text-center text-zinc-400'>
@@ -2016,20 +2453,43 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                         const dragging = Boolean(liveRect);
                         const panelArt = artFor(p.id);
                         const panelArtUrl = panelArt ? panelArtworkUrls[panelArt.id] : null;
+                        const isDraggingOver = dragOverPanelId === p.id;
+                        const isUploading = uploadingPanelId === p.id;
+
                         return (
                           <div
                             key={p.id}
                             onClick={() => setSelectedPanelId(p.id)}
                             onPointerDown={(e) => handlePanelPointerDown(p, e)}
+                            onDragOver={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              if (canEditPages) setDragOverPanelId(p.id);
+                            }}
+                            onDragLeave={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              if (dragOverPanelId === p.id) setDragOverPanelId(null);
+                            }}
+                            onDrop={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setDragOverPanelId(null);
+                              if (canEditPages && e.dataTransfer.files?.[0]) {
+                                void handlePanelFileDrop(p.id, e.dataTransfer.files[0]);
+                              }
+                            }}
                             data-testid={`panel-box-${p.id}`}
-                            className={`absolute border-2 ${
+                            className={`group absolute border-2 ${
                               dragging ? '' : 'transition-all'
                             } ${canEditPages ? 'cursor-move' : 'cursor-pointer'} flex flex-col justify-between p-1.5 overflow-hidden select-none ${
-                              isSelected
-                                ? 'border-orange-500 bg-orange-500/10 ring-2 ring-orange-400/40 z-20'
-                                : box.borderless
-                                  ? 'border-dashed border-zinc-400 bg-white/80 hover:border-blue-500 z-10'
-                                  : 'border-[#171717] bg-white/90 hover:border-blue-500 hover:bg-blue-50/20 z-10'
+                              isDraggingOver
+                                ? 'border-orange-500 bg-orange-500/20 ring-2 ring-orange-400 z-30'
+                                : isSelected
+                                  ? 'border-orange-500 bg-orange-500/10 ring-2 ring-orange-400/40 z-20'
+                                  : box.borderless
+                                    ? 'border-dashed border-zinc-400 bg-white/80 hover:border-blue-500 z-10'
+                                    : 'border-[#171717] bg-white/90 hover:border-blue-500 hover:bg-blue-50/20 z-10'
                             }`}
                             style={{
                               left: `${liveRect ? liveRect.x : box.percentX}%`,
@@ -2042,17 +2502,175 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                             {isPrimary && canEditPages && multiIds.length <= 1 && (
                               <PanelResizeHandles onStart={(mode, e) => startDrag(p.id, mode, e)} />
                             )}
+
+                            {/* Floating Action Bar trên Panel đang chọn (CF2 / Giai đoạn 3) */}
+                            {isPrimary && canEditPages && !dragging && !isDraggingOver && (
+                              <div
+                                data-testid={`floating-toolbar-${p.id}`}
+                                onClick={(e) => e.stopPropagation()}
+                                onPointerDown={(e) => e.stopPropagation()}
+                                className={`absolute ${
+                                  (liveRect ? liveRect.y : box.percentY) < 10
+                                    ? 'top-1.5 left-1.5'
+                                    : '-top-9.5 left-0'
+                                } z-30 flex items-center gap-1 bg-stone-900/95 backdrop-blur-md text-white px-2 py-1 rounded-xl shadow-lg border border-stone-700/60 text-xs pointer-events-auto select-none transition-all`}
+                              >
+                                {findPendingAssigned(p.id) ? (
+                                  <button
+                                    type='button'
+                                    data-testid={`floating-start-upload-${p.id}`}
+                                    onClick={() => handleStartAndUploadPanel(p.id)}
+                                    disabled={startingAssignmentPanelId === p.id}
+                                    className='px-2 py-0.5 bg-amber-500 hover:bg-amber-600 text-stone-950 font-bold rounded-lg flex items-center gap-1 cursor-pointer transition-colors shadow-2xs'
+                                    title='Bắt đầu nhiệm vụ & Tải ảnh ngay'
+                                  >
+                                    {startingAssignmentPanelId === p.id ? (
+                                      <Loader2 className='w-3 h-3 animate-spin' />
+                                    ) : (
+                                      <Play className='w-3 h-3 fill-current' />
+                                    )}
+                                    <span>Bắt đầu &amp; Tải</span>
+                                  </button>
+                                ) : (
+                                  <button
+                                    type='button'
+                                    data-testid={`floating-upload-${p.id}`}
+                                    onClick={() => handleTriggerUploadPanel(p.id)}
+                                    className='px-2 py-0.5 bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded-lg flex items-center gap-1 cursor-pointer transition-colors shadow-2xs'
+                                    title={panelArtUrl ? 'Đổi ảnh cho khung này' : 'Tải ảnh cho khung này'}
+                                  >
+                                    <Upload className='w-3 h-3' />
+                                    <span>{panelArtUrl ? 'Đổi ảnh' : '+ Tải ảnh'}</span>
+                                  </button>
+                                )}
+
+                                <button
+                                  type='button'
+                                  data-testid={`floating-bible-${p.id}`}
+                                  onClick={() => {
+                                    setSelectedDrawerPanelId(p.id);
+                                    setBibleDrawerOpen(true);
+                                  }}
+                                  className='px-1.5 py-0.5 hover:bg-stone-700 text-stone-200 hover:text-white rounded-lg flex items-center gap-1 cursor-pointer transition-colors'
+                                  title='Mở Series Bible cho khung này'
+                                >
+                                  <BookOpen className='w-3 h-3 text-purple-400' />
+                                  <span>Bible</span>
+                                </button>
+
+                                <div className='w-px h-3.5 bg-stone-700 mx-0.5' />
+
+                                <button
+                                  type='button'
+                                  data-testid={`floating-split-v-${p.id}`}
+                                  disabled={Boolean(splitBlockedReason('vertical')) || layoutBusy}
+                                  onClick={() => handleSplitPanel('vertical')}
+                                  className='p-1 hover:bg-stone-700 text-stone-200 hover:text-white rounded-lg disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors'
+                                  title={splitBlockedReason('vertical') ?? 'Chia đôi dọc'}
+                                >
+                                  <Columns className='w-3 h-3' />
+                                </button>
+
+                                <button
+                                  type='button'
+                                  data-testid={`floating-split-h-${p.id}`}
+                                  disabled={Boolean(splitBlockedReason('horizontal')) || layoutBusy}
+                                  onClick={() => handleSplitPanel('horizontal')}
+                                  className='p-1 hover:bg-stone-700 text-stone-200 hover:text-white rounded-lg disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors'
+                                  title={splitBlockedReason('horizontal') ?? 'Chia đôi ngang'}
+                                >
+                                  <Rows className='w-3 h-3' />
+                                </button>
+
+                                <div className='w-px h-3.5 bg-stone-700 mx-0.5' />
+
+                                <button
+                                  type='button'
+                                  data-testid={`floating-delete-${p.id}`}
+                                  onClick={() => handleDeletePanel(p.id)}
+                                  className='p-1 hover:bg-rose-900/60 text-rose-300 hover:text-rose-100 rounded-lg cursor-pointer transition-colors'
+                                  title='Xoá khung này'
+                                >
+                                  <Trash2 className='w-3 h-3' />
+                                </button>
+                              </div>
+                            )}
+
+                            {/* Dropzone Overlay khi kéo tệp vào ô */}
+                            {isDraggingOver && (
+                              <div className='absolute inset-0 bg-orange-500/25 backdrop-blur-2xs flex flex-col items-center justify-center p-2 z-30 pointer-events-none'>
+                                <Upload className='w-6 h-6 text-orange-600 animate-bounce mb-1' />
+                                <span className='text-xs font-bold text-orange-950 bg-white/90 px-2 py-0.5 rounded shadow-2xs'>
+                                  Thả ảnh vào Khung #{p.panelNumber}
+                                </span>
+                              </div>
+                            )}
+
+                            {/* Upload Spinner Overlay */}
+                            {isUploading && (
+                              <div className='absolute inset-0 bg-stone-900/40 backdrop-blur-2xs flex flex-col items-center justify-center p-2 z-30 pointer-events-none'>
+                                <Loader2 className='w-6 h-6 text-white animate-spin mb-1' />
+                                <span className='text-xs font-semibold text-white bg-black/60 px-2 py-0.5 rounded'>
+                                  {uploadProgressMsg || 'Đang tải ảnh...'}
+                                </span>
+                              </div>
+                            )}
+
+                            {/* Ảnh Artwork hiển thị sắc nét */}
                             {panelArtUrl && (
                               <img
                                 src={panelArtUrl}
                                 alt={`Panel #${p.panelNumber}`}
                                 onError={() => handleArtworkImgError(panelArt?.id)}
                                 onLoad={() => handleArtworkImgLoad(panelArt?.id)}
-                                className='absolute inset-0 w-full h-full object-contain pointer-events-none opacity-85 z-0'
+                                className='absolute inset-0 w-full h-full object-contain pointer-events-none opacity-90 z-0'
                               />
                             )}
 
-                            <div className='flex items-center justify-between pointer-events-none relative z-10'>
+                            {/* Nút bấm nhanh Tải ảnh khi chưa có tranh */}
+                            {!panelArtUrl && !isDraggingOver && !isUploading && (
+                              <div className='absolute inset-0 flex flex-col items-center justify-center p-2 text-center pointer-events-none z-0'>
+                                <ImagePlus className='w-5 h-5 text-stone-300 mb-1' />
+                                <span className='text-xs text-stone-400 font-medium'>
+                                  {canEditPages ? 'Kéo thả ảnh hoặc' : 'Chưa có ảnh'}
+                                </span>
+                                {canEditPages && (
+                                  <button
+                                    type='button'
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedPanelId(p.id);
+                                      handleTriggerUploadPanel(p.id);
+                                    }}
+                                    className='mt-1 px-2 py-0.5 pointer-events-auto bg-stone-100/90 hover:bg-orange-50 text-stone-600 hover:text-orange-700 border border-stone-200 hover:border-orange-300 rounded text-xs font-semibold cursor-pointer shadow-2xs transition-all active:scale-95'
+                                  >
+                                    + Tải ảnh
+                                  </button>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Nút đổi ảnh nhanh khi hover ô đã có ảnh */}
+                            {panelArtUrl && canEditPages && !isUploading && !isDraggingOver && (
+                              <div className='absolute inset-0 opacity-0 group-hover:opacity-100 bg-black/20 transition-opacity flex items-center justify-center pointer-events-none z-10'>
+                                <button
+                                  type='button'
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedPanelId(p.id);
+                                    handleTriggerUploadPanel(p.id);
+                                  }}
+                                  className='pointer-events-auto px-2 py-1 bg-white/95 hover:bg-white text-stone-900 rounded-lg text-xs font-semibold shadow-soft-sm flex items-center gap-1 cursor-pointer transition-transform active:scale-95'
+                                  title='Đổi ảnh cho khung này'
+                                >
+                                  <Upload className='w-3 h-3 text-orange-600' />
+                                  <span>Đổi ảnh</span>
+                                </button>
+                              </div>
+                            )}
+
+                            {/* Header Panel Box */}
+                            <div className='flex items-center justify-between pointer-events-none relative z-20'>
                               <span className='font-mono font-bold text-xs bg-[#171717] text-white px-1.5 py-0.5 rounded shadow-2xs'>
                                 #{p.panelNumber}
                               </span>
@@ -2068,7 +2686,8 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                               </div>
                             </div>
 
-                            <div className='flex items-center justify-between text-xs text-zinc-500 pointer-events-none'>
+                            {/* Footer Panel Box */}
+                            <div className='flex items-center justify-between text-xs text-zinc-500 pointer-events-none relative z-20'>
                               {p.sceneId && (
                                 <span className='bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded truncate max-w-[80px]'>
                                   Scene
@@ -2185,22 +2804,22 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                 </div>
               </div>
 
-              {/* Right Column: Panel Properties & Script Anchoring (5 cols) */}
-              <div className='lg:col-span-5 bg-white p-5 rounded-2xl border border-stone-200 shadow-xs space-y-4 flex flex-col'>
+              {/* CỘT PHẢI (3 cols): Panel Properties & Production Inspector */}
+              <div className='lg:col-span-3 bg-[#FCFBF8] p-4.5 rounded-2xl border border-[#D8D2C5] shadow-xs space-y-3.5 flex flex-col'>
                 {/* Tab Switcher: Khung Panel vs Lớp Vẽ & Layer Ảnh */}
-                <div className='flex items-center justify-between border-b border-stone-100 pb-3'>
-                  <div className='flex items-center gap-2'>
+                <div className='flex items-center justify-between border-b border-[#D8D2C5] pb-3'>
+                  <div className='flex items-center gap-1.5'>
                     <button
                       type='button'
                       onClick={() => setActiveRightTab('panel')}
-                      className={`px-3.5 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                      className={`px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer ${
                         activeRightTab === 'panel'
-                          ? 'bg-orange-50 text-orange-800 border border-orange-200 shadow-2xs'
-                          : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
+                          ? 'bg-[#FFF2E6] text-[#1C1917] border border-[#F97316]/40 shadow-2xs font-bold'
+                          : 'text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9]'
                       }`}
                       data-testid='tab-panel'
                     >
-                      <Edit3 className='w-3.5 h-3.5' />
+                      <Edit3 className='w-3.5 h-3.5 text-[#C2410C]' />
                       <span>
                         {selectedPanelDetail
                           ? `Panel #${selectedPanelDetail.panelNumber}`
@@ -2210,17 +2829,17 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                     <button
                       type='button'
                       onClick={() => setActiveRightTab('layers')}
-                      className={`px-3.5 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                      className={`px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer ${
                         activeRightTab === 'layers'
-                          ? 'bg-violet-50 text-violet-800 border border-violet-200 shadow-2xs'
-                          : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
+                          ? 'bg-[#FFF2E6] text-[#C2410C] border border-[#F97316]/40 shadow-2xs font-bold'
+                          : 'text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9]'
                       }`}
                       data-testid='tab-layers'
                     >
-                      <Layers className='w-3.5 h-3.5' />
+                      <Layers className='w-3.5 h-3.5 text-[#C2410C]' />
                       <span>Lớp Vẽ &amp; Layer Ảnh</span>
                       {visibleElements.length > 0 && (
-                        <span className='ml-1 px-1.5 py-0.5 bg-violet-200/80 text-violet-800 rounded-full text-xs font-mono font-bold'>
+                        <span className='ml-1 px-1.5 py-0.5 bg-[#FFF2E6] text-[#C2410C] border border-[#F97316]/30 rounded-full text-xs font-mono font-bold'>
                           {visibleElements.length}
                         </span>
                       )}
@@ -2231,83 +2850,83 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                     <button
                       type='button'
                       onClick={() => setCreateLayerModalOpen(true)}
-                      className='px-3 py-1.5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1 cursor-pointer transition-all shadow-soft-sm active:scale-95'
+                      className='px-3 py-1.5 bg-[#F97316] hover:bg-[#EA580C] text-white rounded-xl text-xs font-semibold flex items-center gap-1 cursor-pointer transition-all shadow-soft-sm active:scale-95'
                       data-testid='open-create-layer-modal'
+                      title='Thêm Layer mới'
                     >
                       <Plus className='w-3.5 h-3.5' />
-                      <span>Thêm Layer</span>
                     </button>
                   )}
                 </div>
 
                 {activeRightTab === 'panel' ? (
                   selectedPanelDetail ? (
-                    <div className='space-y-4 text-xs flex-1 overflow-y-auto custom-scrollbar'>
-                      {/* Tọa độ & Thứ tự đọc */}
-                      <div className='p-3.5 bg-stone-50/70 rounded-xl border border-stone-200/80 space-y-2.5'>
-                        <div className='font-bold text-stone-900 flex items-center justify-between'>
-                          <span>Vị trí &amp; Thứ tự đọc (BR-11)</span>
-                          <span className='font-mono text-xs text-stone-500'>
-                            ID: {selectedPanelDetail.id.slice(0, 8)}...
+                    <div className='space-y-3.5 text-xs flex-1 overflow-y-auto custom-scrollbar'>
+                      {/* Vị trí & Thứ tự đọc */}
+                      <div className='p-3 bg-[#F8F6F0] rounded-xl border border-[#D8D2C5] space-y-2'>
+                        <div className='font-bold text-[#1C1917] flex items-center justify-between text-xs'>
+                          <span>Vị trí &amp; Thứ tự đọc</span>
+                          <span className='font-mono text-xs text-[#57534E]'>
+                            #{selectedPanelDetail.panelNumber} (ID: {selectedPanelDetail.id.slice(0, 8)}...)
                           </span>
                         </div>
-                        <div className='grid grid-cols-2 gap-2.5 text-xs'>
+                        <div className='grid grid-cols-2 gap-2 text-xs'>
                           <div>
-                            <label className='block text-stone-500 mb-1 font-medium'>
+                            <label className='block text-[#57534E] mb-1 font-medium'>
                               Thứ tự đọc:
                             </label>
                             <input
                               type='number'
                               value={panelReadingOrder}
                               onChange={(e) => setPanelReadingOrder(parseInt(e.target.value, 10))}
-                              className='w-full px-2.5 py-1.5 bg-white border border-stone-200 rounded-lg font-mono focus:border-orange-500 focus:outline-none'
+                              className='w-full px-2.5 py-1.5 bg-[#FCFBF8] border border-[#D8D2C5] rounded-lg font-mono text-[#1C1917] focus:border-[#F97316] focus:outline-none'
                             />
                           </div>
                           <div>
-                            <label className='block text-stone-500 mb-1 font-medium'>X (%):</label>
+                            <label className='block text-[#57534E] mb-1 font-medium'>X (%):</label>
                             <input
                               type='number'
                               step={0.1}
                               value={panelBoxX}
                               onChange={(e) => setPanelBoxX(parseFloat(e.target.value))}
-                              className='w-full px-2.5 py-1.5 bg-white border border-stone-200 rounded-lg font-mono focus:border-orange-500 focus:outline-none'
+                              className='w-full px-2.5 py-1.5 bg-[#FCFBF8] border border-[#D8D2C5] rounded-lg font-mono text-[#1C1917] focus:border-[#F97316] focus:outline-none'
                             />
                           </div>
                           <div>
-                            <label className='block text-stone-500 mb-1 font-medium'>Y (%):</label>
+                            <label className='block text-[#57534E] mb-1 font-medium'>Y (%):</label>
                             <input
                               type='number'
                               step={0.1}
                               value={panelBoxY}
                               onChange={(e) => setPanelBoxY(parseFloat(e.target.value))}
-                              className='w-full px-2.5 py-1.5 bg-white border border-stone-200 rounded-lg font-mono focus:border-orange-500 focus:outline-none'
+                              className='w-full px-2.5 py-1.5 bg-[#FCFBF8] border border-[#D8D2C5] rounded-lg font-mono text-[#1C1917] focus:border-[#F97316] focus:outline-none'
                             />
                           </div>
                           <div>
-                            <label className='block text-stone-500 mb-1 font-medium'>
+                            <label className='block text-[#57534E] mb-1 font-medium'>
                               Rộng × Cao (%):
                             </label>
-                            <div className='flex gap-1.5'>
+                            <div className='flex gap-1'>
                               <input
                                 type='number'
                                 step={0.1}
                                 value={panelBoxW}
                                 onChange={(e) => setPanelBoxW(parseFloat(e.target.value))}
-                                className='w-1/2 px-2 py-1.5 bg-white border border-stone-200 rounded-lg font-mono focus:border-orange-500 focus:outline-none'
+                                className='w-1/2 px-2 py-1.5 bg-[#FCFBF8] border border-[#D8D2C5] rounded-lg font-mono text-[#1C1917] focus:border-[#F97316] focus:outline-none'
                               />
                               <input
                                 type='number'
                                 step={0.1}
                                 value={panelBoxH}
                                 onChange={(e) => setPanelBoxH(parseFloat(e.target.value))}
-                                className='w-1/2 px-2 py-1.5 bg-white border border-stone-200 rounded-lg font-mono focus:border-orange-500 focus:outline-none'
+                                className='w-1/2 px-2 py-1.5 bg-[#FCFBF8] border border-[#D8D2C5] rounded-lg font-mono text-[#1C1917] focus:border-[#F97316] focus:outline-none'
                               />
                             </div>
                           </div>
                         </div>
                         <button
                           onClick={handleSavePanelCoords}
-                          className='w-full mt-2 py-2 bg-[#EA580C] hover:bg-[#C2410C] text-white rounded-xl font-semibold text-xs transition-colors cursor-pointer shadow-soft-sm active:scale-98'
+                          className='w-full mt-2 py-2 bg-[#F97316] hover:bg-[#EA580C] text-white rounded-xl font-semibold text-xs transition-colors cursor-pointer shadow-soft-sm active:scale-98'
                         >
                           Lưu Tọa Độ &amp; Thứ Tự Đọc
                         </button>
@@ -2330,7 +2949,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                                     : 'Chia khung này thành 2 hàng trên/dưới')
                                 }
                                 onClick={() => handleSplitPanel(axis)}
-                                className='py-1.5 bg-white hover:bg-orange-50 text-stone-800 hover:text-orange-700 border border-stone-200 hover:border-orange-200 rounded-xl font-semibold text-xs transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs'
+                                className='py-1.5 bg-[#FCFBF8] hover:bg-[#FFF2E6] text-[#1C1917] hover:text-[#C2410C] border border-[#D8D2C5] hover:border-[#F97316]/40 rounded-xl font-semibold text-xs transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs'
                               >
                                 {axis === 'vertical' ? 'Chia đôi dọc' : 'Chia đôi ngang'}
                               </button>
@@ -2338,24 +2957,24 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                           })}
                         </div>
                         {splitBlockedReason('vertical') && splitBlockedReason('horizontal') && (
-                          <p className='text-xs text-stone-500 mt-1'>
+                          <p className='text-xs text-[#57534E] mt-1'>
                             {splitBlockedReason('vertical')}
                           </p>
                         )}
                       </div>
 
-                      {/* Ảnh Artwork Của Khung (CF2) */}
+                      {/* Ảnh Artwork Của Khung & Nút Tải Ảnh (CF2) */}
                       {(() => {
                         const panelArt = artFor(selectedPanelDetail.id);
                         const panelArtUrl = panelArt ? panelArtworkUrls[panelArt.id] : null;
                         return (
                           <div
-                            className='p-3.5 bg-stone-50/70 rounded-xl border border-stone-200/80 space-y-2.5'
+                            className='p-3.5 bg-[#F8F6F0] rounded-xl border border-[#D8D2C5] space-y-2.5'
                             data-testid='panel-artwork-desk-card'
                           >
-                            <div className='font-bold text-stone-900 flex items-center justify-between'>
+                            <div className='font-bold text-[#1C1917] flex items-center justify-between text-xs'>
                               <span className='flex items-center gap-1.5'>
-                                <ImageIcon className='w-3.5 h-3.5 text-orange-600' />
+                                <ImageIcon className='w-3.5 h-3.5 text-[#C2410C]' />
                                 <span>Ảnh Artwork Khung #{selectedPanelDetail.panelNumber}</span>
                               </span>
                               {panelArt && (
@@ -2368,7 +2987,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                             {panelArt ? (
                               <div className='space-y-2'>
                                 {panelArtUrl ? (
-                                  <div className='aspect-video max-h-36 bg-white border border-stone-200 rounded-xl overflow-hidden flex items-center justify-center relative p-1 shadow-2xs'>
+                                  <div className='aspect-video max-h-36 bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl overflow-hidden flex items-center justify-center relative p-1 shadow-2xs'>
                                     <img
                                       src={panelArtUrl}
                                       alt={panelArt.fileName}
@@ -2378,19 +2997,18 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                                     />
                                   </div>
                                 ) : (
-                                  <p className='text-xs text-stone-400 font-mono'>
+                                  <p className='text-xs text-[#57534E] font-mono'>
                                     Đang nạp link xem ảnh...
                                   </p>
                                 )}
-                                <div className='text-xs text-stone-500 font-mono flex items-center justify-between'>
+                                <div className='text-xs text-[#57534E] font-mono flex items-center justify-between'>
                                   <span className='truncate'>{panelArt.fileName}</span>
                                   <span>{Math.round(panelArt.sizeBytes / 1024)} KB</span>
                                 </div>
                               </div>
                             ) : (
-                              <p className='text-xs text-stone-500 italic p-2.5 bg-white rounded-xl border border-stone-200'>
-                                Khung này chưa có ảnh riêng. Bấm "Tải ảnh cho khung" để nạp ảnh bản
-                                vẽ.
+                              <p className='text-xs text-[#57534E] italic p-2.5 bg-[#FCFBF8] rounded-xl border border-[#D8D2C5]'>
+                                Khung này chưa có ảnh riêng. Bấm "Tải ảnh cho khung" hoặc kéo thả ảnh vào ô trên canvas.
                               </p>
                             )}
 
@@ -2401,37 +3019,57 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                                   data-testid={`desk-upload-panel-btn-${selectedPanelDetail.id}`}
                                   onClick={() => handleTriggerUploadPanel(selectedPanelDetail.id)}
                                   disabled={!findStageAssignment(selectedPanelDetail.id)}
-                                  className='w-full py-2 bg-[#EA580C] hover:bg-[#C2410C] text-white rounded-xl font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-soft-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#EA580C] active:scale-98'
+                                  className='w-full py-2 bg-[#F97316] hover:bg-[#EA580C] text-white rounded-xl font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-soft-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#F97316] active:scale-98'
                                 >
                                   <Upload className='w-3.5 h-3.5' />
                                   <span>Tải ảnh cho khung</span>
                                 </button>
                                 {!findStageAssignment(selectedPanelDetail.id) && (
-                                  <p
-                                    className='text-xs text-amber-800 bg-amber-50/70 p-2 rounded-lg border border-amber-200/60'
+                                  <div
+                                    className='text-xs text-amber-900 bg-amber-50/80 p-2.5 rounded-xl border border-amber-200 space-y-2'
                                     data-testid='desk-upload-panel-blocked'
                                   >
-                                    Cần đang làm (bấm "Bắt đầu") một việc được giao cho Page hoặc
-                                    Panel này mới tải được ảnh.
-                                  </p>
+                                    <p className='text-amber-800 leading-relaxed'>
+                                      Cần đang làm (bấm "Bắt đầu") một việc được giao cho Page hoặc
+                                      Panel này mới tải được ảnh.
+                                    </p>
+                                    {findPendingAssigned(selectedPanelDetail.id) && (
+                                      <div className='pt-1 border-t border-amber-200/80 space-y-1.5'>
+                                        <p className='text-xs text-amber-900 font-semibold flex items-center gap-1'>
+                                          <Play className='w-3 h-3 text-amber-600 fill-current' />
+                                          <span>
+                                            Bạn đã được giao việc cho{' '}
+                                            {findPendingAssigned(selectedPanelDetail.id)?.entityType === 'Panel'
+                                              ? `Khung #${selectedPanelDetail.panelNumber}`
+                                              : 'Trang này'}
+                                            . Bắt đầu ngay:
+                                          </span>
+                                        </p>
+                                        <button
+                                          type='button'
+                                          data-testid={`desk-start-and-upload-btn-${selectedPanelDetail.id}`}
+                                          onClick={() => handleStartAndUploadPanel(selectedPanelDetail.id)}
+                                          disabled={startingAssignmentPanelId === selectedPanelDetail.id}
+                                          className='w-full py-2 px-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-soft-sm cursor-pointer transition-all active:scale-98 disabled:opacity-50'
+                                        >
+                                          {startingAssignmentPanelId === selectedPanelDetail.id ? (
+                                            <>
+                                              <Loader2 className='w-3.5 h-3.5 animate-spin' />
+                                              <span>Đang bắt đầu nhiệm vụ...</span>
+                                            </>
+                                          ) : (
+                                            <>
+                                              <Play className='w-3.5 h-3.5 fill-current' />
+                                              <span>Bắt đầu việc &amp; Tải ảnh ngay</span>
+                                            </>
+                                          )}
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
                                 )}
                               </>
                             )}
-
-                            <button
-                              type='button'
-                              data-testid={`panel-bible-reference-btn-${selectedPanelDetail.id}`}
-                              onClick={() => {
-                                setSelectedDrawerPanelId(selectedPanelDetail.id);
-                                setBibleDrawerOpen(true);
-                              }}
-                              className='w-full py-2 bg-white hover:bg-violet-50 text-violet-800 border border-violet-200 rounded-xl font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs active:scale-98'
-                            >
-                              <BookOpen className='w-3.5 h-3.5 text-violet-600' />
-                              <span>
-                                Tham chiếu Bible (Khung #{selectedPanelDetail.panelNumber})
-                              </span>
-                            </button>
 
                             {panelArt && (
                               <button
@@ -2541,100 +3179,11 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                         );
                       })()}
 
-                      {/* Gán Phân cảnh (Scene) */}
-                      <div className='p-3.5 bg-stone-50/70 rounded-xl border border-stone-200/80 space-y-2'>
-                        <div className='font-bold text-stone-900 flex items-center gap-1.5'>
-                          <Film className='w-3.5 h-3.5 text-violet-600' />
-                          <span>Gán Phân Cảnh (Scene)</span>
-                        </div>
-                        <select
-                          value={selectedPanelDetail.sceneId || ''}
-                          onChange={(e) =>
-                            handleAssignScene(e.target.value ? e.target.value : null)
-                          }
-                          className='w-full p-2 bg-white border border-stone-200 rounded-xl text-xs font-semibold focus:border-orange-500 focus:outline-none'
-                        >
-                          <option value=''>-- Chưa gán phân cảnh --</option>
-                          {scenes.map((s) => (
-                            <option key={s.id} value={s.id}>
-                              Phân cảnh #{s.sceneNumber}: {s.heading || 'Không tiêu đề'} (
-                              {s.scriptLinesCount} dòng thoại)
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      {/* Neo dòng kịch bản (Script Lines) */}
-                      <div className='p-3.5 bg-stone-50/70 rounded-xl border border-stone-200/80 space-y-2 flex-1'>
-                        <div className='font-bold text-stone-900 flex items-center justify-between'>
-                          <span className='flex items-center gap-1.5'>
-                            <MessageSquare className='w-3.5 h-3.5 text-orange-600' />
-                            <span>Neo Dòng Kịch Bản Vào Panel (CF2)</span>
-                          </span>
-                          <span className='text-xs text-stone-500 font-mono'>
-                            {selectedPanelDetail.scriptLineIds?.length || 0} dòng
-                          </span>
-                        </div>
-
-                        {!selectedPanelDetail.sceneId ? (
-                          <p className='text-xs text-stone-500 italic p-2.5 bg-white rounded-xl border border-stone-200'>
-                            Vui lòng gán Phân cảnh (Scene) ở trên trước khi chọn các dòng thoại neo
-                            vào panel này.
-                          </p>
-                        ) : loadingSceneLines ? (
-                          <p className='text-xs text-stone-500 p-2'>Đang nạp kịch bản...</p>
-                        ) : sceneLines.length === 0 ? (
-                          <p className='text-xs text-stone-500 italic p-2.5 bg-white rounded-xl border border-stone-200'>
-                            Phân cảnh này chưa có dòng thoại kịch bản nào.
-                          </p>
-                        ) : (
-                          <div className='space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar'>
-                            {sceneLines.map((line) => {
-                              const isAnchored = selectedPanelDetail.scriptLineIds?.includes(
-                                line.id,
-                              );
-                              return (
-                                <div
-                                  key={line.id}
-                                  onClick={() => handleToggleScriptLine(line.id)}
-                                  className={`p-2.5 rounded-xl border text-left cursor-pointer flex items-start gap-2.5 transition-all ${
-                                    isAnchored
-                                      ? 'bg-orange-50/80 border-orange-300 text-stone-900 shadow-2xs'
-                                      : 'bg-white border-stone-200 text-stone-800 hover:border-stone-400'
-                                  }`}
-                                >
-                                  {isAnchored ? (
-                                    <CheckSquare className='w-4 h-4 text-orange-600 shrink-0 mt-0.5' />
-                                  ) : (
-                                    <Square className='w-4 h-4 text-stone-400 shrink-0 mt-0.5' />
-                                  )}
-                                  <div className='flex-1 min-w-0'>
-                                    <div className='flex items-center gap-1 text-xs font-mono font-bold text-stone-500'>
-                                      <span>#{line.lineOrder}</span>
-                                      {line.speakerCharacterId && (
-                                        <span className='bg-stone-100 px-1.5 py-0.5 rounded text-stone-700'>
-                                          Nhân vật
-                                        </span>
-                                      )}
-                                    </div>
-                                    <p className='text-xs truncate font-medium'>
-                                      {line.dialogueText ||
-                                        line.stageDirection ||
-                                        '(Chỉ dẫn diễn xuất)'}
-                                    </p>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-
                       {/* Delete Panel Button */}
-                      <div className='pt-2.5 border-t border-stone-200 flex justify-end'>
+                      <div className='pt-2.5 border-t border-[#D8D2C5] flex justify-end'>
                         <button
                           onClick={() => handleDeletePanel(selectedPanelDetail.id)}
-                          className='px-3.5 py-1.5 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-xl font-semibold flex items-center gap-1.5 cursor-pointer transition-colors active:scale-95'
+                          className='px-3 py-1.5 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-xl font-semibold flex items-center gap-1.5 cursor-pointer transition-colors active:scale-95'
                         >
                           <Trash2 className='w-3.5 h-3.5' />
                           <span>Xóa Khung Panel Này</span>
@@ -2642,25 +3191,24 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                       </div>
                     </div>
                   ) : (
-                    <div className='p-8 text-center text-xs text-zinc-400 border border-dashed border-[#E7E7E7] rounded-xl flex-1 flex flex-col items-center justify-center'>
-                      <Move className='w-8 h-8 mb-2 opacity-40' />
-                      <p className='font-semibold text-zinc-600'>Chưa chọn ô Panel</p>
-                      <p className='text-xs text-zinc-400 mt-1 max-w-xs'>
-                        Bấm vào bất kỳ ô khung panel nào trên canvas bên trái để chỉnh sửa thứ tự
-                        đọc, liên kết Scene và neo các dòng thoại kịch bản.
+                    <div className='p-6 text-center text-xs text-[#57534E] border border-dashed border-[#D8D2C5] bg-[#FCFBF8] rounded-xl flex-1 flex flex-col items-center justify-center min-h-[300px]'>
+                      <Move className='w-8 h-8 mb-2 opacity-40 text-[#57534E]' />
+                      <p className='font-semibold text-[#1C1917]'>Chưa chọn ô Panel</p>
+                      <p className='text-xs text-[#57534E] mt-1 max-w-xs'>
+                        Bấm vào bất kỳ ô khung panel nào trên canvas để chỉnh sửa thứ tự đọc, tọa độ, chia khung và tải artwork.
                       </p>
                     </div>
                   )
                 ) : (
                   /* Layers Management Tab (CF2) */
                   <div
-                    className='space-y-4 text-xs flex-1 overflow-y-auto custom-scrollbar'
+                    className='space-y-3.5 text-xs flex-1 overflow-y-auto custom-scrollbar'
                     data-testid='layers-management-view'
                   >
-                    <div className='p-3 bg-purple-50/60 rounded-xl border border-purple-100 space-y-1.5'>
+                    <div className='p-3 bg-[#FFF2E6] rounded-xl border border-[#F97316]/30 space-y-1.5'>
                       <div className='flex items-center justify-between'>
-                        <span className='font-bold text-purple-900 flex items-center gap-1.5'>
-                          <Sparkles className='w-3.5 h-3.5 text-purple-600' />
+                        <span className='font-bold text-[#1C1917] flex items-center gap-1.5'>
+                          <Sparkles className='w-3.5 h-3.5 text-[#C2410C]' />
                           <span data-testid='layers-title'>
                             {isPanelLayerFilter
                               ? `Layer của Panel #${selectedPanelNumber ?? '?'} (${visibleElements.length})`
@@ -2672,29 +3220,29 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                             type='button'
                             data-testid='toggle-all-page-layers'
                             onClick={() => setShowAllPageLayers((v) => !v)}
-                            className='text-xs font-bold text-purple-700 hover:text-purple-900 underline cursor-pointer'
+                            className='text-xs font-bold text-[#C2410C] hover:text-[#9A3412] underline cursor-pointer'
                           >
                             {showAllPageLayers ? 'Chỉ xem panel đang chọn' : 'Xem cả trang'}
                           </button>
                         )}
                       </div>
-                      <p className='text-xs text-purple-800/80'>
+                      <p className='text-xs text-[#57534E]'>
                         Tách layer nhân vật, bối cảnh, đạo cụ, hiệu ứng trực quan trên canvas. Hỗ
                         trợ xoay góc và đổi thứ tự hiển thị z-index.
                       </p>
                     </div>
 
                     {loadingElements ? (
-                      <div className='p-8 text-center text-zinc-400'>
-                        <RefreshCw className='w-5 h-5 animate-spin mx-auto mb-2' />
+                      <div className='p-8 text-center text-[#57534E]'>
+                        <RefreshCw className='w-5 h-5 animate-spin mx-auto mb-2 text-[#C2410C]' />
                         <span>Đang tải các layer của trang...</span>
                       </div>
                     ) : pageElements.length === 0 ? (
-                      <div className='p-8 text-center border border-dashed border-[#E7E7E7] rounded-xl flex flex-col items-center justify-center space-y-3'>
-                        <Layers className='w-8 h-8 text-purple-300' />
+                      <div className='p-8 text-center border border-dashed border-[#D8D2C5] rounded-xl flex flex-col items-center justify-center space-y-3 bg-[#FCFBF8]'>
+                        <Layers className='w-8 h-8 text-[#C2410C]/40' />
                         <div>
-                          <p className='font-semibold text-zinc-700'>Chưa có layer ảnh nào</p>
-                          <p className='text-xs text-zinc-400 mt-0.5 max-w-xs'>
+                          <p className='font-semibold text-[#1C1917]'>Chưa có layer ảnh nào</p>
+                          <p className='text-xs text-[#57534E] mt-0.5 max-w-xs'>
                             Bấm "+ Thêm Layer" để thêm nhân vật, bối cảnh, đạo cụ, hiệu ứng hoặc lớp
                             artwork riêng trên trang.
                           </p>
@@ -2702,7 +3250,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                         <button
                           type='button'
                           onClick={() => setCreateLayerModalOpen(true)}
-                          className='px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold text-xs transition-colors cursor-pointer flex items-center gap-1'
+                          className='px-3 py-1.5 bg-[#F97316] hover:bg-[#EA580C] text-white rounded-lg font-semibold text-xs transition-colors cursor-pointer flex items-center gap-1'
                         >
                           <Plus className='w-3.5 h-3.5' />
                           <span>Thêm Layer Đầu Tiên</span>
@@ -2721,12 +3269,12 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                             : null;
                           return (
                             <div
-                              className='p-3 bg-[#FAF8F5] rounded-xl border-2 border-purple-300 space-y-2.5 shadow-2xs'
+                              className='p-3 bg-[#F8F6F0] rounded-xl border-2 border-[#F97316]/50 space-y-2.5 shadow-2xs'
                               data-testid='selected-layer-inspector'
                             >
                               <div className='flex items-center justify-between'>
-                                <div className='flex items-center gap-1.5 font-bold text-zinc-800'>
-                                  <span className='px-1.5 py-0.5 rounded text-xs bg-purple-100 text-purple-800 font-mono'>
+                                <div className='flex items-center gap-1.5 font-bold text-[#1C1917]'>
+                                  <span className='px-1.5 py-0.5 rounded text-xs bg-[#FFF2E6] text-[#C2410C] border border-[#F97316]/30 font-mono'>
                                     z:{selectedElem.zIndex}
                                   </span>
                                   <span className='truncate max-w-[160px]'>
@@ -2736,53 +3284,53 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                                         selectedElem.elementType}
                                   </span>
                                 </div>
-                                <span className='font-mono text-xs text-zinc-400'>
+                                <span className='font-mono text-xs text-[#57534E]'>
                                   ID: {selectedElem.elementId.slice(0, 8)}...
                                 </span>
                               </div>
 
                               <div className='grid grid-cols-2 gap-2 text-xs'>
                                 <div>
-                                  <span className='text-zinc-500 block text-xs'>Loại Layer:</span>
-                                  <span className='font-semibold text-zinc-700'>
+                                  <span className='text-[#57534E] block text-xs'>Loại Layer:</span>
+                                  <span className='font-semibold text-[#1C1917]'>
                                     {LAYER_LABELS[selectedElem.elementType] ||
                                       selectedElem.elementType}
                                   </span>
                                 </div>
                                 <div>
-                                  <span className='text-zinc-500 block text-xs'>Góc xoay:</span>
-                                  <span className='font-mono font-semibold text-zinc-700'>
+                                  <span className='text-[#57534E] block text-xs'>Góc xoay:</span>
+                                  <span className='font-mono font-semibold text-[#1C1917]'>
                                     {selectedElem.rotation || 0}°
                                   </span>
                                 </div>
                                 <div>
-                                  <span className='text-zinc-500 block text-xs'>Toạ độ:</span>
-                                  <span className='font-mono text-zinc-700'>
+                                  <span className='text-[#57534E] block text-xs'>Toạ độ:</span>
+                                  <span className='font-mono text-[#1C1917]'>
                                     {selectedElem.x}, {selectedElem.y} px
                                   </span>
                                 </div>
                                 <div>
-                                  <span className='text-zinc-500 block text-xs'>Kích thước:</span>
-                                  <span className='font-mono text-zinc-700'>
+                                  <span className='text-[#57534E] block text-xs'>Kích thước:</span>
+                                  <span className='font-mono text-[#1C1917]'>
                                     {selectedElem.width} × {selectedElem.height} px
                                   </span>
                                 </div>
                               </div>
 
                               {bible && (
-                                <div className='p-2 bg-white rounded-lg border border-[#E7E7E7] flex items-center gap-2'>
+                                <div className='p-2 bg-[#FCFBF8] rounded-lg border border-[#D8D2C5] flex items-center gap-2'>
                                   {bible.referenceImageUrl && (
                                     <AuthenticatedImage
                                       src={bible.referenceImageUrl}
                                       alt={bible.name}
-                                      className='w-7 h-7 rounded object-cover border border-zinc-200'
+                                      className='w-7 h-7 rounded object-cover border border-[#D8D2C5]'
                                     />
                                   )}
                                   <div className='min-w-0 flex-1'>
-                                    <span className='text-xs text-zinc-400 block'>
+                                    <span className='text-xs text-[#57534E] block'>
                                       Series Bible:
                                     </span>
-                                    <p className='text-xs font-bold text-zinc-800 truncate'>
+                                    <p className='text-xs font-bold text-[#1C1917] truncate'>
                                       {bible.name}
                                     </p>
                                   </div>
@@ -2790,12 +3338,12 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                               )}
 
                               {/* Controls */}
-                              <div className='pt-2 border-t border-[#E7E7E7] flex items-center justify-between gap-1'>
+                              <div className='pt-2 border-t border-[#D8D2C5] flex items-center justify-between gap-1'>
                                 <div className='flex items-center gap-1'>
                                   <button
                                     type='button'
                                     onClick={() => handleRotateLayer(selectedElem, -15)}
-                                    className='px-2 py-1 bg-white border border-[#E7E7E7] hover:bg-zinc-50 rounded text-zinc-700 flex items-center gap-1 text-xs font-semibold cursor-pointer'
+                                    className='px-2 py-1 bg-[#FCFBF8] border border-[#D8D2C5] hover:bg-[#F3F0E9] rounded text-[#1C1917] flex items-center gap-1 text-xs font-semibold cursor-pointer'
                                     title='Xoay trái 15 độ'
                                   >
                                     <RotateCw className='w-3 h-3 -scale-x-100' />
@@ -2804,7 +3352,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                                   <button
                                     type='button'
                                     onClick={() => handleRotateLayer(selectedElem, 15)}
-                                    className='px-2 py-1 bg-white border border-[#E7E7E7] hover:bg-zinc-50 rounded text-zinc-700 flex items-center gap-1 text-xs font-semibold cursor-pointer'
+                                    className='px-2 py-1 bg-[#FCFBF8] border border-[#D8D2C5] hover:bg-[#F3F0E9] rounded text-[#1C1917] flex items-center gap-1 text-xs font-semibold cursor-pointer'
                                     title='Xoay phải 15 độ'
                                   >
                                     <RotateCw className='w-3 h-3' />
@@ -2816,7 +3364,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                                   <button
                                     type='button'
                                     onClick={() => handleChangeLayerZIndex(selectedElem, 1)}
-                                    className='p-1.5 bg-white border border-[#E7E7E7] hover:bg-zinc-50 rounded text-zinc-700 cursor-pointer'
+                                    className='p-1.5 bg-[#FCFBF8] border border-[#D8D2C5] hover:bg-[#F3F0E9] rounded text-[#1C1917] cursor-pointer'
                                     title='Lên 1 lớp (Tăng zIndex)'
                                   >
                                     <ArrowUp className='w-3.5 h-3.5' />
@@ -2824,7 +3372,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                                   <button
                                     type='button'
                                     onClick={() => handleChangeLayerZIndex(selectedElem, -1)}
-                                    className='p-1.5 bg-white border border-[#E7E7E7] hover:bg-zinc-50 rounded text-zinc-700 cursor-pointer'
+                                    className='p-1.5 bg-[#FCFBF8] border border-[#D8D2C5] hover:bg-[#F3F0E9] rounded text-[#1C1917] cursor-pointer'
                                     title='Xuống 1 lớp (Giảm zIndex)'
                                   >
                                     <ArrowDown className='w-3.5 h-3.5' />
@@ -2834,7 +3382,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                                 <button
                                   type='button'
                                   onClick={() => handleDeleteLayer(selectedElem)}
-                                  className='p-1.5 text-red-600 hover:bg-red-50 rounded cursor-pointer'
+                                  className='p-1.5 text-rose-600 hover:bg-rose-50 rounded cursor-pointer'
                                   title='Xoá layer'
                                 >
                                   <Trash2 className='w-3.5 h-3.5' />
@@ -2848,7 +3396,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                         <div className='space-y-1.5'>
                           {visibleElements.length === 0 && (
                             <p
-                              className='p-3 text-center text-xs text-zinc-400 border border-dashed border-[#E7E7E7] rounded-xl'
+                              className='p-3 text-center text-xs text-[#57534E] border border-dashed border-[#D8D2C5] rounded-xl bg-[#FCFBF8]'
                               data-testid='no-panel-layers'
                             >
                               Panel #{selectedPanelNumber ?? '?'} chưa có layer nào (trang có{' '}
@@ -2869,37 +3417,47 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                                   key={el.elementId}
                                   data-testid={`layer-item-${el.elementId}`}
                                   onClick={() => setSelectedElementId(el.elementId)}
-                                  className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-2 ${
+                                  className={`p-2 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
                                     isSelected
-                                      ? 'border-purple-500 bg-purple-50/50 shadow-xs ring-1 ring-purple-400'
-                                      : 'border-[#E7E7E7] bg-white hover:border-purple-300'
+                                      ? 'border-[#F97316] bg-[#FFF2E6] shadow-xs ring-1 ring-[#F97316]'
+                                      : 'border-[#D8D2C5] bg-[#FCFBF8] hover:border-[#F97316]/50'
                                   }`}
                                 >
-                                  <div className='flex items-center gap-2 min-w-0'>
-                                    <div className='w-6 h-6 rounded-lg bg-zinc-100 flex items-center justify-center text-zinc-600 shrink-0'>
-                                      {el.elementType === 'CHARACTER_INSTANCE' && (
-                                        <User className='w-3.5 h-3.5 text-purple-600' />
-                                      )}
-                                      {el.elementType === 'BACKGROUND' && (
-                                        <Mountain className='w-3.5 h-3.5 text-emerald-600' />
-                                      )}
-                                      {el.elementType === 'PROP' && (
-                                        <Package className='w-3.5 h-3.5 text-amber-600' />
-                                      )}
-                                      {el.elementType === 'EFFECT' && (
-                                        <Zap className='w-3.5 h-3.5 text-red-500' />
-                                      )}
-                                      {el.elementType === 'ARTWORK_LAYER' && (
-                                        <Palette className='w-3.5 h-3.5 text-blue-500' />
+                                  <div className='flex items-center gap-2 min-w-0 flex-1'>
+                                    <div className='w-8 h-8 rounded-lg bg-zinc-100 border border-zinc-200 flex items-center justify-center shrink-0 text-zinc-500 overflow-hidden'>
+                                      {bible?.referenceImageUrl ? (
+                                        <AuthenticatedImage
+                                          src={bible.referenceImageUrl}
+                                          alt={bible.name}
+                                          className='w-full h-full rounded object-cover'
+                                        />
+                                      ) : (
+                                        <>
+                                          {el.elementType === 'CHARACTER_INSTANCE' && (
+                                            <User className='w-4 h-4 text-purple-600' />
+                                          )}
+                                          {el.elementType === 'BACKGROUND' && (
+                                            <Mountain className='w-4 h-4 text-emerald-600' />
+                                          )}
+                                          {el.elementType === 'PROP' && (
+                                            <Package className='w-4 h-4 text-amber-600' />
+                                          )}
+                                          {el.elementType === 'EFFECT' && (
+                                            <Zap className='w-4 h-4 text-red-500' />
+                                          )}
+                                          {el.elementType === 'ARTWORK_LAYER' && (
+                                            <Palette className='w-4 h-4 text-blue-500' />
+                                          )}
+                                        </>
                                       )}
                                     </div>
-                                    <div className='min-w-0'>
-                                      <p className='font-bold text-zinc-800 text-xs truncate'>
+                                    <div className='min-w-0 flex-1'>
+                                      <p className='font-semibold text-xs text-zinc-800 truncate'>
                                         {bible
                                           ? bible.name
                                           : LAYER_LABELS[el.elementType] || el.elementType}
                                       </p>
-                                      <div className='flex items-center gap-1.5 text-xs text-zinc-500'>
+                                      <div className='flex items-center gap-1.5 text-xs text-zinc-400'>
                                         <span className='font-mono'>z:{el.zIndex}</span>
                                         {el.rotation ? (
                                           <span className='font-mono'>• {el.rotation}°</span>
@@ -2970,6 +3528,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
             </div>
           )}
 
+
           {!selectedPage && (
             <div className='flex flex-col items-center justify-center p-12 text-center bg-white rounded-2xl border border-[#E7E7E7] shadow-xs my-6'>
               <div className='w-16 h-16 rounded-2xl bg-zinc-100 border border-zinc-200 flex items-center justify-center text-zinc-400 mb-4'>
@@ -3007,38 +3566,38 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
 
       {/* Modal: Create Page */}
       {createModalOpen && (
-        <div className='fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4'>
-          <div className='bg-white rounded-2xl border border-stone-200 shadow-2xl max-w-md w-full p-6 space-y-4'>
-            <div className='flex items-center justify-between border-b border-stone-100 pb-3'>
-              <h3 className='text-sm font-bold text-stone-900'>Tạo Trang Truyện Mới</h3>
+        <div className='fixed inset-0 z-50 bg-[#1C1917]/60 backdrop-blur-xs flex items-center justify-center p-4'>
+          <div className='bg-[#FCFBF8] rounded-2xl border border-[#D8D2C5] shadow-2xl max-w-md w-full p-6 space-y-4'>
+            <div className='flex items-center justify-between border-b border-[#D8D2C5] pb-3'>
+              <h3 className='text-base font-serif font-bold text-[#1C1917]'>Tạo Trang Truyện Mới</h3>
               <button
                 onClick={() => setCreateModalOpen(false)}
-                className='text-stone-400 hover:text-stone-700 p-1 rounded-lg hover:bg-stone-100 transition-colors cursor-pointer'
+                className='text-[#57534E] hover:text-[#1C1917] p-1.5 rounded-lg hover:bg-[#F3F0E9] transition-colors cursor-pointer'
               >
                 <X className='w-4 h-4' />
               </button>
             </div>
             <form onSubmit={handleCreatePage} className='space-y-3.5 text-xs'>
               <div>
-                <label className='block font-semibold text-stone-900 mb-1'>
+                <label className='block font-semibold text-[#1C1917] mb-1'>
                   Số thứ tự trang (Page Number)
                 </label>
                 <input
                   type='number'
                   value={newPageNumber}
                   onChange={(e) => setNewPageNumber(parseInt(e.target.value, 10))}
-                  className='w-full px-3 py-2 border border-stone-200 rounded-xl focus:border-orange-500 focus:outline-none'
+                  className='w-full px-3 py-2 border border-[#D8D2C5] rounded-xl bg-[#FCFBF8] text-[#1C1917] focus:border-[#F97316] focus:outline-none'
                   required
                 />
               </div>
               <div>
-                <label className='block font-semibold text-stone-900 mb-1'>
+                <label className='block font-semibold text-[#1C1917] mb-1'>
                   Kiểu bố cục (Layout Format)
                 </label>
                 <select
                   value={newLayoutFormat}
                   onChange={(e) => setNewLayoutFormat(e.target.value)}
-                  className='w-full px-3 py-2 border border-stone-200 rounded-xl focus:border-orange-500 focus:outline-none bg-white'
+                  className='w-full px-3 py-2 border border-[#D8D2C5] rounded-xl bg-[#FCFBF8] text-[#1C1917] focus:border-[#F97316] focus:outline-none'
                 >
                   <option value='StandardPage'>StandardPage (Trang đơn tiêu chuẩn)</option>
                   <option value='SpreadLeft'>SpreadLeft (Trang đôi - Nửa trái)</option>
@@ -3048,46 +3607,46 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
               </div>
               <div className='grid grid-cols-2 gap-3'>
                 <div>
-                  <label className='block font-semibold text-stone-900 mb-1'>Chiều rộng (px)</label>
+                  <label className='block font-semibold text-[#1C1917] mb-1'>Chiều rộng (px)</label>
                   <input
                     type='number'
                     value={newWidthPx}
                     onChange={(e) => setNewWidthPx(e.target.value)}
-                    className='w-full px-3 py-2 border border-stone-200 rounded-xl font-mono focus:border-orange-500 focus:outline-none'
+                    className='w-full px-3 py-2 border border-[#D8D2C5] rounded-xl font-mono bg-[#FCFBF8] text-[#1C1917] focus:border-[#F97316] focus:outline-none'
                   />
                 </div>
                 <div>
-                  <label className='block font-semibold text-stone-900 mb-1'>Chiều cao (px)</label>
+                  <label className='block font-semibold text-[#1C1917] mb-1'>Chiều cao (px)</label>
                   <input
                     type='number'
                     value={newHeightPx}
                     onChange={(e) => setNewHeightPx(e.target.value)}
-                    className='w-full px-3 py-2 border border-stone-200 rounded-xl font-mono focus:border-orange-500 focus:outline-none'
+                    className='w-full px-3 py-2 border border-[#D8D2C5] rounded-xl font-mono bg-[#FCFBF8] text-[#1C1917] focus:border-[#F97316] focus:outline-none'
                   />
                 </div>
               </div>
               <div>
-                <label className='block font-semibold text-stone-900 mb-1'>Độ phân giải DPI</label>
+                <label className='block font-semibold text-[#1C1917] mb-1'>Độ phân giải DPI</label>
                 <select
                   value={newDpi}
                   onChange={(e) => setNewDpi(e.target.value)}
-                  className='w-full px-3 py-2 border border-stone-200 rounded-xl focus:border-orange-500 focus:outline-none bg-white'
+                  className='w-full px-3 py-2 border border-[#D8D2C5] rounded-xl bg-[#FCFBF8] text-[#1C1917] focus:border-[#F97316] focus:outline-none'
                 >
                   <option value='300'>300 DPI (Web &amp; Digital Preview)</option>
                   <option value='600'>600 DPI (B5 Tankōbon Print Standard)</option>
                 </select>
               </div>
-              <div className='flex justify-end gap-2 pt-2 border-t border-stone-100'>
+              <div className='flex justify-end gap-2 pt-2 border-t border-[#D8D2C5]'>
                 <button
                   type='button'
                   onClick={() => setCreateModalOpen(false)}
-                  className='px-3.5 py-2 rounded-xl text-stone-600 hover:bg-stone-100 font-medium transition-colors cursor-pointer'
+                  className='px-3.5 py-2 rounded-xl text-[#57534E] hover:bg-[#F3F0E9] font-medium transition-colors cursor-pointer'
                 >
                   Hủy
                 </button>
                 <button
                   type='submit'
-                  className='px-4 py-2 rounded-xl bg-[#EA580C] hover:bg-[#C2410C] text-white font-semibold shadow-soft-sm transition-all cursor-pointer active:scale-95'
+                  className='px-4 py-2 rounded-xl bg-[#F97316] hover:bg-[#EA580C] text-white font-semibold shadow-soft-sm transition-all cursor-pointer active:scale-95'
                 >
                   Tạo Trang
                 </button>
@@ -3099,13 +3658,13 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
 
       {/* Modal: Update Canvas Settings */}
       {settingsModalOpen && (
-        <div className='fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4'>
-          <div className='bg-white rounded-2xl border border-stone-200 shadow-2xl max-w-md w-full p-6 space-y-4'>
-            <div className='flex items-center justify-between border-b border-stone-100 pb-3'>
-              <h3 className='text-sm font-bold text-stone-900'>Cập Nhật Thông Số Canvas Trang</h3>
+        <div className='fixed inset-0 z-50 bg-[#1C1917]/60 backdrop-blur-xs flex items-center justify-center p-4'>
+          <div className='bg-[#FCFBF8] rounded-2xl border border-[#D8D2C5] shadow-2xl max-w-md w-full p-6 space-y-4'>
+            <div className='flex items-center justify-between border-b border-[#D8D2C5] pb-3'>
+              <h3 className='text-base font-serif font-bold text-[#1C1917]'>Cập Nhật Thông Số Canvas Trang</h3>
               <button
                 onClick={() => setSettingsModalOpen(false)}
-                className='text-stone-400 hover:text-stone-700 p-1 rounded-lg hover:bg-stone-100 transition-colors cursor-pointer'
+                className='text-[#57534E] hover:text-[#1C1917] p-1.5 rounded-lg hover:bg-[#F3F0E9] transition-colors cursor-pointer'
               >
                 <X className='w-4 h-4' />
               </button>
@@ -3113,46 +3672,46 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
             <form onSubmit={handleUpdateCanvas} className='space-y-3.5 text-xs'>
               <div className='grid grid-cols-2 gap-3'>
                 <div>
-                  <label className='block font-semibold text-stone-900 mb-1'>Chiều rộng (px)</label>
+                  <label className='block font-semibold text-[#1C1917] mb-1'>Chiều rộng (px)</label>
                   <input
                     type='number'
                     value={editWidthPx}
                     onChange={(e) => setEditWidthPx(e.target.value)}
-                    className='w-full px-3 py-2 border border-stone-200 rounded-xl font-mono focus:border-orange-500 focus:outline-none'
+                    className='w-full px-3 py-2 border border-[#D8D2C5] rounded-xl font-mono bg-[#FCFBF8] text-[#1C1917] focus:border-[#F97316] focus:outline-none'
                   />
                 </div>
                 <div>
-                  <label className='block font-semibold text-stone-900 mb-1'>Chiều cao (px)</label>
+                  <label className='block font-semibold text-[#1C1917] mb-1'>Chiều cao (px)</label>
                   <input
                     type='number'
                     value={editHeightPx}
                     onChange={(e) => setEditHeightPx(e.target.value)}
-                    className='w-full px-3 py-2 border border-stone-200 rounded-xl font-mono focus:border-orange-500 focus:outline-none'
+                    className='w-full px-3 py-2 border border-[#D8D2C5] rounded-xl font-mono bg-[#FCFBF8] text-[#1C1917] focus:border-[#F97316] focus:outline-none'
                   />
                 </div>
               </div>
               <div>
-                <label className='block font-semibold text-stone-900 mb-1'>Độ phân giải DPI</label>
+                <label className='block font-semibold text-[#1C1917] mb-1'>Độ phân giải DPI</label>
                 <select
                   value={editDpi}
                   onChange={(e) => setEditDpi(e.target.value)}
-                  className='w-full px-3 py-2 border border-stone-200 rounded-xl focus:border-orange-500 focus:outline-none bg-white'
+                  className='w-full px-3 py-2 border border-[#D8D2C5] rounded-xl bg-[#FCFBF8] text-[#1C1917] focus:border-[#F97316] focus:outline-none'
                 >
                   <option value='300'>300 DPI</option>
                   <option value='600'>600 DPI</option>
                 </select>
               </div>
-              <div className='flex justify-end gap-2 pt-2 border-t border-stone-100'>
+              <div className='flex justify-end gap-2 pt-2 border-t border-[#D8D2C5]'>
                 <button
                   type='button'
                   onClick={() => setSettingsModalOpen(false)}
-                  className='px-3.5 py-2 rounded-xl text-stone-600 hover:bg-stone-100 font-medium transition-colors cursor-pointer'
+                  className='px-3.5 py-2 rounded-xl text-[#57534E] hover:bg-[#F3F0E9] font-medium transition-colors cursor-pointer'
                 >
                   Hủy
                 </button>
                 <button
                   type='submit'
-                  className='px-4 py-2 rounded-xl bg-[#EA580C] hover:bg-[#C2410C] text-white font-semibold shadow-soft-sm transition-all cursor-pointer active:scale-95'
+                  className='px-4 py-2 rounded-xl bg-[#F97316] hover:bg-[#EA580C] text-white font-semibold shadow-soft-sm transition-all cursor-pointer active:scale-95'
                 >
                   Lưu Canvas
                 </button>
@@ -3165,20 +3724,20 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
       {/* Modal: Thêm Layer Ảnh / Element Mới (CF2) */}
       {createLayerModalOpen && (
         <div
-          className='fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4'
+          className='fixed inset-0 z-50 bg-[#1C1917]/60 backdrop-blur-xs flex items-center justify-center p-4'
           data-testid='create-layer-modal'
         >
-          <div className='bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-stone-200 space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar'>
-            <div className='flex items-center justify-between border-b border-stone-100 pb-3'>
+          <div className='bg-[#FCFBF8] rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-[#D8D2C5] space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar'>
+            <div className='flex items-center justify-between border-b border-[#D8D2C5] pb-3'>
               <div className='flex items-center gap-2'>
-                <div className='p-2 bg-violet-50 rounded-xl text-violet-700'>
+                <div className='p-2 bg-[#FFF2E6] rounded-xl text-[#C2410C]'>
                   <Layers className='w-4 h-4' />
                 </div>
                 <div>
-                  <h3 className='font-bold text-sm text-stone-900'>
+                  <h3 className='font-serif font-bold text-base text-[#1C1917]'>
                     Thêm Layer / Element Ảnh Canvas
                   </h3>
-                  <p className='text-xs text-stone-500'>
+                  <p className='text-xs text-[#57534E]'>
                     Tạo layer nhân vật, bối cảnh, đạo cụ hoặc hiệu ứng (CF2)
                   </p>
                 </div>
@@ -3186,7 +3745,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
               <button
                 type='button'
                 onClick={() => setCreateLayerModalOpen(false)}
-                className='p-1.5 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-100 cursor-pointer transition-colors'
+                className='p-1.5 rounded-lg text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9] cursor-pointer transition-colors'
               >
                 <X className='w-4 h-4' />
               </button>
@@ -3195,13 +3754,13 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
             <form onSubmit={handleCreateLayer} className='space-y-3.5 text-xs'>
               {/* Loại Layer */}
               <div>
-                <label className='block font-semibold text-stone-900 mb-1'>
+                <label className='block font-semibold text-[#1C1917] mb-1'>
                   Loại Layer Ảnh (Master Data)
                 </label>
                 <select
                   value={newLayerType}
                   onChange={(e) => setNewLayerType(e.target.value as ImageLayerType)}
-                  className='w-full px-3 py-2 border border-stone-200 rounded-xl bg-white font-medium focus:border-violet-500 focus:outline-none'
+                  className='w-full px-3 py-2 border border-[#D8D2C5] rounded-xl bg-[#FCFBF8] text-[#1C1917] font-medium focus:border-[#F97316] focus:outline-none'
                   data-testid='select-layer-type'
                 >
                   {IMAGE_LAYER_TYPES.map((t) => (
@@ -3215,13 +3774,13 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
               {/* Neo vào Panel hoặc Toàn trang */}
               <div className='grid grid-cols-2 gap-3'>
                 <div>
-                  <label className='block font-semibold text-stone-900 mb-1'>
+                  <label className='block font-semibold text-[#1C1917] mb-1'>
                     Gắn Với Panel (Tuỳ chọn)
                   </label>
                   <select
                     value={newLayerPanelId}
                     onChange={(e) => setNewLayerPanelId(e.target.value)}
-                    className='w-full px-3 py-2 border border-stone-200 rounded-xl bg-white focus:border-violet-500 focus:outline-none'
+                    className='w-full px-3 py-2 border border-[#D8D2C5] rounded-xl bg-[#FCFBF8] text-[#1C1917] focus:border-[#F97316] focus:outline-none'
                     data-testid='select-layer-panel'
                   >
                     <option value=''>Toàn trang (Không thuộc panel)</option>
@@ -3234,13 +3793,13 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                 </div>
 
                 <div>
-                  <label className='block font-semibold text-stone-900 mb-1'>
+                  <label className='block font-semibold text-[#1C1917] mb-1'>
                     Mục Series Bible (Tuỳ chọn)
                   </label>
                   <select
                     value={newLayerBibleEntryId}
                     onChange={(e) => setNewLayerBibleEntryId(e.target.value)}
-                    className='w-full px-3 py-2 border border-stone-200 rounded-xl bg-white focus:border-violet-500 focus:outline-none'
+                    className='w-full px-3 py-2 border border-[#D8D2C5] rounded-xl bg-[#FCFBF8] text-[#1C1917] focus:border-[#F97316] focus:outline-none'
                     data-testid='select-layer-bible-entry'
                   >
                     <option value=''>Không gắn mục Bible</option>
@@ -3255,13 +3814,13 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
 
               {/* Ảnh Artwork Uploaded hoặc Link */}
               <div>
-                <label className='block font-semibold text-stone-900 mb-1'>
+                <label className='block font-semibold text-[#1C1917] mb-1'>
                   Artwork Đã Tải Lên (AssetId)
                 </label>
                 <select
                   value={newLayerAssetId}
                   onChange={(e) => setNewLayerAssetId(e.target.value)}
-                  className='w-full px-3 py-2 border border-stone-200 rounded-xl bg-white font-mono text-xs focus:border-violet-500 focus:outline-none'
+                  className='w-full px-3 py-2 border border-[#D8D2C5] rounded-xl bg-[#FCFBF8] text-[#1C1917] font-mono text-xs focus:border-[#F97316] focus:outline-none'
                   data-testid='select-layer-asset'
                 >
                   <option value=''>Không dùng assetId sẵn có</option>
@@ -3276,7 +3835,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
 
               {/* URL ảnh / Mô tả ghi chú */}
               <div>
-                <label className='block font-semibold text-stone-900 mb-1'>
+                <label className='block font-semibold text-[#1C1917] mb-1'>
                   Đường Dẫn Ảnh (URL) Hoặc Ghi Chú
                 </label>
                 <input
@@ -3284,7 +3843,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                   value={newLayerContent}
                   onChange={(e) => setNewLayerContent(e.target.value)}
                   placeholder='https://... hoặc data:image/... hoặc mô tả layer'
-                  className='w-full px-3 py-2 border border-stone-200 rounded-xl font-mono text-xs focus:border-violet-500 focus:outline-none'
+                  className='w-full px-3 py-2 border border-[#D8D2C5] rounded-xl font-mono text-xs bg-[#FCFBF8] text-[#1C1917] focus:border-[#F97316] focus:outline-none'
                   data-testid='input-layer-content'
                 />
               </div>
@@ -3292,22 +3851,22 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
               {/* Vị trí X, Y */}
               <div className='grid grid-cols-2 gap-3'>
                 <div>
-                  <label className='block font-semibold text-stone-900 mb-1'>Toạ độ X (px)</label>
+                  <label className='block font-semibold text-[#1C1917] mb-1'>Toạ độ X (px)</label>
                   <input
                     type='number'
                     value={newLayerX}
                     onChange={(e) => setNewLayerX(parseFloat(e.target.value) || 0)}
-                    className='w-full px-3 py-2 border border-stone-200 rounded-xl font-mono focus:border-violet-500 focus:outline-none'
+                    className='w-full px-3 py-2 border border-[#D8D2C5] rounded-xl font-mono bg-[#FCFBF8] text-[#1C1917] focus:border-[#F97316] focus:outline-none'
                     data-testid='input-layer-x'
                   />
                 </div>
                 <div>
-                  <label className='block font-semibold text-stone-900 mb-1'>Toạ độ Y (px)</label>
+                  <label className='block font-semibold text-[#1C1917] mb-1'>Toạ độ Y (px)</label>
                   <input
                     type='number'
                     value={newLayerY}
                     onChange={(e) => setNewLayerY(parseFloat(e.target.value) || 0)}
-                    className='w-full px-3 py-2 border border-stone-200 rounded-xl font-mono focus:border-violet-500 focus:outline-none'
+                    className='w-full px-3 py-2 border border-[#D8D2C5] rounded-xl font-mono bg-[#FCFBF8] text-[#1C1917] focus:border-[#F97316] focus:outline-none'
                     data-testid='input-layer-y'
                   />
                 </div>
@@ -3316,22 +3875,22 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
               {/* Kích thước Rộng, Cao */}
               <div className='grid grid-cols-2 gap-3'>
                 <div>
-                  <label className='block font-semibold text-stone-900 mb-1'>Chiều rộng (px)</label>
+                  <label className='block font-semibold text-[#1C1917] mb-1'>Chiều rộng (px)</label>
                   <input
                     type='number'
                     value={newLayerWidth}
                     onChange={(e) => setNewLayerWidth(parseFloat(e.target.value) || 100)}
-                    className='w-full px-3 py-2 border border-stone-200 rounded-xl font-mono focus:border-violet-500 focus:outline-none'
+                    className='w-full px-3 py-2 border border-[#D8D2C5] rounded-xl font-mono bg-[#FCFBF8] text-[#1C1917] focus:border-[#F97316] focus:outline-none'
                     data-testid='input-layer-w'
                   />
                 </div>
                 <div>
-                  <label className='block font-semibold text-stone-900 mb-1'>Chiều cao (px)</label>
+                  <label className='block font-semibold text-[#1C1917] mb-1'>Chiều cao (px)</label>
                   <input
                     type='number'
                     value={newLayerHeight}
                     onChange={(e) => setNewLayerHeight(parseFloat(e.target.value) || 100)}
-                    className='w-full px-3 py-2 border border-stone-200 rounded-xl font-mono focus:border-violet-500 focus:outline-none'
+                    className='w-full px-3 py-2 border border-[#D8D2C5] rounded-xl font-mono bg-[#FCFBF8] text-[#1C1917] focus:border-[#F97316] focus:outline-none'
                     data-testid='input-layer-h'
                   />
                 </div>
@@ -3339,9 +3898,9 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
 
               {/* Góc xoay */}
               <div>
-                <label className='block font-semibold text-stone-900 mb-1'>
+                <label className='block font-semibold text-[#1C1917] mb-1'>
                   Góc Xoay (Độ, 0 - 359°):{' '}
-                  <span className='font-mono text-violet-700 font-bold'>{newLayerRotation}°</span>
+                  <span className='font-mono text-[#C2410C] font-bold'>{newLayerRotation}°</span>
                 </label>
                 <div className='flex items-center gap-3'>
                   <input
@@ -3350,7 +3909,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                     max='359'
                     value={newLayerRotation}
                     onChange={(e) => setNewLayerRotation(parseInt(e.target.value, 10))}
-                    className='flex-1 accent-violet-600'
+                    className='flex-1 accent-[#F97316]'
                   />
                   <input
                     type='number'
@@ -3358,23 +3917,23 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                     max='359'
                     value={newLayerRotation}
                     onChange={(e) => setNewLayerRotation(parseInt(e.target.value, 10) || 0)}
-                    className='w-20 px-2.5 py-1.5 border border-stone-200 rounded-xl font-mono text-center focus:border-violet-500 focus:outline-none'
+                    className='w-20 px-2.5 py-1.5 border border-[#D8D2C5] rounded-xl font-mono text-center bg-[#FCFBF8] text-[#1C1917] focus:border-[#F97316] focus:outline-none'
                     data-testid='input-layer-rotation'
                   />
                 </div>
               </div>
 
-              <div className='flex justify-end gap-2 pt-3 border-t border-stone-100'>
+              <div className='flex justify-end gap-2 pt-3 border-t border-[#D8D2C5]'>
                 <button
                   type='button'
                   onClick={() => setCreateLayerModalOpen(false)}
-                  className='px-3.5 py-2 rounded-xl text-stone-600 hover:bg-stone-100 font-medium cursor-pointer transition-colors'
+                  className='px-3.5 py-2 rounded-xl text-[#57534E] hover:bg-[#F3F0E9] font-medium cursor-pointer transition-colors'
                 >
                   Hủy
                 </button>
                 <button
                   type='submit'
-                  className='px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-semibold transition-all cursor-pointer shadow-soft-sm active:scale-95'
+                  className='px-4 py-2 rounded-xl bg-[#F97316] hover:bg-[#EA580C] text-white font-semibold transition-all cursor-pointer shadow-soft-sm active:scale-95'
                   data-testid='submit-create-layer'
                 >
                   Tạo Layer Ảnh
@@ -3393,6 +3952,16 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
         className='hidden'
         data-testid='desk-panel-file-input'
         onChange={handlePanelFileSelected}
+      />
+
+      {/* File input ẩn tải ảnh toàn trang (Full-page Composite) */}
+      <input
+        ref={pageFileInputRef}
+        type='file'
+        accept='image/png,image/jpeg,image/webp'
+        className='hidden'
+        data-testid='desk-page-file-input'
+        onChange={handlePageFileSelected}
       />
 
       {/* Drawer Tham chiếu Series Bible (FR-Artist-04) */}

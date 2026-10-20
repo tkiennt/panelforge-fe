@@ -571,7 +571,7 @@ export const PublicPreviewView: React.FC = () => {
                   !message.trim() ||
                   (feedbackScope === 'panel' && !selectedPanel)
                 }
-                className='w-full py-2.5 rounded-xl bg-[#292524] hover:bg-[#0c0a09] disabled:opacity-40 disabled:cursor-not-allowed text-white font-medium text-xs flex items-center justify-center gap-2 shadow-soft-sm transition-all cursor-pointer rounded-full'
+                className='w-full py-2.5 rounded-full bg-[#F97316] hover:bg-[#EA580C] disabled:opacity-40 disabled:cursor-not-allowed text-white font-medium text-xs flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer'
                 data-testid='submit-feedback-btn'
               >
                 {submittingFeedback ? (

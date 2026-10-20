@@ -3,32 +3,26 @@ import {
   Users,
   Shield,
   Cpu,
-  Database,
   List,
   HardDrive,
   LogOut,
-  AlertTriangle,
-  Layers,
-  ChevronRight,
-  Server,
-  Lock,
-  ArrowUpRight,
-  Sliders,
-  CheckCircle2,
-  Clock,
+  LayoutDashboard,
   Menu,
   PanelLeftClose,
   PanelLeftOpen,
+  ChevronRight,
+  type LucideIcon,
 } from 'lucide-react';
 import { SidebarDrawer } from '@/shared/components/SidebarDrawer';
+import { BrandMark } from '@/shared/components/BrandMark';
+import { cn } from '@/lib/utils';
 import { AdminDashboardView } from './AdminDashboardView';
 import { AdminUserManagementView } from './AdminUserManagementView';
-import { AdminSystemSettingsView } from './AdminSystemSettingsView';
 import { AdminAuditLogView } from './AdminAuditLogView';
-import { MasterDataSettings } from './modules/MasterDataSettings';
 import { AIConfigurationView } from './modules/AIConfigurationView';
 import { StorageBackupSettings } from './modules/StorageBackupSettings';
 import { SessionPolicySettings } from './modules/SessionPolicySettings';
+import { adminFocusRing } from './components/adminUiStyles';
 
 export type AdminTab =
   'dashboard' | 'users' | 'master-data' | 'ai-config' | 'storage' | 'session-policy' | 'audit';
@@ -42,195 +36,172 @@ interface AdminDashboardProps {
   };
 }
 
-export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentUser }) => {
-  const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
-
-  const navItems = [
+const NAV_GROUPS: { label: string; items: { id: AdminTab; label: string; icon: LucideIcon }[] }[] =
+  [
     {
-      id: 'dashboard' as AdminTab,
-      label: 'Overview & Health',
-      icon: Layers,
-      badge: 'Live',
+      label: 'Tổng quan',
+      items: [
+        { id: 'dashboard', label: 'Tổng quan', icon: LayoutDashboard },
+        { id: 'users', label: 'Người dùng & quyền', icon: Users },
+      ],
     },
     {
-      id: 'users' as AdminTab,
-      label: 'Global User Management',
-      icon: Users,
+      label: 'Cấu hình',
+      items: [
+        { id: 'ai-config', label: 'Cấu hình AI', icon: Cpu },
+        { id: 'storage', label: 'Lưu trữ & quota', icon: HardDrive },
+        { id: 'session-policy', label: 'Chính sách phiên', icon: Shield },
+        // ponytail: 'master-data' hidden — MasterDataSettings is local mock data only;
+        // re-add once wired to /api/Admin/pipeline-templates, element-types, export-presets.
+      ],
     },
     {
-      id: 'master-data' as AdminTab,
-      label: 'Master Data & Presets',
-      icon: Sliders,
-    },
-    {
-      id: 'ai-config' as AdminTab,
-      label: 'AI Credentials & Quotas',
-      icon: Cpu,
-      badge: 'Active',
-    },
-    {
-      id: 'storage' as AdminTab,
-      label: 'Storage & Backup',
-      icon: HardDrive,
-    },
-    {
-      id: 'session-policy' as AdminTab,
-      label: 'Session & Auth Policy',
-      icon: Shield,
-      badge: 'V1.2',
-    },
-    {
-      id: 'audit' as AdminTab,
-      label: 'System Audit Log',
-      icon: List,
+      label: 'Giám sát',
+      items: [{ id: 'audit', label: 'Nhật ký hệ thống', icon: List }],
     },
   ];
 
-  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
-  const [isRailExpanded, setIsRailExpanded] = useState(false);
+const NAV_ITEMS = NAV_GROUPS.flatMap((g) => g.items);
 
-  const renderAdminSidebar = (isDrawer = false) => {
-    const showFull = isDrawer || isRailExpanded;
+export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, currentUser }) => {
+  const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
+  const activeLabel = NAV_ITEMS.find((i) => i.id === activeTab)?.label ?? '';
+  const displayName = currentUser?.name || 'Administrator';
+  const initial = (currentUser?.name || currentUser?.email || 'A').charAt(0).toUpperCase();
+
+  const go = (tab: AdminTab) => {
+    setActiveTab(tab);
+    setIsMobileDrawerOpen(false);
+  };
+
+  const renderSidebar = (isDrawer: boolean) => {
+    const compact = !isDrawer && isCollapsed;
     return (
       <aside
-        className={
+        className={cn(
+          'flex-col h-full select-none bg-admin-card text-admin-ink',
           isDrawer
-            ? 'w-full bg-[#171717] text-white flex flex-col select-none h-full overflow-hidden'
-            : `hidden md:flex flex-col shrink-0 select-none border-r border-[#262626] bg-[#171717] text-white transition-all duration-200 shadow-xl relative z-20 h-full ${
-                isRailExpanded ? 'w-64' : 'w-16 lg:w-64'
-              }`
-        }
+            ? 'flex w-full'
+            : cn(
+                'hidden md:flex shrink-0 border-r border-admin-line transition-[width] duration-200',
+                compact ? 'w-[76px]' : 'w-64',
+              ),
+        )}
         data-testid={isDrawer ? 'admin-mobile-sidebar' : 'admin-sidebar'}
       >
-        {/* Brand Logo Header */}
         <div
-          className={`p-4 border-b border-[#262626] flex items-center ${
-            showFull ? 'justify-between' : 'justify-center lg:justify-between'
-          }`}
+          className={cn(
+            'h-16 flex items-center gap-3 border-b border-admin-line shrink-0',
+            compact ? 'justify-center px-2' : 'px-4',
+          )}
         >
-          <div className='flex items-center gap-3 min-w-0'>
-            <div className='w-8 h-8 rounded-lg bg-[#F97316] text-white flex items-center justify-center font-bold text-sm shadow-md font-serif shrink-0'>
-              PF
-            </div>
-            <div className={showFull ? 'block' : 'hidden lg:block'}>
-              <div className='font-serif font-bold text-sm tracking-tight text-white leading-none truncate'>
+          <BrandMark size={30} />
+          {!compact && (
+            <div className='min-w-0'>
+              <div className='font-serif font-bold text-base text-admin-ink-strong leading-tight'>
                 PanelForge
               </div>
-              <div className='text-[10px] font-mono text-[#F97316] uppercase tracking-wider mt-1 font-semibold truncate'>
-                Global System Admin
-              </div>
+              <div className='text-xs text-admin-muted'>Quản trị hệ thống</div>
             </div>
-          </div>
-          <div className='flex items-center gap-1'>
-            <span
-              className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-[#262626] text-emerald-400 border border-emerald-500/30 ${
-                showFull ? 'inline' : 'hidden lg:inline'
-              }`}
-            >
-              v2.4
-            </span>
-            {!isDrawer && (
-              <button
-                type='button'
-                onClick={() => setIsRailExpanded((prev) => !prev)}
-                aria-label={isRailExpanded ? 'Collapse admin sidebar' : 'Expand admin sidebar'}
-                title={isRailExpanded ? 'Collapse admin sidebar' : 'Expand admin sidebar'}
-                className='hidden md:flex lg:hidden p-1 rounded hover:bg-[#262626] text-[#A3A3A3] hover:text-white transition-colors cursor-pointer'
-                data-testid='admin-rail-toggle-btn'
-              >
-                {isRailExpanded ? (
-                  <PanelLeftClose className='w-4 h-4' />
-                ) : (
-                  <PanelLeftOpen className='w-4 h-4' />
-                )}
-              </button>
-            )}
-          </div>
+          )}
         </div>
 
-        {/* Sidebar Nav Items */}
-        <nav className='flex-1 p-2 space-y-1 overflow-y-auto custom-scrollbar'>
-          <div
-            className={`px-3 py-2 text-[10px] font-mono font-bold text-[#737373] uppercase tracking-widest ${
-              showFull ? 'block' : 'hidden lg:block'
-            }`}
-          >
-            System Management
-          </div>
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeTab === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => {
-                  setActiveTab(item.id);
-                  if (isDrawer) setIsMobileDrawerOpen(false);
-                }}
-                title={item.label}
-                aria-label={item.label}
-                className={`w-full flex items-center px-3 py-2.5 rounded-xl text-xs font-medium transition-all duration-150 cursor-pointer ${
-                  showFull ? 'justify-between' : 'justify-center lg:justify-between'
-                } ${
-                  isActive
-                    ? 'bg-[#F97316] text-white font-bold shadow-md shadow-[#F97316]/20'
-                    : 'text-[#A3A3A3] hover:text-white hover:bg-[#262626]'
-                }`}
-              >
-                <div className='flex items-center gap-3 min-w-0'>
-                  <Icon
-                    className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-[#737373]'}`}
-                  />
-                  <span className={`truncate ${showFull ? 'inline' : 'hidden lg:inline'}`}>
-                    {item.label}
-                  </span>
+        <nav
+          className='flex-1 overflow-y-auto px-3 py-4 space-y-5'
+          aria-label='Điều hướng quản trị'
+        >
+          {NAV_GROUPS.map((group) => (
+            <div key={group.label} className='space-y-1'>
+              {compact ? (
+                <div className='mx-3 mb-2 border-t border-admin-line' aria-hidden />
+              ) : (
+                <div className='px-3 pb-1 text-xs font-semibold text-admin-muted'>
+                  {group.label}
                 </div>
-                {item.badge && (
-                  <span
-                    className={`text-[9px] px-1.5 py-0.5 rounded font-mono font-bold shrink-0 ${
-                      showFull ? 'inline' : 'hidden lg:inline'
-                    } ${isActive ? 'bg-black/30 text-white' : 'bg-[#262626] text-[#F97316]'}`}
+              )}
+              {group.items.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type='button'
+                    onClick={() => go(item.id)}
+                    title={compact ? item.label : undefined}
+                    aria-label={compact ? item.label : undefined}
+                    aria-current={isActive ? 'page' : undefined}
+                    className={cn(
+                      'relative w-full min-h-11 flex items-center gap-3 rounded-xl text-sm transition-colors cursor-pointer',
+                      adminFocusRing,
+                      compact ? 'justify-center px-0' : 'px-3',
+                      isActive
+                        ? 'bg-admin-accent-soft text-admin-ink-strong font-semibold'
+                        : 'text-admin-ink hover:bg-admin-hover',
+                    )}
                   >
-                    {item.badge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+                    {isActive && (
+                      <span
+                        className='absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-admin-accent'
+                        aria-hidden
+                      />
+                    )}
+                    <Icon
+                      className={cn(
+                        'w-[18px] h-[18px] shrink-0',
+                        isActive ? 'text-admin-accent-text' : 'text-admin-muted',
+                      )}
+                      aria-hidden
+                    />
+                    {!compact && <span className='truncate'>{item.label}</span>}
+                  </button>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
-        {/* User Info & Logout Footer */}
-        <div className='p-3 border-t border-[#262626] bg-[#121212] space-y-3'>
-          <div
-            className={`flex items-center gap-3 ${
-              showFull ? 'justify-start' : 'justify-center lg:justify-start'
-            }`}
-          >
-            <div className='w-8 h-8 rounded-full bg-[#262626] border border-[#404040] flex items-center justify-center font-bold text-xs text-[#F97316] shrink-0'>
-              {(currentUser?.name || currentUser?.email || 'A').charAt(0).toUpperCase()}
+        <div className='border-t border-admin-line p-3 space-y-2 shrink-0'>
+          <div className={cn('flex items-center gap-3', compact ? 'justify-center' : 'px-1')}>
+            <div
+              className='w-9 h-9 rounded-full bg-admin-accent-soft border border-[#fdba74] text-admin-accent-text flex items-center justify-center font-semibold text-sm shrink-0'
+              title={compact ? displayName : undefined}
+              aria-hidden
+            >
+              {initial}
             </div>
-            <div className={`min-w-0 flex-1 ${showFull ? 'block' : 'hidden lg:block'}`}>
-              <div className='text-xs font-bold text-white truncate'>
-                {currentUser?.name || 'Administrator'}
+            {!compact && (
+              <div className='min-w-0'>
+                <div className='text-sm font-semibold text-admin-ink-strong truncate'>
+                  {displayName}
+                </div>
+                {currentUser?.email && (
+                  <div className='text-xs text-admin-muted truncate' title={currentUser.email}>
+                    {currentUser.email}
+                  </div>
+                )}
               </div>
-              <div className='text-[10px] font-mono text-[#737373] truncate'>
-                {currentUser?.email || 'root@panelforge.sys'}
-              </div>
-            </div>
+            )}
           </div>
-
           {onLogout && (
             <button
+              type='button'
               onClick={() => {
-                if (isDrawer) setIsMobileDrawerOpen(false);
+                setIsMobileDrawerOpen(false);
                 onLogout();
               }}
-              title='Đăng xuất System Root'
-              aria-label='Đăng xuất System Root'
-              className='w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold text-red-400 hover:bg-red-950/40 hover:text-red-300 border border-red-900/30 transition-all cursor-pointer'
+              title={compact ? 'Đăng xuất' : undefined}
+              aria-label='Đăng xuất'
+              className={cn(
+                'w-full min-h-11 flex items-center gap-2 rounded-xl text-sm font-medium text-admin-ink hover:bg-red-50 hover:text-red-700 transition-colors cursor-pointer',
+                adminFocusRing,
+                compact ? 'justify-center' : 'px-3',
+              )}
             >
-              <LogOut className='w-3.5 h-3.5 shrink-0' />
-              <span className={showFull ? 'inline' : 'hidden lg:inline'}>Đăng xuất</span>
+              <LogOut className='w-4 h-4 shrink-0' aria-hidden />
+              {!compact && <span>Đăng xuất</span>}
             </button>
           )}
         </div>
@@ -239,73 +210,79 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, curren
   };
 
   return (
-    <div className='flex h-screen w-full bg-[#FAF8F5] text-[#171717] font-sans overflow-hidden antialiased selection:bg-[#F97316]/20 selection:text-[#EA580C]'>
-      {/* Mobile Drawer */}
+    <div className='flex h-screen w-full bg-admin-bg text-admin-ink font-sans overflow-hidden antialiased'>
       <SidebarDrawer
         isOpen={isMobileDrawerOpen}
         onClose={() => setIsMobileDrawerOpen(false)}
-        title='Admin Navigation Menu'
+        title='Điều hướng quản trị'
       >
-        {renderAdminSidebar(true)}
+        {renderSidebar(true)}
       </SidebarDrawer>
 
-      {/* 1. Left Fixed / Rail Sidebar */}
-      {renderAdminSidebar(false)}
+      {renderSidebar(false)}
 
-      {/* 2. Main Content Area */}
-      <div className='flex-1 flex flex-col min-w-0 overflow-hidden bg-[#FAF8F5]'>
-        {/* RBAC Constraint Explicit Warning Banner with Mobile Hamburger */}
-        <div className='bg-[#171717] text-white px-4 md:px-6 py-2.5 border-b border-[#333333] flex items-center justify-between text-xs font-medium shrink-0'>
-          <div className='flex items-center gap-3'>
-            <button
-              type='button'
-              onClick={() => setIsMobileDrawerOpen(true)}
-              aria-label='Open admin navigation menu'
-              aria-expanded={isMobileDrawerOpen}
-              className='md:hidden p-1.5 -ml-1 rounded-lg text-white hover:bg-[#262626] transition-colors cursor-pointer'
-              data-testid='admin-hamburger-btn'
-            >
-              <Menu className='w-5 h-5' />
-            </button>
-            <div className='flex items-center gap-2 text-amber-400'>
-              <Shield className='w-4 h-4 text-[#F97316] shrink-0' />
-              <span className='font-mono font-bold text-[11px] uppercase tracking-wider text-amber-300'>
-                RBAC Scope Boundary Constraint:
-              </span>
-              <span className='text-[#E5E5E5] text-[11px] hidden sm:inline'>
-                Administrators possess global system control but cannot access or read individual
-                project `/workspace` routes unless explicitly invited as a project member.
-              </span>
-            </div>
+      <div className='flex-1 flex flex-col min-w-0 overflow-hidden'>
+        <header className='h-16 shrink-0 flex items-center gap-2 px-4 md:px-6 border-b border-admin-line bg-admin-card'>
+          <button
+            type='button'
+            onClick={() => setIsMobileDrawerOpen(true)}
+            aria-label='Mở menu điều hướng'
+            aria-expanded={isMobileDrawerOpen}
+            className={cn(
+              'md:hidden h-11 w-11 -ml-2 inline-flex items-center justify-center rounded-xl text-admin-ink hover:bg-admin-hover cursor-pointer',
+              adminFocusRing,
+            )}
+            data-testid='admin-hamburger-btn'
+          >
+            <Menu className='w-5 h-5' />
+          </button>
+          <button
+            type='button'
+            onClick={() => setIsCollapsed((v) => !v)}
+            aria-label={isCollapsed ? 'Mở rộng thanh bên' : 'Thu gọn thanh bên'}
+            title={isCollapsed ? 'Mở rộng thanh bên' : 'Thu gọn thanh bên'}
+            className={cn(
+              'hidden md:inline-flex h-11 w-11 -ml-2 items-center justify-center rounded-xl text-admin-muted hover:text-admin-ink hover:bg-admin-hover cursor-pointer',
+              adminFocusRing,
+            )}
+            data-testid='admin-rail-toggle-btn'
+          >
+            {isCollapsed ? (
+              <PanelLeftOpen className='w-5 h-5' />
+            ) : (
+              <PanelLeftClose className='w-5 h-5' />
+            )}
+          </button>
+          <nav aria-label='Breadcrumb' className='min-w-0'>
+            <ol className='flex items-center gap-1.5 text-sm'>
+              <li className='text-admin-muted'>Quản trị</li>
+              <li aria-hidden>
+                <ChevronRight className='w-4 h-4 text-admin-muted' />
+              </li>
+              <li className='font-semibold text-admin-ink-strong truncate' aria-current='page'>
+                {activeLabel}
+              </li>
+            </ol>
+          </nav>
+        </header>
+
+        <main className='flex-1 overflow-y-auto custom-scrollbar'>
+          <div className='w-full max-w-[1600px] mx-auto px-4 py-6 md:px-8 md:py-8 space-y-6'>
+            {activeTab === 'dashboard' && (
+              <AdminDashboardView
+                onNavigateToUsers={() => go('users')}
+                onNavigateToSettings={() => go('ai-config')}
+                onNavigateToAudit={() => go('audit')}
+                onNavigateToSessionPolicy={() => go('session-policy')}
+                onNavigateToStorage={() => go('storage')}
+              />
+            )}
+            {activeTab === 'users' && <AdminUserManagementView />}
+            {activeTab === 'ai-config' && <AIConfigurationView />}
+            {activeTab === 'storage' && <StorageBackupSettings />}
+            {activeTab === 'session-policy' && <SessionPolicySettings />}
+            {activeTab === 'audit' && <AdminAuditLogView />}
           </div>
-          <span className='text-[10px] font-mono text-[#737373] shrink-0 bg-[#262626] px-2 py-0.5 rounded border border-[#404040]'>
-            ENFORCED // SYSTEM DECREE
-          </span>
-        </div>
-
-        {/* Dynamic Content View */}
-        <main className='flex-1 overflow-y-auto custom-scrollbar p-6 md:p-8 space-y-6'>
-          {activeTab === 'dashboard' && (
-            <AdminDashboardView
-              onNavigateToUsers={() => setActiveTab('users')}
-              onNavigateToSettings={() => setActiveTab('ai-config')}
-              onNavigateToAudit={() => setActiveTab('audit')}
-              onNavigateToSessionPolicy={() => setActiveTab('session-policy')}
-              onNavigateToStorage={() => setActiveTab('storage')}
-            />
-          )}
-
-          {activeTab === 'users' && <AdminUserManagementView />}
-
-          {activeTab === 'master-data' && <MasterDataSettings />}
-
-          {activeTab === 'ai-config' && <AIConfigurationView />}
-
-          {activeTab === 'storage' && <StorageBackupSettings />}
-
-          {activeTab === 'session-policy' && <SessionPolicySettings />}
-
-          {activeTab === 'audit' && <AdminAuditLogView />}
         </main>
       </div>
     </div>

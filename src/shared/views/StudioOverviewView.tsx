@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   Briefcase,
@@ -31,6 +31,12 @@ import {
   Monitor,
   LogOut,
   AlertTriangle,
+  ArrowRight,
+  ChevronDown,
+  ChevronUp,
+  History,
+  ImagePlus,
+  ImageOff,
 } from 'lucide-react';
 import {
   workspaceService,
@@ -41,6 +47,7 @@ import {
 } from '@/services/workspace.service';
 import { pipelineService, PipelineTemplateDto } from '@/services/pipeline.service';
 import { seriesService, SeriesDto, UpdateSeriesRequest } from '@/services/series.service';
+import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { SeriesPipelineModal } from '@/roles/producer/modals/SeriesPipelineModal';
 import { SeriesChaptersModal } from '@/roles/producer/modals/SeriesChaptersModal';
 import { SeriesPresetsModal } from '@/roles/producer/modals/SeriesPresetsModal';
@@ -158,6 +165,15 @@ export const StudioOverviewView: React.FC = () => {
   const [editTask, setEditTask] = useState('');
   const [memberToDelete, setMemberToDelete] = useState<{ id: string; email: string } | null>(null);
 
+  // Search, Filter & Sort states for Series Library
+  const [searchQuery, setSearchQuery] = useState('');
+  const [genreFilter, setGenreFilter] = useState('ALL');
+  const [directionFilter, setDirectionFilter] = useState('ALL');
+  const [sortBy, setSortBy] = useState<'recent' | 'az' | 'za' | 'chapters'>('recent');
+  const [isResourcesExpanded, setIsResourcesExpanded] = useState(false);
+  const [openMenuSeriesId, setOpenMenuSeriesId] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
   // CanCreateStudio check (B3 / F4)
   const currentUser = React.useMemo(() => {
     try {
@@ -259,6 +275,7 @@ export const StudioOverviewView: React.FC = () => {
 
   const loadData = React.useCallback(async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       const wsList = await workspaceService.getMyWorkspaces();
       if (wsList && wsList.length > 0) {
@@ -269,8 +286,12 @@ export const StudioOverviewView: React.FC = () => {
             wsList[0]
           : wsList.find((w) => w.id === activeWorkspace?.id) || wsList[0];
         setActiveWorkspace(cur);
-        const memList = await workspaceService.getMembers(cur.id);
-        setMembers(memList);
+        try {
+          const memList = await workspaceService.getMembers(cur.id);
+          setMembers(memList);
+        } catch {
+          setMembers([]);
+        }
 
         // Load Workspace Resource Usage (GET /api/workspaces/{id}/usage)
         try {
@@ -296,6 +317,7 @@ export const StudioOverviewView: React.FC = () => {
       }
     } catch (err: any) {
       console.error(err);
+      setLoadError(err.message || 'Không thể kết nối máy chủ.');
       showToast('Lỗi tải dữ liệu', err.message || 'Không thể kết nối máy chủ.');
     } finally {
       setLoading(false);
@@ -403,6 +425,35 @@ export const StudioOverviewView: React.FC = () => {
   };
 
   // Edit Series Handlers (F5)
+  // Ảnh bìa Series (Producer): một input file dùng chung cho mọi thẻ, nhớ Series đang đổi bìa.
+  const coverInputRef = useRef<HTMLInputElement>(null);
+  const coverTargetRef = useRef<string | null>(null);
+  const setSeriesCover = (seriesId: string, coverUrl: string | null) =>
+    setSeriesList((prev) => prev.map((x) => (x.id === seriesId ? { ...x, coverUrl } : x)));
+
+  const handleCoverFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    const seriesId = coverTargetRef.current;
+    e.target.value = ''; // cho phép chọn lại cùng file
+    if (!file || !seriesId) return;
+    try {
+      setSeriesCover(seriesId, await seriesService.setCover(seriesId, file));
+      showToast('Đã cập nhật ảnh bìa', file.name);
+    } catch (err: any) {
+      showToast('Lỗi ảnh bìa', err.message);
+    }
+  };
+
+  const handleClearCover = async (seriesId: string) => {
+    try {
+      await seriesService.clearCover(seriesId);
+      setSeriesCover(seriesId, null);
+      showToast('Đã xoá ảnh bìa', 'Thẻ bộ truyện quay về bìa chữ cái.');
+    } catch (err: any) {
+      showToast('Lỗi ảnh bìa', err.message);
+    }
+  };
+
   const handleOpenEditSeries = (s: SeriesDto) => {
     setEditingSeries(s);
     setEditSeriesTitle(s.title);
@@ -591,11 +642,149 @@ export const StudioOverviewView: React.FC = () => {
     return Number(tokens).toLocaleString('vi-VN');
   };
 
+  // Close card options menu on click outside or Escape
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('[data-series-options-menu]')) {
+        setOpenMenuSeriesId(null);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setOpenMenuSeriesId(null);
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
+  // Reset search, filters and sort when active workspace changes
+  useEffect(() => {
+    setSearchQuery('');
+    setGenreFilter('ALL');
+    setDirectionFilter('ALL');
+    setSortBy('recent');
+    setOpenMenuSeriesId(null);
+  }, [activeWorkspace?.id, workspaceId]);
+
+  const formatReadingDirection = (direction: number | string | undefined) => {
+    if (direction === 'Vertical' || direction === 2 || direction === '2') {
+      return { label: 'Cuộn dọc', shortLabel: 'Dọc', type: 'vertical' as const };
+    }
+    if (direction === 'LeftToRight' || direction === 0 || direction === '0') {
+      return { label: 'Đọc trái → phải', shortLabel: 'LTR', type: 'ltr' as const };
+    }
+    return { label: 'Đọc phải → trái', shortLabel: 'RTL', type: 'rtl' as const };
+  };
+
+  const formatGenre = (genre: string | undefined | null) => {
+    if (!genre || !genre.trim() || genre.trim().toUpperCase() === 'GENERAL') {
+      return 'Tổng hợp';
+    }
+    return genre.trim();
+  };
+
+  const formatSeriesDate = (dateStr: string | null | undefined) => {
+    if (!dateStr) return '';
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return '';
+      return d.toLocaleDateString('vi-VN', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      });
+    } catch {
+      return '';
+    }
+  };
+
+  const handleOpenSeries = (sId: string) => {
+    const wsId = activeWorkspace?.id || workspaceId;
+    if (!wsId) return;
+    const effectiveRole = wsRole ? String(wsRole) : userRole;
+    navigate(getRoleDefaultPath(effectiveRole, wsId, sId));
+  };
+
+  const availableGenres = React.useMemo(() => {
+    const genres = new Set<string>();
+    seriesList.forEach((s) => {
+      if (s.genre && s.genre.trim()) {
+        genres.add(s.genre.trim());
+      }
+    });
+    return Array.from(genres);
+  }, [seriesList]);
+
+  const filteredAndSortedSeries = React.useMemo(() => {
+    return seriesList
+      .filter((s) => {
+        const q = searchQuery.toLowerCase().trim();
+        const matchesSearch =
+          !q ||
+          s.title.toLowerCase().includes(q) ||
+          (s.synopsis && s.synopsis.toLowerCase().includes(q)) ||
+          (s.genre && s.genre.toLowerCase().includes(q)) ||
+          (s.storyArc && s.storyArc.toLowerCase().includes(q));
+
+        const matchesGenre =
+          genreFilter === 'ALL' || (s.genre && s.genre.toLowerCase() === genreFilter.toLowerCase());
+
+        const dirInfo = formatReadingDirection(s.readingDirection);
+        const matchesDirection =
+          directionFilter === 'ALL' ||
+          (directionFilter === 'RTL' && dirInfo.type === 'rtl') ||
+          (directionFilter === 'LTR' && dirInfo.type === 'ltr') ||
+          (directionFilter === 'VERTICAL' && dirInfo.type === 'vertical');
+
+        return matchesSearch && matchesGenre && matchesDirection;
+      })
+      .sort((a, b) => {
+        if (sortBy === 'recent') {
+          const timeA = new Date(a.updatedAt || a.createdAt).getTime();
+          const timeB = new Date(b.updatedAt || b.createdAt).getTime();
+          return timeB - timeA;
+        }
+        if (sortBy === 'az') {
+          return a.title.localeCompare(b.title, 'vi');
+        }
+        if (sortBy === 'za') {
+          return b.title.localeCompare(a.title, 'vi');
+        }
+        if (sortBy === 'chapters') {
+          return (b.chaptersCount ?? 0) - (a.chaptersCount ?? 0);
+        }
+        return 0;
+      });
+  }, [seriesList, searchQuery, genreFilter, directionFilter, sortBy]);
+
+  const isFiltering =
+    searchQuery.trim() !== '' || genreFilter !== 'ALL' || directionFilter !== 'ALL';
+
+  const handleClearFilters = () => {
+    setSearchQuery('');
+    setGenreFilter('ALL');
+    setDirectionFilter('ALL');
+  };
+
   return (
-    <div className='flex-1 bg-[#FAF8F5] min-h-screen p-6 md:p-8 space-y-6'>
+    <div className='flex-1 bg-[#F3F0E9] min-h-screen p-6 md:p-8 space-y-6 text-[#1C1917] font-sans'>
+      <input
+        ref={coverInputRef}
+        type='file'
+        accept='image/png,image/jpeg,image/webp'
+        className='hidden'
+        onChange={handleCoverFile}
+        data-testid='series-cover-input'
+      />
       {/* Toast */}
       {toast && (
-        <div className='fixed top-6 right-6 z-50 bg-[#171717] text-white px-4 py-3 rounded-xl shadow-2xl border border-white/10 flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-200'>
+        <div className='fixed top-6 right-6 z-50 bg-[#1C1917] text-white px-4 py-3 rounded-xl shadow-editorial border border-white/10 flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-200'>
           <CheckCircle2 className='w-4 h-4 text-emerald-400 shrink-0' />
           <div>
             <div className='text-xs font-bold'>{toast.title}</div>
@@ -607,568 +796,956 @@ export const StudioOverviewView: React.FC = () => {
         </div>
       )}
 
-      {/* Header Banner: Clean & Compact Studio Banner */}
-      <div className='bg-white p-6 rounded-2xl border border-stone-200/80 shadow-2xs space-y-4'>
-        <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-stone-100 pb-4'>
+      {/* Header Banner: Studio Series Library Header */}
+      <div className='bg-[#FCFBF8] p-6 rounded-xl border border-[#D8D2C5] shadow-2xs space-y-4'>
+        <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'>
           <div>
-            <h1 className='text-2xl font-serif font-bold text-stone-900 tracking-tight flex items-center gap-2.5'>
-              <Briefcase className='w-5 h-5 text-orange-500 shrink-0' />
+            <div className='flex items-center gap-2 text-xs font-semibold text-[#57534E] uppercase tracking-wider font-mono'>
+              <Briefcase className='w-4 h-4 text-[#F97316] shrink-0' />
               <span>{activeWorkspace?.name || 'Studio Workspace'}</span>
+            </div>
+            <h1 className='text-2xl sm:text-3xl font-serif font-bold text-[#1C1917] tracking-tight mt-1'>
+              Thư viện Bộ truyện
             </h1>
-            <p className='text-xs md:text-sm text-stone-500 mt-1 leading-relaxed'>
-              {(() => {
-                const effective = String(wsRole || userRole || '').toUpperCase();
-                switch (effective) {
-                  case 'EDITOR':
-                    return 'Bàn làm việc của Biên tập viên: Kiểm soát chất lượng, duyệt chương và rà soát tính nhất quán của các bộ truyện (Series).';
-                  case 'WRITER':
-                    return 'Không gian sáng tạo Kịch bản: Quản lý các hồi truyện, kịch bản phân cảnh và kho tư liệu Series Bible.';
-                  case 'ARTIST':
-                    return 'Bàn vẽ & Phân cảnh: Quản lý khung tranh, phân tầng đồ họa và phác thảo các trang truyện.';
-                  case 'LETTERER':
-                    return 'Xưởng Thoại & Chèn chữ: Thiết kế bóng thoại, hiệu ứng âm thanh (SFX) và chèn chữ theo kịch bản.';
-                  case 'PUBLISHER':
-                    return 'Cổng Xuất bản Studio: Thẩm định ấn bản phát hành, lên lịch phát hành và kiểm soát phân phối.';
-                  case 'ADMINISTRATOR':
-                    return 'Khu vực Quản trị Hệ thống: Quản lý tài nguyên, định mức quota và giám sát toàn bộ Studio.';
-                  case 'PRODUCER':
-                  default:
-                    return 'Bàn làm việc của Giám đốc Sản xuất: Quản lý các bộ truyện (Series), quy trình sản xuất và thành viên.';
-                }
-              })()}
+            <p className='text-xs sm:text-sm text-[#57534E] mt-1 leading-relaxed max-w-2xl'>
+              Không gian quản lý, theo dõi tiến độ sản xuất và điều phối các bộ truyện tranh trong
+              Studio.
             </p>
           </div>
+
+          {isProducerOrAdmin && (
+            <div className='flex items-center gap-2.5 shrink-0'>
+              <button
+                type='button'
+                onClick={() => setCreateSeriesModalOpen(true)}
+                className='inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white text-xs sm:text-sm font-semibold shadow-2xs active:scale-[0.98] transition-all cursor-pointer'
+              >
+                <Plus className='w-4 h-4' />
+                <span>Tạo bộ truyện</span>
+                <span className='sr-only'>Tạo Series Mới</span>
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* Workspace Governance & Resource Usage Meters (Storage, AI Tokens, Image Quota & Concurrent Sessions) - Shown for Producer/Admin */}
+        {/* Studio Resource Governance (Compact & Collapsible) - Shown for Producer/Admin */}
         {activeWorkspace && isProducerOrAdmin && (
-          <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-1'>
-            {/* 1. Storage Meter */}
-            <div className='flex flex-col justify-between h-full p-5 bg-stone-50/70 hover:bg-stone-50 rounded-xl border border-stone-200/80 transition-all space-y-3'>
-              <div className='flex items-center justify-between gap-2'>
-                <div className='flex items-center gap-2 text-sm font-semibold text-stone-800'>
+          <div className='pt-2 border-t border-stone-100'>
+            {/* Collapsed Summary Bar */}
+            <div className='p-3 sm:p-3.5 bg-stone-50/70 rounded-xl border border-stone-200/80 flex flex-col md:flex-row md:items-center justify-between gap-3'>
+              <div className='flex flex-wrap items-center gap-2.5 text-xs'>
+                <div className='flex items-center gap-1.5 font-bold text-stone-800 shrink-0'>
                   <HardDrive className='w-4 h-4 text-orange-500 shrink-0' />
-                  <span>Dung Lượng Lưu Trữ</span>
+                  <span>Tài nguyên Studio:</span>
                 </div>
-                <div className='font-mono text-sm font-bold text-stone-900 shrink-0'>
-                  {workspaceUsage
-                    ? `${formatBytes(workspaceUsage.storage.used)} / ${
-                        workspaceUsage.storage.isUnlimited
-                          ? 'Không giới hạn'
-                          : formatBytes(workspaceUsage.storage.quota)
-                      }`
-                    : `${formatGb(activeWorkspace.usedStorageBytes)} / ${formatGb(
-                        activeWorkspace.storageQuotaBytes,
-                      )} GB`}
+
+                {/* Storage Chip */}
+                {(() => {
+                  const used = workspaceUsage
+                    ? workspaceUsage.storage.used
+                    : activeWorkspace.usedStorageBytes || 0;
+                  const quota = workspaceUsage
+                    ? workspaceUsage.storage.quota
+                    : activeWorkspace.storageQuotaBytes || 0;
+                  const isUnlimited = workspaceUsage?.storage.isUnlimited ?? false;
+                  const percent = isUnlimited
+                    ? 0
+                    : quota > 0 && used > 0
+                      ? Math.min(100, Math.max(0, Math.round((used / quota) * 100)))
+                      : 0;
+                  const isWarning = !isUnlimited && percent >= 75;
+
+                  return (
+                    <div
+                      className={`px-2.5 py-1 rounded-lg border text-[11px] font-mono flex items-center gap-1.5 ${
+                        isWarning
+                          ? 'bg-amber-50 text-amber-800 border-amber-300 font-bold'
+                          : 'bg-white text-stone-700 border-stone-200/80'
+                      }`}
+                      title={
+                        isUnlimited ? 'Không giới hạn dung lượng' : `Đã dùng ${percent}% dung lượng`
+                      }
+                    >
+                      <span className='text-stone-500 font-sans'>Lưu trữ:</span>
+                      <span>
+                        {workspaceUsage
+                          ? `${formatBytes(used)} / ${isUnlimited ? 'Không giới hạn' : formatBytes(quota)}`
+                          : `${formatGb(activeWorkspace.usedStorageBytes)} / ${formatGb(activeWorkspace.storageQuotaBytes)} GB`}
+                      </span>
+                      {isWarning && <AlertTriangle className='w-3 h-3 text-amber-600' />}
+                    </div>
+                  );
+                })()}
+
+                {/* AI Tokens Chip */}
+                <div className='px-2.5 py-1 rounded-lg border bg-white border-stone-200/80 font-mono text-[11px] flex items-center gap-1.5 text-stone-700'>
+                  <Cpu className='w-3.5 h-3.5 text-blue-500 shrink-0' />
+                  <span className='text-stone-500 font-sans'>Token AI:</span>
+                  <span>
+                    {workspaceUsage?.aiTokens
+                      ? workspaceUsage.aiTokens.isUnlimited
+                        ? 'Không giới hạn'
+                        : `${formatTokens(workspaceUsage.aiTokens.used)} / ${formatTokens(workspaceUsage.aiTokens.quota)}`
+                      : 'Chưa cấp quota'}
+                  </span>
+                </div>
+
+                {/* Sessions Chip */}
+                <div className='px-2.5 py-1 rounded-lg border bg-white border-stone-200/80 font-mono text-[11px] flex items-center gap-1.5 text-stone-700'>
+                  <Monitor className='w-3.5 h-3.5 text-emerald-500 shrink-0' />
+                  <span className='text-stone-500 font-sans'>Thiết bị:</span>
+                  <span>
+                    {workspaceUsage?.activeSessions
+                      ? `${workspaceUsage.activeSessions.used} thiết bị`
+                      : '0 thiết bị'}
+                  </span>
+                  {workspaceUsage?.activeMemberCount ? (
+                    <span className='text-stone-400 font-sans'>
+                      ({workspaceUsage.activeMemberCount} người online)
+                    </span>
+                  ) : null}
                 </div>
               </div>
 
-              {(() => {
-                const used = workspaceUsage
-                  ? workspaceUsage.storage.used
-                  : activeWorkspace.usedStorageBytes || 0;
-                const quota = workspaceUsage
-                  ? workspaceUsage.storage.quota
-                  : activeWorkspace.storageQuotaBytes || 0;
-                const isUnlimited = workspaceUsage?.storage.isUnlimited ?? false;
-                const percent = isUnlimited
-                  ? 0
-                  : quota > 0 && used > 0
-                    ? Math.min(100, Math.max(0, Math.round((used / quota) * 100)))
-                    : 0;
+              <div className='flex items-center gap-2 self-end md:self-auto shrink-0'>
+                <button
+                  type='button'
+                  onClick={() => setAuditModalOpen(true)}
+                  className='px-2.5 py-1 text-xs font-medium text-stone-600 hover:text-stone-900 hover:bg-stone-200/60 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer'
+                  title='Xem lịch sử audit studio (BR-18)'
+                >
+                  <History className='w-3.5 h-3.5 text-stone-400' />
+                  <span>Audit Trail</span>
+                </button>
 
-                return (
+                <button
+                  type='button'
+                  onClick={() => setIsResourcesExpanded(!isResourcesExpanded)}
+                  aria-expanded={isResourcesExpanded}
+                  className='px-3 py-1 text-xs font-semibold text-stone-700 hover:text-stone-900 bg-white hover:bg-stone-100 border border-stone-200/80 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs'
+                >
+                  <span>{isResourcesExpanded ? 'Thu gọn' : 'Chi tiết tài nguyên'}</span>
+                  <ChevronDown
+                    className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                      isResourcesExpanded ? 'rotate-180' : ''
+                    }`}
+                  />
+                </button>
+              </div>
+            </div>
+
+            {/* Expanded Detailed Quota Meters */}
+            {isResourcesExpanded && (
+              <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-3.5 animate-in fade-in duration-150'>
+                {/* 1. Storage Meter */}
+                <div className='flex flex-col justify-between h-full p-4 bg-stone-50/70 hover:bg-stone-50 rounded-xl border border-stone-200/80 transition-all space-y-3'>
+                  <div className='flex items-center justify-between gap-2'>
+                    <div className='flex items-center gap-2 text-xs font-bold text-stone-800'>
+                      <HardDrive className='w-4 h-4 text-orange-500 shrink-0' />
+                      <span>Dung Lượng Lưu Trữ</span>
+                    </div>
+                    <div className='font-mono text-xs font-bold text-stone-900 shrink-0'>
+                      {workspaceUsage
+                        ? `${formatBytes(workspaceUsage.storage.used)} / ${
+                            workspaceUsage.storage.isUnlimited
+                              ? 'Không giới hạn'
+                              : formatBytes(workspaceUsage.storage.quota)
+                          }`
+                        : `${formatGb(activeWorkspace.usedStorageBytes)} / ${formatGb(
+                            activeWorkspace.storageQuotaBytes,
+                          )} GB`}
+                    </div>
+                  </div>
+
+                  {(() => {
+                    const used = workspaceUsage
+                      ? workspaceUsage.storage.used
+                      : activeWorkspace.usedStorageBytes || 0;
+                    const quota = workspaceUsage
+                      ? workspaceUsage.storage.quota
+                      : activeWorkspace.storageQuotaBytes || 0;
+                    const isUnlimited = workspaceUsage?.storage.isUnlimited ?? false;
+                    const percent = isUnlimited
+                      ? 0
+                      : quota > 0 && used > 0
+                        ? Math.min(100, Math.max(0, Math.round((used / quota) * 100)))
+                        : 0;
+
+                    return (
+                      <div className='space-y-2'>
+                        {isUnlimited ? (
+                          <div className='flex items-center gap-1.5 text-xs text-blue-600 font-medium py-0.5'>
+                            <CheckCircle2 className='w-3.5 h-3.5' />
+                            <span>Lưu trữ không giới hạn</span>
+                          </div>
+                        ) : (
+                          <div className='w-full bg-stone-200/80 h-2 rounded-full overflow-hidden'>
+                            <div
+                              className={`h-full rounded-full transition-all duration-500 ${
+                                percent >= 90
+                                  ? 'bg-red-500'
+                                  : percent >= 75
+                                    ? 'bg-amber-500'
+                                    : 'bg-orange-500'
+                              }`}
+                              style={{ width: `${percent}%` }}
+                            />
+                          </div>
+                        )}
+                        <div className='flex items-center justify-between text-[11px] leading-relaxed text-stone-600'>
+                          <span>
+                            {isUnlimited ? 'Gói vô hạn dung lượng' : `Đã dùng ${percent}%`}
+                          </span>
+                          <span className='font-mono text-stone-500 text-[10px]'>
+                            {isUnlimited ? 'Không giới hạn' : 'Chặn khi chạm 100%'}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                {/* 2. AI Token Meter */}
+                <div className='flex flex-col justify-between h-full p-4 bg-stone-50/70 hover:bg-stone-50 rounded-xl border border-stone-200/80 transition-all space-y-3'>
+                  <div className='flex items-center justify-between gap-2'>
+                    <div className='flex items-center gap-2 text-xs font-bold text-stone-800'>
+                      <Cpu className='w-4 h-4 text-blue-500 shrink-0' />
+                      <span>Hạn Mức AI Tokens</span>
+                    </div>
+                    {workspaceUsage?.aiTokens ? (
+                      <div className='font-mono text-xs font-bold text-stone-900 shrink-0'>
+                        {formatTokens(workspaceUsage.aiTokens.used)} /{' '}
+                        {workspaceUsage.aiTokens.isUnlimited
+                          ? 'Không giới hạn'
+                          : `${formatTokens(workspaceUsage.aiTokens.quota)}`}
+                      </div>
+                    ) : (
+                      <span className='whitespace-nowrap px-2 py-0.5 text-[10px] font-medium rounded-full text-amber-700 bg-amber-50 border border-amber-200 font-mono shrink-0'>
+                        Chưa cấp quota
+                      </span>
+                    )}
+                  </div>
+
+                  {workspaceUsage?.aiTokens ? (
+                    <div className='space-y-2'>
+                      {workspaceUsage.aiTokens.isUnlimited ? (
+                        <div className='flex items-center gap-1.5 text-xs text-blue-600 font-medium py-0.5'>
+                          <CheckCircle2 className='w-3.5 h-3.5' />
+                          <span>Token AI không giới hạn</span>
+                        </div>
+                      ) : (
+                        <div className='w-full bg-stone-200/80 h-2 rounded-full overflow-hidden'>
+                          <div
+                            className={`h-full rounded-full transition-all duration-500 ${
+                              (workspaceUsage.aiTokens.percentUsed ?? 0) >= 90
+                                ? 'bg-red-500'
+                                : 'bg-blue-500'
+                            }`}
+                            style={{
+                              width: `${Math.min(100, workspaceUsage.aiTokens.percentUsed ?? 0)}%`,
+                            }}
+                          />
+                        </div>
+                      )}
+                      <div className='flex items-center justify-between text-[11px] leading-relaxed text-stone-600'>
+                        <span>
+                          {workspaceUsage.aiTokens.isUnlimited
+                            ? 'Token theo tháng'
+                            : `Đã dùng ${workspaceUsage.aiTokens.percentUsed ?? 0}%`}
+                        </span>
+                        <span
+                          className={`font-semibold text-[11px] ${
+                            workspaceUsage.aiEnabled ? 'text-emerald-600' : 'text-stone-400'
+                          }`}
+                        >
+                          {workspaceUsage.aiEnabled ? '● AI Đang bật' : '○ AI Đã tắt'}
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className='pt-1 text-xs leading-relaxed text-stone-500 italic'>
+                      Liên hệ Admin để cấu hình quota AI Studio
+                    </div>
+                  )}
+                </div>
+
+                {/* 3. AI Image Generation Meter */}
+                <div className='flex flex-col justify-between h-full p-4 bg-stone-50/70 hover:bg-stone-50 rounded-xl border border-stone-200/80 transition-all space-y-3'>
+                  <div className='flex items-center justify-between gap-2'>
+                    <div className='flex items-center gap-2 text-xs font-bold text-stone-800'>
+                      <ImageIcon className='w-4 h-4 text-purple-500 shrink-0' />
+                      <span>Hạn Mức Sinh Ảnh AI</span>
+                    </div>
+                    {workspaceUsage?.images ? (
+                      <div className='font-mono text-xs font-bold text-stone-900 shrink-0'>
+                        {workspaceUsage.images.used.toLocaleString()} /{' '}
+                        {workspaceUsage.images.isUnlimited
+                          ? 'Không giới hạn'
+                          : `${workspaceUsage.images.quota.toLocaleString()} ảnh`}
+                      </div>
+                    ) : (
+                      <span className='whitespace-nowrap px-2 py-0.5 text-[10px] font-medium rounded-full text-purple-700 bg-purple-50 border border-purple-200 font-mono shrink-0'>
+                        Chưa cấp quota
+                      </span>
+                    )}
+                  </div>
+
+                  {workspaceUsage?.images ? (
+                    <div className='space-y-2'>
+                      {workspaceUsage.images.isUnlimited ? (
+                        <div className='flex items-center gap-1.5 text-xs text-purple-600 font-medium py-0.5'>
+                          <CheckCircle2 className='w-3.5 h-3.5' />
+                          <span>Sinh ảnh không giới hạn</span>
+                        </div>
+                      ) : (
+                        <div className='w-full bg-stone-200/80 h-2 rounded-full overflow-hidden'>
+                          <div
+                            className={`h-full rounded-full transition-all duration-500 ${
+                              (workspaceUsage.images.percentUsed ?? 0) >= 90
+                                ? 'bg-red-500'
+                                : (workspaceUsage.images.percentUsed ?? 0) >= 75
+                                  ? 'bg-amber-500'
+                                  : 'bg-purple-500'
+                            }`}
+                            style={{
+                              width: `${Math.min(100, workspaceUsage.images.percentUsed ?? 0)}%`,
+                            }}
+                          />
+                        </div>
+                      )}
+                      <div className='flex items-center justify-between text-[11px] leading-relaxed text-stone-600'>
+                        <span>
+                          {workspaceUsage.images.isUnlimited
+                            ? 'Ảnh không giới hạn'
+                            : `Đã dùng ${workspaceUsage.images.percentUsed ?? 0}%`}
+                        </span>
+                        <span
+                          className={`font-semibold text-[11px] ${
+                            workspaceUsage.aiEnabled ? 'text-purple-600' : 'text-stone-400'
+                          }`}
+                        >
+                          {workspaceUsage.aiEnabled ? '● Đang kích hoạt' : '○ AI Đã tắt'}
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className='space-y-1 pt-1'>
+                      <p className='text-xs leading-relaxed text-stone-500 italic'>
+                        Pipeline sinh ảnh AI chưa bật (đã dùng: 0).
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* 4. Active Devices & Concurrent Sessions Meter */}
+                <div className='flex flex-col justify-between h-full p-4 bg-stone-50/70 hover:bg-stone-50 rounded-xl border border-stone-200/80 transition-all space-y-3'>
+                  <div className='flex items-center justify-between gap-2'>
+                    <div className='flex items-center gap-2 text-xs font-bold text-stone-800'>
+                      <Monitor className='w-4 h-4 text-emerald-500 shrink-0' />
+                      <span>Phiên Đăng Nhập Đồng Thời</span>
+                    </div>
+                    <div className='font-mono text-xs font-bold text-stone-900 shrink-0'>
+                      {workspaceUsage?.activeSessions
+                        ? workspaceUsage.activeSessions.isUnlimited
+                          ? `${workspaceUsage.activeSessions.used} thiết bị`
+                          : `${workspaceUsage.activeSessions.used} / ${workspaceUsage.activeSessions.quota}`
+                        : '0 thiết bị'}
+                    </div>
+                  </div>
+
                   <div className='space-y-2'>
                     <div className='w-full bg-stone-200/80 h-2 rounded-full overflow-hidden'>
                       <div
                         className={`h-full rounded-full transition-all duration-500 ${
-                          percent >= 90
+                          (workspaceUsage?.activeSessions?.percentUsed ?? 0) >= 90
                             ? 'bg-red-500'
-                            : percent >= 75
+                            : (workspaceUsage?.activeSessions?.percentUsed ?? 0) >= 75
                               ? 'bg-amber-500'
-                              : 'bg-orange-500'
+                              : 'bg-emerald-500'
                         }`}
-                        style={{ width: `${percent}%` }}
+                        style={{
+                          width: `${Math.min(
+                            100,
+                            workspaceUsage?.activeSessions?.isUnlimited
+                              ? 0
+                              : (workspaceUsage?.activeSessions?.percentUsed ?? 0),
+                          )}%`,
+                        }}
                       />
                     </div>
-                    <div className='flex items-center justify-between text-xs leading-relaxed text-stone-600'>
+
+                    <div className='flex items-center justify-between text-[11px] leading-relaxed text-stone-600'>
                       <span>
-                        {isUnlimited ? 'Không giới hạn dung lượng' : `Đã dùng ${percent}%`}
+                        {workspaceUsage?.activeMemberCount
+                          ? `${workspaceUsage.activeMemberCount} người online`
+                          : 'Chưa có thành viên online'}
                       </span>
-                      <span className='font-mono text-stone-500 text-xs'>Chặn khi chạm 100%</span>
+                      <button
+                        type='button'
+                        onClick={() => {
+                          setSessionsModalOpen(true);
+                          loadActiveSessions();
+                        }}
+                        className='font-semibold text-emerald-600 hover:text-emerald-700 hover:underline cursor-pointer flex items-center gap-1 text-[11px]'
+                        title='Xem danh sách các thiết bị đang đăng nhập của Studio'
+                      >
+                        <span>Chi tiết</span>
+                        <span>&rarr;</span>
+                      </button>
                     </div>
                   </div>
-                );
-              })()}
-            </div>
-
-            {/* 2. AI Token Meter */}
-            <div className='flex flex-col justify-between h-full p-5 bg-stone-50/70 hover:bg-stone-50 rounded-xl border border-stone-200/80 transition-all space-y-3'>
-              <div className='flex items-center justify-between gap-2'>
-                <div className='flex items-center gap-2 text-sm font-semibold text-stone-800'>
-                  <Cpu className='w-4 h-4 text-blue-500 shrink-0' />
-                  <span>Hạn Mức AI Tokens</span>
-                </div>
-                {workspaceUsage?.aiTokens ? (
-                  <div className='font-mono text-sm font-bold text-stone-900 shrink-0'>
-                    {formatTokens(workspaceUsage.aiTokens.used)} /{' '}
-                    {workspaceUsage.aiTokens.isUnlimited
-                      ? 'Không giới hạn'
-                      : `${formatTokens(workspaceUsage.aiTokens.quota)}`}
-                  </div>
-                ) : (
-                  <span className='whitespace-nowrap px-2.5 py-0.5 text-xs font-medium rounded-full text-amber-700 bg-amber-50 border border-amber-200 font-mono shrink-0'>
-                    Chưa cấp quota
-                  </span>
-                )}
-              </div>
-
-              {workspaceUsage?.aiTokens ? (
-                <div className='space-y-2'>
-                  <div className='w-full bg-stone-200/80 h-2 rounded-full overflow-hidden'>
-                    <div
-                      className={`h-full rounded-full transition-all duration-500 ${
-                        (workspaceUsage.aiTokens.percentUsed ?? 0) >= 90
-                          ? 'bg-red-500'
-                          : 'bg-blue-500'
-                      }`}
-                      style={{
-                        width: `${Math.min(100, workspaceUsage.aiTokens.percentUsed ?? 0)}%`,
-                      }}
-                    />
-                  </div>
-                  <div className='flex items-center justify-between text-xs leading-relaxed text-stone-600'>
-                    <span>
-                      {workspaceUsage.aiTokens.isUnlimited
-                        ? 'Token không giới hạn'
-                        : `Đã dùng ${workspaceUsage.aiTokens.percentUsed ?? 0}%`}
-                    </span>
-                    <span
-                      className={`font-semibold text-xs ${
-                        workspaceUsage.aiEnabled ? 'text-emerald-600' : 'text-stone-400'
-                      }`}
-                    >
-                      {workspaceUsage.aiEnabled ? '● AI Đang bật' : '○ AI Đã tắt'}
-                    </span>
-                  </div>
-                </div>
-              ) : (
-                <div className='pt-1 text-xs leading-relaxed text-stone-600 italic'>
-                  Liên hệ Admin để cấu hình quota AI Studio
-                </div>
-              )}
-            </div>
-
-            {/* 3. AI Image Generation Meter */}
-            <div className='flex flex-col justify-between h-full p-5 bg-stone-50/70 hover:bg-stone-50 rounded-xl border border-stone-200/80 transition-all space-y-3'>
-              <div className='flex items-center justify-between gap-2'>
-                <div className='flex items-center gap-2 text-sm font-semibold text-stone-800'>
-                  <ImageIcon className='w-4 h-4 text-purple-500 shrink-0' />
-                  <span>Hạn Mức Sinh Ảnh AI</span>
-                </div>
-                {workspaceUsage?.images ? (
-                  <div className='font-mono text-sm font-bold text-stone-900 shrink-0'>
-                    {workspaceUsage.images.used.toLocaleString()} /{' '}
-                    {workspaceUsage.images.isUnlimited
-                      ? 'Không giới hạn'
-                      : `${workspaceUsage.images.quota.toLocaleString()} ảnh`}
-                  </div>
-                ) : (
-                  <span className='whitespace-nowrap px-2.5 py-0.5 text-xs font-medium rounded-full text-purple-700 bg-purple-50 border border-purple-200 font-mono shrink-0'>
-                    Chưa cấp quota
-                  </span>
-                )}
-              </div>
-
-              {workspaceUsage?.images ? (
-                <div className='space-y-2'>
-                  <div className='w-full bg-stone-200/80 h-2 rounded-full overflow-hidden'>
-                    <div
-                      className={`h-full rounded-full transition-all duration-500 ${
-                        (workspaceUsage.images.percentUsed ?? 0) >= 90
-                          ? 'bg-red-500'
-                          : (workspaceUsage.images.percentUsed ?? 0) >= 75
-                            ? 'bg-amber-500'
-                            : 'bg-purple-500'
-                      }`}
-                      style={{
-                        width: `${Math.min(100, workspaceUsage.images.percentUsed ?? 0)}%`,
-                      }}
-                    />
-                  </div>
-                  <div className='flex items-center justify-between text-xs leading-relaxed text-stone-600'>
-                    <span>
-                      {workspaceUsage.images.isUnlimited
-                        ? 'Ảnh không giới hạn'
-                        : `Đã dùng ${workspaceUsage.images.percentUsed ?? 0}%`}
-                    </span>
-                    <span
-                      className={`font-semibold text-xs ${
-                        workspaceUsage.aiEnabled ? 'text-purple-600' : 'text-stone-400'
-                      }`}
-                    >
-                      {workspaceUsage.aiEnabled ? '● Đang kích hoạt' : '○ AI Đã tắt'}
-                    </span>
-                  </div>
-                </div>
-              ) : (
-                <div className='space-y-1 pt-1'>
-                  <p className='text-xs leading-relaxed text-stone-600 italic'>
-                    Pipeline sinh ảnh AI chưa bật (đã dùng: 0).
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* 4. Active Devices & Concurrent Sessions Meter */}
-            <div className='flex flex-col justify-between h-full p-5 bg-stone-50/70 hover:bg-stone-50 rounded-xl border border-stone-200/80 transition-all space-y-3'>
-              <div className='flex items-center justify-between gap-2'>
-                <div className='flex items-center gap-2 text-sm font-semibold text-stone-800'>
-                  <Monitor className='w-4 h-4 text-emerald-500 shrink-0' />
-                  <span>Phiên Đăng Nhập Đồng Thời</span>
-                </div>
-                <div className='font-mono text-sm font-bold text-stone-900 shrink-0'>
-                  {workspaceUsage?.activeSessions
-                    ? workspaceUsage.activeSessions.isUnlimited
-                      ? `${workspaceUsage.activeSessions.used} thiết bị`
-                      : `${workspaceUsage.activeSessions.used} / ${workspaceUsage.activeSessions.quota}`
-                    : '0 thiết bị'}
                 </div>
               </div>
-
-              <div className='space-y-2'>
-                <div className='w-full bg-stone-200/80 h-2 rounded-full overflow-hidden'>
-                  <div
-                    className={`h-full rounded-full transition-all duration-500 ${
-                      (workspaceUsage?.activeSessions?.percentUsed ?? 0) >= 90
-                        ? 'bg-red-500'
-                        : (workspaceUsage?.activeSessions?.percentUsed ?? 0) >= 75
-                          ? 'bg-amber-500'
-                          : 'bg-emerald-500'
-                    }`}
-                    style={{
-                      width: `${Math.min(
-                        100,
-                        workspaceUsage?.activeSessions?.isUnlimited
-                          ? 0
-                          : (workspaceUsage?.activeSessions?.percentUsed ?? 0),
-                      )}%`,
-                    }}
-                  />
-                </div>
-
-                <div className='flex items-center justify-between text-xs leading-relaxed text-stone-600'>
-                  <span>
-                    {workspaceUsage?.activeMemberCount
-                      ? `${workspaceUsage.activeMemberCount} người online`
-                      : 'Chưa có thành viên online'}
-                  </span>
-                  <button
-                    type='button'
-                    onClick={() => {
-                      setSessionsModalOpen(true);
-                      loadActiveSessions();
-                    }}
-                    className='font-semibold text-emerald-600 hover:text-emerald-700 hover:underline cursor-pointer flex items-center gap-1'
-                    title='Xem danh sách các thiết bị đang đăng nhập của Studio'
-                  >
-                    <span>Chi tiết</span>
-                    <span>&rarr;</span>
-                  </button>
-                </div>
-              </div>
-            </div>
+            )}
           </div>
         )}
       </div>
 
       {/* Main Workspace Content Area with Tabbed Navigation */}
       <div className='space-y-6'>
-        {/* Section Header bar & Action Controls */}
-        <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4'>
-          <div className='flex items-center gap-3'>
-            <h2 className='text-base font-bold text-stone-900 flex items-center gap-2'>
-              <BookOpen className='w-4 h-4 text-orange-500' />
-              <span>Bộ Truyện (Series)</span>
-              <span className='px-2 py-0.5 rounded-full bg-orange-100/70 text-orange-700 text-xs font-mono font-bold'>
+        {/* Navigation Tabs and Top Actions */}
+        <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-stone-200/80 pb-4'>
+          <div
+            role='tablist'
+            aria-label='Điều hướng không gian làm việc'
+            className='flex items-center gap-2'
+          >
+            <button
+              type='button'
+              role='tab'
+              id='tab-series'
+              aria-selected={activeTab === 'series'}
+              aria-controls='tabpanel-series'
+              onClick={() => setActiveTab('series')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+                activeTab === 'series'
+                  ? 'bg-[#FFF2E6] text-[#1C1917] border border-[#C2410C] shadow-2xs'
+                  : 'bg-[#FCFBF8] text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9] border border-[#D8D2C5]'
+              }`}
+            >
+              <BookOpen
+                className={`w-4 h-4 ${activeTab === 'series' ? 'text-[#C2410C]' : 'text-[#57534E]'}`}
+              />
+              <span>Bộ truyện</span>
+              <span
+                className={`px-2 py-0.5 rounded-full text-xs font-mono font-bold ${
+                  activeTab === 'series'
+                    ? 'bg-[#F97316] text-white'
+                    : 'bg-[#F3F0E9] text-[#57534E]'
+                }`}
+              >
                 {seriesList.length}
               </span>
-            </h2>
+            </button>
+
             {isProducerOrAdmin && (
-              <div className='flex items-center gap-1 bg-[#f0efed] p-1 rounded-full border border-[#e7e5e4] ml-2'>
-                <button
-                  onClick={() => setActiveTab('series')}
-                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer ${
-                    activeTab === 'series'
-                      ? 'bg-[#292524] text-white shadow-soft-sm'
-                      : 'text-[#4e4e4e] hover:text-[#0c0a09]'
-                  }`}
-                >
-                  <span>Dự Án Series</span>
-                </button>
-                <button
-                  onClick={() => setActiveTab('members')}
-                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer ${
+              <button
+                type='button'
+                role='tab'
+                id='tab-members'
+                aria-selected={activeTab === 'members'}
+                aria-controls='tabpanel-members'
+                onClick={() => setActiveTab('members')}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+                  activeTab === 'members'
+                    ? 'bg-[#FFF2E6] text-[#1C1917] border border-[#C2410C] shadow-2xs'
+                    : 'bg-[#FCFBF8] text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9] border border-[#D8D2C5]'
+                }`}
+              >
+                <Users
+                  className={`w-4 h-4 ${activeTab === 'members' ? 'text-[#C2410C]' : 'text-[#57534E]'}`}
+                />
+                <span>Thành viên Studio</span>
+                <span
+                  className={`px-2 py-0.5 rounded-full text-xs font-mono font-bold ${
                     activeTab === 'members'
-                      ? 'bg-[#292524] text-white shadow-soft-sm'
-                      : 'text-[#4e4e4e] hover:text-[#0c0a09]'
+                      ? 'bg-[#F97316] text-white'
+                      : 'bg-[#F3F0E9] text-[#57534E]'
                   }`}
                 >
-                  <Users className='w-3 h-3 text-blue-500' />
-                  <span>Thành Viên Studio</span>
-                  <span className='px-2 py-0.5 rounded-full bg-white/20 text-white text-xs font-mono'>
-                    {members.length}
-                  </span>
-                </button>
-              </div>
+                  {members.length}
+                </span>
+              </button>
             )}
           </div>
 
-          {isProducerOrAdmin &&
-            (activeTab === 'series' ? (
+          {/* Right Action Button for Current Tab */}
+          <div className='flex items-center gap-2'>
+            {isProducerOrAdmin && activeTab === 'members' && (
               <button
+                type='button'
+                onClick={() => setInviteModalOpen(true)}
+                className='inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold shadow-2xs transition-all cursor-pointer'
+              >
+                <UserPlus className='w-4 h-4' />
+                <span>Mời thành viên mới</span>
+              </button>
+            )}
+            {isProducerOrAdmin && activeTab === 'series' && (
+              <button
+                type='button'
                 onClick={() => setCreateSeriesModalOpen(true)}
-                className='inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#292524] hover:bg-[#0c0a09] text-white text-xs font-medium shadow-soft-sm transition-all cursor-pointer'
+                className='inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold shadow-2xs transition-all cursor-pointer'
               >
                 <Plus className='w-4 h-4' />
-                <span>Tạo Series Mới</span>
+                <span>Tạo bộ truyện mới</span>
               </button>
-            ) : (
-              <button
-                onClick={() => setInviteModalOpen(true)}
-                className='inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#292524] hover:bg-[#0c0a09] text-white text-xs font-medium shadow-soft-sm transition-all cursor-pointer'
-              >
-                <UserPlus className='w-4 h-4 text-orange-400' />
-                <span>Mời Thành Viên Mới</span>
-              </button>
-            ))}
+            )}
+          </div>
         </div>
 
         {/* TAB 1: Series Projects View */}
         {activeTab === 'series' && (
-          <div>
-            {seriesList.length === 0 ? (
-              <div className='py-12 px-4 text-center bg-white rounded-2xl border border-dashed border-[#e7e5e4] max-w-lg mx-auto my-4 space-y-3 shadow-soft-sm'>
-                <div className='w-12 h-12 rounded-full bg-orange-50 text-orange-500 flex items-center justify-center mx-auto'>
-                  <BookOpen className='w-6 h-6' />
+          <div
+            role='tabpanel'
+            id='tabpanel-series'
+            aria-labelledby='tab-series'
+            className='space-y-5'
+          >
+            {/* Error Message with Retry */}
+            {loadError && (
+              <div className='p-4 bg-red-50 border border-red-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-red-800 text-xs sm:text-sm shadow-soft-xs'>
+                <div className='flex items-center gap-2.5'>
+                  <AlertTriangle className='w-5 h-5 text-red-600 shrink-0' />
+                  <span>{loadError}</span>
                 </div>
-                <h3 className='text-sm font-bold text-[#0c0a09]'>
-                  Chưa có Series nào trong Studio này
-                </h3>
-                <p className='text-xs text-[#777169] leading-relaxed'>
-                  Khởi tạo Series mới để thiết lập thể loại, định dạng xuất bản, quy trình 8 công
-                  đoạn và kho tư liệu Series Bible.
-                </p>
-                {isProducerOrAdmin && (
-                  <button
-                    onClick={() => setCreateSeriesModalOpen(true)}
-                    className='inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium text-white bg-[#292524] hover:bg-[#0c0a09] rounded-full shadow-soft-sm transition-all cursor-pointer'
+                <button
+                  type='button'
+                  onClick={() => loadData()}
+                  className='px-3.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold cursor-pointer shrink-0 transition-colors'
+                >
+                  Thử lại
+                </button>
+              </div>
+            )}
+
+            {/* Search, Filter & Sort Toolbar */}
+            <div className='p-3.5 sm:p-4 bg-white/90 backdrop-blur-xs rounded-2xl border border-stone-200/80 shadow-soft-xs flex flex-col lg:flex-row lg:items-center justify-between gap-3'>
+              <div className='flex flex-1 flex-col sm:flex-row items-stretch sm:items-center gap-2.5'>
+                {/* Search Input */}
+                <div className='relative flex-1 min-w-[200px]'>
+                  <Search className='w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none' />
+                  <input
+                    type='text'
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder='Tìm bộ truyện theo tên, tóm tắt...'
+                    className='w-full pl-9.5 pr-8 py-2 bg-stone-50/80 hover:bg-stone-50 focus:bg-white rounded-xl border border-stone-200/80 text-xs text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all'
+                  />
+                  {searchQuery && (
+                    <button
+                      type='button'
+                      onClick={() => setSearchQuery('')}
+                      className='absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-stone-400 hover:text-stone-700 rounded-full hover:bg-stone-200/60 transition-colors'
+                      aria-label='Xóa tìm kiếm'
+                    >
+                      <X className='w-3 h-3' />
+                    </button>
+                  )}
+                </div>
+
+                {/* Genre Filter */}
+                <div className='relative'>
+                  <select
+                    value={genreFilter}
+                    onChange={(e) => setGenreFilter(e.target.value)}
+                    aria-label='Lọc theo thể loại'
+                    className='w-full sm:w-auto px-3 py-2 bg-stone-50/80 hover:bg-stone-50 focus:bg-white rounded-xl border border-stone-200/80 text-xs font-medium text-stone-700 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all cursor-pointer pr-8'
                   >
-                    <Plus className='w-3.5 h-3.5' />
-                    <span>Tạo Series Mới Ngay</span>
+                    <option value='ALL'>Tất cả thể loại</option>
+                    {availableGenres.map((g) => (
+                      <option key={g} value={g}>
+                        {formatGenre(g)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Reading Direction Filter */}
+                <div className='relative'>
+                  <select
+                    value={directionFilter}
+                    onChange={(e) => setDirectionFilter(e.target.value)}
+                    aria-label='Lọc theo định dạng đọc'
+                    className='w-full sm:w-auto px-3 py-2 bg-stone-50/80 hover:bg-stone-50 focus:bg-white rounded-xl border border-stone-200/80 text-xs font-medium text-stone-700 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all cursor-pointer pr-8'
+                  >
+                    <option value='ALL'>Tất cả định dạng đọc</option>
+                    <option value='RTL'>Đọc phải → trái (RTL)</option>
+                    <option value='LTR'>Đọc trái → phải (LTR)</option>
+                    <option value='VERTICAL'>Cuộn dọc (Webtoon)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Sort & Clear Options */}
+              <div className='flex items-center justify-between lg:justify-end gap-2.5 pt-2 lg:pt-0 border-t lg:border-t-0 border-stone-100'>
+                <div className='flex items-center gap-1.5'>
+                  <label
+                    htmlFor='series-sort-select'
+                    className='text-xs text-stone-500 font-medium whitespace-nowrap hidden sm:inline'
+                  >
+                    Sắp xếp:
+                  </label>
+                  <select
+                    id='series-sort-select'
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as any)}
+                    className='px-3 py-2 bg-stone-50/80 hover:bg-stone-50 focus:bg-white rounded-xl border border-stone-200/80 text-xs font-medium text-stone-700 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all cursor-pointer'
+                  >
+                    <option value='recent'>Mới cập nhật</option>
+                    <option value='az'>Tên (A → Z)</option>
+                    <option value='za'>Tên (Z → A)</option>
+                    <option value='chapters'>Nhiều chương nhất</option>
+                  </select>
+                </div>
+
+                {isFiltering && (
+                  <button
+                    type='button'
+                    onClick={handleClearFilters}
+                    className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-orange-700 bg-orange-50 hover:bg-orange-100 transition-colors cursor-pointer shrink-0'
+                  >
+                    <X className='w-3.5 h-3.5' />
+                    <span>Xóa bộ lọc</span>
                   </button>
                 )}
               </div>
-            ) : (
-              <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
-                {seriesList.map((s) => (
+            </div>
+
+            {/* Result Stats Indicator */}
+            <div className='flex items-center justify-between text-xs text-stone-500 px-1'>
+              <p>
+                Hiển thị{' '}
+                <span className='font-bold text-stone-800'>{filteredAndSortedSeries.length}</span> /{' '}
+                {seriesList.length} bộ truyện
+                {isFiltering && (
+                  <span className='text-orange-600 font-medium ml-1'>(đang lọc)</span>
+                )}
+              </p>
+              {seriesList.length > 0 && (
+                <span className='text-[11px] text-stone-400 italic hidden sm:inline'>
+                  * Dữ liệu từ thư viện bộ truyện của Studio
+                </span>
+              )}
+            </div>
+
+            {/* Loading Skeleton */}
+            {loading && seriesList.length === 0 ? (
+              <div className='grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 sm:gap-6'>
+                {Array.from({ length: 6 }).map((_, idx) => (
                   <div
-                    key={s.id}
-                    onClick={() => {
-                      const wsId = activeWorkspace?.id || workspaceId;
-                      if (!wsId) return;
-                      const effectiveRole = wsRole ? String(wsRole) : userRole;
-                      navigate(getRoleDefaultPath(effectiveRole, wsId, String(s.id)));
-                    }}
-                    className='p-6 bg-white hover:bg-stone-50/50 rounded-2xl border border-[#f0efed] hover:border-[#292524] shadow-soft-sm hover:shadow-soft-md transition-all cursor-pointer group relative flex flex-col justify-between h-full'
+                    key={`skeleton-${idx}`}
+                    className='rounded-2xl bg-[#FCFBF8] border border-stone-200/80 p-4 sm:p-5 shadow-soft-xs space-y-4 animate-pulse'
                   >
-                    <div>
-                      <div className='flex items-start justify-between gap-2'>
-                        <div>
-                          <span className='px-2.5 py-0.5 rounded-full bg-[#f0efed] text-[#292524] font-mono text-xs font-medium border border-[#e7e5e4] uppercase tracking-wide'>
-                            {s.genre || s.format || 'GENERAL'}
-                          </span>
-                          <h3 className='text-xl font-serif font-light text-[#0c0a09] mt-2 group-hover:text-[#292524] transition-colors leading-tight'>
-                            {s.title}
-                          </h3>
-                        </div>
-                        {isProducerOrAdmin && (
-                          <div className='flex items-center gap-1 shrink-0 relative group/menu'>
-                            <button
-                              type='button'
-                              onClick={(e) => {
-                                e.stopPropagation();
-                              }}
-                              className='p-1.5 rounded-lg text-stone-400 hover:text-stone-900 hover:bg-stone-100 transition-colors'
-                              title='Tùy chọn'
-                            >
-                              <MoreVertical className='w-4 h-4' />
-                            </button>
-                            <div className='absolute right-0 top-full mt-1 w-48 bg-white rounded-xl shadow-xl border border-stone-200 opacity-0 invisible group-hover/menu:opacity-100 group-hover/menu:visible transition-all z-10 py-1 overflow-hidden'>
-                              <button
-                                type='button'
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedChapterSeries({ id: s.id, title: s.title });
-                                }}
-                                className='w-full text-left px-3 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 hover:text-stone-900 flex items-center gap-2 transition-colors'
-                              >
-                                <BookOpen className='w-3.5 h-3.5 text-orange-500' /> Quản lý Chương
-                                (Duyệt)
-                              </button>
-                              <button
-                                type='button'
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedPipelineSeries({ id: s.id, title: s.title });
-                                }}
-                                className='w-full text-left px-3 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 hover:text-stone-900 flex items-center gap-2 transition-colors'
-                              >
-                                <Sliders className='w-3.5 h-3.5 text-blue-500' /> Cấu hình Pipeline
-                                (UC-03)
-                              </button>
-                              <button
-                                type='button'
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedPresetsSeries({ id: s.id, title: s.title });
-                                }}
-                                className='w-full text-left px-3 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 hover:text-stone-900 flex items-center gap-2 transition-colors'
-                              >
-                                <ListOrdered className='w-3.5 h-3.5 text-purple-500' /> Typography
-                                Presets
-                              </button>
-                              <div className='border-t border-stone-100 my-1'></div>
-                              <button
-                                type='button'
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleOpenEditSeries(s);
-                                }}
-                                className='w-full text-left px-3 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 hover:text-stone-900 flex items-center gap-2 transition-colors'
-                              >
-                                <Edit2 className='w-3.5 h-3.5' /> Chỉnh sửa
-                              </button>
-                              <button
-                                type='button'
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setDeleteSeriesModal(s);
-                                }}
-                                className='w-full text-left px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors'
-                              >
-                                <Trash2 className='w-3.5 h-3.5' /> Xóa
-                              </button>
-                            </div>
-                          </div>
-                        )}
+                    <div className='flex gap-4'>
+                      <div className='w-20 sm:w-24 aspect-[3/4] rounded-xl bg-stone-200 shrink-0' />
+                      <div className='flex-1 space-y-2.5 py-1'>
+                        <div className='h-4 bg-stone-200 rounded w-1/3' />
+                        <div className='h-5 bg-stone-200 rounded w-4/5' />
+                        <div className='h-3 bg-stone-100 rounded w-full' />
+                        <div className='h-3 bg-stone-100 rounded w-2/3' />
                       </div>
-
-                      {s.synopsis && (
-                        <p className='text-xs text-stone-600 line-clamp-2 leading-relaxed mt-2.5'>
-                          {s.synopsis}
-                        </p>
-                      )}
-
-                      {s.storyArc && (
-                        <div className='mt-3 px-3 py-2 bg-amber-50/70 border border-amber-200/60 rounded-lg'>
-                          <div className='flex items-center gap-1 text-xs font-semibold text-amber-700 font-mono uppercase tracking-wider mb-0.5'>
-                            <span>Story Arc</span>
-                          </div>
-                          <p className='text-xs text-amber-900 line-clamp-2 leading-relaxed'>
-                            {s.storyArc}
-                          </p>
-                        </div>
-                      )}
                     </div>
-
-                    <div className='pt-5 flex flex-col gap-3'>
-                      {/* Unified metadata row: Direction on left, Chapter Count on right */}
-                      <div className='flex items-center justify-between text-xs font-mono text-stone-600'>
-                        <div className='flex items-center gap-1.5'>
-                          <Compass className='w-3.5 h-3.5 text-stone-400' />
-                          <span className='font-semibold text-stone-700'>
-                            {s.readingDirection === 1 || s.readingDirection === 'RightToLeft'
-                              ? 'RTL'
-                              : 'Vertical'}
-                          </span>
-                        </div>
-
-                        <button
-                          type='button'
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedChapterSeries({ id: s.id, title: s.title });
-                          }}
-                          className='px-2.5 py-0.5 rounded-full bg-stone-100 hover:bg-orange-50 text-stone-700 hover:text-orange-600 font-semibold transition-colors cursor-pointer flex items-center gap-1 text-xs'
-                          title='Bấm để xem danh sách chương'
-                        >
-                          <BookOpen className='w-3 h-3 text-orange-500' />
-                          <span>{s.chaptersCount ?? 0} Chương</span>
-                        </button>
-                      </div>
-
-                      {/* Action buttons on card footer */}
-                      <div className='border-t border-stone-100 pt-4 flex items-center gap-2'>
-                        <button
-                          type='button'
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedChapterSeries({ id: s.id, title: s.title });
-                          }}
-                          className='flex-1 h-10 px-4 bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-200/80 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all shadow-2xs hover:shadow-xs active:scale-98 cursor-pointer'
-                          title={
-                            effectiveRoleUpper === 'EDITOR'
-                              ? 'Quản lý và duyệt các chương truyện (BR-12)'
-                              : effectiveRoleUpper === 'WRITER' ||
-                                  effectiveRoleUpper === 'ARTIST' ||
-                                  effectiveRoleUpper === 'LETTERER'
-                                ? 'Vào không gian sáng tác và danh sách chương'
-                                : 'Quản lý danh sách chương, kiểm tra tiến độ và phê duyệt hoàn tất (BR-12)'
-                          }
-                        >
-                          <BookOpen className='w-4 h-4 text-orange-500' />
-                          <span>
-                            {effectiveRoleUpper === 'EDITOR'
-                              ? 'Quản Lý & Duyệt Chương'
-                              : effectiveRoleUpper === 'WRITER' ||
-                                  effectiveRoleUpper === 'ARTIST' ||
-                                  effectiveRoleUpper === 'LETTERER'
-                                ? 'Vào Không Gian Sáng Tác'
-                                : 'Quản Lý Chương (Duyệt)'}
-                          </span>
-                        </button>
-
-                        {isProducerOrAdmin && (
-                          <>
-                            <button
-                              type='button'
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedPipelineSeries({ id: s.id, title: s.title });
-                              }}
-                              className='h-10 w-10 flex items-center justify-center text-stone-500 hover:text-stone-800 hover:bg-stone-100 border border-stone-200/80 rounded-xl transition-colors cursor-pointer shadow-2xs shrink-0'
-                              title='Cấu hình Pipeline Series (UC-03)'
-                            >
-                              <Sliders className='w-4 h-4' />
-                            </button>
-
-                            <button
-                              type='button'
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedPresetsSeries({ id: s.id, title: s.title });
-                              }}
-                              className='h-10 w-10 flex items-center justify-center text-stone-500 hover:text-stone-800 hover:bg-stone-100 border border-stone-200/80 rounded-xl transition-colors cursor-pointer shadow-2xs shrink-0'
-                              title='Typography Presets & Consistency Rules (NFR-08)'
-                            >
-                              <ListOrdered className='w-4 h-4' />
-                            </button>
-                          </>
-                        )}
-                      </div>
+                    <div className='pt-3 border-t border-stone-100 flex justify-between'>
+                      <div className='h-3 bg-stone-100 rounded w-1/4' />
+                      <div className='h-3 bg-stone-100 rounded w-1/4' />
+                    </div>
+                    <div className='pt-3 border-t border-stone-100 flex gap-2'>
+                      <div className='h-11 bg-stone-200 rounded-xl flex-1' />
+                      <div className='h-11 bg-stone-100 rounded-xl w-28' />
                     </div>
                   </div>
+                ))}
+              </div>
+            ) : seriesList.length === 0 ? (
+              /* Empty State: No series in workspace */
+              <div className='py-16 px-6 text-center bg-white rounded-3xl border border-dashed border-stone-300 max-w-lg mx-auto my-6 space-y-4 shadow-soft-sm'>
+                <div className='w-14 h-14 rounded-2xl bg-orange-50 text-orange-500 flex items-center justify-center mx-auto shadow-inner'>
+                  <BookOpen className='w-7 h-7' />
+                </div>
+                <div className='space-y-1.5'>
+                  <h3 className='text-base font-bold text-stone-900'>
+                    Chưa có bộ truyện nào trong Studio này
+                  </h3>
+                  <p className='text-xs text-stone-500 leading-relaxed max-w-sm mx-auto'>
+                    Khởi tạo bộ truyện đầu tiên để thiết lập thể loại, định dạng đọc, quy trình sản
+                    xuất và không gian sáng tác.
+                  </p>
+                </div>
+                {isProducerOrAdmin && (
+                  <button
+                    type='button'
+                    onClick={() => setCreateSeriesModalOpen(true)}
+                    className='inline-flex items-center gap-2 px-5 py-2.5 text-xs font-semibold text-white bg-orange-600 hover:bg-orange-700 rounded-xl shadow-soft-sm transition-all cursor-pointer'
+                  >
+                    <Plus className='w-4 h-4' />
+                    <span>Tạo bộ truyện ngay</span>
+                  </button>
+                )}
+              </div>
+            ) : filteredAndSortedSeries.length === 0 ? (
+              /* Empty State: Filter matched nothing */
+              <div className='py-14 px-6 text-center bg-white rounded-3xl border border-stone-200/80 max-w-md mx-auto my-6 space-y-3 shadow-soft-sm'>
+                <div className='w-12 h-12 rounded-xl bg-stone-100 text-stone-400 flex items-center justify-center mx-auto'>
+                  <Search className='w-6 h-6' />
+                </div>
+                <h3 className='text-sm font-bold text-stone-800'>
+                  Không tìm thấy bộ truyện phù hợp
+                </h3>
+                <p className='text-xs text-stone-500 leading-relaxed'>
+                  Không có bộ truyện nào khớp với từ khóa tìm kiếm hoặc bộ lọc đã chọn.
+                </p>
+                <button
+                  type='button'
+                  onClick={handleClearFilters}
+                  className='inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-orange-700 bg-orange-50 hover:bg-orange-100 rounded-xl transition-colors cursor-pointer'
+                >
+                  <X className='w-3.5 h-3.5' />
+                  <span>Xóa tất cả bộ lọc</span>
+                </button>
+              </div>
+            ) : (
+              /* Series Cards Grid */
+              <div className='grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 sm:gap-6'>
+                {filteredAndSortedSeries.map((s) => (
+                  <article
+                    key={s.id}
+                    className='group relative flex flex-col justify-between rounded-2xl bg-[#FCFBF8] border border-stone-200/80 hover:border-orange-400/80 hover:shadow-soft-md shadow-soft-xs transition-all duration-200 p-4 sm:p-5'
+                  >
+                    {/* Top Section: Left Thumbnail + Right Metadata */}
+                    <div>
+                      <div className='flex items-start gap-3.5'>
+                        {/* Manga Style Thumbnail Fallback */}
+                        <div
+                          onClick={() => handleOpenSeries(s.id)}
+                          className='w-20 sm:w-24 shrink-0 aspect-[3/4] rounded-xl overflow-hidden relative border border-stone-200/70 bg-gradient-to-br from-stone-100 via-stone-50 to-stone-200/80 flex flex-col justify-between p-2 shadow-2xs group-hover:border-orange-200 transition-colors cursor-pointer'
+                          title={`Mở ${s.title}`}
+                        >
+                          {s.coverUrl && (
+                            <AuthenticatedImage
+                              src={s.coverUrl}
+                              alt={`Bìa ${s.title}`}
+                              className='absolute inset-0 w-full h-full object-cover'
+                              fallback={null}
+                            />
+                          )}
+                          {/* Top indicator: Chapter badge */}
+                          <span className='relative text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-white/90 text-stone-700 shadow-2xs self-start backdrop-blur-xs border border-stone-200/50'>
+                            #{s.chaptersCount ?? 0}
+                          </span>
+
+                          {/* Center: Serif Initial */}
+                          <div className='flex-1 flex items-center justify-center'>
+                            {!s.coverUrl && (
+                              <span className='text-3xl sm:text-4xl font-serif font-bold text-stone-400/60 group-hover:text-orange-500/70 transition-colors select-none'>
+                                {s.title.trim().charAt(0).toUpperCase()}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Bottom tag: Direction badge */}
+                          <div className='relative text-[9px] font-medium text-stone-500 text-center truncate bg-white/80 rounded px-1 py-0.5 border border-stone-200/40'>
+                            {formatReadingDirection(s.readingDirection).shortLabel}
+                          </div>
+                        </div>
+
+                        {/* Title & Info */}
+                        <div className='flex-1 min-w-0'>
+                          <div className='flex items-start justify-between gap-2'>
+                            <span className='inline-block px-2 py-0.5 rounded-md bg-stone-100 text-stone-700 text-[11px] font-medium border border-stone-200/70 truncate'>
+                              {formatGenre(s.genre || s.format)}
+                            </span>
+
+                            {/* Accessible 3-dots Menu for Producer / Admin */}
+                            {isProducerOrAdmin && (
+                              <div className='relative shrink-0' data-series-options-menu>
+                                <button
+                                  type='button'
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setOpenMenuSeriesId(openMenuSeriesId === s.id ? null : s.id);
+                                  }}
+                                  className='p-1.5 rounded-lg text-stone-400 hover:text-stone-900 hover:bg-stone-100 transition-colors cursor-pointer min-w-[36px] min-h-[36px] flex items-center justify-center'
+                                  aria-label={`Tùy chọn cho bộ truyện ${s.title}`}
+                                  aria-haspopup='menu'
+                                  aria-expanded={openMenuSeriesId === s.id}
+                                >
+                                  <MoreVertical className='w-4 h-4' />
+                                </button>
+
+                                {openMenuSeriesId === s.id && (
+                                  <div
+                                    role='menu'
+                                    aria-label={`Tùy chọn ${s.title}`}
+                                    className='absolute right-0 top-full mt-1 w-52 bg-white rounded-xl shadow-xl border border-stone-200 z-20 py-1 overflow-hidden'
+                                  >
+                                    <button
+                                      type='button'
+                                      role='menuitem'
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setOpenMenuSeriesId(null);
+                                        setSelectedPipelineSeries({ id: s.id, title: s.title });
+                                      }}
+                                      className='w-full text-left px-3.5 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 hover:text-stone-900 flex items-center gap-2 transition-colors cursor-pointer'
+                                    >
+                                      <Sliders className='w-3.5 h-3.5 text-blue-500' />
+                                      <span>Cấu hình Pipeline</span>
+                                    </button>
+                                    <button
+                                      type='button'
+                                      role='menuitem'
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setOpenMenuSeriesId(null);
+                                        setSelectedPresetsSeries({ id: s.id, title: s.title });
+                                      }}
+                                      className='w-full text-left px-3.5 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 hover:text-stone-900 flex items-center gap-2 transition-colors cursor-pointer'
+                                    >
+                                      <ListOrdered className='w-3.5 h-3.5 text-purple-500' />
+                                      <span>Typography Presets</span>
+                                    </button>
+                                    <div className='border-t border-stone-100 my-1' />
+                                    <button
+                                      type='button'
+                                      role='menuitem'
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setOpenMenuSeriesId(null);
+                                        coverTargetRef.current = s.id;
+                                        coverInputRef.current?.click();
+                                      }}
+                                      className='w-full text-left px-3.5 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 hover:text-stone-900 flex items-center gap-2 transition-colors cursor-pointer'
+                                    >
+                                      <ImagePlus className='w-3.5 h-3.5 text-orange-500' />
+                                      <span>{s.coverUrl ? 'Đổi ảnh bìa' : 'Thêm ảnh bìa'}</span>
+                                    </button>
+                                    {s.coverUrl && (
+                                      <button
+                                        type='button'
+                                        role='menuitem'
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setOpenMenuSeriesId(null);
+                                          void handleClearCover(s.id);
+                                        }}
+                                        className='w-full text-left px-3.5 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 hover:text-stone-900 flex items-center gap-2 transition-colors cursor-pointer'
+                                      >
+                                        <ImageOff className='w-3.5 h-3.5 text-stone-500' />
+                                        <span>Xoá ảnh bìa</span>
+                                      </button>
+                                    )}
+                                    <button
+                                      type='button'
+                                      role='menuitem'
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setOpenMenuSeriesId(null);
+                                        handleOpenEditSeries(s);
+                                      }}
+                                      className='w-full text-left px-3.5 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 hover:text-stone-900 flex items-center gap-2 transition-colors cursor-pointer'
+                                    >
+                                      <Edit2 className='w-3.5 h-3.5 text-stone-600' />
+                                      <span>Chỉnh sửa thông tin</span>
+                                    </button>
+                                    <button
+                                      type='button'
+                                      role='menuitem'
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setOpenMenuSeriesId(null);
+                                        setDeleteSeriesModal(s);
+                                      }}
+                                      className='w-full text-left px-3.5 py-2 text-xs font-medium text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors cursor-pointer'
+                                    >
+                                      <Trash2 className='w-3.5 h-3.5' />
+                                      <span>Xóa bộ truyện</span>
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Series Title */}
+                          <h3
+                            onClick={() => handleOpenSeries(s.id)}
+                            className='text-base sm:text-lg font-serif font-bold text-stone-900 group-hover:text-orange-600 transition-colors line-clamp-2 leading-snug mt-1.5 cursor-pointer'
+                            title={s.title}
+                          >
+                            {s.title}
+                          </h3>
+
+                          {/* Synopsis */}
+                          {s.synopsis ? (
+                            <p
+                              className='text-xs text-stone-600 line-clamp-2 leading-relaxed mt-1.5'
+                              title={s.synopsis}
+                            >
+                              {s.synopsis}
+                            </p>
+                          ) : (
+                            <p className='text-xs text-stone-400 italic mt-1.5'>
+                              Chưa có phần tóm tắt nội dung
+                            </p>
+                          )}
+
+                          {/* Story Arc */}
+                          {s.storyArc && (
+                            <div className='mt-2 px-2 py-1 bg-amber-50/80 border border-amber-200/60 rounded-md text-[11px] text-amber-900 line-clamp-1'>
+                              <span className='font-semibold text-amber-700 mr-1'>Arc:</span>
+                              {s.storyArc}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Middle Metadata: Direction and Update/Creation Date */}
+                      <div className='mt-3.5 pt-2.5 border-t border-stone-100 flex items-center justify-between text-xs text-stone-500'>
+                        <div className='flex items-center gap-1.5'>
+                          <Compass className='w-3.5 h-3.5 text-stone-400' />
+                          <span className='text-stone-600 font-medium'>
+                            {formatReadingDirection(s.readingDirection).label}
+                          </span>
+                        </div>
+
+                        {(s.updatedAt || s.createdAt) && (
+                          <div
+                            className='flex items-center gap-1 text-[11px] text-stone-400'
+                            title={`Cập nhật: ${formatSeriesDate(s.updatedAt || s.createdAt)}`}
+                          >
+                            <History className='w-3 h-3 text-stone-400' />
+                            <span>{formatSeriesDate(s.updatedAt || s.createdAt)}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Card Actions Footer: Primary Open Button + Secondary Chapters Button */}
+                    <div className='mt-4 pt-3.5 border-t border-stone-100 flex items-center gap-2'>
+                      {/* Main Action: Open Series (Route to user's role workspace) */}
+                      <button
+                        type='button'
+                        onClick={() => handleOpenSeries(s.id)}
+                        className='flex-1 h-11 px-3.5 bg-stone-900 hover:bg-stone-800 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all shadow-soft-xs hover:shadow-soft-sm active:scale-98 cursor-pointer'
+                        title={`Mở không gian làm việc của bộ truyện ${s.title}`}
+                      >
+                        <span>Mở bộ truyện</span>
+                        <ArrowRight className='w-3.5 h-3.5 text-orange-400' />
+                      </button>
+
+                      {/* Secondary Action: Manage Chapters Modal */}
+                      <button
+                        type='button'
+                        onClick={() => setSelectedChapterSeries({ id: s.id, title: s.title })}
+                        className='h-11 px-3.5 bg-stone-100 hover:bg-stone-200/80 text-stone-700 hover:text-stone-900 border border-stone-200/60 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer shrink-0'
+                        title={`Xem danh sách các chương của ${s.title}`}
+                      >
+                        <BookOpen className='w-3.5 h-3.5 text-orange-500' />
+                        <span>Chương ({s.chaptersCount ?? 0})</span>
+                      </button>
+                    </div>
+                  </article>
                 ))}
               </div>
             )}
@@ -1177,16 +1754,21 @@ export const StudioOverviewView: React.FC = () => {
 
         {/* TAB 2: Studio Members View */}
         {activeTab === 'members' && (
-          <div className='space-y-6'>
+          <div
+            role='tabpanel'
+            id='tabpanel-members'
+            aria-labelledby='tab-members'
+            className='space-y-6'
+          >
             {/* Tab Selection Row & Search */}
             <div className='flex flex-col md:flex-row md:items-center justify-between gap-4'>
               <div className='flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 custom-scrollbar'>
                 {[
-                  { key: 'ALL', label: 'All Members', count: tabCounts.ALL },
-                  { key: 'LEAD', label: 'Lead Producers', count: tabCounts.LEAD },
-                  { key: 'ARTIST', label: 'Artists', count: tabCounts.ARTIST },
-                  { key: 'WRITER', label: 'Writers & Storyboard', count: tabCounts.WRITER },
-                  { key: 'EDITOR', label: 'Editors & Editorial', count: tabCounts.EDITOR },
+                  { key: 'ALL', label: 'Tất cả thành viên', count: tabCounts.ALL },
+                  { key: 'LEAD', label: 'Giám đốc Sản xuất', count: tabCounts.LEAD },
+                  { key: 'ARTIST', label: 'Họa sĩ', count: tabCounts.ARTIST },
+                  { key: 'WRITER', label: 'Biên kịch & Storyboard', count: tabCounts.WRITER },
+                  { key: 'EDITOR', label: 'Biên tập viên', count: tabCounts.EDITOR },
                 ].map((tab) => (
                   <button
                     key={tab.key}
@@ -1216,7 +1798,7 @@ export const StudioOverviewView: React.FC = () => {
                 <Search className='w-3.5 h-3.5 text-[#777169] absolute left-3.5 top-1/2 -translate-y-1/2' />
                 <input
                   type='text'
-                  placeholder='Filter members by name, role, task...'
+                  placeholder='Tìm kiếm thành viên theo tên, vai trò...'
                   value={memberSearchQuery}
                   onChange={(e) => setMemberSearchQuery(e.target.value)}
                   className='pl-9 pr-4 py-2 bg-white rounded-full border border-[#e7e5e4] text-xs text-[#0c0a09] placeholder-[#a8a29e] focus:outline-none focus:ring-2 focus:ring-[#292524]/10 w-64 shadow-soft-sm transition-all'

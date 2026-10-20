@@ -223,22 +223,22 @@ export const TaskEditorView: React.FC<TaskEditorProps> = ({
   };
 
   return (
-    <div className='w-full h-full flex flex-col bg-[#FAF8F4] overflow-hidden'>
+    <div className='w-full h-full flex flex-col bg-[#F3F0E9] overflow-hidden'>
       {/* HEADER */}
-      <div className='shrink-0 h-16 bg-white border-b border-[#E7E7E7] px-6 flex items-center justify-between z-10'>
+      <div className='shrink-0 h-16 bg-[#FCFBF8] border-b border-[#D8D2C5] px-6 flex items-center justify-between z-10 shadow-2xs'>
         <div className='flex items-center gap-4'>
           <button
             onClick={() => navigate(-1)}
-            className='w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#F3F3F3] text-[#737373] transition-colors cursor-pointer'
+            className='w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#F3F0E9] text-[#57534E] hover:text-[#1C1917] transition-colors cursor-pointer'
           >
             <ArrowLeft className='w-4 h-4' />
           </button>
           <div>
-            <h2 className='text-sm font-bold font-serif text-[#171717]'>
+            <h2 className='text-sm font-bold font-serif text-[#1C1917]'>
               {task.title} - {task.pageNumber}
             </h2>
-            <div className='flex items-center gap-2 text-xs font-mono text-[#737373] mt-0.5'>
-              <span className='font-bold uppercase tracking-wider text-[#F97316]'>
+            <div className='flex items-center gap-2 text-xs font-mono text-[#57534E] mt-0.5'>
+              <span className='font-bold uppercase tracking-wider text-[#C2410C]'>
                 Stage: {task.stage}
               </span>
               <span>•</span>
@@ -246,8 +246,8 @@ export const TaskEditorView: React.FC<TaskEditorProps> = ({
               {task.dueText && (
                 <>
                   <span>•</span>
-                  <span className='flex items-center gap-1 text-stone-700 font-semibold'>
-                    <Calendar className='w-3 h-3 text-stone-400' /> Hạn: {task.dueText}
+                  <span className='flex items-center gap-1 text-[#1C1917] font-semibold'>
+                    <Calendar className='w-3 h-3 text-[#57534E]' /> Hạn: {task.dueText}
                   </span>
                 </>
               )}
@@ -260,9 +260,9 @@ export const TaskEditorView: React.FC<TaskEditorProps> = ({
             <button
               type='button'
               onClick={() => setShowProvenance(true)}
-              className='px-3 py-1.5 flex items-center gap-1.5 border border-[#DDD6FE] bg-[#F5F3FF] rounded-lg text-xs font-semibold text-[#8B5CF6] hover:bg-[#EDE9FE] cursor-pointer'
+              className='px-3 py-1.5 flex items-center gap-1.5 border border-[#D8D2C5] bg-[#FCFBF8] rounded-lg text-xs font-semibold text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9] cursor-pointer transition-colors shadow-2xs'
             >
-              <History className='w-4 h-4' /> Lịch sử & nguồn gốc
+              <History className='w-4 h-4 text-[#C2410C]' /> Lịch sử &amp; nguồn gốc
             </button>
           )}
 
@@ -272,31 +272,27 @@ export const TaskEditorView: React.FC<TaskEditorProps> = ({
                 <button
                   disabled={isTransitioning}
                   onClick={handleStartWork}
-                  className='px-3.5 py-1.5 flex items-center gap-1.5 bg-[#FAF8F5] border border-[#FDBA74] text-[#EA580C] text-xs font-bold rounded-lg hover:bg-[#FFF7ED] transition-colors shadow-2xs cursor-pointer disabled:opacity-50'
+                  className='px-3.5 py-1.5 flex items-center gap-1.5 bg-[#FFF2E6] border border-[#FDBA74] text-[#C2410C] text-xs font-bold rounded-lg hover:bg-[#FDBA74]/30 transition-colors shadow-2xs cursor-pointer disabled:opacity-50'
                   title='Bắt đầu làm việc (InProgress) trước khi nộp bài'
                 >
                   {isTransitioning ? (
                     <Loader2 className='w-3.5 h-3.5 animate-spin' />
                   ) : (
-                    <Play className='w-3.5 h-3.5 text-[#F97316]' />
+                    <Play className='w-3.5 h-3.5 text-[#C2410C]' />
                   )}
                   <span>{taskStatus === 'ReworkRequired' ? 'Bắt đầu sửa lại' : 'Bắt đầu làm'}</span>
                 </button>
               )}
               <button
                 onClick={() => onShowToast('Lưu bản nháp', 'Đã lưu thay đổi.')}
-                className='px-4 py-1.5 flex items-center gap-1.5 bg-[#F3F3F3] border border-[#D4D4D4] text-[#171717] text-xs font-bold rounded-lg hover:bg-[#E7E7E7] cursor-pointer'
+                className='px-4 py-1.5 flex items-center gap-1.5 bg-[#FCFBF8] border border-[#D8D2C5] text-[#1C1917] text-xs font-bold rounded-lg hover:bg-[#F3F0E9] transition-colors cursor-pointer shadow-2xs'
               >
                 <Save className='w-3.5 h-3.5' /> Lưu nháp
               </button>
               <button
                 disabled={isTransitioning}
                 onClick={handleSubmitForReview}
-                className={`px-4 py-1.5 flex items-center gap-1.5 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer disabled:opacity-50 ${
-                  taskStatus === 'InProgress'
-                    ? 'bg-[#10B981] hover:bg-[#059669]'
-                    : 'bg-[#171717] hover:bg-black'
-                }`}
+                className='px-4 py-1.5 flex items-center gap-1.5 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer disabled:opacity-50 bg-[#F97316] hover:bg-[#EA580C] shadow-soft-sm active:scale-95'
                 title={
                   taskStatus === 'Assigned'
                     ? 'Cần bắt đầu làm trước khi nộp bài'

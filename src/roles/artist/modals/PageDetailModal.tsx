@@ -59,22 +59,22 @@ export const PageDetailModal: React.FC<PageDetailModalProps> = ({
   };
 
   return (
-    <div className='fixed inset-0 bg-stone-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4'>
-      <div className='bg-white border border-stone-200 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-in fade-in zoom-in-95 duration-150'>
+    <div className='fixed inset-0 bg-[#1C1917]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4'>
+      <div className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-in fade-in zoom-in-95 duration-150'>
         {/* Header */}
-        <div className='p-4.5 bg-stone-50/50 border-b border-stone-100 flex items-center justify-between'>
+        <div className='p-4.5 bg-[#F8F6F0] border-b border-[#D8D2C5] flex items-center justify-between'>
           <div className='flex items-center gap-2.5'>
-            <span className='px-2.5 py-1 rounded-lg bg-stone-900 text-white font-mono text-xs font-bold shadow-2xs'>
+            <span className='px-2.5 py-1 rounded-lg bg-[#FFF2E6] text-[#C2410C] border border-[#FDBA74] font-mono text-xs font-bold shadow-2xs'>
               {card.pageNumber}
             </span>
-            <span className='text-xs font-mono text-stone-500 font-medium'>
+            <span className='text-xs font-mono text-[#57534E] font-medium'>
               {card.pageType} • Chi Tiết Phân Cảnh
             </span>
           </div>
 
           <button
             onClick={onClose}
-            className='w-7 h-7 rounded-lg hover:bg-stone-100 flex items-center justify-center text-stone-400 hover:text-stone-700 transition-all cursor-pointer'
+            className='w-7 h-7 rounded-lg hover:bg-[#F3F0E9] flex items-center justify-center text-[#57534E] hover:text-[#1C1917] transition-all cursor-pointer'
           >
             <X className='w-4 h-4' />
           </button>
@@ -84,19 +84,19 @@ export const PageDetailModal: React.FC<PageDetailModalProps> = ({
         <div className='p-6 space-y-5'>
           {/* Top Banner Image or Wireframe */}
           {card.imageUrl ? (
-            <div className='relative w-full h-56 bg-stone-900 rounded-xl overflow-hidden border border-stone-200'>
+            <div className='relative w-full h-56 bg-[#1C1917] rounded-xl overflow-hidden border border-[#D8D2C5]'>
               <img src={card.imageUrl} alt={card.title} className='w-full h-full object-cover' />
               <div className='absolute top-2.5 right-2.5 bg-black/80 backdrop-blur-xs text-white font-mono text-xs px-2.5 py-1 rounded-md shadow-2xs'>
                 600 DPI Tankōbon Pass
               </div>
             </div>
           ) : (
-            <div className='w-full h-32 bg-stone-50 rounded-xl border border-stone-200 flex items-center justify-center text-center p-4'>
+            <div className='w-full h-32 bg-[#F8F6F0] rounded-xl border border-[#D8D2C5] flex items-center justify-center text-center p-4'>
               <div>
-                <div className='font-mono text-sm font-bold text-stone-900'>
+                <div className='font-mono text-sm font-bold text-[#1C1917]'>
                   {card.pageNumber}: {card.title}
                 </div>
-                <div className='text-xs text-stone-500 mt-1 font-mono'>
+                <div className='text-xs text-[#57534E] mt-1 font-mono'>
                   Công đoạn: {card.stage.toUpperCase()} • Phụ trách: {card.assignee}
                 </div>
               </div>
@@ -105,9 +105,9 @@ export const PageDetailModal: React.FC<PageDetailModalProps> = ({
 
           {/* Title & Description */}
           <div>
-            <h3 className='text-lg font-bold font-display text-stone-900'>{card.title}</h3>
+            <h3 className='text-lg font-bold font-serif text-[#1C1917]'>{card.title}</h3>
             {card.subTitle && (
-              <span className='inline-block mt-1.5 px-2.5 py-0.5 rounded-md bg-orange-50 text-orange-700 font-mono text-xs font-semibold border border-orange-200'>
+              <span className='inline-block mt-1.5 px-2.5 py-0.5 rounded-md bg-[#FFF2E6] text-[#C2410C] font-mono text-xs font-semibold border border-[#FDBA74]'>
                 {card.subTitle}
               </span>
             )}
@@ -128,7 +128,7 @@ export const PageDetailModal: React.FC<PageDetailModalProps> = ({
 
           {/* Stage Progression Selector */}
           <div>
-            <label className='block text-xs font-mono font-bold uppercase tracking-wider text-stone-500 mb-2'>
+            <label className='block text-xs font-mono font-bold uppercase tracking-wider text-[#57534E] mb-2'>
               Chuyển Tiến Độ Công Đoạn (Pipeline Stage)
             </label>
             <div className='grid grid-cols-2 sm:grid-cols-4 gap-2'>
@@ -138,8 +138,8 @@ export const PageDetailModal: React.FC<PageDetailModalProps> = ({
                   onClick={() => handleStageChange(s.key)}
                   className={`px-3 py-2 rounded-xl text-xs font-mono font-semibold transition-all cursor-pointer ${
                     card.stage === s.key
-                      ? 'bg-[#EA580C] text-white shadow-soft-sm'
-                      : 'bg-stone-50 text-stone-600 hover:bg-stone-100 hover:text-stone-900 border border-stone-200/60'
+                      ? 'bg-[#F97316] text-white shadow-soft-sm'
+                      : 'bg-[#F8F6F0] text-[#57534E] hover:bg-[#F3F0E9] hover:text-[#1C1917] border border-[#D8D2C5]'
                   }`}
                 >
                   {s.label}
@@ -149,40 +149,40 @@ export const PageDetailModal: React.FC<PageDetailModalProps> = ({
           </div>
 
           {/* Metadata Grid */}
-          <div className='grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 bg-stone-50/70 rounded-xl border border-stone-200/80 text-xs font-mono'>
+          <div className='grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 bg-[#F8F6F0] rounded-xl border border-[#D8D2C5] text-xs font-mono'>
             <div className='flex items-center justify-between'>
-              <span className='text-stone-500'>Người Phụ Trách:</span>
-              <strong className='text-stone-900'>
+              <span className='text-[#57534E]'>Người Phụ Trách:</span>
+              <strong className='text-[#1C1917]'>
                 {card.assignee} ({card.assigneeRole})
               </strong>
             </div>
             <div className='flex items-center justify-between'>
-              <span className='text-stone-500'>Hạn Hoàn Tất:</span>
-              <strong className='text-stone-900'>{card.dueText}</strong>
+              <span className='text-[#57534E]'>Hạn Hoàn Tất:</span>
+              <strong className='text-[#1C1917]'>{card.dueText}</strong>
             </div>
             <div className='flex items-center justify-between'>
-              <span className='text-stone-500'>Chế Độ Hỗ Trợ AI:</span>
-              <span className='text-violet-700 font-bold flex items-center gap-1'>
+              <span className='text-[#57534E]'>Chế Độ Hỗ Trợ AI:</span>
+              <span className='text-[#C2410C] font-bold flex items-center gap-1'>
                 <Sparkles className='w-3 h-3' />
                 {card.aiAssistBadge || 'Standard Vector Check'}
               </span>
             </div>
             <div className='flex items-center justify-between'>
-              <span className='text-stone-500'>Mã Hash SHA-256:</span>
+              <span className='text-[#57534E]'>Mã Hash SHA-256:</span>
               <span className='text-emerald-700 font-bold'>9f4a..e12 Đã Khóa</span>
             </div>
           </div>
 
           {/* Comments & Editorial Feedback */}
           <div>
-            <label className='block text-xs font-mono font-bold uppercase tracking-wider text-stone-500 mb-2'>
+            <label className='block text-xs font-mono font-bold uppercase tracking-wider text-[#57534E] mb-2'>
               Ghi Chú Biên Tập &amp; Yêu Cầu Chỉnh Sửa
             </label>
             <div className='space-y-2 mb-3'>
               {comments.map((c, i) => (
                 <div
                   key={i}
-                  className='p-3 bg-stone-50 rounded-xl border border-stone-200 text-xs text-stone-800'
+                  className='p-3 bg-[#FCFBF8] rounded-xl border border-[#D8D2C5] text-xs text-[#1C1917]'
                 >
                   {c}
                 </div>
@@ -196,11 +196,11 @@ export const PageDetailModal: React.FC<PageDetailModalProps> = ({
                 value={noteText}
                 onChange={(e) => setNoteText(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleAddComment()}
-                className='flex-1 px-3 py-2 bg-white rounded-xl border border-stone-200 text-xs text-stone-900 placeholder-stone-400 focus:outline-none focus:border-orange-500'
+                className='flex-1 px-3 py-2 bg-[#FCFBF8] rounded-xl border border-[#D8D2C5] text-xs text-[#1C1917] placeholder-[#57534E]/60 focus:outline-none focus:border-[#F97316]'
               />
               <button
                 onClick={handleAddComment}
-                className='px-3.5 py-2 bg-[#EA580C] hover:bg-[#C2410C] text-white text-xs font-semibold rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer shadow-soft-sm active:scale-95'
+                className='px-3.5 py-2 bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer shadow-soft-sm active:scale-95'
               >
                 <Send className='w-3.5 h-3.5' />
                 <span>Gửi</span>
@@ -210,7 +210,7 @@ export const PageDetailModal: React.FC<PageDetailModalProps> = ({
         </div>
 
         {/* Modal Footer */}
-        <div className='p-4 bg-stone-50/50 border-t border-stone-100 flex items-center justify-between'>
+        <div className='p-4 bg-[#F8F6F0] border-t border-[#D8D2C5] flex items-center justify-between'>
           <button
             onClick={() => {
               onShowToast(
@@ -227,7 +227,7 @@ export const PageDetailModal: React.FC<PageDetailModalProps> = ({
           </button>
           <button
             onClick={onClose}
-            className='px-3.5 py-2 bg-white hover:bg-stone-50 border border-stone-200 text-stone-600 text-xs font-semibold rounded-xl transition-colors cursor-pointer'
+            className='px-3.5 py-2 bg-[#FCFBF8] hover:bg-[#F3F0E9] border border-[#D8D2C5] text-[#57534E] text-xs font-semibold rounded-xl transition-colors cursor-pointer'
           >
             Đóng
           </button>
@@ -236,3 +236,5 @@ export const PageDetailModal: React.FC<PageDetailModalProps> = ({
     </div>
   );
 };
+
+export default PageDetailModal;

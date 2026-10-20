@@ -1,181 +1,469 @@
-// src/views/admin/modules/AIConfigurationView.tsx
 import React, { useState, useEffect, useCallback } from 'react';
-import {
-  Cpu,
-  Key,
-  CheckCircle2,
-  Save,
-  Sliders,
-  Activity,
-  Zap,
-  ShieldCheck,
-  FileSpreadsheet,
-  Download,
-  Filter,
-  RefreshCw,
-  Search,
-  Calendar,
-  AlertTriangle,
-  Clock,
-  DollarSign,
-  Layers,
-  ChevronLeft,
-  ChevronRight,
-  AlertCircle,
-  X,
-} from 'lucide-react';
-import { Button } from '@/shared/components/ui/Button';
-import { Input } from '@/shared/components/ui/Input';
+import { Download, RefreshCw, KeyRound } from 'lucide-react';
 import {
   adminService,
+  AdminWorkspaceDto,
   AiUsageReportItemDto,
   AiUsageRecordDto,
   AiUsageRecordsFilterParams,
+  WorkspaceAiConfigDto,
   downloadBlob,
 } from '@/services/admin.service';
+import { cn } from '@/lib/utils';
+import {
+  AdminBadge,
+  AdminButton,
+  AdminCard,
+  AdminField,
+  AdminPageHeader,
+  AdminPagination,
+  AdminStat,
+  AdminTableState,
+  AdminToast,
+  AdminTone,
+} from '../components/AdminUi';
+import {
+  adminFieldClass,
+  adminFocusRing,
+  adminTable,
+  useAdminToast,
+} from '../components/adminUiStyles';
 
-const STATUS_OPTIONS = [
-  { value: '', label: 'Tất cả trạng thái (All Statuses)' },
-  { value: 'Succeeded', label: 'Succeeded (Thành công)' },
-  { value: 'Failed', label: 'Failed (Thất bại)' },
-  { value: 'QuotaExceeded', label: 'QuotaExceeded (Vượt hạn ngạch)' },
-  { value: 'ProviderUnavailable', label: 'ProviderUnavailable (Nhà cung cấp lỗi)' },
-  { value: 'Disabled', label: 'Disabled (Đã tắt)' },
+const STATUS_OPTIONS: { value: string; label: string; tone: AdminTone }[] = [
+  { value: '', label: 'Tất cả', tone: 'neutral' },
+  { value: 'Succeeded', label: 'Thành công', tone: 'success' },
+  { value: 'Failed', label: 'Thất bại', tone: 'danger' },
+  { value: 'QuotaExceeded', label: 'Vượt quota', tone: 'warning' },
+  { value: 'ProviderUnavailable', label: 'Nhà cung cấp lỗi', tone: 'danger' },
+  { value: 'Disabled', label: 'AI đang tắt', tone: 'neutral' },
 ];
 
-export const AIConfigurationView: React.FC = () => {
-  const [activeSubTab, setActiveSubTab] = useState<'credentials' | 'reports'>('credentials');
+const PROVIDERS = ['Google Gemini', 'OpenAI', 'Anthropic Claude'];
+const KNOWN_MODELS = ['gemini-1.5-pro', 'gemini-1.5-flash', 'claude-3-5-sonnet', 'gpt-4o'];
 
-  // Credentials & Quota State
-  const [savedSuccess, setSavedSuccess] = useState(false);
-  const [geminiApiKey, setGeminiApiKey] = useState('***********************************3A7b');
-  const [claudeApiKey, setClaudeApiKey] = useState('***********************************8F12');
-  const [openAiApiKey, setOpenAiApiKey] = useState('***********************************119C');
+const fmt = (n?: number | null) => (n ?? 0).toLocaleString('vi-VN');
 
-  const [allowedModels, setAllowedModels] = useState<string[]>([
-    'gemini-1.5-pro',
-    'gemini-1.5-flash',
-    'claude-3-5-sonnet',
-  ]);
-  const [monthlyTokenQuota, setMonthlyTokenQuota] = useState('500000');
-  const [monthlyImageQuota, setMonthlyImageQuota] = useState('0');
+type ShowToast = (m: string, t?: 'success' | 'warning' | 'error') => void;
 
-  // UC-15: Reports & Records State
+/* ---------- Per-Studio AI configuration (GET/PUT ai-config) ---------- */
+
+const StudioAiConfigPanel: React.FC<{ showToast: ShowToast }> = ({ showToast }) => {
+  const [workspaces, setWorkspaces] = useState<AdminWorkspaceDto[]>([]);
+  const [loadingWs, setLoadingWs] = useState(true);
+  const [wsError, setWsError] = useState(false);
+  const [workspaceId, setWorkspaceId] = useState('');
+
+  const [config, setConfig] = useState<WorkspaceAiConfigDto | null>(null);
+  const [loadingConfig, setLoadingConfig] = useState(false);
+  const [configError, setConfigError] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const [isEnabled, setIsEnabled] = useState(true);
+  const [provider, setProvider] = useState(PROVIDERS[0]);
+  const [apiKey, setApiKey] = useState('');
+  const [tokenQuota, setTokenQuota] = useState('0');
+  const [imageQuota, setImageQuota] = useState('0');
+  const [models, setModels] = useState<string[]>([]);
+  const [errors, setErrors] = useState<{ token?: string; image?: string }>({});
+
+  const loadWorkspaces = useCallback(async () => {
+    setLoadingWs(true);
+    setWsError(false);
+    try {
+      const list = await adminService.getWorkspaces();
+      setWorkspaces(list || []);
+      setWorkspaceId((prev) => prev || list?.[0]?.id || '');
+    } catch {
+      setWsError(true);
+    } finally {
+      setLoadingWs(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadWorkspaces();
+  }, [loadWorkspaces]);
+
+  const applyConfig = (c: WorkspaceAiConfigDto) => {
+    setConfig(c);
+    setIsEnabled(c.isEnabled);
+    setProvider(c.provider || PROVIDERS[0]);
+    setApiKey('');
+    setTokenQuota(String(c.monthlyTokenQuota ?? 0));
+    setImageQuota(String(c.monthlyImageQuota ?? 0));
+    setModels(c.allowedModels || []);
+    setErrors({});
+  };
+
+  const loadConfig = useCallback(async (id: string) => {
+    if (!id) return;
+    setLoadingConfig(true);
+    setConfigError(false);
+    try {
+      applyConfig(await adminService.getWorkspaceAiConfig(id));
+    } catch {
+      setConfig(null);
+      setConfigError(true);
+    } finally {
+      setLoadingConfig(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadConfig(workspaceId);
+  }, [workspaceId, loadConfig]);
+
+  const parseQuota = (v: string) => (/^\d+$/.test(v.trim()) ? Number(v.trim()) : null);
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!workspaceId || saving) return;
+    const token = parseQuota(tokenQuota);
+    const image = parseQuota(imageQuota);
+    setErrors({
+      token: token === null ? 'Nhập số nguyên không âm.' : undefined,
+      image: image === null ? 'Nhập số nguyên không âm.' : undefined,
+    });
+    if (token === null || image === null) return;
+
+    setSaving(true);
+    try {
+      const updated = await adminService.updateWorkspaceAiConfig(workspaceId, {
+        provider,
+        apiKey: apiKey.trim() || undefined,
+        isEnabled,
+        monthlyTokenQuota: token,
+        monthlyImageQuota: image,
+        allowedModels: models,
+      });
+      applyConfig(updated);
+      showToast('Đã lưu cấu hình AI.');
+    } catch (err: any) {
+      showToast(err.message || 'Không lưu được cấu hình AI.', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const modelOptions = Array.from(new Set([...KNOWN_MODELS, ...(config?.allowedModels || [])]));
+  const providerOptions = PROVIDERS.includes(provider) ? PROVIDERS : [provider, ...PROVIDERS];
+
+  if (wsError)
+    return (
+      <AdminCard>
+        <div className='flex flex-wrap items-center justify-between gap-3 text-sm text-red-700'>
+          Không tải được danh sách Studio.
+          <AdminButton size='sm' onClick={loadWorkspaces}>
+            Thử lại
+          </AdminButton>
+        </div>
+      </AdminCard>
+    );
+
+  if (!loadingWs && workspaces.length === 0)
+    return (
+      <AdminCard>
+        <p className='text-sm text-admin-muted'>Chưa có Studio nào để cấu hình AI.</p>
+      </AdminCard>
+    );
+
+  return (
+    <form
+      onSubmit={handleSave}
+      noValidate
+      className='grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-6 items-start'
+    >
+      <AdminCard
+        title='Cấu hình theo Studio'
+        actions={
+          <select
+            value={workspaceId}
+            onChange={(e) => setWorkspaceId(e.target.value)}
+            disabled={loadingWs || saving}
+            aria-label='Chọn Studio'
+            className={cn(adminFieldClass, 'w-auto min-w-[220px] max-w-full')}
+          >
+            {workspaces.map((ws) => (
+              <option key={ws.id} value={ws.id}>
+                {ws.name}
+              </option>
+            ))}
+          </select>
+        }
+      >
+        {loadingConfig || loadingWs ? (
+          <p className='text-sm text-admin-muted py-6 text-center'>Đang tải cấu hình…</p>
+        ) : configError ? (
+          <div className='flex flex-wrap items-center justify-between gap-3 text-sm text-red-700'>
+            Không tải được cấu hình AI của Studio này.
+            <AdminButton size='sm' onClick={() => loadConfig(workspaceId)}>
+              Thử lại
+            </AdminButton>
+          </div>
+        ) : (
+          <div className='space-y-6 max-w-3xl'>
+            <label className='flex items-start gap-3 cursor-pointer'>
+              <input
+                type='checkbox'
+                checked={isEnabled}
+                onChange={(e) => setIsEnabled(e.target.checked)}
+                className='mt-0.5 w-5 h-5 accent-[#F97316]'
+              />
+              <span>
+                <span className='block text-sm font-semibold text-admin-ink'>
+                  Bật AI cho Studio
+                </span>
+                <span className='block text-sm text-admin-muted'>
+                  Khi tắt, mọi yêu cầu AI của Studio sẽ bị từ chối.
+                </span>
+              </span>
+            </label>
+
+            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+              <AdminField label='Nhà cung cấp' htmlFor='ai-provider'>
+                <select
+                  id='ai-provider'
+                  value={provider}
+                  onChange={(e) => setProvider(e.target.value)}
+                  className={adminFieldClass}
+                >
+                  {providerOptions.map((p) => (
+                    <option key={p} value={p}>
+                      {p}
+                    </option>
+                  ))}
+                </select>
+              </AdminField>
+              <AdminField
+                label='API key'
+                htmlFor='ai-key'
+                hint={
+                  config?.hasApiKey
+                    ? 'Để trống nếu giữ nguyên khóa đã lưu.'
+                    : 'Khóa được kiểm tra với nhà cung cấp trước khi lưu.'
+                }
+              >
+                <input
+                  id='ai-key'
+                  type='password'
+                  autoComplete='off'
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                  placeholder={config?.hasApiKey ? '••••••••' : 'Nhập API key'}
+                  className={cn(adminFieldClass, 'font-mono')}
+                />
+              </AdminField>
+              <AdminField
+                label='Quota token mỗi tháng'
+                htmlFor='ai-token-quota'
+                required
+                hint='0 = không giới hạn'
+                error={errors.token}
+              >
+                <input
+                  id='ai-token-quota'
+                  type='number'
+                  min={0}
+                  inputMode='numeric'
+                  value={tokenQuota}
+                  onChange={(e) => setTokenQuota(e.target.value)}
+                  aria-invalid={!!errors.token}
+                  className={cn(adminFieldClass, 'tabular-nums')}
+                />
+              </AdminField>
+              <AdminField
+                label='Quota sinh ảnh mỗi tháng'
+                htmlFor='ai-image-quota'
+                required
+                hint='0 = không giới hạn'
+                error={errors.image}
+              >
+                <input
+                  id='ai-image-quota'
+                  type='number'
+                  min={0}
+                  inputMode='numeric'
+                  value={imageQuota}
+                  onChange={(e) => setImageQuota(e.target.value)}
+                  aria-invalid={!!errors.image}
+                  className={cn(adminFieldClass, 'tabular-nums')}
+                />
+              </AdminField>
+            </div>
+
+            <fieldset>
+              <legend className='text-sm font-semibold text-admin-ink mb-2'>Model được phép</legend>
+              <div className='grid grid-cols-1 sm:grid-cols-2 gap-2'>
+                {modelOptions.map((m) => {
+                  const checked = models.includes(m);
+                  return (
+                    <label
+                      key={m}
+                      className={cn(
+                        'flex items-center gap-3 min-h-11 px-3 rounded-xl border cursor-pointer transition-colors',
+                        'has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-admin-accent',
+                        checked
+                          ? 'border-admin-accent bg-admin-accent-soft'
+                          : 'border-admin-line bg-admin-field hover:bg-admin-hover',
+                      )}
+                    >
+                      <input
+                        type='checkbox'
+                        checked={checked}
+                        onChange={() =>
+                          setModels((prev) =>
+                            prev.includes(m) ? prev.filter((x) => x !== m) : [...prev, m],
+                          )
+                        }
+                        className='w-4 h-4 accent-[#F97316]'
+                      />
+                      <span className='text-sm font-mono text-admin-ink'>{m}</span>
+                    </label>
+                  );
+                })}
+              </div>
+              <p className='mt-2 text-xs text-admin-muted'>
+                Không chọn model nào thì giữ nguyên danh sách hiện tại.
+              </p>
+            </fieldset>
+
+            <div className='flex justify-end gap-2 pt-4 border-t border-admin-line'>
+              <AdminButton
+                onClick={() => config && applyConfig(config)}
+                disabled={saving || !config}
+              >
+                Hoàn tác
+              </AdminButton>
+              <AdminButton type='submit' variant='primary' isLoading={saving}>
+                Lưu cấu hình
+              </AdminButton>
+            </div>
+          </div>
+        )}
+      </AdminCard>
+
+      <AdminCard title='Tháng này'>
+        {config && !loadingConfig ? (
+          <dl className='space-y-4 text-sm'>
+            <div>
+              <dt className='text-admin-muted'>Trạng thái</dt>
+              <dd className='mt-1 flex flex-wrap gap-1.5'>
+                <AdminBadge tone={config.isEnabled ? 'success' : 'neutral'}>
+                  {config.isEnabled ? 'AI đang bật' : 'AI đang tắt'}
+                </AdminBadge>
+                <AdminBadge tone={config.hasApiKey ? 'success' : 'warning'}>
+                  <KeyRound className='w-3 h-3' aria-hidden />
+                  {config.hasApiKey ? 'Đã có API key' : 'Chưa có API key'}
+                </AdminBadge>
+              </dd>
+            </div>
+            <div>
+              <dt className='text-admin-muted'>Token đã dùng</dt>
+              <dd className='text-lg font-semibold text-admin-ink-strong tabular-nums'>
+                {fmt(config.usedTokensCurrentMonth)}
+                <span className='text-sm font-normal text-admin-muted'>
+                  {' '}
+                  / {config.monthlyTokenQuota ? fmt(config.monthlyTokenQuota) : 'không giới hạn'}
+                </span>
+              </dd>
+            </div>
+            <div>
+              <dt className='text-admin-muted'>Ảnh đã sinh</dt>
+              <dd className='text-lg font-semibold text-admin-ink-strong tabular-nums'>
+                {fmt(config.usedImagesCurrentMonth)}
+                <span className='text-sm font-normal text-admin-muted'>
+                  {' '}
+                  / {config.monthlyImageQuota ? fmt(config.monthlyImageQuota) : 'không giới hạn'}
+                </span>
+              </dd>
+            </div>
+            {config.lastResetAt && (
+              <div>
+                <dt className='text-admin-muted'>Đặt lại gần nhất</dt>
+                <dd className='tabular-nums'>
+                  {new Date(config.lastResetAt).toLocaleDateString('vi-VN')}
+                </dd>
+              </div>
+            )}
+          </dl>
+        ) : (
+          <p className='text-sm text-admin-muted'>—</p>
+        )}
+      </AdminCard>
+    </form>
+  );
+};
+
+/* ---------- Usage reports & call records ---------- */
+
+const UsageReportsPanel: React.FC<{ showToast: ShowToast }> = ({ showToast }) => {
   const [reports, setReports] = useState<AiUsageReportItemDto[]>([]);
-  const [loadingReports, setLoadingReports] = useState(false);
-
   const [records, setRecords] = useState<AiUsageRecordDto[]>([]);
   const [totalRecords, setTotalRecords] = useState(0);
   const [loadingRecords, setLoadingRecords] = useState(false);
+  const [recordsError, setRecordsError] = useState(false);
   const [exportingCsv, setExportingCsv] = useState(false);
 
-  // Filters State
   const [filterFeature, setFilterFeature] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterFrom, setFilterFrom] = useState('');
   const [filterTo, setFilterTo] = useState('');
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
+  const [pageSize] = useState(25);
   const [dateError, setDateError] = useState<string | null>(null);
 
-  // Toast feedback
-  const [toast, setToast] = useState<{
-    type: 'success' | 'warning' | 'error';
-    message: string;
-  } | null>(null);
-
-  const showToast = (message: string, type: 'success' | 'warning' | 'error' = 'success') => {
-    setToast({ type, message });
-    setTimeout(() => setToast(null), 5000);
-  };
-
-  const toggleModel = (model: string) => {
-    if (allowedModels.includes(model)) {
-      setAllowedModels(allowedModels.filter((m) => m !== model));
-    } else {
-      setAllowedModels([...allowedModels, model]);
-    }
-  };
-
-  const handleSaveCredentials = (e: React.FormEvent) => {
-    e.preventDefault();
-    setSavedSuccess(true);
-    showToast('Đã lưu cấu hình AI Provider Credentials & Model Quotas!', 'success');
-    setTimeout(() => setSavedSuccess(false), 3000);
-  };
-
-  // UC-15: Build Filter Query
   const buildFilterParams = useCallback((): AiUsageRecordsFilterParams | null => {
     setDateError(null);
     let fromIso: string | undefined;
     let toIso: string | undefined;
-
-    if (filterFrom) {
-      fromIso = new Date(`${filterFrom}T00:00:00Z`).toISOString();
-    }
-    if (filterTo) {
-      toIso = new Date(`${filterTo}T23:59:59Z`).toISOString();
-    }
-
+    if (filterFrom) fromIso = new Date(`${filterFrom}T00:00:00Z`).toISOString();
+    if (filterTo) toIso = new Date(`${filterTo}T23:59:59Z`).toISOString();
     if (fromIso && toIso && fromIso > toIso) {
-      setDateError('Khoảng ngày không hợp lệ: Từ ngày phải trước hoặc bằng Đến ngày.');
+      setDateError('“Đến ngày” phải sau hoặc bằng “Từ ngày”.');
       return null;
     }
-
-    const params: AiUsageRecordsFilterParams = {
-      page,
-      pageSize,
-    };
-
+    const params: AiUsageRecordsFilterParams = { page, pageSize };
     if (filterFeature.trim()) params.feature = filterFeature.trim();
     if (filterStatus) params.status = filterStatus;
     if (fromIso) params.from = fromIso;
     if (toIso) params.to = toIso;
-
     return params;
   }, [page, pageSize, filterFeature, filterStatus, filterFrom, filterTo]);
 
-  // Fetch Reports (UC-15)
   const fetchReports = useCallback(async () => {
-    setLoadingReports(true);
     try {
       let fromIso: string | undefined;
       let toIso: string | undefined;
       if (filterFrom) fromIso = new Date(`${filterFrom}T00:00:00Z`).toISOString();
       if (filterTo) toIso = new Date(`${filterTo}T23:59:59Z`).toISOString();
-
       const data = await adminService.getAiUsage({ from: fromIso, to: toIso });
       setReports(data || []);
     } catch (err: any) {
       console.warn('Cannot fetch AI usage report:', err);
-    } finally {
-      setLoadingReports(false);
     }
   }, [filterFrom, filterTo]);
 
-  // Fetch Records (UC-15)
   const fetchRecords = useCallback(async () => {
     const params = buildFilterParams();
     if (!params) return;
-
     setLoadingRecords(true);
+    setRecordsError(false);
     try {
       const res = await adminService.getAiUsageRecords(params);
       setRecords(res.items || []);
       setTotalRecords(res.totalCount || 0);
     } catch (err: any) {
+      setRecordsError(true);
       showToast(err.message || 'Không thể tải lịch sử gọi AI.', 'error');
     } finally {
       setLoadingRecords(false);
     }
-  }, [buildFilterParams]);
+  }, [buildFilterParams, showToast]);
 
   useEffect(() => {
-    if (activeSubTab === 'reports') {
-      fetchReports();
-      fetchRecords();
-    }
-  }, [activeSubTab, fetchReports, fetchRecords]);
+    fetchReports();
+    fetchRecords();
+  }, [fetchReports, fetchRecords]);
 
   const handleApplyFilter = (e: React.FormEvent) => {
     e.preventDefault();
@@ -193,601 +481,291 @@ export const AIConfigurationView: React.FC = () => {
     setPage(1);
   };
 
+  const isFiltered = !!(filterFeature.trim() || filterStatus || filterFrom || filterTo);
+
   const handleExportCsv = async () => {
     const params = buildFilterParams();
-    if (!params) return;
-
+    if (!params || exportingCsv) return;
     setExportingCsv(true);
     try {
       const result = await adminService.exportAiUsage(params);
       downloadBlob(result.blob, result.fileName);
-
-      if (result.isTruncated) {
-        showToast(
-          `Đã tải file CSV (${result.rowCount.toLocaleString()} bản ghi). Chú ý: Dữ liệu đã bị giới hạn ở 10.000 dòng mới nhất (X-Export-Truncated).`,
-          'warning',
-        );
-      } else {
-        showToast(
-          `Đã xuất thành công ${result.rowCount.toLocaleString()} bản ghi AI usage vào file ${result.fileName}!`,
-          'success',
-        );
-      }
+      showToast(
+        result.isTruncated
+          ? `Đã tải ${fmt(result.rowCount)} bản ghi. File chỉ gồm 10.000 dòng mới nhất.`
+          : `Đã xuất ${fmt(result.rowCount)} bản ghi.`,
+        result.isTruncated ? 'warning' : 'success',
+      );
     } catch (err: any) {
-      showToast(err.message || 'Lỗi khi xuất CSV AI Usage.', 'error');
+      showToast(err.message || 'Không xuất được file CSV.', 'error');
     } finally {
       setExportingCsv(false);
     }
   };
 
   const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize));
-
-  const renderStatusBadge = (st: string) => {
-    switch (st) {
-      case 'Succeeded':
-        return (
-          <span className='px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200'>
-            Succeeded
-          </span>
-        );
-      case 'Failed':
-        return (
-          <span className='px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-red-50 text-red-700 border border-red-200'>
-            Failed
-          </span>
-        );
-      case 'QuotaExceeded':
-        return (
-          <span className='px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-50 text-amber-700 border border-amber-200'>
-            QuotaExceeded
-          </span>
-        );
-      case 'ProviderUnavailable':
-        return (
-          <span className='px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-purple-50 text-purple-700 border border-purple-200'>
-            ProviderUnavailable
-          </span>
-        );
-      case 'Disabled':
-        return (
-          <span className='px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-neutral-100 text-neutral-600 border border-neutral-200'>
-            Disabled
-          </span>
-        );
-      default:
-        return (
-          <span className='px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-neutral-100 text-neutral-700 border border-neutral-200'>
-            {st || 'Unknown'}
-          </span>
-        );
-    }
-  };
+  const sum = (k: keyof AiUsageReportItemDto) =>
+    reports.reduce((acc, r) => acc + (Number(r[k]) || 0), 0);
+  const COLS = 6;
 
   return (
-    <div className='space-y-6 w-full'>
-      {/* Toast Feedback */}
-      {toast && (
-        <div
-          className={`fixed top-4 right-4 z-50 flex items-center gap-2 px-4 py-3 rounded-xl border shadow-lg text-xs font-semibold animate-in slide-in-from-top-2 duration-200 ${
-            toast.type === 'success'
-              ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
-              : toast.type === 'warning'
-                ? 'bg-amber-50 border-amber-200 text-amber-800'
-                : 'bg-red-50 border-red-200 text-red-800'
-          }`}
-        >
-          {toast.type === 'success' && <CheckCircle2 className='w-4 h-4 text-emerald-600' />}
-          {toast.type === 'warning' && <AlertCircle className='w-4 h-4 text-amber-600' />}
-          {toast.type === 'error' && <AlertTriangle className='w-4 h-4 text-red-600' />}
-          <span>{toast.message}</span>
-          <button
-            onClick={() => setToast(null)}
-            className='ml-2 text-neutral-400 hover:text-neutral-700'
-          >
-            <X className='w-3.5 h-3.5' />
-          </button>
-        </div>
-      )}
-
-      {/* Header with Sub-tabs */}
-      <div className='bg-white p-6 rounded-2xl border border-[#E7E7E7] shadow-xs space-y-4'>
-        <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4'>
-          <div>
-            <div className='flex items-center gap-2 mb-1'>
-              <span className='px-2 py-0.5 rounded bg-[#171717] text-white font-mono text-[10px] font-bold'>
-                AI ENGINE // ENTERPRISE
-              </span>
-              <span className='text-xs text-[#888888] font-mono'>UC-02 &amp; UC-15 Management</span>
-            </div>
-            <h1 className='text-2xl font-serif font-bold text-[#171717] tracking-tight'>
-              Quản Trị AI Engine, Quotas &amp; Báo Cáo Tiêu Thụ
-            </h1>
-            <p className='text-xs text-[#737373] mt-1'>
-              Quản lý API Key nhà cung cấp (Gemini, Claude, OpenAI), phân bổ hạn ngạch token và báo
-              cáo chi phí gọi AI chi tiết (UC-15).
-            </p>
-          </div>
-
-          {/* Sub-tab Navigation */}
-          <div className='flex items-center bg-[#FAF8F5] p-1 rounded-xl border border-[#E7E7E7] self-start sm:self-auto'>
-            <button
-              onClick={() => setActiveSubTab('credentials')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                activeSubTab === 'credentials'
-                  ? 'bg-white text-[#171717] shadow-xs border border-[#E7E7E7]'
-                  : 'text-[#737373] hover:text-[#171717]'
-              }`}
-            >
-              Cấu Hình &amp; Quotas
-            </button>
-            <button
-              onClick={() => setActiveSubTab('reports')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
-                activeSubTab === 'reports'
-                  ? 'bg-white text-[#F97316] shadow-xs border border-[#E7E7E7]'
-                  : 'text-[#737373] hover:text-[#171717]'
-              }`}
-            >
-              <Activity className='w-3.5 h-3.5' />
-              <span>Báo Cáo &amp; Lịch Sử (UC-15)</span>
-            </button>
-          </div>
-        </div>
+    <>
+      <div className='grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4'>
+        <AdminStat
+          label='Lượt gọi AI'
+          value={fmt(sum('callCount'))}
+          hint={`${fmt(sum('succeededCount'))} thành công`}
+        />
+        <AdminStat label='Token đã dùng' value={fmt(sum('totalTokens'))} />
+        <AdminStat
+          label='Chi phí ước tính'
+          value={`$${sum('totalCostUsd').toFixed(4)}`}
+          hint='Theo bảng giá nhà cung cấp'
+        />
+        <AdminStat
+          label='Bị chặn / lỗi'
+          value={`${fmt(sum('blockedCount'))} / ${fmt(sum('failedCount'))}`}
+        />
       </div>
 
-      {/* TAB 1: Credentials & Allowed Models */}
-      {activeSubTab === 'credentials' && (
-        <form onSubmit={handleSaveCredentials} className='space-y-6'>
-          {/* API Credentials */}
-          <div className='bg-white p-6 rounded-2xl border border-[#E7E7E7] shadow-xs space-y-4'>
-            <h3 className='text-sm font-bold text-[#171717] flex items-center gap-2'>
-              <Key className='w-4 h-4 text-[#F97316]' />
-              <span>AI Provider API Key Credentials</span>
-            </h3>
-
-            <div className='space-y-4 text-xs'>
-              <div>
-                <label className='block font-bold text-[#171717] mb-1.5 flex items-center justify-between'>
-                  <span>Google Gemini API Key (Default Engine)</span>
-                  <span className='text-emerald-600 font-mono text-[10px] font-bold'>
-                    Connected
-                  </span>
-                </label>
-                <Input
-                  type='password'
-                  value={geminiApiKey}
-                  onChange={(e) => setGeminiApiKey(e.target.value)}
-                  className='h-9 font-mono text-xs'
-                />
-              </div>
-
-              <div>
-                <label className='block font-bold text-[#171717] mb-1.5 flex items-center justify-between'>
-                  <span>Anthropic Claude API Key (Script &amp; Dialogue Specialist)</span>
-                  <span className='text-emerald-600 font-mono text-[10px] font-bold'>
-                    Connected
-                  </span>
-                </label>
-                <Input
-                  type='password'
-                  value={claudeApiKey}
-                  onChange={(e) => setClaudeApiKey(e.target.value)}
-                  className='h-9 font-mono text-xs'
-                />
-              </div>
-
-              <div>
-                <label className='block font-bold text-[#171717] mb-1.5 flex items-center justify-between'>
-                  <span>OpenAI API Key (Secondary Fallback)</span>
-                  <span className='text-emerald-600 font-mono text-[10px] font-bold'>
-                    Connected
-                  </span>
-                </label>
-                <Input
-                  type='password'
-                  value={openAiApiKey}
-                  onChange={(e) => setOpenAiApiKey(e.target.value)}
-                  className='h-9 font-mono text-xs'
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Allowed Models & Token Quotas */}
-          <div className='bg-white p-6 rounded-2xl border border-[#E7E7E7] shadow-xs space-y-4'>
-            <h3 className='text-sm font-bold text-[#171717] flex items-center gap-2'>
-              <Sliders className='w-4 h-4 text-[#F97316]' />
-              <span>Cho Phép Sử Dụng Model &amp; Hạn Ngạch Quota</span>
-            </h3>
-
-            <div className='space-y-4 text-xs'>
-              <div>
-                <label className='block font-bold text-[#171717] mb-2'>
-                  Danh sách Model được phép kích hoạt trong Studio:
-                </label>
-                <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5'>
-                  {[
-                    {
-                      id: 'gemini-1.5-pro',
-                      name: 'Gemini 1.5 Pro',
-                      desc: 'Series Bible Grounding',
-                    },
-                    { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', desc: 'Fast Panel OCR' },
-                    {
-                      id: 'claude-3-5-sonnet',
-                      name: 'Claude 3.5 Sonnet',
-                      desc: 'Script Dialogue Writer',
-                    },
-                    { id: 'gpt-4o', name: 'GPT-4o', desc: 'Multi-modal Vision' },
-                  ].map((m) => {
-                    const checked = allowedModels.includes(m.id);
-                    return (
-                      <div
-                        key={m.id}
-                        onClick={() => toggleModel(m.id)}
-                        className={`p-3 rounded-xl border cursor-pointer transition-all ${
-                          checked
-                            ? 'border-[#F97316] bg-[#FFF7ED] text-[#171717]'
-                            : 'border-[#E7E7E7] bg-[#FAF8F5] text-[#555555]'
-                        }`}
-                      >
-                        <div className='flex items-center justify-between'>
-                          <span className='font-bold text-xs'>{m.name}</span>
-                          <input
-                            type='checkbox'
-                            checked={checked}
-                            readOnly
-                            className='accent-[#F97316]'
-                          />
-                        </div>
-                        <div className='text-[10px] text-[#737373] mt-1'>{m.desc}</div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
-                <div>
-                  <label className='block font-bold text-[#171717] mb-1.5'>
-                    Hạn ngạch Token mặc định tháng (Monthly Workspace Token Quota):
-                  </label>
-                  <Input
-                    type='number'
-                    value={monthlyTokenQuota}
-                    onChange={(e) => setMonthlyTokenQuota(e.target.value)}
-                    className='h-9 font-mono text-xs max-w-xs'
-                  />
-                  <span className='text-[10px] text-[#737373] mt-1 block'>
-                    0 = không giới hạn token
-                  </span>
-                </div>
-
-                <div>
-                  <label className='block font-bold text-[#171717] mb-1.5'>
-                    Hạn ngạch Sinh Ảnh mặc định tháng (Monthly Image Quota):
-                  </label>
-                  <Input
-                    type='number'
-                    value={monthlyImageQuota}
-                    onChange={(e) => setMonthlyImageQuota(e.target.value)}
-                    className='h-9 font-mono text-xs max-w-xs'
-                    placeholder='0 (Không giới hạn)'
-                  />
-                  <span className='text-[10px] text-[#737373] mt-1 block'>
-                    0 = không giới hạn số ảnh sinh ra hàng tháng
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className='flex justify-end'>
-            <Button
-              type='submit'
-              className='bg-[#F97316] hover:bg-[#EA580C] text-white px-6 py-2.5 rounded-xl font-bold text-xs shadow-md cursor-pointer'
+      <form
+        onSubmit={handleApplyFilter}
+        className='bg-admin-card border border-admin-line rounded-2xl p-5 space-y-4'
+        aria-label='Bộ lọc lịch sử AI'
+      >
+        <div className='grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4'>
+          <AdminField label='Tính năng' htmlFor='ai-f-feature'>
+            <input
+              id='ai-f-feature'
+              type='text'
+              placeholder='Ví dụ: BibleGrounding'
+              value={filterFeature}
+              onChange={(e) => setFilterFeature(e.target.value)}
+              className={adminFieldClass}
+            />
+          </AdminField>
+          <AdminField label='Trạng thái' htmlFor='ai-f-status'>
+            <select
+              id='ai-f-status'
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className={adminFieldClass}
             >
-              <Save className='w-4 h-4 mr-1.5' /> Lưu Cấu Hình AI
-            </Button>
-          </div>
-        </form>
-      )}
-
-      {/* TAB 2: UC-15 AI Usage Reports & Call Records */}
-      {activeSubTab === 'reports' && (
-        <div className='space-y-6'>
-          {/* Summary Cards */}
-          <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4'>
-            <div className='bg-white p-5 rounded-2xl border border-[#E7E7E7] shadow-xs space-y-1'>
-              <div className='text-[11px] font-mono text-[#737373] uppercase'>
-                Tổng Cuộc Gọi AI (Calls)
-              </div>
-              <div className='text-2xl font-bold font-serif text-[#171717]'>
-                {reports.reduce((acc, r) => acc + (r.callCount || 0), 0).toLocaleString()}
-              </div>
-              <div className='text-[10px] font-mono text-emerald-600 font-semibold'>
-                {reports.reduce((acc, r) => acc + (r.succeededCount || 0), 0).toLocaleString()}{' '}
-                Thành công
-              </div>
-            </div>
-
-            <div className='bg-white p-5 rounded-2xl border border-[#E7E7E7] shadow-xs space-y-1'>
-              <div className='text-[11px] font-mono text-[#737373] uppercase'>
-                Tổng Tokens Đã Dùng
-              </div>
-              <div className='text-2xl font-bold font-serif text-[#171717]'>
-                {reports.reduce((acc, r) => acc + (r.totalTokens || 0), 0).toLocaleString()}
-              </div>
-              <div className='text-[10px] font-mono text-[#737373]'>
-                Hạn ngạch tháng:{' '}
-                {reports.reduce((acc, r) => acc + (r.monthlyTokenQuota || 0), 0).toLocaleString()}
-              </div>
-            </div>
-
-            <div className='bg-white p-5 rounded-2xl border border-[#E7E7E7] shadow-xs space-y-1'>
-              <div className='text-[11px] font-mono text-[#737373] uppercase'>
-                Chi Phí Ước Tính (USD)
-              </div>
-              <div className='text-2xl font-bold font-serif text-[#171717] flex items-center'>
-                <DollarSign className='w-5 h-5 text-[#059669]' />
-                <span>{reports.reduce((acc, r) => acc + (r.totalCostUsd || 0), 0).toFixed(4)}</span>
-              </div>
-              <div className='text-[10px] font-mono text-[#888888]'>Theo giá nhà cung cấp</div>
-            </div>
-
-            <div className='bg-white p-5 rounded-2xl border border-[#E7E7E7] shadow-xs space-y-1'>
-              <div className='text-[11px] font-mono text-[#737373] uppercase'>
-                Tỷ Lệ Bị Chặn (Blocked)
-              </div>
-              <div className='text-2xl font-bold font-serif text-amber-600'>
-                {reports.reduce((acc, r) => acc + (r.blockedCount || 0), 0).toLocaleString()}
-              </div>
-              <div className='text-[10px] font-mono text-red-500'>
-                {reports.reduce((acc, r) => acc + (r.failedCount || 0), 0).toLocaleString()} Lỗi
-              </div>
-            </div>
-          </div>
-
-          {/* UC-15 Query Filter Toolbar */}
-          <form
-            onSubmit={handleApplyFilter}
-            className='bg-white p-5 rounded-2xl border border-[#E7E7E7] shadow-xs space-y-4'
+              {STATUS_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </AdminField>
+          <AdminField label='Từ ngày' htmlFor='ai-f-from'>
+            <input
+              id='ai-f-from'
+              type='date'
+              value={filterFrom}
+              onChange={(e) => setFilterFrom(e.target.value)}
+              className={adminFieldClass}
+            />
+          </AdminField>
+          <AdminField label='Đến ngày' htmlFor='ai-f-to' error={dateError}>
+            <input
+              id='ai-f-to'
+              type='date'
+              value={filterTo}
+              onChange={(e) => setFilterTo(e.target.value)}
+              aria-invalid={!!dateError}
+              className={cn(adminFieldClass, dateError && 'border-red-400')}
+            />
+          </AdminField>
+        </div>
+        <div className='flex flex-wrap justify-end gap-2'>
+          <AdminButton variant='ghost' onClick={handleResetFilter} disabled={!isFiltered}>
+            Xóa bộ lọc
+          </AdminButton>
+          <AdminButton
+            onClick={handleExportCsv}
+            isLoading={exportingCsv}
+            disabled={loadingRecords}
+            icon={<Download className='w-4 h-4' />}
           >
-            <div className='flex items-center justify-between border-b border-[#E7E7E7] pb-3'>
-              <div className='flex items-center gap-2 text-xs font-bold text-[#171717]'>
-                <Filter className='w-4 h-4 text-[#F97316]' />
-                <span>Bộ Lọc Lịch Sử Gọi AI (AI Usage Records Query)</span>
-              </div>
-              <div className='flex items-center gap-3'>
-                <button
-                  type='button'
-                  onClick={handleResetFilter}
-                  className='text-[11px] text-[#737373] hover:text-[#171717] font-medium'
-                >
-                  Xóa bộ lọc
-                </button>
-                <button
-                  type='button'
-                  onClick={handleExportCsv}
-                  disabled={exportingCsv || loadingRecords}
-                  className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#171717] hover:bg-black text-white text-xs font-semibold shadow-xs cursor-pointer disabled:opacity-50'
-                  title='Xuất tối đa 10.000 dòng có Bearer Auth'
-                >
-                  <Download className='w-3.5 h-3.5 text-[#F97316]' />
-                  <span>{exportingCsv ? 'Đang xuất...' : 'Xuất CSV (UC-15)'}</span>
-                </button>
-              </div>
-            </div>
+            Xuất CSV
+          </AdminButton>
+          <AdminButton type='submit' variant='primary'>
+            Áp dụng
+          </AdminButton>
+        </div>
+      </form>
 
-            {dateError && (
-              <div className='p-2.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-center gap-2'>
-                <AlertCircle className='w-4 h-4 text-red-600 shrink-0' />
-                <span>{dateError}</span>
-              </div>
-            )}
-
-            <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs'>
-              {/* Feature */}
-              <div>
-                <label className='block font-semibold text-[#171717] mb-1'>
-                  Tính năng (Feature)
-                </label>
-                <input
-                  type='text'
-                  placeholder='vd: BibleGrounding, OCR'
-                  value={filterFeature}
-                  onChange={(e) => setFilterFeature(e.target.value)}
-                  className='w-full px-3 py-1.5 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg text-xs focus:outline-none focus:border-[#F97316]'
+      <div className='bg-admin-card border border-admin-line rounded-2xl overflow-hidden'>
+        <div className={adminTable.wrap}>
+          <table className={adminTable.table}>
+            <thead className={adminTable.thead}>
+              <tr>
+                <th className={adminTable.th}>Thời gian</th>
+                <th className={adminTable.th}>Tính năng</th>
+                <th className={adminTable.th}>Nhà cung cấp / Model</th>
+                <th className={`${adminTable.th} text-right`}>Token</th>
+                <th className={`${adminTable.th} text-right`}>Chi phí</th>
+                <th className={adminTable.th}>Trạng thái</th>
+              </tr>
+            </thead>
+            <tbody className={adminTable.tbody}>
+              {loadingRecords ? (
+                <AdminTableState colSpan={COLS} kind='loading' message='Đang tải lịch sử…' />
+              ) : recordsError ? (
+                <AdminTableState
+                  colSpan={COLS}
+                  kind='error'
+                  message='Không tải được lịch sử gọi AI.'
+                  action={
+                    <AdminButton size='sm' onClick={fetchRecords}>
+                      Thử lại
+                    </AdminButton>
+                  }
                 />
-              </div>
-
-              {/* Status */}
-              <div>
-                <label className='block font-semibold text-[#171717] mb-1'>
-                  Trạng thái (Status)
-                </label>
-                <select
-                  value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value)}
-                  className='w-full px-3 py-1.5 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg text-xs focus:outline-none focus:border-[#F97316]'
-                >
-                  {STATUS_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* From Date */}
-              <div>
-                <label className='block font-semibold text-[#171717] mb-1 flex items-center gap-1'>
-                  <Calendar className='w-3 h-3 text-[#888888]' />
-                  <span>Từ ngày (From UTC)</span>
-                </label>
-                <input
-                  type='date'
-                  value={filterFrom}
-                  onChange={(e) => setFilterFrom(e.target.value)}
-                  className='w-full px-3 py-1.5 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg text-xs focus:outline-none focus:border-[#F97316]'
-                />
-              </div>
-
-              {/* To Date */}
-              <div>
-                <label className='block font-semibold text-[#171717] mb-1 flex items-center gap-1'>
-                  <Calendar className='w-3 h-3 text-[#888888]' />
-                  <span>Đến ngày (To UTC)</span>
-                </label>
-                <input
-                  type='date'
-                  value={filterTo}
-                  onChange={(e) => setFilterTo(e.target.value)}
-                  className='w-full px-3 py-1.5 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg text-xs focus:outline-none focus:border-[#F97316]'
-                />
-              </div>
-
-              {/* Submit Filter */}
-              <div className='flex items-end'>
-                <button
-                  type='submit'
-                  className='w-full py-1.5 px-4 bg-[#F97316] hover:bg-[#EA580C] text-white font-semibold rounded-lg text-xs transition-colors shadow-2xs cursor-pointer'
-                >
-                  Lọc Lịch Sử
-                </button>
-              </div>
-            </div>
-          </form>
-
-          {/* Records Table */}
-          <div className='bg-white border border-[#E7E7E7] rounded-2xl shadow-xs overflow-hidden flex flex-col'>
-            <div className='overflow-x-auto'>
-              <table className='w-full text-left border-collapse'>
-                <thead className='bg-[#FAF8F5] border-b border-[#E7E7E7] text-[11px] font-mono font-bold text-[#737373] uppercase tracking-wider'>
-                  <tr>
-                    <th className='py-3 px-4'>Thời Gian (UTC)</th>
-                    <th className='py-3 px-4'>Tính Năng (Feature)</th>
-                    <th className='py-3 px-4'>Provider / Model</th>
-                    <th className='py-3 px-4'>Tokens (Prompt / Comp / Total)</th>
-                    <th className='py-3 px-4'>Chi Phí (USD)</th>
-                    <th className='py-3 px-4'>Thời Gian Xử Lý</th>
-                    <th className='py-3 px-4'>Trạng Thái</th>
-                  </tr>
-                </thead>
-                <tbody className='divide-y divide-[#E7E7E7] text-xs'>
-                  {loadingRecords ? (
-                    <tr>
-                      <td colSpan={7} className='py-12 text-center text-[#888888]'>
-                        <RefreshCw className='w-6 h-6 animate-spin text-[#F97316] mx-auto mb-2' />
-                        <span>Đang tải danh sách lịch sử gọi AI...</span>
-                      </td>
-                    </tr>
-                  ) : records.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className='py-12 text-center text-[#888888] space-y-1'>
-                        <Activity className='w-8 h-8 text-[#888888] mx-auto' />
-                        <div className='font-bold text-[#171717]'>Chưa có bản ghi gọi AI nào</div>
-                        <div className='text-[11px] text-[#737373]'>
-                          Các tính năng gọi AI provider (CF3) sẽ tự động tích lũy số liệu vào đây.
+              ) : records.length === 0 ? (
+                isFiltered ? (
+                  <AdminTableState
+                    colSpan={COLS}
+                    kind='no-results'
+                    message='Không có lượt gọi phù hợp bộ lọc.'
+                  />
+                ) : (
+                  <AdminTableState colSpan={COLS} kind='empty' message='Chưa có lượt gọi AI nào.' />
+                )
+              ) : (
+                records.map((rec) => {
+                  const st = STATUS_OPTIONS.find((s) => s.value === rec.status);
+                  return (
+                    <tr key={rec.id} className={adminTable.tr}>
+                      <td className={`${adminTable.td} whitespace-nowrap tabular-nums`}>
+                        <div className='font-medium text-admin-ink-strong'>
+                          {new Date(rec.occurredAtUtc).toLocaleTimeString('vi-VN')}
+                        </div>
+                        <div className='text-xs text-admin-muted'>
+                          {new Date(rec.occurredAtUtc).toLocaleDateString('vi-VN')}
                         </div>
                       </td>
+                      <td className={adminTable.td}>
+                        <div className='font-medium'>{rec.feature}</div>
+                        {rec.workspaceId && (
+                          <div
+                            className='text-xs text-admin-muted font-mono'
+                            title={rec.workspaceId}
+                          >
+                            Studio {rec.workspaceId.substring(0, 8)}…
+                          </div>
+                        )}
+                      </td>
+                      <td className={adminTable.td}>
+                        <div className='font-medium'>{rec.provider}</div>
+                        <div className='text-xs text-admin-muted font-mono'>{rec.model || '—'}</div>
+                      </td>
+                      <td className={`${adminTable.td} text-right tabular-nums whitespace-nowrap`}>
+                        <div className='font-medium'>{fmt(rec.totalTokens)}</div>
+                        <div className='text-xs text-admin-muted'>
+                          {fmt(rec.promptTokens)} vào · {fmt(rec.completionTokens)} ra
+                        </div>
+                      </td>
+                      <td className={`${adminTable.td} text-right tabular-nums whitespace-nowrap`}>
+                        ${(rec.costUsd || 0).toFixed(5)}
+                        {rec.durationMs ? (
+                          <div className='text-xs text-admin-muted'>{fmt(rec.durationMs)} ms</div>
+                        ) : null}
+                      </td>
+                      <td className={adminTable.td}>
+                        <AdminBadge tone={st?.tone ?? 'neutral'}>
+                          {st?.label ?? rec.status}
+                        </AdminBadge>
+                        {rec.errorMessage && (
+                          <div
+                            className='mt-1 text-xs text-red-700 max-w-xs line-clamp-2 break-words'
+                            title={rec.errorMessage}
+                          >
+                            {rec.errorMessage}
+                          </div>
+                        )}
+                      </td>
                     </tr>
-                  ) : (
-                    records.map((rec) => (
-                      <tr key={rec.id} className='hover:bg-[#FAF8F5] transition-colors'>
-                        <td className='py-3 px-4 font-mono text-[11px] whitespace-nowrap text-[#555555]'>
-                          <div className='flex items-center gap-1.5 text-[#171717] font-semibold'>
-                            <Clock className='w-3 h-3 text-[#F97316]' />
-                            <span>{new Date(rec.occurredAtUtc).toLocaleTimeString('vi-VN')}</span>
-                          </div>
-                          <div className='text-[10px] text-[#888888]'>
-                            {new Date(rec.occurredAtUtc).toLocaleDateString('vi-VN')}
-                          </div>
-                        </td>
-
-                        <td className='py-3 px-4 font-semibold text-[#171717]'>
-                          <div>{rec.feature}</div>
-                          {rec.workspaceId && (
-                            <span className='text-[10px] font-mono text-[#888888]'>
-                              WS: {rec.workspaceId.substring(0, 8)}...
-                            </span>
-                          )}
-                        </td>
-
-                        <td className='py-3 px-4 font-mono text-[11px]'>
-                          <div className='text-[#171717] font-bold'>{rec.provider}</div>
-                          <div className='text-[10px] text-[#888888]'>
-                            {rec.model || 'Standard'}
-                          </div>
-                        </td>
-
-                        <td className='py-3 px-4 font-mono text-[11px]'>
-                          <span className='font-bold text-[#171717]'>
-                            {rec.totalTokens?.toLocaleString()}
-                          </span>
-                          <span className='text-[10px] text-[#888888] block'>
-                            ({rec.promptTokens?.toLocaleString()} in /{' '}
-                            {rec.completionTokens?.toLocaleString()} out)
-                          </span>
-                        </td>
-
-                        <td className='py-3 px-4 font-mono text-[11px] text-[#059669] font-bold'>
-                          {rec.costUsd ? `$${rec.costUsd.toFixed(5)}` : '$0.00'}
-                        </td>
-
-                        <td className='py-3 px-4 font-mono text-[11px] text-[#737373]'>
-                          {rec.durationMs ? `${rec.durationMs}ms` : '—'}
-                        </td>
-
-                        <td className='py-3 px-4 whitespace-nowrap'>
-                          {renderStatusBadge(rec.status)}
-                          {rec.errorMessage && (
-                            <div
-                              className='text-[10px] text-red-600 truncate max-w-xs'
-                              title={rec.errorMessage}
-                            >
-                              {rec.errorMessage}
-                            </div>
-                          )}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Pagination */}
-            <div className='p-4 bg-[#FAF8F5] border-t border-[#E7E7E7] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs'>
-              <div className='text-[#737373] font-mono'>
-                Hiển thị <span className='font-bold text-[#171717]'>{records.length}</span> / Tổng{' '}
-                <span className='font-bold text-[#171717]'>{totalRecords.toLocaleString()}</span>{' '}
-                bản ghi (Trang {page} / {totalPages})
-              </div>
-
-              <div className='flex items-center gap-2'>
-                <button
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={page <= 1 || loadingRecords}
-                  className='p-1.5 rounded-lg border border-[#E7E7E7] bg-white text-[#171717] disabled:opacity-40 hover:bg-[#FAF8F5] transition-colors cursor-pointer'
-                >
-                  <ChevronLeft className='w-4 h-4' />
-                </button>
-                <span className='font-mono font-bold text-xs text-[#171717] px-2'>
-                  {page} / {totalPages}
-                </span>
-                <button
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={page >= totalPages || loadingRecords}
-                  className='p-1.5 rounded-lg border border-[#E7E7E7] bg-white text-[#171717] disabled:opacity-40 hover:bg-[#FAF8F5] transition-colors cursor-pointer'
-                >
-                  <ChevronRight className='w-4 h-4' />
-                </button>
-              </div>
-            </div>
-          </div>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
         </div>
+        <AdminPagination
+          page={page}
+          totalPages={totalPages}
+          shown={records.length}
+          total={totalRecords}
+          unit='lượt gọi'
+          disabled={loadingRecords}
+          onPageChange={setPage}
+        />
+      </div>
+    </>
+  );
+};
+
+export const AIConfigurationView: React.FC = () => {
+  const [activeSubTab, setActiveSubTab] = useState<'credentials' | 'reports'>('credentials');
+  const { toast, show: showToast, clear: clearToast } = useAdminToast();
+  const [reloadKey, setReloadKey] = useState(0);
+
+  const tabs = [
+    { id: 'credentials' as const, label: 'Cấu hình' },
+    { id: 'reports' as const, label: 'Báo cáo sử dụng' },
+  ];
+
+  return (
+    <>
+      <AdminToast toast={toast} onClose={clearToast} />
+      <AdminPageHeader
+        title='Cấu hình AI'
+        description='Nhà cung cấp, model và quota AI của từng Studio.'
+        actions={
+          <AdminButton
+            onClick={() => setReloadKey((k) => k + 1)}
+            icon={<RefreshCw className='w-4 h-4' />}
+          >
+            Làm mới
+          </AdminButton>
+        }
+      />
+
+      <div
+        role='tablist'
+        aria-label='Cấu hình AI'
+        className='inline-flex gap-1 p-1 rounded-xl border border-admin-line bg-admin-card'
+      >
+        {tabs.map((t) => {
+          const active = activeSubTab === t.id;
+          return (
+            <button
+              key={t.id}
+              type='button'
+              role='tab'
+              aria-selected={active}
+              onClick={() => setActiveSubTab(t.id)}
+              className={cn(
+                'min-h-10 px-4 rounded-lg text-sm transition-colors cursor-pointer',
+                adminFocusRing,
+                active
+                  ? 'bg-admin-accent-soft text-admin-ink-strong font-semibold'
+                  : 'text-admin-muted hover:text-admin-ink hover:bg-admin-hover',
+              )}
+            >
+              {t.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {activeSubTab === 'credentials' ? (
+        <StudioAiConfigPanel key={reloadKey} showToast={showToast} />
+      ) : (
+        <UsageReportsPanel key={reloadKey} showToast={showToast} />
       )}
-    </div>
+    </>
   );
 };

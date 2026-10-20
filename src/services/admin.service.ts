@@ -71,7 +71,9 @@ export interface AuditLogDto {
   details?: string | null;
   changesJson?: string | null;
   ipAddress?: string | null;
-  createdAt: string;
+  /** BE trả timestampUtc; createdAt giữ cho tương thích. */
+  timestampUtc?: string;
+  createdAt?: string;
 }
 
 export interface AuditLogsPagedResponse {

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ScriptEditorView } from './ScriptEditorView';
@@ -466,5 +466,53 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
 
     expect(await screen.findByText('Nhân vật Series Bible (1)')).toBeInTheDocument();
     expect(screen.getByText('Nhân vật chính 20 tuổi')).toBeInTheDocument();
+  });
+
+  describe('Bản nháp cục bộ khi mất phiên / đóng tab', () => {
+    beforeEach(() => localStorage.clear());
+
+    it('lưu Story Arc đang gõ rồi đề nghị khôi phục ở lần mở sau', async () => {
+      const user = userEvent.setup();
+      const first = renderView();
+      await user.click(await screen.findByTestId('toggle-narrative-context-btn'));
+      const textarea = await screen.findByTestId('story-arc-textarea');
+      await user.clear(textarea);
+      await user.type(textarea, 'Bản nháp chưa kịp lưu');
+      await waitFor(() => expect(localStorage.getItem('pf.draft.storyArc.se-1')).not.toBeNull(), {
+        timeout: 2500,
+      });
+      first.unmount(); // giống bị văng ra trang đăng nhập
+
+      renderView();
+      const banner = await screen.findByTestId('draft-restore-storyArc');
+      await user.click(within(banner).getByRole('button', { name: 'Khôi phục' }));
+      await user.click(await screen.findByTestId('toggle-narrative-context-btn'));
+      expect(await screen.findByTestId('story-arc-textarea')).toHaveValue('Bản nháp chưa kịp lưu');
+      expect(seriesService.updateStoryArc).not.toHaveBeenCalled(); // người dùng vẫn tự bấm lưu
+    });
+
+    it('"Bỏ bản nháp" xoá nháp; nháp trùng nội dung đã lưu thì không hỏi', async () => {
+      localStorage.setItem(
+        'pf.draft.storyArc.se-1',
+        JSON.stringify({ text: 'Nháp cũ', savedAt: '2026-10-19T08:00:00.000Z' }),
+      );
+      const user = userEvent.setup();
+      const view = renderView();
+      const banner = await screen.findByTestId('draft-restore-storyArc');
+      await user.click(within(banner).getByRole('button', { name: 'Bỏ bản nháp' }));
+      expect(localStorage.getItem('pf.draft.storyArc.se-1')).toBeNull();
+      view.unmount();
+
+      localStorage.setItem(
+        'pf.draft.storyArc.se-1',
+        JSON.stringify({
+          text: 'Hành trình vượt qua đêm đen Neo Tokyo.',
+          savedAt: '2026-10-19T08:00:00.000Z',
+        }),
+      );
+      renderView();
+      await screen.findByTestId('toggle-narrative-context-btn');
+      expect(screen.queryByTestId('draft-restore-storyArc')).toBeNull();
+    });
   });
 });

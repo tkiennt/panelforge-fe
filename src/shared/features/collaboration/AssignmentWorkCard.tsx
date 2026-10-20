@@ -232,20 +232,20 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
     <article
       id={`assignment-${assignment.id}`}
       data-testid={`assignment-card-${assignment.id}`}
-      className={`p-5 md:p-6 bg-white border rounded-2xl space-y-4 shadow-soft-sm transition-all ${
+      className={`p-5 md:p-6 bg-[#FCFBF8] border rounded-2xl space-y-4 shadow-xs transition-all font-sans ${
         status === 'ReworkRequired'
           ? 'border-rose-300 ring-2 ring-rose-200/50 bg-rose-50/20'
           : highlighted
             ? 'border-[#F97316] ring-2 ring-[#F97316]/30'
-            : 'border-stone-200 hover:border-stone-300'
+            : 'border-[#D8D2C5] hover:border-[#F97316]/60'
       }`}
     >
       <div className='flex flex-wrap items-center justify-between gap-2.5'>
         <div className='flex items-center gap-2.5 min-w-0'>
-          <span className='px-2.5 py-1 rounded-md bg-[#292524] text-white font-mono text-xs font-bold shrink-0 shadow-2xs'>
+          <span className='px-2.5 py-1 rounded-md bg-[#F3F0E9] border border-[#D8D2C5] text-[#1C1917] font-mono text-xs font-bold shrink-0 shadow-2xs'>
             {String(assignment.entityType)}
           </span>
-          <span className='font-bold text-base text-[#0c0a09] truncate tracking-tight'>
+          <span className='font-bold text-base text-[#1C1917] truncate tracking-tight'>
             {stageName}
           </span>
         </div>

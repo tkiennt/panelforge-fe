@@ -1,7 +1,6 @@
 import React from 'react';
-import { X } from 'lucide-react';
 import { AdminUserItem } from '@/services/admin.service';
-import { Button } from '@/shared/components/ui/Button';
+import { AdminButton, AdminModal } from './AdminUi';
 
 interface AdminUserDetailsModalProps {
   user: AdminUserItem;
@@ -9,68 +8,48 @@ interface AdminUserDetailsModalProps {
   renderProjectRoles: (user: AdminUserItem) => React.ReactNode;
 }
 
+const Row: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
+  <div className='grid grid-cols-1 sm:grid-cols-[140px_1fr] gap-1 sm:gap-3 py-2.5'>
+    <dt className='text-sm text-admin-muted'>{label}</dt>
+    <dd className='text-sm text-admin-ink min-w-0 break-words'>{children}</dd>
+  </div>
+);
+
 export const AdminUserDetailsModal: React.FC<AdminUserDetailsModalProps> = ({
   user,
   onClose,
   renderProjectRoles,
-}) => {
-  return (
-    <div className='fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150'>
-      <div className='bg-white rounded-2xl border border-[#E7E7E7] shadow-2xl max-w-md w-full p-6 space-y-4 animate-in zoom-in-95 duration-200'>
-        <div className='flex items-center justify-between border-b border-[#E7E7E7] pb-3'>
-          <h3 className='text-sm font-bold text-[#171717]'>Chi Tiết Tài Khoản</h3>
-          <Button onClick={onClose} variant='ghost' size='icon'>
-            <X className='w-4 h-4' />
-          </Button>
-        </div>
-
-        <div className='space-y-3 text-xs'>
-          <div>
-            <span className='text-[#888888] block text-[10px] uppercase font-mono'>User ID</span>
-            <span className='font-mono font-medium text-[#171717] select-all'>{user.id}</span>
-          </div>
-          <div>
-            <span className='text-[#888888] block text-[10px] uppercase font-mono'>Email</span>
-            <span className='font-semibold text-[#171717]'>{user.email}</span>
-          </div>
-          <div>
-            <span className='text-[#888888] block text-[10px] uppercase font-mono'>Họ và tên</span>
-            <span className='font-medium text-[#171717]'>{user.fullName || '—'}</span>
-          </div>
-          <div>
-            <span className='text-[#888888] block text-[10px] uppercase font-mono'>
-              Số điện thoại
-            </span>
-            <span className='font-mono text-[#171717]'>{user.phoneNumber || '—'}</span>
-          </div>
-          <div>
-            <span className='text-[#888888] block text-[10px] uppercase font-mono'>
-              Vai trò (Dự án)
-            </span>
-            <div className='mt-1'>{renderProjectRoles(user)}</div>
-          </div>
-          <div>
-            <span className='text-[#888888] block text-[10px] uppercase font-mono'>
-              Xác thực 2FA
-            </span>
-            <span
-              className={`font-semibold ${user.twoFactorEnabled ? 'text-emerald-600' : 'text-gray-500'}`}
-            >
-              {user.twoFactorEnabled ? 'Đã kích hoạt RFC 6238 TOTP' : 'Chưa kích hoạt'}
-            </span>
-          </div>
-          <div>
-            <span className='text-[#888888] block text-[10px] uppercase font-mono'>Ngày tạo</span>
-            <span className='font-mono text-[#737373]'>
-              {user.createdAt ? new Date(user.createdAt).toLocaleString() : '—'}
-            </span>
-          </div>
-        </div>
-
-        <div className='pt-3 border-t border-[#E7E7E7] text-right'>
-          <Button onClick={onClose}>Đóng</Button>
-        </div>
-      </div>
-    </div>
-  );
-};
+}) => (
+  <AdminModal
+    title='Chi tiết tài khoản'
+    onClose={onClose}
+    footer={<AdminButton onClick={onClose}>Đóng</AdminButton>}
+  >
+    <dl className='divide-y divide-admin-line/70'>
+      <Row label='Họ và tên'>{user.fullName || '—'}</Row>
+      <Row label='Email'>
+        <span className='break-all'>{user.email}</span>
+      </Row>
+      <Row label='Số điện thoại'>
+        <span className='tabular-nums'>{user.phoneNumber || '—'}</span>
+      </Row>
+      <Row label='Vai trò'>{renderProjectRoles(user)}</Row>
+      <Row label='Xác thực 2 lớp'>
+        {user.twoFactorEnabled ? (
+          <span className='text-emerald-800 font-medium'>Đã bật</span>
+        ) : (
+          'Chưa bật'
+        )}
+      </Row>
+      <Row label='Xác thực email'>{user.isEmailConfirmed ? 'Đã xác thực' : 'Chưa xác thực'}</Row>
+      <Row label='Ngày tạo'>
+        <span className='tabular-nums'>
+          {user.createdAt ? new Date(user.createdAt).toLocaleString('vi-VN') : '—'}
+        </span>
+      </Row>
+      <Row label='Mã tài khoản'>
+        <span className='font-mono text-xs break-all select-all'>{user.id}</span>
+      </Row>
+    </dl>
+  </AdminModal>
+);

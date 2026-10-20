@@ -57,24 +57,24 @@ export const NewPageCardModal: React.FC<NewPageCardModalProps> = ({
   };
 
   return (
-    <div className='fixed inset-0 bg-stone-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4'>
-      <div className='bg-white border border-stone-200 rounded-2xl max-w-md w-full shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150'>
+    <div className='fixed inset-0 bg-[#1C1917]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4'>
+      <div className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl max-w-md w-full shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150'>
         {/* Header */}
-        <div className='p-4.5 bg-stone-50/50 border-b border-stone-100 flex items-center justify-between'>
+        <div className='p-4.5 bg-[#F8F6F0] border-b border-[#D8D2C5] flex items-center justify-between'>
           <div className='flex items-center gap-2.5'>
-            <div className='p-2 bg-orange-50 text-orange-600 rounded-xl border border-orange-100'>
+            <div className='p-2 bg-[#FFF2E6] text-[#C2410C] rounded-xl border border-[#FDBA74]'>
               <Layers className='w-4 h-4' />
             </div>
             <div>
-              <h3 className='font-display font-bold text-sm text-stone-900'>
+              <h3 className='font-serif font-bold text-sm text-[#1C1917]'>
                 Tạo Thẻ Tiến Độ Trang (Page Card)
               </h3>
-              <p className='text-xs text-stone-500'>Thêm thẻ trang vào quy trình phân cảnh</p>
+              <p className='text-xs text-[#57534E]'>Thêm thẻ trang vào quy trình phân cảnh</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className='w-7 h-7 rounded-lg hover:bg-stone-100 flex items-center justify-center text-stone-400 hover:text-stone-700 transition-all cursor-pointer'
+            className='w-7 h-7 rounded-lg hover:bg-[#F3F0E9] flex items-center justify-center text-[#57534E] hover:text-[#1C1917] transition-all cursor-pointer'
           >
             <X className='w-4 h-4' />
           </button>
@@ -84,25 +84,25 @@ export const NewPageCardModal: React.FC<NewPageCardModalProps> = ({
         <form onSubmit={handleSubmit} className='p-6 space-y-4 text-xs'>
           <div className='grid grid-cols-2 gap-3'>
             <div>
-              <label className='block font-semibold text-stone-700 mb-1.5'>Số Trang (Page #)</label>
+              <label className='block font-semibold text-[#1C1917] mb-1.5'>Số Trang (Page #)</label>
               <input
                 type='text'
                 required
                 placeholder='Ví dụ: 25'
                 value={pageNumber}
                 onChange={(e) => setPageNumber(e.target.value)}
-                className='w-full px-3 py-2 bg-white rounded-xl border border-stone-200 text-stone-900 focus:outline-none focus:border-orange-500 font-mono'
+                className='w-full px-3 py-2 bg-[#FCFBF8] rounded-xl border border-[#D8D2C5] text-[#1C1917] focus:outline-none focus:border-[#F97316] font-mono'
               />
             </div>
 
             <div>
-              <label className='block font-semibold text-stone-700 mb-1.5'>
+              <label className='block font-semibold text-[#1C1917] mb-1.5'>
                 Loại Trang (Page Type)
               </label>
               <select
                 value={pageType}
                 onChange={(e) => setPageType(e.target.value as any)}
-                className='w-full px-3 py-2 bg-white rounded-xl border border-stone-200 text-stone-900 focus:outline-none focus:border-orange-500 font-semibold cursor-pointer'
+                className='w-full px-3 py-2 bg-[#FCFBF8] rounded-xl border border-[#D8D2C5] text-[#1C1917] focus:outline-none focus:border-[#F97316] font-semibold cursor-pointer'
               >
                 <option value='Action'>Action Sequence (Hành động)</option>
                 <option value='Dialogue'>Dialogue Heavy (Hội thoại)</option>
@@ -112,7 +112,7 @@ export const NewPageCardModal: React.FC<NewPageCardModalProps> = ({
           </div>
 
           <div>
-            <label className='block font-semibold text-stone-700 mb-1.5'>
+            <label className='block font-semibold text-[#1C1917] mb-1.5'>
               Tiêu Đề Cảnh (Scene Title)
             </label>
             <input
@@ -121,17 +121,17 @@ export const NewPageCardModal: React.FC<NewPageCardModalProps> = ({
               placeholder='Ví dụ: Zor đột nhập qua cửa sổ trần tầng áp mái'
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className='w-full px-3 py-2 bg-white rounded-xl border border-stone-200 text-stone-900 focus:outline-none focus:border-orange-500'
+              className='w-full px-3 py-2 bg-[#FCFBF8] rounded-xl border border-[#D8D2C5] text-[#1C1917] focus:outline-none focus:border-[#F97316]'
             />
           </div>
 
           <div className='grid grid-cols-2 gap-3'>
             <div>
-              <label className='block font-semibold text-stone-700 mb-1.5'>Công Đoạn Ban Đầu</label>
+              <label className='block font-semibold text-[#1C1917] mb-1.5'>Công Đoạn Ban Đầu</label>
               <select
                 value={stage}
                 onChange={(e) => setStage(e.target.value as KanbanStageKey)}
-                className='w-full px-3 py-2 bg-white rounded-xl border border-stone-200 text-stone-900 focus:outline-none focus:border-orange-500 font-semibold cursor-pointer'
+                className='w-full px-3 py-2 bg-[#FCFBF8] rounded-xl border border-[#D8D2C5] text-[#1C1917] focus:outline-none focus:border-[#F97316] font-semibold cursor-pointer'
               >
                 <option value='script'>1. Kịch bản (Script)</option>
                 <option value='thumbnail'>2. Thumbnail (Phác thảo)</option>
@@ -145,11 +145,11 @@ export const NewPageCardModal: React.FC<NewPageCardModalProps> = ({
             </div>
 
             <div>
-              <label className='block font-semibold text-stone-700 mb-1.5'>Người Phụ Trách</label>
+              <label className='block font-semibold text-[#1C1917] mb-1.5'>Người Phụ Trách</label>
               <select
                 value={assignee}
                 onChange={(e) => setAssignee(e.target.value)}
-                className='w-full px-3 py-2 bg-white rounded-xl border border-stone-200 text-stone-900 focus:outline-none focus:border-orange-500 font-semibold cursor-pointer'
+                className='w-full px-3 py-2 bg-[#FCFBF8] rounded-xl border border-[#D8D2C5] text-[#1C1917] focus:outline-none focus:border-[#F97316] font-semibold cursor-pointer'
               >
                 <option value='Kenji S.'>Kenji S. (Artist)</option>
                 <option value='Arata M.'>Arata M. (Writer)</option>
@@ -160,17 +160,17 @@ export const NewPageCardModal: React.FC<NewPageCardModalProps> = ({
             </div>
           </div>
 
-          <div className='pt-2 flex items-center justify-between border-t border-stone-100'>
+          <div className='pt-2 flex items-center justify-between border-t border-[#D8D2C5]'>
             <button
               type='button'
               onClick={onClose}
-              className='px-3.5 py-2 bg-white hover:bg-stone-50 border border-stone-200 text-stone-600 text-xs font-semibold rounded-xl transition-colors cursor-pointer'
+              className='px-3.5 py-2 bg-[#FCFBF8] hover:bg-[#F3F0E9] border border-[#D8D2C5] text-[#57534E] text-xs font-semibold rounded-xl transition-colors cursor-pointer'
             >
               Hủy
             </button>
             <button
               type='submit'
-              className='px-4 py-2 bg-[#EA580C] hover:bg-[#C2410C] text-white text-xs font-semibold rounded-xl shadow-soft-sm transition-all cursor-pointer active:scale-95'
+              className='px-4 py-2 bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold rounded-xl shadow-soft-sm transition-all cursor-pointer active:scale-95'
             >
               Tạo Thẻ Trang
             </button>
@@ -180,3 +180,5 @@ export const NewPageCardModal: React.FC<NewPageCardModalProps> = ({
     </div>
   );
 };
+
+export default NewPageCardModal;

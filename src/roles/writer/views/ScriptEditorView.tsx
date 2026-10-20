@@ -60,6 +60,7 @@ import { NarrativeContextDrawer } from '../components/script/NarrativeContextDra
 import { ConsistencyFindingsDrawer } from '../components/script/ConsistencyFindingsDrawer';
 import { BibleCharactersDrawer } from '../components/script/BibleCharactersDrawer';
 import { offlineQueueService } from '@/services/offlineQueue.service';
+import { saveDraft, clearDraft, readRestorableDraft, type LocalDraft } from '@/lib/localDraft';
 import { OfflineStatusBanner } from '@/shared/components/OfflineStatusBanner';
 import { ElementConflictModal } from '@/shared/modals/ElementConflictModal';
 
@@ -209,6 +210,44 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   );
 
   const hasUnsavedChanges = isStoryArcDirty || isOutlineDirty;
+
+  // Bản nháp cục bộ: lưu chữ đang gõ (debounce 1s) để không mất khi hết phiên / rớt mạng / đóng tab.
+  const storyArcDraftKey = seriesId ? `storyArc.${seriesId}` : null;
+  const outlineDraftKey = currentChapter?.id ? `outline.${currentChapter.id}` : null;
+  const [restorable, setRestorable] = useState<{ storyArc?: LocalDraft; outline?: LocalDraft }>({});
+
+  useEffect(() => {
+    if (!storyArcDraftKey || !isStoryArcDirty) return;
+    const t = setTimeout(() => {
+      saveDraft(storyArcDraftKey, storyArcInput);
+      setRestorable((p) => ({ ...p, storyArc: undefined }));
+    }, 1000);
+    return () => clearTimeout(t);
+  }, [storyArcDraftKey, isStoryArcDirty, storyArcInput]);
+
+  useEffect(() => {
+    // Cleanup huỷ timer khi đổi chương, nên chữ của chương cũ không bị ghi vào khoá chương mới.
+    if (!outlineDraftKey || !isOutlineDirty) return;
+    const t = setTimeout(() => {
+      saveDraft(outlineDraftKey, outlineInput);
+      setRestorable((p) => ({ ...p, outline: undefined }));
+    }, 1000);
+    return () => clearTimeout(t);
+  }, [outlineDraftKey, isOutlineDirty, outlineInput]);
+
+  // Khi dữ liệu server đã tải: nếu còn bản nháp khác bản đã lưu thì đề nghị khôi phục.
+  const seriesLoaded = !!seriesDetail;
+  useEffect(() => {
+    if (!storyArcDraftKey || !seriesLoaded || !canEditScript) return;
+    const d = readRestorableDraft(storyArcDraftKey, seriesDetail?.storyArc);
+    setRestorable((p) => ({ ...p, storyArc: d ?? undefined }));
+  }, [storyArcDraftKey, seriesLoaded, seriesDetail?.storyArc, canEditScript]);
+
+  useEffect(() => {
+    if (!outlineDraftKey || !canEditScript) return;
+    const d = readRestorableDraft(outlineDraftKey, currentChapter?.outline);
+    setRestorable((p) => ({ ...p, outline: d ?? undefined }));
+  }, [outlineDraftKey, currentChapter?.outline, canEditScript]);
 
   // Bảo vệ thay đổi chưa lưu khi đóng hoặc tải lại trang
   useEffect(() => {
@@ -394,6 +433,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     try {
       const res = await seriesService.updateStoryArc(seriesId, storyArcInput.trim() || null);
       setStoryArcInput(res.value || '');
+      clearDraft(`storyArc.${seriesId}`);
       setSeriesDetail((prev) => (prev ? { ...prev, storyArc: res.value } : null));
       notify('Thành công', 'Đã cập nhật Story Arc của Series.');
     } catch (err: any) {
@@ -416,6 +456,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         outlineInput.trim() || null,
       );
       setOutlineInput(res.value || '');
+      clearDraft(`outline.${currentChapter.id}`);
       setCurrentChapter((prev) => (prev ? { ...prev, outline: res.value } : null));
       notify('Thành công', `Đã cập nhật đề cương Chương ${currentChapter.chapterNumber}.`);
     } catch (err: any) {
@@ -967,18 +1008,18 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   });
 
   return (
-    <div className='flex-1 flex flex-col bg-[#FAF8F5] h-[calc(100vh-64px)] overflow-hidden text-[#171717]'>
+    <div className='flex-1 flex flex-col bg-[#F3F0E9] h-[calc(100vh-64px)] overflow-hidden text-[#1C1917]'>
       {/* 1. Gọn gàng Header Toolbar */}
-      <header className='shrink-0 bg-white border-b border-[#E7E2D9] px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 shadow-2xs z-30'>
+      <header className='shrink-0 bg-[#FCFBF8] border-b border-[#D8D2C5] px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 shadow-2xs z-30'>
         {/* Left: Tên trang, Chương, Trạng thái & Phiên bản */}
         <div className='flex items-center gap-3 flex-wrap'>
           <div className='flex items-center gap-2'>
-            <div className='w-8 h-8 rounded-lg bg-orange-500/10 text-orange-600 flex items-center justify-center font-bold shrink-0'>
+            <div className='w-8 h-8 rounded-lg bg-[#FFF2E6] text-[#C2410C] flex items-center justify-center font-bold shrink-0 border border-[#F97316]/20'>
               <FileText className='w-4 h-4' />
             </div>
             <div>
               <div className='flex items-center gap-1.5'>
-                <span className='px-2 py-0.5 rounded-full bg-orange-600 text-white font-mono text-xs font-bold uppercase tracking-wider'>
+                <span className='px-2 py-0.5 rounded-full bg-[#FFF2E6] text-[#C2410C] border border-[#F97316]/30 font-mono text-xs font-bold uppercase tracking-wider'>
                   Kịch bản
                 </span>
                 {currentChapter && (
@@ -1003,12 +1044,12 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                   </span>
                 )}
                 {currentChapter && (
-                  <span className='text-xs font-mono font-semibold text-zinc-600 bg-zinc-100 px-2 py-0.5 rounded-md'>
+                  <span className='text-xs font-mono font-semibold text-[#57534E] bg-[#F3F0E9] border border-[#D8D2C5] px-2 py-0.5 rounded-md'>
                     v{currentChapter.versionVector}
                   </span>
                 )}
               </div>
-              <h1 className='text-sm md:text-base font-bold font-serif tracking-tight text-zinc-900'>
+              <h1 className='text-sm md:text-base font-bold font-serif tracking-tight text-[#1C1917]'>
                 Biên Soạn Kịch Bản Phân Cảnh (Script Editor)
               </h1>
             </div>
@@ -1016,11 +1057,11 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
           {/* Bộ chọn chương không lặp "Chương 1: Chương 1" */}
           {chapters.length > 0 && (
-            <div className='flex items-center gap-1.5 bg-[#F8F6F0] px-3 py-1.5 rounded-xl border border-[#E7E2D9] shadow-2xs'>
-              <BookOpen className='w-4 h-4 text-orange-600 shrink-0' />
+            <div className='flex items-center gap-1.5 bg-[#F8F6F0] px-3 py-1.5 rounded-xl border border-[#D8D2C5] shadow-2xs'>
+              <BookOpen className='w-4 h-4 text-[#C2410C] shrink-0' />
               <label
                 htmlFor='script-chapter-select'
-                className='text-xs font-semibold text-zinc-600'
+                className='text-xs font-semibold text-[#57534E]'
               >
                 Chương:
               </label>
@@ -1028,7 +1069,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                 id='script-chapter-select'
                 value={currentChapter?.id || ''}
                 onChange={(e) => handleSelectChapter(e.target.value)}
-                className='bg-transparent text-xs font-bold text-zinc-900 outline-none cursor-pointer max-w-[260px] truncate pr-1'
+                className='bg-transparent text-xs font-bold text-[#1C1917] outline-none cursor-pointer max-w-[260px] truncate pr-1'
               >
                 {chapters.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -1071,16 +1112,16 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             }
             className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer shadow-2xs ${
               activeSideDrawer === 'narrative'
-                ? 'bg-orange-100 text-orange-900 border-orange-300 font-bold'
-                : 'bg-[#F8F6F0] text-zinc-700 hover:bg-[#EAE6DF] border-[#E7E2D9]'
+                ? 'bg-[#FFF2E6] text-[#1C1917] border-[#C2410C] font-bold'
+                : 'bg-[#FCFBF8] text-[#57534E] hover:bg-[#F3F0E9] border-[#D8D2C5]'
             }`}
             title='Định hướng cốt truyện & đề cương phân cảnh'
           >
-            <Compass className='w-3.5 h-3.5 text-orange-600' />
+            <Compass className='w-3.5 h-3.5 text-[#C2410C]' />
             <span className='hidden sm:inline'>Đề cương & Bối cảnh</span>
             <span className='sm:hidden'>Đề cương</span>
             {outlineWordCount > 0 && (
-              <span className='text-xs font-mono font-bold bg-white px-2 py-0.5 rounded-md border border-zinc-200 text-zinc-600'>
+              <span className='text-xs font-mono font-bold bg-[#F8F6F0] px-2 py-0.5 rounded-md border border-[#D8D2C5] text-[#1C1917]'>
                 {outlineWordCount} từ
               </span>
             )}
@@ -1114,7 +1155,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                 {openFindingsCount}
               </span>
             ) : totalFindingsCount > 0 ? (
-              <span className='px-2 py-0.5 rounded-full bg-zinc-200 text-zinc-700 text-xs font-mono font-bold'>
+              <span className='px-2 py-0.5 rounded-full bg-[#F3F0E9] border border-[#D8D2C5] text-[#57534E] text-xs font-mono font-bold'>
                 {totalFindingsCount}
               </span>
             ) : null}
@@ -1150,7 +1191,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               }
             }}
             disabled={loadingScenes || loadingDetail}
-            className='inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-zinc-700 bg-[#F8F6F0] hover:bg-[#EAE6DF] border border-[#E7E2D9] rounded-xl transition-all cursor-pointer shadow-2xs'
+            className='inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#57534E] bg-[#FCFBF8] hover:bg-[#F3F0E9] border border-[#D8D2C5] rounded-xl transition-all cursor-pointer shadow-2xs'
             title='Làm mới kịch bản'
           >
             <RefreshCw
@@ -1162,7 +1203,56 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       </header>
 
       {/* NFR-09: Thanh trạng thái kết nối & hàng đợi ngoại tuyến */}
-      <OfflineStatusBanner className='px-4 py-2 border-b border-[#E7E2D9]' />
+      <OfflineStatusBanner className='px-4 py-2 border-b border-[#D8D2C5]' />
+
+      {/* Khôi phục bản nháp cục bộ chưa lưu (sau khi hết phiên / rớt mạng / đóng tab) */}
+      {(['storyArc', 'outline'] as const).map((kind) => {
+        const draft = restorable[kind];
+        const key = kind === 'storyArc' ? storyArcDraftKey : outlineDraftKey;
+        if (!draft || !key) return null;
+        const label =
+          kind === 'storyArc'
+            ? 'Story Arc'
+            : `Đề cương Chương ${currentChapter?.chapterNumber ?? ''}`;
+        return (
+          <div
+            key={kind}
+            role='status'
+            data-testid={`draft-restore-${kind}`}
+            className='px-4 py-2 bg-amber-50 border-b border-amber-200 flex flex-wrap items-center gap-2 text-xs text-amber-900'
+          >
+            <span className='font-medium'>
+              Có bản nháp {label} chưa lưu lúc{' '}
+              {new Date(draft.savedAt).toLocaleString('vi-VN', {
+                dateStyle: 'short',
+                timeStyle: 'short',
+              })}
+              .
+            </span>
+            <button
+              type='button'
+              onClick={() => {
+                (kind === 'storyArc' ? setStoryArcInput : setOutlineInput)(draft.text);
+                if (kind === 'outline') setActiveSideDrawer('narrative');
+                setRestorable((p) => ({ ...p, [kind]: undefined }));
+              }}
+              className='px-2.5 py-1 rounded-lg bg-amber-600 text-white font-semibold hover:bg-amber-700 cursor-pointer'
+            >
+              Khôi phục
+            </button>
+            <button
+              type='button'
+              onClick={() => {
+                clearDraft(key);
+                setRestorable((p) => ({ ...p, [kind]: undefined }));
+              }}
+              className='px-2.5 py-1 rounded-lg border border-amber-300 font-semibold hover:bg-amber-100 cursor-pointer'
+            >
+              Bỏ bản nháp
+            </button>
+          </div>
+        );
+      })}
 
       {/* 2. Thanh thông báo ngắn gọn gom thông báo chỉ đọc & xung đột */}
       {(concurrencyError || isChapterLocked || !canEditScript || loadError) && (
@@ -1247,17 +1337,17 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       <div className='flex-1 flex overflow-hidden relative'>
         {/* LEFT: Điều hướng phân cảnh (Collapsible) */}
         <div
-          className={`shrink-0 border-r border-[#E5DFD7] bg-white flex flex-col transition-all duration-200 z-10 ${
+          className={`shrink-0 border-r border-[#D8D2C5] bg-[#FCFBF8] flex flex-col transition-all duration-200 z-10 ${
             isSceneNavOpen ? 'w-[260px] md:w-[280px]' : 'w-12'
           }`}
         >
           {/* Header thanh phân cảnh */}
-          <div className='p-3 border-b border-[#E5DFD7] bg-[#FAF8F5] flex items-center justify-between gap-2'>
+          <div className='p-3 border-b border-[#D8D2C5] bg-[#F8F6F0] flex items-center justify-between gap-2'>
             {isSceneNavOpen ? (
               <>
                 <div className='flex items-center gap-2 min-w-0'>
-                  <Clapperboard className='w-4 h-4 text-orange-600 shrink-0' />
-                  <h2 className='text-xs font-bold text-zinc-900 truncate'>
+                  <Clapperboard className='w-4 h-4 text-[#C2410C] shrink-0' />
+                  <h2 className='text-xs font-bold text-[#1C1917] truncate'>
                     Phân cảnh ({scenes.length})
                   </h2>
                 </div>
@@ -1266,7 +1356,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                     <button
                       type='button'
                       onClick={handleOpenCreateScene}
-                      className='p-1 text-orange-700 hover:bg-orange-100 rounded-lg cursor-pointer transition-colors'
+                      className='p-1 text-[#C2410C] hover:bg-[#FFF2E6] rounded-lg cursor-pointer transition-colors'
                       title='Thêm phân cảnh mới'
                     >
                       <Plus className='w-4 h-4' />
@@ -1275,7 +1365,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                   <button
                     type='button'
                     onClick={() => setIsSceneNavOpen(false)}
-                    className='p-1 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-200/60 rounded-lg cursor-pointer transition-colors'
+                    className='p-1 text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9] rounded-lg cursor-pointer transition-colors'
                     title='Thu gọn danh sách cảnh'
                   >
                     <PanelLeftClose className='w-4 h-4' />
@@ -1286,10 +1376,10 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               <button
                 type='button'
                 onClick={() => setIsSceneNavOpen(true)}
-                className='w-full flex items-center justify-center p-1 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 rounded-lg cursor-pointer'
+                className='w-full flex items-center justify-center p-1 text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9] rounded-lg cursor-pointer'
                 title='Mở rộng danh sách cảnh'
               >
-                <PanelLeft className='w-4 h-4 text-orange-600' />
+                <PanelLeft className='w-4 h-4 text-[#C2410C]' />
               </button>
             )}
           </div>
@@ -1299,15 +1389,15 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             <>
               {/* Search cảnh nếu có nhiều hơn 3 cảnh */}
               {scenes.length > 3 && (
-                <div className='p-2 border-b border-zinc-100 bg-zinc-50/50'>
+                <div className='p-2 border-b border-[#D8D2C5] bg-[#F8F6F0]/60'>
                   <div className='relative'>
-                    <Search className='w-3 h-3 text-zinc-400 absolute left-2.5 top-2' />
+                    <Search className='w-3 h-3 text-[#57534E] absolute left-2.5 top-2' />
                     <input
                       type='text'
                       value={sceneSearchQuery}
                       onChange={(e) => setSceneSearchQuery(e.target.value)}
                       placeholder='Tìm phân cảnh...'
-                      className='w-full pl-7 pr-2 py-1 text-xs border border-zinc-200 rounded-lg outline-none focus:border-orange-500 bg-white'
+                      className='w-full pl-7 pr-2 py-1 text-xs border border-[#D8D2C5] rounded-lg outline-none focus:border-[#F97316] bg-[#FCFBF8] text-[#1C1917]'
                     />
                   </div>
                 </div>
@@ -1315,13 +1405,13 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
               <div className='flex-1 overflow-y-auto p-2 space-y-1.5 custom-scrollbar'>
                 {scenes.length === 0 ? (
-                  <div className='text-center py-10 px-3 text-xs text-zinc-400 bg-zinc-50/50 rounded-xl border border-dashed border-zinc-200'>
+                  <div className='text-center py-10 px-3 text-xs text-[#57534E] bg-[#FCFBF8] rounded-xl border border-dashed border-[#D8D2C5]'>
                     Chương này chưa có phân cảnh nào.
                     {canEditScript && !isChapterLocked && (
                       <button
                         type='button'
                         onClick={handleOpenCreateScene}
-                        className='block mx-auto mt-2 text-orange-600 font-bold hover:underline cursor-pointer'
+                        className='block mx-auto mt-2 text-[#C2410C] font-bold hover:underline cursor-pointer'
                       >
                         + Tạo cảnh đầu tiên
                       </button>
@@ -1336,25 +1426,25 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                         onClick={() => handleSelectScene(s)}
                         className={`p-2.5 rounded-xl border transition-all cursor-pointer text-left ${
                           isSelected
-                            ? 'border-orange-500 bg-orange-50/70 shadow-2xs border-l-4 border-l-orange-600'
-                            : 'border-[#E7E2D9] bg-white hover:bg-[#FAF8F5] hover:border-zinc-300'
+                            ? 'border-[#F97316] bg-[#FFF2E6] shadow-2xs border-l-4 border-l-[#C2410C]'
+                            : 'border-[#D8D2C5] bg-[#FCFBF8] hover:bg-[#F8F6F0] hover:border-[#D8D2C5]'
                         }`}
                       >
                         <div className='flex items-center justify-between text-xs font-bold mb-0.5'>
                           <span
-                            className={isSelected ? 'text-orange-950 font-bold' : 'text-zinc-900'}
+                            className={isSelected ? 'text-[#1C1917] font-bold' : 'text-[#1C1917]'}
                           >
                             Cảnh {s.sceneNumber}
                           </span>
-                          <span className='font-mono text-xs text-zinc-600 bg-zinc-100 px-2 py-0.5 rounded-md'>
+                          <span className='font-mono text-xs text-[#57534E] bg-[#F3F0E9] border border-[#D8D2C5] px-2 py-0.5 rounded-md'>
                             {s.scriptLinesCount} dòng
                           </span>
                         </div>
-                        <div className='text-xs text-zinc-800 font-medium truncate'>
+                        <div className='text-xs text-[#1C1917] font-medium truncate'>
                           {s.heading || 'Chưa đặt tiêu đề'}
                         </div>
                         {s.summary && (
-                          <p className='text-xs text-zinc-500 line-clamp-1 mt-0.5'>{s.summary}</p>
+                          <p className='text-xs text-[#57534E] line-clamp-1 mt-0.5'>{s.summary}</p>
                         )}
                       </div>
                     );
@@ -1374,8 +1464,8 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                     onClick={() => handleSelectScene(s)}
                     className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs transition-all cursor-pointer ${
                       isSelected
-                        ? 'bg-orange-600 text-white shadow-xs'
-                        : 'text-zinc-600 hover:bg-zinc-100'
+                        ? 'bg-[#F97316] text-white shadow-xs'
+                        : 'text-[#57534E] hover:bg-[#F3F0E9]'
                     }`}
                     title={`Cảnh ${s.sceneNumber}: ${s.heading || 'Chưa đặt tiêu đề'}`}
                   >
@@ -1388,17 +1478,17 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         </div>
 
         {/* CENTER: Bàn làm việc Kịch bản (Ưu tiên vùng nhìn đầu tiên, tràn chiều rộng) */}
-        <div className='flex-1 flex flex-col overflow-hidden min-w-0 bg-[#FAF8F5]'>
+        <div className='flex-1 flex flex-col overflow-hidden min-w-0 bg-[#F3F0E9]'>
           {selectedScene ? (
             <>
               {/* Scene Header & Actions */}
-              <div className='shrink-0 bg-white border-b border-[#E5DFD7] px-6 py-3.5 flex flex-wrap items-center justify-between gap-3 shadow-2xs'>
+              <div className='shrink-0 bg-[#FCFBF8] border-b border-[#D8D2C5] px-6 py-3.5 flex flex-wrap items-center justify-between gap-3 shadow-2xs'>
                 <div className='min-w-0 flex-1'>
                   <div className='flex items-center gap-2 flex-wrap'>
-                    <span className='px-2.5 py-0.5 rounded-md bg-zinc-900 text-white font-mono text-xs font-bold tracking-wider'>
+                    <span className='px-2.5 py-0.5 rounded-md bg-[#1C1917] text-[#FCFBF8] font-mono text-xs font-bold tracking-wider'>
                       CẢNH {selectedScene.sceneNumber}
                     </span>
-                    <span className='text-xs font-mono text-zinc-500'>
+                    <span className='text-xs font-mono text-[#57534E]'>
                       ID: {selectedScene.id.substring(0, 8)}...
                     </span>
                     {selectedScene.defaultNarrationMode &&
@@ -1408,11 +1498,11 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                         </span>
                       )}
                   </div>
-                  <h3 className='text-base md:text-lg font-bold font-serif text-zinc-900 mt-1 truncate'>
+                  <h3 className='text-base md:text-lg font-bold font-serif text-[#1C1917] mt-1 truncate'>
                     {selectedScene.heading || 'Phân cảnh chưa đặt tiêu đề'}
                   </h3>
                   {selectedScene.summary && (
-                    <p className='text-xs text-zinc-500 italic mt-0.5 truncate'>
+                    <p className='text-xs text-[#57534E] italic mt-0.5 truncate'>
                       &ldquo;{selectedScene.summary}&rdquo;
                     </p>
                   )}
@@ -1421,11 +1511,11 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                 {/* Toolbar cho phân cảnh */}
                 <div className='flex items-center gap-2 flex-wrap shrink-0'>
                   {canEditScript && !isChapterLocked && (
-                    <div className='flex items-center gap-1 border-r border-zinc-200 pr-2 mr-1'>
+                    <div className='flex items-center gap-1 border-r border-[#D8D2C5] pr-2 mr-1'>
                       <button
                         type='button'
                         onClick={handleOpenEditScene}
-                        className='p-1.5 text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 rounded-lg cursor-pointer transition-colors'
+                        className='p-1.5 text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9] rounded-lg cursor-pointer transition-colors'
                         title='Sửa tiêu đề & tóm tắt phân cảnh'
                       >
                         <Edit2 className='w-4 h-4' />
@@ -1445,9 +1535,9 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                     type='button'
                     data-testid='open-script-history-btn'
                     onClick={() => setHistoryOpen(true)}
-                    className='inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-zinc-700 bg-white hover:bg-zinc-100 border border-[#E5DFD7] rounded-full transition-all cursor-pointer shadow-soft-sm'
+                    className='inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-[#57534E] bg-[#FCFBF8] hover:bg-[#F3F0E9] border border-[#D8D2C5] rounded-full transition-all cursor-pointer shadow-soft-sm'
                   >
-                    <History className='w-3.5 h-3.5 text-zinc-500' />
+                    <History className='w-3.5 h-3.5 text-[#57534E]' />
                     <span className='hidden sm:inline'>Lịch sử phiên bản</span>
                   </button>
 
@@ -1480,19 +1570,19 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               {/* Danh sách Dòng Kịch Bản (Ưu tiên vùng nhìn đầu tiên) */}
               <div className='flex-1 overflow-y-auto p-4 md:p-6 space-y-3.5 custom-scrollbar'>
                 {loadingDetail ? (
-                  <div className='flex items-center justify-center py-20 text-zinc-400 text-xs'>
-                    <RefreshCw className='w-5 h-5 animate-spin mr-2 text-orange-600' />
+                  <div className='flex items-center justify-center py-20 text-[#57534E] text-xs'>
+                    <RefreshCw className='w-5 h-5 animate-spin mr-2 text-[#C2410C]' />
                     <span>Đang nạp chi tiết phân cảnh...</span>
                   </div>
                 ) : !selectedScene.scriptLines || selectedScene.scriptLines.length === 0 ? (
-                  <div className='text-center py-16 border border-dashed border-[#E5DFD7] rounded-2xl text-zinc-400 text-xs bg-white'>
-                    <MessageSquare className='w-8 h-8 text-zinc-300 mx-auto mb-2' />
+                  <div className='text-center py-16 border border-dashed border-[#D8D2C5] rounded-2xl text-[#57534E] text-xs bg-[#FCFBF8]'>
+                    <MessageSquare className='w-8 h-8 text-[#57534E]/50 mx-auto mb-2' />
                     Phân cảnh này chưa có dòng kịch bản nào.
                     {canEditScript && !isChapterLocked && (
                       <button
                         type='button'
                         onClick={handleOpenAddLine}
-                        className='block mx-auto mt-3 px-3.5 py-1.5 text-xs font-bold text-white bg-orange-600 hover:bg-orange-700 rounded-xl cursor-pointer shadow-xs'
+                        className='block mx-auto mt-3 px-3.5 py-1.5 text-xs font-bold text-white bg-[#F97316] hover:bg-[#EA580C] rounded-xl cursor-pointer shadow-xs'
                       >
                         + Thêm dòng kịch bản đầu tiên
                       </button>
@@ -1552,12 +1642,12 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             </>
           ) : (
             // Trạng thái chưa chọn cảnh
-            <div className='flex-1 flex flex-col items-center justify-center text-center p-12 text-zinc-400'>
-              <div className='p-3.5 bg-zinc-100 rounded-2xl mb-3 text-zinc-400'>
+            <div className='flex-1 flex flex-col items-center justify-center text-center p-12 text-[#57534E]'>
+              <div className='p-3.5 bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl mb-3 text-[#57534E]'>
                 <Clapperboard className='w-8 h-8' />
               </div>
-              <h3 className='text-sm font-bold text-zinc-700'>Chưa chọn Phân cảnh</h3>
-              <p className='text-xs mt-1 max-w-sm text-zinc-500'>
+              <h3 className='text-sm font-bold text-[#1C1917]'>Chưa chọn Phân cảnh</h3>
+              <p className='text-xs mt-1 max-w-sm text-[#57534E]'>
                 Vui lòng chọn một phân cảnh ở thanh bên trái hoặc tạo phân cảnh mới để bắt đầu soạn
                 thảo kịch bản.
               </p>
@@ -1565,7 +1655,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                 <button
                   type='button'
                   onClick={handleOpenCreateScene}
-                  className='mt-4 px-4 py-2 text-xs font-bold text-white bg-orange-600 hover:bg-orange-700 rounded-xl cursor-pointer shadow-xs'
+                  className='mt-4 px-4 py-2 text-xs font-bold text-white bg-[#F97316] hover:bg-[#EA580C] rounded-xl cursor-pointer shadow-xs'
                 >
                   + Tạo phân cảnh mới
                 </button>
@@ -1669,15 +1759,15 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       {/* MODAL: Tạo / Sửa Phân cảnh */}
       {sceneModalOpen && (
         <div className='fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in'>
-          <div className='bg-white rounded-2xl max-w-md w-full border border-[#E7E7E7] shadow-2xl p-6'>
-            <div className='flex items-center justify-between pb-3 border-b border-[#E7E7E7] mb-4'>
-              <h3 className='text-sm md:text-base font-bold text-zinc-900'>
+          <div className='bg-[#FCFBF8] rounded-2xl max-w-md w-full border border-[#D8D2C5] shadow-2xl p-6'>
+            <div className='flex items-center justify-between pb-3 border-b border-[#D8D2C5] mb-4'>
+              <h3 className='text-sm md:text-base font-bold font-serif text-[#1C1917]'>
                 {isEditingScene ? 'Sửa Phân Cảnh' : 'Tạo Phân Cảnh Mới'}
               </h3>
               <button
                 type='button'
                 onClick={() => setSceneModalOpen(false)}
-                className='text-zinc-400 hover:text-zinc-700'
+                className='text-[#57534E] hover:text-[#1C1917] cursor-pointer'
               >
                 <X className='w-5 h-5' />
               </button>
@@ -1686,7 +1776,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             <form onSubmit={handleSubmitScene} className='space-y-4'>
               {!isEditingScene && (
                 <div>
-                  <label className='block text-xs font-semibold text-zinc-700 mb-1'>
+                  <label className='block text-xs font-semibold text-[#1C1917] mb-1'>
                     Số thứ tự cảnh (Scene Number)
                   </label>
                   <input
@@ -1694,14 +1784,14 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                     min={1}
                     value={sceneNumberInput}
                     onChange={(e) => setSceneNumberInput(parseInt(e.target.value, 10) || 1)}
-                    className='w-full px-3 py-2 text-xs border border-[#E7E7E7] rounded-xl outline-none focus:border-orange-500'
+                    className='w-full px-3 py-2 text-xs border border-[#D8D2C5] rounded-xl outline-none focus:border-[#F97316] bg-[#FCFBF8] text-[#1C1917]'
                     required
                   />
                 </div>
               )}
 
               <div>
-                <label className='block text-xs font-semibold text-zinc-700 mb-1'>
+                <label className='block text-xs font-semibold text-[#1C1917] mb-1'>
                   Tiêu đề phân cảnh (Heading)
                 </label>
                 <input
@@ -1709,12 +1799,12 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                   placeholder='Ví dụ: Cảnh 1: Neo Tokyo - Đêm tuyết rơi'
                   value={sceneHeadingInput}
                   onChange={(e) => setSceneHeadingInput(e.target.value)}
-                  className='w-full px-3 py-2 text-xs border border-[#E7E7E7] rounded-xl outline-none focus:border-orange-500'
+                  className='w-full px-3 py-2 text-xs border border-[#D8D2C5] rounded-xl outline-none focus:border-[#F97316] bg-[#FCFBF8] text-[#1C1917]'
                 />
               </div>
 
               <div>
-                <label className='block text-xs font-semibold text-zinc-700 mb-1'>
+                <label className='block text-xs font-semibold text-[#1C1917] mb-1'>
                   Tóm tắt phân cảnh (Summary)
                 </label>
                 <textarea
@@ -1722,20 +1812,20 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                   placeholder='Mô tả ngắn gọn bối cảnh và diễn biến trong cảnh này...'
                   value={sceneSummaryInput}
                   onChange={(e) => setSceneSummaryInput(e.target.value)}
-                  className='w-full px-3 py-2 text-xs border border-[#E7E7E7] rounded-xl outline-none focus:border-orange-500 resize-none'
+                  className='w-full px-3 py-2 text-xs border border-[#D8D2C5] rounded-xl outline-none focus:border-[#F97316] bg-[#FCFBF8] text-[#1C1917] resize-none'
                 />
               </div>
 
               <div>
-                <label className='block text-xs font-semibold text-zinc-700 mb-1 flex items-center gap-1.5'>
-                  <Compass className='w-3.5 h-3.5 text-orange-600' />
+                <label className='block text-xs font-semibold text-[#1C1917] mb-1 flex items-center gap-1.5'>
+                  <Compass className='w-3.5 h-3.5 text-[#C2410C]' />
                   <span>Chế độ kể chuyện mặc định (Default Narration Mode)</span>
                 </label>
                 <select
                   data-testid='scene-default-narration-mode-select'
                   value={sceneDefaultNarrationMode}
                   onChange={(e) => setSceneDefaultNarrationMode(e.target.value as NarrationMode)}
-                  className='w-full px-3 py-2 text-xs border border-[#E7E7E7] rounded-xl outline-none focus:border-orange-500 bg-white'
+                  className='w-full px-3 py-2 text-xs border border-[#D8D2C5] rounded-xl outline-none focus:border-[#F97316] bg-[#FCFBF8] text-[#1C1917] cursor-pointer'
                 >
                   <option value='Present'>Hiện tại / Mặc định (Present)</option>
                   <option value='Flashback'>Hồi tưởng (Flashback)</option>
@@ -1747,24 +1837,24 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                     Người kể không đáng tin (Unreliable Narrator)
                   </option>
                 </select>
-                <p className='text-xs text-zinc-500 mt-1'>
+                <p className='text-xs text-[#57534E] mt-1'>
                   Các dòng kịch bản mới thêm vào phân cảnh này sẽ tự động kế thừa chế độ kể chuyện
                   tương ứng.
                 </p>
               </div>
 
-              <div className='flex justify-end gap-2 pt-2 border-t border-[#E7E7E7]'>
+              <div className='flex justify-end gap-2 pt-2 border-t border-[#D8D2C5]'>
                 <button
                   type='button'
                   onClick={() => setSceneModalOpen(false)}
-                  className='px-4 py-2 text-xs font-semibold text-zinc-600 hover:bg-zinc-100 rounded-xl cursor-pointer'
+                  className='px-4 py-2 text-xs font-semibold text-[#57534E] hover:bg-[#F3F0E9] rounded-xl cursor-pointer'
                 >
                   Huỷ
                 </button>
                 <button
                   type='submit'
                   disabled={submitting}
-                  className='px-4 py-2 text-xs font-semibold text-white bg-orange-600 hover:bg-orange-700 rounded-xl shadow-xs disabled:opacity-50 cursor-pointer'
+                  className='px-4 py-2 text-xs font-semibold text-white bg-[#F97316] hover:bg-[#EA580C] rounded-xl shadow-xs disabled:opacity-50 cursor-pointer'
                 >
                   {submitting ? 'Đang lưu...' : isEditingScene ? 'Cập Nhật Cảnh' : 'Tạo Cảnh'}
                 </button>
@@ -1777,22 +1867,22 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       {/* MODAL: Thêm / Sửa Dòng Kịch Bản (UC-06) */}
       {lineModalOpen && (
         <div className='fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in'>
-          <div className='bg-white rounded-2xl max-w-lg w-full border border-[#E7E7E7] shadow-2xl p-6'>
-            <div className='flex items-center justify-between pb-3 border-b border-[#E7E7E7] mb-4'>
+          <div className='bg-[#FCFBF8] rounded-2xl max-w-lg w-full border border-[#D8D2C5] shadow-2xl p-6'>
+            <div className='flex items-center justify-between pb-3 border-b border-[#D8D2C5] mb-4'>
               <div>
-                <h3 className='text-sm md:text-base font-bold text-zinc-900'>
+                <h3 className='text-sm md:text-base font-bold font-serif text-[#1C1917]'>
                   {editingLine
                     ? `Sửa Dòng Kịch Bản #${editingLine.lineOrder}`
                     : 'Thêm Dòng Kịch Bản Mới (UC-06)'}
                 </h3>
-                <p className='text-xs text-zinc-500'>
+                <p className='text-xs text-[#57534E]'>
                   Phiên bản chương hiện tại: <strong>v{currentChapter?.versionVector}</strong>
                 </p>
               </div>
               <button
                 type='button'
                 onClick={() => setLineModalOpen(false)}
-                className='text-zinc-400 hover:text-zinc-700 cursor-pointer'
+                className='text-[#57534E] hover:text-[#1C1917] cursor-pointer'
               >
                 <X className='w-5 h-5' />
               </button>
@@ -1801,14 +1891,14 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             <form onSubmit={handleSubmitLine} className='space-y-4'>
               {/* Chọn Người nói (Speaker) - Không ép buộc người nói */}
               <div>
-                <label className='block text-xs font-semibold text-zinc-700 mb-1 flex items-center gap-1.5'>
-                  <User className='w-3.5 h-3.5 text-orange-600' />
+                <label className='block text-xs font-semibold text-[#1C1917] mb-1 flex items-center gap-1.5'>
+                  <User className='w-3.5 h-3.5 text-[#C2410C]' />
                   <span>Nhân vật nói (Speaker Character)</span>
                 </label>
                 <select
                   value={lineSpeakerId}
                   onChange={(e) => setLineSpeakerId(e.target.value)}
-                  className='w-full px-3 py-2 text-xs border border-[#E7E7E7] rounded-xl outline-none focus:border-orange-500 bg-white cursor-pointer'
+                  className='w-full px-3 py-2 text-xs border border-[#D8D2C5] rounded-xl outline-none focus:border-[#F97316] bg-[#FCFBF8] text-[#1C1917] cursor-pointer'
                 >
                   <option value=''>-- Không có người nói (Lời dẫn ngoài / Hành động) --</option>
                   {characters.map((char) => (
@@ -1817,7 +1907,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                     </option>
                   ))}
                 </select>
-                <p className='text-xs text-zinc-500 mt-1'>
+                <p className='text-xs text-[#57534E] mt-1'>
                   * Nhân vật được lấy từ Series Bible. Gắn đúng nhân vật giúp Letterer sinh balloon
                   tương ứng.
                 </p>
@@ -1825,8 +1915,8 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
               {/* Lời thoại (Dialogue) */}
               <div>
-                <label className='block text-xs font-semibold text-zinc-700 mb-1 flex items-center gap-1.5'>
-                  <MessageSquare className='w-3.5 h-3.5 text-blue-600' />
+                <label className='block text-xs font-semibold text-[#1C1917] mb-1 flex items-center gap-1.5'>
+                  <MessageSquare className='w-3.5 h-3.5 text-[#C2410C]' />
                   <span>Lời thoại (Dialogue Text)</span>
                 </label>
                 <textarea
@@ -1835,14 +1925,14 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                   value={lineDialogue}
                   onChange={(e) => setLineDialogue(e.target.value)}
                   maxLength={4000}
-                  className='w-full px-3 py-2 text-xs border border-[#E7E7E7] rounded-xl outline-none focus:border-orange-500 resize-none font-serif leading-relaxed'
+                  className='w-full px-3 py-2 text-xs border border-[#D8D2C5] rounded-xl outline-none focus:border-[#F97316] bg-[#FCFBF8] text-[#1C1917] resize-none font-serif leading-relaxed'
                 />
               </div>
 
               {/* Chỉ dẫn cảnh (Stage Direction) */}
               <div>
-                <label className='block text-xs font-semibold text-zinc-700 mb-1 flex items-center gap-1.5'>
-                  <Clapperboard className='w-3.5 h-3.5 text-zinc-600' />
+                <label className='block text-xs font-semibold text-[#1C1917] mb-1 flex items-center gap-1.5'>
+                  <Clapperboard className='w-3.5 h-3.5 text-[#57534E]' />
                   <span>Chỉ dẫn cảnh / Hành động (Stage Direction)</span>
                 </label>
                 <textarea
@@ -1851,24 +1941,24 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                   value={lineStageDirection}
                   onChange={(e) => setLineStageDirection(e.target.value)}
                   maxLength={4000}
-                  className='w-full px-3 py-2 text-xs border border-[#E7E7E7] rounded-xl outline-none focus:border-orange-500 resize-none italic'
+                  className='w-full px-3 py-2 text-xs border border-[#D8D2C5] rounded-xl outline-none focus:border-[#F97316] bg-[#FCFBF8] text-[#1C1917] resize-none italic'
                 />
               </div>
 
               {/* Liên kết Series Bible (UC-06) */}
               <div>
-                <label className='block text-xs font-semibold text-zinc-700 mb-1 flex items-center justify-between'>
+                <label className='block text-xs font-semibold text-[#1C1917] mb-1 flex items-center justify-between'>
                   <div className='flex items-center gap-1.5'>
                     <BookOpen className='w-3.5 h-3.5 text-purple-600' />
                     <span>Liên kết Series Bible (Địa điểm, Đạo cụ, Nhân vật, Thuật ngữ...)</span>
                   </div>
-                  <span className='text-xs text-zinc-500 font-normal'>
+                  <span className='text-xs text-[#57534E] font-normal'>
                     Đã chọn {lineBibleEntryIds.length}/20 mục
                   </span>
                 </label>
-                <div className='max-h-28 overflow-y-auto border border-[#E7E7E7] rounded-xl p-2.5 bg-zinc-50/50 custom-scrollbar'>
+                <div className='max-h-28 overflow-y-auto border border-[#D8D2C5] rounded-xl p-2.5 bg-[#F8F6F0] custom-scrollbar'>
                   {allBibleEntries.length === 0 ? (
-                    <p className='text-xs text-zinc-400 italic'>
+                    <p className='text-xs text-[#57534E] italic'>
                       Series Bible chưa có mục nào hoặc đang tải.
                     </p>
                   ) : (
@@ -1910,18 +2000,18 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
               {/* Ngoại lệ trần thuật (Narration Mode) */}
               <div>
-                <label className='block text-xs font-semibold text-zinc-700 mb-1 flex items-center justify-between'>
+                <label className='block text-xs font-semibold text-[#1C1917] mb-1 flex items-center justify-between'>
                   <div className='flex items-center gap-1.5'>
                     <Compass className='w-3.5 h-3.5 text-purple-600' />
                     <span>Ngoại lệ trần thuật (Narration Mode)</span>
                   </div>
-                  <span className='text-xs text-zinc-500 font-normal'>Bỏ qua báo sai</span>
+                  <span className='text-xs text-[#57534E] font-normal'>Bỏ qua báo sai</span>
                 </label>
                 <select
                   data-testid='line-narration-mode-select'
                   value={lineNarrationMode}
                   onChange={(e) => setLineNarrationMode(e.target.value as NarrationMode)}
-                  className='w-full px-3 py-2 text-xs border border-[#E7E7E7] rounded-xl outline-none focus:border-purple-500 bg-white cursor-pointer'
+                  className='w-full px-3 py-2 text-xs border border-[#D8D2C5] rounded-xl outline-none focus:border-purple-500 bg-[#FCFBF8] text-[#1C1917] cursor-pointer'
                 >
                   <option value='Present'>Hiện tại / Mặc định (Present - Kiểm tra toàn bộ)</option>
                   <option value='Flashback'>
@@ -1943,7 +2033,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                     Người kể không đáng tin (Hạ cảnh báo xuống Warning)
                   </option>
                 </select>
-                <p className='text-xs text-zinc-500 mt-1'>
+                <p className='text-xs text-[#57534E] mt-1'>
                   * Chọn ngoại lệ có chủ ý để hệ thống Kiểm tra Nhất quán không báo lỗi sai (False
                   Positives).
                 </p>
@@ -1952,7 +2042,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               {/* Vị trí chèn nếu tạo mới */}
               {!editingLine && (
                 <div>
-                  <label className='block text-xs font-semibold text-zinc-700 mb-1'>
+                  <label className='block text-xs font-semibold text-[#1C1917] mb-1'>
                     Thứ tự dòng (Line Order)
                   </label>
                   <input
@@ -1960,19 +2050,19 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                     min={1}
                     value={lineOrderInput}
                     onChange={(e) => setLineOrderInput(parseInt(e.target.value, 10) || 1)}
-                    className='w-32 px-3 py-1.5 text-xs border border-[#E7E7E7] rounded-xl outline-none focus:border-orange-500'
+                    className='w-32 px-3 py-1.5 text-xs border border-[#D8D2C5] rounded-xl outline-none focus:border-[#F97316] bg-[#FCFBF8] text-[#1C1917]'
                   />
-                  <span className='text-xs text-zinc-500 ml-2'>
+                  <span className='text-xs text-[#57534E] ml-2'>
                     Trùng số sẽ tự động chèn và dịch các dòng sau xuống.
                   </span>
                 </div>
               )}
 
-              <div className='flex justify-end gap-2 pt-3 border-t border-[#E7E7E7]'>
+              <div className='flex justify-end gap-2 pt-3 border-t border-[#D8D2C5]'>
                 <button
                   type='button'
                   onClick={() => setLineModalOpen(false)}
-                  className='px-4 py-2 text-xs font-semibold text-zinc-600 hover:bg-zinc-100 rounded-xl cursor-pointer'
+                  className='px-4 py-2 text-xs font-semibold text-[#57534E] hover:bg-[#F3F0E9] rounded-xl cursor-pointer'
                 >
                   Huỷ
                 </button>
@@ -1980,7 +2070,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                   data-testid='submit-line-btn'
                   type='submit'
                   disabled={submitting}
-                  className='px-4 py-2 text-xs font-semibold text-white bg-orange-600 hover:bg-orange-700 rounded-xl shadow-xs disabled:opacity-50 cursor-pointer'
+                  className='px-4 py-2 text-xs font-semibold text-white bg-[#F97316] hover:bg-[#EA580C] rounded-xl shadow-xs disabled:opacity-50 cursor-pointer'
                 >
                   {submitting ? 'Đang lưu...' : editingLine ? 'Lưu Thay Đổi' : 'Thêm Dòng Kịch Bản'}
                 </button>

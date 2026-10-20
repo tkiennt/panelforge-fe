@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { BrandMark } from '@/shared/components/BrandMark';
 import {
   X,
   Sparkles,
@@ -334,20 +335,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             {/* ===== VIEW 1: ĐĂNG NHẬP THƯỜNG ===== */}
             {step === 'login' && (
               <div className='animate-in fade-in duration-300'>
-                <div className='w-10 h-10 rounded-full bg-[#292524] text-white flex items-center justify-center mb-6 shadow-soft-sm'>
-                  <svg
-                    width='20'
-                    height='20'
-                    viewBox='0 0 24 24'
-                    fill='none'
-                    stroke='white'
-                    strokeWidth='2'
-                    strokeLinecap='round'
-                    strokeLinejoin='round'
-                  >
-                    <path d='M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z' />
-                  </svg>
-                </div>
+                <BrandMark size={36} className='mb-6' />
                 <h2 className='font-serif font-light text-3xl text-[#0c0a09] tracking-tight'>
                   Welcome Back
                 </h2>

@@ -127,40 +127,40 @@ export const ExportView: React.FC<ExportViewProps> = ({ onShowToast }) => {
       .catch((err) => onShowToast('Không huỷ được', err.message));
 
   return (
-    <PageContainer className='py-8 flex flex-col h-full overflow-y-auto custom-scrollbar'>
+    <PageContainer className='py-8 flex flex-col h-full overflow-y-auto custom-scrollbar font-sans'>
       <button
         onClick={() => navigate(-1)}
-        className='self-start flex items-center gap-2 text-sm text-[#737373] hover:text-[#171717] mb-6 transition-colors'
+        className='self-start flex items-center gap-2 text-sm text-[#57534E] hover:text-[#1C1917] mb-6 transition-colors cursor-pointer font-medium'
       >
         <ArrowLeft className='w-4 h-4' /> Quay lại
       </button>
 
-      <h1 className='text-3xl font-display font-bold text-[#171717] mb-2 flex items-center gap-3'>
-        <Download className='w-8 h-8 text-[#8B5CF6]' />
+      <h1 className='text-3xl font-serif font-bold text-[#1C1917] mb-2 flex items-center gap-3'>
+        <Download className='w-8 h-8 text-[#F97316]' />
         Xuất chương
       </h1>
-      <p className='text-[#555555] mb-8'>
+      <p className='text-[#57534E] mb-8 text-sm'>
         Chỉ chương đã được Producer duyệt (Approved) hoặc đã phát hành mới xuất được. Nội dung
         chương đã duyệt là chỉ đọc, nên file luôn đúng bản đã duyệt.
       </p>
 
       {!seriesId ? (
-        <p className='text-sm text-[#737373]'>Mở màn này từ trong một Series để chọn chương.</p>
+        <p className='text-sm text-[#57534E]'>Mở màn này từ trong một Series để chọn chương.</p>
       ) : chapters.length === 0 ? (
-        <p className='text-sm text-[#737373]' data-testid='export-no-chapter'>
+        <p className='text-sm text-[#57534E]' data-testid='export-no-chapter'>
           Series chưa có chương nào đã duyệt để xuất.
         </p>
       ) : (
         <div className='grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-6'>
-          <div className='p-6 border border-[#8B5CF6] rounded-xl flex flex-col gap-4 bg-white shadow-md'>
-            <label htmlFor='export-chapter' className='font-bold text-[#171717]'>
+          <div className='p-6 border border-[#D8D2C5] rounded-xl flex flex-col gap-4 bg-[#FCFBF8] shadow-xs'>
+            <label htmlFor='export-chapter' className='font-bold text-sm text-[#1C1917]'>
               Chương
             </label>
             <select
               id='export-chapter'
               value={chapterId}
               onChange={(e) => setChapterId(e.target.value)}
-              className='px-3 py-2 border border-[#E7E7E7] rounded-lg text-sm'
+              className='px-3 py-2 bg-[#F8F6F0] border border-[#D8D2C5] rounded-lg text-sm text-[#1C1917] focus:outline-none focus:border-[#F97316] cursor-pointer'
               data-testid='export-chapter-select'
             >
               {chapters.map((c) => (
@@ -172,20 +172,20 @@ export const ExportView: React.FC<ExportViewProps> = ({ onShowToast }) => {
             </select>
 
             <fieldset className='space-y-3'>
-              <legend className='font-bold text-[#171717] mb-2'>Định dạng</legend>
+              <legend className='font-bold text-sm text-[#1C1917] mb-2'>Định dạng</legend>
               {FORMATS.map(({ code, label, hint, icon: Icon }) => (
-                <label key={code} className='flex items-start gap-3 cursor-pointer'>
+                <label key={code} className='flex items-start gap-3 cursor-pointer group'>
                   <input
                     type='checkbox'
                     checked={formats.includes(code)}
                     onChange={() => toggleFormat(code)}
-                    className='mt-0.5 w-4 h-4 rounded text-[#8B5CF6] focus:ring-[#8B5CF6]'
+                    className='mt-0.5 w-4 h-4 rounded text-[#F97316] focus:ring-[#F97316] accent-[#F97316] border-[#D8D2C5] cursor-pointer'
                     data-testid={`export-format-${code}`}
                   />
-                  <Icon className='w-4 h-4 mt-0.5 text-[#737373] shrink-0' />
+                  <Icon className='w-4 h-4 mt-0.5 text-[#78716C] group-hover:text-[#F97316] shrink-0 transition-colors' />
                   <span>
-                    <span className='block text-sm font-semibold'>{label}</span>
-                    <span className='block text-xs text-[#737373]'>{hint}</span>
+                    <span className='block text-sm font-semibold text-[#1C1917]'>{label}</span>
+                    <span className='block text-xs text-[#57534E]'>{hint}</span>
                   </span>
                 </label>
               ))}
@@ -194,7 +194,7 @@ export const ExportView: React.FC<ExportViewProps> = ({ onShowToast }) => {
             <button
               onClick={handleExport}
               disabled={submitting || formats.length === 0 || !chapterId}
-              className='mt-auto py-2.5 bg-[#EA580C] text-white font-bold rounded-full hover:bg-[#C2410C] disabled:opacity-50 transition-all shadow-soft-sm flex items-center justify-center gap-2 cursor-pointer'
+              className='mt-auto py-2.5 bg-[#F97316] text-white font-bold rounded-full hover:bg-[#EA580C] disabled:opacity-50 transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer active:scale-98'
               data-testid='export-submit'
             >
               {submitting && <Loader2 className='w-4 h-4 animate-spin' />}
@@ -202,39 +202,39 @@ export const ExportView: React.FC<ExportViewProps> = ({ onShowToast }) => {
             </button>
           </div>
 
-          <div className='p-6 border border-[#E7E7E7] rounded-xl bg-white min-w-0'>
+          <div className='p-6 border border-[#D8D2C5] rounded-xl bg-[#FCFBF8] shadow-xs min-w-0'>
             <div className='flex items-center justify-between mb-3'>
-              <h2 className='font-bold text-[#171717]'>Bản xuất của chương</h2>
+              <h2 className='font-bold text-[#1C1917]'>Bản xuất của chương</h2>
               <button
                 type='button'
                 onClick={fetchJobs}
-                className='p-1 rounded text-[#737373] hover:text-[#171717] cursor-pointer'
+                className='p-1 rounded text-[#78716C] hover:text-[#1C1917] cursor-pointer'
                 aria-label='Tải lại danh sách bản xuất'
               >
-                <RefreshCw className={`w-4 h-4 ${running ? 'animate-spin text-orange-600' : ''}`} />
+                <RefreshCw className={`w-4 h-4 ${running ? 'animate-spin text-[#F97316]' : ''}`} />
               </button>
             </div>
 
             {jobs.length === 0 ? (
-              <p className='text-sm text-[#737373]'>Chưa có bản xuất nào.</p>
+              <p className='text-sm text-[#57534E]'>Chưa có bản xuất nào.</p>
             ) : (
               <div className='overflow-x-auto'>
                 <table className='w-full text-left text-xs'>
-                  <thead className='font-mono text-[10px] text-[#737373] uppercase border-b border-[#E7E7E7]'>
+                  <thead className='font-mono text-[10px] text-[#78716C] uppercase border-b border-[#D8D2C5]'>
                     <tr>
-                      <th className='py-2 pr-3'>Định dạng</th>
-                      <th className='py-2 pr-3'>Trạng thái</th>
-                      <th className='py-2 pr-3'>Trang</th>
-                      <th className='py-2 pr-3'>Dung lượng</th>
-                      <th className='py-2 pr-3'>Tạo lúc</th>
-                      <th className='py-2 text-right'>Thao tác</th>
+                      <th className='py-2 pr-3 font-semibold'>Định dạng</th>
+                      <th className='py-2 pr-3 font-semibold'>Trạng thái</th>
+                      <th className='py-2 pr-3 font-semibold'>Trang</th>
+                      <th className='py-2 pr-3 font-semibold'>Dung lượng</th>
+                      <th className='py-2 pr-3 font-semibold'>Tạo lúc</th>
+                      <th className='py-2 text-right font-semibold'>Thao tác</th>
                     </tr>
                   </thead>
-                  <tbody className='divide-y divide-[#E7E7E7]'>
+                  <tbody className='divide-y divide-[#D8D2C5]'>
                     {jobs.map((job) => (
                       <tr key={job.id} data-testid={`export-job-${job.id}`}>
-                        <td className='py-2 pr-3 font-semibold'>{job.format}</td>
-                        <td className='py-2 pr-3'>
+                        <td className='py-2.5 pr-3 font-semibold text-[#1C1917]'>{job.format}</td>
+                        <td className='py-2.5 pr-3'>
                           <span
                             className={`px-2 py-0.5 rounded-full border text-[10px] font-bold ${STATUS_LABEL[job.status].className}`}
                           >
@@ -244,17 +244,17 @@ export const ExportView: React.FC<ExportViewProps> = ({ onShowToast }) => {
                             <div className='mt-1 text-[11px] text-red-700'>{job.error}</div>
                           )}
                         </td>
-                        <td className='py-2 pr-3'>{job.pageCount}</td>
-                        <td className='py-2 pr-3'>{formatSize(job.sizeBytes)}</td>
-                        <td className='py-2 pr-3 font-mono text-[11px] text-[#555555]'>
+                        <td className='py-2.5 pr-3 tabular-nums text-[#1C1917]'>{job.pageCount}</td>
+                        <td className='py-2.5 pr-3 tabular-nums text-[#1C1917]'>{formatSize(job.sizeBytes)}</td>
+                        <td className='py-2.5 pr-3 font-mono text-[11px] text-[#57534E]'>
                           {new Date(job.createdAt).toLocaleString('vi-VN')}
                         </td>
-                        <td className='py-2 text-right whitespace-nowrap'>
+                        <td className='py-2.5 text-right whitespace-nowrap'>
                           {job.status === 'Completed' && (
                             <button
                               type='button'
                               onClick={() => handleDownload(job)}
-                              className='px-3 py-1 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold inline-flex items-center gap-1 shadow-soft-sm cursor-pointer'
+                              className='px-3 py-1 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold inline-flex items-center gap-1 shadow-sm cursor-pointer'
                               data-testid={`export-download-${job.id}`}
                             >
                               <Download className='w-3.5 h-3.5' /> Tải
@@ -264,7 +264,7 @@ export const ExportView: React.FC<ExportViewProps> = ({ onShowToast }) => {
                             <button
                               type='button'
                               onClick={() => handleCancel(job)}
-                              className='px-2 py-1 rounded border border-[#E7E7E7] text-[#555555] font-semibold inline-flex items-center gap-1'
+                              className='px-2.5 py-1 rounded-lg border border-[#D8D2C5] bg-[#FCFBF8] hover:bg-[#F3F0E9] text-[#57534E] hover:text-[#1C1917] font-semibold inline-flex items-center gap-1 transition-colors cursor-pointer'
                               data-testid={`export-cancel-${job.id}`}
                             >
                               <X className='w-3.5 h-3.5' /> Huỷ
