@@ -5,10 +5,6 @@ import {
   BookOpen,
   Briefcase,
   ChevronDown,
-  Bell,
-  Search,
-  History,
-  UserCircle,
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
@@ -39,6 +35,8 @@ export interface AppShellSidebarProps {
   isCollapsed?: boolean;
   onToggleRail?: () => void;
   onToggleCollapse?: () => void;
+  onExpand?: () => void;
+  onCollapse?: () => void;
   isMobileDrawer?: boolean;
 }
 
@@ -52,19 +50,18 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
   navSections,
   handleNavClick,
   renderBadge,
-  onOpenNotifications,
-  onOpenCommandPalette,
-  onOpenActivityHistory,
-  unreadNotificationCount,
-  onOpenTwoFactor,
   onLogout,
   onSelectSeries,
   isRailExpanded,
   isCollapsed: isCollapsedProp,
   onToggleRail,
   onToggleCollapse,
+  onExpand,
+  onCollapse,
   isMobileDrawer = false,
 }) => {
+  const sidebarRef = useRef<HTMLElement>(null);
+
   // Ưu tiên isCollapsedProp, nếu không có thì dựa theo isRailExpanded (false nghĩa là thu gọn, true là mở rộng)
   const isCollapsed =
     !isMobileDrawer &&
@@ -75,6 +72,35 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
         : false);
   const showFullContent = isMobileDrawer || !isCollapsed;
   const handleToggle = onToggleCollapse || onToggleRail;
+
+  const handleMouseEnter = () => {
+    if (!isMobileDrawer && isCollapsed) {
+      if (onExpand) {
+        onExpand();
+      } else if (onToggleCollapse) {
+        onToggleCollapse();
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (isMobileDrawer || isCollapsed) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (sidebarRef.current && !sidebarRef.current.contains(event.target as Node)) {
+        if (onCollapse) {
+          onCollapse();
+        } else if (onToggleCollapse) {
+          onToggleCollapse();
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isMobileDrawer, isCollapsed, onCollapse, onToggleCollapse]);
 
   const [seriesDropdownOpen, setSeriesDropdownOpen] = useState(false);
   const [seriesList, setSeriesList] = useState<SeriesDto[]>([]);
@@ -120,10 +146,12 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
 
   return (
     <aside
+      ref={sidebarRef}
+      onMouseEnter={handleMouseEnter}
       className={
         isMobileDrawer
           ? 'w-full bg-[#FCFBF8] flex flex-col select-none h-full overflow-hidden'
-          : `hidden md:flex flex-col shrink-0 select-none z-20 h-full bg-[#FCFBF8] border-r border-[#E7E2D9] transition-all duration-200 ${
+          : `hidden md:flex flex-col shrink-0 select-none z-20 h-full bg-[#FCFBF8] border-r border-[#E7E2D9] transition-[width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] will-change-[width] overflow-hidden ${
               isCollapsed ? 'w-16' : 'w-64'
             }`
       }
@@ -131,14 +159,14 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
     >
       {/* Brand Header */}
       <div
-        className={`px-3 pt-4 pb-2 flex items-center ${
-          showFullContent ? 'justify-between' : 'flex-col gap-2 justify-center'
+        className={`px-3 flex items-center h-16 shrink-0 border-b border-transparent transition-all duration-200 ${
+          showFullContent ? 'justify-between' : 'flex-col gap-1 justify-center'
         }`}
       >
         <div className='flex items-center gap-2.5 min-w-0'>
           <BrandMark size={28} className='shrink-0' />
           {showFullContent && (
-            <div className='min-w-0'>
+            <div className='min-w-0 animate-in fade-in duration-200'>
               <div className='font-serif font-medium text-sm leading-tight text-[#1C1917] tracking-tight truncate'>
                 PanelForge
               </div>
@@ -149,9 +177,9 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
           )}
         </div>
 
-        <div className='flex items-center gap-1'>
+        <div className='flex items-center gap-1 shrink-0'>
           {showFullContent && (
-            <span className='items-center px-2 py-0.5 rounded-md text-xs font-mono font-medium bg-[#F1EEE8] text-[#78716C] inline-flex'>
+            <span className='items-center px-2 py-0.5 rounded-md text-xs font-mono font-medium bg-[#F1EEE8] text-[#78716C] inline-flex animate-in fade-in duration-200'>
               v2.4
             </span>
           )}
@@ -375,11 +403,11 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
                     {IconComp && <IconComp className={iconClass} />}
                     {showFullContent && (
                       <>
-                        <span className='font-sans text-[14px] leading-5 line-clamp-2 break-words flex-1 text-left'>
+                        <span className='font-sans text-[14px] leading-5 truncate flex-1 text-left animate-in fade-in duration-150'>
                           {item.label}
                         </span>
                         {item.badge && (
-                          <span className='ml-auto shrink-0 flex items-center'>
+                          <span className='ml-auto shrink-0 flex items-center animate-in fade-in duration-150'>
                             {renderBadge(item.badge)}
                           </span>
                         )}
@@ -394,124 +422,31 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
       </nav>
 
       {/* Footer Navigation & System Controls */}
-      <div
-        className={`mt-auto border-t border-[#E7E2D9] bg-[#FCFBF8] ${
-          showFullContent ? 'p-3' : 'p-2'
-        }`}
-      >
-        <div className='space-y-1 mb-1'>
-          <button
-            type='button'
-            onClick={onOpenNotifications}
-            title={
-              (unreadNotificationCount ?? 0) > 0
-                ? `Notifications (${unreadNotificationCount} chưa đọc)`
-                : 'Notifications'
-            }
-            aria-label={
-              (unreadNotificationCount ?? 0) > 0
-                ? `Notifications (${unreadNotificationCount} chưa đọc)`
-                : 'Notifications'
-            }
-            data-testid='sidebar-notifications-btn'
-            className={`w-full flex items-center text-[13px] font-sans font-medium text-[#57534E] hover:text-[#1C1917] hover:bg-[#F1EEE8] rounded-lg transition-colors duration-150 motion-reduce:transition-none group cursor-pointer focus:outline-none focus-visible:outline-2 focus-visible:outline-[#C2410C] focus-visible:outline-offset-1 ${
-              showFullContent
-                ? `justify-start gap-3 px-3 py-2 ${isMobileDrawer ? 'min-h-[44px]' : 'min-h-[40px]'}`
-                : 'justify-center w-10 h-10 min-h-[40px] p-2 mx-auto relative'
-            }`}
-          >
-            <div className='relative shrink-0'>
-              <Bell className='w-5 h-5 text-[#78716C] group-hover:text-[#1C1917] stroke-[1.8]' />
-              {!showFullContent && (unreadNotificationCount ?? 0) > 0 && (
-                <span
-                  data-testid='sidebar-notifications-dot'
-                  className='absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-[#F97316] ring-2 ring-[#FCFBF8]'
-                />
-              )}
-            </div>
-            {showFullContent && (
-              <>
-                <span className='truncate text-[14px]'>Notifications</span>
-                {(unreadNotificationCount ?? 0) > 0 && (
-                  <span
-                    data-testid='sidebar-notifications-badge'
-                    className='ml-auto px-1.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-[#F97316]/15 text-[#C2410C] border border-[#F97316]/30'
-                  >
-                    {unreadNotificationCount! > 99 ? '99+' : unreadNotificationCount}
-                  </span>
-                )}
-              </>
-            )}
-          </button>
-          <button
-            type='button'
-            onClick={onOpenCommandPalette}
-            title='Global Search (⌘K / Ctrl+K)'
-            aria-label='Global Search'
-            data-testid='sidebar-global-search-btn'
-            className={`w-full flex items-center text-[13px] font-sans font-medium text-[#57534E] hover:text-[#1C1917] hover:bg-[#F1EEE8] rounded-lg transition-colors duration-150 motion-reduce:transition-none group cursor-pointer focus:outline-none focus-visible:outline-2 focus-visible:outline-[#C2410C] focus-visible:outline-offset-1 ${
-              showFullContent
-                ? `justify-start gap-3 px-3 py-2 ${isMobileDrawer ? 'min-h-[44px]' : 'min-h-[40px]'}`
-                : 'justify-center w-10 h-10 min-h-[40px] p-2 mx-auto'
-            }`}
-          >
-            <Search className='w-5 h-5 text-[#78716C] group-hover:text-[#1C1917] stroke-[1.8] shrink-0' />
-            {showFullContent && (
-              <>
-                <span className='truncate text-[14px]'>Global Search</span>
-                <span className='ml-auto text-[10px] font-mono text-[#78716C] bg-[#EFECE6] px-1.5 py-0.5 rounded border border-[#D8D2C5]'>
-                  ⌘K
-                </span>
-              </>
-            )}
-          </button>
-          <button
-            type='button'
-            onClick={onOpenActivityHistory}
-            title='My Activity / History'
-            aria-label='My Activity / History'
-            data-testid='sidebar-activity-history-btn'
-            className={`w-full flex items-center text-[13px] font-sans font-medium text-[#57534E] hover:text-[#1C1917] hover:bg-[#F1EEE8] rounded-lg transition-colors duration-150 motion-reduce:transition-none group cursor-pointer focus:outline-none focus-visible:outline-2 focus-visible:outline-[#C2410C] focus-visible:outline-offset-1 ${
-              showFullContent
-                ? `justify-start gap-3 px-3 py-2 ${isMobileDrawer ? 'min-h-[44px]' : 'min-h-[40px]'}`
-                : 'justify-center w-10 h-10 min-h-[40px] p-2 mx-auto'
-            }`}
-          >
-            <History className='w-5 h-5 text-[#78716C] group-hover:text-[#1C1917] stroke-[1.8] shrink-0' />
-            {showFullContent && <span className='truncate text-[14px]'>My Activity / History</span>}
-          </button>
-          <button
-            type='button'
-            onClick={onOpenTwoFactor}
-            title='Profile & Security (2FA)'
-            aria-label='Profile & Security (2FA)'
-            className={`w-full flex items-center text-[13px] font-sans font-medium text-[#57534E] hover:text-[#1C1917] hover:bg-[#F1EEE8] rounded-lg transition-colors duration-150 motion-reduce:transition-none group cursor-pointer focus:outline-none focus-visible:outline-2 focus-visible:outline-[#C2410C] focus-visible:outline-offset-1 ${
-              showFullContent
-                ? `justify-start gap-3 px-3 py-2 ${isMobileDrawer ? 'min-h-[44px]' : 'min-h-[40px]'}`
-                : 'justify-center w-10 h-10 min-h-[40px] p-2 mx-auto'
-            }`}
-          >
-            <UserCircle className='w-5 h-5 text-[#78716C] group-hover:text-[#1C1917] stroke-[1.8] shrink-0' />
-            {showFullContent && (
-              <span className='truncate text-[14px]'>Profile & Security (2FA)</span>
-            )}
-          </button>
-          <button
-            type='button'
-            onClick={onLogout}
-            title='Logout'
-            aria-label='Logout'
-            className={`w-full flex items-center text-[13px] font-sans font-medium text-[#57534E] hover:text-rose-600 hover:bg-rose-50/70 rounded-lg transition-colors duration-150 motion-reduce:transition-none group mt-1 cursor-pointer focus:outline-none focus-visible:outline-2 focus-visible:outline-rose-500 focus-visible:outline-offset-1 ${
-              showFullContent
-                ? `justify-start gap-3 px-3 py-2 ${isMobileDrawer ? 'min-h-[44px]' : 'min-h-[40px]'}`
-                : 'justify-center w-10 h-10 min-h-[40px] p-2 mx-auto'
-            }`}
-          >
-            <LogOut className='w-5 h-5 text-[#78716C] group-hover:text-rose-600 stroke-[1.8] shrink-0' />
-            {showFullContent && <span className='truncate text-[14px]'>Logout</span>}
-          </button>
+      {onLogout && (
+        <div
+          className={`mt-auto border-t border-[#E7E2D9] bg-[#FCFBF8] ${
+            showFullContent ? 'p-3' : 'p-2'
+          }`}
+        >
+          <div className='space-y-1 mb-1'>
+            <button
+              type='button'
+              onClick={onLogout}
+              title='Logout'
+              aria-label='Logout'
+              data-testid='sidebar-logout-btn'
+              className={`w-full flex items-center text-[13px] font-sans font-medium text-[#57534E] hover:text-rose-600 hover:bg-rose-50/70 rounded-lg transition-colors duration-150 motion-reduce:transition-none group cursor-pointer focus:outline-none focus-visible:outline-2 focus-visible:outline-rose-500 focus-visible:outline-offset-1 ${
+                showFullContent
+                  ? `justify-start gap-3 px-3 py-2 ${isMobileDrawer ? 'min-h-[44px]' : 'min-h-[40px]'}`
+                  : 'justify-center w-10 h-10 min-h-[40px] p-2 mx-auto'
+              }`}
+            >
+              <LogOut className='w-5 h-5 text-[#78716C] group-hover:text-rose-600 stroke-[1.8] shrink-0' />
+              {showFullContent && <span className='truncate text-[14px]'>Logout</span>}
+            </button>
+          </div>
         </div>
-      </div>
+      )}
     </aside>
   );
 };

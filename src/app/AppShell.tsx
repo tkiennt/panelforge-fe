@@ -503,6 +503,24 @@ export function AppShell({
     });
   };
 
+  const handleExpandSidebar = () => {
+    setIsSidebarCollapsed(false);
+    try {
+      localStorage.setItem('pf.sidebar.collapsed', 'false');
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleCollapseSidebar = () => {
+    setIsSidebarCollapsed(true);
+    try {
+      localStorage.setItem('pf.sidebar.collapsed', 'true');
+    } catch {
+      // ignore
+    }
+  };
+
   const navSections = rawSections.map((sec) => ({
     ...sec,
     items: sec.items.map((item) => ({ ...item })),
@@ -648,20 +666,17 @@ export function AppShell({
         navSections={navSections}
         handleNavClick={handleNavClick}
         renderBadge={renderBadge}
-        unreadNotificationCount={unreadNotifications}
-        onOpenNotifications={handleOpenNotifications}
-        onOpenCommandPalette={handleOpenCommandPalette}
-        onOpenActivityHistory={handleOpenActivityHistory}
-        onOpenTwoFactor={onOpenTwoFactor}
         onLogout={onLogout}
         onSelectSeries={onSelectSeries}
         isCollapsed={isSidebarCollapsed}
         onToggleCollapse={handleToggleSidebar}
+        onExpand={handleExpandSidebar}
+        onCollapse={handleCollapseSidebar}
         isMobileDrawer={false}
       />
 
       {/* --- RIGHT WRAPPER --- */}
-      <div className='flex-1 flex flex-col min-w-0 h-full bg-[#F3F0E9] relative'>
+      <div className='flex-1 flex flex-col min-w-0 h-full bg-[#F3F0E9] relative overflow-hidden'>
         <header className='h-16 bg-[#FCFBF8]/95 backdrop-blur-md border-b border-[#D8D2C5] flex items-center justify-between px-4 md:px-6 shrink-0 z-20'>
           <div className='flex items-center gap-2 min-w-0'>
             {!isReader && (
