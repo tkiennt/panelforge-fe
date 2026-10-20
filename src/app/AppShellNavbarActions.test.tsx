@@ -93,8 +93,25 @@ describe('AppShell Navbar/Sidebar 3 Functions: Notifications, Global Search, My 
     });
   });
 
-  describe('AppShellSidebar hover expand và click outside collapse', () => {
-    it('tự động gọi onExpand / mở rộng khi di chuột vào sidebar đang thu nhỏ', () => {
+  describe('AppShellSidebar Lucianlab #040 toggle collapse/expand logic', () => {
+    it('kích hoạt onToggleCollapse khi bấm vào nút toggle', () => {
+      const handleToggle = vi.fn();
+      render(
+        <MemoryRouter>
+          <AppShellSidebar
+            {...defaultProps}
+            isCollapsed={false}
+            onToggleCollapse={handleToggle}
+          />
+        </MemoryRouter>,
+      );
+
+      const toggleBtn = screen.getByTestId('sidebar-rail-toggle-btn');
+      fireEvent.click(toggleBtn);
+      expect(handleToggle).toHaveBeenCalledTimes(1);
+    });
+
+    it('không tự động mở rộng khi di chuột vào sidebar đang thu nhỏ (loại bỏ hover expand)', () => {
       const handleExpand = vi.fn();
       render(
         <MemoryRouter>
@@ -110,10 +127,10 @@ describe('AppShell Navbar/Sidebar 3 Functions: Notifications, Global Search, My 
       expect(sidebar).toHaveClass('w-16');
 
       fireEvent.mouseEnter(sidebar);
-      expect(handleExpand).toHaveBeenCalledTimes(1);
+      expect(handleExpand).not.toHaveBeenCalled();
     });
 
-    it('tự động gọi onCollapse / thu nhỏ khi bấm chuột ra ngoài sidebar đang mở rộng', () => {
+    it('không tự động thu nhỏ khi bấm chuột ra ngoài sidebar đang mở rộng (loại bỏ click outside collapse)', () => {
       const handleCollapse = vi.fn();
       render(
         <MemoryRouter>
@@ -128,29 +145,8 @@ describe('AppShell Navbar/Sidebar 3 Functions: Notifications, Global Search, My 
         </MemoryRouter>,
       );
 
-      const sidebar = screen.getByTestId('app-shell-sidebar');
-      expect(sidebar).toHaveClass('w-64');
-
-      // Click vào vùng bên ngoài
       const outsideArea = screen.getByTestId('outside-area');
       fireEvent.mouseDown(outsideArea);
-      expect(handleCollapse).toHaveBeenCalledTimes(1);
-    });
-
-    it('không gọi onCollapse khi click vào bên trong sidebar', () => {
-      const handleCollapse = vi.fn();
-      render(
-        <MemoryRouter>
-          <AppShellSidebar
-            {...defaultProps}
-            isCollapsed={false}
-            onCollapse={handleCollapse}
-          />
-        </MemoryRouter>,
-      );
-
-      const sidebar = screen.getByTestId('app-shell-sidebar');
-      fireEvent.mouseDown(sidebar);
       expect(handleCollapse).not.toHaveBeenCalled();
     });
   });

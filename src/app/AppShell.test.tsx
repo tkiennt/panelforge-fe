@@ -257,7 +257,7 @@ describe('AppShell Component', () => {
     expect(localStorage.getItem('pf.sidebar.collapsed')).toBe('false');
   });
 
-  it('mục điều hướng đang chọn có nền cam ngà #FFF2E6, chữ than #1C1917, aria-current="page" và không có nền đen', () => {
+  it('mục điều hướng đang chọn áp dụng theme Lucianlab (#040) với highlight nổi bật và aria-current="page"', () => {
     const producerUser: CurrentUser = {
       name: 'Phạm Nhà Sản Xuất',
       role: 'USER',
@@ -272,17 +272,13 @@ describe('AppShell Component', () => {
     expect(activeLink).toBeInTheDocument();
     expect(activeLink).toHaveAttribute('aria-current', 'page');
 
-    // Nền cam ngà nhạt #FFF2E6, chữ than #1C1917, bo góc 8px (rounded-lg)
-    expect(activeLink).toHaveClass('bg-[#FFF2E6]');
-    expect(activeLink).toHaveClass('text-[#1C1917]');
-    expect(activeLink).toHaveClass('rounded-lg');
-
-    // Không có nền đen cũ #292524 hay rounded-full
-    expect(activeLink).not.toHaveClass('bg-[#292524]');
-    expect(activeLink).not.toHaveClass('rounded-full');
+    // Theme Lucianlab #040: Nền highlight mềm mại, chữ sáng #FCFBF8, bo góc rounded-xl
+    expect(activeLink).toHaveClass('bg-white/12');
+    expect(activeLink).toHaveClass('text-[#FCFBF8]');
+    expect(activeLink).toHaveClass('rounded-xl');
   });
 
-  it('sidebar áp dụng màu nền trắng ngà #FCFBF8 và viền phải #E7E2D9', () => {
+  it('sidebar áp dụng màu nền Dark Ink #1C1917 và viền phải #292524 chuẩn theme Lucianlab (#040)', () => {
     const producerUser: CurrentUser = {
       name: 'Phạm Nhà Sản Xuất',
       role: 'USER',
@@ -294,8 +290,8 @@ describe('AppShell Component', () => {
     renderInRouter(producerUser, '/workspaces/ws-1/series/ser-1/dashboard');
 
     const sidebar = screen.getByTestId('app-shell-sidebar');
-    expect(sidebar).toHaveClass('bg-[#FCFBF8]');
-    expect(sidebar).toHaveClass('border-[#E7E2D9]');
+    expect(sidebar).toHaveClass('bg-[#1C1917]');
+    expect(sidebar).toHaveClass('border-[#292524]');
   });
 
   it('không còn hiển thị chữ AI: Sẵn sàng và nút Export trên navbar header', () => {

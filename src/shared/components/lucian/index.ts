@@ -5,3 +5,4 @@ export * from './EmptyFolderState';
 export * from './CanvasMinimap';
 export * from './LayerStackingOrder';
 export * from './GutterSpacingRuler';
+export * from './CollapsibleNavRail';

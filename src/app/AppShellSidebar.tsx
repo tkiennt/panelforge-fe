@@ -1,33 +1,44 @@
+/* Lucian UX/UI Prompt #040 · Collapsible navigation rail · (c) 2026 Seokwoo Lee · MIT License */
+/* Adapted for PanelForge Editorial AI Studio Design System */
+
 import React, { useState, useEffect, useRef } from 'react';
-import { BrandMark } from '@/shared/components/BrandMark';
 import {
-  Server,
-  BookOpen,
-  Briefcase,
   ChevronDown,
+  Briefcase,
+  BookOpen,
   LogOut,
-  PanelLeftClose,
-  PanelLeftOpen,
+  Server,
   Check,
 } from 'lucide-react';
 import { CurrentUser } from './AppShell';
-import { MangaProject } from '@/types';
-import { seriesService, SeriesDto } from '@/services/series.service';
+import { SeriesDto } from '@/services/series.service';
+import { seriesService } from '@/services/series.service';
+import { BrandMark } from '@/shared/components/BrandMark';
+import '@/shared/components/lucian/lucian-040.css';
 
 export interface AppShellSidebarProps {
   currentUser: CurrentUser;
-  activeWorkspace?: { id?: string; name: string } | null;
-  activeSeries: MangaProject | { title: string; subtitle: string };
+  activeWorkspace?: { id: string; name: string } | null;
+  activeSeries?: { id: string; title: string; subtitle?: string } | null;
   workspaceId?: string;
   seriesId?: string;
-  isReader: boolean;
-  navSections: any[];
+  isReader?: boolean;
+  navSections: Array<{
+    section: string;
+    items: Array<{
+      icon?: React.ElementType;
+      label: string;
+      href: string;
+      badge?: string | number;
+      isActive?: boolean;
+    }>;
+  }>;
   handleNavClick: (e: React.MouseEvent, href: string) => void;
-  renderBadge: (badge: any) => React.ReactNode;
+  renderBadge: (badge: string | number) => React.ReactNode;
+  unreadNotificationCount?: number;
   onOpenNotifications?: () => void;
   onOpenCommandPalette?: () => void;
   onOpenActivityHistory?: () => void;
-  unreadNotificationCount?: number;
   onOpenTwoFactor?: () => void;
   onLogout?: () => void;
   onSelectSeries?: (seriesId: string) => void;
@@ -73,34 +84,6 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
   const showFullContent = isMobileDrawer || !isCollapsed;
   const handleToggle = onToggleCollapse || onToggleRail;
 
-  const handleMouseEnter = () => {
-    if (!isMobileDrawer && isCollapsed) {
-      if (onExpand) {
-        onExpand();
-      } else if (onToggleCollapse) {
-        onToggleCollapse();
-      }
-    }
-  };
-
-  useEffect(() => {
-    if (isMobileDrawer || isCollapsed) return;
-
-    const handleClickOutside = (event: MouseEvent) => {
-      if (sidebarRef.current && !sidebarRef.current.contains(event.target as Node)) {
-        if (onCollapse) {
-          onCollapse();
-        } else if (onToggleCollapse) {
-          onToggleCollapse();
-        }
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isMobileDrawer, isCollapsed, onCollapse, onToggleCollapse]);
 
   const [seriesDropdownOpen, setSeriesDropdownOpen] = useState(false);
   const [seriesList, setSeriesList] = useState<SeriesDto[]>([]);
@@ -112,11 +95,11 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
     setLoadingSeries(true);
     seriesService
       .getSeriesList(workspaceId)
-      .then((data) => {
-        setSeriesList(data || []);
+      .then((res) => {
+        setSeriesList(res || []);
       })
       .catch((err) => {
-        console.warn('Failed to load series for sidebar dropdown:', err);
+        console.error('Không thể nạp danh sách series cho sidebar:', err);
         setSeriesList([]);
       })
       .finally(() => setLoadingSeries(false));
@@ -147,71 +130,79 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
   return (
     <aside
       ref={sidebarRef}
-      onMouseEnter={handleMouseEnter}
+      style={{
+        backgroundColor: '#1C1917',
+        color: '#FCFBF8',
+        width: isMobileDrawer ? '100%' : showFullContent ? '256px' : '64px',
+      }}
       className={
         isMobileDrawer
-          ? 'w-full bg-[#FCFBF8] flex flex-col select-none h-full overflow-hidden'
-          : `hidden md:flex flex-col shrink-0 select-none z-20 h-full bg-[#FCFBF8] border-r border-[#E7E2D9] transition-[width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] will-change-[width] overflow-hidden ${
-              isCollapsed ? 'w-16' : 'w-64'
+          ? 'w-full bg-[#1C1917] text-[#FCFBF8] flex flex-col select-none h-full overflow-hidden'
+          : `u040-rail hidden md:flex flex-col shrink-0 select-none z-20 h-full bg-[#1C1917] text-[#FCFBF8] border-r border-[#292524] transition-[width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] will-change-[width] overflow-hidden relative ${
+              showFullContent ? 'is-wide w-64' : 'w-16'
             }`
       }
       data-testid={isMobileDrawer ? 'mobile-sidebar-nav' : 'app-shell-sidebar'}
+      aria-label='Main menu'
     >
-      {/* Brand Header */}
+      {/* Brand Header: Lucian #040 Top Bar */}
       <div
-        className={`px-3 flex items-center h-16 shrink-0 border-b border-transparent transition-all duration-200 ${
-          showFullContent ? 'justify-between' : 'flex-col gap-1 justify-center'
+        className={`px-3 flex items-center h-16 shrink-0 border-b border-[#292524] relative bg-[#1C1917] transition-all duration-200 ${
+          showFullContent ? 'justify-between pr-10' : 'justify-center'
         }`}
       >
-        <div className='flex items-center gap-2.5 min-w-0'>
-          <BrandMark size={28} className='shrink-0' />
+        <div className={`flex items-center gap-2.5 min-w-0 ${!showFullContent ? 'justify-center' : ''}`}>
+          <BrandMark size={28} tone='paper' className='shrink-0' />
           {showFullContent && (
             <div className='min-w-0 animate-in fade-in duration-200'>
-              <div className='font-serif font-medium text-sm leading-tight text-[#1C1917] tracking-tight truncate'>
+              <div className='font-serif font-medium text-sm leading-tight text-[#FCFBF8] tracking-tight truncate'>
                 PanelForge
               </div>
-              <div className='text-xs uppercase font-mono tracking-wider text-[#78716C] font-medium truncate'>
+              <div className='text-xs uppercase font-mono tracking-wider text-[#A8A29E] font-medium truncate'>
                 Studio Edition
               </div>
             </div>
           )}
         </div>
 
-        <div className='flex items-center gap-1 shrink-0'>
-          {showFullContent && (
-            <span className='items-center px-2 py-0.5 rounded-md text-xs font-mono font-medium bg-[#F1EEE8] text-[#78716C] inline-flex animate-in fade-in duration-200'>
-              v2.4
-            </span>
-          )}
-          {handleToggle && !isMobileDrawer && (
-            <button
-              type='button'
-              onClick={handleToggle}
-              aria-label={showFullContent ? 'Thu gọn menu' : 'Mở rộng menu'}
-              title={showFullContent ? 'Thu gọn menu' : 'Mở rộng menu'}
-              className='p-1.5 rounded-lg hover:bg-[#F1EEE8] text-[#78716C] hover:text-[#1C1917] transition-colors cursor-pointer focus:outline-none focus-visible:outline-2 focus-visible:outline-[#C2410C] focus-visible:outline-offset-1'
-              data-testid='sidebar-rail-toggle-btn'
-            >
-              {showFullContent ? (
-                <PanelLeftClose className='w-4 h-4' />
-              ) : (
-                <PanelLeftOpen className='w-4 h-4' />
-              )}
-            </button>
-          )}
-        </div>
+        {showFullContent && (
+          <span className='items-center px-1.5 py-0.5 rounded-md text-[10px] font-mono font-medium bg-white/10 text-[#D6D3D1] inline-flex animate-in fade-in duration-200 mr-2'>
+            v2.4
+          </span>
+        )}
+
+        {handleToggle && !isMobileDrawer && (
+          <button
+            type='button'
+            onClick={(e) => {
+              e.stopPropagation();
+              handleToggle();
+            }}
+            aria-expanded={showFullContent}
+            aria-label={showFullContent ? 'Thu gọn menu' : 'Mở rộng menu'}
+            title={showFullContent ? 'Thu gọn menu' : 'Mở rộng menu'}
+            className='u040-tog'
+            data-testid='sidebar-rail-toggle-btn'
+          >
+            <svg viewBox='0 0 16 16' aria-hidden='true'>
+              <path d='M6 3.5L10.5 8 6 12.5' />
+            </svg>
+          </button>
+        )}
       </div>
 
-      {/* Workspace & Series Context Switchers */}
+      {/* Workspace & Series Context Switchers (Dark Theme) */}
       <div className={`mt-3 space-y-1.5 ${showFullContent ? 'mx-3' : 'mx-2'}`}>
         {currentUser.activeRoles?.includes('ADMINISTRATOR') && (
           <div
-            className={`flex items-center gap-2 px-1 mb-2 text-[#1C1917] ${
+            className={`flex items-center gap-2 px-1 mb-2 text-[#F97316] ${
               showFullContent ? 'justify-start' : 'justify-center'
             }`}
           >
-            <Server className='w-3.5 h-3.5 text-[#78716C] shrink-0' />
-            {showFullContent && <span className='text-xs font-bold inline'>System Admin Zone</span>}
+            <Server className='w-3.5 h-3.5 shrink-0' />
+            {showFullContent && (
+              <span className='text-xs font-bold tracking-tight'>Admin Zone</span>
+            )}
           </div>
         )}
 
@@ -219,7 +210,7 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
         <div
           data-testid='sidebar-workspace-switcher'
           onClick={(e) => handleNavClick(e, '/workspaces')}
-          className={`group flex items-center cursor-pointer p-2 rounded-lg bg-white border border-[#E7E2D9] hover:border-[#C2410C]/40 hover:bg-[#F1EEE8]/50 transition-colors focus:outline-none focus-visible:outline-2 focus-visible:outline-[#C2410C] focus-visible:outline-offset-1 ${
+          className={`group flex items-center cursor-pointer p-2 rounded-xl bg-white/[0.06] border border-white/10 hover:border-[#F97316]/60 hover:bg-white/[0.1] transition-all focus:outline-none focus-visible:outline-2 focus-visible:outline-[#F97316] ${
             showFullContent
               ? 'justify-between min-h-[42px]'
               : 'justify-center w-10 h-10 p-0 mx-auto'
@@ -228,20 +219,20 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
           aria-label={`Workspace: ${activeWorkspace?.name || 'Chọn Workspace'}`}
         >
           <div className='flex items-center gap-2.5 min-w-0'>
-            <Briefcase className='w-4 h-4 stroke-[2] text-[#1C1917] shrink-0' />
+            <Briefcase className='w-4 h-4 text-[#F97316] shrink-0' />
             {showFullContent && (
               <div className='min-w-0'>
-                <p className='text-xs font-semibold text-[#1C1917] truncate leading-tight'>
+                <p className='text-xs font-semibold text-[#FCFBF8] truncate leading-tight'>
                   {activeWorkspace?.name || 'PanelForge Studio'}
                 </p>
-                <p className='text-[11px] text-[#78716C] font-mono truncate'>
+                <p className='text-[10.5px] text-[#A8A29E] font-mono truncate'>
                   {currentUser.workspaceRole || 'Studio Workspace'}
                 </p>
               </div>
             )}
           </div>
           {showFullContent && (
-            <ChevronDown className='w-3.5 h-3.5 text-[#78716C] group-hover:text-[#1C1917] transition-colors shrink-0' />
+            <ChevronDown className='w-3.5 h-3.5 text-[#A8A29E] group-hover:text-[#FCFBF8] transition-colors shrink-0' />
           )}
         </div>
 
@@ -260,7 +251,7 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
                 }
                 setSeriesDropdownOpen((prev) => !prev);
               }}
-              className={`group flex items-center cursor-pointer p-2 rounded-lg bg-white border border-[#E7E2D9] hover:border-[#C2410C]/40 hover:bg-[#F1EEE8]/50 transition-colors focus:outline-none focus-visible:outline-2 focus-visible:outline-[#C2410C] focus-visible:outline-offset-1 ${
+              className={`group flex items-center cursor-pointer p-2 rounded-xl bg-white/[0.06] border border-white/10 hover:border-[#F97316]/60 hover:bg-white/[0.1] transition-all focus:outline-none focus-visible:outline-2 focus-visible:outline-[#F97316] ${
                 showFullContent
                   ? 'justify-between min-h-[42px]'
                   : 'justify-center w-10 h-10 p-0 mx-auto'
@@ -269,13 +260,13 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
               aria-label={`Series: ${seriesId ? activeSeries?.title || 'Bộ truyện' : 'Chọn Series'}`}
             >
               <div className='flex items-center gap-2.5 min-w-0'>
-                <BookOpen className='w-4 h-4 stroke-[2] text-[#1C1917] shrink-0' />
+                <BookOpen className='w-4 h-4 text-[#F97316] shrink-0' />
                 {showFullContent && (
                   <div className='min-w-0'>
-                    <p className='text-xs font-semibold text-[#1C1917] truncate leading-tight'>
+                    <p className='text-xs font-semibold text-[#FCFBF8] truncate leading-tight'>
                       {seriesId ? activeSeries?.title || 'Active Series' : 'Chọn Series...'}
                     </p>
-                    <p className='text-[11px] text-[#78716C] font-mono truncate'>
+                    <p className='text-[10.5px] text-[#A8A29E] font-mono truncate'>
                       {seriesId ? activeSeries?.subtitle || 'Chương hiện tại' : 'Danh sách Series'}
                     </p>
                   </div>
@@ -283,7 +274,7 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
               </div>
               {showFullContent && (
                 <ChevronDown
-                  className={`w-3.5 h-3.5 text-[#78716C] group-hover:text-[#1C1917] transition-transform shrink-0 ${
+                  className={`w-3.5 h-3.5 text-[#A8A29E] group-hover:text-[#FCFBF8] transition-transform shrink-0 ${
                     seriesDropdownOpen ? 'rotate-180' : ''
                   }`}
                 />
@@ -292,8 +283,8 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
 
             {/* Dropdown Popover */}
             {seriesDropdownOpen && showFullContent && (
-              <div className='absolute left-0 right-0 mt-1 bg-white border border-[#E7E2D9] rounded-lg shadow-lg z-50 py-1 max-h-60 overflow-y-auto animate-in fade-in-50 zoom-in-95'>
-                <div className='px-3 py-1.5 border-b border-[#E7E2D9]/70 flex items-center justify-between text-[11px] font-semibold text-[#57534E]'>
+              <div className='absolute left-0 right-0 mt-1 bg-[#24201E] border border-[#3E3835] rounded-xl shadow-2xl z-50 py-1 max-h-60 overflow-y-auto animate-in fade-in-50 zoom-in-95'>
+                <div className='px-3 py-1.5 border-b border-[#3E3835] flex items-center justify-between text-[11px] font-semibold text-[#A8A29E]'>
                   <span>Bộ truyện trong Studio</span>
                   <button
                     type='button'
@@ -301,16 +292,16 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
                       setSeriesDropdownOpen(false);
                       handleNavClick(e, `/workspaces/${workspaceId}/series`);
                     }}
-                    className='text-[#C2410C] hover:text-[#9A3412] text-[11px] font-medium cursor-pointer'
+                    className='text-[#F97316] hover:text-[#EA580C] text-[11px] font-medium cursor-pointer'
                   >
                     Xem tất cả
                   </button>
                 </div>
                 {loadingSeries && (
-                  <div className='p-3 text-xs text-[#78716C] text-center'>Đang tải...</div>
+                  <div className='p-3 text-xs text-[#A8A29E] text-center'>Đang tải...</div>
                 )}
                 {!loadingSeries && seriesList.length === 0 && (
-                  <div className='p-3 text-xs text-[#78716C] text-center'>
+                  <div className='p-3 text-xs text-[#A8A29E] text-center'>
                     Chưa có bộ truyện nào
                   </div>
                 )}
@@ -329,17 +320,17 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
                         }}
                         className={`px-3 py-2 text-xs flex items-center justify-between cursor-pointer transition-colors ${
                           isSelected
-                            ? 'bg-[#FFF2E6] text-[#1C1917] font-semibold'
-                            : 'hover:bg-[#F1EEE8] text-[#57534E]'
+                            ? 'bg-[#F97316]/20 text-[#FCFBF8] font-semibold'
+                            : 'hover:bg-white/5 text-[#D6D3D1]'
                         }`}
                       >
                         <div className='truncate pr-2'>
                           <p className='truncate'>{s.title}</p>
-                          <p className='text-xs text-[#78716C] font-mono'>
+                          <p className='text-xs text-[#A8A29E] font-mono'>
                             {s.genre || 'Manga'} • {s.chaptersCount || 0} chương
                           </p>
                         </div>
-                        {isSelected && <Check className='w-3.5 h-3.5 text-[#C2410C] shrink-0' />}
+                        {isSelected && <Check className='w-3.5 h-3.5 text-[#F97316] shrink-0' />}
                       </div>
                     );
                   })}
@@ -349,9 +340,9 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
         )}
       </div>
 
-      {/* Nav List */}
+      {/* Lucian #040 Navigation List */}
       <nav
-        className={`mt-4 flex-1 overflow-y-auto space-y-4 custom-scrollbar ${
+        className={`mt-4 flex-1 overflow-y-auto space-y-4 custom-scrollbar bg-[#1C1917] ${
           showFullContent ? 'px-3' : 'px-2'
         }`}
         aria-label='Điều hướng chính'
@@ -359,22 +350,22 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
         {navSections.map((section, idx) => (
           <div key={idx}>
             {showFullContent && (
-              <div className='text-[11px] text-[#78716C] font-semibold px-3 mb-1.5 uppercase tracking-wide font-sans'>
+              <div className='text-[10px] text-[#A8A29E] font-bold px-3 mb-1.5 uppercase tracking-wider font-mono'>
                 {section.section}
               </div>
             )}
             <div className='space-y-1'>
               {section.items.map((item: any, i: number) => {
                 const baseClass =
-                  'group relative flex items-center rounded-lg transition-colors duration-150 motion-reduce:transition-none focus:outline-none focus-visible:outline-2 focus-visible:outline-[#C2410C] focus-visible:outline-offset-1 ';
+                  'group relative flex items-center rounded-xl transition-all duration-200 motion-reduce:transition-none focus:outline-none focus-visible:outline-2 focus-visible:outline-[#F97316] ';
                 const activeClass = item.isActive
-                  ? 'bg-[#FFF2E6] hover:bg-[#FFF2E6] text-[#1C1917] font-semibold'
-                  : 'bg-transparent text-[#57534E] hover:bg-[#F1EEE8] hover:text-[#1C1917] font-medium cursor-pointer';
+                  ? 'bg-white/12 text-[#FCFBF8] font-bold shadow-sm'
+                  : 'bg-transparent text-[#D6D3D1] hover:bg-white/10 hover:text-white font-medium cursor-pointer';
 
                 const iconClass = `w-5 h-5 shrink-0 transition-colors ${
                   item.isActive
-                    ? 'text-[#C2410C] stroke-[2]'
-                    : 'text-[#78716C] group-hover:text-[#1C1917] stroke-[1.8]'
+                    ? 'text-[#F97316] stroke-[2]'
+                    : 'text-[#A8A29E] group-hover:text-white stroke-[1.8]'
                 }`;
                 const IconComp = item.icon;
 
@@ -392,10 +383,10 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
                     title={item.label}
                     aria-label={item.label}
                   >
-                    {/* Vạch cam bên trái rộng 3px, cao khoảng 20-22px, căn giữa theo chiều dọc */}
+                    {/* Lucian #040 Active Highlight Indicator (vạch gradient cam mép trái) */}
                     {item.isActive && (
                       <span
-                        className='absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[22px] bg-[#C2410C] rounded-r-[2px]'
+                        className='absolute left-0 top-1/2 -translate-y-1/2 w-[3.5px] h-[22px] bg-gradient-to-b from-[#F97316] to-[#EA580C] rounded-r'
                         aria-hidden='true'
                       />
                     )}
@@ -403,7 +394,7 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
                     {IconComp && <IconComp className={iconClass} />}
                     {showFullContent && (
                       <>
-                        <span className='font-sans text-[14px] leading-5 truncate flex-1 text-left animate-in fade-in duration-150'>
+                        <span className='font-sans text-[13.5px] leading-5 truncate flex-1 text-left animate-in fade-in duration-150'>
                           {item.label}
                         </span>
                         {item.badge && (
@@ -421,32 +412,53 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
         ))}
       </nav>
 
-      {/* Footer Navigation & System Controls */}
-      {onLogout && (
-        <div
-          className={`mt-auto border-t border-[#E7E2D9] bg-[#FCFBF8] ${
-            showFullContent ? 'p-3' : 'p-2'
-          }`}
-        >
-          <div className='space-y-1 mb-1'>
-            <button
-              type='button'
-              onClick={onLogout}
-              title='Logout'
-              aria-label='Logout'
-              data-testid='sidebar-logout-btn'
-              className={`w-full flex items-center text-[13px] font-sans font-medium text-[#57534E] hover:text-rose-600 hover:bg-rose-50/70 rounded-lg transition-colors duration-150 motion-reduce:transition-none group cursor-pointer focus:outline-none focus-visible:outline-2 focus-visible:outline-rose-500 focus-visible:outline-offset-1 ${
-                showFullContent
-                  ? `justify-start gap-3 px-3 py-2 ${isMobileDrawer ? 'min-h-[44px]' : 'min-h-[40px]'}`
-                  : 'justify-center w-10 h-10 min-h-[40px] p-2 mx-auto'
-              }`}
+      {/* Lucian #040 Footer Profile & System Controls */}
+      <div
+        className={`mt-auto border-t border-[#292524] bg-[#1C1917] ${
+          showFullContent ? 'p-3' : 'p-2'
+        }`}
+      >
+        {/* User Profile Card */}
+        {showFullContent && (
+          <div className='flex items-center gap-2.5 p-2 rounded-xl bg-white/5 mb-2' data-testid='sidebar-user-card'>
+            <div
+              className='w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs shrink-0'
+              style={{
+                background: 'radial-gradient(circle at 35% 30%, #FFD3A8, #F97316 60%, #C2410C)',
+              }}
             >
-              <LogOut className='w-5 h-5 text-[#78716C] group-hover:text-rose-600 stroke-[1.8] shrink-0' />
-              {showFullContent && <span className='truncate text-[14px]'>Logout</span>}
-            </button>
+              {currentUser.avatarInitials || currentUser.name.charAt(0).toUpperCase()}
+            </div>
+            <div className='min-w-0 flex-1'>
+              <p className='text-xs font-bold text-[#FCFBF8] truncate leading-tight'>
+                {currentUser.name}
+              </p>
+              <p className='text-[10.5px] text-[#A8A29E] font-mono truncate'>
+                {currentUser.workspaceRole || currentUser.role}
+              </p>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+
+        {/* Logout Button */}
+        {onLogout && (
+          <button
+            type='button'
+            onClick={onLogout}
+            title='Logout'
+            aria-label='Logout'
+            data-testid='sidebar-logout-btn'
+            className={`w-full flex items-center text-[13px] font-sans font-medium text-[#A8A29E] hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-colors duration-150 motion-reduce:transition-none group cursor-pointer focus:outline-none focus-visible:outline-2 focus-visible:outline-rose-500 ${
+              showFullContent
+                ? `justify-start gap-3 px-3 py-2 ${isMobileDrawer ? 'min-h-[44px]' : 'min-h-[40px]'}`
+                : 'justify-center w-10 h-10 min-h-[40px] p-2 mx-auto'
+            }`}
+          >
+            <LogOut className='w-4.5 h-4.5 text-[#78716C] group-hover:text-rose-400 stroke-[1.8] shrink-0' />
+            {showFullContent && <span className='truncate text-[13.5px] font-medium'>Logout</span>}
+          </button>
+        )}
+      </div>
     </aside>
   );
 };

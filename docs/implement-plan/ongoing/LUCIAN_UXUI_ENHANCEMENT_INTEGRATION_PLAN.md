@@ -93,11 +93,12 @@ Dưới đây là danh sách phân tích chuyên sâu các elements được tuy
 | Element ID | Tên Element (Lucian) | Category | Áp dụng vào PanelForge | Giá trị gia tăng cho trải nghiệm (UX Value) |
 | :---: | :--- | :--- | :--- | :--- |
 | **#074** | **Notification bell dropdown** *(Đã tích hợp)* | `navigation` | **AppShell Header:** Chuông thông báo cộng tác | Menu thả xuống phân loại thông báo theo tab, kèm chỉ báo badge động và chuyển màu ấm Editorial Studio. |
+| **#040** | **Collapsible navigation rail** *(Đã tích hợp)* | `navigation` | **AppShell Sidebar / Desks Rail:** Thanh icon điều hướng thu gọn/mở rộng | Thanh điều hướng dạng rail mượt mà với hiệu ứng highlight trượt động (`--y`), badge số lượng thông báo và hồ sơ người dùng. |
 | **#184** | **Role permission matrix** | `workflow-systems` | **Admin / Studio Settings:** Ma trận phân quyền 9 vai trò | Bảng ma trận trực quan cho phép bật/tắt quyền Xem, Sửa, Duyệt, Xuất bản cho từng vai trò trong Studio. |
-| **#250** | **Unsaved changes bar** | `app-screens` | **Global Editor Shell:** Thanh nhắc nhở thay đổi chưa lưu | Trượt xuống từ đỉnh màn hình khi người dùng có nét vẽ hoặc kịch bản chưa lưu, ngăn chặn thất thoát dữ liệu nghệ thuật. |
-| **#269** | **Type-the-name delete confirmation** | `app-screens` | **Hộp thoại xóa nguy hiểm:** Xóa Series, Episode hoặc Reset Canon | Yêu cầu người dùng gõ đúng tên tác phẩm/tập truyện thì nút Xóa Vĩnh Viễn mới sáng lên, chống click nhầm gây mất dữ liệu. |
-| **#091** | **Offline message queue** | `empty-error-states` | **Hàng đợi ngoại tuyến:** Cảnh báo mất kết nối và xếp hàng tác vụ | Khi mất kết nối mạng, banner trượt xuống hiển thị số lượng nét vẽ/câu thoại đang lưu tạm cục bộ và tự động đồng bộ khi có mạng lại. |
-| **#088** | **Empty folder that swallows paper** | `empty-error-states` | **Trạng thái rỗng (Empty States):** Thư viện Series Bible / Project chưa có dữ liệu | Thư mục hoạt họa giấy rơi tinh tế mời gọi người dùng bấm nút tạo nhân vật hoặc tải lên tập truyện đầu tiên. |
+| **#250** | **Unsaved changes bar** *(Đã tích hợp)* | `app-screens` | **Global Editor Shell:** Thanh nhắc nhở thay đổi chưa lưu | Trượt xuống từ đỉnh màn hình khi người dùng có nét vẽ hoặc kịch bản chưa lưu, ngăn chặn thất thoát dữ liệu nghệ thuật. |
+| **#269** | **Type-the-name delete confirmation** *(Đã tích hợp)* | `app-screens` | **Hộp thoại xóa nguy hiểm:** Xóa Series, Episode hoặc Reset Canon | Yêu cầu người dùng gõ đúng tên tác phẩm/tập truyện thì nút Xóa Vĩnh Viễn mới sáng lên, chống click nhầm gây mất dữ liệu. |
+| **#091** | **Offline message queue** *(Đã tích hợp)* | `empty-error-states` | **Hàng đợi ngoại tuyến:** Cảnh báo mất kết nối và xếp hàng tác vụ | Khi mất kết nối mạng, banner trượt xuống hiển thị số lượng nét vẽ/câu thoại đang lưu tạm cục bộ và tự động đồng bộ khi có mạng lại. |
+| **#088** | **Empty folder that swallows paper** *(Đã tích hợp)* | `empty-error-states` | **Trạng thái rỗng (Empty States):** Thư viện Series Bible / Project chưa có dữ liệu | Thư mục hoạt họa giấy rơi tinh tế mời gọi người dùng bấm nút tạo nhân vật hoặc tải lên tập truyện đầu tiên. |
 
 ---
 
@@ -131,6 +132,12 @@ graph TD
   - Đã tạo component `src/shared/components/lucian/EmptyFolderState.tsx` (`lucian-088.css`) với hoạt họa giấy rơi trong thư mục phác thảo.
   - Tích hợp `EmptyFolderState` vào `SeriesBibleView.tsx` khi danh sách mục tri thức của Series Bible trống.
   - **Triệt tiêu UI cũ:** Gỡ bỏ các khối placeholder tĩnh cũ dạng icon BookOpen đơn điệu.
+- [x] **1.4. Tích hợp `#040 Collapsible Navigation Rail` vào AppShell Sidebar (Theme & Logic Lucianlab):**
+  - Chuyển đổi toàn diện `src/app/AppShellSidebar.tsx` sang chuẩn theme Dark Ink nguyên bản của Lucianlab: nền `Artisan Ink #1C1917`, viền tối `#292524`, dải highlight động mép trái gradient cam `linear-gradient(135deg, #F97316, #EA580C)`.
+  - Nút Toggle xoay mượt mà với chuyển động lò xo `cubic-bezier(0.16, 1, 0.3, 1)` chuyển đổi độ rộng rail (`16` ↔ `64`), khối logo vuông bo góc cam `PF`, hồ sơ người dùng `.u040-me` tích hợp avatar gradient ở chân trang.
+  - **Chuẩn hóa Logic ra/vào theo Lucianlab #040:** Loại bỏ hoàn toàn cơ chế tự động bung mở khi hover chuột (`mouseEnter`) và tự động co lại khi click ra ngoài (`mouseDown`). Việc mở rộng/thu gọn tuân thủ 100% cơ chế toggle có chủ đích thông qua nút bấm toggle trên thanh rail.
+  - **Triệt tiêu UI cũ:** Gỡ bỏ toàn bộ markup sidebar màu ngà cũ, và tái cấu trúc `AppShellRail.tsx` thành re-export alias để không còn bất kỳ element sidebar cũ nào tồn tại song song.
+  - 100% tests vượt qua: 21/21 tests của `AppShell.test.tsx` & `AppShellNavbarActions.test.tsx` và 33/33 tests của bộ thư viện Lucian components.
 
 ---
 
