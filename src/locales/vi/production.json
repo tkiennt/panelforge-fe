@@ -75,5 +75,36 @@
     "subtitle": "Chọn mẫu phân chia ô tranh dựng sẵn cho trang",
     "applyConfirm": "Áp dụng mẫu này sẽ thay thế các khung hiện tại trên trang.",
     "noTemplates": "Chưa có mẫu khung nào."
+  },
+  "artistDesk": {
+    "title": "Bàn Vẽ & Bố Cục Khung Tranh (Artist Desk)",
+    "chapter": "Chương",
+    "page": "Trang",
+    "readingOrder": "Thứ tự đọc",
+    "save": "Lưu thay đổi",
+    "saving": "Đang lưu..."
+  },
+  "writer": {
+    "title": "Biên Soạn Kịch Bản Phân Cảnh (Script Editor)",
+    "chapter": "Chương",
+    "scene": "Phân cảnh",
+    "addScene": "+ Thêm phân cảnh",
+    "addLine": "+ Thêm dòng thoại",
+    "character": "Nhân vật",
+    "narration": "Lời dẫn",
+    "dialogue": "Thoại",
+    "action": "Hành động",
+    "stageDirections": "Chỉ dẫn bối cảnh",
+    "consistencyFindings": "Phát hiện nhất quán",
+    "bibleReference": "Tra cứu Bible",
+    "saveDraft": "Lưu bản nháp",
+    "emptyScenes": "Chưa có phân cảnh nào trong chương này.",
+    "emptyLines": "Chưa có dòng thoại nào."
+  },
+  "letterer": {
+    "title": "Bàn Làm Việc Thoại & Chữ (Letterer Desk)",
+    "chapter": "Chương:",
+    "page": "Trang:",
+    "pageOption": "Trang {pageNumber} ({width}x{height})"
   }
 }

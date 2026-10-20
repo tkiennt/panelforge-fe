@@ -24,6 +24,7 @@ import { ChangePasswordModal } from '@/shared/features/account/ChangePasswordMod
 import { authService } from '@/services/auth.service';
 import { userService, UserProfileDto, UpdateUserProfileRequest } from '@/services/user.service';
 import { workspaceService, WorkspaceDto } from '@/services/workspace.service';
+import { useTranslation } from '@/lib/i18n';
 
 export interface UserProfileProps {
   user?: User | null;
@@ -98,6 +99,7 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
   onOpenTwoFactor,
   onShowToast,
 }) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   // Profile data state

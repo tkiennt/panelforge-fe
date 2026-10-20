@@ -13,6 +13,18 @@ import viReview from '@/locales/vi/review.json';
 import enReview from '@/locales/en/review.json';
 import viPipeline from '@/locales/vi/pipeline.json';
 import enPipeline from '@/locales/en/pipeline.json';
+import viWorkspace from '@/locales/vi/workspace.json';
+import enWorkspace from '@/locales/en/workspace.json';
+import viCollaboration from '@/locales/vi/collaboration.json';
+import enCollaboration from '@/locales/en/collaboration.json';
+import viNotifications from '@/locales/vi/notifications.json';
+import enNotifications from '@/locales/en/notifications.json';
+import viProfile from '@/locales/vi/profile.json';
+import enProfile from '@/locales/en/profile.json';
+import viPublisher from '@/locales/vi/publisher.json';
+import enPublisher from '@/locales/en/publisher.json';
+import viAdmin from '@/locales/vi/admin.json';
+import enAdmin from '@/locales/en/admin.json';
 
 export type SupportedLanguage = 'vi' | 'en';
 
@@ -24,6 +36,12 @@ export const DICTIONARIES = {
     production: viProduction,
     review: viReview,
     pipeline: viPipeline,
+    workspace: viWorkspace,
+    collaboration: viCollaboration,
+    notifications: viNotifications,
+    profile: viProfile,
+    publisher: viPublisher,
+    admin: viAdmin,
   },
   en: {
     common: enCommon,
@@ -32,6 +50,12 @@ export const DICTIONARIES = {
     production: enProduction,
     review: enReview,
     pipeline: enPipeline,
+    workspace: enWorkspace,
+    collaboration: enCollaboration,
+    notifications: enNotifications,
+    profile: enProfile,
+    publisher: enPublisher,
+    admin: enAdmin,
   },
 } as const;
 
@@ -142,21 +166,36 @@ export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
 };
 
-export function useTranslation() {
+export function useTranslation(defaultNamespace?: TranslationNamespace) {
   const ctx = useContext(I18nContext);
-  if (!ctx) {
-    // Fallback nếu component được render bên ngoài I18nProvider (ví dụ trong unit tests cô lập)
-    const currentLang = getInitialLanguage();
-    return {
-      lang: currentLang,
-      setLang: () => {},
-      t: (key: string, params?: Record<string, string | number>) =>
-        translate(key, params, currentLang),
-      isVietnamese: currentLang === 'vi',
-      isEnglish: currentLang === 'en',
-    };
-  }
-  return ctx;
+  const currentLang = ctx ? ctx.lang : getInitialLanguage();
+
+  const t = useCallback(
+    (key: string, params?: Record<string, string | number>) => {
+      let fullKey = key;
+      const parts = key.split('.');
+      const firstPart = parts[0] as TranslationNamespace;
+      const isKnownNamespace = firstPart in DICTIONARIES.vi;
+
+      if (!isKnownNamespace && defaultNamespace) {
+        fullKey = `${defaultNamespace}.${key}`;
+      }
+
+      if (ctx) {
+        return ctx.t(fullKey, params);
+      }
+      return translate(fullKey, params, currentLang);
+    },
+    [ctx, currentLang, defaultNamespace],
+  );
+
+  return {
+    lang: currentLang,
+    setLang: ctx ? ctx.setLang : () => {},
+    t,
+    isVietnamese: currentLang === 'vi',
+    isEnglish: currentLang === 'en',
+  };
 }
 
 /**

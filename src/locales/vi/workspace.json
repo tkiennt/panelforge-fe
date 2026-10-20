@@ -1,0 +1,38 @@
+{
+  "title": "Danh sách Studio",
+  "subtitle": "Chọn Studio Workspace để bắt đầu làm việc hoặc tạo Studio mới",
+  "catalog": "Production Workspace Catalog",
+  "hub": "Studio Hub",
+  "loading": "Đang tải danh sách Workspace...",
+  "emptyTitle": "Chào mừng đến với PanelForge",
+  "emptyDesc": "Bạn chưa thuộc về Studio Workspace nào. Hãy tạo một Studio mới hoặc nhờ Producer gửi lời mời tham gia.",
+  "createStudio": "Tạo Studio Mới",
+  "joinStudio": "Tham Gia Studio",
+  "myWorkspaces": "Studio Của Bạn ({count})",
+  "joinedDate": "Gia nhập {days}",
+  "today": "hôm nay",
+  "yesterday": "hôm qua",
+  "daysAgo": "{count} ngày trước",
+  "pendingTasks": "{count} việc đang chờ",
+  "enterStudio": "Vào Studio",
+  "adminNotice": "Tài khoản Administrator không thể tạo hoặc sở hữu Studio Workspace. Vui lòng sử dụng trang Quản trị hệ thống.",
+  "producerNotice": "Tài khoản của bạn chưa được cấp quyền Producer để tạo Studio. Vui lòng liên hệ Quản trị viên để được cấp quyền.",
+  "overview": {
+    "title": "Tổng quan Studio",
+    "seriesList": "Danh sách Series",
+    "noSeries": "Chưa có Series nào trong Studio này.",
+    "createSeries": "Tạo Series mới",
+    "members": "Thành viên Studio",
+    "settings": "Cài đặt Studio"
+  },
+  "roles": {
+    "producer": "Nhà sản xuất (Producer)",
+    "artist": "Họa sĩ (Artist)",
+    "writer": "Biên kịch (Writer)",
+    "editor": "Biên tập viên (Editor)",
+    "letterer": "Chèn chữ (Letterer)",
+    "publisher": "Nhà phát hành (Publisher)",
+    "reader": "Độc giả (Reader)",
+    "member": "Thành viên"
+  }
+}

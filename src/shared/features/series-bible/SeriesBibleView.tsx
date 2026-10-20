@@ -37,6 +37,7 @@ import { BibleEntityDetailModal } from './BibleEntityDetailModal';
 import { PageContainer } from '@/shared/components/PageContainer';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { createPortal } from 'react-dom';
+import { useTranslation } from '@/lib/i18n';
 
 interface SeriesBibleViewProps {
   activeProject?: MangaProject;
@@ -176,6 +177,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
   onSelectSeries,
   onShowToast,
 }) => {
+  const { t } = useTranslation();
   const [localEntities, setLocalEntities] = useState<BibleEntity[]>(entities);
   const [rawEntries, setRawEntries] = useState<Record<string, BibleEntryDto>>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -698,8 +700,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
               </span>
             </div>
             <p className='text-xs text-[#57534E] mt-1 max-w-2xl'>
-              Kho tra cứu chuẩn cho nhân vật, bối cảnh, thuật ngữ và quy tắc thiết kế nhằm đảm bảo
-              tính nhất quán xuyên suốt tác phẩm.
+              {t('bible.subtitle')}
             </p>
           </div>
 
@@ -737,6 +738,16 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
             const Icon = cat.icon;
             const count = categoryCounts[cat.key] || 0;
             const isActive = activeTab === cat.key;
+            const getTabLabel = () => {
+              switch (cat.key) {
+                case 'all': return t('bible.categories.all');
+                case 'characters': return t('bible.categories.character');
+                case 'locations': return t('bible.categories.location');
+                case 'terminology': return t('bible.categories.item');
+                case 'style': return t('bible.categories.lore');
+                default: return cat.label;
+              }
+            };
             return (
               <button
                 key={cat.key}
@@ -750,7 +761,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                 data-testid={`tab-category-${cat.key}`}
               >
                 <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-[#C2410C]' : 'text-[#78716C]'}`} />
-                <span>{cat.label}</span>
+                <span>{getTabLabel()}</span>
                 <span
                   className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full ${
                     isActive ? 'bg-[#F97316]/20 text-[#C2410C] font-semibold' : 'bg-[#F3F0E9] text-[#78716C]'

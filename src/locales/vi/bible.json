@@ -34,6 +34,14 @@
     "noPanelSelection": "Chưa chọn khung tranh",
     "selectToView": "Chọn một khung để xem tài liệu nhân vật và bối cảnh xuất hiện trong phân cảnh.",
     "copyPrompt": "Sao chép Prompt AI",
-    "promptCopied": "Đã sao chép prompt tham chiếu."
+    "promptCopied": "Đã sao chép prompt tham chiếu.",
+    "byPanel": "Theo Khung Tranh ({count})",
+    "byChapter": "Toàn Bộ Chương (Canon)",
+    "selectPanel": "Chọn khung:",
+    "panelLabel": "Khung #{number}",
+    "loading": "Đang nạp thiết kế tham chiếu nhân vật...",
+    "emptyPanel": "Chưa có nhân vật gắn trong khung này",
+    "emptyChapter": "Chưa có hồ sơ Canon trong chương này",
+    "versionLock": "Bản khoá v{version}"
   }
 }

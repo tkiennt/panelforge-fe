@@ -63,6 +63,7 @@ import { offlineQueueService } from '@/services/offlineQueue.service';
 import { saveDraft, clearDraft, readRestorableDraft, type LocalDraft } from '@/lib/localDraft';
 import { OfflineStatusBanner } from '@/shared/components/OfflineStatusBanner';
 import { ElementConflictModal } from '@/shared/modals/ElementConflictModal';
+import { useTranslation } from '@/lib/i18n';
 
 interface ScriptEditorViewProps {
   onShowToast?: (title: string, desc: string) => void;
@@ -88,6 +89,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   onShowToast,
   workspaceRole,
 }) => {
+  const { t } = useTranslation('production');
   const { seriesId } = useParams<{ workspaceId?: string; seriesId?: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const chapterIdFromUrl = searchParams.get('chapterId');
@@ -1050,7 +1052,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                 )}
               </div>
               <h1 className='text-sm md:text-base font-bold font-serif tracking-tight text-[#1C1917]'>
-                Biên Soạn Kịch Bản Phân Cảnh (Script Editor)
+                {t('writer.title')}
               </h1>
             </div>
           </div>
@@ -1063,7 +1065,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                 htmlFor='script-chapter-select'
                 className='text-xs font-semibold text-[#57534E]'
               >
-                Chương:
+                {t('letterer.chapter')}
               </label>
               <select
                 id='script-chapter-select'

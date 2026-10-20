@@ -4,8 +4,10 @@ import { BookOpen, Type, FileImage } from 'lucide-react';
 import { chapterService, ChapterDto } from '@/services/chapter.service';
 import { pageService, PageDto } from '@/services/page.service';
 import { LetteringWorkspace } from './LetteringWorkspace';
+import { useTranslation } from '@/lib/i18n';
 
 export default function LettererDeskView() {
+  const { t } = useTranslation('production');
   const { seriesId } = useParams<{ workspaceId?: string; seriesId?: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const chapterIdFromUrl = searchParams.get('chapterId');
@@ -61,7 +63,7 @@ export default function LettererDeskView() {
             className='text-sm font-serif font-bold tracking-tight text-[#1C1917]'
             title='Balloon Placement • Script Anchoring • Concurrency Control (BR-11, NFR-09)'
           >
-            Bàn Làm Việc Thoại &amp; Chữ (Letterer Desk)
+            {t('letterer.title')}
           </h2>
         </div>
 
@@ -71,7 +73,7 @@ export default function LettererDeskView() {
             <div className='flex items-center gap-1.5 bg-[#FCFBF8] px-3.5 py-1.5 rounded-full border border-[#D8D2C5] text-xs shadow-soft-sm'>
               <BookOpen className='w-3.5 h-3.5 text-[#C2410C]' />
               <label htmlFor='letterer-chapter-select' className='text-[#57534E] font-medium'>
-                Chương:
+                {t('letterer.chapter')}
               </label>
               <select
                 id='letterer-chapter-select'
@@ -89,7 +91,7 @@ export default function LettererDeskView() {
               >
                 {chapters.map((c) => (
                   <option key={c.id} value={c.id}>
-                    Chương {c.chapterNumber}
+                    {t('writer.chapter')} {c.chapterNumber}
                     {c.title ? `: ${c.title}` : ''}
                   </option>
                 ))}
@@ -102,7 +104,7 @@ export default function LettererDeskView() {
             <div className='flex items-center gap-1.5 bg-[#FCFBF8] px-3.5 py-1.5 rounded-full border border-[#D8D2C5] text-xs shadow-soft-sm'>
               <FileImage className='w-3.5 h-3.5 text-emerald-600' />
               <label htmlFor='letterer-page-select' className='text-[#57534E] font-medium'>
-                Trang:
+                {t('letterer.page')}
               </label>
               <select
                 id='letterer-page-select'

@@ -22,11 +22,12 @@ Thư mục: [`docs/implement-plan/`](./implement-plan/)
 ### 🟡 Đang Thực Hiện (`ongoing/`)
 > *Chứa các kế hoạch tính năng hoặc đợt refactor đang trong quá trình phát triển.*
 
-*(Hiện tại không có kế hoạch nào đang thực hiện)*
+*(Hiện tại không có kế hoạch nào đang dở dang)*
 
 ### 🟢 Đã Hoàn Thành (`completed/`)
 > *Chứa các kế hoạch đã hoàn thành 100% nhiệm vụ, pass typecheck, lint và unit test.*
 
+- [**SYSTEM_WIDE_I18N_AND_ENGLISH_LOCALIZATION_PLAN.md**](./implement-plan/completed/SYSTEM_WIDE_I18N_AND_ENGLISH_LOCALIZATION_PLAN.md): Kế hoạch mở rộng và bản địa hóa Tiếng Anh toàn diện cho toàn hệ thống – đưa `useTranslation` và từ điển 12 namespaces vào 100% các màn hình giao diện (Views), bàn làm việc theo vai trò (Role Desks), các thành phần dùng chung (Shared Components) và hộp thoại (Modals) bên trong AppShell.
 - [**UI_UX_COPY_STANDARDIZATION_AND_I18N_PLAN.md**](./implement-plan/completed/UI_UX_COPY_STANDARDIZATION_AND_I18N_PLAN.md): Kế hoạch chuẩn hóa văn phong UI/UX, triệt tiêu từ thừa, áp dụng bảng thuật ngữ sáng tác truyện tranh thống nhất và thiết lập hệ thống từ điển song ngữ (i18n) phân tầng (Việt - Anh).
 - [**VISUAL_PANEL_UPLOADER_REFACTOR_PLAN.md**](./implement-plan/completed/VISUAL_PANEL_UPLOADER_REFACTOR_PLAN.md): Kế hoạch triển khai "Bàn Tải & Khớp Nét Panel Trực Quan" (Visual Panel Uploader) trên Bàn Vẽ Artist Desk (CF2) – kéo thả trực tiếp vào ô canvas, giải quyết cảnh báo chặn bắt đầu nhiệm vụ, tái cấu trúc bố cục 3 cột hiện đại và hỗ trợ 2 chế độ tải.
 - [**MY_WORK_UI_COMPREHENSIVE_REFACTOR_PLAN.md**](./implement-plan/completed/MY_WORK_UI_COMPREHENSIVE_REFACTOR_PLAN.md): Kế hoạch tối ưu hóa & refactor toàn diện màn hình "Công việc của tôi" (My Work View) – cân đối kích cỡ chữ, thu gọn tab, compact row cho danh sách Panel Artwork, chuẩn hóa màu sắc trạng thái, tích hợp Series Bible Drawer và hiển thị phiên bản `(v...)`.

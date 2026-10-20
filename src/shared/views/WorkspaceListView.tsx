@@ -4,6 +4,7 @@ import { WorkspaceDto, WorkspaceRole, normalizeWorkspaceRole } from '@/types';
 import { workspaceService } from '@/services/workspace.service';
 import { CreateWorkspaceModal } from '@/roles/producer/modals/CreateWorkspaceModal';
 import { PageContainer } from '@/shared/components/PageContainer';
+import { useTranslation } from '@/lib/i18n';
 
 interface WorkspaceListViewProps {
   onSelectWorkspace: (workspace: WorkspaceDto) => void;
@@ -24,6 +25,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
   currentUser,
   onLogout,
 }) => {
+  const { t } = useTranslation();
   const [workspaces, setWorkspaces] = useState<WorkspaceDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -57,15 +59,11 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
 
   const handleOpenCreate = () => {
     if (isAdmin) {
-      alert(
-        'Tài khoản Administrator không thể tạo hoặc sở hữu Studio Workspace (BR-07). Vui lòng sử dụng trang Quản trị hệ thống.',
-      );
+      alert(t('workspace.adminNotice'));
       return;
     }
     if (!currentUser?.canCreateStudio) {
-      alert(
-        'Tài khoản của bạn chưa được cấp quyền Producer để tạo Studio. Vui lòng liên hệ Quản trị viên để được cấp quyền (BR-07).',
-      );
+      alert(t('workspace.producerNotice'));
       return;
     }
     if (onCreateWorkspace) {
@@ -95,8 +93,10 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
   };
 
   const getRoleDisplayName = (role?: WorkspaceRole | null) => {
-    if (!role) return 'Member';
-    return role.charAt(0) + role.slice(1).toLowerCase();
+    if (!role) return t('workspace.roles.member');
+    const key = `workspace.roles.${role.toLowerCase()}`;
+    const translated = t(key);
+    return translated !== key ? translated : role;
   };
 
   const getTimeAgo = (dateString: string) => {
@@ -104,9 +104,9 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
     const now = new Date();
     const diffTime = Math.abs(now.getTime() - date.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    if (diffDays === 0) return 'Joined today';
-    if (diffDays === 1) return 'Joined 1 day ago';
-    return `Joined ${diffDays} days ago`;
+    if (diffDays === 0) return t('workspace.joinedDate', { days: t('workspace.today') });
+    if (diffDays === 1) return t('workspace.joinedDate', { days: t('workspace.yesterday') });
+    return t('workspace.joinedDate', { days: t('workspace.daysAgo', { count: diffDays }) });
   };
 
   return (
@@ -125,10 +125,10 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                   PanelForge
                 </span>
                 <span className='text-xs font-mono font-semibold px-2.5 py-0.5 rounded-full bg-[#FFF2E6] text-[#C2410C] border border-[#D8D2C5] uppercase tracking-wider'>
-                  Studio Hub
+                  {t('workspace.hub')}
                 </span>
               </div>
-              <p className='text-xs text-[#57534E] hidden sm:block'>Production Workspace Catalog</p>
+              <p className='text-xs text-[#57534E] hidden sm:block'>{t('workspace.catalog')}</p>
             </div>
           </div>
 
@@ -167,10 +167,10 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
               <button
                 onClick={onLogout}
                 className='flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 text-xs font-semibold text-red-700 hover:text-red-800 bg-red-50 hover:bg-red-100/80 border border-red-200 rounded-lg transition-all cursor-pointer shadow-2xs'
-                title='Đăng xuất khỏi tài khoản'
+                title={t('profile.logout')}
               >
                 <LogOut className='w-3.5 h-3.5' />
-                <span>Đăng xuất</span>
+                <span>{t('profile.logout')}</span>
               </button>
             )}
           </div>
@@ -184,7 +184,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
             <div className='flex flex-col items-center justify-center py-24'>
               <Loader2 className='w-8 h-8 text-[#F97316] animate-spin mb-4' />
               <p className='text-[#57534E] font-mono text-xs uppercase tracking-wider font-semibold'>
-                Loading Workspaces... (Đang tải danh sách Workspace)
+                {t('workspace.loading')}
               </p>
             </div>
           ) : workspaces.length === 0 ? (
@@ -196,24 +196,22 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                   <Compass className='w-8 h-8' />
                 </div>
                 <h2 className='text-2xl font-serif font-bold text-[#1C1917] mb-2 tracking-tight'>
-                  Welcome to PanelForge
+                  {t('workspace.emptyTitle')}
                 </h2>
                 <p className='text-sm text-[#57534E] mb-8 leading-relaxed'>
-                  You currently don't belong to any active Workspaces. Bạn chưa có Workspace nào
-                  trong hệ thống. Hãy khởi tạo một Studio mới để bắt đầu hoặc nhờ Studio Producer
-                  gửi lời mời tham gia qua email của bạn.
+                  {t('workspace.emptyDesc')}
                 </p>
                 <button
                   onClick={handleOpenCreate}
-                  aria-label='Create Workspace'
+                  aria-label={t('workspace.createStudio')}
                   disabled={isAdmin}
                   title={
-                    isAdmin ? 'Quản trị viên không thể tạo Studio (BR-07)' : 'Create Workspace'
+                    isAdmin ? t('workspace.adminNotice') : t('workspace.createStudio')
                   }
                   className='w-full bg-[#F97316] hover:bg-[#EA580C] disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold text-xs sm:text-sm py-3 px-6 rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer shadow-2xs'
                 >
                   <Plus className='w-4 h-4' />
-                  <span>Create Workspace (Tạo Studio Mới)</span>
+                  <span>{t('workspace.createStudio')}</span>
                 </button>
               </div>
             </div>
@@ -223,21 +221,21 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
               <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 sm:mb-10'>
                 <div>
                   <h1 className='text-3xl font-serif font-bold text-[#1C1917] tracking-tight mb-2'>
-                    Your Workspaces
+                    {t('workspace.myWorkspaces', { count: workspaces.length })}
                   </h1>
                   <p className='text-[#57534E] text-xs sm:text-sm'>
-                    Chọn một Studio Workspace để tiếp tục công việc sản xuất truyện tranh của bạn.
+                    {t('workspace.subtitle')}
                   </p>
                 </div>
                 <button
                   onClick={handleOpenCreate}
-                  aria-label='Create Workspace'
+                  aria-label={t('workspace.createStudio')}
                   disabled={isAdmin}
-                  title={isAdmin ? 'Quản trị viên không thể tạo Studio (BR-07)' : 'Tạo Studio Mới'}
+                  title={isAdmin ? t('workspace.adminNotice') : t('workspace.createStudio')}
                   className='self-start sm:self-auto flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#F97316] hover:bg-[#EA580C] disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs sm:text-sm font-semibold transition-all shadow-2xs cursor-pointer'
                 >
                   <Plus className='w-4 h-4' />
-                  <span>Tạo Studio Mới</span>
+                  <span>{t('workspace.createStudio')}</span>
                 </button>
               </div>
 
@@ -267,7 +265,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                       <div className='text-xs text-[#57534E] mb-6 flex flex-col gap-1.5 font-sans'>
                         <div className='flex items-center gap-1.5'>
                           <span className='w-1.5 h-1.5 rounded-full bg-stone-400'></span>
-                          <span className='tabular-nums'>{ws.memberCount || 1} Members</span>
+                          <span className='tabular-nums'>{ws.memberCount || 1} {t('workspace.roles.member')}</span>
                         </div>
                         <div className='flex items-center gap-1.5'>
                           <span className='w-1.5 h-1.5 rounded-full bg-stone-400'></span>
@@ -282,14 +280,14 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                           <>
                             <div className='w-2 h-2 rounded-full bg-amber-500 animate-pulse' />
                             <span className='text-xs font-semibold text-[#1C1917] font-mono tabular-nums'>
-                              {ws.pendingTasks} Pending Tasks
+                              {t('workspace.pendingTasks', { count: ws.pendingTasks })}
                             </span>
                           </>
                         ) : (
                           <>
                             <div className='w-2 h-2 rounded-full bg-emerald-500' />
                             <span className='text-xs font-medium text-[#57534E] font-mono'>
-                              All caught up
+                              {t('common.status.completed')}
                             </span>
                           </>
                         )}
@@ -308,10 +306,10 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                     <Plus className='w-5 h-5' />
                   </div>
                   <h3 className='text-base font-serif font-bold text-[#1C1917] mb-1'>
-                    Bắt đầu Studio mới
+                    {t('workspace.createStudio')}
                   </h3>
                   <p className='text-[#57534E] text-xs max-w-[200px]'>
-                    Tạo Studio và mời các họa sĩ, tác giả cộng tác sản xuất.
+                    {t('workspace.subtitle')}
                   </p>
                 </div>
               </div>

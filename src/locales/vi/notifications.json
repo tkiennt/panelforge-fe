@@ -1,0 +1,24 @@
+{
+  "title": "Trung tâm thông báo",
+  "subtitle": "Cập nhật tiến độ nhiệm vụ, phản hồi biên tập và phân công công việc",
+  "markAllAsRead": "Đánh dấu tất cả đã đọc",
+  "emptyTitle": "Không có thông báo mới",
+  "emptyDesc": "Bạn đã nắm bắt mọi hoạt động sản xuất mới nhất.",
+  "all": "Tất cả",
+  "unread": "Chưa đọc ({count})",
+  "viewTask": "Xem việc",
+  "types": {
+    "AssignmentAssigned": "Công việc mới",
+    "AssignmentUnassigned": "Thu hồi việc",
+    "AssignmentUpdated": "Cập nhật việc",
+    "AssignmentSubmitted": "Chờ xét duyệt",
+    "AssignmentApproved": "Đã phê duyệt",
+    "AssignmentChangesRequested": "Yêu cầu sửa đổi",
+    "ChangeRequestResolved": "Đã giải quyết yêu cầu",
+    "ChangeRequestReopened": "Mở lại yêu cầu sửa",
+    "ChapterReadyForPublication": "Sẵn sàng xuất bản",
+    "ChapterReopened": "Chương được mở lại",
+    "ChapterPublished": "Đã xuất bản thành công",
+    "AssignmentDueSoon": "Sắp đến hạn"
+  }
+}

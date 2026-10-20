@@ -46,6 +46,7 @@ import {
   pendingDependencyCount,
   resolvePageId,
 } from './collaborationRules';
+import { useTranslation } from '@/lib/i18n';
 
 interface AssignmentWorkCardProps {
   chapterId: string;
@@ -108,6 +109,7 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
   onToast,
   relatedAssignments,
 }) => {
+  const { t } = useTranslation();
   const [submissions, setSubmissions] = useState<SubmissionDto[]>([]);
   const [changeRequests, setChangeRequests] = useState<ChangeRequestDto[]>([]);
   const [artworks, setArtworks] = useState<AssetReferenceDto[]>([]);
@@ -121,6 +123,20 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
   const [previewOpen, setPreviewOpen] = useState(false);
   const [bibleDrawerOpen, setBibleDrawerOpen] = useState(false);
   const [selectedBiblePanelId, setSelectedBiblePanelId] = useState<string | null>(null);
+
+  const getStatusLabel = (statusKey: string) => {
+    const mapping: Record<string, string> = {
+      Assigned: 'collaboration.card.status.assigned',
+      InProgress: 'collaboration.card.status.inProgress',
+      Submitted: 'collaboration.card.status.submitted',
+      UnderReview: 'collaboration.card.status.underReview',
+      Approved: 'collaboration.card.status.approved',
+      ReworkRequired: 'collaboration.card.status.reworkRequired',
+      Blocked: 'collaboration.card.status.blocked',
+    };
+    const key = mapping[statusKey];
+    return key ? t(key) : (STATUS_STYLE[statusKey]?.label || statusKey);
+  };
 
   const pageId = resolvePageId(assignment, stageProgress);
   const artworkRelevant = needsArtwork(assignment);
@@ -252,7 +268,7 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
         <span
           className={`px-2.5 py-1 rounded-full border text-xs font-mono font-semibold ${style.className}`}
         >
-          {style.label}
+          {getStatusLabel(status)}
         </span>
       </div>
 
@@ -264,16 +280,16 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
         <div className='p-4 bg-rose-50/70 border border-rose-200 rounded-2xl text-xs text-rose-900 space-y-2 animate-in fade-in duration-150'>
           <div className='flex items-center gap-2 font-bold'>
             <AlertOctagon className='w-4 h-4 text-rose-600 shrink-0' />
-            <span>Yêu cầu sửa lại (Rework Required)</span>
+            <span>{getStatusLabel('ReworkRequired')}</span>
           </div>
           {assignment.lastFeedbackComment && (
             <p className='text-xs md:text-sm text-rose-900 leading-relaxed font-sans bg-white/80 p-3 rounded-xl border border-rose-200/60 shadow-2xs'>
-              <strong>Editor phản hồi:</strong> {assignment.lastFeedbackComment}
+              <strong>Editor:</strong> {assignment.lastFeedbackComment}
             </p>
           )}
           {openCrCount > 0 && (
             <p className='text-xs font-semibold text-rose-800 font-medium'>
-              Có {openCrCount} yêu cầu sửa cần xử lý bên dưới trước khi nộp lại.
+              {t('collaboration.card.changeRequests', { count: openCrCount })}
             </p>
           )}
         </div>
@@ -282,13 +298,16 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
       <div className='flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs font-mono text-stone-500'>
         <span className='flex items-center gap-1.5'>
           <User className='w-3.5 h-3.5 text-[#F97316]' />
-          <strong className='text-stone-700'>Người làm:</strong> {assigneeName}
+          <strong className='text-stone-700'>{t('collaboration.card.unassigned') !== assigneeName ? assigneeName : t('collaboration.card.unassigned')}</strong>
         </span>
         {assignment.dueDate && (
           <span className='flex items-center gap-1.5 font-mono'>
             <Calendar className='w-3.5 h-3.5 text-stone-400' />
-            <strong className='text-stone-700'>Hạn:</strong>{' '}
-            {new Date(assignment.dueDate).toLocaleDateString('vi-VN')}
+            <strong className='text-stone-700'>
+              {t('collaboration.card.deadline', {
+                date: new Date(assignment.dueDate).toLocaleDateString(),
+              })}
+            </strong>
           </span>
         )}
       </div>
@@ -326,7 +345,7 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
               ) : (
                 <Play className='w-3.5 h-3.5 text-white' />
               )}
-              <span>{status === 'ReworkRequired' ? 'Bắt đầu sửa' : 'Bắt đầu làm'}</span>
+              <span>{status === 'ReworkRequired' ? 'Bắt đầu sửa' : t('collaboration.card.start')}</span>
             </button>
           )}
           {actions.canStart && startLockedReason && (
@@ -350,7 +369,7 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
                   className='h-9 px-3.5 py-1.5 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-800 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs'
                 >
                   <PenTool className='w-3.5 h-3.5 text-blue-600' />
-                  <span>Mở Script Editor</span>
+                  <span>Script Editor</span>
                 </Link>
               )}
               {String(assignment.assignedRole).toUpperCase() === 'ARTIST' && (
@@ -361,7 +380,7 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
                   className='h-9 px-3.5 py-1.5 rounded-xl border border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs'
                 >
                   <Palette className='w-3.5 h-3.5 text-amber-600' />
-                  <span>Mở Bàn Vẽ</span>
+                  <span>Artist Desk</span>
                 </Link>
               )}
               {String(assignment.assignedRole).toUpperCase() === 'LETTERER' && (
@@ -372,7 +391,7 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
                   className='h-9 px-3.5 py-1.5 rounded-xl border border-pink-200 bg-pink-50 hover:bg-pink-100 text-pink-900 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs'
                 >
                   <Type className='w-3.5 h-3.5 text-pink-600' />
-                  <span>Mở Lettering Canvas</span>
+                  <span>Lettering Desk</span>
                 </Link>
               )}
             </>
@@ -391,7 +410,7 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
                 className='h-9 px-3.5 py-1.5 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 text-[#0c0a09] text-xs font-semibold inline-flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-2xs transition-colors'
               >
                 <Eye className='w-3.5 h-3.5 text-[#F97316]' />
-                <span>Xem trước trang truyện</span>
+                <span>{t('collaboration.card.viewArtwork')}</span>
               </button>
             )}
 
@@ -406,7 +425,7 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
               className='h-9 px-3.5 py-1.5 rounded-xl border border-orange-200 bg-orange-50 hover:bg-orange-100 text-orange-900 text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors'
             >
               <BookOpen className='w-3.5 h-3.5 text-[#F97316]' />
-              <span>Tham chiếu Bible</span>
+              <span>{t('collaboration.card.openBible')}</span>
             </button>
           )}
 
@@ -429,7 +448,7 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
               ) : (
                 <Send className='w-3.5 h-3.5' />
               )}
-              <span>Nộp bài</span>
+              <span>{t('collaboration.card.submit')}</span>
             </button>
           )}
         </div>

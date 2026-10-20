@@ -1,0 +1,22 @@
+{
+  "dashboard": {
+    "title": "Quản Trị Hệ Thống",
+    "subtitle": "Quản lý người dùng, phân quyền vai trò và giám sát tài nguyên",
+    "usersTab": "Người dùng",
+    "studiosTab": "Danh sách Studio",
+    "quotasTab": "Hạn mức & Tài nguyên",
+    "logsTab": "Nhật ký hệ thống",
+    "searchUser": "Tìm kiếm người dùng...",
+    "grantRole": "Gán quyền vai trò",
+    "createStudioPermission": "Quyền tạo Studio (Producer)"
+  },
+  "overview": {
+    "title": "Tổng quan hệ thống",
+    "updatedAt": "Cập nhật lúc {time}",
+    "errorLoading": "Không tải được số liệu hệ thống.",
+    "totalUsers": "Tổng người dùng",
+    "registeredUsers": "Người dùng thường",
+    "activeWorkspaces": "Workspace đang hoạt động",
+    "storageUsed": "Dung lượng lưu trữ"
+  }
+}

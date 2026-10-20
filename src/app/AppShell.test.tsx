@@ -3,6 +3,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { AppShell, CurrentUser } from './AppShell';
+import { I18nProvider } from '@/lib/i18n';
 
 vi.mock('@/shared/features/collaboration/NotificationBell', () => ({
   NotificationBell: () => <div data-testid='notification-bell' />,
@@ -15,26 +16,28 @@ describe('AppShell Component', () => {
     props: Partial<React.ComponentProps<typeof AppShell>> = {},
   ) => {
     return render(
-      <MemoryRouter initialEntries={[route]}>
-        <Routes>
-          <Route
-            path='/workspaces/:workspaceId/series/:seriesId/*'
-            element={
-              <AppShell currentUser={user} {...props}>
-                <div data-testid='outlet-content'>Content</div>
-              </AppShell>
-            }
-          />
-          <Route
-            path='/*'
-            element={
-              <AppShell currentUser={user} {...props}>
-                <div data-testid='outlet-content'>Content</div>
-              </AppShell>
-            }
-          />
-        </Routes>
-      </MemoryRouter>,
+      <I18nProvider>
+        <MemoryRouter initialEntries={[route]}>
+          <Routes>
+            <Route
+              path='/workspaces/:workspaceId/series/:seriesId/*'
+              element={
+                <AppShell currentUser={user} {...props}>
+                  <div data-testid='outlet-content'>Content</div>
+                </AppShell>
+              }
+            />
+            <Route
+              path='/*'
+              element={
+                <AppShell currentUser={user} {...props}>
+                  <div data-testid='outlet-content'>Content</div>
+                </AppShell>
+              }
+            />
+          </Routes>
+        </MemoryRouter>
+      </I18nProvider>,
     );
   };
 
@@ -293,5 +296,56 @@ describe('AppShell Component', () => {
     const sidebar = screen.getByTestId('app-shell-sidebar');
     expect(sidebar).toHaveClass('bg-[#FCFBF8]');
     expect(sidebar).toHaveClass('border-[#E7E2D9]');
+  });
+
+  it('không còn hiển thị chữ AI: Sẵn sàng và nút Export trên navbar header', () => {
+    const producerUser: CurrentUser = {
+      name: 'Phạm Nhà Sản Xuất',
+      role: 'USER',
+      workspaceRole: 'PRODUCER' as any,
+      activeRoles: ['PRODUCER'],
+      avatarInitials: 'PN',
+    };
+
+    renderInRouter(producerUser, '/workspaces/ws-1/series/ser-1/dashboard');
+
+    // Chữ AI: Sẵn sàng và nút Export không tồn tại trong Navbar
+    expect(screen.queryByText(/AI: Sẵn sàng/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Export$/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Export$/i)).not.toBeInTheDocument();
+  });
+
+  it('chuyển đổi ngôn ngữ VI sang EN qua LanguageSwitcher cập nhật tức thì toàn bộ menu và header', () => {
+    localStorage.clear();
+    const artistUser: CurrentUser = {
+      name: 'Nguyễn Văn Họa Sĩ',
+      role: 'USER',
+      workspaceRole: 'ARTIST' as any,
+      activeRoles: ['ARTIST'],
+      avatarInitials: 'AH',
+    };
+
+    renderInRouter(artistUser, '/workspaces/ws-1/series/ser-1/my-work');
+
+    // Mặc định là Tiếng Việt
+    expect(screen.getByText('Công việc của tôi')).toBeInTheDocument();
+    expect(screen.getByText('Bàn vẽ & Khung trang')).toBeInTheDocument();
+
+    // Chuyển sang Tiếng Anh
+    const enBtn = screen.getByTestId('lang-btn-en');
+    fireEvent.click(enBtn);
+
+    // Kiểm tra các nhãn điều hướng và header search đổi sang English
+    expect(screen.getByText('My Work')).toBeInTheDocument();
+    expect(screen.getByText('Drawing & Layout')).toBeInTheDocument();
+    expect(screen.getByText('Search frames, dialogues, assets...')).toBeInTheDocument();
+
+    // Chuyển lại về Tiếng Việt
+    const viBtn = screen.getByTestId('lang-btn-vi');
+    fireEvent.click(viBtn);
+
+    expect(screen.getByText('Công việc của tôi')).toBeInTheDocument();
+    expect(screen.getByText('Bàn vẽ & Khung trang')).toBeInTheDocument();
+    expect(screen.getByText('Tìm kiếm khung tranh, thoại, tư liệu...')).toBeInTheDocument();
   });
 });
