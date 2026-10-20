@@ -134,14 +134,14 @@ graph TD
 
 ---
 
-### 📌 Giai Đoạn 2: Đột Phá Trải Nghiệm Bàn Vẽ Họa Sĩ & Soạn Thảo Kịch Bản (Desks Core)
-- [ ] **2.1. Nâng cấp Bàn Vẽ Họa Sĩ (Artist Desk - CF2) & Tinh Giản Controls:**
-  - Trích xuất và tích hợp `#104 Canvas Minimap` vào góc phải màn hình vẽ canvas.
-  - Thay thế bảng danh sách layer hiện tại bằng `#122 Layer Stacking Order` (hỗ trợ kéo thả zIndex mượt mà).
-  - **Triệt tiêu UI cũ:** Gỡ bỏ hoàn toàn bảng danh sách layer dạng list tĩnh cũ trong tab Layer; chỉ duy trì 1 bộ quản lý Layer duy nhất từ `#122`.
-  - Tích hợp `#117 Spacing Ruler` cho thanh công cụ điều chỉnh rãnh ô tranh (gutter size).
-  - **Triệt tiêu UI cũ:** Thay thế các input nhập số gutter thô sơ trên thanh toolbar bằng thước kéo tương tác trực tiếp `#117`.
-  - Tích hợp `#017 Tilting Slider` cho công cụ chỉnh cỡ cọ (brush size) và zoom.
+### 📌 Giai Đoạn 2: Đột Phá Trải Nghiệm Bàn Vẽ Họa Sĩ & Soạn Thảo Kịch Bản (Desks Core) - [x] Hoàn thành trọng tâm Bàn vẽ (Artist Desk)
+- [x] **2.1. Nâng cấp Bàn Vẽ Họa Sĩ (Artist Desk - CF2) & Tinh Giản Controls:**
+  - Trích xuất và xây dựng `#104 Canvas Minimap` (`CanvasMinimap.tsx`, `lucian-104.css`, 4/4 tests pass) tích hợp vào góc phải canvas vẽ truyện tranh. Cho phép bấm chuột hoặc kéo rê định vị nhanh viewport các ô tranh panel và điều hướng bằng bàn phím.
+  - Xây dựng `#122 Layer Stacking Order` (`LayerStackingOrder.tsx`, `lucian-122.css`, 3/3 tests pass) với khung xem trước xếp chồng 3D/Staggered trực quan, hỗ trợ Bring to Front (↑↑), Send to Back (↓↓), tăng/giảm z-index và xoay layer.
+  - **Triệt tiêu UI cũ:** Gỡ bỏ hoàn toàn bảng danh sách layer dạng list tĩnh cũ trong tab Layer của `ArtistDeskView.tsx`; thay thế 100% bằng bộ quản lý Layer duy nhất từ `#122 LayerStackingOrder`.
+  - Xây dựng `#117 Gutter Spacing Ruler` (`GutterSpacingRuler.tsx`, `lucian-117.css`, 3/3 tests pass) với 2 khung tranh mô phỏng co giãn khoảng cách rãnh ô tranh thời gian thực và các mốc preset chuẩn (Dính liền 0%, Hẹp 1%, Vừa 2%, Rộng 4%).
+  - **Triệt tiêu UI cũ:** Thay thế hoàn toàn input nhập số % thô sơ trong form chia lại khung của `PanelLayoutControls.tsx` bằng `GutterSpacingRuler`.
+  - Đã pass 20/20 unit tests `ArtistDeskView.test.tsx` và 29/29 tests của toàn bộ bộ thư viện Lucian components.
 - [ ] **2.2. Nâng cấp Biên Soạn Kịch Bản (Writer Script Desk - CF1):**
   - Tích hợp `#139 Margin Notes` cho phép gắn chỉ dẫn diễn xuất/hướng nhìn bên lề câu thoại.
   - **Triệt tiêu UI cũ:** Gỡ bỏ các ô text ghi chú phụ rườm rà chèn giữa dòng thoại; đưa toàn bộ chỉ dẫn ra lề margin notes.

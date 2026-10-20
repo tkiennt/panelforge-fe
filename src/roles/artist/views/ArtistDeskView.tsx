@@ -110,6 +110,7 @@ import { splitPanelWithRollback } from '../utils/splitPanel';
 import { pipelineService, type PipelineStageDto } from '@/services/pipeline.service';
 import { pickPanelArtwork, pickPageArtwork } from '@/shared/utils/stageArtworks';
 import { ElementConflictModal } from '@/shared/modals/ElementConflictModal';
+import { CanvasMinimap, LayerStackingOrder } from '@/shared/components/lucian';
 
 /** Chỉ lỗi mạng (không có status HTTP) mới xếp hàng chờ ngoại tuyến; 4xx/409 của BE phải hiện cho người dùng. */
 const isNetworkFailure = (err: any): boolean =>
@@ -2801,6 +2802,17 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                         );
                       })}
                   </div>
+
+                  {/* Lucian #104 Canvas Minimap */}
+                  {selectedPage && panels.length > 0 && (
+                    <CanvasMinimap
+                      panels={panels}
+                      selectedPanelId={selectedPanelId}
+                      onSelectPanel={(id) => setSelectedPanelId(id)}
+                      liveRects={liveRects}
+                      pageNumber={selectedPage.pageNumber}
+                    />
+                  )}
                 </div>
               </div>
 
@@ -3392,134 +3404,28 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                           );
                         })()}
 
-                        {/* Layer List Items */}
-                        <div className='space-y-1.5'>
-                          {visibleElements.length === 0 && (
-                            <p
-                              className='p-3 text-center text-xs text-[#57534E] border border-dashed border-[#D8D2C5] rounded-xl bg-[#FCFBF8]'
-                              data-testid='no-panel-layers'
-                            >
-                              Panel #{selectedPanelNumber ?? '?'} chưa có layer nào (trang có{' '}
-                              {pageElements.length} layer ở panel khác). Bấm "Xem cả trang" để xem
-                              tất cả.
-                            </p>
-                          )}
-                          {visibleElements
-                            .slice()
-                            .sort((a, b) => (b.zIndex || 0) - (a.zIndex || 0))
-                            .map((el) => {
-                              const isSelected = selectedElementId === el.elementId;
-                              const bible = el.bibleEntryId
-                                ? bibleEntries.find((b) => b.id === el.bibleEntryId)
-                                : null;
-                              return (
-                                <div
-                                  key={el.elementId}
-                                  data-testid={`layer-item-${el.elementId}`}
-                                  onClick={() => setSelectedElementId(el.elementId)}
-                                  className={`p-2 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
-                                    isSelected
-                                      ? 'border-[#F97316] bg-[#FFF2E6] shadow-xs ring-1 ring-[#F97316]'
-                                      : 'border-[#D8D2C5] bg-[#FCFBF8] hover:border-[#F97316]/50'
-                                  }`}
-                                >
-                                  <div className='flex items-center gap-2 min-w-0 flex-1'>
-                                    <div className='w-8 h-8 rounded-lg bg-zinc-100 border border-zinc-200 flex items-center justify-center shrink-0 text-zinc-500 overflow-hidden'>
-                                      {bible?.referenceImageUrl ? (
-                                        <AuthenticatedImage
-                                          src={bible.referenceImageUrl}
-                                          alt={bible.name}
-                                          className='w-full h-full rounded object-cover'
-                                        />
-                                      ) : (
-                                        <>
-                                          {el.elementType === 'CHARACTER_INSTANCE' && (
-                                            <User className='w-4 h-4 text-purple-600' />
-                                          )}
-                                          {el.elementType === 'BACKGROUND' && (
-                                            <Mountain className='w-4 h-4 text-emerald-600' />
-                                          )}
-                                          {el.elementType === 'PROP' && (
-                                            <Package className='w-4 h-4 text-amber-600' />
-                                          )}
-                                          {el.elementType === 'EFFECT' && (
-                                            <Zap className='w-4 h-4 text-red-500' />
-                                          )}
-                                          {el.elementType === 'ARTWORK_LAYER' && (
-                                            <Palette className='w-4 h-4 text-blue-500' />
-                                          )}
-                                        </>
-                                      )}
-                                    </div>
-                                    <div className='min-w-0 flex-1'>
-                                      <p className='font-semibold text-xs text-zinc-800 truncate'>
-                                        {bible
-                                          ? bible.name
-                                          : LAYER_LABELS[el.elementType] || el.elementType}
-                                      </p>
-                                      <div className='flex items-center gap-1.5 text-xs text-zinc-400'>
-                                        <span className='font-mono'>z:{el.zIndex}</span>
-                                        {el.rotation ? (
-                                          <span className='font-mono'>• {el.rotation}°</span>
-                                        ) : null}
-                                        {el.panelId ? (
-                                          <span className='bg-blue-50 text-blue-700 px-1 rounded'>
-                                            Khung #
-                                            {panels.find((p) => p.id === el.panelId)?.panelNumber ||
-                                              '?'}
-                                          </span>
-                                        ) : (
-                                          <span className='text-zinc-400'>Toàn trang</span>
-                                        )}
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  <div
-                                    className='flex items-center gap-1'
-                                    onClick={(e) => e.stopPropagation()}
-                                  >
-                                    <button
-                                      type='button'
-                                      data-testid={`rotate-layer-${el.elementId}`}
-                                      onClick={() => handleRotateLayer(el, 15)}
-                                      className='p-1 text-zinc-400 hover:text-zinc-700 rounded hover:bg-zinc-100 cursor-pointer'
-                                      title='Xoay +15°'
-                                    >
-                                      <RotateCw className='w-3 h-3' />
-                                    </button>
-                                    <button
-                                      type='button'
-                                      data-testid={`layer-up-${el.elementId}`}
-                                      onClick={() => handleChangeLayerZIndex(el, 1)}
-                                      className='p-1 text-zinc-400 hover:text-zinc-700 rounded hover:bg-zinc-100 cursor-pointer'
-                                      title='Lên 1 lớp'
-                                    >
-                                      <ArrowUp className='w-3.5 h-3.5' />
-                                    </button>
-                                    <button
-                                      type='button'
-                                      data-testid={`layer-down-${el.elementId}`}
-                                      onClick={() => handleChangeLayerZIndex(el, -1)}
-                                      className='p-1 text-zinc-400 hover:text-zinc-700 rounded hover:bg-zinc-100 cursor-pointer'
-                                      title='Xuống 1 lớp'
-                                    >
-                                      <ArrowDown className='w-3.5 h-3.5' />
-                                    </button>
-                                    <button
-                                      type='button'
-                                      data-testid={`delete-layer-${el.elementId}`}
-                                      onClick={() => handleDeleteLayer(el)}
-                                      className='p-1 text-zinc-400 hover:text-red-600 rounded hover:bg-red-50 cursor-pointer'
-                                      title='Xoá layer'
-                                    >
-                                      <Trash2 className='w-3.5 h-3.5' />
-                                    </button>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                        </div>
+                        {/* Lucian #122 Layer Stacking Order & Visual 3D Preview */}
+                        {visibleElements.length === 0 ? (
+                          <p
+                            className='p-3 text-center text-xs text-[#57534E] border border-dashed border-[#D8D2C5] rounded-xl bg-[#FCFBF8]'
+                            data-testid='no-panel-layers'
+                          >
+                            Panel #{selectedPanelNumber ?? '?'} chưa có layer nào (trang có{' '}
+                            {pageElements.length} layer ở panel khác). Bấm "Xem cả trang" để xem
+                            tất cả.
+                          </p>
+                        ) : (
+                          <LayerStackingOrder
+                            elements={visibleElements}
+                            selectedElementId={selectedElementId}
+                            onSelectElement={(id) => setSelectedElementId(id)}
+                            onChangeZIndex={handleChangeLayerZIndex}
+                            onRotateLayer={handleRotateLayer}
+                            onDeleteLayer={handleDeleteLayer}
+                            bibleEntries={bibleEntries}
+                            panels={panels}
+                          />
+                        )}
                       </div>
                     )}
                   </div>

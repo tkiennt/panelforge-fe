@@ -31,6 +31,7 @@ import {
 import type { PipelineStageDto } from '@/services/pipeline.service';
 import type { PanelDto } from '@/types/pipeline';
 import type { PageDto } from '@/services/page.service';
+import { GutterSpacingRuler } from '@/shared/components/lucian';
 
 const HANDLES: Array<{
   id: Exclude<DragMode, 'move'>;
@@ -315,18 +316,16 @@ export const PanelLayoutToolbar: React.FC<ToolbarProps> = ({
               className='px-2.5 py-1.5 bg-white border border-[#E7E7E7] rounded-lg font-mono text-xs focus:outline-none focus:border-orange-500'
             />
           </label>
-          <label className='flex flex-col gap-1'>
-            <span className='text-stone-700 font-semibold'>Khoảng cách giữa khung (%)</span>
-            <input
-              type='number'
-              step={0.5}
+          <div className='col-span-1 sm:col-span-2'>
+            <GutterSpacingRuler
+              value={gap}
+              onChange={(val) => setGap(val)}
               min={0}
               max={10}
-              value={gap}
-              onChange={(e) => setGap(Math.max(0, parseFloat(e.target.value) || 0))}
-              className='px-2.5 py-1.5 bg-white border border-[#E7E7E7] rounded-lg font-mono text-xs focus:outline-none focus:border-orange-500'
+              step={0.5}
+              unit='%'
             />
-          </label>
+          </div>
           <p className='col-span-1 sm:col-span-2 text-xs text-stone-500'>
             Khung đã có giữ nguyên ảnh, Scene và thứ tự đọc; khung mới được thêm vào cuối và cần tải
             ảnh riêng.
