@@ -11,12 +11,8 @@ describe('i18n core engine', () => {
   it('dịch chuỗi tiếng Việt mặc định chính xác', () => {
     expect(translate('common.actions.save', undefined, 'vi')).toBe('Lưu');
     expect(translate('common.actions.cancel', undefined, 'vi')).toBe('Hủy');
-    expect(translate('bible.canonLock.badge', undefined, 'vi')).toBe(
-      'Đã khoá chuẩn (Canon Locked)',
-    );
-    expect(translate('production.canvas.title', undefined, 'vi')).toBe(
-      'Bố Cục Khung Tranh (Panels)',
-    );
+    expect(translate('bible.canonLock.badge', undefined, 'vi')).toBe('Đã khoá chuẩn (Canon Locked)');
+    expect(translate('production.canvas.title', undefined, 'vi')).toBe('Bố Cục Khung Tranh (Panels)');
   });
 
   it('dịch chuỗi tiếng Anh chính xác', () => {
@@ -27,12 +23,8 @@ describe('i18n core engine', () => {
   });
 
   it('thay thế tham số nội suy (interpolation) chính xác', () => {
-    expect(translate('production.canvas.dropzonePrompt', { number: 3 }, 'vi')).toBe(
-      'Thả ảnh vào Khung #3',
-    );
-    expect(translate('production.canvas.dropzonePrompt', { number: 3 }, 'en')).toBe(
-      'Drop image into Panel #3',
-    );
+    expect(translate('production.canvas.dropzonePrompt', { number: 3 }, 'vi')).toBe('Thả ảnh vào Khung #3');
+    expect(translate('production.canvas.dropzonePrompt', { number: 3 }, 'en')).toBe('Drop image into Panel #3');
     expect(
       translate('production.canvas.pageInfo', { width: 1200, height: 1800, dpi: 600 }, 'vi'),
     ).toBe('Khổ: 1200 x 1800 px (600 DPI)');

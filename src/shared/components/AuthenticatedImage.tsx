@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import axiosClient from '@/api/axiosClient';
 import { ImageOff, Loader2 } from 'lucide-react';
 
@@ -49,6 +49,7 @@ export const AuthenticatedImage: React.FC<AuthenticatedImageProps> = ({
     return !blobCache.has(src);
   });
   const [hasError, setHasError] = useState(false);
+  const placeholderRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!src) {
@@ -78,23 +79,44 @@ export const AuthenticatedImage: React.FC<AuthenticatedImageProps> = ({
     setLoading(true);
     setHasError(false);
 
-    axiosClient
-      .get(src, { responseType: 'blob' })
-      .then((res) => {
-        if (isCancelled) return;
-        const blobUrl = URL.createObjectURL(res.data);
-        blobCache.set(src, blobUrl);
-        setResolvedUrl(blobUrl);
-        setLoading(false);
-      })
-      .catch(() => {
-        if (isCancelled) return;
-        setHasError(true);
-        setLoading(false);
-      });
+    const load = () =>
+      axiosClient
+        .get(src, { responseType: 'blob' })
+        .then((res) => {
+          if (isCancelled) return;
+          const blobUrl = URL.createObjectURL(res.data);
+          blobCache.set(src, blobUrl);
+          setResolvedUrl(blobUrl);
+          setLoading(false);
+        })
+        .catch(() => {
+          if (isCancelled) return;
+          setHasError(true);
+          setLoading(false);
+        });
+
+    // Chỉ tải khi ảnh sắp vào màn hình; môi trường không có IntersectionObserver (test) thì tải ngay.
+    const node = placeholderRef.current;
+    if (!node || typeof IntersectionObserver === 'undefined') {
+      void load();
+      return () => {
+        isCancelled = true;
+      };
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          observer.disconnect();
+          void load();
+        }
+      },
+      { rootMargin: '200px' },
+    );
+    observer.observe(node);
 
     return () => {
       isCancelled = true;
+      observer.disconnect();
     };
   }, [src]);
 
@@ -114,6 +136,7 @@ export const AuthenticatedImage: React.FC<AuthenticatedImageProps> = ({
   if (loading) {
     return (
       <div
+        ref={placeholderRef}
         className={`flex items-center justify-center bg-zinc-900 text-zinc-400 ${className}`}
         data-testid='authenticated-image-loading'
       >

@@ -201,7 +201,7 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
         <div className='w-1/2 hidden md:flex flex-col relative border-r border-[#E7E7E7] p-8 overflow-y-auto custom-scrollbar'>
           <div
             className='absolute inset-0 bg-cover bg-center'
-            style={{ backgroundImage: 'url(/login_modal.png)' }}
+            style={{ backgroundImage: 'url(/login_modal.jpg)' }}
           ></div>
           <div className='absolute inset-0 bg-[#FAF8F5]/90 backdrop-blur-md'></div>
           <div className='absolute inset-0 bg-[radial-gradient(#171717_1px,transparent_1px)] bg-[size:16px_16px] opacity-[0.03]'></div>

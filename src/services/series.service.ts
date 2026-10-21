@@ -240,6 +240,7 @@ export interface SeriesMemberDto {
   studioRole: string;
   seriesRole: string;
   joinedAt: string;
+  status?: 'Active' | 'Pending' | 'Rejected' | string;
 }
 
 export interface AddSeriesMemberRequest {
@@ -502,6 +503,7 @@ export const seriesService = {
         studioRole: String(m.role),
         seriesRole: String(m.role),
         joinedAt: m.joinedAt,
+        status: m.status ? String(m.status) : 'Active',
       }));
     } catch (err: any) {
       if (err.response?.status === 404) return [];

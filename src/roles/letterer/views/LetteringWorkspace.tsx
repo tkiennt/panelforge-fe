@@ -2270,9 +2270,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
         <div className='w-16 h-16 rounded-2xl bg-[#FCFBF8] border border-[#D8D2C5] flex items-center justify-center text-[#C2410C] mb-4 shadow-soft-sm'>
           <Type className='w-8 h-8' />
         </div>
-        <h3 className='text-base font-serif font-bold text-[#1C1917] mb-1'>
-          Chọn một trang để bắt đầu
-        </h3>
+        <h3 className='text-base font-serif font-bold text-[#1C1917] mb-1'>Chọn một trang để bắt đầu</h3>
         <p className='text-xs text-[#57534E] max-w-sm'>
           Vui lòng chọn một chương và trang truyện từ danh sách phía trên để mở bàn làm việc chèn
           chữ.
@@ -2292,9 +2290,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
 
   const toolBtn = (active: boolean, activeClass: string) =>
     `px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
-      active
-        ? `${activeClass} text-white shadow-xs`
-        : 'text-[#57534E] hover:bg-[#F3F0E9] hover:text-[#1C1917]'
+      active ? `${activeClass} text-white shadow-xs` : 'text-[#57534E] hover:bg-[#F3F0E9] hover:text-[#1C1917]'
     }`;
 
   const pendingScreen = pending
@@ -2331,9 +2327,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
             )}
           </button>
           <Type className='w-4 h-4 text-[#C2410C] shrink-0' />
-          <h3 className='font-serif font-bold text-xs text-[#1C1917] truncate'>
-            Bàn Làm Việc Chèn Chữ
-          </h3>
+          <h3 className='font-serif font-bold text-xs text-[#1C1917] truncate'>Bàn Làm Việc Chèn Chữ</h3>
           {pageSnapshot && (
             <span className='font-mono text-xs px-2 py-0.5 bg-[#FFF2E6] text-[#C2410C] border border-[#FDBA74] rounded-full shrink-0 font-medium'>
               v{pageSnapshot.version} • {pageDim.width}×{pageDim.height}px
@@ -2421,9 +2415,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
             title={focusMode ? 'Thoát chế độ tập trung (Esc)' : 'Chế độ tập trung: ẩn các bảng phụ'}
             data-testid='toggle-focus-mode'
             className={`p-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer ${
-              focusMode
-                ? 'bg-[#1C1917] text-white'
-                : 'text-[#57534E] hover:bg-[#F3F0E9] hover:text-[#1C1917]'
+              focusMode ? 'bg-[#1C1917] text-white' : 'text-[#57534E] hover:bg-[#F3F0E9] hover:text-[#1C1917]'
             }`}
           >
             {focusMode ? <Minimize2 className='w-4 h-4' /> : <Maximize2 className='w-4 h-4' />}
@@ -2549,9 +2541,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                       >
                         <div className='flex items-center justify-between gap-1.5 flex-wrap'>
                           <span className='font-mono font-bold text-xs text-[#57534E] flex items-center gap-1 min-w-0'>
-                            {canDrag && (
-                              <GripVertical className='w-3 h-3 text-[#57534E]/60 shrink-0' />
-                            )}
+                            {canDrag && <GripVertical className='w-3 h-3 text-[#57534E]/60 shrink-0' />}
                             <span className='truncate'>
                               #{line.lineOrder} • {speaker || 'Người dẫn truyện'}
                             </span>

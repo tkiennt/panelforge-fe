@@ -62,9 +62,7 @@ export const RejectChapterModal: React.FC<RejectChapterModalProps> = ({
               <AlertTriangle className='w-4 h-4' />
             </div>
             <div>
-              <h3 className='font-serif font-bold text-sm text-[#1C1917]'>
-                Từ Chối &amp; Yêu Cầu Chỉnh Sửa
-              </h3>
+              <h3 className='font-serif font-bold text-sm text-[#1C1917]'>Từ Chối &amp; Yêu Cầu Chỉnh Sửa</h3>
               <p className='text-xs text-[#57534E]'>
                 Chương {chapterNumber}: {chapterTitle || 'Không tiêu đề'}
               </p>

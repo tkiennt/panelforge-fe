@@ -906,10 +906,7 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
               <span className='px-2 py-0.5 rounded text-[11px] font-bold bg-[#FFF2E6] text-[#C2410C] border border-[#F97316]/30 uppercase tracking-wide'>
                 Chapter
               </span>
-              <h2
-                className='text-sm sm:text-base font-serif font-bold text-[#1C1917] truncate'
-                title={chapterTitle}
-              >
+              <h2 className='text-sm sm:text-base font-serif font-bold text-[#1C1917] truncate' title={chapterTitle}>
                 {chapterTitle} · 7. Review
               </h2>
               <span

@@ -33,15 +33,13 @@ describe('WorkspaceListView Component', () => {
     const onSelectMock = vi.fn();
     render(<WorkspaceListView onSelectWorkspace={onSelectMock} />);
 
-    expect(
-      screen.getByText(/Loading Workspaces|Đang tải danh sách Workspace/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Loading Workspaces/i)).toBeInTheDocument();
 
     await waitFor(() => {
       expect(screen.getByText('Alpha Studio')).toBeInTheDocument();
-      expect(screen.getByText(/Producer/i)).toBeInTheDocument();
-      expect(screen.getByText(/2 (Pending Tasks|việc đang chờ)/i)).toBeInTheDocument();
-      expect(screen.getByText(/5\s+(Members|Thành viên)/i)).toBeInTheDocument();
+      expect(screen.getByText('Producer')).toBeInTheDocument();
+      expect(screen.getByText('2 Pending Tasks')).toBeInTheDocument();
+      expect(screen.getByText('5 Members')).toBeInTheDocument();
     });
 
     // Click on workspace card
@@ -74,17 +72,13 @@ describe('WorkspaceListView Component', () => {
     );
 
     await waitFor(() => {
+      expect(screen.getByText('Welcome to PanelForge')).toBeInTheDocument();
       expect(
-        screen.getByText(/Welcome to PanelForge|Chào mừng đến với PanelForge/i),
-      ).toBeInTheDocument();
-      expect(
-        screen.getByText(
-          /You currently don't belong to any active Workspaces|Bạn chưa thuộc về Studio Workspace nào/i,
-        ),
+        screen.getByText(/You currently don't belong to any active Workspaces/i),
       ).toBeInTheDocument();
     });
 
-    const createBtn = screen.getByRole('button', { name: /Create (Workspace|Studio)|Tạo Studio/i });
+    const createBtn = screen.getByRole('button', { name: /Create Workspace/i });
     fireEvent.click(createBtn);
     expect(onCreateMock).toHaveBeenCalled();
   });
@@ -108,12 +102,10 @@ describe('WorkspaceListView Component', () => {
     );
 
     await waitFor(() => {
-      expect(
-        screen.getByText(/Welcome to PanelForge|Chào mừng đến với PanelForge/i),
-      ).toBeInTheDocument();
+      expect(screen.getByText('Welcome to PanelForge')).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /Create (Workspace|Studio)|Tạo Studio/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Create Workspace/i }));
     expect(onCreateMock).not.toHaveBeenCalled();
     expect(alertSpy).toHaveBeenCalled();
   });

@@ -51,102 +51,123 @@ describe('AppShell Navbar/Sidebar 3 Functions: Notifications, Global Search, My 
     vi.clearAllMocks();
   });
 
-  describe('AppShellSidebar 4 footer functions removal and Logout retention', () => {
-    it('không còn hiển thị 4 nút chức năng (Notifications, Global Search, My Activity, 2FA) ở góc dưới sidebar', () => {
+  describe('AppShellSidebar 3 footer buttons', () => {
+    it('gọi onOpenNotifications khi nhấn vào nút Notifications và hiển thị badge số chưa đọc', () => {
+      const handleOpenNotifications = vi.fn();
       render(
         <MemoryRouter>
           <AppShellSidebar
             {...defaultProps}
             unreadNotificationCount={5}
-            onOpenNotifications={vi.fn()}
-            onOpenCommandPalette={vi.fn()}
-            onOpenActivityHistory={vi.fn()}
+            onOpenNotifications={handleOpenNotifications}
             isCollapsed={false}
           />
         </MemoryRouter>,
       );
 
-      expect(screen.queryByTestId('sidebar-notifications-btn')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('sidebar-global-search-btn')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('sidebar-activity-history-btn')).not.toBeInTheDocument();
-      expect(screen.queryByText(/Profile & Security/i)).not.toBeInTheDocument();
+      const notifBtn = screen.getByTestId('sidebar-notifications-btn');
+      expect(notifBtn).toBeInTheDocument();
+      expect(screen.getByTestId('sidebar-notifications-badge')).toHaveTextContent('5');
+
+      fireEvent.click(notifBtn);
+      expect(handleOpenNotifications).toHaveBeenCalledTimes(1);
     });
 
-    it('vẫn hiển thị nút Logout ở dưới cùng khi có callback onLogout', () => {
-      const handleLogout = vi.fn();
+    it('hiển thị chấm đỏ khi sidebar ở trạng thái collapsed và có thông báo chưa đọc', () => {
       render(
         <MemoryRouter>
-          <AppShellSidebar {...defaultProps} onLogout={handleLogout} isCollapsed={false} />
+          <AppShellSidebar
+            {...defaultProps}
+            unreadNotificationCount={2}
+            isCollapsed={true}
+          />
         </MemoryRouter>,
       );
 
-      const logoutBtn = screen.getByTestId('sidebar-logout-btn');
-      expect(logoutBtn).toBeInTheDocument();
-      expect(screen.getByText('Logout')).toBeInTheDocument();
+      expect(screen.getByTestId('sidebar-notifications-dot')).toBeInTheDocument();
+      expect(screen.queryByTestId('sidebar-notifications-badge')).not.toBeInTheDocument();
+    });
 
-      fireEvent.click(logoutBtn);
-      expect(handleLogout).toHaveBeenCalledTimes(1);
+    it('gọi onOpenCommandPalette khi nhấn nút Global Search', () => {
+      const handleOpenSearch = vi.fn();
+      render(
+        <MemoryRouter>
+          <AppShellSidebar
+            {...defaultProps}
+            onOpenCommandPalette={handleOpenSearch}
+            isCollapsed={false}
+          />
+        </MemoryRouter>,
+      );
+
+      const searchBtn = screen.getByTestId('sidebar-global-search-btn');
+      expect(searchBtn).toBeInTheDocument();
+      expect(screen.getByText('Global Search')).toBeInTheDocument();
+      expect(screen.getByText('⌘K')).toBeInTheDocument();
+
+      fireEvent.click(searchBtn);
+      expect(handleOpenSearch).toHaveBeenCalledTimes(1);
+    });
+
+    it('gọi onOpenActivityHistory khi nhấn nút My Activity / History', () => {
+      const handleOpenHistory = vi.fn();
+      render(
+        <MemoryRouter>
+          <AppShellSidebar
+            {...defaultProps}
+            onOpenActivityHistory={handleOpenHistory}
+            isCollapsed={false}
+          />
+        </MemoryRouter>,
+      );
+
+      const historyBtn = screen.getByTestId('sidebar-activity-history-btn');
+      expect(historyBtn).toBeInTheDocument();
+      expect(screen.getByText('My Activity / History')).toBeInTheDocument();
+
+      fireEvent.click(historyBtn);
+      expect(handleOpenHistory).toHaveBeenCalledTimes(1);
     });
   });
 
-  describe('AppShellSidebar: trạng thái do AppShell điều khiển bằng click', () => {
-    it('không còn nút toggle trong sidebar (logo chỉ là thương hiệu)', () => {
-      render(
-        <MemoryRouter>
-          <AppShellSidebar {...defaultProps} isCollapsed={false} />
-        </MemoryRouter>,
-      );
-      expect(screen.queryByTestId('sidebar-rail-toggle-btn')).not.toBeInTheDocument();
-    });
-
-    it('không tự động mở rộng khi di chuột vào sidebar đang thu nhỏ (loại bỏ hover expand)', () => {
-      render(
-        <MemoryRouter>
-          <AppShellSidebar {...defaultProps} isCollapsed={true} />
-        </MemoryRouter>,
-      );
-
-      const sidebar = screen.getByTestId('app-shell-sidebar');
-      expect(sidebar).toHaveStyle({ width: '64px' });
-
-      fireEvent.mouseEnter(sidebar);
-      expect(sidebar).toHaveStyle({ width: '64px' });
-      // Nhãn ẩn khi thu gọn
-      expect(screen.queryByText('v2.4')).not.toBeInTheDocument();
-    });
-
-    it('không tự động thu nhỏ khi bấm chuột ra ngoài sidebar đang mở rộng (loại bỏ click outside collapse)', () => {
-      render(
-        <MemoryRouter>
-          <div>
-            <div data-testid='outside-area'>Vùng bên ngoài</div>
-            <AppShellSidebar {...defaultProps} isCollapsed={false} />
-          </div>
-        </MemoryRouter>,
-      );
-
-      fireEvent.mouseDown(screen.getByTestId('outside-area'));
-      expect(screen.getByTestId('app-shell-sidebar')).toHaveStyle({ width: '256px' });
-    });
-  });
-
-  describe('AppShell Component integration with header actions', () => {
-    it('kích hoạt onOpenCommandPalette khi click vào ô tìm kiếm ⌘K trên header', async () => {
+  describe('AppShell Component integration with notification polling and action wiring', () => {
+    it('truyền các callback điều hướng và số thông báo chưa đọc xuống sidebar', async () => {
+      const onOpenNotifications = vi.fn();
       const onOpenCommandPalette = vi.fn();
+      const onOpenActivityHistory = vi.fn();
 
       render(
         <MemoryRouter>
-          <AppShell currentUser={defaultUser} onOpenCommandPalette={onOpenCommandPalette}>
+          <AppShell
+            currentUser={defaultUser}
+            onOpenNotifications={onOpenNotifications}
+            onOpenCommandPalette={onOpenCommandPalette}
+            onOpenActivityHistory={onOpenActivityHistory}
+          >
             <div>Nội dung</div>
           </AppShell>
         </MemoryRouter>,
       );
 
-      const searchTrigger = screen.getByTestId('header-command-palette-trigger');
-      expect(searchTrigger).toBeInTheDocument();
+      // Chờ polling notificationService lấy unreadCount = 3
+      await waitFor(() => {
+        expect(notificationService.getNotifications).toHaveBeenCalled();
+      });
 
-      fireEvent.click(searchTrigger);
+      // Nhấn nút Notifications trên sidebar
+      const notifBtns = screen.getAllByTestId('sidebar-notifications-btn');
+      fireEvent.click(notifBtns[0]);
+      expect(onOpenNotifications).toHaveBeenCalledTimes(1);
+
+      // Nhấn nút Global Search trên sidebar
+      const searchBtns = screen.getAllByTestId('sidebar-global-search-btn');
+      fireEvent.click(searchBtns[0]);
       expect(onOpenCommandPalette).toHaveBeenCalledTimes(1);
+
+      // Nhấn nút My Activity / History trên sidebar
+      const historyBtns = screen.getAllByTestId('sidebar-activity-history-btn');
+      fireEvent.click(historyBtns[0]);
+      expect(onOpenActivityHistory).toHaveBeenCalledTimes(1);
     });
   });
 });

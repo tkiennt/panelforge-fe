@@ -1,65 +1,46 @@
-/* Lucian UX/UI Prompt #040 · Collapsible navigation rail · (c) 2026 Seokwoo Lee · MIT License */
-/* Adapted for PanelForge Editorial AI Studio Design System */
-
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronDown, Briefcase, BookOpen, LogOut, Server, Check, Palette } from 'lucide-react';
-import { CurrentUser } from './AppShell';
-import { SeriesDto } from '@/services/series.service';
-import { seriesService } from '@/services/series.service';
 import { BrandMark } from '@/shared/components/BrandMark';
-import { useTranslation } from '@/lib/i18n';
-import './sidebarTheme.css';
-
-import { SIDEBAR_ID, SIDEBAR_THEMES, type SidebarTheme } from './sidebarTheme';
-
-const THEME_FALLBACK: Record<SidebarTheme, string> = {
-  paper: 'Giấy sáng',
-  ink: 'Mực đậm',
-  ocean: 'Biển đêm',
-  plum: 'Tím bản thảo',
-};
+import {
+  Server,
+  BookOpen,
+  Briefcase,
+  ChevronDown,
+  Bell,
+  Search,
+  History,
+  UserCircle,
+  LogOut,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Check,
+} from 'lucide-react';
+import { CurrentUser } from './AppShell';
+import { MangaProject } from '@/types';
+import { seriesService, SeriesDto } from '@/services/series.service';
 
 export interface AppShellSidebarProps {
   currentUser: CurrentUser;
   activeWorkspace?: { id?: string; name: string } | null;
-  activeSeries?: { id?: string; title: string; subtitle?: string } | null;
+  activeSeries: MangaProject | { title: string; subtitle: string };
   workspaceId?: string;
   seriesId?: string;
-  isReader?: boolean;
-  navSections: Array<{
-    section: string;
-    items: Array<{
-      icon?: React.ElementType;
-      label: string;
-      href: string;
-      badge?: string | number;
-      isActive?: boolean;
-    }>;
-  }>;
+  isReader: boolean;
+  navSections: any[];
   handleNavClick: (e: React.MouseEvent, href: string) => void;
-  renderBadge: (badge: string | number) => React.ReactNode;
-  unreadNotificationCount?: number;
+  renderBadge: (badge: any) => React.ReactNode;
   onOpenNotifications?: () => void;
   onOpenCommandPalette?: () => void;
   onOpenActivityHistory?: () => void;
+  unreadNotificationCount?: number;
   onOpenTwoFactor?: () => void;
   onLogout?: () => void;
   onSelectSeries?: (seriesId: string) => void;
   isRailExpanded?: boolean;
   isCollapsed?: boolean;
+  onToggleRail?: () => void;
+  onToggleCollapse?: () => void;
   isMobileDrawer?: boolean;
-  theme?: SidebarTheme;
-  onChangeTheme?: (theme: SidebarTheme) => void;
 }
-
-type FloatPos = { left: number; top: number; width?: number };
-
-/** Vị trí cho lớp nổi position:fixed — thoát khỏi overflow của rail, không nằm dưới main. */
-const floatFrom = (el: HTMLElement, outside: boolean, width = 240): FloatPos => {
-  const r = el.getBoundingClientRect();
-  if (outside) return { left: r.right + 8, top: r.top, width };
-  return { left: r.left, top: r.bottom + 4, width: r.width };
-};
 
 export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
   currentUser,
@@ -71,15 +52,20 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
   navSections,
   handleNavClick,
   renderBadge,
+  onOpenNotifications,
+  onOpenCommandPalette,
+  onOpenActivityHistory,
+  unreadNotificationCount,
+  onOpenTwoFactor,
   onLogout,
   onSelectSeries,
   isRailExpanded,
   isCollapsed: isCollapsedProp,
+  onToggleRail,
+  onToggleCollapse,
   isMobileDrawer = false,
-  theme = 'ink',
-  onChangeTheme,
 }) => {
-  const { t } = useTranslation();
+  // Ưu tiên isCollapsedProp, nếu không có thì dựa theo isRailExpanded (false nghĩa là thu gọn, true là mở rộng)
   const isCollapsed =
     !isMobileDrawer &&
     (isCollapsedProp !== undefined
@@ -88,169 +74,102 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
         ? !isRailExpanded
         : false);
   const showFullContent = isMobileDrawer || !isCollapsed;
+  const handleToggle = onToggleCollapse || onToggleRail;
 
-  const [seriesPos, setSeriesPos] = useState<FloatPos | null>(null);
-  const [themePos, setThemePos] = useState<FloatPos | null>(null);
-  const [tip, setTip] = useState<{ text: string; top: number; left: number } | null>(null);
+  const [seriesDropdownOpen, setSeriesDropdownOpen] = useState(false);
   const [seriesList, setSeriesList] = useState<SeriesDto[]>([]);
   const [loadingSeries, setLoadingSeries] = useState(false);
-  const seriesBtnRef = useRef<HTMLButtonElement>(null);
-  const seriesMenuRef = useRef<HTMLDivElement>(null);
-  const themeBtnRef = useRef<HTMLButtonElement>(null);
-  const themeMenuRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const loadSeries = React.useCallback(() => {
     if (!workspaceId) return;
     setLoadingSeries(true);
     seriesService
       .getSeriesList(workspaceId)
-      .then((res) => setSeriesList(res || []))
+      .then((data) => {
+        setSeriesList(data || []);
+      })
       .catch((err) => {
-        console.error('Không thể nạp danh sách series cho sidebar:', err);
+        console.warn('Failed to load series for sidebar dropdown:', err);
         setSeriesList([]);
       })
       .finally(() => setLoadingSeries(false));
   }, [workspaceId]);
 
   useEffect(() => {
-    if (workspaceId && showFullContent) loadSeries();
+    if (workspaceId && showFullContent) {
+      loadSeries();
+    }
   }, [workspaceId, showFullContent, loadSeries]);
 
-  // Đóng lớp nổi khi click ra ngoài, Escape, đổi kích thước hoặc đổi trạng thái rail
-  const anyOpen = !!seriesPos || !!themePos;
   useEffect(() => {
-    if (!anyOpen) return;
-    const close = () => {
-      setSeriesPos(null);
-      setThemePos(null);
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setSeriesDropdownOpen(false);
+      }
     };
-    const onDown = (e: MouseEvent) => {
-      const n = e.target as Node;
-      if (
-        seriesMenuRef.current?.contains(n) ||
-        seriesBtnRef.current?.contains(n) ||
-        themeMenuRef.current?.contains(n) ||
-        themeBtnRef.current?.contains(n)
-      )
-        return;
-      close();
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return;
-      e.stopPropagation();
-      if (themePos) themeBtnRef.current?.focus();
-      else seriesBtnRef.current?.focus();
-      close();
-    };
-    document.addEventListener('mousedown', onDown);
-    document.addEventListener('keydown', onKey, true);
-    window.addEventListener('resize', close);
+    if (seriesDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
     return () => {
-      document.removeEventListener('mousedown', onDown);
-      document.removeEventListener('keydown', onKey, true);
-      window.removeEventListener('resize', close);
+      document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [anyOpen, themePos]);
-  useEffect(() => {
-    setSeriesPos(null);
-    setThemePos(null);
-    setTip(null);
-  }, [isCollapsed]);
-
-  // Đưa focus vào lựa chọn hiện tại khi mở popover màu
-  useEffect(() => {
-    if (themePos)
-      themeMenuRef.current?.querySelector<HTMLElement>('[aria-checked="true"]')?.focus();
-  }, [themePos]);
+  }, [seriesDropdownOpen]);
 
   if (isReader) return null;
 
-  const railTip = (text: string) =>
-    isCollapsed
-      ? {
-          onMouseEnter: (e: React.MouseEvent<HTMLElement>) => {
-            const r = e.currentTarget.getBoundingClientRect();
-            setTip({ text, top: r.top + r.height / 2, left: r.right + 10 });
-          },
-          onFocus: (e: React.FocusEvent<HTMLElement>) => {
-            const r = e.currentTarget.getBoundingClientRect();
-            setTip({ text, top: r.top + r.height / 2, left: r.right + 10 });
-          },
-          onMouseLeave: () => setTip(null),
-          onBlur: () => setTip(null),
-        }
-      : {};
-
-  const rowSize = showFullContent
-    ? `justify-start gap-3 px-3 ${isMobileDrawer ? 'min-h-[44px]' : 'min-h-[40px]'}`
-    : 'justify-center w-10 h-10 mx-auto';
-
-  const workspaceLabel = `Workspace: ${activeWorkspace?.name || 'Chọn Workspace'}`;
-  const seriesLabel = `Series: ${seriesId ? activeSeries?.title || 'Bộ truyện' : 'Chọn Series'}`;
-  const themeLabel = t('navigation.sidebar.appearance', 'Giao diện thanh bên');
-  const themeName = (id: SidebarTheme) => t(`navigation.sidebar.themes.${id}`, THEME_FALLBACK[id]);
-
-  const moveFocus = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    const items = Array.from(
-      e.currentTarget.querySelectorAll<HTMLElement>('[role="menuitemradio"]'),
-    );
-    const idx = items.indexOf(document.activeElement as HTMLElement);
-    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-      e.preventDefault();
-      const next = (idx + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
-      items[next]?.focus();
-    } else if (e.key === 'Tab') {
-      setThemePos(null);
-    }
-  };
-
   return (
     <aside
-      id={isMobileDrawer ? undefined : SIDEBAR_ID}
-      data-sb-theme={theme}
-      style={{ width: isMobileDrawer ? '100%' : showFullContent ? '256px' : '64px' }}
       className={
         isMobileDrawer
-          ? 'pf-sidebar w-full flex flex-col select-none h-full overflow-hidden'
-          : 'pf-sidebar hidden md:flex flex-col shrink-0 select-none z-20 h-full border-r overflow-hidden relative'
+          ? 'w-full bg-[#FCFBF8] flex flex-col select-none h-full overflow-hidden'
+          : `hidden md:flex flex-col shrink-0 select-none z-20 h-full bg-[#FCFBF8] border-r border-[#E7E2D9] transition-all duration-200 ${
+              isCollapsed ? 'w-16' : 'w-64'
+            }`
       }
-      data-collapsed={isCollapsed ? 'true' : 'false'}
       data-testid={isMobileDrawer ? 'mobile-sidebar-nav' : 'app-shell-sidebar'}
-      aria-label='Main menu'
     >
-      {/* Brand: chỉ hiển thị thương hiệu, không kiêm nút đóng/mở */}
+      {/* Brand Header */}
       <div
-        className={`px-3 flex items-center h-16 shrink-0 border-b ${
-          showFullContent ? (isMobileDrawer ? 'pr-12' : '') : 'justify-center'
+        className={`px-3 pt-4 pb-2 flex items-center ${
+          showFullContent ? 'justify-between' : 'flex-col gap-2 justify-center'
         }`}
-        style={{ borderColor: 'var(--sb-border)' }}
       >
-        <div className='flex items-center gap-2.5 min-w-0 flex-1'>
-          <BrandMark
-            size={28}
-            tone={theme === 'paper' ? undefined : 'paper'}
-            className='shrink-0'
-          />
+        <div className='flex items-center gap-2.5 min-w-0'>
+          <BrandMark size={28} className='shrink-0' />
           {showFullContent && (
-            <div className='min-w-0 pf-sb-label flex-1'>
-              <div className='font-serif font-medium text-sm leading-tight tracking-tight truncate'>
+            <div className='min-w-0'>
+              <div className='font-serif font-medium text-sm leading-tight text-[#1C1917] tracking-tight truncate'>
                 PanelForge
               </div>
-              <div
-                className='text-xs uppercase font-mono tracking-wider font-medium truncate'
-                style={{ color: 'var(--sb-muted)' }}
-              >
+              <div className='text-xs uppercase font-mono tracking-wider text-[#78716C] font-medium truncate'>
                 Studio Edition
               </div>
             </div>
           )}
+        </div>
+
+        <div className='flex items-center gap-1'>
           {showFullContent && (
-            <span
-              className='pf-sb-label px-1.5 py-0.5 rounded-md text-[10px] font-mono font-medium shrink-0'
-              style={{ background: 'var(--sb-surface)', color: 'var(--sb-muted)' }}
-            >
+            <span className='items-center px-2 py-0.5 rounded-md text-xs font-mono font-medium bg-[#F1EEE8] text-[#78716C] inline-flex'>
               v2.4
             </span>
+          )}
+          {handleToggle && !isMobileDrawer && (
+            <button
+              type='button'
+              onClick={handleToggle}
+              aria-label={showFullContent ? 'Thu gọn menu' : 'Mở rộng menu'}
+              title={showFullContent ? 'Thu gọn menu' : 'Mở rộng menu'}
+              className='p-1.5 rounded-lg hover:bg-[#F1EEE8] text-[#78716C] hover:text-[#1C1917] transition-colors cursor-pointer focus:outline-none focus-visible:outline-2 focus-visible:outline-[#C2410C] focus-visible:outline-offset-1'
+              data-testid='sidebar-rail-toggle-btn'
+            >
+              {showFullContent ? (
+                <PanelLeftClose className='w-4 h-4' />
+              ) : (
+                <PanelLeftOpen className='w-4 h-4' />
+              )}
+            </button>
           )}
         </div>
       </div>
@@ -259,87 +178,76 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
       <div className={`mt-3 space-y-1.5 ${showFullContent ? 'mx-3' : 'mx-2'}`}>
         {currentUser.activeRoles?.includes('ADMINISTRATOR') && (
           <div
-            className={`flex items-center gap-2 px-1 mb-2 ${
+            className={`flex items-center gap-2 px-1 mb-2 text-[#1C1917] ${
               showFullContent ? 'justify-start' : 'justify-center'
             }`}
-            style={{ color: 'var(--sb-accent)' }}
           >
-            <Server className='w-3.5 h-3.5 shrink-0' />
-            {showFullContent && (
-              <span className='pf-sb-label text-xs font-bold tracking-tight'>Admin Zone</span>
-            )}
+            <Server className='w-3.5 h-3.5 text-[#78716C] shrink-0' />
+            {showFullContent && <span className='text-xs font-bold inline'>System Admin Zone</span>}
           </div>
         )}
 
-        <button
-          type='button'
+        {/* 1. Workspace Switcher */}
+        <div
           data-testid='sidebar-workspace-switcher'
           onClick={(e) => handleNavClick(e, '/workspaces')}
-          className={`pf-sb-surface group flex items-center cursor-pointer rounded-xl text-left ${
+          className={`group flex items-center cursor-pointer p-2 rounded-lg bg-white border border-[#E7E2D9] hover:border-[#C2410C]/40 hover:bg-[#F1EEE8]/50 transition-colors focus:outline-none focus-visible:outline-2 focus-visible:outline-[#C2410C] focus-visible:outline-offset-1 ${
             showFullContent
-              ? 'w-full justify-between min-h-[42px] p-2'
-              : 'justify-center w-10 h-10 mx-auto'
+              ? 'justify-between min-h-[42px]'
+              : 'justify-center w-10 h-10 p-0 mx-auto'
           }`}
-          title={showFullContent ? workspaceLabel : undefined}
-          aria-label={workspaceLabel}
-          {...railTip(workspaceLabel)}
+          title={`Workspace: ${activeWorkspace?.name || 'Chọn Workspace'}`}
+          aria-label={`Workspace: ${activeWorkspace?.name || 'Chọn Workspace'}`}
         >
           <div className='flex items-center gap-2.5 min-w-0'>
-            <Briefcase className='w-4 h-4 shrink-0' style={{ color: 'var(--sb-accent)' }} />
+            <Briefcase className='w-4 h-4 stroke-[2] text-[#1C1917] shrink-0' />
             {showFullContent && (
-              <div className='min-w-0 pf-sb-label'>
-                <p className='text-xs font-semibold truncate leading-tight'>
+              <div className='min-w-0'>
+                <p className='text-xs font-semibold text-[#1C1917] truncate leading-tight'>
                   {activeWorkspace?.name || 'PanelForge Studio'}
                 </p>
-                <p
-                  className='text-[10.5px] font-mono truncate'
-                  style={{ color: 'var(--sb-muted)' }}
-                >
+                <p className='text-[11px] text-[#78716C] font-mono truncate'>
                   {currentUser.workspaceRole || 'Studio Workspace'}
                 </p>
               </div>
             )}
           </div>
           {showFullContent && (
-            <ChevronDown className='w-3.5 h-3.5 shrink-0' style={{ color: 'var(--sb-muted)' }} />
+            <ChevronDown className='w-3.5 h-3.5 text-[#78716C] group-hover:text-[#1C1917] transition-colors shrink-0' />
           )}
-        </button>
+        </div>
 
+        {/* 2. Series Selector (hiển thị khi đang trong ngữ cảnh Workspace) */}
         {workspaceId && (
-          <div className='relative'>
-            <button
-              ref={seriesBtnRef}
-              type='button'
+          <div className='relative' ref={dropdownRef}>
+            <div
               data-testid='sidebar-series-selector'
-              aria-haspopup='menu'
-              aria-expanded={!!seriesPos}
-              onClick={(e) => {
-                if (seriesPos) return setSeriesPos(null);
-                if (seriesList.length === 0) loadSeries();
-                setThemePos(null);
-                setTip(null);
-                setSeriesPos(floatFrom(e.currentTarget, isCollapsed, 260));
+              onClick={() => {
+                if (!showFullContent) {
+                  handleToggle?.();
+                  return;
+                }
+                if (!seriesDropdownOpen && seriesList.length === 0) {
+                  loadSeries();
+                }
+                setSeriesDropdownOpen((prev) => !prev);
               }}
-              className={`pf-sb-surface group flex items-center cursor-pointer rounded-xl text-left ${
+              className={`group flex items-center cursor-pointer p-2 rounded-lg bg-white border border-[#E7E2D9] hover:border-[#C2410C]/40 hover:bg-[#F1EEE8]/50 transition-colors focus:outline-none focus-visible:outline-2 focus-visible:outline-[#C2410C] focus-visible:outline-offset-1 ${
                 showFullContent
-                  ? 'w-full justify-between min-h-[42px] p-2'
-                  : 'justify-center w-10 h-10 mx-auto'
+                  ? 'justify-between min-h-[42px]'
+                  : 'justify-center w-10 h-10 p-0 mx-auto'
               }`}
-              title={showFullContent ? seriesLabel : undefined}
-              aria-label={seriesLabel}
-              {...railTip(seriesLabel)}
+              title={`Series: ${seriesId ? activeSeries?.title || 'Bộ truyện' : 'Chọn Series'}`}
+              aria-label={`Series: ${seriesId ? activeSeries?.title || 'Bộ truyện' : 'Chọn Series'}`}
             >
               <div className='flex items-center gap-2.5 min-w-0'>
-                <BookOpen className='w-4 h-4 shrink-0' style={{ color: 'var(--sb-accent)' }} />
+                <BookOpen className='w-4 h-4 stroke-[2] text-[#1C1917] shrink-0' />
                 {showFullContent && (
-                  <div className='min-w-0 pf-sb-label'>
-                    <p className='text-xs font-semibold truncate leading-tight'>
+                  <div className='min-w-0'>
+                    <p className='text-xs font-semibold text-[#1C1917] truncate leading-tight'>
                       {seriesId ? activeSeries?.title || 'Active Series' : 'Chọn Series...'}
                     </p>
-                    <p
-                      className='text-[10.5px] font-mono truncate'
-                      style={{ color: 'var(--sb-muted)' }}
-                    >
+                    <p className='text-[11px] text-[#78716C] font-mono truncate'>
                       {seriesId ? activeSeries?.subtitle || 'Chương hiện tại' : 'Danh sách Series'}
                     </p>
                   </div>
@@ -347,43 +255,37 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
               </div>
               {showFullContent && (
                 <ChevronDown
-                  className={`w-3.5 h-3.5 transition-transform shrink-0 ${seriesPos ? 'rotate-180' : ''}`}
-                  style={{ color: 'var(--sb-muted)' }}
+                  className={`w-3.5 h-3.5 text-[#78716C] group-hover:text-[#1C1917] transition-transform shrink-0 ${
+                    seriesDropdownOpen ? 'rotate-180' : ''
+                  }`}
                 />
               )}
-            </button>
+            </div>
 
-            {seriesPos && (
-              <div
-                ref={seriesMenuRef}
-                role='menu'
-                className='pf-sb-popover fixed rounded-xl shadow-2xl z-[60] py-1 max-h-60 overflow-y-auto'
-                style={{ left: seriesPos.left, top: seriesPos.top, width: seriesPos.width }}
-              >
-                <div
-                  className='px-3 py-1.5 border-b flex items-center justify-between text-[11px] font-semibold'
-                  style={{ borderColor: 'var(--sb-border)', color: 'var(--sb-muted)' }}
-                >
+            {/* Dropdown Popover */}
+            {seriesDropdownOpen && showFullContent && (
+              <div className='absolute left-0 right-0 mt-1 bg-white border border-[#E7E2D9] rounded-lg shadow-lg z-50 py-1 max-h-60 overflow-y-auto animate-in fade-in-50 zoom-in-95'>
+                <div className='px-3 py-1.5 border-b border-[#E7E2D9]/70 flex items-center justify-between text-[11px] font-semibold text-[#57534E]'>
                   <span>Bộ truyện trong Studio</span>
                   <button
                     type='button'
                     onClick={(e) => {
-                      setSeriesPos(null);
-                      handleNavClick(e, `/workspaces/${workspaceId}/series`);
+                      setSeriesDropdownOpen(false);
+                      handleNavClick(
+                        e,
+                        workspaceId ? `/workspaces/${workspaceId}/series` : '/workspaces',
+                      );
                     }}
-                    className='text-[11px] font-medium cursor-pointer hover:underline'
-                    style={{ color: 'var(--sb-accent)' }}
+                    className='text-[#C2410C] hover:text-[#9A3412] text-[11px] font-medium cursor-pointer'
                   >
                     Xem tất cả
                   </button>
                 </div>
                 {loadingSeries && (
-                  <div className='p-3 text-xs text-center' style={{ color: 'var(--sb-muted)' }}>
-                    Đang tải...
-                  </div>
+                  <div className='p-3 text-xs text-[#78716C] text-center'>Đang tải...</div>
                 )}
                 {!loadingSeries && seriesList.length === 0 && (
-                  <div className='p-3 text-xs text-center' style={{ color: 'var(--sb-muted)' }}>
+                  <div className='p-3 text-xs text-[#78716C] text-center'>
                     Chưa có bộ truyện nào
                   </div>
                 )}
@@ -391,31 +293,29 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
                   seriesList.map((s) => {
                     const isSelected = s.id === seriesId;
                     return (
-                      <button
-                        type='button'
-                        role='menuitem'
+                      <div
                         key={s.id}
                         onClick={(e) => {
-                          setSeriesPos(null);
-                          onSelectSeries?.(s.id);
+                          setSeriesDropdownOpen(false);
+                          if (onSelectSeries) {
+                            onSelectSeries(s.id);
+                          }
                           handleNavClick(e, `/workspaces/${workspaceId}/series/${s.id}/dashboard`);
                         }}
-                        aria-current={isSelected ? 'page' : undefined}
-                        className='pf-sb-item w-full px-3 py-2 text-xs flex items-center justify-between cursor-pointer text-left'
+                        className={`px-3 py-2 text-xs flex items-center justify-between cursor-pointer transition-colors ${
+                          isSelected
+                            ? 'bg-[#FFF2E6] text-[#1C1917] font-semibold'
+                            : 'hover:bg-[#F1EEE8] text-[#57534E]'
+                        }`}
                       >
-                        <div className='truncate pr-2 min-w-0'>
+                        <div className='truncate pr-2'>
                           <p className='truncate'>{s.title}</p>
-                          <p className='text-xs font-mono' style={{ color: 'var(--sb-muted)' }}>
+                          <p className='text-xs text-[#78716C] font-mono'>
                             {s.genre || 'Manga'} • {s.chaptersCount || 0} chương
                           </p>
                         </div>
-                        {isSelected && (
-                          <Check
-                            className='w-3.5 h-3.5 shrink-0'
-                            style={{ color: 'var(--sb-accent)' }}
-                          />
-                        )}
-                      </button>
+                        {isSelected && <Check className='w-3.5 h-3.5 text-[#C2410C] shrink-0' />}
+                      </div>
                     );
                   })}
               </div>
@@ -424,59 +324,65 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
         )}
       </div>
 
-      {/* Navigation List */}
+      {/* Nav List */}
       <nav
-        className={`mt-4 flex-1 min-h-0 overflow-y-auto overflow-x-hidden space-y-4 custom-scrollbar ${
+        className={`mt-4 flex-1 overflow-y-auto space-y-4 custom-scrollbar ${
           showFullContent ? 'px-3' : 'px-2'
         }`}
         aria-label='Điều hướng chính'
-        onScroll={() => setTip(null)}
       >
         {navSections.map((section, idx) => (
-          <div
-            key={idx}
-            className={idx > 0 && !showFullContent ? 'pt-3 border-t' : undefined}
-            style={idx > 0 && !showFullContent ? { borderColor: 'var(--sb-border)' } : undefined}
-          >
+          <div key={idx}>
             {showFullContent && (
-              <div
-                className='pf-sb-label text-[10px] font-bold px-3 mb-1.5 uppercase tracking-wider font-mono'
-                style={{ color: 'var(--sb-muted)' }}
-              >
+              <div className='text-[11px] text-[#78716C] font-semibold px-3 mb-1.5 uppercase tracking-wide font-sans'>
                 {section.section}
               </div>
             )}
             <div className='space-y-1'>
               {section.items.map((item: any, i: number) => {
+                const baseClass =
+                  'group relative flex items-center rounded-lg transition-colors duration-150 motion-reduce:transition-none focus:outline-none focus-visible:outline-2 focus-visible:outline-[#C2410C] focus-visible:outline-offset-1 ';
+                const activeClass = item.isActive
+                  ? 'bg-[#FFF2E6] hover:bg-[#FFF2E6] text-[#1C1917] font-semibold'
+                  : 'bg-transparent text-[#57534E] hover:bg-[#F1EEE8] hover:text-[#1C1917] font-medium cursor-pointer';
+
+                const iconClass = `w-5 h-5 shrink-0 transition-colors ${
+                  item.isActive
+                    ? 'text-[#C2410C] stroke-[2]'
+                    : 'text-[#78716C] group-hover:text-[#1C1917] stroke-[1.8]'
+                }`;
                 const IconComp = item.icon;
+
                 return (
                   <a
                     key={i}
                     href={`#${item.href}`}
                     onClick={(e) => handleNavClick(e, item.href)}
-                    className={`pf-sb-item group relative flex items-center rounded-xl cursor-pointer focus:outline-none ${
-                      showFullContent ? `${rowSize} py-2.5` : rowSize
+                    className={`${baseClass} ${activeClass} ${
+                      showFullContent
+                        ? `justify-start gap-3 px-3 py-2.5 ${isMobileDrawer ? 'min-h-[44px]' : 'min-h-[42px]'}`
+                        : 'justify-center w-10 h-10 min-h-[40px] p-2 mx-auto'
                     }`}
                     aria-current={item.isActive ? 'page' : undefined}
-                    title={showFullContent ? item.label : undefined}
+                    title={item.label}
                     aria-label={item.label}
-                    {...railTip(item.label)}
                   >
+                    {/* Vạch cam bên trái rộng 3px, cao khoảng 20-22px, căn giữa theo chiều dọc */}
                     {item.isActive && (
                       <span
-                        className='absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[22px] rounded-r'
-                        style={{ background: 'var(--sb-accent)' }}
+                        className='absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[22px] bg-[#C2410C] rounded-r-[2px]'
                         aria-hidden='true'
                       />
                     )}
-                    {IconComp && <IconComp className='pf-sb-icon w-5 h-5 shrink-0 stroke-[1.9]' />}
+
+                    {IconComp && <IconComp className={iconClass} />}
                     {showFullContent && (
                       <>
-                        <span className='pf-sb-label font-sans text-[13.5px] leading-5 flex-1 text-left'>
+                        <span className='font-sans text-[14px] leading-5 line-clamp-2 break-words flex-1 text-left'>
                           {item.label}
                         </span>
                         {item.badge && (
-                          <span className='pf-sb-label ml-auto shrink-0 flex items-center'>
+                          <span className='ml-auto shrink-0 flex items-center'>
                             {renderBadge(item.badge)}
                           </span>
                         )}
@@ -490,108 +396,125 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
         ))}
       </nav>
 
-      {/* Footer: Giao diện thanh bên + Đăng xuất */}
+      {/* Footer Navigation & System Controls */}
       <div
-        className={`shrink-0 border-t space-y-1 ${showFullContent ? 'p-3' : 'p-2'}`}
-        style={{ borderColor: 'var(--sb-border)' }}
+        className={`mt-auto border-t border-[#E7E2D9] bg-[#FCFBF8] ${
+          showFullContent ? 'p-3' : 'p-2'
+        }`}
       >
-        {onChangeTheme && (
+        <div className='space-y-1 mb-1'>
           <button
-            ref={themeBtnRef}
             type='button'
-            data-testid='sidebar-theme-btn'
-            aria-haspopup='menu'
-            aria-expanded={!!themePos}
-            aria-label={themeLabel}
-            onClick={(e) => {
-              if (themePos) return setThemePos(null);
-              setSeriesPos(null);
-              setTip(null);
-              const r = e.currentTarget.getBoundingClientRect();
-              // Mở lên trên (cuối sidebar) và ra ngoài rail khi thu gọn
-              setThemePos({
-                left: isCollapsed ? r.right + 8 : r.left,
-                top: Math.max(8, r.top - 8 - 4 * 40 - 40),
-                width: 224,
-              });
-            }}
-            className={`pf-sb-item w-full flex items-center rounded-xl cursor-pointer text-[13.5px] font-medium focus:outline-none ${rowSize}`}
-            {...railTip(themeLabel)}
+            onClick={onOpenNotifications}
+            title={
+              (unreadNotificationCount ?? 0) > 0
+                ? `Notifications (${unreadNotificationCount} chưa đọc)`
+                : 'Notifications'
+            }
+            aria-label={
+              (unreadNotificationCount ?? 0) > 0
+                ? `Notifications (${unreadNotificationCount} chưa đọc)`
+                : 'Notifications'
+            }
+            data-testid='sidebar-notifications-btn'
+            className={`w-full flex items-center text-[13px] font-sans font-medium text-[#57534E] hover:text-[#1C1917] hover:bg-[#F1EEE8] rounded-lg transition-colors duration-150 motion-reduce:transition-none group cursor-pointer focus:outline-none focus-visible:outline-2 focus-visible:outline-[#C2410C] focus-visible:outline-offset-1 ${
+              showFullContent
+                ? `justify-start gap-3 px-3 py-2 ${isMobileDrawer ? 'min-h-[44px]' : 'min-h-[40px]'}`
+                : 'justify-center w-10 h-10 min-h-[40px] p-2 mx-auto relative'
+            }`}
           >
-            <Palette className='pf-sb-icon w-[18px] h-[18px] shrink-0 stroke-[1.8]' />
-            {showFullContent && <span className='pf-sb-label'>{themeLabel}</span>}
-          </button>
-        )}
-        {themePos && onChangeTheme && (
-          <div
-            ref={themeMenuRef}
-            role='menu'
-            aria-label={themeLabel}
-            onKeyDown={moveFocus}
-            className='pf-sb-popover fixed rounded-xl shadow-2xl z-[60] p-1'
-            style={{ left: themePos.left, top: themePos.top, width: themePos.width }}
-          >
-            <div
-              className='px-2.5 py-1.5 text-[11px] font-semibold'
-              style={{ color: 'var(--sb-muted)' }}
-            >
-              {themeLabel}
+            <div className='relative shrink-0'>
+              <Bell className='w-5 h-5 text-[#78716C] group-hover:text-[#1C1917] stroke-[1.8]' />
+              {!showFullContent && (unreadNotificationCount ?? 0) > 0 && (
+                <span
+                  data-testid='sidebar-notifications-dot'
+                  className='absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-[#F97316] ring-2 ring-[#FCFBF8]'
+                />
+              )}
             </div>
-            {SIDEBAR_THEMES.map((opt) => {
-              const selected = opt.id === theme;
-              return (
-                <button
-                  key={opt.id}
-                  type='button'
-                  role='menuitemradio'
-                  aria-checked={selected}
-                  data-testid={`sidebar-theme-${opt.id}`}
-                  onClick={() => onChangeTheme(opt.id)}
-                  className='pf-sb-item w-full h-10 px-2.5 flex items-center gap-2.5 rounded-lg text-[13px] cursor-pointer text-left focus:outline-none'
-                  style={selected ? { color: 'var(--sb-text)', fontWeight: 600 } : undefined}
-                >
+            {showFullContent && (
+              <>
+                <span className='truncate text-[14px]'>Notifications</span>
+                {(unreadNotificationCount ?? 0) > 0 && (
                   <span
-                    className='w-5 h-5 rounded-full shrink-0 border flex items-center justify-center'
-                    style={{ background: opt.bg, borderColor: 'var(--sb-border)' }}
-                    aria-hidden='true'
+                    data-testid='sidebar-notifications-badge'
+                    className='ml-auto px-1.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-[#F97316]/15 text-[#C2410C] border border-[#F97316]/30'
                   >
-                    <span className='w-2 h-2 rounded-full' style={{ background: opt.accent }} />
+                    {unreadNotificationCount! > 99 ? '99+' : unreadNotificationCount}
                   </span>
-                  <span className='flex-1 truncate'>{themeName(opt.id)}</span>
-                  {selected && (
-                    <Check className='w-4 h-4 shrink-0' style={{ color: 'var(--sb-accent)' }} />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        )}
-
-        {onLogout && (
+                )}
+              </>
+            )}
+          </button>
+          <button
+            type='button'
+            onClick={onOpenCommandPalette}
+            title='Global Search (⌘K / Ctrl+K)'
+            aria-label='Global Search'
+            data-testid='sidebar-global-search-btn'
+            className={`w-full flex items-center text-[13px] font-sans font-medium text-[#57534E] hover:text-[#1C1917] hover:bg-[#F1EEE8] rounded-lg transition-colors duration-150 motion-reduce:transition-none group cursor-pointer focus:outline-none focus-visible:outline-2 focus-visible:outline-[#C2410C] focus-visible:outline-offset-1 ${
+              showFullContent
+                ? `justify-start gap-3 px-3 py-2 ${isMobileDrawer ? 'min-h-[44px]' : 'min-h-[40px]'}`
+                : 'justify-center w-10 h-10 min-h-[40px] p-2 mx-auto'
+            }`}
+          >
+            <Search className='w-5 h-5 text-[#78716C] group-hover:text-[#1C1917] stroke-[1.8] shrink-0' />
+            {showFullContent && (
+              <>
+                <span className='truncate text-[14px]'>Global Search</span>
+                <span className='ml-auto text-[10px] font-mono text-[#78716C] bg-[#EFECE6] px-1.5 py-0.5 rounded border border-[#D8D2C5]'>
+                  ⌘K
+                </span>
+              </>
+            )}
+          </button>
+          <button
+            type='button'
+            onClick={onOpenActivityHistory}
+            title='My Activity / History'
+            aria-label='My Activity / History'
+            data-testid='sidebar-activity-history-btn'
+            className={`w-full flex items-center text-[13px] font-sans font-medium text-[#57534E] hover:text-[#1C1917] hover:bg-[#F1EEE8] rounded-lg transition-colors duration-150 motion-reduce:transition-none group cursor-pointer focus:outline-none focus-visible:outline-2 focus-visible:outline-[#C2410C] focus-visible:outline-offset-1 ${
+              showFullContent
+                ? `justify-start gap-3 px-3 py-2 ${isMobileDrawer ? 'min-h-[44px]' : 'min-h-[40px]'}`
+                : 'justify-center w-10 h-10 min-h-[40px] p-2 mx-auto'
+            }`}
+          >
+            <History className='w-5 h-5 text-[#78716C] group-hover:text-[#1C1917] stroke-[1.8] shrink-0' />
+            {showFullContent && <span className='truncate text-[14px]'>My Activity / History</span>}
+          </button>
+          <button
+            type='button'
+            onClick={onOpenTwoFactor}
+            title='Profile & Security (2FA)'
+            aria-label='Profile & Security (2FA)'
+            className={`w-full flex items-center text-[13px] font-sans font-medium text-[#57534E] hover:text-[#1C1917] hover:bg-[#F1EEE8] rounded-lg transition-colors duration-150 motion-reduce:transition-none group cursor-pointer focus:outline-none focus-visible:outline-2 focus-visible:outline-[#C2410C] focus-visible:outline-offset-1 ${
+              showFullContent
+                ? `justify-start gap-3 px-3 py-2 ${isMobileDrawer ? 'min-h-[44px]' : 'min-h-[40px]'}`
+                : 'justify-center w-10 h-10 min-h-[40px] p-2 mx-auto'
+            }`}
+          >
+            <UserCircle className='w-5 h-5 text-[#78716C] group-hover:text-[#1C1917] stroke-[1.8] shrink-0' />
+            {showFullContent && (
+              <span className='truncate text-[14px]'>Profile & Security (2FA)</span>
+            )}
+          </button>
           <button
             type='button'
             onClick={onLogout}
-            title={showFullContent ? 'Logout' : undefined}
+            title='Logout'
             aria-label='Logout'
-            data-testid='sidebar-logout-btn'
-            className={`pf-sb-item w-full flex items-center rounded-xl cursor-pointer text-[13.5px] font-medium hover:!text-rose-500 focus:outline-none ${rowSize}`}
-            {...railTip('Logout')}
+            className={`w-full flex items-center text-[13px] font-sans font-medium text-[#57534E] hover:text-rose-600 hover:bg-rose-50/70 rounded-lg transition-colors duration-150 motion-reduce:transition-none group mt-1 cursor-pointer focus:outline-none focus-visible:outline-2 focus-visible:outline-rose-500 focus-visible:outline-offset-1 ${
+              showFullContent
+                ? `justify-start gap-3 px-3 py-2 ${isMobileDrawer ? 'min-h-[44px]' : 'min-h-[40px]'}`
+                : 'justify-center w-10 h-10 min-h-[40px] p-2 mx-auto'
+            }`}
           >
-            <LogOut className='w-[18px] h-[18px] shrink-0 stroke-[1.8]' />
-            {showFullContent && <span className='pf-sb-label'>Logout</span>}
+            <LogOut className='w-5 h-5 text-[#78716C] group-hover:text-rose-600 stroke-[1.8] shrink-0' />
+            {showFullContent && <span className='truncate text-[14px]'>Logout</span>}
           </button>
-        )}
-      </div>
-
-      {tip && (
-        <div
-          role='tooltip'
-          className='pf-sb-popover fixed z-[70] px-2 py-1 rounded-md text-xs font-medium whitespace-nowrap pointer-events-none shadow-lg -translate-y-1/2'
-          style={{ left: tip.left, top: tip.top }}
-        >
-          {tip.text}
         </div>
-      )}
+      </div>
     </aside>
   );
 };

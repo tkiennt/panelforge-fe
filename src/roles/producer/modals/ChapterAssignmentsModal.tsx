@@ -16,6 +16,7 @@ import {
   Filter,
   RefreshCw,
   AlertTriangle,
+  Scissors,
 } from 'lucide-react';
 import {
   assignmentService,
@@ -64,8 +65,14 @@ export const ChapterAssignmentsModal: React.FC<ChapterAssignmentsModalProps> = (
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [stageFilter, setStageFilter] = useState<string>('ALL');
 
-  // Sub-modal: Create Assignment
+  // Sub-modal: Create Assignment & Carve-out Stage
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [carveOutStageId, setCarveOutStageId] = useState<string | undefined>(undefined);
+
+  const handleCarveOut = (a: AssignmentDto) => {
+    setCarveOutStageId(a.pipelineStageId);
+    setShowCreateModal(true);
+  };
 
   const fetchData = useCallback(async () => {
     if (!chapterId) return;
@@ -498,8 +505,35 @@ export const ChapterAssignmentsModal: React.FC<ChapterAssignmentsModalProps> = (
                           )}
                         </div>
 
-                        {/* Action Buttons: Start & Submit */}
+                        {/* Action Buttons: Start, Submit & Carve-out */}
                         <div className='flex items-center gap-2'>
+                          {/* Carve-out: Tách trang/khung cho người khác từ việc cả chương của Artist/Letterer */}
+                          {(() => {
+                            const isChapter = assignment.entityType === 'Chapter';
+                            const stage = stages.find((s) => s.id === assignment.pipelineStageId);
+                            const isArtistOrLetterer =
+                              stage?.allowedRole === 'Artist' || stage?.allowedRole === 'Letterer';
+                            const canCarveOut =
+                              isChapter &&
+                              isArtistOrLetterer &&
+                              (assignment.status === 'Assigned' ||
+                                assignment.status === 'InProgress' ||
+                                assignment.status === 'ReworkRequired');
+
+                            if (!canCarveOut) return null;
+
+                            return (
+                              <button
+                                onClick={() => handleCarveOut(assignment)}
+                                className='px-2.5 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 font-semibold flex items-center gap-1.5 cursor-pointer text-[11px] shadow-2xs transition-colors'
+                                title='Tách trang hoặc khung cho thành viên khác ở công đoạn này'
+                              >
+                                <Scissors className='w-3 h-3 text-amber-600' />
+                                <span>Tách trang/khung cho người khác</span>
+                              </button>
+                            );
+                          })()}
+
                           {canStart &&
                             (() => {
                               const pendingDeps = pendingDependencyCount(assignment, assignments);
@@ -570,9 +604,15 @@ export const ChapterAssignmentsModal: React.FC<ChapterAssignmentsModalProps> = (
           seriesId={seriesId}
           chapterId={chapterId}
           chapterNumber={chapterNumber}
-          onClose={() => setShowCreateModal(false)}
+          initialPipelineStageId={carveOutStageId}
+          initialEntityType={carveOutStageId ? 'Page' : undefined}
+          onClose={() => {
+            setShowCreateModal(false);
+            setCarveOutStageId(undefined);
+          }}
           onSuccess={() => {
             fetchData();
+            setCarveOutStageId(undefined);
           }}
           onShowToast={onShowToast}
         />

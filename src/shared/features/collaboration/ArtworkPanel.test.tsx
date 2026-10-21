@@ -8,10 +8,12 @@ import type { AssetReferenceDto } from '@/types';
 vi.mock('@/services/artwork.service', () => ({
   artworkService: {
     getArtworkAccessLink: vi.fn(),
+    uploadArtwork: vi.fn(),
     uploadArtworkFile: vi.fn(),
   },
   resolveArtworkUrl: (url: string) => url,
-  computeFileSha256: vi.fn(),
+  toThumbnailUrl: vi.fn((url: string) => `${url}${url.includes('?') ? '&' : '?'}size=thumb`),
+  computeFileSha256: vi.fn().mockResolvedValue('hash-computed'),
 }));
 
 describe('ArtworkPanel Component', () => {
@@ -222,6 +224,82 @@ describe('ArtworkPanel Component', () => {
     expect(screen.getByTestId('upload-panel-btn-p-1')).toBeInTheDocument();
     expect(screen.getByTestId('upload-panel-btn-p-2')).toBeInTheDocument();
     expect(screen.getByText(/Khung #1/)).toBeInTheDocument();
+  });
+
+  it('khi người dùng giữ việc theo khung (assignedPanelId), ẩn nút tải ảnh cả trang, chỉ hiện nút tải cho đúng khung của mình và gửi kèm panelId', async () => {
+    const mockPanels = [
+      {
+        id: 'p-1',
+        pageId: 'page-101',
+        panelNumber: 1,
+        readingOrder: 1,
+        boundingBox: '{"x":10,"y":10,"width":80,"height":35}',
+        createdAt: '2026-01-01T00:00:00Z',
+      },
+      {
+        id: 'p-2',
+        pageId: 'page-101',
+        panelNumber: 2,
+        readingOrder: 2,
+        boundingBox: '{"x":10,"y":50,"width":80,"height":35}',
+        createdAt: '2026-01-01T00:00:00Z',
+      },
+    ];
+
+    vi.mocked(artworkService.uploadArtwork).mockResolvedValueOnce({
+      id: 'art-new',
+      chapterId: 'chap-1',
+      pageId: 'page-101',
+      pipelineStageId: 'stage-thumbnail',
+      versionNumber: 2,
+      fileName: 'panel1_new.png',
+      fileSha256: 'hash-computed',
+      sizeBytes: 2048,
+      createdAtUtc: '2026-10-21T00:00:00Z',
+      panelId: 'p-1',
+    } as any);
+
+    render(
+      <ArtworkPanel
+        chapterId='chap-1'
+        pageId='page-101'
+        stageId='stage-thumbnail'
+        assignedPanelId='p-1'
+        artworks={[]}
+        panels={mockPanels}
+        canUpload={true}
+        onChanged={vi.fn()}
+      />,
+    );
+
+    // Nút tải ảnh cả trang bị ẩn
+    expect(screen.queryByTestId('artwork-upload-btn')).not.toBeInTheDocument();
+    expect(screen.queryByText('Tải artwork lên')).not.toBeInTheDocument();
+
+    // Hiện nút tải ảnh cho khung được giao ở header
+    expect(screen.getByTestId('artwork-upload-assigned-panel-btn')).toBeInTheDocument();
+    expect(screen.getByText(/Tải ảnh cho khung #1/i)).toBeInTheDocument();
+
+    // Ở danh sách từng khung, chỉ khung p-1 có nút tải, khung p-2 không có
+    expect(screen.getByTestId('upload-panel-btn-p-1')).toBeInTheDocument();
+    expect(screen.queryByTestId('upload-panel-btn-p-2')).not.toBeInTheDocument();
+
+    // Thao tác tải ảnh gửi kèm panelId của khung được giao
+    const file = new File(['content'], 'panel1_new.png', { type: 'image/png' });
+    const panelInput = screen.getByTestId('panel-artwork-file-input');
+    fireEvent.change(panelInput, { target: { files: [file] } });
+
+    await waitFor(() => {
+      expect(artworkService.uploadArtwork).toHaveBeenCalledWith(
+        'chap-1',
+        'page-101',
+        file,
+        'stage-thumbnail',
+        'hash-computed',
+        undefined,
+        'p-1',
+      );
+    });
   });
 
   it('vẽ đúng số khung đánh số và màu sắc theo assetReferenceId trên thumbnail và khi phóng to (zoom)', async () => {
@@ -765,5 +843,35 @@ describe('ArtworkPanel Component', () => {
     // Không gọi thêm lần nữa
     expect(artworkService.getArtworkAccessLink).toHaveBeenCalledTimes(1);
     expect(screen.getByTitle('Bấm để phóng to')).toBeInTheDocument();
+  });
+
+  it('bấm "Xem" sử dụng toThumbnailUrl để nạp ảnh thu nhỏ trong thẻ xem trước', async () => {
+    vi.mocked(artworkService.getArtworkAccessLink).mockResolvedValueOnce({
+      url: 'https://cdn.example.com/artworks/page1_v1.png',
+      expiresAtUtc: '2026-10-08T11:00:00Z',
+    });
+
+    render(
+      <ArtworkPanel
+        chapterId='chap-1'
+        pageId='page-101'
+        stageId='stage-thumbnail'
+        artworks={mockArtworks}
+        canUpload={false}
+        onChanged={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Xem/i }));
+
+    await waitFor(() => {
+      const img = screen.getByRole('img', {
+        name: `Artwork v1 của ${mockArtworks[0].fileName}`,
+      });
+      expect(img).toHaveAttribute(
+        'src',
+        'https://cdn.example.com/artworks/page1_v1.png?size=thumb',
+      );
+    });
   });
 });

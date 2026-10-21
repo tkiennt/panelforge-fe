@@ -12,7 +12,7 @@ import {
   ZoomIn,
 } from 'lucide-react';
 import { pageService, type PageDto } from '@/services/page.service';
-import { artworkService, resolveArtworkUrl } from '@/services/artwork.service';
+import { artworkService, resolveArtworkUrl, toThumbnailUrl } from '@/services/artwork.service';
 import { panelService } from '@/services/panel.service';
 import { elementService } from '@/services/element.service';
 import { assignmentService } from '@/services/assignment.service';
@@ -203,7 +203,7 @@ export const ChapterReviewArtworkOverview: React.FC<ChapterReviewArtworkOverview
                     chapterId,
                     assetReferenceId,
                   );
-                  return resolveArtworkUrl(link.url);
+                  return toThumbnailUrl(resolveArtworkUrl(link.url));
                 },
               });
 

@@ -67,6 +67,7 @@ export interface WorkspaceMemberDto {
   joinedAt: string;
   isEmailConfirmed?: boolean;
   invitationEmailSent?: boolean;
+  status?: 'Active' | 'Pending' | 'Rejected' | string;
 }
 
 export interface AddWorkspaceMemberRequest {

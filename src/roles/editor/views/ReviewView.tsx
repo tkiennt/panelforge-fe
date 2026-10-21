@@ -1759,11 +1759,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
                 : 'bg-[#FCFBF8] text-[#57534E] border-[#D8D2C5] hover:bg-[#F3F0E9]'
             }`}
           >
-            {zoomSync ? (
-              <Lock className='w-3 h-3 text-[#C2410C]' />
-            ) : (
-              <Unlock className='w-3 h-3 text-[#78716C]' />
-            )}
+            {zoomSync ? <Lock className='w-3 h-3 text-[#C2410C]' /> : <Unlock className='w-3 h-3 text-[#78716C]' />}
             <span>Đồng bộ: {zoomSync ? 'Bật' : 'Tắt'}</span>
           </button>
         </div>
@@ -1777,9 +1773,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
                   type='button'
                   onClick={() => setIsDrawTool(true)}
                   className={`px-2 py-0.5 rounded text-xs font-semibold flex items-center gap-1 cursor-pointer ${
-                    isDrawTool
-                      ? 'bg-[#FFF2E6] text-[#1C1917] border border-[#C2410C]'
-                      : 'text-[#57534E]'
+                    isDrawTool ? 'bg-[#FFF2E6] text-[#1C1917] border border-[#C2410C]' : 'text-[#57534E]'
                   }`}
                 >
                   <Square className='w-3 h-3 text-[#C2410C]' /> Khoanh vùng
@@ -1788,9 +1782,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
                   type='button'
                   onClick={() => setIsDrawTool(false)}
                   className={`px-2 py-0.5 rounded text-xs font-semibold flex items-center gap-1 cursor-pointer ${
-                    !isDrawTool
-                      ? 'bg-[#FFF2E6] text-[#1C1917] border border-[#C2410C]'
-                      : 'text-[#57534E]'
+                    !isDrawTool ? 'bg-[#FFF2E6] text-[#1C1917] border border-[#C2410C]' : 'text-[#57534E]'
                   }`}
                 >
                   <Move className='w-3 h-3 text-[#C2410C]' /> Di chuyển
@@ -2055,10 +2047,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
                     : 'text-[#57534E] bg-[#FCFBF8] hover:text-[#1C1917] hover:bg-[#F3F0E9]'
                 }`}
               >
-                <Icon
-                  className={`w-3.5 h-3.5 ${tab === key ? 'text-[#C2410C]' : 'text-[#78716C]'}`}
-                />{' '}
-                {tabLabel}
+                <Icon className={`w-3.5 h-3.5 ${tab === key ? 'text-[#C2410C]' : 'text-[#78716C]'}`} /> {tabLabel}
               </button>
             ))}
           </div>

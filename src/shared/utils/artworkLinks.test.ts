@@ -38,6 +38,12 @@ describe('findUploadAssignment', () => {
     expect(findUploadAssignment([asg({ id: 'page' })], target)?.id).toBe('page');
   });
 
+  it('rơi về việc theo Chapter khi không có việc theo Panel hoặc Page', () => {
+    expect(
+      findUploadAssignment([asg({ id: 'chap', entityType: 'Chapter', targetEntityId: 'c1' })], target)?.id,
+    ).toBe('chap');
+  });
+
   it('bỏ qua việc chưa InProgress, khác chương hoặc khác đối tượng', () => {
     const list = [
       asg({ status: 'Assigned' }),

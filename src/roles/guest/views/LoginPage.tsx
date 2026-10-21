@@ -16,8 +16,6 @@ import {
 import { signInWithPopup, auth, googleProvider } from '@/config/firebase';
 import { authService } from '@/services/auth.service';
 import { AuthResponse, SystemRole, normalizeSystemRole } from '@/types';
-import { useTranslation } from '@/lib/i18n';
-import './auth.css';
 
 export interface LoginPageProps {
   onLoginSuccess?: (authResponse: AuthResponse) => void;
@@ -26,7 +24,6 @@ export interface LoginPageProps {
 export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { t } = useTranslation();
 
   // Search parameters for maintaining redirect query
   const queryParams = new URLSearchParams(location.search);
@@ -106,20 +103,19 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   // 1. Submit login credentials
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isLoading) return;
     setServerError(null);
     setSuccessNotice(null);
 
     const errors: { email?: string; password?: string } = {};
     const trimmedEmail = email.trim();
     if (!trimmedEmail) {
-      errors.email = t('common.auth.errEmailRequired');
+      errors.email = 'Vui lòng nhập địa chỉ email.';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
-      errors.email = t('common.auth.errEmailInvalid');
+      errors.email = 'Định dạng email không hợp lệ.';
     }
 
     if (!password) {
-      errors.password = t('common.auth.errPasswordRequired');
+      errors.password = 'Vui lòng nhập mật khẩu.';
     }
 
     if (Object.keys(errors).length > 0) {
@@ -143,8 +139,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
 
       await handleAuthTransition(response);
     } catch (err: any) {
-      // Không log err: lỗi HTTP có thể chứa payload kèm mật khẩu.
-      setServerError(err?.message || t('common.auth.errLoginFailed'));
+      console.error('Lỗi đăng nhập:', err);
+      setServerError(err.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.');
     } finally {
       setIsLoading(false);
     }
@@ -288,23 +284,28 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   return (
     <div className='w-full'>
       {/* Brand Header */}
-      <div className='mb-7'>
-        <div className='flex items-center gap-2.5 mb-6'>
-          <BrandMark size={32} className='shrink-0' />
-          <span className='font-serif text-xl font-bold tracking-tight text-[#292524]'>
-            PanelForge
-          </span>
+      <div className='mb-8'>
+        <div className='flex items-center gap-3 mb-3'>
+          <BrandMark size={36} className='shrink-0' />
+          <div>
+            <span className='font-serif text-2xl font-bold tracking-tight text-[#171717]'>
+              PanelForge
+            </span>
+            <p className='text-xs text-[#777169] font-medium'>Không gian sản xuất truyện tranh</p>
+          </div>
         </div>
 
         {step === 'login' && (
           <div>
             <h1
               id='auth-dialog-title'
-              className='text-[28px] leading-tight font-serif font-semibold text-[#292524] tracking-tight'
+              className='text-2xl sm:text-3xl font-serif font-light text-[#0c0a09] tracking-tight'
             >
-              {t('common.auth.welcomeBack')}
+              Chào mừng <em className='font-light italic text-[#292524]'>trở lại</em>
             </h1>
-            <p className='text-sm text-[#57534E] mt-1.5'>{t('common.auth.loginSubtitle')}</p>
+            <p className='text-xs sm:text-sm text-[#777169] mt-1'>
+              Tiếp tục câu chuyện của bạn cùng studio.
+            </p>
           </div>
         )}
 
@@ -394,20 +395,20 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
       {/* VIEW 1: FORM ĐĂNG NHẬP CHÍNH                                      */}
       {/* ================================================================ */}
       {step === 'login' && (
-        <form onSubmit={handleLoginSubmit} className='pf-auth space-y-4' noValidate>
+        <form onSubmit={handleLoginSubmit} className='space-y-4'>
           {/* Email field */}
           <div>
             <label
               htmlFor='login-email'
-              className='block text-[13px] font-semibold text-[#44403C] mb-1.5'
+              className='block text-xs font-semibold text-[#171717] mb-1.5'
             >
-              {t('common.auth.email')}
+              Email <span className='text-red-500'>*</span>
             </label>
             <div className='relative'>
               <input
                 id='login-email'
                 type='email'
-                autoComplete='username'
+                autoComplete='email'
                 value={email}
                 onChange={(e) => {
                   setEmail(e.target.value);
@@ -417,8 +418,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                 required
                 aria-describedby={fieldErrors.email ? 'login-email-error' : undefined}
                 aria-invalid={!!fieldErrors.email}
-                readOnly={isLoading}
-                className='pf-auth-input'
+                disabled={isLoading}
+                className={`w-full px-3.5 py-2.5 bg-white border ${
+                  fieldErrors.email
+                    ? 'border-red-400 focus:ring-red-400'
+                    : 'border-[#E7E5E4] focus:border-[#F97316] focus:ring-[#F97316]/20'
+                } rounded-xl text-xs sm:text-sm text-[#171717] placeholder:text-[#A8A29E] outline-none focus:ring-2 transition-all shadow-xs`}
               />
             </div>
             {fieldErrors.email && (
@@ -433,9 +438,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             <div className='flex items-center justify-between mb-1.5'>
               <label
                 htmlFor='login-password'
-                className='block text-[13px] font-semibold text-[#44403C]'
+                className='block text-xs font-semibold text-[#171717]'
               >
-                {t('common.auth.password')}
+                Mật khẩu <span className='text-red-500'>*</span>
               </label>
               <button
                 type='button'
@@ -445,9 +450,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                   setSuccessNotice(null);
                   setStep('forgot');
                 }}
-                className='text-xs font-medium text-[#57534E] hover:text-[#EA580C] hover:underline underline-offset-2 cursor-pointer rounded'
+                className='text-xs font-medium text-[#F97316] hover:text-[#EA580C] hover:underline cursor-pointer'
               >
-                {t('common.auth.forgot')}
+                Quên mật khẩu?
               </button>
             </div>
             <div className='relative'>
@@ -465,18 +470,18 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                 required
                 aria-describedby={fieldErrors.password ? 'login-password-error' : undefined}
                 aria-invalid={!!fieldErrors.password}
-                readOnly={isLoading}
-                className='pf-auth-input'
-                style={{ paddingRight: 48 }}
+                disabled={isLoading}
+                className={`w-full pl-3.5 pr-10 py-2.5 bg-white border ${
+                  fieldErrors.password
+                    ? 'border-red-400 focus:ring-red-400'
+                    : 'border-[#E7E5E4] focus:border-[#F97316] focus:ring-[#F97316]/20'
+                } rounded-xl text-xs sm:text-sm text-[#171717] placeholder:text-[#A8A29E] outline-none focus:ring-2 transition-all shadow-xs`}
               />
               <button
                 type='button'
                 onClick={() => setShowPassword(!showPassword)}
-                aria-label={
-                  showPassword ? t('common.auth.hidePassword') : t('common.auth.showPassword')
-                }
-                aria-pressed={showPassword}
-                className='absolute right-1 top-1/2 -translate-y-1/2 w-10 h-10 inline-flex items-center justify-center text-[#57534E] hover:text-[#292524] cursor-pointer rounded-lg'
+                aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                className='absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-[#777169] hover:text-[#171717] transition-colors cursor-pointer rounded-md'
               >
                 {showPassword ? <EyeOff className='w-4 h-4' /> : <Eye className='w-4 h-4' />}
               </button>
@@ -492,24 +497,24 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           <button
             type='submit'
             disabled={isLoading}
-            aria-busy={isLoading}
-            className='pf-auth-primary w-full mt-2 px-4 text-sm font-semibold flex items-center justify-center gap-2 cursor-pointer'
+            className='w-full mt-2 py-3 px-4 bg-[#292524] hover:bg-[#0c0a09] disabled:bg-stone-300 disabled:cursor-not-allowed text-white text-xs sm:text-sm font-medium rounded-xl transition-all shadow-soft-sm flex items-center justify-center gap-2 cursor-pointer'
           >
             {isLoading ? (
               <>
-                <Loader2 className='w-4 h-4 animate-spin motion-reduce:animate-none' />
-                <span>{t('common.auth.submitting')}</span>
+                <Loader2 className='w-4 h-4 animate-spin' />
+                <span>Đang đăng nhập…</span>
               </>
             ) : (
-              <span>{t('common.auth.submit')}</span>
+              <span>Đăng nhập</span>
             )}
           </button>
 
-          {/* Divider */}
-          <div className='flex items-center gap-3 py-1' aria-hidden='true'>
-            <div className='flex-1 h-px bg-[#E7E2D8]' />
-            <span className='text-xs text-[#78716C]'>{t('common.auth.or')}</span>
-            <div className='flex-1 h-px bg-[#E7E2D8]' />
+          {/* Divider: "hoặc" */}
+          <div className='relative flex items-center justify-center my-4'>
+            <div className='w-full border-t border-[#E7E5E4]' />
+            <span className='absolute bg-[#FAF8F5] px-3 text-[11px] font-mono text-[#777169] uppercase tracking-wider'>
+              hoặc
+            </span>
           </div>
 
           {/* Google OAuth Button */}
@@ -517,7 +522,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             type='button'
             onClick={handleGoogleSignIn}
             disabled={isLoading}
-            className='pf-auth-secondary w-full px-4 text-sm font-medium flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50'
+            className='w-full py-2.5 px-4 bg-white hover:bg-stone-50 border border-[#E7E5E4] hover:border-[#171717] text-[#171717] text-xs sm:text-sm font-medium rounded-xl transition-all shadow-xs flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50'
           >
             <svg className='w-4 h-4 shrink-0' viewBox='0 0 24 24'>
               <path
@@ -537,21 +542,25 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                 fill='#EA4335'
               />
             </svg>
-            <span>{t('common.auth.google')}</span>
+            <span>Tiếp tục với Google</span>
           </button>
 
           {/* Register switch link */}
-          <div className='text-center pt-2 space-y-2'>
-            <p className='text-[13px] text-[#57534E]'>
-              {t('common.auth.noAccount')}{' '}
+          <div className='text-center pt-3'>
+            <p className='text-xs text-[#777169]'>
+              Chưa có tài khoản?{' '}
               <Link
                 to={`/register${location.search}`}
                 replace
-                className='font-semibold text-[#C2410C] hover:text-[#9A3412] hover:underline underline-offset-2 rounded'
+                className='font-semibold text-[#171717] hover:text-[#F97316] hover:underline'
               >
-                {t('common.auth.createAccount')}
+                Tạo tài khoản
               </Link>
             </p>
+          </div>
+
+          {/* Secondary link: Kích hoạt tài khoản (at the bottom, NOT next to password label) */}
+          <div className='pt-4 border-t border-[#E7E5E4] text-center'>
             <button
               type='button'
               onClick={() => {
@@ -560,9 +569,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                 setSuccessNotice(null);
                 setStep('reset');
               }}
-              className='text-xs text-[#57534E] hover:text-[#292524] font-medium underline underline-offset-4 cursor-pointer rounded'
+              className='text-xs text-[#777169] hover:text-[#171717] font-medium underline underline-offset-4 cursor-pointer transition-colors'
             >
-              {t('common.auth.activate')}
+              Kích hoạt tài khoản được mời hoặc chưa xác thực?
             </button>
           </div>
         </form>

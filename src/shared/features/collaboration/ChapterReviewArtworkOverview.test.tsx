@@ -26,6 +26,7 @@ vi.mock('@/services/artwork.service', () => ({
     getArtworkAccessLink: vi.fn(),
   },
   resolveArtworkUrl: vi.fn((url: string) => `http://test-api${url}`),
+  toThumbnailUrl: vi.fn((url: string) => `${url}${url.includes('?') ? '&' : '?'}size=thumb`),
 }));
 
 vi.mock('@/services/pipeline.service', () => ({
@@ -465,5 +466,55 @@ describe('ChapterReviewArtworkOverview', () => {
 
     // buildPageComposite không bị gọi vì đã có cache
     expect(buildPageComposite).not.toHaveBeenCalled();
+  });
+
+  it('buildPageComposite sử dụng getAccessUrl trả về thumbnail URL (toThumbnailUrl)', async () => {
+    vi.mocked(pageService.getPagesByChapter).mockResolvedValue([
+      { id: 'page-thumb', pageNumber: 1, chapterId: 'c1' } as any,
+    ]);
+    vi.mocked(pipelineService.getSeriesPipeline).mockResolvedValue({
+      id: 'pipe-1',
+      stages: mockStages,
+    } as any);
+    vi.mocked(assignmentService.getAssignments).mockResolvedValue([]);
+    vi.mocked(panelService.getPanelsByPage).mockResolvedValue([
+      { id: 'p-thumb', pageId: 'page-thumb' },
+    ] as any);
+    vi.mocked(assignmentService.getStageProgress).mockResolvedValue([]);
+    vi.mocked(loadPreviousStageArtworks).mockResolvedValue([
+      { id: 'art-thumb-1', pipelineStageId: 'stg-4', versionNumber: 1 } as any,
+    ]);
+    vi.mocked(elementService.getPageSnapshot).mockResolvedValue({
+      pageId: 'page-thumb',
+      elements: [],
+    } as any);
+    vi.mocked(artworkService.getArtworkAccessLink).mockResolvedValue({
+      url: '/assets/download?token=token123',
+      expiresAtUtc: '2026-10-21T20:00:00Z',
+    });
+
+    let passedGetAccessUrl: ((id: string) => Promise<string>) | undefined;
+    vi.mocked(buildPageComposite).mockImplementation(async (input) => {
+      passedGetAccessUrl = input.getAccessUrl;
+      return {
+        dataUrl: 'data:image/png;base64,thumbComposite',
+        failedImages: 0,
+        mode: 'panels',
+      };
+    });
+
+    render(
+      <MemoryRouter>
+        <ChapterReviewArtworkOverview chapterId='c1' seriesId='s1' assignmentId='a1' />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(buildPageComposite).toHaveBeenCalled();
+    });
+
+    expect(passedGetAccessUrl).toBeDefined();
+    const resultUrl = await passedGetAccessUrl!('art-thumb-1');
+    expect(resultUrl).toBe('http://test-api/assets/download?token=token123&size=thumb');
   });
 });

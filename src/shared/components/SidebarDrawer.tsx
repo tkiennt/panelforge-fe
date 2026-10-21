@@ -30,36 +30,11 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  // Focus vào drawer, giữ Tab trong drawer, khoá cuộn nền và trả focus khi đóng
+  // Trap / Focus on open
   useEffect(() => {
-    if (!isOpen || !drawerRef.current) return;
-    const opener = document.activeElement as HTMLElement | null;
-    const panel = drawerRef.current;
-    panel.focus();
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    const onTab = (e: KeyboardEvent) => {
-      if (e.key !== 'Tab') return;
-      const nodes = panel.querySelectorAll<HTMLElement>(
-        'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
-      );
-      if (nodes.length === 0) return;
-      const first = nodes[0];
-      const last = nodes[nodes.length - 1];
-      if (e.shiftKey && (document.activeElement === first || document.activeElement === panel)) {
-        e.preventDefault();
-        last.focus();
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault();
-        first.focus();
-      }
-    };
-    panel.addEventListener('keydown', onTab);
-    return () => {
-      panel.removeEventListener('keydown', onTab);
-      document.body.style.overflow = prevOverflow;
-      opener?.focus?.();
-    };
+    if (isOpen && drawerRef.current) {
+      drawerRef.current.focus();
+    }
   }, [isOpen]);
 
   if (!isOpen) return null;

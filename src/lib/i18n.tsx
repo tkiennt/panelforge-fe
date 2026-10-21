@@ -1,4 +1,3 @@
-/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 
 // Dictionaries
@@ -14,18 +13,6 @@ import viReview from '@/locales/vi/review.json';
 import enReview from '@/locales/en/review.json';
 import viPipeline from '@/locales/vi/pipeline.json';
 import enPipeline from '@/locales/en/pipeline.json';
-import viWorkspace from '@/locales/vi/workspace.json';
-import enWorkspace from '@/locales/en/workspace.json';
-import viCollaboration from '@/locales/vi/collaboration.json';
-import enCollaboration from '@/locales/en/collaboration.json';
-import viNotifications from '@/locales/vi/notifications.json';
-import enNotifications from '@/locales/en/notifications.json';
-import viProfile from '@/locales/vi/profile.json';
-import enProfile from '@/locales/en/profile.json';
-import viPublisher from '@/locales/vi/publisher.json';
-import enPublisher from '@/locales/en/publisher.json';
-import viAdmin from '@/locales/vi/admin.json';
-import enAdmin from '@/locales/en/admin.json';
 
 export type SupportedLanguage = 'vi' | 'en';
 
@@ -37,12 +24,6 @@ export const DICTIONARIES = {
     production: viProduction,
     review: viReview,
     pipeline: viPipeline,
-    workspace: viWorkspace,
-    collaboration: viCollaboration,
-    notifications: viNotifications,
-    profile: viProfile,
-    publisher: viPublisher,
-    admin: viAdmin,
   },
   en: {
     common: enCommon,
@@ -51,12 +32,6 @@ export const DICTIONARIES = {
     production: enProduction,
     review: enReview,
     pipeline: enPipeline,
-    workspace: enWorkspace,
-    collaboration: enCollaboration,
-    notifications: enNotifications,
-    profile: enProfile,
-    publisher: enPublisher,
-    admin: enAdmin,
   },
 } as const;
 
@@ -81,20 +56,13 @@ export function getInitialLanguage(): SupportedLanguage {
  */
 export function translate(
   key: string,
-  paramsOrFallback?: Record<string, string | number> | string,
+  params?: Record<string, string | number> | string,
   targetLang?: SupportedLanguage,
-  explicitFallback?: string,
 ): string {
-  const isStringParam = typeof paramsOrFallback === 'string';
-  const params =
-    typeof paramsOrFallback === 'object' && paramsOrFallback !== null
-      ? paramsOrFallback
-      : undefined;
-  const fallback = isStringParam ? paramsOrFallback : explicitFallback;
-
   const lang = targetLang || getInitialLanguage();
+  const defaultFallback = typeof params === 'string' ? params : key;
   const parts = key.split('.');
-  if (parts.length < 2) return fallback || key;
+  if (parts.length < 2) return defaultFallback;
 
   const namespace = parts[0] as TranslationNamespace;
   const path = parts.slice(1);
@@ -119,10 +87,10 @@ export function translate(
     result = getNested((DICTIONARIES.vi as any)?.[namespace], path);
   }
 
-  if (!result) return fallback || key;
+  if (!result) return defaultFallback;
 
   // Thay thế tham số {param}
-  if (params) {
+  if (params && typeof params === 'object') {
     Object.entries(params).forEach(([pKey, pVal]) => {
       result = (result as string).replace(new RegExp(`\\{${pKey}\\}`, 'g'), String(pVal));
     });
@@ -134,11 +102,7 @@ export function translate(
 interface I18nContextValue {
   lang: SupportedLanguage;
   setLang: (lang: SupportedLanguage) => void;
-  t: (
-    key: string,
-    paramsOrFallback?: Record<string, string | number> | string,
-    fallback?: string,
-  ) => string;
+  t: (key: string, params?: Record<string, string | number> | string) => string;
   isVietnamese: boolean;
   isEnglish: boolean;
 }
@@ -153,9 +117,7 @@ export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (typeof window !== 'undefined') {
       try {
         localStorage.setItem(STORAGE_KEY, newLang);
-        window.dispatchEvent(
-          new CustomEvent('panelforge:lang_changed', { detail: { lang: newLang } }),
-        );
+        window.dispatchEvent(new CustomEvent('panelforge:lang_changed', { detail: { lang: newLang } }));
       } catch {
         // Ignore
       }
@@ -163,8 +125,7 @@ export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const t = useCallback(
-    (key: string, paramsOrFallback?: Record<string, string | number> | string, fallback?: string) =>
-      translate(key, paramsOrFallback, lang, fallback),
+    (key: string, params?: Record<string, string | number> | string) => translate(key, params, lang),
     [lang],
   );
 
@@ -182,40 +143,21 @@ export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
 };
 
-export function useTranslation(defaultNamespace?: TranslationNamespace) {
+export function useTranslation() {
   const ctx = useContext(I18nContext);
-  const currentLang = ctx ? ctx.lang : getInitialLanguage();
-
-  const t = useCallback(
-    (
-      key: string,
-      paramsOrFallback?: Record<string, string | number> | string,
-      fallback?: string,
-    ) => {
-      let fullKey = key;
-      const parts = key.split('.');
-      const firstPart = parts[0] as TranslationNamespace;
-      const isKnownNamespace = firstPart in DICTIONARIES.vi;
-
-      if (!isKnownNamespace && defaultNamespace) {
-        fullKey = `${defaultNamespace}.${key}`;
-      }
-
-      if (ctx) {
-        return ctx.t(fullKey, paramsOrFallback, fallback);
-      }
-      return translate(fullKey, paramsOrFallback, currentLang, fallback);
-    },
-    [ctx, currentLang, defaultNamespace],
-  );
-
-  return {
-    lang: currentLang,
-    setLang: ctx ? ctx.setLang : () => {},
-    t,
-    isVietnamese: currentLang === 'vi',
-    isEnglish: currentLang === 'en',
-  };
+  if (!ctx) {
+    // Fallback nếu component được render bên ngoài I18nProvider (ví dụ trong unit tests cô lập)
+    const currentLang = getInitialLanguage();
+    return {
+      lang: currentLang,
+      setLang: () => {},
+      t: (key: string, params?: Record<string, string | number>) =>
+        translate(key, params, currentLang),
+      isVietnamese: currentLang === 'vi',
+      isEnglish: currentLang === 'en',
+    };
+  }
+  return ctx;
 }
 
 /**

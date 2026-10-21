@@ -70,32 +70,15 @@
     "syncing": "Đang đồng bộ..."
   },
   "unsaved": {
-    "title": "Có thay đổi chưa lưu",
-    "plural": "Có {count} thay đổi chưa lưu",
+    "title": "Bạn có thay đổi chưa lưu",
+    "plural": "Bạn có {count} thay đổi chưa lưu",
     "saved": "Đã lưu thay đổi",
     "discard": "Hủy bỏ",
-    "save": "Lưu lại",
-    "saving": "Đang lưu..."
-    },
-  "auth": {
-    "welcomeBack": "Chào mừng trở lại",
-    "loginSubtitle": "Đăng nhập để tiếp tục cùng studio của bạn.",
-    "email": "Email",
-    "password": "Mật khẩu",
-    "forgot": "Quên mật khẩu?",
-    "submit": "Đăng nhập",
-    "submitting": "Đang đăng nhập…",
-    "or": "Hoặc",
-    "google": "Tiếp tục với Google",
-    "noAccount": "Chưa có tài khoản?",
-    "createAccount": "Tạo tài khoản",
-    "activate": "Kích hoạt tài khoản",
-    "showPassword": "Hiện mật khẩu",
-    "hidePassword": "Ẩn mật khẩu",
-    "backHome": "Về trang chủ",
-    "errEmailRequired": "Vui lòng nhập địa chỉ email.",
-    "errEmailInvalid": "Định dạng email không hợp lệ.",
-    "errPasswordRequired": "Vui lòng nhập mật khẩu.",
-    "errLoginFailed": "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin."
+    "save": "Lưu thay đổi"
+  },
+  "dangerZone": {
+    "confirmDeleteTitle": "Xác nhận xóa vĩnh viễn",
+    "confirmDeleteDesc": "Hành động này không thể hoàn tác. Vui lòng nhập chính xác tên bên dưới để xác nhận xóa:",
+    "typeInputLabel": "Nhập lại tên để xác nhận"
   }
 }
