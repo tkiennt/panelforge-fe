@@ -8,8 +8,6 @@ import '@fontsource/inter/700.css';
 import App from './App.tsx';
 import './styles/index.css';
 import { I18nProvider } from './lib/i18n';
-import { ConfirmProvider } from './shared/context/ConfirmContext';
-import { ToastProvider } from './shared/context/ToastContext';
 
 const queryClient = new QueryClient();
 
@@ -17,11 +15,7 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <I18nProvider>
-        <ConfirmProvider>
-          <ToastProvider>
-            <App />
-          </ToastProvider>
-        </ConfirmProvider>
+        <App />
       </I18nProvider>
     </QueryClientProvider>
   </StrictMode>,
