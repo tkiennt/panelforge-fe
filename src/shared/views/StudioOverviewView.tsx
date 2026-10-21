@@ -16,7 +16,6 @@ import {
   WorkspaceDto,
   WorkspaceMemberDto,
   WorkspaceUsageDto,
-  WorkspaceSessionDto,
 } from '@/services/workspace.service';
 import { pipelineService, PipelineTemplateDto } from '@/services/pipeline.service';
 import { seriesService, SeriesDto } from '@/services/series.service';
@@ -38,7 +37,6 @@ import {
 } from './studio-overview/SeriesModals';
 import {
   WorkspaceAuditModal,
-  WorkspaceSessionsModal,
   EditMemberAccessModal,
   DeleteMemberConfirmModal,
 } from './studio-overview/StudioModals';
@@ -120,13 +118,6 @@ export const StudioOverviewView: React.FC = () => {
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [auditLoading, setAuditLoading] = useState(false);
   const [auditFilterEntity, setAuditFilterEntity] = useState('');
-
-  // Workspace Active Sessions Modal State
-  const [sessionsModalOpen, setSessionsModalOpen] = useState(false);
-  const [activeSessions, setActiveSessions] = useState<WorkspaceSessionDto[]>([]);
-  const [sessionsLoading, setSessionsLoading] = useState(false);
-  const [revokingSessionId, setRevokingSessionId] = useState<string | null>(null);
-  const [sessionSearchQuery, setSessionSearchQuery] = useState('');
 
   // Members UI States
   const [memberRoleFilter, setMemberRoleFilter] = useState<
@@ -475,52 +466,6 @@ export const StudioOverviewView: React.FC = () => {
     }
   }, [auditModalOpen, loadWorkspaceAudit]);
 
-  const loadActiveSessions = React.useCallback(async () => {
-    if (!activeWorkspace?.id) return;
-    setSessionsLoading(true);
-    try {
-      const data = await workspaceService.getActiveSessions(activeWorkspace.id);
-      setActiveSessions(data);
-    } catch (err: any) {
-      showToast('Lỗi tải phiên làm việc', err.message || 'Không thể lấy danh sách thiết bị.');
-    } finally {
-      setSessionsLoading(false);
-    }
-  }, [activeWorkspace?.id]);
-
-  useEffect(() => {
-    if (sessionsModalOpen) {
-      loadActiveSessions();
-    }
-  }, [sessionsModalOpen, loadActiveSessions]);
-
-  const handleRevokeSession = async (sessionId: string, userName: string) => {
-    if (!activeWorkspace?.id) return;
-    if (
-      !confirm(
-        `Bạn có chắc muốn ngắt kết nối thiết bị này của ${userName}? Phiên đăng nhập sẽ bị thu hồi ngay lập tức.`,
-      )
-    ) {
-      return;
-    }
-    setRevokingSessionId(sessionId);
-    try {
-      await workspaceService.revokeSession(activeWorkspace.id, sessionId);
-      showToast('Đã thu hồi phiên', `Đã ngắt kết nối thiết bị của ${userName}.`);
-      await loadActiveSessions();
-      try {
-        const usage = await workspaceService.getWorkspaceUsage(activeWorkspace.id);
-        setWorkspaceUsage(usage);
-      } catch {
-        // ignore
-      }
-    } catch (err: any) {
-      showToast('Lỗi', err.message || 'Không thể thu hồi phiên làm việc.');
-    } finally {
-      setRevokingSessionId(null);
-    }
-  };
-
   const handleResendInvitation = async (userId: string) => {
     if (!activeWorkspace) return;
     try {
@@ -532,6 +477,7 @@ export const StudioOverviewView: React.FC = () => {
   };
 
   const handleOpenEditAccess = (member: any) => {
+
     setEditingMember(member);
     setEditRole(member.role);
     setEditTask(member.activeTask || 'Chapter 5 Production');
@@ -713,10 +659,6 @@ export const StudioOverviewView: React.FC = () => {
             isResourcesExpanded={isResourcesExpanded}
             onToggleResourcesExpanded={() => setIsResourcesExpanded(!isResourcesExpanded)}
             onOpenAuditModal={() => setAuditModalOpen(true)}
-            onOpenSessionsModal={() => {
-              setSessionsModalOpen(true);
-              loadActiveSessions();
-            }}
           />
         )}
       </div>
@@ -967,11 +909,6 @@ export const StudioOverviewView: React.FC = () => {
             onMemberRoleFilterChange={setMemberRoleFilter}
             memberSearchQuery={memberSearchQuery}
             onMemberSearchQueryChange={setMemberSearchQuery}
-            onOpenSessions={() => {
-              setSessionsModalOpen(true);
-              loadActiveSessions();
-            }}
-            activeSessionsCount={workspaceUsage?.activeSessions?.used ?? 0}
             canCreateStudio={canCreateStudio}
             onResendInvitation={handleResendInvitation}
             onOpenEditAccess={handleOpenEditAccess}
@@ -985,8 +922,10 @@ export const StudioOverviewView: React.FC = () => {
         <InviteMemberModal
           isOpen={inviteModalOpen}
           workspaceId={activeWorkspace.id}
+          workspaceName={activeWorkspace.name}
           onClose={() => setInviteModalOpen(false)}
           onInvited={async () => {
+
             const memList = await workspaceService.getMembers(activeWorkspace.id);
             setMembers(memList);
           }}
@@ -1112,20 +1051,6 @@ export const StudioOverviewView: React.FC = () => {
         task={editTask}
         onTaskChange={setEditTask}
         onSave={handleSaveAccess}
-      />
-
-      {/* Active Sessions & Devices Modal */}
-      <WorkspaceSessionsModal
-        isOpen={sessionsModalOpen}
-        onClose={() => setSessionsModalOpen(false)}
-        activeWorkspace={activeWorkspace}
-        searchQuery={sessionSearchQuery}
-        onSearchQueryChange={setSessionSearchQuery}
-        onRefresh={loadActiveSessions}
-        loading={sessionsLoading}
-        sessions={activeSessions}
-        revokingSessionId={revokingSessionId}
-        onRevokeSession={handleRevokeSession}
       />
 
       {/* Modal: Revoke Member Confirmation */}

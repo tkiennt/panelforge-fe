@@ -126,7 +126,7 @@ export const CreateSeriesModal: React.FC<CreateSeriesModalProps> = ({
     <div className='fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4'>
       <div className='bg-white rounded-2xl border border-[#E7E7E7] shadow-2xl max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto'>
         <div className='flex items-center justify-between border-b border-[#E7E7E7] pb-3'>
-          <h3 className='text-sm font-bold text-[#171717]'>Tạo Dự Án Bộ Truyện Mới (UC-03)</h3>
+          <h3 className='text-sm font-bold text-[#171717]'>Tạo Dự Án Bộ Truyện Mới</h3>
           <button type='button' onClick={onClose} className='text-[#888888] hover:text-[#171717]'>
             <X className='w-4 h-4' />
           </button>
@@ -168,14 +168,14 @@ export const CreateSeriesModal: React.FC<CreateSeriesModalProps> = ({
             </div>
             <div>
               <label className='block font-semibold text-[#171717] mb-1'>
-                Hướng Đọc (Reading Direction - BR-14)
+                Hướng Đọc (Reading Direction)
               </label>
               <select
                 value={direction}
                 onChange={(e) => onDirectionChange(Number(e.target.value))}
                 className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg focus:outline-none focus:border-[#F97316]'
               >
-                <option value={1}>Phải sang Trái (Manga RTL - BR-14)</option>
+                <option value={1}>Phải sang Trái (Manga RTL)</option>
                 <option value={0}>Trái sang Phải (Comic LTR)</option>
                 <option value={2}>Cuộn Dọc (Webtoon Vertical)</option>
               </select>
@@ -321,7 +321,7 @@ export const EditSeriesModal: React.FC<EditSeriesModalProps> = ({
           <div className='flex items-center gap-2'>
             <Edit2 className='w-4 h-4 text-[#F97316]' />
             <h3 className='text-sm font-bold text-[#171717]'>
-              Chỉnh Sửa Thông Tin Series (UC-03 / F5)
+              Chỉnh Sửa Thông Tin Series
             </h3>
           </div>
           <button type='button' onClick={onClose} className='text-[#888888] hover:text-[#171717]'>

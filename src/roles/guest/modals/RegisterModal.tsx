@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import { signInWithPopup, auth, googleProvider } from '@/config/firebase';
 import { authService } from '@/services/auth.service';
+import { PasswordStrengthMeter } from '@/shared/components/lucian';
+
 
 interface RegisterModalProps {
   onClose: () => void;
@@ -326,19 +328,13 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
                   />
                 </div>
 
-                <div>
-                  <label className='block text-xs font-semibold text-[#0c0a09] mb-1'>
-                    Password
-                  </label>
-                  <input
-                    type='password'
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder='•••••••• (Tối thiểu 6 ký tự)'
-                    className='w-full border border-[#e7e5e4] rounded-xl px-4 py-2.5 focus:border-[#292524] focus:ring-2 focus:ring-[#292524]/10 outline-none transition-all text-xs text-[#0c0a09] placeholder:text-[#a8a29e]'
-                    required
-                  />
-                </div>
+                <PasswordStrengthMeter
+                  value={password}
+                  onChange={setPassword}
+                  label='Password'
+                  required
+                />
+
 
                 <div>
                   <label className='block text-xs font-semibold text-[#0c0a09] mb-1'>

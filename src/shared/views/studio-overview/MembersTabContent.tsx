@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Monitor, Mail, Key, Edit3, Trash2 } from 'lucide-react';
+import { Search, Mail, Key, Edit3, Trash2 } from 'lucide-react';
 
 const ROLE_BADGE_STYLE: Record<string, string> = {
   PRODUCER: 'bg-purple-50 text-purple-700 border-purple-200',
@@ -19,8 +19,6 @@ export interface MembersTabContentProps {
   onMemberRoleFilterChange: (role: any) => void;
   memberSearchQuery: string;
   onMemberSearchQueryChange: (query: string) => void;
-  onOpenSessions: () => void;
-  activeSessionsCount: number;
   canCreateStudio: boolean;
   onResendInvitation: (memberId: string) => void;
   onOpenEditAccess: (member: any) => void;
@@ -34,13 +32,12 @@ export const MembersTabContent: React.FC<MembersTabContentProps> = ({
   onMemberRoleFilterChange,
   memberSearchQuery,
   onMemberSearchQueryChange,
-  onOpenSessions,
-  activeSessionsCount,
   canCreateStudio,
   onResendInvitation,
   onOpenEditAccess,
   onDeleteMember,
 }) => {
+
   return (
     <div role='tabpanel' id='tabpanel-members' aria-labelledby='tab-members' className='space-y-6'>
       {/* Tab Selection Row & Search */}
@@ -95,15 +92,8 @@ export const MembersTabContent: React.FC<MembersTabContentProps> = ({
           <h3 className='text-sm font-serif font-light text-[#0c0a09]'>
             Thành viên Studio ({filteredMembers.length})
           </h3>
-          <button
-            type='button'
-            onClick={onOpenSessions}
-            className='px-3.5 py-1.5 rounded-full bg-white border border-[#e7e5e4] hover:bg-[#f0efed] text-xs font-medium text-[#0c0a09] flex items-center gap-1.5 shadow-soft-sm cursor-pointer'
-          >
-            <Monitor className='w-3.5 h-3.5 text-emerald-600' />
-            <span>Giám sát thiết bị ({activeSessionsCount})</span>
-          </button>
         </div>
+
 
         <div className='divide-y divide-[#E7E7E7]'>
           {filteredMembers.length === 0 ? (

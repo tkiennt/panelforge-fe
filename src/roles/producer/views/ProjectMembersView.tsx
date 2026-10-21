@@ -13,6 +13,7 @@ import {
   FolderKanban,
 } from 'lucide-react';
 import { MangaProject } from '../../../types';
+import { InviteResultModal, InviteResultItem } from '../modals/InviteResultModal';
 
 interface ProjectMembersViewProps {
   projects: MangaProject[]; // Nhận toàn bộ danh sách dự án
@@ -27,6 +28,8 @@ export const ProjectMembersView: React.FC<ProjectMembersViewProps> = ({ projects
   // State quản lý Modal Mời Thành Viên
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [inviteData, setInviteData] = useState({ email: '', role: 'Artist' });
+  const [resultModalOpen, setResultModalOpen] = useState(false);
+  const [inviteResults, setInviteResults] = useState<InviteResultItem[]>([]);
 
   // State quản lý Dropdown Thao Tác
   const [openActionMenuId, setOpenActionMenuId] = useState<number | null>(null);

@@ -2,7 +2,6 @@ import React from 'react';
 import {
   HardDrive,
   Cpu,
-  Monitor,
   History,
   ChevronDown,
   AlertTriangle,
@@ -18,7 +17,6 @@ export interface StudioGovernanceBarProps {
   isResourcesExpanded: boolean;
   onToggleResourcesExpanded: () => void;
   onOpenAuditModal: () => void;
-  onOpenSessionsModal: () => void;
 }
 
 export const StudioGovernanceBar: React.FC<StudioGovernanceBarProps> = ({
@@ -27,7 +25,7 @@ export const StudioGovernanceBar: React.FC<StudioGovernanceBarProps> = ({
   isResourcesExpanded,
   onToggleResourcesExpanded,
   onOpenAuditModal,
-  onOpenSessionsModal,
+
 }) => {
   return (
     <div className='pt-2 border-t border-stone-100'>
@@ -87,23 +85,8 @@ export const StudioGovernanceBar: React.FC<StudioGovernanceBarProps> = ({
                 : 'Chưa cấp quota'}
             </span>
           </div>
-
-          {/* Sessions Chip */}
-          <div className='px-2.5 py-1 rounded-lg border bg-white border-stone-200/80 font-mono text-[11px] flex items-center gap-1.5 text-stone-700'>
-            <Monitor className='w-3.5 h-3.5 text-emerald-500 shrink-0' />
-            <span className='text-stone-500 font-sans'>Thiết bị:</span>
-            <span>
-              {workspaceUsage?.activeSessions
-                ? `${workspaceUsage.activeSessions.used} thiết bị`
-                : '0 thiết bị'}
-            </span>
-            {workspaceUsage?.activeMemberCount ? (
-              <span className='text-stone-400 font-sans'>
-                ({workspaceUsage.activeMemberCount} người online)
-              </span>
-            ) : null}
-          </div>
         </div>
+
 
         <div className='flex items-center gap-2 self-end md:self-auto shrink-0'>
           <button
@@ -134,7 +117,8 @@ export const StudioGovernanceBar: React.FC<StudioGovernanceBarProps> = ({
 
       {/* Expanded Detailed Quota Meters */}
       {isResourcesExpanded && (
-        <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-3.5 animate-in fade-in duration-150'>
+        <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-3.5 animate-in fade-in duration-150'>
+
           {/* 1. Storage Meter */}
           <div className='flex flex-col justify-between h-full p-4 bg-stone-50/70 hover:bg-stone-50 rounded-xl border border-stone-200/80 transition-all space-y-3'>
             <div className='flex items-center justify-between gap-2'>
@@ -332,64 +316,9 @@ export const StudioGovernanceBar: React.FC<StudioGovernanceBarProps> = ({
               </div>
             )}
           </div>
-
-          {/* 4. Active Devices & Concurrent Sessions Meter */}
-          <div className='flex flex-col justify-between h-full p-4 bg-stone-50/70 hover:bg-stone-50 rounded-xl border border-stone-200/80 transition-all space-y-3'>
-            <div className='flex items-center justify-between gap-2'>
-              <div className='flex items-center gap-2 text-xs font-bold text-stone-800'>
-                <Monitor className='w-4 h-4 text-emerald-500 shrink-0' />
-                <span>Phiên Đăng Nhập Đồng Thời</span>
-              </div>
-              <div className='font-mono text-xs font-bold text-stone-900 shrink-0'>
-                {workspaceUsage?.activeSessions
-                  ? workspaceUsage.activeSessions.isUnlimited
-                    ? `${workspaceUsage.activeSessions.used} thiết bị`
-                    : `${workspaceUsage.activeSessions.used} / ${workspaceUsage.activeSessions.quota}`
-                  : '0 thiết bị'}
-              </div>
-            </div>
-
-            <div className='space-y-2'>
-              <div className='w-full bg-stone-200/80 h-2 rounded-full overflow-hidden'>
-                <div
-                  className={`h-full rounded-full transition-all duration-500 ${
-                    (workspaceUsage?.activeSessions?.percentUsed ?? 0) >= 90
-                      ? 'bg-red-500'
-                      : (workspaceUsage?.activeSessions?.percentUsed ?? 0) >= 75
-                        ? 'bg-amber-500'
-                        : 'bg-emerald-500'
-                  }`}
-                  style={{
-                    width: `${Math.min(
-                      100,
-                      workspaceUsage?.activeSessions?.isUnlimited
-                        ? 0
-                        : (workspaceUsage?.activeSessions?.percentUsed ?? 0),
-                    )}%`,
-                  }}
-                />
-              </div>
-
-              <div className='flex items-center justify-between text-[11px] leading-relaxed text-stone-600'>
-                <span>
-                  {workspaceUsage?.activeMemberCount
-                    ? `${workspaceUsage.activeMemberCount} người online`
-                    : 'Chưa có thành viên online'}
-                </span>
-                <button
-                  type='button'
-                  onClick={onOpenSessionsModal}
-                  className='font-semibold text-emerald-600 hover:text-emerald-700 hover:underline cursor-pointer flex items-center gap-1 text-[11px]'
-                  title='Xem danh sách các thiết bị đang đăng nhập của Studio'
-                >
-                  <span>Chi tiết</span>
-                  <span>&rarr;</span>
-                </button>
-              </div>
-            </div>
-          </div>
         </div>
       )}
     </div>
   );
 };
+
