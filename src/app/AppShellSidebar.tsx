@@ -8,7 +8,7 @@ import { SeriesDto } from '@/services/series.service';
 import { seriesService } from '@/services/series.service';
 import { BrandMark } from '@/shared/components/BrandMark';
 import { useTranslation } from '@/lib/i18n';
-import './sidebarTheme.css';
+import '@/styles/modules/sidebar-theme.css';
 
 import { SIDEBAR_ID, SIDEBAR_THEMES, type SidebarTheme } from './sidebarTheme';
 

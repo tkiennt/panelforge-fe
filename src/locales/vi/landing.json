@@ -1,0 +1,65 @@
+{
+  "nav": {
+    "workflow": "Quy trình",
+    "features": "Tính năng",
+    "showcase": "Trưng bày",
+    "faq": "Hỏi đáp",
+    "login": "Đăng nhập",
+    "register": "Tạo tài khoản"
+  },
+  "hero": {
+    "docket": "PF / 01 — XƯỞNG SÁNG TÁC TRUYỆN TRANH",
+    "titleLine1": "TỪ Ý TƯỞNG ĐẾN",
+    "titleLine2": "TỪNG KHUNG TRUYỆN.",
+    "subtitleLead": "Cùng viết, vẽ và duyệt truyện trong một không gian.",
+    "subtitleTail": "Gắn phản hồi vào đúng khung truyện, theo dõi từng phiên bản và kiểm tra tính nhất quán với AI.",
+    "ctaPrimary": "Tạo tài khoản",
+    "haveAccount": "Đã có tài khoản?",
+    "login": "Đăng nhập",
+    "discoverWorkflow": "Khám phá quy trình hoạt động",
+    "badgeScript": "Kịch bản có cấu trúc",
+    "badgeCollab": "Cộng tác",
+    "badgeVersion": "Truy vết phiên bản"
+  },
+  "pillars": {
+    "tag": "02 / NỀN TẢNG",
+    "title": "Ba trụ cột cho xưởng truyện chuyên nghiệp.",
+    "subtitle": "Xây dựng quy chuẩn sản xuất truyện tranh hiện đại, minh bạch và kết nối đa vai trò.",
+    "hierarchy": {
+      "tag": "01 / Phân cấp",
+      "title": "Nội dung có cấu trúc",
+      "desc": "Tổ chức bộ truyện theo từng cấp độ rõ ràng: bộ truyện, tập, chương, phân cảnh và khung tranh."
+    },
+    "provenance": {
+      "tag": "02 / Minh bạch",
+      "title": "Lịch sử phiên bản",
+      "desc": "Ghi nhận mọi chỉnh sửa kèm người thực hiện và mốc thời gian, tránh ghi đè nhầm bản vẽ."
+    },
+    "bible": {
+      "tag": "03 / Nhất quán",
+      "title": "Hồ sơ bộ truyện",
+      "desc": "Quản lý nhân vật, đạo cụ và bối cảnh tập trung; hỗ trợ rà soát tính nhất quán khi sáng tác."
+    }
+  },
+  "workflow": {
+    "tag": "03 / Quy trình sản xuất",
+    "title": "Từ kịch bản đến trang truyện hoàn thiện.",
+    "subtitle": "Bốn công đoạn nối tiếp nhịp nhàng, trực quan hóa tiến trình sáng tạo từ văn bản phác thảo đến ấn phẩm màu sắc.",
+    "stages": {
+      "script": "Kịch bản",
+      "sketch": "Phác thảo",
+      "ink": "Đi nét",
+      "color": "Hoàn thiện"
+    },
+    "roles": {
+      "writer": "Biên kịch",
+      "artist": "Họa sĩ",
+      "editor": "Biên tập & Màu"
+    }
+  },
+  "footer": {
+    "brand": "PanelForge Manga Studio AI",
+    "tagline": "Nền tảng hỗ trợ sáng tác và cộng tác truyện tranh chuyên nghiệp.",
+    "rights": "Bản quyền thuộc về PanelForge Studio"
+  }
+}

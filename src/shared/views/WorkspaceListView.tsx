@@ -19,6 +19,8 @@ import { BrandMark } from '@/shared/components/BrandMark';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { StudioCoverFallback } from '@/shared/components/StudioCoverFallback';
 import { WorkspaceCoverPickerDialog } from '@/shared/components/WorkspaceCoverPickerDialog';
+import { useConfirm } from '@/shared/context/ConfirmContext';
+import { LucianInlineAlert } from '@/shared/components/lucian';
 import './workspaceShelf.css';
 
 interface WorkspaceListViewProps {
@@ -51,6 +53,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
   onLogout,
   recentWorkspaceId,
 }) => {
+  const confirm = useConfirm();
   const { t } = useTranslation();
   const [workspaces, setWorkspaces] = useState<WorkspaceDto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -91,13 +94,29 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
 
   useEffect(() => setAvatarFailed(false), [currentUser?.avatarUrl]);
 
-  const handleOpenCreate = () => {
+  const handleOpenCreate = async () => {
     if (isAdmin) {
-      alert(t('workspace.adminNotice'));
+      await confirm({
+        title: t('workspace.adminNoticeTitle') || 'Giới hạn vai trò Quản trị viên',
+        description:
+          t('workspace.adminNotice') ||
+          'Tài khoản Administrator không thể tạo hoặc sở hữu Studio Workspace. Vui lòng liên hệ Quản trị viên để được cấp quyền Producer.',
+        confirmText: t('common.understood') || 'Đã hiểu',
+        cancelText: t('common.close') || 'Đóng',
+        variant: 'warning',
+      });
       return;
     }
     if (!currentUser?.canCreateStudio) {
-      alert(t('workspace.producerNotice'));
+      await confirm({
+        title: t('workspace.producerNoticeTitle') || 'Yêu cầu quyền Producer',
+        description:
+          t('workspace.producerNotice') ||
+          'Tài khoản của bạn chưa được cấp quyền Producer để tạo Studio. Vui lòng liên hệ Quản trị viên để được nâng cấp quyền hạn.',
+        confirmText: t('common.understood') || 'Đã hiểu',
+        cancelText: t('common.close') || 'Đóng',
+        variant: 'warning',
+      });
       return;
     }
     if (onCreateWorkspace) {
@@ -202,6 +221,17 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
 
       <main className='flex-1 py-6 md:py-10'>
         <PageContainer>
+          {isAdmin && (
+            <div className='mb-6'>
+              <LucianInlineAlert
+                type='info'
+                title='Tài khoản Quản trị viên hệ thống'
+                description='Tài khoản Administrator không trực tiếp sở hữu hoặc tạo Studio Workspace theo quy tắc BR-07 nhằm đảm bảo tính bảo mật và phân lập dữ liệu.'
+                dismissible={true}
+              />
+            </div>
+          )}
+
           {loading ? (
             <div aria-busy='true'>
               <span className='sr-only'>{t('workspace.loading')}</span>

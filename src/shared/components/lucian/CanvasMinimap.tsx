@@ -1,7 +1,7 @@
 /* Lucian UX/UI Prompt #104 · Canvas minimap · (c) 2026 Seokwoo Lee · MIT License */
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { MapPin, Eye, EyeOff, Maximize2 } from 'lucide-react';
-import './lucian-104.css';
+import '@/styles/modules/lucian/lucian-104.css';
 
 export interface MinimapPanelItem {
   id: string;

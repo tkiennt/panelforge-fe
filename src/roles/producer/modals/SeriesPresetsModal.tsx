@@ -26,6 +26,7 @@ import {
   CreateConsistencyRuleRequest,
   UpdateConsistencyRuleRequest,
 } from '@/services/series.service';
+import { useConfirm } from '@/shared/context/ConfirmContext';
 
 interface SeriesPresetsModalProps {
   isOpen: boolean;
@@ -57,6 +58,7 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
   onClose,
   onShowToast,
 }) => {
+  const confirm = useConfirm();
   const [activeTab, setActiveTab] = useState<'typography' | 'consistency'>('typography');
 
   // Typography Presets State
@@ -187,7 +189,16 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
   };
 
   const handleDeletePreset = async (p: TypographyPresetDto) => {
-    if (!window.confirm(`Xóa Typography Preset "${p.name}"?`)) return;
+    if (
+      !(await confirm({
+        title: `Xóa Typography Preset "${p.name}"?`,
+        description: 'Các bóng thoại đang sử dụng preset này sẽ quay về kiểu mặc định.',
+        confirmText: 'Xóa preset',
+        cancelText: 'Giữ lại',
+        variant: 'danger',
+      }))
+    )
+      return;
     setActionLoading(true);
     try {
       await seriesService.deleteTypographyPreset(seriesId, p.id);
@@ -275,7 +286,16 @@ export const SeriesPresetsModal: React.FC<SeriesPresetsModalProps> = ({
   };
 
   const handleDeleteRule = async (r: ConsistencyRuleDto) => {
-    if (!window.confirm(`Xóa quy tắc "${r.name}"?`)) return;
+    if (
+      !(await confirm({
+        title: `Xóa quy tắc "${r.name}"?`,
+        description: 'Quy tắc kiểm tra tính nhất quán này sẽ bị loại bỏ khỏi dự án.',
+        confirmText: 'Xóa quy tắc',
+        cancelText: 'Giữ lại',
+        variant: 'danger',
+      }))
+    )
+      return;
     setActionLoading(true);
     try {
       await seriesService.deleteConsistencyRule(seriesId, r.id);

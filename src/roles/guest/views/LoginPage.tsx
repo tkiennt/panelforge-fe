@@ -18,7 +18,7 @@ import { signInWithPopup, auth, googleProvider } from '@/config/firebase';
 import { authService } from '@/services/auth.service';
 import { AuthResponse, SystemRole, normalizeSystemRole } from '@/types';
 import { useTranslation } from '@/lib/i18n';
-import './auth.css';
+import '@/styles/modules/auth.css';
 
 /** Decorative clipped layers (shadow, ink frame, fill) for a cut-corner comic panel. */
 const PanelLayers = () => (

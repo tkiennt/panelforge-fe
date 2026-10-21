@@ -130,6 +130,7 @@ import { pipelineService, type PipelineStageDto } from '@/services/pipeline.serv
 import { pickPanelArtwork, pickPageArtwork } from '@/shared/utils/stageArtworks';
 import { ElementConflictModal } from '@/shared/modals/ElementConflictModal';
 import { CanvasMinimap, LayerStackingOrder } from '@/shared/components/lucian';
+import { useConfirm } from '@/shared/context/ConfirmContext';
 
 /** Chỉ lỗi mạng (không có status HTTP) mới xếp hàng chờ ngoại tuyến; 4xx/409 của BE phải hiện cho người dùng. */
 const isNetworkFailure = (err: any): boolean =>
@@ -161,6 +162,7 @@ const WORK_STATUS: Record<string, { label: string; tone: string }> = {
 };
 
 export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole }) => {
+  const confirm = useConfirm();
   const { workspaceId, seriesId } = useParams<{ workspaceId?: string; seriesId?: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const chapterIdFromUrl = searchParams.get('chapterId');
@@ -1346,7 +1348,16 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
       showToast('Không có quyền', 'Chỉ Producer và Artist mới có quyền xoá trang.');
       return;
     }
-    if (!confirm('Bạn có chắc chắn muốn xóa trang này khỏi Chapter?')) return;
+    if (
+      !(await confirm({
+        title: 'Xóa trang tranh này khỏi Chapter?',
+        description: 'Tất cả các ô panel và lớp vẽ bên trong trang này sẽ bị xoá.',
+        confirmText: 'Xác nhận xóa trang',
+        cancelText: 'Giữ lại',
+        variant: 'danger',
+      }))
+    )
+      return;
     try {
       await pageService.deletePage(pageId);
       const remaining = pages.filter((p) => p.id !== pageId);
@@ -1448,7 +1459,16 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
   // Xóa Panel (DELETE /api/panels/{panelId})
   const handleDeletePanel = async (panelId: string) => {
     if (!canEditPages) return;
-    if (!confirm('Bạn có chắc chắn muốn xóa ô panel này khỏi trang?')) return;
+    if (
+      !(await confirm({
+        title: 'Xóa ô panel này khỏi trang?',
+        description: 'Bản vẽ và vị trí bố cục của panel sẽ bị loại bỏ.',
+        confirmText: 'Xác nhận xóa panel',
+        cancelText: 'Giữ lại',
+        variant: 'danger',
+      }))
+    )
+      return;
 
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       offlineQueueService.enqueue({

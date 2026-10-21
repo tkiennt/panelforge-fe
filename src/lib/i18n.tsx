@@ -26,6 +26,8 @@ import viPublisher from '@/locales/vi/publisher.json';
 import enPublisher from '@/locales/en/publisher.json';
 import viAdmin from '@/locales/vi/admin.json';
 import enAdmin from '@/locales/en/admin.json';
+import viLanding from '@/locales/vi/landing.json';
+import enLanding from '@/locales/en/landing.json';
 
 export type SupportedLanguage = 'vi' | 'en';
 
@@ -43,6 +45,7 @@ export const DICTIONARIES = {
     profile: viProfile,
     publisher: viPublisher,
     admin: viAdmin,
+    landing: viLanding,
   },
   en: {
     common: enCommon,
@@ -57,6 +60,7 @@ export const DICTIONARIES = {
     profile: enProfile,
     publisher: enPublisher,
     admin: enAdmin,
+    landing: enLanding,
   },
 } as const;
 
@@ -148,11 +152,20 @@ const I18nContext = createContext<I18nContextValue | null>(null);
 export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [lang, setLangState] = useState<SupportedLanguage>(getInitialLanguage);
 
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.documentElement.lang = lang;
+    }
+  }, [lang]);
+
   const setLang = useCallback((newLang: SupportedLanguage) => {
     setLangState(newLang);
     if (typeof window !== 'undefined') {
       try {
         localStorage.setItem(STORAGE_KEY, newLang);
+        if (typeof document !== 'undefined') {
+          document.documentElement.lang = newLang;
+        }
         window.dispatchEvent(
           new CustomEvent('panelforge:lang_changed', { detail: { lang: newLang } }),
         );

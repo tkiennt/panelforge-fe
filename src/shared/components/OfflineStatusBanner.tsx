@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { RefreshCw, CheckCircle2, CloudUpload } from 'lucide-react';
 import { offlineQueueService, OfflineQueueState } from '@/services/offlineQueue.service';
 import { useTranslation } from '@/lib/i18n';
-import '@/shared/components/lucian/lucian-091.css';
+import '@/styles/modules/lucian/lucian-091.css';
 
 export const OfflineStatusBanner: React.FC<{ className?: string }> = ({ className = '' }) => {
   const { t } = useTranslation();

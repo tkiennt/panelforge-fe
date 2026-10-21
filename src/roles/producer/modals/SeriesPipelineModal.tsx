@@ -27,6 +27,7 @@ import {
   AddPipelineStageRequest,
   UpdatePipelineStageRequest,
 } from '@/services/pipeline.service';
+import { useConfirm } from '@/shared/context/ConfirmContext';
 
 interface SeriesPipelineModalProps {
   isOpen: boolean;
@@ -53,6 +54,7 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
   onClose,
   onShowToast,
 }) => {
+  const confirm = useConfirm();
   const [pipeline, setPipeline] = useState<SeriesPipelineDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -226,9 +228,13 @@ export const SeriesPipelineModal: React.FC<SeriesPipelineModalProps> = ({
 
   const handleDeleteStage = async (stage: PipelineStageDto) => {
     if (
-      !confirm(
-        `Bạn có chắc chắn muốn xóa công đoạn "${stage.name}"? Thao tác này sẽ tự động tái cấu trúc lại các bước chuyển giao (Transitions).`,
-      )
+      !(await confirm({
+        title: `Xóa công đoạn "${stage.name}"?`,
+        description: 'Thao tác này sẽ tự động tái cấu trúc lại các bước chuyển giao (Transitions) giữa các công đoạn còn lại.',
+        confirmText: 'Xóa công đoạn',
+        cancelText: 'Giữ lại',
+        variant: 'danger',
+      }))
     ) {
       return;
     }

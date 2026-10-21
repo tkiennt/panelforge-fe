@@ -1,7 +1,7 @@
 /* Lucian UX/UI Prompt #040 · Collapsible navigation rail · (c) 2026 Seokwoo Lee · MIT License */
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { ChevronRight } from 'lucide-react';
-import './lucian-040.css';
+import '@/styles/modules/lucian/lucian-040.css';
 
 export interface NavRailItem {
   id: string;

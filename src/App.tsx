@@ -23,8 +23,8 @@ import {
   ToastItemData,
   ToastOptions,
   ToastType,
-  ToastStack,
 } from '@/shared/components/ToastNotification';
+import { useToast } from '@/shared/context/ToastContext';
 import { authService } from './services/auth.service';
 import { userService } from './services/user.service';
 import { PROFILE_UPDATED_EVENT } from '@/shared/utils/profileEvents';
@@ -479,69 +479,8 @@ function AppContent() {
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
   const [isTwoFactorModalOpen, setIsTwoFactorModalOpen] = useState(false);
 
-  // Toast System
-  const [toasts, setToasts] = useState<ToastItemData[]>([]);
-  const lastToastTimestamps = useRef<Map<string, number>>(new Map());
-
-  const showToast = (title: string, desc: string, options?: ToastOptions) => {
-    const toastId =
-      options?.id || `toast-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-    const dedupeKey = options?.id || `${title}:${desc}`;
-    const now = Date.now();
-    const lastTime = lastToastTimestamps.current.get(dedupeKey) || 0;
-
-    // Chống trùng lặp thông báo nếu cùng sự kiện/id trong khoảng 3.5s
-    if (now - lastTime < 3500) {
-      return;
-    }
-    lastToastTimestamps.current.set(dedupeKey, now);
-
-    let resolvedType: ToastType = options?.type || 'success';
-    if (!options?.type) {
-      const lowerTitle = title.toLowerCase();
-      const lowerDesc = desc.toLowerCase();
-      if (
-        lowerTitle.includes('lỗi') ||
-        lowerTitle.includes('error') ||
-        lowerTitle.includes('thất bại')
-      ) {
-        resolvedType = 'error';
-      } else if (
-        lowerTitle.includes('hết hạn') ||
-        lowerTitle.includes('kết thúc') ||
-        lowerTitle.includes('warning') ||
-        lowerTitle.includes('cảnh báo')
-      ) {
-        resolvedType = 'warning';
-      } else if (lowerTitle.includes('đăng xuất') || lowerTitle.includes('logout')) {
-        resolvedType = 'logout';
-      }
-    }
-
-    setToasts((prev) => {
-      if (prev.some((t) => t.id === toastId)) return prev;
-      return [
-        ...prev,
-        {
-          id: toastId,
-          title,
-          desc,
-          type: resolvedType,
-          action: options?.action,
-          duration: options?.duration,
-        },
-      ];
-    });
-
-    const duration = options?.duration ?? 6000;
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== toastId));
-    }, duration);
-  };
-
-  const closeToast = (id: string) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
-  };
+  // Global Lucian #070 Toast System via ToastContext
+  const { showToast } = useToast();
 
   // axiosClient phát 'auth:unauthorized' khi hết phiên (refresh token bị từ chối / 401 không phục hồi được)
   const lastUnauthorizedAtRef = useRef<number>(0);
@@ -1007,8 +946,7 @@ function AppContent() {
       )}
       */}
 
-      {/* Floating Toast Notification Stack */}
-      <ToastStack toasts={toasts} onClose={closeToast} />
+      
     </div>
   );
 }
