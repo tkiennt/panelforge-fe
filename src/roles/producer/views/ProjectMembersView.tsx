@@ -324,7 +324,7 @@ export const ProjectMembersView: React.FC<ProjectMembersViewProps> = ({ projects
               id: Date.now(),
               name: newMember.fullName || newMember.email.split('@')[0],
               email: newMember.email,
-              role: newMember.role,
+              role: String(newMember.role),
               status: newMember.status || 'Active',
             },
           ]);

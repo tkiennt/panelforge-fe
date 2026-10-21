@@ -851,7 +851,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     if (
       !(await confirm({
         title: `Xoá dòng kịch bản #${line.lineOrder}?`,
-        description: line.dialogue ? `"${line.dialogue}"` : undefined,
+        description: line.dialogueText ? `"${line.dialogueText}"` : undefined,
         confirmText: 'Xoá dòng',
         cancelText: 'Giữ lại',
         variant: 'danger',
