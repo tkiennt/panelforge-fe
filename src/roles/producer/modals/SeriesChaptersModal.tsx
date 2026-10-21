@@ -34,6 +34,7 @@ import { ChapterReviewsModal } from '@/shared/modals/ChapterReviewsModal';
 import { ChapterProvenanceModal } from '@/shared/features/provenance/ChapterProvenanceModal';
 import { PreviewLinksModal } from './PreviewLinksModal';
 import { TypeToConfirmModal } from '@/shared/components/lucian';
+import { useConfirm } from '@/shared/context/ConfirmContext';
 
 interface SeriesChaptersModalProps {
   isOpen: boolean;
@@ -56,6 +57,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
   onChapterCountChange,
   onShowToast,
 }) => {
+  const confirm = useConfirm();
   const { workspaceId: paramWorkspaceId } = useParams();
   const effectiveWorkspaceId =
     propWorkspaceId ||
@@ -213,9 +215,13 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
 
   const handleApproveChapter = async (chap: ChapterDto) => {
     if (
-      !window.confirm(
-        `Xác nhận phê duyệt hoàn tất sản xuất Chương ${chap.chapterNumber}: "${chap.title || 'Không tiêu đề'}"?\n\nChương sẽ chuyển sang trạng thái Approved (Chờ xuất bản). Các phân công của chương sẽ được đóng lại để Publisher duyệt xuất bản.`,
-      )
+      !(await confirm({
+        title: `Phê duyệt hoàn tất Chương ${chap.chapterNumber}?`,
+        description: `Chương "${chap.title || 'Không tiêu đề'}" sẽ chuyển sang trạng thái Approved (Chờ xuất bản). Các phân công sẽ được đóng lại để Publisher duyệt xuất bản.`,
+        confirmText: 'Phê duyệt hoàn tất',
+        cancelText: 'Xem lại',
+        variant: 'info',
+      }))
     ) {
       return;
     }

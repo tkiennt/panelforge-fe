@@ -4,6 +4,8 @@ import { WorkspaceDto, WorkspaceRole, normalizeWorkspaceRole } from '@/types';
 import { workspaceService } from '@/services/workspace.service';
 import { CreateWorkspaceModal } from '@/roles/producer/modals/CreateWorkspaceModal';
 import { PageContainer } from '@/shared/components/PageContainer';
+import { useConfirm } from '@/shared/context/ConfirmContext';
+import { LucianInlineAlert } from '@/shared/components/lucian';
 
 interface WorkspaceListViewProps {
   onSelectWorkspace: (workspace: WorkspaceDto) => void;
@@ -24,6 +26,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
   currentUser,
   onLogout,
 }) => {
+  const confirm = useConfirm();
   const [workspaces, setWorkspaces] = useState<WorkspaceDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -55,17 +58,36 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
     fetchWorkspaces();
   }, []);
 
-  const handleOpenCreate = () => {
+  const handleOpenCreate = async () => {
     if (isAdmin) {
-      alert(
-        'Tài khoản Administrator không thể tạo hoặc sở hữu Studio Workspace. Vui lòng liên hệ Quản trị viên để được cấp quyền',
-      );
+      await confirm({
+        title: 'Giới hạn vai trò Quản trị viên',
+        description:
+          'Tài khoản Administrator không thể tạo hoặc sở hữu Studio Workspace. Vui lòng liên hệ Quản trị viên để được cấp quyền Producer.',
+        confirmText: 'Đã hiểu',
+        cancelText: 'Đóng',
+        variant: 'warning',
+      });
       return;
     }
     if (!currentUser?.canCreateStudio) {
-      alert(
-        'Tài khoản của bạn chưa được cấp quyền Producer để tạo Studio. Vui lòng liên hệ Quản trị viên để được cấp quyền',
-      );
+      if (typeof window !== 'undefined' && typeof window.alert === 'function') {
+        try {
+          window.alert(
+            'Tài khoản của bạn chưa được cấp quyền Producer để tạo Studio. Vui lòng liên hệ Quản trị viên để được nâng cấp quyền hạn.',
+          );
+        } catch {
+          // ignore
+        }
+      }
+      await confirm({
+        title: 'Yêu cầu quyền Producer',
+        description:
+          'Tài khoản của bạn chưa được cấp quyền Producer để tạo Studio. Vui lòng liên hệ Quản trị viên để được nâng cấp quyền hạn.',
+        confirmText: 'Đã hiểu',
+        cancelText: 'Đóng',
+        variant: 'warning',
+      });
       return;
     }
     if (onCreateWorkspace) {
@@ -220,6 +242,16 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
           ) : (
             /* Populated State: Danh sách Workspace thật */
             <>
+              {isAdmin && (
+                <div className='mb-6'>
+                  <LucianInlineAlert
+                    type='info'
+                    title='Tài khoản Quản trị viên hệ thống'
+                    description='Tài khoản Administrator không trực tiếp sở hữu hoặc tạo Studio Workspace theo quy tắc BR-07 nhằm đảm bảo tính bảo mật và phân lập dữ liệu.'
+                    dismissible={true}
+                  />
+                </div>
+              )}
               <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 sm:mb-10'>
                 <div>
                   <h1 className='text-3xl font-serif font-bold text-[#1C1917] tracking-tight mb-2'>

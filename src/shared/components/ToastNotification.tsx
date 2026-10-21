@@ -1,4 +1,7 @@
-import React from 'react';
+/* Lucian UX/UI Prompt #070 · MIT License (c) 2026 Seokwoooo · https://lucianlabs.dev/uxui-prompt/#070 */
+/* Adapted for PanelForge Editorial AI Studio */
+
+import React, { useState, useEffect, useRef } from 'react';
 import { CheckCircle2, Clock, LogOut, AlertCircle, Info, X } from 'lucide-react';
 
 export type ToastType = 'success' | 'warning' | 'info' | 'error' | 'logout';
@@ -27,69 +30,162 @@ export interface ToastOptions {
 export interface ToastNotificationProps {
   toast: ToastItemData;
   onClose: (id: string) => void;
+  index?: number;
+  isStacked?: boolean;
+  isHovered?: boolean;
+  total?: number;
 }
 
-export const ToastItem: React.FC<ToastNotificationProps> = ({ toast, onClose }) => {
+const TYPE_COLORS: Record<ToastType, string> = {
+  warning: '#F59E0B',
+  logout: '#A8A29E',
+  error: '#EF4444',
+  info: '#3B82F6',
+  success: '#10B981',
+};
+
+export const ToastItem: React.FC<ToastNotificationProps> = ({
+  toast,
+  onClose,
+  index = 0,
+  isStacked = false,
+  isHovered = false,
+}) => {
   const isWarning = toast.type === 'warning';
   const isLogout = toast.type === 'logout';
   const isError = toast.type === 'error';
   const isInfo = toast.type === 'info';
+  const color = TYPE_COLORS[toast.type || 'success'];
+
+  const [dragX, setDragX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isExiting, setIsExiting] = useState(false);
+  const [progress, setProgress] = useState(1);
+  const dragStartX = useRef(0);
+  const duration = toast.duration ?? 5000;
+  const remainingRef = useRef(duration);
+  const lastTimeRef = useRef<number | null>(null);
+
+  // Countdown timer progress with pause-on-hover
+  useEffect(() => {
+    let animFrame: number;
+
+    const tick = (now: number) => {
+      if (!lastTimeRef.current) lastTimeRef.current = now;
+      const dt = now - lastTimeRef.current;
+      lastTimeRef.current = now;
+
+      if (!isHovered && !isDragging) {
+        remainingRef.current = Math.max(0, remainingRef.current - dt);
+        setProgress(remainingRef.current / duration);
+
+        if (remainingRef.current <= 0) {
+          setIsExiting(true);
+          setTimeout(() => onClose(toast.id), 250);
+          return;
+        }
+      }
+
+      animFrame = requestAnimationFrame(tick);
+    };
+
+    animFrame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(animFrame);
+  }, [duration, isHovered, isDragging, onClose, toast.id]);
+
+  // Pointer drag/swipe gestures
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if ((e.target as HTMLElement).closest('button')) return;
+    setIsDragging(true);
+    dragStartX.current = e.clientX;
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isDragging) return;
+    const dx = e.clientX - dragStartX.current;
+    setDragX(dx);
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (!isDragging) return;
+    setIsDragging(false);
+    try {
+      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+    } catch {
+      // ignore
+    }
+
+    if (Math.abs(dragX) > 85) {
+      setIsExiting(true);
+      setTimeout(() => onClose(toast.id), 200);
+    } else {
+      setDragX(0);
+    }
+  };
+
+  // Stack calculation
+  const yOffset = isStacked
+    ? isHovered
+      ? -(index * 74)
+      : -(index * 12)
+    : 0;
+
+  const scale = isStacked && !isHovered ? Math.max(0.85, 1 - index * 0.05) : 1;
+  const opacity = isStacked && !isHovered && index > 2 ? 0 : 1;
+  const isBack = isStacked && !isHovered && index > 0;
+
+  const dynamicStyle = {
+    '--c': color,
+    '--dx': `${dragX}px`,
+    '--y': `${yOffset}px`,
+    '--s': scale,
+    '--o': opacity,
+    '--left': progress,
+    zIndex: 50 - index,
+  } as React.CSSProperties;
 
   return (
     <div
       role={isWarning ? 'alert' : 'status'}
       aria-live={isWarning ? 'assertive' : 'polite'}
       aria-atomic='true'
-      className='pointer-events-auto bg-[#1C1917] text-[#FCFBF8] p-3.5 sm:p-4 rounded-xl shadow-[0_10px_35px_-5px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.06)] border border-[#2E2A27] flex items-start gap-3 w-full sm:w-[360px] max-w-[400px] transition-all duration-200 ease-out animate-in slide-in-from-bottom-3 fade-in motion-reduce:animate-none motion-reduce:transition-none'
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
+      style={dynamicStyle}
+      className={`u070-t ${isDragging ? 'drag' : ''} ${isExiting ? 'leave' : ''} ${isBack ? 'back' : ''}`}
     >
       {/* Icon Badge */}
-      <div className='shrink-0 mt-0.5' aria-hidden='true'>
+      <div className='u070-ic' aria-hidden='true'>
         {isWarning ? (
-          <div
-            data-testid='toast-icon-warning'
-            className='w-7 h-7 rounded-full bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400'
-          >
+          <div data-testid='toast-icon-warning' className='flex items-center justify-center'>
             <Clock className='w-4 h-4' />
           </div>
         ) : isLogout ? (
-          <div
-            data-testid='toast-icon-logout'
-            className='w-7 h-7 rounded-full bg-stone-500/15 border border-stone-500/30 flex items-center justify-center text-stone-300'
-          >
+          <div data-testid='toast-icon-logout' className='flex items-center justify-center'>
             <LogOut className='w-4 h-4' />
           </div>
         ) : isError ? (
-          <div
-            data-testid='toast-icon-error'
-            className='w-7 h-7 rounded-full bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-400'
-          >
+          <div data-testid='toast-icon-error' className='flex items-center justify-center'>
             <AlertCircle className='w-4 h-4' />
           </div>
         ) : isInfo ? (
-          <div
-            data-testid='toast-icon-info'
-            className='w-7 h-7 rounded-full bg-sky-500/15 border border-sky-500/30 flex items-center justify-center text-sky-400'
-          >
+          <div data-testid='toast-icon-info' className='flex items-center justify-center'>
             <Info className='w-4 h-4' />
           </div>
         ) : (
-          <div
-            data-testid='toast-icon-success'
-            className='w-7 h-7 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400'
-          >
+          <div data-testid='toast-icon-success' className='flex items-center justify-center'>
             <CheckCircle2 className='w-4 h-4' />
           </div>
         )}
       </div>
 
-      {/* Content Text: Sans-serif font, 14px semibold title, 13px description with 1.5 line-height */}
-      <div className='flex-1 min-w-0 pr-1'>
-        <h4 className='text-sm font-semibold text-[#FCFBF8] leading-tight font-sans tracking-normal select-text'>
-          {toast.title}
-        </h4>
-        <p className='text-[13px] text-[#D6D3D1] leading-relaxed mt-1 font-sans [text-wrap:pretty] select-text'>
-          {toast.desc}
-        </p>
+      {/* Content Text */}
+      <div className='u070-tx'>
+        <b>{toast.title}</b>
+        <small>{toast.desc}</small>
         {toast.action && (
           <button
             type='button'
@@ -97,7 +193,7 @@ export const ToastItem: React.FC<ToastNotificationProps> = ({ toast, onClose }) 
               e.stopPropagation();
               toast.action?.onClick();
             }}
-            className='mt-2.5 inline-flex items-center gap-1.5 text-xs font-semibold text-amber-400 hover:text-amber-300 underline underline-offset-4 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 rounded-xs transition-colors'
+            className='u070-act'
           >
             <span>{toast.action.label}</span>
             <span aria-hidden='true'>→</span>
@@ -108,12 +204,22 @@ export const ToastItem: React.FC<ToastNotificationProps> = ({ toast, onClose }) 
       {/* Accessible Close Button */}
       <button
         type='button'
-        onClick={() => onClose(toast.id)}
+        onClick={(e) => {
+          e.stopPropagation();
+          onClose(toast.id);
+        }}
         aria-label='Đóng thông báo'
-        className='shrink-0 -mr-1 -mt-1 w-8 h-8 rounded-lg flex items-center justify-center text-stone-400 hover:text-[#FCFBF8] hover:bg-white/10 active:bg-white/15 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400'
+        className='u070-x'
       >
         <X className='w-4 h-4' aria-hidden='true' />
       </button>
+
+      {/* Dynamic Progress Countdown Bar */}
+      <span
+        className='u070-bar'
+        style={{ transform: `scaleX(${Math.max(0, Math.min(1, progress))})` }}
+        aria-hidden='true'
+      />
     </div>
   );
 };
@@ -124,16 +230,31 @@ export interface ToastStackProps {
 }
 
 export const ToastStack: React.FC<ToastStackProps> = ({ toasts, onClose }) => {
+  const [isHovered, setIsHovered] = useState(false);
+
   if (toasts.length === 0) return null;
+
+  // The latest toast is at index 0 for 3D stacking depth
+  const reversedToasts = [...toasts].reverse();
 
   return (
     <div
       role='region'
       aria-label='Thông báo hệ thống'
-      className='fixed bottom-4 right-4 left-4 sm:left-auto sm:bottom-6 sm:right-6 z-50 flex flex-col gap-2.5 pointer-events-none'
+      onPointerEnter={() => setIsHovered(true)}
+      onPointerLeave={() => setIsHovered(false)}
+      className='u070-zone pointer-events-none'
     >
-      {toasts.map((toast) => (
-        <ToastItem key={toast.id} toast={toast} onClose={onClose} />
+      {reversedToasts.map((toast, index) => (
+        <ToastItem
+          key={toast.id}
+          toast={toast}
+          index={index}
+          isStacked={toasts.length > 1}
+          isHovered={isHovered}
+          total={toasts.length}
+          onClose={onClose}
+        />
       ))}
     </div>
   );

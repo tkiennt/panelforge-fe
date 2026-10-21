@@ -33,17 +33,18 @@ import {
   CoverPickerModal,
   CreateSeriesModal,
   EditSeriesModal,
-  DeleteSeriesConfirmModal,
 } from './studio-overview/SeriesModals';
 import {
   WorkspaceAuditModal,
   EditMemberAccessModal,
-  DeleteMemberConfirmModal,
 } from './studio-overview/StudioModals';
+import { useConfirm } from '@/shared/context/ConfirmContext';
+import { useToast } from '@/shared/context/ToastContext';
 import { formatReadingDirection } from './studio-overview/formatters';
 
 export const StudioOverviewView: React.FC = () => {
   const navigate = useNavigate();
+  const confirm = useConfirm();
   const { workspaceId } = useParams();
   const [, setWorkspaces] = useState<WorkspaceDto[]>([]);
   const [activeWorkspace, setActiveWorkspace] = useState<WorkspaceDto | null>(() => {
@@ -106,10 +107,6 @@ export const StudioOverviewView: React.FC = () => {
   const [editSeriesSchedule, setEditSeriesSchedule] = useState('');
   const [updatingSeries, setUpdatingSeries] = useState(false);
 
-  // Delete Series Confirm State (F5)
-  const [deleteSeriesModal, setDeleteSeriesModal] = useState<SeriesDto | null>(null);
-  const [deletingSeries, setDeletingSeries] = useState(false);
-
   // Workspace Usage (NFR Resource Governance - Storage & AI Tokens)
   const [workspaceUsage, setWorkspaceUsage] = useState<WorkspaceUsageDto | null>(null);
 
@@ -127,7 +124,6 @@ export const StudioOverviewView: React.FC = () => {
   const [editingMember, setEditingMember] = useState<any>(null);
   const [editRole, setEditRole] = useState('');
   const [editTask, setEditTask] = useState('');
-  const [memberToDelete, setMemberToDelete] = useState<{ id: string; email: string } | null>(null);
 
   // Search, Filter & Sort states for Series Library
   const [searchQuery, setSearchQuery] = useState('');
@@ -148,12 +144,8 @@ export const StudioOverviewView: React.FC = () => {
   }, []);
   const canCreateStudio = currentUser?.canCreateStudio === true;
 
-  const [toast, setToast] = useState<{ title: string; desc: string } | null>(null);
-
-  const showToast = (title: string, desc: string) => {
-    setToast({ title, desc });
-    setTimeout(() => setToast(null), 3500);
-  };
+  const toast = useToast();
+  const showToast = toast.showToast;
 
   const studioMembers = React.useMemo(() => {
     return members.map((m) => {
@@ -424,22 +416,48 @@ export const StudioOverviewView: React.FC = () => {
     }
   };
 
-  // Delete Series Handlers (F5)
-  const handleDeleteSeries = async () => {
-    if (!deleteSeriesModal) return;
-    setDeletingSeries(true);
+  // Delete Series Handlers (F5) - Lucian Confirm & Toast
+  const handleDeleteSeries = async (series: SeriesDto) => {
+    if (
+      !(await confirm({
+        title: `Xóa bộ truyện "${series.title}"?`,
+        description: 'Thao tác này sẽ xóa Series và toàn bộ dữ liệu liên quan khỏi Workspace.',
+        confirmText: 'Xác nhận xóa Series',
+        cancelText: 'Giữ lại',
+        variant: 'danger',
+      }))
+    )
+      return;
+
     try {
-      await seriesService.deleteSeries(deleteSeriesModal.id);
-      setSeriesList((prev) => prev.filter((s) => s.id !== deleteSeriesModal.id));
-      showToast(
-        'Đã xóa Series',
-        `Bộ truyện "${deleteSeriesModal.title}" đã được xóa khỏi Workspace.`,
-      );
-      setDeleteSeriesModal(null);
+      await seriesService.deleteSeries(series.id);
+      setSeriesList((prev) => prev.filter((s) => s.id !== series.id));
+      toast.success('Đã xóa Series thành công', `Bộ truyện "${series.title}" đã được xóa khỏi Workspace.`);
     } catch (err: any) {
-      showToast('Lỗi xóa Series', err.message);
-    } finally {
-      setDeletingSeries(false);
+      toast.error('Lỗi xóa Series', err.message || 'Không thể xóa Series.');
+    }
+  };
+
+  // Delete Member Handlers - Lucian Confirm & Toast
+  const handleDeleteMember = async (member: { id: string; email: string }) => {
+    if (!activeWorkspace) return;
+    if (
+      !(await confirm({
+        title: 'Xóa thành viên khỏi Workspace?',
+        description: `Bạn có chắc chắn muốn xóa thành viên "${member.email}" khỏi Workspace? Quyền truy cập Studio sẽ bị thu hồi ngay lập tức.`,
+        confirmText: 'Xác nhận xóa thành viên',
+        cancelText: 'Giữ lại',
+        variant: 'danger',
+      }))
+    )
+      return;
+
+    try {
+      await workspaceService.removeMember(activeWorkspace.id, member.id);
+      setMembers((prev) => prev.filter((m) => m.userId !== member.id));
+      toast.success('Đã xóa thành viên thành công', `Đã xóa ${member.email} khỏi Workspace.`);
+    } catch (err: any) {
+      toast.error('Xóa thành viên thất bại', err.message || 'Không thể xóa thành viên khỏi Workspace.');
     }
   };
 
@@ -605,19 +623,7 @@ export const StudioOverviewView: React.FC = () => {
         onPickSystemCover={(img) => void handlePickSystemCover(img)}
       />
 
-      {/* Toast */}
-      {toast && (
-        <div className='fixed top-6 right-6 z-50 bg-[#1C1917] text-white px-4 py-3 rounded-xl shadow-editorial border border-white/10 flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-200'>
-          <CheckCircle2 className='w-4 h-4 text-emerald-400 shrink-0' />
-          <div>
-            <div className='text-xs font-bold'>{toast.title}</div>
-            <div className='text-xs text-[#A3A3A3]'>{toast.desc}</div>
-          </div>
-          <button onClick={() => setToast(null)} className='ml-2 text-[#737373] hover:text-white'>
-            <X className='w-3.5 h-3.5' />
-          </button>
-        </div>
-      )}
+
 
       {/* Header Banner: Studio Series Library Header */}
       <div className='bg-[#FCFBF8] p-6 rounded-xl border border-[#D8D2C5] shadow-2xs space-y-4'>
@@ -892,7 +898,7 @@ export const StudioOverviewView: React.FC = () => {
                     onPickCover={(ser) => setCoverPickerSeries(ser)}
                     onClearCover={(sId) => void handleClearCover(sId)}
                     onEditSeries={handleOpenEditSeries}
-                    onDeleteSeries={(ser) => setDeleteSeriesModal(ser)}
+                    onDeleteSeries={handleDeleteSeries}
                   />
                 ))}
               </div>
@@ -912,7 +918,7 @@ export const StudioOverviewView: React.FC = () => {
             canCreateStudio={canCreateStudio}
             onResendInvitation={handleResendInvitation}
             onOpenEditAccess={handleOpenEditAccess}
-            onDeleteMember={setMemberToDelete}
+            onDeleteMember={handleDeleteMember}
           />
         )}
       </div>
@@ -1022,14 +1028,6 @@ export const StudioOverviewView: React.FC = () => {
         updating={updatingSeries}
       />
 
-      {/* F5: Delete Series Confirm Modal */}
-      <DeleteSeriesConfirmModal
-        series={deleteSeriesModal}
-        deleting={deletingSeries}
-        onClose={() => setDeleteSeriesModal(null)}
-        onConfirm={handleDeleteSeries}
-      />
-
       {/* F8: Workspace Audit Log Modal */}
       <WorkspaceAuditModal
         isOpen={auditModalOpen}
@@ -1051,24 +1049,6 @@ export const StudioOverviewView: React.FC = () => {
         task={editTask}
         onTaskChange={setEditTask}
         onSave={handleSaveAccess}
-      />
-
-      {/* Modal: Revoke Member Confirmation */}
-      <DeleteMemberConfirmModal
-        member={memberToDelete}
-        onClose={() => setMemberToDelete(null)}
-        onConfirm={async () => {
-          if (!activeWorkspace || !memberToDelete) return;
-          try {
-            await workspaceService.removeMember(activeWorkspace.id, memberToDelete.id);
-            setMembers((prev) => prev.filter((m) => m.userId !== memberToDelete.id));
-            showToast('Đã xóa thành viên', `Đã xóa ${memberToDelete.email} khỏi workspace.`);
-          } catch (err: any) {
-            showToast('Lỗi', err.message);
-          } finally {
-            setMemberToDelete(null);
-          }
-        }}
       />
     </div>
   );

@@ -39,6 +39,7 @@ import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { createPortal } from 'react-dom';
 import { useTranslation } from '@/lib/i18n';
 import { EmptyFolderState } from '@/shared/components/lucian';
+import { useConfirm } from '@/shared/context/ConfirmContext';
 
 interface SeriesBibleViewProps {
   activeProject?: MangaProject;
@@ -179,6 +180,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
   onShowToast,
 }) => {
   const { t } = useTranslation();
+  const confirm = useConfirm();
   const [localEntities, setLocalEntities] = useState<BibleEntity[]>(entities);
   const [rawEntries, setRawEntries] = useState<Record<string, BibleEntryDto>>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -339,11 +341,13 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
       return;
     }
 
-    const confirmed = window.confirm(
-      `Bạn có chắc chắn muốn DUYỆT & KHOÁ phiên bản v${rev.versionNumber} của nhân vật "${historyEntity.name}" làm tham chiếu chuẩn?\n\n` +
-        'Lưu ý: Sau khi khoá, phiên bản này được cố định để Artist và AI đối chiếu. ' +
-        'Muốn đổi, Producer có thể tạo revision mới từ một chương khác, hoặc dùng tính năng Thay thế bản khoá.',
-    );
+    const confirmed = await confirm({
+      title: `Duyệt & Khóa phiên bản v${rev.versionNumber}?`,
+      description: `Cố định phiên bản này của nhân vật "${historyEntity.name}" làm tham chiếu chuẩn (Canon) để Artist và AI đối chiếu.`,
+      confirmText: 'Duyệt & Khóa Canon',
+      cancelText: 'Hủy',
+      variant: 'warning',
+    });
     if (!confirmed) return;
 
     setLockingRevisionId(rev.id);

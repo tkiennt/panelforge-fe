@@ -65,6 +65,7 @@ import { OfflineStatusBanner } from '@/shared/components/OfflineStatusBanner';
 import { ElementConflictModal } from '@/shared/modals/ElementConflictModal';
 import { UnsavedChangesBar } from '@/shared/components/lucian';
 import { useTranslation } from '@/lib/i18n';
+import { useConfirm } from '@/shared/context/ConfirmContext';
 
 interface ScriptEditorViewProps {
   onShowToast?: (title: string, desc: string) => void;
@@ -91,6 +92,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   workspaceRole,
 }) => {
   const { t } = useTranslation('production');
+  const confirm = useConfirm();
   const { seriesId } = useParams<{ workspaceId?: string; seriesId?: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const chapterIdFromUrl = searchParams.get('chapterId');
@@ -634,7 +636,16 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
   const handleDeleteScene = async () => {
     if (!selectedScene) return;
-    if (!confirm(`Bạn có chắc chắn muốn xoá Phân cảnh ${selectedScene.sceneNumber}?`)) return;
+    if (
+      !(await confirm({
+        title: `Xoá Phân cảnh ${selectedScene.sceneNumber}?`,
+        description: 'Tất cả các dòng kịch bản trong phân cảnh này sẽ bị xoá.',
+        confirmText: 'Xoá phân cảnh',
+        cancelText: 'Hủy',
+        variant: 'danger',
+      }))
+    )
+      return;
     try {
       await scriptLineService.deleteScene(selectedScene.id);
       notify('Đã xoá phân cảnh', `Phân cảnh ${selectedScene.sceneNumber} đã được xoá.`);
@@ -837,7 +848,16 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
   const handleDeleteLine = async (line: SceneScriptLineSummaryDto) => {
     if (!currentChapter?.id || !selectedScene?.id) return;
-    if (!confirm(`Bạn có chắc muốn xoá dòng kịch bản #${line.lineOrder}?`)) return;
+    if (
+      !(await confirm({
+        title: `Xoá dòng kịch bản #${line.lineOrder}?`,
+        description: line.dialogue ? `"${line.dialogue}"` : undefined,
+        confirmText: 'Xoá dòng',
+        cancelText: 'Giữ lại',
+        variant: 'danger',
+      }))
+    )
+      return;
 
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       offlineQueueService.enqueue({

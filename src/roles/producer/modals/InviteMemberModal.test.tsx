@@ -30,8 +30,8 @@ describe('InviteMemberModal Component', () => {
     );
 
     expect(screen.getByText('Mời thành viên')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Từng người/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Nhiều email/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Cá nhân/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Hàng loạt/i })).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/Nhập email/i)).toBeInTheDocument();
   });
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   UserPlus,
   MoreVertical,
@@ -11,25 +11,40 @@ import {
   Trash2,
   ArrowLeft,
   FolderKanban,
+  CheckCircle2,
 } from 'lucide-react';
 import { MangaProject } from '../../../types';
-import { InviteResultModal, InviteResultItem } from '../modals/InviteResultModal';
+import { InviteMemberModal } from '../modals/InviteMemberModal';
+import { useConfirm } from '@/shared/context/ConfirmContext';
+import { useToast } from '@/shared/context/ToastContext';
 
 interface ProjectMembersViewProps {
   projects: MangaProject[]; // Nhận toàn bộ danh sách dự án
 }
 
 export const ProjectMembersView: React.FC<ProjectMembersViewProps> = ({ projects }) => {
+  const confirm = useConfirm();
   // STATE ĐIỀU HƯỚNG: null = Đang ở màn hình chọn dự án, có data = Đang xem thành viên dự án đó
   const [selectedProject, setSelectedProject] = useState<MangaProject | null>(null);
 
   const [searchQuery, setSearchQuery] = useState('');
 
-  // State quản lý Modal Mời Thành Viên
+  // State quản lý Modal Mời Thành Viên & Toast
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
-  const [inviteData, setInviteData] = useState({ email: '', role: 'Artist' });
-  const [resultModalOpen, setResultModalOpen] = useState(false);
-  const [inviteResults, setInviteResults] = useState<InviteResultItem[]>([]);
+  const toast = useToast();
+  const showToast = toast.showToast;
+
+  const activeWorkspace = useMemo(() => {
+    try {
+      const saved = localStorage.getItem('activeWorkspace');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const workspaceId = activeWorkspace?.id || selectedProject?.id || 'ws-default';
+  const workspaceName = activeWorkspace?.name || selectedProject?.title;
 
   // State quản lý Dropdown Thao Tác
   const [openActionMenuId, setOpenActionMenuId] = useState<number | null>(null);
@@ -53,20 +68,6 @@ export const ProjectMembersView: React.FC<ProjectMembersViewProps> = ({ projects
       m.email.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
-  const handleInviteSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const newMember = {
-      id: Date.now(),
-      name: inviteData.email.split('@')[0],
-      email: inviteData.email,
-      role: inviteData.role,
-      status: 'Active',
-    };
-    setMembers([...members, newMember]);
-    setIsInviteModalOpen(false);
-    setInviteData({ email: '', role: 'Artist' });
-  };
-
   const toggleActionMenu = (id: number) => {
     setOpenActionMenuId(openActionMenuId === id ? null : id);
   };
@@ -82,9 +83,26 @@ export const ProjectMembersView: React.FC<ProjectMembersViewProps> = ({ projects
     setOpenActionMenuId(null);
   };
 
-  const handleRemoveMember = (id: number) => {
-    if (window.confirm('Bạn có chắc chắn muốn xóa thành viên này khỏi dự án?')) {
-      setMembers(members.filter((member) => member.id !== id));
+  const handleRemoveMember = async (id: number) => {
+    const member = members.find((m) => m.id === id);
+    if (
+      await confirm({
+        title: 'Xóa thành viên khỏi dự án?',
+        description: `Bạn có chắc chắn muốn xóa thành viên "${member?.name || member?.email || 'này'}" khỏi dự án?`,
+        confirmText: 'Xác nhận xóa',
+        cancelText: 'Giữ lại',
+        variant: 'danger',
+      })
+    ) {
+      try {
+        setMembers((prev) => prev.filter((m) => m.id !== id));
+        toast.success(
+          'Đã xóa thành viên thành công',
+          `Đã xóa "${member?.name || member?.email}" khỏi dự án.`,
+        );
+      } catch (err: any) {
+        toast.error('Xóa thành viên thất bại', err.message || 'Không thể xóa thành viên khỏi dự án.');
+      }
     }
     setOpenActionMenuId(null);
   };
@@ -291,82 +309,28 @@ export const ProjectMembersView: React.FC<ProjectMembersViewProps> = ({ projects
         <div className='fixed inset-0 z-10' onClick={() => setOpenActionMenuId(null)} />
       )}
 
-      {/* --- MODAL MỜI THÀNH VIÊN --- */}
-      {isInviteModalOpen && (
-        <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm'>
-          <div className='bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200'>
-            <div className='flex justify-between items-center p-5 border-b border-gray-100'>
-              <h2 className='text-lg font-bold text-[#171717]'>Mời thành viên mới</h2>
-              <button
-                onClick={() => setIsInviteModalOpen(false)}
-                className='text-gray-400 hover:text-gray-700 transition'
-              >
-                <X className='w-5 h-5' />
-              </button>
-            </div>
 
-            <form onSubmit={handleInviteSubmit} className='p-5'>
-              <div className='mb-4'>
-                <label className='block text-sm font-medium text-gray-700 mb-1'>Dự án</label>
-                <input
-                  type='text'
-                  value={selectedProject.title}
-                  disabled
-                  className='w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-500 cursor-not-allowed font-medium'
-                />
-              </div>
 
-              <div className='mb-4'>
-                <label className='block text-sm font-medium text-gray-700 mb-1'>
-                  Email / Username thành viên
-                </label>
-                <input
-                  type='email'
-                  required
-                  placeholder='nhapemail@studio.com'
-                  value={inviteData.email}
-                  onChange={(e) => setInviteData({ ...inviteData, email: e.target.value })}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F97316]/50 transition-shadow'
-                />
-              </div>
-
-              <div className='mb-6'>
-                <label className='block text-sm font-medium text-gray-700 mb-1'>
-                  Phân quyền (Vai trò)
-                </label>
-                <select
-                  value={inviteData.role}
-                  onChange={(e) => setInviteData({ ...inviteData, role: e.target.value })}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F97316]/50 bg-white transition-shadow'
-                >
-                  <option value='Writer'>Writer (Kịch bản)</option>
-                  <option value='Artist'>Artist (Họa sĩ chính)</option>
-                  <option value='Artist (Assistant)'>Artist (Trợ lý Họa sĩ)</option>
-                  <option value='Letterer'>Letterer (Lồng chữ)</option>
-                  <option value='Editor'>Editor (Biên tập viên)</option>
-                  <option value='Reader'>Reader (Đọc thử/Preview)</option>
-                </select>
-              </div>
-
-              <div className='flex justify-end gap-3 pt-2 border-t border-gray-100'>
-                <button
-                  type='button'
-                  onClick={() => setIsInviteModalOpen(false)}
-                  className='px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium'
-                >
-                  Hủy
-                </button>
-                <button
-                  type='submit'
-                  className='px-4 py-2 bg-[#F97316] text-white rounded-lg hover:bg-[#EA580C] transition shadow-sm font-medium'
-                >
-                  Gửi lời mời
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Unified Invite Member Modal with Lucian #285 and Batch Invite */}
+      <InviteMemberModal
+        isOpen={isInviteModalOpen}
+        workspaceId={workspaceId}
+        workspaceName={workspaceName}
+        onClose={() => setIsInviteModalOpen(false)}
+        onInvited={(newMember) => {
+          setMembers((prev) => [
+            ...prev,
+            {
+              id: Date.now(),
+              name: newMember.fullName || newMember.email.split('@')[0],
+              email: newMember.email,
+              role: newMember.role,
+              status: newMember.status || 'Active',
+            },
+          ]);
+        }}
+        onShowToast={showToast}
+      />
     </div>
   );
 };

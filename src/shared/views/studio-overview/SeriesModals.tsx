@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Sparkles, Edit2, Trash2 } from 'lucide-react';
+import { X, Sparkles, Edit2 } from 'lucide-react';
 import { PipelineTemplateDto } from '@/services/pipeline.service';
 import { SeriesDto } from '@/services/series.service';
 import { SYSTEM_COVERS, type SystemImage } from '@/shared/utils/systemImages';
@@ -447,62 +447,6 @@ export const EditSeriesModal: React.FC<EditSeriesModalProps> = ({
             </button>
           </div>
         </form>
-      </div>
-    </div>
-  );
-};
-
-export interface DeleteSeriesConfirmModalProps {
-  series: SeriesDto | null;
-  deleting: boolean;
-  onClose: () => void;
-  onConfirm: () => void;
-}
-
-export const DeleteSeriesConfirmModal: React.FC<DeleteSeriesConfirmModalProps> = ({
-  series,
-  deleting,
-  onClose,
-  onConfirm,
-}) => {
-  if (!series) return null;
-
-  return (
-    <div className='fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4'>
-      <div className='bg-white rounded-2xl border border-[#E7E7E7] shadow-2xl max-w-sm w-full p-6 space-y-4'>
-        <div className='flex items-center gap-3'>
-          <div className='w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center shrink-0'>
-            <Trash2 className='w-5 h-5' />
-          </div>
-          <div>
-            <h3 className='text-sm font-bold text-[#171717]'>Xác nhận xóa Series</h3>
-            <p className='text-xs text-[#737373]'>
-              Thao tác này sẽ xóa Series và toàn bộ dữ liệu liên quan.
-            </p>
-          </div>
-        </div>
-
-        <p className='text-xs text-[#555555] p-3 bg-red-50 rounded-xl border border-red-200'>
-          Bạn có chắc chắn muốn xóa bộ truyện <strong>&quot;{series.title}&quot;</strong>?
-        </p>
-
-        <div className='flex justify-end gap-2 pt-2'>
-          <button
-            type='button'
-            onClick={onClose}
-            className='px-3 py-1.5 rounded-lg text-[#555555] hover:bg-[#F3F1EB] text-xs'
-          >
-            Hủy
-          </button>
-          <button
-            type='button'
-            onClick={onConfirm}
-            disabled={deleting}
-            className='px-4 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold text-xs disabled:opacity-50'
-          >
-            {deleting ? 'Đang xóa...' : 'Xóa Vĩnh Viễn'}
-          </button>
-        </div>
       </div>
     </div>
   );

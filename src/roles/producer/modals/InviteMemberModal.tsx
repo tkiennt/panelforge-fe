@@ -289,7 +289,7 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
               }`}
             >
               <User className='w-3.5 h-3.5 text-orange-500' />
-              <span>Từng người</span>
+              <span>Cá nhân</span>
             </button>
             <button
               type='button'
@@ -301,7 +301,7 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
               }`}
             >
               <Mail className='w-3.5 h-3.5 text-[#737373]' />
-              <span>Nhiều email</span>
+              <span>Hàng loạt</span>
             </button>
           </div>
 
