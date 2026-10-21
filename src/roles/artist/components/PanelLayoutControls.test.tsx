@@ -1,7 +1,7 @@
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { PanelLayoutToolbar } from './PanelLayoutControls';
+import { PanelLayoutToolbar, PanelReadout } from './PanelLayoutControls';
 
 describe('PanelLayoutToolbar', () => {
   const defaultProps = {
@@ -15,31 +15,27 @@ describe('PanelLayoutToolbar', () => {
     onDistribute: vi.fn(),
     onStraighten: vi.fn(),
     onSelectAll: vi.fn(),
-    stages: [
-      { id: 'stage-1', name: 'Thumbnail', stageOrder: 2, isEnabled: true },
-      { id: 'stage-2', name: 'Pencil', stageOrder: 3, isEnabled: true },
-      { id: 'stage-3', name: 'Ink', stageOrder: 4, isEnabled: true },
-      { id: 'stage-4', name: 'Color', stageOrder: 5, isEnabled: false },
-    ] as any[],
-    viewStageId: 'AUTO',
-    onSelectStage: vi.fn(),
-    activeStageName: 'Thumbnail',
-    selectedPanel: null,
-    selectedPage: { id: 'page-1', pageNumber: 1, widthPx: 1200, heightPx: 1800, dpi: 600 } as any,
-    panelRect: null,
   };
 
-  it('render thanh điều khiển gồm 2 hàng với nền sáng và sticky', () => {
-    render(<PanelLayoutToolbar {...defaultProps} />);
+  it('render thanh công cụ bố cục nền sáng, không còn chip công đoạn hay toạ độ', () => {
+    render(<PanelLayoutToolbar {...defaultProps} leading={<button>Thêm Panel</button>} />);
     const toolbar = screen.getByTestId('panel-layout-toolbar');
-    expect(toolbar).toBeInTheDocument();
-    expect(toolbar.className).toContain('sticky');
     expect(toolbar.className).toContain('bg-white/95');
-    expect(toolbar.className).not.toContain('bg-stone-900');
+    expect(screen.getByRole('button', { name: 'Thêm Panel' })).toBeInTheDocument();
+    expect(screen.queryByTestId('desk-stage-switcher')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('panel-readout')).not.toBeInTheDocument();
   });
 
   it('hiển thị gợi ý khi chưa chọn khung', () => {
-    render(<PanelLayoutToolbar {...defaultProps} selectedCount={0} selectedPanel={null} />);
+    render(
+      <PanelReadout
+        selectedPanel={null}
+        selectedPage={
+          { id: 'page-1', pageNumber: 1, widthPx: 1200, heightPx: 1800, dpi: 600 } as any
+        }
+        panelRect={null}
+      />,
+    );
     const readout = screen.getByTestId('panel-readout');
     expect(readout).toHaveTextContent('Bấm vào một khung để xem vị trí & kích thước');
   });
@@ -55,10 +51,11 @@ describe('PanelLayoutToolbar', () => {
     const panelRect = { x: 5, y: 5, w: 90, h: 28.7 };
 
     render(
-      <PanelLayoutToolbar
-        {...defaultProps}
-        selectedCount={1}
+      <PanelReadout
         selectedPanel={selectedPanel}
+        selectedPage={
+          { id: 'page-1', pageNumber: 1, widthPx: 1200, heightPx: 1800, dpi: 600 } as any
+        }
         panelRect={panelRect}
       />,
     );
@@ -90,10 +87,11 @@ describe('PanelLayoutToolbar', () => {
     const panelRect = { x: 10, y: 5, w: 60, h: 30 }; // left=10%, right=30% -> diff=20%
 
     render(
-      <PanelLayoutToolbar
-        {...defaultProps}
-        selectedCount={1}
+      <PanelReadout
         selectedPanel={selectedPanel}
+        selectedPage={
+          { id: 'page-1', pageNumber: 1, widthPx: 1200, heightPx: 1800, dpi: 600 } as any
+        }
         panelRect={panelRect}
       />,
     );
@@ -101,32 +99,6 @@ describe('PanelLayoutToolbar', () => {
     const readout = screen.getByTestId('panel-readout');
     expect(readout).toHaveTextContent('Lề trái 10% · phải 30%');
     expect(readout).toHaveTextContent('Lệch 20%');
-  });
-
-  it('hiển thị segmented control xem ảnh công đoạn với công đoạn đã tắt có icon khoá và tooltip', () => {
-    render(<PanelLayoutToolbar {...defaultProps} />);
-    const switcher = screen.getByTestId('desk-stage-switcher');
-    expect(switcher).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Tự động/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /2\. Thumbnail/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /3\. Pencil/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /4\. Ink/i })).toBeInTheDocument();
-
-    const disabledBtn = screen.getByRole('button', { name: /5\. Color đã tắt/i });
-    expect(disabledBtn).toBeInTheDocument();
-    expect(disabledBtn).toHaveAttribute('title', 'Producer đã tắt công đoạn này');
-    expect(disabledBtn.className).toContain('text-stone-400');
-  });
-
-  it('gọi onSelectStage khi người dùng chọn công đoạn', () => {
-    const onSelectStage = vi.fn();
-    render(<PanelLayoutToolbar {...defaultProps} onSelectStage={onSelectStage} />);
-
-    fireEvent.click(screen.getByRole('button', { name: /3\. Pencil/i }));
-    expect(onSelectStage).toHaveBeenCalledWith('stage-2');
-
-    fireEvent.click(screen.getByRole('button', { name: /Tự động/i }));
-    expect(onSelectStage).toHaveBeenCalledWith('AUTO');
   });
 
   it('vô hiệu hoá các nút căn chỉnh khi chọn < 2 khung và phân bố đều khi < 3 khung', () => {

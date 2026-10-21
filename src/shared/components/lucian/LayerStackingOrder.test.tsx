@@ -14,6 +14,7 @@ describe('LayerStackingOrder (#122)', () => {
       y: 0,
       width: 100,
       height: 100,
+      isRemoved: false,
     },
     {
       elementId: 'elem-2',
@@ -23,6 +24,7 @@ describe('LayerStackingOrder (#122)', () => {
       y: 20,
       width: 50,
       height: 60,
+      isRemoved: false,
     },
     {
       elementId: 'elem-3',
@@ -32,6 +34,7 @@ describe('LayerStackingOrder (#122)', () => {
       y: 30,
       width: 40,
       height: 40,
+      isRemoved: false,
     },
   ];
 
@@ -43,7 +46,7 @@ describe('LayerStackingOrder (#122)', () => {
         selectedElementId='elem-2'
         onSelectElement={handleSelect}
         onChangeZIndex={vi.fn()}
-      />
+      />,
     );
 
     expect(screen.getByTestId('layer-stacking-order-root')).toBeInTheDocument();
@@ -66,7 +69,7 @@ describe('LayerStackingOrder (#122)', () => {
         onSelectElement={vi.fn()}
         onChangeZIndex={handleChangeZ}
         onBringToFront={handleBringToFront}
-      />
+      />,
     );
 
     const bringBtn = screen.getByTestId('bring-to-front-elem-1');
@@ -88,7 +91,7 @@ describe('LayerStackingOrder (#122)', () => {
         onSelectElement={handleSelect}
         onChangeZIndex={vi.fn()}
         onBringToFront={handleBringToFront}
-      />
+      />,
     );
 
     const chip = screen.getByTestId('preview-chip-elem-2');

@@ -14,11 +14,21 @@ import {
   Lock,
   Trash2,
   ImageIcon,
+  CheckCircle2,
+  Network,
+  ExternalLink,
 } from 'lucide-react';
 import { BoardCard } from './pipelineBoard.types';
-import { assignmentService, SubmissionDto, ChangeRequestDto } from '@/services/assignment.service';
+import {
+  assignmentService,
+  SubmissionDto,
+  ChangeRequestDto,
+  AssignmentDto,
+} from '@/services/assignment.service';
 import { StatusBadge, StageLabel } from './ProductionTaskCard';
 import { useTaskThumbnail } from './useTaskThumbnail';
+// eslint-disable-next-line no-restricted-imports
+import { DependencyGraphModal } from '@/roles/producer/components/DependencyGraphModal';
 
 export interface SideDrawerProps {
   isOpen: boolean;
@@ -41,6 +51,8 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
 
   const [submissions, setSubmissions] = useState<SubmissionDto[]>([]);
   const [changeRequests, setChangeRequests] = useState<ChangeRequestDto[]>([]);
+  const [chapterAssignments, setChapterAssignments] = useState<AssignmentDto[]>([]);
+  const [isGraphModalOpen, setIsGraphModalOpen] = useState(false);
   const [loadingData, setLoadingData] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -71,11 +83,15 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
       assignmentService
         .getChangeRequests(card.chapterId, { assignmentId: card.id })
         .catch(() => []),
+      card.chapterId && typeof assignmentService.getAssignments === 'function'
+        ? assignmentService.getAssignments(card.chapterId).catch(() => [])
+        : Promise.resolve([]),
     ])
-      .then(([subList, crList]) => {
+      .then(([subList, crList, assignList]) => {
         if (!isMounted) return;
         setSubmissions(subList);
         setChangeRequests(crList);
+        setChapterAssignments(assignList);
       })
       .finally(() => {
         if (isMounted) setLoadingData(false);
@@ -276,35 +292,151 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
             </div>
 
             {((card.dependsOnAssignmentIds && card.dependsOnAssignmentIds.length > 0) ||
-              card.dependsOnAssignmentId) && (
-              <div className='py-1 space-y-1.5 pt-2'>
-                <div className='flex items-center justify-between flex-wrap gap-2'>
-                  <span className='text-landing-ink-muted flex items-center gap-1.5'>
-                    <Lock className='w-3.5 h-3.5 text-amber-600' aria-hidden='true' />
-                    Phụ thuộc tiền đề (DAG):
-                  </span>
-                  <span className='font-semibold text-amber-900 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 text-[10px]'>
-                    {card.dependsOnAssignmentIds?.length || (card.dependsOnAssignmentId ? 1 : 0)}{' '}
-                    nhiệm vụ
-                  </span>
-                </div>
-                <div className='flex flex-wrap gap-1'>
-                  {(card.dependsOnAssignmentIds && card.dependsOnAssignmentIds.length > 0
+              card.dependsOnAssignmentId) &&
+              (() => {
+                const depIds = (
+                  card.dependsOnAssignmentIds && card.dependsOnAssignmentIds.length > 0
                     ? card.dependsOnAssignmentIds
                     : card.dependsOnAssignmentId
                       ? [card.dependsOnAssignmentId]
                       : []
-                  ).map((id) => (
-                    <span
-                      key={id}
-                      className='font-mono text-[10px] text-amber-900 bg-amber-50 px-2 py-0.5 rounded border border-amber-200'
+                ).filter(Boolean);
+
+                const resolvedDeps = depIds.map((id) => {
+                  const found = chapterAssignments.find((a) => a.id === id);
+                  return { id, assignment: found };
+                });
+
+                const approvedCount = resolvedDeps.filter(
+                  (d) => d.assignment && String(d.assignment.status).toLowerCase() === 'approved',
+                ).length;
+                const unapprovedList = resolvedDeps.filter(
+                  (d) => !d.assignment || String(d.assignment.status).toLowerCase() !== 'approved',
+                );
+                const allApproved = resolvedDeps.length > 0 && unapprovedList.length === 0;
+
+                return (
+                  <div className='py-2 space-y-2.5 pt-3 border-t border-landing-border'>
+                    <div className='flex items-center justify-between flex-wrap gap-2'>
+                      <div className='flex items-center gap-1.5'>
+                        <Lock className='w-3.5 h-3.5 text-amber-600' aria-hidden='true' />
+                        <span className='font-bold text-xs text-landing-ink'>
+                          Cần hoàn thành trước · {approvedCount}/{depIds.length} đã duyệt
+                        </span>
+                      </div>
+
+                      <button
+                        type='button'
+                        onClick={() => setIsGraphModalOpen(true)}
+                        className='text-[11px] font-semibold text-[#F97316] hover:text-[#EA580C] hover:underline flex items-center gap-1 cursor-pointer'
+                      >
+                        <Network className='w-3 h-3' />
+                        <span>Xem sơ đồ</span>
+                      </button>
+                    </div>
+
+                    {/* Banner trạng thái điều kiện */}
+                    <div
+                      className={`p-2.5 rounded-lg border text-xs leading-relaxed flex items-start gap-2 ${
+                        allApproved
+                          ? 'bg-emerald-50 border-emerald-300 text-emerald-950'
+                          : 'bg-amber-50 border-amber-300 text-amber-950'
+                      }`}
                     >
-                      #{id.substring(0, 8)}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
+                      {allApproved ? (
+                        <>
+                          <CheckCircle2 className='w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5' />
+                          <div>
+                            Tất cả công việc tiền đề đã được duyệt. Đã đáp ứng điều kiện phụ thuộc.
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <Clock className='w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5' />
+                          <div>
+                            <strong>Đang chờ:</strong>{' '}
+                            {unapprovedList
+                              .map((u) => u.assignment?.brief || `#${u.id.slice(0, 8)}`)
+                              .join(', ')}{' '}
+                            được duyệt trước khi bắt đầu.
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Danh sách thẻ công việc chi tiết */}
+                    <div className='space-y-1.5'>
+                      {resolvedDeps.map(({ id, assignment }) => {
+                        if (!assignment) {
+                          return (
+                            <div
+                              key={id}
+                              className='p-2 rounded-lg bg-stone-50 border border-stone-200 text-stone-600 text-xs flex items-center justify-between gap-2'
+                            >
+                              <div className='flex items-center gap-1.5'>
+                                <AlertCircle className='w-3.5 h-3.5 text-amber-500 shrink-0' />
+                                <span className='font-mono text-[11px]'>#{id.slice(0, 8)}</span>
+                                <span className='text-[10px] text-stone-400'>
+                                  (Không tìm thấy thông tin hoặc đã bị xoá)
+                                </span>
+                              </div>
+                              <span className='text-[10px] font-bold text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded'>
+                                Chưa xác nhận
+                              </span>
+                            </div>
+                          );
+                        }
+
+                        const isAppr = String(assignment.status).toLowerCase() === 'approved';
+                        return (
+                          <div
+                            key={id}
+                            className={`p-2.5 rounded-xl border text-xs transition-colors flex items-start justify-between gap-2 ${
+                              isAppr
+                                ? 'bg-emerald-50/60 border-emerald-200 text-emerald-950'
+                                : 'bg-[#FCFBF8] border-[#E7E5E4] text-stone-900'
+                            }`}
+                          >
+                            <div className='min-w-0 space-y-0.5'>
+                              <div className='font-semibold truncate max-w-[260px]'>
+                                {assignment.brief || '[Không có mô tả]'}
+                              </div>
+                              <div className='text-[11px] text-stone-500 flex items-center gap-1.5'>
+                                <span>{assignment.stageName || 'Pipeline'}</span>
+                                <span>•</span>
+                                <span className='font-mono text-[10px]'>#{id.slice(0, 8)}</span>
+                              </div>
+                            </div>
+
+                            <div className='flex items-center gap-2 shrink-0'>
+                              <span
+                                className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${
+                                  isAppr
+                                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                    : 'bg-amber-100 text-amber-800 border-amber-300'
+                                }`}
+                              >
+                                {isAppr ? 'Đã duyệt' : assignment.status}
+                              </span>
+                              <button
+                                type='button'
+                                onClick={() => {
+                                  const url = `/workspaces/${workspaceId}/series/${seriesId}/workspace?chapterId=${card.chapterId}&assignmentId=${id}`;
+                                  window.open(url, '_blank', 'noopener,noreferrer');
+                                }}
+                                className='p-1 rounded text-stone-400 hover:text-[#F97316] transition-colors cursor-pointer'
+                                title='Mở xem chi tiết'
+                              >
+                                <ExternalLink className='w-3.5 h-3.5' />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
           </section>
 
           {/* Nhóm 5: Lịch sử nộp bài */}
@@ -444,6 +576,35 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
           </div>
         </div>
       </div>
+
+      {isGraphModalOpen && card && (
+        <DependencyGraphModal
+          isOpen={isGraphModalOpen}
+          onClose={() => setIsGraphModalOpen(false)}
+          targetTask={{
+            title: card.brief,
+            stageName: card.stageName,
+            contextText: card.targetLabel,
+            assigneeName: card.assigneeName,
+            isCreating: false,
+          }}
+          dependencies={(card.dependsOnAssignmentIds && card.dependsOnAssignmentIds.length > 0
+            ? card.dependsOnAssignmentIds
+            : card.dependsOnAssignmentId
+              ? [card.dependsOnAssignmentId]
+              : []
+          ).map((id) => {
+            const a = chapterAssignments.find((item) => item.id === id);
+            return {
+              id,
+              brief: a?.brief || `Nhiệm vụ #${id.slice(0, 8)}`,
+              status: a?.status || 'Assigned',
+              stageName: a?.stageName || 'Pipeline',
+              contextText: a ? 'Chương này' : undefined,
+            };
+          })}
+        />
+      )}
     </div>
   );
 

@@ -43,8 +43,11 @@ import {
   KeyRound,
   Send,
   Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react';
 import { AppShellSidebar } from './AppShellSidebar';
+import { SIDEBAR_ID, SIDEBAR_THEMES, type SidebarTheme } from './sidebarTheme';
 import { NotificationBell } from '@/shared/features/collaboration/NotificationBell';
 import { SidebarDrawer } from '@/shared/components/SidebarDrawer';
 import { getRoleDefaultPath } from '@/roles/roles';
@@ -57,6 +60,7 @@ export interface CurrentUser {
   workspaceRole?: WorkspaceRole | null;
   activeRoles?: string[];
   avatarInitials: string;
+  avatarUrl?: string | null;
 }
 
 interface GlobalAppShellProps {
@@ -201,8 +205,20 @@ export function AppShell({
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
-  const { workspaceId, seriesId } = useParams();
+  const params = useParams();
+  // Route ngoài workspace (vd /profile) không có :workspaceId → lấy workspace đang chọn; chuỗi "undefined"/"null" coi như không có
+  const validId = (v?: string | null) => (v && v !== 'undefined' && v !== 'null' ? v : undefined);
+  const workspaceId = validId(params.workspaceId) ?? validId(activeWorkspace?.id);
+  const seriesId = validId(params.seriesId);
+  const seriesListHref = workspaceId ? `/workspaces/${workspaceId}/series` : '/workspaces';
+  const routeHasBadWorkspace = params.workspaceId !== undefined && !validId(params.workspaceId);
+  // Mở trực tiếp /workspaces/undefined/... → quay về chọn workspace (giữ query)
+  useEffect(() => {
+    if (routeHasBadWorkspace)
+      navigate({ pathname: '/workspaces', search: location.search }, { replace: true });
+  }, [routeHasBadWorkspace, navigate, location.search]);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [failedAvatarUrl, setFailedAvatarUrl] = useState<string | null>(null);
   const searchParams = new URLSearchParams(location.search);
   const chapterId = searchParams.get('chapterId');
 
@@ -292,7 +308,7 @@ export function AppShell({
               {
                 icon: LayoutDashboard,
                 label: t('navigation.menu.studioWorkspaces'),
-                href: `/workspaces/${workspaceId}/series`,
+                href: seriesListHref,
               },
             ],
           },
@@ -333,7 +349,7 @@ export function AppShell({
               {
                 icon: LayoutDashboard,
                 label: t('navigation.menu.seriesList'),
-                href: `/workspaces/${workspaceId}/series`,
+                href: seriesListHref,
               },
               {
                 icon: BookOpen,
@@ -412,7 +428,7 @@ export function AppShell({
               {
                 icon: LayoutDashboard,
                 label: t('navigation.menu.studioWorkspaces'),
-                href: `/workspaces/${workspaceId}/series`,
+                href: seriesListHref,
               },
             ],
           },
@@ -502,23 +518,26 @@ export function AppShell({
     });
   };
 
-  const handleExpandSidebar = () => {
-    setIsSidebarCollapsed(false);
+  // Giao diện thanh bên: cài đặt trên thiết bị (localStorage), mặc định "Mực đậm"
+  const [sidebarTheme, setSidebarTheme] = useState<SidebarTheme>(() => {
     try {
-      localStorage.setItem('pf.sidebar.collapsed', 'false');
+      const saved = localStorage.getItem('pf.sidebar.theme');
+      return SIDEBAR_THEMES.some((x) => x.id === saved) ? (saved as SidebarTheme) : 'ink';
+    } catch {
+      return 'ink';
+    }
+  });
+  const handleChangeSidebarTheme = (next: SidebarTheme) => {
+    setSidebarTheme(next);
+    try {
+      localStorage.setItem('pf.sidebar.theme', next);
     } catch {
       // ignore
     }
   };
-
-  const handleCollapseSidebar = () => {
-    setIsSidebarCollapsed(true);
-    try {
-      localStorage.setItem('pf.sidebar.collapsed', 'true');
-    } catch {
-      // ignore
-    }
-  };
+  const toggleLabel = isSidebarCollapsed
+    ? t('navigation.sidebar.expand', 'Mở rộng thanh điều hướng')
+    : t('navigation.sidebar.collapse', 'Thu gọn thanh điều hướng');
 
   const navSections = rawSections.map((sec) => ({
     ...sec,
@@ -621,6 +640,8 @@ export function AppShell({
             onSelectSeries={onSelectSeries}
             isRailExpanded={true}
             isMobileDrawer={true}
+            theme={sidebarTheme}
+            onChangeTheme={handleChangeSidebarTheme}
           />
         </SidebarDrawer>
       )}
@@ -639,10 +660,9 @@ export function AppShell({
         onLogout={onLogout}
         onSelectSeries={onSelectSeries}
         isCollapsed={isSidebarCollapsed}
-        onToggleCollapse={handleToggleSidebar}
-        onExpand={handleExpandSidebar}
-        onCollapse={handleCollapseSidebar}
         isMobileDrawer={false}
+        theme={sidebarTheme}
+        onChangeTheme={handleChangeSidebarTheme}
       />
 
       {/* --- RIGHT WRAPPER --- */}
@@ -659,6 +679,24 @@ export function AppShell({
                 data-testid='appshell-hamburger-btn'
               >
                 <Menu className='w-5 h-5' />
+              </button>
+            )}
+            {!isReader && (
+              <button
+                type='button'
+                onClick={handleToggleSidebar}
+                aria-label={toggleLabel}
+                title={toggleLabel}
+                aria-expanded={!isSidebarCollapsed}
+                aria-controls={SIDEBAR_ID}
+                data-testid='sidebar-rail-toggle-btn'
+                className='hidden md:inline-flex items-center justify-center w-10 h-10 -ml-2 rounded-lg text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9] transition-colors duration-150 cursor-pointer shrink-0 focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#C2410C]'
+              >
+                {isSidebarCollapsed ? (
+                  <PanelLeftOpen className='w-[18px] h-[18px]' />
+                ) : (
+                  <PanelLeftClose className='w-[18px] h-[18px]' />
+                )}
               </button>
             )}
             {isReader ? (
@@ -687,9 +725,7 @@ export function AppShell({
                 {/* Studio / Series Name Segment */}
                 <button
                   type='button'
-                  onClick={() =>
-                    navigate(workspaceId ? `/workspaces/${workspaceId}/series` : '/workspaces')
-                  }
+                  onClick={() => navigate(seriesListHref)}
                   className='text-[#1C1917] hover:text-black cursor-pointer transition-all truncate px-2.5 py-1 rounded-full hover:bg-[#FFF2E6] hover:shadow-2xs flex items-center gap-1 font-bold'
                   title='Mở danh sách Series của Workspace'
                 >
@@ -782,8 +818,17 @@ export function AppShell({
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
                 className='flex items-center gap-2.5 p-1 rounded-full hover:bg-[#FFF2E6] transition-all cursor-pointer'
               >
-                <div className='w-8 h-8 rounded-full bg-[#1C1917] text-white flex items-center justify-center font-bold text-xs shadow-2xs'>
-                  {currentUser.avatarInitials}
+                <div className='w-8 h-8 rounded-full overflow-hidden bg-[#1C1917] text-white flex items-center justify-center font-bold text-xs shadow-2xs'>
+                  {currentUser.avatarUrl && currentUser.avatarUrl !== failedAvatarUrl ? (
+                    <img
+                      src={currentUser.avatarUrl}
+                      alt={currentUser.name}
+                      className='w-full h-full object-cover'
+                      onError={() => setFailedAvatarUrl(currentUser.avatarUrl ?? null)}
+                    />
+                  ) : (
+                    currentUser.avatarInitials
+                  )}
                 </div>
                 <div className='hidden md:flex flex-col text-left'>
                   <span className='text-xs font-semibold text-[#1C1917] leading-tight'>

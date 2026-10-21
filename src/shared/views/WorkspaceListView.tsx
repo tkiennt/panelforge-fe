@@ -205,9 +205,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                   onClick={handleOpenCreate}
                   aria-label={t('workspace.createStudio')}
                   disabled={isAdmin}
-                  title={
-                    isAdmin ? t('workspace.adminNotice') : t('workspace.createStudio')
-                  }
+                  title={isAdmin ? t('workspace.adminNotice') : t('workspace.createStudio')}
                   className='w-full bg-[#F97316] hover:bg-[#EA580C] disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold text-xs sm:text-sm py-3 px-6 rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer shadow-2xs'
                 >
                   <Plus className='w-4 h-4' />
@@ -223,9 +221,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                   <h1 className='text-3xl font-serif font-bold text-[#1C1917] tracking-tight mb-2'>
                     {t('workspace.myWorkspaces', { count: workspaces.length })}
                   </h1>
-                  <p className='text-[#57534E] text-xs sm:text-sm'>
-                    {t('workspace.subtitle')}
-                  </p>
+                  <p className='text-[#57534E] text-xs sm:text-sm'>{t('workspace.subtitle')}</p>
                 </div>
                 <button
                   onClick={handleOpenCreate}
@@ -265,7 +261,9 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                       <div className='text-xs text-[#57534E] mb-6 flex flex-col gap-1.5 font-sans'>
                         <div className='flex items-center gap-1.5'>
                           <span className='w-1.5 h-1.5 rounded-full bg-stone-400'></span>
-                          <span className='tabular-nums'>{ws.memberCount || 1} {t('workspace.roles.member')}</span>
+                          <span className='tabular-nums'>
+                            {ws.memberCount || 1} {t('workspace.roles.member')}
+                          </span>
                         </div>
                         <div className='flex items-center gap-1.5'>
                           <span className='w-1.5 h-1.5 rounded-full bg-stone-400'></span>
@@ -308,9 +306,7 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                   <h3 className='text-base font-serif font-bold text-[#1C1917] mb-1'>
                     {t('workspace.createStudio')}
                   </h3>
-                  <p className='text-[#57534E] text-xs max-w-[200px]'>
-                    {t('workspace.subtitle')}
-                  </p>
+                  <p className='text-[#57534E] text-xs max-w-[200px]'>{t('workspace.subtitle')}</p>
                 </div>
               </div>
             </>

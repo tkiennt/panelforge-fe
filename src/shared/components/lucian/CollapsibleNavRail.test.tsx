@@ -50,13 +50,7 @@ describe('CollapsibleNavRail (#040)', () => {
 
   it('triggers onSelect when an item is clicked', () => {
     const handleSelect = vi.fn();
-    render(
-      <CollapsibleNavRail
-        items={mockItems}
-        activeId='home'
-        onSelect={handleSelect}
-      />
-    );
+    render(<CollapsibleNavRail items={mockItems} activeId='home' onSelect={handleSelect} />);
 
     const projectBtn = screen.getByTestId('nav-rail-item-projects');
     fireEvent.click(projectBtn);

@@ -8,6 +8,7 @@ import {
   AssignPanelSceneRequest,
   AssignPanelScriptLinesRequest,
   ImageConsistencyResultDto,
+  PanelSplitResult,
 } from '../types/pipeline';
 
 function extractError(error: any, defaultMsg: string): any {
@@ -131,6 +132,39 @@ export const panelService = {
       return response.data;
     } catch (error) {
       throw extractError(error, 'Không thể kiểm tra tính nhất quán hình ảnh cho panel.');
+    }
+  },
+
+  /**
+   * Gợi ý tách panel + bóng thoại từ ảnh cả trang. Backend chỉ trả toạ độ (pixel ảnh gốc), không lưu gì.
+   * POST /api/pages/{pageId}/split-artwork (multipart/form-data: file, rightToLeft)
+   */
+  async splitArtwork(pageId: string, file: File, rightToLeft = false): Promise<PanelSplitResult> {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (rightToLeft) {
+      formData.append('rightToLeft', 'true');
+    }
+    try {
+      const response = await axiosClient.post(`/pages/${pageId}/split-artwork`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data;
+    } catch (error: any) {
+      if (
+        error.response?.data?.code === 'PANEL_SPLITTER_UNAVAILABLE' ||
+        error.response?.status === 503
+      ) {
+        const err: any = new Error(
+          'Dịch vụ nhận diện tạm thời chưa khả dụng. Bạn vẫn có thể tải bản vẽ và thử nhận diện lại sau.',
+        );
+        err.code = 'PANEL_SPLITTER_UNAVAILABLE';
+        err.status = 503;
+        throw err;
+      }
+      throw extractError(error, 'Không thể tách panel và bong bóng thoại từ ảnh trang.');
     }
   },
 };

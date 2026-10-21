@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 
 // Dictionaries
@@ -80,12 +81,20 @@ export function getInitialLanguage(): SupportedLanguage {
  */
 export function translate(
   key: string,
-  params?: Record<string, string | number>,
+  paramsOrFallback?: Record<string, string | number> | string,
   targetLang?: SupportedLanguage,
+  explicitFallback?: string,
 ): string {
+  const isStringParam = typeof paramsOrFallback === 'string';
+  const params =
+    typeof paramsOrFallback === 'object' && paramsOrFallback !== null
+      ? paramsOrFallback
+      : undefined;
+  const fallback = isStringParam ? paramsOrFallback : explicitFallback;
+
   const lang = targetLang || getInitialLanguage();
   const parts = key.split('.');
-  if (parts.length < 2) return key;
+  if (parts.length < 2) return fallback || key;
 
   const namespace = parts[0] as TranslationNamespace;
   const path = parts.slice(1);
@@ -110,7 +119,7 @@ export function translate(
     result = getNested((DICTIONARIES.vi as any)?.[namespace], path);
   }
 
-  if (!result) return key;
+  if (!result) return fallback || key;
 
   // Thay thế tham số {param}
   if (params) {
@@ -125,7 +134,11 @@ export function translate(
 interface I18nContextValue {
   lang: SupportedLanguage;
   setLang: (lang: SupportedLanguage) => void;
-  t: (key: string, params?: Record<string, string | number>) => string;
+  t: (
+    key: string,
+    paramsOrFallback?: Record<string, string | number> | string,
+    fallback?: string,
+  ) => string;
   isVietnamese: boolean;
   isEnglish: boolean;
 }
@@ -140,7 +153,9 @@ export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (typeof window !== 'undefined') {
       try {
         localStorage.setItem(STORAGE_KEY, newLang);
-        window.dispatchEvent(new CustomEvent('panelforge:lang_changed', { detail: { lang: newLang } }));
+        window.dispatchEvent(
+          new CustomEvent('panelforge:lang_changed', { detail: { lang: newLang } }),
+        );
       } catch {
         // Ignore
       }
@@ -148,7 +163,8 @@ export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const t = useCallback(
-    (key: string, params?: Record<string, string | number>) => translate(key, params, lang),
+    (key: string, paramsOrFallback?: Record<string, string | number> | string, fallback?: string) =>
+      translate(key, paramsOrFallback, lang, fallback),
     [lang],
   );
 
@@ -171,7 +187,11 @@ export function useTranslation(defaultNamespace?: TranslationNamespace) {
   const currentLang = ctx ? ctx.lang : getInitialLanguage();
 
   const t = useCallback(
-    (key: string, params?: Record<string, string | number>) => {
+    (
+      key: string,
+      paramsOrFallback?: Record<string, string | number> | string,
+      fallback?: string,
+    ) => {
       let fullKey = key;
       const parts = key.split('.');
       const firstPart = parts[0] as TranslationNamespace;
@@ -182,9 +202,9 @@ export function useTranslation(defaultNamespace?: TranslationNamespace) {
       }
 
       if (ctx) {
-        return ctx.t(fullKey, params);
+        return ctx.t(fullKey, paramsOrFallback, fallback);
       }
-      return translate(fullKey, params, currentLang);
+      return translate(fullKey, paramsOrFallback, currentLang, fallback);
     },
     [ctx, currentLang, defaultNamespace],
   );

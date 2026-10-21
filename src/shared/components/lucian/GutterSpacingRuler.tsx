@@ -72,10 +72,7 @@ export const GutterSpacingRuler: React.FC<GutterSpacingRulerProps> = ({
         </div>
 
         {/* Dimension Line & Measurement Badge */}
-        <div
-          className='pf-gutter-measure-line'
-          style={{ width: `${Math.max(16, visualGapPx)}px` }}
-        >
+        <div className='pf-gutter-measure-line' style={{ width: `${Math.max(16, visualGapPx)}px` }}>
           <span className='pf-gutter-badge'>
             {value}
             {unit}

@@ -344,7 +344,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
     }
 
     return groups;
-  }, [chapterId, scenes, filteredAssignments, getAssignmentSceneInfo, selectedSceneId]);
+  }, [chapterId, scenes, filteredAssignments, getAssignmentSceneInfo, selectedSceneId, t]);
 
   // Với Reviewer (Editor / Producer):
   // 1. Tự động chuyển khỏi tab 'mine' nếu không có việc cá nhân (tránh màn hình trống 0 việc)
@@ -496,9 +496,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
             <h1 className='text-2xl sm:text-3xl font-serif font-bold text-[#1C1917] tracking-tight'>
               {t('collaboration.myWork.title')}
             </h1>
-            <p className='text-xs text-[#57534E]'>
-              {t('collaboration.myWork.desc')}
-            </p>
+            <p className='text-xs text-[#57534E]'>{t('collaboration.myWork.desc')}</p>
           </div>
         </div>
 

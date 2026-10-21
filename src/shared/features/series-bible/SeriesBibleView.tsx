@@ -700,9 +700,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                 {localEntities.length} mục tri thức
               </span>
             </div>
-            <p className='text-xs text-[#57534E] mt-1 max-w-2xl'>
-              {t('bible.subtitle')}
-            </p>
+            <p className='text-xs text-[#57534E] mt-1 max-w-2xl'>{t('bible.subtitle')}</p>
           </div>
 
           {/* Action Button: Thêm mục / Bản nháp hoặc Badge Chỉ đọc */}
@@ -741,12 +739,18 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
             const isActive = activeTab === cat.key;
             const getTabLabel = () => {
               switch (cat.key) {
-                case 'all': return t('bible.categories.all');
-                case 'characters': return t('bible.categories.character');
-                case 'locations': return t('bible.categories.location');
-                case 'terminology': return t('bible.categories.item');
-                case 'style': return t('bible.categories.lore');
-                default: return cat.label;
+                case 'all':
+                  return t('bible.categories.all');
+                case 'characters':
+                  return t('bible.categories.character');
+                case 'locations':
+                  return t('bible.categories.location');
+                case 'terminology':
+                  return t('bible.categories.item');
+                case 'style':
+                  return t('bible.categories.lore');
+                default:
+                  return cat.label;
               }
             };
             return (
@@ -765,7 +769,9 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                 <span>{getTabLabel()}</span>
                 <span
                   className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full ${
-                    isActive ? 'bg-[#F97316]/20 text-[#C2410C] font-semibold' : 'bg-[#F3F0E9] text-[#78716C]'
+                    isActive
+                      ? 'bg-[#F97316]/20 text-[#C2410C] font-semibold'
+                      : 'bg-[#F3F0E9] text-[#78716C]'
                   }`}
                 >
                   {count}
@@ -937,9 +943,15 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
       ) : filteredEntities.length === 0 ? (
         localEntities.length === 0 ? (
           <EmptyFolderState
-            title="Series Bible chưa có mục nào"
-            subtitle="Thêm các nhân vật, địa điểm, đạo cụ hoặc quy tắc mỹ thuật để hỗ trợ họa sĩ và hệ thống kiểm tra nhất quán."
-            actionText={canCreateDraft ? (isProducer ? 'Tạo mục đầu tiên' : 'Tạo bản nháp đầu tiên') : undefined}
+            title='Series Bible chưa có mục nào'
+            subtitle='Thêm các nhân vật, địa điểm, đạo cụ hoặc quy tắc mỹ thuật để hỗ trợ họa sĩ và hệ thống kiểm tra nhất quán.'
+            actionText={
+              canCreateDraft
+                ? isProducer
+                  ? 'Tạo mục đầu tiên'
+                  : 'Tạo bản nháp đầu tiên'
+                : undefined
+            }
             onAction={canCreateDraft ? () => setAddEntityOpen(true) : undefined}
           />
         ) : (
@@ -951,7 +963,8 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
               Không tìm thấy mục phù hợp
             </h3>
             <p className='text-xs text-[#57534E] max-w-md mx-auto'>
-              Không có mục tri thức nào khớp với điều kiện lọc hiện tại. Thử đổi từ khóa hoặc xóa bộ lọc.
+              Không có mục tri thức nào khớp với điều kiện lọc hiện tại. Thử đổi từ khóa hoặc xóa bộ
+              lọc.
             </p>
             <button
               type='button'
@@ -1040,7 +1053,10 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                       <h3 className='font-bold font-serif text-sm sm:text-base text-[#1C1917] group-hover:text-[#F97316] transition-colors line-clamp-1'>
                         {entity.name}
                         {effRev?.stageName ? (
-                          <span className='font-sans font-medium text-[#57534E]'> · {effRev.stageName}</span>
+                          <span className='font-sans font-medium text-[#57534E]'>
+                            {' '}
+                            · {effRev.stageName}
+                          </span>
                         ) : null}
                       </h3>
                       {entity.subtitle && (
@@ -1182,7 +1198,10 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                       <h3 className='font-bold font-serif text-sm sm:text-base text-[#1C1917] group-hover:text-[#F97316] transition-colors truncate'>
                         {entity.name}
                         {effRev?.stageName ? (
-                          <span className='font-sans font-medium text-[#57534E]'> · {effRev.stageName}</span>
+                          <span className='font-sans font-medium text-[#57534E]'>
+                            {' '}
+                            · {effRev.stageName}
+                          </span>
                         ) : null}
                       </h3>
                       <span className='px-1.5 py-0.5 rounded bg-[#F3F0E9] text-[#57534E] text-[10px] font-medium'>

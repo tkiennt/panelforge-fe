@@ -21,6 +21,7 @@ export interface CanvasMinimapProps {
   liveRects?: Record<string, { x: number; y: number; w: number; h: number }>;
   className?: string;
   pageNumber?: number;
+  defaultCollapsed?: boolean;
 }
 
 function parseBox(panel: MinimapPanelItem): { x: number; y: number; w: number; h: number } {
@@ -60,15 +61,16 @@ export const CanvasMinimap: React.FC<CanvasMinimapProps> = ({
   liveRects = {},
   className = '',
   pageNumber,
+  defaultCollapsed = false,
 }) => {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const [activeCoords, setActiveCoords] = useState<{ x: number; y: number } | null>(null);
   const containerRef = useRef<HTMLButtonElement | null>(null);
 
   // Tìm panel đang chọn để hiển thị viewport indicator
   const selectedPanel = panels.find((p) => p.id === selectedPanelId);
   const selectedRect = selectedPanel
-    ? liveRects[selectedPanel.id] ?? parseBox(selectedPanel)
+    ? (liveRects[selectedPanel.id] ?? parseBox(selectedPanel))
     : null;
 
   // Viewport rect (mặc định lấy theo panel đang chọn hoặc cả trang)
@@ -102,7 +104,7 @@ export const CanvasMinimap: React.FC<CanvasMinimapProps> = ({
         onSelectPanel(matched.id);
       }
     },
-    [panels, liveRects, onSelectPanel]
+    [panels, liveRects, onSelectPanel],
   );
 
   const handlePointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {

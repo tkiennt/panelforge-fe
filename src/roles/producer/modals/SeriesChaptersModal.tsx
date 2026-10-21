@@ -899,8 +899,10 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
       {deleteTargetChapter && (
         <TypeToConfirmModal
           isOpen={!!deleteTargetChapter}
-          targetName={deleteTargetChapter.title?.trim() || `Chương ${deleteTargetChapter.chapterNumber}`}
-          title="Xác nhận xóa chương"
+          targetName={
+            deleteTargetChapter.title?.trim() || `Chương ${deleteTargetChapter.chapterNumber}`
+          }
+          title='Xác nhận xóa chương'
           description={`Bạn có chắc chắn muốn xóa Chương ${deleteTargetChapter.chapterNumber}? Dữ liệu trang và phân cảnh sẽ được đánh dấu xóa mềm. Vui lòng nhập chính xác tên chương bên dưới để xác nhận:`}
           onConfirm={executeDeleteChapter}
           onCancel={() => setDeleteTargetChapter(null)}

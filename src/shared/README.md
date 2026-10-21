@@ -8,7 +8,7 @@ Thư mục `src/shared/` chứa toàn bộ các màn hình (views), tính năng 
 ### 2.1 Views chung (`src/shared/views/`)
 - `WorkspaceListView.tsx` (+ test): Danh sách các Studio Workspace người dùng tham gia hoặc sở hữu.
 - `NotificationCenterView.tsx`: Trung tâm thông báo hệ thống và tác vụ.
-- `UserProfileView.tsx`: Trang thông tin cá nhân người dùng, cài đặt bảo mật và đăng xuất.
+- `UserProfileView.tsx`: Trang thông tin cá nhân người dùng, cài đặt bảo mật và đăng xuất. Banner: ảnh bìa mẫu phủ toàn chiều ngang + lớp phủ kem (ngang trên desktop, dọc trên mobile), avatar trái, thông tin thật bên phải; nút "Đổi ảnh bìa" mở `features/profile/ProfileCoverPickerDialog` (chọn = xem trước, "Áp dụng" lưu qua `PUT /api/users/me/profile-cover`, "Hủy" trả bìa cũ). Danh mục mẫu: `utils/profileCovers.ts` (ID khớp Backend). Chuyển động: chỉ lớp ảnh (crossfade khi đổi + parallax ±6px theo chuột), tắt khi reduced-motion/cảm ứng.
 
 ### 2.2 Features phức hợp (`src/shared/features/`)
 - **`series-bible/`**: Quản lý Kinh thánh bộ truyện (Series Bible), danh mục thực thể thế giới, nhân vật, đạo cụ và bản thảo sửa đổi (`SeriesBibleView.tsx`, `AddEntityModal.tsx`).

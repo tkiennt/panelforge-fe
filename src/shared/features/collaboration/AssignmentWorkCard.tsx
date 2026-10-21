@@ -135,7 +135,7 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
       Blocked: 'collaboration.card.status.blocked',
     };
     const key = mapping[statusKey];
-    return key ? t(key) : (STATUS_STYLE[statusKey]?.label || statusKey);
+    return key ? t(key) : STATUS_STYLE[statusKey]?.label || statusKey;
   };
 
   const pageId = resolvePageId(assignment, stageProgress);
@@ -298,7 +298,11 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
       <div className='flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs font-mono text-stone-500'>
         <span className='flex items-center gap-1.5'>
           <User className='w-3.5 h-3.5 text-[#F97316]' />
-          <strong className='text-stone-700'>{t('collaboration.card.unassigned') !== assigneeName ? assigneeName : t('collaboration.card.unassigned')}</strong>
+          <strong className='text-stone-700'>
+            {t('collaboration.card.unassigned') !== assigneeName
+              ? assigneeName
+              : t('collaboration.card.unassigned')}
+          </strong>
         </span>
         {assignment.dueDate && (
           <span className='flex items-center gap-1.5 font-mono'>
@@ -345,7 +349,9 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
               ) : (
                 <Play className='w-3.5 h-3.5 text-white' />
               )}
-              <span>{status === 'ReworkRequired' ? 'Bắt đầu sửa' : t('collaboration.card.start')}</span>
+              <span>
+                {status === 'ReworkRequired' ? 'Bắt đầu sửa' : t('collaboration.card.start')}
+              </span>
             </button>
           )}
           {actions.canStart && startLockedReason && (

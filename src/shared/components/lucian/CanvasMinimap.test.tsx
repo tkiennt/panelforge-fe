@@ -35,13 +35,7 @@ describe('CanvasMinimap (#104)', () => {
 
   it('handles keyboard navigation with arrow keys', () => {
     const handleSelect = vi.fn();
-    render(
-      <CanvasMinimap
-        panels={mockPanels}
-        selectedPanelId='p1'
-        onSelectPanel={handleSelect}
-      />
-    );
+    render(<CanvasMinimap panels={mockPanels} selectedPanelId='p1' onSelectPanel={handleSelect} />);
 
     const btn = screen.getByTestId('minimap-canvas-btn');
     fireEvent.keyDown(btn, { key: 'ArrowRight' });

@@ -127,7 +127,8 @@ export const FrameTemplateModal: React.FC<FrameTemplateModalProps> = ({
             <div>
               <div className='font-bold'>Trang đã có khung tranh</div>
               <p className='text-xs text-amber-800 mt-0.5'>
-                Trang này đã có ô panel. Thao tác này sẽ bổ sung các ô mới và có thể thay đổi thứ tự đọc hiện tại.
+                Trang này đã có ô panel. Thao tác này sẽ bổ sung các ô mới và có thể thay đổi thứ tự
+                đọc hiện tại.
               </p>
             </div>
           </div>

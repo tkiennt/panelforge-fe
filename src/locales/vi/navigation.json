@@ -58,5 +58,16 @@
     "series": "Tác phẩm",
     "chapters": "Chương",
     "pages": "Trang"
+  },
+  "sidebar": {
+    "collapse": "Thu gọn thanh điều hướng",
+    "expand": "Mở rộng thanh điều hướng",
+    "appearance": "Giao diện thanh bên",
+    "themes": {
+      "paper": "Giấy sáng",
+      "ink": "Mực đậm",
+      "ocean": "Biển đêm",
+      "plum": "Tím bản thảo"
+    }
   }
 }

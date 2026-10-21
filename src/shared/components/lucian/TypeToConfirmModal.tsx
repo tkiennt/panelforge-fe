@@ -99,38 +99,35 @@ export const TypeToConfirmModal: React.FC<TypeToConfirmModalProps> = ({
 
   return (
     <div
-      className="pf-delete-overlay"
-      role="dialog"
-      aria-modal="true"
+      className='pf-delete-overlay'
+      role='dialog'
+      aria-modal='true'
       aria-labelledby={titleId}
-      data-testid="type-to-confirm-modal"
+      data-testid='type-to-confirm-modal'
       onClick={(e) => {
         if (e.target === e.currentTarget && !isDeleting) onCancel();
       }}
     >
-      <div className="pf-delete-card">
-        <div className="pf-delete-header">
-          <div className="pf-delete-icon-box" aria-hidden="true">
-            <AlertTriangle className="w-5 h-5" />
+      <div className='pf-delete-card'>
+        <div className='pf-delete-header'>
+          <div className='pf-delete-icon-box' aria-hidden='true'>
+            <AlertTriangle className='w-5 h-5' />
           </div>
-          <h3 id={titleId} className="pf-delete-title">
+          <h3 id={titleId} className='pf-delete-title'>
             {modalTitle}
           </h3>
         </div>
 
-        <p className="pf-delete-desc">{modalDesc}</p>
+        <p className='pf-delete-desc'>{modalDesc}</p>
 
         {/* Visual character stream from #269 */}
         <div
-          className="pf-delete-target-preview"
-          aria-hidden="true"
-          data-testid="target-name-preview"
+          className='pf-delete-target-preview'
+          aria-hidden='true'
+          data-testid='target-name-preview'
         >
           {targetName.split('').map((char, idx) => (
-            <span
-              key={idx}
-              className={`pf-delete-char ${idx < matchIndex ? 'is-matched' : ''}`}
-            >
+            <span key={idx} className={`pf-delete-char ${idx < matchIndex ? 'is-matched' : ''}`}>
               {char}
             </span>
           ))}
@@ -139,35 +136,35 @@ export const TypeToConfirmModal: React.FC<TypeToConfirmModalProps> = ({
         <form onSubmit={handleFormSubmit}>
           <input
             ref={inputRef}
-            type="text"
+            type='text'
             className={`pf-delete-input ${isShake ? 'is-shake' : ''}`}
             value={typedValue}
             onChange={handleInputChange}
             placeholder={targetName}
             disabled={isDeleting}
-            autoComplete="off"
-            spellCheck="false"
+            autoComplete='off'
+            spellCheck='false'
             aria-label={t('common.dangerZone.typeInputLabel', 'Nhập lại tên để xác nhận')}
-            data-testid="confirm-delete-input"
+            data-testid='confirm-delete-input'
           />
 
-          <div className="pf-delete-actions">
+          <div className='pf-delete-actions'>
             <button
-              type="button"
-              className="pf-delete-btn-cancel"
+              type='button'
+              className='pf-delete-btn-cancel'
               onClick={onCancel}
               disabled={isDeleting}
-              data-testid="confirm-delete-cancel-btn"
+              data-testid='confirm-delete-cancel-btn'
             >
               {cancelButtonText || t('common.actions.cancel', 'Hủy')}
             </button>
             <button
-              type="submit"
-              className="pf-delete-btn-confirm"
+              type='submit'
+              className='pf-delete-btn-confirm'
               disabled={!isMatched || isDeleting}
-              data-testid="confirm-delete-submit-btn"
+              data-testid='confirm-delete-submit-btn'
             >
-              {isDeleting && <span className="pf-delete-spinner" aria-hidden="true" />}
+              {isDeleting && <span className='pf-delete-spinner' aria-hidden='true' />}
               <span>
                 {isDeleting
                   ? t('common.actions.deleting', 'Đang xóa...')

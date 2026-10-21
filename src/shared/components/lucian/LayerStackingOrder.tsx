@@ -309,7 +309,12 @@ export const LayerStackingOrder: React.FC<LayerStackingOrderProps> = ({
       </div>
 
       <output className='sr-only' aria-live='polite' data-testid='layer-stacking-live-output'>
-        Front {sortedLayers.map((l) => l.elementId).reverse().join(' · ')} Back
+        Front{' '}
+        {sortedLayers
+          .map((l) => l.elementId)
+          .reverse()
+          .join(' · ')}{' '}
+        Back
       </output>
     </div>
   );

@@ -97,9 +97,7 @@ export const NotificationBellDropdown: React.FC<NotificationBellDropdownProps> =
 
   const handleItemClick = useCallback(
     (item: LucianNotificationItem) => {
-      setItems((prev) =>
-        prev.map((i) => (i.id === item.id ? { ...i, isRead: true } : i)),
-      );
+      setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, isRead: true } : i)));
       onNotificationClick?.(item);
     },
     [onNotificationClick],
@@ -173,12 +171,7 @@ export const NotificationBellDropdown: React.FC<NotificationBellDropdownProps> =
         </button>
       </div>
 
-      <div
-        className='u074-pan'
-        role='region'
-        aria-label='Notification list'
-        aria-hidden={!isOpen}
-      >
+      <div className='u074-pan' role='region' aria-label='Notification list' aria-hidden={!isOpen}>
         <div className='u074-ph' role='tablist' aria-label='Notification type'>
           <button
             className='u074-tab'
@@ -218,11 +211,7 @@ export const NotificationBellDropdown: React.FC<NotificationBellDropdownProps> =
             </li>
           ) : (
             displayedItems.map((item) => (
-              <li
-                key={item.id}
-                className='u074-it'
-                data-m={item.isMention ? '1' : '0'}
-              >
+              <li key={item.id} className='u074-it' data-m={item.isMention ? '1' : '0'}>
                 <div>
                   <button
                     className={`u074-row ${item.isRead ? 'read' : ''}`}
@@ -232,7 +221,11 @@ export const NotificationBellDropdown: React.FC<NotificationBellDropdownProps> =
                   >
                     <span
                       className='u074-av'
-                      style={{ '--g': item.gradient || 'linear-gradient(140deg,#8B6CFF,#5B8CFF)' } as React.CSSProperties}
+                      style={
+                        {
+                          '--g': item.gradient || 'linear-gradient(140deg,#8B6CFF,#5B8CFF)',
+                        } as React.CSSProperties
+                      }
                       aria-hidden='true'
                     >
                       <em>{item.icon || '📌'}</em>

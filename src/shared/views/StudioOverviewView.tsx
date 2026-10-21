@@ -52,6 +52,8 @@ import { SeriesPipelineModal } from '@/roles/producer/modals/SeriesPipelineModal
 import { SeriesChaptersModal } from '@/roles/producer/modals/SeriesChaptersModal';
 import { SeriesPresetsModal } from '@/roles/producer/modals/SeriesPresetsModal';
 import { InviteMemberModal } from '@/roles/producer/modals/InviteMemberModal';
+import { SYSTEM_COVERS, systemImageToFile, type SystemImage } from '@/shared/utils/systemImages';
+import { SeriesAvatarFallback } from '@/shared/features/series-identity/SeriesImageFallbacks';
 import { getRoleDefaultPath } from '@/roles/roles';
 
 const ROLE_BADGE_STYLE: Record<string, string> = {
@@ -425,22 +427,27 @@ export const StudioOverviewView: React.FC = () => {
   };
 
   // Edit Series Handlers (F5)
-  // Ảnh bìa Series (Producer): một input file dùng chung cho mọi thẻ, nhớ Series đang đổi bìa.
-  const coverInputRef = useRef<HTMLInputElement>(null);
-  const coverTargetRef = useRef<string | null>(null);
+  // Ảnh bìa Series (Producer): chọn từ bộ ảnh có sẵn của hệ thống, gửi qua API cập nhật bìa hiện có.
+  const [coverPickerSeries, setCoverPickerSeries] = useState<{ id: string; title: string } | null>(
+    null,
+  );
+  const [savingCoverId, setSavingCoverId] = useState<string | null>(null);
   const setSeriesCover = (seriesId: string, coverUrl: string | null) =>
     setSeriesList((prev) => prev.map((x) => (x.id === seriesId ? { ...x, coverUrl } : x)));
 
-  const handleCoverFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    const seriesId = coverTargetRef.current;
-    e.target.value = ''; // cho phép chọn lại cùng file
-    if (!file || !seriesId) return;
+  const handlePickSystemCover = async (img: SystemImage) => {
+    const target = coverPickerSeries;
+    if (!target || savingCoverId) return;
+    setSavingCoverId(img.id);
     try {
-      setSeriesCover(seriesId, await seriesService.setCover(seriesId, file));
-      showToast('Đã cập nhật ảnh bìa', file.name);
+      const file = await systemImageToFile(img);
+      setSeriesCover(target.id, await seriesService.setCover(target.id, file));
+      showToast('Đã cập nhật ảnh bìa', `${target.title}: ${img.name}`);
+      setCoverPickerSeries(null);
     } catch (err: any) {
       showToast('Lỗi ảnh bìa', err.message);
+    } finally {
+      setSavingCoverId(null);
     }
   };
 
@@ -774,14 +781,63 @@ export const StudioOverviewView: React.FC = () => {
 
   return (
     <div className='flex-1 bg-[#F3F0E9] min-h-screen p-6 md:p-8 space-y-6 text-[#1C1917] font-sans'>
-      <input
-        ref={coverInputRef}
-        type='file'
-        accept='image/png,image/jpeg,image/webp'
-        className='hidden'
-        onChange={handleCoverFile}
-        data-testid='series-cover-input'
-      />
+      {/* Chọn ảnh bìa có sẵn của hệ thống */}
+      {coverPickerSeries && (
+        <div
+          role='dialog'
+          aria-modal='true'
+          aria-labelledby='cover-picker-title'
+          data-testid='system-cover-picker'
+          className='fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4'
+          onClick={() => !savingCoverId && setCoverPickerSeries(null)}
+          onKeyDown={(e) => e.key === 'Escape' && !savingCoverId && setCoverPickerSeries(null)}
+        >
+          <div
+            className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl shadow-2xl max-w-xl w-full p-5 space-y-4 max-h-[90vh] overflow-y-auto'
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className='flex items-center justify-between'>
+              <h3 id='cover-picker-title' className='text-sm font-bold text-[#44403C]'>
+                Chọn ảnh bìa cho “{coverPickerSeries.title}”
+              </h3>
+              <button
+                type='button'
+                autoFocus
+                onClick={() => setCoverPickerSeries(null)}
+                disabled={Boolean(savingCoverId)}
+                className='p-1 text-[#57534E] hover:text-[#44403C] cursor-pointer rounded focus-visible:outline-2 focus-visible:outline-[#F97316]'
+                aria-label='Đóng'
+              >
+                <X className='w-4 h-4' />
+              </button>
+            </div>
+            <p className='text-xs text-[#57534E]'>
+              Chọn một ảnh bìa có sẵn của hệ thống (không cần tải ảnh từ máy).
+            </p>
+            <div className='grid grid-cols-2 sm:grid-cols-4 gap-3'>
+              {SYSTEM_COVERS.map((img) => (
+                <button
+                  key={img.id}
+                  type='button'
+                  data-testid={`system-cover-${img.id}`}
+                  onClick={() => void handlePickSystemCover(img)}
+                  disabled={Boolean(savingCoverId)}
+                  className='relative p-1.5 rounded-lg border border-[#D8D2C5] hover:border-[#F97316] bg-white flex flex-col items-center gap-1.5 cursor-pointer disabled:cursor-wait disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-[#F97316]'
+                >
+                  <img
+                    src={img.url}
+                    alt={img.name}
+                    className='w-full aspect-[366/594] object-cover rounded-md'
+                  />
+                  <span className='text-[11px] font-semibold text-[#44403C]'>
+                    {savingCoverId === img.id ? 'Đang lưu…' : img.name}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
       {/* Toast */}
       {toast && (
         <div className='fixed top-6 right-6 z-50 bg-[#1C1917] text-white px-4 py-3 rounded-xl shadow-editorial border border-white/10 flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-200'>
@@ -1229,9 +1285,7 @@ export const StudioOverviewView: React.FC = () => {
               <span>Bộ truyện</span>
               <span
                 className={`px-2 py-0.5 rounded-full text-xs font-mono font-bold ${
-                  activeTab === 'series'
-                    ? 'bg-[#F97316] text-white'
-                    : 'bg-[#F3F0E9] text-[#57534E]'
+                  activeTab === 'series' ? 'bg-[#F97316] text-white' : 'bg-[#F3F0E9] text-[#57534E]'
                 }`}
               >
                 {seriesList.length}
@@ -1612,8 +1666,7 @@ export const StudioOverviewView: React.FC = () => {
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         setOpenMenuSeriesId(null);
-                                        coverTargetRef.current = s.id;
-                                        coverInputRef.current?.click();
+                                        setCoverPickerSeries({ id: s.id, title: s.title });
                                       }}
                                       className='w-full text-left px-3.5 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 hover:text-stone-900 flex items-center gap-2 transition-colors cursor-pointer'
                                     >
@@ -1667,14 +1720,36 @@ export const StudioOverviewView: React.FC = () => {
                             )}
                           </div>
 
-                          {/* Series Title */}
-                          <h3
-                            onClick={() => handleOpenSeries(s.id)}
-                            className='text-base sm:text-lg font-serif font-bold text-stone-900 group-hover:text-orange-600 transition-colors line-clamp-2 leading-snug mt-1.5 cursor-pointer'
-                            title={s.title}
-                          >
-                            {s.title}
-                          </h3>
+                          {/* Series Title + avatar vuông nhận diện (bìa dọc giữ nguyên bên trái) */}
+                          <div className='flex items-start gap-2 mt-1.5 min-w-0'>
+                            <span
+                              className='w-8 h-8 shrink-0 rounded-lg overflow-hidden border border-[#D8D2C5] bg-[#FFF2E6] text-[14px]'
+                              data-testid={`series-card-avatar-${s.id}`}
+                            >
+                              {s.avatarUrl ? (
+                                <AuthenticatedImage
+                                  src={s.avatarUrl}
+                                  alt=''
+                                  className='w-full h-full object-cover'
+                                  fallback={
+                                    <SeriesAvatarFallback
+                                      title={s.title}
+                                      className='rounded-none'
+                                    />
+                                  }
+                                />
+                              ) : (
+                                <SeriesAvatarFallback title={s.title} className='rounded-none' />
+                              )}
+                            </span>
+                            <h3
+                              onClick={() => handleOpenSeries(s.id)}
+                              className='min-w-0 text-base sm:text-lg font-serif font-bold text-stone-900 group-hover:text-orange-600 transition-colors line-clamp-2 leading-snug cursor-pointer break-words'
+                              title={s.title}
+                            >
+                              {s.title}
+                            </h3>
+                          </div>
 
                           {/* Synopsis */}
                           {s.synopsis ? (

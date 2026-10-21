@@ -7,8 +7,8 @@ describe('EmptyFolderState Component (#088)', () => {
   it('render tiêu đề và phụ đề rỗng', () => {
     render(
       <EmptyFolderState
-        title="Chưa có nhân vật nào"
-        subtitle="Hãy thêm nhân vật đầu tiên vào hồ sơ tác phẩm"
+        title='Chưa có nhân vật nào'
+        subtitle='Hãy thêm nhân vật đầu tiên vào hồ sơ tác phẩm'
       />,
     );
     expect(screen.getByTestId('empty-folder-state')).toBeInTheDocument();
@@ -20,8 +20,8 @@ describe('EmptyFolderState Component (#088)', () => {
     const onActionMock = vi.fn();
     render(
       <EmptyFolderState
-        title="Chưa có nhân vật nào"
-        actionText="Thêm nhân vật"
+        title='Chưa có nhân vật nào'
+        actionText='Thêm nhân vật'
         onAction={onActionMock}
       />,
     );

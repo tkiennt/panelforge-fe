@@ -219,9 +219,7 @@ describe('AppShell Component', () => {
 
     const sidebar = screen.getByTestId('app-shell-sidebar');
     expect(sidebar).toBeInTheDocument();
-    // Không bị co thành rail mà có class w-64 mở rộng mặc định
-    expect(sidebar).toHaveClass('w-64');
-    expect(sidebar).not.toHaveClass('w-16');
+    expect(sidebar).toHaveStyle({ width: '256px' });
   });
 
   it('cho phép người dùng bấm nút tự thu gọn và mở rộng sidebar, trạng thái được lưu localStorage', () => {
@@ -237,23 +235,30 @@ describe('AppShell Component', () => {
     renderInRouter(producerUser, '/workspaces/ws-1/series/ser-1/dashboard');
 
     const sidebar = screen.getByTestId('app-shell-sidebar');
-    expect(sidebar).toHaveClass('w-64');
+    expect(sidebar).toHaveStyle({ width: '256px' });
 
     const toggleBtn = screen.getByTestId('sidebar-rail-toggle-btn');
     expect(toggleBtn).toBeInTheDocument();
-    expect(toggleBtn).toHaveAttribute('aria-label', 'Thu gọn menu');
+    expect(toggleBtn).toHaveAttribute('aria-label', 'Thu gọn thanh điều hướng');
+    expect(toggleBtn).toHaveAttribute('aria-expanded', 'true');
+    expect(toggleBtn).toHaveAttribute('aria-controls', 'app-shell-sidebar');
+    // Nút nằm trong header (cạnh breadcrumb), không nằm trong sidebar
+    expect(sidebar).not.toContainElement(toggleBtn);
 
     // Bấm thu gọn
     fireEvent.click(toggleBtn);
-    expect(sidebar).toHaveClass('w-16');
-    expect(sidebar).not.toHaveClass('w-64');
+    expect(sidebar).toHaveStyle({ width: '64px' });
     expect(localStorage.getItem('pf.sidebar.collapsed')).toBe('true');
-    expect(toggleBtn).toHaveAttribute('aria-label', 'Mở rộng menu');
+    expect(toggleBtn).toHaveAttribute('aria-label', 'Mở rộng thanh điều hướng');
+    expect(toggleBtn).toHaveAttribute('aria-expanded', 'false');
+
+    // Hover không tự mở rộng
+    fireEvent.mouseEnter(sidebar);
+    expect(sidebar).toHaveStyle({ width: '64px' });
 
     // Bấm mở rộng lại
     fireEvent.click(toggleBtn);
-    expect(sidebar).toHaveClass('w-64');
-    expect(sidebar).not.toHaveClass('w-16');
+    expect(sidebar).toHaveStyle({ width: '256px' });
     expect(localStorage.getItem('pf.sidebar.collapsed')).toBe('false');
   });
 
@@ -272,10 +277,10 @@ describe('AppShell Component', () => {
     expect(activeLink).toBeInTheDocument();
     expect(activeLink).toHaveAttribute('aria-current', 'page');
 
-    // Theme Lucianlab #040: Nền highlight mềm mại, chữ sáng #FCFBF8, bo góc rounded-xl
-    expect(activeLink).toHaveClass('bg-white/12');
-    expect(activeLink).toHaveClass('text-[#FCFBF8]');
+    // Mục đang chọn: vạch nhấn + nền nhẹ qua token scope của sidebar
+    expect(activeLink).toHaveClass('pf-sb-item');
     expect(activeLink).toHaveClass('rounded-xl');
+    expect(activeLink.querySelector('span[aria-hidden="true"]')).toBeInTheDocument();
   });
 
   it('sidebar áp dụng màu nền Dark Ink #1C1917 và viền phải #292524 chuẩn theme Lucianlab (#040)', () => {
@@ -287,11 +292,21 @@ describe('AppShell Component', () => {
       avatarInitials: 'PN',
     };
 
+    localStorage.clear();
     renderInRouter(producerUser, '/workspaces/ws-1/series/ser-1/dashboard');
 
+    // Mặc định "Mực đậm" cho người chưa chọn
     const sidebar = screen.getByTestId('app-shell-sidebar');
-    expect(sidebar).toHaveClass('bg-[#1C1917]');
-    expect(sidebar).toHaveClass('border-[#292524]');
+    expect(sidebar).toHaveClass('pf-sidebar');
+    expect(sidebar).toHaveAttribute('data-sb-theme', 'ink');
+
+    // Đổi preset: áp dụng ngay và lưu trên thiết bị
+    fireEvent.click(screen.getByTestId('sidebar-theme-btn'));
+    const ocean = screen.getByTestId('sidebar-theme-ocean');
+    expect(screen.getByTestId('sidebar-theme-ink')).toHaveAttribute('aria-checked', 'true');
+    fireEvent.click(ocean);
+    expect(sidebar).toHaveAttribute('data-sb-theme', 'ocean');
+    expect(localStorage.getItem('pf.sidebar.theme')).toBe('ocean');
   });
 
   it('không còn hiển thị chữ AI: Sẵn sàng và nút Export trên navbar header', () => {

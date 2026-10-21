@@ -136,7 +136,7 @@ export const NotificationCenterView: React.FC<NotificationCenterViewProps> = ({
   const getTypeLabel = (typeKey: string) => {
     const key = `notifications.types.${typeKey}`;
     const translated = t(key);
-    return translated !== key ? translated : (TYPE_CONFIG[typeKey]?.label || typeKey);
+    return translated !== key ? translated : TYPE_CONFIG[typeKey]?.label || typeKey;
   };
 
   const fetchNotifications = useCallback(async () => {
@@ -320,7 +320,16 @@ export const NotificationCenterView: React.FC<NotificationCenterViewProps> = ({
               : 'text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9]'
           }`}
         >
-          <span>{t('notifications.unread', { count: unreadCount })}</span>
+          <span>{t('notifications.unreadTab', 'Chưa đọc')}</span>
+          {unreadCount > 0 && (
+            <span
+              className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${
+                filter === 'unread' ? 'bg-[#F97316] text-white' : 'bg-[#F97316]/20 text-[#C2410C]'
+              }`}
+            >
+              {unreadCount}
+            </span>
+          )}
         </button>
       </div>
 
@@ -329,9 +338,7 @@ export const NotificationCenterView: React.FC<NotificationCenterViewProps> = ({
         {loading ? (
           <div className='py-20 text-center text-[#78716C] flex flex-col items-center justify-center gap-3'>
             <RefreshCw className='w-7 h-7 animate-spin text-[#F97316]' />
-            <span className='text-sm font-medium text-[#57534E]'>
-              {t('common.messages.loading')}
-            </span>
+            <span className='text-sm font-medium text-[#57534E]'>{t('notifications.loading')}</span>
           </div>
         ) : displayedNotifications.length === 0 ? (
           <div className='py-20 text-center text-[#78716C] flex flex-col items-center justify-center gap-3'>
@@ -351,13 +358,12 @@ export const NotificationCenterView: React.FC<NotificationCenterViewProps> = ({
           <div className='divide-y divide-[#E7E2D9]'>
             {displayedNotifications.map((n) => {
               const isUnread = !n.readAt;
-              const config =
-                TYPE_CONFIG[String(n.type)] || {
-                  label: 'Thông báo',
-                  icon: Bell,
-                  color: 'text-[#78716C]',
-                  bg: 'bg-[#F1EEE8] border-[#D8D2C5]',
-                };
+              const config = TYPE_CONFIG[String(n.type)] || {
+                label: 'Thông báo',
+                icon: Bell,
+                color: 'text-[#78716C]',
+                bg: 'bg-[#F1EEE8] border-[#D8D2C5]',
+              };
               const Icon = config.icon;
 
               return (

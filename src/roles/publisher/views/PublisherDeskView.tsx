@@ -90,16 +90,12 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
           </div>
           <div>
             <div className='flex items-center gap-2'>
-              <h1 className='text-xl font-serif font-bold text-[#1C1917]'>
-                {t('desk.title')}
-              </h1>
+              <h1 className='text-xl font-serif font-bold text-[#1C1917]'>{t('desk.title')}</h1>
               <span className='px-2 py-0.5 rounded bg-[#FFF2E6] text-[#C2410C] border border-[#FDBA74] text-xs font-mono font-bold'>
                 STAGE: PUBLISHING
               </span>
             </div>
-            <p className='text-xs text-[#57534E] mt-1'>
-              {t('desk.subtitle')}
-            </p>
+            <p className='text-xs text-[#57534E] mt-1'>{t('desk.subtitle')}</p>
           </div>
         </div>
 
@@ -139,9 +135,7 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
           <div className='text-2xl font-bold font-mono tabular-nums text-[#1C1917] mt-1.5'>
             {approvedChapters.length}
           </div>
-          <p className='text-xs text-[#C2410C] mt-1 font-medium'>
-            {t('desk.waitingApprovalDesc')}
-          </p>
+          <p className='text-xs text-[#C2410C] mt-1 font-medium'>{t('desk.waitingApprovalDesc')}</p>
         </div>
 
         <div

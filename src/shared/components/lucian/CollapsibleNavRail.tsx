@@ -167,11 +167,7 @@ export const CollapsibleNavRail: React.FC<CollapsibleNavRailProps> = ({
         {user && (
           <div className='u040-me' data-testid='nav-rail-user-profile'>
             {user.avatarUrl ? (
-              <img
-                src={user.avatarUrl}
-                alt={user.name}
-                className='u040-me-avatar object-cover'
-              />
+              <img src={user.avatarUrl} alt={user.name} className='u040-me-avatar object-cover' />
             ) : (
               <div className='u040-me-avatar' aria-hidden='true'>
                 {user.name.charAt(0).toUpperCase()}

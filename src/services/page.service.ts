@@ -145,4 +145,9 @@ export const pageService = {
       throw await toPageError(error, 'Xóa trang thất bại.');
     }
   },
+
+  splitArtwork: async (pageId: string, file: File, rightToLeft = false) => {
+    const { panelService } = await import('./panel.service');
+    return panelService.splitArtwork(pageId, file, rightToLeft);
+  },
 };

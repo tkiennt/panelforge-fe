@@ -96,6 +96,7 @@ export interface AppRoutesProps {
     role: SystemRole;
     canCreateStudio?: boolean;
     isTwoFactorEnabled?: boolean;
+    avatarUrl?: string | null;
   } | null;
   firebaseUser: User | null;
   currentRole: SystemRole;
@@ -258,6 +259,7 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                 role: currentRole,
                 workspaceRole: currentWorkspaceRole,
                 activeRoles: activeProjectRoles,
+                avatarUrl: currentUserInfo?.avatarUrl || null,
                 avatarInitials: (
                   currentUserInfo?.name ||
                   firebaseUser?.displayName ||
@@ -318,6 +320,7 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                 path='dashboard'
                 element={
                   <DashboardView
+                    workspaceRole={currentWorkspaceRole}
                     activeProject={activeProject}
                     assistants={assistants}
                     provenanceLogs={provenanceLogs}

@@ -58,5 +58,16 @@
     "series": "Series",
     "chapters": "Chapter",
     "pages": "Page"
+  },
+  "sidebar": {
+    "collapse": "Collapse navigation",
+    "expand": "Expand navigation",
+    "appearance": "Sidebar appearance",
+    "themes": {
+      "paper": "Light paper",
+      "ink": "Dark ink",
+      "ocean": "Night sea",
+      "plum": "Manuscript plum"
+    }
   }
 }

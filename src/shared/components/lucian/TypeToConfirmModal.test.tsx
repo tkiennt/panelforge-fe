@@ -8,7 +8,7 @@ describe('TypeToConfirmModal Component (#269)', () => {
     const { container } = render(
       <TypeToConfirmModal
         isOpen={false}
-        targetName="Episode 1"
+        targetName='Episode 1'
         onConfirm={vi.fn()}
         onCancel={vi.fn()}
       />,
@@ -20,7 +20,7 @@ describe('TypeToConfirmModal Component (#269)', () => {
     render(
       <TypeToConfirmModal
         isOpen={true}
-        targetName="Episode 1"
+        targetName='Episode 1'
         onConfirm={vi.fn()}
         onCancel={vi.fn()}
       />,
@@ -33,7 +33,7 @@ describe('TypeToConfirmModal Component (#269)', () => {
     render(
       <TypeToConfirmModal
         isOpen={true}
-        targetName="Episode 1"
+        targetName='Episode 1'
         onConfirm={vi.fn()}
         onCancel={vi.fn()}
       />,
@@ -52,7 +52,7 @@ describe('TypeToConfirmModal Component (#269)', () => {
     render(
       <TypeToConfirmModal
         isOpen={true}
-        targetName="Episode 1"
+        targetName='Episode 1'
         onConfirm={onConfirmMock}
         onCancel={vi.fn()}
       />,
@@ -72,7 +72,7 @@ describe('TypeToConfirmModal Component (#269)', () => {
     render(
       <TypeToConfirmModal
         isOpen={true}
-        targetName="Episode 1"
+        targetName='Episode 1'
         onConfirm={vi.fn()}
         onCancel={onCancelMock}
       />,

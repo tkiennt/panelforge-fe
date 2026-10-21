@@ -76,11 +76,7 @@ describe('AppShell Navbar/Sidebar 3 Functions: Notifications, Global Search, My 
       const handleLogout = vi.fn();
       render(
         <MemoryRouter>
-          <AppShellSidebar
-            {...defaultProps}
-            onLogout={handleLogout}
-            isCollapsed={false}
-          />
+          <AppShellSidebar {...defaultProps} onLogout={handleLogout} isCollapsed={false} />
         </MemoryRouter>,
       );
 
@@ -93,61 +89,44 @@ describe('AppShell Navbar/Sidebar 3 Functions: Notifications, Global Search, My 
     });
   });
 
-  describe('AppShellSidebar Lucianlab #040 toggle collapse/expand logic', () => {
-    it('kích hoạt onToggleCollapse khi bấm vào nút toggle', () => {
-      const handleToggle = vi.fn();
+  describe('AppShellSidebar: trạng thái do AppShell điều khiển bằng click', () => {
+    it('không còn nút toggle trong sidebar (logo chỉ là thương hiệu)', () => {
       render(
         <MemoryRouter>
-          <AppShellSidebar
-            {...defaultProps}
-            isCollapsed={false}
-            onToggleCollapse={handleToggle}
-          />
+          <AppShellSidebar {...defaultProps} isCollapsed={false} />
         </MemoryRouter>,
       );
-
-      const toggleBtn = screen.getByTestId('sidebar-rail-toggle-btn');
-      fireEvent.click(toggleBtn);
-      expect(handleToggle).toHaveBeenCalledTimes(1);
+      expect(screen.queryByTestId('sidebar-rail-toggle-btn')).not.toBeInTheDocument();
     });
 
     it('không tự động mở rộng khi di chuột vào sidebar đang thu nhỏ (loại bỏ hover expand)', () => {
-      const handleExpand = vi.fn();
       render(
         <MemoryRouter>
-          <AppShellSidebar
-            {...defaultProps}
-            isCollapsed={true}
-            onExpand={handleExpand}
-          />
+          <AppShellSidebar {...defaultProps} isCollapsed={true} />
         </MemoryRouter>,
       );
 
       const sidebar = screen.getByTestId('app-shell-sidebar');
-      expect(sidebar).toHaveClass('w-16');
+      expect(sidebar).toHaveStyle({ width: '64px' });
 
       fireEvent.mouseEnter(sidebar);
-      expect(handleExpand).not.toHaveBeenCalled();
+      expect(sidebar).toHaveStyle({ width: '64px' });
+      // Nhãn ẩn khi thu gọn
+      expect(screen.queryByText('v2.4')).not.toBeInTheDocument();
     });
 
     it('không tự động thu nhỏ khi bấm chuột ra ngoài sidebar đang mở rộng (loại bỏ click outside collapse)', () => {
-      const handleCollapse = vi.fn();
       render(
         <MemoryRouter>
           <div>
             <div data-testid='outside-area'>Vùng bên ngoài</div>
-            <AppShellSidebar
-              {...defaultProps}
-              isCollapsed={false}
-              onCollapse={handleCollapse}
-            />
+            <AppShellSidebar {...defaultProps} isCollapsed={false} />
           </div>
         </MemoryRouter>,
       );
 
-      const outsideArea = screen.getByTestId('outside-area');
-      fireEvent.mouseDown(outsideArea);
-      expect(handleCollapse).not.toHaveBeenCalled();
+      fireEvent.mouseDown(screen.getByTestId('outside-area'));
+      expect(screen.getByTestId('app-shell-sidebar')).toHaveStyle({ width: '256px' });
     });
   });
 
@@ -157,10 +136,7 @@ describe('AppShell Navbar/Sidebar 3 Functions: Notifications, Global Search, My 
 
       render(
         <MemoryRouter>
-          <AppShell
-            currentUser={defaultUser}
-            onOpenCommandPalette={onOpenCommandPalette}
-          >
+          <AppShell currentUser={defaultUser} onOpenCommandPalette={onOpenCommandPalette}>
             <div>Nội dung</div>
           </AppShell>
         </MemoryRouter>,

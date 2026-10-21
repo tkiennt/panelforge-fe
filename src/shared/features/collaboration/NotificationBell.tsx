@@ -260,10 +260,8 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
           ) : (
             filteredItems.map((n) => {
               const badgeStyle = getNotificationBadgeStyle(n.type);
-              const isOverdue =
-                n.type === 'AssignmentOverdue' || n.type === 'ChangeRequestOverdue';
-              const isDueSoon =
-                n.type === 'AssignmentDueSoon' || n.type === 'ChangeRequestDueSoon';
+              const isOverdue = n.type === 'AssignmentOverdue' || n.type === 'ChangeRequestOverdue';
+              const isDueSoon = n.type === 'AssignmentDueSoon' || n.type === 'ChangeRequestDueSoon';
 
               return (
                 <li key={n.id} className='u074-it'>
@@ -303,8 +301,12 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
                                     : 'text-[#F97316] font-bold'
                             }
                           >
-                            {isOverdue && <span className='w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0' />}
-                            {isDueSoon && <span className='w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0' />}
+                            {isOverdue && (
+                              <span className='w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0' />
+                            )}
+                            {isDueSoon && (
+                              <span className='w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0' />
+                            )}
                             {TYPE_LABEL[String(n.type)] ?? 'Thông báo'}
                           </span>
                           <small className='font-mono text-[10.5px] text-[#8E8A97]'>
@@ -312,10 +314,25 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
                           </small>
                         </div>
 
-                        <b style={{ display: 'block', fontSize: '12.5px', lineHeight: '1.35', marginBottom: '2px', color: n.readAt ? '#44403C' : '#1C1917' }}>
+                        <b
+                          style={{
+                            display: 'block',
+                            fontSize: '12.5px',
+                            lineHeight: '1.35',
+                            marginBottom: '2px',
+                            color: n.readAt ? '#44403C' : '#1C1917',
+                          }}
+                        >
                           {n.title}
                         </b>
-                        <p style={{ margin: 0, fontSize: '11.5px', color: '#57534E', lineHeight: '1.4' }}>
+                        <p
+                          style={{
+                            margin: 0,
+                            fontSize: '11.5px',
+                            color: '#57534E',
+                            lineHeight: '1.4',
+                          }}
+                        >
                           {n.message}
                         </p>
                       </div>

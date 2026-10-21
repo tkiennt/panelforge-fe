@@ -53,45 +53,42 @@ export const UnsavedChangesBar: React.FC<UnsavedChangesBarProps> = ({
 
   const displayText = justSaved
     ? t('common.unsaved.saved')
-    : message ||
-      (count > 1
-        ? t('common.unsaved.plural', { count })
-        : t('common.unsaved.title'));
+    : message || (count > 1 ? t('common.unsaved.plural', { count }) : t('common.unsaved.title'));
 
   return (
     <aside
-      role="status"
-      aria-live="polite"
+      role='status'
+      aria-live='polite'
       aria-label={displayText}
-      data-testid="unsaved-changes-bar"
+      data-testid='unsaved-changes-bar'
       className={`pf-unsaved-bar is-visible ${isWarn ? 'is-warn' : ''} ${
         justSaved ? 'is-saved' : ''
       } ${className}`}
     >
-      <div className="pf-unsaved-tx">
-        <span className="pf-unsaved-dot" aria-hidden="true" />
+      <div className='pf-unsaved-tx'>
+        <span className='pf-unsaved-dot' aria-hidden='true' />
         <span>{displayText}</span>
       </div>
 
       {!justSaved && (
-        <div className="pf-unsaved-actions">
+        <div className='pf-unsaved-actions'>
           <button
-            type="button"
-            className="pf-unsaved-btn-discard"
+            type='button'
+            className='pf-unsaved-btn-discard'
             onClick={onDiscard}
             disabled={isSaving}
-            data-testid="unsaved-discard-btn"
+            data-testid='unsaved-discard-btn'
           >
             {t('common.unsaved.discard')}
           </button>
           <button
-            type="button"
-            className="pf-unsaved-btn-save"
+            type='button'
+            className='pf-unsaved-btn-save'
             onClick={handleSaveClick}
             disabled={isSaving}
-            data-testid="unsaved-save-btn"
+            data-testid='unsaved-save-btn'
           >
-            {isSaving && <span className="pf-unsaved-spinner" aria-hidden="true" />}
+            {isSaving && <span className='pf-unsaved-spinner' aria-hidden='true' />}
             <span>{isSaving ? t('common.unsaved.saving') : t('common.unsaved.save')}</span>
           </button>
         </div>

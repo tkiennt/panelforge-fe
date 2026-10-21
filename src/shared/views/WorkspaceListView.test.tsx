@@ -33,7 +33,9 @@ describe('WorkspaceListView Component', () => {
     const onSelectMock = vi.fn();
     render(<WorkspaceListView onSelectWorkspace={onSelectMock} />);
 
-    expect(screen.getByText(/Loading Workspaces|Đang tải danh sách Workspace/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Loading Workspaces|Đang tải danh sách Workspace/i),
+    ).toBeInTheDocument();
 
     await waitFor(() => {
       expect(screen.getByText('Alpha Studio')).toBeInTheDocument();
@@ -72,9 +74,13 @@ describe('WorkspaceListView Component', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText(/Welcome to PanelForge|Chào mừng đến với PanelForge/i)).toBeInTheDocument();
       expect(
-        screen.getByText(/You currently don't belong to any active Workspaces|Bạn chưa thuộc về Studio Workspace nào/i),
+        screen.getByText(/Welcome to PanelForge|Chào mừng đến với PanelForge/i),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          /You currently don't belong to any active Workspaces|Bạn chưa thuộc về Studio Workspace nào/i,
+        ),
       ).toBeInTheDocument();
     });
 
@@ -102,7 +108,9 @@ describe('WorkspaceListView Component', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText(/Welcome to PanelForge|Chào mừng đến với PanelForge/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/Welcome to PanelForge|Chào mừng đến với PanelForge/i),
+      ).toBeInTheDocument();
     });
 
     fireEvent.click(screen.getByRole('button', { name: /Create (Workspace|Studio)|Tạo Studio/i }));

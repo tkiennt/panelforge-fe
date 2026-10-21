@@ -36,7 +36,10 @@ describe('NotificationBellDropdown (Lucian UX/UI #074)', () => {
 
     const badge = screen.getByTestId('u074-badge');
     expect(badge).toHaveTextContent('2');
-    expect(screen.getByTestId('u074-bell-btn')).toHaveAttribute('aria-label', 'Notifications, 2 unread');
+    expect(screen.getByTestId('u074-bell-btn')).toHaveAttribute(
+      'aria-label',
+      'Notifications, 2 unread',
+    );
   });
 
   it('mở danh sách thông báo khi click vào chuông', () => {
@@ -97,12 +100,7 @@ describe('NotificationBellDropdown (Lucian UX/UI #074)', () => {
 
   it('đánh dấu đọc tất cả khi bấm nút Đọc tất cả', () => {
     const handleMarkAllRead = vi.fn();
-    render(
-      <NotificationBellDropdown
-        initialItems={mockItems}
-        onMarkAllRead={handleMarkAllRead}
-      />,
-    );
+    render(<NotificationBellDropdown initialItems={mockItems} onMarkAllRead={handleMarkAllRead} />);
 
     fireEvent.click(screen.getByTestId('u074-bell-btn'));
 

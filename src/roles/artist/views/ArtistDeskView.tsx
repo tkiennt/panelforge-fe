@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import {
   Layers,
@@ -39,6 +39,21 @@ import {
   Play,
   Columns,
   Rows,
+  ZoomIn,
+  ZoomOut,
+  Maximize2,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  Eye,
+  Check,
+  PanelLeftClose,
+  PanelLeftOpen,
+  PanelRightOpen,
+  MoreHorizontal,
+  Grid2x2,
+  History,
+  Lock,
 } from 'lucide-react';
 import { pageService, PageDto, PageDetailDto } from '@/services/page.service';
 import { chapterService, ChapterDto } from '@/services/chapter.service';
@@ -103,10 +118,14 @@ import {
 import {
   LayoutGuidesOverlay,
   PanelLayoutToolbar,
+  PanelReadout,
   PanelResizeHandles,
 } from '@/roles/artist/components/PanelLayoutControls';
 
 import { splitPanelWithRollback } from '../utils/splitPanel';
+import { PageArtworkWorkflow } from '../components/PageArtworkWorkflow';
+import { PageArtCrop } from '@/shared/features/collaboration/ArtworkPanel';
+import { seriesService } from '@/services/series.service';
 import { pipelineService, type PipelineStageDto } from '@/services/pipeline.service';
 import { pickPanelArtwork, pickPageArtwork } from '@/shared/utils/stageArtworks';
 import { ElementConflictModal } from '@/shared/modals/ElementConflictModal';
@@ -129,12 +148,24 @@ interface ArtistDeskViewProps {
   workspaceRole?: string | null;
 }
 
+const LOCKED_TONE = 'bg-stone-100 text-stone-700 border-stone-300';
+/** Nhãn trạng thái việc (Assignment) trên bàn vẽ; "Chỉ xem" khi việc đã nộp/duyệt. */
+const WORK_STATUS: Record<string, { label: string; tone: string }> = {
+  Assigned: { label: 'Được giao', tone: 'bg-sky-50 text-sky-800 border-sky-200' },
+  InProgress: { label: 'Đang làm', tone: 'bg-emerald-50 text-emerald-800 border-emerald-200' },
+  ReworkRequired: { label: 'Cần sửa', tone: 'bg-amber-50 text-amber-900 border-amber-300' },
+  Submitted: { label: 'Chờ duyệt · Chỉ xem', tone: LOCKED_TONE },
+  UnderReview: { label: 'Đang duyệt · Chỉ xem', tone: LOCKED_TONE },
+  Approved: { label: 'Đã duyệt · Chỉ xem', tone: LOCKED_TONE },
+  Blocked: { label: 'Chờ công đoạn trước', tone: LOCKED_TONE },
+};
+
 export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole }) => {
   const { workspaceId, seriesId } = useParams<{ workspaceId?: string; seriesId?: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const chapterIdFromUrl = searchParams.get('chapterId');
 
-  const [activeTab, setActiveTab] = useState<'pages' | 'queue'>('pages');
+  const [activeTab, setActiveTab] = useState<'pages' | 'script' | 'queue'>('pages');
   const [chapters, setChapters] = useState<ChapterDto[]>([]);
   const [currentChapterId, setCurrentChapterId] = useState<string | null>(chapterIdFromUrl || null);
   const [loadingChapters, setLoadingChapters] = useState(false);
@@ -246,6 +277,94 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
   const [editDpi, setEditDpi] = useState('600');
   const [editLayout, setEditLayout] = useState('StandardPage');
 
+  // Trạng thái Bàn làm việc họa sĩ (Thu gọn cột phụ & Phóng to bản vẽ)
+  // Dưới 1024px cột Trang/Kịch bản là drawer nên mặc định đóng; cột Chi tiết mặc định đóng để ưu tiên trang truyện
+  const [isLeftCollapsed, setIsLeftCollapsed] = useState(
+    () => typeof window !== 'undefined' && window.innerWidth < 1024,
+  );
+  const [isRightCollapsed, setIsRightCollapsed] = useState(true);
+  // "Sửa bố cục": chỉ khi bật mới kéo/đổi cỡ khung, hiện tay nắm và công cụ bố cục
+  const [layoutEdit, setLayoutEdit] = useState(false);
+  const [openMenu, setOpenMenu] = useState<'upload' | 'page' | null>(null);
+  const detailsCloseRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!openMenu) return;
+    const close = (e: Event) => {
+      if (e instanceof KeyboardEvent && e.key !== 'Escape') return;
+      if (e.type === 'mousedown' && (e.target as Element | null)?.closest?.('[data-menu-root]'))
+        return;
+      setOpenMenu(null);
+    };
+    document.addEventListener('mousedown', close);
+    document.addEventListener('keydown', close);
+    return () => {
+      document.removeEventListener('mousedown', close);
+      document.removeEventListener('keydown', close);
+    };
+  }, [openMenu]);
+  useEffect(() => {
+    // Cột Chi tiết là drawer dưới 1280px: đưa focus vào nút Đóng khi mở
+    if (!isRightCollapsed && window.matchMedia?.('(max-width: 1279px)')?.matches) {
+      detailsCloseRef.current?.focus();
+    }
+  }, [isRightCollapsed]);
+  const canvasContainerRef = useRef<HTMLDivElement>(null);
+  const [zoomScale, setZoomScale] = useState(1);
+  const [isFitMode, setIsFitMode] = useState(true);
+
+  const baseWidth = 560;
+  const pageW = selectedPage?.widthPx || 1200;
+  const pageH = selectedPage?.heightPx || 1800;
+  const canvasRatio = pageW > 0 ? pageH / pageW : 1.414;
+  const baseHeight = Math.round(baseWidth * canvasRatio);
+
+  const calculateFitScale = useCallback(() => {
+    if (!canvasContainerRef.current) return 1;
+    const container = canvasContainerRef.current;
+    const isSmall = container.clientWidth < 640;
+    const padX = isSmall ? 24 : 40;
+    const padY = 40;
+    const availW = Math.max(60, container.clientWidth - padX);
+    const availH = Math.max(60, container.clientHeight - padY);
+    const scale = Math.min(availW / baseWidth, availH / baseHeight);
+    return Math.max(0.1, Math.min(1.5, Math.round(scale * 100) / 100));
+  }, [baseWidth, baseHeight]);
+
+  const handleFitToScreen = useCallback(() => {
+    setIsFitMode(true);
+    const fit = calculateFitScale();
+    setZoomScale(fit);
+    if (canvasContainerRef.current) {
+      canvasContainerRef.current.scrollTop = 0;
+      canvasContainerRef.current.scrollLeft = 0;
+    }
+  }, [calculateFitScale]);
+
+  const handleZoomIn = () => {
+    setIsFitMode(false);
+    setZoomScale((z) => Math.min(2.5, Math.round((z + 0.15) * 100) / 100));
+  };
+  const handleZoomOut = () => {
+    setIsFitMode(false);
+    setZoomScale((z) => Math.max(0.3, Math.round((z - 0.15) * 100) / 100));
+  };
+  const handleResetZoom = () => {
+    setIsFitMode(false);
+    setZoomScale(1);
+  };
+
+  useEffect(() => {
+    if (!canvasContainerRef.current) return;
+    const observer = new ResizeObserver(() => {
+      if (isFitMode) {
+        setZoomScale(calculateFitScale());
+      }
+    });
+    observer.observe(canvasContainerRef.current);
+    return () => observer.disconnect();
+    // canvas chỉ render khi đã có trang: gắn lại observer khi trang được chọn
+  }, [isFitMode, calculateFitScale, selectedPage]);
+
   // Quản lý Artwork của Page và Panel
   const [pageArtworks, setPageArtworks] = useState<AssetReferenceDto[]>([]);
   // Công đoạn của Series (để biết thứ tự + stage nào đang tắt) và công đoạn đang xem ảnh ('AUTO' = tự chọn)
@@ -269,9 +388,25 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
   const panelFileInputRef = React.useRef<HTMLInputElement>(null);
   const pageFileInputRef = React.useRef<HTMLInputElement>(null);
   const [uploadMode, setUploadMode] = useState<'panel' | 'page'>('panel');
+  // Vừa khung ngay khi bố cục đổi (đóng/mở cột, bật sửa bố cục, đổi chế độ tải) — không chờ ResizeObserver
+  useLayoutEffect(() => {
+    if (isFitMode && selectedPage) setZoomScale(calculateFitScale());
+  }, [
+    isFitMode,
+    calculateFitScale,
+    selectedPage,
+    isLeftCollapsed,
+    isRightCollapsed,
+    layoutEdit,
+    uploadMode,
+  ]);
   const [uploadingPanelId, setUploadingPanelId] = useState<string | null>(null);
   const [uploadingPage, setUploadingPage] = useState(false);
   const [uploadProgressMsg, setUploadProgressMsg] = useState<string | null>(null);
+  // Ảnh toàn trang đã chọn nhưng chưa tải lên: xem trước, đổi / huỷ rồi mới bấm "Tải lên"
+  const [pendingPageFile, setPendingPageFile] = useState<File | null>(null);
+  const [pendingPagePreview, setPendingPagePreview] = useState<string | null>(null);
+  const [seriesRightToLeft, setSeriesRightToLeft] = useState(false);
   const [dragOverPanelId, setDragOverPanelId] = useState<string | null>(null);
   const [checkingConsistencyPanelId, setCheckingConsistencyPanelId] = useState<string | null>(null);
   const [panelConsistencyResult, setPanelConsistencyResult] = useState<
@@ -383,7 +518,10 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
   const [pageElements, setPageElements] = useState<ElementSnapshotDto[]>([]);
   const [loadingElements, setLoadingElements] = useState(false);
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
-  const [activeRightTab, setActiveRightTab] = useState<'panel' | 'layers'>('panel');
+  const [activeRightTab, setActiveRightTab] = useState<
+    'panel' | 'versions' | 'feedback' | 'layers'
+  >('panel');
+  const [previewArt, setPreviewArt] = useState<AssetReferenceDto | null>(null);
   // Mặc định khi đang chọn panel: chỉ hiện layer của panel đó + layer "Toàn trang"
   const [showAllPageLayers, setShowAllPageLayers] = useState(false);
   const isPanelLayerFilter = Boolean(selectedPanelId) && !showAllPageLayers;
@@ -460,15 +598,17 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
     if (artId) artworkLinkRetried.current.delete(artId);
   };
 
-  // Việc InProgress & Assigned của chính mình: nguồn stageId (GUID) khi tải ảnh
+  // Việc InProgress, Assigned & ChangesRequested của chính mình
   const [myInProgress, setMyInProgress] = useState<WorkspaceAssignmentDto[]>([]);
   const [myAssigned, setMyAssigned] = useState<WorkspaceAssignmentDto[]>([]);
+  const [myChangesRequested, setMyChangesRequested] = useState<WorkspaceAssignmentDto[]>([]);
   const [startingAssignmentPanelId, setStartingAssignmentPanelId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!workspaceId) {
       setMyInProgress([]);
       setMyAssigned([]);
+      setMyChangesRequested([]);
       return;
     }
     let alive = true;
@@ -480,6 +620,10 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
       .getMyAssignments(workspaceId, { status: 'Assigned' })
       .then((list) => alive && setMyAssigned(list))
       .catch(() => alive && setMyAssigned([]));
+    assignmentService
+      .getMyAssignments(workspaceId, { status: 'ReworkRequired' })
+      .then((list) => alive && setMyChangesRequested(list))
+      .catch(() => alive && setMyChangesRequested([]));
     return () => {
       alive = false;
     };
@@ -494,31 +638,60 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
     );
   };
 
-  const handleStartAndUploadPanel = async (panelId: string) => {
-    const pending = findPendingAssigned(panelId);
+  const findFeedbackAssignment = (panelId?: string) => {
+    if (!currentChapterId || !selectedPage) return undefined;
+    const allAssignments = [...myChangesRequested, ...myInProgress, ...myAssigned].filter(
+      (a) => a.chapterId === currentChapterId,
+    );
+    if (panelId) {
+      const panelSpecific = allAssignments.find(
+        (a) =>
+          a.entityType === 'Panel' &&
+          a.targetEntityId === panelId &&
+          (a.status === 'ReworkRequired' || Boolean(a.lastFeedbackComment)),
+      );
+      if (panelSpecific) return panelSpecific;
+    }
+    return allAssignments.find(
+      (a) =>
+        a.entityType === 'Page' &&
+        a.targetEntityId === selectedPage.id &&
+        (a.status === 'ReworkRequired' || Boolean(a.lastFeedbackComment)),
+    );
+  };
+
+  /** Bắt đầu việc được giao rồi mở chọn ảnh; panelId = null là ảnh cả trang. */
+  const handleStartAndUploadPanel = async (panelId: string | null) => {
+    const pending = findPendingAssigned(panelId ?? '');
     if (!pending || !currentChapterId) {
-      handleTriggerUploadPanel(panelId);
+      if (panelId) handleTriggerUploadPanel(panelId);
+      else handleTriggerUploadPage();
       return;
     }
-    setStartingAssignmentPanelId(panelId);
+    setStartingAssignmentPanelId(panelId ?? 'PAGE');
     try {
       showToast('Đang bắt đầu việc', 'Đang cập nhật trạng thái việc sang Đang làm (InProgress)...');
       await assignmentService.startAssignment(currentChapterId, pending.id);
       showToast('Đã bắt đầu việc', 'Nhiệm vụ đã sẵn sàng! Đang mở hộp thoại chọn tệp ảnh...');
       if (workspaceId) {
-        const [inProg, asg] = await Promise.all([
+        const [inProg, asg, chg] = await Promise.all([
+          assignmentService.getMyAssignments(workspaceId, { status: 'InProgress' }).catch(() => []),
+          assignmentService.getMyAssignments(workspaceId, { status: 'Assigned' }).catch(() => []),
           assignmentService
-            .getMyAssignments(workspaceId, { status: 'InProgress' })
-            .catch(() => []),
-          assignmentService
-            .getMyAssignments(workspaceId, { status: 'Assigned' })
+            .getMyAssignments(workspaceId, { status: 'ReworkRequired' })
             .catch(() => []),
         ]);
         setMyInProgress(inProg);
         setMyAssigned(asg);
+        setMyChangesRequested(chg);
       }
-      setUploadingPanelId(panelId);
-      panelFileInputRef.current?.click();
+      if (panelId) {
+        setUploadingPanelId(panelId);
+        panelFileInputRef.current?.click();
+      } else {
+        setUploadMode('page');
+        pageFileInputRef.current?.click();
+      }
     } catch (err: any) {
       showMutationError(
         'Không thể bắt đầu việc',
@@ -597,15 +770,15 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
     }
   };
 
-  const uploadArtworkFileForPage = async (file: File) => {
-    if (!currentChapterId || !selectedPage) return;
+  const uploadArtworkFileForPage = async (file: File): Promise<boolean> => {
+    if (!currentChapterId || !selectedPage || uploadingPage) return false;
     const stageAssignment = findPageStageAssignment();
     if (!stageAssignment) {
       showToast(
         'Chưa thể tải ảnh trang',
         'Bạn cần đang làm một việc được giao cho Trang này trước (hoặc bấm "Bắt đầu").',
       );
-      return;
+      return false;
     }
     setUploadingPage(true);
     try {
@@ -623,8 +796,10 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
       );
       showToast('Thành công', `Đã tải artwork toàn trang v${res.versionNumber}!`);
       await loadPageArtworks(currentChapterId, selectedPage.id);
+      return true;
     } catch (err: unknown) {
       showToast('Lỗi tải ảnh trang', errorMessage(err, 'Không thể tải ảnh cho trang'));
+      return false;
     } finally {
       if (pageFileInputRef.current) pageFileInputRef.current.value = '';
       setUploadingPage(false);
@@ -661,11 +836,60 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
     await uploadArtworkFileForPanel(uploadingPanelId, file);
   };
 
-  const handlePageFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    await uploadArtworkFileForPage(file);
+  /** Chọn / kéo thả / dán ảnh toàn trang: chỉ giữ lại để xem trước, chưa tải lên. */
+  const stagePageFile = (file: File) => {
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
+      showToast('Tệp không hợp lệ', 'Ảnh trang chỉ nhận PNG, JPEG hoặc WEBP.');
+      return;
+    }
+    if (file.size > 25 * 1024 * 1024) {
+      showToast('Ảnh quá lớn', 'Artwork tối đa 25 MB.');
+      return;
+    }
+    setPendingPageFile(file);
   };
+
+  const handleUploadPendingPage = async () => {
+    if (!pendingPageFile) return;
+    if (await uploadArtworkFileForPage(pendingPageFile)) setPendingPageFile(null);
+  };
+
+  const handlePageFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (file) stagePageFile(file);
+  };
+
+  useEffect(() => {
+    if (!pendingPageFile) {
+      setPendingPagePreview(null);
+      return;
+    }
+    const url = URL.createObjectURL(pendingPageFile);
+    setPendingPagePreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [pendingPageFile]);
+
+  // Đổi trang: bỏ file đang chờ (không áp ảnh của trang này sang trang khác)
+  useEffect(() => {
+    setPendingPageFile(null);
+  }, [selectedPage?.id]);
+
+  // Hướng đọc mặc định cho nhận diện panel = cấu hình Series
+  useEffect(() => {
+    if (!seriesId) return;
+    let alive = true;
+    seriesService
+      .getSeriesById(seriesId)
+      .then((s) => {
+        if (alive)
+          setSeriesRightToLeft(s.readingDirection === 1 || s.readingDirection === 'RightToLeft');
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, [seriesId]);
 
   const handlePanelFileDrop = async (panelId: string, file?: File) => {
     if (!file) return;
@@ -699,7 +923,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
           if (file) {
             e.preventDefault();
             if (uploadMode === 'page') {
-              void uploadArtworkFileForPage(file);
+              stagePageFile(file);
             } else if (selectedPanelId) {
               void uploadArtworkFileForPanel(selectedPanelId, file);
             }
@@ -712,6 +936,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
     return () => {
       window.removeEventListener('paste', handlePaste);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [uploadMode, selectedPanelId, currentChapterId, selectedPage, myInProgress]);
 
   // Nạp danh sách Chapter thật của Series
@@ -843,6 +1068,10 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
 
   const handleSelectPage = async (p: PageDto) => {
     setSelectedPage(p);
+    if (canvasContainerRef.current) {
+      canvasContainerRef.current.scrollTop = 0;
+      canvasContainerRef.current.scrollLeft = 0;
+    }
     try {
       const detail = await pageService.getPageById(p.id);
       setPageDetail(detail);
@@ -854,6 +1083,11 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
         ]);
       } else {
         await Promise.all([loadPanels(p.id), loadElements(p.id)]);
+      }
+      if (isFitMode) {
+        setTimeout(() => {
+          setZoomScale(calculateFitScale());
+        }, 50);
       }
     } catch (err) {
       console.error(err);
@@ -1546,7 +1780,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
 
   // Phím mũi tên nhích khung đang chọn (0.5%, giữ Shift = 2%); lưu sau khi dừng bấm
   const handleCanvasKeyDown = (e: React.KeyboardEvent) => {
-    if (!canEditPages) return;
+    if (!canEditPages || !layoutEdit) return;
     const keys = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'];
     if (!keys.includes(e.key)) return;
     const ids = targetIds();
@@ -1820,8 +2054,204 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
     }
   };
 
+  // ---- Trạng thái việc & hành động chính theo ngữ cảnh (khung đang chọn, hoặc cả trang) ----
+  const pickForTarget = <T extends { entityType: string; targetEntityId: string }>(list: T[]) =>
+    (selectedPanelId
+      ? list.find((a) => a.entityType === 'Panel' && a.targetEntityId === selectedPanelId)
+      : undefined) ??
+    (selectedPage
+      ? list.find((a) => a.entityType === 'Page' && a.targetEntityId === selectedPage.id)
+      : undefined);
+  const myWork = currentChapterId
+    ? pickForTarget(
+        [...myChangesRequested, ...myInProgress, ...myAssigned].filter(
+          (a) => a.chapterId === currentChapterId,
+        ),
+      )
+    : undefined;
+  const targetTask = myWork ? undefined : pickForTarget(tasks);
+  const workStatus = String(myWork?.status ?? targetTask?.status ?? '');
+  const workStageName = myWork
+    ? stageLabel(myWork.pipelineStageId) || myWork.stageName
+    : targetTask
+      ? stageLabel(targetTask.pipelineStageId) || targetTask.stageName
+      : undefined;
+  const workBadge = workStatus
+    ? (WORK_STATUS[workStatus] ?? { label: workStatus, tone: LOCKED_TONE })
+    : null;
+  const uploadBlockedReason = !canEditPages
+    ? 'Bạn chỉ có quyền xem trang này'
+    : workStatus === 'Approved'
+      ? 'Việc đã duyệt — chỉ xem, không tải ảnh mới'
+      : workStatus === 'Submitted' || workStatus === 'UnderReview'
+        ? 'Đang chờ duyệt — tạm khóa tải ảnh cho đến khi có kết quả'
+        : workStatus === 'Blocked'
+          ? 'Công đoạn trước chưa xong — chưa thể bắt đầu'
+          : 'Bạn chưa có việc đang làm cho trang hoặc khung này';
+  const pendingForTarget = selectedPage ? findPendingAssigned(selectedPanelId ?? '') : undefined;
+  const primaryCta: {
+    label: string;
+    icon: React.ReactNode;
+    action: 'create' | 'start' | 'uploadPanel' | 'none';
+    disabled: boolean;
+    reason?: string;
+    title?: string;
+    testId: string;
+  } | null = (() => {
+    if (!selectedPage) {
+      return canEditPages && currentChapterId
+        ? {
+            label: 'Tạo trang mới',
+            icon: <Plus className='w-3.5 h-3.5' />,
+            action: 'create',
+            disabled: false,
+            testId: 'cta-create-page',
+          }
+        : null;
+    }
+    if (!canEditPages) return null;
+    if (pendingForTarget) {
+      return {
+        label: 'Bắt đầu việc',
+        icon: <Play className='w-3.5 h-3.5 fill-current' />,
+        action: 'start',
+        disabled: startingAssignmentPanelId !== null,
+        testId: 'cta-start-work',
+      };
+    }
+    // Chế độ cả trang: thanh PageArtworkWorkflow ngay trên canvas đã có nút tải/nhận diện, không lặp CTA
+    if (uploadMode === 'page') return null;
+    if (selectedPanelDetail) {
+      const ok = Boolean(findStageAssignment(selectedPanelDetail.id));
+      return {
+        label: artFor(selectedPanelDetail.id) ? 'Tải bản mới' : 'Tải ảnh khung',
+        title: `Tải ảnh cho Khung #${selectedPanelDetail.panelNumber}`,
+        icon: <Upload className='w-3.5 h-3.5' />,
+        action: 'uploadPanel',
+        disabled: !ok,
+        reason: ok ? undefined : uploadBlockedReason,
+        testId: 'cta-upload-panel',
+      };
+    }
+    return {
+      label: 'Tải ảnh',
+      icon: <Upload className='w-3.5 h-3.5' />,
+      action: 'none',
+      disabled: true,
+      reason: 'Chọn một khung trên trang, hoặc mở "Tải ảnh" → "Cả trang"',
+      testId: 'cta-upload-panel',
+    };
+  })();
+  const runPrimaryCta = (action: NonNullable<typeof primaryCta>['action']) => {
+    if (action === 'create') setCreateModalOpen(true);
+    else if (action === 'start')
+      void handleStartAndUploadPanel(uploadMode === 'page' ? null : selectedPanelId);
+    else if (action === 'uploadPanel' && selectedPanelId) handleTriggerUploadPanel(selectedPanelId);
+  };
+  // Khung đang chọn (dùng trong Chi tiết → Khung / Phiên bản)
+  const panelArt = selectedPanelDetail ? artFor(selectedPanelDetail.id) : undefined;
+  const panelArtUrl = panelArt ? panelArtworkUrls[panelArt.id] : null;
+  const canUpload = selectedPanelDetail
+    ? Boolean(findStageAssignment(selectedPanelDetail.id))
+    : false;
+  const pendingPanel = selectedPanelDetail
+    ? findPendingAssigned(selectedPanelDetail.id)
+    : undefined;
+  const feedbackAsg = selectedPage
+    ? findFeedbackAssignment(selectedPanelId ?? undefined)
+    : undefined;
+  const hasFeedback = Boolean(
+    feedbackAsg && (feedbackAsg.status === 'ReworkRequired' || feedbackAsg.lastFeedbackComment),
+  );
+  const openDetails = (tab?: typeof activeRightTab) => {
+    if (tab) setActiveRightTab(tab);
+    setIsRightCollapsed(false);
+  };
+  const groupByStage = (arts: AssetReferenceDto[]) => {
+    const order = (id: string) => stages.find((s) => s.id === id)?.stageOrder ?? 999;
+    const map = new Map<string, AssetReferenceDto[]>();
+    arts.forEach((a) => map.set(a.pipelineStageId, [...(map.get(a.pipelineStageId) ?? []), a]));
+    return [...map.entries()]
+      .sort((x, y) => order(x[0]) - order(y[0]))
+      .map(([stageId, list]) => ({
+        stageId,
+        list: [...list].sort((a, b) => b.versionNumber - a.versionNumber),
+      }));
+  };
+  const renderVersionList = (
+    arts: AssetReferenceDto[],
+    currentId: string | undefined,
+    testId: string,
+  ) =>
+    arts.length === 0 ? (
+      <p className='text-xs text-[#57534E] italic'>Chưa có phiên bản nào.</p>
+    ) : (
+      <div className='space-y-2' data-testid={testId}>
+        {groupByStage(arts).map(({ stageId, list }) => (
+          <div key={stageId} className='space-y-1'>
+            <div className='text-[11px] font-semibold text-[#57534E]'>
+              {stageLabel(stageId) || 'Công đoạn'} · {list.length} bản
+            </div>
+            {list.map((v) => {
+              const isCurrent = v.id === currentId;
+              const name = `${stageLabel(v.pipelineStageId) || 'Bản'} v${v.versionNumber}`;
+              return (
+                <button
+                  key={v.id}
+                  type='button'
+                  onClick={() => setPreviewArt(v)}
+                  data-testid={`version-item-${v.id}`}
+                  aria-label={`Mở lớn ${name}${isCurrent ? ' (đang xem)' : ''}`}
+                  className={`w-full p-1.5 rounded-lg border flex items-center gap-2 text-xs cursor-pointer transition-colors focus-visible:outline-2 focus-visible:outline-[#F97316] ${
+                    isCurrent
+                      ? 'bg-[#FFF2E6] border-[#F97316]/40'
+                      : 'bg-[#FCFBF8] border-[#D8D2C5] hover:border-[#F97316]/40'
+                  }`}
+                >
+                  <span className='w-10 h-10 shrink-0 rounded border border-[#D8D2C5] bg-white overflow-hidden flex items-center justify-center'>
+                    {panelArtworkUrls[v.id] ? (
+                      <img
+                        src={panelArtworkUrls[v.id]}
+                        alt=''
+                        className='max-w-full max-h-full object-contain'
+                      />
+                    ) : (
+                      <ImageIcon className='w-4 h-4 text-[#57534E]/50' />
+                    )}
+                  </span>
+                  <span className='min-w-0 flex-1 text-left'>
+                    <span className='block font-mono font-bold text-[#1C1917]'>{name}</span>
+                    <span className='block truncate text-[11px] text-[#57534E]'>
+                      {v.fileName} · {Math.round(v.sizeBytes / 1024)} KB
+                    </span>
+                  </span>
+                  {isCurrent && (
+                    <span className='text-[10px] font-bold text-[#C2410C] bg-white border border-[#F97316]/30 px-1 rounded shrink-0'>
+                      Đang xem
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    );
+  const viewedPageLabel = pageArt
+    ? `Ảnh cả trang ${stageLabel(pageArt.pipelineStageId)} v${pageArt.versionNumber}`
+    : 'Chưa có ảnh cả trang';
+  const toolbarBtn =
+    'h-8 px-2.5 inline-flex items-center gap-1.5 rounded-lg text-xs font-semibold border transition-colors cursor-pointer shrink-0 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#F97316] disabled:cursor-not-allowed disabled:bg-stone-100 disabled:text-stone-400 disabled:border-stone-200';
+  const toolbarIdle = 'bg-[#FCFBF8] text-[#1C1917] border-[#D8D2C5] hover:bg-[#F3F0E9]';
+  const toolbarOn = 'bg-[#FFF2E6] text-[#C2410C] border-[#F97316]/50';
+  const menuItem =
+    'w-full px-3 py-2 text-left text-xs flex items-center gap-2 hover:bg-[#F3F0E9] cursor-pointer focus-visible:outline-2 focus-visible:outline-[#F97316] disabled:text-stone-400 disabled:cursor-not-allowed disabled:hover:bg-transparent';
+
   return (
-    <div className='flex-1 bg-[#F3F0E9] min-h-screen p-6 md:p-8 space-y-6'>
+    <div
+      className='flex-1 basis-0 min-h-0 w-full flex flex-col bg-[#F3F0E9] p-2 gap-2 overflow-hidden'
+      data-testid='artist-desk'
+    >
       {/* Toast */}
       {toast && (
         <div className='fixed top-6 right-6 z-50 bg-[#1C1917] text-[#FCFBF8] px-4 py-3 rounded-xl shadow-2xl border border-[#D8D2C5]/30 flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-200'>
@@ -1830,7 +2260,10 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
             <div className='text-xs font-bold'>{toast.title}</div>
             <div className='text-xs text-[#57534E]'>{toast.desc}</div>
           </div>
-          <button onClick={() => setToast(null)} className='ml-2 text-[#57534E] hover:text-white cursor-pointer'>
+          <button
+            onClick={() => setToast(null)}
+            className='ml-2 text-[#57534E] hover:text-white cursor-pointer'
+          >
             <X className='w-3.5 h-3.5' />
           </button>
         </div>
@@ -1839,27 +2272,35 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
       {/* NFR-09 Offline Status Indicator */}
       <OfflineStatusBanner />
 
-      {/* Header */}
-      <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-[#FCFBF8] p-6 rounded-2xl border border-[#D8D2C5] shadow-xs'>
-        <div>
-          <div className='mb-1 text-xs font-mono font-semibold uppercase tracking-wider text-[#C2410C]'>
-            Bàn vẽ
-          </div>
-          <h1 className='text-2xl font-serif font-bold text-[#1C1917] tracking-tight'>
-            Bàn Vẽ &amp; Bố Cục Khung Tranh Manga
-          </h1>
-          <p className='text-xs text-[#57534E]'>
-            Dựng khung tranh (Panels), áp dụng Frame Templates dựng sẵn, điều chỉnh thứ tự đọc và
-            neo dòng kịch bản (Script Lines) vào từng ô phân cảnh.
-          </p>
-        </div>
+      {/* Toolbar chính: Ngữ cảnh · Ảnh hiển thị → Sửa bố cục → Tải ảnh → CTA → Chi tiết → Trang ⋯ → Zoom */}
+      <div
+        className='shrink-0 relative z-30 bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl px-1.5 py-1 flex flex-wrap items-center gap-1 min-w-0'
+        role='toolbar'
+        aria-label='Thanh công cụ bàn vẽ'
+        data-testid='artist-main-toolbar'
+      >
+        <button
+          type='button'
+          onClick={() => setIsLeftCollapsed((v) => !v)}
+          aria-expanded={!isLeftCollapsed}
+          aria-controls='artist-left-column'
+          aria-label={isLeftCollapsed ? 'Mở cột Trang / Kịch bản' : 'Thu gọn cột Trang / Kịch bản'}
+          title={isLeftCollapsed ? 'Mở cột Trang / Kịch bản' : 'Thu gọn cột Trang / Kịch bản'}
+          data-testid='toggle-left-column'
+          className={`${toolbarBtn} ${toolbarIdle} w-8 px-0 justify-center`}
+        >
+          {isLeftCollapsed ? (
+            <PanelLeftOpen className='w-4 h-4' />
+          ) : (
+            <PanelLeftClose className='w-4 h-4' />
+          )}
+        </button>
 
-        <div className='flex items-center gap-2.5 shrink-0 flex-wrap'>
-          {chapters.length > 0 && (
-            <div className='flex items-center gap-1.5 bg-[#F8F6F0] px-3 py-1 rounded-xl border border-[#D8D2C5]'>
-              <BookOpen className='w-3.5 h-3.5 text-[#C2410C]' />
-              <label htmlFor='artist-chapter-select' className='text-xs font-medium text-[#57534E]'>
-                Chương:
+        <div className='flex items-center gap-1 min-w-0 text-xs text-[#57534E]'>
+          {chapters.length > 0 ? (
+            <>
+              <label htmlFor='artist-chapter-select' className='sr-only'>
+                Chương
               </label>
               <select
                 id='artist-chapter-select'
@@ -1873,7 +2314,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                     return p;
                   });
                 }}
-                className='bg-transparent text-xs font-semibold text-[#1C1917] outline-none cursor-pointer pr-1'
+                className='h-8 max-w-[5.5rem] bg-transparent font-semibold text-[#1C1917] rounded-lg px-1 cursor-pointer hover:bg-[#F3F0E9] focus-visible:outline-2 focus-visible:outline-[#F97316] truncate'
               >
                 {chapters.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -1882,1004 +2323,1453 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                   </option>
                 ))}
               </select>
-            </div>
-          )}
-
-          <button onClick={loadPages} disabled={loading} className='btn-cta-secondary'>
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-            <span>Làm mới</span>
-          </button>
-          <button
-            type='button'
-            onClick={() => {
-              setSelectedDrawerPanelId(selectedPanelId || null);
-              setBibleDrawerOpen(true);
-            }}
-            data-testid='artist-desk-bible-reference-btn'
-            className='inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-purple-900 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-full shadow-soft-sm transition-all cursor-pointer'
-            title='Mở tham chiếu nhân vật và thiết kế của Series Bible'
-          >
-            <BookOpen className='w-3.5 h-3.5 text-purple-600' />
-            <span>Tham chiếu Bible</span>
-          </button>
-          <button
-            onClick={() => setCreateModalOpen(true)}
-            disabled={!canEditPages || !currentChapterId}
-            title={
-              !canEditPages
-                ? 'Chỉ Producer và Artist mới có quyền tạo trang'
-                : !currentChapterId
-                  ? 'Vui lòng chọn hoặc tạo Chương trước'
-                  : undefined
-            }
-            className='btn-cta-primary'
-          >
-            <Plus className='w-3.5 h-3.5' />
-            <span>Tạo Trang Mới</span>
-          </button>
-        </div>
-      </div>
-
-      {!canEditPages && (
-        <div className='p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-2 text-xs text-amber-800'>
-          <ShieldAlert className='w-4 h-4 text-amber-600 shrink-0' />
-          <span>
-            Chế độ xem: Bạn đang xem trang với quyền đọc. Chỉ vai trò <strong>Producer</strong> hoặc{' '}
-            <strong>Artist</strong> mới có quyền tạo, sửa cài đặt và xoá trang.
-          </span>
-        </div>
-      )}
-
-      {/* Tabs */}
-      <div className='flex items-center gap-2 border-b border-[#D8D2C5] pb-3'>
-        <button
-          onClick={() => setActiveTab('pages')}
-          className={`px-4 py-2 rounded-full text-xs font-semibold transition-all cursor-pointer flex items-center gap-2 ${
-            activeTab === 'pages'
-              ? 'bg-[#FFF2E6] text-[#1C1917] border border-[#F97316]/30 shadow-2xs font-bold'
-              : 'bg-[#FCFBF8] text-[#57534E] hover:bg-[#F3F0E9] border border-[#D8D2C5]'
-          }`}
-        >
-          <Layout className='w-3.5 h-3.5 text-[#C2410C]' />
-          <span>Trang &amp; Bố Cục Manga ({pages.length})</span>
-        </button>
-        <button
-          onClick={() => setActiveTab('queue')}
-          className={`px-4 py-2 rounded-full text-xs font-semibold transition-all cursor-pointer flex items-center gap-2 ${
-            activeTab === 'queue'
-              ? 'bg-[#FFF2E6] text-[#1C1917] border border-[#F97316]/30 shadow-2xs font-bold'
-              : 'bg-[#FCFBF8] text-[#57534E] hover:bg-[#F3F0E9] border border-[#D8D2C5]'
-          }`}
-        >
-          <KanbanSquare className='w-3.5 h-3.5 text-[#57534E]' />
-          <span>Hàng Đợi Nhiệm Vụ ({tasks.length})</span>
-        </button>
-      </div>
-
-      {activeTab === 'queue' && (
-        <div className='bg-[#FCFBF8] p-6 rounded-2xl border border-[#D8D2C5] shadow-soft-sm space-y-4'>
-          <div className='flex items-center justify-between text-xs font-bold text-[#1C1917] border-b border-[#D8D2C5] pb-3'>
-            <span className='flex items-center gap-2'>
-              <Clock className='w-4 h-4 text-[#C2410C]' />
-              <span>Hàng Đợi Công Việc Theo Công Đoạn</span>
-            </span>
-            {loadingTasks && (
-              <span className='text-xs text-[#57534E] flex items-center gap-1.5'>
-                <Loader2 className='w-3.5 h-3.5 animate-spin text-[#F97316]' /> Đang tải...
-              </span>
-            )}
-          </div>
-          {tasks.length === 0 ? (
-            <div className='p-8 text-center text-xs text-[#57534E] border border-dashed border-[#D8D2C5] rounded-xl bg-[#F8F6F0]'>
-              {currentChapterId
-                ? 'Chưa có nhiệm vụ nào được phân công trong chương này.'
-                : 'Vui lòng chọn một Chương để hiển thị hàng đợi nhiệm vụ.'}
-            </div>
+            </>
           ) : (
-            <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
-              {tasks.map((task) => (
-                <div
-                  key={task.id}
-                  className='p-4 rounded-xl border border-[#D8D2C5] bg-[#F8F6F0] space-y-2'
-                >
-                  <div className='flex items-center justify-between'>
-                    <span className='px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-[#FFF2E6] text-[#C2410C] border border-[#F97316]/30'>
-                      {stages.find((s) => s.id === task.pipelineStageId)?.name ||
-                        task.pipelineStageId}
-                    </span>
-                    <span className='text-xs font-mono text-[#57534E]'>{task.status}</span>
-                  </div>
-                  <div className='text-xs font-bold text-[#1C1917]'>
-                    {task.brief || 'Không có mô tả'}
-                  </div>
-                  <div className='text-xs text-[#57534E]'>
-                    Hạn chót:{' '}
-                    {task.dueDate ? new Date(task.dueDate).toLocaleDateString('vi-VN') : 'Không có'}
-                  </div>
-                </div>
-              ))}
-            </div>
+            <span>{loadingChapters ? 'Đang tải…' : 'Chưa có chương'}</span>
+          )}
+          {selectedPage && (
+            <>
+              <span aria-hidden='true'>/</span>
+              <span
+                className='font-semibold text-[#1C1917] whitespace-nowrap'
+                data-testid='toolbar-page-context'
+              >
+                Trang {selectedPage.pageNumber}
+              </span>
+            </>
+          )}
+          {workBadge && (
+            <span
+              className={`ml-1 px-2 py-0.5 rounded-full border text-[11px] font-semibold whitespace-nowrap inline-flex items-center ${workBadge.tone}`}
+              data-testid='artist-work-status'
+              title={`${workStageName ? `Công đoạn công việc: ${workStageName} — ` : ''}${workBadge.label}`}
+            >
+              <span className='hidden 2xl:inline'>
+                {workStageName ? `${workStageName} · ` : ''}
+              </span>
+              {workBadge.label.split(' · ')[0]}
+              {workBadge.label.includes('Chỉ xem') && (
+                <>
+                  <Lock className='inline w-3 h-3 ml-1 -mt-px' aria-hidden='true' />
+                  <span className='sr-only'> · Chỉ xem</span>
+                </>
+              )}
+            </span>
           )}
         </div>
-      )}
 
-      {activeTab === 'pages' && (
-        <>
-          {/* Pages Filmstrip Strip */}
-          <div className='bg-[#FCFBF8] p-4 sm:p-5 rounded-2xl border border-[#D8D2C5] shadow-soft-sm space-y-3'>
-            <div className='flex items-center justify-between text-xs font-bold text-[#1C1917]'>
-              <span className='flex items-center gap-2'>
-                <Layout className='w-4 h-4 text-[#C2410C]' />
-                <span>
-                  Danh Sách Trang Bản Thảo{' '}
-                  {currentChapterId
-                    ? `(Chương ${chapters.find((c) => c.id === currentChapterId)?.chapterNumber ?? ''})`
-                    : ''}
-                </span>
-              </span>
-              <span className='font-mono text-xs text-[#57534E]'>
-                {pages.length} trang • Nhấp để chọn trang vẽ
-              </span>
-            </div>
+        {selectedPage && (
+          <>
+            <span className='w-px h-5 bg-[#D8D2C5] shrink-0' aria-hidden='true' />
+            <label className='flex items-center gap-1 text-xs text-[#57534E] shrink-0'>
+              <Eye className='w-3.5 h-3.5 text-[#C2410C]' aria-hidden='true' />
+              <span className='hidden 2xl:inline whitespace-nowrap'>Ảnh hiển thị</span>
+              <span className='sr-only 2xl:hidden'>Ảnh hiển thị</span>
+              <select
+                value={viewStageId}
+                onChange={(e) => setViewStageId(e.target.value)}
+                data-testid='desk-stage-select'
+                title='Chỉ đổi ảnh đang xem trên canvas, không đổi công đoạn công việc'
+                className='h-8 max-w-[8.5rem] bg-[#FCFBF8] border border-[#D8D2C5] rounded-lg px-1.5 font-semibold text-[#1C1917] cursor-pointer focus-visible:outline-2 focus-visible:outline-[#F97316]'
+              >
+                <option value='AUTO'>
+                  Tự động{myStageOnPage ? ` (${stageLabel(myStageOnPage)})` : ''}
+                </option>
+                {stages.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.stageOrder}. {s.name}
+                    {s.isEnabled === false ? ' (đã tắt)' : ''}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-            {pages.length === 0 ? (
-              <div className='p-8 text-center text-xs text-[#57534E] border border-dashed border-[#D8D2C5] rounded-xl bg-[#F8F6F0]'>
-                {currentChapterId
-                  ? 'Chương này chưa có trang bản thảo nào. Bấm "Tạo Trang Mới" để bắt đầu vẽ.'
-                  : 'Vui lòng chọn một Chương để hiển thị danh sách trang.'}
-              </div>
-            ) : (
-              <div className='flex items-center gap-3 overflow-x-auto pb-2 pt-1 custom-scrollbar'>
-                {pages.map((p) => {
-                  const isSel = selectedPage?.id === p.id;
-                  return (
-                    <div
-                      key={p.id}
-                      onClick={() => handleSelectPage(p)}
-                      className={`w-28 shrink-0 p-2.5 rounded-xl border transition-all cursor-pointer text-center relative ${
-                        isSel
-                          ? 'border-[#F97316] bg-[#FFF2E6] ring-2 ring-[#F97316]/20 shadow-soft-sm font-semibold'
-                          : 'border-[#D8D2C5] bg-[#F8F6F0] hover:bg-[#FCFBF8] hover:border-[#D8D2C5]'
-                      }`}
-                    >
-                      <div className='aspect-[2/3] bg-[#FCFBF8] border border-[#D8D2C5] rounded-lg flex flex-col items-center justify-center p-1.5 mb-2 relative overflow-hidden group shadow-2xs'>
-                        <FileImage
-                          className={`w-7 h-7 mb-1 transition-colors ${isSel ? 'text-[#C2410C]' : 'text-[#57534E]'}`}
-                        />
-                        <span className='text-[10px] font-mono text-[#57534E]'>
-                          {p.widthPx}x{p.heightPx}
-                        </span>
-                        <span
-                          className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-full mt-1 ${
-                            isSel ? 'bg-[#FFF2E6] text-[#C2410C] border border-[#F97316]/30' : 'bg-[#F3F0E9] text-[#57534E] border border-[#D8D2C5]'
-                          }`}
-                        >
-                          {p.dpi} DPI
-                        </span>
-                      </div>
-                      <div
-                        className={`text-xs font-bold truncate ${isSel ? 'text-[#1C1917]' : 'text-[#1C1917]'}`}
-                      >
-                        Trang {p.pageNumber}
-                      </div>
-                      <div className='text-[10px] text-[#57534E] font-mono truncate'>
-                        {p.layoutFormat}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+            {canEditPages && (
+              <button
+                type='button'
+                aria-pressed={layoutEdit}
+                onClick={() => {
+                  if (layoutEdit) setMultiIds([]);
+                  setLayoutEdit((v) => !v);
+                }}
+                data-testid='toggle-layout-edit'
+                title={layoutEdit ? 'Tắt chế độ sửa bố cục' : 'Bật chế độ sửa bố cục khung'}
+                className={`${toolbarBtn} ${layoutEdit ? toolbarOn : toolbarIdle}`}
+              >
+                <Grid2x2 className='w-3.5 h-3.5' />
+                <span className='hidden lg:inline'>Sửa bố cục</span>
+                <span className='sr-only lg:hidden'>Sửa bố cục</span>
+              </button>
             )}
-          </div>
 
-          {/* Selected Page Workbench & Interactive Panels Layout (3-Column Layout: Script - Canvas - Inspector) */}
-          {selectedPage && (
-            <div className='grid grid-cols-1 lg:grid-cols-12 gap-5 items-start'>
-              {/* CỘT TRÁI (3 cols): Kịch Bản & Tham Chiếu (Script Anchoring & References) */}
-              <div className='lg:col-span-3 bg-[#FCFBF8] p-4.5 rounded-2xl border border-[#D8D2C5] shadow-xs space-y-3.5 flex flex-col'>
-                <div className='flex items-center justify-between border-b border-[#D8D2C5] pb-3'>
-                  <div className='flex items-center gap-2'>
-                    <BookOpen className='w-4 h-4 text-[#C2410C]' />
-                    <h3 className='text-xs font-bold text-[#1C1917]'>Kịch Bản &amp; Tham Chiếu</h3>
-                  </div>
-                  {selectedPanelDetail && (
-                    <span className='px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-[#FFF2E6] text-[#C2410C] border border-[#FDBA74]'>
-                      Khung #{selectedPanelDetail.panelNumber}
-                    </span>
-                  )}
-                </div>
-
-                {selectedPanelDetail ? (
-                  <>
-                    {/* Tra cứu nhanh Series Bible */}
-                    <button
-                      type='button'
-                      data-testid={`panel-bible-reference-btn-${selectedPanelDetail.id}`}
-                      onClick={() => {
-                        setSelectedDrawerPanelId(selectedPanelDetail.id);
-                        setBibleDrawerOpen(true);
-                      }}
-                      className='w-full py-2 bg-[#FFF2E6] hover:bg-[#FDBA74]/30 text-[#C2410C] border border-[#FDBA74] rounded-xl font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs active:scale-98'
-                    >
-                      <BookOpen className='w-3.5 h-3.5 text-[#C2410C]' />
-                      <span>
-                        Tham chiếu Bible (Khung #{selectedPanelDetail.panelNumber})
-                      </span>
-                    </button>
-
-                    {/* Gán Phân cảnh (Scene) */}
-                    <div className='p-3 bg-[#F8F6F0] rounded-xl border border-[#D8D2C5] space-y-1.5'>
-                      <div className='font-bold text-[#1C1917] flex items-center gap-1.5 text-xs'>
-                        <Film className='w-3.5 h-3.5 text-[#C2410C]' />
-                        <span>Phân Cảnh (Scene)</span>
-                      </div>
-                      <select
-                        value={selectedPanelDetail.sceneId || ''}
-                        onChange={(e) =>
-                          handleAssignScene(e.target.value ? e.target.value : null)
-                        }
-                        className='w-full p-2 bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl text-xs font-semibold text-[#1C1917] focus:border-[#F97316] focus:outline-none cursor-pointer'
+            {canEditPages && (
+              <div className='relative shrink-0' data-menu-root>
+                <button
+                  type='button'
+                  aria-haspopup='menu'
+                  aria-expanded={openMenu === 'upload'}
+                  onClick={() => setOpenMenu((m) => (m === 'upload' ? null : 'upload'))}
+                  data-testid='upload-menu-btn'
+                  aria-label={`Tải ảnh — chế độ ${uploadMode === 'page' ? 'cả trang' : 'từng khung'}`}
+                  className={`${toolbarBtn} ${toolbarIdle}`}
+                >
+                  <Upload className='w-3.5 h-3.5' />
+                  <span className='hidden lg:inline'>Tải ảnh</span>
+                  <ChevronDown className='w-3 h-3' />
+                </button>
+                {openMenu === 'upload' && (
+                  <div
+                    role='menu'
+                    aria-label='Chế độ tải ảnh'
+                    data-testid='upload-mode-toggle'
+                    className='absolute left-0 top-full mt-1 w-64 bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl shadow-xl py-1 z-50'
+                  >
+                    {[
+                      {
+                        mode: 'panel' as const,
+                        testId: 'mode-panel-slice',
+                        title: 'Từng khung',
+                        hint: selectedPanelDetail
+                          ? `Tải cho Khung #${selectedPanelDetail.panelNumber} đang chọn`
+                          : 'Chọn một khung trên trang để tải ảnh riêng',
+                      },
+                      {
+                        mode: 'page' as const,
+                        testId: 'mode-full-page',
+                        title: 'Cả trang',
+                        hint: `Một ảnh cho cả Trang ${selectedPage.pageNumber}, có nhận diện khung & bóng thoại`,
+                      },
+                    ].map((o) => (
+                      <button
+                        key={o.mode}
+                        type='button'
+                        role='menuitemradio'
+                        aria-checked={uploadMode === o.mode}
+                        data-testid={o.testId}
+                        onClick={() => {
+                          setUploadMode(o.mode);
+                          setOpenMenu(null);
+                        }}
+                        className={menuItem}
                       >
-                        <option value=''>-- Chưa gán phân cảnh --</option>
-                        {scenes.map((s) => (
-                          <option key={s.id} value={s.id}>
-                            Phân cảnh #{s.sceneNumber}: {s.heading || 'Không tiêu đề'} (
-                            {s.scriptLinesCount} dòng thoại)
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Neo dòng kịch bản (Script Lines) */}
-                    <div className='p-3 bg-[#F8F6F0] rounded-xl border border-[#D8D2C5] space-y-2 flex-1'>
-                      <div className='font-bold text-[#1C1917] flex items-center justify-between text-xs'>
-                        <span className='flex items-center gap-1.5'>
-                          <MessageSquare className='w-3.5 h-3.5 text-[#C2410C]' />
-                          <span>Dòng Kịch Bản Phân Cảnh</span>
+                        <Check
+                          className={`w-3.5 h-3.5 shrink-0 ${uploadMode === o.mode ? 'text-[#C2410C]' : 'invisible'}`}
+                        />
+                        <span className='min-w-0'>
+                          <span className='block font-semibold text-[#1C1917]'>{o.title}</span>
+                          <span className='block text-[11px] text-[#57534E]'>{o.hint}</span>
                         </span>
-                        <span className='text-xs text-[#57534E] font-mono'>
-                          {selectedPanelDetail.scriptLineIds?.length || 0} dòng
-                        </span>
-                      </div>
-
-                      {!selectedPanelDetail.sceneId ? (
-                        <p className='text-xs text-[#57534E] italic p-2.5 bg-[#FCFBF8] rounded-xl border border-[#D8D2C5]'>
-                          Vui lòng gán Phân cảnh (Scene) ở trên trước khi chọn các dòng thoại neo
-                          vào panel này.
-                        </p>
-                      ) : loadingSceneLines ? (
-                        <p className='text-xs text-[#57534E] p-2'>Đang nạp kịch bản...</p>
-                      ) : sceneLines.length === 0 ? (
-                        <p className='text-xs text-[#57534E] italic p-2.5 bg-[#FCFBF8] rounded-xl border border-[#D8D2C5]'>
-                          Phân cảnh này chưa có dòng thoại kịch bản nào.
-                        </p>
-                      ) : (
-                        <div className='space-y-1.5 max-h-64 overflow-y-auto custom-scrollbar'>
-                          {sceneLines.map((line) => {
-                            const isAnchored = selectedPanelDetail.scriptLineIds?.includes(
-                              line.id,
-                            );
-                            return (
-                              <div
-                                key={line.id}
-                                onClick={() => handleToggleScriptLine(line.id)}
-                                className={`p-2.5 rounded-xl border text-left cursor-pointer flex items-start gap-2.5 transition-all ${
-                                  isAnchored
-                                    ? 'bg-[#FFF2E6] border-[#F97316]/40 text-[#1C1917] shadow-2xs'
-                                    : 'bg-[#FCFBF8] border-[#D8D2C5] text-[#1C1917] hover:border-[#F97316]/40'
-                                }`}
-                              >
-                                {isAnchored ? (
-                                  <CheckSquare className='w-4 h-4 text-[#C2410C] shrink-0 mt-0.5' />
-                                ) : (
-                                  <Square className='w-4 h-4 text-[#57534E] shrink-0 mt-0.5' />
-                                )}
-                                <div className='flex-1 min-w-0'>
-                                  <div className='flex items-center gap-1 text-xs font-mono font-bold text-[#57534E]'>
-                                    <span>#{line.lineOrder}</span>
-                                    {line.speakerCharacterId && (
-                                      <span className='bg-[#F3F0E9] border border-[#D8D2C5] px-1.5 py-0.5 rounded text-[#1C1917]'>
-                                        Nhân vật
-                                      </span>
-                                    )}
-                                  </div>
-                                  <p className='text-xs truncate font-medium'>
-                                    {line.dialogueText ||
-                                      line.stageDirection ||
-                                      '(Chỉ dẫn diễn xuất)'}
-                                  </p>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  </>
-                ) : (
-                  <div className='p-6 text-center text-xs text-[#57534E] border border-dashed border-[#D8D2C5] rounded-xl flex flex-col items-center justify-center space-y-2 flex-1 min-h-[300px]'>
-                    <BookOpen className='w-8 h-8 text-[#57534E]/50' />
-                    <span className='font-semibold text-[#1C1917]'>Chưa chọn khung panel</span>
-                    <p className='text-xs text-[#57534E] max-w-xs leading-relaxed'>
-                      Bấm chọn một ô khung panel trên Canvas để xem kịch bản thoại phân cảnh và tra cứu Series Bible.
-                    </p>
+                      </button>
+                    ))}
                   </div>
                 )}
               </div>
+            )}
+          </>
+        )}
 
-              {/* CỘT GIỮA (6 cols): Canvas Preview & Direct Dropzone */}
-              <div className='lg:col-span-6 bg-[#FCFBF8] p-5 rounded-2xl border border-[#D8D2C5] shadow-xs space-y-4'>
-                <div className='flex items-center justify-between border-b border-[#D8D2C5] pb-3 flex-wrap gap-2'>
-                  <div>
-                    <h3 className='text-sm font-bold text-[#1C1917] flex items-center gap-2'>
-                      <Layers className='w-4 h-4 text-[#C2410C]' />
-                      <span>Trang {selectedPage.pageNumber} — Bố Cục Khung Tranh (Panels)</span>
-                    </h3>
-                    <span className='text-xs font-mono text-[#57534E]'>
-                      {panels.length} ô khung panel • Khổ: {selectedPage.widthPx} x{' '}
-                      {selectedPage.heightPx} px ({selectedPage.dpi} DPI)
-                    </span>
-                  </div>
+        <div className='ml-auto flex flex-wrap items-center justify-end gap-1 min-w-0'>
+          {primaryCta && (
+            <>
+              <button
+                type='button'
+                onClick={() => runPrimaryCta(primaryCta.action)}
+                disabled={primaryCta.disabled}
+                title={primaryCta.reason ?? primaryCta.title}
+                aria-describedby={primaryCta.reason ? 'artist-cta-reason' : undefined}
+                data-testid={primaryCta.testId}
+                className={`${toolbarBtn} ${
+                  primaryCta.disabled
+                    ? ''
+                    : 'bg-[#EA580C] hover:bg-[#C2410C] text-white border-[#EA580C]'
+                } max-w-[12rem]`}
+              >
+                {startingAssignmentPanelId !== null && primaryCta.testId === 'cta-start-work' ? (
+                  <Loader2 className='w-3.5 h-3.5 animate-spin' />
+                ) : (
+                  primaryCta.icon
+                )}
+                <span className='truncate'>{primaryCta.label}</span>
+              </button>
+              {primaryCta.reason && (
+                <span id='artist-cta-reason' className='sr-only'>
+                  {primaryCta.reason}
+                </span>
+              )}
+            </>
+          )}
 
-                  <div className='flex items-center gap-2 flex-wrap'>
-                    {/* Toggle Chế Độ Tải: Panel Slice vs Full-Page Composite (Giai đoạn 4) */}
-                    <div
-                      className='inline-flex items-center p-0.5 bg-stone-100 rounded-xl border border-stone-200 shadow-2xs'
-                      data-testid='upload-mode-toggle'
+          {selectedPage && (
+            <button
+              type='button'
+              onClick={() => (isRightCollapsed ? openDetails() : setIsRightCollapsed(true))}
+              aria-expanded={!isRightCollapsed}
+              aria-controls='artist-details'
+              data-testid='toggle-details'
+              className={`${toolbarBtn} ${isRightCollapsed ? toolbarIdle : toolbarOn} relative`}
+            >
+              <PanelRightOpen className='w-3.5 h-3.5' />
+              <span className='hidden md:inline'>Chi tiết</span>
+              <span className='sr-only md:hidden'>Chi tiết</span>
+              {hasFeedback && (
+                <span
+                  className='absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-500 border border-white'
+                  aria-label='Có phản hồi'
+                />
+              )}
+            </button>
+          )}
+
+          <div className='relative shrink-0' data-menu-root>
+            <button
+              type='button'
+              aria-haspopup='menu'
+              aria-expanded={openMenu === 'page'}
+              aria-label='Thao tác trang'
+              title='Thao tác trang'
+              onClick={() => setOpenMenu((m) => (m === 'page' ? null : 'page'))}
+              data-testid='page-menu-btn'
+              className={`${toolbarBtn} ${toolbarIdle} w-8 px-0 justify-center`}
+            >
+              <MoreHorizontal className='w-4 h-4' />
+            </button>
+            {openMenu === 'page' && (
+              <div
+                role='menu'
+                aria-label='Thao tác trang'
+                className='absolute right-0 top-full mt-1 w-56 bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl shadow-xl py-1 z-50'
+              >
+                <button
+                  type='button'
+                  role='menuitem'
+                  onClick={() => {
+                    setOpenMenu(null);
+                    void loadPages();
+                  }}
+                  disabled={loading}
+                  className={menuItem}
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} /> Làm mới
+                </button>
+                <button
+                  type='button'
+                  role='menuitem'
+                  data-testid='artist-desk-bible-reference-btn'
+                  onClick={() => {
+                    setOpenMenu(null);
+                    setSelectedDrawerPanelId(selectedPanelId || null);
+                    setBibleDrawerOpen(true);
+                  }}
+                  className={menuItem}
+                >
+                  <BookOpen className='w-3.5 h-3.5' /> Tham chiếu Series Bible
+                </button>
+                {canEditPages && (
+                  <>
+                    <button
+                      type='button'
+                      role='menuitem'
+                      onClick={() => {
+                        setOpenMenu(null);
+                        setCreateModalOpen(true);
+                      }}
+                      disabled={!currentChapterId}
+                      className={menuItem}
                     >
-                      <button
-                        type='button'
-                        onClick={() => setUploadMode('panel')}
-                        data-testid='mode-panel-slice'
-                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
-                          uploadMode === 'panel'
-                            ? 'bg-white text-stone-900 shadow-2xs font-bold'
-                            : 'text-stone-500 hover:text-stone-800'
-                        }`}
-                      >
-                        <Layout className='w-3 h-3 text-orange-600' />
-                        <span>Tải từng khung</span>
-                      </button>
-                      <button
-                        type='button'
-                        onClick={() => setUploadMode('page')}
-                        data-testid='mode-full-page'
-                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
-                          uploadMode === 'page'
-                            ? 'bg-white text-stone-900 shadow-2xs font-bold'
-                            : 'text-stone-500 hover:text-stone-800'
-                        }`}
-                      >
-                        <FileImage className='w-3 h-3 text-blue-600' />
-                        <span>Tải cả trang</span>
-                      </button>
-                    </div>
-
-                    {canEditPages && (
+                      <Plus className='w-3.5 h-3.5' /> Tạo trang mới
+                    </button>
+                    {selectedPage && (
                       <>
                         <button
-                          onClick={() => setFrameTemplateModalOpen(true)}
-                          className='px-3.5 py-1.5 text-xs font-semibold text-white bg-[#F97316] hover:bg-[#EA580C] rounded-xl flex items-center gap-1.5 shadow-soft-sm cursor-pointer transition-all active:scale-95'
-                          title='Áp dụng mẫu khung tranh dựng sẵn vào trang'
-                        >
-                          <LayoutTemplate className='w-3.5 h-3.5' />
-                          <span>Áp Dụng Mẫu Khung</span>
-                        </button>
-                        <button
-                          onClick={handleCreatePanel}
-                          className='px-3 py-1.5 text-xs font-semibold text-[#1C1917] bg-[#FCFBF8] hover:bg-[#F3F0E9] border border-[#D8D2C5] rounded-xl flex items-center gap-1.5 shadow-2xs cursor-pointer transition-all active:scale-95'
-                          title='Tạo thêm một ô panel thủ công'
-                        >
-                          <Plus className='w-3.5 h-3.5 text-[#57534E]' />
-                          <span>Thêm Panel</span>
-                        </button>
-                        <button
+                          type='button'
+                          role='menuitem'
+                          data-testid='page-settings-btn'
                           onClick={() => {
+                            setOpenMenu(null);
                             setEditWidthPx(selectedPage.widthPx.toString());
                             setEditHeightPx(selectedPage.heightPx.toString());
                             setEditDpi(selectedPage.dpi.toString());
                             setEditLayout(selectedPage.layoutFormat);
                             setSettingsModalOpen(true);
                           }}
-                          className='p-2 text-[#57534E] hover:text-[#1C1917] bg-[#FCFBF8] hover:bg-[#F3F0E9] border border-[#D8D2C5] rounded-xl cursor-pointer transition-all shadow-2xs'
-                          title='Cài đặt Canvas'
+                          className={menuItem}
                         >
-                          <Settings className='w-3.5 h-3.5' />
+                          <Settings className='w-3.5 h-3.5' /> Cài đặt trang
                         </button>
+                        <div className='my-1 border-t border-[#D8D2C5]' />
                         <button
-                          onClick={() => handleDeletePage(selectedPage.id)}
-                          className='p-2 text-rose-500 hover:text-rose-700 hover:bg-rose-50 border border-transparent hover:border-rose-200 rounded-xl cursor-pointer transition-all'
-                          title='Xóa trang'
+                          type='button'
+                          role='menuitem'
+                          onClick={() => {
+                            setOpenMenu(null);
+                            handleDeletePage(selectedPage.id);
+                          }}
+                          className={`${menuItem} text-rose-700 hover:bg-rose-50`}
                         >
-                          <Trash2 className='w-3.5 h-3.5' />
+                          <Trash2 className='w-3.5 h-3.5' /> Xóa Trang {selectedPage.pageNumber}…
                         </button>
                       </>
                     )}
-                  </div>
-                </div>
-
-                {selectedPage && panels.length > 0 && (
-                  <PanelLayoutToolbar
-                    panelCount={panels.length}
-                    selectedCount={Math.max(multiIds.length, selectedPanelId ? 1 : 0)}
-                    issues={detectLayoutIssues(
-                      panels.map((p) => liveRects[p.id] ?? rectOfPanel(p)),
-                    )}
-                    busy={layoutBusy}
-                    canEdit={canEditPages}
-                    onRelayout={handleRelayout}
-                    onAlign={handleAlign}
-                    onDistribute={handleDistribute}
-                    onStraighten={handleStraighten}
-                    onSelectAll={() => setMultiIds(panels.map((p) => p.id))}
-                    stages={stages}
-                    viewStageId={viewStageId}
-                    onSelectStage={(id) => setViewStageId(id)}
-                    activeStageName={myStageOnPage ? stageLabel(myStageOnPage) : undefined}
-                    selectedPanel={panels.find((p) => p.id === selectedPanelId)}
-                    selectedPage={selectedPage}
-                    panelRect={
-                      selectedPanelId
-                        ? (liveRects[selectedPanelId] ??
-                          rectOfPanel(panels.find((p) => p.id === selectedPanelId)!))
-                        : null
-                    }
-                  />
+                  </>
                 )}
+              </div>
+            )}
+          </div>
 
-                {/* Canvas Container & Direct Dropzone */}
-                <div
-                  onDragOver={(e) => {
-                    if (uploadMode === 'page' && canEditPages) {
-                      e.preventDefault();
-                      e.stopPropagation();
-                    }
-                  }}
-                  onDrop={(e) => {
-                    if (uploadMode === 'page' && canEditPages && e.dataTransfer.files?.[0]) {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      void uploadArtworkFileForPage(e.dataTransfer.files[0]);
-                    }
-                  }}
-                  className='bg-[#F8F6F0] rounded-xl border border-dashed border-[#CCCCCC] p-4 sm:p-6 flex items-center justify-center min-h-[520px] relative overflow-hidden'
+          {selectedPage && (
+            <div
+              className='inline-flex items-center h-8 bg-[#F3F0E9] p-0.5 rounded-lg border border-[#D8D2C5] shrink-0'
+              role='group'
+              aria-label='Thu phóng'
+            >
+              <button
+                type='button'
+                onClick={handleZoomOut}
+                disabled={zoomScale <= 0.3}
+                className='p-1 text-[#57534E] hover:text-[#1C1917] hover:bg-[#FCFBF8] rounded-md cursor-pointer disabled:opacity-30 focus-visible:outline-2 focus-visible:outline-[#F97316]'
+                title='Thu nhỏ'
+                aria-label='Thu nhỏ'
+              >
+                <ZoomOut className='w-3.5 h-3.5' />
+              </button>
+              <button
+                type='button'
+                onClick={handleResetZoom}
+                className='hidden 2xl:block px-1 text-[11px] font-mono font-bold text-[#1C1917] rounded hover:bg-[#FCFBF8] cursor-pointer min-w-[2.75rem] focus-visible:outline-2 focus-visible:outline-[#F97316]'
+                title='Đặt lại 100%'
+                aria-label={`Thu phóng ${Math.round(zoomScale * 100)}%, bấm để đặt lại 100%`}
+              >
+                {Math.round(zoomScale * 100)}%
+              </button>
+              <button
+                type='button'
+                onClick={handleZoomIn}
+                disabled={zoomScale >= 2.5}
+                className='p-1 text-[#57534E] hover:text-[#1C1917] hover:bg-[#FCFBF8] rounded-md cursor-pointer disabled:opacity-30 focus-visible:outline-2 focus-visible:outline-[#F97316]'
+                title='Phóng to'
+                aria-label='Phóng to'
+              >
+                <ZoomIn className='w-3.5 h-3.5' />
+              </button>
+              <button
+                type='button'
+                onClick={handleFitToScreen}
+                data-testid='zoom-fit-btn'
+                aria-pressed={isFitMode}
+                className={`px-1.5 py-0.5 text-[11px] font-semibold rounded cursor-pointer whitespace-nowrap focus-visible:outline-2 focus-visible:outline-[#F97316] ${
+                  isFitMode
+                    ? 'bg-white text-[#C2410C] shadow-2xs'
+                    : 'text-[#57534E] hover:text-[#1C1917] hover:bg-[#FCFBF8]'
+                }`}
+                title='Vừa khung: nhìn trọn trang'
+              >
+                Vừa khung
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Toolbar phụ khi bật "Sửa bố cục" */}
+      {selectedPage && canEditPages && layoutEdit && (
+        <div className='shrink-0 relative z-20' data-testid='layout-edit-bar'>
+          <PanelLayoutToolbar
+            panelCount={panels.length}
+            selectedCount={Math.max(multiIds.length, selectedPanelId ? 1 : 0)}
+            issues={detectLayoutIssues(panels.map((p) => liveRects[p.id] ?? rectOfPanel(p)))}
+            busy={layoutBusy}
+            canEdit={canEditPages}
+            onRelayout={handleRelayout}
+            onAlign={handleAlign}
+            onDistribute={handleDistribute}
+            onStraighten={handleStraighten}
+            onSelectAll={() => setMultiIds(panels.map((p) => p.id))}
+            leading={
+              <>
+                <button
+                  type='button'
+                  onClick={() => setFrameTemplateModalOpen(true)}
+                  className='px-2.5 py-1.5 text-xs font-semibold rounded-lg border border-[#E7E7E7] text-stone-700 hover:bg-stone-50 flex items-center gap-1.5 cursor-pointer shadow-2xs whitespace-nowrap'
+                  title='Áp dụng mẫu khung tranh dựng sẵn vào trang'
                 >
-                  <div
-                    ref={canvasRef}
-                    tabIndex={0}
-                    onKeyDown={handleCanvasKeyDown}
-                    data-testid='panel-canvas'
-                    className='bg-white shadow-xl border-2 border-[#171717] relative outline-none focus:ring-2 focus:ring-blue-300 w-full max-w-[460px]'
-                    style={{
-                      aspectRatio: '1 / 1.414',
-                    }}
+                  <LayoutTemplate className='w-3.5 h-3.5 text-orange-600' />
+                  Áp Dụng Mẫu Khung
+                </button>
+                <button
+                  type='button'
+                  onClick={handleCreatePanel}
+                  className='px-2.5 py-1.5 text-xs font-semibold rounded-lg border border-[#E7E7E7] text-stone-700 hover:bg-stone-50 flex items-center gap-1.5 cursor-pointer shadow-2xs whitespace-nowrap'
+                  title='Tạo thêm một khung thủ công'
+                >
+                  <Plus className='w-3.5 h-3.5' />
+                  Thêm Panel
+                </button>
+                <span className='w-px h-5 bg-[#E7E7E7] mx-0.5' />
+              </>
+            }
+            trailing={
+              selectedPanelId && multiIds.length <= 1 ? (
+                <div className='flex items-center gap-1 shrink-0'>
+                  <span className='w-px h-5 bg-[#E7E7E7] mx-0.5' />
+                  <span className='text-xs font-semibold text-stone-700 whitespace-nowrap'>
+                    Khung #{panels.find((p) => p.id === selectedPanelId)?.panelNumber}:
+                  </span>
+                  <button
+                    type='button'
+                    data-testid={`floating-split-v-${selectedPanelId}`}
+                    disabled={Boolean(splitBlockedReason('vertical')) || layoutBusy}
+                    onClick={() => handleSplitPanel('vertical')}
+                    className='p-1.5 rounded-lg border border-[#E7E7E7] text-stone-700 hover:bg-stone-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer'
+                    title={splitBlockedReason('vertical') ?? 'Chia đôi dọc'}
+                    aria-label='Chia đôi dọc'
                   >
-                    {/* Safe Margin Guides */}
-                    <div className='absolute inset-3 border border-blue-200/60 pointer-events-none'></div>
+                    <Columns className='w-3.5 h-3.5' />
+                  </button>
+                  <button
+                    type='button'
+                    data-testid={`floating-split-h-${selectedPanelId}`}
+                    disabled={Boolean(splitBlockedReason('horizontal')) || layoutBusy}
+                    onClick={() => handleSplitPanel('horizontal')}
+                    className='p-1.5 rounded-lg border border-[#E7E7E7] text-stone-700 hover:bg-stone-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer'
+                    title={splitBlockedReason('horizontal') ?? 'Chia đôi ngang'}
+                    aria-label='Chia đôi ngang'
+                  >
+                    <Rows className='w-3.5 h-3.5' />
+                  </button>
+                  <button
+                    type='button'
+                    data-testid={`floating-delete-${selectedPanelId}`}
+                    onClick={() => handleDeletePanel(selectedPanelId)}
+                    className='p-1.5 rounded-lg border border-rose-200 text-rose-700 hover:bg-rose-50 cursor-pointer'
+                    title='Xoá khung này'
+                    aria-label='Xoá khung này'
+                  >
+                    <Trash2 className='w-3.5 h-3.5' />
+                  </button>
+                  <button
+                    type='button'
+                    onClick={() => openDetails('panel')}
+                    className='px-2 py-1.5 text-xs font-semibold rounded-lg border border-[#E7E7E7] text-stone-700 hover:bg-stone-50 cursor-pointer whitespace-nowrap'
+                  >
+                    Thông số…
+                  </button>
+                </div>
+              ) : null
+            }
+          />
+        </div>
+      )}
 
-                    {/* Backdrop Layer: Ảnh Cả Trang (Full-page Composite) */}
-                    {pageArtUrl && (
-                      <img
-                        src={pageArtUrl}
-                        alt={`Page #${selectedPage.pageNumber}`}
-                        onError={() => handleArtworkImgError(pageArt?.id)}
-                        onLoad={() => handleArtworkImgLoad(pageArt?.id)}
-                        data-testid='canvas-full-page-backdrop'
-                        className={`absolute inset-0 w-full h-full object-contain pointer-events-none transition-opacity ${
-                          uploadMode === 'page' ? 'opacity-90 z-0' : 'opacity-25 z-0'
-                        }`}
-                      />
-                    )}
+      {/* Vùng làm việc: Trang/Kịch bản · Canvas · Chi tiết */}
+      <div className='flex-1 min-h-0 flex gap-2 relative'>
+        {!isLeftCollapsed && (
+          <button
+            type='button'
+            className='fixed inset-0 z-40 bg-[#1C1917]/30 lg:hidden cursor-default'
+            aria-label='Đóng cột Trang / Kịch bản'
+            tabIndex={-1}
+            onClick={() => setIsLeftCollapsed(true)}
+          />
+        )}
+        <aside
+          id='artist-left-column'
+          aria-label='Trang và kịch bản'
+          data-testid='artist-left-column'
+          onKeyDown={(e) => {
+            if (e.key === 'Escape' && window.innerWidth < 1024) setIsLeftCollapsed(true);
+          }}
+          className={`${
+            isLeftCollapsed ? 'hidden' : 'flex'
+          } fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] shadow-2xl lg:static lg:z-auto lg:w-[188px] lg:shadow-none lg:rounded-xl flex-col min-h-0 shrink-0 bg-[#FCFBF8] border border-[#D8D2C5] overflow-hidden`}
+        >
+          <div
+            className='shrink-0 flex items-center gap-1 p-1.5 border-b border-[#D8D2C5]'
+            role='tablist'
+            aria-label='Cột trái'
+          >
+            {[
+              { id: 'pages' as const, label: `Trang (${pages.length})` },
+              { id: 'script' as const, label: 'Kịch bản' },
+            ].map((t) => {
+              const on = activeTab === t.id || (t.id === 'pages' && activeTab === 'queue');
+              return (
+                <button
+                  key={t.id}
+                  type='button'
+                  role='tab'
+                  aria-selected={on}
+                  data-testid={`left-tab-${t.id}`}
+                  onClick={() => setActiveTab(t.id)}
+                  className={`flex-1 px-2 py-1 rounded-lg text-xs font-semibold cursor-pointer focus-visible:outline-2 focus-visible:outline-[#F97316] ${
+                    on ? 'bg-[#FFF2E6] text-[#C2410C]' : 'text-[#57534E] hover:bg-[#F3F0E9]'
+                  }`}
+                >
+                  {t.label}
+                </button>
+              );
+            })}
+            <button
+              type='button'
+              onClick={() => setIsLeftCollapsed(true)}
+              className='p-1 rounded-lg text-[#57534E] hover:bg-[#F3F0E9] cursor-pointer focus-visible:outline-2 focus-visible:outline-[#F97316]'
+              aria-label='Thu gọn cột Trang / Kịch bản'
+              title='Thu gọn cột'
+            >
+              <ChevronLeft className='w-4 h-4' />
+            </button>
+          </div>
 
-                    {/* Banner / Dropzone khi ở chế độ Full-Page và chưa có ảnh */}
-                    {uploadMode === 'page' && !pageArtUrl && !uploadingPage && (
-                      <div
-                        className='absolute inset-0 flex flex-col items-center justify-center p-4 text-center pointer-events-none z-10 bg-white/75 backdrop-blur-2xs'
-                        data-testid='full-page-empty-banner'
-                      >
-                        <FileImage className='w-8 h-8 text-blue-500 mb-1.5 animate-pulse' />
-                        <span className='text-xs font-bold text-stone-800'>
-                          Chế độ Tải cả trang (Full-page Composite)
-                        </span>
-                        <p className='text-xs text-stone-500 mt-1 max-w-xs leading-relaxed'>
-                          Kéo thả file ảnh toàn trang hoặc bấm nút bên dưới để tải và đối chiếu khớp nét với các khung.
-                        </p>
-                        {canEditPages && (
+          <div className='flex-1 min-h-0 overflow-y-auto custom-scrollbar p-2 space-y-2 text-xs'>
+            {activeTab === 'pages' && (
+              <>
+                {pages.length === 0 ? (
+                  <div className='p-3 text-center text-[#57534E] border border-dashed border-[#D8D2C5] rounded-xl'>
+                    {loading ? 'Đang tải trang…' : 'Chưa có trang nào.'}
+                  </div>
+                ) : (
+                  <ul className='space-y-1.5' data-testid='left-page-list'>
+                    {pages.map((p) => {
+                      const isSel = selectedPage?.id === p.id;
+                      const pageTask = tasks.find(
+                        (t) => t.entityType === 'Page' && t.targetEntityId === p.id,
+                      );
+                      const pageStatus = pageTask
+                        ? WORK_STATUS[String(pageTask.status)]
+                        : undefined;
+                      return (
+                        <li key={p.id}>
                           <button
                             type='button'
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleTriggerUploadPage();
+                            onClick={() => {
+                              handleSelectPage(p);
+                              if (window.innerWidth < 1024) setIsLeftCollapsed(true);
                             }}
-                            data-testid='desk-upload-page-btn'
-                            className='mt-2.5 px-3 py-1.5 pointer-events-auto bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold cursor-pointer shadow-soft-sm transition-all active:scale-95 flex items-center gap-1.5'
-                          >
-                            <Upload className='w-3.5 h-3.5' />
-                            <span>Tải ảnh cả trang</span>
-                          </button>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Nút Đổi ảnh cả trang khi đã có tranh và đang ở chế độ Full-Page */}
-                    {uploadMode === 'page' && pageArtUrl && canEditPages && !uploadingPage && (
-                      <div className='absolute top-2 right-2 z-20 flex items-center gap-1.5'>
-                        <span className='font-mono font-bold text-xs bg-blue-600 text-white px-2 py-0.5 rounded shadow-2xs'>
-                          Trang {selectedPage.pageNumber} v{pageArt?.versionNumber}
-                        </span>
-                        <button
-                          type='button'
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleTriggerUploadPage();
-                          }}
-                          data-testid='desk-upload-page-btn'
-                          className='px-2 py-1 bg-stone-900/85 hover:bg-stone-900 text-white rounded-lg text-xs font-semibold shadow-soft-sm flex items-center gap-1 cursor-pointer transition-transform active:scale-95 backdrop-blur-xs'
-                          title='Đổi ảnh toàn trang'
-                        >
-                          <Upload className='w-3 h-3 text-blue-400' />
-                          <span>Đổi ảnh trang</span>
-                        </button>
-                      </div>
-                    )}
-
-                    {/* Upload Spinner toàn trang */}
-                    {uploadingPage && (
-                      <div className='absolute inset-0 bg-stone-900/40 backdrop-blur-2xs flex flex-col items-center justify-center p-2 z-30 pointer-events-none'>
-                        <Loader2 className='w-7 h-7 text-white animate-spin mb-1.5' />
-                        <span className='text-xs font-semibold text-white bg-black/60 px-2.5 py-1 rounded'>
-                          {uploadProgressMsg || 'Đang tải artwork toàn trang...'}
-                        </span>
-                      </div>
-                    )}
-
-                    {panels.length === 0 ? (
-                      <div className='absolute inset-0 flex flex-col items-center justify-center p-4 text-center text-zinc-400'>
-                        <LayoutTemplate className='w-8 h-8 mb-2 opacity-50' />
-                        <span className='text-xs font-semibold'>Chưa có khung panel</span>
-                        <p className='text-xs mt-1 text-zinc-500'>
-                          Bấm "Áp Dụng Mẫu Khung" hoặc "Thêm Panel" để chia ô phân cảnh trên trang.
-                        </p>
-                      </div>
-                    ) : (
-                      panels.map((p) => {
-                        const box = parseBoundingBox(
-                          p.boundingBox,
-                          selectedPage.widthPx,
-                          selectedPage.heightPx,
-                        );
-                        const liveRect = liveRects[p.id];
-                        const isPrimary = selectedPanelId === p.id;
-                        const isSelected = isPrimary || multiIds.includes(p.id);
-                        const dragging = Boolean(liveRect);
-                        const panelArt = artFor(p.id);
-                        const panelArtUrl = panelArt ? panelArtworkUrls[panelArt.id] : null;
-                        const isDraggingOver = dragOverPanelId === p.id;
-                        const isUploading = uploadingPanelId === p.id;
-
-                        return (
-                          <div
-                            key={p.id}
-                            onClick={() => setSelectedPanelId(p.id)}
-                            onPointerDown={(e) => handlePanelPointerDown(p, e)}
-                            onDragOver={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              if (canEditPages) setDragOverPanelId(p.id);
-                            }}
-                            onDragLeave={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              if (dragOverPanelId === p.id) setDragOverPanelId(null);
-                            }}
-                            onDrop={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              setDragOverPanelId(null);
-                              if (canEditPages && e.dataTransfer.files?.[0]) {
-                                void handlePanelFileDrop(p.id, e.dataTransfer.files[0]);
-                              }
-                            }}
-                            data-testid={`panel-box-${p.id}`}
-                            className={`group absolute border-2 ${
-                              dragging ? '' : 'transition-all'
-                            } ${canEditPages ? 'cursor-move' : 'cursor-pointer'} flex flex-col justify-between p-1.5 overflow-hidden select-none ${
-                              isDraggingOver
-                                ? 'border-orange-500 bg-orange-500/20 ring-2 ring-orange-400 z-30'
-                                : isSelected
-                                  ? 'border-orange-500 bg-orange-500/10 ring-2 ring-orange-400/40 z-20'
-                                  : box.borderless
-                                    ? 'border-dashed border-zinc-400 bg-white/80 hover:border-blue-500 z-10'
-                                    : 'border-[#171717] bg-white/90 hover:border-blue-500 hover:bg-blue-50/20 z-10'
+                            aria-current={isSel ? 'page' : undefined}
+                            className={`w-full p-1.5 rounded-lg border flex items-center gap-2 text-left cursor-pointer focus-visible:outline-2 focus-visible:outline-[#F97316] ${
+                              isSel
+                                ? 'border-[#F97316]/60 bg-[#FFF2E6]'
+                                : 'border-transparent hover:bg-[#F3F0E9]'
                             }`}
-                            style={{
-                              left: `${liveRect ? liveRect.x : box.percentX}%`,
-                              top: `${liveRect ? liveRect.y : box.percentY}%`,
-                              width: `${liveRect ? liveRect.w : box.percentW}%`,
-                              height: `${liveRect ? liveRect.h : box.percentH}%`,
-                              touchAction: 'none',
-                            }}
                           >
-                            {isPrimary && canEditPages && multiIds.length <= 1 && (
-                              <PanelResizeHandles onStart={(mode, e) => startDrag(p.id, mode, e)} />
-                            )}
-
-                            {/* Floating Action Bar trên Panel đang chọn (CF2 / Giai đoạn 3) */}
-                            {isPrimary && canEditPages && !dragging && !isDraggingOver && (
-                              <div
-                                data-testid={`floating-toolbar-${p.id}`}
-                                onClick={(e) => e.stopPropagation()}
-                                onPointerDown={(e) => e.stopPropagation()}
-                                className={`absolute ${
-                                  (liveRect ? liveRect.y : box.percentY) < 10
-                                    ? 'top-1.5 left-1.5'
-                                    : '-top-9.5 left-0'
-                                } z-30 flex items-center gap-1 bg-stone-900/95 backdrop-blur-md text-white px-2 py-1 rounded-xl shadow-lg border border-stone-700/60 text-xs pointer-events-auto select-none transition-all`}
-                              >
-                                {findPendingAssigned(p.id) ? (
-                                  <button
-                                    type='button'
-                                    data-testid={`floating-start-upload-${p.id}`}
-                                    onClick={() => handleStartAndUploadPanel(p.id)}
-                                    disabled={startingAssignmentPanelId === p.id}
-                                    className='px-2 py-0.5 bg-amber-500 hover:bg-amber-600 text-stone-950 font-bold rounded-lg flex items-center gap-1 cursor-pointer transition-colors shadow-2xs'
-                                    title='Bắt đầu nhiệm vụ & Tải ảnh ngay'
-                                  >
-                                    {startingAssignmentPanelId === p.id ? (
-                                      <Loader2 className='w-3 h-3 animate-spin' />
-                                    ) : (
-                                      <Play className='w-3 h-3 fill-current' />
-                                    )}
-                                    <span>Bắt đầu &amp; Tải</span>
-                                  </button>
-                                ) : (
-                                  <button
-                                    type='button'
-                                    data-testid={`floating-upload-${p.id}`}
-                                    onClick={() => handleTriggerUploadPanel(p.id)}
-                                    className='px-2 py-0.5 bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded-lg flex items-center gap-1 cursor-pointer transition-colors shadow-2xs'
-                                    title={panelArtUrl ? 'Đổi ảnh cho khung này' : 'Tải ảnh cho khung này'}
-                                  >
-                                    <Upload className='w-3 h-3' />
-                                    <span>{panelArtUrl ? 'Đổi ảnh' : '+ Tải ảnh'}</span>
-                                  </button>
-                                )}
-
-                                <button
-                                  type='button'
-                                  data-testid={`floating-bible-${p.id}`}
-                                  onClick={() => {
-                                    setSelectedDrawerPanelId(p.id);
-                                    setBibleDrawerOpen(true);
-                                  }}
-                                  className='px-1.5 py-0.5 hover:bg-stone-700 text-stone-200 hover:text-white rounded-lg flex items-center gap-1 cursor-pointer transition-colors'
-                                  title='Mở Series Bible cho khung này'
-                                >
-                                  <BookOpen className='w-3 h-3 text-purple-400' />
-                                  <span>Bible</span>
-                                </button>
-
-                                <div className='w-px h-3.5 bg-stone-700 mx-0.5' />
-
-                                <button
-                                  type='button'
-                                  data-testid={`floating-split-v-${p.id}`}
-                                  disabled={Boolean(splitBlockedReason('vertical')) || layoutBusy}
-                                  onClick={() => handleSplitPanel('vertical')}
-                                  className='p-1 hover:bg-stone-700 text-stone-200 hover:text-white rounded-lg disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors'
-                                  title={splitBlockedReason('vertical') ?? 'Chia đôi dọc'}
-                                >
-                                  <Columns className='w-3 h-3' />
-                                </button>
-
-                                <button
-                                  type='button'
-                                  data-testid={`floating-split-h-${p.id}`}
-                                  disabled={Boolean(splitBlockedReason('horizontal')) || layoutBusy}
-                                  onClick={() => handleSplitPanel('horizontal')}
-                                  className='p-1 hover:bg-stone-700 text-stone-200 hover:text-white rounded-lg disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors'
-                                  title={splitBlockedReason('horizontal') ?? 'Chia đôi ngang'}
-                                >
-                                  <Rows className='w-3 h-3' />
-                                </button>
-
-                                <div className='w-px h-3.5 bg-stone-700 mx-0.5' />
-
-                                <button
-                                  type='button'
-                                  data-testid={`floating-delete-${p.id}`}
-                                  onClick={() => handleDeletePanel(p.id)}
-                                  className='p-1 hover:bg-rose-900/60 text-rose-300 hover:text-rose-100 rounded-lg cursor-pointer transition-colors'
-                                  title='Xoá khung này'
-                                >
-                                  <Trash2 className='w-3 h-3' />
-                                </button>
-                              </div>
-                            )}
-
-                            {/* Dropzone Overlay khi kéo tệp vào ô */}
-                            {isDraggingOver && (
-                              <div className='absolute inset-0 bg-orange-500/25 backdrop-blur-2xs flex flex-col items-center justify-center p-2 z-30 pointer-events-none'>
-                                <Upload className='w-6 h-6 text-orange-600 animate-bounce mb-1' />
-                                <span className='text-xs font-bold text-orange-950 bg-white/90 px-2 py-0.5 rounded shadow-2xs'>
-                                  Thả ảnh vào Khung #{p.panelNumber}
-                                </span>
-                              </div>
-                            )}
-
-                            {/* Upload Spinner Overlay */}
-                            {isUploading && (
-                              <div className='absolute inset-0 bg-stone-900/40 backdrop-blur-2xs flex flex-col items-center justify-center p-2 z-30 pointer-events-none'>
-                                <Loader2 className='w-6 h-6 text-white animate-spin mb-1' />
-                                <span className='text-xs font-semibold text-white bg-black/60 px-2 py-0.5 rounded'>
-                                  {uploadProgressMsg || 'Đang tải ảnh...'}
-                                </span>
-                              </div>
-                            )}
-
-                            {/* Ảnh Artwork hiển thị sắc nét */}
-                            {panelArtUrl && (
-                              <img
-                                src={panelArtUrl}
-                                alt={`Panel #${p.panelNumber}`}
-                                onError={() => handleArtworkImgError(panelArt?.id)}
-                                onLoad={() => handleArtworkImgLoad(panelArt?.id)}
-                                className='absolute inset-0 w-full h-full object-contain pointer-events-none opacity-90 z-0'
-                              />
-                            )}
-
-                            {/* Nút bấm nhanh Tải ảnh khi chưa có tranh */}
-                            {!panelArtUrl && !isDraggingOver && !isUploading && (
-                              <div className='absolute inset-0 flex flex-col items-center justify-center p-2 text-center pointer-events-none z-0'>
-                                <ImagePlus className='w-5 h-5 text-stone-300 mb-1' />
-                                <span className='text-xs text-stone-400 font-medium'>
-                                  {canEditPages ? 'Kéo thả ảnh hoặc' : 'Chưa có ảnh'}
-                                </span>
-                                {canEditPages && (
-                                  <button
-                                    type='button'
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setSelectedPanelId(p.id);
-                                      handleTriggerUploadPanel(p.id);
-                                    }}
-                                    className='mt-1 px-2 py-0.5 pointer-events-auto bg-stone-100/90 hover:bg-orange-50 text-stone-600 hover:text-orange-700 border border-stone-200 hover:border-orange-300 rounded text-xs font-semibold cursor-pointer shadow-2xs transition-all active:scale-95'
-                                  >
-                                    + Tải ảnh
-                                  </button>
-                                )}
-                              </div>
-                            )}
-
-                            {/* Nút đổi ảnh nhanh khi hover ô đã có ảnh */}
-                            {panelArtUrl && canEditPages && !isUploading && !isDraggingOver && (
-                              <div className='absolute inset-0 opacity-0 group-hover:opacity-100 bg-black/20 transition-opacity flex items-center justify-center pointer-events-none z-10'>
-                                <button
-                                  type='button'
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedPanelId(p.id);
-                                    handleTriggerUploadPanel(p.id);
-                                  }}
-                                  className='pointer-events-auto px-2 py-1 bg-white/95 hover:bg-white text-stone-900 rounded-lg text-xs font-semibold shadow-soft-sm flex items-center gap-1 cursor-pointer transition-transform active:scale-95'
-                                  title='Đổi ảnh cho khung này'
-                                >
-                                  <Upload className='w-3 h-3 text-orange-600' />
-                                  <span>Đổi ảnh</span>
-                                </button>
-                              </div>
-                            )}
-
-                            {/* Header Panel Box */}
-                            <div className='flex items-center justify-between pointer-events-none relative z-20'>
-                              <span className='font-mono font-bold text-xs bg-[#171717] text-white px-1.5 py-0.5 rounded shadow-2xs'>
-                                #{p.panelNumber}
-                              </span>
-                              <div className='flex items-center gap-1'>
-                                {panelArt && (
-                                  <span className='font-mono font-bold text-xs bg-emerald-600 text-white px-1.5 py-0.5 rounded shadow-2xs'>
-                                    {stageLabel(panelArt.pipelineStageId)} v{panelArt.versionNumber}
-                                  </span>
-                                )}
-                                <span className='font-mono font-semibold text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded border border-blue-200'>
-                                  Đọc #{p.readingOrder}
-                                </span>
-                              </div>
-                            </div>
-
-                            {/* Footer Panel Box */}
-                            <div className='flex items-center justify-between text-xs text-zinc-500 pointer-events-none relative z-20'>
-                              {p.sceneId && (
-                                <span className='bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded truncate max-w-[80px]'>
-                                  Scene
+                            <span
+                              className='w-9 shrink-0 bg-white border border-[#D8D2C5] rounded overflow-hidden flex items-center justify-center'
+                              style={{
+                                aspectRatio: `${p.widthPx || 1200} / ${p.heightPx || 1800}`,
+                              }}
+                            >
+                              {isSel && pageArtUrl ? (
+                                <img
+                                  src={pageArtUrl}
+                                  alt=''
+                                  className='w-full h-full object-contain'
+                                />
+                              ) : (
+                                <span className='text-[10px] font-mono text-[#57534E]'>
+                                  {p.pageNumber}
                                 </span>
                               )}
-                              <span className='font-mono text-zinc-400 ml-auto'>
-                                {Math.round(box.percentW)}×{Math.round(box.percentH)}%
-                                {box.borderless && ' (Tràn)'}
+                            </span>
+                            <span className='min-w-0 flex-1'>
+                              <span className='block font-semibold text-[#1C1917]'>
+                                Trang {p.pageNumber}
                               </span>
-                            </div>
-                          </div>
-                        );
-                      })
-                    )}
-
-                    {(dragGuides.guides.length > 0 || dragGuides.gaps.length > 0) && (
-                      <LayoutGuidesOverlay guides={dragGuides.guides} gaps={dragGuides.gaps} />
-                    )}
-
-                    {/* Layers / Image Elements on Canvas (CF2) */}
-                    {pageElements
-                      .filter((el) => !el.isRemoved)
-                      .map((el) => {
-                        const isSelected = selectedElementId === el.elementId;
-                        const bibleEntry = el.bibleEntryId
-                          ? bibleEntries.find((b) => b.id === el.bibleEntryId)
-                          : null;
-                        const artRef = el.assetId
-                          ? pageArtworks.find((a) => a.id === el.assetId)
-                          : null;
-                        const imgUrl = artRef
-                          ? panelArtworkUrls[artRef.id]
-                          : el.content?.startsWith('http') || el.content?.startsWith('data:')
-                            ? el.content
-                            : bibleEntry?.referenceImageUrl
-                              ? bibleEntry.referenceImageUrl
-                              : null;
-
-                        // Tỷ lệ % trên canvas
-                        const pageW = selectedPage.widthPx || 1200;
-                        const pageH = selectedPage.heightPx || 1800;
-                        const isPercent = el.width <= 100 || el.height <= 100;
-                        const leftPct = isPercent ? el.x : (el.x / pageW) * 100;
-                        const topPct = isPercent ? el.y : (el.y / pageH) * 100;
-                        const widthPct = isPercent ? el.width : (el.width / pageW) * 100;
-                        const heightPct = isPercent ? el.height : (el.height / pageH) * 100;
-
-                        return (
-                          <div
-                            key={el.elementId}
-                            data-testid={`canvas-layer-${el.elementId}`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedElementId(el.elementId);
-                              setActiveRightTab('layers');
-                            }}
-                            className={`absolute transition-all cursor-pointer flex flex-col items-center justify-center p-1 overflow-hidden select-none ${
-                              isSelected
-                                ? 'ring-2 ring-purple-600 bg-purple-50/30'
-                                : 'border border-dashed border-purple-400/50 hover:ring-1 hover:ring-purple-400'
-                            }`}
-                            style={{
-                              left: `${leftPct}%`,
-                              top: `${topPct}%`,
-                              width: `${widthPct}%`,
-                              height: `${heightPct}%`,
-                              transform: `rotate(${el.rotation || 0}deg)`,
-                              transformOrigin: 'center center',
-                              zIndex: el.zIndex || 5,
-                            }}
-                          >
-                            {imgUrl ? (
-                              <img
-                                src={imgUrl}
-                                alt={el.elementType}
-                                onError={() => handleArtworkImgError(artRef?.id)}
-                                onLoad={() => handleArtworkImgLoad(artRef?.id)}
-                                className='w-full h-full object-contain pointer-events-none'
-                              />
-                            ) : (
-                              <div className='flex flex-col items-center justify-center text-center p-1 bg-white/80 backdrop-blur-2xs rounded w-full h-full pointer-events-none'>
-                                {el.elementType === 'CHARACTER_INSTANCE' && (
-                                  <User className='w-4 h-4 text-purple-600 mb-0.5' />
-                                )}
-                                {el.elementType === 'BACKGROUND' && (
-                                  <Mountain className='w-4 h-4 text-emerald-600 mb-0.5' />
-                                )}
-                                {el.elementType === 'PROP' && (
-                                  <Package className='w-4 h-4 text-amber-600 mb-0.5' />
-                                )}
-                                {el.elementType === 'EFFECT' && (
-                                  <Zap className='w-4 h-4 text-red-500 mb-0.5' />
-                                )}
-                                {el.elementType === 'ARTWORK_LAYER' && (
-                                  <Palette className='w-4 h-4 text-blue-500 mb-0.5' />
-                                )}
-                                <span className='text-xs font-bold text-zinc-700 truncate max-w-full'>
-                                  {bibleEntry
-                                    ? bibleEntry.name
-                                    : LAYER_LABELS[el.elementType] || el.elementType}
+                              {pageStatus && (
+                                <span className='block truncate text-[11px] text-[#57534E]'>
+                                  {pageStatus.label.split(' · ')[0]}
                                 </span>
-                                {el.rotation ? (
-                                  <span className='text-xs text-zinc-500'>{el.rotation}°</span>
-                                ) : null}
-                              </div>
-                            )}
-                            <div className='absolute top-0.5 right-0.5 bg-black/60 text-white text-xs px-1 rounded font-mono'>
-                              z:{el.zIndex || 1}
-                            </div>
-                          </div>
-                        );
-                      })}
-                  </div>
+                              )}
+                            </span>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+                {canEditPages && (
+                  <button
+                    type='button'
+                    onClick={() => setCreateModalOpen(true)}
+                    disabled={!currentChapterId}
+                    className='w-full py-1.5 border border-dashed border-[#D8D2C5] rounded-lg font-semibold text-[#1C1917] hover:bg-[#F3F0E9] flex items-center justify-center gap-1 cursor-pointer disabled:text-stone-400 disabled:cursor-not-allowed'
+                  >
+                    <Plus className='w-3.5 h-3.5 text-[#C2410C]' /> Tạo trang mới
+                  </button>
+                )}
+                <button
+                  type='button'
+                  onClick={() => setActiveTab('queue')}
+                  data-testid='left-open-queue'
+                  className='w-full py-1.5 rounded-lg font-semibold text-[#57534E] hover:bg-[#F3F0E9] flex items-center justify-center gap-1 cursor-pointer'
+                >
+                  <KanbanSquare className='w-3.5 h-3.5' /> Nhiệm vụ chương ({tasks.length})
+                </button>
+              </>
+            )}
 
-                  {/* Lucian #104 Canvas Minimap */}
-                  {selectedPage && panels.length > 0 && (
-                    <CanvasMinimap
-                      panels={panels}
-                      selectedPanelId={selectedPanelId}
-                      onSelectPanel={(id) => setSelectedPanelId(id)}
-                      liveRects={liveRects}
-                      pageNumber={selectedPage.pageNumber}
-                    />
+            {activeTab === 'queue' && (
+              <>
+                <button
+                  type='button'
+                  onClick={() => setActiveTab('pages')}
+                  className='flex items-center gap-1 font-semibold text-[#C2410C] hover:underline cursor-pointer'
+                >
+                  <ChevronLeft className='w-3.5 h-3.5' /> Danh sách trang
+                </button>
+                <div className='space-y-2 max-h-[70vh] overflow-y-auto custom-scrollbar'>
+                  <div className='text-xs font-bold text-[#1C1917] pb-1 flex items-center justify-between'>
+                    <span>Hàng Đợi Công Việc</span>
+                    {loadingTasks && <Loader2 className='w-3 h-3 animate-spin text-[#F97316]' />}
+                  </div>
+                  {tasks.length === 0 ? (
+                    <div className='p-4 text-center text-xs text-[#57534E] border border-dashed border-[#D8D2C5] rounded-xl bg-[#F8F6F0]'>
+                      Chưa có nhiệm vụ nào trong chương này.
+                    </div>
+                  ) : (
+                    tasks.map((task) => (
+                      <div
+                        key={task.id}
+                        className='p-2.5 rounded-xl border border-[#D8D2C5] bg-[#F8F6F0] space-y-1 text-xs'
+                      >
+                        <div className='flex items-center justify-between'>
+                          <span className='px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-[#FFF2E6] text-[#C2410C] border border-[#F97316]/30'>
+                            {stages.find((s) => s.id === task.pipelineStageId)?.name ||
+                              task.pipelineStageId}
+                          </span>
+                          <span className='text-[10px] font-mono text-[#57534E]'>
+                            {task.status}
+                          </span>
+                        </div>
+                        <div className='font-bold text-[#1C1917] line-clamp-2'>
+                          {task.brief || 'Không có mô tả'}
+                        </div>
+                        {task.dueDate && (
+                          <div className='text-[10px] text-[#57534E]'>
+                            Hạn: {new Date(task.dueDate).toLocaleDateString('vi-VN')}
+                          </div>
+                        )}
+                      </div>
+                    ))
                   )}
                 </div>
+              </>
+            )}
+
+            {activeTab === 'script' &&
+              (selectedPanelDetail ? (
+                <>
+                  <div className='font-semibold text-[#1C1917]'>
+                    Khung #{selectedPanelDetail.panelNumber}
+                  </div>
+                  <button
+                    type='button'
+                    data-testid={`panel-bible-reference-btn-${selectedPanelDetail.id}`}
+                    onClick={() => {
+                      setSelectedDrawerPanelId(selectedPanelDetail.id);
+                      setBibleDrawerOpen(true);
+                    }}
+                    className='w-full py-1.5 bg-[#FFF2E6] hover:bg-[#FDBA74]/30 text-[#C2410C] border border-[#FDBA74] rounded-xl font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs active:scale-98'
+                  >
+                    <BookOpen className='w-3.5 h-3.5 text-[#C2410C]' />
+                    <span>Tham chiếu Bible (Khung #{selectedPanelDetail.panelNumber})</span>
+                  </button>
+                  <div className='p-2.5 bg-[#F8F6F0] rounded-xl border border-[#D8D2C5] space-y-1.5'>
+                    <div className='font-bold text-[#1C1917] flex items-center gap-1.5 text-xs'>
+                      <Film className='w-3.5 h-3.5 text-[#C2410C]' />
+                      <span>Phân Cảnh (Scene)</span>
+                    </div>
+                    <select
+                      value={selectedPanelDetail.sceneId || ''}
+                      onChange={(e) => handleAssignScene(e.target.value ? e.target.value : null)}
+                      className='w-full p-1.5 bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl text-xs font-semibold text-[#1C1917] focus:border-[#F97316] focus:outline-none cursor-pointer'
+                    >
+                      <option value=''>-- Chưa gán phân cảnh --</option>
+                      {scenes.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          Phân cảnh #{s.sceneNumber}: {s.heading || 'Không tiêu đề'} (
+                          {s.scriptLinesCount} dòng thoại)
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className='p-2.5 bg-[#F8F6F0] rounded-xl border border-[#D8D2C5] space-y-2 flex-1'>
+                    <div className='font-bold text-[#1C1917] flex items-center justify-between text-xs'>
+                      <span className='flex items-center gap-1.5'>
+                        <MessageSquare className='w-3.5 h-3.5 text-[#C2410C]' />
+                        <span>Dòng Kịch Bản Phân Cảnh</span>
+                      </span>
+                      <span className='text-xs text-[#57534E] font-mono'>
+                        {selectedPanelDetail.scriptLineIds?.length || 0} dòng
+                      </span>
+                    </div>
+
+                    {!selectedPanelDetail.sceneId ? (
+                      <p className='text-xs text-[#57534E] italic p-2 bg-[#FCFBF8] rounded-xl border border-[#D8D2C5]'>
+                        Vui lòng gán Phân cảnh (Scene) ở trên trước khi chọn các dòng thoại neo vào
+                        panel này.
+                      </p>
+                    ) : loadingSceneLines ? (
+                      <p className='text-xs text-[#57534E] p-2'>Đang nạp kịch bản...</p>
+                    ) : sceneLines.length === 0 ? (
+                      <p className='text-xs text-[#57534E] italic p-2 bg-[#FCFBF8] rounded-xl border border-[#D8D2C5]'>
+                        Phân cảnh này chưa có dòng thoại kịch bản nào.
+                      </p>
+                    ) : (
+                      <div className='space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar'>
+                        {sceneLines.map((line) => {
+                          const isAnchored = selectedPanelDetail.scriptLineIds?.includes(line.id);
+                          return (
+                            <div
+                              key={line.id}
+                              onClick={() => handleToggleScriptLine(line.id)}
+                              className={`p-2 rounded-xl border text-left cursor-pointer flex items-start gap-2 transition-all ${
+                                isAnchored
+                                  ? 'bg-[#FFF2E6] border-[#F97316]/40 text-[#1C1917] shadow-2xs'
+                                  : 'bg-[#FCFBF8] border-[#D8D2C5] text-[#1C1917] hover:border-[#F97316]/40'
+                              }`}
+                            >
+                              {isAnchored ? (
+                                <CheckSquare className='w-3.5 h-3.5 text-[#C2410C] shrink-0 mt-0.5' />
+                              ) : (
+                                <Square className='w-3.5 h-3.5 text-[#57534E] shrink-0 mt-0.5' />
+                              )}
+                              <div className='flex-1 min-w-0'>
+                                <div className='flex items-center gap-1 text-[11px] font-mono font-bold text-[#57534E]'>
+                                  <span>#{line.lineOrder}</span>
+                                  {line.speakerCharacterId && (
+                                    <span className='bg-[#F3F0E9] border border-[#D8D2C5] px-1 rounded text-[#1C1917]'>
+                                      Nhân vật
+                                    </span>
+                                  )}
+                                </div>
+                                <p className='text-xs truncate font-medium'>
+                                  {line.dialogueText ||
+                                    line.stageDirection ||
+                                    '(Chỉ dẫn diễn xuất)'}
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <p className='p-3 text-center text-[#57534E] border border-dashed border-[#D8D2C5] rounded-xl leading-relaxed'>
+                  Chọn một khung trên trang để xem phân cảnh, dòng kịch bản và tham chiếu Bible.
+                </p>
+              ))}
+          </div>
+        </aside>
+
+        {/* Canvas trung tâm */}
+        <section className='flex-1 min-w-0 min-h-0 flex flex-col gap-2' aria-label='Trang truyện'>
+          {selectedPage ? (
+            <>
+              {uploadMode === 'page' && (
+                <PageArtworkWorkflow
+                  page={selectedPage}
+                  stageName={(() => {
+                    const a = findPageStageAssignment();
+                    return a ? stageLabel(a.pipelineStageId) || a.stageName : undefined;
+                  })()}
+                  assignmentBrief={findPageStageAssignment()?.brief}
+                  artwork={
+                    pageArt && pageArtUrl
+                      ? { id: pageArt.id, versionNumber: pageArt.versionNumber, url: pageArtUrl }
+                      : null
+                  }
+                  pendingFile={pendingPageFile}
+                  uploading={uploadingPage}
+                  uploadProgressMsg={uploadProgressMsg}
+                  canEdit={canEditPages}
+                  existingPanels={panels}
+                  defaultRightToLeft={seriesRightToLeft}
+                  onPickFile={handleTriggerUploadPage}
+                  onCancelPending={() => setPendingPageFile(null)}
+                  onUploadPending={handleUploadPendingPage}
+                  onApplied={async () => {
+                    await Promise.all([loadPanels(selectedPage.id), loadElements(selectedPage.id)]);
+                  }}
+                />
+              )}
+              {/* Canvas Container & Direct Dropzone */}
+              <div
+                ref={canvasContainerRef}
+                onDragOver={(e) => {
+                  if (uploadMode === 'page' && canEditPages) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }
+                }}
+                onDrop={(e) => {
+                  if (uploadMode === 'page' && canEditPages && e.dataTransfer.files?.[0]) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (!uploadingPage) stagePageFile(e.dataTransfer.files[0]);
+                  }
+                }}
+                data-testid='canvas-viewport'
+                className='flex-1 min-h-0 w-full bg-[#ECE7DC] rounded-xl border border-[#D8D2C5] relative overflow-auto custom-scrollbar'
+              >
+                {/* Sizer & Centering Wrapper */}
+                <div
+                  className='min-w-full min-h-full flex items-center justify-center p-4'
+                  style={{ minWidth: 'max-content', minHeight: 'max-content' }}
+                >
+                  {/* Scaled bounding box with explicit layout dimensions */}
+                  <div
+                    style={{
+                      width: Math.round(baseWidth * zoomScale),
+                      height: Math.round(baseHeight * zoomScale),
+                      position: 'relative',
+                      margin: 'auto',
+                    }}
+                    className='shrink-0 flex items-center justify-center'
+                  >
+                    <div
+                      ref={canvasRef}
+                      tabIndex={0}
+                      onKeyDown={handleCanvasKeyDown}
+                      data-testid='panel-canvas'
+                      className='bg-white shadow-2xl border-2 border-[#171717] relative outline-none focus:ring-2 focus:ring-[#F97316]/50 transition-transform duration-150 overflow-hidden shrink-0'
+                      style={{
+                        width: baseWidth,
+                        height: baseHeight,
+                        transform: `scale(${zoomScale})`,
+                        transformOrigin: 'center center',
+                      }}
+                    >
+                      {/* Safe Margin Guides */}
+                      {layoutEdit && (
+                        <div className='absolute inset-3 border border-blue-200/60 pointer-events-none'></div>
+                      )}
+
+                      {/* Xem trước ảnh toàn trang đã chọn nhưng CHƯA tải lên */}
+                      {uploadMode === 'page' && pendingPagePreview && (
+                        <>
+                          <img
+                            src={pendingPagePreview}
+                            alt={`Xem trước ảnh trang ${selectedPage.pageNumber} (chưa tải lên)`}
+                            data-testid='canvas-pending-preview'
+                            className='absolute inset-0 w-full h-full object-contain pointer-events-none z-[1] bg-white'
+                          />
+                        </>
+                      )}
+
+                      {/* Backdrop Layer: Ảnh Cả Trang (Full-page Composite) */}
+                      {pageArtUrl && (
+                        <img
+                          src={pageArtUrl}
+                          alt={`Page #${selectedPage.pageNumber}`}
+                          onError={() => handleArtworkImgError(pageArt?.id)}
+                          onLoad={() => handleArtworkImgLoad(pageArt?.id)}
+                          data-testid='canvas-full-page-backdrop'
+                          className={`absolute inset-0 w-full h-full object-contain pointer-events-none transition-opacity ${
+                            uploadMode === 'page' || panels.some((pp) => !artFor(pp.id))
+                              ? 'opacity-90 z-0'
+                              : 'opacity-25 z-0'
+                          }`}
+                        />
+                      )}
+
+                      {/* Banner / Dropzone khi ở chế độ Full-Page và chưa có ảnh */}
+                      {uploadMode === 'page' &&
+                        !pageArtUrl &&
+                        !pendingPagePreview &&
+                        !uploadingPage && (
+                          <div
+                            className='absolute inset-0 flex flex-col items-center justify-center p-4 text-center pointer-events-none z-10 bg-white/75 backdrop-blur-2xs'
+                            data-testid='full-page-empty-banner'
+                          >
+                            <FileImage className='w-8 h-8 text-blue-500 mb-1.5 animate-pulse' />
+                            <span className='text-xs font-bold text-stone-800'>
+                              Tải ảnh cả trang
+                            </span>
+                            <p className='text-xs text-stone-500 mt-1 max-w-xs leading-relaxed'>
+                              Kéo thả file ảnh toàn trang hoặc bấm nút bên dưới để tải và đối chiếu
+                              khớp nét với các khung.
+                            </p>
+                            {canEditPages && (
+                              <button
+                                type='button'
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleTriggerUploadPage();
+                                }}
+                                data-testid='desk-upload-page-btn'
+                                className='mt-2.5 px-3 py-1.5 pointer-events-auto bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold cursor-pointer shadow-soft-sm transition-all active:scale-95 flex items-center gap-1.5'
+                              >
+                                <Upload className='w-3.5 h-3.5' />
+                                <span>Chọn ảnh trang truyện</span>
+                              </button>
+                            )}
+                          </div>
+                        )}
+
+                      {/* Upload Spinner toàn trang */}
+                      {uploadingPage && (
+                        <div className='absolute inset-0 bg-stone-900/40 backdrop-blur-2xs flex flex-col items-center justify-center p-2 z-30 pointer-events-none'>
+                          <Loader2 className='w-7 h-7 text-white animate-spin mb-1.5' />
+                          <span className='text-xs font-semibold text-white bg-black/60 px-2.5 py-1 rounded'>
+                            {uploadProgressMsg || 'Đang tải artwork toàn trang...'}
+                          </span>
+                        </div>
+                      )}
+
+                      {panels.length === 0 ? (
+                        <div className='absolute inset-0 flex flex-col items-center justify-center p-4 text-center text-zinc-400'>
+                          <LayoutTemplate className='w-8 h-8 mb-2 opacity-50' />
+                          <span className='text-xs font-semibold'>Chưa có khung panel</span>
+                          <p className='text-xs mt-1 text-zinc-500'>
+                            Bật "Sửa bố cục" rồi chọn "Áp Dụng Mẫu Khung" hoặc "Thêm Panel" để chia
+                            khung.
+                          </p>
+                        </div>
+                      ) : (
+                        panels.map((p) => {
+                          const box = parseBoundingBox(
+                            p.boundingBox,
+                            selectedPage.widthPx,
+                            selectedPage.heightPx,
+                          );
+                          const liveRect = liveRects[p.id];
+                          const isPrimary = selectedPanelId === p.id;
+                          const isSelected = isPrimary || multiIds.includes(p.id);
+                          const dragging = Boolean(liveRect);
+                          const panelArt = artFor(p.id);
+                          const panelArtUrl = panelArt ? panelArtworkUrls[panelArt.id] : null;
+                          const isDraggingOver = dragOverPanelId === p.id;
+                          const isUploading = uploadingPanelId === p.id;
+                          const showsPageArt = !panelArtUrl && Boolean(pageArtUrl);
+
+                          return (
+                            <div
+                              key={p.id}
+                              onClick={() => setSelectedPanelId(p.id)}
+                              onPointerDown={(e) => {
+                                if (layoutEdit) handlePanelPointerDown(p, e);
+                              }}
+                              onDragOver={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                if (canEditPages) setDragOverPanelId(p.id);
+                              }}
+                              onDragLeave={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                if (dragOverPanelId === p.id) setDragOverPanelId(null);
+                              }}
+                              onDrop={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setDragOverPanelId(null);
+                                if (canEditPages && e.dataTransfer.files?.[0]) {
+                                  void handlePanelFileDrop(p.id, e.dataTransfer.files[0]);
+                                }
+                              }}
+                              data-testid={`panel-box-${p.id}`}
+                              className={`group absolute border-2 ${
+                                dragging ? '' : 'transition-all'
+                              } ${layoutEdit && canEditPages ? 'cursor-move' : 'cursor-pointer'} flex flex-col justify-between p-1.5 overflow-hidden select-none ${
+                                isDraggingOver
+                                  ? 'border-orange-500 bg-orange-500/20 ring-2 ring-orange-400 z-30'
+                                  : isSelected && layoutEdit
+                                    ? 'border-orange-500 bg-orange-500/10 ring-2 ring-orange-400/40 z-20'
+                                    : showsPageArt
+                                      ? // Khung chưa có ảnh riêng: nhìn xuyên xuống đúng phần ảnh cả trang
+                                        `${box.borderless ? 'border-dashed border-zinc-400' : 'border-[#171717]'} bg-transparent hover:border-blue-500 z-10`
+                                      : box.borderless
+                                        ? 'border-dashed border-zinc-400 bg-white/80 hover:border-blue-500 z-10'
+                                        : 'border-[#171717] bg-white/90 hover:border-blue-500 hover:bg-blue-50/20 z-10'
+                              }`}
+                              style={{
+                                left: `${liveRect ? liveRect.x : box.percentX}%`,
+                                top: `${liveRect ? liveRect.y : box.percentY}%`,
+                                width: `${liveRect ? liveRect.w : box.percentW}%`,
+                                height: `${liveRect ? liveRect.h : box.percentH}%`,
+                                touchAction: 'none',
+                              }}
+                            >
+                              {isPrimary && canEditPages && layoutEdit && multiIds.length <= 1 && (
+                                <PanelResizeHandles
+                                  onStart={(mode, e) => startDrag(p.id, mode, e)}
+                                />
+                              )}
+
+                              {/* Dropzone Overlay khi kéo tệp vào ô */}
+                              {isDraggingOver && (
+                                <div className='absolute inset-0 bg-orange-500/25 backdrop-blur-2xs flex flex-col items-center justify-center p-2 z-30 pointer-events-none'>
+                                  <Upload className='w-6 h-6 text-orange-600 animate-bounce mb-1' />
+                                  <span className='text-xs font-bold text-orange-950 bg-white/90 px-2 py-0.5 rounded shadow-2xs'>
+                                    Thả ảnh vào Khung #{p.panelNumber}
+                                  </span>
+                                </div>
+                              )}
+
+                              {/* Upload Spinner Overlay */}
+                              {isUploading && (
+                                <div className='absolute inset-0 bg-stone-900/40 backdrop-blur-2xs flex flex-col items-center justify-center p-2 z-30 pointer-events-none'>
+                                  <Loader2 className='w-6 h-6 text-white animate-spin mb-1' />
+                                  <span className='text-xs font-semibold text-white bg-black/60 px-2 py-0.5 rounded'>
+                                    {uploadProgressMsg || 'Đang tải ảnh...'}
+                                  </span>
+                                </div>
+                              )}
+
+                              {/* Ảnh Artwork hiển thị sắc nét */}
+                              {panelArtUrl && (
+                                <img
+                                  src={panelArtUrl}
+                                  alt={`Panel #${p.panelNumber}`}
+                                  onError={() => handleArtworkImgError(panelArt?.id)}
+                                  onLoad={() => handleArtworkImgLoad(panelArt?.id)}
+                                  className='absolute inset-0 w-full h-full object-contain pointer-events-none opacity-90 z-0'
+                                />
+                              )}
+
+                              {/* Khung dùng ảnh cả trang: chỉ gắn nhãn nhỏ, không che tranh */}
+                              {layoutEdit && showsPageArt && !isDraggingOver && !isUploading && (
+                                <span
+                                  data-testid={`panel-uses-page-art-${p.id}`}
+                                  className='absolute bottom-1 right-1 z-10 pointer-events-none text-[10px] font-semibold bg-white/85 text-stone-700 border border-stone-300 px-1 rounded'
+                                >
+                                  Ảnh cả trang v{pageArt?.versionNumber}
+                                </span>
+                              )}
+
+                              {/* Nút bấm nhanh Tải ảnh khi chưa có tranh */}
+                              {!panelArtUrl && !showsPageArt && !isDraggingOver && !isUploading && (
+                                <div className='absolute inset-0 flex flex-col items-center justify-center p-2 text-center pointer-events-none z-0'>
+                                  <ImagePlus className='w-5 h-5 text-stone-300 mb-1' />
+                                  <span className='text-xs text-stone-400 font-medium'>
+                                    {canEditPages ? 'Kéo thả ảnh hoặc' : 'Chưa có ảnh'}
+                                  </span>
+                                  {canEditPages && (
+                                    <button
+                                      type='button'
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedPanelId(p.id);
+                                        handleTriggerUploadPanel(p.id);
+                                      }}
+                                      className='mt-1 px-2 py-0.5 pointer-events-auto bg-stone-100/90 hover:bg-orange-50 text-stone-600 hover:text-orange-700 border border-stone-200 hover:border-orange-300 rounded text-xs font-semibold cursor-pointer shadow-2xs transition-all active:scale-95'
+                                    >
+                                      + Tải ảnh
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+
+                              {/* Header Panel Box */}
+                              <div className='flex items-center justify-between pointer-events-none relative z-20'>
+                                <span
+                                  className={`font-mono font-bold text-xs text-white px-1.5 py-0.5 rounded shadow-2xs ${isPrimary ? 'bg-[#C2410C]' : 'bg-[#171717]'}`}
+                                >
+                                  #{p.panelNumber}
+                                </span>
+                                <div className='flex items-center gap-1'>
+                                  {layoutEdit && panelArt && (
+                                    <span className='font-mono font-bold text-xs bg-emerald-600 text-white px-1.5 py-0.5 rounded shadow-2xs'>
+                                      {stageLabel(panelArt.pipelineStageId)} v
+                                      {panelArt.versionNumber}
+                                    </span>
+                                  )}
+                                  {layoutEdit && (
+                                    <span className='font-mono font-semibold text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded border border-blue-200'>
+                                      Đọc #{p.readingOrder}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Footer Panel Box */}
+                              {layoutEdit && (
+                                <div className='flex items-center justify-between text-xs text-zinc-500 pointer-events-none relative z-20'>
+                                  {p.sceneId && (
+                                    <span className='bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded truncate max-w-[80px]'>
+                                      Scene
+                                    </span>
+                                  )}
+                                  <span className='font-mono text-zinc-400 ml-auto'>
+                                    {Math.round(box.percentW)}×{Math.round(box.percentH)}%
+                                    {box.borderless && ' (Tràn)'}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })
+                      )}
+
+                      {(dragGuides.guides.length > 0 || dragGuides.gaps.length > 0) && (
+                        <LayoutGuidesOverlay guides={dragGuides.guides} gaps={dragGuides.gaps} />
+                      )}
+
+                      {/* Layers / Image Elements on Canvas (CF2) */}
+                      {pageElements
+                        .filter((el) => !el.isRemoved)
+                        .map((el) => {
+                          const isSelected = selectedElementId === el.elementId;
+                          const bibleEntry = el.bibleEntryId
+                            ? bibleEntries.find((b) => b.id === el.bibleEntryId)
+                            : null;
+                          const artRef = el.assetId
+                            ? pageArtworks.find((a) => a.id === el.assetId)
+                            : null;
+                          const imgUrl = artRef
+                            ? panelArtworkUrls[artRef.id]
+                            : el.content?.startsWith('http') || el.content?.startsWith('data:')
+                              ? el.content
+                              : bibleEntry?.referenceImageUrl
+                                ? bibleEntry.referenceImageUrl
+                                : null;
+
+                          // Tỷ lệ % trên canvas
+                          const pageW = selectedPage.widthPx || 1200;
+                          const pageH = selectedPage.heightPx || 1800;
+                          const isPercent =
+                            el.x >= 0 &&
+                            el.y >= 0 &&
+                            el.x <= 100 &&
+                            el.y <= 100 &&
+                            el.width <= 100 &&
+                            el.height <= 100;
+                          const leftPct = Math.max(
+                            0,
+                            Math.min(100, isPercent ? el.x : (el.x / pageW) * 100),
+                          );
+                          const topPct = Math.max(
+                            0,
+                            Math.min(100, isPercent ? el.y : (el.y / pageH) * 100),
+                          );
+                          const widthPct = Math.max(
+                            1,
+                            Math.min(100, isPercent ? el.width : (el.width / pageW) * 100),
+                          );
+                          const heightPct = Math.max(
+                            1,
+                            Math.min(100, isPercent ? el.height : (el.height / pageH) * 100),
+                          );
+
+                          return (
+                            <div
+                              key={el.elementId}
+                              data-testid={`canvas-layer-${el.elementId}`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedElementId(el.elementId);
+                                openDetails('layers');
+                              }}
+                              className={`absolute transition-all cursor-pointer flex flex-col items-center justify-center p-1 overflow-hidden select-none ${
+                                isSelected
+                                  ? 'ring-2 ring-purple-600 bg-purple-50/30'
+                                  : 'border border-dashed border-purple-400/50 hover:ring-1 hover:ring-purple-400'
+                              }`}
+                              style={{
+                                left: `${leftPct}%`,
+                                top: `${topPct}%`,
+                                width: `${widthPct}%`,
+                                height: `${heightPct}%`,
+                                transform: `rotate(${el.rotation || 0}deg)`,
+                                transformOrigin: 'center center',
+                                zIndex: el.zIndex || 5,
+                              }}
+                            >
+                              {imgUrl ? (
+                                <img
+                                  src={imgUrl}
+                                  alt={el.elementType}
+                                  onError={() => handleArtworkImgError(artRef?.id)}
+                                  onLoad={() => handleArtworkImgLoad(artRef?.id)}
+                                  className='w-full h-full object-contain pointer-events-none'
+                                />
+                              ) : (
+                                <div className='flex flex-col items-center justify-center text-center p-1 bg-white/80 backdrop-blur-2xs rounded w-full h-full pointer-events-none'>
+                                  {el.elementType === 'CHARACTER_INSTANCE' && (
+                                    <User className='w-4 h-4 text-purple-600 mb-0.5' />
+                                  )}
+                                  {el.elementType === 'BACKGROUND' && (
+                                    <Mountain className='w-4 h-4 text-emerald-600 mb-0.5' />
+                                  )}
+                                  {el.elementType === 'PROP' && (
+                                    <Package className='w-4 h-4 text-amber-600 mb-0.5' />
+                                  )}
+                                  {el.elementType === 'EFFECT' && (
+                                    <Zap className='w-4 h-4 text-red-500 mb-0.5' />
+                                  )}
+                                  {el.elementType === 'ARTWORK_LAYER' && (
+                                    <Palette className='w-4 h-4 text-blue-500 mb-0.5' />
+                                  )}
+                                  <span className='text-xs font-bold text-zinc-700 truncate max-w-full'>
+                                    {bibleEntry
+                                      ? bibleEntry.name
+                                      : LAYER_LABELS[el.elementType] || el.elementType}
+                                  </span>
+                                  {el.rotation ? (
+                                    <span className='text-xs text-zinc-500'>{el.rotation}°</span>
+                                  ) : null}
+                                </div>
+                              )}
+                              {layoutEdit && (
+                                <div className='absolute top-0.5 right-0.5 bg-black/60 text-white text-xs px-1 rounded font-mono'>
+                                  z:{el.zIndex || 1}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Lucian #104 Canvas Minimap */}
+                {selectedPage && panels.length > 0 && (
+                  <CanvasMinimap
+                    panels={panels}
+                    selectedPanelId={selectedPanelId}
+                    onSelectPanel={(id) => setSelectedPanelId(id)}
+                    liveRects={liveRects}
+                    pageNumber={selectedPage.pageNumber}
+                    defaultCollapsed={true}
+                  />
+                )}
               </div>
 
-              {/* CỘT PHẢI (3 cols): Panel Properties & Production Inspector */}
-              <div className='lg:col-span-3 bg-[#FCFBF8] p-4.5 rounded-2xl border border-[#D8D2C5] shadow-xs space-y-3.5 flex flex-col'>
-                {/* Tab Switcher: Khung Panel vs Lớp Vẽ & Layer Ảnh */}
-                <div className='flex items-center justify-between border-b border-[#D8D2C5] pb-3'>
-                  <div className='flex items-center gap-1.5'>
+              {/* Thanh trạng thái mỏng */}
+              <div
+                className='shrink-0 min-h-8 flex items-center gap-2 px-2 py-1 text-xs text-[#57534E] bg-[#FCFBF8] border border-[#D8D2C5] rounded-lg min-w-0'
+                data-testid='canvas-status-bar'
+              >
+                <span className='truncate'>
+                  <span className='font-semibold text-[#1C1917]'>
+                    Trang {selectedPage.pageNumber}
+                  </span>
+                  {' · '}
+                  {viewedPageLabel}
+                  {viewStageId !== 'AUTO' && ' (đang xem theo lựa chọn)'}
+                  {selectedPanelDetail && (
+                    <>
+                      {' · '}Khung #{selectedPanelDetail.panelNumber}:{' '}
+                      {(() => {
+                        const a = artFor(selectedPanelDetail.id);
+                        return a
+                          ? `${stageLabel(a.pipelineStageId)} v${a.versionNumber}`
+                          : pageArt
+                            ? 'dùng ảnh cả trang'
+                            : 'chưa có ảnh';
+                      })()}
+                    </>
+                  )}
+                </span>
+                {uploadMode === 'page' && pendingPagePreview && (
+                  <span className='shrink-0 font-semibold bg-[#C2410C] text-white px-1.5 rounded'>
+                    Bản xem trước — chưa tải lên
+                  </span>
+                )}
+                {!canEditPages && (
+                  <span
+                    className='shrink-0 inline-flex items-center gap-1 font-semibold bg-stone-100 text-stone-700 border border-stone-300 px-1.5 rounded'
+                    title='Chỉ Producer và Artist mới có quyền tạo, sửa và xoá trang'
+                  >
+                    <Lock className='w-3 h-3' /> Chỉ xem
+                  </span>
+                )}
+                {(loadingPanels || loadingElements) && (
+                  <Loader2
+                    className='w-3.5 h-3.5 animate-spin text-[#C2410C] shrink-0'
+                    aria-label='Đang tải'
+                  />
+                )}
+                <button
+                  type='button'
+                  onClick={() => openDetails('versions')}
+                  data-testid='status-open-history'
+                  className='ml-auto shrink-0 inline-flex items-center gap-1 font-semibold text-[#C2410C] hover:underline cursor-pointer focus-visible:outline-2 focus-visible:outline-[#F97316] rounded'
+                >
+                  <History className='w-3.5 h-3.5' /> Lịch sử
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className='flex flex-col items-center justify-center p-12 text-center bg-[#FCFBF8] rounded-2xl border border-[#D8D2C5] shadow-xs my-6'>
+              <div className='w-16 h-16 rounded-2xl bg-[#F8F6F0] border border-[#D8D2C5] flex items-center justify-center text-[#57534E] mb-4'>
+                <FileImage className='w-8 h-8 text-[#C2410C]' />
+              </div>
+              <h3 className='text-base font-serif font-bold text-[#1C1917] mb-1'>
+                Chọn một trang để bắt đầu
+              </h3>
+              <p className='text-xs text-[#57534E] max-w-sm'>
+                {pages.length > 0
+                  ? 'Vui lòng chọn một trang từ danh sách ở cột trái để bắt đầu thao tác bố cục khung tranh.'
+                  : 'Chương hiện tại chưa có trang truyện nào. Bấm "Tạo Trang Mới" để tạo trang đầu tiên.'}
+              </p>
+              {canEditPages && currentChapterId && (
+                <button
+                  type='button'
+                  onClick={() => setCreateModalOpen(true)}
+                  className='mt-4 btn-cta-primary flex items-center gap-1.5'
+                >
+                  <Plus className='w-4 h-4' />
+                  <span>Tạo Trang Mới</span>
+                </button>
+              )}
+            </div>
+          )}
+        </section>
+
+        {/* Cột Chi tiết: mặc định đóng; inline từ 1280px, drawer khi hẹp hơn */}
+        {selectedPage && !isRightCollapsed && (
+          <>
+            <button
+              type='button'
+              className='fixed inset-0 z-40 bg-[#1C1917]/30 xl:hidden cursor-default'
+              aria-label='Đóng Chi tiết'
+              tabIndex={-1}
+              onClick={() => setIsRightCollapsed(true)}
+            />
+            <aside
+              id='artist-details'
+              aria-label='Chi tiết'
+              data-testid='artist-details'
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') setIsRightCollapsed(true);
+              }}
+              className='fixed inset-y-0 right-0 z-50 w-[22rem] max-w-[92vw] shadow-2xl xl:static xl:z-auto xl:w-80 xl:shadow-none xl:rounded-xl flex flex-col min-h-0 shrink-0 bg-[#FCFBF8] border border-[#D8D2C5] overflow-hidden'
+            >
+              <div className='shrink-0 flex items-center gap-1 p-1.5 border-b border-[#D8D2C5]'>
+                <div
+                  className='flex items-center gap-0.5 flex-1 min-w-0'
+                  role='tablist'
+                  aria-label='Chi tiết'
+                >
+                  {[
+                    { id: 'panel' as const, label: 'Khung', testId: 'tab-panel' },
+                    { id: 'versions' as const, label: 'Phiên bản', testId: 'tab-versions' },
+                    { id: 'feedback' as const, label: 'Phản hồi', testId: 'tab-feedback' },
+                    {
+                      id: 'layers' as const,
+                      label: `Lớp (${visibleElements.length})`,
+                      testId: 'tab-layers',
+                    },
+                  ].map((t) => (
                     <button
+                      key={t.id}
                       type='button'
-                      onClick={() => setActiveRightTab('panel')}
-                      className={`px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer ${
-                        activeRightTab === 'panel'
-                          ? 'bg-[#FFF2E6] text-[#1C1917] border border-[#F97316]/40 shadow-2xs font-bold'
-                          : 'text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9]'
+                      role='tab'
+                      aria-selected={activeRightTab === t.id}
+                      data-testid={t.testId}
+                      onClick={() => setActiveRightTab(t.id)}
+                      className={`relative px-2 py-1 rounded-lg text-xs font-semibold whitespace-nowrap cursor-pointer focus-visible:outline-2 focus-visible:outline-[#F97316] ${
+                        activeRightTab === t.id
+                          ? 'bg-[#FFF2E6] text-[#C2410C]'
+                          : 'text-[#57534E] hover:bg-[#F3F0E9]'
                       }`}
-                      data-testid='tab-panel'
                     >
-                      <Edit3 className='w-3.5 h-3.5 text-[#C2410C]' />
-                      <span>
-                        {selectedPanelDetail
-                          ? `Panel #${selectedPanelDetail.panelNumber}`
-                          : 'Khung Panel'}
-                      </span>
-                    </button>
-                    <button
-                      type='button'
-                      onClick={() => setActiveRightTab('layers')}
-                      className={`px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer ${
-                        activeRightTab === 'layers'
-                          ? 'bg-[#FFF2E6] text-[#C2410C] border border-[#F97316]/40 shadow-2xs font-bold'
-                          : 'text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9]'
-                      }`}
-                      data-testid='tab-layers'
-                    >
-                      <Layers className='w-3.5 h-3.5 text-[#C2410C]' />
-                      <span>Lớp Vẽ &amp; Layer Ảnh</span>
-                      {visibleElements.length > 0 && (
-                        <span className='ml-1 px-1.5 py-0.5 bg-[#FFF2E6] text-[#C2410C] border border-[#F97316]/30 rounded-full text-xs font-mono font-bold'>
-                          {visibleElements.length}
-                        </span>
+                      {t.label}
+                      {t.id === 'feedback' && hasFeedback && (
+                        <span className='ml-1 inline-block w-1.5 h-1.5 rounded-full bg-amber-500 align-middle' />
                       )}
                     </button>
-                  </div>
-
-                  {activeRightTab === 'layers' && (
-                    <button
-                      type='button'
-                      onClick={() => setCreateLayerModalOpen(true)}
-                      className='px-3 py-1.5 bg-[#F97316] hover:bg-[#EA580C] text-white rounded-xl text-xs font-semibold flex items-center gap-1 cursor-pointer transition-all shadow-soft-sm active:scale-95'
-                      data-testid='open-create-layer-modal'
-                      title='Thêm Layer mới'
-                    >
-                      <Plus className='w-3.5 h-3.5' />
-                    </button>
-                  )}
+                  ))}
                 </div>
+                <button
+                  ref={detailsCloseRef}
+                  type='button'
+                  onClick={() => setIsRightCollapsed(true)}
+                  className='p-1 rounded-lg text-[#57534E] hover:bg-[#F3F0E9] cursor-pointer focus-visible:outline-2 focus-visible:outline-[#F97316]'
+                  aria-label='Đóng Chi tiết'
+                  title='Đóng'
+                  data-testid='close-details'
+                >
+                  <X className='w-4 h-4' />
+                </button>
+              </div>
 
-                {activeRightTab === 'panel' ? (
-                  selectedPanelDetail ? (
-                    <div className='space-y-3.5 text-xs flex-1 overflow-y-auto custom-scrollbar'>
-                      {/* Vị trí & Thứ tự đọc */}
+              <div className='flex-1 min-h-0 overflow-y-auto custom-scrollbar p-3 space-y-3 text-xs'>
+                {activeRightTab === 'panel' &&
+                  (selectedPanelDetail ? (
+                    <>
+                      <div className='flex items-center justify-between gap-2'>
+                        <span className='font-bold text-sm text-[#1C1917]'>
+                          Khung #{selectedPanelDetail.panelNumber}
+                        </span>
+                        <span className='text-[11px] text-[#57534E]'>
+                          {panelArt
+                            ? `${stageLabel(panelArt.pipelineStageId)} v${panelArt.versionNumber}`
+                            : pageArt
+                              ? 'Dùng ảnh cả trang'
+                              : 'Chưa có ảnh'}
+                        </span>
+                      </div>
+
+                      {canEditPages && (
+                        <div className='space-y-2' data-testid='panel-artwork-desk-card'>
+                          <button
+                            type='button'
+                            data-testid={`desk-upload-panel-btn-${selectedPanelDetail.id}`}
+                            onClick={() => handleTriggerUploadPanel(selectedPanelDetail.id)}
+                            disabled={!canUpload}
+                            title={canUpload ? undefined : uploadBlockedReason}
+                            className={`w-full ${toolbarBtn} justify-center ${
+                              canUpload
+                                ? 'bg-[#EA580C] hover:bg-[#C2410C] text-white border-[#EA580C]'
+                                : ''
+                            }`}
+                          >
+                            <Upload className='w-3.5 h-3.5' />
+                            {panelArt ? 'Tải phiên bản mới cho khung' : 'Tải ảnh cho khung'}
+                          </button>
+                          {!canUpload && (
+                            <div
+                              className='p-2.5 rounded-lg border border-stone-200 bg-stone-50 text-stone-700 space-y-2'
+                              data-testid='desk-upload-panel-blocked'
+                            >
+                              <p className='flex items-start gap-1.5 leading-relaxed'>
+                                <Lock className='w-3.5 h-3.5 mt-px shrink-0 text-stone-500' />
+                                <span>
+                                  {pendingPanel
+                                    ? 'Việc đã được giao nhưng chưa bắt đầu.'
+                                    : uploadBlockedReason}
+                                </span>
+                              </p>
+                              {pendingPanel && (
+                                <button
+                                  type='button'
+                                  data-testid={`desk-start-and-upload-btn-${selectedPanelDetail.id}`}
+                                  onClick={() => handleStartAndUploadPanel(selectedPanelDetail.id)}
+                                  disabled={startingAssignmentPanelId === selectedPanelDetail.id}
+                                  className={`w-full ${toolbarBtn} justify-center bg-[#EA580C] hover:bg-[#C2410C] text-white border-[#EA580C]`}
+                                >
+                                  {startingAssignmentPanelId === selectedPanelDetail.id ? (
+                                    <Loader2 className='w-3.5 h-3.5 animate-spin' />
+                                  ) : (
+                                    <Play className='w-3.5 h-3.5 fill-current' />
+                                  )}
+                                  Bắt đầu việc &amp; tải ảnh
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      <PanelReadout
+                        selectedPanel={panels.find((p) => p.id === selectedPanelDetail.id)}
+                        selectedPage={selectedPage}
+                        panelRect={
+                          liveRects[selectedPanelDetail.id] ??
+                          (panels.find((p) => p.id === selectedPanelDetail.id)
+                            ? rectOfPanel(panels.find((p) => p.id === selectedPanelDetail.id)!)
+                            : null)
+                        }
+                      />
+
                       <div className='p-3 bg-[#F8F6F0] rounded-xl border border-[#D8D2C5] space-y-2'>
                         <div className='font-bold text-[#1C1917] flex items-center justify-between text-xs'>
                           <span>Vị trí &amp; Thứ tự đọc</span>
                           <span className='font-mono text-xs text-[#57534E]'>
-                            #{selectedPanelDetail.panelNumber} (ID: {selectedPanelDetail.id.slice(0, 8)}...)
+                            #{selectedPanelDetail.panelNumber}
                           </span>
                         </div>
                         <div className='grid grid-cols-2 gap-2 text-xs'>
@@ -2975,481 +3865,594 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                         )}
                       </div>
 
-                      {/* Ảnh Artwork Của Khung & Nút Tải Ảnh (CF2) */}
-                      {(() => {
-                        const panelArt = artFor(selectedPanelDetail.id);
-                        const panelArtUrl = panelArt ? panelArtworkUrls[panelArt.id] : null;
-                        return (
-                          <div
-                            className='p-3.5 bg-[#F8F6F0] rounded-xl border border-[#D8D2C5] space-y-2.5'
-                            data-testid='panel-artwork-desk-card'
-                          >
-                            <div className='font-bold text-[#1C1917] flex items-center justify-between text-xs'>
-                              <span className='flex items-center gap-1.5'>
-                                <ImageIcon className='w-3.5 h-3.5 text-[#C2410C]' />
-                                <span>Ảnh Artwork Khung #{selectedPanelDetail.panelNumber}</span>
-                              </span>
-                              {panelArt && (
-                                <span className='font-mono font-bold text-xs text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md'>
-                                  {stageLabel(panelArt.pipelineStageId)} v{panelArt.versionNumber}
-                                </span>
-                              )}
-                            </div>
-
-                            {panelArt ? (
-                              <div className='space-y-2'>
-                                {panelArtUrl ? (
-                                  <div className='aspect-video max-h-36 bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl overflow-hidden flex items-center justify-center relative p-1 shadow-2xs'>
-                                    <img
-                                      src={panelArtUrl}
-                                      alt={panelArt.fileName}
-                                      onError={() => handleArtworkImgError(panelArt.id)}
-                                      onLoad={() => handleArtworkImgLoad(panelArt.id)}
-                                      className='w-full h-full object-contain'
-                                    />
-                                  </div>
-                                ) : (
-                                  <p className='text-xs text-[#57534E] font-mono'>
-                                    Đang nạp link xem ảnh...
-                                  </p>
-                                )}
-                                <div className='text-xs text-[#57534E] font-mono flex items-center justify-between'>
-                                  <span className='truncate'>{panelArt.fileName}</span>
-                                  <span>{Math.round(panelArt.sizeBytes / 1024)} KB</span>
-                                </div>
-                              </div>
-                            ) : (
-                              <p className='text-xs text-[#57534E] italic p-2.5 bg-[#FCFBF8] rounded-xl border border-[#D8D2C5]'>
-                                Khung này chưa có ảnh riêng. Bấm "Tải ảnh cho khung" hoặc kéo thả ảnh vào ô trên canvas.
-                              </p>
-                            )}
-
-                            {canEditPages && (
-                              <>
-                                <button
-                                  type='button'
-                                  data-testid={`desk-upload-panel-btn-${selectedPanelDetail.id}`}
-                                  onClick={() => handleTriggerUploadPanel(selectedPanelDetail.id)}
-                                  disabled={!findStageAssignment(selectedPanelDetail.id)}
-                                  className='w-full py-2 bg-[#F97316] hover:bg-[#EA580C] text-white rounded-xl font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-soft-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#F97316] active:scale-98'
-                                >
-                                  <Upload className='w-3.5 h-3.5' />
-                                  <span>Tải ảnh cho khung</span>
-                                </button>
-                                {!findStageAssignment(selectedPanelDetail.id) && (
-                                  <div
-                                    className='text-xs text-amber-900 bg-amber-50/80 p-2.5 rounded-xl border border-amber-200 space-y-2'
-                                    data-testid='desk-upload-panel-blocked'
-                                  >
-                                    <p className='text-amber-800 leading-relaxed'>
-                                      Cần đang làm (bấm "Bắt đầu") một việc được giao cho Page hoặc
-                                      Panel này mới tải được ảnh.
-                                    </p>
-                                    {findPendingAssigned(selectedPanelDetail.id) && (
-                                      <div className='pt-1 border-t border-amber-200/80 space-y-1.5'>
-                                        <p className='text-xs text-amber-900 font-semibold flex items-center gap-1'>
-                                          <Play className='w-3 h-3 text-amber-600 fill-current' />
-                                          <span>
-                                            Bạn đã được giao việc cho{' '}
-                                            {findPendingAssigned(selectedPanelDetail.id)?.entityType === 'Panel'
-                                              ? `Khung #${selectedPanelDetail.panelNumber}`
-                                              : 'Trang này'}
-                                            . Bắt đầu ngay:
-                                          </span>
-                                        </p>
-                                        <button
-                                          type='button'
-                                          data-testid={`desk-start-and-upload-btn-${selectedPanelDetail.id}`}
-                                          onClick={() => handleStartAndUploadPanel(selectedPanelDetail.id)}
-                                          disabled={startingAssignmentPanelId === selectedPanelDetail.id}
-                                          className='w-full py-2 px-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-soft-sm cursor-pointer transition-all active:scale-98 disabled:opacity-50'
-                                        >
-                                          {startingAssignmentPanelId === selectedPanelDetail.id ? (
-                                            <>
-                                              <Loader2 className='w-3.5 h-3.5 animate-spin' />
-                                              <span>Đang bắt đầu nhiệm vụ...</span>
-                                            </>
-                                          ) : (
-                                            <>
-                                              <Play className='w-3.5 h-3.5 fill-current' />
-                                              <span>Bắt đầu việc &amp; Tải ảnh ngay</span>
-                                            </>
-                                          )}
-                                        </button>
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-                              </>
-                            )}
-
-                            {panelArt && (
-                              <button
-                                type='button'
-                                data-testid={`check-consistency-panel-btn-${selectedPanelDetail.id}`}
-                                onClick={() => handleCheckPanelConsistency(selectedPanelDetail.id)}
-                                disabled={checkingConsistencyPanelId === selectedPanelDetail.id}
-                                className='w-full py-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded-xl font-semibold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-soft-sm disabled:opacity-50 active:scale-98'
-                              >
-                                {checkingConsistencyPanelId === selectedPanelDetail.id ? (
-                                  <Loader2 className='w-3.5 h-3.5 animate-spin' />
-                                ) : (
-                                  <Sparkles className='w-3.5 h-3.5 text-amber-300' />
-                                )}
-                                <span>
-                                  {checkingConsistencyPanelId === selectedPanelDetail.id
-                                    ? 'Đang kiểm tra AI...'
-                                    : 'Kiểm tra nhất quán nhân vật AI'}
-                                </span>
-                              </button>
-                            )}
-
-                            {/* Kết quả kiểm tra nhất quán nếu có */}
-                            {panelConsistencyResult[selectedPanelDetail.id] &&
-                              (() => {
-                                const r = panelConsistencyResult[selectedPanelDetail.id];
-                                const scorePct = Math.round(r.score * 100);
-                                const threshPct = Math.round(r.threshold * 100);
-
-                                return (
-                                  <div
-                                    data-testid={`panel-consistency-card-${selectedPanelDetail.id}`}
-                                    className={`p-3 rounded-xl border text-xs space-y-1.5 ${
-                                      r.passed
-                                        ? 'bg-emerald-50/70 border-emerald-200 text-emerald-950'
-                                        : 'bg-amber-50/70 border-amber-300 text-amber-950'
-                                    }`}
-                                  >
-                                    <div className='flex items-center justify-between font-bold text-xs'>
-                                      <span className='flex items-center gap-1'>
-                                        {r.passed ? (
-                                          <CheckCircle2 className='w-3.5 h-3.5 text-emerald-600' />
-                                        ) : (
-                                          <AlertTriangle className='w-3.5 h-3.5 text-amber-600' />
-                                        )}
-                                        <span>
-                                          {r.passed ? 'Nhất quán ĐẠT' : 'Cảnh báo sai lệch'}
-                                        </span>
-                                      </span>
-                                      <span
-                                        className={`font-mono px-2 py-0.5 rounded-md text-xs ${
-                                          r.passed
-                                            ? 'bg-emerald-100 text-emerald-800'
-                                            : 'bg-amber-100 text-amber-900 font-bold'
-                                        }`}
-                                      >
-                                        {scorePct}% / {threshPct}%
-                                      </span>
-                                    </div>
-
-                                    {r.characterName && (
-                                      <div className='text-xs text-stone-600'>
-                                        So với Character Sheet:{' '}
-                                        <strong className='text-stone-800'>
-                                          {r.characterName}
-                                        </strong>
-                                        {r.characterSheetVersion != null &&
-                                          ` (v${r.characterSheetVersion})`}
-                                      </div>
-                                    )}
-
-                                    {r.summaryReason && (
-                                      <p className='text-xs leading-relaxed bg-white/70 p-2 rounded-lg border border-black/5'>
-                                        {r.summaryReason}
-                                      </p>
-                                    )}
-
-                                    {r.deviations && r.deviations.length > 0 && (
-                                      <div className='space-y-1 pt-1.5 border-t border-black/5'>
-                                        <div className='text-xs font-bold uppercase tracking-wider text-amber-900'>
-                                          Chi tiết độ lệch ({r.deviations.length}):
-                                        </div>
-                                        <ul className='space-y-1 text-xs'>
-                                          {r.deviations.map((dev, idx) => (
-                                            <li
-                                              key={idx}
-                                              className='bg-white/80 p-1.5 rounded-lg border border-amber-200/50'
-                                            >
-                                              <span className='font-bold text-amber-950 mr-1'>
-                                                [{dev.aspect}]
-                                              </span>
-                                              <span>{dev.description}</span>
-                                              {dev.regionHint && (
-                                                <span className='text-amber-700 italic ml-1'>
-                                                  ({dev.regionHint})
-                                                </span>
-                                              )}
-                                            </li>
-                                          ))}
-                                        </ul>
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              })()}
-                          </div>
-                        );
-                      })()}
-
-                      {/* Delete Panel Button */}
-                      <div className='pt-2.5 border-t border-[#D8D2C5] flex justify-end'>
-                        <button
-                          onClick={() => handleDeletePanel(selectedPanelDetail.id)}
-                          className='px-3 py-1.5 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-xl font-semibold flex items-center gap-1.5 cursor-pointer transition-colors active:scale-95'
-                        >
-                          <Trash2 className='w-3.5 h-3.5' />
-                          <span>Xóa Khung Panel Này</span>
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className='p-6 text-center text-xs text-[#57534E] border border-dashed border-[#D8D2C5] bg-[#FCFBF8] rounded-xl flex-1 flex flex-col items-center justify-center min-h-[300px]'>
-                      <Move className='w-8 h-8 mb-2 opacity-40 text-[#57534E]' />
-                      <p className='font-semibold text-[#1C1917]'>Chưa chọn ô Panel</p>
-                      <p className='text-xs text-[#57534E] mt-1 max-w-xs'>
-                        Bấm vào bất kỳ ô khung panel nào trên canvas để chỉnh sửa thứ tự đọc, tọa độ, chia khung và tải artwork.
-                      </p>
-                    </div>
-                  )
-                ) : (
-                  /* Layers Management Tab (CF2) */
-                  <div
-                    className='space-y-3.5 text-xs flex-1 overflow-y-auto custom-scrollbar'
-                    data-testid='layers-management-view'
-                  >
-                    <div className='p-3 bg-[#FFF2E6] rounded-xl border border-[#F97316]/30 space-y-1.5'>
-                      <div className='flex items-center justify-between'>
-                        <span className='font-bold text-[#1C1917] flex items-center gap-1.5'>
-                          <Sparkles className='w-3.5 h-3.5 text-[#C2410C]' />
-                          <span data-testid='layers-title'>
-                            {isPanelLayerFilter
-                              ? `Layer của Panel #${selectedPanelNumber ?? '?'} (${visibleElements.length})`
-                              : `Layer của trang (${pageElements.length})`}
-                          </span>
-                        </span>
-                        {selectedPanelId && (
-                          <button
-                            type='button'
-                            data-testid='toggle-all-page-layers'
-                            onClick={() => setShowAllPageLayers((v) => !v)}
-                            className='text-xs font-bold text-[#C2410C] hover:text-[#9A3412] underline cursor-pointer'
-                          >
-                            {showAllPageLayers ? 'Chỉ xem panel đang chọn' : 'Xem cả trang'}
-                          </button>
-                        )}
-                      </div>
-                      <p className='text-xs text-[#57534E]'>
-                        Tách layer nhân vật, bối cảnh, đạo cụ, hiệu ứng trực quan trên canvas. Hỗ
-                        trợ xoay góc và đổi thứ tự hiển thị z-index.
-                      </p>
-                    </div>
-
-                    {loadingElements ? (
-                      <div className='p-8 text-center text-[#57534E]'>
-                        <RefreshCw className='w-5 h-5 animate-spin mx-auto mb-2 text-[#C2410C]' />
-                        <span>Đang tải các layer của trang...</span>
-                      </div>
-                    ) : pageElements.length === 0 ? (
-                      <div className='p-8 text-center border border-dashed border-[#D8D2C5] rounded-xl flex flex-col items-center justify-center space-y-3 bg-[#FCFBF8]'>
-                        <Layers className='w-8 h-8 text-[#C2410C]/40' />
-                        <div>
-                          <p className='font-semibold text-[#1C1917]'>Chưa có layer ảnh nào</p>
-                          <p className='text-xs text-[#57534E] mt-0.5 max-w-xs'>
-                            Bấm "+ Thêm Layer" để thêm nhân vật, bối cảnh, đạo cụ, hiệu ứng hoặc lớp
-                            artwork riêng trên trang.
-                          </p>
+                      <div className='p-2.5 bg-[#F8F6F0] rounded-xl border border-[#D8D2C5] space-y-1.5'>
+                        <div className='font-bold text-[#1C1917] flex items-center gap-1.5 text-xs'>
+                          <Film className='w-3.5 h-3.5 text-[#C2410C]' />
+                          <span>Phân Cảnh (Scene)</span>
                         </div>
+                        <select
+                          value={selectedPanelDetail.sceneId || ''}
+                          onChange={(e) =>
+                            handleAssignScene(e.target.value ? e.target.value : null)
+                          }
+                          className='w-full p-1.5 bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl text-xs font-semibold text-[#1C1917] focus:border-[#F97316] focus:outline-none cursor-pointer'
+                        >
+                          <option value=''>-- Chưa gán phân cảnh --</option>
+                          {scenes.map((s) => (
+                            <option key={s.id} value={s.id}>
+                              Phân cảnh #{s.sceneNumber}: {s.heading || 'Không tiêu đề'} (
+                              {s.scriptLinesCount} dòng thoại)
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {panelArt && (
                         <button
                           type='button'
-                          onClick={() => setCreateLayerModalOpen(true)}
-                          className='px-3 py-1.5 bg-[#F97316] hover:bg-[#EA580C] text-white rounded-lg font-semibold text-xs transition-colors cursor-pointer flex items-center gap-1'
+                          data-testid={`check-consistency-panel-btn-${selectedPanelDetail.id}`}
+                          onClick={() => handleCheckPanelConsistency(selectedPanelDetail.id)}
+                          disabled={checkingConsistencyPanelId === selectedPanelDetail.id}
+                          className='w-full py-1.5 bg-violet-50 hover:bg-violet-100 text-violet-900 border border-violet-200 rounded-lg font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50'
                         >
-                          <Plus className='w-3.5 h-3.5' />
-                          <span>Thêm Layer Đầu Tiên</span>
+                          {checkingConsistencyPanelId === selectedPanelDetail.id ? (
+                            <Loader2 className='w-3.5 h-3.5 animate-spin' />
+                          ) : (
+                            <Sparkles className='w-3.5 h-3.5 text-violet-600' />
+                          )}
+                          <span>
+                            {checkingConsistencyPanelId === selectedPanelDetail.id
+                              ? 'Đang kiểm tra AI...'
+                              : 'Kiểm tra nhất quán nhân vật AI'}
+                          </span>
                         </button>
-                      </div>
-                    ) : (
-                      <div className='space-y-3' data-testid='page-layers-list'>
-                        {/* Selected Layer Inspector if any */}
-                        {(() => {
-                          const selectedElem = pageElements.find(
-                            (e) => e.elementId === selectedElementId,
-                          );
-                          if (!selectedElem) return null;
-                          const bible = selectedElem.bibleEntryId
-                            ? bibleEntries.find((b) => b.id === selectedElem.bibleEntryId)
-                            : null;
+                      )}
+
+                      {/* Kết quả kiểm tra nhất quán nếu có */}
+                      {panelConsistencyResult[selectedPanelDetail.id] &&
+                        (() => {
+                          const r = panelConsistencyResult[selectedPanelDetail.id];
+                          const scorePct = Math.round(r.score * 100);
+                          const threshPct = Math.round(r.threshold * 100);
+
                           return (
                             <div
-                              className='p-3 bg-[#F8F6F0] rounded-xl border-2 border-[#F97316]/50 space-y-2.5 shadow-2xs'
-                              data-testid='selected-layer-inspector'
+                              data-testid={`panel-consistency-card-${selectedPanelDetail.id}`}
+                              className={`p-3 rounded-xl border text-xs space-y-1.5 ${
+                                r.passed
+                                  ? 'bg-emerald-50/70 border-emerald-200 text-emerald-950'
+                                  : 'bg-amber-50/70 border-amber-300 text-amber-950'
+                              }`}
                             >
-                              <div className='flex items-center justify-between'>
-                                <div className='flex items-center gap-1.5 font-bold text-[#1C1917]'>
-                                  <span className='px-1.5 py-0.5 rounded text-xs bg-[#FFF2E6] text-[#C2410C] border border-[#F97316]/30 font-mono'>
-                                    z:{selectedElem.zIndex}
-                                  </span>
-                                  <span className='truncate max-w-[160px]'>
-                                    {bible
-                                      ? bible.name
-                                      : LAYER_LABELS[selectedElem.elementType] ||
-                                        selectedElem.elementType}
-                                  </span>
-                                </div>
-                                <span className='font-mono text-xs text-[#57534E]'>
-                                  ID: {selectedElem.elementId.slice(0, 8)}...
+                              <div className='flex items-center justify-between font-bold text-xs'>
+                                <span className='flex items-center gap-1'>
+                                  {r.passed ? (
+                                    <CheckCircle2 className='w-3.5 h-3.5 text-emerald-600' />
+                                  ) : (
+                                    <AlertTriangle className='w-3.5 h-3.5 text-amber-600' />
+                                  )}
+                                  <span>{r.passed ? 'Nhất quán ĐẠT' : 'Cảnh báo sai lệch'}</span>
+                                </span>
+                                <span
+                                  className={`font-mono px-2 py-0.5 rounded-md text-xs ${
+                                    r.passed
+                                      ? 'bg-emerald-100 text-emerald-800'
+                                      : 'bg-amber-100 text-amber-900 font-bold'
+                                  }`}
+                                >
+                                  {scorePct}% / {threshPct}%
                                 </span>
                               </div>
 
-                              <div className='grid grid-cols-2 gap-2 text-xs'>
-                                <div>
-                                  <span className='text-[#57534E] block text-xs'>Loại Layer:</span>
-                                  <span className='font-semibold text-[#1C1917]'>
-                                    {LAYER_LABELS[selectedElem.elementType] ||
-                                      selectedElem.elementType}
-                                  </span>
-                                </div>
-                                <div>
-                                  <span className='text-[#57534E] block text-xs'>Góc xoay:</span>
-                                  <span className='font-mono font-semibold text-[#1C1917]'>
-                                    {selectedElem.rotation || 0}°
-                                  </span>
-                                </div>
-                                <div>
-                                  <span className='text-[#57534E] block text-xs'>Toạ độ:</span>
-                                  <span className='font-mono text-[#1C1917]'>
-                                    {selectedElem.x}, {selectedElem.y} px
-                                  </span>
-                                </div>
-                                <div>
-                                  <span className='text-[#57534E] block text-xs'>Kích thước:</span>
-                                  <span className='font-mono text-[#1C1917]'>
-                                    {selectedElem.width} × {selectedElem.height} px
-                                  </span>
-                                </div>
-                              </div>
-
-                              {bible && (
-                                <div className='p-2 bg-[#FCFBF8] rounded-lg border border-[#D8D2C5] flex items-center gap-2'>
-                                  {bible.referenceImageUrl && (
-                                    <AuthenticatedImage
-                                      src={bible.referenceImageUrl}
-                                      alt={bible.name}
-                                      className='w-7 h-7 rounded object-cover border border-[#D8D2C5]'
-                                    />
-                                  )}
-                                  <div className='min-w-0 flex-1'>
-                                    <span className='text-xs text-[#57534E] block'>
-                                      Series Bible:
-                                    </span>
-                                    <p className='text-xs font-bold text-[#1C1917] truncate'>
-                                      {bible.name}
-                                    </p>
-                                  </div>
+                              {r.characterName && (
+                                <div className='text-xs text-stone-600'>
+                                  So với Character Sheet:{' '}
+                                  <strong className='text-stone-800'>{r.characterName}</strong>
+                                  {r.characterSheetVersion != null &&
+                                    ` (v${r.characterSheetVersion})`}
                                 </div>
                               )}
 
-                              {/* Controls */}
-                              <div className='pt-2 border-t border-[#D8D2C5] flex items-center justify-between gap-1'>
-                                <div className='flex items-center gap-1'>
-                                  <button
-                                    type='button'
-                                    onClick={() => handleRotateLayer(selectedElem, -15)}
-                                    className='px-2 py-1 bg-[#FCFBF8] border border-[#D8D2C5] hover:bg-[#F3F0E9] rounded text-[#1C1917] flex items-center gap-1 text-xs font-semibold cursor-pointer'
-                                    title='Xoay trái 15 độ'
-                                  >
-                                    <RotateCw className='w-3 h-3 -scale-x-100' />
-                                    <span>-15°</span>
-                                  </button>
-                                  <button
-                                    type='button'
-                                    onClick={() => handleRotateLayer(selectedElem, 15)}
-                                    className='px-2 py-1 bg-[#FCFBF8] border border-[#D8D2C5] hover:bg-[#F3F0E9] rounded text-[#1C1917] flex items-center gap-1 text-xs font-semibold cursor-pointer'
-                                    title='Xoay phải 15 độ'
-                                  >
-                                    <RotateCw className='w-3 h-3' />
-                                    <span>+15°</span>
-                                  </button>
-                                </div>
+                              {r.summaryReason && (
+                                <p className='text-xs leading-relaxed bg-white/70 p-2 rounded-lg border border-black/5'>
+                                  {r.summaryReason}
+                                </p>
+                              )}
 
-                                <div className='flex items-center gap-1'>
-                                  <button
-                                    type='button'
-                                    onClick={() => handleChangeLayerZIndex(selectedElem, 1)}
-                                    className='p-1.5 bg-[#FCFBF8] border border-[#D8D2C5] hover:bg-[#F3F0E9] rounded text-[#1C1917] cursor-pointer'
-                                    title='Lên 1 lớp (Tăng zIndex)'
-                                  >
-                                    <ArrowUp className='w-3.5 h-3.5' />
-                                  </button>
-                                  <button
-                                    type='button'
-                                    onClick={() => handleChangeLayerZIndex(selectedElem, -1)}
-                                    className='p-1.5 bg-[#FCFBF8] border border-[#D8D2C5] hover:bg-[#F3F0E9] rounded text-[#1C1917] cursor-pointer'
-                                    title='Xuống 1 lớp (Giảm zIndex)'
-                                  >
-                                    <ArrowDown className='w-3.5 h-3.5' />
-                                  </button>
+                              {r.deviations && r.deviations.length > 0 && (
+                                <div className='space-y-1 pt-1.5 border-t border-black/5'>
+                                  <div className='text-xs font-bold uppercase tracking-wider text-amber-900'>
+                                    Chi tiết độ lệch ({r.deviations.length}):
+                                  </div>
+                                  <ul className='space-y-1 text-xs'>
+                                    {r.deviations.map((dev, idx) => (
+                                      <li
+                                        key={idx}
+                                        className='bg-white/80 p-1.5 rounded-lg border border-amber-200/50'
+                                      >
+                                        <span className='font-bold text-amber-950 mr-1'>
+                                          [{dev.aspect}]
+                                        </span>
+                                        <span>{dev.description}</span>
+                                        {dev.regionHint && (
+                                          <span className='text-amber-700 italic ml-1'>
+                                            ({dev.regionHint})
+                                          </span>
+                                        )}
+                                      </li>
+                                    ))}
+                                  </ul>
                                 </div>
-
-                                <button
-                                  type='button'
-                                  onClick={() => handleDeleteLayer(selectedElem)}
-                                  className='p-1.5 text-rose-600 hover:bg-rose-50 rounded cursor-pointer'
-                                  title='Xoá layer'
-                                >
-                                  <Trash2 className='w-3.5 h-3.5' />
-                                </button>
-                              </div>
+                              )}
                             </div>
                           );
                         })()}
 
-                        {/* Lucian #122 Layer Stacking Order & Visual 3D Preview */}
-                        {visibleElements.length === 0 ? (
-                          <p
-                            className='p-3 text-center text-xs text-[#57534E] border border-dashed border-[#D8D2C5] rounded-xl bg-[#FCFBF8]'
-                            data-testid='no-panel-layers'
+                      {canEditPages && (
+                        <div className='pt-2.5 border-t border-[#D8D2C5] flex justify-end'>
+                          <button
+                            onClick={() => handleDeletePanel(selectedPanelDetail.id)}
+                            className='px-3 py-1.5 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-xl font-semibold flex items-center gap-1.5 cursor-pointer transition-colors active:scale-95'
                           >
-                            Panel #{selectedPanelNumber ?? '?'} chưa có layer nào (trang có{' '}
-                            {pageElements.length} layer ở panel khác). Bấm "Xem cả trang" để xem
-                            tất cả.
-                          </p>
+                            <Trash2 className='w-3.5 h-3.5' />
+                            <span>Xóa Khung Panel Này</span>
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <p className='p-4 text-center text-[#57534E] border border-dashed border-[#D8D2C5] rounded-xl leading-relaxed'>
+                      Chọn một khung trên trang để xem thông số, thứ tự đọc, phân cảnh và tải ảnh
+                      cho khung.
+                    </p>
+                  ))}
+
+                {activeRightTab === 'versions' && (
+                  <div className='space-y-4' data-testid='versions-tab'>
+                    {selectedPanelDetail && (
+                      <section className='space-y-2'>
+                        <h3 className='font-bold text-[#1C1917]'>
+                          Khung #{selectedPanelDetail.panelNumber}
+                        </h3>
+                        {panelArt ? (
+                          <div className='space-y-2'>
+                            {panelArtUrl ? (
+                              <div className='aspect-video max-h-36 bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl overflow-hidden flex items-center justify-center relative p-1 shadow-2xs'>
+                                <img
+                                  src={panelArtUrl}
+                                  alt={panelArt.fileName}
+                                  onError={() => handleArtworkImgError(panelArt.id)}
+                                  onLoad={() => handleArtworkImgLoad(panelArt.id)}
+                                  className='w-full h-full object-contain'
+                                />
+                              </div>
+                            ) : (
+                              <p className='text-xs text-[#57534E] font-mono'>
+                                Đang nạp link xem ảnh...
+                              </p>
+                            )}
+                            <div className='text-xs text-[#57534E] font-mono flex items-center justify-between'>
+                              <span className='truncate'>{panelArt.fileName}</span>
+                              <span>{Math.round(panelArt.sizeBytes / 1024)} KB</span>
+                            </div>
+                          </div>
+                        ) : pageArt && pageArtUrl ? (
+                          // Chưa có ảnh riêng: hiện phần tương ứng của ảnh cả trang
+                          <div className='space-y-1.5' data-testid='panel-desk-page-art'>
+                            <PageArtCrop
+                              src={pageArtUrl}
+                              boundingBox={
+                                panels.find((pp) => pp.id === selectedPanelDetail.id)?.boundingBox
+                              }
+                              alt={`Khung #${selectedPanelDetail.panelNumber} cắt từ ảnh cả trang`}
+                              testId='panel-desk-page-art-crop'
+                            />
+                            <p className='text-xs text-[#57534E]'>
+                              Đang dùng phần khung này trong{' '}
+                              <strong>
+                                ảnh cả trang {stageLabel(pageArt.pipelineStageId)} v
+                                {pageArt.versionNumber}
+                              </strong>
+                              . Tải ảnh riêng nếu muốn thay.
+                            </p>
+                          </div>
                         ) : (
-                          <LayerStackingOrder
-                            elements={visibleElements}
-                            selectedElementId={selectedElementId}
-                            onSelectElement={(id) => setSelectedElementId(id)}
-                            onChangeZIndex={handleChangeLayerZIndex}
-                            onRotateLayer={handleRotateLayer}
-                            onDeleteLayer={handleDeleteLayer}
-                            bibleEntries={bibleEntries}
-                            panels={panels}
-                          />
+                          <p className='text-xs text-[#57534E] italic p-2.5 bg-[#FCFBF8] rounded-xl border border-[#D8D2C5]'>
+                            Khung này chưa có ảnh riêng. Bấm "Tải ảnh cho khung" hoặc kéo thả ảnh
+                            vào ô trên canvas.
+                          </p>
                         )}
-                      </div>
+                        {renderVersionList(
+                          pageArtworks.filter((a) => a.panelId === selectedPanelDetail.id),
+                          panelArt?.id,
+                          'panel-version-list',
+                        )}
+                      </section>
                     )}
+                    <section className='space-y-2'>
+                      <h3 className='font-bold text-[#1C1917]'>
+                        Ảnh cả trang {selectedPage.pageNumber}
+                      </h3>
+                      {renderVersionList(
+                        pageArtworks.filter((a) => !a.panelId),
+                        pageArt?.id,
+                        'page-version-list',
+                      )}
+                    </section>
+                    <p className='text-[11px] text-[#57534E]'>
+                      Mỗi công đoạn đánh số phiên bản riêng. Bấm một bản để xem lớn; xem bản cũ
+                      không đổi bản hiện hành.
+                    </p>
                   </div>
                 )}
+
+                {activeRightTab === 'feedback' &&
+                  (hasFeedback ? (
+                    <>
+                      {(() => {
+                        const feedbackAsg = findFeedbackAssignment(selectedPanelDetail?.id);
+                        if (!feedbackAsg) return null;
+                        const isChangesReq = feedbackAsg.status === 'ReworkRequired';
+                        const comment = feedbackAsg.lastFeedbackComment;
+                        if (!isChangesReq && !comment) return null;
+
+                        return (
+                          <div
+                            className={`p-3 rounded-xl border space-y-2 shadow-2xs ${
+                              isChangesReq
+                                ? 'bg-amber-50/90 border-amber-300 text-amber-950'
+                                : 'bg-[#FFF8F0] border-[#F97316]/30 text-[#1C1917]'
+                            }`}
+                          >
+                            <div className='flex items-center justify-between font-bold text-xs'>
+                              <span className='flex items-center gap-1.5'>
+                                <AlertTriangle
+                                  className={`w-3.5 h-3.5 ${
+                                    isChangesReq ? 'text-amber-600' : 'text-[#C2410C]'
+                                  }`}
+                                />
+                                <span>
+                                  {isChangesReq ? 'Yêu Cầu Chỉnh Sửa' : 'Ghi Chú Phản Hồi'}
+                                </span>
+                              </span>
+                              <span className='text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-200'>
+                                {feedbackAsg.stageName || 'Sản xuất'}
+                              </span>
+                            </div>
+
+                            {comment ? (
+                              <div className='p-2 bg-white/90 rounded-lg border border-amber-200 text-xs italic text-[#1C1917] leading-relaxed'>
+                                "{comment}"
+                              </div>
+                            ) : null}
+
+                            {feedbackAsg.brief ? (
+                              <p className='text-xs text-[#57534E] leading-relaxed'>
+                                <strong>Yêu cầu:</strong> {feedbackAsg.brief}
+                              </p>
+                            ) : null}
+
+                            {isChangesReq && (
+                              <p className='text-[11px] text-amber-800 font-medium'>
+                                Chỉnh sửa bản vẽ rồi tải phiên bản mới (tab Khung hoặc nút tải ảnh
+                                trên thanh công cụ).
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </>
+                  ) : (
+                    <p className='p-4 text-center text-[#57534E] border border-dashed border-[#D8D2C5] rounded-xl'>
+                      Chưa có phản hồi nào cho{' '}
+                      {selectedPanelDetail
+                        ? `Khung #${selectedPanelDetail.panelNumber}`
+                        : 'trang này'}
+                      .
+                    </p>
+                  ))}
+
+                {activeRightTab === 'layers' && (
+                  <>
+                    <div className='flex justify-end'>
+                      <button
+                        type='button'
+                        onClick={() => setCreateLayerModalOpen(true)}
+                        className='p-1.5 bg-[#F97316] hover:bg-[#EA580C] text-white rounded-lg text-xs font-semibold flex items-center gap-1 cursor-pointer transition-all shadow-soft-sm active:scale-95'
+                        data-testid='open-create-layer-modal'
+                        title='Thêm Layer mới'
+                      >
+                        <Plus className='w-3.5 h-3.5' />
+                      </button>
+                    </div>
+                    <div
+                      className='space-y-3.5 text-xs flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-0.5'
+                      data-testid='layers-management-view'
+                    >
+                      <div className='p-3 bg-[#FFF2E6] rounded-xl border border-[#F97316]/30 space-y-1.5'>
+                        <div className='flex items-center justify-between'>
+                          <span className='font-bold text-[#1C1917] flex items-center gap-1.5'>
+                            <Sparkles className='w-3.5 h-3.5 text-[#C2410C]' />
+                            <span data-testid='layers-title'>
+                              {isPanelLayerFilter
+                                ? `Layer của Panel #${selectedPanelNumber ?? '?'} (${visibleElements.length})`
+                                : `Layer của trang (${pageElements.length})`}
+                            </span>
+                          </span>
+                          {selectedPanelId && (
+                            <button
+                              type='button'
+                              data-testid='toggle-all-page-layers'
+                              onClick={() => setShowAllPageLayers((v) => !v)}
+                              className='text-xs font-bold text-[#C2410C] hover:text-[#9A3412] underline cursor-pointer'
+                            >
+                              {showAllPageLayers ? 'Chỉ xem panel đang chọn' : 'Xem cả trang'}
+                            </button>
+                          )}
+                        </div>
+                        <p className='text-xs text-[#57534E]'>
+                          Tách layer nhân vật, bối cảnh, đạo cụ, hiệu ứng trực quan trên canvas. Hỗ
+                          trợ xoay góc và đổi thứ tự hiển thị z-index.
+                        </p>
+                      </div>
+
+                      {loadingElements ? (
+                        <div className='p-8 text-center text-[#57534E]'>
+                          <RefreshCw className='w-5 h-5 animate-spin mx-auto mb-2 text-[#C2410C]' />
+                          <span>Đang tải các layer của trang...</span>
+                        </div>
+                      ) : pageElements.length === 0 ? (
+                        <div className='p-8 text-center border border-dashed border-[#D8D2C5] rounded-xl flex flex-col items-center justify-center space-y-3 bg-[#FCFBF8]'>
+                          <Layers className='w-8 h-8 text-[#C2410C]/40' />
+                          <div>
+                            <p className='font-semibold text-[#1C1917]'>Chưa có layer ảnh nào</p>
+                            <p className='text-xs text-[#57534E] mt-0.5 max-w-xs'>
+                              Bấm "+ Thêm Layer" để thêm nhân vật, bối cảnh, đạo cụ, hiệu ứng hoặc
+                              lớp artwork riêng trên trang.
+                            </p>
+                          </div>
+                          <button
+                            type='button'
+                            onClick={() => setCreateLayerModalOpen(true)}
+                            className='px-3 py-1.5 bg-[#F97316] hover:bg-[#EA580C] text-white rounded-lg font-semibold text-xs transition-colors cursor-pointer flex items-center gap-1'
+                          >
+                            <Plus className='w-3.5 h-3.5' />
+                            <span>Thêm Layer Đầu Tiên</span>
+                          </button>
+                        </div>
+                      ) : (
+                        <div className='space-y-3' data-testid='page-layers-list'>
+                          {/* Selected Layer Inspector if any */}
+                          {(() => {
+                            const selectedElem = pageElements.find(
+                              (e) => e.elementId === selectedElementId,
+                            );
+                            if (!selectedElem) return null;
+                            const bible = selectedElem.bibleEntryId
+                              ? bibleEntries.find((b) => b.id === selectedElem.bibleEntryId)
+                              : null;
+                            return (
+                              <div
+                                className='p-3 bg-[#F8F6F0] rounded-xl border-2 border-[#F97316]/50 space-y-2.5 shadow-2xs'
+                                data-testid='selected-layer-inspector'
+                              >
+                                <div className='flex items-center justify-between'>
+                                  <div className='flex items-center gap-1.5 font-bold text-[#1C1917]'>
+                                    <span className='px-1.5 py-0.5 rounded text-xs bg-[#FFF2E6] text-[#C2410C] border border-[#F97316]/30 font-mono'>
+                                      z:{selectedElem.zIndex}
+                                    </span>
+                                    <span className='truncate max-w-[160px]'>
+                                      {bible
+                                        ? bible.name
+                                        : LAYER_LABELS[selectedElem.elementType] ||
+                                          selectedElem.elementType}
+                                    </span>
+                                  </div>
+                                  <span className='font-mono text-xs text-[#57534E]'>
+                                    ID: {selectedElem.elementId.slice(0, 8)}...
+                                  </span>
+                                </div>
+
+                                <div className='grid grid-cols-2 gap-2 text-xs'>
+                                  <div>
+                                    <span className='text-[#57534E] block text-xs'>
+                                      Loại Layer:
+                                    </span>
+                                    <span className='font-semibold text-[#1C1917]'>
+                                      {LAYER_LABELS[selectedElem.elementType] ||
+                                        selectedElem.elementType}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span className='text-[#57534E] block text-xs'>Góc xoay:</span>
+                                    <span className='font-mono font-semibold text-[#1C1917]'>
+                                      {selectedElem.rotation || 0}°
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span className='text-[#57534E] block text-xs'>Toạ độ:</span>
+                                    <span className='font-mono text-[#1C1917]'>
+                                      {selectedElem.x}, {selectedElem.y} px
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span className='text-[#57534E] block text-xs'>
+                                      Kích thước:
+                                    </span>
+                                    <span className='font-mono text-[#1C1917]'>
+                                      {selectedElem.width} × {selectedElem.height} px
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {bible && (
+                                  <div className='p-2 bg-[#FCFBF8] rounded-lg border border-[#D8D2C5] flex items-center gap-2'>
+                                    {bible.referenceImageUrl && (
+                                      <AuthenticatedImage
+                                        src={bible.referenceImageUrl}
+                                        alt={bible.name}
+                                        className='w-7 h-7 rounded object-cover border border-[#D8D2C5]'
+                                      />
+                                    )}
+                                    <div className='min-w-0 flex-1'>
+                                      <span className='text-xs text-[#57534E] block'>
+                                        Series Bible:
+                                      </span>
+                                      <p className='text-xs font-bold text-[#1C1917] truncate'>
+                                        {bible.name}
+                                      </p>
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Controls */}
+                                <div className='pt-2 border-t border-[#D8D2C5] flex items-center justify-between gap-1'>
+                                  <div className='flex items-center gap-1'>
+                                    <button
+                                      type='button'
+                                      onClick={() => handleRotateLayer(selectedElem, -15)}
+                                      className='px-2 py-1 bg-[#FCFBF8] border border-[#D8D2C5] hover:bg-[#F3F0E9] rounded text-[#1C1917] flex items-center gap-1 text-xs font-semibold cursor-pointer'
+                                      title='Xoay trái 15 độ'
+                                    >
+                                      <RotateCw className='w-3 h-3 -scale-x-100' />
+                                      <span>-15°</span>
+                                    </button>
+                                    <button
+                                      type='button'
+                                      onClick={() => handleRotateLayer(selectedElem, 15)}
+                                      className='px-2 py-1 bg-[#FCFBF8] border border-[#D8D2C5] hover:bg-[#F3F0E9] rounded text-[#1C1917] flex items-center gap-1 text-xs font-semibold cursor-pointer'
+                                      title='Xoay phải 15 độ'
+                                    >
+                                      <RotateCw className='w-3 h-3' />
+                                      <span>+15°</span>
+                                    </button>
+                                  </div>
+
+                                  <div className='flex items-center gap-1'>
+                                    <button
+                                      type='button'
+                                      onClick={() => handleChangeLayerZIndex(selectedElem, 1)}
+                                      className='p-1.5 bg-[#FCFBF8] border border-[#D8D2C5] hover:bg-[#F3F0E9] rounded text-[#1C1917] cursor-pointer'
+                                      title='Lên 1 lớp (Tăng zIndex)'
+                                    >
+                                      <ArrowUp className='w-3.5 h-3.5' />
+                                    </button>
+                                    <button
+                                      type='button'
+                                      onClick={() => handleChangeLayerZIndex(selectedElem, -1)}
+                                      className='p-1.5 bg-[#FCFBF8] border border-[#D8D2C5] hover:bg-[#F3F0E9] rounded text-[#1C1917] cursor-pointer'
+                                      title='Xuống 1 lớp (Giảm zIndex)'
+                                    >
+                                      <ArrowDown className='w-3.5 h-3.5' />
+                                    </button>
+                                  </div>
+
+                                  <button
+                                    type='button'
+                                    onClick={() => handleDeleteLayer(selectedElem)}
+                                    className='p-1.5 text-rose-600 hover:bg-rose-50 rounded cursor-pointer'
+                                    title='Xoá layer'
+                                  >
+                                    <Trash2 className='w-3.5 h-3.5' />
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })()}
+
+                          {/* Lucian #122 Layer Stacking Order & Visual 3D Preview */}
+                          {visibleElements.length === 0 ? (
+                            <p
+                              className='p-3 text-center text-xs text-[#57534E] border border-dashed border-[#D8D2C5] rounded-xl bg-[#FCFBF8]'
+                              data-testid='no-panel-layers'
+                            >
+                              Panel #{selectedPanelNumber ?? '?'} chưa có layer nào (trang có{' '}
+                              {pageElements.length} layer ở panel khác). Bấm "Xem cả trang" để xem
+                              tất cả.
+                            </p>
+                          ) : (
+                            <LayerStackingOrder
+                              elements={visibleElements}
+                              selectedElementId={selectedElementId}
+                              onSelectElement={(id) => setSelectedElementId(id)}
+                              onChangeZIndex={handleChangeLayerZIndex}
+                              onRotateLayer={handleRotateLayer}
+                              onDeleteLayer={handleDeleteLayer}
+                              bibleEntries={bibleEntries}
+                              panels={panels}
+                            />
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            </aside>
+          </>
+        )}
+      </div>
+
+      {/* Xem lớn một phiên bản (chỉ xem, không đổi bản hiện hành) */}
+      {previewArt &&
+        (() => {
+          const isCurrent =
+            previewArt.id === (previewArt.panelId ? artFor(previewArt.panelId)?.id : pageArt?.id);
+          const name = `${stageLabel(previewArt.pipelineStageId) || 'Bản'} v${previewArt.versionNumber}`;
+          const scope = previewArt.panelId
+            ? `Khung #${panels.find((p) => p.id === previewArt.panelId)?.panelNumber ?? '?'}`
+            : 'Cả trang';
+          return (
+            <div
+              className='fixed inset-0 z-[60] bg-[#1C1917]/70 flex items-center justify-center p-4'
+              role='dialog'
+              aria-modal='true'
+              aria-label={`${name} · ${scope}`}
+              data-testid='version-preview'
+              onClick={() => setPreviewArt(null)}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') setPreviewArt(null);
+              }}
+            >
+              <div
+                className='bg-[#FCFBF8] rounded-xl p-3 w-full max-w-[min(92vw,960px)] max-h-[92vh] flex flex-col gap-2'
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className='flex items-center justify-between gap-2'>
+                  <span className='text-sm font-bold text-[#1C1917]'>
+                    {name} · {scope}
+                  </span>
+                  <button
+                    type='button'
+                    autoFocus
+                    onClick={() => setPreviewArt(null)}
+                    className='p-1 rounded-lg text-[#57534E] hover:bg-[#F3F0E9] cursor-pointer focus-visible:outline-2 focus-visible:outline-[#F97316]'
+                    aria-label='Đóng xem ảnh'
+                  >
+                    <X className='w-4 h-4' />
+                  </button>
+                </div>
+                <div className='min-h-0 flex-1 flex items-center justify-center bg-[#ECE7DC] rounded-lg overflow-hidden'>
+                  {panelArtworkUrls[previewArt.id] ? (
+                    <img
+                      src={panelArtworkUrls[previewArt.id]}
+                      alt={`${name} · ${scope}`}
+                      className='max-w-full max-h-[78vh] object-contain'
+                    />
+                  ) : (
+                    <Loader2 className='w-6 h-6 animate-spin text-[#C2410C] m-8' />
+                  )}
+                </div>
+                <p className='text-xs text-[#57534E]'>
+                  {isCurrent
+                    ? 'Đây là bản đang hiển thị trên canvas.'
+                    : 'Bản lịch sử — chỉ để xem, không thay đổi bản hiện hành.'}{' '}
+                  {previewArt.fileName} · {Math.round(previewArt.sizeBytes / 1024)} KB
+                </p>
               </div>
             </div>
-          )}
-
-
-          {!selectedPage && (
-            <div className='flex flex-col items-center justify-center p-12 text-center bg-white rounded-2xl border border-[#E7E7E7] shadow-xs my-6'>
-              <div className='w-16 h-16 rounded-2xl bg-zinc-100 border border-zinc-200 flex items-center justify-center text-zinc-400 mb-4'>
-                <FileImage className='w-8 h-8' />
-              </div>
-              <h3 className='text-base font-bold text-zinc-800 mb-1'>Chọn một trang để bắt đầu</h3>
-              <p className='text-xs text-zinc-500 max-w-sm'>
-                {pages.length > 0
-                  ? 'Vui lòng chọn một trang từ dải thumbnail phía trên để bắt đầu thao tác bố cục khung tranh.'
-                  : 'Chương hiện tại chưa có trang truyện nào. Bấm "Thêm Trang Mới" để tạo trang đầu tiên.'}
-              </p>
-            </div>
-          )}
-        </>
-      )}
+          );
+        })()}
 
       {/* Modal: Frame Template */}
       {selectedPage && (
@@ -3475,7 +4478,9 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
         <div className='fixed inset-0 z-50 bg-[#1C1917]/60 backdrop-blur-xs flex items-center justify-center p-4'>
           <div className='bg-[#FCFBF8] rounded-2xl border border-[#D8D2C5] shadow-2xl max-w-md w-full p-6 space-y-4'>
             <div className='flex items-center justify-between border-b border-[#D8D2C5] pb-3'>
-              <h3 className='text-base font-serif font-bold text-[#1C1917]'>Tạo Trang Truyện Mới</h3>
+              <h3 className='text-base font-serif font-bold text-[#1C1917]'>
+                Tạo Trang Truyện Mới
+              </h3>
               <button
                 onClick={() => setCreateModalOpen(false)}
                 className='text-[#57534E] hover:text-[#1C1917] p-1.5 rounded-lg hover:bg-[#F3F0E9] transition-colors cursor-pointer'
@@ -3567,7 +4572,9 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
         <div className='fixed inset-0 z-50 bg-[#1C1917]/60 backdrop-blur-xs flex items-center justify-center p-4'>
           <div className='bg-[#FCFBF8] rounded-2xl border border-[#D8D2C5] shadow-2xl max-w-md w-full p-6 space-y-4'>
             <div className='flex items-center justify-between border-b border-[#D8D2C5] pb-3'>
-              <h3 className='text-base font-serif font-bold text-[#1C1917]'>Cập Nhật Thông Số Canvas Trang</h3>
+              <h3 className='text-base font-serif font-bold text-[#1C1917]'>
+                Cập Nhật Thông Số Canvas Trang
+              </h3>
               <button
                 onClick={() => setSettingsModalOpen(false)}
                 className='text-[#57534E] hover:text-[#1C1917] p-1.5 rounded-lg hover:bg-[#F3F0E9] transition-colors cursor-pointer'
