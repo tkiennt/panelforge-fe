@@ -2,7 +2,7 @@
   "myWork": {
     "title": "My Work",
     "desc": "Start, upload artwork, submit, and resolve change requests for each chapter.",
-    "allStudioOption": "✨ Entire Studio (All Chapters)",
+    "allStudioOption": "Entire Studio (All Chapters)",
     "chapterOption": "Chapter {number}",
     "reload": "Reload",
     "filterAria": "Work Filters",
