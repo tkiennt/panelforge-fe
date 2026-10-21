@@ -1,7 +1,7 @@
 /* Lucian UX/UI Prompt #117 · Spacing ruler · (c) 2026 Seokwoo Lee · MIT License */
 import React from 'react';
 import { Ruler } from 'lucide-react';
-import './lucian-117.css';
+import '@/styles/modules/lucian/lucian-117.css';
 
 export interface GutterSpacingRulerProps {
   value: number;

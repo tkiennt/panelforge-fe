@@ -212,23 +212,23 @@ export const HeroMangaPage: React.FC<HeroMangaPageProps> = ({ highlightTarget = 
               draggable={false}
             />
 
-            {/* Yellow sticky note: Biên tập · Giữ ánh sáng nhất quán ở khung 3 */}
+            {/* Editorial feedback note: Giữ ánh sáng nhất quán ở khung 3 */}
             <div
               id='hero-sticky-note'
-              className='absolute top-2.5 right-2.5 sm:top-3 sm:right-3.5 w-[112px] sm:w-[126px] bg-[#FEF08A] rounded-[2px] p-2 shadow-md border border-amber-300/80 rotate-[3deg] z-30 select-none pointer-events-none'
+              className='absolute top-2.5 right-2.5 sm:top-3 sm:right-3.5 w-[126px] sm:w-[142px] bg-[#FAF8F2] rounded-[3px] p-2.5 shadow-[0_4px_12px_rgba(28,25,23,0.08)] border border-[#D8D2C5] rotate-[2.5deg] z-30 select-none pointer-events-none'
               aria-hidden='true'
             >
-              {/* Red pushpin */}
-              <div className='absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-red-600 border border-white shadow-xs flex items-center justify-center'>
-                <div className='w-1 h-1 rounded-full bg-red-200' />
+              {/* Subtle ink pushpin */}
+              <div className='absolute -top-1.5 left-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full bg-[#EA580C] border border-white shadow-2xs flex items-center justify-center'>
+                <div className='w-0.5 h-0.5 rounded-full bg-white' />
               </div>
-              <div className='text-right font-mono font-bold text-[8.5px] sm:text-[9.5px] text-stone-900'>
+              <div className='text-right font-mono font-bold text-[10px] sm:text-[11px] text-[#1C1917]'>
                 v1.3
               </div>
-              <div className='text-[8px] sm:text-[9px] text-stone-900 font-sans font-medium leading-tight mt-0.5'>
+              <div className='text-[9.5px] sm:text-[10.5px] text-[#57534E] font-sans font-medium leading-snug mt-0.5'>
                 Biên tập · Giữ ánh sáng nhất quán ở khung 3
               </div>
-              <div className='text-right text-[7px] sm:text-[8px] text-stone-500 font-mono mt-0.5'>
+              <div className='text-right text-[8.5px] sm:text-[9.5px] text-[#78716C] font-mono mt-0.5'>
                 12/06/2024
               </div>
             </div>
@@ -239,7 +239,7 @@ export const HeroMangaPage: React.FC<HeroMangaPageProps> = ({ highlightTarget = 
               aria-hidden='true'
             >
               <div className='relative'>
-                <span className='block w-2 h-2 rounded-full bg-amber-500 border border-white shadow-xs' />
+                <span className='block w-2 h-2 rounded-full bg-[#EA580C] border border-white shadow-2xs' />
                 <svg
                   className='absolute top-1 left-1 w-9 h-7 overflow-visible pointer-events-none'
                   viewBox='0 0 36 28'
@@ -247,7 +247,7 @@ export const HeroMangaPage: React.FC<HeroMangaPageProps> = ({ highlightTarget = 
                 >
                   <path
                     d='M 0 0 L 22 20 H 32'
-                    stroke='#D97706'
+                    stroke='#EA580C'
                     strokeWidth='1.2'
                     strokeDasharray='2.5 2'
                   />
@@ -258,15 +258,17 @@ export const HeroMangaPage: React.FC<HeroMangaPageProps> = ({ highlightTarget = 
             {/* Ghim nhỏ biên tập: “Biên tập · Góp ý theo khung” */}
             <div
               id='hero-editor-pin'
-              className={`absolute top-[63%] right-3 sm:right-3.5 flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] sm:text-[12px] font-sans font-medium pointer-events-none z-30 select-none backdrop-blur-xs transition-all duration-200 motion-reduce:transform-none ${
+              className={`absolute top-[63%] right-3 sm:right-3.5 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10.5px] sm:text-[11.5px] font-sans font-medium pointer-events-none z-30 select-none backdrop-blur-md transition-all duration-200 motion-reduce:transform-none ${
                 highlightTarget === 'editor'
-                  ? 'bg-[#FEF08A] border-2 border-amber-400 shadow-md -translate-y-0.5 ring-2 ring-amber-300/80 rotate-0'
-                  : 'bg-[#FEF9C3]/95 border border-[#FDE047] shadow-sm rotate-1'
-              } text-stone-900`}
+                  ? 'bg-[#1C1917] text-white border border-[#1C1917] shadow-md -translate-y-0.5 rotate-0'
+                  : 'bg-white/95 text-[#1C1917] border border-[#D8D2C5] shadow-xs rotate-1'
+              }`}
               title='Góp ý theo khung'
             >
-              <div className='w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0' />
-              <span className='font-semibold text-stone-900'>Biên tập · Góp ý theo khung</span>
+              <div
+                className={`w-1.5 h-1.5 rounded-full shrink-0 ${highlightTarget === 'editor' ? 'bg-[#F97316]' : 'bg-[#EA580C]'}`}
+              />
+              <span className='font-medium'>Biên tập · Góp ý khung</span>
             </div>
 
             {/* Điểm nhấn nổi nhẹ quanh nhãn Artist · v3 khi hover nhãn Truy vết phiên bản */}

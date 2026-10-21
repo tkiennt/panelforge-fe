@@ -59,6 +59,7 @@ import {
   SceneDto,
   SceneScriptLineSummaryDto,
 } from '@/services/scriptLine.service';
+import { useConfirm } from '@/shared/context/ConfirmContext';
 import { aiAgentsService, LetteringSuggestion, AiSuggestionDto } from '@/services/aiAgents.service';
 import { offlineQueueService } from '@/services/offlineQueue.service';
 import { OfflineStatusBanner } from '@/shared/components/OfflineStatusBanner';
@@ -354,6 +355,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
   isReadOnly = false,
   onShowToast,
 }) => {
+  const confirm = useConfirm();
   const [searchParams] = useSearchParams();
   const { seriesId } = useParams<{ seriesId?: string }>();
   const activePageId = propPageId || searchParams.get('pageId') || '';
@@ -1485,7 +1487,16 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
     const target = elements.find((e) => e.elementId === elementId);
     if (!target) return;
 
-    if (!confirm('Bạn có chắc muốn xóa phần tử bóng thoại này?')) return;
+    if (
+      !(await confirm({
+        title: 'Xóa bóng thoại này?',
+        description: 'Văn bản và kiểu dáng bóng thoại trên trang sẽ bị gỡ bỏ.',
+        confirmText: 'Xác nhận xóa',
+        cancelText: 'Giữ lại',
+        variant: 'danger',
+      }))
+    )
+      return;
 
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       offlineQueueService.enqueue({

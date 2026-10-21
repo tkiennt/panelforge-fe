@@ -33,6 +33,8 @@ import { ChapterAssignmentsModal } from './ChapterAssignmentsModal';
 import { ChapterReviewsModal } from '@/shared/modals/ChapterReviewsModal';
 import { ChapterProvenanceModal } from '@/shared/features/provenance/ChapterProvenanceModal';
 import { PreviewLinksModal } from './PreviewLinksModal';
+import { TypeToConfirmModal } from '@/shared/components/lucian';
+import { useConfirm } from '@/shared/context/ConfirmContext';
 
 interface SeriesChaptersModalProps {
   isOpen: boolean;
@@ -55,6 +57,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
   onChapterCountChange,
   onShowToast,
 }) => {
+  const confirm = useConfirm();
   const { workspaceId: paramWorkspaceId } = useParams();
   const effectiveWorkspaceId =
     propWorkspaceId ||
@@ -136,7 +139,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
 
       const created = await chapterService.createChapter(seriesId, payload);
       onShowToast?.(
-        'Tạo Chương thành công (UC-03)',
+        'Tạo Chương thành công',
         `Đã tạo Chương ${created.chapterNumber}: "${created.title || 'Không tiêu đề'}" kèm mốc lịch phát hành.`,
       );
 
@@ -208,9 +211,13 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
 
   const handleApproveChapter = async (chap: ChapterDto) => {
     if (
-      !window.confirm(
-        `Xác nhận phê duyệt hoàn tất sản xuất Chương ${chap.chapterNumber}: "${chap.title || 'Không tiêu đề'}"?\n\nChương sẽ chuyển sang trạng thái Approved (Chờ xuất bản). Theo quy tắc BR-12, các phân công của chương sẽ được đóng lại để Publisher duyệt xuất bản.`,
-      )
+      !(await confirm({
+        title: `Phê duyệt hoàn tất Chương ${chap.chapterNumber}?`,
+        description: `Chương "${chap.title || 'Không tiêu đề'}" sẽ chuyển sang trạng thái Approved (Chờ xuất bản). Các phân công sẽ được đóng lại để Publisher duyệt xuất bản.`,
+        confirmText: 'Phê duyệt hoàn tất',
+        cancelText: 'Xem lại',
+        variant: 'info',
+      }))
     ) {
       return;
     }
@@ -370,7 +377,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
               <div>
                 <div className='flex items-center gap-2'>
                   <span className='px-2 py-0.5 rounded bg-[#171717] text-white font-mono text-[9px] font-bold'>
-                    UC-03 // RELEASE CALENDAR
+                    LỊCH PHÁT HÀNH // CHAPTER SCHEDULING
                   </span>
                   <span className='text-[10px] text-[#888888] font-mono'>Chapter Scheduling</span>
                 </div>
@@ -690,7 +697,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                               type='button'
                               onClick={() => setAssigningChapter(chap)}
                               className='px-2.5 py-1 rounded-lg bg-[#FFF7ED] hover:bg-[#FFEDD5] border border-[#FDBA74] text-[#EA580C] hover:text-[#C2410C] transition-all cursor-pointer flex items-center gap-1 font-semibold text-[11px] shadow-2xs'
-                              title='Giao việc & Xem tiến độ phân công (UC-05 Assignment)'
+                              title='Giao việc & Xem tiến độ phân công'
                             >
                               <ClipboardList className='w-3.5 h-3.5 text-[#F97316]' />
                               <span>Giao việc</span>
@@ -764,7 +771,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                               className='p-1.5 rounded-lg hover:bg-white border border-transparent hover:border-[#E7E7E7] text-[#555555] hover:text-[#171717] transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed'
                               title={
                                 chap.status === 'Approved' || chap.status === 'Published'
-                                  ? 'Chương đã duyệt hoặc đã xuất bản (BR-12)'
+                                  ? 'Chương đã duyệt hoặc đã xuất bản'
                                   : 'Sửa tiêu đề & ngày phát hành'
                               }
                             >
@@ -777,7 +784,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                               className='p-1.5 rounded-lg hover:bg-red-50 text-[#888888] hover:text-red-600 transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed'
                               title={
                                 chap.status === 'Approved' || chap.status === 'Published'
-                                  ? 'Chương đã duyệt hoặc đã xuất bản không thể xóa (BR-12)'
+                                  ? 'Chương đã duyệt hoặc đã xuất bản không thể xóa'
                                   : 'Xóa chương'
                               }
                             >
@@ -821,8 +828,8 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
           {/* Footer */}
           <div className='p-4 bg-[#FAF8F5] border-t border-[#E7E7E7] rounded-b-2xl flex items-center justify-between text-xs'>
             <div className='text-[11px] text-[#737373]'>
-              * TargetReleaseDate hỗ trợ quản lý lịch phát hành cho Producer &amp; Editor (UC-03
-              Phase 3).
+              * Ngày phát hành dự kiến (Target Date) hỗ trợ Producer & Editor quản lý tiến độ xuất
+              bản định kỳ. Phase 3).
             </div>
             <button
               type='button'

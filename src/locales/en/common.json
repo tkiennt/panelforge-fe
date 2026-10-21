@@ -74,11 +74,33 @@
     "plural": "You have {count} unsaved changes",
     "saved": "Changes saved",
     "discard": "Discard",
-    "save": "Save changes"
+    "save": "Save changes",
+    "saving": "Saving..."
   },
   "dangerZone": {
     "confirmDeleteTitle": "Confirm permanent deletion",
     "confirmDeleteDesc": "This action cannot be undone. Please type the exact name below to confirm deletion:",
     "typeInputLabel": "Re-type name to confirm"
+  },
+  "auth": {
+    "welcomeBack": "Welcome back",
+    "loginSubtitle": "Keep creating with your studio.",
+    "email": "Email",
+    "password": "Password",
+    "forgot": "Forgot password?",
+    "submit": "Sign in",
+    "submitting": "Signing in…",
+    "or": "Or",
+    "google": "Continue with Google",
+    "noAccount": "Don't have an account?",
+    "createAccount": "Create account",
+    "activate": "Activate account",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "backHome": "Back to home",
+    "errEmailRequired": "Please enter your email address.",
+    "errEmailInvalid": "Invalid email format.",
+    "errPasswordRequired": "Please enter your password.",
+    "errLoginFailed": "Sign in failed. Please check your details."
   }
 }

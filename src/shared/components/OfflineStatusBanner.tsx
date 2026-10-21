@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { WifiOff, RefreshCw, CheckCircle2, CloudUpload } from 'lucide-react';
+import { RefreshCw, CheckCircle2, CloudUpload } from 'lucide-react';
 import { offlineQueueService, OfflineQueueState } from '@/services/offlineQueue.service';
 import { useTranslation } from '@/lib/i18n';
+import '@/styles/modules/lucian/lucian-091.css';
 
 export const OfflineStatusBanner: React.FC<{ className?: string }> = ({ className = '' }) => {
   const { t } = useTranslation();
@@ -27,31 +28,39 @@ export const OfflineStatusBanner: React.FC<{ className?: string }> = ({ classNam
     return null;
   }
 
+  const isOffline = !queueState.isOnline;
+
   return (
     <div
-      className={`px-4 py-2.5 rounded-xl border text-xs flex items-center justify-between gap-3 shadow-xs transition-all ${
-        !queueState.isOnline
-          ? 'bg-amber-50 border-amber-200 text-amber-900'
-          : justSynced
-            ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
-            : 'bg-blue-50 border-blue-200 text-blue-900'
+      role='status'
+      aria-live='polite'
+      className={`pf-offline-banner ${isOffline ? 'is-offline' : ''} ${
+        justSynced ? 'is-synced' : ''
       } ${className}`}
     >
-      <div className='flex items-center gap-2'>
-        {!queueState.isOnline ? (
-          <WifiOff className='w-4 h-4 text-amber-600 shrink-0' />
+      <div className='pf-offline-left'>
+        {isOffline ? (
+          <span className='pf-wifi-waves' aria-hidden='true'>
+            <svg viewBox='0 0 24 24'>
+              <path className='wave-outer' d='M2.8 9.2a13.2 13.2 0 0 1 18.4 0' />
+              <path className='wave-mid' d='M5.7 12.4a9 9 0 0 1 12.6 0' />
+              <path className='wave-inner' d='M8.6 15.6a4.8 4.8 0 0 1 6.8 0' />
+              <circle cx='12' cy='19' r='1.5' fill='currentColor' stroke='none' />
+            </svg>
+          </span>
         ) : justSynced ? (
-          <CheckCircle2 className='w-4 h-4 text-emerald-600 shrink-0' />
+          <CheckCircle2 className='w-5 h-5 text-emerald-600 shrink-0' />
         ) : (
-          <CloudUpload className='w-4 h-4 text-blue-600 shrink-0' />
+          <CloudUpload className='w-5 h-5 text-blue-600 shrink-0' />
         )}
-        <span>
-          {!queueState.isOnline ? (
+        <div className='pf-offline-content text-xs'>
+          {isOffline ? (
             <>
               <strong>{t('common.offline.title')}</strong>{' '}
               {queueState.pendingCount > 0 ? (
                 <>
-                  Có <strong>{queueState.pendingCount}</strong> thao tác đã lưu tạm, sẽ tự động đồng bộ khi có mạng.
+                  Có <span className='pf-offline-badge'>{queueState.pendingCount}</span> thao tác đã
+                  lưu tạm, sẽ tự động đồng bộ khi có mạng.
                 </>
               ) : (
                 t('common.offline.noConnection')
@@ -63,20 +72,24 @@ export const OfflineStatusBanner: React.FC<{ className?: string }> = ({ classNam
             </>
           ) : (
             <>
-              Có <strong>{queueState.pendingCount}</strong> thao tác đang chờ đồng bộ lên máy chủ.
+              Có <span className='pf-offline-badge'>{queueState.pendingCount}</span> thao tác đang
+              chờ đồng bộ lên máy chủ.
             </>
           )}
-        </span>
+        </div>
       </div>
 
       {queueState.pendingCount > 0 && (
         <button
           onClick={handleManualSync}
           disabled={queueState.isSyncing}
-          className='inline-flex items-center gap-1.5 px-3 py-1 bg-white hover:bg-white/80 border border-current rounded-lg font-semibold text-[11px] shadow-2xs transition-all shrink-0 cursor-pointer disabled:opacity-50'
+          className='pf-offline-sync-btn'
+          aria-label={t('common.offline.syncNow')}
         >
-          <RefreshCw className={`w-3 h-3 ${queueState.isSyncing ? 'animate-spin' : ''}`} />
-          <span>{queueState.isSyncing ? t('common.offline.syncing') : t('common.offline.syncNow')}</span>
+          <RefreshCw className={`w-3.5 h-3.5 ${queueState.isSyncing ? 'animate-spin' : ''}`} />
+          <span>
+            {queueState.isSyncing ? t('common.offline.syncing') : t('common.offline.syncNow')}
+          </span>
         </button>
       )}
     </div>

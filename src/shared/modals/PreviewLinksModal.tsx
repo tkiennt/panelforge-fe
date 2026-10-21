@@ -26,6 +26,7 @@ import {
 import { assignmentService } from '@/services/assignment.service';
 import type { AssignmentDto } from '@/types/pipeline';
 import { WorkspaceRole } from '@/types';
+import { useConfirm } from '@/shared/context/ConfirmContext';
 
 export interface PreviewLinksModalProps {
   isOpen: boolean;
@@ -50,6 +51,7 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
   onReopenChapter,
   onShowToast,
 }) => {
+  const confirm = useConfirm();
   const [activeTab, setActiveTab] = useState<'links' | 'feedback'>('links');
 
   // Tab 1: Quản lý Link
@@ -160,7 +162,16 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
   };
 
   const handleRevokeLink = async (linkId: string) => {
-    if (!confirm('Bạn có chắc muốn thu hồi liên kết xem thử này ngay lập tức?')) return;
+    if (
+      !(await confirm({
+        title: 'Thu hồi liên kết xem thử ngay lập tức?',
+        description: 'Người nhận liên kết này sẽ không thể truy cập bản đọc thử nữa.',
+        confirmText: 'Thu hồi liên kết',
+        cancelText: 'Giữ lại',
+        variant: 'warning',
+      }))
+    )
+      return;
     setRevokingId(linkId);
     try {
       await previewLinkService.revokePreviewLink(chapterId, linkId);

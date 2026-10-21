@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useRef, useId } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
-import './lucian-269.css';
+import '@/styles/modules/lucian/lucian-269.css';
 
 export interface TypeToConfirmModalProps {
   isOpen: boolean;

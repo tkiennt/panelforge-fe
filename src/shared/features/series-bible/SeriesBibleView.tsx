@@ -37,6 +37,9 @@ import { BibleEntityDetailModal } from './BibleEntityDetailModal';
 import { PageContainer } from '@/shared/components/PageContainer';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { createPortal } from 'react-dom';
+import { useTranslation } from '@/lib/i18n';
+import { EmptyFolderState } from '@/shared/components/lucian';
+import { useConfirm } from '@/shared/context/ConfirmContext';
 
 interface SeriesBibleViewProps {
   activeProject?: MangaProject;
@@ -176,6 +179,8 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
   onSelectSeries,
   onShowToast,
 }) => {
+  const { t } = useTranslation();
+  const confirm = useConfirm();
   const [localEntities, setLocalEntities] = useState<BibleEntity[]>(entities);
   const [rawEntries, setRawEntries] = useState<Record<string, BibleEntryDto>>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -336,11 +341,13 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
       return;
     }
 
-    const confirmed = window.confirm(
-      `Bạn có chắc chắn muốn DUYỆT & KHOÁ phiên bản v${rev.versionNumber} của nhân vật "${historyEntity.name}" làm tham chiếu chuẩn?\n\n` +
-        'Lưu ý: Sau khi khoá, phiên bản này được cố định để Artist và AI đối chiếu. ' +
-        'Muốn đổi, Producer có thể tạo revision mới từ một chương khác, hoặc dùng tính năng Thay thế bản khoá.',
-    );
+    const confirmed = await confirm({
+      title: `Duyệt & Khóa phiên bản v${rev.versionNumber}?`,
+      description: `Cố định phiên bản này của nhân vật "${historyEntity.name}" làm tham chiếu chuẩn (Canon) để Artist và AI đối chiếu.`,
+      confirmText: 'Duyệt & Khóa Canon',
+      cancelText: 'Hủy',
+      variant: 'warning',
+    });
     if (!confirmed) return;
 
     setLockingRevisionId(rev.id);
@@ -753,7 +760,9 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                 <span>{cat.label}</span>
                 <span
                   className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full ${
-                    isActive ? 'bg-[#F97316]/20 text-[#C2410C] font-semibold' : 'bg-[#F3F0E9] text-[#78716C]'
+                    isActive
+                      ? 'bg-[#F97316]/20 text-[#C2410C] font-semibold'
+                      : 'bg-[#F3F0E9] text-[#78716C]'
                   }`}
                 >
                   {count}
@@ -1044,7 +1053,10 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                       <h3 className='font-bold font-serif text-sm sm:text-base text-[#1C1917] group-hover:text-[#F97316] transition-colors line-clamp-1'>
                         {entity.name}
                         {effRev?.stageName ? (
-                          <span className='font-sans font-medium text-[#57534E]'> · {effRev.stageName}</span>
+                          <span className='font-sans font-medium text-[#57534E]'>
+                            {' '}
+                            · {effRev.stageName}
+                          </span>
                         ) : null}
                       </h3>
                       {entity.subtitle && (
@@ -1186,7 +1198,10 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                       <h3 className='font-bold font-serif text-sm sm:text-base text-[#1C1917] group-hover:text-[#F97316] transition-colors truncate'>
                         {entity.name}
                         {effRev?.stageName ? (
-                          <span className='font-sans font-medium text-[#57534E]'> · {effRev.stageName}</span>
+                          <span className='font-sans font-medium text-[#57534E]'>
+                            {' '}
+                            · {effRev.stageName}
+                          </span>
                         ) : null}
                       </h3>
                       <span className='px-1.5 py-0.5 rounded bg-[#F3F0E9] text-[#57534E] text-[10px] font-medium'>

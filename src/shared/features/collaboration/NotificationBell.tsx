@@ -1,9 +1,10 @@
-import React, { useCallback, useEffect, useState } from 'react';
+// Lucian UX/UI Prompt #074 · MIT License (c) 2026 Seokwoooo · https://lucianlabs.dev/uxui-prompt/#074
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, CheckCheck } from 'lucide-react';
 import { notificationService } from '@/services/notification.service';
 import type { NotificationDto } from '@/types';
 import { formatRelativeTime } from './collaborationRules';
+import '@/styles/modules/lucian/lucian-074.css';
 
 interface NotificationBellProps {
   workspaceId?: string;
@@ -30,9 +31,37 @@ const TYPE_LABEL: Record<string, string> = {
   ChangeRequestOverdue: 'Sửa đã quá hạn',
 };
 
+interface NotificationBadgeStyle {
+  icon: string;
+  bg: string;
+  border: string;
+  color: string;
+}
+
+const getNotificationBadgeStyle = (type: string): NotificationBadgeStyle => {
+  switch (type) {
+    case 'AssignmentApproved':
+    case 'ChapterPublished':
+      return { icon: '✅', bg: '#ECFDF5', border: '#A7F3D0', color: '#047857' };
+    case 'AssignmentChangesRequested':
+    case 'ChangeRequestReopened':
+      return { icon: '✏️', bg: '#FFFBEB', border: '#FDE68A', color: '#B45309' };
+    case 'AssignmentOverdue':
+    case 'ChangeRequestOverdue':
+      return { icon: '🚨', bg: '#FEF2F2', border: '#FECACA', color: '#B91C1C' };
+    case 'ChapterReadyForPublication':
+      return { icon: '🚀', bg: '#F5F3FF', border: '#DDD6FE', color: '#6D28D9' };
+    case 'AssignmentAssigned':
+    case 'AssignmentUpdated':
+      return { icon: '📋', bg: '#FFF2E6', border: '#FDBA74', color: '#C2410C' };
+    default:
+      return { icon: '💬', bg: '#F3F0E9', border: '#D8D2C5', color: '#57534E' };
+  }
+};
+
 /**
- * Chuông thông báo thật (UC-14): số chưa đọc lấy từ Backend (`unreadCount`), polling định kỳ, bấm vào một thông báo thì đánh dấu
- * đã đọc và mở màn "Công việc của tôi" đúng chương và việc liên quan.
+ * Chuông thông báo chuẩn Lucian UX/UI Element #074 kết hợp logic Backend thực tế (UC-14).
+ * Cung cấp animation rung động lực học khi có tin mới, badge đếm co giãn spring, popover có tab và đánh dấu đã đọc mượt mà.
  */
 export const NotificationBell: React.FC<NotificationBellProps> = ({
   workspaceId,
@@ -40,14 +69,31 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
   pollIntervalMs = 30_000,
 }) => {
   const navigate = useNavigate();
+  const rootRef = useRef<HTMLDivElement>(null);
+  const bellRef = useRef<HTMLButtonElement>(null);
+
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<NotificationDto[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [activeTab, setActiveTab] = useState<'all' | 'unread'>('all');
+  const [isRinging, setIsRinging] = useState(false);
+
+  const prevCountRef = useRef(0);
 
   const refresh = useCallback(async () => {
-    const res = await notificationService.getNotifications(false, 1, 20);
-    setItems(res.items);
-    setUnreadCount(res.unreadCount);
+    try {
+      const res = await notificationService.getNotifications(false, 1, 20);
+      setItems(res.items);
+      const newUnread = res.unreadCount;
+      if (newUnread > prevCountRef.current) {
+        setIsRinging(true);
+        window.setTimeout(() => setIsRinging(false), 1000);
+      }
+      prevCountRef.current = newUnread;
+      setUnreadCount(newUnread);
+    } catch {
+      // Bỏ qua lỗi polling mạng ngầm
+    }
   }, []);
 
   useEffect(() => {
@@ -58,7 +104,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
     return () => window.clearInterval(timer);
   }, [refresh, pollIntervalMs]);
 
-  const handleOpen = () => {
+  const handleToggle = () => {
     const next = !open;
     setOpen(next);
     if (next) void refresh();
@@ -98,99 +144,208 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
     setUnreadCount(0);
   };
 
+  // Phím Escape để đóng popover
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && open) {
+        setOpen(false);
+        bellRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [open]);
+
+  // Click outside để đóng popover
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    if (open) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [open]);
+
+  const filteredItems = items.filter((n) => {
+    if (activeTab === 'unread') return !n.readAt;
+    return true;
+  });
+
   return (
-    <div className='relative'>
+    <div
+      ref={rootRef}
+      className={`ux u074 ${open ? '' : 'is-closed'} relative inline-block`}
+      style={{ width: 'auto', height: 'auto' }}
+    >
       <button
+        ref={bellRef}
         type='button'
-        onClick={handleOpen}
+        onClick={handleToggle}
         aria-label={unreadCount > 0 ? `Thông báo, ${unreadCount} chưa đọc` : 'Thông báo'}
         aria-expanded={open}
         data-testid='notification-bell'
-        className='w-8 h-8 rounded-lg border border-[#E7E7E7] bg-white hover:bg-[#F8F6F0] flex items-center justify-center text-[#555555] hover:text-[#171717] transition-colors relative cursor-pointer'
+        className={`u074-bell ${isRinging ? 'ring' : ''}`}
+        style={{ width: '36px', height: '36px' }}
       >
-        <Bell className='w-4 h-4' />
+        <svg viewBox='0 0 22 22' aria-hidden='true'>
+          <path d='M5.5 15V10a5.5 5.5 0 0 1 11 0v5l1.5 1.5h-14zM9 18.5a2 2 0 0 0 4 0' />
+        </svg>
         {unreadCount > 0 && (
           <span
             data-testid='notification-badge'
-            className='absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-[#F97316] text-white text-[9px] font-bold flex items-center justify-center ring-2 ring-white'
+            className='u074-badge'
+            aria-hidden='true'
+            style={{ right: '-2px', top: '-2px' }}
           >
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
       </button>
 
-      {open && (
-        <>
-          <div className='fixed inset-0 z-40' onClick={() => setOpen(false)} />
-          <div className='absolute right-0 top-10 w-80 bg-white border border-[#E7E7E7] rounded-xl shadow-2xl z-50 overflow-hidden'>
-            <div className='flex items-center justify-between px-3 py-2 border-b border-[#E7E7E7] bg-[#FAF8F4]'>
-              <span className='text-xs font-bold text-[#171717]'>Thông báo</span>
-              <button
-                type='button'
-                onClick={() => void handleReadAll()}
-                disabled={unreadCount === 0}
-                className='text-[10px] font-semibold text-[#F97316] disabled:text-zinc-400 flex items-center gap-1 cursor-pointer disabled:cursor-default'
-              >
-                <CheckCheck className='w-3 h-3' />
-                Đánh dấu đã đọc tất cả
-              </button>
-            </div>
+      {/* Popover Panel Lucian UX/UI #074 */}
+      <div
+        className='u074-pan'
+        role='region'
+        aria-label='Notification list'
+        aria-hidden={!open}
+        style={{
+          width: '360px',
+          top: '46px',
+          right: '0',
+          left: 'auto',
+          boxShadow: '0 12px 36px -10px rgba(0,0,0,0.2), 0 0 0 1px var(--ux-line)',
+        }}
+      >
+        {/* Panel Header & Tabs */}
+        <div className='u074-ph' role='tablist' aria-label='Notification type'>
+          <button
+            className='u074-tab'
+            type='button'
+            role='tab'
+            aria-selected={activeTab === 'all'}
+            onClick={() => setActiveTab('all')}
+          >
+            Tất cả
+          </button>
+          <button
+            className='u074-tab'
+            type='button'
+            role='tab'
+            aria-selected={activeTab === 'unread'}
+            onClick={() => setActiveTab('unread')}
+          >
+            Chưa đọc ({unreadCount})
+          </button>
+          <button
+            className='u074-all'
+            type='button'
+            disabled={unreadCount === 0}
+            onClick={() => void handleReadAll()}
+          >
+            Đánh dấu đã đọc tất cả
+          </button>
+        </div>
 
-            <div className='max-h-96 overflow-y-auto'>
-              {items.length === 0 ? (
-                <div className='p-6 text-center text-xs text-[#888888]'>Chưa có thông báo nào.</div>
-              ) : (
-                <ul className='divide-y divide-[#F0F0F0]'>
-                  {items.map((n) => (
-                    <li key={n.id}>
-                      <button
-                        type='button'
-                        onClick={() => void handleItemClick(n)}
-                        data-testid={`notification-${n.id}`}
-                        className={`w-full text-left p-3 hover:bg-zinc-50 cursor-pointer ${n.readAt ? '' : 'bg-orange-50/50'}`}
+        {/* Notification List */}
+        <ul className='u074-list' aria-live='polite' style={{ maxHeight: '380px' }}>
+          {filteredItems.length === 0 ? (
+            <li className='p-6 text-center text-xs text-[#888888] font-medium'>
+              Chưa có thông báo nào.
+            </li>
+          ) : (
+            filteredItems.map((n) => {
+              const badgeStyle = getNotificationBadgeStyle(n.type);
+              const isOverdue = n.type === 'AssignmentOverdue' || n.type === 'ChangeRequestOverdue';
+              const isDueSoon = n.type === 'AssignmentDueSoon' || n.type === 'ChangeRequestDueSoon';
+
+              return (
+                <li key={n.id} className='u074-it'>
+                  <div>
+                    <button
+                      type='button'
+                      onClick={() => void handleItemClick(n)}
+                      data-testid={`notification-${n.id}`}
+                      className={`u074-row ${n.readAt ? 'read' : ''}`}
+                      style={{
+                        padding: '10px 14px',
+                        background: n.readAt ? 'transparent' : 'rgba(249, 115, 22, 0.05)',
+                      }}
+                    >
+                      <span
+                        className='u074-av'
+                        style={{
+                          background: badgeStyle.bg,
+                          border: `1px solid ${badgeStyle.border}`,
+                          color: badgeStyle.color,
+                        }}
+                        aria-hidden='true'
                       >
-                        <div className='flex items-center justify-between text-[10px] font-mono text-[#888888]'>
+                        <span style={{ fontSize: '15px' }}>{badgeStyle.icon}</span>
+                      </span>
+
+                      <div className='u074-tx' style={{ flex: 1 }}>
+                        <div className='flex items-center justify-between text-[11px] mb-0.5'>
                           <span
                             className={
-                              n.type === 'AssignmentOverdue' || n.type === 'ChangeRequestOverdue'
+                              isOverdue
                                 ? 'text-rose-600 font-bold flex items-center gap-1'
-                                : n.type === 'AssignmentDueSoon' ||
-                                    n.type === 'ChangeRequestDueSoon'
+                                : isDueSoon
                                   ? 'text-amber-600 font-bold flex items-center gap-1'
                                   : n.readAt
-                                    ? ''
+                                    ? 'text-[#888888]'
                                     : 'text-[#F97316] font-bold'
                             }
                           >
-                            {(n.type === 'AssignmentOverdue' ||
-                              n.type === 'ChangeRequestOverdue') && (
+                            {isOverdue && (
                               <span className='w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0' />
                             )}
-                            {(n.type === 'AssignmentDueSoon' ||
-                              n.type === 'ChangeRequestDueSoon') && (
+                            {isDueSoon && (
                               <span className='w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0' />
                             )}
                             {TYPE_LABEL[String(n.type)] ?? 'Thông báo'}
                           </span>
-                          <span>{formatRelativeTime(n.createdAt)}</span>
+                          <small className='font-mono text-[10.5px] text-[#8E8A97]'>
+                            {formatRelativeTime(n.createdAt)}
+                          </small>
                         </div>
-                        <div
-                          className={`text-xs mt-0.5 ${n.readAt ? 'text-[#555555]' : 'text-[#171717] font-semibold'}`}
+
+                        <b
+                          style={{
+                            display: 'block',
+                            fontSize: '12.5px',
+                            lineHeight: '1.35',
+                            marginBottom: '2px',
+                            color: n.readAt ? '#44403C' : '#1C1917',
+                          }}
                         >
                           {n.title}
-                        </div>
-                        <p className='text-[11px] text-[#666666] line-clamp-2 mt-0.5'>
+                        </b>
+                        <p
+                          style={{
+                            margin: 0,
+                            fontSize: '11.5px',
+                            color: '#57534E',
+                            lineHeight: '1.4',
+                          }}
+                        >
                           {n.message}
                         </p>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </div>
-        </>
-      )}
+                      </div>
+
+                      {!n.readAt && <span className='u074-dot' aria-hidden='true' />}
+                    </button>
+                  </div>
+                </li>
+              );
+            })
+          )}
+        </ul>
+      </div>
     </div>
   );
 };

@@ -3,7 +3,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from '@/lib/i18n';
-import './lucian-250.css';
+import '@/styles/modules/lucian/lucian-250.css';
 
 export interface UnsavedChangesBarProps {
   isDirty: boolean;

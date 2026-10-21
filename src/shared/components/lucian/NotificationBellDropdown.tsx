@@ -1,6 +1,6 @@
 // Lucian UX/UI Prompt #074 · MIT License (c) 2026 Seokwoooo · https://lucianlabs.dev/uxui-prompt/#074
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import './lucian-074.css';
+import '@/styles/modules/lucian/lucian-074.css';
 
 export interface LucianNotificationItem {
   id: string | number;

@@ -111,7 +111,7 @@ describe('App Integration Smoke Test', () => {
     });
 
     // 4. User chọn vào Workspace Alpha (Producer)
-    fireEvent.click(screen.getByText('Workspace Alpha (Producer)'));
+    fireEvent.click(screen.getByRole('button', { name: 'Vào studio: Workspace Alpha (Producer)' }));
 
     // 5. Xác nhận giao diện Studio hiển thị menu / hành động dành riêng cho Producer
     await waitFor(() => {
@@ -125,14 +125,17 @@ describe('App Integration Smoke Test', () => {
 
     // 7. Xác nhận đã quay lại WorkspaceListView và currentWorkspaceRole đã được reset
     await waitFor(() => {
-      expect(screen.getByText('Workspace Alpha (Producer)')).toBeInTheDocument();
+      // Alpha xuất hiện cả ở card và dòng "Truy cập gần đây"
+      expect(
+        screen.getByRole('button', { name: /Workspace Alpha \(Producer\)/ }),
+      ).toBeInTheDocument();
       expect(screen.getByText('Workspace Beta (Artist)')).toBeInTheDocument();
       // Menu / hành động của Producer đã biến mất hoàn toàn
       expect(screen.queryByText('Tạo Series Mới')).not.toBeInTheDocument();
     });
 
     // 8. User chọn vào Workspace Beta (Artist)
-    fireEvent.click(screen.getByText('Workspace Beta (Artist)'));
+    fireEvent.click(screen.getByRole('button', { name: 'Vào studio: Workspace Beta (Artist)' }));
 
     // 9. Xác nhận chuyển vào màn chọn Series của Workspace B (/workspaces/ws-b/series)
     // và không có quyền / nút tạo của Producer
@@ -201,7 +204,7 @@ describe('App Integration Smoke Test', () => {
 
     // Phải render Workspace Catalog
     await waitFor(() => {
-      expect(screen.getByText('Production Workspace Catalog')).toBeInTheDocument();
+      expect(screen.getByText('Không gian sáng tạo')).toBeInTheDocument();
       // TUYỆT ĐỐI KHÔNG hiển thị System Admin Zone
       expect(screen.queryByText('System Admin Zone')).not.toBeInTheDocument();
       expect(
@@ -247,7 +250,7 @@ describe('App Integration Smoke Test', () => {
         screen.queryByText('PanelForge System Administration Console'),
       ).not.toBeInTheDocument();
       expect(screen.queryByText('System Admin Zone')).not.toBeInTheDocument();
-      expect(screen.getByText('Production Workspace Catalog')).toBeInTheDocument();
+      expect(screen.getByText('Không gian sáng tạo')).toBeInTheDocument();
       expect(localStorage.getItem('userRole')).toBe('USER');
     });
   });
@@ -316,7 +319,7 @@ describe('App Integration Smoke Test', () => {
     // Kiểm tra: ở lại /admin, render Admin Dashboard, KHÔNG bị bật ngược về /workspaces
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: 'Tổng quan hệ thống' })).toBeInTheDocument();
-      expect(screen.queryByText('Production Workspace Catalog')).not.toBeInTheDocument();
+      expect(screen.queryByText('Không gian sáng tạo')).not.toBeInTheDocument();
     });
 
     // Xác nhận gọi thành công system-stats với đúng JWT thật

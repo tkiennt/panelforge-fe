@@ -2,7 +2,7 @@
   "myWork": {
     "title": "Công việc của tôi",
     "desc": "Bắt đầu, tải artwork, nộp bài và xử lý yêu cầu sửa của từng chương.",
-    "allStudioOption": "✨ Toàn bộ Studio (Tất cả các chương)",
+    "allStudioOption": "Toàn bộ Studio (Tất cả các chương)",
     "chapterOption": "Chương {number}",
     "reload": "Tải lại",
     "filterAria": "Bộ lọc việc",

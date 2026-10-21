@@ -20,6 +20,7 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { HeroMangaPage } from '../components/HeroMangaPage';
+import { LanguageSwitcher } from '@/lib/i18n';
 
 interface LandingPageViewProps {
   onOpenLogin?: () => void;
@@ -1223,8 +1224,9 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             </a>
           </nav>
 
-          {/* Right: Auth buttons & Mobile menu toggle */}
+          {/* Right: Language switcher, Auth buttons & Mobile menu toggle */}
           <div className='flex items-center gap-2 sm:gap-3 shrink-0'>
+            <LanguageSwitcher className='hidden sm:inline-flex mr-0.5' />
             <button
               onClick={handleLoginClick}
               aria-label='Đăng nhập'
@@ -1305,6 +1307,10 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             </nav>
 
             <div className='flex flex-col gap-3 pb-8 pt-4 border-t border-[#D8D2C5]'>
+              <div className='flex items-center justify-between pb-1'>
+                <span className='text-xs font-mono text-[#57534E]'>Ngôn ngữ / Language:</span>
+                <LanguageSwitcher />
+              </div>
               <button
                 onClick={() => {
                   setIsMobileMenuOpen(false);
@@ -1393,7 +1399,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             {/* Left Column: Overline, Comic Headline, Description, Speech CTAs, Feature Badges */}
             <div className='flex flex-col items-start text-left w-full max-w-[680px] bg-[#F3F0E9] lg:bg-transparent -mx-[clamp(20px,4.2vw,72px)] px-[clamp(20px,4.2vw,72px)] pt-6 sm:pt-8 pb-4 lg:p-0 lg:m-0 relative z-10'>
               {/* Overline Docket Header (No capsule pill, no status dot) */}
-              <div className='hero-stagger-1 inline-flex items-center gap-2 text-xs sm:text-[13px] font-medium text-[#78716C] mb-[clamp(14px,2.2vh,24px)] select-none'>
+              <div className='hero-stagger-1 inline-flex items-center gap-2 text-xs sm:text-[13px] font-medium text-[#57534E] mb-[clamp(14px,2.2vh,24px)] select-none'>
                 <span className='font-mono font-bold text-[#1C1917] tracking-wider'>PF / 01</span>
                 <span className='text-[#D8D2C5]' aria-hidden='true'>
                   —
@@ -1409,7 +1415,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                   fontFamily:
                     "'Patrick Hand SC', 'Patrick Hand', 'Be Vietnam Pro', cursive, sans-serif",
                 }}
-                className='hero-stagger-2 hero-ink-bleed font-black text-[#1C1917] tracking-normal leading-[1.08] text-[clamp(2.9rem,5.6vw+0.2rem,5.65rem)] mb-[clamp(16px,2.2vh,26px)] select-text overflow-visible uppercase'
+                className='hero-stagger-2 hero-ink-bleed font-black text-[#1C1917] tracking-normal leading-[1.16] py-1 text-[clamp(2.9rem,5.6vw+0.2rem,5.65rem)] mb-[clamp(16px,2.2vh,26px)] select-text overflow-visible uppercase'
               >
                 <span className='block whitespace-nowrap transform -skew-x-[3.5deg]'>
                   TỪ Ý TƯỞNG ĐẾN
@@ -1457,46 +1463,40 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 </span>
               </p>
 
-              {/* Speech-Balloon Styled CTAs */}
+              {/* Speech-Balloon Styled Primary CTA with clear hierarchy */}
               <div
                 id='hero-cta-group'
-                className='hero-stagger-4 flex flex-wrap items-center gap-4 mb-3'
+                className='hero-stagger-4 flex flex-wrap items-center gap-4 sm:gap-6 mb-3'
               >
-                {/* Primary CTA: Black Ink Speech Balloon */}
+                {/* Sole Dominant Primary CTA: Black Ink Speech Balloon */}
                 <button
-                  onClick={handleLoginClick}
-                  aria-label='Đăng nhập'
-                  className='relative group inline-flex items-center justify-center gap-2 min-h-[50px] px-8 sm:px-9 text-[15px] sm:text-[16px] font-semibold bg-[#1C1917] text-white rounded-[18px] shadow-[3px_3px_0px_#1C1917] hover:shadow-[4px_4px_0px_#1C1917] hover:-translate-y-0.5 active:translate-x-[2px] active:translate-y-[2px] active:shadow-[1px_1px_0px_#1C1917] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-2 transition-all duration-150 cursor-pointer motion-reduce:transform-none select-none'
+                  onClick={handleRegisterClick}
+                  aria-label='Tạo tài khoản'
+                  className='relative group inline-flex items-center justify-center gap-2.5 min-h-[52px] px-8 sm:px-10 text-[15px] sm:text-[16px] font-semibold bg-[#1C1917] text-white rounded-[20px] shadow-[4px_4px_0px_#1C1917] hover:shadow-[5px_5px_0px_#1C1917] hover:-translate-y-0.5 active:translate-x-[2px] active:translate-y-[2px] active:shadow-[1px_1px_0px_#1C1917] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-2 transition-all duration-150 cursor-pointer motion-reduce:transform-none select-none'
                 >
-                  <span className='font-sans'>Đăng nhập</span>
-                  <span className='text-sm' aria-hidden='true'>
-                    ↗
-                  </span>
+                  <span className='font-sans'>Tạo tài khoản</span>
+                  <ArrowRight
+                    className='w-4 h-4 transition-transform group-hover:translate-x-1'
+                    aria-hidden='true'
+                  />
                   {/* Speech balloon notch tail */}
                   <span
-                    className='absolute -bottom-2 left-6 w-0 h-0 border-l-[6px] border-l-transparent border-r-[8px] border-r-transparent border-t-[8px] border-t-[#1C1917] pointer-events-none'
+                    className='absolute -bottom-2 left-7 w-0 h-0 border-l-[6px] border-l-transparent border-r-[8px] border-r-transparent border-t-[8px] border-t-[#1C1917] pointer-events-none'
                     aria-hidden='true'
                   />
                 </button>
 
-                {/* Secondary CTA: Ivory Paper Speech Balloon with 2px Ink Border */}
-                <button
-                  onClick={handleRegisterClick}
-                  aria-label='Tạo tài khoản'
-                  className='relative group inline-flex items-center justify-center gap-2 min-h-[50px] px-8 sm:px-9 text-[15px] sm:text-[16px] font-semibold bg-[#FAF8F5] text-[#1C1917] border-2 border-[#1C1917] rounded-[18px] shadow-[3px_3px_0px_#1C1917] hover:shadow-[4px_4px_0px_#1C1917] hover:-translate-y-0.5 hover:bg-[#F3F0E9] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[1px_1px_0px_#1C1917] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-2 transition-all duration-150 cursor-pointer motion-reduce:transform-none select-none'
-                >
-                  <span className='font-sans'>Tạo tài khoản</span>
-                  {/* Speech balloon notch tail (outer border) */}
-                  <span
-                    className='absolute -bottom-[9px] left-6 w-0 h-0 border-l-[6px] border-l-transparent border-r-[8px] border-r-transparent border-t-[9px] border-t-[#1C1917] pointer-events-none'
-                    aria-hidden='true'
-                  />
-                  {/* Speech balloon notch tail (inner fill) */}
-                  <span
-                    className='absolute -bottom-[6px] left-[25px] w-0 h-0 border-l-[5px] border-l-transparent border-r-[7px] border-r-transparent border-t-[7px] border-t-[#FAF8F5] pointer-events-none group-hover:border-t-[#F3F0E9]'
-                    aria-hidden='true'
-                  />
-                </button>
+                {/* Returning Member Login Prompt */}
+                <div className='flex items-center gap-1.5 text-xs sm:text-[13.5px] text-[#57534E]'>
+                  <span>Đã có tài khoản?</span>
+                  <button
+                    onClick={handleLoginClick}
+                    aria-label='Đăng nhập'
+                    className='font-semibold text-[#1C1917] underline underline-offset-4 hover:text-[#EA580C] transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 rounded-xs'
+                  >
+                    Đăng nhập
+                  </button>
+                </div>
               </div>
 
               {/* Discovery Link to Workflow Section */}
@@ -1505,7 +1505,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                   id='hero-workflow-link'
                   href='#block-workflow'
                   onClick={handleScrollToWorkflow}
-                  className='inline-flex items-center gap-1.5 text-xs sm:text-[13.5px] font-sans text-stone-500 hover:text-stone-900 font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-2 rounded-xs'
+                  className='inline-flex items-center gap-1.5 text-xs sm:text-[13.5px] font-sans text-[#57534E] hover:text-[#1C1917] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-2 rounded-xs'
                 >
                   <span>Khám phá quy trình hoạt động</span>
                   <span aria-hidden='true'>↓</span>
@@ -1950,7 +1950,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 <div className='w-11 h-11 rounded-xl bg-[#FAF8F5] border border-[#D8D2C5] flex items-center justify-center text-[#1C1917] mb-5'>
                   <FolderTree className='w-5 h-5 text-[#1C1917]' />
                 </div>
-                <div className='text-[10px] uppercase tracking-[0.16em] text-[#78716C] font-semibold font-mono mb-2'>
+                <div className='text-[10px] uppercase tracking-[0.16em] text-[#57534E] font-semibold font-mono mb-2'>
                   01 / Phân cấp
                 </div>
                 <h3 className='font-serif text-xl sm:text-2xl font-medium text-[#1C1917] leading-snug [text-wrap:balance]'>
@@ -1973,7 +1973,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 <div className='w-11 h-11 rounded-xl bg-[#FAF8F5] border border-[#D8D2C5] flex items-center justify-center text-[#1C1917] mb-5'>
                   <History className='w-5 h-5 text-[#1C1917]' />
                 </div>
-                <div className='text-[10px] uppercase tracking-[0.16em] text-[#78716C] font-semibold font-mono mb-2'>
+                <div className='text-[10px] uppercase tracking-[0.16em] text-[#57534E] font-semibold font-mono mb-2'>
                   02 / Minh bạch
                 </div>
                 <h3 className='font-serif text-xl sm:text-2xl font-medium text-[#1C1917] leading-snug [text-wrap:balance]'>
@@ -1996,7 +1996,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 <div className='w-11 h-11 rounded-xl bg-[#FAF8F5] border border-[#D8D2C5] flex items-center justify-center text-[#1C1917] mb-5'>
                   <Sparkles className='w-5 h-5 text-[#F97316]' />
                 </div>
-                <div className='text-[10px] uppercase tracking-[0.16em] text-[#78716C] font-semibold font-mono mb-2'>
+                <div className='text-[10px] uppercase tracking-[0.16em] text-[#57534E] font-semibold font-mono mb-2'>
                   03 / Nhất quán
                 </div>
                 <h3 className='font-serif text-xl sm:text-2xl font-medium text-[#1C1917] leading-snug [text-wrap:balance]'>
@@ -2623,7 +2623,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                   </div>
                 </div>
 
-                <div className='pt-2 border-t border-[#E2DDD2] flex items-center justify-between text-[10px] font-mono text-[#78716C]'>
+                <div className='pt-2 border-t border-[#E2DDD2] flex items-center justify-between text-[10px] font-mono text-[#57534E]'>
                   <span>Trạng thái: Đã duyệt thoại</span>
                   <span>v1.0</span>
                 </div>
@@ -2814,7 +2814,9 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
 
                 {/* Preset Quick Buttons */}
                 <div className='flex flex-wrap items-center gap-2.5 mb-6 select-none'>
-                  <span className='text-xs font-mono text-[#78716C] mr-1'>Chế độ xem:</span>
+                  <span className='text-xs font-mono text-[#57534E] font-medium mr-1'>
+                    Chế độ xem:
+                  </span>
                   <button
                     type='button'
                     onClick={() => setComparisonSliderPos(100)}

@@ -17,6 +17,17 @@ import {
 import { CurrentUser } from './AppShell';
 import { MangaProject } from '@/types';
 import { seriesService, SeriesDto } from '@/services/series.service';
+import { useTranslation } from '@/lib/i18n';
+import '@/styles/modules/sidebar-theme.css';
+
+import { SIDEBAR_ID, SIDEBAR_THEMES, type SidebarTheme } from './sidebarTheme';
+
+const THEME_FALLBACK: Record<SidebarTheme, string> = {
+  paper: 'Giấy sáng',
+  ink: 'Mực đậm',
+  ocean: 'Biển đêm',
+  plum: 'Tím bản thảo',
+};
 
 export interface AppShellSidebarProps {
   currentUser: CurrentUser;

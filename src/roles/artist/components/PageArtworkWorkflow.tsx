@@ -24,6 +24,7 @@ import { panelService } from '@/services/panel.service';
 import { elementService } from '@/services/element.service';
 import { buildBoundingBoxJson } from '@/shared/utils/panelBoundingBox';
 import type { PanelDto } from '@/types/pipeline';
+import { useConfirm } from '@/shared/context/ConfirmContext';
 import {
   clampRegion,
   draftFromSplitResult,
@@ -286,6 +287,7 @@ const SplitReviewDialog: React.FC<DialogProps> = ({
   onClose,
   onApplied,
 }) => {
+  const confirm = useConfirm();
   const [rtl, setRtl] = useState(defaultRightToLeft);
   const [detecting, setDetecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -342,16 +344,26 @@ const SplitReviewDialog: React.FC<DialogProps> = ({
       : 1;
   const scale = Math.max(0.05, fit ? fitScale : zoom);
 
-  const confirmDiscard = () =>
-    !dirty || window.confirm('Bạn có chỉnh sửa chưa lưu trong bản nháp. Bỏ bản nháp này?');
+  const confirmDiscard = async () => {
+    if (!dirty) return true;
+    return await confirm({
+      title: 'Bỏ bản nháp chưa lưu?',
+      description: 'Bạn có các chỉnh sửa phân vùng chưa lưu trong bản nháp này.',
+      confirmText: 'Bỏ bản nháp',
+      cancelText: 'Giữ lại chỉnh sửa',
+      variant: 'warning',
+    });
+  };
 
-  const close = () => {
-    if (saving || !confirmDiscard()) return;
+  const close = async () => {
+    if (saving) return;
+    if (!(await confirmDiscard())) return;
     onClose();
   };
 
   const detect = async () => {
-    if (detecting || !confirmDiscard()) return;
+    if (detecting) return;
+    if (!(await confirmDiscard())) return;
     const req = ++reqRef.current;
     setDetecting(true);
     setError(null);

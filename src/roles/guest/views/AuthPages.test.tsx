@@ -45,9 +45,9 @@ describe('AuthLayout and VersionedBlueprintVisual', () => {
     expect(dialog).toHaveAttribute('aria-modal', 'true');
     expect(dialog).toHaveAttribute('aria-labelledby', 'auth-dialog-title');
 
-    // Kiểm tra nút đóng (X) và link Về trang chủ
+    // Một lối thoát duy nhất: nút đóng (X)
     expect(screen.getByTestId('auth-close-btn')).toHaveAttribute('aria-label', 'Đóng');
-    expect(screen.getByText('Về trang chủ')).toBeInTheDocument();
+    expect(screen.queryByText('Về trang chủ')).not.toBeInTheDocument();
 
     // Kiểm tra 3 tờ giấy bản thảo manga với các asset thực tế
     const manuscriptRegion = screen.getByRole('region', {
@@ -204,10 +204,11 @@ describe('LoginPage Component', () => {
     const title = screen.getByRole('heading', { name: /Chào mừng.*trở lại/i });
     expect(title).toBeInTheDocument();
     expect(title).toHaveAttribute('id', 'auth-dialog-title');
-    expect(screen.getByText('Tiếp tục câu chuyện của bạn cùng studio.')).toBeInTheDocument();
+    expect(screen.getByText('Tiếp tục sáng tạo cùng studio của bạn.')).toBeInTheDocument();
 
     const emailInput = container.querySelector('#login-email') as HTMLInputElement;
-    expect(emailInput).toHaveAttribute('autocomplete', 'email');
+    expect(emailInput).toHaveAttribute('type', 'email');
+    expect(emailInput).toHaveAttribute('autocomplete', 'username');
 
     const passwordInput = container.querySelector('#login-password') as HTMLInputElement;
     expect(passwordInput).toHaveAttribute('autocomplete', 'current-password');
@@ -220,9 +221,7 @@ describe('LoginPage Component', () => {
     expect(screen.getByRole('button', { name: /Tiếp tục với Google/i })).toBeInTheDocument();
     expect(screen.getByText(/Chưa có tài khoản\?/i)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Tạo tài khoản/i })).toBeInTheDocument();
-    expect(
-      screen.getByText(/Kích hoạt tài khoản được mời hoặc chưa xác thực\?/i),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Kích hoạt tài khoản' })).toBeInTheDocument();
   });
 
   it('chuyển đổi ẩn/hiện mật khẩu khi nhấn nút mắt', async () => {
