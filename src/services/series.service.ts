@@ -1,6 +1,11 @@
 // src/services/series.service.ts
 import axiosClient from '../api/axiosClient';
 
+// axiosClient mặc định Content-Type JSON → axios 1.x đổi FormData thành JSON (415). Upload file phải ghi rõ multipart (axios tự thêm boundary).
+const MULTIPART = { headers: { 'Content-Type': 'multipart/form-data' } };
+
+export type SeriesImageKind = 'avatar' | 'banner';
+
 export interface SeriesDto {
   id: string;
   workspaceId: string;
@@ -18,6 +23,10 @@ export interface SeriesDto {
   chaptersCount: number;
   /** `/api/series/{id}/cover?v=…` (cần Bearer → hiển thị qua AuthenticatedImage); null = chưa có bìa. */
   coverUrl?: string | null;
+  /** Avatar vuông của Series (GET cần Bearer, dùng AuthenticatedImage); null = dùng fallback. */
+  avatarUrl?: string | null;
+  /** Banner ngang ~3:1 đầu Series Dashboard; null = dùng fallback. */
+  bannerUrl?: string | null;
 }
 
 export interface SeriesDetailDto extends SeriesDto {
@@ -272,10 +281,49 @@ export const seriesService = {
     const form = new FormData();
     form.append('file', file);
     try {
-      const res = await axiosClient.put(`/series/${seriesId}/cover`, form);
+      const res = await axiosClient.put(`/series/${seriesId}/cover`, form, MULTIPART);
       return res.data?.value ?? null;
     } catch (err: any) {
       throw new Error(extractError(err, 'Không thể cập nhật ảnh bìa.'));
+    }
+  },
+
+  /** PUT /api/series/{id}/{avatar|banner} (Producer, multipart file PNG/JPEG/WebP ≤ 5 MB) — trả URL mới. Lưu lên kho asset (R2). */
+  async setSeriesImage(
+    seriesId: string,
+    kind: SeriesImageKind,
+    file: File,
+  ): Promise<string | null> {
+    const form = new FormData();
+    form.append('file', file);
+    try {
+      const res = await axiosClient.put(`/series/${seriesId}/${kind}`, form, MULTIPART);
+      return res.data?.value ?? null;
+    } catch (err: any) {
+      throw new Error(extractError(err, 'Không thể lưu ảnh.'));
+    }
+  },
+
+  /** PUT /api/series/{id}/{avatar|banner}/preset { presetId } — Backend lấy file mẫu có kiểm soát rồi lưu lên R2. */
+  async setSeriesImagePreset(
+    seriesId: string,
+    kind: SeriesImageKind,
+    presetId: string,
+  ): Promise<string | null> {
+    try {
+      const res = await axiosClient.put(`/series/${seriesId}/${kind}/preset`, { presetId });
+      return res.data?.value ?? null;
+    } catch (err: any) {
+      throw new Error(extractError(err, 'Không thể lưu ảnh mẫu.'));
+    }
+  },
+
+  /** DELETE /api/series/{id}/{avatar|banner} — gỡ ảnh, FE về fallback (file cũ vẫn giữ trên kho). */
+  async clearSeriesImage(seriesId: string, kind: SeriesImageKind): Promise<void> {
+    try {
+      await axiosClient.delete(`/series/${seriesId}/${kind}`);
+    } catch (err: any) {
+      throw new Error(extractError(err, 'Không thể gỡ ảnh.'));
     }
   },
 

@@ -1,0 +1,26 @@
+{
+  "gate": {
+    "title": "Cổng Kiểm Định Xuất Bản (Publishing Gate)",
+    "subtitle": "Kiểm tra chất lượng toàn diện trước khi phát hành chương truyện",
+    "ready": "Sẵn sàng phát hành",
+    "notReady": "Chưa đủ điều kiện phát hành",
+    "checklist": "Danh mục kiểm định chất lượng",
+    "publishNow": "Xuất bản ngay",
+    "publishing": "Đang xuất bản..."
+  },
+  "calendar": {
+    "title": "Lịch Phát Hành (Release Calendar)",
+    "subtitle": "Kế hoạch ra mắt các tập và chương truyện trên các nền tảng",
+    "upcoming": "Sắp phát hành",
+    "scheduled": "Đã lên lịch"
+  },
+  "desk": {
+    "title": "Bàn Làm Việc Publisher // Cổng Duyệt Xuất Bản",
+    "subtitle": "Duyệt thẩm định chương sau khi Producer hoàn tất sản xuất, lên lịch phát hành hoặc xuất bản trực tiếp tới độc giả công khai.",
+    "waitingApproval": "Chờ Duyệt Xuất Bản",
+    "waitingApprovalDesc": "Producer đã duyệt hoàn tất sản xuất",
+    "publishedAndScheduled": "Đã Xuất Bản & Lên Lịch",
+    "allChapters": "Tất Cả Chương",
+    "enterBoard": "Vào Production Board"
+  }
+}

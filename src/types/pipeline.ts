@@ -363,6 +363,24 @@ export interface AssignPanelScriptLinesRequest {
   scriptLineIds: string[];
 }
 
+export interface SplitPanelDto {
+  order: number;
+  bbox: [number, number, number, number];
+}
+
+export interface SplitBubbleDto {
+  panelOrder: number;
+  bbox: [number, number, number, number];
+  polygon: [number, number][];
+}
+
+export interface PanelSplitResult {
+  width: number;
+  height: number;
+  panels: SplitPanelDto[];
+  bubbles: SplitBubbleDto[];
+}
+
 // ==========================================
 // CF3: Consistency Check (kiểm tra nhất quán bằng code)
 // ==========================================

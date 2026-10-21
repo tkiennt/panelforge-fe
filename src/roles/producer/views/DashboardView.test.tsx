@@ -173,7 +173,9 @@ describe('DashboardView Component (UC-16 Progress Dashboard)', () => {
 
     // Verify loading and then data display
     await waitFor(() => {
-      expect(screen.getByText(/Tổng quan bộ truyện: Neon Odyssey/i)).toBeInTheDocument();
+      expect(screen.getByTestId('series-title')).toHaveTextContent(
+        /Tổng quan bộ truyện: Neon Odyssey/i,
+      );
     });
 
     // Header badges

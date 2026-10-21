@@ -245,7 +245,9 @@ export const ExportView: React.FC<ExportViewProps> = ({ onShowToast }) => {
                           )}
                         </td>
                         <td className='py-2.5 pr-3 tabular-nums text-[#1C1917]'>{job.pageCount}</td>
-                        <td className='py-2.5 pr-3 tabular-nums text-[#1C1917]'>{formatSize(job.sizeBytes)}</td>
+                        <td className='py-2.5 pr-3 tabular-nums text-[#1C1917]'>
+                          {formatSize(job.sizeBytes)}
+                        </td>
                         <td className='py-2.5 pr-3 font-mono text-[11px] text-[#57534E]'>
                           {new Date(job.createdAt).toLocaleString('vi-VN')}
                         </td>

@@ -1,5 +1,6 @@
 // src/roles/producer/modals/CreateAssignmentModal.tsx
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X,
   Plus,
@@ -24,6 +25,7 @@ import { pageService, PageDto } from '@/services/page.service';
 import { panelService } from '@/services/panel.service';
 import { PanelDto } from '@/types/pipeline';
 import { normalizeWorkspaceRole } from '@/types/auth';
+import { DependencySelector } from '../components/DependencySelector';
 
 interface CreateAssignmentModalProps {
   isOpen: boolean;
@@ -69,6 +71,9 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
   const [loadingPanels, setLoadingPanels] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const isDependencyError = Boolean(
+    error && /phụ thuộc|dependency|chu trình|dag|vòng lặp/i.test(error),
+  );
 
   // Nạp dữ liệu ban đầu: Pipeline, Members, Existing Assignments, Pages của Chapter
   useEffect(() => {
@@ -291,6 +296,18 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
     }
   };
 
+  // Đóng modal khi nhấn phím Escape
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -367,11 +384,15 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
     }
   };
 
-  return (
-    <div className='fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4'>
-      <div className='bg-white border border-[#E7E7E7] rounded-2xl max-w-xl w-full max-h-[90vh] flex flex-col shadow-2xl animate-in fade-in zoom-in-95 duration-150'>
+  const modalContent = (
+    <div
+      role='dialog'
+      aria-modal='true'
+      className='fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-4'
+    >
+      <div className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl max-w-2xl w-full max-h-[92vh] flex flex-col shadow-2xl animate-in fade-in zoom-in-95 duration-150 overflow-hidden'>
         {/* Header */}
-        <div className='p-5 border-b border-[#E7E7E7] flex items-center justify-between bg-[#FAF8F5] rounded-t-2xl'>
+        <div className='p-4 sm:p-5 border-b border-[#D8D2C5] flex items-center justify-between bg-[#FAF8F5] rounded-t-2xl shrink-0'>
           <div className='flex items-center gap-3'>
             <div className='w-9 h-9 rounded-xl bg-[#FFF7ED] border border-[#FDBA74] flex items-center justify-center text-[#F97316] shadow-2xs'>
               <UserCheck className='w-5 h-5' />
@@ -389,8 +410,10 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
             </div>
           </div>
           <button
+            type='button'
             onClick={onClose}
-            className='w-8 h-8 rounded-lg hover:bg-white border border-transparent hover:border-[#E7E7E7] flex items-center justify-center text-[#888888] hover:text-[#171717] transition-all cursor-pointer'
+            aria-label='Đóng cửa sổ giao việc'
+            className='w-8 h-8 rounded-lg hover:bg-white border border-transparent hover:border-[#D8D2C5] flex items-center justify-center text-[#888888] hover:text-[#171717] transition-all cursor-pointer'
           >
             <X className='w-4 h-4' />
           </button>
@@ -398,10 +421,11 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
 
         {/* Form Body */}
         <form
+          id='create-assignment-form'
           onSubmit={handleSubmit}
-          className='p-6 overflow-y-auto space-y-4 flex-1 text-xs custom-scrollbar'
+          className='p-5 sm:p-6 overflow-y-auto space-y-4 flex-1 text-xs custom-scrollbar min-h-0'
         >
-          {error && (
+          {error && !isDependencyError && (
             <div className='p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl flex items-start gap-2'>
               <AlertCircle className='w-4 h-4 shrink-0 mt-0.5' />
               <span className='font-medium leading-relaxed'>{error}</span>
@@ -712,96 +736,58 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                 </div>
               </div>
 
-              {/* Dependency on another assignment */}
-              {existingAssignments.length > 0 && (
-                <div>
-                  <div className='flex items-center justify-between mb-1'>
-                    <label className='block font-semibold text-[#171717] text-xs'>
-                      Phụ thuộc vào các công việc trước (Đồ thị DAG - Multiple Dependencies)
-                    </label>
-                    {selectedDependsOnIds.length > 0 && (
-                      <span className='text-[10px] font-bold text-[#F97316] bg-orange-50 px-2 py-0.5 rounded border border-orange-200'>
-                        Đã chọn: {selectedDependsOnIds.length} việc tiền đề
-                      </span>
-                    )}
-                  </div>
-                  <div className='max-h-40 overflow-y-auto border border-[#E7E7E7] rounded-lg p-2 space-y-1.5 bg-white'>
-                    {existingAssignments.map((a) => {
-                      const isSelected = selectedDependsOnIds.includes(a.id);
-                      return (
-                        <label
-                          key={a.id}
-                          className={`flex items-start gap-2 p-2 rounded-md border text-xs cursor-pointer transition-colors ${
-                            isSelected
-                              ? 'bg-orange-50/70 border-orange-300 text-orange-950'
-                              : 'bg-white hover:bg-zinc-50 border-zinc-200 text-zinc-700'
-                          }`}
-                        >
-                          <input
-                            type='checkbox'
-                            checked={isSelected}
-                            onChange={() => {
-                              setSelectedDependsOnIds((prev) => {
-                                const next = prev.includes(a.id)
-                                  ? prev.filter((id) => id !== a.id)
-                                  : [...prev, a.id];
-                                setDependsOnAssignmentId(next[0] || '');
-                                return next;
-                              });
-                            }}
-                            className='mt-0.5 rounded border-zinc-300 text-orange-600 focus:ring-orange-500 cursor-pointer'
-                          />
-                          <div className='flex-1 min-w-0'>
-                            <div className='flex items-center gap-1.5 flex-wrap'>
-                              <span className='font-bold text-[10px] px-1.5 py-0.2 rounded bg-zinc-100 text-zinc-800 border border-zinc-200'>
-                                {a.entityType}
-                              </span>
-                              <span className='font-medium text-xs truncate'>{a.brief}</span>
-                            </div>
-                            <div className='text-[10px] text-zinc-500 mt-0.5 flex items-center gap-2'>
-                              <span>
-                                Trạng thái: <strong>{a.status}</strong>
-                              </span>
-                              <span>• ID: #{a.id.substring(0, 8)}</span>
-                            </div>
-                          </div>
-                        </label>
-                      );
-                    })}
-                  </div>
-                  <p className='text-[10px] text-[#737373] mt-1'>
-                    Theo quy tắc BR-19 & DAG, toàn bộ các việc được chọn ở đây phải được duyệt
-                    (Approved) thì việc này mới có thể bắt đầu.
-                  </p>
-                </div>
-              )}
+              {/* Dependency on another assignment (Cần hoàn thành trước · Không bắt buộc) */}
+              <DependencySelector
+                workspaceId={workspaceId}
+                seriesId={seriesId}
+                chapterId={chapterId}
+                chapterNumber={chapterNumber}
+                currentBrief={brief}
+                currentEntityType={entityType}
+                currentPageId={selectedPageId}
+                currentPanelId={selectedPanelId}
+                currentStageId={pipelineStageId}
+                stages={stages}
+                pages={pages}
+                members={members}
+                existingAssignments={existingAssignments}
+                selectedIds={selectedDependsOnIds}
+                onChange={(newIds) => {
+                  setSelectedDependsOnIds(newIds);
+                  setDependsOnAssignmentId(newIds[0] || '');
+                }}
+                backendError={isDependencyError ? error : null}
+              />
             </>
           )}
-
-          {/* Footer Buttons */}
-          <div className='flex justify-end gap-2 pt-3 border-t border-[#E7E7E7]'>
-            <button
-              type='button'
-              onClick={onClose}
-              className='px-3.5 py-1.5 rounded-lg border border-[#E7E7E7] bg-white text-[#555555] hover:bg-[#FAF8F5]'
-            >
-              Hủy
-            </button>
-            <button
-              type='submit'
-              disabled={submitting || loadingInitial}
-              className='px-4 py-1.5 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white font-semibold flex items-center gap-1.5 disabled:opacity-50 shadow-xs cursor-pointer'
-            >
-              {submitting ? (
-                <Loader2 className='w-3.5 h-3.5 animate-spin' />
-              ) : (
-                <Plus className='w-3.5 h-3.5' />
-              )}
-              <span>Tạo &amp; Giao Việc</span>
-            </button>
-          </div>
         </form>
+
+        {/* Pinned Bottom Footer Buttons */}
+        <div className='p-3.5 sm:p-4 border-t border-[#D8D2C5] bg-[#FCFBF8] flex justify-end gap-2.5 shrink-0 rounded-b-2xl'>
+          <button
+            type='button'
+            onClick={onClose}
+            className='px-4 py-2 rounded-lg border border-[#D8D2C5] bg-white text-[#57534E] hover:bg-[#FAF8F5] text-xs font-semibold cursor-pointer transition-colors shadow-2xs'
+          >
+            Hủy
+          </button>
+          <button
+            type='submit'
+            form='create-assignment-form'
+            disabled={submitting || loadingInitial}
+            className='px-4 py-2 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white font-semibold flex items-center gap-1.5 disabled:opacity-50 shadow-2xs cursor-pointer text-xs transition-colors'
+          >
+            {submitting ? (
+              <Loader2 className='w-3.5 h-3.5 animate-spin' />
+            ) : (
+              <Plus className='w-3.5 h-3.5' />
+            )}
+            <span>Tạo &amp; Giao Việc</span>
+          </button>
+        </div>
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : modalContent;
 };

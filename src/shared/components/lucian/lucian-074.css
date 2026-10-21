@@ -1,0 +1,339 @@
+/* Lucian UX/UI Prompt #074 · MIT License (c) 2026 Seokwoooo · https://lucianlabs.dev/uxui-prompt/#074
+   Customized for PanelForge Editorial AI Studio Design System (Warm Paper & Artisan Ink) */
+
+.u074 {
+  position: relative;
+  width: 360px;
+  max-width: 100%;
+}
+
+.u074-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 48px;
+  padding: 0 4px;
+}
+
+.u074-top b {
+  font-size: 15px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  color: #1C1917;
+  font-family: var(--font-serif, serif);
+}
+
+.u074-bell {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  border: 1px solid #D8D2C5;
+  padding: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #FCFBF8;
+  color: #44403C;
+  box-shadow: 0 1px 3px rgba(28, 25, 23, 0.05);
+  transition: all 0.25s var(--ux-spring, ease);
+  cursor: pointer;
+}
+
+.u074-bell:hover {
+  background: #FFF2E6;
+  border-color: #FDBA74;
+  color: #C2410C;
+}
+
+.u074-bell:active {
+  transform: scale(0.92);
+}
+
+.u074-bell:focus-visible {
+  outline: 2px solid #F97316;
+  outline-offset: 2px;
+}
+
+.u074-bell svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transform-origin: 50% 15%;
+}
+
+.u074-bell.ring svg {
+  animation: u074-ring 0.9s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes u074-ring {
+  10% { transform: rotate(18deg); }
+  25% { transform: rotate(-16deg); }
+  40% { transform: rotate(12deg); }
+  55% { transform: rotate(-8deg); }
+  70% { transform: rotate(4deg); }
+}
+
+.u074-badge {
+  position: absolute;
+  right: -2px;
+  top: -2px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 9px;
+  background: #EA580C;
+  color: #FFFFFF;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 17px;
+  text-align: center;
+  box-shadow: 0 0 0 2px #FCFBF8;
+  font-variant-numeric: tabular-nums;
+  transition: transform 0.35s cubic-bezier(0.34, 1.45, 0.64, 1);
+}
+
+.u074-badge.zero {
+  transform: scale(0);
+}
+
+.u074-pan {
+  position: absolute;
+  right: 0;
+  top: 48px;
+  width: 360px;
+  max-width: calc(100vw - 24px);
+  max-height: 500px;
+  display: flex;
+  flex-direction: column;
+  border-radius: 16px;
+  background: #FCFBF8;
+  border: 1px solid #D8D2C5;
+  box-shadow: 0 16px 36px -12px rgba(28, 25, 23, 0.16), 0 0 0 1px #D8D2C5;
+  transform-origin: calc(100% - 18px) -8px;
+  transition: transform 0.4s cubic-bezier(0.34, 1.45, 0.64, 1), opacity 0.2s;
+  z-index: 50;
+  overflow: hidden;
+}
+
+.u074-pan::before {
+  content: "";
+  position: absolute;
+  right: 14px;
+  top: -6px;
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  background: #FAF7F0;
+  transform: rotate(45deg);
+  box-shadow: -1px -1px 0 0 #D8D2C5;
+  z-index: 1;
+}
+
+.u074.is-closed .u074-pan {
+  transform: scale(0.4);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.18s;
+}
+
+.u074-ph {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 12px;
+  background: #FAF7F0;
+  border-bottom: 1px solid #E7E2D9;
+  position: relative;
+  z-index: 2;
+}
+
+.u074-tab {
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #78716C;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.u074-tab:hover {
+  background: #F3F0E9;
+  color: #1C1917;
+}
+
+.u074-tab[aria-selected="true"] {
+  background: #FFF2E6;
+  color: #C2410C;
+  border-color: #FDBA74;
+  font-weight: 750;
+  box-shadow: 0 1px 2px rgba(249, 115, 22, 0.08);
+}
+
+.u074-tab:focus-visible,
+.u074-all:focus-visible {
+  outline: 2px solid #F97316;
+  outline-offset: 2px;
+}
+
+.u074-all {
+  margin-left: auto;
+  border: 0;
+  padding: 3px 6px;
+  background: none;
+  font-size: 11px;
+  font-weight: 700;
+  color: #C2410C;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.u074-all:hover:not(:disabled) {
+  background: #FFF2E6;
+  color: #EA580C;
+}
+
+.u074-all:disabled {
+  color: #A8A29E;
+  cursor: default;
+  opacity: 0.6;
+}
+
+.u074-list {
+  position: relative;
+  flex: 1;
+  margin: 0;
+  padding: 4px 6px 8px;
+  list-style: none;
+  overflow-y: auto;
+  max-height: 380px;
+}
+
+.u074-it {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 0.4s ease;
+}
+
+.u074-it.new {
+  grid-template-rows: 0fr;
+}
+
+.u074-it.hide {
+  display: none;
+}
+
+.u074-it > div {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.u074-row {
+  position: relative;
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 24px 10px 10px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  text-align: left;
+  transition: background-color 0.2s, transform 0.4s cubic-bezier(0.34, 1.45, 0.64, 1), opacity 0.25s;
+  cursor: pointer;
+}
+
+.u074-row:hover {
+  background: #F5F3EF;
+}
+
+.u074-row:focus-visible {
+  outline: 2px solid #F97316;
+  outline-offset: -2px;
+}
+
+.u074-it.new .u074-row {
+  transform: translateY(-20px);
+  opacity: 0;
+}
+
+.u074-av {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--g);
+  display: grid;
+  place-items: center;
+  box-shadow: 0 1px 3px rgba(28, 25, 23, 0.08);
+}
+
+.u074-av em {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #FCFBF8;
+  font-style: normal;
+  font-size: 9.5px;
+  box-shadow: 0 0 0 1px #D8D2C5;
+}
+
+.u074-tx {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #57534E;
+}
+
+.u074-tx b {
+  color: #1C1917;
+  font-weight: 700;
+}
+
+.u074-tx small {
+  display: block;
+  margin-top: 2px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #8C877D;
+}
+
+.u074-dot {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  margin-top: -3.5px;
+  border-radius: 50%;
+  background: #F97316;
+  box-shadow: 0 0 0 2px #FCFBF8;
+  transition: transform 0.3s cubic-bezier(0.34, 1.45, 0.64, 1), opacity 0.2s;
+}
+
+.u074-row.read .u074-dot {
+  transform: scale(0);
+  opacity: 0;
+}
+
+.u074-row.read .u074-tx {
+  color: #78716C;
+}
+
+.u074-row.read .u074-tx b {
+  color: #44403C;
+}

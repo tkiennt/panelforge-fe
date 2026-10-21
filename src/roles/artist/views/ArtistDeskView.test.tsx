@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ArtistDeskView } from './ArtistDeskView';
 import { parseBoundingBox } from '../utils/panelBoundingBox';
@@ -199,12 +199,25 @@ describe('ArtistDeskView', () => {
       </MemoryRouter>,
     );
 
+  // Cột Chi tiết mặc định đóng; "Sửa bố cục" mặc định tắt
+  const openDetails = async (tab?: string) => {
+    fireEvent.click(await screen.findByTestId('toggle-details'));
+    if (tab) fireEvent.click(await screen.findByTestId(tab));
+  };
+  const enableLayoutEdit = async () => {
+    fireEvent.click(await screen.findByTestId('toggle-layout-edit'));
+  };
+  const openUploadMenu = async () => {
+    fireEvent.click(await screen.findByTestId('upload-menu-btn'));
+  };
+
   it('render bàn vẽ Artist và tải danh sách Chapter, Page, Panels thành công', async () => {
     renderComponent();
 
     await waitFor(() => {
-      expect(screen.getByText(/Bàn Vẽ & Bố Cục Khung Tranh Manga/i)).toBeInTheDocument();
-      expect(screen.getByText('Panel #1')).toBeInTheDocument();
+      expect(screen.getByTestId('artist-main-toolbar')).toBeInTheDocument();
+      expect(screen.getByTestId('toolbar-page-context')).toHaveTextContent('Trang 1');
+      expect(screen.getByTestId('panel-box-panel-1')).toBeInTheDocument();
     });
 
     expect(panelService.getPanelsByPage).toHaveBeenCalledWith('page-1');
@@ -212,6 +225,7 @@ describe('ArtistDeskView', () => {
 
   it('mở modal Áp Dụng Mẫu Khung khi bấm nút Áp Dụng Mẫu Khung', async () => {
     renderComponent();
+    await enableLayoutEdit();
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /Áp Dụng Mẫu Khung/i })).toBeInTheDocument();
@@ -236,6 +250,7 @@ describe('ArtistDeskView', () => {
     });
 
     renderComponent();
+    await enableLayoutEdit();
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /Thêm Panel/i })).toBeInTheDocument();
@@ -292,8 +307,7 @@ describe('ArtistDeskView', () => {
       expect(screen.getByTestId('canvas-layer-elem-char-1')).toBeInTheDocument();
     });
 
-    const tabLayersBtn = screen.getByTestId('tab-layers');
-    fireEvent.click(tabLayersBtn);
+    await openDetails('tab-layers');
 
     await waitFor(() => {
       expect(screen.getByTestId('layers-management-view')).toBeInTheDocument();
@@ -316,11 +330,7 @@ describe('ArtistDeskView', () => {
 
     renderComponent();
 
-    await waitFor(() => {
-      expect(screen.getByTestId('tab-layers')).toBeInTheDocument();
-    });
-
-    fireEvent.click(screen.getByTestId('tab-layers'));
+    await openDetails('tab-layers');
 
     await waitFor(() => {
       expect(screen.getByTestId('open-create-layer-modal')).toBeInTheDocument();
@@ -357,11 +367,7 @@ describe('ArtistDeskView', () => {
 
     renderComponent();
 
-    await waitFor(() => {
-      expect(screen.getByTestId('tab-layers')).toBeInTheDocument();
-    });
-
-    fireEvent.click(screen.getByTestId('tab-layers'));
+    await openDetails('tab-layers');
 
     await waitFor(() => {
       expect(screen.getByTestId('rotate-layer-elem-char-1')).toBeInTheDocument();
@@ -403,11 +409,7 @@ describe('ArtistDeskView', () => {
 
     renderComponent();
 
-    await waitFor(() => {
-      expect(screen.getByTestId('tab-layers')).toBeInTheDocument();
-    });
-
-    fireEvent.click(screen.getByTestId('tab-layers'));
+    await openDetails('tab-layers');
 
     await waitFor(() => {
       expect(screen.getByTestId('delete-layer-elem-char-1')).toBeInTheDocument();
@@ -436,6 +438,7 @@ describe('ArtistDeskView', () => {
       vi.mocked(assignmentService.getMyAssignments).mockResolvedValue([inProgress()]);
       vi.mocked(artworkService.uploadArtwork).mockResolvedValue({ versionNumber: 1 } as any);
       const { container } = renderComponent();
+      await openDetails();
 
       const btn = await screen.findByTestId('desk-upload-panel-btn-panel-1');
       await waitFor(() => expect(btn).not.toBeDisabled());
@@ -463,6 +466,7 @@ describe('ArtistDeskView', () => {
         inProgress({ status: 'Assigned' }),
       ]);
       renderComponent();
+      await openDetails();
 
       const btn = await screen.findByTestId('desk-upload-panel-btn-panel-1');
       expect(btn).toBeDisabled();
@@ -528,33 +532,30 @@ describe('ArtistDeskView', () => {
     });
   });
 
-  describe('thanh điều khiển canvas mới (role Artist)', () => {
-    it('hiển thị thanh điều khiển nền sáng, segmented control công đoạn và toạ độ khung', async () => {
+  describe('thanh công cụ chính & chế độ Sửa bố cục', () => {
+    it('Ảnh hiển thị là dropdown riêng; công cụ bố cục chỉ hiện khi bật Sửa bố cục; toạ độ nằm trong Chi tiết', async () => {
       renderComponent();
 
-      await waitFor(() => {
-        expect(screen.getByTestId('panel-layout-toolbar')).toBeInTheDocument();
-        expect(screen.getByTestId('desk-stage-switcher')).toBeInTheDocument();
-        expect(screen.getByTestId('panel-readout')).toBeInTheDocument();
-      });
+      const stageSelect = await screen.findByTestId('desk-stage-select');
+      await waitFor(() =>
+        expect(
+          within(stageSelect).getByRole('option', { name: /5\. Color \(đã tắt\)/i }),
+        ).toBeInTheDocument(),
+      );
+      // Mặc định chế độ xem: không có thanh bố cục
+      expect(screen.queryByTestId('panel-layout-toolbar')).not.toBeInTheDocument();
 
-      // Kiểm tra thanh không dùng nền đen
+      await enableLayoutEdit();
+      expect(screen.getByTestId('toggle-layout-edit')).toHaveAttribute('aria-pressed', 'true');
       expect(screen.getByTestId('panel-layout-toolbar').className).not.toContain('bg-stone-900');
-      expect(screen.getByTestId('panel-readout').className).not.toContain('bg-stone-900');
 
-      // Click chọn panel-1 trên canvas
-      const panelBox = await screen.findByTestId('panel-box-panel-1');
-      fireEvent.click(panelBox);
-
-      // Thẻ readout hiển thị Khung #1 và thông số toạ độ
+      fireEvent.click(await screen.findByTestId('panel-box-panel-1'));
+      await openDetails();
       await waitFor(() => {
         expect(screen.getByTestId('panel-readout')).toHaveTextContent('Khung #1');
         expect(screen.getByTestId('panel-readout')).toHaveTextContent('Vị trí:');
         expect(screen.getByTestId('panel-readout')).toHaveTextContent('Kích thước:');
       });
-
-      // Stage switcher có nút công đoạn tắt kèm lock icon
-      expect(screen.getByRole('button', { name: /5\. Color đã tắt/i })).toBeInTheDocument();
     });
   });
 
@@ -563,19 +564,22 @@ describe('ArtistDeskView', () => {
       renderComponent();
 
       await waitFor(() => {
-        expect(screen.getByText('Kịch Bản & Tham Chiếu')).toBeInTheDocument();
+        expect(screen.getByTestId('artist-left-column')).toBeInTheDocument();
         expect(screen.getByTestId('panel-canvas')).toBeInTheDocument();
-        expect(screen.getByTestId('tab-panel')).toBeInTheDocument();
       });
+      // Chi tiết mặc định đóng
+      expect(screen.queryByTestId('artist-details')).not.toBeInTheDocument();
 
       // Chọn khung panel 1 để xem thông tin ở cả 3 cột
       const panelBox = await screen.findByTestId('panel-box-panel-1');
       fireEvent.click(panelBox);
+      fireEvent.click(screen.getByTestId('left-tab-script'));
+      await openDetails();
 
       await waitFor(() => {
         // Cột 1: Có nút tham chiếu Bible theo khung và selector phân cảnh
         expect(screen.getByTestId('panel-bible-reference-btn-panel-1')).toBeInTheDocument();
-        expect(screen.getByText('Phân Cảnh (Scene)')).toBeInTheDocument();
+        expect(screen.getAllByText('Phân Cảnh (Scene)').length).toBeGreaterThan(0);
         // Cột 3: Có Inspector toạ độ và nút tải ảnh
         expect(screen.getByTestId('panel-artwork-desk-card')).toBeInTheDocument();
         expect(screen.getByTestId('desk-upload-panel-btn-panel-1')).toBeInTheDocument();
@@ -698,25 +702,22 @@ describe('ArtistDeskView', () => {
   });
 
   describe('Bàn Tải & Khớp Nét Panel Trực Quan (Giai đoạn 3: Floating Toolbar & Assignment Gateway CTA)', () => {
-    it('hiển thị thanh Floating Toolbar trên Panel đang chọn với đầy đủ các nút thao tác nhanh', async () => {
+    it('công cụ của khung đang chọn nằm trên thanh Sửa bố cục, không đè lên tranh', async () => {
       renderComponent();
-
-      // Click chọn panel-1 trên canvas
       const panelBox = await screen.findByTestId('panel-box-panel-1');
       fireEvent.click(panelBox);
+      expect(screen.queryByTestId('floating-split-v-panel-1')).not.toBeInTheDocument();
 
-      // Floating toolbar xuất hiện
-      await waitFor(() => {
-        expect(screen.getByTestId('floating-toolbar-panel-1')).toBeInTheDocument();
-        expect(screen.getByTestId('floating-upload-panel-1')).toBeInTheDocument();
-        expect(screen.getByTestId('floating-bible-panel-1')).toBeInTheDocument();
-        expect(screen.getByTestId('floating-split-v-panel-1')).toBeInTheDocument();
-        expect(screen.getByTestId('floating-split-h-panel-1')).toBeInTheDocument();
-        expect(screen.getByTestId('floating-delete-panel-1')).toBeInTheDocument();
-      });
+      await enableLayoutEdit();
+      const bar = await screen.findByTestId('layout-edit-bar');
+      expect(within(bar).getByTestId('floating-split-v-panel-1')).toBeInTheDocument();
+      expect(within(bar).getByTestId('floating-split-h-panel-1')).toBeInTheDocument();
+      expect(within(bar).getByTestId('floating-delete-panel-1')).toBeInTheDocument();
+      expect(within(panelBox).queryByTestId('floating-delete-panel-1')).not.toBeInTheDocument();
 
-      // Bấm nút Bible trên toolbar để mở Drawer
-      fireEvent.click(screen.getByTestId('floating-bible-panel-1'));
+      // Tham chiếu Bible qua menu Trang ⋯
+      fireEvent.click(screen.getByTestId('page-menu-btn'));
+      fireEvent.click(screen.getByTestId('artist-desk-bible-reference-btn'));
       await waitFor(() => {
         expect(screen.getByTestId('bible-reference-drawer')).toBeInTheDocument();
       });
@@ -751,18 +752,18 @@ describe('ArtistDeskView', () => {
       const panelBox = await screen.findByTestId('panel-box-panel-1');
       fireEvent.click(panelBox);
 
-      // Floating toolbar hiển thị nút "Bắt đầu & Tải"
+      // CTA chính trên toolbar là "Bắt đầu việc"; trạng thái việc hiện đúng dữ liệu
       await waitFor(() => {
-        expect(screen.getByTestId('floating-start-upload-panel-1')).toHaveTextContent(
-          /Bắt đầu & Tải/i,
-        );
+        expect(screen.getByTestId('cta-start-work')).toHaveTextContent(/Bắt đầu việc/i);
       });
+      expect(screen.getByTestId('artist-work-status')).toHaveTextContent('Được giao');
+      await openDetails();
 
       // Cột Inspector hiển thị nút "Bắt đầu việc & Tải ảnh ngay" trong khối blocked
       await waitFor(() => {
         expect(screen.getByTestId('desk-upload-panel-blocked')).toBeInTheDocument();
         expect(screen.getByTestId('desk-start-and-upload-btn-panel-1')).toHaveTextContent(
-          /Bắt đầu việc & Tải ảnh ngay/i,
+          /Bắt đầu việc & tải ảnh/i,
         );
       });
 
@@ -778,6 +779,7 @@ describe('ArtistDeskView', () => {
   describe('Bàn Tải & Khớp Nét Panel Trực Quan (Giai đoạn 4: Hỗ trợ 2 Chế Độ Tải & Chuẩn Hóa UX Copy)', () => {
     it('chuyển đổi giữa Chế độ Tải từng khung và Tải cả trang (Full-page Composite)', async () => {
       renderComponent();
+      await openUploadMenu();
 
       // Kiểm tra sự xuất hiện của toggle chuyển chế độ
       await waitFor(() => {
@@ -799,6 +801,7 @@ describe('ArtistDeskView', () => {
       });
 
       // Chuyển lại về chế độ Tải từng khung
+      await openUploadMenu();
       fireEvent.click(screen.getByTestId('mode-panel-slice'));
       expect(screen.queryByTestId('full-page-empty-banner')).not.toBeInTheDocument();
     });
@@ -831,13 +834,18 @@ describe('ArtistDeskView', () => {
         expect(screen.getByTestId('canvas-full-page-backdrop')).toBeInTheDocument();
       });
 
-      // Chuyển sang chế độ cả trang để thấy nút Đổi ảnh trang
+      // Chế độ cả trang: tải/nhận diện nằm ở thanh workflow, không lặp CTA trên toolbar
+      await openUploadMenu();
       fireEvent.click(screen.getByTestId('mode-full-page'));
 
       await waitFor(() => {
-        expect(screen.getByTestId('desk-upload-page-btn')).toHaveTextContent(/Đổi ảnh trang/i);
+        expect(screen.getByTestId('workflow-new-version-btn')).toHaveTextContent(
+          /Tải phiên bản mới/i,
+        );
       });
+      expect(screen.queryByTestId('cta-upload-panel')).not.toBeInTheDocument();
+      expect(screen.getByTestId('page-artwork-workflow')).toBeInTheDocument();
+      expect(screen.getByTestId('workflow-detect-btn')).toBeInTheDocument();
     });
   });
 });
-

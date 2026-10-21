@@ -1,0 +1,145 @@
+/* Lucian UX/UI Prompt #122 · Layer stacking order · (c) 2026 Seokwoo Lee · MIT License */
+/* Adapted for PanelForge Editorial AI Studio Design System */
+
+.pf-layer-stacking {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-family: var(--font-sans, system-ui, sans-serif);
+}
+
+/* Khu vực Visual Canvas xếp chồng layer 3D/Staggered */
+.pf-layer-stack-stage {
+  height: 160px;
+  position: relative;
+  background: radial-gradient(circle at 50% 30%, #FCFBF8 0%, #F5F2EA 100%);
+  border: 1px solid var(--ux-border-default, #D8D2C5);
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 2px 4px rgba(28, 25, 23, 0.04);
+}
+
+.pf-layer-chip {
+  position: absolute;
+  width: 130px;
+  height: 75px;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 8px 10px;
+  cursor: pointer;
+  box-shadow: 0 8px 20px -4px rgba(28, 25, 23, 0.18), 0 2px 6px rgba(28, 25, 23, 0.08);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, outline 0.15s ease;
+  user-select: none;
+  touch-action: none;
+}
+
+.pf-layer-chip:hover {
+  transform: translateY(-4px) scale(1.02) !important;
+  box-shadow: 0 12px 28px -4px rgba(28, 25, 23, 0.25);
+}
+
+.pf-layer-chip[aria-pressed='true'] {
+  outline: 2.5px solid var(--ux-brand-primary, #F97316);
+  outline-offset: 3px;
+  box-shadow: 0 12px 28px -4px rgba(249, 115, 22, 0.35);
+}
+
+.pf-layer-chip-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #FFFFFF;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pf-layer-chip-z {
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  font-weight: 700;
+  background: rgba(0, 0, 0, 0.35);
+  color: #FFFFFF;
+  padding: 1px 5px;
+  border-radius: 4px;
+  backdrop-filter: blur(2px);
+  align-self: flex-end;
+}
+
+/* Controls list bên dưới */
+.pf-layer-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.pf-layer-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  background: var(--ux-bg-canvas, #FCFBF8);
+  border: 1px solid var(--ux-border-default, #D8D2C5);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pf-layer-item:hover {
+  border-color: rgba(249, 115, 22, 0.5);
+  background: #FFFBF7;
+}
+
+.pf-layer-item.is-selected {
+  border-color: var(--ux-brand-primary, #F97316);
+  background: #FFF2E6;
+  box-shadow: 0 0 0 1px var(--ux-brand-primary, #F97316);
+}
+
+.pf-layer-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pf-layer-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  color: #78716C;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pf-layer-action-btn:hover {
+  background: #E7E5E4;
+  color: #1C1917;
+}
+
+.pf-layer-action-btn.delete:hover {
+  background: #FEE2E2;
+  color: #DC2626;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pf-layer-chip {
+    transition: none;
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "myWork": {
+    "title": "Công việc của tôi",
+    "desc": "Bắt đầu, tải artwork, nộp bài và xử lý yêu cầu sửa của từng chương.",
+    "allStudioOption": "✨ Toàn bộ Studio (Tất cả các chương)",
+    "chapterOption": "Chương {number}",
+    "reload": "Tải lại",
+    "filterAria": "Bộ lọc việc",
+    "allStudioBreadcrumb": "Toàn bộ Studio",
+    "chapterBreadcrumb": "Chương {number}",
+    "noTasks": "Không có công việc nào trong danh mục này.",
+    "allTasks": "Tất cả công việc",
+    "wholeChapter": "Toàn chương",
+    "wholeChapterDesc": "Việc cấp chương (Script, Review) hoặc trang chưa gắn cảnh",
+    "scene": "Cảnh {number}",
+    "tabs": {
+      "mine": "Của tôi",
+      "mineTooltip": "Công việc được giao cho bạn trong series này",
+      "review": "Chờ duyệt",
+      "reviewTooltip": "Các panel/artwork đang chờ review hoặc kiểm tra chất lượng",
+      "all": "Tất cả",
+      "allTooltip": "Tất cả công việc trong series hiện tại",
+      "studio": "Toàn Studio",
+      "studioTooltip": "Công việc của bạn trên toàn bộ các series trong Studio"
+    }
+  },
+  "card": {
+    "start": "Bắt đầu làm",
+    "starting": "Đang bắt đầu...",
+    "uploadArtwork": "Tải artwork",
+    "submit": "Nộp bài",
+    "submitting": "Đang nộp...",
+    "review": "Xét duyệt",
+    "viewArtwork": "Xem artwork",
+    "viewDetails": "Xem chi tiết",
+    "history": "Lịch sử nộp ({count})",
+    "changeRequests": "Yêu cầu sửa ({count})",
+    "openBible": "Hồ sơ Series Bible",
+    "openWorkspace": "Mở không gian làm việc",
+    "version": "Bản nộp #{version}",
+    "deadline": "Hạn: {date}",
+    "unassigned": "Chưa giao",
+    "stage": "Công đoạn: {name}",
+    "page": "Trang {page}",
+    "panel": "Khung #{order}",
+    "status": {
+      "assigned": "Đã giao",
+      "inProgress": "Đang làm",
+      "submitted": "Đã nộp, chờ duyệt",
+      "underReview": "Đang xét duyệt",
+      "approved": "Đã duyệt",
+      "reworkRequired": "Cần sửa lại",
+      "blocked": "Bị chặn"
+    }
+  }
+}

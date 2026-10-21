@@ -9,22 +9,65 @@
     "admin": "Quản Trị",
     "reader": "Độc Giả"
   },
+  "sections": {
+    "workspace": "KHÔNG GIAN LÀM VIỆC",
+    "desk": "BÀN LÀM VIỆC",
+    "seriesManagement": "QUẢN LÝ SERIES",
+    "publishing": "XUẤT BẢN",
+    "systemAdmin": "QUẢN TRỊ HỆ THỐNG",
+    "studioManagement": "QUẢN LÝ STUDIO",
+    "publisherDesk": "BÀN PHÁT HÀNH"
+  },
   "menu": {
+    "dashboard": "Dashboard",
+    "seriesDashboard": "Series Dashboard",
+    "systemDashboard": "System Dashboard",
     "myWork": "Công việc của tôi",
-    "production": "Bàn sản xuất",
-    "script": "Kịch bản",
-    "desk": "Bàn vẽ",
-    "lettering": "Bóng thoại & Chữ",
+    "workAndReview": "Công việc & Xét duyệt",
+    "production": "Quy trình sản xuất",
+    "script": "Kịch bản (Script)",
+    "desk": "Bàn vẽ & Khung trang",
+    "lettering": "Chèn chữ & Bóng thoại",
     "review": "Kiểm duyệt",
     "bible": "Series Bible",
+    "publishingGate": "Cổng Duyệt Xuất Bản",
+    "usersAndRoles": "Users & Roles",
+    "aiQuota": "AI Provider & Quota",
+    "auditLog": "Global Audit Log",
+    "releaseCalendar": "Lịch phát hành",
+    "provenance": "Truy vết nguồn gốc",
+    "studioWorkspaces": "Studio Workspaces",
+    "seriesList": "Danh sách Series",
+    "publicCatalog": "Public Catalog",
     "settings": "Cài đặt Studio",
     "switchStudio": "Chuyển Studio",
+    "profile": "Hồ sơ cá nhân",
+    "changePassword": "Đổi mật khẩu",
+    "twoFactor": "Bảo mật hai lớp (2FA)",
+    "switchWorkspace": "Đổi Workspace",
     "logout": "Đăng xuất"
+  },
+  "header": {
+    "searchPlaceholder": "Tìm kiếm khung tranh, thoại, tư liệu...",
+    "workspaces": "Workspaces",
+    "menuTitle": "Menu điều hướng",
+    "chapter": "Chương"
   },
   "breadcrumbs": {
     "studios": "Studio",
     "series": "Tác phẩm",
     "chapters": "Chương",
     "pages": "Trang"
+  },
+  "sidebar": {
+    "collapse": "Thu gọn thanh điều hướng",
+    "expand": "Mở rộng thanh điều hướng",
+    "appearance": "Giao diện thanh bên",
+    "themes": {
+      "paper": "Giấy sáng",
+      "ink": "Mực đậm",
+      "ocean": "Biển đêm",
+      "plum": "Tím bản thảo"
+    }
   }
 }

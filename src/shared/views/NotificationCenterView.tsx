@@ -17,6 +17,7 @@ import {
 import { SystemRole, NotificationDto } from '@/types';
 import { notificationService } from '@/services/notification.service';
 import { formatRelativeTime } from '@/shared/features/collaboration/collaborationRules';
+import { useTranslation } from '@/lib/i18n';
 
 interface NotificationCenterViewProps {
   onNavigateToWorkspace?: (workspaceId: string, targetView?: string, role?: SystemRole) => void;
@@ -123,6 +124,7 @@ export const NotificationCenterView: React.FC<NotificationCenterViewProps> = ({
   onNavigateToWorkspace,
   onClose,
 }) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState<NotificationDto[]>([]);
   const [unreadCount, setUnreadCount] = useState<number>(0);
@@ -130,6 +132,12 @@ export const NotificationCenterView: React.FC<NotificationCenterViewProps> = ({
   const [loading, setLoading] = useState<boolean>(true);
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
   const [markingAll, setMarkingAll] = useState<boolean>(false);
+
+  const getTypeLabel = (typeKey: string) => {
+    const key = `notifications.types.${typeKey}`;
+    const translated = t(key);
+    return translated !== key ? translated : TYPE_CONFIG[typeKey]?.label || typeKey;
+  };
 
   const fetchNotifications = useCallback(async () => {
     setLoading(true);
@@ -241,16 +249,16 @@ export const NotificationCenterView: React.FC<NotificationCenterViewProps> = ({
             <div>
               <div className='flex items-center gap-2.5'>
                 <h1 className='text-2xl font-serif font-bold text-[#1C1917] tracking-tight'>
-                  Trung Tâm Thông Báo
+                  {t('notifications.title')}
                 </h1>
                 {unreadCount > 0 && (
                   <span className='px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-[#F97316]/15 text-[#C2410C] border border-[#F97316]/30'>
-                    {unreadCount} chưa đọc
+                    {t('notifications.unread', { count: unreadCount })}
                   </span>
                 )}
               </div>
               <p className='text-xs sm:text-sm text-[#57534E] mt-0.5'>
-                Theo dõi phân công việc, tiến độ chương và các yêu cầu chỉnh sửa từ đội ngũ sản xuất.
+                {t('notifications.subtitle')}
               </p>
             </div>
           </div>
@@ -262,11 +270,11 @@ export const NotificationCenterView: React.FC<NotificationCenterViewProps> = ({
             type='button'
             onClick={() => void fetchNotifications()}
             disabled={loading}
-            title='Làm mới danh sách'
+            title='Làm mới'
             className='px-3 py-2 rounded-lg border border-[#D8D2C5] bg-[#FCFBF8] hover:bg-[#F3F0E9] text-[#57534E] hover:text-[#1C1917] text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50'
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-            <span className='hidden sm:inline'>Làm mới</span>
+            <span className='hidden sm:inline'>{t('common.actions.refresh')}</span>
           </button>
           <button
             type='button'
@@ -275,13 +283,13 @@ export const NotificationCenterView: React.FC<NotificationCenterViewProps> = ({
             className='px-3.5 py-2 rounded-lg bg-[#1C1917] hover:bg-black text-[#FCFBF8] text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs'
           >
             <CheckCheck className='w-3.5 h-3.5' />
-            <span>Đánh dấu đã đọc tất cả</span>
+            <span>{t('notifications.markAllAsRead')}</span>
           </button>
           {onClose && (
             <button
               type='button'
               onClick={onClose}
-              aria-label='Đóng'
+              aria-label={t('common.actions.close')}
               className='p-2 rounded-lg hover:bg-[#EFECE6] border border-transparent hover:border-[#D8D2C5] text-[#57534E] hover:text-[#1C1917] transition-colors cursor-pointer'
             >
               <X className='w-5 h-5' />
@@ -301,7 +309,7 @@ export const NotificationCenterView: React.FC<NotificationCenterViewProps> = ({
               : 'text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9]'
           }`}
         >
-          Tất cả thông báo ({totalCount})
+          {t('notifications.all')} ({totalCount})
         </button>
         <button
           type='button'
@@ -312,13 +320,11 @@ export const NotificationCenterView: React.FC<NotificationCenterViewProps> = ({
               : 'text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9]'
           }`}
         >
-          <span>Chưa đọc</span>
+          <span>{t('notifications.unreadTab', 'Chưa đọc')}</span>
           {unreadCount > 0 && (
             <span
               className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${
-                filter === 'unread'
-                  ? 'bg-[#F97316] text-white'
-                  : 'bg-[#F97316]/20 text-[#C2410C]'
+                filter === 'unread' ? 'bg-[#F97316] text-white' : 'bg-[#F97316]/20 text-[#C2410C]'
               }`}
             >
               {unreadCount}
@@ -332,9 +338,7 @@ export const NotificationCenterView: React.FC<NotificationCenterViewProps> = ({
         {loading ? (
           <div className='py-20 text-center text-[#78716C] flex flex-col items-center justify-center gap-3'>
             <RefreshCw className='w-7 h-7 animate-spin text-[#F97316]' />
-            <span className='text-sm font-medium text-[#57534E]'>
-              Đang tải danh sách thông báo từ hệ thống...
-            </span>
+            <span className='text-sm font-medium text-[#57534E]'>{t('notifications.loading')}</span>
           </div>
         ) : displayedNotifications.length === 0 ? (
           <div className='py-20 text-center text-[#78716C] flex flex-col items-center justify-center gap-3'>
@@ -343,11 +347,10 @@ export const NotificationCenterView: React.FC<NotificationCenterViewProps> = ({
             </div>
             <div className='space-y-1'>
               <h3 className='text-base font-semibold text-[#1C1917]'>
-                {filter === 'unread' ? 'Không có thông báo chưa đọc nào' : 'Chưa có thông báo nào'}
+                {t('notifications.emptyTitle')}
               </h3>
               <p className='text-xs text-[#78716C] max-w-sm mx-auto'>
-                Khi có tác vụ mới, biên tập viên phản hồi hoặc tiến độ chương cập nhật, thông báo sẽ
-                xuất hiện tại đây.
+                {t('notifications.emptyDesc')}
               </p>
             </div>
           </div>
@@ -355,13 +358,12 @@ export const NotificationCenterView: React.FC<NotificationCenterViewProps> = ({
           <div className='divide-y divide-[#E7E2D9]'>
             {displayedNotifications.map((n) => {
               const isUnread = !n.readAt;
-              const config =
-                TYPE_CONFIG[String(n.type)] || {
-                  label: 'Thông báo',
-                  icon: Bell,
-                  color: 'text-[#78716C]',
-                  bg: 'bg-[#F1EEE8] border-[#D8D2C5]',
-                };
+              const config = TYPE_CONFIG[String(n.type)] || {
+                label: 'Thông báo',
+                icon: Bell,
+                color: 'text-[#78716C]',
+                bg: 'bg-[#F1EEE8] border-[#D8D2C5]',
+              };
               const Icon = config.icon;
 
               return (
@@ -388,7 +390,7 @@ export const NotificationCenterView: React.FC<NotificationCenterViewProps> = ({
                         <span
                           className={`text-[11px] font-mono px-2 py-0.5 rounded font-semibold border ${config.bg} ${config.color}`}
                         >
-                          {config.label}
+                          {getTypeLabel(String(n.type))}
                         </span>
                         <h2
                           className={`text-sm font-semibold truncate ${
@@ -410,7 +412,7 @@ export const NotificationCenterView: React.FC<NotificationCenterViewProps> = ({
 
                     <div className='flex items-center justify-between text-xs'>
                       <div className='flex items-center text-[#F97316] group-hover:text-[#EA580C] font-semibold text-xs'>
-                        <span>Mở chi tiết công việc</span>
+                        <span>{t('notifications.viewTask')}</span>
                         <ArrowRight className='w-3.5 h-3.5 ml-1 transform group-hover:translate-x-1 transition-transform' />
                       </div>
 

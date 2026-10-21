@@ -1,0 +1,98 @@
+/* Auth form scope. OS dark mode sets `color-scheme: dark` on :root (lucian-tokens.css),
+   which makes Chrome paint autofilled fields dark with white text. Pin light scheme here only. */
+.pf-auth {
+  color-scheme: light;
+  --auth-bg: #fcfbf8;
+  --auth-input: #ffffff;
+  --auth-line: #d8d2c5;
+  --auth-ink: #44403c;
+  --auth-ink-2: #57534e;
+  --auth-accent: #f97316;
+  --auth-accent-2: #ea580c;
+}
+
+.pf-auth-input {
+  width: 100%;
+  height: 46px;
+  padding: 0 14px;
+  border: 1px solid var(--auth-line);
+  border-radius: 10px;
+  background: var(--auth-input);
+  color: var(--auth-ink);
+  caret-color: var(--auth-ink);
+  font-size: 14px;
+  outline: none;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+.pf-auth-input::placeholder {
+  color: #a8a29e;
+}
+.pf-auth-input:focus {
+  border-color: var(--auth-accent);
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.18);
+}
+.pf-auth-input[aria-invalid='true'] {
+  border-color: #dc2626;
+}
+.pf-auth-input:disabled {
+  background: #f5f3ef;
+  color: var(--auth-ink-2);
+  cursor: not-allowed;
+}
+/* Autofill: keep cream/brown via inset shadow (background-color is ignored by Chrome here). */
+.pf-auth-input:-webkit-autofill,
+.pf-auth-input:-webkit-autofill:hover,
+.pf-auth-input:autofill {
+  -webkit-text-fill-color: var(--auth-ink);
+  box-shadow: 0 0 0 1000px var(--auth-input) inset;
+  caret-color: var(--auth-ink);
+}
+.pf-auth-input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--auth-ink);
+  box-shadow:
+    0 0 0 1000px var(--auth-input) inset,
+    0 0 0 3px rgba(249, 115, 22, 0.18);
+}
+
+.pf-auth-primary {
+  height: 46px;
+  border-radius: 10px;
+  background: var(--auth-accent);
+  color: #fff;
+  transition: background-color 150ms ease;
+}
+.pf-auth-primary:hover:not(:disabled) {
+  background: var(--auth-accent-2);
+}
+.pf-auth-primary:disabled {
+  background: #d6d3d1;
+  cursor: not-allowed;
+}
+.pf-auth-secondary {
+  height: 46px;
+  border-radius: 10px;
+  border: 1px solid var(--auth-line);
+  background: var(--auth-input);
+  color: var(--auth-ink);
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease;
+}
+.pf-auth-secondary:hover:not(:disabled) {
+  background: #f5f3ef;
+  border-color: #a8a29e;
+}
+.pf-auth :is(button, a):focus-visible {
+  outline: 2px solid var(--auth-accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pf-auth-input,
+  .pf-auth-primary,
+  .pf-auth-secondary {
+    transition: none;
+  }
+}

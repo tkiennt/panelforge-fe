@@ -68,5 +68,34 @@
     "waitingSync": "{count} actions pending sync.",
     "syncNow": "Sync Now",
     "syncing": "Syncing..."
+  },
+  "unsaved": {
+    "title": "Unsaved changes",
+    "plural": "{count} unsaved changes",
+    "saved": "Saved",
+    "discard": "Discard",
+    "save": "Save",
+    "saving": "Saving..."
+    },
+  "auth": {
+    "welcomeBack": "Welcome back",
+    "loginSubtitle": "Sign in to continue with your studio.",
+    "email": "Email",
+    "password": "Password",
+    "forgot": "Forgot password?",
+    "submit": "Sign in",
+    "submitting": "Signing in…",
+    "or": "Or",
+    "google": "Continue with Google",
+    "noAccount": "Don't have an account?",
+    "createAccount": "Create account",
+    "activate": "Activate account",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "backHome": "Back to home",
+    "errEmailRequired": "Please enter your email address.",
+    "errEmailInvalid": "Invalid email format.",
+    "errPasswordRequired": "Please enter your password.",
+    "errLoginFailed": "Sign in failed. Please check your details."
   }
 }

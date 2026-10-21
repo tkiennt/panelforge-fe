@@ -1,0 +1,56 @@
+{
+  "myWork": {
+    "title": "My Work",
+    "desc": "Start, upload artwork, submit, and resolve change requests for each chapter.",
+    "allStudioOption": "✨ Entire Studio (All Chapters)",
+    "chapterOption": "Chapter {number}",
+    "reload": "Reload",
+    "filterAria": "Work Filters",
+    "allStudioBreadcrumb": "Entire Studio",
+    "chapterBreadcrumb": "Chapter {number}",
+    "noTasks": "No tasks in this category.",
+    "allTasks": "All Tasks",
+    "wholeChapter": "Whole Chapter",
+    "wholeChapterDesc": "Chapter-level work (Script, Review) or pages without assigned scenes",
+    "scene": "Scene {number}",
+    "tabs": {
+      "mine": "Mine",
+      "mineTooltip": "Tasks assigned to you in this series",
+      "review": "Pending Review",
+      "reviewTooltip": "Panels/artwork awaiting review or quality assurance",
+      "all": "All",
+      "allTooltip": "All tasks across this series",
+      "studio": "Entire Studio",
+      "studioTooltip": "Your tasks across all series in the Studio"
+    }
+  },
+  "card": {
+    "start": "Start Working",
+    "starting": "Starting...",
+    "uploadArtwork": "Upload Artwork",
+    "submit": "Submit Work",
+    "submitting": "Submitting...",
+    "review": "Review",
+    "viewArtwork": "View Artwork",
+    "viewDetails": "View Details",
+    "history": "Submission History ({count})",
+    "changeRequests": "Change Requests ({count})",
+    "openBible": "Series Bible",
+    "openWorkspace": "Open Workspace",
+    "version": "Revision #{version}",
+    "deadline": "Due: {date}",
+    "unassigned": "Unassigned",
+    "stage": "Stage: {name}",
+    "page": "Page {page}",
+    "panel": "Panel #{order}",
+    "status": {
+      "assigned": "Assigned",
+      "inProgress": "In Progress",
+      "submitted": "Submitted",
+      "underReview": "Under Review",
+      "approved": "Approved",
+      "reworkRequired": "Rework Required",
+      "blocked": "Blocked"
+    }
+  }
+}
