@@ -24,7 +24,8 @@ import {
   ToastOptions,
   ToastType,
 } from '@/shared/components/ToastNotification';
-import { useToast } from '@/shared/context/ToastContext';
+import { useToast, ToastProvider } from '@/shared/context/ToastContext';
+import { ConfirmProvider } from '@/shared/context/ConfirmContext';
 import { authService } from './services/auth.service';
 import { userService } from './services/user.service';
 import { PROFILE_UPDATED_EVENT } from '@/shared/utils/profileEvents';
@@ -953,8 +954,12 @@ function AppContent() {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <AppContent />
-    </BrowserRouter>
+    <ConfirmProvider>
+      <ToastProvider>
+        <BrowserRouter>
+          <AppContent />
+        </BrowserRouter>
+      </ToastProvider>
+    </ConfirmProvider>
   );
 }
