@@ -32,7 +32,7 @@ export const InviteResultModal: React.FC<InviteResultModalProps> = ({
     const text = results
       .map(
         (r) =>
-          `${r.email} - ${r.role}: ${r.success ? 'Thành công (Chờ chấp nhận)' : `Thất bại (${r.message || 'Lỗi'})`}`,
+          `${r.email} - ${r.role}: ${r.success ? 'Thành công' : `Thất bại (${r.message || 'Lỗi'})`}`,
       )
       .join('\n');
     navigator.clipboard.writeText(text);
@@ -51,15 +51,16 @@ export const InviteResultModal: React.FC<InviteResultModalProps> = ({
             </div>
             <div>
               <h3 className='font-bold text-sm text-[#171717]'>
-                Báo Cáo Kết Quả Mời Thành Viên
+                Kết quả gửi lời mời
               </h3>
               {workspaceName && (
-                <p className='text-[10px] text-stone-500 font-mono'>{workspaceName}</p>
+                <p className='text-[11px] text-stone-500'>{workspaceName}</p>
               )}
             </div>
           </div>
           <button
             onClick={onClose}
+            aria-label='Đóng'
             className='w-7 h-7 rounded-lg hover:bg-white border border-transparent hover:border-[#E7E7E7] flex items-center justify-center text-[#888888] hover:text-[#171717] transition-all cursor-pointer'
           >
             <X className='w-4 h-4' />
@@ -74,7 +75,7 @@ export const InviteResultModal: React.FC<InviteResultModalProps> = ({
             </div>
             <div className='text-xs'>
               <div className='font-bold text-emerald-800'>Gửi thành công</div>
-              <div className='text-emerald-600 text-[11px]'>Chờ chấp nhận tham gia</div>
+              <div className='text-emerald-600 text-[11px]'>Chờ xác nhận email</div>
             </div>
           </div>
 
@@ -95,9 +96,9 @@ export const InviteResultModal: React.FC<InviteResultModalProps> = ({
               {failureCount}
             </div>
             <div className='text-xs'>
-              <div className='font-bold'>Không gửi được</div>
+              <div className='font-bold'>Thất bại</div>
               <div className='text-[11px]'>
-                {failureCount > 0 ? 'Email đã tồn tại / Lỗi' : 'Không có lỗi'}
+                {failureCount > 0 ? 'Kiểm tra lại email' : 'Không có lỗi'}
               </div>
             </div>
           </div>
@@ -105,8 +106,8 @@ export const InviteResultModal: React.FC<InviteResultModalProps> = ({
 
         {/* Detailed Results List */}
         <div className='p-4 overflow-y-auto space-y-2 flex-1 custom-scrollbar text-xs'>
-          <div className='font-mono text-[10px] text-stone-500 uppercase font-semibold mb-1'>
-            Chi tiết từng tài khoản ({results.length})
+          <div className='text-[11px] text-stone-500 font-semibold mb-1'>
+            Chi tiết ({results.length})
           </div>
 
           {results.map((item, idx) => (
@@ -139,20 +140,20 @@ export const InviteResultModal: React.FC<InviteResultModalProps> = ({
                     }`}
                   >
                     {item.success
-                      ? 'Đã gửi lời mời tham gia (Trạng thái: Chờ chấp nhận).'
-                      : item.message || 'Lỗi gửi lời mời. Vui lòng kiểm tra lại email.'}
+                      ? 'Đã gửi lời mời (Chờ xác nhận)'
+                      : item.message || 'Lỗi gửi lời mời'}
                   </p>
                 </div>
               </div>
 
               <span
-                className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold shrink-0 ${
+                className={`px-2 py-0.5 rounded text-[10px] font-semibold shrink-0 ${
                   item.success
                     ? 'bg-emerald-100 text-emerald-800'
                     : 'bg-red-100 text-red-800'
                 }`}
               >
-                {item.success ? 'Pending' : 'Failed'}
+                {item.success ? 'Chờ duyệt' : 'Lỗi'}
               </span>
             </div>
           ))}
@@ -166,7 +167,7 @@ export const InviteResultModal: React.FC<InviteResultModalProps> = ({
             className='px-3 py-1.5 bg-white hover:bg-stone-50 border border-stone-200 text-stone-700 text-xs font-medium rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer'
           >
             {copied ? <Check className='w-3.5 h-3.5 text-emerald-600' /> : <Copy className='w-3.5 h-3.5 text-stone-500' />}
-            <span>{copied ? 'Đã sao chép' : 'Sao chép danh sách'}</span>
+            <span>{copied ? 'Đã sao chép' : 'Sao chép'}</span>
           </button>
 
           <button

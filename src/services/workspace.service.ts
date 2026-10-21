@@ -67,6 +67,7 @@ export interface WorkspaceMemberDto {
   joinedAt: string;
   isEmailConfirmed?: boolean;
   invitationEmailSent?: boolean;
+  status?: 'Pending' | 'Active' | 'Rejected';
 }
 
 export interface AddWorkspaceMemberRequest {
@@ -200,6 +201,42 @@ export const workspaceService = {
       return response.data;
     } catch (error) {
       throw new Error(await parseErrorResponse(error, 'Xóa thành viên khỏi Workspace thất bại.'));
+    }
+  },
+
+  acceptInvitation: async (workspaceId: string): Promise<WorkspaceMemberDto> => {
+    try {
+      const response = await axiosClient.post(`/Workspaces/${workspaceId}/accept-invitation`);
+      return response.data;
+    } catch (error) {
+      throw new Error(await parseErrorResponse(error, 'Chấp nhận lời mời thất bại.'));
+    }
+  },
+
+  rejectInvitation: async (workspaceId: string): Promise<void> => {
+    try {
+      await axiosClient.post(`/Workspaces/${workspaceId}/reject-invitation`);
+    } catch (error) {
+      throw new Error(await parseErrorResponse(error, 'Từ chối lời mời thất bại.'));
+    }
+  },
+
+  getPendingInvitations: async (): Promise<
+    Array<{
+      workspaceId: string;
+      workspaceName: string;
+      ownerName: string;
+      ownerEmail: string;
+      role: string;
+      invitedAt: string;
+    }>
+  > => {
+    try {
+      const response = await axiosClient.get('/Workspaces/pending-invitations');
+      return response.data;
+    } catch (error) {
+      console.warn('workspaceService.getPendingInvitations error:', error);
+      return [];
     }
   },
 
