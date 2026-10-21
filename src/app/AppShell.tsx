@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { Suspense, useState, useEffect } from 'react';
 import { BrandMark } from '@/shared/components/BrandMark';
 import { Outlet, useNavigate, useLocation, useParams } from 'react-router-dom';
 import { MangaProject, SystemRole, WorkspaceRole } from '@/types';
@@ -937,7 +937,7 @@ export function AppShell({
 
         <main className='flex-1 overflow-y-auto custom-scrollbar flex flex-col relative min-h-0 bg-[#F3F0E9]'>
           <div className='relative z-10 w-full min-h-full flex-1 flex flex-col'>
-            {children || <Outlet />}
+            <Suspense fallback={null}>{children || <Outlet />}</Suspense>
           </div>
         </main>
       </div>

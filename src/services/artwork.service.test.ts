@@ -1,5 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { artworkService, computeFileSha256 } from './artwork.service';
+import {
+  artworkService,
+  clearArtworkAccessLinkCache,
+  computeFileSha256,
+  toThumbnailUrl,
+} from './artwork.service';
 import axiosClient from '../api/axiosClient';
 
 vi.mock('../api/axiosClient');
@@ -7,6 +12,7 @@ vi.mock('../api/axiosClient');
 describe('artworkService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    clearArtworkAccessLinkCache();
   });
 
   it('uploadArtwork gửi FormData multipart với file, stageId, sha256', async () => {
@@ -96,5 +102,41 @@ describe('artworkService', () => {
     const hash = await computeFileSha256(mockFile);
     expect(hash).toBeDefined();
     expect(hash.length).toBe(64);
+  });
+
+  it('getArtworkAccessLink dùng lại link còn hạn để trình duyệt cache được ảnh', async () => {
+    const link = {
+      url: '/api/assets/download?token=a',
+      expiresAtUtc: new Date(Date.now() + 4 * 60_000).toISOString(),
+    };
+    vi.mocked(axiosClient.post).mockResolvedValueOnce({ data: link });
+
+    const first = await artworkService.getArtworkAccessLink('chap-1', 'ref-9');
+    const second = await artworkService.getArtworkAccessLink('chap-1', 'ref-9');
+
+    expect(second).toBe(first);
+    expect(axiosClient.post).toHaveBeenCalledTimes(1);
+  });
+
+  it('getArtworkAccessLink xin link mới khi link cũ sắp hết hạn', async () => {
+    vi.mocked(axiosClient.post)
+      .mockResolvedValueOnce({
+        data: { url: '/x?token=old', expiresAtUtc: new Date(Date.now() + 30_000).toISOString() },
+      })
+      .mockResolvedValueOnce({
+        data: { url: '/x?token=new', expiresAtUtc: new Date(Date.now() + 300_000).toISOString() },
+      });
+
+    await artworkService.getArtworkAccessLink('chap-1', 'ref-8');
+    const fresh = await artworkService.getArtworkAccessLink('chap-1', 'ref-8');
+
+    expect(fresh.url).toBe('/x?token=new');
+    expect(axiosClient.post).toHaveBeenCalledTimes(2);
+  });
+
+  it('toThumbnailUrl thêm size=thumb', () => {
+    expect(toThumbnailUrl('http://h/api/assets/download?token=a')).toBe(
+      'http://h/api/assets/download?token=a&size=thumb',
+    );
   });
 });

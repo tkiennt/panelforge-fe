@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import {
   Routes,
   Route,
@@ -19,25 +19,69 @@ const WorkspaceRedirect: React.FC = () => {
   return <Navigate to={`/workspaces/${workspaceId}${rest ? `/${rest}` : ''}`} replace />;
 };
 import { seriesService } from '@/services/series.service';
-import { WorkspaceView } from '@/shared/features/production-workspace/WorkspaceView';
-import { TaskEditorView } from '@/shared/features/production-workspace/TaskEditorView';
-import { ExportView } from '@/roles/producer/views/ExportView';
-import { DashboardView } from '@/roles/producer/views/DashboardView';
-import { StudioOverviewView } from '@/shared/views/StudioOverviewView';
-import { AdminDashboard } from '@/roles/admin/views';
-import { ArtistDeskView } from '@/roles/artist/views/ArtistDeskView';
-import { ReviewView } from '@/roles/editor/views/ReviewView';
-import { NotificationCenterView } from '@/shared/views/NotificationCenterView';
-import { PublicCatalogView } from '@/roles/reader/views/PublicCatalogView';
-import { PublicPreviewView } from '@/roles/reader/views/PublicPreviewView';
+const WorkspaceView = lazy(() =>
+  import('@/shared/features/production-workspace/WorkspaceView').then((m) => ({
+    default: m.WorkspaceView,
+  })),
+);
+const TaskEditorView = lazy(() =>
+  import('@/shared/features/production-workspace/TaskEditorView').then((m) => ({
+    default: m.TaskEditorView,
+  })),
+);
+const ExportView = lazy(() =>
+  import('@/roles/producer/views/ExportView').then((m) => ({ default: m.ExportView })),
+);
+const DashboardView = lazy(() =>
+  import('@/roles/producer/views/DashboardView').then((m) => ({ default: m.DashboardView })),
+);
+const StudioOverviewView = lazy(() =>
+  import('@/shared/views/StudioOverviewView').then((m) => ({ default: m.StudioOverviewView })),
+);
+const AdminDashboard = lazy(() =>
+  import('@/roles/admin/views').then((m) => ({ default: m.AdminDashboard })),
+);
+const ArtistDeskView = lazy(() =>
+  import('@/roles/artist/views/ArtistDeskView').then((m) => ({ default: m.ArtistDeskView })),
+);
+const ReviewView = lazy(() =>
+  import('@/roles/editor/views/ReviewView').then((m) => ({ default: m.ReviewView })),
+);
+const NotificationCenterView = lazy(() =>
+  import('@/shared/views/NotificationCenterView').then((m) => ({
+    default: m.NotificationCenterView,
+  })),
+);
+const PublicCatalogView = lazy(() =>
+  import('@/roles/reader/views/PublicCatalogView').then((m) => ({ default: m.PublicCatalogView })),
+);
+const PublicPreviewView = lazy(() =>
+  import('@/roles/reader/views/PublicPreviewView').then((m) => ({ default: m.PublicPreviewView })),
+);
 import { LandingPageView } from '@/roles/guest/views/LandingPageView';
-import { WorkspaceListView } from '@/shared/views/WorkspaceListView';
-import { UserProfileView } from '@/shared/views/UserProfileView';
-import { SeriesBibleView } from '@/shared/features/series-bible/SeriesBibleView';
-import { MyWorkView } from '@/shared/features/collaboration/MyWorkView';
-import { PublisherDeskView } from '@/roles/publisher/views/PublisherDeskView';
-import { ScriptEditorView } from '@/roles/writer/views/ScriptEditorView';
-import LettererDeskView from '@/roles/letterer/views/LettererDeskView';
+const WorkspaceListView = lazy(() =>
+  import('@/shared/views/WorkspaceListView').then((m) => ({ default: m.WorkspaceListView })),
+);
+const UserProfileView = lazy(() =>
+  import('@/shared/views/UserProfileView').then((m) => ({ default: m.UserProfileView })),
+);
+const SeriesBibleView = lazy(() =>
+  import('@/shared/features/series-bible/SeriesBibleView').then((m) => ({
+    default: m.SeriesBibleView,
+  })),
+);
+const MyWorkView = lazy(() =>
+  import('@/shared/features/collaboration/MyWorkView').then((m) => ({ default: m.MyWorkView })),
+);
+const PublisherDeskView = lazy(() =>
+  import('@/roles/publisher/views/PublisherDeskView').then((m) => ({
+    default: m.PublisherDeskView,
+  })),
+);
+const ScriptEditorView = lazy(() =>
+  import('@/roles/writer/views/ScriptEditorView').then((m) => ({ default: m.ScriptEditorView })),
+);
+const LettererDeskView = lazy(() => import('@/roles/letterer/views/LettererDeskView'));
 import {
   SystemRole,
   WorkspaceRole,
@@ -47,6 +91,15 @@ import {
   BibleEntity,
   getRoleFromToken,
 } from '@/types';
+
+/** Lazy route chunks: keeps Konva/editor code out of the Landing/Login bundle. */
+export const RouteFallback: React.FC = () => (
+  <div
+    className='flex h-full min-h-[40vh] w-full items-center justify-center'
+    role='status'
+    aria-label='Loading'
+  />
+);
 
 export const PrivateRoute = ({
   isAuthenticated,

@@ -22,18 +22,23 @@ globalThis.ResizeObserver = class ResizeObserver {
   disconnect() {}
 };
 
-// Mock IntersectionObserver
+// Mock IntersectionObserver: jsdom không có layout nên coi mọi phần tử là đang hiển thị
 globalThis.IntersectionObserver = class IntersectionObserver {
   root = null;
   rootMargin = '';
   thresholds = [];
-  observe() {}
+  private callback: IntersectionObserverCallback;
+  observe(target: Element) {
+    this.callback([{ isIntersecting: true, target } as IntersectionObserverEntry], this as any);
+  }
   unobserve() {}
   disconnect() {}
   takeRecords() {
     return [];
   }
-  constructor() {}
+  constructor(callback: IntersectionObserverCallback) {
+    this.callback = callback;
+  }
 } as any;
 
 window.scrollTo = () => {};
