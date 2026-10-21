@@ -204,7 +204,7 @@ describe('LoginPage Component', () => {
     const title = screen.getByRole('heading', { name: /Chào mừng.*trở lại/i });
     expect(title).toBeInTheDocument();
     expect(title).toHaveAttribute('id', 'auth-dialog-title');
-    expect(screen.getByText('Đăng nhập để tiếp tục cùng studio của bạn.')).toBeInTheDocument();
+    expect(screen.getByText('Tiếp tục sáng tạo cùng studio của bạn.')).toBeInTheDocument();
 
     const emailInput = container.querySelector('#login-email') as HTMLInputElement;
     expect(emailInput).toHaveAttribute('type', 'email');

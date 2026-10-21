@@ -79,7 +79,7 @@
     },
   "auth": {
     "welcomeBack": "Chào mừng trở lại",
-    "loginSubtitle": "Đăng nhập để tiếp tục cùng studio của bạn.",
+    "loginSubtitle": "Tiếp tục sáng tạo cùng studio của bạn.",
     "email": "Email",
     "password": "Mật khẩu",
     "forgot": "Quên mật khẩu?",

@@ -234,10 +234,11 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                     'User',
                   email: currentUserInfo?.email || firebaseUser?.email || '',
                   role: currentRole,
-                  avatarUrl: firebaseUser?.photoURL,
+                  avatarUrl: currentUserInfo?.avatarUrl || firebaseUser?.photoURL,
                   canCreateStudio: currentUserInfo?.canCreateStudio,
                 }}
                 onLogout={handleLogout}
+                recentWorkspaceId={activeWorkspace?.id}
               />
             </div>
           }
