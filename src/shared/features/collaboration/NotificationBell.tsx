@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { notificationService } from '@/services/notification.service';
 import type { NotificationDto } from '@/types';
 import { formatRelativeTime } from './collaborationRules';
-import '@/shared/components/lucian/lucian-074.css';
+import '@/styles/modules/lucian/lucian-074.css';
 
 interface NotificationBellProps {
   workspaceId?: string;

@@ -3,7 +3,7 @@
 
 import React from 'react';
 import { Plus } from 'lucide-react';
-import './lucian-088.css';
+import '@/styles/modules/lucian/lucian-088.css';
 
 export interface EmptyFolderStateProps {
   title: string;

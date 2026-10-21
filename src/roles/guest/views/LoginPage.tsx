@@ -17,7 +17,7 @@ import { signInWithPopup, auth, googleProvider } from '@/config/firebase';
 import { authService } from '@/services/auth.service';
 import { AuthResponse, SystemRole, normalizeSystemRole } from '@/types';
 import { useTranslation } from '@/lib/i18n';
-import './auth.css';
+import '@/styles/modules/auth.css';
 
 export interface LoginPageProps {
   onLoginSuccess?: (authResponse: AuthResponse) => void;

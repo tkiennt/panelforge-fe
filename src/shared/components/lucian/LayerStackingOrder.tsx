@@ -17,7 +17,7 @@ import {
 import type { ElementSnapshotDto } from '@/services/element.service';
 import type { BibleEntryDto } from '@/services/bible.service';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
-import './lucian-122.css';
+import '@/styles/modules/lucian/lucian-122.css';
 
 export interface LayerStackingOrderProps {
   elements: ElementSnapshotDto[];
