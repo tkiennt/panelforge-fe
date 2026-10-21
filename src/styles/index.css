@@ -2,14 +2,14 @@
 @import './tokens/index.css';
 
 @theme {
-  --font-serif: 'Playfair Display', Georgia, serif;
-  --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
-  --font-display: 'Playfair Display', Georgia, serif;
-  --font-heading: 'Playfair Display', Georgia, serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  --font-serif: 'Playfair Display', 'Merriweather', Georgia, serif;
+  --font-sans: 'Plus Jakarta Sans', 'Inter', 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
+  --font-display: 'Playfair Display', 'Merriweather', Georgia, serif;
+  --font-heading: 'Playfair Display', 'Merriweather', Georgia, serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
   --font-comic: 'Patrick Hand SC', 'Patrick Hand', 'Be Vietnam Pro', cursive, sans-serif;
   --font-handwriting: 'Patrick Hand', 'Be Vietnam Pro', cursive, sans-serif;
-  --font-studio: 'Be Vietnam Pro', 'Plus Jakarta Sans', sans-serif;
+  --font-studio: 'Be Vietnam Pro', 'Inter', 'Plus Jakarta Sans', sans-serif;
 
   --color-ink-black: #171717;
   --color-ink-dark: #262626;
