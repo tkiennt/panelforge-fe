@@ -139,7 +139,7 @@ describe('SeriesMembersModal - Phân quyền và gán nhân sự 2 cấp', () =>
       expect(screen.getByText('Tatsuki Fujimoto')).toBeInTheDocument();
     });
 
-    const addBtn = screen.getByRole('button', { name: /Thêm vào/i });
+    const addBtn = screen.getByRole('button', { name: /Thêm thành viên/i });
     fireEvent.click(addBtn);
 
     await waitFor(() => {
@@ -165,7 +165,7 @@ describe('SeriesMembersModal - Phân quyền và gán nhân sự 2 cấp', () =>
       expect(screen.getByText('Aka Akasaka')).toBeInTheDocument();
     });
 
-    const deleteBtn = screen.getByTitle(/Rút khỏi bộ truyện|Xóa khỏi bộ truyện/i);
+    const deleteBtn = screen.getByTitle(/Xóa thành viên/i);
     fireEvent.click(deleteBtn);
 
     await waitFor(() => {

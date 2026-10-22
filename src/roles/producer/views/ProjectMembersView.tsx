@@ -9,6 +9,7 @@ import {
   FolderKanban,
   Loader2,
   Edit,
+  Lock,
 } from 'lucide-react';
 import { MangaProject } from '../../../types';
 import { useConfirm } from '@/shared/context/ConfirmContext';
@@ -109,12 +110,18 @@ export const ProjectMembersView: React.FC<ProjectMembersViewProps> = ({ projects
 
   const handleRemoveMember = async (member: SeriesMemberDto) => {
     if (!selectedProject) return;
+    const isProducer = (member.seriesRole || '').toLowerCase() === 'producer';
+    if (isProducer) {
+      toast.warning('Không thể xóa', 'Producer là thành viên quản trị mặc định của Series.');
+      return;
+    }
+
     const memberName = member.fullName || member.email;
     const confirmed = await confirm({
-      title: 'Rút nhân sự khỏi bộ truyện?',
-      description: `Bạn có chắc muốn rút "${memberName}" khỏi bộ truyện "${selectedProject.title}"? Nhân sự sẽ trở lại danh sách sẵn sàng của Workspace.`,
-      confirmText: 'Xác nhận rút',
-      cancelText: 'Giữ lại',
+      title: 'Xóa thành viên?',
+      description: `Bạn có chắc muốn xóa "${memberName}" khỏi bộ truyện "${selectedProject.title}"?`,
+      confirmText: 'Xóa thành viên',
+      cancelText: 'Hủy',
       variant: 'danger',
     });
 
@@ -122,12 +129,12 @@ export const ProjectMembersView: React.FC<ProjectMembersViewProps> = ({ projects
       try {
         await seriesService.removeSeriesMember(workspaceId, String(selectedProject.id), member.userId);
         toast.success(
-          'Đã cập nhật danh sách',
-          `"${memberName}" đã trở về danh sách sẵn sàng của Studio.`,
+          'Đã xóa thành viên',
+          `Đã xóa "${memberName}" khỏi "${selectedProject.title}".`,
         );
         await loadSeriesMembers(String(selectedProject.id));
       } catch (err: any) {
-        toast.error('Thao tác thất bại', err.message || 'Không thể rút nhân sự khỏi bộ truyện.');
+        toast.error('Xóa thành viên thất bại', err.message || 'Không thể xóa thành viên khỏi bộ truyện.');
       }
     }
     setOpenActionMenuId(null);
@@ -168,7 +175,7 @@ export const ProjectMembersView: React.FC<ProjectMembersViewProps> = ({ projects
 
               <div className='mt-4 pt-4 border-t border-gray-50 flex items-center justify-between text-sm'>
                 <span className='text-gray-500'>Thành viên:</span>
-                <span className='font-bold text-[#171717]'>Quản lý ngay →</span>
+                <span className='font-bold text-[#171717]'>Xem thành viên →</span>
               </div>
             </div>
           ))}
@@ -185,9 +192,9 @@ export const ProjectMembersView: React.FC<ProjectMembersViewProps> = ({ projects
       {/* Nút quay lại */}
       <button
         onClick={() => setSelectedProject(null)}
-        className='flex items-center gap-2 text-sm text-gray-500 hover:text-[#171717] transition w-fit mb-4 cursor-pointer'
+        className='flex items-center gap-2 text-sm text-gray-500 hover:text-[#171717] transition w-fit mb-4 cursor-pointer font-medium'
       >
-        <ArrowLeft className='w-4 h-4' /> {t('members.view.backToProjects', 'Quay lại danh sách bộ truyện')}
+        <ArrowLeft className='w-4 h-4' /> {t('members.view.backToProjects', 'Danh sách bộ truyện')}
       </button>
 
       <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6'>
@@ -201,10 +208,10 @@ export const ProjectMembersView: React.FC<ProjectMembersViewProps> = ({ projects
         </div>
         <button
           onClick={() => setIsSeriesMembersModalOpen(true)}
-          className='flex items-center gap-2 bg-[#F97316] text-white px-4 py-2 rounded-lg hover:bg-[#EA580C] transition shadow-sm cursor-pointer shrink-0'
+          className='flex items-center gap-2 bg-[#F97316] text-white px-4 py-2 rounded-lg hover:bg-[#EA580C] transition shadow-sm cursor-pointer shrink-0 font-medium text-sm'
         >
           <UserPlus className='w-4 h-4' />
-          <span>{t('members.view.manageRosterBtn', 'Quản lý đội ngũ Series')}</span>
+          <span>{t('members.view.manageRosterBtn', 'Quản lý thành viên')}</span>
         </button>
       </div>
 
@@ -302,35 +309,43 @@ export const ProjectMembersView: React.FC<ProjectMembersViewProps> = ({ projects
                         {member.joinedAt ? new Date(member.joinedAt).toLocaleDateString('vi-VN') : '—'}
                       </td>
                       <td className='p-4 text-right relative'>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleActionMenu(member.userId);
-                          }}
-                          className='p-2 text-gray-400 hover:text-[#171717] rounded-lg hover:bg-gray-200 transition cursor-pointer'
-                        >
-                          <MoreVertical className='w-4 h-4' />
-                        </button>
-
-                        {openActionMenuId === member.userId && (
-                          <div className='absolute right-8 top-10 w-44 bg-white border border-gray-200 rounded-lg shadow-lg z-20 overflow-hidden text-left animate-in slide-in-from-top-2 duration-150'>
-                            <button
-                              onClick={() => {
-                                setEditingUserId(member.userId);
-                                setSelectedNewRole(member.seriesRole || 'Artist');
-                                setOpenActionMenuId(null);
-                              }}
-                              className='w-full px-4 py-2.5 text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors cursor-pointer'
-                            >
-                              <Edit className='w-3.5 h-3.5 text-gray-500' /> {t('members.seriesRoster.changeRoleTooltip', 'Đổi vai trò')}
-                            </button>
-                            <button
-                              onClick={() => handleRemoveMember(member)}
-                              className='w-full px-4 py-2.5 text-xs text-red-600 hover:bg-red-50 flex items-center gap-2 border-t border-gray-100 transition-colors cursor-pointer'
-                            >
-                              <Trash2 className='w-3.5 h-3.5' /> {t('members.seriesRoster.removeMemberTooltip', 'Rút khỏi bộ truyện')}
-                            </button>
+                        {(member.seriesRole || '').toLowerCase() === 'producer' ? (
+                          <div className='flex items-center justify-end pr-2 text-amber-600' title='Producer là thành viên quản trị mặc định'>
+                            <Lock className='w-4 h-4 opacity-60' />
                           </div>
+                        ) : (
+                          <>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleActionMenu(member.userId);
+                              }}
+                              className='p-2 text-gray-400 hover:text-[#171717] rounded-lg hover:bg-gray-200 transition cursor-pointer'
+                            >
+                              <MoreVertical className='w-4 h-4' />
+                            </button>
+
+                            {openActionMenuId === member.userId && (
+                              <div className='absolute right-8 top-10 w-44 bg-white border border-gray-200 rounded-lg shadow-lg z-20 overflow-hidden text-left animate-in slide-in-from-top-2 duration-150'>
+                                <button
+                                  onClick={() => {
+                                    setEditingUserId(member.userId);
+                                    setSelectedNewRole(member.seriesRole || 'Artist');
+                                    setOpenActionMenuId(null);
+                                  }}
+                                  className='w-full px-4 py-2.5 text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors cursor-pointer'
+                                >
+                                  <Edit className='w-3.5 h-3.5 text-gray-500' /> {t('members.seriesRoster.changeRoleTooltip', 'Đổi vai trò')}
+                                </button>
+                                <button
+                                  onClick={() => handleRemoveMember(member)}
+                                  className='w-full px-4 py-2.5 text-xs text-red-600 hover:bg-red-50 flex items-center gap-2 border-t border-gray-100 transition-colors cursor-pointer'
+                                >
+                                  <Trash2 className='w-3.5 h-3.5' /> {t('members.seriesRoster.removeMemberTooltip', 'Xóa thành viên')}
+                                </button>
+                              </div>
+                            )}
+                          </>
                         )}
                       </td>
                     </tr>

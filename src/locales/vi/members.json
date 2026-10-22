@@ -5,18 +5,18 @@
     "membersBadge": "{count} thành viên"
   },
   "candidatePool": {
-    "title": "Thành viên trong Workspace",
+    "title": "Thành viên Workspace",
     "subtitle": "Chọn vai trò và thêm trực tiếp vào Series",
     "countBadge": "{count} người",
     "searchPlaceholder": "Tìm theo tên, email, vai trò...",
-    "addBtn": "Thêm vào bộ truyện",
+    "addBtn": "Thêm thành viên",
     "emptySearch": "Không tìm thấy thành viên phù hợp",
     "emptySearchDesc": "Hãy thử tìm với từ khóa hoặc email khác.",
     "emptyAllAssigned": "Tất cả thành viên {workspaceName} đã được gán vào Series.",
     "emptyAllAssignedDesc": "Mời thêm thành viên vào {workspaceName} để mở rộng đội ngũ."
   },
   "seriesRoster": {
-    "title": "Thành viên trong bộ truyện",
+    "title": "Thành viên bộ truyện",
     "subtitle": "Đang tham gia sản xuất và phân quyền trong Series",
     "countBadge": "{count} thành viên",
     "searchPlaceholder": "Tìm theo tên, email, vai trò...",
@@ -24,18 +24,18 @@
     "producerAdminTag": "Quản trị",
     "producerLockTooltip": "Producer và Owner là thành viên quản trị mặc định",
     "changeRoleTooltip": "Đổi vai trò",
-    "removeMemberTooltip": "Rút khỏi bộ truyện",
+    "removeMemberTooltip": "Xóa thành viên",
     "saveRole": "Lưu",
     "cancelRole": "Hủy",
     "emptySearch": "Không tìm thấy thành viên phù hợp",
     "emptySearchDesc": "Hãy thử điều chỉnh bộ lọc tìm kiếm.",
-    "emptyRoster": "Chưa có nhân sự trong Series.",
-    "emptyRosterDesc": "Chọn vai trò và bấm \"+ Thêm vào truyện\" từ danh sách bên trái."
+    "emptyRoster": "Chưa có thành viên trong Series.",
+    "emptyRosterDesc": "Chọn vai trò và bấm \"+ Thêm thành viên\" từ danh sách bên trái."
   },
   "alerts": {
-    "addSuccessTitle": "Bổ sung nhân sự thành công",
+    "addSuccessTitle": "Bổ sung thành viên thành công",
     "addSuccessMsg": "Đã thêm \"{name}\" vào đội ngũ \"{seriesTitle}\".",
-    "addErrorTitle": "Không thể thêm nhân sự",
+    "addErrorTitle": "Không thể thêm thành viên",
     "updateRoleSuccessTitle": "Cập nhật vai trò thành công",
     "updateRoleSuccessMsg": "Đã đổi vai trò của \"{name}\" thành {role}.",
     "updateRoleErrorTitle": "Cập nhật thất bại",
@@ -46,10 +46,10 @@
     "cannotRemoveProducerMsg": "Producer và Owner của Workspace luôn mặc định là thành viên quản trị Series."
   },
   "confirms": {
-    "removeMemberTitle": "Xóa nhân sự khỏi bộ truyện?",
+    "removeMemberTitle": "Xóa thành viên?",
     "removeMemberDesc": "Bạn có chắc muốn xóa \"{name}\" khỏi bộ truyện \"{seriesTitle}\"? Nhân sự sẽ trở lại danh sách sẵn sàng của Workspace.",
-    "confirmRemoveBtn": "Xác nhận xóa",
-    "cancelBtn": "Giữ lại"
+    "confirmRemoveBtn": "Xóa thành viên",
+    "cancelBtn": "Hủy"
   },
   "footer": {
     "status": "Đang tham gia: {seriesCount}",
@@ -68,11 +68,11 @@
   },
   "view": {
     "selectProjectTitle": "Chọn bộ truyện",
-    "selectProjectDesc": "Chọn bộ truyện bên dưới để xem và quản lý đội ngũ sản xuất",
+    "selectProjectDesc": "Chọn một bộ truyện bên dưới để xem và quản lý đội ngũ sản xuất",
     "projectMembersTitle": "Đội ngũ tham gia sản xuất",
-    "manageRosterBtn": "Quản lý đội ngũ Series",
+    "manageRosterBtn": "Quản lý thành viên",
     "searchMembers": "Tìm thành viên...",
-    "noMembers": "Chưa có thành viên nào trong dự án này.",
-    "backToProjects": "Quay lại danh sách bộ truyện"
+    "noMembers": "Chưa có thành viên nào trong bộ truyện này.",
+    "backToProjects": "Danh sách bộ truyện"
   }
 }
