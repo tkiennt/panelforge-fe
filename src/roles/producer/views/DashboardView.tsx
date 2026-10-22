@@ -113,8 +113,8 @@ const formatReleaseDate = (dateStr?: string | null): string | null => {
 };
 
 /**
- * Visual Pipeline Stepper Track cho từng chương (khớp thiết kế wireframe Tổng quan).
- * Thể hiện chuỗi 5 cột mốc: Bản thảo -> Phác thảo -> Vẽ nét -> Xét duyệt -> Hoàn tất.
+ * Compact 4-Step Mini-Stepper cho từng chương (Manga Studio Pipeline).
+ * Chuỗi 4 công đoạn: Script (Bản thảo) -> Sketch (Phác thảo) -> Ink/Color (Vẽ nét & Màu) -> Done (Hoàn tất).
  */
 const ChapterPipelineStepper: React.FC<{
   percentComplete: number;
@@ -124,28 +124,25 @@ const ChapterPipelineStepper: React.FC<{
 
   let currentStageIndex = 0;
   if (isFinished) {
-    currentStageIndex = 4;
-  } else if (percentComplete >= 80) {
     currentStageIndex = 3;
-  } else if (percentComplete >= 50) {
+  } else if (percentComplete >= 66) {
     currentStageIndex = 2;
-  } else if (percentComplete >= 20) {
+  } else if (percentComplete >= 33) {
     currentStageIndex = 1;
   } else {
     currentStageIndex = 0;
   }
 
   const stages = [
-    { label: 'Bản thảo', icon: BookOpen },
-    { label: 'Phác thảo', icon: null },
-    { label: 'Vẽ nét', icon: PenTool },
-    { label: 'Xét duyệt', icon: null },
-    { label: 'Hoàn tất', icon: CheckCircle2 },
+    { label: 'Bản thảo', short: 'Script', icon: BookOpen },
+    { label: 'Phác thảo', short: 'Sketch', icon: PenTool },
+    { label: 'Vẽ nét & màu', short: 'Ink/Color', icon: Palette },
+    { label: 'Hoàn tất', short: 'Done', icon: CheckCircle2 },
   ];
 
   return (
     <div
-      className='flex items-center gap-1 sm:gap-1.5 shrink-0 py-0.5'
+      className='flex items-center gap-1 sm:gap-2 shrink-0 py-0.5'
       aria-label={`Tiến trình chương: ${percentComplete}%`}
     >
       {stages.map((st, idx) => {
@@ -157,36 +154,24 @@ const ChapterPipelineStepper: React.FC<{
           <React.Fragment key={st.label}>
             {idx > 0 && (
               <div
-                className={`h-[2px] w-3.5 sm:w-5 md:w-6 lg:w-7.5 rounded-full transition-colors ${
+                className={`h-[2px] w-4 sm:w-6 md:w-8 lg:w-10 rounded-full transition-colors ${
                   idx <= currentStageIndex || isFinished
                     ? 'bg-[#F97316]'
-                    : 'bg-[#D8D2C5]'
+                    : 'bg-zinc-200'
                 }`}
               />
             )}
             <div
-              className={`relative flex items-center justify-center transition-all ${
-                IconComponent
-                  ? 'w-6 h-6 sm:w-7 sm:h-7 rounded-lg'
-                  : 'w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full'
-              } ${
+              className={`relative flex items-center justify-center transition-all w-6 h-6 sm:w-7 sm:h-7 rounded-lg ${
                 isCurrent
-                  ? 'bg-gradient-to-br from-[#F97316] to-[#EA580C] text-white ring-2 ring-[#F97316]/30 shadow-xs'
+                  ? 'bg-[#F97316] text-white ring-2 ring-[#F97316]/30 shadow-xs'
                   : isReached
-                  ? 'bg-[#F97316] text-white'
-                  : 'bg-[#FAF8F5] text-stone-400 border border-[#D8D2C5]'
+                  ? 'bg-[#F97316] text-white shadow-2xs'
+                  : 'bg-zinc-100 text-zinc-400 border border-zinc-200'
               }`}
-              title={`${st.label}: ${isReached ? 'Đã hoàn thành / Đang thực hiện' : 'Chưa bắt đầu'}`}
+              title={`${st.label} (${st.short}): ${isReached ? 'Đã hoàn thành / Đang thực hiện' : 'Chưa bắt đầu'}`}
             >
-              {IconComponent ? (
-                <IconComponent className='w-3 h-3 sm:w-3.5 sm:h-3.5' />
-              ) : (
-                <span
-                  className={`w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full ${
-                    isReached ? 'bg-white' : 'bg-stone-300'
-                  }`}
-                />
-              )}
+              <IconComponent className='w-3 h-3 sm:w-3.5 sm:h-3.5' />
             </div>
           </React.Fragment>
         );
@@ -788,100 +773,100 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       )}
 
-      {/* 2. Top 3 Summary Cards (Theo bản thiết kế Wireframe) */}
+      {/* 2. Top 3 Summary Cards (Pulse Metrics - Manga Studio Design System) */}
       <section
         aria-label='Chỉ số tổng quan'
-        className='grid grid-cols-1 md:grid-cols-3 gap-4'
+        className='grid grid-cols-1 md:grid-cols-3 gap-4.5'
       >
-        {/* Card 1: Tiến Độ Toàn Series (Progress Slider) */}
-        <div className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl p-4.5 shadow-2xs hover:border-[#F97316] transition-all flex flex-col justify-between space-y-2.5 pf-editorial-card'>
+        {/* Card 1: Tiến Độ Toàn Series (Overall Progress) */}
+        <div className='bg-white border border-zinc-200 rounded-2xl p-5 shadow-xs hover:border-[#F97316]/50 transition-all flex flex-col justify-between space-y-3'>
           <div>
-            <div className='flex items-center justify-between text-xs font-semibold text-[#57534E] mb-1'>
-              <span className='font-bold uppercase tracking-wider text-[11px] text-stone-700'>
+            <div className='flex items-center justify-between text-xs font-semibold text-zinc-500 mb-1'>
+              <span className='font-bold uppercase tracking-wider text-[11px] text-zinc-600'>
                 Tiến Độ Toàn Series
               </span>
-              <span className='inline-flex items-center gap-1 text-[#C2410C] bg-[#FFF2E6] border border-[#FDBA74] px-2 py-0.5 rounded-full text-[11px] font-bold'>
-                <TrendingUp className='w-3 h-3' /> Hoàn thiện
+              <span className='inline-flex items-center gap-1 text-[#C2410C] bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full text-[11px] font-bold'>
+                <TrendingUp className='w-3 h-3 text-[#F97316]' /> Hoàn thiện
               </span>
             </div>
-            <div className='text-3xl sm:text-4xl font-extrabold font-sans tabular-nums text-[#1C1917] mt-1'>
+            <div className='text-3xl sm:text-4xl font-extrabold font-sans tabular-nums text-zinc-900 mt-1'>
               {loading ? '—' : `${overallPercent}%`}
             </div>
           </div>
 
-          <div className='pt-2 border-t border-[#D8D2C5]/70 space-y-1.5'>
-            <div className='w-full bg-[#EAE5DC] h-3.5 rounded-full overflow-hidden p-0.5 border border-[#D8D2C5]/80 shadow-inner'>
+          <div className='pt-2.5 border-t border-zinc-100 space-y-1.5'>
+            <div className='w-full bg-zinc-100 h-2.5 rounded-full overflow-hidden border border-zinc-200/80'>
               <div
-                className='bg-gradient-to-r from-[#F97316] to-[#EA580C] h-full rounded-full transition-all duration-700 shadow-xs'
+                className='bg-[#F97316] h-full rounded-full transition-all duration-700 shadow-2xs'
                 style={{ width: `${Math.min(100, Math.max(0, overallPercent))}%` }}
               />
             </div>
-            <div className='text-[11px] font-mono text-[#57534E] flex items-center justify-between'>
+            <div className='text-[11px] font-mono text-zinc-500 flex items-center justify-between'>
               <span>
-                <strong className='text-[#1C1917] font-semibold'>{totalApprovedPanels}</strong> panel đã duyệt
+                <strong className='text-zinc-900 font-semibold'>{totalApprovedPanels}</strong> panel đã duyệt
               </span>
               <span>Tổng: {totalPanels} panel</span>
             </div>
           </div>
         </div>
 
-        {/* Card 2: Chương Đang Sản Xuất (Status Dots theo wireframe) */}
-        <div className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl p-4.5 shadow-2xs hover:border-[#F97316] transition-all flex flex-col justify-between space-y-2.5 pf-editorial-card'>
+        {/* Card 2: Chương Đang Sản Xuất (Active Production) */}
+        <div className='bg-white border border-zinc-200 rounded-2xl p-5 shadow-xs hover:border-[#F97316]/50 transition-all flex flex-col justify-between space-y-3'>
           <div>
-            <div className='flex items-center justify-between text-xs font-semibold text-[#57534E] mb-1'>
-              <span className='font-bold uppercase tracking-wider text-[11px] text-stone-700'>
+            <div className='flex items-center justify-between text-xs font-semibold text-zinc-500 mb-1'>
+              <span className='font-bold uppercase tracking-wider text-[11px] text-zinc-600'>
                 Chương Đang Sản Xuất
               </span>
-              <span className='text-sky-800 bg-sky-50 border border-sky-200 px-2 py-0.5 rounded-full text-[11px] font-mono font-bold'>
+              <span className='text-zinc-700 bg-zinc-100 border border-zinc-200 px-2 py-0.5 rounded-full text-[11px] font-mono font-bold'>
                 {totalChapters} Chương
               </span>
             </div>
-            {/* 3 Status Circles trực quan theo wireframe */}
-            <div className='flex items-center gap-3.5 mt-1.5'>
-              <div className='flex items-center gap-1.5'>
-                <div className='w-7 h-7 rounded-full bg-amber-500/15 border-2 border-amber-500 flex items-center justify-center font-mono font-bold text-xs text-amber-700'>
+            {/* 3 Status Circles trực quan */}
+            <div className='flex items-center gap-3.5 mt-2'>
+              <div className='flex items-center gap-2'>
+                <div className='w-7.5 h-7.5 rounded-full bg-amber-50 border-2 border-amber-500 flex items-center justify-center font-mono font-bold text-xs text-amber-700'>
                   {inProdChapters}
                 </div>
                 <div className='text-left'>
-                  <div className='text-[11px] font-bold text-[#1C1917]'>Đang làm</div>
-                  <div className='text-[9.5px] text-stone-500 font-mono'>giai đoạn vẽ</div>
+                  <div className='text-xs font-bold text-zinc-900 leading-tight'>Đang làm</div>
+                  <div className='text-[10px] text-zinc-500 font-mono'>giai đoạn vẽ</div>
                 </div>
               </div>
 
-              <div className='flex items-center gap-1.5'>
-                <div className='w-7 h-7 rounded-full bg-emerald-500/15 border-2 border-emerald-500 flex items-center justify-center font-mono font-bold text-xs text-emerald-700'>
+              <div className='flex items-center gap-2'>
+                <div className='w-7.5 h-7.5 rounded-full bg-emerald-50 border-2 border-emerald-500 flex items-center justify-center font-mono font-bold text-xs text-emerald-700'>
                   {approvedChapters}
                 </div>
                 <div className='text-left'>
-                  <div className='text-[11px] font-bold text-[#1C1917]'>Đã duyệt</div>
-                  <div className='text-[9.5px] text-stone-500 font-mono'>chờ phát hành</div>
+                  <div className='text-xs font-bold text-zinc-900 leading-tight'>Đã duyệt</div>
+                  <div className='text-[10px] text-zinc-500 font-mono'>chờ phát hành</div>
                 </div>
               </div>
 
-              <div className='flex items-center gap-1.5'>
-                <div className='w-7 h-7 rounded-full bg-stone-300/40 border-2 border-stone-400 flex items-center justify-center font-mono font-bold text-xs text-stone-600'>
+              <div className='flex items-center gap-2'>
+                <div className='w-7.5 h-7.5 rounded-full bg-zinc-100 border-2 border-zinc-300 flex items-center justify-center font-mono font-bold text-xs text-zinc-600'>
                   {publishedChapters}
                 </div>
                 <div className='text-left'>
-                  <div className='text-[11px] font-bold text-[#1C1917]'>Xuất bản</div>
-                  <div className='text-[9.5px] text-stone-500 font-mono'>hoàn tất</div>
+                  <div className='text-xs font-bold text-zinc-900 leading-tight'>Xuất bản</div>
+                  <div className='text-[10px] text-zinc-500 font-mono'>hoàn tất</div>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Quick gate & risk sub-strip */}
-          <div className='pt-2 border-t border-[#D8D2C5]/70 flex items-center justify-between text-[11px] font-mono'>
+          <div className='pt-2.5 border-t border-zinc-100 flex items-center justify-between text-[11px] font-mono'>
             <div className='flex items-center gap-1'>
-              <span className='text-stone-500'>Cổng Chờ Xét Duyệt</span>
-              <span className='text-stone-400'>:</span>
+              <span className='text-zinc-500'>Cổng Chờ Xét Duyệt</span>
+              <span className='text-zinc-400'>:</span>
               <strong className='text-amber-700 font-bold'>
                 {waitingReviewTotal} <span>Việc nộp</span>
               </strong>
             </div>
             <div className='flex items-center gap-1'>
-              <span className='text-stone-500'>Việc Quá Hạn &amp; Rủi Ro</span>
-              <span className='text-stone-400'>:</span>
+              <span className='text-zinc-500'>Việc Quá Hạn &amp; Rủi Ro</span>
+              <span className='text-zinc-400'>:</span>
               <strong className={overdueTotal > 0 ? 'text-red-600 font-bold' : 'text-emerald-700 font-bold'}>
                 {overdueTotal} Mục
               </strong>
@@ -889,7 +874,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         </div>
 
-        {/* Card 3: Đội Ngũ Sản Xuất (Avatar Stack theo wireframe) */}
+        {/* Card 3: Đội Ngũ Sản Xuất (Series Crew) */}
         <div
           onClick={() => setIsMembersModalOpen(true)}
           role='button'
@@ -900,11 +885,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               setIsMembersModalOpen(true);
             }
           }}
-          className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl p-4.5 shadow-2xs hover:border-[#F97316] transition-all flex flex-col justify-between space-y-2.5 pf-editorial-card cursor-pointer group text-left'
+          className='bg-white border border-zinc-200 rounded-2xl p-5 shadow-xs hover:border-[#F97316]/50 transition-all flex flex-col justify-between space-y-3 cursor-pointer group text-left'
         >
           <div>
-            <div className='flex items-center justify-between text-xs font-semibold text-[#57534E] mb-1'>
-              <span className='font-bold uppercase tracking-wider text-[11px] text-stone-700'>
+            <div className='flex items-center justify-between text-xs font-semibold text-zinc-500 mb-1'>
+              <span className='font-bold uppercase tracking-wider text-[11px] text-zinc-600'>
                 Đội Ngũ Sản Xuất
               </span>
               <span className='text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full text-[11px] font-mono font-bold'>
@@ -912,16 +897,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </span>
             </div>
 
-            {/* Overlapping Avatar Stack theo wireframe */}
-            <div className='flex items-center -space-x-2 py-1.5 overflow-hidden'>
+            {/* Overlapping Avatar Stack */}
+            <div className='flex items-center -space-x-2 py-2 overflow-hidden'>
               {seriesMembers.length === 0 ? (
-                <span className='text-xs text-stone-400 italic'>Chưa gán thành viên</span>
+                <span className='text-xs text-zinc-400 italic'>Chưa gán thành viên</span>
               ) : (
                 seriesMembers.slice(0, 5).map((m, idx) => (
                   <div
                     key={m.id || m.userId || idx}
                     title={`${m.fullName || m.email} (${m.seriesRole || (m as any).role || 'Member'})`}
-                    className='w-9 h-9 rounded-full border-2 border-[#FCFBF8] bg-[#1C1917] text-white flex items-center justify-center font-bold text-xs shadow-xs transition-transform group-hover:scale-105'
+                    className='w-9 h-9 rounded-full border-2 border-white bg-zinc-900 text-white flex items-center justify-center font-bold text-xs shadow-xs transition-transform group-hover:scale-105'
                     style={{ zIndex: 10 - idx }}
                   >
                     {(m.fullName || m.email || 'U').charAt(0).toUpperCase()}
@@ -930,7 +915,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               )}
               {seriesMembers.length > 5 && (
                 <div
-                  className='w-9 h-9 rounded-full border-2 border-[#FCFBF8] bg-stone-200 text-stone-800 flex items-center justify-center font-bold text-xs shadow-xs'
+                  className='w-9 h-9 rounded-full border-2 border-white bg-zinc-200 text-zinc-800 flex items-center justify-center font-bold text-xs shadow-xs'
                   style={{ zIndex: 4 }}
                 >
                   +{seriesMembers.length - 5}
@@ -939,8 +924,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
           </div>
 
-          <div className='pt-2 border-t border-[#D8D2C5]/70 flex items-center justify-between text-[11px]'>
-            <span className='text-[#57534E]'>Phân công &amp; Quyền hạn:</span>
+          <div className='pt-2.5 border-t border-zinc-100 flex items-center justify-between text-[11px]'>
+            <span className='text-zinc-500'>Phân công &amp; Quyền hạn:</span>
             <span className='text-[#F97316] font-bold group-hover:underline flex items-center gap-1'>
               Quản lý đội ngũ <ArrowRight className='w-3 h-3' />
             </span>
@@ -1036,27 +1021,27 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       </nav>
 
-      {/* 3. Chương & Mục cần chú ý (Bố cục 8/4: Chương là ngôi sao trung tâm) */}
+      {/* 3. Chương & Mục cần chú ý (Bố cục 70/30: Chương là ngôi sao trung tâm) */}
       {(activeTab === 'all' || activeTab === 'chapters') && (
         <section className='grid grid-cols-1 lg:grid-cols-12 gap-6 items-start'>
-        {/* Left: Danh sách chương nổi bật (8 cột trên lg) */}
+        {/* Left: Danh sách chương nổi bật (8 cột trên lg ~ 70%) */}
         <div className='lg:col-span-8 space-y-4'>
-          <div className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl p-5 sm:p-6 shadow-xs space-y-4 pf-editorial-card'>
-            <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#D8D2C5] pb-4'>
+          <div className='bg-white border border-zinc-200 rounded-2xl p-5 sm:p-6 shadow-xs space-y-4'>
+            <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-100 pb-4'>
               <div className='flex items-center gap-3'>
-                <div className='w-10 h-10 rounded-xl bg-orange-100/80 border border-orange-200/90 text-orange-600 flex items-center justify-center shrink-0 shadow-2xs'>
+                <div className='w-10 h-10 rounded-xl bg-orange-50 border border-orange-100 text-[#F97316] flex items-center justify-center shrink-0 shadow-2xs'>
                   <BookOpen className='w-5 h-5' />
                 </div>
                 <div>
                   <div className='flex items-center gap-2.5'>
                     <h2
                       style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
-                      className='text-lg sm:text-xl font-bold text-[#1C1917]'
+                      className='text-lg sm:text-xl font-bold text-zinc-900'
                     >
                       Tiến Độ Theo Từng Chương ({progress?.chapters.length || 0})
                     </h2>
                   </div>
-                  <p className='text-xs text-[#57534E] mt-0.5'>
+                  <p className='text-xs text-zinc-500 mt-0.5'>
                     {selectedChapter
                       ? `Đang xem: Chương ${selectedChapter.chapterNumber} · Chọn chương để đối chiếu ma trận công đoạn bên dưới`
                       : 'Chọn một chương để xem chi tiết ma trận công đoạn bên dưới'}
@@ -1066,7 +1051,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
               {seriesId && (
                 <div className='flex items-center gap-2 self-start sm:self-auto shrink-0'>
-                  <span className='inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-[#D8D2C5] text-xs font-mono font-semibold text-[#57534E] shadow-2xs'>
+                  <span className='inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-50 border border-zinc-200 text-xs font-mono font-semibold text-zinc-700 shadow-2xs'>
                     <BookOpen className='w-3.5 h-3.5 text-[#F97316]' />
                     <span>{progress?.chapters.length || 0} tập</span>
                   </span>
@@ -1076,10 +1061,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
             {/* Chapters list */}
             {!progress?.chapters || progress.chapters.length === 0 ? (
-              <div className='py-12 text-center text-xs text-[#57534E] bg-[#FAF8F5] rounded-xl border border-dashed border-[#D8D2C5] space-y-2'>
-                <BookOpen className='w-8 h-8 text-stone-300 mx-auto' />
-                <p className='font-semibold text-stone-700'>Chưa có chương nào trong Series này</p>
-                <p className='text-stone-500'>Hãy tạo chương mới từ danh sách Quản lý Chương.</p>
+              <div className='py-12 text-center text-xs text-zinc-500 bg-zinc-50/50 rounded-xl border border-dashed border-zinc-200 space-y-2'>
+                <BookOpen className='w-8 h-8 text-zinc-300 mx-auto' />
+                <p className='font-semibold text-zinc-700'>Chưa có chương nào trong Series này</p>
+                <p className='text-zinc-400'>Hãy tạo chương mới từ danh sách Quản lý Chương.</p>
               </div>
             ) : (
               <div className='space-y-3'>
@@ -1087,7 +1072,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   const isSelected = selectedChapter?.chapterId === ch.chapterId;
                   const statusStyle = CHAPTER_STATUS_STYLE[ch.status] || {
                     label: ch.status,
-                    className: 'bg-[#F3F0E9] text-[#1C1917] border-[#D8D2C5]',
+                    className: 'bg-zinc-100 text-zinc-700 border-zinc-200',
                   };
                   const formattedRelease = formatReleaseDate(ch.targetReleaseDate);
                   const cleanLabel = formatChapterLabel(ch.chapterNumber, ch.title);
@@ -1108,8 +1093,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       }}
                       className={`p-4 rounded-xl border transition-all text-left cursor-pointer relative group ${
                         isSelected
-                          ? 'bg-white border-[#F97316] ring-2 ring-[#F97316]/20 shadow-sm'
-                          : 'bg-[#FAF8F5]/90 hover:bg-white border-[#D8D2C5] hover:border-[#F97316]/50 shadow-2xs'
+                          ? 'bg-white border-zinc-300 ring-2 ring-[#F97316]/20 shadow-sm'
+                          : 'bg-white hover:bg-zinc-50/60 border-zinc-200 hover:border-zinc-300 shadow-xs'
                       }`}
                     >
                       <div className='flex flex-col lg:flex-row lg:items-center justify-between gap-3'>
@@ -1118,8 +1103,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                           <div
                             className={`w-11 h-11 rounded-xl flex flex-col items-center justify-center shrink-0 transition-transform group-hover:scale-105 shadow-2xs ${
                               isSelected
-                                ? 'bg-gradient-to-br from-[#F97316] to-[#EA580C] text-white shadow-orange-500/20'
-                                : 'bg-[#1C1917] text-white'
+                                ? 'bg-[#F97316] text-white shadow-orange-500/20'
+                                : 'bg-zinc-900 text-white'
                             }`}
                           >
                             <span className='text-[8.5px] font-mono font-bold tracking-wider opacity-75 uppercase leading-none'>
@@ -1132,28 +1117,28 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
                           <div className='min-w-0 flex-1'>
                             <div className='flex items-center gap-2 flex-wrap'>
-                              <span className='text-sm sm:text-base font-bold text-[#1C1917] tracking-tight truncate'>
+                              <span className='text-sm sm:text-base font-bold text-zinc-900 tracking-tight truncate'>
                                 {cleanLabel}
                               </span>
                               {isSelected && (
-                                <span className='text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-100 text-orange-800 border border-orange-200 shrink-0'>
+                                <span className='text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-50 text-[#F97316] border border-orange-200/80 shrink-0'>
                                   Đang chọn
                                 </span>
                               )}
                             </div>
 
-                            <div className='text-xs text-[#57534E] flex flex-wrap items-center gap-x-2.5 gap-y-1 mt-1'>
+                            <div className='text-xs text-zinc-500 flex flex-wrap items-center gap-x-2.5 gap-y-1 mt-1'>
                               {hasPanels ? (
                                 <span className='inline-flex items-center gap-1 font-medium'>
-                                  <Layers className='w-3 h-3 text-[#78716C]' />
+                                  <Layers className='w-3 h-3 text-zinc-400' />
                                   {ch.pageCount} trang · {ch.panelCount} panel
                                 </span>
                               ) : (
-                                <span className='text-stone-400 italic text-[11px]'>Chưa có nội dung</span>
+                                <span className='text-zinc-400 italic text-[11px]'>Chưa có nội dung</span>
                               )}
                               {formattedRelease && (
                                 <span className='inline-flex items-center gap-1 font-medium'>
-                                  <Calendar className='w-3 h-3 text-[#78716C]' />
+                                  <Calendar className='w-3 h-3 text-zinc-400' />
                                   Hạn: {formattedRelease}
                                 </span>
                               )}
@@ -1161,7 +1146,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                           </div>
                         </div>
 
-                        {/* Chapter Middle: Visual Pipeline Stepper Track (Theo wireframe) */}
+                        {/* Chapter Middle: Visual Pipeline Stepper Track */}
                         <div className='hidden sm:flex items-center justify-center px-1'>
                           <ChapterPipelineStepper
                             percentComplete={ch.percentComplete || 0}
@@ -1188,7 +1173,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                           >
                             {statusStyle.label}
                           </span>
-                          <span className='text-xs font-mono font-bold tabular-nums text-[#1C1917] min-w-10 text-right'>
+                          <span className='text-xs font-mono font-bold tabular-nums text-zinc-900 min-w-10 text-right'>
                             {hasPanels ? `${ch.percentComplete}%` : '—'}
                           </span>
                           <button
@@ -1201,16 +1186,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                               });
                               setIsAssignModalOpen(true);
                             }}
-                            className='px-2.5 py-1 rounded-md bg-[#FCFBF8] hover:bg-[#FFF2E6] text-[#44403C] hover:text-[#EA580C] border border-[#D8D2C5] hover:border-[#FDBA74] text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer shadow-2xs'
+                            className='px-2.5 py-1 rounded-md bg-white hover:bg-orange-50 text-zinc-700 hover:text-[#F97316] border border-zinc-200 hover:border-orange-200 text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer shadow-2xs'
                             title={`Giao việc mới cho Chương ${ch.chapterNumber}`}
                           >
-                            <UserCheck className='w-3.5 h-3.5 text-[#57534E]' />
+                            <UserCheck className='w-3.5 h-3.5 text-zinc-500' />
                             <span>Giao việc</span>
                           </button>
                         </div>
                       </div>
 
-                      {/* Visual Stepper trên màn hình nhỏ (Mobile) */}
+                      {/* Visual Stepper trên mobile */}
                       <div className='sm:hidden flex items-center justify-start overflow-x-auto pt-2 pb-0.5'>
                         <ChapterPipelineStepper
                           percentComplete={ch.percentComplete || 0}
@@ -1219,14 +1204,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       </div>
 
                       {/* Progress Bar under chapter card */}
-                      <div className='w-full bg-[#EFECE6] h-1.5 rounded-full overflow-hidden mt-3'>
+                      <div className='w-full bg-zinc-100 h-1.5 rounded-full overflow-hidden mt-3'>
                         <div
                           className={`h-full rounded-full transition-all duration-500 ${
                             isSelected
-                              ? 'bg-gradient-to-r from-amber-500 to-orange-500'
+                              ? 'bg-[#F97316]'
                               : ch.status === 'Approved' || ch.status === 'Published'
                               ? 'bg-emerald-600'
-                              : 'bg-stone-500'
+                              : 'bg-zinc-400'
                           }`}
                           style={{
                             width: `${Math.min(100, Math.max(0, ch.percentComplete || 0))}%`,
@@ -1241,15 +1226,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         </div>
 
-        {/* Right: Đội ngũ sản xuất & Mục cần chú ý (4 cột trên lg, theo wireframe) */}
+        {/* Right: Đội ngũ sản xuất & Mục cần chú ý (4 cột trên lg ~ 30%) */}
         <div className='lg:col-span-4 space-y-4'>
-          {/* Card Đội Ngũ Sản Xuất (Đặt ở trên cùng cột phải theo đúng Wireframe) */}
+          {/* Card Đội Ngũ Sản Xuất */}
           {seriesId && (
-            <div className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl p-4.5 shadow-xs space-y-3 pf-editorial-card'>
-              <div className='flex items-center justify-between border-b border-[#D8D2C5] pb-2.5'>
+            <div className='bg-white border border-zinc-200 rounded-2xl p-4.5 shadow-xs space-y-3'>
+              <div className='flex items-center justify-between border-b border-zinc-100 pb-2.5'>
                 <div className='flex items-center gap-2'>
                   <Users className='w-4 h-4 text-[#F97316]' />
-                  <h3 className='text-xs font-bold text-[#1C1917] font-sans'>
+                  <h3 className='text-xs font-bold text-zinc-900 font-sans tracking-wide uppercase'>
                     Đội Ngũ Sản Xuất ({seriesMembers.length})
                   </h3>
                 </div>
@@ -1262,7 +1247,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 </button>
               </div>
               {seriesMembers.length === 0 ? (
-                <div className='py-4 text-center text-xs text-stone-500 italic bg-[#FAF8F5] rounded-xl border border-dashed border-[#D8D2C5]'>
+                <div className='py-4 text-center text-xs text-zinc-400 italic bg-zinc-50/50 rounded-xl border border-dashed border-zinc-200'>
                   Chưa gán thành viên nào vào bộ truyện.
                 </div>
               ) : (
@@ -1270,7 +1255,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   {seriesMembers.slice(0, 5).map((member) => {
                     const roleUpper = String(member.seriesRole || (member as any).role || 'ARTIST').toUpperCase();
                     const roleStyle =
-                      ROLE_COLOR_MAP[roleUpper] || 'bg-[#F3F0E9] text-[#1C1917] border-[#D8D2C5]';
+                      ROLE_COLOR_MAP[roleUpper] || 'bg-zinc-100 text-zinc-800 border-zinc-200';
 
                     const RoleIcon =
                       roleUpper === 'PRODUCER'
@@ -1284,14 +1269,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     return (
                       <div
                         key={member.id || member.userId}
-                        className='flex items-center justify-between gap-2.5 p-2.5 rounded-xl bg-[#FAF8F5] hover:bg-white border border-[#E7E2D8] hover:border-[#D8D2C5] transition-all text-xs shadow-2xs group'
+                        className='flex items-center justify-between gap-2.5 p-2.5 rounded-xl bg-white hover:bg-zinc-50/80 border border-zinc-200 transition-all text-xs shadow-2xs group'
                       >
                         <div className='flex items-center gap-2.5 min-w-0'>
-                          <div className='w-7.5 h-7.5 rounded-full bg-[#1C1917] text-white font-bold text-xs flex items-center justify-center shrink-0 ring-2 ring-[#F97316]/20 group-hover:scale-105 transition-transform'>
+                          <div className='w-7.5 h-7.5 rounded-full bg-zinc-900 text-white font-bold text-xs flex items-center justify-center shrink-0 ring-2 ring-[#F97316]/20 group-hover:scale-105 transition-transform'>
                             {(member.fullName || member.email || 'U').charAt(0).toUpperCase()}
                           </div>
                           <div className='min-w-0'>
-                            <div className='font-bold text-[#1C1917] truncate leading-tight'>
+                            <div className='font-bold text-zinc-900 truncate leading-tight'>
                               {member.fullName || member.email}
                             </div>
                             <span
@@ -1303,17 +1288,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                         </div>
 
                         <div
-                          className='w-6 h-6 rounded-full bg-white border border-[#D8D2C5] flex items-center justify-center text-[#57534E] shrink-0'
+                          className='w-6 h-6 rounded-full bg-zinc-50 border border-zinc-200 flex items-center justify-center text-zinc-500 shrink-0'
                           title={member.seriesRole || (member as any).role || 'Thành viên'}
                         >
-                          <RoleIcon className='w-3 h-3 text-[#78716C]' />
+                          <RoleIcon className='w-3 h-3 text-zinc-500' />
                         </div>
                       </div>
                     );
                   })}
 
                   {seriesMembers.length > 5 && (
-                    <p className='text-[10.5px] font-mono text-stone-500 text-center pt-0.5'>
+                    <p className='text-[10.5px] font-mono text-zinc-400 text-center pt-0.5'>
                       + {seriesMembers.length - 5} thành viên khác
                     </p>
                   )}
@@ -1322,20 +1307,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
           )}
 
-          {/* Card Mục Cần Chú Ý & Rủi Ro (Bên dưới danh sách thành viên) */}
-          <div className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl p-4.5 shadow-xs space-y-3 pf-editorial-card'>
-            <div className='flex items-center justify-between border-b border-[#D8D2C5] pb-3'>
+          {/* Card Mục Cần Chú Ý & Rủi Ro */}
+          <div className='bg-white border border-zinc-200 rounded-2xl p-4.5 shadow-xs space-y-3'>
+            <div className='flex items-center justify-between border-b border-zinc-100 pb-3'>
               <div className='flex items-center gap-2'>
                 <AlertTriangle className='w-4 h-4 text-[#F97316]' />
                 <h2
                   style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
-                  className='text-base font-bold text-[#1C1917]'
+                  className='text-base font-bold text-zinc-900'
                 >
                   Mục Cần Chú Ý &amp; Rủi Ro
                 </h2>
               </div>
               {overdueTotal > 0 && (
-                <span className='text-xs font-mono font-bold px-2 py-0.5 rounded bg-red-100 text-red-700 border border-red-200'>
+                <span className='text-xs font-mono font-bold px-2 py-0.5 rounded bg-red-50 text-red-700 border border-red-200'>
                   {overdueTotal} mục
                 </span>
               )}
@@ -1378,14 +1363,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       className='p-2.5 bg-white rounded-lg border border-amber-200 shadow-2xs space-y-1.5 text-xs'
                     >
                       <div className='flex items-start justify-between gap-2'>
-                        <div className='font-semibold text-[#1C1917] line-clamp-1'>
+                        <div className='font-semibold text-zinc-900 line-clamp-1'>
                           {cr.description}
                         </div>
                         <span className='px-1.5 py-0.5 rounded text-[9.5px] font-mono font-bold bg-amber-100 text-amber-800 shrink-0'>
                           1 yêu cầu sửa
                         </span>
                       </div>
-                      <div className='flex items-center justify-between text-[11px] text-stone-600 font-sans'>
+                      <div className='flex items-center justify-between text-[11px] text-zinc-600 font-sans'>
                         <span>
                           Người sửa: <strong>{cr.responsibleUserName}</strong>
                         </span>
@@ -1435,14 +1420,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       className='p-2.5 bg-white rounded-lg border border-red-200 shadow-2xs space-y-1.5 text-xs'
                     >
                       <div className='flex items-start justify-between gap-2'>
-                        <div className='font-semibold text-[#1C1917] line-clamp-1'>
+                        <div className='font-semibold text-zinc-900 line-clamp-1'>
                           {od.brief}
                         </div>
                         <span className='px-1.5 py-0.5 rounded text-[9.5px] font-mono font-bold bg-red-100 text-red-700 shrink-0'>
                           {od.status}
                         </span>
                       </div>
-                      <div className='flex items-center justify-between text-[11px] text-stone-600 font-sans'>
+                      <div className='flex items-center justify-between text-[11px] text-zinc-600 font-sans'>
                         <span>{od.assigneeName}</span>
                         <span className='text-red-600 font-bold'>
                           Hạn: {new Date(od.dueDate).toLocaleDateString('vi-VN')}
@@ -1468,17 +1453,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
             )}
 
-            {/* Empty Attention State - Tinh tế và gọn gàng */}
+            {/* Empty Attention State - Tinh tế và tối giản theo Manga Paper design */}
             {(!progress?.overdue || progress.overdue.length === 0) &&
               (!progress?.overdueChangeRequests || progress.overdueChangeRequests.length === 0) && (
-                <div className='py-6 px-4 text-center space-y-1.5 bg-[#FAF8F5] rounded-xl border border-[#E7E2D8]'>
-                  <div className='w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto'>
-                    <CheckCircle2 className='w-4 h-4' />
+                <div className='py-6 px-4 text-center space-y-2 bg-zinc-50/50 rounded-xl border border-dashed border-zinc-200'>
+                  <div className='w-8 h-8 rounded-full bg-zinc-100 text-zinc-400 flex items-center justify-center mx-auto'>
+                    <CheckCircle2 className='w-4.5 h-4.5 text-zinc-400' />
                   </div>
-                  <p className='text-xs font-semibold text-stone-800'>
-                    Không có công việc hoặc yêu cầu sửa quá hạn
+                  <p className='text-xs font-bold text-zinc-800'>
+                    Mọi thứ đang đi đúng tiến độ
                   </p>
-                  <p className='text-[11px] text-stone-500 max-w-xs mx-auto leading-relaxed'>
+                  <p className='text-[11px] text-zinc-500 max-w-xs mx-auto leading-relaxed'>
                     Tất cả nhiệm vụ và yêu cầu sửa đổi trong Series đều đang nằm trong thời hạn xử lý.
                   </p>
                 </div>
@@ -1492,20 +1477,19 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       {(activeTab === 'all' || activeTab === 'chapters') && selectedChapter && (
         <section
           aria-label='Ma trận công đoạn'
-          className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl p-5 shadow-2xs space-y-4 pf-editorial-card'
+          className='bg-white border border-zinc-200 rounded-2xl p-5 sm:p-6 shadow-xs space-y-4'
         >
-          <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#D8D2C5] pb-3'>
+          <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-100 pb-3'>
             <div>
               <h2
                 style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
-                className='text-lg font-bold text-[#1C1917] flex items-center gap-2'
+                className='text-lg font-bold text-zinc-900 flex items-center gap-2'
               >
                 <Sliders className='w-4 h-4 text-[#F97316]' />
                 <span>Tiến độ công đoạn · Chương {selectedChapter.chapterNumber}</span>
               </h2>
-              <p className='text-xs text-[#57534E] mt-0.5'>
-                Bảng đối chiếu trạng thái {selectedChapter.panelCount} Panel theo từng công đoạn sản
-                xuất
+              <p className='text-xs text-zinc-500 mt-0.5'>
+                Bảng đối chiếu trạng thái {selectedChapter.panelCount} Panel theo từng công đoạn sản xuất
               </p>
             </div>
             <div className='flex items-center gap-2'>
@@ -1518,9 +1502,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   });
                   setIsAssignModalOpen(true);
                 }}
-                className='px-3 py-1.5 rounded-lg bg-white hover:bg-orange-50 border border-[#D8D2C5] hover:border-orange-300 text-[#44403C] hover:text-[#C2410C] text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer'
+                className='px-3 py-1.5 rounded-lg bg-white hover:bg-orange-50 border border-zinc-200 hover:border-orange-200 text-zinc-700 hover:text-[#F97316] text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer'
               >
-                <UserCheck className='w-3.5 h-3.5 text-[#57534E]' />
+                <UserCheck className='w-3.5 h-3.5 text-zinc-500' />
                 <span>Giao Việc Cho Chương {selectedChapter.chapterNumber}</span>
               </button>
               {workspaceId && seriesId && (
@@ -1541,16 +1525,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
 
           {selectedChapter.stages.length === 0 ? (
-            <div className='py-8 text-center text-xs text-[#57534E] bg-[#FAF8F5] rounded-xl border border-dashed border-[#D8D2C5]'>
+            <div className='py-8 text-center text-xs text-zinc-500 bg-zinc-50/50 rounded-xl border border-dashed border-zinc-200'>
               Chưa có công đoạn nào được thiết lập cho Series này.
             </div>
           ) : (
-            <div className='overflow-x-auto rounded-lg border border-[#D8D2C5] bg-[#FCFBF8]'>
+            <div className='overflow-x-auto rounded-xl border border-zinc-200 bg-white shadow-2xs'>
               <table className='w-full text-xs text-left border-collapse'>
                 <thead>
-                  <tr className='border-b border-[#D8D2C5] text-[#57534E] font-sans text-xs bg-[#FAF8F5]'>
+                  <tr className='border-b border-zinc-200 text-zinc-600 font-sans text-xs bg-zinc-50/70'>
                     <th className='py-3 px-3.5 font-semibold'>Công Đoạn</th>
-                    <th className='py-3 px-2 text-center text-[#57534E] font-semibold'>Chưa làm</th>
+                    <th className='py-3 px-2 text-center text-zinc-500 font-semibold'>Chưa làm</th>
                     <th className='py-3 px-2 text-center text-blue-700 font-semibold'>Đang làm</th>
                     <th className='py-3 px-2 text-center text-amber-700 font-semibold'>Đã nộp</th>
                     <th className='py-3 px-2 text-center text-purple-700 font-semibold'>
@@ -1565,22 +1549,22 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     <th className='py-3 px-3.5 text-right font-semibold'>Tiến độ</th>
                   </tr>
                 </thead>
-                <tbody className='divide-y divide-[#EAE5DC] font-mono tabular-nums'>
+                <tbody className='divide-y divide-zinc-100 font-mono tabular-nums'>
                   {selectedChapter.stages.map((st) => {
                     const total = selectedChapter.panelCount;
                     const pct = total > 0 ? Math.round((st.approved / total) * 100) : 0;
 
                     return (
-                      <tr key={st.stageId} className='hover:bg-[#F3F0E9]/60 transition-colors'>
-                        <td className='py-3 px-3.5 font-sans font-semibold text-[#1C1917]'>
+                      <tr key={st.stageId} className='hover:bg-zinc-50/70 transition-colors'>
+                        <td className='py-3 px-3.5 font-sans font-semibold text-zinc-900'>
                           <div className='flex items-center gap-2'>
-                            <span className='w-4 h-4 rounded bg-[#1C1917] text-white text-[10px] font-mono flex items-center justify-center shrink-0'>
+                            <span className='w-4 h-4 rounded bg-zinc-900 text-white text-[10px] font-mono flex items-center justify-center shrink-0'>
                               {st.stageOrder}
                             </span>
                             <span>{st.name}</span>
                           </div>
                         </td>
-                        <td className='py-3 px-2 text-center text-[#57534E] font-medium'>
+                        <td className='py-3 px-2 text-center text-zinc-500 font-medium'>
                           {st.notStarted}
                         </td>
                         <td className='py-3 px-2 text-center text-blue-600 font-semibold'>
@@ -1600,13 +1584,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                         </td>
                         <td className='py-3 px-3.5 text-right'>
                           <div className='flex items-center justify-end gap-2'>
-                            <div className='w-16 bg-[#F3F0E9] h-1.5 rounded-full overflow-hidden border border-[#D8D2C5]/50'>
+                            <div className='w-16 bg-zinc-100 h-1.5 rounded-full overflow-hidden border border-zinc-200/50'>
                               <div
                                 className='bg-emerald-600 h-full rounded-full'
                                 style={{ width: `${pct}%` }}
                               />
                             </div>
-                            <span className='text-[11px] text-[#57534E] font-medium w-12 text-right'>
+                            <span className='text-[11px] text-zinc-500 font-medium w-12 text-right'>
                               {st.approved}/{total} ({pct}%)
                             </span>
                           </div>
@@ -1642,31 +1626,31 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 activeTab === 'team' ? 'lg:col-span-12' : 'lg:col-span-6'
               } space-y-4 self-start`}
             >
-              <div className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl p-5 shadow-2xs space-y-4 pf-editorial-card'>
+              <div className='bg-white border border-zinc-200 rounded-2xl p-5 sm:p-6 shadow-xs space-y-4'>
                 <div>
-                  <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#D8D2C5] pb-3'>
+                  <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-zinc-100 pb-3'>
                     <div>
                       <h2
                         style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
-                        className='text-base font-bold text-[#1C1917] flex items-center gap-2'
+                        className='text-base font-bold text-zinc-900 flex items-center gap-2'
                       >
                         <Users className='w-4 h-4 text-[#F97316]' />
                         <span>Phân Bổ Khối Lượng Công Việc</span>
                       </h2>
-                      <p className='text-xs text-[#57534E] mt-0.5'>
+                      <p className='text-xs text-zinc-500 mt-0.5'>
                         Số lượng panel và nhiệm vụ đang phụ trách theo từng nhân sự
                       </p>
                     </div>
 
                     <div className='flex items-center gap-2 self-start sm:self-auto shrink-0'>
-                      <span className='inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-[#D8D2C5] text-xs font-mono font-semibold text-[#57534E] shadow-2xs'>
+                      <span className='inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-50 border border-zinc-200 text-xs font-mono font-semibold text-zinc-700 shadow-2xs'>
                         <span>{progress?.workload?.length || 0} Nhân sự có việc</span>
                       </span>
                     </div>
                   </div>
 
                   {!progress?.workload || progress.workload.length === 0 ? (
-                    <div className='py-8 text-center text-xs text-[#57534E] bg-[#FAF8F5] rounded-xl border border-dashed border-[#D8D2C5] mt-4 space-y-2'>
+                    <div className='py-8 text-center text-xs text-zinc-500 bg-zinc-50/50 rounded-xl border border-dashed border-zinc-200 mt-4 space-y-2'>
                       <p>
                         {seriesMembers.length > 0
                           ? `Bộ truyện đã có ${seriesMembers.length} thành viên nhưng chưa có phân công nào đang mở.`
@@ -1686,20 +1670,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       {progress.workload.map((w) => {
                         const roleUpper = String(w.role || '').toUpperCase();
                         const roleStyle =
-                          ROLE_COLOR_MAP[roleUpper] || 'bg-[#F3F0E9] text-[#1C1917] border-[#D8D2C5]';
+                          ROLE_COLOR_MAP[roleUpper] || 'bg-zinc-100 text-zinc-800 border-zinc-200';
 
                         return (
                           <div
                             key={w.userId + w.role}
-                            className='p-3 bg-[#FAF8F5] hover:bg-white border border-[#D8D2C5] rounded-xl transition-all shadow-2xs space-y-2'
+                            className='p-3 bg-white hover:bg-zinc-50/80 border border-zinc-200 rounded-xl transition-all shadow-2xs space-y-2'
                           >
                             <div className='flex items-center justify-between gap-2'>
                               <div className='flex items-center gap-2.5 min-w-0'>
-                                <div className='w-7 h-7 rounded-full bg-[#1C1917] text-white font-bold text-xs flex items-center justify-center shrink-0'>
+                                <div className='w-7 h-7 rounded-full bg-zinc-900 text-white font-bold text-xs flex items-center justify-center shrink-0'>
                                   {w.fullName.charAt(0).toUpperCase()}
                                 </div>
                                 <div className='min-w-0'>
-                                  <div className='text-xs font-bold text-[#1C1917] truncate'>
+                                  <div className='text-xs font-bold text-zinc-900 truncate'>
                                     {w.fullName}
                                   </div>
                                   <span
@@ -1718,19 +1702,19 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                             </div>
 
                             {/* Workload metric counters */}
-                            <div className='grid grid-cols-3 gap-2 pt-2 border-t border-[#D8D2C5] text-xs font-mono text-center tabular-nums'>
-                              <div className='bg-[#FCFBF8] p-1.5 rounded-lg border border-[#D8D2C5]'>
-                                <div className='text-[#57534E] text-[11px] font-sans'>Đang làm</div>
-                                <div className='font-bold text-[#1C1917] text-sm'>{w.open}</div>
+                            <div className='grid grid-cols-3 gap-2 pt-2 border-t border-zinc-100 text-xs font-mono text-center tabular-nums'>
+                              <div className='bg-zinc-50/70 p-1.5 rounded-lg border border-zinc-200'>
+                                <div className='text-zinc-500 text-[11px] font-sans'>Đang làm</div>
+                                <div className='font-bold text-zinc-900 text-sm'>{w.open}</div>
                               </div>
-                              <div className='bg-[#FCFBF8] p-1.5 rounded-lg border border-[#D8D2C5]'>
-                                <div className='text-[#57534E] text-[11px] font-sans'>Chờ duyệt</div>
+                              <div className='bg-zinc-50/70 p-1.5 rounded-lg border border-zinc-200'>
+                                <div className='text-zinc-500 text-[11px] font-sans'>Chờ duyệt</div>
                                 <div className='font-bold text-amber-600 text-sm'>
                                   {w.waitingReview}
                                 </div>
                               </div>
-                              <div className='bg-[#FCFBF8] p-1.5 rounded-lg border border-[#D8D2C5]'>
-                                <div className='text-[#57534E] text-[11px] font-sans'>Hoàn thành</div>
+                              <div className='bg-zinc-50/70 p-1.5 rounded-lg border border-zinc-200'>
+                                <div className='text-zinc-500 text-[11px] font-sans'>Hoàn thành</div>
                                 <div className='font-bold text-emerald-600 text-sm'>{w.done}</div>
                               </div>
                             </div>
@@ -1741,7 +1725,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   )}
                 </div>
 
-                <p className='text-xs text-[#57534E] font-sans text-center mt-3 pt-2 border-t border-[#D8D2C5]/60'>
+                <p className='text-xs text-zinc-500 font-sans text-center mt-3 pt-2 border-t border-zinc-100'>
                   Số lượng nhiệm vụ được gán, không phản ánh độ dài hay độ khó của từng panel
                 </p>
               </div>

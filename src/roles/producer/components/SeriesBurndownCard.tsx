@@ -203,11 +203,11 @@ export const SeriesBurndownCard: React.FC<SeriesBurndownCardProps> = ({
   // Loading skeleton
   if (loading) {
     return (
-      <div className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl p-5 shadow-2xs space-y-4'>
+      <div className='bg-white border border-zinc-200 rounded-2xl p-5 sm:p-6 shadow-xs space-y-4'>
         <div className='animate-pulse space-y-3'>
-          <div className='h-4 bg-[#EAE5DC] rounded w-1/3' />
-          <div className='h-3 bg-[#F3F0E9] rounded w-1/2' />
-          <div className='h-60 bg-[#FAF8F5] rounded-xl mt-4 border border-[#D8D2C5]' />
+          <div className='h-4 bg-zinc-200 rounded w-1/3' />
+          <div className='h-3 bg-zinc-100 rounded w-1/2' />
+          <div className='h-60 bg-zinc-50 rounded-xl mt-4 border border-zinc-200' />
         </div>
       </div>
     );
@@ -217,22 +217,22 @@ export const SeriesBurndownCard: React.FC<SeriesBurndownCardProps> = ({
   const isLatestToday = latestPoint ? checkIsToday(latestPoint.date) : false;
 
   return (
-    <div className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl p-5 shadow-2xs space-y-4 font-sans text-[#44403C] pf-editorial-card'>
+    <div className='bg-white border border-zinc-200 rounded-2xl p-5 sm:p-6 shadow-xs space-y-4 font-sans text-zinc-700'>
       {/* 1. Header & Quick Summary */}
-      <div className='flex flex-col sm:flex-row sm:items-start justify-between gap-3 border-b border-[#D8D2C5] pb-3'>
+      <div className='flex flex-col sm:flex-row sm:items-start justify-between gap-3 border-b border-zinc-100 pb-3'>
         <div className='space-y-0.5'>
-          <h2 className='text-sm font-bold text-[#1C1917] flex items-center gap-2'>
+          <h2 className='text-sm font-bold text-zinc-900 flex items-center gap-2'>
             <TrendingUp className='w-4 h-4 text-[#F97316]' />
             <span>Công việc còn lại theo thời gian</span>
-            <span className='text-xs font-normal text-[#57534E]'>(Biểu Đồ Burndown)</span>
+            <span className='text-xs font-normal text-zinc-500'>(Biểu Đồ Burndown)</span>
           </h2>
-          <p className='text-xs text-[#57534E]'>Toàn bộ bộ truyện · Số công việc chưa hoàn tất</p>
+          <p className='text-xs text-zinc-500'>Toàn bộ bộ truyện · Số công việc chưa hoàn tất</p>
         </div>
 
         <div className='flex items-center gap-2.5 flex-wrap sm:flex-nowrap'>
           {/* Timeframe pill selector */}
           {sortedRawList.length > 7 && (
-            <div className='inline-flex p-0.5 bg-[#F3F0E9] rounded-lg text-xs font-medium border border-[#D8D2C5]'>
+            <div className='inline-flex p-0.5 bg-zinc-100 rounded-lg text-xs font-medium border border-zinc-200'>
               {(['all', '30d', '7d'] as const).map((mode) => (
                 <button
                   key={mode}
@@ -240,8 +240,8 @@ export const SeriesBurndownCard: React.FC<SeriesBurndownCardProps> = ({
                   onClick={() => setTimeframe(mode)}
                   className={`px-2 py-0.5 rounded-md text-[11px] transition-colors cursor-pointer ${
                     timeframe === mode
-                      ? 'bg-[#FCFBF8] text-[#1C1917] shadow-2xs font-semibold'
-                      : 'text-[#57534E] hover:text-[#1C1917]'
+                      ? 'bg-white text-zinc-900 shadow-2xs font-semibold'
+                      : 'text-zinc-500 hover:text-zinc-900'
                   }`}
                 >
                   {mode === 'all' ? 'Tất cả' : mode === '30d' ? '30 ngày' : '7 ngày'}
@@ -252,7 +252,7 @@ export const SeriesBurndownCard: React.FC<SeriesBurndownCardProps> = ({
 
           {/* Badge Số còn lại */}
           <span
-            className='px-2.5 py-1 rounded-md bg-[#FFF2E6] text-[#C2410C] border border-[#FDBA74] text-xs font-medium shrink-0 flex items-center gap-1.5'
+            className='px-2.5 py-1 rounded-md bg-orange-50 text-[#C2410C] border border-orange-200 text-xs font-medium shrink-0 flex items-center gap-1.5'
             title='Số lượng nhiệm vụ chưa được Approved'
           >
             <span className='font-bold'>
@@ -269,23 +269,23 @@ export const SeriesBurndownCard: React.FC<SeriesBurndownCardProps> = ({
 
       {/* 2. Dòng tóm tắt biến động (Summary row) */}
       {stats && (
-        <div className='grid grid-cols-3 gap-2 py-2 px-3 bg-[#FAF8F5] rounded-lg border border-[#D8D2C5] text-xs text-center'>
+        <div className='grid grid-cols-3 gap-2 py-2 px-3 bg-zinc-50/70 rounded-xl border border-zinc-200 text-xs text-center'>
           <div>
-            <span className='text-[#57534E] block text-[11px]'>
+            <span className='text-zinc-500 block text-[11px]'>
               Đầu kỳ ({formatShortDate(stats.startDate)})
             </span>
-            <span className='font-bold text-[#1C1917] text-xs'>{stats.startVal} việc</span>
+            <span className='font-bold text-zinc-900 text-xs'>{stats.startVal} việc</span>
           </div>
           <div>
-            <span className='text-[#57534E] block text-[11px]'>
+            <span className='text-zinc-500 block text-[11px]'>
               Cuối kỳ ({formatShortDate(stats.endDate)})
             </span>
-            <span className='font-bold text-[#1C1917] text-xs'>{stats.endVal} việc</span>
+            <span className='font-bold text-zinc-900 text-xs'>{stats.endVal} việc</span>
           </div>
           <div>
-            <span className='text-[#57534E] block text-[11px]'>Thay đổi ròng</span>
+            <span className='text-zinc-500 block text-[11px]'>Thay đổi ròng</span>
             {stats.isSinglePoint ? (
-              <span className='font-medium text-[#57534E] text-xs'>Khởi tạo</span>
+              <span className='font-medium text-zinc-500 text-xs'>Khởi tạo</span>
             ) : stats.netChange < 0 ? (
               <span className='font-bold text-emerald-700 text-xs'>
                 Giảm {Math.abs(stats.netChange)} việc
@@ -293,7 +293,7 @@ export const SeriesBurndownCard: React.FC<SeriesBurndownCardProps> = ({
             ) : stats.netChange > 0 ? (
               <span className='font-bold text-amber-700 text-xs'>Tăng {stats.netChange} việc</span>
             ) : (
-              <span className='font-bold text-[#57534E] text-xs'>Không đổi</span>
+              <span className='font-bold text-zinc-500 text-xs'>Không đổi</span>
             )}
           </div>
         </div>
@@ -301,21 +301,21 @@ export const SeriesBurndownCard: React.FC<SeriesBurndownCardProps> = ({
 
       {/* 3. Vùng biểu đồ (Chart area) */}
       {!chartModel || filteredList.length === 0 ? (
-        <div className='py-12 text-center text-xs text-[#57534E] bg-[#FCFBF8] rounded-xl border border-dashed border-[#D8D2C5] space-y-2 p-6'>
-          <div className='w-10 h-10 rounded-full bg-[#FFF2E6] text-[#F97316] flex items-center justify-center mx-auto'>
+        <div className='py-12 text-center text-xs text-zinc-500 bg-zinc-50/50 rounded-xl border border-dashed border-zinc-200 space-y-2 p-6'>
+          <div className='w-10 h-10 rounded-full bg-orange-50 text-[#F97316] flex items-center justify-center mx-auto'>
             <Calendar className='w-5 h-5' />
           </div>
-          <p className='font-semibold text-[#1C1917] text-xs'>
+          <p className='font-semibold text-zinc-900 text-xs'>
             Chưa có dữ liệu lịch sử trong khoảng thời gian này
           </p>
-          <p className='text-xs text-[#57534E] max-w-sm mx-auto'>
+          <p className='text-xs text-zinc-500 max-w-sm mx-auto'>
             Khi các nhiệm vụ được tạo và duyệt hoàn tất trong Series, tiến trình sẽ được ghi nhận
             hàng ngày.
           </p>
         </div>
       ) : (
         <div className='space-y-2'>
-          <div className='relative w-full h-[230px] sm:h-[260px] bg-[#FAF8F5] rounded-xl border border-[#D8D2C5] p-2 overflow-hidden select-none'>
+          <div className='relative w-full h-[230px] sm:h-[260px] bg-zinc-50/50 rounded-xl border border-zinc-200 p-2 overflow-hidden select-none'>
             <svg
               viewBox={`0 0 ${width} ${height}`}
               className='w-full h-full text-xs'
