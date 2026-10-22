@@ -343,10 +343,13 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
                 <form className='mt-8 space-y-4' onSubmit={handleLoginSubmit}>
                   <div>
-                    <label className='block text-xs font-semibold text-[#0c0a09] mb-1.5'>
+                    <label htmlFor='login-email' className='block text-xs font-semibold text-[#0c0a09] mb-1.5'>
                       Email
                     </label>
                     <input
+                      id='login-email'
+                      name='email'
+                      data-testid='login-email-input'
                       type='email'
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
@@ -358,7 +361,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
                   <div>
                     <div className='flex items-center justify-between mb-1.5'>
-                      <label className='block text-xs font-semibold text-[#0c0a09]'>Password</label>
+                      <label htmlFor='login-password' className='block text-xs font-semibold text-[#0c0a09]'>Password</label>
                       <div className='flex items-center gap-1.5'>
                         <button
                           type='button'
@@ -389,6 +392,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                       </div>
                     </div>
                     <input
+                      id='login-password'
+                      name='password'
+                      data-testid='login-password-input'
                       type='password'
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
@@ -399,6 +405,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                   </div>
 
                   <button
+                    id='login-submit-btn'
+                    data-testid='login-submit-button'
                     type='submit'
                     disabled={isLoading}
                     className='w-full bg-[#292524] hover:bg-[#0c0a09] disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium py-3 rounded-full shadow-soft-sm transition-all mt-6 cursor-pointer flex justify-center items-center gap-2 text-xs sm:text-sm'

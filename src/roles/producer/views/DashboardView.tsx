@@ -1627,20 +1627,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
               {/* Action Buttons */}
               <div className='flex items-center gap-2 shrink-0'>
-                <button
-                  type='button'
-                  onClick={() => {
-                    setAssignModalChapter({
-                      id: selectedChapter.chapterId,
-                      number: selectedChapter.chapterNumber,
-                    });
-                    setIsAssignModalOpen(true);
-                  }}
-                  className='px-3 py-1.5 rounded-lg bg-white hover:bg-orange-50 border border-zinc-200 hover:border-orange-200 text-zinc-700 hover:text-[#F97316] text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer'
-                >
-                  <UserCheck className='w-3.5 h-3.5 text-zinc-500' />
-                  <span>Giao Việc Cho Chương {selectedChapter.chapterNumber}</span>
-                </button>
                 {workspaceId && seriesId && (
                   <button
                     type='button'

@@ -1,4 +1,3 @@
-/* Lucian UX/UI · Spacious 2-Pool Visual Roster for Series Production Team */
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import {
@@ -460,7 +459,7 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
               </div>
               <p
                 id='series-members-modal-desc'
-                className='text-xs text-[#737373] font-mono leading-none mt-1 truncate max-w-xl'
+                className='text-xs text-[#737373] leading-none mt-1 truncate max-w-xl'
               >
                 {t('members.modal.seriesSubtitle', { seriesTitle }, `Bộ truyện: ${seriesTitle}`)}
               </p>
@@ -531,7 +530,7 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
         <div className='flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6'>
           <div className='grid grid-cols-1 lg:grid-cols-2 gap-5 items-start'>
             {/* ==================== CỘT 1: TALENT POOL SẴN SÀNG ==================== */}
-            <div className='bg-[#FFFFFF] rounded-2xl border border-[#E7E7E7] shadow-xs flex flex-col h-[480px] lg:h-[520px] overflow-hidden'>
+            <div className='bg-[#FFFFFF] rounded-2xl border border-[#E7E7E7] shadow-xs flex flex-col min-h-[260px] max-h-[520px] overflow-hidden'>
               {/* Header Cột 1 */}
               <div className='p-3.5 sm:p-4 bg-[#FAF8F4] border-b border-[#E7E7E7] space-y-2.5 shrink-0'>
                 <div className='flex items-center justify-between'>
@@ -583,7 +582,7 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                     <span className='font-mono text-xs'>Đang nạp danh sách nhân sự...</span>
                   </div>
                 ) : filteredCandidates.length === 0 ? (
-                  <div className='py-20 px-4 text-center space-y-2 text-[#737373]'>
+                  <div className='py-10 px-4 text-center space-y-2 text-[#737373]'>
                     <CheckCircle2 className='w-9 h-9 text-emerald-600 mx-auto' />
                     <p className='text-xs font-semibold text-[#171717]'>
                       {candidateSearchQuery
@@ -603,6 +602,18 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                             `Mời thêm thành viên vào ${displayWsName} để mở rộng đội ngũ.`,
                           )}
                     </p>
+                    {workspaceId && !candidateSearchQuery && (
+                      <div className='pt-2'>
+                        <a
+                          href={`/workspaces/${workspaceId}/members`}
+                          onClick={onClose}
+                          className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-50 hover:bg-orange-50 border border-zinc-200 hover:border-orange-200 text-zinc-700 hover:text-orange-600 text-xs font-medium transition-colors cursor-pointer shadow-2xs'
+                        >
+                          <UserPlus className='w-3.5 h-3.5' />
+                          <span>Quản lý thành viên Workspace →</span>
+                        </a>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   filteredCandidates.map((candidate, idx) => {
@@ -695,7 +706,7 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
             </div>
 
             {/* ==================== CỘT 2: THÀNH VIÊN TRONG BỘ TRUYỆN ==================== */}
-            <div className='bg-[#FFFFFF] rounded-2xl border border-[#E7E7E7] shadow-xs flex flex-col h-[480px] lg:h-[520px] overflow-hidden'>
+            <div className='bg-[#FFFFFF] rounded-2xl border border-[#E7E7E7] shadow-xs flex flex-col min-h-[360px] max-h-[520px] overflow-hidden'>
               {/* Header Cột 2 */}
               <div className='p-3.5 sm:p-4 bg-[#FAF8F4] border-b border-[#E7E7E7] space-y-2.5 shrink-0'>
                 <div className='flex items-center justify-between'>

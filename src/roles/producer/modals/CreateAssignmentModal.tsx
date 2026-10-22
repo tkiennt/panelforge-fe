@@ -11,6 +11,9 @@ import {
   Layers,
   FileText,
   Sparkles,
+  Network,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import {
   assignmentService,
@@ -64,6 +67,7 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
   const [priority, setPriority] = useState<AssignmentPriority>('Medium');
   const [dependsOnAssignmentId, setDependsOnAssignmentId] = useState('');
   const [selectedDependsOnIds, setSelectedDependsOnIds] = useState<string[]>([]);
+  const [showDependencies, setShowDependencies] = useState(false);
 
   const [stages, setStages] = useState<PipelineStageDto[]>([]);
   const [members, setMembers] = useState<SeriesMemberDto[]>([]);
@@ -465,7 +469,7 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
     try {
       const created = await assignmentService.createAssignment(chapterId, payload);
       onShowToast?.(
-        'Giao việc thành công (UC-05)',
+        'Giao việc thành công',
         `Đã tạo công việc cho công đoạn ${currentStage?.name || 'Pipeline'}.`,
       );
       onSuccess?.(created);
@@ -493,13 +497,17 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
             </div>
             <div>
               <div className='flex items-center gap-2'>
-                <span className='px-2 py-0.5 rounded bg-[#171717] text-white font-mono text-[9px] font-bold'>
-                  UC-05 // TASK ASSIGNMENT
+                <span className='px-2 py-0.5 rounded-full bg-orange-50 text-[#F97316] border border-orange-200/80 font-bold text-[10px]'>
+                  Giao việc mới
                 </span>
-                <span className='text-[10px] text-[#888888] font-mono'>Producer Workflow</span>
+                {chapterNumber && (
+                  <span className='text-[11px] text-zinc-500 font-medium'>
+                    Chương {chapterNumber}
+                  </span>
+                )}
               </div>
               <h2 className='text-base font-bold text-[#171717] mt-0.5'>
-                Giao Việc Mới {chapterNumber ? `– Chương ${chapterNumber}` : ''}
+                Phân Công Nhiệm Vụ Sản Xuất
               </h2>
             </div>
           </div>
@@ -825,8 +833,8 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                   className='block font-semibold text-[#171717] mb-1 flex items-center justify-between'
                 >
                   <span>Yêu cầu công việc (Brief) *</span>
-                  <span className='text-[10px] text-[#888888] font-normal'>
-                    Bắt buộc theo BR-19
+                  <span className='text-[10px] text-zinc-400 font-normal'>
+                    Yêu cầu bắt buộc
                   </span>
                 </label>
                 <textarea
@@ -897,28 +905,64 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                 </div>
               </div>
 
-              {/* Dependency on another assignment (Cần hoàn thành trước · Không bắt buộc) */}
-              <DependencySelector
-                workspaceId={workspaceId}
-                seriesId={seriesId}
-                chapterId={chapterId}
-                chapterNumber={chapterNumber}
-                currentBrief={brief}
-                currentEntityType={entityType}
-                currentPageId={selectedPageId}
-                currentPanelId={selectedPanelId}
-                currentStageId={pipelineStageId}
-                stages={stages}
-                pages={pages}
-                members={members}
-                existingAssignments={existingAssignments}
-                selectedIds={selectedDependsOnIds}
-                onChange={(newIds) => {
-                  setSelectedDependsOnIds(newIds);
-                  setDependsOnAssignmentId(newIds[0] || '');
-                }}
-                backendError={isDependencyError ? error : null}
-              />
+              {/* Dependency on another assignment (Cần hoàn thành trước · Thu gọn dạng Accordion) */}
+              <div className='border border-[#E7E7E7] rounded-xl overflow-hidden bg-[#FAF8F5] transition-all'>
+                <button
+                  type='button'
+                  onClick={() => setShowDependencies((prev) => !prev)}
+                  className='w-full px-3.5 py-2.5 flex items-center justify-between text-left hover:bg-[#F2EFE9] transition-colors cursor-pointer'
+                >
+                  <div className='flex items-center gap-2'>
+                    <Network className='w-4 h-4 text-[#F97316]' />
+                    <span className='font-semibold text-[#171717] text-xs'>
+                      Điều kiện tiên quyết / Phụ thuộc (Dependencies)
+                    </span>
+                    {selectedDependsOnIds.length > 0 ? (
+                      <span className='px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-orange-100 text-[#F97316]'>
+                        {selectedDependsOnIds.length} đã chọn
+                      </span>
+                    ) : (
+                      <span className='text-[10px] text-zinc-400 font-normal'>
+                        (Tùy chọn)
+                      </span>
+                    )}
+                  </div>
+                  <div className='flex items-center gap-1.5 text-zinc-400 text-xs'>
+                    <span className='text-[11px]'>{showDependencies || isDependencyError ? 'Thu gọn' : 'Thiết lập'}</span>
+                    {showDependencies || isDependencyError ? (
+                      <ChevronUp className='w-3.5 h-3.5' />
+                    ) : (
+                      <ChevronDown className='w-3.5 h-3.5' />
+                    )}
+                  </div>
+                </button>
+
+                {(showDependencies || isDependencyError || selectedDependsOnIds.length > 0) && (
+                  <div className='p-3.5 pt-1 border-t border-[#EAE6DF] bg-white'>
+                    <DependencySelector
+                      workspaceId={workspaceId}
+                      seriesId={seriesId}
+                      chapterId={chapterId}
+                      chapterNumber={chapterNumber}
+                      currentBrief={brief}
+                      currentEntityType={entityType}
+                      currentPageId={selectedPageId}
+                      currentPanelId={selectedPanelId}
+                      currentStageId={pipelineStageId}
+                      stages={stages}
+                      pages={pages}
+                      members={members}
+                      existingAssignments={existingAssignments}
+                      selectedIds={selectedDependsOnIds}
+                      onChange={(newIds) => {
+                        setSelectedDependsOnIds(newIds);
+                        setDependsOnAssignmentId(newIds[0] || '');
+                      }}
+                      backendError={isDependencyError ? error : null}
+                    />
+                  </div>
+                )}
+              </div>
             </>
           )}
         </form>
