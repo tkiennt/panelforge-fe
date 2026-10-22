@@ -11,6 +11,7 @@ import {
   History,
   BookOpen,
   ArrowRight,
+  Users,
 } from 'lucide-react';
 import { SeriesDto } from '@/services/series.service';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
@@ -26,6 +27,7 @@ export interface SeriesCardItemProps {
   onOpenChapters: (series: { id: string; title: string }) => void;
   onOpenPipeline: (series: { id: string; title: string }) => void;
   onOpenPresets: (series: { id: string; title: string }) => void;
+  onOpenMembers?: (series: { id: string; title: string }) => void;
   onPickCover: (series: { id: string; title: string }) => void;
   onClearCover: (seriesId: string) => void;
   onEditSeries: (series: SeriesDto) => void;
@@ -41,6 +43,7 @@ export const SeriesCardItem: React.FC<SeriesCardItemProps> = ({
   onOpenChapters,
   onOpenPipeline,
   onOpenPresets,
+  onOpenMembers,
   onPickCover,
   onClearCover,
   onEditSeries,
@@ -136,6 +139,20 @@ export const SeriesCardItem: React.FC<SeriesCardItemProps> = ({
                         <ListOrdered className='w-3.5 h-3.5 text-purple-500' />
                         <span>Typography Presets</span>
                       </button>
+                      {onOpenMembers && (
+                        <button
+                          type='button'
+                          role='menuitem'
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onOpenMembers({ id: s.id, title: s.title });
+                          }}
+                          className='w-full text-left px-3.5 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 hover:text-stone-900 flex items-center gap-2 transition-colors cursor-pointer'
+                        >
+                          <Users className='w-3.5 h-3.5 text-emerald-600' />
+                          <span>Đội ngũ Series</span>
+                        </button>
+                      )}
                       <div className='border-t border-stone-100 my-1' />
                       <button
                         type='button'
@@ -275,11 +292,24 @@ export const SeriesCardItem: React.FC<SeriesCardItemProps> = ({
           <ArrowRight className='w-3.5 h-3.5 text-orange-400' />
         </button>
 
+        {/* Manage Series Team Members */}
+        {isProducerOrAdmin && onOpenMembers && (
+          <button
+            type='button'
+            onClick={() => onOpenMembers({ id: s.id, title: s.title })}
+            className='h-11 px-3 bg-emerald-50 hover:bg-emerald-100/80 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer shrink-0'
+            title={`Quản lý đội ngũ nhân sự và phân quyền của ${s.title}`}
+          >
+            <Users className='w-3.5 h-3.5 text-emerald-600' />
+            <span>Đội ngũ</span>
+          </button>
+        )}
+
         {/* Secondary Action: Manage Chapters Modal */}
         <button
           type='button'
           onClick={() => onOpenChapters({ id: s.id, title: s.title })}
-          className='h-11 px-3.5 bg-stone-100 hover:bg-stone-200/80 text-stone-700 hover:text-stone-900 border border-stone-200/60 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer shrink-0'
+          className='h-11 px-3 bg-stone-100 hover:bg-stone-200/80 text-stone-700 hover:text-stone-900 border border-stone-200/60 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer shrink-0'
           title={`Xem danh sách các chương của ${s.title}`}
         >
           <BookOpen className='w-3.5 h-3.5 text-orange-500' />

@@ -237,9 +237,20 @@ export interface SeriesMemberDto {
   userId: string;
   fullName: string;
   email: string;
-  studioRole: string;
+  avatarUrl?: string | null;
+  studioRole?: string;
   seriesRole: string;
   joinedAt: string;
+}
+
+export interface SeriesCandidateDto {
+  userId: string;
+  fullName: string;
+  email: string;
+  avatarUrl?: string | null;
+  workspaceRole: string;
+  isAlreadyMember: boolean;
+  currentSeriesRole?: string | null;
 }
 
 export interface AddSeriesMemberRequest {
@@ -487,25 +498,15 @@ export const seriesService = {
     }
   },
 
-  // Series Members APIs
-  async getSeriesMembers(workspaceId: string, seriesId: string): Promise<SeriesMemberDto[]> {
-    if (!workspaceId) return [];
+  // Series Members APIs (UC-04 / RBAC)
+  async getSeriesMembers(_workspaceId: string, seriesId: string): Promise<SeriesMemberDto[]> {
+    if (!seriesId) return [];
     try {
-      const res = await axiosClient.get(`/Workspaces/${workspaceId}/members`);
-      const members: any[] = res.data || [];
-      return members.map((m) => ({
-        id: m.userId,
-        seriesId,
-        userId: m.userId,
-        fullName: m.fullName || m.email,
-        email: m.email,
-        studioRole: String(m.role),
-        seriesRole: String(m.role),
-        joinedAt: m.joinedAt,
-      }));
+      const res = await axiosClient.get(`/series/${seriesId}/members`);
+      return res.data || [];
     } catch (err: any) {
       if (err.response?.status === 404) return [];
-      return [];
+      throw new Error(extractError(err, 'Không thể tải danh sách thành viên bộ truyện'));
     }
   },
 
@@ -514,38 +515,49 @@ export const seriesService = {
     seriesId: string,
     req: AddSeriesMemberRequest,
   ): Promise<SeriesMemberDto> {
-    return {
-      id: req.userId,
-      seriesId,
-      userId: req.userId,
-      fullName: 'Thành viên',
-      email: '',
-      studioRole: req.seriesRole,
-      seriesRole: req.seriesRole,
-      joinedAt: new Date().toISOString(),
-    };
+    try {
+      const res = await axiosClient.post(`/series/${seriesId}/members`, {
+        userId: req.userId,
+        role: req.seriesRole,
+      });
+      return res.data;
+    } catch (err: any) {
+      throw new Error(extractError(err, 'Không thể thêm thành viên vào bộ truyện'));
+    }
   },
 
   async updateSeriesMember(
-    workspaceId: string,
+    _workspaceId: string,
     seriesId: string,
-    memberId: string,
+    userId: string,
     req: UpdateSeriesMemberRequest,
   ): Promise<SeriesMemberDto> {
-    return {
-      id: memberId,
-      seriesId,
-      userId: memberId,
-      fullName: 'Thành viên',
-      email: '',
-      studioRole: req.seriesRole,
-      seriesRole: req.seriesRole,
-      joinedAt: new Date().toISOString(),
-    };
+    try {
+      const res = await axiosClient.put(`/series/${seriesId}/members/${userId}`, {
+        role: req.seriesRole,
+      });
+      return res.data;
+    } catch (err: any) {
+      throw new Error(extractError(err, 'Không thể cập nhật vai trò thành viên'));
+    }
   },
 
-  async removeSeriesMember(workspaceId: string, seriesId: string, memberId: string): Promise<void> {
-    // Thành viên được quản lý ở cấp Studio Workspace (/Workspaces/{id}/members)
-    return Promise.resolve();
+  async removeSeriesMember(_workspaceId: string, seriesId: string, userId: string): Promise<void> {
+    try {
+      await axiosClient.delete(`/series/${seriesId}/members/${userId}`);
+    } catch (err: any) {
+      throw new Error(extractError(err, 'Không thể xóa thành viên khỏi bộ truyện'));
+    }
+  },
+
+  async getSeriesCandidates(seriesId: string): Promise<SeriesCandidateDto[]> {
+    if (!seriesId) return [];
+    try {
+      const res = await axiosClient.get(`/series/${seriesId}/members/candidates`);
+      return res.data || [];
+    } catch (err: any) {
+      if (err.response?.status === 404) return [];
+      throw new Error(extractError(err, 'Không thể tải danh sách ứng viên từ Workspace'));
+    }
   },
 };

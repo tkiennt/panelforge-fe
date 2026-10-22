@@ -1,38 +1,39 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   UserPlus,
   MoreVertical,
   Shield,
   Mail,
-  X,
-  Edit,
-  Lock,
-  Unlock,
   Trash2,
   ArrowLeft,
   FolderKanban,
-  CheckCircle2,
+  Loader2,
+  Edit,
 } from 'lucide-react';
 import { MangaProject } from '../../../types';
-import { InviteMemberModal } from '../modals/InviteMemberModal';
 import { useConfirm } from '@/shared/context/ConfirmContext';
 import { useToast } from '@/shared/context/ToastContext';
+import { seriesService, SeriesMemberDto } from '@/services/series.service';
+import { SeriesMembersModal } from '../modals/SeriesMembersModal';
 
 interface ProjectMembersViewProps {
   projects: MangaProject[]; // Nhận toàn bộ danh sách dự án
 }
 
+const SERIES_ROLES = ['Writer', 'Artist', 'Letterer', 'Editor', 'Publisher'];
+
 export const ProjectMembersView: React.FC<ProjectMembersViewProps> = ({ projects }) => {
   const confirm = useConfirm();
+  const toast = useToast();
+
   // STATE ĐIỀU HƯỚNG: null = Đang ở màn hình chọn dự án, có data = Đang xem thành viên dự án đó
   const [selectedProject, setSelectedProject] = useState<MangaProject | null>(null);
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  // State quản lý Modal Mời Thành Viên & Toast
-  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
-  const toast = useToast();
-  const showToast = toast.showToast;
+  // State quản lý Modal Gán/Thêm Thành Viên Series
+  const [isSeriesMembersModalOpen, setIsSeriesMembersModalOpen] = useState(false);
 
   const activeWorkspace = useMemo(() => {
     try {
@@ -43,63 +44,85 @@ export const ProjectMembersView: React.FC<ProjectMembersViewProps> = ({ projects
     }
   }, []);
 
-  const workspaceId = activeWorkspace?.id || selectedProject?.id || 'ws-default';
-  const workspaceName = activeWorkspace?.name || selectedProject?.title;
+  const workspaceId = activeWorkspace?.id || 'ws-default';
 
-  // State quản lý Dropdown Thao Tác
-  const [openActionMenuId, setOpenActionMenuId] = useState<number | null>(null);
+  // State quản lý Dropdown Thao Tác & Đổi Role
+  const [openActionMenuId, setOpenActionMenuId] = useState<string | null>(null);
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [selectedNewRole, setSelectedNewRole] = useState('Artist');
 
-  // Dữ liệu mock thành viên
-  const [members, setMembers] = useState([
-    {
-      id: 1,
-      name: 'Tatsuki Fujimoto',
-      role: 'Artist (Lead)',
-      email: 'tatsuki@studio.com',
-      status: 'Active',
-    },
-    { id: 2, name: 'Aka Akasaka', role: 'Writer', email: 'aka@studio.com', status: 'Active' },
-    { id: 3, name: 'Shiro', role: 'Letterer', email: 'shiro@studio.com', status: 'Offline' },
-  ]);
+  // Danh sách thành viên thực tế của Series
+  const [members, setMembers] = useState<SeriesMemberDto[]>([]);
 
-  const filteredMembers = members.filter(
-    (m) =>
-      m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      m.email.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
+  const loadSeriesMembers = async (seriesId: string) => {
+    setLoading(true);
+    try {
+      const data = await seriesService.getSeriesMembers(workspaceId, seriesId);
+      setMembers(data || []);
+    } catch (err: any) {
+      toast.error('Lỗi tải nhân sự', err.message || 'Không thể tải danh sách thành viên');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const toggleActionMenu = (id: number) => {
+  useEffect(() => {
+    if (selectedProject) {
+      loadSeriesMembers(String(selectedProject.id));
+      setSearchQuery('');
+      setOpenActionMenuId(null);
+      setEditingUserId(null);
+    }
+  }, [selectedProject]);
+
+  const filteredMembers = useMemo(() => {
+    if (!searchQuery.trim()) return members;
+    const q = searchQuery.toLowerCase();
+    return members.filter(
+      (m) =>
+        m.fullName?.toLowerCase().includes(q) ||
+        m.email?.toLowerCase().includes(q) ||
+        m.seriesRole?.toLowerCase().includes(q),
+    );
+  }, [members, searchQuery]);
+
+  const toggleActionMenu = (id: string) => {
     setOpenActionMenuId(openActionMenuId === id ? null : id);
   };
 
-  const toggleMemberStatus = (id: number) => {
-    setMembers(
-      members.map((member) =>
-        member.id === id
-          ? { ...member, status: member.status === 'Locked' ? 'Active' : 'Locked' }
-          : member,
-      ),
-    );
-    setOpenActionMenuId(null);
+  const handleChangeRole = async (userId: string, newRole: string) => {
+    if (!selectedProject) return;
+    try {
+      await seriesService.updateSeriesMember(workspaceId, String(selectedProject.id), userId, {
+        seriesRole: newRole,
+      });
+      toast.success('Thành công', `Đã cập nhật vai trò thành ${newRole}`);
+      setEditingUserId(null);
+      setOpenActionMenuId(null);
+      await loadSeriesMembers(String(selectedProject.id));
+    } catch (err: any) {
+      toast.error('Lỗi cập nhật', err.message || 'Không thể cập nhật vai trò');
+    }
   };
 
-  const handleRemoveMember = async (id: number) => {
-    const member = members.find((m) => m.id === id);
-    if (
-      await confirm({
-        title: 'Xóa thành viên khỏi dự án?',
-        description: `Bạn có chắc chắn muốn xóa thành viên "${member?.name || member?.email || 'này'}" khỏi dự án?`,
-        confirmText: 'Xác nhận xóa',
-        cancelText: 'Giữ lại',
-        variant: 'danger',
-      })
-    ) {
+  const handleRemoveMember = async (member: SeriesMemberDto) => {
+    if (!selectedProject) return;
+    const confirmed = await confirm({
+      title: 'Xóa thành viên khỏi dự án?',
+      description: `Bạn có chắc chắn muốn xóa thành viên "${member.fullName || member.email}" khỏi dự án "${selectedProject.title}"?`,
+      confirmText: 'Xác nhận xóa',
+      cancelText: 'Giữ lại',
+      variant: 'danger',
+    });
+
+    if (confirmed) {
       try {
-        setMembers((prev) => prev.filter((m) => m.id !== id));
+        await seriesService.removeSeriesMember(workspaceId, String(selectedProject.id), member.userId);
         toast.success(
-          'Đã xóa thành viên thành công',
-          `Đã xóa "${member?.name || member?.email}" khỏi dự án.`,
+          'Đã xóa thành viên',
+          `Đã loại "${member.fullName || member.email}" khỏi dự án.`,
         );
+        await loadSeriesMembers(String(selectedProject.id));
       } catch (err: any) {
         toast.error('Xóa thành viên thất bại', err.message || 'Không thể xóa thành viên khỏi dự án.');
       }
@@ -157,151 +180,166 @@ export const ProjectMembersView: React.FC<ProjectMembersViewProps> = ({ projects
       {/* Nút quay lại */}
       <button
         onClick={() => setSelectedProject(null)}
-        className='flex items-center gap-2 text-sm text-gray-500 hover:text-[#171717] transition w-fit mb-4'
+        className='flex items-center gap-2 text-sm text-gray-500 hover:text-[#171717] transition w-fit mb-4 cursor-pointer'
       >
         <ArrowLeft className='w-4 h-4' /> Quay lại danh sách dự án
       </button>
 
-      <div className='flex justify-between items-center mb-6'>
+      <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6'>
         <div>
           <h1 className='text-2xl font-bold text-[#171717]'>
             Nhân sự: <span className='text-[#F97316]'>{selectedProject.title}</span>
           </h1>
           <p className='text-sm text-gray-500 mt-1'>
-            Quản lý đội ngũ sản xuất và phân quyền cho dự án này
+            Quản lý đội ngũ sản xuất và phân quyền vai trò cho dự án này
           </p>
         </div>
         <button
-          onClick={() => setIsInviteModalOpen(true)}
-          className='flex items-center gap-2 bg-[#F97316] text-white px-4 py-2 rounded-lg hover:bg-[#EA580C] transition shadow-sm'
+          onClick={() => setIsSeriesMembersModalOpen(true)}
+          className='flex items-center gap-2 bg-[#F97316] text-white px-4 py-2 rounded-lg hover:bg-[#EA580C] transition shadow-sm cursor-pointer shrink-0'
         >
           <UserPlus className='w-4 h-4' />
-          <span>Mời thành viên</span>
+          <span>Gán nhân sự vào Series</span>
         </button>
       </div>
 
-      <div className='bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex-1'>
+      <div className='bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex-1 flex flex-col'>
         <div className='p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50'>
           <input
             type='text'
             placeholder='Tìm kiếm thành viên...'
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className='w-1/3 px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-[#F97316] text-sm'
+            className='w-1/3 px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-[#F97316] text-sm bg-white'
           />
           <div className='text-sm text-gray-500 font-medium'>
             Tổng số: {members.length} thành viên
           </div>
         </div>
 
-        <div className='overflow-x-auto'>
-          <table className='w-full text-left border-collapse min-w-[600px]'>
-            <thead>
-              <tr className='bg-white border-b border-gray-100 text-xs text-gray-500 uppercase tracking-wider'>
-                <th className='p-4 font-medium w-2/5'>Thành viên</th>
-                <th className='p-4 font-medium w-1/4'>Vai trò</th>
-                <th className='p-4 font-medium w-1/4'>Trạng thái</th>
-                <th className='p-4 font-medium text-right'>Thao tác</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredMembers.length > 0 ? (
-                filteredMembers.map((member) => (
-                  <tr
-                    key={member.id}
-                    className='border-b border-gray-50 hover:bg-gray-50/50 transition relative'
-                  >
-                    <td className='p-4'>
-                      <div className='flex items-center gap-3'>
-                        <div className='w-9 h-9 rounded-full bg-[#171717] text-white flex items-center justify-center font-bold text-xs shrink-0'>
-                          {member.name.charAt(0).toUpperCase()}
-                        </div>
-                        <div className='min-w-0'>
-                          <p className='font-semibold text-sm text-[#171717] truncate'>
-                            {member.name}
-                          </p>
-                          <p className='text-xs text-gray-500 flex items-center gap-1 truncate'>
-                            <Mail className='w-3 h-3 shrink-0' /> {member.email}
-                          </p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className='p-4'>
-                      <span className='flex items-center gap-1.5 text-sm font-medium text-gray-700 whitespace-nowrap'>
-                        <Shield className='w-4 h-4 text-gray-400 shrink-0' />
-                        {member.role}
-                      </span>
-                    </td>
-                    <td className='p-4'>
-                      <span
-                        className={`px-2 py-1 rounded text-xs font-medium whitespace-nowrap
-                          ${
-                            member.status === 'Active'
-                              ? 'bg-green-100 text-green-700'
-                              : member.status === 'Locked'
-                                ? 'bg-red-100 text-red-700'
-                                : 'bg-gray-100 text-gray-600'
-                          }`}
-                      >
-                        {member.status}
-                      </span>
-                    </td>
-                    <td className='p-4 text-right relative'>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleActionMenu(member.id);
-                        }}
-                        className='p-2 text-gray-400 hover:text-[#171717] rounded-lg hover:bg-gray-200 transition'
-                      >
-                        <MoreVertical className='w-4 h-4' />
-                      </button>
-
-                      {openActionMenuId === member.id && (
-                        <div className='absolute right-8 top-10 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-20 overflow-hidden text-left animate-in slide-in-from-top-2 duration-150'>
-                          <button
-                            onClick={() => {
-                              console.log('Chỉnh sửa role');
-                              setOpenActionMenuId(null);
-                            }}
-                            className='w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors'
-                          >
-                            <Edit className='w-4 h-4 text-gray-500' /> Đổi vai trò
-                          </button>
-                          <button
-                            onClick={() => toggleMemberStatus(member.id)}
-                            className='w-full px-4 py-2.5 text-sm text-orange-600 hover:bg-orange-50 flex items-center gap-2 border-t border-gray-100 transition-colors'
-                          >
-                            {member.status === 'Locked' ? (
-                              <>
-                                <Unlock className='w-4 h-4' /> Mở khóa tài khoản
-                              </>
+        <div className='overflow-x-auto flex-1'>
+          {loading ? (
+            <div className='py-16 text-center text-gray-400 text-sm flex flex-col items-center gap-2'>
+              <Loader2 className='w-6 h-6 animate-spin text-[#F97316]' />
+              <span>Đang tải danh sách nhân sự...</span>
+            </div>
+          ) : (
+            <table className='w-full text-left border-collapse min-w-[600px]'>
+              <thead>
+                <tr className='bg-white border-b border-gray-100 text-xs text-gray-500 uppercase tracking-wider'>
+                  <th className='p-4 font-medium w-2/5'>Thành viên</th>
+                  <th className='p-4 font-medium w-1/4'>Vai trò Series</th>
+                  <th className='p-4 font-medium w-1/4'>Ngày tham gia</th>
+                  <th className='p-4 font-medium text-right'>Thao tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredMembers.length > 0 ? (
+                  filteredMembers.map((member) => (
+                    <tr
+                      key={member.id || member.userId}
+                      className='border-b border-gray-50 hover:bg-gray-50/50 transition relative'
+                    >
+                      <td className='p-4'>
+                        <div className='flex items-center gap-3'>
+                          <div className='w-9 h-9 rounded-full bg-[#171717] text-white flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden'>
+                            {member.avatarUrl ? (
+                              <img src={member.avatarUrl} alt={member.fullName} className='w-full h-full object-cover' />
                             ) : (
-                              <>
-                                <Lock className='w-4 h-4' /> Khóa tài khoản
-                              </>
+                              (member.fullName || member.email || 'U').charAt(0).toUpperCase()
                             )}
-                          </button>
-                          <button
-                            onClick={() => handleRemoveMember(member.id)}
-                            className='w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 border-t border-gray-100 transition-colors'
-                          >
-                            <Trash2 className='w-4 h-4' /> Xóa khỏi dự án
-                          </button>
+                          </div>
+                          <div className='min-w-0'>
+                            <p className='font-semibold text-sm text-[#171717] truncate'>
+                              {member.fullName || 'Thành viên'}
+                            </p>
+                            <p className='text-xs text-gray-500 flex items-center gap-1 truncate'>
+                              <Mail className='w-3 h-3 shrink-0' /> {member.email}
+                            </p>
+                          </div>
                         </div>
-                      )}
+                      </td>
+                      <td className='p-4'>
+                        {editingUserId === member.userId ? (
+                          <div className='flex items-center gap-2'>
+                            <select
+                              value={selectedNewRole}
+                              onChange={(e) => setSelectedNewRole(e.target.value)}
+                              className='text-xs px-2 py-1 border border-gray-300 rounded bg-white'
+                            >
+                              {SERIES_ROLES.map((r) => (
+                                <option key={r} value={r}>
+                                  {r}
+                                </option>
+                              ))}
+                            </select>
+                            <button
+                              onClick={() => handleChangeRole(member.userId, selectedNewRole)}
+                              className='text-xs bg-emerald-600 text-white px-2 py-1 rounded font-semibold cursor-pointer'
+                            >
+                              Lưu
+                            </button>
+                            <button
+                              onClick={() => setEditingUserId(null)}
+                              className='text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded cursor-pointer'
+                            >
+                              Hủy
+                            </button>
+                          </div>
+                        ) : (
+                          <span className='flex items-center gap-1.5 text-sm font-medium text-gray-700 whitespace-nowrap'>
+                            <Shield className='w-4 h-4 text-gray-400 shrink-0' />
+                            {member.seriesRole}
+                          </span>
+                        )}
+                      </td>
+                      <td className='p-4 text-xs text-gray-500 whitespace-nowrap'>
+                        {member.joinedAt ? new Date(member.joinedAt).toLocaleDateString('vi-VN') : '—'}
+                      </td>
+                      <td className='p-4 text-right relative'>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleActionMenu(member.userId);
+                          }}
+                          className='p-2 text-gray-400 hover:text-[#171717] rounded-lg hover:bg-gray-200 transition cursor-pointer'
+                        >
+                          <MoreVertical className='w-4 h-4' />
+                        </button>
+
+                        {openActionMenuId === member.userId && (
+                          <div className='absolute right-8 top-10 w-44 bg-white border border-gray-200 rounded-lg shadow-lg z-20 overflow-hidden text-left animate-in slide-in-from-top-2 duration-150'>
+                            <button
+                              onClick={() => {
+                                setEditingUserId(member.userId);
+                                setSelectedNewRole(member.seriesRole || 'Artist');
+                                setOpenActionMenuId(null);
+                              }}
+                              className='w-full px-4 py-2.5 text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors cursor-pointer'
+                            >
+                              <Edit className='w-3.5 h-3.5 text-gray-500' /> Đổi vai trò
+                            </button>
+                            <button
+                              onClick={() => handleRemoveMember(member)}
+                              className='w-full px-4 py-2.5 text-xs text-red-600 hover:bg-red-50 flex items-center gap-2 border-t border-gray-100 transition-colors cursor-pointer'
+                            >
+                              <Trash2 className='w-3.5 h-3.5' /> Xóa khỏi dự án
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={4} className='p-8 text-center text-gray-500 text-sm'>
+                      Chưa có thành viên nào trong dự án này. Hãy bấm "Gán nhân sự vào Series" để thêm từ Workspace Talent Pool.
                     </td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={4} className='p-8 text-center text-gray-500'>
-                    Không tìm thấy thành viên nào.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                )}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
 
@@ -309,28 +347,17 @@ export const ProjectMembersView: React.FC<ProjectMembersViewProps> = ({ projects
         <div className='fixed inset-0 z-10' onClick={() => setOpenActionMenuId(null)} />
       )}
 
-
-
-      {/* Unified Invite Member Modal with Lucian #285 and Batch Invite */}
-      <InviteMemberModal
-        isOpen={isInviteModalOpen}
-        workspaceId={workspaceId}
-        workspaceName={workspaceName}
-        onClose={() => setIsInviteModalOpen(false)}
-        onInvited={(newMember) => {
-          setMembers((prev) => [
-            ...prev,
-            {
-              id: Date.now(),
-              name: newMember.fullName || newMember.email.split('@')[0],
-              email: newMember.email,
-              role: String(newMember.role),
-              status: newMember.status || 'Active',
-            },
-          ]);
-        }}
-        onShowToast={showToast}
-      />
+      {/* Series Members Modal */}
+      {selectedProject && (
+        <SeriesMembersModal
+          isOpen={isSeriesMembersModalOpen}
+          workspaceId={workspaceId}
+          seriesId={String(selectedProject.id)}
+          seriesTitle={selectedProject.title}
+          onClose={() => setIsSeriesMembersModalOpen(false)}
+          onMembersChanged={() => loadSeriesMembers(String(selectedProject.id))}
+        />
+      )}
     </div>
   );
 };
