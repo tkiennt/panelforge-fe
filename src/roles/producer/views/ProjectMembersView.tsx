@@ -266,6 +266,11 @@ export const ProjectMembersView: React.FC<ProjectMembersViewProps> = ({ projects
                 {filteredMembers.length > 0 ? (
                   filteredMembers.map((member) => {
                     const isProducer = isProducerMember(member, workspaceMembers);
+                    const rawRole = (member as any).seriesRole ?? (member as any).role ?? (member as any).studioRole ?? 'Artist';
+                    const memberRole =
+                      typeof rawRole === 'number'
+                        ? ['Producer', 'Writer', 'Artist', 'Letterer', 'Editor', 'Publisher'][rawRole] || 'Artist'
+                        : String(rawRole || 'Artist');
                     return (
                       <tr
                         key={member.id || member.userId}
@@ -340,7 +345,7 @@ export const ProjectMembersView: React.FC<ProjectMembersViewProps> = ({ projects
                                   isProducer ? 'text-amber-500' : 'text-gray-400'
                                 }`}
                               />
-                              {isProducer ? 'Producer' : member.seriesRole}
+                              {isProducer ? 'Producer' : memberRole}
                             </span>
                           )}
                         </td>
@@ -372,7 +377,7 @@ export const ProjectMembersView: React.FC<ProjectMembersViewProps> = ({ projects
                                   <button
                                     onClick={() => {
                                       setEditingUserId(member.userId);
-                                      setSelectedNewRole(member.seriesRole || 'Artist');
+                                      setSelectedNewRole(memberRole);
                                       setOpenActionMenuId(null);
                                     }}
                                     className='w-full px-4 py-2.5 text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors cursor-pointer'

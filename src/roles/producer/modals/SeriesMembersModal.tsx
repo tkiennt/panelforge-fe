@@ -262,19 +262,26 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
   // Lọc danh sách thành viên hiện có trong Series
   const filteredSeriesMembers = useMemo(() => {
     return seriesMembers.filter((m) => {
+      const rawRole = (m as any).seriesRole ?? (m as any).role ?? (m as any).studioRole ?? '';
+      const memberRole =
+        typeof rawRole === 'number'
+          ? ['Producer', 'Writer', 'Artist', 'Letterer', 'Editor', 'Publisher'][rawRole] || ''
+          : String(rawRole || '');
+
       const matchesSearch =
         !seriesSearchQuery.trim() ||
         m.fullName?.toLowerCase().includes(seriesSearchQuery.toLowerCase()) ||
         m.email?.toLowerCase().includes(seriesSearchQuery.toLowerCase()) ||
-        m.seriesRole?.toLowerCase().includes(seriesSearchQuery.toLowerCase());
+        memberRole.toLowerCase().includes(seriesSearchQuery.toLowerCase());
 
       const matchesRole =
         filterRole === 'ALL' ||
-        (m.seriesRole || '').toLowerCase() === filterRole.toLowerCase();
+        memberRole.toLowerCase() === filterRole.toLowerCase() ||
+        (filterRole === 'Producer' && isProducerMember(m, workspaceMembers));
 
       return matchesSearch && matchesRole;
     });
-  }, [seriesMembers, seriesSearchQuery, filterRole]);
+  }, [seriesMembers, seriesSearchQuery, filterRole, workspaceMembers]);
 
   // Chọn vai trò cho 1 ứng viên trước khi bấm Thêm
   const handleSelectCandidateRole = (userId: string, role: string) => {
@@ -773,11 +780,34 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                   filteredSeriesMembers.map((m, idx) => {
                     const isProducer = isProducerMember(m, workspaceMembers);
 
+                    const rawRole = (m as any).seriesRole ?? (m as any).role ?? (m as any).studioRole ?? 'Artist';
+                    const memberRole =
+                      typeof rawRole === 'number'
+                        ? ['Producer', 'Writer', 'Artist', 'Letterer', 'Editor', 'Publisher'][rawRole] || 'Artist'
+                        : String(rawRole || 'Artist');
+                    const normalizedRole = memberRole.toLowerCase();
+
+                    const matched = SERIES_ROLES.find(
+                      (r) => r.value.toLowerCase() === normalizedRole,
+                    );
+
                     const roleConfig = isProducer
                       ? { value: 'Producer', label: 'Producer (Sản xuất)', slug: 'producer' }
-                      : SERIES_ROLES.find(
-                          (r) => r.value.toLowerCase() === (m.seriesRole || '').toLowerCase(),
-                        ) || { value: m.seriesRole, label: m.seriesRole, slug: 'artist' };
+                      : matched || {
+                          value: memberRole,
+                          label: memberRole.toLowerCase() === 'artist' ? 'Artist (Họa sĩ)' : memberRole,
+                          slug: normalizedRole.includes('writer')
+                            ? 'writer'
+                            : normalizedRole.includes('artist')
+                            ? 'artist'
+                            : normalizedRole.includes('letter')
+                            ? 'letterer'
+                            : normalizedRole.includes('edit')
+                            ? 'editor'
+                            : normalizedRole.includes('publish')
+                            ? 'publisher'
+                            : 'artist',
+                        };
 
                     const isEditingThis = editingUserId === m.userId && !isProducer;
                     const avatarColor = isProducer ? '#F59E0B' : PALETTE[idx % PALETTE.length];
@@ -897,7 +927,7 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                                       type='button'
                                       onClick={() => {
                                         setEditingUserId(m.userId);
-                                        setEditingRole(m.seriesRole || 'Artist');
+                                        setEditingRole(memberRole);
                                       }}
                                       className='w-7 h-7 rounded-lg text-[#737373] hover:text-[#171717] hover:bg-white border border-transparent hover:border-[#E7E7E7] flex items-center justify-center transition-all cursor-pointer'
                                       title={t('members.seriesRoster.changeRoleTooltip', 'Đổi vai trò')}
