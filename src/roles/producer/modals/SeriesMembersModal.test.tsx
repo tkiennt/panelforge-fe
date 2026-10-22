@@ -116,7 +116,7 @@ describe('SeriesMembersModal - Phân quyền và gán nhân sự 2 cấp', () =>
     );
 
     await waitFor(() => {
-      expect(screen.getByText(/1 người sẵn sàng/i)).toBeInTheDocument();
+      expect(screen.getByText(/1 người/i)).toBeInTheDocument();
     });
 
     // Check Tatsuki Fujimoto hiển thị trực quan trong danh sách sẵn sàng
@@ -139,7 +139,7 @@ describe('SeriesMembersModal - Phân quyền và gán nhân sự 2 cấp', () =>
       expect(screen.getByText('Tatsuki Fujimoto')).toBeInTheDocument();
     });
 
-    const addBtn = screen.getByRole('button', { name: /Thêm vào truyện/i });
+    const addBtn = screen.getByRole('button', { name: /Thêm vào/i });
     fireEvent.click(addBtn);
 
     await waitFor(() => {

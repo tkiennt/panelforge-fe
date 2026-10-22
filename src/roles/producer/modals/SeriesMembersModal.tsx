@@ -357,15 +357,17 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                   id='series-members-modal-title'
                   className='font-display font-bold text-base text-[#171717] tracking-tight'
                 >
-                  Đội ngũ sản xuất Series
+                  {t('members.modal.title', 'Đội ngũ sản xuất Series')}
                 </h3>
-                <span className='u285-ct text-xs'>{seriesMembers.length} thành viên</span>
+                <span className='u285-ct text-xs'>
+                  {t('members.modal.membersBadge', { count: seriesMembers.length }, `${seriesMembers.length} thành viên`)}
+                </span>
               </div>
               <p
                 id='series-members-modal-desc'
                 className='text-xs text-[#737373] font-mono leading-none mt-1 truncate max-w-xl'
               >
-                Bộ truyện: <span className='text-[#171717] font-semibold'>{seriesTitle}</span>
+                {t('members.modal.seriesSubtitle', { seriesTitle }, `Bộ truyện: ${seriesTitle}`)}
               </p>
             </div>
           </div>
@@ -444,15 +446,15 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                     </div>
                     <div>
                       <h4 className='text-xs font-bold text-[#171717] tracking-tight'>
-                        Nhân sự Workspace sẵn sàng
+                        {t('members.candidatePool.title', 'Thành viên trong Workspace')}
                       </h4>
                       <p className='text-[11px] text-[#737373]'>
-                        Chọn vai trò và thêm trực tiếp vào Series
+                        {t('members.candidatePool.subtitle', 'Chọn vai trò và thêm trực tiếp vào Series')}
                       </p>
                     </div>
                   </div>
                   <span className='text-[10.5px] font-mono px-2 py-0.5 rounded-md bg-white text-[#737373] font-semibold border border-[#E7E7E7] shrink-0'>
-                    {availableWorkspaceMembers.length} người sẵn sàng
+                    {t('members.candidatePool.countBadge', { count: availableWorkspaceMembers.length }, `${availableWorkspaceMembers.length} người`)}
                   </span>
                 </div>
 
@@ -461,7 +463,7 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                   <Search className='w-3.5 h-3.5 text-[#737373] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none' />
                   <input
                     type='text'
-                    placeholder='Tìm theo tên, email, chuyên môn tại Studio...'
+                    placeholder={t('members.candidatePool.searchPlaceholder', 'Tìm theo tên, email, vai trò...')}
                     value={candidateSearchQuery}
                     onChange={(e) => setCandidateSearchQuery(e.target.value)}
                     className='w-full h-8 pl-8 pr-7 text-xs rounded-lg border border-[#E7E7E7] bg-white text-[#171717] placeholder-[#737373] focus:outline-none focus:border-orange-500'
@@ -490,13 +492,13 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                     <CheckCircle2 className='w-9 h-9 text-emerald-600 mx-auto' />
                     <p className='text-xs font-semibold text-[#171717]'>
                       {candidateSearchQuery
-                        ? 'Không tìm thấy nhân sự phù hợp'
-                        : 'Tất cả nhân sự trong Workspace đã có mặt trong bộ truyện này!'}
+                        ? t('members.candidatePool.emptySearch', 'Không tìm thấy thành viên phù hợp')
+                        : t('members.candidatePool.emptyAllAssigned', 'Tất cả thành viên {workspaceName} đã được gán vào Series.')}
                     </p>
                     <p className='text-[11px] text-[#737373] max-w-xs mx-auto leading-relaxed'>
                       {candidateSearchQuery
-                        ? 'Thử tìm với từ khóa hoặc email khác.'
-                        : 'Để bổ sung thêm nhân sự mới, hãy mời thành viên vào Workspace Studio trước.'}
+                        ? t('members.candidatePool.emptySearchDesc', 'Hãy thử tìm với từ khóa hoặc email khác.')
+                        : t('members.candidatePool.emptyAllAssignedDesc', 'Mời thêm thành viên vào {workspaceName} để mở rộng đội ngũ.')}
                     </p>
                   </div>
                 ) : (
@@ -570,14 +572,14 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                             disabled={isAdding}
                             onClick={() => handleAddCandidateToSeries(candidate.userId)}
                             className='h-8 px-3.5 bg-[#171717] hover:bg-black active:scale-[0.98] disabled:bg-[#888888] text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs shrink-0 whitespace-nowrap'
-                            title='Thêm vào bộ truyện'
+                            title={t('members.candidatePool.addBtn', 'Thêm vào bộ truyện')}
                           >
                             {isAdding ? (
                               <Loader2 className='w-3.5 h-3.5 animate-spin' />
                             ) : (
                               <>
                                 <Plus className='w-3.5 h-3.5 text-orange-400' />
-                                <span>Thêm vào truyện</span>
+                                <span>{t('members.candidatePool.addBtn', 'Thêm vào bộ truyện')}</span>
                               </>
                             )}
                           </button>
@@ -600,15 +602,15 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                     </div>
                     <div>
                       <h4 className='text-xs font-bold text-[#171717] tracking-tight'>
-                        Thành viên trong bộ truyện
+                        {t('members.seriesRoster.title', 'Thành viên trong bộ truyện')}
                       </h4>
                       <p className='text-[11px] text-[#737373]'>
-                        Đang tham gia sản xuất và phân quyền trong Series
+                        {t('members.seriesRoster.subtitle', 'Đang tham gia sản xuất và phân quyền trong Series')}
                       </p>
                     </div>
                   </div>
                   <span className='text-[10.5px] font-mono px-2 py-0.5 rounded-md bg-white text-stone-800 font-bold border border-[#E7E7E7] shrink-0'>
-                    {seriesMembers.length} thành viên
+                    {t('members.seriesRoster.countBadge', { count: seriesMembers.length }, `${seriesMembers.length} thành viên`)}
                   </span>
                 </div>
 
@@ -618,7 +620,7 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                     <Search className='w-3.5 h-3.5 text-[#737373] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none' />
                     <input
                       type='text'
-                      placeholder='Tìm theo tên, email, vai trò...'
+                      placeholder={t('members.seriesRoster.searchPlaceholder', 'Tìm theo tên, email, vai trò...')}
                       value={seriesSearchQuery}
                       onChange={(e) => setSeriesSearchQuery(e.target.value)}
                       className='w-full h-8 pl-8 pr-7 text-xs rounded-lg border border-[#E7E7E7] bg-white text-[#171717] placeholder-[#737373] focus:outline-none focus:border-orange-500'
@@ -639,7 +641,7 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                     onChange={(e) => setFilterRole(e.target.value)}
                     className='h-8 px-2.5 text-xs font-semibold rounded-lg border border-[#E7E7E7] bg-white text-[#171717] focus:outline-none focus:border-orange-500 shrink-0 w-32 cursor-pointer'
                   >
-                    <option value='ALL'>Tất cả vai trò</option>
+                    <option value='ALL'>{t('members.seriesRoster.allRoles', 'Tất cả vai trò')}</option>
                     <option value='Producer'>Producer</option>
                     {SERIES_ROLES.map((r) => (
                       <option key={r.value} value={r.value}>
@@ -662,13 +664,13 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                     <Users className='w-9 h-9 text-stone-300 mx-auto' />
                     <p className='text-xs font-semibold text-[#171717]'>
                       {seriesSearchQuery || filterRole !== 'ALL'
-                        ? 'Không tìm thấy thành viên phù hợp'
-                        : 'Chưa có thành viên nào trong bộ truyện này'}
+                        ? t('members.seriesRoster.emptySearch', 'Không tìm thấy thành viên phù hợp')
+                        : t('members.seriesRoster.emptyRoster', 'Chưa có nhân sự trong Series.')}
                     </p>
                     <p className='text-[11px] text-[#737373] max-w-xs mx-auto leading-relaxed'>
                       {seriesSearchQuery || filterRole !== 'ALL'
-                        ? 'Hãy thử điều chỉnh bộ lọc tìm kiếm.'
-                        : 'Bấm nút "Thêm vào truyện" ở cột bên trái để gán nhân sự vào Series.'}
+                        ? t('members.seriesRoster.emptySearchDesc', 'Hãy thử điều chỉnh bộ lọc tìm kiếm.')
+                        : t('members.seriesRoster.emptyRosterDesc', 'Chọn vai trò và bấm "+ Thêm vào truyện" từ danh sách bên trái.')}
                     </p>
                   </div>
                 ) : (
@@ -722,7 +724,7 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                               {isProducer && (
                                 <span className='text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200 flex items-center gap-1 shrink-0'>
                                   <Crown className='w-2.5 h-2.5 text-amber-600' />
-                                  <span>Quản trị</span>
+                                  <span>{t('members.seriesRoster.producerAdminTag', 'Quản trị')}</span>
                                 </span>
                               )}
                               {m.joinedAt && (
@@ -758,14 +760,14 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                                 onClick={() => handleUpdateRole(m.userId, editingRole)}
                                 className='h-7 px-2.5 bg-[#047857] hover:bg-[#065F46] text-white rounded text-xs font-bold cursor-pointer'
                               >
-                                Lưu
+                                {t('members.seriesRoster.saveRole', 'Lưu')}
                               </button>
                               <button
                                 type='button'
                                 onClick={() => setEditingUserId(null)}
                                 className='h-7 px-2 bg-white text-[#525252] rounded text-xs font-semibold border border-[#E7E7E7] cursor-pointer'
                               >
-                                Hủy
+                                {t('members.seriesRoster.cancelRole', 'Hủy')}
                               </button>
                             </div>
                           ) : (
@@ -792,7 +794,7 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                                         setEditingRole(m.seriesRole || 'Artist');
                                       }}
                                       className='w-7 h-7 rounded-lg text-[#737373] hover:text-[#171717] hover:bg-white border border-transparent hover:border-[#E7E7E7] flex items-center justify-center transition-all cursor-pointer'
-                                      title='Đổi vai trò'
+                                      title={t('members.seriesRoster.changeRoleTooltip', 'Đổi vai trò')}
                                     >
                                       <Edit3 className='w-3.5 h-3.5' />
                                     </button>
@@ -801,7 +803,7 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                                       disabled={isRowActionLoading}
                                       onClick={() => handleRemoveMember(m)}
                                       className='w-7 h-7 rounded-lg text-[#737373] hover:text-[#DC2626] hover:bg-[#FEE2E2]/60 border border-transparent hover:border-[#FECACA] flex items-center justify-center transition-all cursor-pointer'
-                                      title='Rút khỏi bộ truyện'
+                                      title={t('members.seriesRoster.removeMemberTooltip', 'Rút khỏi bộ truyện')}
                                     >
                                       <Trash2 className='w-3.5 h-3.5' />
                                     </button>
@@ -809,7 +811,7 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                                 ) : (
                                   <span
                                     className='w-7 h-7 rounded-lg flex items-center justify-center text-amber-600'
-                                    title='Producer và Owner là thành viên quản trị mặc định'
+                                    title={t('members.seriesRoster.producerLockTooltip', 'Producer và Owner là thành viên quản trị mặc định')}
                                   >
                                     <Lock className='w-3.5 h-3.5 opacity-60' />
                                   </span>
@@ -832,9 +834,7 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
           <div className='flex items-center gap-2 text-xs text-[#737373]'>
             <span className='w-2 h-2 rounded-full bg-emerald-500 shrink-0 inline-block' />
             <span className='font-mono'>
-              Đang tham gia: <strong className='text-[#171717] font-semibold'>{seriesMembers.length}</strong> thành viên
-              {' • '}
-              Workspace còn <strong className='text-[#171717] font-semibold'>{availableWorkspaceMembers.length}</strong> nhân sự sẵn sàng
+              {t('members.footer.status', { seriesCount: seriesMembers.length, availableCount: availableWorkspaceMembers.length }, `Đang tham gia: ${seriesMembers.length}`)}
             </span>
           </div>
           <button
@@ -842,7 +842,7 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
             onClick={onClose}
             className='px-4 py-2 rounded-xl bg-[#FFFFFF] hover:bg-[#F3F1EB] active:scale-[0.98] border border-[#E7E7E7] text-[#171717] text-xs font-bold transition-all cursor-pointer shadow-2xs'
           >
-            Đóng
+            {t('members.footer.close', 'Đóng')}
           </button>
         </div>
       </div>
