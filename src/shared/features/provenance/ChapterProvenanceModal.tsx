@@ -32,8 +32,9 @@ import {
   shortHash,
   traceRevision,
 } from './provenanceRules';
+import { PageHistoryPanel } from './PageHistoryPanel';
 
-type Tab = 'snapshots' | 'provenance' | 'runs';
+type Tab = 'snapshots' | 'provenance' | 'runs' | 'pages';
 
 interface ChapterProvenanceModalProps {
   seriesId: string;
@@ -93,8 +94,8 @@ const str = (v: unknown): string | undefined =>
 
 /**
  * CF4: lịch sử và nguồn gốc nội dung của một chương. Bản duyệt (ChapterSnapshot, bất biến), Provenance Report
- * (UC-19, BR-10: agent, model, prompt, người quyết, mức sửa) và lịch sử AI run. Chỉ đọc: khôi phục script nằm ở
- * màn Script của Writer (ScriptHistoryModal).
+ * (UC-19, BR-10: agent, model, prompt, người quyết, mức sửa), lịch sử AI run và lịch sử canvas từng trang
+ * (PageHistoryPanel: so sánh, Producer/Artist khôi phục). Khôi phục script nằm ở màn Script của Writer (ScriptHistoryModal).
  */
 export const ChapterProvenanceModal: React.FC<ChapterProvenanceModalProps> = ({
   seriesId,
@@ -209,6 +210,7 @@ export const ChapterProvenanceModal: React.FC<ChapterProvenanceModalProps> = ({
         ]
       : []),
     { key: 'runs', label: 'Lịch sử AI', icon: <Bot className='w-3.5 h-3.5' /> },
+    { key: 'pages', label: 'Lịch sử trang', icon: <Clock className='w-3.5 h-3.5' /> },
   ];
 
   return (
@@ -570,6 +572,9 @@ export const ChapterProvenanceModal: React.FC<ChapterProvenanceModalProps> = ({
           )}
 
           {/* ════ Lịch sử AI ════ */}
+          {/* ════ Lịch sử canvas từng trang (CF4 4.3) ════ */}
+          {tab === 'pages' && <PageHistoryPanel chapterId={chapterId} viewerRole={viewerRole} />}
+
           {tab === 'runs' &&
             (runsError ? (
               <ErrorBox text={runsError} />

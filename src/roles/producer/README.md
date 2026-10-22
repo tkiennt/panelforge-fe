@@ -10,7 +10,7 @@ Giám đốc Sản xuất (Producer) chịu trách nhiệm vận hành Studio Wo
   - `DashboardView.tsx`: Màn hình tổng quan bộ truyện (Series Dashboard).
   - `MembersRolesView.tsx`: Quản lý thành viên và phân quyền trong Studio Workspace.
   - `SeriesMembersView.tsx`: Phân bổ nhân sự thực hiện từng bộ truyện cụ thể.
-  - `ExportView.tsx`: Quản lý tác vụ xuất bản, đóng gói file giao nộp.
+  - `ExportView.tsx`: Quản lý tác vụ xuất bản, đóng gói file giao nộp (PDF, CBZ, ảnh trang, webtoon, JSON kèm nguồn gốc `OPEN_JSON` có SHA-256 để kiểm chứng).
 
 ## 3. Modals nghiệp vụ
 - `CreateWorkspaceModal.tsx`: Tạo Studio Workspace mới.

@@ -4,8 +4,8 @@ import axiosClient from '../api/axiosClient';
 /** UC-12 / UC-14: xuất chương đã duyệt, chạy nền ở Backend. */
 export type ExportJobStatus = 'Queued' | 'Processing' | 'Completed' | 'Failed' | 'Cancelled';
 
-/** Mã ExportPreset Backend hỗ trợ dựng file. */
-export type ExportPresetCode = 'CBZ' | 'PDF' | 'PAGE_IMAGES' | 'WEBTOON';
+/** Mã ExportPreset Backend hỗ trợ dựng file. OPEN_JSON (CF4 4.6) = manifest bản duyệt + Provenance Report. */
+export type ExportPresetCode = 'CBZ' | 'PDF' | 'PAGE_IMAGES' | 'WEBTOON' | 'OPEN_JSON';
 
 export interface ExportJobDto {
   id: string;

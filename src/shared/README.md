@@ -15,6 +15,7 @@ Thư mục `src/shared/` chứa toàn bộ các màn hình (views), tính năng 
 - **`pipeline-board/`**: Bảng điều phối tiến độ sản xuất dạng Kanban qua các giai đoạn kịch bản, nét vẽ, màu sắc, thoại và phê duyệt (`WorkflowBoardView.tsx`, `KanbanBoard.tsx`, `KanbanColumn.tsx`, `TaskCard.tsx`, `SideDrawer.tsx`).
 - **`production-workspace/`**: Khung bàn làm việc sản xuất và trình biên tập tác vụ đa năng (`WorkspaceView.tsx`, `TaskEditorView.tsx`).
 - **`account/`**: Quản lý tài khoản cá nhân, xác thực hai lớp và đổi mật khẩu (`ChangePasswordModal.tsx`, `TwoFactorSetupModal.tsx`).
+- **`provenance/`** (CF4): Lịch sử & nguồn gốc chương: bản duyệt (snapshot), Provenance Report (Producer/Editor), lịch sử AI và lịch sử canvas từng trang có so sánh / khôi phục cho Producer, Artist (`ChapterProvenanceModal.tsx`, `PageHistoryPanel.tsx`, `provenanceRules.ts`).
 
 ### 2.3 UI Components (`src/shared/components/ui/`)
 Các khối giao diện nguyên tử có kiểm soát quyền truy cập:

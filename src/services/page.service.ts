@@ -145,4 +145,110 @@ export const pageService = {
       throw await toPageError(error, 'Xóa trang thất bại.');
     }
   },
+
+  /** CF4 4.3: event của stream canvas, mới nhất trước (tối đa 100/trang). */
+  getPageHistory: async (pageId: string, page = 1, pageSize = 50): Promise<PageHistoryDto> => {
+    try {
+      const response = await axiosClient.get(`/pages/${pageId}/history`, {
+        params: { page, pageSize },
+      });
+      return response.data;
+    } catch (error) {
+      throw await toPageError(error, 'Không tải được lịch sử trang.');
+    }
+  },
+
+  /** CF4 4.3: so sánh canvas giữa hai version theo elementId. */
+  comparePageVersions: async (
+    pageId: string,
+    left: number,
+    right: number,
+  ): Promise<PageVersionCompareDto> => {
+    try {
+      const response = await axiosClient.get(`/pages/${pageId}/compare`, {
+        params: { left, right },
+      });
+      return response.data;
+    } catch (error) {
+      throw await toPageError(error, 'Không so sánh được hai phiên bản.');
+    }
+  },
+
+  /** CF4 4.3 / US-12: khôi phục canvas về version cũ (thêm event mới). 409 CONFLICT khi trang vừa bị người khác sửa. */
+  restorePageVersion: async (
+    pageId: string,
+    version: number,
+    expectedPageVersion: number,
+  ): Promise<RestorePageVersionResult> => {
+    try {
+      const response = await axiosClient.post(`/pages/${pageId}/versions/${version}/restore`, {
+        expectedPageVersion,
+      });
+      return response.data;
+    } catch (error) {
+      throw await toPageError(error, 'Khôi phục phiên bản trang thất bại.');
+    }
+  },
 };
+
+// ── CF4 4.3: lịch sử canvas Page ─────────────────────────────────────────────
+
+export interface PageHistoryEntryDto {
+  version: number;
+  /** ElementAdded, ElementMoved, ElementRemoved, ElementRestored, PageCreated, ... */
+  eventType: string;
+  elementId?: string | null;
+  actorUserId?: string | null;
+  actorName?: string | null;
+  occurredAtUtc: string;
+  summary: string;
+}
+
+export interface PageHistoryDto {
+  pageId: string;
+  currentVersion: number;
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  items: PageHistoryEntryDto[];
+}
+
+export interface PageElementStateDto {
+  elementId: string;
+  elementType: string;
+  zIndex: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rotation: number;
+  content?: string | null;
+  renderedText?: string | null;
+}
+
+export interface PageElementDiffDto {
+  elementId: string;
+  elementType: string;
+  change: 'Added' | 'Removed' | 'Modified';
+  changedFields: string[];
+  left?: PageElementStateDto | null;
+  right?: PageElementStateDto | null;
+}
+
+export interface PageVersionCompareDto {
+  pageId: string;
+  left: number;
+  right: number;
+  canvasChanged: boolean;
+  added: number;
+  removed: number;
+  modified: number;
+  elements: PageElementDiffDto[];
+}
+
+export interface RestorePageVersionResult {
+  pageId: string;
+  restoredFromVersion: number;
+  newVersion: number;
+  changes: number;
+}

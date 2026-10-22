@@ -17,6 +17,12 @@ export const canViewProvenanceReport = (role?: string | null): boolean => {
   return r === 'PRODUCER' || r === 'EDITOR';
 };
 
+/** CF4 4.3 / US-12: chỉ Producer/Artist khôi phục canvas trang về bản cũ; mọi thành viên xem lịch sử. */
+export const canRestorePage = (role?: string | null): boolean => {
+  const r = normalizeRole(role);
+  return r === 'PRODUCER' || r === 'ARTIST';
+};
+
 export const EVENT_LABEL: Record<ProvenanceEventType, string> = {
   RunStarted: 'AI bắt đầu chạy',
   RunCompleted: 'AI chạy xong',
