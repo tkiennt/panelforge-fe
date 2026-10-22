@@ -584,35 +584,6 @@ export function AppShell({
     return null;
   };
 
-  const getAiBadgeConfig = (state: string) => {
-    switch (state) {
-      case 'active':
-        return {
-          icon: Sparkles,
-          color: 'bg-emerald-50 text-emerald-800 border-emerald-200/80',
-          dot: 'bg-emerald-500',
-          label: 'AI: Sẵn sàng',
-        };
-      case 'degraded':
-        return {
-          icon: AlertTriangle,
-          color: 'bg-amber-50 text-amber-800 border-amber-200/80',
-          dot: 'bg-amber-500 animate-pulse',
-          label: 'AI: Phản hồi chậm',
-        };
-      case 'unavailable':
-      default:
-        return {
-          icon: AlertCircle,
-          color: 'bg-rose-50 text-rose-800 border-rose-200/80',
-          dot: 'bg-rose-500',
-          label: 'AI: Ngoại tuyến',
-        };
-    }
-  };
-
-  const aiConfig = getAiBadgeConfig(aiState);
-
   return (
     <div className='h-screen w-full flex overflow-hidden text-[#1C1917] bg-[#F3F0E9]'>
       {/* --- MOBILE DRAWER (< md) --- */}
@@ -794,15 +765,6 @@ export function AppShell({
                 </span>
               </button>
             )}
-
-            {/* AI Status Badge */}
-            <div
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border shadow-soft-sm ${aiConfig.color}`}
-              title={aiConfig.label}
-            >
-              <span className={`w-2 h-2 rounded-full ${aiConfig.dot}`} />
-              <span className='font-mono text-xs hidden sm:inline'>{aiConfig.label}</span>
-            </div>
 
             {/* Chuyển đổi ngôn ngữ VI / EN */}
             <LanguageSwitcher />
