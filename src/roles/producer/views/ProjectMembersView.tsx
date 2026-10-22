@@ -107,10 +107,11 @@ export const ProjectMembersView: React.FC<ProjectMembersViewProps> = ({ projects
 
   const handleRemoveMember = async (member: SeriesMemberDto) => {
     if (!selectedProject) return;
+    const memberName = member.fullName || member.email;
     const confirmed = await confirm({
-      title: 'Xóa thành viên khỏi dự án?',
-      description: `Bạn có chắc chắn muốn xóa thành viên "${member.fullName || member.email}" khỏi dự án "${selectedProject.title}"?`,
-      confirmText: 'Xác nhận xóa',
+      title: 'Rút nhân sự khỏi bộ truyện?',
+      description: `Bạn có chắc muốn rút "${memberName}" khỏi bộ truyện "${selectedProject.title}"? Nhân sự sẽ trở lại danh sách sẵn sàng của Workspace.`,
+      confirmText: 'Xác nhận rút',
       cancelText: 'Giữ lại',
       variant: 'danger',
     });
@@ -119,12 +120,12 @@ export const ProjectMembersView: React.FC<ProjectMembersViewProps> = ({ projects
       try {
         await seriesService.removeSeriesMember(workspaceId, String(selectedProject.id), member.userId);
         toast.success(
-          'Đã xóa thành viên',
-          `Đã loại "${member.fullName || member.email}" khỏi dự án.`,
+          'Đã cập nhật danh sách',
+          `"${memberName}" đã trở về danh sách sẵn sàng của Studio.`,
         );
         await loadSeriesMembers(String(selectedProject.id));
       } catch (err: any) {
-        toast.error('Xóa thành viên thất bại', err.message || 'Không thể xóa thành viên khỏi dự án.');
+        toast.error('Thao tác thất bại', err.message || 'Không thể rút nhân sự khỏi bộ truyện.');
       }
     }
     setOpenActionMenuId(null);
@@ -137,9 +138,9 @@ export const ProjectMembersView: React.FC<ProjectMembersViewProps> = ({ projects
     return (
       <div className='p-6 h-full flex flex-col bg-[#FAF8F4] overflow-y-auto custom-scrollbar'>
         <div className='mb-6'>
-          <h1 className='text-2xl font-bold text-[#171717]'>Chọn dự án</h1>
+          <h1 className='text-2xl font-bold text-[#171717]'>Chọn bộ truyện</h1>
           <p className='text-sm text-gray-500 mt-1'>
-            Chọn một dự án bên dưới để xem và quản lý nhân sự
+            Chọn một bộ truyện bên dưới để xem và quản lý đội ngũ sản xuất
           </p>
         </div>
 
@@ -182,16 +183,16 @@ export const ProjectMembersView: React.FC<ProjectMembersViewProps> = ({ projects
         onClick={() => setSelectedProject(null)}
         className='flex items-center gap-2 text-sm text-gray-500 hover:text-[#171717] transition w-fit mb-4 cursor-pointer'
       >
-        <ArrowLeft className='w-4 h-4' /> Quay lại danh sách dự án
+        <ArrowLeft className='w-4 h-4' /> Quay lại danh sách bộ truyện
       </button>
 
       <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6'>
         <div>
           <h1 className='text-2xl font-bold text-[#171717]'>
-            Nhân sự: <span className='text-[#F97316]'>{selectedProject.title}</span>
+            Đội ngũ: <span className='text-[#F97316]'>{selectedProject.title}</span>
           </h1>
           <p className='text-sm text-gray-500 mt-1'>
-            Quản lý đội ngũ sản xuất và phân quyền vai trò cho dự án này
+            Quản lý đội ngũ sản xuất và phân công vai trò cho bộ truyện này
           </p>
         </div>
         <button
@@ -199,7 +200,7 @@ export const ProjectMembersView: React.FC<ProjectMembersViewProps> = ({ projects
           className='flex items-center gap-2 bg-[#F97316] text-white px-4 py-2 rounded-lg hover:bg-[#EA580C] transition shadow-sm cursor-pointer shrink-0'
         >
           <UserPlus className='w-4 h-4' />
-          <span>Gán nhân sự vào Series</span>
+          <span>Quản lý đội ngũ Series</span>
         </button>
       </div>
 
@@ -207,7 +208,7 @@ export const ProjectMembersView: React.FC<ProjectMembersViewProps> = ({ projects
         <div className='p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50'>
           <input
             type='text'
-            placeholder='Tìm kiếm thành viên...'
+            placeholder='Tìm thành viên...'
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className='w-1/3 px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-[#F97316] text-sm bg-white'
@@ -323,7 +324,7 @@ export const ProjectMembersView: React.FC<ProjectMembersViewProps> = ({ projects
                               onClick={() => handleRemoveMember(member)}
                               className='w-full px-4 py-2.5 text-xs text-red-600 hover:bg-red-50 flex items-center gap-2 border-t border-gray-100 transition-colors cursor-pointer'
                             >
-                              <Trash2 className='w-3.5 h-3.5' /> Xóa khỏi dự án
+                              <Trash2 className='w-3.5 h-3.5' /> Rút khỏi bộ truyện
                             </button>
                           </div>
                         )}
@@ -333,7 +334,7 @@ export const ProjectMembersView: React.FC<ProjectMembersViewProps> = ({ projects
                 ) : (
                   <tr>
                     <td colSpan={4} className='p-8 text-center text-gray-500 text-sm'>
-                      Chưa có thành viên nào trong dự án này. Hãy bấm "Gán nhân sự vào Series" để thêm từ Workspace Talent Pool.
+                      Chưa có nhân sự trong bộ truyện này. Bấm "Quản lý đội ngũ Series" để bổ sung nhân sự.
                     </td>
                   </tr>
                 )}

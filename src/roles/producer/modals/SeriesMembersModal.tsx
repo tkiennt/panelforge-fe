@@ -31,6 +31,7 @@ import {
 } from '@/services/workspace.service';
 import { useConfirm } from '@/shared/context/ConfirmContext';
 import { useToast } from '@/shared/context/ToastContext';
+import { useTranslation } from '@/lib/i18n';
 import '@/styles/modules/lucian/lucian-285.css';
 
 export interface SeriesMembersModalProps {
@@ -62,6 +63,7 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
 }) => {
   const confirm = useConfirm();
   const toast = useToast();
+  const { t } = useTranslation();
 
   const [loading, setLoading] = useState(false);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
