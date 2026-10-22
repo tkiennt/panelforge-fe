@@ -225,12 +225,12 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
       setStatusAlert({
         type: 'success',
         title: 'Bổ sung nhân sự thành công',
-        message: `Đã thêm "${memberName}" vào đội ngũ Series với vai trò ${roleToAdd}.`,
+        message: `Đã thêm "${memberName}" vào đội ngũ "${seriesTitle}".`,
       });
 
       toast.success(
         'Bổ sung nhân sự thành công',
-        `Đã thêm "${memberName}" vào đội ngũ Series với vai trò ${roleToAdd}.`,
+        `Đã thêm "${memberName}" vào đội ngũ "${seriesTitle}".`,
       );
       await loadData();
       onMembersChanged?.();
@@ -282,11 +282,11 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
     if (isProducer) {
       setStatusAlert({
         type: 'warning',
-        title: 'Không thể gỡ thành viên',
+        title: 'Không thể xóa thành viên',
         message: 'Producer và Owner của Workspace luôn mặc định là thành viên quản trị Series.',
       });
       toast.warning(
-        'Không thể gỡ',
+        'Không thể xóa thành viên',
         'Producer và Owner của Workspace luôn mặc định là thành viên quản trị Series.',
       );
       return;
@@ -295,9 +295,9 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
     const memberName = member.fullName?.trim() || member.email?.split('@')[0] || 'nhân sự';
 
     const confirmed = await confirm({
-      title: 'Rút nhân sự khỏi bộ truyện?',
-      description: `Bạn có chắc muốn rút "${memberName}" khỏi bộ truyện "${seriesTitle}"? Nhân sự sẽ trở lại danh sách sẵn sàng của Workspace.`,
-      confirmText: 'Xác nhận rút',
+      title: 'Xóa nhân sự khỏi bộ truyện?',
+      description: `Bạn có chắc muốn xóa "${memberName}" khỏi bộ truyện "${seriesTitle}"? Nhân sự sẽ trở lại danh sách sẵn sàng của Workspace.`,
+      confirmText: 'Xác nhận xóa',
       cancelText: 'Giữ lại',
       variant: 'danger',
     });
@@ -309,10 +309,10 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
       await seriesService.removeSeriesMember(workspaceId, seriesId, member.userId);
       setStatusAlert({
         type: 'info',
-        title: 'Đã rút nhân sự khỏi Series',
-        message: `"${memberName}" đã được chuyển về danh sách nhân sự sẵn sàng của Studio.`,
+        title: `Đã xóa thành viên khỏi "${seriesTitle}"`,
+        message: `"${memberName}" đã được xóa khỏi "${seriesTitle}".`,
       });
-      toast.success('Đã cập nhật danh sách', `"${memberName}" đã trở về danh sách sẵn sàng của Studio`);
+      toast.success('Đã cập nhật danh sách', `"${memberName}" đã được xóa khỏi "${seriesTitle}".`);
       await loadData();
       onMembersChanged?.();
     } catch (err: any) {

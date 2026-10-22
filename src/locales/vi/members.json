@@ -9,11 +9,11 @@
     "subtitle": "Chọn vai trò và thêm trực tiếp vào Series",
     "countBadge": "{count} người",
     "searchPlaceholder": "Tìm theo tên, email, vai trò...",
-    "addBtn": "Thêm vào truyện",
+    "addBtn": "Thêm vào bộ truyện",
     "emptySearch": "Không tìm thấy thành viên phù hợp",
-    "emptySearchDesc": "Thử tìm với từ khóa hoặc email khác.",
-    "emptyAllAssigned": "Tất cả thành viên Workspace đã được gán vào Series.",
-    "emptyAllAssignedDesc": "Mời thêm thành viên vào Workspace Studio để mở rộng đội ngũ."
+    "emptySearchDesc": "Hãy thử tìm với từ khóa hoặc email khác.",
+    "emptyAllAssigned": "Tất cả thành viên {workspaceName} đã được gán vào Series.",
+    "emptyAllAssignedDesc": "Mời thêm thành viên vào {workspaceName} để mở rộng đội ngũ."
   },
   "seriesRoster": {
     "title": "Thành viên trong bộ truyện",
@@ -34,25 +34,25 @@
   },
   "alerts": {
     "addSuccessTitle": "Bổ sung nhân sự thành công",
-    "addSuccessMsg": "Đã thêm \"{name}\" vào đội ngũ Series với vai trò {role}.",
+    "addSuccessMsg": "Đã thêm \"{name}\" vào đội ngũ \"{seriesTitle}\".",
     "addErrorTitle": "Không thể thêm nhân sự",
     "updateRoleSuccessTitle": "Cập nhật vai trò thành công",
     "updateRoleSuccessMsg": "Đã đổi vai trò của \"{name}\" thành {role}.",
     "updateRoleErrorTitle": "Cập nhật thất bại",
-    "removeSuccessTitle": "Đã rút nhân sự khỏi Series",
-    "removeSuccessMsg": "\"{name}\" đã được chuyển về danh sách nhân sự sẵn sàng của Studio.",
+    "removeSuccessTitle": "Đã xóa thành viên khỏi \"{seriesTitle}\"",
+    "removeSuccessMsg": "\"{name}\" đã được xóa khỏi \"{seriesTitle}\".",
     "removeErrorTitle": "Thao tác không thành công",
-    "cannotRemoveProducerTitle": "Không thể gỡ thành viên",
+    "cannotRemoveProducerTitle": "Không thể xóa thành viên",
     "cannotRemoveProducerMsg": "Producer và Owner của Workspace luôn mặc định là thành viên quản trị Series."
   },
   "confirms": {
-    "removeMemberTitle": "Rút nhân sự khỏi bộ truyện?",
-    "removeMemberDesc": "Bạn có chắc muốn rút \"{name}\" khỏi bộ truyện \"{seriesTitle}\"? Nhân sự sẽ trở lại danh sách sẵn sàng của Workspace.",
-    "confirmRemoveBtn": "Xác nhận rút",
+    "removeMemberTitle": "Xóa nhân sự khỏi bộ truyện?",
+    "removeMemberDesc": "Bạn có chắc muốn xóa \"{name}\" khỏi bộ truyện \"{seriesTitle}\"? Nhân sự sẽ trở lại danh sách sẵn sàng của Workspace.",
+    "confirmRemoveBtn": "Xác nhận xóa",
     "cancelBtn": "Giữ lại"
   },
   "footer": {
-    "status": "Đang tham gia: {seriesCount} • Sẵn sàng: {availableCount}",
+    "status": "Đang tham gia: {seriesCount}",
     "close": "Đóng"
   },
   "roles": {
