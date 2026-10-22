@@ -225,6 +225,12 @@ export const SeriesBurndownCard: React.FC<SeriesBurndownCardProps> = ({
             <TrendingUp className='w-4 h-4 text-[#F97316]' />
             <span>Công việc còn lại theo thời gian</span>
             <span className='text-xs font-normal text-zinc-500'>(Biểu Đồ Burndown)</span>
+            <span
+              title='Định nghĩa: Số việc còn lại = Tổng nhiệm vụ trừ đi các nhiệm vụ đã được duyệt (Approved) tính đến cuối mỗi ngày (UTC).'
+              className='inline-flex cursor-help text-zinc-400 hover:text-[#F97316] transition-colors'
+            >
+              <Info className='w-3.5 h-3.5' />
+            </span>
           </h2>
           <p className='text-xs text-zinc-500'>Toàn bộ bộ truyện · Số công việc chưa hoàn tất</p>
         </div>
@@ -301,9 +307,9 @@ export const SeriesBurndownCard: React.FC<SeriesBurndownCardProps> = ({
 
       {/* 3. Vùng biểu đồ (Chart area) */}
       {!chartModel || filteredList.length === 0 ? (
-        <div className='py-12 text-center text-xs text-zinc-500 bg-zinc-50/50 rounded-xl border border-dashed border-zinc-200 space-y-2 p-6'>
-          <div className='w-10 h-10 rounded-full bg-orange-50 text-[#F97316] flex items-center justify-center mx-auto'>
-            <Calendar className='w-5 h-5' />
+        <div className='py-8 text-center text-xs text-zinc-500 bg-zinc-50/50 rounded-xl border border-dashed border-zinc-200 space-y-2 px-4'>
+          <div className='w-9 h-9 rounded-full bg-orange-50 text-[#F97316] flex items-center justify-center mx-auto'>
+            <Calendar className='w-4.5 h-4.5' />
           </div>
           <p className='font-semibold text-zinc-900 text-xs'>
             Chưa có dữ liệu lịch sử trong khoảng thời gian này
@@ -487,24 +493,7 @@ export const SeriesBurndownCard: React.FC<SeriesBurndownCardProps> = ({
         </div>
       )}
 
-      {/* 4. Ghi chú minh bạch về định nghĩa dữ liệu (Chống hiểu lầm) */}
-      <div className='text-[11px] text-[#57534E] bg-[#FAF8F5] p-3 rounded-lg border border-[#D8D2C5] space-y-1.5'>
-        <div className='flex items-start gap-1.5'>
-          <Info className='w-3.5 h-3.5 text-[#F97316] mt-0.5 shrink-0' />
-          <div className='space-y-0.5'>
-            <p className='text-[#1C1917]'>
-              <strong>Định nghĩa số liệu:</strong> Số việc còn lại = Tổng nhiệm vụ được tạo trừ đi
-              nhiệm vụ đã được duyệt (Approved) tính đến cuối mỗi ngày (UTC).
-            </p>
-            <p className='text-[#57534E] text-[10px] leading-relaxed'>
-              Số công việc có thể tăng khi giao việc mới hoặc mở lại việc cần sửa. Khối phân công
-              bên cạnh phản ánh số việc thành viên đang phụ trách trực tiếp.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* 5. Khả năng truy cập: Xem dữ liệu chi tiết dạng bảng thu gọn */}
+      {/* 4. Khả năng truy cập: Xem dữ liệu chi tiết dạng bảng thu gọn */}
       {filteredList.length > 0 && (
         <details className='border-t border-[#D8D2C5] pt-2 text-xs group'>
           <summary className='cursor-pointer text-[#57534E] hover:text-[#1C1917] flex items-center gap-1.5 font-medium py-1 select-none focus:outline-none focus:ring-1 focus:ring-orange-500 rounded'>

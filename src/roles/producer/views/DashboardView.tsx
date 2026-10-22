@@ -1879,20 +1879,49 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   </div>
 
                   {!progress?.workload || progress.workload.length === 0 ? (
-                    <div className='py-8 text-center text-xs text-zinc-500 bg-zinc-50/50 rounded-xl border border-dashed border-zinc-200 mt-4 space-y-2'>
-                      <p>
-                        {seriesMembers.length > 0
-                          ? `Bộ truyện đã có ${seriesMembers.length} thành viên nhưng chưa có phân công nào đang mở.`
-                          : 'Chưa có nhân sự nào được gán vào bộ truyện này.'}
-                      </p>
-                      <button
-                        type='button'
-                        onClick={() => setIsMembersModalOpen(true)}
-                        className='inline-flex items-center gap-1 px-3 py-1.5 bg-[#F97316] hover:bg-[#EA580C] text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer'
-                      >
-                        <UserPlus className='w-3.5 h-3.5' />
-                        <span>{seriesMembers.length > 0 ? 'Xem đội ngũ Series' : 'Gán thành viên từ Workspace'}</span>
-                      </button>
+                    <div className='py-8 text-center text-xs text-zinc-500 bg-zinc-50/50 rounded-xl border border-dashed border-zinc-200 mt-4 space-y-3 px-4'>
+                      <div className='w-9 h-9 rounded-full bg-zinc-100 text-zinc-400 flex items-center justify-center mx-auto'>
+                        <Users className='w-4.5 h-4.5' />
+                      </div>
+                      <div className='space-y-1'>
+                        <p className='font-semibold text-zinc-800 text-xs'>
+                          {seriesMembers.length > 0
+                            ? `Đội ngũ sẵn sàng (${seriesMembers.length} thành viên) · Chưa có phân công đang mở`
+                            : 'Chưa có nhân sự được phân công vào Series'}
+                        </p>
+                        <p className='text-[11px] text-zinc-400 max-w-xs mx-auto'>
+                          {seriesMembers.length > 0
+                            ? 'Giao nhiệm vụ vẽ/lên kịch bản cho nghệ sĩ để bắt đầu theo dõi khối lượng công việc.'
+                            : 'Gán thành viên vào ban sản xuất để phân bổ trang và panel.'}
+                        </p>
+                      </div>
+                      <div className='pt-1'>
+                        {seriesMembers.length > 0 && selectedChapter ? (
+                          <button
+                            type='button'
+                            onClick={() => {
+                              setAssignModalChapter({
+                                id: selectedChapter.chapterId,
+                                number: selectedChapter.chapterNumber,
+                              });
+                              setIsAssignModalOpen(true);
+                            }}
+                            className='inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#F97316] hover:bg-[#EA580C] text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer shadow-2xs'
+                          >
+                            <UserPlus className='w-3.5 h-3.5' />
+                            <span>Giao việc mới (Chương {selectedChapter.chapterNumber})</span>
+                          </button>
+                        ) : (
+                          <button
+                            type='button'
+                            onClick={() => setIsMembersModalOpen(true)}
+                            className='inline-flex items-center gap-1.5 px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer shadow-2xs'
+                          >
+                            <UserPlus className='w-3.5 h-3.5' />
+                            <span>Gán thành viên vào Series</span>
+                          </button>
+                        )}
+                      </div>
                     </div>
                   ) : (
                     <div className='space-y-2.5 mt-4'>
@@ -1953,10 +1982,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     </div>
                   )}
                 </div>
-
-                <p className='text-xs text-zinc-500 font-sans text-center mt-3 pt-2 border-t border-zinc-100'>
-                  Số lượng nhiệm vụ được gán, không phản ánh độ dài hay độ khó của từng panel
-                </p>
               </div>
             </div>
           )}
