@@ -504,7 +504,20 @@ export const seriesService = {
     if (!seriesId) return [];
     try {
       const res = await axiosClient.get(`/series/${seriesId}/members`);
-      return res.data || [];
+      const list = res.data || [];
+      return list.map((item: any) => {
+        const rawRole = item.seriesRole ?? item.role ?? item.studioRole ?? 'Artist';
+        const roleStr =
+          typeof rawRole === 'number'
+            ? ['Producer', 'Writer', 'Artist', 'Letterer', 'Editor', 'Publisher'][rawRole] || 'Artist'
+            : String(rawRole || 'Artist');
+        return {
+          ...item,
+          seriesRole: roleStr,
+          role: roleStr,
+          joinedAt: item.joinedAt || item.assignedAt || new Date().toISOString(),
+        };
+      });
     } catch (err: any) {
       if (err.response?.status === 404) return [];
       throw new Error(extractError(err, 'Không thể tải danh sách thành viên bộ truyện'));
@@ -521,7 +534,18 @@ export const seriesService = {
         userId: req.userId,
         role: req.seriesRole,
       });
-      return res.data;
+      const item = res.data || {};
+      const rawRole = item.seriesRole ?? item.role ?? req.seriesRole ?? 'Artist';
+      const roleStr =
+        typeof rawRole === 'number'
+          ? ['Producer', 'Writer', 'Artist', 'Letterer', 'Editor', 'Publisher'][rawRole] || 'Artist'
+          : String(rawRole || 'Artist');
+      return {
+        ...item,
+        seriesRole: roleStr,
+        role: roleStr,
+        joinedAt: item.joinedAt || item.assignedAt || new Date().toISOString(),
+      };
     } catch (err: any) {
       throw new Error(extractError(err, 'Không thể thêm thành viên vào bộ truyện'));
     }
@@ -537,7 +561,18 @@ export const seriesService = {
       const res = await axiosClient.put(`/series/${seriesId}/members/${userId}`, {
         role: req.seriesRole,
       });
-      return res.data;
+      const item = res.data || {};
+      const rawRole = item.seriesRole ?? item.role ?? req.seriesRole ?? 'Artist';
+      const roleStr =
+        typeof rawRole === 'number'
+          ? ['Producer', 'Writer', 'Artist', 'Letterer', 'Editor', 'Publisher'][rawRole] || 'Artist'
+          : String(rawRole || 'Artist');
+      return {
+        ...item,
+        seriesRole: roleStr,
+        role: roleStr,
+        joinedAt: item.joinedAt || item.assignedAt || new Date().toISOString(),
+      };
     } catch (err: any) {
       throw new Error(extractError(err, 'Không thể cập nhật vai trò thành viên'));
     }

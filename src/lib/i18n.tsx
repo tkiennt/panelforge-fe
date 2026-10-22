@@ -28,6 +28,8 @@ import viAdmin from '@/locales/vi/admin.json';
 import enAdmin from '@/locales/en/admin.json';
 import viLanding from '@/locales/vi/landing.json';
 import enLanding from '@/locales/en/landing.json';
+import viMembers from '@/locales/vi/members.json';
+import enMembers from '@/locales/en/members.json';
 
 export type SupportedLanguage = 'vi' | 'en';
 
@@ -46,6 +48,7 @@ export const DICTIONARIES = {
     publisher: viPublisher,
     admin: viAdmin,
     landing: viLanding,
+    members: viMembers,
   },
   en: {
     common: enCommon,
@@ -61,6 +64,7 @@ export const DICTIONARIES = {
     publisher: enPublisher,
     admin: enAdmin,
     landing: enLanding,
+    members: enMembers,
   },
 } as const;
 

@@ -541,6 +541,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
 
           {/* Submit Button */}
           <button
+            id='login-submit-btn'
             type='submit'
             disabled={isLoading}
             aria-busy={isLoading}

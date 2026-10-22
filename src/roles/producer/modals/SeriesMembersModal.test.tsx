@@ -17,6 +17,7 @@ vi.mock('@/services/series.service', () => ({
 vi.mock('@/services/workspace.service', () => ({
   workspaceService: {
     getMembers: vi.fn(),
+    getWorkspaceById: vi.fn().mockResolvedValue({ id: 'ws-1', name: 'Studio Workspace' }),
   },
 }));
 
@@ -116,7 +117,7 @@ describe('SeriesMembersModal - Phân quyền và gán nhân sự 2 cấp', () =>
     );
 
     await waitFor(() => {
-      expect(screen.getByText(/1 người sẵn sàng/i)).toBeInTheDocument();
+      expect(screen.getByText(/1 người/i)).toBeInTheDocument();
     });
 
     // Check Tatsuki Fujimoto hiển thị trực quan trong danh sách sẵn sàng
@@ -139,7 +140,7 @@ describe('SeriesMembersModal - Phân quyền và gán nhân sự 2 cấp', () =>
       expect(screen.getByText('Tatsuki Fujimoto')).toBeInTheDocument();
     });
 
-    const addBtn = screen.getByRole('button', { name: /Thêm vào truyện/i });
+    const addBtn = screen.getByRole('button', { name: /Thêm thành viên/i });
     fireEvent.click(addBtn);
 
     await waitFor(() => {
@@ -165,7 +166,7 @@ describe('SeriesMembersModal - Phân quyền và gán nhân sự 2 cấp', () =>
       expect(screen.getByText('Aka Akasaka')).toBeInTheDocument();
     });
 
-    const deleteBtn = screen.getByTitle(/Rút khỏi bộ truyện|Xóa khỏi bộ truyện/i);
+    const deleteBtn = screen.getByTitle(/Xóa thành viên/i);
     fireEvent.click(deleteBtn);
 
     await waitFor(() => {
@@ -176,4 +177,75 @@ describe('SeriesMembersModal - Phân quyền và gán nhân sự 2 cấp', () =>
       );
     });
   });
+
+  it('không hiển thị nút xóa và nút đổi role cho thành viên Producer', async () => {
+    vi.mocked(seriesService.getSeriesMembers).mockResolvedValue([
+      ...mockSeriesMembers,
+      {
+        id: 'sm-producer',
+        seriesId: 'series-123',
+        userId: 'user-producer',
+        fullName: 'Makoto Shinkai',
+        email: 'shinkai@studio.com',
+        avatarUrl: null,
+        seriesRole: 'Producer',
+        joinedAt: '2026-10-01T00:00:00Z',
+      },
+    ]);
+
+    render(
+      <SeriesMembersModal
+        isOpen={true}
+        workspaceId='ws-1'
+        seriesId='series-123'
+        seriesTitle='Chainsaw Man'
+        onClose={vi.fn()}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Makoto Shinkai')).toBeInTheDocument();
+    });
+
+    // Makoto Shinkai có badge Quản trị và lock icon
+    expect(screen.getByText('Quản trị')).toBeInTheDocument();
+    expect(
+      screen.getByTitle('Producer là thành viên quản trị mặc định (không thể sửa hoặc xóa)'),
+    ).toBeInTheDocument();
+
+    // Chỉ có 1 nút "Đổi vai trò" và 1 nút "Xóa thành viên" (dành riêng cho Aka Akasaka, không có của Makoto Shinkai)
+    expect(screen.getAllByTitle(/Đổi vai trò/i)).toHaveLength(1);
+    expect(screen.getAllByTitle(/Xóa thành viên/i)).toHaveLength(1);
+  });
+
+  it('hiển thị chính xác tên Workspace khi toàn bộ thành viên đã được gán vào Series (không để lộ {workspaceName})', async () => {
+    // Tất cả thành viên workspace (Aka Akasaka) đều đã nằm trong seriesMembers
+    vi.mocked(seriesService.getSeriesMembers).mockResolvedValue([...mockSeriesMembers]);
+    vi.mocked(workspaceService.getMembers).mockResolvedValue([mockWorkspaceMembers[0]]); // user-writer
+
+    render(
+      <SeriesMembersModal
+        isOpen={true}
+        workspaceId='ws-1'
+        workspaceName='Manga Studio Pro'
+        seriesId='series-123'
+        seriesTitle='Chainsaw Man'
+        onClose={vi.fn()}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('Tất cả thành viên Manga Studio Pro đã được gán vào Series.'),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText('Mời thêm thành viên vào Manga Studio Pro để mở rộng đội ngũ.'),
+      ).toBeInTheDocument();
+    });
+
+    // Tuyệt đối không để lộ placeholder {workspaceName}
+    expect(screen.queryByText(/\{workspaceName\}/i)).not.toBeInTheDocument();
+  });
 });
+
+

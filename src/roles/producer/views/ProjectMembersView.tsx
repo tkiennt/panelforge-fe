@@ -9,12 +9,15 @@ import {
   FolderKanban,
   Loader2,
   Edit,
+  Lock,
 } from 'lucide-react';
 import { MangaProject } from '../../../types';
 import { useConfirm } from '@/shared/context/ConfirmContext';
 import { useToast } from '@/shared/context/ToastContext';
+import { useTranslation } from '@/lib/i18n';
 import { seriesService, SeriesMemberDto } from '@/services/series.service';
-import { SeriesMembersModal } from '../modals/SeriesMembersModal';
+import { workspaceService, WorkspaceMemberDto } from '@/services/workspace.service';
+import { SeriesMembersModal, isProducerMember } from '../modals/SeriesMembersModal';
 
 interface ProjectMembersViewProps {
   projects: MangaProject[]; // Nhận toàn bộ danh sách dự án
@@ -25,6 +28,7 @@ const SERIES_ROLES = ['Writer', 'Artist', 'Letterer', 'Editor', 'Publisher'];
 export const ProjectMembersView: React.FC<ProjectMembersViewProps> = ({ projects }) => {
   const confirm = useConfirm();
   const toast = useToast();
+  const { t } = useTranslation();
 
   // STATE ĐIỀU HƯỚNG: null = Đang ở màn hình chọn dự án, có data = Đang xem thành viên dự án đó
   const [selectedProject, setSelectedProject] = useState<MangaProject | null>(null);
@@ -53,12 +57,21 @@ export const ProjectMembersView: React.FC<ProjectMembersViewProps> = ({ projects
 
   // Danh sách thành viên thực tế của Series
   const [members, setMembers] = useState<SeriesMemberDto[]>([]);
+  const [workspaceMembers, setWorkspaceMembers] = useState<WorkspaceMemberDto[]>([]);
 
   const loadSeriesMembers = async (seriesId: string) => {
     setLoading(true);
     try {
-      const data = await seriesService.getSeriesMembers(workspaceId, seriesId);
+      const wsMembersPromise = workspaceId
+        ? workspaceService.getMembers(workspaceId).catch(() => [])
+        : Promise.resolve([]);
+
+      const [data, wsData] = await Promise.all([
+        seriesService.getSeriesMembers(workspaceId, seriesId),
+        wsMembersPromise,
+      ]);
       setMembers(data || []);
+      setWorkspaceMembers(wsData || []);
     } catch (err: any) {
       toast.error('Lỗi tải nhân sự', err.message || 'Không thể tải danh sách thành viên');
     } finally {
@@ -92,6 +105,13 @@ export const ProjectMembersView: React.FC<ProjectMembersViewProps> = ({ projects
 
   const handleChangeRole = async (userId: string, newRole: string) => {
     if (!selectedProject) return;
+    const targetMember = members.find((m) => m.userId === userId);
+    if (targetMember && isProducerMember(targetMember, workspaceMembers)) {
+      toast.warning('Không thể thay đổi', 'Producer là thành viên quản trị mặc định (không thể sửa vai trò).');
+      setEditingUserId(null);
+      setOpenActionMenuId(null);
+      return;
+    }
     try {
       await seriesService.updateSeriesMember(workspaceId, String(selectedProject.id), userId, {
         seriesRole: newRole,
@@ -107,11 +127,18 @@ export const ProjectMembersView: React.FC<ProjectMembersViewProps> = ({ projects
 
   const handleRemoveMember = async (member: SeriesMemberDto) => {
     if (!selectedProject) return;
+    const isProducer = isProducerMember(member, workspaceMembers);
+    if (isProducer) {
+      toast.warning('Không thể xóa', 'Producer là thành viên quản trị mặc định của Series (không thể xóa).');
+      return;
+    }
+
+    const memberName = member.fullName || member.email;
     const confirmed = await confirm({
-      title: 'Xóa thành viên khỏi dự án?',
-      description: `Bạn có chắc chắn muốn xóa thành viên "${member.fullName || member.email}" khỏi dự án "${selectedProject.title}"?`,
-      confirmText: 'Xác nhận xóa',
-      cancelText: 'Giữ lại',
+      title: 'Xóa thành viên?',
+      description: `Bạn có chắc muốn xóa "${memberName}" khỏi bộ truyện "${selectedProject.title}"?`,
+      confirmText: 'Xóa thành viên',
+      cancelText: 'Hủy',
       variant: 'danger',
     });
 
@@ -120,11 +147,11 @@ export const ProjectMembersView: React.FC<ProjectMembersViewProps> = ({ projects
         await seriesService.removeSeriesMember(workspaceId, String(selectedProject.id), member.userId);
         toast.success(
           'Đã xóa thành viên',
-          `Đã loại "${member.fullName || member.email}" khỏi dự án.`,
+          `Đã xóa "${memberName}" khỏi "${selectedProject.title}".`,
         );
         await loadSeriesMembers(String(selectedProject.id));
       } catch (err: any) {
-        toast.error('Xóa thành viên thất bại', err.message || 'Không thể xóa thành viên khỏi dự án.');
+        toast.error('Xóa thành viên thất bại', err.message || 'Không thể xóa thành viên khỏi bộ truyện.');
       }
     }
     setOpenActionMenuId(null);
@@ -137,9 +164,11 @@ export const ProjectMembersView: React.FC<ProjectMembersViewProps> = ({ projects
     return (
       <div className='p-6 h-full flex flex-col bg-[#FAF8F4] overflow-y-auto custom-scrollbar'>
         <div className='mb-6'>
-          <h1 className='text-2xl font-bold text-[#171717]'>Chọn dự án</h1>
+          <h1 className='text-2xl font-bold text-[#171717]'>
+            {t('members.view.selectProjectTitle', 'Chọn bộ truyện')}
+          </h1>
           <p className='text-sm text-gray-500 mt-1'>
-            Chọn một dự án bên dưới để xem và quản lý nhân sự
+            {t('members.view.selectProjectDesc', 'Chọn một bộ truyện bên dưới để xem và quản lý đội ngũ sản xuất')}
           </p>
         </div>
 
@@ -163,7 +192,7 @@ export const ProjectMembersView: React.FC<ProjectMembersViewProps> = ({ projects
 
               <div className='mt-4 pt-4 border-t border-gray-50 flex items-center justify-between text-sm'>
                 <span className='text-gray-500'>Thành viên:</span>
-                <span className='font-bold text-[#171717]'>Quản lý ngay →</span>
+                <span className='font-bold text-[#171717]'>Xem thành viên →</span>
               </div>
             </div>
           ))}
@@ -180,26 +209,26 @@ export const ProjectMembersView: React.FC<ProjectMembersViewProps> = ({ projects
       {/* Nút quay lại */}
       <button
         onClick={() => setSelectedProject(null)}
-        className='flex items-center gap-2 text-sm text-gray-500 hover:text-[#171717] transition w-fit mb-4 cursor-pointer'
+        className='flex items-center gap-2 text-sm text-gray-500 hover:text-[#171717] transition w-fit mb-4 cursor-pointer font-medium'
       >
-        <ArrowLeft className='w-4 h-4' /> Quay lại danh sách dự án
+        <ArrowLeft className='w-4 h-4' /> {t('members.view.backToProjects', 'Danh sách bộ truyện')}
       </button>
 
       <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6'>
         <div>
           <h1 className='text-2xl font-bold text-[#171717]'>
-            Nhân sự: <span className='text-[#F97316]'>{selectedProject.title}</span>
+            Đội ngũ: <span className='text-[#F97316]'>{selectedProject.title}</span>
           </h1>
           <p className='text-sm text-gray-500 mt-1'>
-            Quản lý đội ngũ sản xuất và phân quyền vai trò cho dự án này
+            Quản lý đội ngũ sản xuất và phân công vai trò cho bộ truyện này
           </p>
         </div>
         <button
           onClick={() => setIsSeriesMembersModalOpen(true)}
-          className='flex items-center gap-2 bg-[#F97316] text-white px-4 py-2 rounded-lg hover:bg-[#EA580C] transition shadow-sm cursor-pointer shrink-0'
+          className='flex items-center gap-2 bg-[#F97316] text-white px-4 py-2 rounded-lg hover:bg-[#EA580C] transition shadow-sm cursor-pointer shrink-0 font-medium text-sm'
         >
           <UserPlus className='w-4 h-4' />
-          <span>Gán nhân sự vào Series</span>
+          <span>{t('members.view.manageRosterBtn', 'Quản lý thành viên')}</span>
         </button>
       </div>
 
@@ -207,7 +236,7 @@ export const ProjectMembersView: React.FC<ProjectMembersViewProps> = ({ projects
         <div className='p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50'>
           <input
             type='text'
-            placeholder='Tìm kiếm thành viên...'
+            placeholder={t('members.view.searchMembers', 'Tìm thành viên...')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className='w-1/3 px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-[#F97316] text-sm bg-white'
@@ -235,105 +264,144 @@ export const ProjectMembersView: React.FC<ProjectMembersViewProps> = ({ projects
               </thead>
               <tbody>
                 {filteredMembers.length > 0 ? (
-                  filteredMembers.map((member) => (
-                    <tr
-                      key={member.id || member.userId}
-                      className='border-b border-gray-50 hover:bg-gray-50/50 transition relative'
-                    >
-                      <td className='p-4'>
-                        <div className='flex items-center gap-3'>
-                          <div className='w-9 h-9 rounded-full bg-[#171717] text-white flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden'>
-                            {member.avatarUrl ? (
-                              <img src={member.avatarUrl} alt={member.fullName} className='w-full h-full object-cover' />
-                            ) : (
-                              (member.fullName || member.email || 'U').charAt(0).toUpperCase()
-                            )}
-                          </div>
-                          <div className='min-w-0'>
-                            <p className='font-semibold text-sm text-[#171717] truncate'>
-                              {member.fullName || 'Thành viên'}
-                            </p>
-                            <p className='text-xs text-gray-500 flex items-center gap-1 truncate'>
-                              <Mail className='w-3 h-3 shrink-0' /> {member.email}
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className='p-4'>
-                        {editingUserId === member.userId ? (
-                          <div className='flex items-center gap-2'>
-                            <select
-                              value={selectedNewRole}
-                              onChange={(e) => setSelectedNewRole(e.target.value)}
-                              className='text-xs px-2 py-1 border border-gray-300 rounded bg-white'
+                  filteredMembers.map((member) => {
+                    const isProducer = isProducerMember(member, workspaceMembers);
+                    const rawRole = (member as any).seriesRole ?? (member as any).role ?? (member as any).studioRole ?? 'Artist';
+                    const memberRole =
+                      typeof rawRole === 'number'
+                        ? ['Producer', 'Writer', 'Artist', 'Letterer', 'Editor', 'Publisher'][rawRole] || 'Artist'
+                        : String(rawRole || 'Artist');
+                    return (
+                      <tr
+                        key={member.id || member.userId}
+                        className={`border-b border-gray-100 hover:bg-gray-50/50 transition relative ${
+                          isProducer ? 'bg-amber-50/30' : ''
+                        }`}
+                      >
+                        <td className='p-4'>
+                          <div className='flex items-center gap-3'>
+                            <div
+                              className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs uppercase shrink-0 overflow-hidden ${
+                                isProducer
+                                  ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                                  : 'bg-[#171717] text-white'
+                              }`}
                             >
-                              {SERIES_ROLES.map((r) => (
-                                <option key={r} value={r}>
-                                  {r}
-                                </option>
-                              ))}
-                            </select>
-                            <button
-                              onClick={() => handleChangeRole(member.userId, selectedNewRole)}
-                              className='text-xs bg-emerald-600 text-white px-2 py-1 rounded font-semibold cursor-pointer'
-                            >
-                              Lưu
-                            </button>
-                            <button
-                              onClick={() => setEditingUserId(null)}
-                              className='text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded cursor-pointer'
-                            >
-                              Hủy
-                            </button>
+                              {member.avatarUrl ? (
+                                <img
+                                  src={member.avatarUrl}
+                                  alt={member.fullName || member.email}
+                                  className='w-full h-full object-cover'
+                                />
+                              ) : (
+                                (member.fullName || member.email || 'U').charAt(0).toUpperCase()
+                              )}
+                            </div>
+                            <div className='min-w-0'>
+                              <p className='font-semibold text-sm text-[#171717] truncate'>
+                                {member.fullName || 'Thành viên'}
+                              </p>
+                              <p className='text-xs text-gray-500 flex items-center gap-1 truncate'>
+                                <Mail className='w-3 h-3 shrink-0' /> {member.email}
+                              </p>
+                            </div>
                           </div>
-                        ) : (
-                          <span className='flex items-center gap-1.5 text-sm font-medium text-gray-700 whitespace-nowrap'>
-                            <Shield className='w-4 h-4 text-gray-400 shrink-0' />
-                            {member.seriesRole}
-                          </span>
-                        )}
-                      </td>
-                      <td className='p-4 text-xs text-gray-500 whitespace-nowrap'>
-                        {member.joinedAt ? new Date(member.joinedAt).toLocaleDateString('vi-VN') : '—'}
-                      </td>
-                      <td className='p-4 text-right relative'>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleActionMenu(member.userId);
-                          }}
-                          className='p-2 text-gray-400 hover:text-[#171717] rounded-lg hover:bg-gray-200 transition cursor-pointer'
-                        >
-                          <MoreVertical className='w-4 h-4' />
-                        </button>
+                        </td>
+                        <td className='p-4'>
+                          {editingUserId === member.userId && !isProducer ? (
+                            <div className='flex items-center gap-2'>
+                              <select
+                                value={selectedNewRole}
+                                onChange={(e) => setSelectedNewRole(e.target.value)}
+                                className='text-xs px-2 py-1 border border-gray-300 rounded bg-white'
+                              >
+                                {SERIES_ROLES.map((r) => (
+                                  <option key={r} value={r}>
+                                    {r}
+                                  </option>
+                                ))}
+                              </select>
+                              <button
+                                onClick={() => handleChangeRole(member.userId, selectedNewRole)}
+                                className='text-xs bg-emerald-600 text-white px-2 py-1 rounded font-semibold cursor-pointer'
+                              >
+                                Lưu
+                              </button>
+                              <button
+                                onClick={() => setEditingUserId(null)}
+                                className='text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded cursor-pointer'
+                              >
+                                Hủy
+                              </button>
+                            </div>
+                          ) : (
+                            <span
+                              className={`flex items-center gap-1.5 text-sm font-medium whitespace-nowrap ${
+                                isProducer ? 'text-amber-800 font-semibold' : 'text-gray-700'
+                              }`}
+                            >
+                              <Shield
+                                className={`w-4 h-4 shrink-0 ${
+                                  isProducer ? 'text-amber-500' : 'text-gray-400'
+                                }`}
+                              />
+                              {isProducer ? 'Producer' : memberRole}
+                            </span>
+                          )}
+                        </td>
+                        <td className='p-4 text-xs text-gray-500 whitespace-nowrap'>
+                          {member.joinedAt ? new Date(member.joinedAt).toLocaleDateString('vi-VN') : '—'}
+                        </td>
+                        <td className='p-4 text-right relative'>
+                          {isProducer ? (
+                            <div
+                              className='flex items-center justify-end pr-2 text-amber-600'
+                              title='Producer là thành viên quản trị mặc định (không thể sửa hoặc xóa)'
+                            >
+                              <Lock className='w-4 h-4 opacity-60' />
+                            </div>
+                          ) : (
+                            <>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleActionMenu(member.userId);
+                                }}
+                                className='p-2 text-gray-400 hover:text-[#171717] rounded-lg hover:bg-gray-200 transition cursor-pointer'
+                              >
+                                <MoreVertical className='w-4 h-4' />
+                              </button>
 
-                        {openActionMenuId === member.userId && (
-                          <div className='absolute right-8 top-10 w-44 bg-white border border-gray-200 rounded-lg shadow-lg z-20 overflow-hidden text-left animate-in slide-in-from-top-2 duration-150'>
-                            <button
-                              onClick={() => {
-                                setEditingUserId(member.userId);
-                                setSelectedNewRole(member.seriesRole || 'Artist');
-                                setOpenActionMenuId(null);
-                              }}
-                              className='w-full px-4 py-2.5 text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors cursor-pointer'
-                            >
-                              <Edit className='w-3.5 h-3.5 text-gray-500' /> Đổi vai trò
-                            </button>
-                            <button
-                              onClick={() => handleRemoveMember(member)}
-                              className='w-full px-4 py-2.5 text-xs text-red-600 hover:bg-red-50 flex items-center gap-2 border-t border-gray-100 transition-colors cursor-pointer'
-                            >
-                              <Trash2 className='w-3.5 h-3.5' /> Xóa khỏi dự án
-                            </button>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  ))
+                              {openActionMenuId === member.userId && (
+                                <div className='absolute right-8 top-10 w-44 bg-white border border-gray-200 rounded-lg shadow-lg z-20 overflow-hidden text-left animate-in slide-in-from-top-2 duration-150'>
+                                  <button
+                                    onClick={() => {
+                                      setEditingUserId(member.userId);
+                                      setSelectedNewRole(memberRole);
+                                      setOpenActionMenuId(null);
+                                    }}
+                                    className='w-full px-4 py-2.5 text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors cursor-pointer'
+                                  >
+                                    <Edit className='w-3.5 h-3.5 text-gray-500' /> {t('members.seriesRoster.changeRoleTooltip', 'Đổi vai trò')}
+                                  </button>
+                                  <button
+                                    onClick={() => handleRemoveMember(member)}
+                                    className='w-full px-4 py-2.5 text-xs text-red-600 hover:bg-red-50 flex items-center gap-2 border-t border-gray-100 transition-colors cursor-pointer'
+                                  >
+                                    <Trash2 className='w-3.5 h-3.5' /> {t('members.seriesRoster.removeMemberTooltip', 'Xóa thành viên')}
+                                  </button>
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })
                 ) : (
                   <tr>
                     <td colSpan={4} className='p-8 text-center text-gray-500 text-sm'>
-                      Chưa có thành viên nào trong dự án này. Hãy bấm "Gán nhân sự vào Series" để thêm từ Workspace Talent Pool.
+                      {t('members.view.noMembers', 'Chưa có thành viên nào trong dự án này.')}
                     </td>
                   </tr>
                 )}
@@ -352,6 +420,7 @@ export const ProjectMembersView: React.FC<ProjectMembersViewProps> = ({ projects
         <SeriesMembersModal
           isOpen={isSeriesMembersModalOpen}
           workspaceId={workspaceId}
+          workspaceName={activeWorkspace?.name}
           seriesId={String(selectedProject.id)}
           seriesTitle={selectedProject.title}
           onClose={() => setIsSeriesMembersModalOpen(false)}

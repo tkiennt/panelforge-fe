@@ -380,13 +380,15 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
               </div>
               <div>
                 <div className='flex items-center gap-2'>
-                  <span className='px-2 py-0.5 rounded bg-[#171717] text-white font-mono text-[9px] font-bold'>
-                    LỊCH PHÁT HÀNH // CHAPTER SCHEDULING
+                  <span className='px-2 py-0.5 rounded-full bg-orange-50 text-[#F97316] border border-orange-200/80 font-bold text-[10px]'>
+                    Kế hoạch xuất bản
                   </span>
-                  <span className='text-[10px] text-[#888888] font-mono'>Chapter Scheduling</span>
+                  <span className='text-[11px] text-zinc-500 font-medium truncate max-w-xs'>
+                    {seriesTitle}
+                  </span>
                 </div>
-                <h2 className='text-base font-bold text-[#171717] mt-0.5'>
-                  Lịch Phát Hành &amp; Quản Lý Tập/Chương: {seriesTitle}
+                <h2 className='text-base sm:text-lg font-bold text-[#171717] mt-0.5'>
+                  Quản Lý Tập &amp; Lịch Phát Hành Chương
                 </h2>
               </div>
             </div>
@@ -624,21 +626,20 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                     <th className='py-2.5 px-3'>Trạng Thái</th>
                     <th className='py-2.5 px-3'>Lịch Phát Hành (Target Date)</th>
                     <th className='py-2.5 px-3'>Phân Cảnh / Trang</th>
-                    <th className='py-2.5 px-3'>Version Vector</th>
                     <th className='py-2.5 px-3 text-right'>Thao Tác</th>
                   </tr>
                 </thead>
                 <tbody className='divide-y divide-[#E7E7E7] text-xs'>
                   {loading ? (
                     <tr>
-                      <td colSpan={7} className='py-8 text-center text-[#888888]'>
+                      <td colSpan={6} className='py-8 text-center text-[#888888]'>
                         <Loader2 className='w-5 h-5 animate-spin mx-auto mb-1 text-[#F97316]' />
                         <span>Đang tải danh sách chương...</span>
                       </td>
                     </tr>
                   ) : chapters.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className='py-8 text-center text-[#888888] space-y-1'>
+                      <td colSpan={6} className='py-8 text-center text-[#888888] space-y-1'>
                         <BookOpen className='w-6 h-6 mx-auto text-[#888888]' />
                         <div className='font-bold text-[#171717]'>Chưa có chương nào</div>
                         <div className='text-[11px] text-[#737373]'>
@@ -689,10 +690,6 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
 
                         <td className='py-3 px-3 font-mono text-[11px] text-[#555555]'>
                           {chap.scenesCount || 0} Cảnh • {chap.pagesCount || 0} Trang
-                        </td>
-
-                        <td className='py-3 px-3 font-mono text-[11px] text-[#888888]'>
-                          v{chap.versionVector}
                         </td>
 
                         <td className='py-3 px-3 text-right whitespace-nowrap'>
@@ -832,8 +829,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
           {/* Footer */}
           <div className='p-4 bg-[#FAF8F5] border-t border-[#E7E7E7] rounded-b-2xl flex items-center justify-between text-xs'>
             <div className='text-[11px] text-[#737373]'>
-              * Ngày phát hành dự kiến (Target Date) hỗ trợ Producer & Editor quản lý tiến độ xuất
-              bản định kỳ. Phase 3).
+              * Ngày phát hành dự kiến hỗ trợ ban biên tập đối chiếu và điều phối tiến độ sản xuất kịp thời.
             </div>
             <button
               type='button'
