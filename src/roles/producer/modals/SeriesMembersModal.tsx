@@ -37,6 +37,7 @@ import '@/styles/modules/lucian/lucian-285.css';
 export interface SeriesMembersModalProps {
   isOpen: boolean;
   workspaceId: string;
+  workspaceName?: string;
   seriesId: string;
   seriesTitle: string;
   onClose: () => void;
@@ -75,6 +76,7 @@ export const isProducerMember = (
 export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
   isOpen,
   workspaceId,
+  workspaceName,
   seriesId,
   seriesTitle,
   onClose,
@@ -83,6 +85,51 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
   const confirm = useConfirm();
   const toast = useToast();
   const { t } = useTranslation();
+
+  const [currentWorkspaceName, setCurrentWorkspaceName] = useState<string>(() => {
+    if (workspaceName?.trim()) return workspaceName.trim();
+    try {
+      const stored = localStorage.getItem('activeWorkspace');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed?.name?.trim()) return parsed.name.trim();
+      }
+    } catch {
+      // ignore
+    }
+    return '';
+  });
+
+  useEffect(() => {
+    if (workspaceName?.trim()) {
+      setCurrentWorkspaceName(workspaceName.trim());
+      return;
+    }
+    try {
+      const stored = localStorage.getItem('activeWorkspace');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed?.name?.trim()) {
+          setCurrentWorkspaceName(parsed.name.trim());
+          return;
+        }
+      }
+    } catch {
+      // ignore
+    }
+    if (workspaceId && typeof workspaceService.getWorkspaceById === 'function') {
+      workspaceService
+        .getWorkspaceById(workspaceId)
+        .then((ws) => {
+          if (ws?.name?.trim()) {
+            setCurrentWorkspaceName(ws.name.trim());
+          }
+        })
+        .catch(() => {});
+    }
+  }, [workspaceId, workspaceName]);
+
+  const displayWsName = currentWorkspaceName?.trim() || 'Workspace';
 
   const [loading, setLoading] = useState(false);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
@@ -534,12 +581,20 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                     <p className='text-xs font-semibold text-[#171717]'>
                       {candidateSearchQuery
                         ? t('members.candidatePool.emptySearch', 'Không tìm thấy thành viên phù hợp')
-                        : t('members.candidatePool.emptyAllAssigned', 'Tất cả thành viên {workspaceName} đã được gán vào Series.')}
+                        : t(
+                            'members.candidatePool.emptyAllAssigned',
+                            { workspaceName: displayWsName },
+                            `Tất cả thành viên ${displayWsName} đã được gán vào Series.`,
+                          )}
                     </p>
                     <p className='text-[11px] text-[#737373] max-w-xs mx-auto leading-relaxed'>
                       {candidateSearchQuery
                         ? t('members.candidatePool.emptySearchDesc', 'Hãy thử tìm với từ khóa hoặc email khác.')
-                        : t('members.candidatePool.emptyAllAssignedDesc', 'Mời thêm thành viên vào {workspaceName} để mở rộng đội ngũ.')}
+                        : t(
+                            'members.candidatePool.emptyAllAssignedDesc',
+                            { workspaceName: displayWsName },
+                            `Mời thêm thành viên vào ${displayWsName} để mở rộng đội ngũ.`,
+                          )}
                     </p>
                   </div>
                 ) : (
@@ -711,7 +766,7 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                     <p className='text-[11px] text-[#737373] max-w-xs mx-auto leading-relaxed'>
                       {seriesSearchQuery || filterRole !== 'ALL'
                         ? t('members.seriesRoster.emptySearchDesc', 'Hãy thử điều chỉnh bộ lọc tìm kiếm.')
-                        : t('members.seriesRoster.emptyRosterDesc', 'Chọn vai trò và bấm "+ Thêm vào truyện" từ danh sách bên trái.')}
+                        : t('members.seriesRoster.emptyRosterDesc', 'Chọn vai trò và bấm "+ Thêm thành viên" từ danh sách bên trái.')}
                     </p>
                   </div>
                 ) : (

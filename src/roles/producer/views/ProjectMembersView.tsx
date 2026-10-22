@@ -415,6 +415,7 @@ export const ProjectMembersView: React.FC<ProjectMembersViewProps> = ({ projects
         <SeriesMembersModal
           isOpen={isSeriesMembersModalOpen}
           workspaceId={workspaceId}
+          workspaceName={activeWorkspace?.name}
           seriesId={String(selectedProject.id)}
           seriesTitle={selectedProject.title}
           onClose={() => setIsSeriesMembersModalOpen(false)}

@@ -17,6 +17,7 @@ vi.mock('@/services/series.service', () => ({
 vi.mock('@/services/workspace.service', () => ({
   workspaceService: {
     getMembers: vi.fn(),
+    getWorkspaceById: vi.fn().mockResolvedValue({ id: 'ws-1', name: 'Studio Workspace' }),
   },
 }));
 
@@ -216,5 +217,35 @@ describe('SeriesMembersModal - Phân quyền và gán nhân sự 2 cấp', () =>
     expect(screen.getAllByTitle(/Đổi vai trò/i)).toHaveLength(1);
     expect(screen.getAllByTitle(/Xóa thành viên/i)).toHaveLength(1);
   });
+
+  it('hiển thị chính xác tên Workspace khi toàn bộ thành viên đã được gán vào Series (không để lộ {workspaceName})', async () => {
+    // Tất cả thành viên workspace (Aka Akasaka) đều đã nằm trong seriesMembers
+    vi.mocked(seriesService.getSeriesMembers).mockResolvedValue([...mockSeriesMembers]);
+    vi.mocked(workspaceService.getMembers).mockResolvedValue([mockWorkspaceMembers[0]]); // user-writer
+
+    render(
+      <SeriesMembersModal
+        isOpen={true}
+        workspaceId='ws-1'
+        workspaceName='Manga Studio Pro'
+        seriesId='series-123'
+        seriesTitle='Chainsaw Man'
+        onClose={vi.fn()}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('Tất cả thành viên Manga Studio Pro đã được gán vào Series.'),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText('Mời thêm thành viên vào Manga Studio Pro để mở rộng đội ngũ.'),
+      ).toBeInTheDocument();
+    });
+
+    // Tuyệt đối không để lộ placeholder {workspaceName}
+    expect(screen.queryByText(/\{workspaceName\}/i)).not.toBeInTheDocument();
+  });
 });
+
 

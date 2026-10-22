@@ -1444,6 +1444,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         <SeriesMembersModal
           isOpen={isMembersModalOpen}
           workspaceId={workspaceId}
+          workspaceName={workspaceName}
           seriesId={seriesId}
           seriesTitle={seriesDetail?.title || activeProject?.title || 'Series'}
           onClose={() => setIsMembersModalOpen(false)}
