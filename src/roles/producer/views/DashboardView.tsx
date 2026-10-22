@@ -24,6 +24,9 @@ import {
   UserPlus,
   LayoutDashboard,
   TrendingDown,
+  PenTool,
+  Palette,
+  Crown,
 } from 'lucide-react';
 import { PageContainer } from '@/shared/components/PageContainer';
 import { notificationService } from '@/services/notification.service';
@@ -107,6 +110,89 @@ const formatReleaseDate = (dateStr?: string | null): string | null => {
   } catch {
     return dateStr;
   }
+};
+
+/**
+ * Visual Pipeline Stepper Track cho từng chương (khớp thiết kế wireframe Tổng quan).
+ * Thể hiện chuỗi 5 cột mốc: Bản thảo -> Phác thảo -> Vẽ nét -> Xét duyệt -> Hoàn tất.
+ */
+const ChapterPipelineStepper: React.FC<{
+  percentComplete: number;
+  status?: string;
+}> = ({ percentComplete, status }) => {
+  const isFinished = status === 'Approved' || status === 'Published' || percentComplete >= 100;
+
+  let currentStageIndex = 0;
+  if (isFinished) {
+    currentStageIndex = 4;
+  } else if (percentComplete >= 80) {
+    currentStageIndex = 3;
+  } else if (percentComplete >= 50) {
+    currentStageIndex = 2;
+  } else if (percentComplete >= 20) {
+    currentStageIndex = 1;
+  } else {
+    currentStageIndex = 0;
+  }
+
+  const stages = [
+    { label: 'Bản thảo', icon: BookOpen },
+    { label: 'Phác thảo', icon: null },
+    { label: 'Vẽ nét', icon: PenTool },
+    { label: 'Xét duyệt', icon: null },
+    { label: 'Hoàn tất', icon: CheckCircle2 },
+  ];
+
+  return (
+    <div
+      className='flex items-center gap-1 sm:gap-1.5 shrink-0 py-0.5'
+      aria-label={`Tiến trình chương: ${percentComplete}%`}
+    >
+      {stages.map((st, idx) => {
+        const isReached = isFinished || idx <= currentStageIndex;
+        const isCurrent = !isFinished && idx === currentStageIndex;
+        const IconComponent = st.icon;
+
+        return (
+          <React.Fragment key={st.label}>
+            {idx > 0 && (
+              <div
+                className={`h-[2px] w-3.5 sm:w-5 md:w-6 lg:w-7.5 rounded-full transition-colors ${
+                  idx <= currentStageIndex || isFinished
+                    ? 'bg-[#F97316]'
+                    : 'bg-[#D8D2C5]'
+                }`}
+              />
+            )}
+            <div
+              className={`relative flex items-center justify-center transition-all ${
+                IconComponent
+                  ? 'w-6 h-6 sm:w-7 sm:h-7 rounded-lg'
+                  : 'w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full'
+              } ${
+                isCurrent
+                  ? 'bg-gradient-to-br from-[#F97316] to-[#EA580C] text-white ring-2 ring-[#F97316]/30 shadow-xs'
+                  : isReached
+                  ? 'bg-[#F97316] text-white'
+                  : 'bg-[#FAF8F5] text-stone-400 border border-[#D8D2C5]'
+              }`}
+              title={`${st.label}: ${isReached ? 'Đã hoàn thành / Đang thực hiện' : 'Chưa bắt đầu'}`}
+            >
+              {IconComponent ? (
+                <IconComponent className='w-3 h-3 sm:w-3.5 sm:h-3.5' />
+              ) : (
+                <span
+                  className={`w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full ${
+                    isReached ? 'bg-white' : 'bg-stone-300'
+                  }`}
+                />
+              )}
+            </div>
+          </React.Fragment>
+        );
+      })}
+    </div>
+  );
 };
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
@@ -487,7 +573,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         }
         avatar={
           <div className='relative'>
-            <div className='w-24 h-24 sm:w-28 sm:h-28 lg:w-32 lg:h-32 rounded-2xl border-[3px] border-[#FCFBF8] bg-[#FCFBF8] p-0.5 shadow-[0_8px_24px_rgba(28,25,23,0.25)] overflow-hidden'>
+            <div className='w-24 sm:w-28 lg:w-32 aspect-[3/4] rounded-xl sm:rounded-2xl border-[3px] border-[#FCFBF8] bg-[#FCFBF8] p-0.5 shadow-[0_8px_24px_rgba(28,25,23,0.25)] overflow-hidden shrink-0'>
               {seriesDetail?.avatarUrl ? (
                 <AuthenticatedImage
                   key={seriesDetail.avatarUrl}
@@ -713,152 +799,161 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       )}
 
-      {/* 2. Top 4 Core KPIs */}
+      {/* 2. Top 3 Summary Cards (Theo bản thiết kế Wireframe) */}
       <section
         aria-label='Chỉ số tổng quan'
-        className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4'
+        className='grid grid-cols-1 md:grid-cols-3 gap-4'
       >
-        {/* KPI 1: Series Completion */}
-        <div className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl p-4.5 shadow-2xs hover:border-[#F97316] transition-colors flex flex-col justify-between space-y-2.5 pf-editorial-card'>
+        {/* Card 1: Tiến Độ Toàn Series (Progress Slider) */}
+        <div className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl p-4.5 shadow-2xs hover:border-[#F97316] transition-all flex flex-col justify-between space-y-2.5 pf-editorial-card'>
           <div>
             <div className='flex items-center justify-between text-xs font-semibold text-[#57534E] mb-1'>
-              <span>Tiến Độ Toàn Series</span>
-              <span className='inline-flex items-center gap-1 text-[#C2410C] bg-[#FFF2E6] border border-[#FDBA74] px-1.5 py-0.5 rounded text-[11px] font-semibold'>
+              <span className='font-bold uppercase tracking-wider text-[11px] text-stone-700'>
+                Tiến Độ Toàn Series
+              </span>
+              <span className='inline-flex items-center gap-1 text-[#C2410C] bg-[#FFF2E6] border border-[#FDBA74] px-2 py-0.5 rounded-full text-[11px] font-bold'>
                 <TrendingUp className='w-3 h-3' /> Hoàn thiện
               </span>
             </div>
-            <div className='text-3xl font-bold font-sans tabular-nums text-[#1C1917] mt-1'>
+            <div className='text-3xl sm:text-4xl font-extrabold font-sans tabular-nums text-[#1C1917] mt-1'>
               {loading ? '—' : `${overallPercent}%`}
             </div>
           </div>
-          <div className='pt-2 border-t border-[#D8D2C5]/70'>
-            <div className='w-full bg-[#F3F0E9] h-2 rounded-full overflow-hidden mb-1.5'>
+
+          <div className='pt-2 border-t border-[#D8D2C5]/70 space-y-1.5'>
+            <div className='w-full bg-[#EAE5DC] h-3.5 rounded-full overflow-hidden p-0.5 border border-[#D8D2C5]/80 shadow-inner'>
               <div
-                className='bg-gradient-to-r from-[#F97316] to-[#EA580C] h-full rounded-full transition-all duration-500'
+                className='bg-gradient-to-r from-[#F97316] to-[#EA580C] h-full rounded-full transition-all duration-700 shadow-xs'
                 style={{ width: `${Math.min(100, Math.max(0, overallPercent))}%` }}
               />
             </div>
-            <div className='text-[11px] font-mono text-[#57534E] flex justify-between'>
+            <div className='text-[11px] font-mono text-[#57534E] flex items-center justify-between'>
               <span>
-                <strong className='text-[#1C1917] font-semibold'>{totalApprovedPanels}</strong>{' '}
-                panel đã duyệt
+                <strong className='text-[#1C1917] font-semibold'>{totalApprovedPanels}</strong> panel đã duyệt
               </span>
               <span>Tổng: {totalPanels} panel</span>
             </div>
           </div>
         </div>
 
-        {/* KPI 2: Chapter Pipeline Status */}
-        <div className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl p-4.5 shadow-2xs hover:border-[#F97316] transition-colors flex flex-col justify-between space-y-2.5 pf-editorial-card'>
+        {/* Card 2: Chương Đang Sản Xuất (Status Dots theo wireframe) */}
+        <div className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl p-4.5 shadow-2xs hover:border-[#F97316] transition-all flex flex-col justify-between space-y-2.5 pf-editorial-card'>
           <div>
             <div className='flex items-center justify-between text-xs font-semibold text-[#57534E] mb-1'>
-              <span>Chương Đang Sản Xuất</span>
-              <span className='text-sky-700 bg-sky-50 border border-sky-200 px-1.5 py-0.5 rounded text-[11px] font-semibold'>
+              <span className='font-bold uppercase tracking-wider text-[11px] text-stone-700'>
+                Chương Đang Sản Xuất
+              </span>
+              <span className='text-sky-800 bg-sky-50 border border-sky-200 px-2 py-0.5 rounded-full text-[11px] font-mono font-bold'>
                 {totalChapters} Chương
               </span>
             </div>
-            <div className='text-3xl font-bold font-sans tabular-nums text-[#1C1917] mt-1 flex items-baseline gap-2'>
-              <span>{loading ? '—' : inProdChapters}</span>
-              <span className='text-xs font-semibold text-[#C2410C]'>đang thực hiện</span>
+            {/* 3 Status Circles trực quan theo wireframe */}
+            <div className='flex items-center gap-3.5 mt-1.5'>
+              <div className='flex items-center gap-1.5'>
+                <div className='w-7 h-7 rounded-full bg-amber-500/15 border-2 border-amber-500 flex items-center justify-center font-mono font-bold text-xs text-amber-700'>
+                  {inProdChapters}
+                </div>
+                <div className='text-left'>
+                  <div className='text-[11px] font-bold text-[#1C1917]'>Đang làm</div>
+                  <div className='text-[9.5px] text-stone-500 font-mono'>giai đoạn vẽ</div>
+                </div>
+              </div>
+
+              <div className='flex items-center gap-1.5'>
+                <div className='w-7 h-7 rounded-full bg-emerald-500/15 border-2 border-emerald-500 flex items-center justify-center font-mono font-bold text-xs text-emerald-700'>
+                  {approvedChapters}
+                </div>
+                <div className='text-left'>
+                  <div className='text-[11px] font-bold text-[#1C1917]'>Đã duyệt</div>
+                  <div className='text-[9.5px] text-stone-500 font-mono'>chờ phát hành</div>
+                </div>
+              </div>
+
+              <div className='flex items-center gap-1.5'>
+                <div className='w-7 h-7 rounded-full bg-stone-300/40 border-2 border-stone-400 flex items-center justify-center font-mono font-bold text-xs text-stone-600'>
+                  {publishedChapters}
+                </div>
+                <div className='text-left'>
+                  <div className='text-[11px] font-bold text-[#1C1917]'>Xuất bản</div>
+                  <div className='text-[9.5px] text-stone-500 font-mono'>hoàn tất</div>
+                </div>
+              </div>
             </div>
           </div>
-          <div className='pt-2 border-t border-[#D8D2C5]/70 flex flex-wrap items-center gap-1.5 text-[11px] font-mono'>
-            <span className='px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200'>
-              {inProdChapters} Đang vẽ
-            </span>
-            <span className='px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200'>
-              {approvedChapters} Đã duyệt
-            </span>
-            <span className='px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-800 border border-indigo-200'>
-              {publishedChapters} Xuất bản
-            </span>
+
+          {/* Quick gate & risk sub-strip */}
+          <div className='pt-2 border-t border-[#D8D2C5]/70 flex items-center justify-between text-[11px] font-mono'>
+            <div className='flex items-center gap-1'>
+              <span className='text-stone-500'>Cổng Chờ Xét Duyệt</span>
+              <span className='text-stone-400'>:</span>
+              <strong className='text-amber-700 font-bold'>
+                {waitingReviewTotal} <span>Việc nộp</span>
+              </strong>
+            </div>
+            <div className='flex items-center gap-1'>
+              <span className='text-stone-500'>Việc Quá Hạn &amp; Rủi Ro</span>
+              <span className='text-stone-400'>:</span>
+              <strong className={overdueTotal > 0 ? 'text-red-600 font-bold' : 'text-emerald-700 font-bold'}>
+                {overdueTotal} Mục
+              </strong>
+            </div>
           </div>
         </div>
 
-        {/* KPI 3: Waiting Review Gate */}
-        <div className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl p-4.5 shadow-2xs hover:border-[#F97316] transition-colors flex flex-col justify-between space-y-2.5 pf-editorial-card'>
-          <div>
-            <div className='flex items-center justify-between text-xs font-semibold text-[#57534E] mb-1'>
-              <span className='text-purple-900'>Cổng Chờ Xét Duyệt</span>
-              <span
-                className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-semibold ${
-                  waitingReviewTotal > 0
-                    ? 'text-amber-800 bg-amber-50 border border-amber-200'
-                    : 'text-emerald-700 bg-emerald-50 border border-emerald-200'
-                }`}
-              >
-                {waitingReviewTotal > 0 ? 'Có việc chờ duyệt' : 'Không có việc tồn'}
-              </span>
-            </div>
-            <div className='text-3xl font-bold font-sans tabular-nums text-[#1C1917] mt-1'>
-              {loading ? '—' : waitingReviewTotal}{' '}
-              <span className='text-sm font-normal text-[#57534E]'>Việc nộp</span>
-            </div>
-          </div>
-          <div className='pt-2 border-t border-[#D8D2C5]/70 flex items-center justify-between text-[11px]'>
-            <span className='text-[#57534E]'>Hành động:</span>
-            {workspaceId && seriesId && waitingReviewTotal > 0 ? (
-              <button
-                type='button'
-                onClick={() => navigate(`/workspaces/${workspaceId}/series/${seriesId}/my-work`)}
-                className='text-[#C2410C] font-bold hover:underline flex items-center gap-1 cursor-pointer'
-              >
-                Duyệt ngay <ArrowRight className='w-3 h-3' />
-              </button>
-            ) : (
-              <span className='text-emerald-700 flex items-center gap-1 font-semibold'>
-                <CheckCircle2 className='w-3.5 h-3.5' /> Đã thông suốt
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* KPI 4: Overdue & Production Risks */}
+        {/* Card 3: Đội Ngũ Sản Xuất (Avatar Stack theo wireframe) */}
         <div
-          className={`bg-[#FCFBF8] border rounded-xl p-4.5 shadow-2xs transition-colors flex flex-col justify-between space-y-2.5 pf-editorial-card ${
-            overdueTotal > 0
-              ? 'border-red-300 hover:border-red-400'
-              : 'border-[#D8D2C5] hover:border-[#F97316]'
-          }`}
+          onClick={() => setIsMembersModalOpen(true)}
+          role='button'
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setIsMembersModalOpen(true);
+            }
+          }}
+          className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl p-4.5 shadow-2xs hover:border-[#F97316] transition-all flex flex-col justify-between space-y-2.5 pf-editorial-card cursor-pointer group text-left'
         >
           <div>
             <div className='flex items-center justify-between text-xs font-semibold text-[#57534E] mb-1'>
-              <span>Việc Quá Hạn &amp; Rủi Ro</span>
-              <span
-                className={`px-1.5 py-0.5 rounded text-[11px] font-mono font-semibold ${
-                  overdueTotal > 0
-                    ? 'text-red-700 bg-red-50 border border-red-200'
-                    : 'text-[#1C1917] bg-[#F3F0E9] border border-[#D8D2C5]'
-                }`}
-              >
-                {overdueTotal > 0 ? 'CẦN XỬ LÝ' : 'ĐÚNG HẠN'}
+              <span className='font-bold uppercase tracking-wider text-[11px] text-stone-700'>
+                Đội Ngũ Sản Xuất
+              </span>
+              <span className='text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full text-[11px] font-mono font-bold'>
+                {seriesMembers.length || 0} thành viên
               </span>
             </div>
-            <div
-              className={`text-3xl font-bold font-sans tabular-nums mt-1 ${
-                overdueTotal > 0 ? 'text-red-600' : 'text-[#1C1917]'
-              }`}
-            >
-              {loading ? '—' : overdueTotal}{' '}
-              <span className='text-sm font-normal text-[#57534E]'>Mục</span>
+
+            {/* Overlapping Avatar Stack theo wireframe */}
+            <div className='flex items-center -space-x-2 py-1.5 overflow-hidden'>
+              {seriesMembers.length === 0 ? (
+                <span className='text-xs text-stone-400 italic'>Chưa gán thành viên</span>
+              ) : (
+                seriesMembers.slice(0, 5).map((m, idx) => (
+                  <div
+                    key={m.id || m.userId || idx}
+                    title={`${m.fullName || m.email} (${m.seriesRole || (m as any).role || 'Member'})`}
+                    className='w-9 h-9 rounded-full border-2 border-[#FCFBF8] bg-[#1C1917] text-white flex items-center justify-center font-bold text-xs shadow-xs transition-transform group-hover:scale-105'
+                    style={{ zIndex: 10 - idx }}
+                  >
+                    {(m.fullName || m.email || 'U').charAt(0).toUpperCase()}
+                  </div>
+                ))
+              )}
+              {seriesMembers.length > 5 && (
+                <div
+                  className='w-9 h-9 rounded-full border-2 border-[#FCFBF8] bg-stone-200 text-stone-800 flex items-center justify-center font-bold text-xs shadow-xs'
+                  style={{ zIndex: 4 }}
+                >
+                  +{seriesMembers.length - 5}
+                </div>
+              )}
             </div>
           </div>
+
           <div className='pt-2 border-t border-[#D8D2C5]/70 flex items-center justify-between text-[11px]'>
-            <span className='text-[#57534E]'>Trạng thái hạn:</span>
-            <span
-              className={`font-medium flex items-center gap-1 ${
-                overdueTotal > 0 ? 'text-red-600 font-bold' : 'text-[#1C1917]'
-              }`}
-            >
-              {overdueTotal > 0 ? (
-                <>
-                  <AlertTriangle className='w-3.5 h-3.5 text-red-500' /> Cần can thiệp hạn chót
-                </>
-              ) : (
-                <>
-                  <Check className='w-3.5 h-3.5 text-emerald-600' /> Không trễ hạn
-                </>
-              )}
+            <span className='text-[#57534E]'>Phân công &amp; Quyền hạn:</span>
+            <span className='text-[#F97316] font-bold group-hover:underline flex items-center gap-1'>
+              Quản lý đội ngũ <ArrowRight className='w-3 h-3' />
             </span>
           </div>
         </div>
@@ -1031,7 +1126,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                           : 'bg-[#FAF8F5]/90 hover:bg-white border-[#D8D2C5] hover:border-[#F97316]/50 shadow-2xs'
                       }`}
                     >
-                      <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-3'>
+                      <div className='flex flex-col lg:flex-row lg:items-center justify-between gap-3'>
                         {/* Chapter Left: Avatar badge + Title + Metadata */}
                         <div className='flex items-center gap-3.5 min-w-0 flex-1'>
                           <div
@@ -1080,8 +1175,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                           </div>
                         </div>
 
+                        {/* Chapter Middle: Visual Pipeline Stepper Track (Theo wireframe) */}
+                        <div className='hidden sm:flex items-center justify-center px-1'>
+                          <ChapterPipelineStepper
+                            percentComplete={ch.percentComplete || 0}
+                            status={ch.status}
+                          />
+                        </div>
+
                         {/* Chapter Right: Badges + Action Buttons */}
-                        <div className='flex items-center gap-2 self-start sm:self-center shrink-0'>
+                        <div className='flex items-center gap-2 self-start lg:self-center shrink-0'>
                           {ch.overdueAssignments > 0 && (
                             <span className='px-1.5 py-0.5 rounded text-[11px] font-mono font-bold bg-red-100 text-red-700 border border-red-200 flex items-center gap-1'>
                               <AlertTriangle className='w-3 h-3' />
@@ -1121,6 +1224,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                         </div>
                       </div>
 
+                      {/* Visual Stepper trên màn hình nhỏ (Mobile) */}
+                      <div className='sm:hidden flex items-center justify-start overflow-x-auto pt-2 pb-0.5'>
+                        <ChapterPipelineStepper
+                          percentComplete={ch.percentComplete || 0}
+                          status={ch.status}
+                        />
+                      </div>
+
                       {/* Progress Bar under chapter card */}
                       <div className='w-full bg-[#EFECE6] h-1.5 rounded-full overflow-hidden mt-3'>
                         <div
@@ -1144,9 +1255,88 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         </div>
 
-        {/* Right: Mục cần chú ý & Đội ngũ sản xuất (4 cột trên lg) */}
+        {/* Right: Đội ngũ sản xuất & Mục cần chú ý (4 cột trên lg, theo wireframe) */}
         <div className='lg:col-span-4 space-y-4'>
-          {/* Card Mục Cần Chú Ý & Rủi Ro */}
+          {/* Card Đội Ngũ Sản Xuất (Đặt ở trên cùng cột phải theo đúng Wireframe) */}
+          {seriesId && (
+            <div className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl p-4.5 shadow-xs space-y-3 pf-editorial-card'>
+              <div className='flex items-center justify-between border-b border-[#D8D2C5] pb-2.5'>
+                <div className='flex items-center gap-2'>
+                  <Users className='w-4 h-4 text-[#F97316]' />
+                  <h3 className='text-xs font-bold text-[#1C1917] font-sans'>
+                    Đội Ngũ Sản Xuất ({seriesMembers.length})
+                  </h3>
+                </div>
+                <button
+                  type='button'
+                  onClick={() => setIsMembersModalOpen(true)}
+                  className='text-[11px] font-semibold text-[#F97316] hover:text-[#EA580C] hover:underline cursor-pointer'
+                >
+                  Quản lý →
+                </button>
+              </div>
+              {seriesMembers.length === 0 ? (
+                <div className='py-4 text-center text-xs text-stone-500 italic bg-[#FAF8F5] rounded-xl border border-dashed border-[#D8D2C5]'>
+                  Chưa gán thành viên nào vào bộ truyện.
+                </div>
+              ) : (
+                <div className='space-y-2'>
+                  {seriesMembers.slice(0, 5).map((member) => {
+                    const roleUpper = String(member.seriesRole || (member as any).role || 'ARTIST').toUpperCase();
+                    const roleStyle =
+                      ROLE_COLOR_MAP[roleUpper] || 'bg-[#F3F0E9] text-[#1C1917] border-[#D8D2C5]';
+
+                    const RoleIcon =
+                      roleUpper === 'PRODUCER'
+                        ? Crown
+                        : roleUpper === 'ARTIST'
+                        ? Palette
+                        : roleUpper === 'EDITOR'
+                        ? PenTool
+                        : Users;
+
+                    return (
+                      <div
+                        key={member.id || member.userId}
+                        className='flex items-center justify-between gap-2.5 p-2.5 rounded-xl bg-[#FAF8F5] hover:bg-white border border-[#E7E2D8] hover:border-[#D8D2C5] transition-all text-xs shadow-2xs group'
+                      >
+                        <div className='flex items-center gap-2.5 min-w-0'>
+                          <div className='w-7.5 h-7.5 rounded-full bg-[#1C1917] text-white font-bold text-xs flex items-center justify-center shrink-0 ring-2 ring-[#F97316]/20 group-hover:scale-105 transition-transform'>
+                            {(member.fullName || member.email || 'U').charAt(0).toUpperCase()}
+                          </div>
+                          <div className='min-w-0'>
+                            <div className='font-bold text-[#1C1917] truncate leading-tight'>
+                              {member.fullName || member.email}
+                            </div>
+                            <span
+                              className={`inline-block px-1.5 py-0.2 rounded text-[9.5px] font-medium border mt-0.5 ${roleStyle}`}
+                            >
+                              {member.seriesRole || (member as any).role || 'Thành viên'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div
+                          className='w-6 h-6 rounded-full bg-white border border-[#D8D2C5] flex items-center justify-center text-[#57534E] shrink-0'
+                          title={member.seriesRole || (member as any).role || 'Thành viên'}
+                        >
+                          <RoleIcon className='w-3 h-3 text-[#78716C]' />
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {seriesMembers.length > 5 && (
+                    <p className='text-[10.5px] font-mono text-stone-500 text-center pt-0.5'>
+                      + {seriesMembers.length - 5} thành viên khác
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Card Mục Cần Chú Ý & Rủi Ro (Bên dưới danh sách thành viên) */}
           <div className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl p-4.5 shadow-xs space-y-3 pf-editorial-card'>
             <div className='flex items-center justify-between border-b border-[#D8D2C5] pb-3'>
               <div className='flex items-center gap-2'>
@@ -1308,57 +1498,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 </div>
               )}
           </div>
-
-          {/* Card Đội Ngũ Sản Xuất Phụ Trách bên phải */}
-          {seriesId && (
-            <div className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl p-4.5 shadow-xs space-y-3 pf-editorial-card'>
-              <div className='flex items-center justify-between border-b border-[#D8D2C5] pb-2.5'>
-                <div className='flex items-center gap-2'>
-                  <Users className='w-4 h-4 text-[#F97316]' />
-                  <h3 className='text-xs font-bold text-[#1C1917] font-sans'>
-                    Đội Ngũ Sản Xuất ({seriesMembers.length})
-                  </h3>
-                </div>
-                <button
-                  type='button'
-                  onClick={() => setIsMembersModalOpen(true)}
-                  className='text-[11px] font-semibold text-[#F97316] hover:text-[#EA580C] hover:underline cursor-pointer'
-                >
-                  Quản lý →
-                </button>
-              </div>
-
-              {seriesMembers.length === 0 ? (
-                <p className='text-xs text-stone-500 italic py-2'>Chưa gán thành viên nào vào bộ truyện.</p>
-              ) : (
-                <div className='space-y-2'>
-                  {seriesMembers.slice(0, 3).map((member) => (
-                    <div
-                      key={member.id || member.userId}
-                      className='flex items-center justify-between gap-2 p-2 rounded-lg bg-[#FAF8F5] border border-[#E7E2D8] text-xs'
-                    >
-                      <div className='flex items-center gap-2 min-w-0'>
-                        <div className='w-6 h-6 rounded-full bg-stone-900 text-white font-bold text-[10px] flex items-center justify-center shrink-0'>
-                          {(member.fullName || member.email || 'U').charAt(0).toUpperCase()}
-                        </div>
-                        <span className='font-semibold text-stone-800 truncate'>
-                          {member.fullName || member.email}
-                        </span>
-                      </div>
-                      <span className='text-[10px] font-mono px-1.5 py-0.5 rounded bg-white border border-[#D8D2C5] text-stone-600 font-semibold shrink-0'>
-                        {member.seriesRole || (member as any).role || 'Artist'}
-                      </span>
-                    </div>
-                  ))}
-                  {seriesMembers.length > 3 && (
-                    <p className='text-[10.5px] font-mono text-stone-500 text-center pt-0.5'>
-                      + {seriesMembers.length - 3} thành viên khác
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
         </div>
       </section>
       )}
