@@ -87,6 +87,15 @@ export const formatChapterOption = (chapterNumber: number, title?: string | null
   return `Chương ${chapterNumber}: ${trimmed}`;
 };
 
+/**
+ * Trả về tên kèm giai đoạn (stageName) hoặc phụ đề (subtitle) để phân biệt các phiên bản nhân vật.
+ */
+export const getBibleEntryNameWithStage = (entry?: BibleEntryDto | null): string => {
+  if (!entry) return '';
+  const stage = entry.effectiveRevision?.stageName?.trim() || entry.subtitle?.trim();
+  return stage ? `${entry.name} (${stage})` : entry.name;
+};
+
 export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   onShowToast,
   workspaceRole,
@@ -730,13 +739,13 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               scriptLines: prev.scriptLines.map((l) =>
                 l.id === editingLine.id
                   ? {
-                      ...l,
-                      dialogueText: lineDialogue.trim() || null,
-                      stageDirection: lineStageDirection.trim() || null,
-                      speakerCharacterId: lineSpeakerId || null,
-                      bibleEntryIds: lineBibleEntryIds,
-                      narrationMode: lineNarrationMode || undefined,
-                    }
+                    ...l,
+                    dialogueText: lineDialogue.trim() || null,
+                    stageDirection: lineStageDirection.trim() || null,
+                    speakerCharacterId: lineSpeakerId || null,
+                    bibleEntryIds: lineBibleEntryIds,
+                    narrationMode: lineNarrationMode || undefined,
+                  }
                   : l,
               ),
             };
@@ -992,11 +1001,11 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     void applyReorder(items);
   };
 
-  // Helper tìm tên nhân vật từ ID
+  // Helper tìm tên nhân vật từ ID có kèm giai đoạn
   const getSpeakerName = (speakerId?: string | null) => {
     if (!speakerId) return null;
     const found = characters.find((c) => c.id === speakerId);
-    return found ? found.name : 'Nhân vật (Chưa rõ)';
+    return found ? getBibleEntryNameWithStage(found) : 'Nhân vật (Chưa rõ)';
   };
 
   const isChapterLocked =
@@ -1013,7 +1022,9 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     await loadSceneDetail(selectedScene.id);
   };
 
-  const aiNameById = Object.fromEntries(allBibleEntries.map((e) => [e.id, e.name]));
+  const aiNameById = Object.fromEntries(
+    allBibleEntries.map((e) => [e.id, getBibleEntryNameWithStage(e)]),
+  );
 
   // Số lượng vấn đề nhất quán
   const openFindingsCount = findings.filter(
@@ -1053,15 +1064,14 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                 </span>
                 {currentChapter && (
                   <span
-                    className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border ${
-                      currentChapter.status === 'Approved'
+                    className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border ${currentChapter.status === 'Approved'
                         ? 'badge-status-approved'
                         : currentChapter.status === 'Published'
                           ? 'badge-status-published'
                           : currentChapter.status === 'Locked'
                             ? 'badge-status-locked'
                             : 'badge-status-inproduction'
-                    }`}
+                      }`}
                   >
                     {currentChapter.status === 'Approved'
                       ? 'Đã duyệt'
@@ -1165,11 +1175,10 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             data-testid='run-consistency-check-btn'
             onClick={handleRunConsistencyCheck}
             disabled={loadingConsistency || !currentChapter?.id}
-            className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-full border transition-all cursor-pointer shadow-soft-sm disabled:opacity-50 ${
-              activeSideDrawer === 'consistency'
+            className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-full border transition-all cursor-pointer shadow-soft-sm disabled:opacity-50 ${activeSideDrawer === 'consistency'
                 ? 'bg-[#7c3aed] text-white border-transparent shadow-glow-violet font-bold'
                 : 'text-violet-900 bg-violet-50 hover:bg-violet-100 border-violet-200'
-            }`}
+              }`}
             title={`Kiểm tra nhất quán (${openFindingsCount} cần xử lý / ${totalFindingsCount} tổng số)`}
           >
             <ShieldCheck
@@ -1196,11 +1205,10 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             onClick={() =>
               setActiveSideDrawer((prev) => (prev === 'characters' ? null : 'characters'))
             }
-            className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-full border transition-all cursor-pointer shadow-soft-sm ${
-              activeSideDrawer === 'characters'
+            className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-full border transition-all cursor-pointer shadow-soft-sm ${activeSideDrawer === 'characters'
                 ? 'bg-purple-700 text-white border-transparent font-bold'
                 : 'bg-purple-50 text-purple-900 hover:bg-purple-100 border-purple-200'
-            }`}
+              }`}
             title='Xem danh sách nhân vật Canon từ Series Bible'
           >
             <User
@@ -1932,7 +1940,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                   <option value=''>-- Không có người nói (Lời dẫn ngoài / Hành động) --</option>
                   {characters.map((char) => (
                     <option key={char.id} value={char.id}>
-                      {char.name} {char.subtitle ? `(${char.subtitle})` : ''}
+                      {getBibleEntryNameWithStage(char)}
                     </option>
                   ))}
                 </select>
@@ -2013,7 +2021,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                                 : 'bg-white border-zinc-200 text-zinc-600 hover:border-purple-200 hover:bg-purple-50/30'
                             }`}
                           >
-                            <span>{entry.name}</span>
+                            <span>{getBibleEntryNameWithStage(entry)}</span>
                             {isChecked ? (
                               <CheckCircle2 className='w-3.5 h-3.5 text-purple-700' />
                             ) : (

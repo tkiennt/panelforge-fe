@@ -53,9 +53,28 @@
 
 /* ---- Field */
 .pf-field {
+  position: relative;
   display: flex;
   align-items: center;
+  width: 100%;
   height: 48px;
+  background: #ffffff;
+  border: 1.5px solid #e7e5e4;
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+  overflow: hidden;
+}
+.pf-field:hover:not(:focus-within) {
+  border-color: #d6d3d1;
+}
+.pf-field:focus-within {
+  border-color: var(--auth-accent);
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.15), 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+.pf-field[data-invalid='true'] {
+  border-color: var(--auth-danger);
+  box-shadow: 0 0 0 3px rgba(185, 28, 28, 0.15), 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 .pf-field-icon {
   display: inline-flex;
@@ -64,18 +83,24 @@
   width: 44px;
   height: 100%;
   flex-shrink: 0;
-  color: var(--auth-text-2);
-  border-right: 1px solid #e7e2d8;
+  color: #a8a29e;
+  transition: color 150ms ease;
+}
+.pf-field:focus-within .pf-field-icon {
+  color: var(--auth-accent);
+}
+.pf-field[data-invalid='true'] .pf-field-icon {
+  color: var(--auth-danger);
 }
 .pf-field-input {
   flex: 1;
   min-width: 0;
   height: 100%;
-  padding: 0 12px;
+  padding: 0 12px 0 0;
   border: 0;
   background: transparent;
   color: var(--auth-ink);
-  caret-color: var(--auth-ink);
+  caret-color: var(--auth-accent);
   font-size: 14px;
   font-weight: 500;
   outline: none;
@@ -93,7 +118,7 @@
 .pf-field-input:-webkit-autofill:focus,
 .pf-field-input:autofill {
   -webkit-text-fill-color: var(--auth-ink);
-  box-shadow: 0 0 0 1000px var(--auth-input) inset;
+  box-shadow: 0 0 0 1000px #ffffff inset;
   caret-color: var(--auth-ink);
 }
 .pf-field-action {
@@ -104,47 +129,16 @@
   height: 40px;
   margin-right: 4px;
   flex-shrink: 0;
-  color: var(--auth-text-2);
+  color: #a8a29e;
+  border-radius: 8px;
   cursor: pointer;
+  transition: color 150ms ease, background-color 150ms ease;
 }
 .pf-field-action:hover {
   color: var(--auth-ink);
+  background-color: #f5f5f4;
 }
 
-/* Focus: orange frame + small corner ticks outside the panel. */
-.pf-field:focus-within .pf-panel-frame {
-  background: var(--auth-accent);
-}
-.pf-field::before,
-.pf-field::after {
-  content: '';
-  position: absolute;
-  width: 8px;
-  height: 8px;
-  border: 2px solid var(--auth-accent);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 150ms ease;
-}
-.pf-field::before {
-  top: -5px;
-  right: -5px;
-  border-left: 0;
-  border-bottom: 0;
-}
-.pf-field::after {
-  bottom: -5px;
-  left: -5px;
-  border-right: 0;
-  border-top: 0;
-}
-.pf-field:focus-within::before,
-.pf-field:focus-within::after {
-  opacity: 1;
-}
-.pf-field[data-invalid='true'] .pf-panel-frame {
-  background: var(--auth-danger);
-}
 .pf-field-error {
   display: flex;
   align-items: center;
@@ -275,9 +269,7 @@
   .pf-btn,
   .pf-btn .pf-panel-shadow,
   .pf-panel-frame,
-  .pf-btn-primary .pf-panel-fill,
-  .pf-field::before,
-  .pf-field::after {
+  .pf-btn-primary .pf-panel-fill {
     transition: none;
   }
   .pf-btn:hover:not(:disabled),
