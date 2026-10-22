@@ -625,7 +625,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         <div className='relative inline-block max-w-full'>
           <div className='flex items-center gap-2.5 flex-wrap'>
             <h1
-              style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
+              style={{ fontFamily: "'Playfair Display', 'Lora', 'Be Vietnam Pro', Georgia, serif" }}
               className='pf-ink-bleed-title relative z-10 text-2xl sm:text-3xl lg:text-4xl font-bold text-zinc-900 tracking-tight leading-tight break-words [overflow-wrap:anywhere]'
               data-testid='series-title'
             >
@@ -1057,10 +1057,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 </div>
                 <div>
                   <div className='flex items-center gap-2.5'>
-                    <h2
-                      style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
-                      className='text-lg sm:text-xl font-bold text-zinc-900'
-                    >
+                    <h2 className='text-lg sm:text-xl font-bold text-zinc-900 font-sans'>
                       Tiến Độ Theo Từng Chương ({progress?.chapters.length || 0})
                     </h2>
                   </div>
@@ -1335,10 +1332,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <div className='flex items-center justify-between border-b border-zinc-100 pb-3'>
               <div className='flex items-center gap-2'>
                 <AlertTriangle className='w-4 h-4 text-[#F97316]' />
-                <h2
-                  style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
-                  className='text-base font-bold text-zinc-900'
-                >
+                <h2 className='text-base font-bold text-zinc-900 font-sans'>
                   Mục Cần Chú Ý &amp; Rủi Ro
                 </h2>
               </div>
@@ -1569,10 +1563,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <div className='flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-zinc-100 pb-4'>
               <div className='space-y-1.5'>
                 <div className='flex items-center gap-2.5 flex-wrap'>
-                  <h2
-                    style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
-                    className='text-lg font-bold text-zinc-900 flex items-center gap-2'
-                  >
+                  <h2 className='text-lg font-bold text-zinc-900 font-sans flex items-center gap-2'>
                     <Sliders className='w-4.5 h-4.5 text-[#F97316]' />
                     <span>Tiến độ công đoạn · Chương {selectedChapter.chapterNumber}</span>
                   </h2>
@@ -1859,10 +1850,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <div>
                   <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-zinc-100 pb-3'>
                     <div>
-                      <h2
-                        style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
-                        className='text-base font-bold text-zinc-900 flex items-center gap-2'
-                      >
+                      <h2 className='text-base font-bold text-zinc-900 font-sans flex items-center gap-2'>
                         <Users className='w-4 h-4 text-[#F97316]' />
                         <span>Phân Bổ Khối Lượng Công Việc</span>
                       </h2>

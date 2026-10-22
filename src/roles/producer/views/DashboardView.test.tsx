@@ -340,11 +340,11 @@ describe('DashboardView Component (UC-16 Progress Dashboard)', () => {
     renderDashboard();
 
     await waitFor(() => {
-      expect(screen.getByText('Tổng quan toàn diện')).toBeInTheDocument();
+      expect(screen.getByText(/Chương 1: Neon Awakening/i)).toBeInTheDocument();
     });
 
     // Mặc định hiển thị đầy đủ
-    expect(screen.getByText(/Chương 1: Neon Awakening/i)).toBeInTheDocument();
+    expect(screen.getByText('Tổng quan toàn diện')).toBeInTheDocument();
     expect(screen.getByText('Công việc còn lại theo thời gian')).toBeInTheDocument();
     expect(screen.getByText('Artist')).toBeInTheDocument();
 

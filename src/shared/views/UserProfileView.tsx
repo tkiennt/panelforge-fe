@@ -869,7 +869,7 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
               <div className='min-w-0'>
                 <div className='relative inline-block max-w-full'>
                   <h2
-                    style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
+                    style={{ fontFamily: "'Playfair Display', 'Lora', 'Be Vietnam Pro', Georgia, serif" }}
                     className='pf-ink-bleed-title relative z-10 text-2xl sm:text-3xl lg:text-4xl font-bold text-[#1C1917] tracking-tight leading-tight break-words [overflow-wrap:anywhere] select-text'
                     data-testid='profile-display-name'
                   >

@@ -36,7 +36,7 @@ export const SeriesAvatarFallback: React.FC<{ title: string; className?: string 
           {/* Subtle manga diamond emblem in background */}
           <div className='absolute inset-0 rotate-45 border border-[#EA580C]/25 bg-white/45 rounded-sm shadow-2xs' />
           <span
-            style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
+            style={{ fontFamily: "'Playfair Display', 'Lora', 'Be Vietnam Pro', Georgia, serif" }}
             className='relative text-3xl sm:text-4xl font-black text-[#C2410C] tracking-tight drop-shadow-xs'
           >
             {initial}
