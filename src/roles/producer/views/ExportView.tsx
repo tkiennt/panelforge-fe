@@ -1,6 +1,15 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Download, FileText, ImageIcon, Loader2, RefreshCw, X } from 'lucide-react';
+import {
+  ArrowLeft,
+  Download,
+  FileJson,
+  FileText,
+  ImageIcon,
+  Loader2,
+  RefreshCw,
+  X,
+} from 'lucide-react';
 import { PageContainer } from '@/shared/components/PageContainer';
 import { chapterService, ChapterDto } from '@/services/chapter.service';
 import { exportService, ExportJobDto, ExportPresetCode } from '@/services/export.service';
@@ -33,6 +42,12 @@ const FORMATS: { code: ExportPresetCode; label: string; hint: string; icon: type
     label: 'Webtoon cuộn dọc',
     hint: 'Ghép các trang thành một ảnh dọc',
     icon: ImageIcon,
+  },
+  {
+    code: 'OPEN_JSON',
+    label: 'JSON kèm nguồn gốc',
+    hint: 'Manifest bản duyệt + Provenance Report, kiểm chứng được bằng SHA-256',
+    icon: FileJson,
   },
 ];
 
@@ -245,7 +260,18 @@ export const ExportView: React.FC<ExportViewProps> = ({ onShowToast }) => {
                           )}
                         </td>
                         <td className='py-2.5 pr-3 tabular-nums text-[#1C1917]'>{job.pageCount}</td>
-                        <td className='py-2.5 pr-3 tabular-nums text-[#1C1917]'>{formatSize(job.sizeBytes)}</td>
+                        <td className='py-2.5 pr-3 tabular-nums text-[#1C1917]'>
+                          {formatSize(job.sizeBytes)}
+                          {job.sha256 && (
+                            <div
+                              className='font-mono text-[10px] text-[#57534E]'
+                              title={`SHA-256: ${job.sha256}`}
+                              data-testid={`export-sha-${job.id}`}
+                            >
+                              SHA-256 {job.sha256.slice(0, 12)}…
+                            </div>
+                          )}
+                        </td>
                         <td className='py-2.5 pr-3 font-mono text-[11px] text-[#57534E]'>
                           {new Date(job.createdAt).toLocaleString('vi-VN')}
                         </td>

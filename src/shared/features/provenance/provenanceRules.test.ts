@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type { ProvenanceNode, ProvenanceReportResponse } from '@/services/aiAgents.service';
 import {
+  canRestorePage,
   canViewProvenanceReport,
   detail,
   eventTone,
@@ -163,5 +164,15 @@ describe('tiện ích hiển thị', () => {
     expect(shortHash('abcdef0123456789', 6)).toBe('abcdef…');
     expect(shortHash('abc')).toBe('abc');
     expect(shortHash(null)).toBe('—');
+  });
+});
+
+describe('canRestorePage (CF4 4.3, US-12)', () => {
+  it('chỉ Producer và Artist khôi phục canvas trang', () => {
+    expect(canRestorePage('Producer')).toBe(true);
+    expect(canRestorePage('ARTIST')).toBe(true);
+    expect(canRestorePage('Writer')).toBe(false);
+    expect(canRestorePage('Editor')).toBe(false);
+    expect(canRestorePage(null)).toBe(false);
   });
 });

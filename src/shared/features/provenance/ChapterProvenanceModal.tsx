@@ -42,8 +42,9 @@ import {
   shortHash,
   traceRevision,
 } from './provenanceRules';
+import { PageHistoryPanel } from './PageHistoryPanel';
 
-type Tab = 'snapshots' | 'provenance' | 'runs';
+type Tab = 'snapshots' | 'provenance' | 'runs' | 'pages';
 type RevisionKindFilter =
   'ALL' | 'Script' | 'Layout' | 'ImagePrompt' | 'Artwork' | 'Lettering' | 'Review';
 
@@ -164,8 +165,8 @@ const str = (v: unknown): string | undefined =>
 
 /**
  * CF4: Lịch sử và nguồn gốc nội dung của một chương.
- * Bản duyệt (ChapterSnapshot bất biến), Provenance Report (UC-19, BR-10: agent, model, prompt, người quyết, mức sửa)
- * và lịch sử AI run.
+ * Bản duyệt (ChapterSnapshot bất biến), Provenance Report (UC-19, BR-10: agent, model, prompt, người quyết, mức sửa),
+ * lịch sử AI run và lịch sử canvas từng trang (PageHistoryPanel: so sánh, Producer/Artist khôi phục).
  */
 export const ChapterProvenanceModal: React.FC<ChapterProvenanceModalProps> = ({
   seriesId,
@@ -310,6 +311,7 @@ export const ChapterProvenanceModal: React.FC<ChapterProvenanceModalProps> = ({
       icon: <Bot className='w-4 h-4' />,
       badgeCount: runsTotal || runs?.length,
     },
+    { key: 'pages', label: 'Lịch sử trang', icon: <Clock className='w-4 h-4' /> },
   ];
 
   const toggleTimeline = (index: number) => {
@@ -1020,6 +1022,9 @@ export const ChapterProvenanceModal: React.FC<ChapterProvenanceModalProps> = ({
               )}
             </div>
           )}
+
+          {/* ════ Tab 4: Lịch sử canvas từng trang (CF4 4.3) ════ */}
+          {tab === 'pages' && <PageHistoryPanel chapterId={chapterId} viewerRole={viewerRole} />}
 
           {/* ════ Tab 3: Lịch sử AI ════ */}
           {tab === 'runs' &&
