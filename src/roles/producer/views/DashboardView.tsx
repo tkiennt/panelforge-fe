@@ -703,17 +703,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <span>Quản Lý Chương (Duyệt)</span>
               </button>
             )}
-            {seriesId && (
-              <button
-                type='button'
-                onClick={() => setIsMembersModalOpen(true)}
-                className='h-8.5 px-3 rounded-lg bg-white/90 hover:bg-[#FFF2E6] border border-[#D8D2C5] hover:border-[#FDBA74] text-[#1C1917] hover:text-[#C2410C] text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors'
-                title='Quản lý nhân sự và gán vai trò vào bộ truyện này'
-              >
-                <Users className='w-3.5 h-3.5 text-[#57534E]' />
-                <span>Đội ngũ Series ({seriesMembers.length})</span>
-              </button>
-            )}
             <button
               type='button'
               onClick={handleAuditClick}
@@ -1076,15 +1065,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
 
               {seriesId && (
-                <button
-                  type='button'
-                  onClick={() => setIsChapterModalOpen(true)}
-                  className='h-8.5 px-3 rounded-lg bg-white hover:bg-orange-50 border border-[#D8D2C5] hover:border-orange-300 text-xs font-semibold text-[#44403C] hover:text-[#C2410C] flex items-center gap-1.5 transition-colors cursor-pointer self-start sm:self-auto shrink-0 shadow-2xs'
-                >
-                  <BookOpen className='w-3.5 h-3.5 text-orange-600' />
-                  <span>Quản lý chương</span>
-                  <ArrowRight className='w-3.5 h-3.5 text-[#57534E]' />
-                </button>
+                <div className='flex items-center gap-2 self-start sm:self-auto shrink-0'>
+                  <span className='inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-[#D8D2C5] text-xs font-mono font-semibold text-[#57534E] shadow-2xs'>
+                    <BookOpen className='w-3.5 h-3.5 text-[#F97316]' />
+                    <span>{progress?.chapters.length || 0} tập</span>
+                  </span>
+                </div>
               )}
             </div>
 
@@ -1532,9 +1518,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   });
                   setIsAssignModalOpen(true);
                 }}
-                className='px-3 py-1.5 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer'
+                className='px-3 py-1.5 rounded-lg bg-white hover:bg-orange-50 border border-[#D8D2C5] hover:border-orange-300 text-[#44403C] hover:text-[#C2410C] text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer'
               >
-                <UserCheck className='w-3.5 h-3.5' />
+                <UserCheck className='w-3.5 h-3.5 text-[#57534E]' />
                 <span>Giao Việc Cho Chương {selectedChapter.chapterNumber}</span>
               </button>
               {workspaceId && seriesId && (
@@ -1545,9 +1531,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       `/workspaces/${workspaceId}/series/${seriesId}/workspace?chapterId=${selectedChapter.chapterId}`,
                     )
                   }
-                  className='px-3 py-1.5 rounded-lg bg-[#FAF8F5] hover:bg-[#F3F0E9] border border-[#D8D2C5] text-[#1C1917] text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs'
+                  className='px-3.5 py-1.5 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs'
                 >
-                  <ExternalLink className='w-3.5 h-3.5 text-[#57534E]' />
+                  <ExternalLink className='w-3.5 h-3.5' />
                   <span>Mở Pipeline</span>
                 </button>
               )}
@@ -1665,21 +1651,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                         className='text-base font-bold text-[#1C1917] flex items-center gap-2'
                       >
                         <Users className='w-4 h-4 text-[#F97316]' />
-                        <span>Đội ngũ & Phân Công ({seriesMembers.length} thành viên)</span>
+                        <span>Phân Bổ Khối Lượng Công Việc</span>
                       </h2>
                       <p className='text-xs text-[#57534E] mt-0.5'>
-                        Nhân sự thực hiện bộ truyện & khối lượng công việc
+                        Số lượng panel và nhiệm vụ đang phụ trách theo từng nhân sự
                       </p>
                     </div>
 
-                    <button
-                      type='button'
-                      onClick={() => setIsMembersModalOpen(true)}
-                      className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold shadow-2xs cursor-pointer transition-colors self-start sm:self-auto shrink-0'
-                    >
-                      <UserPlus className='w-3.5 h-3.5' />
-                      <span>Quản lý / Thêm thành viên</span>
-                    </button>
+                    <div className='flex items-center gap-2 self-start sm:self-auto shrink-0'>
+                      <span className='inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-[#D8D2C5] text-xs font-mono font-semibold text-[#57534E] shadow-2xs'>
+                        <span>{progress?.workload?.length || 0} Nhân sự có việc</span>
+                      </span>
+                    </div>
                   </div>
 
                   {!progress?.workload || progress.workload.length === 0 ? (
