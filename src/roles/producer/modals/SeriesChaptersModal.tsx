@@ -90,10 +90,6 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
   const [editTargetReleaseDate, setEditTargetReleaseDate] = useState('');
   const [editOutline, setEditOutline] = useState('');
 
-  // Delete Chapter Confirmation State (Lucian #269)
-  const [deleteTargetChapter, setDeleteTargetChapter] = useState<ChapterDto | null>(null);
-  const [isDeletingChapter, setIsDeletingChapter] = useState(false);
-
   const fetchChapters = useCallback(async () => {
     if (!seriesId) return;
     setLoading(true);
@@ -192,23 +188,23 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
     }
   };
 
-  const handleDeleteChapter = (chap: ChapterDto) => {
-    setDeleteTargetChapter(chap);
-  };
+  const handleDeleteChapter = async (chap: ChapterDto) => {
+    if (
+      !window.confirm(
+        `Bạn có chắc chắn muốn xóa Chương ${chap.chapterNumber}: "${chap.title || 'Không tiêu đề'}"? Dữ liệu trang và phân cảnh sẽ được đánh dấu xóa mềm.`,
+      )
+    ) {
+      return;
+    }
 
-  const executeDeleteChapter = async () => {
-    if (!deleteTargetChapter) return;
-    setIsDeletingChapter(true);
     setActionLoading(true);
     try {
-      await chapterService.deleteChapter(deleteTargetChapter.id);
-      onShowToast?.('Đã xóa chương', `Đã xóa Chương ${deleteTargetChapter.chapterNumber}.`);
+      await chapterService.deleteChapter(chap.id);
+      onShowToast?.('Đã xóa chương', `Đã xóa Chương ${chap.chapterNumber}.`);
       await fetchChapters();
-      setDeleteTargetChapter(null);
     } catch (err: any) {
       onShowToast?.('Lỗi xóa chương', err.message);
     } finally {
-      setIsDeletingChapter(false);
       setActionLoading(false);
     }
   };
@@ -832,8 +828,8 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
           {/* Footer */}
           <div className='p-4 bg-[#FAF8F5] border-t border-[#E7E7E7] rounded-b-2xl flex items-center justify-between text-xs'>
             <div className='text-[11px] text-[#737373]'>
-              * Ngày phát hành dự kiến (Target Date) hỗ trợ Producer & Editor quản lý tiến độ xuất bản định kỳ.
-              Phase 3).
+              * Ngày phát hành dự kiến (Target Date) hỗ trợ Producer & Editor quản lý tiến độ xuất
+              bản định kỳ. Phase 3).
             </div>
             <button
               type='button'
@@ -898,21 +894,6 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
               setPreviewChapter({ ...previewChapter, status: 'InProduction' });
           }}
           onShowToast={onShowToast}
-        />
-      )}
-
-      {/* Lucian #269: Type-to-confirm Delete Chapter Modal */}
-      {deleteTargetChapter && (
-        <TypeToConfirmModal
-          isOpen={!!deleteTargetChapter}
-          targetName={
-            deleteTargetChapter.title?.trim() || `Chương ${deleteTargetChapter.chapterNumber}`
-          }
-          title='Xác nhận xóa chương'
-          description={`Bạn có chắc chắn muốn xóa Chương ${deleteTargetChapter.chapterNumber}? Dữ liệu trang và phân cảnh sẽ được đánh dấu xóa mềm. Vui lòng nhập chính xác tên chương bên dưới để xác nhận:`}
-          onConfirm={executeDeleteChapter}
-          onCancel={() => setDeleteTargetChapter(null)}
-          isDeleting={isDeletingChapter}
         />
       )}
     </>,

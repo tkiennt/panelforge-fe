@@ -22,14 +22,12 @@ import { RejectChapterModal } from '../modals/RejectChapterModal';
 import { ChapterReviewsModal } from '@/shared/modals/ChapterReviewsModal';
 import { ChapterProvenanceModal } from '@/shared/features/provenance/ChapterProvenanceModal';
 import { ChapterReaderModal } from '@/shared/modals/ChapterReaderModal';
-import { useTranslation } from '@/lib/i18n';
 
 interface PublisherDeskViewProps {
   onShowToast?: (title: string, desc: string) => void;
 }
 
 export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToast }) => {
-  const { t } = useTranslation('publisher');
   const { seriesId, workspaceId } = useParams<{ seriesId: string; workspaceId: string }>();
   const navigate = useNavigate();
 
@@ -90,12 +88,17 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
           </div>
           <div>
             <div className='flex items-center gap-2'>
-              <h1 className='text-xl font-serif font-bold text-[#1C1917]'>{t('desk.title')}</h1>
+              <h1 className='text-xl font-serif font-bold text-[#1C1917]'>
+                Bàn Làm Việc Publisher // Cổng Duyệt Xuất Bản
+              </h1>
               <span className='px-2 py-0.5 rounded bg-[#FFF2E6] text-[#C2410C] border border-[#FDBA74] text-xs font-mono font-bold'>
                 STAGE: PUBLISHING
               </span>
             </div>
-            <p className='text-xs text-[#57534E] mt-1'>{t('desk.subtitle')}</p>
+            <p className='text-xs text-[#57534E] mt-1'>
+              Duyệt thẩm định chương sau khi Producer hoàn tất sản xuất, lên lịch phát hành hoặc
+              xuất bản trực tiếp tới độc giả công khai.
+            </p>
           </div>
         </div>
 
@@ -113,7 +116,7 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
             className='px-3.5 py-1.5 bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer shadow-soft-sm active:scale-95'
           >
             <Layers className='w-3.5 h-3.5' />
-            <span>{t('desk.enterBoard')}</span>
+            <span>Vào Production Board</span>
           </button>
         </div>
       </div>
@@ -129,13 +132,15 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
           }`}
         >
           <div className='flex items-center justify-between text-xs text-[#57534E]'>
-            <span className='font-semibold'>{t('desk.waitingApproval')}</span>
+            <span className='font-semibold'>Chờ Duyệt Xuất Bản</span>
             <CheckCircle2 className='w-4 h-4 text-[#C2410C]' />
           </div>
           <div className='text-2xl font-bold font-mono tabular-nums text-[#1C1917] mt-1.5'>
             {approvedChapters.length}
           </div>
-          <p className='text-xs text-[#C2410C] mt-1 font-medium'>{t('desk.waitingApprovalDesc')}</p>
+          <p className='text-xs text-[#C2410C] mt-1 font-medium'>
+            Producer đã duyệt hoàn tất sản xuất
+          </p>
         </div>
 
         <div
@@ -147,7 +152,7 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
           }`}
         >
           <div className='flex items-center justify-between text-xs text-[#57534E]'>
-            <span className='font-semibold'>{t('desk.publishedAndScheduled')}</span>
+            <span className='font-semibold'>Đã Xuất Bản &amp; Lên Lịch</span>
             <Sparkles className='w-4 h-4 text-[#C2410C]' />
           </div>
           <div className='text-2xl font-bold font-mono tabular-nums text-[#1C1917] mt-1.5'>

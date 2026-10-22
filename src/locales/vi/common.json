@@ -70,16 +70,21 @@
     "syncing": "Đang đồng bộ..."
   },
   "unsaved": {
-    "title": "Có thay đổi chưa lưu",
-    "plural": "Có {count} thay đổi chưa lưu",
+    "title": "Bạn có thay đổi chưa lưu",
+    "plural": "Bạn có {count} thay đổi chưa lưu",
     "saved": "Đã lưu thay đổi",
     "discard": "Hủy bỏ",
-    "save": "Lưu lại",
+    "save": "Lưu thay đổi",
     "saving": "Đang lưu..."
+  },
+  "dangerZone": {
+    "confirmDeleteTitle": "Xác nhận xóa vĩnh viễn",
+    "confirmDeleteDesc": "Hành động này không thể hoàn tác. Vui lòng nhập chính xác tên bên dưới để xác nhận xóa:",
+    "typeInputLabel": "Nhập lại tên để xác nhận"
   },
   "auth": {
     "welcomeBack": "Chào mừng trở lại",
-    "loginSubtitle": "Đăng nhập để tiếp tục cùng studio của bạn.",
+    "loginSubtitle": "Tiếp tục sáng tạo cùng studio của bạn.",
     "email": "Email",
     "password": "Mật khẩu",
     "forgot": "Quên mật khẩu?",

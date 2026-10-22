@@ -27,8 +27,6 @@ import {
 import { useToast, ToastProvider } from '@/shared/context/ToastContext';
 import { ConfirmProvider } from '@/shared/context/ConfirmContext';
 import { authService } from './services/auth.service';
-import { userService } from './services/user.service';
-import { PROFILE_UPDATED_EVENT } from '@/shared/utils/profileEvents';
 import { refreshAccessToken } from './api/axiosClient';
 import { startSessionKeepAlive } from './api/sessionKeepAlive';
 import { seriesService } from './services/series.service';
@@ -116,27 +114,6 @@ function AppContent() {
     canCreateStudio?: boolean;
     isTwoFactorEnabled?: boolean;
   } | null>(null);
-  // Avatar đã lưu trên hồ sơ (Auth/me không trả avatar) — nguồn duy nhất cho header.
-  const [userAvatarUrl, setUserAvatarUrl] = useState<string | null>(null);
-  const currentUserId = currentUserInfo?.id;
-  useEffect(() => {
-    setUserAvatarUrl(null);
-    if (!currentUserId || localStorage.getItem('token')?.startsWith('mock-')) return;
-    let alive = true;
-    userService
-      .getMyProfile()
-      .then((p) => alive && setUserAvatarUrl(p?.avatar || null))
-      .catch(() => {});
-    return () => {
-      alive = false;
-    };
-  }, [currentUserId]);
-  useEffect(() => {
-    const onUpdated = (e: Event) =>
-      setUserAvatarUrl((e as CustomEvent<{ avatar?: string | null }>).detail?.avatar || null);
-    window.addEventListener(PROFILE_UPDATED_EVENT, onUpdated);
-    return () => window.removeEventListener(PROFILE_UPDATED_EVENT, onUpdated);
-  }, []);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
 
@@ -716,7 +693,7 @@ function AppContent() {
         isAuthenticated={isAuthenticated}
         defaultRedirectPath={defaultRedirectPath}
         handleSelectWorkspace={handleSelectWorkspace}
-        currentUserInfo={currentUserInfo ? { ...currentUserInfo, avatarUrl: userAvatarUrl } : null}
+        currentUserInfo={currentUserInfo}
         firebaseUser={firebaseUser}
         currentRole={currentRole}
         currentWorkspaceRole={currentWorkspaceRole}

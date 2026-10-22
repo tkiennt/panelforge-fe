@@ -10,6 +10,7 @@ import {
   UserCheck,
   Layers,
   FileText,
+  Sparkles,
 } from 'lucide-react';
 import {
   assignmentService,
@@ -33,6 +34,8 @@ interface CreateAssignmentModalProps {
   seriesId: string;
   chapterId: string;
   chapterNumber?: number | string;
+  initialPipelineStageId?: string;
+  initialEntityType?: WorkflowEntityType;
   onClose: () => void;
   onSuccess?: (created: AssignmentDto) => void;
   onShowToast?: (title: string, desc: string) => void;
@@ -44,14 +47,16 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
   seriesId,
   chapterId,
   chapterNumber,
+  initialPipelineStageId,
+  initialEntityType,
   onClose,
   onSuccess,
   onShowToast,
 }) => {
-  const [entityType, setEntityType] = useState<WorkflowEntityType>('Chapter');
+  const [entityType, setEntityType] = useState<WorkflowEntityType>(initialEntityType || 'Chapter');
   const [selectedPageId, setSelectedPageId] = useState('');
   const [selectedPanelId, setSelectedPanelId] = useState('');
-  const [pipelineStageId, setPipelineStageId] = useState('');
+  const [pipelineStageId, setPipelineStageId] = useState(initialPipelineStageId || '');
   const [assigneeUserId, setAssigneeUserId] = useState('');
   const [brief, setBrief] = useState('');
   const [referenceNotes, setReferenceNotes] = useState('');
@@ -101,86 +106,40 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
         if (pipelineData?.stages && pipelineData.stages.length > 0) {
           loadedStages = pipelineData.stages.filter((s) => s.isEnabled !== false);
         } else {
-          // Fallback default stages với đầy đủ allowedRole
-          loadedStages = [
-            {
-              id: 'stage-script',
-              name: 'Script / Kịch bản',
-              slug: 'script',
-              stageOrder: 1,
-              allowedRole: 'Writer',
-              isApprovalGate: false,
-              isInitial: true,
-              isTerminal: false,
-            },
-            {
-              id: 'stage-thumbnail',
-              name: 'Storyboard / Thumbnail',
-              slug: 'thumbnail',
-              stageOrder: 2,
-              allowedRole: 'Artist',
-              isApprovalGate: false,
-              isInitial: false,
-              isTerminal: false,
-            },
-            {
-              id: 'stage-pencil',
-              name: 'Pencil / Vẽ phác',
-              slug: 'pencil',
-              stageOrder: 3,
-              allowedRole: 'Artist',
-              isApprovalGate: false,
-              isInitial: false,
-              isTerminal: false,
-            },
-            {
-              id: 'stage-ink',
-              name: 'Inking / Đi nét',
-              slug: 'ink',
-              stageOrder: 4,
-              allowedRole: 'Artist',
-              isApprovalGate: false,
-              isInitial: false,
-              isTerminal: false,
-            },
-            {
-              id: 'stage-color',
-              name: 'Coloring / Lên màu',
-              slug: 'color',
-              stageOrder: 5,
-              allowedRole: 'Artist',
-              isApprovalGate: false,
-              isInitial: false,
-              isTerminal: false,
-            },
-            {
-              id: 'stage-letter',
-              name: 'Lettering / Thoại',
-              slug: 'letter',
-              stageOrder: 6,
-              allowedRole: 'Letterer',
-              isApprovalGate: false,
-              isInitial: false,
-              isTerminal: false,
-            },
-          ];
+          loadedStages = [];
         }
 
         setStages(loadedStages);
-        const initialStageId = loadedStages[0]?.id || '';
-        setPipelineStageId(initialStageId);
+        const targetStageId =
+          initialPipelineStageId && loadedStages.some((s) => s.id === initialPipelineStageId)
+            ? initialPipelineStageId
+            : loadedStages[0]?.id || '';
+        setPipelineStageId(targetStageId);
 
-        const loadedMembers = membersData || [];
+        if (initialEntityType) {
+          setEntityType(initialEntityType);
+        }
+
+        if (loadedStages.length === 0) {
+          setError(
+            'Series chưa có công đoạn Pipeline nào khả dụng hoặc không thể tải cấu hình Pipeline. Vui lòng cấu hình Pipeline trước khi giao việc.',
+          );
+        }
+
+        // Chỉ lấy thành viên Active (chưa Active như Pending/Rejected bị BE từ chối khi giao việc)
+        const loadedMembers = (membersData || []).filter(
+          (m) => !m.status || m.status.toLowerCase() === 'active',
+        );
         setMembers(loadedMembers);
 
-        // Lọc người nhận theo allowedRole của stage đầu tiên
-        const initialStage = loadedStages[0];
-        const initialAllowedRole = initialStage?.allowedRole
-          ? normalizeWorkspaceRole(initialStage.allowedRole)
+        // Lọc người nhận theo allowedRole của stage đã chọn dựa trên vai trò trong Workspace (studioRole)
+        const targetStage = loadedStages.find((s) => s.id === targetStageId) || loadedStages[0];
+        const targetAllowedRole = targetStage?.allowedRole
+          ? normalizeWorkspaceRole(targetStage.allowedRole)
           : null;
         const initialMatchingMembers = loadedMembers.filter((m) => {
-          if (!initialAllowedRole) return true;
-          return normalizeWorkspaceRole(m.seriesRole || m.studioRole) === initialAllowedRole;
+          if (!targetAllowedRole) return true;
+          return normalizeWorkspaceRole(m.studioRole) === targetAllowedRole;
         });
 
         if (initialMatchingMembers.length > 0) {
@@ -264,11 +223,11 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
     [requiredRole],
   );
 
-  // Danh sách thành viên khớp với vai trò yêu cầu của công đoạn
+  // Danh sách thành viên khớp với vai trò yêu cầu của công đoạn (theo WorkspaceRole)
   const filteredMembers = useMemo(() => {
     if (!normRequiredRole) return members;
     return members.filter((m) => {
-      const mRole = normalizeWorkspaceRole(m.seriesRole || m.studioRole);
+      const mRole = normalizeWorkspaceRole(m.studioRole);
       return mRole === normRequiredRole;
     });
   }, [members, normRequiredRole]);
@@ -283,7 +242,7 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
 
     const matching = members.filter((m) => {
       if (!newNormRole) return true;
-      return normalizeWorkspaceRole(m.seriesRole || m.studioRole) === newNormRole;
+      return normalizeWorkspaceRole(m.studioRole) === newNormRole;
     });
 
     if (matching.length > 0) {
@@ -295,6 +254,136 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
       setAssigneeUserId('');
     }
   };
+
+  // Lọc các phân công nhiệm vụ thuộc công đoạn đang chọn (phục vụ kiểm tra chồng phạm vi theo BR-07 / BE 2026-10-21)
+  const existingAtStage = useMemo(() => {
+    if (!pipelineStageId) return [];
+    return existingAssignments.filter((a) => a.pipelineStageId === pipelineStageId);
+  }, [existingAssignments, pipelineStageId]);
+
+  const chapterAssignmentAtStage = useMemo(
+    () => existingAtStage.find((a) => a.entityType === 'Chapter'),
+    [existingAtStage],
+  );
+
+  const isChapterAssignedAtStage = Boolean(chapterAssignmentAtStage);
+
+  // Stage có cho phép tách trang/khung từ việc cả chương không?
+  // Theo BE 2026-10-21: Chỉ stage của Artist/Letterer và việc cả chương đang Assigned/InProgress/ReworkRequired
+  const canCarveOutFromChapter = useMemo(() => {
+    if (!chapterAssignmentAtStage) return false;
+    const isArtistOrLettererStage =
+      normRequiredRole === 'ARTIST' || normRequiredRole === 'LETTERER';
+    if (!isArtistOrLettererStage) return false;
+    const s = String(chapterAssignmentAtStage.status);
+    return s === 'Assigned' || s === 'InProgress' || s === 'ReworkRequired';
+  }, [chapterAssignmentAtStage, normRequiredRole]);
+
+  const assignedPageIdsAtStage = useMemo(() => {
+    return new Set(
+      existingAtStage.filter((a) => a.entityType === 'Page').map((a) => a.targetEntityId),
+    );
+  }, [existingAtStage]);
+
+  const assignedPanelIdsAtStage = useMemo(() => {
+    return new Set(
+      existingAtStage.filter((a) => a.entityType === 'Panel').map((a) => a.targetEntityId),
+    );
+  }, [existingAtStage]);
+
+  const hasAnyPageOrPanelAssignedAtStage = useMemo(
+    () => assignedPageIdsAtStage.size > 0 || assignedPanelIdsAtStage.size > 0,
+    [assignedPageIdsAtStage, assignedPanelIdsAtStage],
+  );
+
+  // Tự động chuyển sang Page nếu stage đã giao cả chương nhưng cho phép tách trang/khung
+  useEffect(() => {
+    if (isChapterAssignedAtStage && canCarveOutFromChapter && entityType === 'Chapter') {
+      setEntityType('Page');
+    }
+  }, [isChapterAssignedAtStage, canCarveOutFromChapter, entityType]);
+
+  // Kiểm tra xung đột phạm vi giao việc theo quy tắc ScopeOverlap của Backend (tránh lỗi 409 CONFLICT)
+  const scopeOverlapWarning = useMemo((): string | null => {
+    if (!pipelineStageId) return null;
+
+    if (isChapterAssignedAtStage) {
+      if (entityType === 'Chapter') {
+        return `Công đoạn "${currentStage?.name || 'này'}" đã được giao cho cả chương. Không thể tạo thêm phân công cả chương ở công đoạn này.`;
+      }
+      if (!canCarveOutFromChapter) {
+        const isArtistOrLettererStage =
+          normRequiredRole === 'ARTIST' || normRequiredRole === 'LETTERER';
+        if (!isArtistOrLettererStage) {
+          return `Công đoạn "${currentStage?.name || 'này'}" đã giao cả chương cho ${requiredRole || 'vai trò này'}, không hỗ trợ tách trang hoặc khung.`;
+        }
+        return `Việc cả chương ở công đoạn "${currentStage?.name || 'này'}" đang ở trạng thái "${chapterAssignmentAtStage?.status}". Chỉ có thể tách trang/khung khi việc cả chương còn đang làm.`;
+      }
+    }
+
+    if (entityType === 'Chapter' && hasAnyPageOrPanelAssignedAtStage) {
+      return `Công đoạn "${currentStage?.name || 'này'}" đã có việc giao theo trang hoặc khung trong chương; không thể giao thêm việc cho cả chương.`;
+    }
+
+    if (entityType === 'Page') {
+      if (selectedPageId && assignedPageIdsAtStage.has(selectedPageId)) {
+        return 'Trang này đã được giao việc ở công đoạn đang chọn.';
+      }
+      if (selectedPageId && panels.some((p) => assignedPanelIdsAtStage.has(p.id))) {
+        return 'Trang này đã có khung được giao việc ở công đoạn đang chọn; không thể giao thêm việc cho cả trang.';
+      }
+    }
+
+    if (entityType === 'Panel') {
+      if (selectedPageId && assignedPageIdsAtStage.has(selectedPageId)) {
+        return 'Trang chứa khung này đã được giao việc ở công đoạn đang chọn; không thể giao thêm việc theo khung.';
+      }
+      if (selectedPanelId && assignedPanelIdsAtStage.has(selectedPanelId)) {
+        return 'Khung hình này đã được giao việc ở công đoạn đang chọn.';
+      }
+    }
+
+    return null;
+  }, [
+    pipelineStageId,
+    currentStage?.name,
+    isChapterAssignedAtStage,
+    chapterAssignmentAtStage,
+    canCarveOutFromChapter,
+    normRequiredRole,
+    requiredRole,
+    entityType,
+    hasAnyPageOrPanelAssignedAtStage,
+    selectedPageId,
+    assignedPageIdsAtStage,
+    panels,
+    assignedPanelIdsAtStage,
+    selectedPanelId,
+  ]);
+
+  // Tự động chuyển sang trang chưa được giao việc nếu trang đang chọn bị trùng ở stage này
+  useEffect(() => {
+    if (entityType === 'Page' && pages.length > 0) {
+      if (assignedPageIdsAtStage.has(selectedPageId)) {
+        const availablePage = pages.find((p) => !assignedPageIdsAtStage.has(p.id));
+        if (availablePage) {
+          setSelectedPageId(availablePage.id);
+        }
+      }
+    }
+  }, [entityType, pages, assignedPageIdsAtStage, selectedPageId]);
+
+  // Tự động chuyển sang khung chưa được giao việc nếu khung đang chọn bị trùng ở stage này
+  useEffect(() => {
+    if (entityType === 'Panel' && panels.length > 0) {
+      if (assignedPanelIdsAtStage.has(selectedPanelId)) {
+        const availablePanel = panels.find((p) => !assignedPanelIdsAtStage.has(p.id));
+        if (availablePanel) {
+          setSelectedPanelId(availablePanel.id);
+        }
+      }
+    }
+  }, [entityType, panels, assignedPanelIdsAtStage, selectedPanelId]);
 
   // Đóng modal khi nhấn phím Escape
   useEffect(() => {
@@ -314,12 +403,17 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
     e.preventDefault();
     setError(null);
 
+    if (scopeOverlapWarning) {
+      setError(scopeOverlapWarning);
+      return;
+    }
+
     if (!brief.trim()) {
       setError('Vui lòng nhập mô tả yêu cầu công việc (Brief).');
       return;
     }
-    if (!pipelineStageId) {
-      setError('Vui lòng chọn công đoạn Pipeline.');
+    if (stages.length === 0 || !pipelineStageId) {
+      setError('Series chưa có công đoạn Pipeline nào hợp lệ để giao việc.');
       return;
     }
     if (!assigneeUserId) {
@@ -432,6 +526,16 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
             </div>
           )}
 
+          {scopeOverlapWarning && (
+            <div className='p-3 bg-amber-50 border border-amber-300 text-amber-900 rounded-xl flex items-start gap-2'>
+              <AlertTriangle className='w-4 h-4 shrink-0 mt-0.5 text-amber-600' />
+              <div className='leading-relaxed'>
+                <span className='font-semibold'>Trùng lặp phạm vi giao việc (409 Conflict):</span>{' '}
+                <span>{scopeOverlapWarning}</span>
+              </div>
+            </div>
+          )}
+
           {loadingInitial ? (
             <div className='py-8 text-center text-[#888888]'>
               <Loader2 className='w-6 h-6 animate-spin mx-auto mb-2 text-[#F97316]' />
@@ -455,9 +559,39 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                       onChange={(e) => setEntityType(e.target.value as WorkflowEntityType)}
                       className='w-full px-3 py-2 bg-white border border-[#E7E7E7] rounded-lg text-xs font-semibold focus:outline-none focus:border-[#F97316]'
                     >
-                      <option value='Chapter'>Toàn bộ Chương (Chapter)</option>
-                      <option value='Page'>Theo Trang (Page)</option>
-                      <option value='Panel'>Theo Khung hình (Panel)</option>
+                      <option
+                        value='Chapter'
+                        disabled={isChapterAssignedAtStage || hasAnyPageOrPanelAssignedAtStage}
+                      >
+                        Toàn bộ Chương (Chapter)
+                        {isChapterAssignedAtStage
+                          ? ' — (Đã giao việc cả chương)'
+                          : hasAnyPageOrPanelAssignedAtStage
+                            ? ' — (Đã có việc theo trang/khung)'
+                            : ''}
+                      </option>
+                      <option
+                        value='Page'
+                        disabled={isChapterAssignedAtStage && !canCarveOutFromChapter}
+                      >
+                        Theo Trang (Page)
+                        {isChapterAssignedAtStage
+                          ? canCarveOutFromChapter
+                            ? ' — (Tách từ việc cả chương)'
+                            : ' — (Chương đã giao việc)'
+                          : ''}
+                      </option>
+                      <option
+                        value='Panel'
+                        disabled={isChapterAssignedAtStage && !canCarveOutFromChapter}
+                      >
+                        Theo Khung hình (Panel)
+                        {isChapterAssignedAtStage
+                          ? canCarveOutFromChapter
+                            ? ' — (Tách từ việc cả chương)'
+                            : ' — (Chương đã giao việc)'
+                          : ''}
+                      </option>
                     </select>
                   </div>
 
@@ -488,11 +622,15 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                           required
                           className='w-full px-3 py-2 bg-white border border-[#E7E7E7] rounded-lg text-xs font-semibold focus:outline-none focus:border-[#F97316]'
                         >
-                          {pages.map((p) => (
-                            <option key={p.id} value={p.id}>
-                              Trang {p.pageNumber} ({p.layoutFormat} • {p.widthPx}×{p.heightPx}px)
-                            </option>
-                          ))}
+                          {pages.map((p) => {
+                            const isAssigned = assignedPageIdsAtStage.has(p.id);
+                            return (
+                              <option key={p.id} value={p.id} disabled={isAssigned}>
+                                Trang {p.pageNumber} ({p.layoutFormat} • {p.widthPx}×{p.heightPx}px)
+                                {isAssigned ? ' — (Đã giao việc ở stage này)' : ''}
+                              </option>
+                            );
+                          })}
                         </select>
                       ) : (
                         <div className='p-2 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-[11px]'>
@@ -567,13 +705,18 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                           value={selectedPanelId}
                           onChange={(e) => setSelectedPanelId(e.target.value)}
                           required
+                          disabled={assignedPageIdsAtStage.has(selectedPageId)}
                           className='w-full px-3 py-2 bg-white border border-[#E7E7E7] rounded-lg text-xs font-semibold focus:outline-none focus:border-[#F97316]'
                         >
-                          {panels.map((p) => (
-                            <option key={p.id} value={p.id}>
-                              Panel #{p.panelNumber ?? p.readingOrder ?? p.id.slice(0, 8)}{' '}
-                            </option>
-                          ))}
+                          {panels.map((p) => {
+                            const isAssigned = assignedPanelIdsAtStage.has(p.id);
+                            return (
+                              <option key={p.id} value={p.id} disabled={isAssigned}>
+                                Panel #{p.panelNumber ?? p.readingOrder ?? p.id.slice(0, 8)}{' '}
+                                {isAssigned ? ' — (Đã giao việc ở stage này)' : ''}
+                              </option>
+                            );
+                          })}
                         </select>
                       ) : (
                         <div className='p-2 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-[11px]'>
@@ -581,6 +724,15 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                         </div>
                       )}
                     </div>
+                  </div>
+                )}
+
+                {isChapterAssignedAtStage && canCarveOutFromChapter && (entityType === 'Page' || entityType === 'Panel') && (
+                  <div className='p-2.5 bg-blue-50 border border-blue-200 rounded-lg text-blue-900 text-xs flex items-center gap-2'>
+                    <Sparkles className='w-4 h-4 text-blue-600 shrink-0' />
+                    <span>
+                      <strong>Tách trang/khung:</strong> Việc này được tách từ việc cả chương của công đoạn. Sau khi tạo, phạm vi việc cả chương sẽ tự động thu hẹp lại (trừ phần đã tách).
+                    </span>
                   </div>
                 )}
               </div>
@@ -594,19 +746,28 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                   >
                     Công đoạn Pipeline *
                   </label>
-                  <select
-                    id='assignment-stage-select'
-                    value={pipelineStageId}
-                    onChange={(e) => handleStageChange(e.target.value)}
-                    required
-                    className='w-full px-3 py-2 bg-white border border-[#E7E7E7] rounded-lg text-xs font-semibold focus:outline-none focus:border-[#F97316]'
-                  >
-                    {stages.map((st) => (
-                      <option key={st.id} value={st.id}>
-                        {st.stageOrder}. {st.name} {st.allowedRole ? `(${st.allowedRole})` : ''}
-                      </option>
-                    ))}
-                  </select>
+                  {stages.length > 0 ? (
+                    <select
+                      id='assignment-stage-select'
+                      value={pipelineStageId}
+                      onChange={(e) => handleStageChange(e.target.value)}
+                      required
+                      className='w-full px-3 py-2 bg-white border border-[#E7E7E7] rounded-lg text-xs font-semibold focus:outline-none focus:border-[#F97316]'
+                    >
+                      {stages.map((st) => (
+                        <option key={st.id} value={st.id}>
+                          {st.stageOrder}. {st.name} {st.allowedRole ? `(${st.allowedRole})` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div className='p-2 bg-rose-50 border border-rose-200 rounded-lg text-rose-700 text-[11px] flex items-center gap-1.5'>
+                      <AlertCircle className='w-3.5 h-3.5 shrink-0 text-rose-600' />
+                      <span>
+                        Không có công đoạn Pipeline hợp lệ. Vui lòng cấu hình Pipeline cho Series.
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -631,14 +792,14 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                     {filteredMembers.length > 0 ? (
                       filteredMembers.map((m) => (
                         <option key={m.id} value={m.userId}>
-                          {m.fullName || m.email.split('@')[0]} — {m.seriesRole || m.studioRole}
+                          {m.fullName || m.email.split('@')[0]} — {m.studioRole}
                         </option>
                       ))
                     ) : (
                       <option value=''>
                         {requiredRole
                           ? `Không có thành viên vai trò ${requiredRole}`
-                          : 'Chưa có thành viên trong series'}
+                          : 'Chưa có thành viên trong Workspace'}
                       </option>
                     )}
                   </select>
@@ -774,7 +935,9 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
           <button
             type='submit'
             form='create-assignment-form'
-            disabled={submitting || loadingInitial}
+            disabled={
+              submitting || loadingInitial || stages.length === 0 || Boolean(scopeOverlapWarning)
+            }
             className='px-4 py-2 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white font-semibold flex items-center gap-1.5 disabled:opacity-50 shadow-2xs cursor-pointer text-xs transition-colors'
           >
             {submitting ? (

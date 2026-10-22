@@ -15,7 +15,6 @@ import { adminService, SystemStatsResponse } from '@/services/admin.service';
 import { cn } from '@/lib/utils';
 import { AdminButton, AdminCard, AdminPageHeader, AdminStat } from './components/AdminUi';
 import { adminFocusRing } from './components/adminUiStyles';
-import { useTranslation } from '@/lib/i18n';
 
 interface AdminDashboardViewProps {
   onNavigateToUsers?: () => void;
@@ -32,7 +31,6 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
   onNavigateToSessionPolicy,
   onNavigateToStorage,
 }) => {
-  const { t } = useTranslation('admin');
   const [stats, setStats] = useState<SystemStatsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -95,12 +93,12 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
   return (
     <>
       <AdminPageHeader
-        title={t('overview.title')}
+        title='Tổng quan hệ thống'
         actions={
           <>
             {lastRefreshed && (
               <span className='text-xs text-admin-muted tabular-nums'>
-                {t('overview.updatedAt', { time: lastRefreshed.toLocaleTimeString('vi-VN') })}
+                Cập nhật lúc {lastRefreshed.toLocaleTimeString('vi-VN')}
               </span>
             )}
             <AdminButton
@@ -121,7 +119,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
         >
           <span className='flex items-center gap-2'>
             <AlertCircle className='w-4 h-4 shrink-0' aria-hidden />
-            {t('overview.errorLoading')}
+            Không tải được số liệu hệ thống.
           </span>
           <AdminButton size='sm' variant='danger' onClick={fetchStats}>
             Thử lại
@@ -131,12 +129,12 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
 
       <div className='grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4'>
         <AdminStat
-          label={t('overview.totalUsers')}
+          label='Tổng người dùng'
           value={value(stats?.totalUsers)}
           icon={<Users className='w-5 h-5' />}
         />
         <AdminStat
-          label={t('overview.registeredUsers')}
+          label='Người dùng thường'
           value={value(stats?.registeredUsers)}
           icon={<UserCheck className='w-5 h-5' />}
         />

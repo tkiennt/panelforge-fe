@@ -241,6 +241,7 @@ export interface SeriesMemberDto {
   studioRole?: string;
   seriesRole: string;
   joinedAt: string;
+  status?: 'Active' | 'Pending' | 'Rejected' | string;
 }
 
 export interface SeriesCandidateDto {

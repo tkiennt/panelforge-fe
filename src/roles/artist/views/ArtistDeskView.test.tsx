@@ -12,7 +12,12 @@ import { frameTemplateService } from '@/services/frameTemplate.service';
 
 import { elementService } from '@/services/element.service';
 import { bibleService } from '@/services/bible.service';
-import { artworkService, computeFileSha256, resolveArtworkUrl } from '@/services/artwork.service';
+import {
+  artworkService,
+  computeFileSha256,
+  resolveArtworkUrl,
+  toThumbnailUrl,
+} from '@/services/artwork.service';
 import { assignmentService } from '@/services/assignment.service';
 import { pipelineService } from '@/services/pipeline.service';
 
@@ -93,6 +98,9 @@ describe('ArtistDeskView', () => {
     vi.mocked(assignmentService.getAssignments).mockResolvedValue([]);
     vi.mocked(computeFileSha256).mockResolvedValue('sha-1');
     vi.mocked(resolveArtworkUrl).mockImplementation((u: string) => `http://localhost${u}`);
+    vi.mocked(toThumbnailUrl).mockImplementation(
+      (u: string) => `${u}${u.includes('?') ? '&' : '?'}size=thumb`,
+    );
 
     vi.mocked(chapterService.getChaptersBySeries).mockResolvedValue({
       items: [
@@ -313,6 +321,53 @@ describe('ArtistDeskView', () => {
       expect(screen.getByTestId('layers-management-view')).toBeInTheDocument();
       expect(screen.getByTestId('layer-item-elem-char-1')).toBeInTheDocument();
       expect(screen.getByText('Kiếm Sĩ Ren')).toBeInTheDocument();
+    });
+  });
+
+  it('danh sách layer hiển thị thumbnail thu nhỏ bằng toThumbnailUrl', async () => {
+    vi.mocked(elementService.getPageSnapshot).mockResolvedValue({
+      pageId: 'page-1',
+      elements: [
+        {
+          elementId: 'elem-art-1',
+          elementType: 'ARTWORK_LAYER',
+          zIndex: 1,
+          x: 0,
+          y: 0,
+          width: 200,
+          height: 200,
+          assetId: 'art-layer-1',
+          isRemoved: false,
+        },
+      ],
+    } as any);
+
+    vi.mocked(artworkService.getArtworks).mockResolvedValue([
+      {
+        id: 'art-layer-1',
+        chapterId: 'chap-1',
+        pageId: 'page-1',
+        fileName: 'layer1.png',
+        versionNumber: 1,
+      } as any,
+    ]);
+
+    vi.mocked(artworkService.getArtworkAccessLink).mockResolvedValue({
+      url: '/assets/download?token=layer-token',
+      expiresAtUtc: new Date(Date.now() + 300_000).toISOString(),
+    });
+
+    renderComponent();
+
+    await openDetails('tab-layers');
+
+    await waitFor(() => {
+      const img = screen.getByAltText('layer1.png');
+      expect(img).toBeInTheDocument();
+      expect(img).toHaveAttribute(
+        'src',
+        'http://localhost/assets/download?token=layer-token&size=thumb',
+      );
     });
   });
 
@@ -806,6 +861,32 @@ describe('ArtistDeskView', () => {
       expect(screen.queryByTestId('full-page-empty-banner')).not.toBeInTheDocument();
     });
 
+    it('khi artist chỉ có việc theo khung trên trang, ẩn nút tải ảnh cả trang và chỉ cho phép tải theo khung', async () => {
+      vi.mocked(assignmentService.getMyAssignments).mockResolvedValue([
+        {
+          id: 'asg-panel-1',
+          chapterId: 'chap-1',
+          entityType: 'Panel',
+          targetEntityId: 'panel-1',
+          pipelineStageId: 'stage-guid-lineart',
+          status: 'InProgress',
+        } as any,
+      ]);
+
+      renderComponent();
+      await openUploadMenu();
+
+      // Trong menu chuyển chế độ tải, không có lựa chọn "Cả trang"
+      await waitFor(() => {
+        expect(screen.getByTestId('upload-mode-toggle')).toBeInTheDocument();
+        expect(screen.getByTestId('mode-panel-slice')).toBeInTheDocument();
+        expect(screen.queryByTestId('mode-full-page')).not.toBeInTheDocument();
+      });
+
+      // Nút tải ảnh cả trang không hiển thị
+      expect(screen.queryByTestId('desk-upload-page-btn')).not.toBeInTheDocument();
+    });
+
     it('hiển thị backdrop layer khi trang đã có ảnh toàn trang và hỗ trợ tải ảnh trang', async () => {
       vi.mocked(artworkService.getArtworks).mockResolvedValue([
         {
@@ -846,6 +927,49 @@ describe('ArtistDeskView', () => {
       expect(screen.queryByTestId('cta-upload-panel')).not.toBeInTheDocument();
       expect(screen.getByTestId('page-artwork-workflow')).toBeInTheDocument();
       expect(screen.getByTestId('workflow-detect-btn')).toBeInTheDocument();
+    });
+
+    it('khoá trang đã tách việc cho người khác khi artist đang giữ việc cả chương', async () => {
+      vi.mocked(assignmentService.getMyAssignments).mockResolvedValue([
+        {
+          id: 'asg-chap-1',
+          chapterId: 'chap-1',
+          entityType: 'Chapter',
+          targetEntityId: 'chap-1',
+          pipelineStageId: 'stg-1',
+          status: 'InProgress',
+        } as any,
+      ]);
+      vi.mocked(assignmentService.getAssignments).mockResolvedValue([
+        {
+          id: 'asg-chap-1',
+          chapterId: 'chap-1',
+          entityType: 'Chapter',
+          targetEntityId: 'chap-1',
+          pipelineStageId: 'stg-1',
+          status: 'InProgress',
+          assigneeUserId: 'user-me',
+        } as any,
+        {
+          id: 'asg-carved-page',
+          chapterId: 'chap-1',
+          entityType: 'Page',
+          targetEntityId: 'page-1',
+          pipelineStageId: 'stg-1',
+          status: 'InProgress',
+          assigneeUserId: 'user-other',
+        } as any,
+      ]);
+
+      renderComponent();
+
+      await waitFor(() => {
+        expect(screen.getByTestId('carved-out-badge-page-1')).toBeInTheDocument();
+        expect(screen.getByTestId('carved-out-page-banner')).toBeInTheDocument();
+      });
+
+      const toggleLayoutBtn = screen.getByTestId('toggle-layout-edit');
+      expect(toggleLayoutBtn).toBeDisabled();
     });
   });
 });

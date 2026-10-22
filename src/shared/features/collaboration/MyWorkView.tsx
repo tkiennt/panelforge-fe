@@ -30,7 +30,6 @@ import {
   type WorkOrderContext,
 } from './collaborationRules';
 import { PageContainer } from '@/shared/components/PageContainer';
-import { useTranslation } from '@/lib/i18n';
 
 interface MyWorkViewProps {
   currentUserId?: string | null;
@@ -49,7 +48,6 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
   workspaceRole,
   onShowToast,
 }) => {
-  const { t } = useTranslation();
   const { workspaceId, seriesId } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const reviewer = isReviewerRole(workspaceRole);
@@ -268,7 +266,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
         {
           sceneId: 'ALL',
           scene: null,
-          title: t('collaboration.myWork.allTasks'),
+          title: 'Tất cả công việc',
           assignments: filteredAssignments,
         },
       ];
@@ -295,8 +293,8 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
               {
                 sceneId: 'UNASSIGNED',
                 scene: null,
-                title: t('collaboration.myWork.wholeChapter'),
-                summary: t('collaboration.myWork.wholeChapterDesc'),
+                title: 'Toàn chương',
+                summary: 'Việc cấp chương (Script, Review) hoặc trang chưa gắn cảnh',
                 assignments: unassignedTasks,
               },
             ]
@@ -309,7 +307,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
           {
             sceneId: sc.id,
             scene: sc,
-            title: `${t('collaboration.myWork.scene', { number: sc.sceneNumber })}${sc.heading ? `: ${sc.heading}` : ''}`,
+            title: `Cảnh ${sc.sceneNumber}${sc.heading ? `: ${sc.heading}` : ''}`,
             summary: sc.summary,
             assignments: list,
           },
@@ -326,7 +324,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
         groups.push({
           sceneId: sc.id,
           scene: sc,
-          title: `${t('collaboration.myWork.scene', { number: sc.sceneNumber })}${sc.heading ? `: ${sc.heading}` : ''}`,
+          title: `Cảnh ${sc.sceneNumber}${sc.heading ? `: ${sc.heading}` : ''}`,
           summary: sc.summary,
           assignments: list,
         });
@@ -337,14 +335,14 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
       groups.push({
         sceneId: 'UNASSIGNED',
         scene: null,
-        title: t('collaboration.myWork.wholeChapter'),
-        summary: t('collaboration.myWork.wholeChapterDesc'),
+        title: 'Toàn chương',
+        summary: 'Việc cấp chương (Script, Review) hoặc trang chưa gắn cảnh',
         assignments: unassignedTasks,
       });
     }
 
     return groups;
-  }, [chapterId, scenes, filteredAssignments, getAssignmentSceneInfo, selectedSceneId, t]);
+  }, [chapterId, scenes, filteredAssignments, getAssignmentSceneInfo, selectedSceneId]);
 
   // Với Reviewer (Editor / Producer):
   // 1. Tự động chuyển khỏi tab 'mine' nếu không có việc cá nhân (tránh màn hình trống 0 việc)
@@ -408,36 +406,36 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
     ? [
         {
           key: 'review',
-          label: t('collaboration.myWork.tabs.review'),
+          label: 'Chờ duyệt',
           icon: <CheckCircle2 className='w-3.5 h-3.5 text-amber-600' />,
-          tooltip: t('collaboration.myWork.tabs.reviewTooltip'),
+          tooltip: 'Các panel/artwork đang chờ review hoặc kiểm tra chất lượng',
           badgeAlert: counts.review > 0,
         },
         {
           key: 'all',
-          label: t('collaboration.myWork.tabs.all'),
+          label: 'Tất cả',
           icon: <Layers className='w-3.5 h-3.5' />,
-          tooltip: t('collaboration.myWork.tabs.allTooltip'),
+          tooltip: 'Tất cả công việc trong series hiện tại',
         },
         {
           key: 'mine',
-          label: t('collaboration.myWork.tabs.mine'),
+          label: 'Của tôi',
           icon: <User className='w-3.5 h-3.5' />,
-          tooltip: t('collaboration.myWork.tabs.mineTooltip'),
+          tooltip: 'Công việc được giao cho bạn trong series này',
         },
       ]
     : [
         {
           key: 'mine',
-          label: t('collaboration.myWork.tabs.mine'),
+          label: 'Của tôi',
           icon: <User className='w-3.5 h-3.5' />,
-          tooltip: t('collaboration.myWork.tabs.mineTooltip'),
+          tooltip: 'Công việc được giao cho bạn trong series này',
         },
         {
           key: 'all',
-          label: t('collaboration.myWork.tabs.all'),
+          label: 'Tất cả',
           icon: <Layers className='w-3.5 h-3.5' />,
-          tooltip: t('collaboration.myWork.tabs.allTooltip'),
+          tooltip: 'Tất cả công việc trong series hiện tại',
         },
       ];
   const tabs: TabItem[] = workspaceId
@@ -445,9 +443,9 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
         ...baseTabs,
         {
           key: 'studio' as Tab,
-          label: t('collaboration.myWork.tabs.studio'),
+          label: 'Toàn Studio',
           icon: <Globe className='w-3.5 h-3.5' />,
-          tooltip: t('collaboration.myWork.tabs.studioTooltip'),
+          tooltip: 'Công việc của bạn trên toàn bộ các series trong Studio',
         },
       ]
     : baseTabs;
@@ -477,12 +475,10 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
           <span className='text-[#D8D2C5]'>/</span>
           <span className='text-[#1C1917] font-bold'>
             {chapterId === 'ALL_STUDIO'
-              ? t('collaboration.myWork.allStudioBreadcrumb')
+              ? 'Toàn bộ Studio'
               : chapters.find((c) => c.id === chapterId)
-                ? t('collaboration.myWork.chapterBreadcrumb', {
-                    number: chapters.find((c) => c.id === chapterId)?.chapterNumber ?? '',
-                  })
-                : t('collaboration.myWork.title')}
+                ? `Chương ${chapters.find((c) => c.id === chapterId)?.chapterNumber}`
+                : 'Công việc của tôi'}
           </span>
         </nav>
       )}
@@ -494,9 +490,11 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
           </div>
           <div>
             <h1 className='text-2xl sm:text-3xl font-serif font-bold text-[#1C1917] tracking-tight'>
-              {t('collaboration.myWork.title')}
+              Công việc của tôi
             </h1>
-            <p className='text-xs text-[#57534E]'>{t('collaboration.myWork.desc')}</p>
+            <p className='text-xs text-[#57534E]'>
+              Bắt đầu, tải artwork, nộp bài và xử lý yêu cầu sửa của từng chương.
+            </p>
           </div>
         </div>
 
@@ -508,10 +506,10 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
             disabled={loadingChapters && chapters.length === 0}
             className='px-4 py-2 bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl text-xs font-semibold text-[#1C1917] shadow-xs focus:outline-none focus:border-[#F97316] cursor-pointer'
           >
-            <option value='ALL_STUDIO'>{t('collaboration.myWork.allStudioOption')}</option>
+            <option value='ALL_STUDIO'>✨ Toàn bộ Studio (Tất cả các chương)</option>
             {chapters.map((c) => (
               <option key={c.id} value={c.id}>
-                {t('collaboration.myWork.chapterOption', { number: c.chapterNumber })}
+                Chương {c.chapterNumber}
                 {c.title ? `: ${c.title}` : ''}
               </option>
             ))}
@@ -519,7 +517,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
           <button
             type='button'
             onClick={() => void (isStudioTab ? loadStudioWork() : loadWork())}
-            aria-label={t('collaboration.myWork.reload')}
+            aria-label='Tải lại'
             className='p-2.5 rounded-xl border border-[#D8D2C5] bg-[#FCFBF8] hover:bg-[#F3F0E9] shadow-xs cursor-pointer transition-colors text-[#1C1917]'
           >
             <RefreshCw
@@ -529,7 +527,7 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
         </div>
       </header>
 
-      <nav className='flex flex-wrap gap-2' aria-label={t('collaboration.myWork.filterAria')}>
+      <nav className='flex flex-wrap gap-2' aria-label='Bộ lọc việc'>
         {tabs.map((t) => (
           <button
             key={t.key}

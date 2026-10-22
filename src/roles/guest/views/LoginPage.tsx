@@ -12,12 +12,22 @@ import {
   KeyRound,
   AlertCircle,
   ArrowLeft,
+  ArrowRight,
 } from 'lucide-react';
 import { signInWithPopup, auth, googleProvider } from '@/config/firebase';
 import { authService } from '@/services/auth.service';
 import { AuthResponse, SystemRole, normalizeSystemRole } from '@/types';
 import { useTranslation } from '@/lib/i18n';
 import '@/styles/modules/auth.css';
+
+/** Decorative clipped layers (shadow, ink frame, fill) for a cut-corner comic panel. */
+const PanelLayers = () => (
+  <>
+    <span className='pf-panel-layer pf-panel-shadow' aria-hidden='true' />
+    <span className='pf-panel-layer pf-panel-frame' aria-hidden='true' />
+    <span className='pf-panel-layer pf-panel-fill' aria-hidden='true' />
+  </>
+);
 
 export interface LoginPageProps {
   onLoginSuccess?: (authResponse: AuthResponse) => void;
@@ -297,14 +307,48 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         </div>
 
         {step === 'login' && (
-          <div>
+          <div className='relative'>
             <h1
               id='auth-dialog-title'
-              className='text-[28px] leading-tight font-serif font-semibold text-[#292524] tracking-tight'
+              className='relative isolate inline-block text-[26px] sm:text-[28px] leading-tight font-serif font-semibold text-[#292524] tracking-tight'
             >
               {t('common.auth.welcomeBack')}
+              <svg
+                className='pf-title-stroke'
+                viewBox='0 0 200 8'
+                preserveAspectRatio='none'
+                aria-hidden='true'
+              >
+                <path
+                  d='M2 5.5 C 40 2.5, 90 6.5, 140 3.5 S 190 4, 198 3'
+                  stroke='#F97316'
+                  strokeWidth='3'
+                  strokeLinecap='round'
+                  fill='none'
+                />
+              </svg>
             </h1>
-            <p className='text-sm text-[#57534E] mt-1.5'>{t('common.auth.loginSubtitle')}</p>
+            <p className='text-sm text-[#57534E] mt-2.5'>{t('common.auth.loginSubtitle')}</p>
+            {/* Doodles: empty speech bubble + pen strokes, kept in the empty top-right area */}
+            <svg
+              className='pf-doodle -top-14 right-0 w-[72px] h-[52px]'
+              viewBox='0 0 72 52'
+              aria-hidden='true'
+            >
+              <path
+                d='M10 6 H62 a6 6 0 0 1 6 6 V30 a6 6 0 0 1 -6 6 H30 L20 46 L22 36 H10 a6 6 0 0 1 -6 -6 V12 a6 6 0 0 1 6 -6 Z'
+                fill='#FFFFFF'
+                stroke='#44403C'
+                strokeWidth='1.25'
+              />
+              <path
+                d='M18 16 H52 M18 24 H42'
+                stroke='#F97316'
+                strokeWidth='2'
+                strokeLinecap='round'
+                opacity='0.55'
+              />
+            </svg>
           </div>
         )}
 
@@ -403,7 +447,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             >
               {t('common.auth.email')}
             </label>
-            <div className='relative'>
+            <div className='pf-panel pf-field' data-invalid={!!fieldErrors.email}>
+              <PanelLayers />
+              <span className='pf-field-icon' aria-hidden='true'>
+                <Mail className='w-4 h-4' />
+              </span>
               <input
                 id='login-email'
                 type='email'
@@ -418,11 +466,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                 aria-describedby={fieldErrors.email ? 'login-email-error' : undefined}
                 aria-invalid={!!fieldErrors.email}
                 readOnly={isLoading}
-                className='pf-auth-input'
+                className='pf-field-input'
               />
             </div>
             {fieldErrors.email && (
-              <p id='login-email-error' className='mt-1 text-xs text-red-600'>
+              <p id='login-email-error' className='pf-field-error'>
+                <AlertCircle className='w-3.5 h-3.5 shrink-0' aria-hidden='true' />
                 {fieldErrors.email}
               </p>
             )}
@@ -445,12 +494,16 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                   setSuccessNotice(null);
                   setStep('forgot');
                 }}
-                className='text-xs font-medium text-[#57534E] hover:text-[#EA580C] hover:underline underline-offset-2 cursor-pointer rounded'
+                className='pf-link text-xs font-medium text-[#57534E] hover:text-[#EA580C] hover:underline underline-offset-2 cursor-pointer'
               >
                 {t('common.auth.forgot')}
               </button>
             </div>
-            <div className='relative'>
+            <div className='pf-panel pf-field' data-invalid={!!fieldErrors.password}>
+              <PanelLayers />
+              <span className='pf-field-icon' aria-hidden='true'>
+                <KeyRound className='w-4 h-4' />
+              </span>
               <input
                 id='login-password'
                 type={showPassword ? 'text' : 'password'}
@@ -466,8 +519,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                 aria-describedby={fieldErrors.password ? 'login-password-error' : undefined}
                 aria-invalid={!!fieldErrors.password}
                 readOnly={isLoading}
-                className='pf-auth-input'
-                style={{ paddingRight: 48 }}
+                className='pf-field-input'
               />
               <button
                 type='button'
@@ -476,13 +528,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                   showPassword ? t('common.auth.hidePassword') : t('common.auth.showPassword')
                 }
                 aria-pressed={showPassword}
-                className='absolute right-1 top-1/2 -translate-y-1/2 w-10 h-10 inline-flex items-center justify-center text-[#57534E] hover:text-[#292524] cursor-pointer rounded-lg'
+                className='pf-field-action'
               >
                 {showPassword ? <EyeOff className='w-4 h-4' /> : <Eye className='w-4 h-4' />}
               </button>
             </div>
             {fieldErrors.password && (
-              <p id='login-password-error' className='mt-1 text-xs text-red-600'>
+              <p id='login-password-error' className='pf-field-error'>
+                <AlertCircle className='w-3.5 h-3.5 shrink-0' aria-hidden='true' />
                 {fieldErrors.password}
               </p>
             )}
@@ -493,23 +546,31 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             type='submit'
             disabled={isLoading}
             aria-busy={isLoading}
-            className='pf-auth-primary w-full mt-2 px-4 text-sm font-semibold flex items-center justify-center gap-2 cursor-pointer'
+            className='pf-panel pf-btn pf-btn-primary !mt-6'
           >
-            {isLoading ? (
-              <>
-                <Loader2 className='w-4 h-4 animate-spin motion-reduce:animate-none' />
-                <span>{t('common.auth.submitting')}</span>
-              </>
-            ) : (
-              <span>{t('common.auth.submit')}</span>
-            )}
+            <PanelLayers />
+            <span className='pf-btn-label'>
+              {isLoading && (
+                <Loader2
+                  className='w-4 h-4 animate-spin motion-reduce:animate-none'
+                  aria-hidden='true'
+                />
+              )}
+              {isLoading ? t('common.auth.submitting') : t('common.auth.submit')}
+            </span>
+            <span className='pf-btn-arrow' aria-hidden='true'>
+              <ArrowRight className='w-4 h-4' />
+            </span>
           </button>
 
           {/* Divider */}
-          <div className='flex items-center gap-3 py-1' aria-hidden='true'>
-            <div className='flex-1 h-px bg-[#E7E2D8]' />
-            <span className='text-xs text-[#78716C]'>{t('common.auth.or')}</span>
-            <div className='flex-1 h-px bg-[#E7E2D8]' />
+          <div className='flex items-center gap-3 py-0.5' aria-hidden='true'>
+            <div className='flex-1 h-px bg-[#D8D2C5]' />
+            <span className='inline-flex items-center gap-1.5 text-xs text-[#78716C]'>
+              <span className='w-1.5 h-1.5 rotate-45 bg-[#F97316]/70' />
+              {t('common.auth.or')}
+            </span>
+            <div className='flex-1 h-px bg-[#D8D2C5]' />
           </div>
 
           {/* Google OAuth Button */}
@@ -517,9 +578,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             type='button'
             onClick={handleGoogleSignIn}
             disabled={isLoading}
-            className='pf-auth-secondary w-full px-4 text-sm font-medium flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50'
+            className='pf-panel pf-btn pf-btn-secondary'
           >
-            <svg className='w-4 h-4 shrink-0' viewBox='0 0 24 24'>
+            <PanelLayers />
+            <svg className='w-4 h-4 shrink-0' viewBox='0 0 24 24' aria-hidden='true'>
               <path
                 d='M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z'
                 fill='#4285F4'
@@ -547,7 +609,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
               <Link
                 to={`/register${location.search}`}
                 replace
-                className='font-semibold text-[#C2410C] hover:text-[#9A3412] hover:underline underline-offset-2 rounded'
+                className='font-semibold text-[#C2410C] hover:text-[#9A3412] hover:underline underline-offset-2'
               >
                 {t('common.auth.createAccount')}
               </Link>
@@ -560,7 +622,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                 setSuccessNotice(null);
                 setStep('reset');
               }}
-              className='text-xs text-[#57534E] hover:text-[#292524] font-medium underline underline-offset-4 cursor-pointer rounded'
+              className='pf-link text-xs text-[#57534E] hover:text-[#292524] font-medium underline underline-offset-4 cursor-pointer'
             >
               {t('common.auth.activate')}
             </button>

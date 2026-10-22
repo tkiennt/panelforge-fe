@@ -34,6 +34,7 @@ export const findUploadAssignment = (
     (target.panelId
       ? open.find((a) => a.entityType === 'Panel' && a.targetEntityId === target.panelId)
       : undefined) ??
-    open.find((a) => a.entityType === 'Page' && a.targetEntityId === target.pageId)
+    open.find((a) => a.entityType === 'Page' && a.targetEntityId === target.pageId) ??
+    open.find((a) => a.entityType === 'Chapter')
   );
 };

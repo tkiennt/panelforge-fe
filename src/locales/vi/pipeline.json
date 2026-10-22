@@ -36,17 +36,5 @@
     "title": "Hàng Đợi Nhiệm Vụ Theo Công Đoạn",
     "empty": "Chưa có nhiệm vụ nào trong hàng đợi.",
     "selectChapter": "Chọn một Chương để hiển thị hàng đợi nhiệm vụ."
-  },
-  "dashboard": {
-    "seriesOverview": "Tổng quan bộ truyện: {title}",
-    "totalProgress": "Tiến Độ Toàn Series",
-    "waitingReview": "Cổng Chờ Xét Duyệt",
-    "submittedWork": "Việc nộp",
-    "overdueRisk": "Việc Quá Hạn & Rủi Ro",
-    "manageChapters": "Quản Lý Chương (Duyệt)",
-    "overdueList": "Danh Sách Công Việc Quá Hạn ({count})",
-    "stageProgress": "Tiến độ công đoạn · Chương {chapterNumber}",
-    "burndownChart": "Biểu Đồ Burndown",
-    "remainingTasks": "Còn: {count} việc"
   }
 }

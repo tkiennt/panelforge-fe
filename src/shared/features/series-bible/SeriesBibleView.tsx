@@ -704,7 +704,10 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                 {localEntities.length} mục tri thức
               </span>
             </div>
-            <p className='text-xs text-[#57534E] mt-1 max-w-2xl'>{t('bible.subtitle')}</p>
+            <p className='text-xs text-[#57534E] mt-1 max-w-2xl'>
+              Kho tra cứu chuẩn cho nhân vật, bối cảnh, thuật ngữ và quy tắc thiết kế nhằm đảm bảo
+              tính nhất quán xuyên suốt tác phẩm.
+            </p>
           </div>
 
           {/* Action Button: Thêm mục / Bản nháp hoặc Badge Chỉ đọc */}
@@ -741,22 +744,6 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
             const Icon = cat.icon;
             const count = categoryCounts[cat.key] || 0;
             const isActive = activeTab === cat.key;
-            const getTabLabel = () => {
-              switch (cat.key) {
-                case 'all':
-                  return t('bible.categories.all');
-                case 'characters':
-                  return t('bible.categories.character');
-                case 'locations':
-                  return t('bible.categories.location');
-                case 'terminology':
-                  return t('bible.categories.item');
-                case 'style':
-                  return t('bible.categories.lore');
-                default:
-                  return cat.label;
-              }
-            };
             return (
               <button
                 key={cat.key}
@@ -770,7 +757,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                 data-testid={`tab-category-${cat.key}`}
               >
                 <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-[#C2410C]' : 'text-[#78716C]'}`} />
-                <span>{getTabLabel()}</span>
+                <span>{cat.label}</span>
                 <span
                   className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full ${
                     isActive
@@ -945,41 +932,50 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
           </button>
         </div>
       ) : filteredEntities.length === 0 ? (
-        localEntities.length === 0 ? (
-          <EmptyFolderState
-            title='Series Bible chưa có mục nào'
-            subtitle='Thêm các nhân vật, địa điểm, đạo cụ hoặc quy tắc mỹ thuật để hỗ trợ họa sĩ và hệ thống kiểm tra nhất quán.'
-            actionText={
-              canCreateDraft
-                ? isProducer
-                  ? 'Tạo mục đầu tiên'
-                  : 'Tạo bản nháp đầu tiên'
-                : undefined
-            }
-            onAction={canCreateDraft ? () => setAddEntityOpen(true) : undefined}
-          />
-        ) : (
-          <div className='bg-[#FCFBF8] border border-dashed border-[#D8D2C5] rounded-xl p-10 text-center space-y-3'>
-            <div className='w-12 h-12 rounded-full bg-[#FFF2E6] border border-[#F97316]/30 flex items-center justify-center text-[#F97316] mx-auto'>
-              <BookOpen className='w-6 h-6' />
-            </div>
-            <h3 className='font-bold font-serif text-base text-[#1C1917]'>
-              Không tìm thấy mục phù hợp
-            </h3>
-            <p className='text-xs text-[#57534E] max-w-md mx-auto'>
-              Không có mục tri thức nào khớp với điều kiện lọc hiện tại. Thử đổi từ khóa hoặc xóa bộ
-              lọc.
-            </p>
-            <button
-              type='button'
-              onClick={handleResetFilters}
-              className='px-3.5 py-1.5 bg-[#F3F0E9] hover:bg-[#E7E2D6] text-[#1C1917] text-xs font-semibold rounded-lg inline-flex items-center gap-1.5 transition-colors cursor-pointer'
-            >
-              <RotateCcw className='w-3.5 h-3.5' />
-              <span>Xóa bộ lọc</span>
-            </button>
+        <div className='bg-[#FCFBF8] border border-dashed border-[#D8D2C5] rounded-xl p-10 text-center space-y-3'>
+          <div className='w-12 h-12 rounded-full bg-[#FFF2E6] border border-[#F97316]/30 flex items-center justify-center text-[#F97316] mx-auto'>
+            <BookOpen className='w-6 h-6' />
           </div>
-        )
+          {localEntities.length === 0 ? (
+            <>
+              <h3 className='font-bold font-serif text-base text-[#1C1917]'>
+                Series Bible chưa có mục nào
+              </h3>
+              <p className='text-xs text-[#57534E] max-w-md mx-auto'>
+                Thêm các nhân vật, địa điểm, đạo cụ hoặc quy tắc mỹ thuật để hỗ trợ họa sĩ và hệ
+                thống kiểm tra nhất quán.
+              </p>
+              {canCreateDraft && (
+                <button
+                  type='button'
+                  onClick={() => setAddEntityOpen(true)}
+                  className='px-4 py-2 rounded-xl bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold inline-flex items-center gap-1.5 shadow-sm cursor-pointer'
+                >
+                  <Plus className='w-4 h-4' />
+                  <span>{isProducer ? 'Tạo mục đầu tiên' : 'Tạo bản nháp đầu tiên'}</span>
+                </button>
+              )}
+            </>
+          ) : (
+            <>
+              <h3 className='font-bold font-serif text-base text-[#1C1917]'>
+                Không tìm thấy mục phù hợp
+              </h3>
+              <p className='text-xs text-[#57534E] max-w-md mx-auto'>
+                Không có mục tri thức nào khớp với điều kiện lọc hiện tại. Thử đổi từ khóa hoặc xóa
+                bộ lọc.
+              </p>
+              <button
+                type='button'
+                onClick={handleResetFilters}
+                className='px-3.5 py-1.5 bg-[#F3F0E9] hover:bg-[#E7E2D6] text-[#1C1917] text-xs font-semibold rounded-lg inline-flex items-center gap-1.5 transition-colors cursor-pointer'
+              >
+                <RotateCcw className='w-3.5 h-3.5' />
+                <span>Xóa bộ lọc</span>
+              </button>
+            </>
+          )}
+        </div>
       ) : viewMode === 'grid' ? (
         /* GRID VIEW */
         <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4'>

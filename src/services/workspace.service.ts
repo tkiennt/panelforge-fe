@@ -10,6 +10,12 @@ export interface UpdateWorkspaceRequest {
   name: string;
 }
 
+export interface WorkspaceMemberPreviewDto {
+  userId: string;
+  fullName: string;
+  avatarUrl?: string | null;
+}
+
 export interface WorkspaceDto {
   id: string;
   name: string;
@@ -20,8 +26,12 @@ export interface WorkspaceDto {
   usedStorageBytes: number;
   createdAt: string;
   isOwner: boolean;
-  currentUserRole: string | number | null;
+  currentUserRole?: string | number | null;
   memberCount: number;
+  pendingTasks?: number;
+  coverUrl?: string | null;
+  description?: string | null;
+  memberPreviews?: WorkspaceMemberPreviewDto[] | null;
 }
 
 export interface UsageMeterDto {
@@ -67,7 +77,7 @@ export interface WorkspaceMemberDto {
   joinedAt: string;
   isEmailConfirmed?: boolean;
   invitationEmailSent?: boolean;
-  status?: 'Pending' | 'Active' | 'Rejected';
+  status?: 'Active' | 'Pending' | 'Rejected' | string;
 }
 
 export interface AddWorkspaceMemberRequest {
@@ -290,6 +300,40 @@ export const workspaceService = {
       await axiosClient.delete(`/workspaces/${workspaceId}/sessions/${sessionId}`);
     } catch (error) {
       throw new Error(await parseErrorResponse(error, 'Không thể thu hồi phiên làm việc.'));
+    }
+  },
+
+  /**
+   * Đặt ảnh bìa Studio (PUT /api/workspaces/{id}/cover, multipart/form-data)
+   * Backend lưu lên Cloudflare R2 và cập nhật DB, trả về URL ảnh kèm version hash.
+   */
+  setWorkspaceCover: async (id: string, file: File): Promise<string | null> => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await axiosClient.put<{ value?: string | null }>(
+        `/workspaces/${id}/cover`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        },
+      );
+      return response.data?.value ?? null;
+    } catch (error) {
+      throw new Error(await parseErrorResponse(error, 'Tải ảnh bìa Studio thất bại.'));
+    }
+  },
+
+  /**
+   * Xóa ảnh bìa Studio, quay về ảnh mặc định (DELETE /api/workspaces/{id}/cover)
+   */
+  clearWorkspaceCover: async (id: string): Promise<void> => {
+    try {
+      await axiosClient.delete(`/workspaces/${id}/cover`);
+    } catch (error) {
+      throw new Error(await parseErrorResponse(error, 'Xóa ảnh bìa Studio thất bại.'));
     }
   },
 };

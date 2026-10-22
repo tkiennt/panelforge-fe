@@ -1,5 +1,11 @@
 import { WorkspaceRole } from './auth';
 
+export interface WorkspaceMemberPreviewDto {
+  userId: string;
+  fullName: string;
+  avatarUrl?: string | null;
+}
+
 export interface WorkspaceDto {
   id: string;
   name: string;
@@ -13,4 +19,7 @@ export interface WorkspaceDto {
   currentUserRole?: WorkspaceRole | null;
   memberCount: number;
   pendingTasks?: number;
+  coverUrl?: string | null;
+  description?: string | null;
+  memberPreviews?: WorkspaceMemberPreviewDto[] | null;
 }

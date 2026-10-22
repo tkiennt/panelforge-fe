@@ -47,7 +47,6 @@ import { CreateAssignmentModal } from '../modals/CreateAssignmentModal';
 import { SeriesBurndownCard } from '../components/SeriesBurndownCard';
 import { MangaProject, AssistantRosterItem, ProvenanceLogItem } from '@/types';
 import { formatChapterLabel } from '@/shared/features/pipeline-board/productionBoard.utils';
-import { useTranslation } from '@/lib/i18n';
 
 interface DashboardViewProps {
   /** Vai trò trong workspace hiện tại: chỉ Producer thấy nút đổi avatar/banner Series. */
@@ -114,7 +113,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onRunAiAudit = () => {},
   onShowToast = (_title?: string, _desc?: string) => {},
 }) => {
-  const { t } = useTranslation('pipeline');
   const navigate = useNavigate();
   const { workspaceId, seriesId: routeSeriesId } = useParams<{
     workspaceId: string;
@@ -629,7 +627,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               className='px-3 py-1.5 rounded-lg bg-white/80 hover:bg-white border border-[#D8D2C5] text-[#44403C] text-xs font-semibold flex items-center gap-1.5 cursor-pointer'
             >
               <BookOpen className='w-3.5 h-3.5 text-[#57534E]' />
-              {t('dashboard.manageChapters')}
+              Quản Lý Chương (Duyệt)
             </button>
           )}
           {workspaceId && seriesId && (
@@ -703,7 +701,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         <div className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl p-5 shadow-2xs hover:border-[#F97316] transition-colors flex flex-col justify-between space-y-3 pf-editorial-card'>
           <div>
             <div className='flex items-center justify-between text-xs font-semibold text-[#57534E] mb-1'>
-              <span>{t('dashboard.totalProgress')}</span>
+              <span>Tiến Độ Toàn Series</span>
               <span className='inline-flex items-center gap-1 text-[#C2410C] bg-[#FFF2E6] border border-[#FDBA74] px-1.5 py-0.5 rounded text-[11px] font-semibold'>
                 <TrendingUp className='w-3 h-3' /> Hoàn thiện
               </span>
@@ -764,7 +762,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         <div className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl p-5 shadow-2xs hover:border-[#F97316] transition-colors flex flex-col justify-between space-y-3 pf-editorial-card'>
           <div>
             <div className='flex items-center justify-between text-xs font-semibold text-[#57534E] mb-1'>
-              <span className='text-purple-900'>{t('dashboard.waitingReview')}</span>
+              <span className='text-purple-900'>Cổng Chờ Xét Duyệt</span>
               <span
                 className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-semibold ${
                   waitingReviewTotal > 0
@@ -777,9 +775,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
             <div className='text-3xl font-bold font-sans tabular-nums text-[#1C1917] mt-1'>
               {loading ? '—' : waitingReviewTotal}{' '}
-              <span className='text-sm font-normal text-[#57534E]'>
-                {t('dashboard.submittedWork')}
-              </span>
+              <span className='text-sm font-normal text-[#57534E]'>Việc nộp</span>
             </div>
             <p className='text-[11px] text-[#57534E] mt-1'>
               Bài nộp cần Producer hoặc Editor kiểm duyệt
@@ -813,7 +809,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         >
           <div>
             <div className='flex items-center justify-between text-xs font-semibold text-[#57534E] mb-1'>
-              <span>{t('dashboard.overdueRisk')}</span>
+              <span>Việc Quá Hạn &amp; Rủi Ro</span>
               <span
                 className={`px-1.5 py-0.5 rounded text-[11px] font-mono font-semibold ${
                   overdueTotal > 0

@@ -23,6 +23,23 @@ export function resolveArtworkUrl(relativeUrl: string): string {
   return new URL(relativeUrl, origin).toString();
 }
 
+/**
+ * Link còn hạn được dùng lại để URL giữ nguyên, nhờ đó trình duyệt lấy ảnh từ cache (Backend trả private, max-age=300).
+ * Bỏ link khi còn dưới 60 giây để thẻ <img> không nhận link sắp hết hạn.
+ */
+const accessLinkCache = new Map<string, Promise<ArtworkAccessLinkDto>>();
+const LINK_REUSE_MARGIN_MS = 60_000;
+
+/** Chỉ dùng trong test: xoá link đã nhớ. */
+export function clearArtworkAccessLinkCache(): void {
+  accessLinkCache.clear();
+}
+
+/** Thêm size=thumb vào link tải để nhận bản WebP rộng tối đa 400px (dùng cho lưới/thumbnail). */
+export function toThumbnailUrl(url: string): string {
+  return `${url}${url.includes('?') ? '&' : '?'}size=thumb`;
+}
+
 export const artworkService = {
   /**
    * Tải lên artwork cho Page (POST /api/chapters/{chapterId}/pages/{pageId}/artwork)
@@ -90,9 +107,21 @@ export const artworkService = {
     chapterId: string,
     assetReferenceId: string,
   ): Promise<ArtworkAccessLinkDto> => {
-    const res = await axiosClient.post<ArtworkAccessLinkDto>(
-      `/chapters/${chapterId}/artwork/${assetReferenceId}/access-link`,
-    );
-    return res.data;
+    const cached = accessLinkCache.get(assetReferenceId);
+    if (cached) {
+      const link = await cached.catch(() => null);
+      if (link && Date.parse(link.expiresAtUtc) - Date.now() > LINK_REUSE_MARGIN_MS) return link;
+      if (accessLinkCache.get(assetReferenceId) === cached)
+        accessLinkCache.delete(assetReferenceId);
+    }
+    const request = axiosClient
+      .post<ArtworkAccessLinkDto>(`/chapters/${chapterId}/artwork/${assetReferenceId}/access-link`)
+      .then((res) => res.data);
+    accessLinkCache.set(assetReferenceId, request);
+    request.catch(() => {
+      if (accessLinkCache.get(assetReferenceId) === request)
+        accessLinkCache.delete(assetReferenceId);
+    });
+    return request;
   },
 };

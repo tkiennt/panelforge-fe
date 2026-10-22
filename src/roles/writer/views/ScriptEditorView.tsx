@@ -215,7 +215,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   );
 
   const hasUnsavedChanges = isStoryArcDirty || isOutlineDirty;
-  const [barWarn, setBarWarn] = useState(false);
 
   // Bản nháp cục bộ: lưu chữ đang gõ (debounce 1s) để không mất khi hết phiên / rớt mạng / đóng tab.
   const storyArcDraftKey = seriesId ? `storyArc.${seriesId}` : null;
@@ -408,13 +407,10 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   // Chọn Chapter từ dropdown (bảo vệ thay đổi chưa lưu)
   const handleSelectChapter = (chapId: string) => {
     if (hasUnsavedChanges) {
-      setBarWarn(true);
-      setTimeout(() => setBarWarn(false), 800);
-      notify(
-        'Thay đổi chưa lưu',
-        'Vui lòng Lưu lại hoặc Hủy bỏ các thay đổi trên thanh thông báo trước khi chuyển chương.',
+      const confirmSwitch = window.confirm(
+        'Bạn có thay đổi đề cương hoặc Story Arc chưa lưu. Bạn có muốn bỏ qua các thay đổi này để chuyển chương không?',
       );
-      return;
+      if (!confirmSwitch) return;
     }
 
     // Xoá kết quả kiểm tra nhất quán của chương cũ ngay lập tức
@@ -626,6 +622,8 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           `${err.message} Đã nạp bản mới nhất, kiểm tra lại rồi lưu.`,
         );
         await loadSceneDetail(selectedScene.id);
+      } else if (err?.status === 403) {
+        notify('Không có quyền thao tác (403)', err.message);
       } else {
         notify('Lỗi thao tác phân cảnh', err.message);
       }
@@ -657,7 +655,11 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         setSelectedScene(null);
       }
     } catch (err: any) {
-      notify('Lỗi xoá phân cảnh', err.message);
+      if (err?.status === 403) {
+        notify('Không có quyền xoá phân cảnh (403)', err.message);
+      } else {
+        notify('Lỗi xoá phân cảnh', err.message);
+      }
     }
   };
 
@@ -1036,22 +1038,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
   return (
     <div className='flex-1 flex flex-col bg-[#F3F0E9] h-[calc(100vh-64px)] overflow-hidden text-[#1C1917]'>
-      <UnsavedChangesBar
-        isDirty={hasUnsavedChanges}
-        isWarn={barWarn}
-        count={(isStoryArcDirty ? 1 : 0) + (isOutlineDirty ? 1 : 0)}
-        onSave={async () => {
-          if (isStoryArcDirty) await handleSaveStoryArc();
-          if (isOutlineDirty) await handleSaveOutline();
-        }}
-        onDiscard={() => {
-          setStoryArcInput(seriesDetail?.storyArc || '');
-          setOutlineInput(currentChapter?.outline || '');
-          if (storyArcDraftKey) clearDraft(storyArcDraftKey);
-          if (outlineDraftKey) clearDraft(outlineDraftKey);
-        }}
-        isSaving={savingStoryArc || savingOutline}
-      />
       {/* 1. Gọn gàng Header Toolbar */}
       <header className='shrink-0 bg-[#FCFBF8] border-b border-[#D8D2C5] px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 shadow-2xs z-30'>
         {/* Left: Tên trang, Chương, Trạng thái & Phiên bản */}
@@ -1093,7 +1079,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                 )}
               </div>
               <h1 className='text-sm md:text-base font-bold font-serif tracking-tight text-[#1C1917]'>
-                {t('writer.title')}
+                Biên Soạn Kịch Bản Phân Cảnh (Script Editor)
               </h1>
             </div>
           </div>
@@ -1106,7 +1092,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                 htmlFor='script-chapter-select'
                 className='text-xs font-semibold text-[#57534E]'
               >
-                {t('letterer.chapter')}
+                Chương:
               </label>
               <select
                 id='script-chapter-select'

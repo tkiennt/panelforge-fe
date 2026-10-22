@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import {
   Layers,
@@ -78,7 +78,12 @@ import {
   SceneDto,
   SceneScriptLineSummaryDto,
 } from '@/services/scriptLine.service';
-import { artworkService, computeFileSha256, resolveArtworkUrl } from '@/services/artwork.service';
+import {
+  artworkService,
+  computeFileSha256,
+  resolveArtworkUrl,
+  toThumbnailUrl,
+} from '@/services/artwork.service';
 import { assignmentService, type AssignmentDto } from '@/services/assignment.service';
 import {
   findUploadAssignment,
@@ -718,25 +723,112 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
   const pageArtUrl = pageArt ? panelArtworkUrls[pageArt.id] : null;
   const stageLabel = (stageId: string) => stages.find((s) => s.id === stageId)?.name ?? '';
 
-  const findStageAssignment = (panelId: string) =>
-    currentChapterId && selectedPage
-      ? findUploadAssignment(myInProgress, {
-          chapterId: currentChapterId,
-          pageId: selectedPage.id,
-          panelId,
-        })
-      : undefined;
+  // Việc cả chương của chính mình (nếu có): khi có việc này, các trang/khung đã tách cho người khác sẽ bị khoá
+  const myChapterAssignment = useMemo(() => {
+    return (
+      myInProgress.find((a) => a.chapterId === currentChapterId && a.entityType === 'Chapter') ||
+      myChangesRequested.find(
+        (a) => a.chapterId === currentChapterId && a.entityType === 'Chapter',
+      ) ||
+      myAssigned.find((a) => a.chapterId === currentChapterId && a.entityType === 'Chapter')
+    );
+  }, [myInProgress, myChangesRequested, myAssigned, currentChapterId]);
 
-  const findPageStageAssignment = () =>
-    currentChapterId && selectedPage
-      ? findUploadAssignment(myInProgress, {
-          chapterId: currentChapterId,
-          pageId: selectedPage.id,
-        })
-      : undefined;
+  // Danh sách ID các trang đã tách việc cho người khác ở cùng stage
+  const carvedOutPageIds = useMemo(() => {
+    if (!myChapterAssignment) return new Set<string>();
+    const set = new Set<string>();
+    for (const t of tasks) {
+      if (
+        t.pipelineStageId === myChapterAssignment.pipelineStageId &&
+        t.id !== myChapterAssignment.id &&
+        t.entityType === 'Page' &&
+        t.targetEntityId &&
+        String(t.status) !== 'Cancelled'
+      ) {
+        set.add(t.targetEntityId);
+      }
+    }
+    return set;
+  }, [myChapterAssignment, tasks]);
+
+  // Danh sách ID các khung tranh đã tách việc cho người khác ở cùng stage
+  const carvedOutPanelIds = useMemo(() => {
+    if (!myChapterAssignment) return new Set<string>();
+    const set = new Set<string>();
+    for (const t of tasks) {
+      if (
+        t.pipelineStageId === myChapterAssignment.pipelineStageId &&
+        t.id !== myChapterAssignment.id &&
+        t.entityType === 'Panel' &&
+        t.targetEntityId &&
+        String(t.status) !== 'Cancelled'
+      ) {
+        set.add(t.targetEntityId);
+      }
+    }
+    return set;
+  }, [myChapterAssignment, tasks]);
+
+  const isCurrentPageCarvedOut = Boolean(selectedPage && carvedOutPageIds.has(selectedPage.id));
+  const hasCarvedOutPanelOnPage = Boolean(
+    selectedPage && panels.some((p) => carvedOutPanelIds.has(p.id)),
+  );
+
+  const findStageAssignment = (panelId: string) => {
+    if (!currentChapterId || !selectedPage) return undefined;
+    if (isCurrentPageCarvedOut || carvedOutPanelIds.has(panelId)) return undefined;
+    return findUploadAssignment(myInProgress, {
+      chapterId: currentChapterId,
+      pageId: selectedPage.id,
+      panelId,
+    });
+  };
+
+  const findPageStageAssignment = () => {
+    if (!currentChapterId || !selectedPage) return undefined;
+    if (isCurrentPageCarvedOut) return undefined;
+    return findUploadAssignment(myInProgress, {
+      chapterId: currentChapterId,
+      pageId: selectedPage.id,
+    });
+  };
+
+  const hasPanelOnlyAssignmentOnPage = Boolean(
+    selectedPage &&
+    currentChapterId &&
+    myInProgress.some(
+      (a) =>
+        a.chapterId === currentChapterId &&
+        a.entityType === 'Panel' &&
+        panels.some((p) => p.id === a.targetEntityId),
+    ) &&
+    !findPageStageAssignment(),
+  );
+
+  useEffect(() => {
+    if ((hasPanelOnlyAssignmentOnPage || hasCarvedOutPanelOnPage || isCurrentPageCarvedOut) && uploadMode === 'page') {
+      setUploadMode('panel');
+    }
+  }, [hasPanelOnlyAssignmentOnPage, hasCarvedOutPanelOnPage, isCurrentPageCarvedOut, uploadMode]);
+
+  useEffect(() => {
+    if (isCurrentPageCarvedOut && layoutEdit) {
+      setLayoutEdit(false);
+      setMultiIds([]);
+    }
+  }, [isCurrentPageCarvedOut, layoutEdit]);
 
   const uploadArtworkFileForPanel = async (panelId: string, file: File) => {
     if (!currentChapterId || !selectedPage) return;
+    if (isCurrentPageCarvedOut) {
+      showToast('Trang đã tách việc', 'Trang này đã được tách cho hoạ sĩ khác ở cùng công đoạn.');
+      return;
+    }
+    if (carvedOutPanelIds.has(panelId)) {
+      showToast('Khung đã tách việc', 'Khung tranh này đã được tách cho hoạ sĩ khác ở cùng công đoạn.');
+      return;
+    }
     const stageAssignment = findStageAssignment(panelId);
     if (!stageAssignment) {
       showToast(
@@ -774,6 +866,27 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
 
   const uploadArtworkFileForPage = async (file: File): Promise<boolean> => {
     if (!currentChapterId || !selectedPage || uploadingPage) return false;
+    if (isCurrentPageCarvedOut) {
+      showToast(
+        'Trang đã tách việc',
+        'Trang này đã được tách cho hoạ sĩ khác ở cùng công đoạn, bạn không thể tải ảnh toàn trang.',
+      );
+      return false;
+    }
+    if (hasCarvedOutPanelOnPage) {
+      showToast(
+        'Chưa thể tải ảnh toàn trang',
+        'Trang này có khung tranh đã được tách cho người khác, bạn chỉ có thể tải ảnh cho các khung còn lại.',
+      );
+      return false;
+    }
+    if (hasPanelOnlyAssignmentOnPage) {
+      showToast(
+        'Chưa thể tải ảnh trang',
+        'Bạn đang giữ việc theo khung nên chỉ có thể tải ảnh cho khung được giao.',
+      );
+      return false;
+    }
     const stageAssignment = findPageStageAssignment();
     if (!stageAssignment) {
       showToast(
@@ -810,6 +923,14 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
   };
 
   const handleTriggerUploadPanel = (panelId: string) => {
+    if (isCurrentPageCarvedOut) {
+      showToast('Trang đã tách việc', 'Trang này đã được tách cho hoạ sĩ khác ở cùng công đoạn.');
+      return;
+    }
+    if (carvedOutPanelIds.has(panelId)) {
+      showToast('Khung đã tách việc', 'Khung tranh này đã được tách cho hoạ sĩ khác ở cùng công đoạn.');
+      return;
+    }
     if (!findStageAssignment(panelId)) {
       showToast(
         'Chưa thể tải ảnh',
@@ -822,6 +943,27 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
   };
 
   const handleTriggerUploadPage = () => {
+    if (isCurrentPageCarvedOut) {
+      showToast(
+        'Trang đã tách việc',
+        'Trang này đã được tách cho hoạ sĩ khác ở cùng công đoạn, bạn không thể tải ảnh toàn trang.',
+      );
+      return;
+    }
+    if (hasCarvedOutPanelOnPage) {
+      showToast(
+        'Chưa thể tải ảnh toàn trang',
+        'Trang này có khung tranh đã được tách cho người khác, bạn chỉ có thể tải ảnh cho các khung còn lại.',
+      );
+      return;
+    }
+    if (hasPanelOnlyAssignmentOnPage) {
+      showToast(
+        'Chưa thể tải ảnh trang',
+        'Bạn đang giữ việc theo khung nên chỉ có thể tải ảnh cho khung được giao.',
+      );
+      return;
+    }
     if (!findPageStageAssignment()) {
       showToast(
         'Chưa thể tải ảnh trang',
@@ -938,7 +1080,6 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
     return () => {
       window.removeEventListener('paste', handlePaste);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [uploadMode, selectedPanelId, currentChapterId, selectedPage, myInProgress]);
 
   // Nạp danh sách Chapter thật của Series
@@ -2231,7 +2372,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                   <span className='w-10 h-10 shrink-0 rounded border border-[#D8D2C5] bg-white overflow-hidden flex items-center justify-center'>
                     {panelArtworkUrls[v.id] ? (
                       <img
-                        src={panelArtworkUrls[v.id]}
+                        src={toThumbnailUrl(panelArtworkUrls[v.id])}
                         alt=''
                         className='max-w-full max-h-full object-contain'
                       />
@@ -2408,12 +2549,19 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
               <button
                 type='button'
                 aria-pressed={layoutEdit}
+                disabled={isCurrentPageCarvedOut}
                 onClick={() => {
                   if (layoutEdit) setMultiIds([]);
                   setLayoutEdit((v) => !v);
                 }}
                 data-testid='toggle-layout-edit'
-                title={layoutEdit ? 'Tắt chế độ sửa bố cục' : 'Bật chế độ sửa bố cục khung'}
+                title={
+                  isCurrentPageCarvedOut
+                    ? 'Trang này đã được tách việc cho người khác, không thể sửa bố cục'
+                    : layoutEdit
+                      ? 'Tắt chế độ sửa bố cục'
+                      : 'Bật chế độ sửa bố cục khung'
+                }
                 className={`${toolbarBtn} ${layoutEdit ? toolbarOn : toolbarIdle}`}
               >
                 <Grid2x2 className='w-3.5 h-3.5' />
@@ -2453,12 +2601,16 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                           ? `Tải cho Khung #${selectedPanelDetail.panelNumber} đang chọn`
                           : 'Chọn một khung trên trang để tải ảnh riêng',
                       },
-                      {
-                        mode: 'page' as const,
-                        testId: 'mode-full-page',
-                        title: 'Cả trang',
-                        hint: `Một ảnh cho cả Trang ${selectedPage.pageNumber}, có nhận diện khung & bóng thoại`,
-                      },
+                      ...(!hasPanelOnlyAssignmentOnPage
+                        ? [
+                            {
+                              mode: 'page' as const,
+                              testId: 'mode-full-page',
+                              title: 'Cả trang',
+                              hint: `Một ảnh cho cả Trang ${selectedPage.pageNumber}, có nhận diện khung & bóng thoại`,
+                            },
+                          ]
+                        : []),
                     ].map((o) => (
                       <button
                         key={o.mode}
@@ -2691,7 +2843,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
       </div>
 
       {/* Toolbar phụ khi bật "Sửa bố cục" */}
-      {selectedPage && canEditPages && layoutEdit && (
+      {selectedPage && canEditPages && !isCurrentPageCarvedOut && layoutEdit && (
         <div className='shrink-0 relative z-20' data-testid='layout-edit-bar'>
           <PanelLayoutToolbar
             panelCount={panels.length}
@@ -2850,6 +3002,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                   <ul className='space-y-1.5' data-testid='left-page-list'>
                     {pages.map((p) => {
                       const isSel = selectedPage?.id === p.id;
+                      const isCarvedOut = carvedOutPageIds.has(p.id);
                       const pageTask = tasks.find(
                         (t) => t.entityType === 'Page' && t.targetEntityId === p.id,
                       );
@@ -2879,7 +3032,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                             >
                               {isSel && pageArtUrl ? (
                                 <img
-                                  src={pageArtUrl}
+                                  src={toThumbnailUrl(pageArtUrl)}
                                   alt=''
                                   className='w-full h-full object-contain'
                                 />
@@ -2890,10 +3043,19 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                               )}
                             </span>
                             <span className='min-w-0 flex-1'>
-                              <span className='block font-semibold text-[#1C1917]'>
-                                Trang {p.pageNumber}
+                              <span className='block font-semibold text-[#1C1917] flex items-center justify-between gap-1'>
+                                <span>Trang {p.pageNumber}</span>
+                                {isCarvedOut && (
+                                  <span
+                                    data-testid={`carved-out-badge-${p.id}`}
+                                    className='px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-semibold shrink-0'
+                                    title='Trang đã được tách việc cho người khác'
+                                  >
+                                    Đã tách
+                                  </span>
+                                )}
                               </span>
-                              {pageStatus && (
+                              {pageStatus && !isCarvedOut && (
                                 <span className='block truncate text-[11px] text-[#57534E]'>
                                   {pageStatus.label.split(' · ')[0]}
                                 </span>
@@ -3086,7 +3248,19 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
         <section className='flex-1 min-w-0 min-h-0 flex flex-col gap-2' aria-label='Trang truyện'>
           {selectedPage ? (
             <>
-              {uploadMode === 'page' && (
+              {isCurrentPageCarvedOut && (
+                <div
+                  data-testid='carved-out-page-banner'
+                  className='shrink-0 bg-amber-50 border border-amber-300 rounded-xl px-3 py-2 flex items-center gap-2.5 text-xs text-amber-900 shadow-2xs'
+                >
+                  <Lock className='w-4 h-4 text-amber-600 shrink-0' />
+                  <div className='flex-1'>
+                    <span className='font-bold'>Trang đã tách việc:</span> Trang {selectedPage.pageNumber} đã được tách riêng cho hoạ sĩ khác ở công đoạn này.
+                    Bạn giữ việc cả chương không thể sửa bố cục hoặc tải ảnh cho trang này.
+                  </div>
+                </div>
+              )}
+              {uploadMode === 'page' && !isCurrentPageCarvedOut && (
                 <PageArtworkWorkflow
                   page={selectedPage}
                   stageName={(() => {
@@ -3102,7 +3276,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                   pendingFile={pendingPageFile}
                   uploading={uploadingPage}
                   uploadProgressMsg={uploadProgressMsg}
-                  canEdit={canEditPages}
+                  canEdit={canEditPages && !hasPanelOnlyAssignmentOnPage && !hasCarvedOutPanelOnPage}
                   existingPanels={panels}
                   defaultRightToLeft={seriesRightToLeft}
                   onPickFile={handleTriggerUploadPage}
@@ -3117,13 +3291,26 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
               <div
                 ref={canvasContainerRef}
                 onDragOver={(e) => {
-                  if (uploadMode === 'page' && canEditPages) {
+                  if (
+                    uploadMode === 'page' &&
+                    canEditPages &&
+                    !hasPanelOnlyAssignmentOnPage &&
+                    !isCurrentPageCarvedOut &&
+                    !hasCarvedOutPanelOnPage
+                  ) {
                     e.preventDefault();
                     e.stopPropagation();
                   }
                 }}
                 onDrop={(e) => {
-                  if (uploadMode === 'page' && canEditPages && e.dataTransfer.files?.[0]) {
+                  if (
+                    uploadMode === 'page' &&
+                    canEditPages &&
+                    !hasPanelOnlyAssignmentOnPage &&
+                    !isCurrentPageCarvedOut &&
+                    !hasCarvedOutPanelOnPage &&
+                    e.dataTransfer.files?.[0]
+                  ) {
                     e.preventDefault();
                     e.stopPropagation();
                     if (!uploadingPage) stagePageFile(e.dataTransfer.files[0]);
@@ -3210,7 +3397,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                               Kéo thả file ảnh toàn trang hoặc bấm nút bên dưới để tải và đối chiếu
                               khớp nét với các khung.
                             </p>
-                            {canEditPages && (
+                            {canEditPages && !hasPanelOnlyAssignmentOnPage && (
                               <button
                                 type='button'
                                 onClick={(e) => {
@@ -3542,18 +3729,6 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                     </div>
                   </div>
                 </div>
-
-                {/* Lucian #104 Canvas Minimap */}
-                {selectedPage && panels.length > 0 && (
-                  <CanvasMinimap
-                    panels={panels}
-                    selectedPanelId={selectedPanelId}
-                    onSelectPanel={(id) => setSelectedPanelId(id)}
-                    liveRects={liveRects}
-                    pageNumber={selectedPage.pageNumber}
-                    defaultCollapsed={true}
-                  />
-                )}
               </div>
 
               {/* Thanh trạng thái mỏng */}
@@ -4380,28 +4555,150 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                             );
                           })()}
 
-                          {/* Lucian #122 Layer Stacking Order & Visual 3D Preview */}
-                          {visibleElements.length === 0 ? (
-                            <p
-                              className='p-3 text-center text-xs text-[#57534E] border border-dashed border-[#D8D2C5] rounded-xl bg-[#FCFBF8]'
-                              data-testid='no-panel-layers'
-                            >
-                              Panel #{selectedPanelNumber ?? '?'} chưa có layer nào (trang có{' '}
-                              {pageElements.length} layer ở panel khác). Bấm "Xem cả trang" để xem
-                              tất cả.
-                            </p>
-                          ) : (
-                            <LayerStackingOrder
-                              elements={visibleElements}
-                              selectedElementId={selectedElementId}
-                              onSelectElement={(id) => setSelectedElementId(id)}
-                              onChangeZIndex={handleChangeLayerZIndex}
-                              onRotateLayer={handleRotateLayer}
-                              onDeleteLayer={handleDeleteLayer}
-                              bibleEntries={bibleEntries}
-                              panels={panels}
-                            />
-                          )}
+                          {/* Layer List Items */}
+                          <div className='space-y-1.5'>
+                            {visibleElements.length === 0 && (
+                              <p
+                                className='p-3 text-center text-xs text-[#57534E] border border-dashed border-[#D8D2C5] rounded-xl bg-[#FCFBF8]'
+                                data-testid='no-panel-layers'
+                              >
+                                Panel #{selectedPanelNumber ?? '?'} chưa có layer nào (trang có{' '}
+                                {pageElements.length} layer ở panel khác). Bấm "Xem cả trang" để xem
+                                tất cả.
+                              </p>
+                            )}
+                            {visibleElements
+                              .slice()
+                              .sort((a, b) => (b.zIndex || 0) - (a.zIndex || 0))
+                              .map((el) => {
+                                const isSelected = selectedElementId === el.elementId;
+                                const bible = el.bibleEntryId
+                                  ? bibleEntries.find((b) => b.id === el.bibleEntryId)
+                                  : null;
+                                const artRef = el.assetId
+                                  ? pageArtworks.find((a) => a.id === el.assetId)
+                                  : null;
+                                const layerThumbUrl =
+                                  artRef && panelArtworkUrls[artRef.id]
+                                    ? toThumbnailUrl(panelArtworkUrls[artRef.id])
+                                    : el.content?.startsWith('http') ||
+                                        el.content?.startsWith('data:')
+                                      ? el.content
+                                      : null;
+                                return (
+                                  <div
+                                    key={el.elementId}
+                                    data-testid={`layer-item-${el.elementId}`}
+                                    onClick={() => setSelectedElementId(el.elementId)}
+                                    className={`p-2 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
+                                      isSelected
+                                        ? 'border-[#F97316] bg-[#FFF2E6] shadow-xs ring-1 ring-[#F97316]'
+                                        : 'border-[#D8D2C5] bg-[#FCFBF8] hover:border-[#F97316]/50'
+                                    }`}
+                                  >
+                                    <div className='flex items-center gap-2 min-w-0 flex-1'>
+                                      <div className='w-8 h-8 rounded-lg bg-[#F8F6F0] border border-[#D8D2C5] flex items-center justify-center shrink-0 text-[#57534E] overflow-hidden'>
+                                        {bible?.referenceImageUrl ? (
+                                          <AuthenticatedImage
+                                            src={toThumbnailUrl(bible.referenceImageUrl)}
+                                            alt={bible.name}
+                                            className='w-full h-full rounded object-cover'
+                                          />
+                                        ) : layerThumbUrl ? (
+                                          <img
+                                            src={layerThumbUrl}
+                                            alt={artRef?.fileName || 'Layer artwork'}
+                                            className='w-full h-full rounded object-cover'
+                                          />
+                                        ) : (
+                                          <>
+                                            {el.elementType === 'CHARACTER_INSTANCE' && (
+                                              <User className='w-4 h-4 text-purple-600' />
+                                            )}
+                                            {el.elementType === 'BACKGROUND' && (
+                                              <Mountain className='w-4 h-4 text-emerald-600' />
+                                            )}
+                                            {el.elementType === 'PROP' && (
+                                              <Package className='w-4 h-4 text-amber-600' />
+                                            )}
+                                            {el.elementType === 'EFFECT' && (
+                                              <Zap className='w-4 h-4 text-red-500' />
+                                            )}
+                                            {el.elementType === 'ARTWORK_LAYER' && (
+                                              <Palette className='w-4 h-4 text-blue-500' />
+                                            )}
+                                          </>
+                                        )}
+                                      </div>
+                                      <div className='min-w-0 flex-1'>
+                                        <p className='font-semibold text-xs text-[#1C1917] truncate'>
+                                          {bible
+                                            ? bible.name
+                                            : LAYER_LABELS[el.elementType] || el.elementType}
+                                        </p>
+                                        <div className='flex items-center gap-1.5 text-xs text-[#57534E]'>
+                                          <span className='font-mono'>z:{el.zIndex}</span>
+                                          {el.rotation ? (
+                                            <span className='font-mono'>• {el.rotation}°</span>
+                                          ) : null}
+                                          {el.panelId ? (
+                                            <span className='bg-[#FFF2E6] text-[#C2410C] px-1 rounded'>
+                                              Khung #
+                                              {panels.find((p) => p.id === el.panelId)
+                                                ?.panelNumber || '?'}
+                                            </span>
+                                          ) : (
+                                            <span className='text-[#57534E]'>Toàn trang</span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    <div
+                                      className='flex items-center gap-1'
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <button
+                                        type='button'
+                                        data-testid={`rotate-layer-${el.elementId}`}
+                                        onClick={() => handleRotateLayer(el, 15)}
+                                        className='p-1 text-[#57534E] hover:text-[#1C1917] rounded hover:bg-[#F3F0E9] cursor-pointer'
+                                        title='Xoay +15°'
+                                      >
+                                        <RotateCw className='w-3 h-3' />
+                                      </button>
+                                      <button
+                                        type='button'
+                                        data-testid={`layer-up-${el.elementId}`}
+                                        onClick={() => handleChangeLayerZIndex(el, 1)}
+                                        className='p-1 text-[#57534E] hover:text-[#1C1917] rounded hover:bg-[#F3F0E9] cursor-pointer'
+                                        title='Lên 1 lớp'
+                                      >
+                                        <ArrowUp className='w-3.5 h-3.5' />
+                                      </button>
+                                      <button
+                                        type='button'
+                                        data-testid={`layer-down-${el.elementId}`}
+                                        onClick={() => handleChangeLayerZIndex(el, -1)}
+                                        className='p-1 text-[#57534E] hover:text-[#1C1917] rounded hover:bg-[#F3F0E9] cursor-pointer'
+                                        title='Xuống 1 lớp'
+                                      >
+                                        <ArrowDown className='w-3.5 h-3.5' />
+                                      </button>
+                                      <button
+                                        type='button'
+                                        data-testid={`delete-layer-${el.elementId}`}
+                                        onClick={() => handleDeleteLayer(el)}
+                                        className='p-1 text-[#57534E] hover:text-red-600 rounded hover:bg-red-50 cursor-pointer'
+                                        title='Xoá layer'
+                                      >
+                                        <Trash2 className='w-3.5 h-3.5' />
+                                      </button>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                          </div>
                         </div>
                       )}
                     </div>

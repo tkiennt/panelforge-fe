@@ -29,9 +29,7 @@ import { ChangePasswordModal } from '@/shared/features/account/ChangePasswordMod
 import { authService } from '@/services/auth.service';
 import { userService, UserProfileDto, UpdateUserProfileRequest } from '@/services/user.service';
 import { SYSTEM_AVATARS, isSystemAvatarUrl } from '@/shared/utils/systemImages';
-import { PROFILE_UPDATED_EVENT } from '@/shared/utils/profileEvents';
 import { workspaceService, WorkspaceDto } from '@/services/workspace.service';
-import { useTranslation } from '@/lib/i18n';
 
 export interface UserProfileProps {
   user?: User | null;
@@ -93,7 +91,6 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
   onOpenTwoFactor,
   onShowToast,
 }) => {
-  const { t } = useTranslation();
   const navigate = useNavigate();
 
   // Profile data state
@@ -330,14 +327,30 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm() || !profile) return;
-
-    setSaving(true);
-    const payload: UpdateUserProfileRequest = {
+    const ok = await persistProfile({
       username: editUsername.trim(),
       phoneNumber: editPhone.trim() || null,
       avatar: editAvatar.trim() || null,
-    };
+    });
+    if (ok) setIsEditing(false);
+  };
 
+  // Ảnh đại diện mẫu lưu ngay như ảnh bìa (trước đây chỉ đổi bản nháp → tải lại trang là mất)
+  const handleApplyAvatar = async (url: string) => {
+    if (!profile) return;
+    setEditAvatar(url);
+    setFormErrors((prev) => ({ ...prev, avatar: undefined }));
+    setIsAvatarPickerOpen(false);
+    await persistProfile({
+      username: profile.username,
+      phoneNumber: profile.phoneNumber || null,
+      avatar: url,
+    });
+  };
+
+  const persistProfile = async (payload: UpdateUserProfileRequest): Promise<boolean> => {
+    if (!profile) return false;
+    setSaving(true);
     try {
       let updated: UserProfileDto | null = null;
       if (profile.id && profile.id !== 'usr-local-default') {
@@ -355,9 +368,6 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
 
       if (updated) {
         setProfile(updated);
-        window.dispatchEvent(
-          new CustomEvent(PROFILE_UPDATED_EVENT, { detail: { avatar: updated.avatar ?? null } }),
-        );
         try {
           const storedStr = localStorage.getItem('user');
           const stored = storedStr ? JSON.parse(storedStr) : {};
@@ -371,10 +381,11 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
         }
       }
 
-      setIsEditing(false);
       showFeedback('Hồ sơ tác giả đã được cập nhật thành công!', 'success');
+      return true;
     } catch (err: any) {
       showFeedback(err?.message || 'Không thể lưu thay đổi hồ sơ.', 'error');
+      return false;
     } finally {
       setSaving(false);
     }
@@ -1474,12 +1485,7 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                 <button
                   key={preset.id}
                   type='button'
-                  onClick={() => {
-                    setEditAvatar(preset.url);
-                    setFormErrors((prev) => ({ ...prev, avatar: undefined }));
-                    setIsAvatarPickerOpen(false);
-                    if (!isEditing) setIsEditing(true);
-                  }}
+                  onClick={() => void handleApplyAvatar(preset.url)}
                   aria-pressed={editAvatar === preset.url}
                   className={`p-2 rounded-lg border ${editAvatar === preset.url ? 'border-[#F97316] bg-[#FFF2E6]' : 'border-[#D8D2C5]'} hover:border-[#F97316] bg-white hover:bg-[#FFF2E6]/50 flex flex-col items-center gap-2 transition-all cursor-pointer ${focusRing}`}
                 >

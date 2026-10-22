@@ -20,7 +20,12 @@ import {
   ZoomOut,
 } from 'lucide-react';
 import type { AssetReferenceDto, ChangeRequestDto, PanelDto, SubmissionDto } from '@/types';
-import { artworkService, computeFileSha256, resolveArtworkUrl } from '@/services/artwork.service';
+import {
+  artworkService,
+  computeFileSha256,
+  resolveArtworkUrl,
+  toThumbnailUrl,
+} from '@/services/artwork.service';
 import { errorMessage, parseRegionBox } from './collaborationRules';
 import { parseBoundingBox } from '@/shared/utils/panelBoundingBox';
 
@@ -461,6 +466,7 @@ interface ArtworkPanelProps {
   chapterId: string;
   pageId: string | null;
   stageId: string;
+  assignedPanelId?: string | null;
   artworks: AssetReferenceDto[];
   panels?: PanelDto[];
   submissions?: SubmissionDto[];
@@ -487,6 +493,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
   chapterId,
   pageId,
   stageId,
+  assignedPanelId,
   artworks,
   panels = [],
   submissions,
@@ -498,6 +505,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
   onToast,
   onOpenBible,
 }) => {
+  const assignedPanelObj = assignedPanelId ? panels.find((p) => p.id === assignedPanelId) : null;
   const fileInput = useRef<HTMLInputElement>(null);
   const panelFileInput = useRef<HTMLInputElement>(null);
   const [activeUploadPanelId, setActiveUploadPanelId] = useState<string | null>(null);
@@ -546,6 +554,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
       setPhase('hashing');
       const sha256 = await computeFileSha256(file);
       setPhase('uploading');
+      const effectivePanelId = targetPanelId ?? (assignedPanelId || undefined);
       const result = await artworkService.uploadArtwork(
         chapterId,
         pageId,
@@ -553,9 +562,9 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
         stageId,
         sha256,
         undefined,
-        targetPanelId,
+        effectivePanelId,
       );
-      const targetPanel = panels.find((p) => p.id === targetPanelId);
+      const targetPanel = panels.find((p) => p.id === effectivePanelId);
       const scopeDesc = targetPanel ? `khung #${targetPanel.panelNumber}` : 'cả trang';
       onToast?.(
         `Đã tải artwork v${result.versionNumber} cho ${scopeDesc}`,
@@ -594,7 +603,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
     try {
       const link = await artworkService.getArtworkAccessLink(chapterId, art.id);
       if (activePreviewRequests.current[art.id] === reqId) {
-        setPreviews((p) => ({ ...p, [art.id]: resolveArtworkUrl(link.url) }));
+        setPreviews((p) => ({ ...p, [art.id]: toThumbnailUrl(resolveArtworkUrl(link.url)) }));
         setOpenPreviewIds((prev) => ({ ...prev, [art.id]: true }));
       }
     } catch (err) {
@@ -613,7 +622,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
     activePreviewRequests.current[art.id] = reqId;
     const link = await artworkService.getArtworkAccessLink(chapterId, art.id);
     if (activePreviewRequests.current[art.id] === reqId) {
-      setPreviews((p) => ({ ...p, [art.id]: resolveArtworkUrl(link.url) }));
+      setPreviews((p) => ({ ...p, [art.id]: toThumbnailUrl(resolveArtworkUrl(link.url)) }));
       setOpenPreviewIds((prev) => ({ ...prev, [art.id]: true }));
     }
   };
@@ -828,33 +837,62 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
 
         {canUpload && (
           <div className='flex items-center gap-1.5'>
-            <input
-              ref={fileInput}
-              type='file'
-              accept={ACCEPTED.join(',')}
-              className='hidden'
-              data-testid='artwork-file-input'
-              onChange={(e) => void handleFile(e.target.files?.[0])}
-            />
-            <button
-              type='button'
-              disabled={busy || !pageId}
-              onClick={() => fileInput.current?.click()}
-              className='px-2.5 py-1 rounded-lg bg-[#171717] hover:bg-black text-white text-xs font-semibold flex items-center gap-1.5 disabled:opacity-50 cursor-pointer transition-colors shadow-2xs'
-            >
-              {busy ? (
-                <Loader2 className='w-3 h-3 animate-spin' />
-              ) : (
-                <Upload className='w-3 h-3 text-[#F97316]' />
-              )}
-              <span>
-                {phase === 'hashing'
-                  ? 'Đang tính SHA-256…'
-                  : phase === 'uploading'
-                    ? 'Đang tải lên…'
-                    : 'Tải artwork lên'}
-              </span>
-            </button>
+            {!assignedPanelId ? (
+              <>
+                <input
+                  ref={fileInput}
+                  type='file'
+                  accept={ACCEPTED.join(',')}
+                  className='hidden'
+                  data-testid='artwork-file-input'
+                  onChange={(e) => void handleFile(e.target.files?.[0])}
+                />
+                <button
+                  type='button'
+                  disabled={busy || !pageId}
+                  onClick={() => fileInput.current?.click()}
+                  data-testid='artwork-upload-btn'
+                  className='px-2.5 py-1 rounded-lg bg-[#171717] hover:bg-black text-white text-xs font-semibold flex items-center gap-1.5 disabled:opacity-50 cursor-pointer transition-colors shadow-2xs'
+                >
+                  {busy ? (
+                    <Loader2 className='w-3 h-3 animate-spin' />
+                  ) : (
+                    <Upload className='w-3 h-3 text-[#F97316]' />
+                  )}
+                  <span>
+                    {phase === 'hashing'
+                      ? 'Đang tính SHA-256…'
+                      : phase === 'uploading'
+                        ? 'Đang tải lên…'
+                        : 'Tải artwork lên'}
+                  </span>
+                </button>
+              </>
+            ) : (
+              <button
+                type='button'
+                disabled={busy || !pageId}
+                onClick={() => {
+                  setActiveUploadPanelId(assignedPanelId);
+                  panelFileInput.current?.click();
+                }}
+                data-testid='artwork-upload-assigned-panel-btn'
+                className='px-2.5 py-1 rounded-lg bg-[#171717] hover:bg-black text-white text-xs font-semibold flex items-center gap-1.5 disabled:opacity-50 cursor-pointer transition-colors shadow-2xs'
+              >
+                {busy ? (
+                  <Loader2 className='w-3 h-3 animate-spin' />
+                ) : (
+                  <Upload className='w-3 h-3 text-[#F97316]' />
+                )}
+                <span>
+                  {phase === 'hashing'
+                    ? 'Đang tính SHA-256…'
+                    : phase === 'uploading'
+                      ? 'Đang tải lên…'
+                      : `Tải ảnh cho khung${assignedPanelObj ? ` #${assignedPanelObj.panelNumber}` : ''}`}
+                </span>
+              </button>
+            )}
             <input
               ref={panelFileInput}
               type='file'
@@ -862,7 +900,10 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
               className='hidden'
               data-testid='panel-artwork-file-input'
               onChange={(e) =>
-                void handleFile(e.target.files?.[0], activeUploadPanelId ?? undefined)
+                void handleFile(
+                  e.target.files?.[0],
+                  activeUploadPanelId ?? assignedPanelId ?? undefined,
+                )
               }
             />
           </div>
@@ -1015,7 +1056,7 @@ export const ArtworkPanel: React.FC<ArtworkPanelProps> = ({
                           <span>Bible</span>
                         </button>
                       )}
-                      {canUpload && (
+                      {canUpload && (!assignedPanelId || assignedPanelId === p.id) && (
                         <button
                           type='button'
                           disabled={busy}

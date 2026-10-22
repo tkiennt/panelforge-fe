@@ -75,36 +75,5 @@
     "subtitle": "Choose a preset panel grid for this page",
     "applyConfirm": "Applying this template will replace existing panels on this page.",
     "noTemplates": "No templates available."
-  },
-  "artistDesk": {
-    "title": "Artist & Panel Layout Desk",
-    "chapter": "Chapter",
-    "page": "Page",
-    "readingOrder": "Reading Order",
-    "save": "Save Changes",
-    "saving": "Saving..."
-  },
-  "writer": {
-    "title": "Writer Script Desk",
-    "chapter": "Chapter",
-    "scene": "Scene",
-    "addScene": "+ Add Scene",
-    "addLine": "+ Add Dialogue Line",
-    "character": "Character",
-    "narration": "Narration",
-    "dialogue": "Dialogue",
-    "action": "Action",
-    "stageDirections": "Stage Directions",
-    "consistencyFindings": "Consistency Findings",
-    "bibleReference": "Bible Reference",
-    "saveDraft": "Save Draft",
-    "emptyScenes": "No scenes in this chapter yet.",
-    "emptyLines": "No dialogue lines yet."
-  },
-  "letterer": {
-    "title": "Letterer & Dialogue Desk",
-    "chapter": "Chapter:",
-    "page": "Page:",
-    "pageOption": "Page {pageNumber} ({width}x{height})"
   }
 }

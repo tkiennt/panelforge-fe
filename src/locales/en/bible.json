@@ -34,14 +34,6 @@
     "noPanelSelection": "No panel selected",
     "selectToView": "Select a panel to inspect characters and settings anchored to this scene.",
     "copyPrompt": "Copy AI Prompt",
-    "promptCopied": "Reference prompt copied.",
-    "byPanel": "By Panel ({count})",
-    "byChapter": "Full Chapter (Canon)",
-    "selectPanel": "Select panel:",
-    "panelLabel": "Panel #{number}",
-    "loading": "Loading character design references...",
-    "emptyPanel": "No characters linked to this panel yet",
-    "emptyChapter": "No Canon entries for this chapter yet",
-    "versionLock": "Locked v{version}"
+    "promptCopied": "Reference prompt copied."
   }
 }

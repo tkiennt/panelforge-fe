@@ -250,7 +250,7 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
 
   return (
     <div
-      className='fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150'
+      className='fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150'
       data-testid='preview-links-modal'
     >
       <div className='bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl border border-[#E7E7E7] overflow-hidden text-xs text-[#171717]'>

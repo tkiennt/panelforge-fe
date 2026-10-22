@@ -70,16 +70,21 @@
     "syncing": "Syncing..."
   },
   "unsaved": {
-    "title": "Unsaved changes",
-    "plural": "{count} unsaved changes",
-    "saved": "Saved",
+    "title": "You have unsaved changes",
+    "plural": "You have {count} unsaved changes",
+    "saved": "Changes saved",
     "discard": "Discard",
-    "save": "Save",
+    "save": "Save changes",
     "saving": "Saving..."
+  },
+  "dangerZone": {
+    "confirmDeleteTitle": "Confirm permanent deletion",
+    "confirmDeleteDesc": "This action cannot be undone. Please type the exact name below to confirm deletion:",
+    "typeInputLabel": "Re-type name to confirm"
   },
   "auth": {
     "welcomeBack": "Welcome back",
-    "loginSubtitle": "Sign in to continue with your studio.",
+    "loginSubtitle": "Keep creating with your studio.",
     "email": "Email",
     "password": "Password",
     "forgot": "Forgot password?",

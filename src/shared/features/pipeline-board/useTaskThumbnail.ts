@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { artworkService, resolveArtworkUrl } from '@/services/artwork.service';
+import { artworkService, resolveArtworkUrl, toThumbnailUrl } from '@/services/artwork.service';
 import { loadPreviousStageArtworks } from '@/shared/utils/stageArtworks';
 import type { BoardCard } from './pipelineBoard.types';
 
@@ -98,7 +98,7 @@ export function useTaskThumbnail(card: BoardCard | null | undefined): TaskThumbn
                 card.chapterId,
                 latest.id,
               );
-              const url = resolveArtworkUrl(accessLink.url);
+              const url = toThumbnailUrl(resolveArtworkUrl(accessLink.url));
               return {
                 status: 'success',
                 url,
@@ -130,7 +130,7 @@ export function useTaskThumbnail(card: BoardCard | null | undefined): TaskThumbn
                   card.chapterId,
                   latestPrev.id,
                 );
-                const url = resolveArtworkUrl(accessLink.url);
+                const url = toThumbnailUrl(resolveArtworkUrl(accessLink.url));
                 return {
                   status: 'success',
                   url,

@@ -38,6 +38,7 @@ vi.mock('@/services/artwork.service', () => ({
   },
   computeFileSha256: vi.fn(),
   resolveArtworkUrl: vi.fn((u: string) => `http://api.test${u}`),
+  toThumbnailUrl: vi.fn((u: string) => `${u}${u.includes('?') ? '&' : '?'}size=thumb`),
 }));
 
 vi.mock('@/services/panel.service', () => ({
