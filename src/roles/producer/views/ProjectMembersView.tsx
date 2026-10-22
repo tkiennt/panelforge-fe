@@ -16,7 +16,8 @@ import { useConfirm } from '@/shared/context/ConfirmContext';
 import { useToast } from '@/shared/context/ToastContext';
 import { useTranslation } from '@/lib/i18n';
 import { seriesService, SeriesMemberDto } from '@/services/series.service';
-import { SeriesMembersModal } from '../modals/SeriesMembersModal';
+import { workspaceService, WorkspaceMemberDto } from '@/services/workspace.service';
+import { SeriesMembersModal, isProducerMember } from '../modals/SeriesMembersModal';
 
 interface ProjectMembersViewProps {
   projects: MangaProject[]; // Nhận toàn bộ danh sách dự án
@@ -56,12 +57,21 @@ export const ProjectMembersView: React.FC<ProjectMembersViewProps> = ({ projects
 
   // Danh sách thành viên thực tế của Series
   const [members, setMembers] = useState<SeriesMemberDto[]>([]);
+  const [workspaceMembers, setWorkspaceMembers] = useState<WorkspaceMemberDto[]>([]);
 
   const loadSeriesMembers = async (seriesId: string) => {
     setLoading(true);
     try {
-      const data = await seriesService.getSeriesMembers(workspaceId, seriesId);
+      const wsMembersPromise = workspaceId
+        ? workspaceService.getMembers(workspaceId).catch(() => [])
+        : Promise.resolve([]);
+
+      const [data, wsData] = await Promise.all([
+        seriesService.getSeriesMembers(workspaceId, seriesId),
+        wsMembersPromise,
+      ]);
       setMembers(data || []);
+      setWorkspaceMembers(wsData || []);
     } catch (err: any) {
       toast.error('Lỗi tải nhân sự', err.message || 'Không thể tải danh sách thành viên');
     } finally {
@@ -95,6 +105,13 @@ export const ProjectMembersView: React.FC<ProjectMembersViewProps> = ({ projects
 
   const handleChangeRole = async (userId: string, newRole: string) => {
     if (!selectedProject) return;
+    const targetMember = members.find((m) => m.userId === userId);
+    if (targetMember && isProducerMember(targetMember, workspaceMembers)) {
+      toast.warning('Không thể thay đổi', 'Producer là thành viên quản trị mặc định (không thể sửa vai trò).');
+      setEditingUserId(null);
+      setOpenActionMenuId(null);
+      return;
+    }
     try {
       await seriesService.updateSeriesMember(workspaceId, String(selectedProject.id), userId, {
         seriesRole: newRole,
@@ -110,9 +127,9 @@ export const ProjectMembersView: React.FC<ProjectMembersViewProps> = ({ projects
 
   const handleRemoveMember = async (member: SeriesMemberDto) => {
     if (!selectedProject) return;
-    const isProducer = (member.seriesRole || '').toLowerCase() === 'producer';
+    const isProducer = isProducerMember(member, workspaceMembers);
     if (isProducer) {
-      toast.warning('Không thể xóa', 'Producer là thành viên quản trị mặc định của Series.');
+      toast.warning('Không thể xóa', 'Producer là thành viên quản trị mặc định của Series (không thể xóa).');
       return;
     }
 
@@ -247,109 +264,135 @@ export const ProjectMembersView: React.FC<ProjectMembersViewProps> = ({ projects
               </thead>
               <tbody>
                 {filteredMembers.length > 0 ? (
-                  filteredMembers.map((member) => (
-                    <tr
-                      key={member.id || member.userId}
-                      className='border-b border-gray-50 hover:bg-gray-50/50 transition relative'
-                    >
-                      <td className='p-4'>
-                        <div className='flex items-center gap-3'>
-                          <div className='w-9 h-9 rounded-full bg-[#171717] text-white flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden'>
-                            {member.avatarUrl ? (
-                              <img src={member.avatarUrl} alt={member.fullName} className='w-full h-full object-cover' />
-                            ) : (
-                              (member.fullName || member.email || 'U').charAt(0).toUpperCase()
-                            )}
-                          </div>
-                          <div className='min-w-0'>
-                            <p className='font-semibold text-sm text-[#171717] truncate'>
-                              {member.fullName || 'Thành viên'}
-                            </p>
-                            <p className='text-xs text-gray-500 flex items-center gap-1 truncate'>
-                              <Mail className='w-3 h-3 shrink-0' /> {member.email}
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className='p-4'>
-                        {editingUserId === member.userId ? (
-                          <div className='flex items-center gap-2'>
-                            <select
-                              value={selectedNewRole}
-                              onChange={(e) => setSelectedNewRole(e.target.value)}
-                              className='text-xs px-2 py-1 border border-gray-300 rounded bg-white'
+                  filteredMembers.map((member) => {
+                    const isProducer = isProducerMember(member, workspaceMembers);
+                    return (
+                      <tr
+                        key={member.id || member.userId}
+                        className={`border-b border-gray-100 hover:bg-gray-50/50 transition relative ${
+                          isProducer ? 'bg-amber-50/30' : ''
+                        }`}
+                      >
+                        <td className='p-4'>
+                          <div className='flex items-center gap-3'>
+                            <div
+                              className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs uppercase shrink-0 overflow-hidden ${
+                                isProducer
+                                  ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                                  : 'bg-[#171717] text-white'
+                              }`}
                             >
-                              {SERIES_ROLES.map((r) => (
-                                <option key={r} value={r}>
-                                  {r}
-                                </option>
-                              ))}
-                            </select>
-                            <button
-                              onClick={() => handleChangeRole(member.userId, selectedNewRole)}
-                              className='text-xs bg-emerald-600 text-white px-2 py-1 rounded font-semibold cursor-pointer'
-                            >
-                              Lưu
-                            </button>
-                            <button
-                              onClick={() => setEditingUserId(null)}
-                              className='text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded cursor-pointer'
-                            >
-                              Hủy
-                            </button>
+                              {member.avatarUrl ? (
+                                <img
+                                  src={member.avatarUrl}
+                                  alt={member.fullName || member.email}
+                                  className='w-full h-full object-cover'
+                                />
+                              ) : (
+                                (member.fullName || member.email || 'U').charAt(0).toUpperCase()
+                              )}
+                            </div>
+                            <div className='min-w-0'>
+                              <p className='font-semibold text-sm text-[#171717] truncate'>
+                                {member.fullName || 'Thành viên'}
+                              </p>
+                              <p className='text-xs text-gray-500 flex items-center gap-1 truncate'>
+                                <Mail className='w-3 h-3 shrink-0' /> {member.email}
+                              </p>
+                            </div>
                           </div>
-                        ) : (
-                          <span className='flex items-center gap-1.5 text-sm font-medium text-gray-700 whitespace-nowrap'>
-                            <Shield className='w-4 h-4 text-gray-400 shrink-0' />
-                            {member.seriesRole}
-                          </span>
-                        )}
-                      </td>
-                      <td className='p-4 text-xs text-gray-500 whitespace-nowrap'>
-                        {member.joinedAt ? new Date(member.joinedAt).toLocaleDateString('vi-VN') : '—'}
-                      </td>
-                      <td className='p-4 text-right relative'>
-                        {(member.seriesRole || '').toLowerCase() === 'producer' ? (
-                          <div className='flex items-center justify-end pr-2 text-amber-600' title='Producer là thành viên quản trị mặc định'>
-                            <Lock className='w-4 h-4 opacity-60' />
-                          </div>
-                        ) : (
-                          <>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleActionMenu(member.userId);
-                              }}
-                              className='p-2 text-gray-400 hover:text-[#171717] rounded-lg hover:bg-gray-200 transition cursor-pointer'
+                        </td>
+                        <td className='p-4'>
+                          {editingUserId === member.userId && !isProducer ? (
+                            <div className='flex items-center gap-2'>
+                              <select
+                                value={selectedNewRole}
+                                onChange={(e) => setSelectedNewRole(e.target.value)}
+                                className='text-xs px-2 py-1 border border-gray-300 rounded bg-white'
+                              >
+                                {SERIES_ROLES.map((r) => (
+                                  <option key={r} value={r}>
+                                    {r}
+                                  </option>
+                                ))}
+                              </select>
+                              <button
+                                onClick={() => handleChangeRole(member.userId, selectedNewRole)}
+                                className='text-xs bg-emerald-600 text-white px-2 py-1 rounded font-semibold cursor-pointer'
+                              >
+                                Lưu
+                              </button>
+                              <button
+                                onClick={() => setEditingUserId(null)}
+                                className='text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded cursor-pointer'
+                              >
+                                Hủy
+                              </button>
+                            </div>
+                          ) : (
+                            <span
+                              className={`flex items-center gap-1.5 text-sm font-medium whitespace-nowrap ${
+                                isProducer ? 'text-amber-800 font-semibold' : 'text-gray-700'
+                              }`}
                             >
-                              <MoreVertical className='w-4 h-4' />
-                            </button>
+                              <Shield
+                                className={`w-4 h-4 shrink-0 ${
+                                  isProducer ? 'text-amber-500' : 'text-gray-400'
+                                }`}
+                              />
+                              {isProducer ? 'Producer' : member.seriesRole}
+                            </span>
+                          )}
+                        </td>
+                        <td className='p-4 text-xs text-gray-500 whitespace-nowrap'>
+                          {member.joinedAt ? new Date(member.joinedAt).toLocaleDateString('vi-VN') : '—'}
+                        </td>
+                        <td className='p-4 text-right relative'>
+                          {isProducer ? (
+                            <div
+                              className='flex items-center justify-end pr-2 text-amber-600'
+                              title='Producer là thành viên quản trị mặc định (không thể sửa hoặc xóa)'
+                            >
+                              <Lock className='w-4 h-4 opacity-60' />
+                            </div>
+                          ) : (
+                            <>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleActionMenu(member.userId);
+                                }}
+                                className='p-2 text-gray-400 hover:text-[#171717] rounded-lg hover:bg-gray-200 transition cursor-pointer'
+                              >
+                                <MoreVertical className='w-4 h-4' />
+                              </button>
 
-                            {openActionMenuId === member.userId && (
-                              <div className='absolute right-8 top-10 w-44 bg-white border border-gray-200 rounded-lg shadow-lg z-20 overflow-hidden text-left animate-in slide-in-from-top-2 duration-150'>
-                                <button
-                                  onClick={() => {
-                                    setEditingUserId(member.userId);
-                                    setSelectedNewRole(member.seriesRole || 'Artist');
-                                    setOpenActionMenuId(null);
-                                  }}
-                                  className='w-full px-4 py-2.5 text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors cursor-pointer'
-                                >
-                                  <Edit className='w-3.5 h-3.5 text-gray-500' /> {t('members.seriesRoster.changeRoleTooltip', 'Đổi vai trò')}
-                                </button>
-                                <button
-                                  onClick={() => handleRemoveMember(member)}
-                                  className='w-full px-4 py-2.5 text-xs text-red-600 hover:bg-red-50 flex items-center gap-2 border-t border-gray-100 transition-colors cursor-pointer'
-                                >
-                                  <Trash2 className='w-3.5 h-3.5' /> {t('members.seriesRoster.removeMemberTooltip', 'Xóa thành viên')}
-                                </button>
-                              </div>
-                            )}
-                          </>
-                        )}
-                      </td>
-                    </tr>
-                  ))
+                              {openActionMenuId === member.userId && (
+                                <div className='absolute right-8 top-10 w-44 bg-white border border-gray-200 rounded-lg shadow-lg z-20 overflow-hidden text-left animate-in slide-in-from-top-2 duration-150'>
+                                  <button
+                                    onClick={() => {
+                                      setEditingUserId(member.userId);
+                                      setSelectedNewRole(member.seriesRole || 'Artist');
+                                      setOpenActionMenuId(null);
+                                    }}
+                                    className='w-full px-4 py-2.5 text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors cursor-pointer'
+                                  >
+                                    <Edit className='w-3.5 h-3.5 text-gray-500' /> {t('members.seriesRoster.changeRoleTooltip', 'Đổi vai trò')}
+                                  </button>
+                                  <button
+                                    onClick={() => handleRemoveMember(member)}
+                                    className='w-full px-4 py-2.5 text-xs text-red-600 hover:bg-red-50 flex items-center gap-2 border-t border-gray-100 transition-colors cursor-pointer'
+                                  >
+                                    <Trash2 className='w-3.5 h-3.5' /> {t('members.seriesRoster.removeMemberTooltip', 'Xóa thành viên')}
+                                  </button>
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })
                 ) : (
                   <tr>
                     <td colSpan={4} className='p-8 text-center text-gray-500 text-sm'>

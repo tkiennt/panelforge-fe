@@ -22,7 +22,7 @@
     "searchPlaceholder": "Tìm theo tên, email, vai trò...",
     "allRoles": "Tất cả vai trò",
     "producerAdminTag": "Quản trị",
-    "producerLockTooltip": "Producer và Owner là thành viên quản trị mặc định",
+    "producerLockTooltip": "Producer là thành viên quản trị mặc định (không thể sửa hoặc xóa)",
     "changeRoleTooltip": "Đổi vai trò",
     "removeMemberTooltip": "Xóa thành viên",
     "saveRole": "Lưu",

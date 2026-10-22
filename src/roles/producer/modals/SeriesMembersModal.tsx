@@ -53,6 +53,25 @@ export const SERIES_ROLES = [
   { value: 'Publisher', label: 'Publisher (Xuất bản)', slug: 'publisher' },
 ];
 
+export const isProducerMember = (
+  m?: { seriesRole?: string; studioRole?: string; role?: string; userId?: string } | null,
+  wsMemberList: WorkspaceMemberDto[] = [],
+): boolean => {
+  if (!m) return false;
+  const roleStr = `${m.seriesRole || ''} ${m.studioRole || ''} ${m.role || ''}`.toLowerCase();
+  if (roleStr.includes('producer') || roleStr.includes('owner')) {
+    return true;
+  }
+  const wsMember = wsMemberList.find((wm) => wm.userId === m.userId);
+  if (wsMember) {
+    const wsRole = (wsMember.role || '').toString().toLowerCase();
+    if (wsRole === 'producer' || wsRole === 'owner' || Boolean(wsMember.isOwner)) {
+      return true;
+    }
+  }
+  return false;
+};
+
 export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
   isOpen,
   workspaceId,
@@ -103,17 +122,18 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
           ? seriesService.getSeriesCandidates(seriesId).catch(() => [])
           : Promise.resolve([]);
 
-      const [sMembers, cList] = await Promise.all([
+      const wsMembersPromise = workspaceId
+        ? workspaceService.getMembers(workspaceId).catch(() => [])
+        : Promise.resolve([]);
+
+      const [sMembers, cList, wsMembers] = await Promise.all([
         seriesService.getSeriesMembers(workspaceId, seriesId),
         candidatesPromise,
+        wsMembersPromise,
       ]);
       setSeriesMembers(sMembers || []);
       setCandidates(cList || []);
-
-      if (cList.length === 0 && workspaceId) {
-        const wsMembers = await workspaceService.getMembers(workspaceId).catch(() => []);
-        setWorkspaceMembers(wsMembers);
-      }
+      setWorkspaceMembers(wsMembers || []);
     } catch (err: any) {
       toast.error('Lỗi tải dữ liệu', err.message || 'Không thể tải danh sách nhân sự');
     } finally {
@@ -148,7 +168,12 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
   const availableWorkspaceMembers = useMemo(() => {
     if (candidates.length > 0) {
       return candidates
-        .filter((c) => !c.isAlreadyMember && c.workspaceRole?.toLowerCase() !== 'producer')
+        .filter(
+          (c) =>
+            !c.isAlreadyMember &&
+            c.workspaceRole?.toLowerCase() !== 'producer' &&
+            c.workspaceRole?.toLowerCase() !== 'owner',
+        )
         .map((c) => ({
           userId: c.userId,
           fullName: c.fullName || '',
@@ -163,7 +188,8 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
         (m) =>
           !existingIds.has(m.userId) &&
           !m.isOwner &&
-          m.role?.toString().toLowerCase() !== 'producer',
+          m.role?.toString().toLowerCase() !== 'producer' &&
+          m.role?.toString().toLowerCase() !== 'owner',
       )
       .map((m) => ({
         userId: m.userId,
@@ -249,6 +275,21 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
 
   // Đổi vai trò thành viên Series
   const handleUpdateRole = async (userId: string, newRole: string) => {
+    const targetMember = seriesMembers.find((m) => m.userId === userId);
+    if (targetMember && isProducerMember(targetMember, workspaceMembers)) {
+      setStatusAlert({
+        type: 'warning',
+        title: 'Không thể đổi vai trò',
+        message: 'Producer là thành viên quản trị mặc định (không thể sửa vai trò).',
+      });
+      toast.warning(
+        'Không thể đổi vai trò',
+        'Producer là thành viên quản trị mặc định (không thể sửa vai trò).',
+      );
+      setEditingUserId(null);
+      return;
+    }
+
     setActionLoadingId(userId);
     try {
       await seriesService.updateSeriesMember(workspaceId, seriesId, userId, {
@@ -278,16 +319,16 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
 
   // Rút thành viên khỏi Series
   const handleRemoveMember = async (member: SeriesMemberDto) => {
-    const isProducer = (member.seriesRole || '').toLowerCase() === 'producer';
+    const isProducer = isProducerMember(member, workspaceMembers);
     if (isProducer) {
       setStatusAlert({
         type: 'warning',
         title: 'Không thể xóa thành viên',
-        message: 'Producer và Owner của Workspace luôn mặc định là thành viên quản trị Series.',
+        message: 'Producer là thành viên quản trị mặc định của Series (không thể xóa).',
       });
       toast.warning(
         'Không thể xóa thành viên',
-        'Producer và Owner của Workspace luôn mặc định là thành viên quản trị Series.',
+        'Producer là thành viên quản trị mặc định của Series (không thể xóa).',
       );
       return;
     }
@@ -675,9 +716,7 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                   </div>
                 ) : (
                   filteredSeriesMembers.map((m, idx) => {
-                    const wsMember = workspaceMembers.find((wm) => wm.userId === m.userId);
-                    const isOwnerOrProducerInWs = wsMember && (wsMember.role === 'Owner' || wsMember.role === 'Producer');
-                    const isProducer = (m.seriesRole || '').toLowerCase() === 'producer' || Boolean(isOwnerOrProducerInWs);
+                    const isProducer = isProducerMember(m, workspaceMembers);
 
                     const roleConfig = isProducer
                       ? { value: 'Producer', label: 'Producer (Sản xuất)', slug: 'producer' }
@@ -685,7 +724,7 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                           (r) => r.value.toLowerCase() === (m.seriesRole || '').toLowerCase(),
                         ) || { value: m.seriesRole, label: m.seriesRole, slug: 'artist' };
 
-                    const isEditingThis = editingUserId === m.userId;
+                    const isEditingThis = editingUserId === m.userId && !isProducer;
                     const avatarColor = isProducer ? '#F59E0B' : PALETTE[idx % PALETTE.length];
                     const displayName =
                       m.fullName?.trim() || m.email?.split('@')[0] || 'Thành viên';
@@ -787,7 +826,17 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                               </span>
 
                               <div className='flex items-center gap-1'>
-                                {!isProducer ? (
+                                {isProducer ? (
+                                  <span
+                                    className='w-7 h-7 rounded-lg flex items-center justify-center text-amber-600'
+                                    title={t(
+                                      'members.seriesRoster.producerLockTooltip',
+                                      'Producer là thành viên quản trị mặc định (không thể sửa hoặc xóa)',
+                                    )}
+                                  >
+                                    <Lock className='w-3.5 h-3.5 opacity-60' />
+                                  </span>
+                                ) : (
                                   <>
                                     <button
                                       type='button'
@@ -810,13 +859,6 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                                       <Trash2 className='w-3.5 h-3.5' />
                                     </button>
                                   </>
-                                ) : (
-                                  <span
-                                    className='w-7 h-7 rounded-lg flex items-center justify-center text-amber-600'
-                                    title={t('members.seriesRoster.producerLockTooltip', 'Producer và Owner là thành viên quản trị mặc định')}
-                                  >
-                                    <Lock className='w-3.5 h-3.5 opacity-60' />
-                                  </span>
                                 )}
                               </div>
                             </>

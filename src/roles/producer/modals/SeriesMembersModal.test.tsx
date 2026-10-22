@@ -176,4 +176,45 @@ describe('SeriesMembersModal - Phân quyền và gán nhân sự 2 cấp', () =>
       );
     });
   });
+
+  it('không hiển thị nút xóa và nút đổi role cho thành viên Producer', async () => {
+    vi.mocked(seriesService.getSeriesMembers).mockResolvedValue([
+      ...mockSeriesMembers,
+      {
+        id: 'sm-producer',
+        seriesId: 'series-123',
+        userId: 'user-producer',
+        fullName: 'Makoto Shinkai',
+        email: 'shinkai@studio.com',
+        avatarUrl: null,
+        seriesRole: 'Producer',
+        joinedAt: '2026-10-01T00:00:00Z',
+      },
+    ]);
+
+    render(
+      <SeriesMembersModal
+        isOpen={true}
+        workspaceId='ws-1'
+        seriesId='series-123'
+        seriesTitle='Chainsaw Man'
+        onClose={vi.fn()}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Makoto Shinkai')).toBeInTheDocument();
+    });
+
+    // Makoto Shinkai có badge Quản trị và lock icon
+    expect(screen.getByText('Quản trị')).toBeInTheDocument();
+    expect(
+      screen.getByTitle('Producer là thành viên quản trị mặc định (không thể sửa hoặc xóa)'),
+    ).toBeInTheDocument();
+
+    // Chỉ có 1 nút "Đổi vai trò" và 1 nút "Xóa thành viên" (dành riêng cho Aka Akasaka, không có của Makoto Shinkai)
+    expect(screen.getAllByTitle(/Đổi vai trò/i)).toHaveLength(1);
+    expect(screen.getAllByTitle(/Xóa thành viên/i)).toHaveLength(1);
+  });
 });
+

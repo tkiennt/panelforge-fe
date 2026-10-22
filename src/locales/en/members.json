@@ -22,7 +22,7 @@
     "searchPlaceholder": "Search by name, email, role...",
     "allRoles": "All Roles",
     "producerAdminTag": "Admin",
-    "producerLockTooltip": "Producer and Owner are default Series administrators",
+    "producerLockTooltip": "Cannot remove Producer",
     "changeRoleTooltip": "Change role",
     "removeMemberTooltip": "Remove from Series",
     "saveRole": "Save",
