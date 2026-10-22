@@ -165,7 +165,7 @@ describe('SeriesMembersModal - Phân quyền và gán nhân sự 2 cấp', () =>
       expect(screen.getByText('Aka Akasaka')).toBeInTheDocument();
     });
 
-    const deleteBtn = screen.getByTitle('Xóa khỏi bộ truyện');
+    const deleteBtn = screen.getByTitle(/Rút khỏi bộ truyện|Xóa khỏi bộ truyện/i);
     fireEvent.click(deleteBtn);
 
     await waitFor(() => {

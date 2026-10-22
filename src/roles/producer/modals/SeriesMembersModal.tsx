@@ -16,6 +16,9 @@ import {
   Plus,
   Crown,
   Lock,
+  AlertCircle,
+  AlertTriangle,
+  Info,
 } from 'lucide-react';
 import {
   seriesService,
@@ -28,7 +31,6 @@ import {
 } from '@/services/workspace.service';
 import { useConfirm } from '@/shared/context/ConfirmContext';
 import { useToast } from '@/shared/context/ToastContext';
-import { LucianInlineAlert } from '@/shared/components/lucian/LucianInlineAlert';
 import '@/styles/modules/lucian/lucian-285.css';
 
 export interface SeriesMembersModalProps {
@@ -220,13 +222,13 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
 
       setStatusAlert({
         type: 'success',
-        title: 'Thêm thành viên thành công',
-        message: `Đã gán "${memberName}" vào bộ truyện với vai trò ${roleToAdd}.`,
+        title: 'Bổ sung nhân sự thành công',
+        message: `Đã thêm "${memberName}" vào đội ngũ Series với vai trò ${roleToAdd}.`,
       });
 
       toast.success(
-        'Đã thêm vào truyện',
-        `Đã gán "${memberName}" vào bộ truyện với vai trò ${roleToAdd}.`,
+        'Bổ sung nhân sự thành công',
+        `Đã thêm "${memberName}" vào đội ngũ Series với vai trò ${roleToAdd}.`,
       );
       await loadData();
       onMembersChanged?.();
@@ -234,7 +236,7 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
       const errorMsg = err.message || 'Không thể thêm nhân sự vào bộ truyện';
       setStatusAlert({
         type: 'danger',
-        title: 'Thêm thành viên thất bại',
+        title: 'Không thể thêm nhân sự',
         message: errorMsg,
       });
       toast.error('Thêm thất bại', errorMsg);
@@ -252,10 +254,10 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
       });
       setStatusAlert({
         type: 'success',
-        title: 'Cập nhật thành công',
+        title: 'Cập nhật vai trò thành công',
         message: `Đã đổi vai trò thành viên thành ${newRole}.`,
       });
-      toast.success('Cập nhật thành công', `Đã đổi vai trò thành ${newRole}`);
+      toast.success('Cập nhật vai trò thành công', `Đã đổi vai trò thành viên thành ${newRole}`);
       setEditingUserId(null);
       await loadData();
       onMembersChanged?.();
@@ -272,27 +274,29 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
     }
   };
 
-  // Xóa thành viên khỏi Series
+  // Rút thành viên khỏi Series
   const handleRemoveMember = async (member: SeriesMemberDto) => {
     const isProducer = (member.seriesRole || '').toLowerCase() === 'producer';
     if (isProducer) {
       setStatusAlert({
         type: 'warning',
-        title: 'Không thể xóa',
+        title: 'Không thể gỡ thành viên',
         message: 'Producer và Owner của Workspace luôn mặc định là thành viên quản trị Series.',
       });
       toast.warning(
-        'Không thể xóa',
+        'Không thể gỡ',
         'Producer và Owner của Workspace luôn mặc định là thành viên quản trị Series.',
       );
       return;
     }
 
+    const memberName = member.fullName?.trim() || member.email?.split('@')[0] || 'nhân sự';
+
     const confirmed = await confirm({
-      title: 'Xóa nhân sự khỏi bộ truyện?',
-      description: `Bạn có chắc muốn xóa "${member.fullName || member.email}" khỏi bộ truyện "${seriesTitle}"? Nhân sự sẽ trở lại Talent Pool sẵn sàng của Workspace.`,
-      confirmText: 'Xác nhận xóa',
-      cancelText: 'Hủy bỏ',
+      title: 'Rút nhân sự khỏi bộ truyện?',
+      description: `Bạn có chắc muốn rút "${memberName}" khỏi bộ truyện "${seriesTitle}"? Nhân sự sẽ trở lại danh sách sẵn sàng của Workspace.`,
+      confirmText: 'Xác nhận rút',
+      cancelText: 'Giữ lại',
       variant: 'danger',
     });
 
@@ -303,20 +307,20 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
       await seriesService.removeSeriesMember(workspaceId, seriesId, member.userId);
       setStatusAlert({
         type: 'info',
-        title: 'Đã xóa khỏi Series',
-        message: `Đã loại "${member.fullName || member.email}" khỏi bộ truyện.`,
+        title: 'Đã rút nhân sự khỏi Series',
+        message: `"${memberName}" đã được chuyển về danh sách nhân sự sẵn sàng của Studio.`,
       });
-      toast.success('Đã xóa thành công', `Đã loại "${member.fullName || member.email}" khỏi bộ truyện`);
+      toast.success('Đã cập nhật danh sách', `"${memberName}" đã trở về danh sách sẵn sàng của Studio`);
       await loadData();
       onMembersChanged?.();
     } catch (err: any) {
-      const errorMsg = err.message || 'Không thể xóa thành viên khỏi bộ truyện';
+      const errorMsg = err.message || 'Không thể rút nhân sự khỏi bộ truyện';
       setStatusAlert({
         type: 'danger',
-        title: 'Xóa thất bại',
+        title: 'Thao tác không thành công',
         message: errorMsg,
       });
-      toast.error('Xóa thất bại', errorMsg);
+      toast.error('Thao tác thất bại', errorMsg);
     } finally {
       setActionLoadingId(null);
     }
@@ -374,16 +378,53 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
           </button>
         </div>
 
-        {/* In-Modal Alert Báo trạng thái thành công / thất bại */}
+        {/* In-Modal Alert Báo trạng thái tinh tế, hài hòa với giao diện Studio */}
         {statusAlert && (
           <div className='px-4 sm:px-6 pt-3.5 pb-0 shrink-0'>
-            <LucianInlineAlert
-              type={statusAlert.type}
-              title={statusAlert.title}
-              description={statusAlert.message}
-              dismissible
-              onDismiss={() => setStatusAlert(null)}
-            />
+            <div
+              className={`p-2.5 sm:p-3 rounded-xl border flex items-center justify-between gap-3 text-xs shadow-2xs transition-all ${
+                statusAlert.type === 'success'
+                  ? 'bg-emerald-50/70 border-emerald-200/90 text-emerald-950'
+                  : statusAlert.type === 'danger'
+                  ? 'bg-rose-50/70 border-rose-200/90 text-rose-950'
+                  : statusAlert.type === 'warning'
+                  ? 'bg-amber-50/70 border-amber-200/90 text-amber-950'
+                  : 'bg-[#F9F7F3] border-[#E5E0D8] text-stone-900'
+              }`}
+              role='status'
+            >
+              <div className='flex items-center gap-2.5 min-w-0'>
+                <div
+                  className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 ${
+                    statusAlert.type === 'success'
+                      ? 'bg-emerald-100 text-emerald-700'
+                      : statusAlert.type === 'danger'
+                      ? 'bg-rose-100 text-rose-700'
+                      : statusAlert.type === 'warning'
+                      ? 'bg-amber-100 text-amber-700'
+                      : 'bg-stone-200/80 text-stone-700'
+                  }`}
+                >
+                  {statusAlert.type === 'success' && <CheckCircle2 className='w-3.5 h-3.5' />}
+                  {statusAlert.type === 'danger' && <AlertCircle className='w-3.5 h-3.5' />}
+                  {statusAlert.type === 'warning' && <AlertTriangle className='w-3.5 h-3.5' />}
+                  {statusAlert.type === 'info' && <Info className='w-3.5 h-3.5' />}
+                </div>
+                <div className='min-w-0 flex-1 leading-snug'>
+                  <span className='font-bold mr-1.5'>{statusAlert.title}:</span>
+                  <span className='opacity-90'>{statusAlert.message}</span>
+                </div>
+              </div>
+
+              <button
+                type='button'
+                onClick={() => setStatusAlert(null)}
+                aria-label='Đóng thông báo'
+                className='w-6 h-6 rounded-md hover:bg-black/5 flex items-center justify-center text-stone-400 hover:text-stone-700 transition-colors shrink-0'
+              >
+                <X className='w-3.5 h-3.5' />
+              </button>
+            </div>
           </div>
         )}
 
@@ -758,7 +799,7 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                                       disabled={isRowActionLoading}
                                       onClick={() => handleRemoveMember(m)}
                                       className='w-7 h-7 rounded-lg text-[#737373] hover:text-[#DC2626] hover:bg-[#FEE2E2]/60 border border-transparent hover:border-[#FECACA] flex items-center justify-center transition-all cursor-pointer'
-                                      title='Xóa khỏi bộ truyện'
+                                      title='Rút khỏi bộ truyện'
                                     >
                                       <Trash2 className='w-3.5 h-3.5' />
                                     </button>
@@ -766,7 +807,7 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                                 ) : (
                                   <span
                                     className='w-7 h-7 rounded-lg flex items-center justify-center text-amber-600'
-                                    title='Producer mặc định là thành viên quản trị Series'
+                                    title='Producer và Owner là thành viên quản trị mặc định'
                                   >
                                     <Lock className='w-3.5 h-3.5 opacity-60' />
                                   </span>
