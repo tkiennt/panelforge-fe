@@ -371,6 +371,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     return progress.chapters.find((c) => c.chapterId === selectedChapterId) || progress.chapters[0];
   }, [progress, selectedChapterId]);
 
+  // Active production chapter for detailed cockpit view
+  const activeProductionChapter: ChapterProgressDto | undefined = useMemo(() => {
+    if (!progress?.chapters?.length) return undefined;
+    return (
+      progress.chapters.find(
+        (c) => c.status === 'InProduction' || c.status === 'Draft' || c.status === 'Review',
+      ) || progress.chapters[0]
+    );
+  }, [progress]);
+
   const seriesTitle = seriesDetail?.title || activeProject?.title || 'Bộ truyện';
 
   return (
@@ -773,13 +783,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       )}
 
-      {/* 2. Top 3 Summary Cards (Pulse Metrics - Manga Studio Design System) */}
+      {/* 2. Top Summary Cards (Pulse Metrics - Manga Studio Design System) */}
       <section
         aria-label='Chỉ số tổng quan'
-        className='grid grid-cols-1 md:grid-cols-3 gap-4.5'
+        className='grid grid-cols-1 lg:grid-cols-12 gap-4.5'
       >
-        {/* Card 1: Tiến Độ Toàn Series (Overall Progress) */}
-        <div className='bg-white border border-zinc-200 rounded-2xl p-5 shadow-xs hover:border-[#F97316]/50 transition-all flex flex-col justify-between space-y-3'>
+        {/* Card 1: Tiến Độ Toàn Series (Overall Progress - 4 columns on lg ~ 33%) */}
+        <div className='lg:col-span-4 bg-white border border-zinc-200 rounded-2xl p-5 shadow-xs hover:border-[#F97316]/50 transition-all flex flex-col justify-between space-y-4'>
           <div>
             <div className='flex items-center justify-between text-xs font-semibold text-zinc-500 mb-1'>
               <span className='font-bold uppercase tracking-wider text-[11px] text-zinc-600'>
@@ -789,12 +799,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <TrendingUp className='w-3 h-3 text-[#F97316]' /> Hoàn thiện
               </span>
             </div>
-            <div className='text-3xl sm:text-4xl font-extrabold font-sans tabular-nums text-zinc-900 mt-1'>
-              {loading ? '—' : `${overallPercent}%`}
+            <div className='flex items-baseline gap-2 mt-2'>
+              <span className='text-3xl sm:text-4xl font-extrabold font-sans tabular-nums text-zinc-900'>
+                {loading ? '—' : `${overallPercent}%`}
+              </span>
+              <span className='text-xs text-zinc-500 font-medium'>
+                trung bình toàn series
+              </span>
             </div>
           </div>
 
-          <div className='pt-2.5 border-t border-zinc-100 space-y-1.5'>
+          <div className='pt-3 border-t border-zinc-100 space-y-2'>
             <div className='w-full bg-zinc-100 h-2.5 rounded-full overflow-hidden border border-zinc-200/80'>
               <div
                 className='bg-[#F97316] h-full rounded-full transition-all duration-700 shadow-2xs'
@@ -810,125 +825,127 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         </div>
 
-        {/* Card 2: Chương Đang Sản Xuất (Active Production) */}
-        <div className='bg-white border border-zinc-200 rounded-2xl p-5 shadow-xs hover:border-[#F97316]/50 transition-all flex flex-col justify-between space-y-3'>
+        {/* Card 2: Chương Đang Sản Xuất (Chi tiết sản xuất & Điều phối công đoạn - 8 columns on lg ~ 67%) */}
+        <div className='lg:col-span-8 bg-white border border-zinc-200 rounded-2xl p-5 shadow-xs hover:border-[#F97316]/50 transition-all flex flex-col justify-between space-y-4'>
           <div>
-            <div className='flex items-center justify-between text-xs font-semibold text-zinc-500 mb-1'>
-              <span className='font-bold uppercase tracking-wider text-[11px] text-zinc-600'>
-                Chương Đang Sản Xuất
-              </span>
+            {/* Header: Title + Active Chapter Badge + Total count */}
+            <div className='flex items-center justify-between text-xs font-semibold text-zinc-500 mb-3'>
+              <div className='flex items-center gap-2'>
+                <span className='font-bold uppercase tracking-wider text-[11px] text-zinc-600'>
+                  Chương Đang Sản Xuất
+                </span>
+                <span className='text-orange-700 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full text-[11px] font-mono font-bold flex items-center gap-1'>
+                  <span className='w-1.5 h-1.5 rounded-full bg-[#F97316] animate-pulse' />
+                  {inProdChapters} Đang sản xuất
+                </span>
+              </div>
               <span className='text-zinc-700 bg-zinc-100 border border-zinc-200 px-2 py-0.5 rounded-full text-[11px] font-mono font-bold'>
-                {totalChapters} Chương
+                Tổng số: {totalChapters} Chương
               </span>
             </div>
-            {/* 3 Status Circles trực quan */}
-            <div className='flex items-center gap-3.5 mt-2'>
-              <div className='flex items-center gap-2'>
-                <div className='w-7.5 h-7.5 rounded-full bg-amber-50 border-2 border-amber-500 flex items-center justify-center font-mono font-bold text-xs text-amber-700'>
-                  {inProdChapters}
+
+            {/* Chi tiết nội dung: 2 phân khu trực quan (Trọng tâm sản xuất + Phân bổ vòng đời) */}
+            <div className='grid grid-cols-1 sm:grid-cols-12 gap-3.5'>
+              {/* Phân khu 1: Chương trọng tâm đang chạy (7 cột) */}
+              <div className='sm:col-span-7 p-3.5 bg-zinc-50/70 rounded-xl border border-zinc-200 space-y-2.5'>
+                <div className='flex items-center justify-between'>
+                  <span className='text-[10.5px] font-bold text-zinc-500 uppercase tracking-wide flex items-center gap-1.5'>
+                    <Sparkles className='w-3 h-3 text-[#F97316]' /> Trọng tâm tiến độ
+                  </span>
+                  {activeProductionChapter && (
+                    <span className='text-xs font-mono font-bold text-zinc-900 tabular-nums'>
+                      {activeProductionChapter.percentComplete}%
+                    </span>
+                  )}
                 </div>
-                <div className='text-left'>
-                  <div className='text-xs font-bold text-zinc-900 leading-tight'>Đang làm</div>
-                  <div className='text-[10px] text-zinc-500 font-mono'>giai đoạn vẽ</div>
-                </div>
+
+                {activeProductionChapter ? (
+                  <div className='space-y-2'>
+                    <div className='flex items-center gap-2.5'>
+                      <div className='w-9 h-9 rounded-lg bg-zinc-900 text-white font-mono font-bold text-xs flex flex-col items-center justify-center shrink-0 leading-none shadow-2xs'>
+                        <span className='text-[7.5px] opacity-75 uppercase'>TẬP</span>
+                        <span className='text-xs font-bold mt-0.5'>
+                          {String(activeProductionChapter.chapterNumber).padStart(2, '0')}
+                        </span>
+                      </div>
+                      <div className='min-w-0 flex-1'>
+                        <div className='text-xs font-bold text-zinc-900 truncate'>
+                          {activeProductionChapter.title ? `Tiến độ: ${activeProductionChapter.title}` : `Tập ${activeProductionChapter.chapterNumber}`}
+                        </div>
+                        <div className='text-[11px] text-zinc-500 flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5'>
+                          <span>{activeProductionChapter.pageCount} trang</span>
+                          <span>·</span>
+                          <span>{activeProductionChapter.panelCount} panel</span>
+                          {activeProductionChapter.targetReleaseDate && (
+                            <>
+                              <span>·</span>
+                              <span className='text-orange-700 font-medium'>
+                                Hạn: {formatReleaseDate(activeProductionChapter.targetReleaseDate)}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Mini progress bar cho chương trọng tâm */}
+                    <div className='w-full bg-zinc-200/80 h-1.5 rounded-full overflow-hidden'>
+                      <div
+                        className='bg-[#F97316] h-full rounded-full transition-all duration-500'
+                        style={{ width: `${Math.min(100, Math.max(0, activeProductionChapter.percentComplete || 0))}%` }}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <p className='text-xs text-zinc-400 italic py-2'>Chưa có chương nào trong Series</p>
+                )}
               </div>
 
-              <div className='flex items-center gap-2'>
-                <div className='w-7.5 h-7.5 rounded-full bg-emerald-50 border-2 border-emerald-500 flex items-center justify-center font-mono font-bold text-xs text-emerald-700'>
-                  {approvedChapters}
+              {/* Phân khu 2: Phân bố vòng đời các chương (5 cột) */}
+              <div className='sm:col-span-5 grid grid-cols-3 gap-2 text-center'>
+                <div className='p-2 bg-zinc-50/70 rounded-xl border border-zinc-200 flex flex-col justify-center'>
+                  <div className='text-base font-bold font-mono text-amber-700 leading-tight'>
+                    {inProdChapters}
+                  </div>
+                  <div className='text-[11px] font-bold text-zinc-800 mt-0.5'>Đang làm</div>
+                  <div className='text-[9.5px] text-zinc-500 font-mono'>giai đoạn vẽ</div>
                 </div>
-                <div className='text-left'>
-                  <div className='text-xs font-bold text-zinc-900 leading-tight'>Đã duyệt</div>
-                  <div className='text-[10px] text-zinc-500 font-mono'>chờ phát hành</div>
-                </div>
-              </div>
 
-              <div className='flex items-center gap-2'>
-                <div className='w-7.5 h-7.5 rounded-full bg-zinc-100 border-2 border-zinc-300 flex items-center justify-center font-mono font-bold text-xs text-zinc-600'>
-                  {publishedChapters}
+                <div className='p-2 bg-zinc-50/70 rounded-xl border border-zinc-200 flex flex-col justify-center'>
+                  <div className='text-base font-bold font-mono text-emerald-700 leading-tight'>
+                    {approvedChapters}
+                  </div>
+                  <div className='text-[11px] font-bold text-zinc-800 mt-0.5'>Đã duyệt</div>
+                  <div className='text-[9.5px] text-zinc-500 font-mono'>chờ phát hành</div>
                 </div>
-                <div className='text-left'>
-                  <div className='text-xs font-bold text-zinc-900 leading-tight'>Xuất bản</div>
-                  <div className='text-[10px] text-zinc-500 font-mono'>hoàn tất</div>
+
+                <div className='p-2 bg-zinc-50/70 rounded-xl border border-zinc-200 flex flex-col justify-center'>
+                  <div className='text-base font-bold font-mono text-zinc-600 leading-tight'>
+                    {publishedChapters}
+                  </div>
+                  <div className='text-[11px] font-bold text-zinc-800 mt-0.5'>Xuất bản</div>
+                  <div className='text-[9.5px] text-zinc-500 font-mono'>hoàn tất</div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Quick gate & risk sub-strip */}
-          <div className='pt-2.5 border-t border-zinc-100 flex items-center justify-between text-[11px] font-mono'>
-            <div className='flex items-center gap-1'>
+          {/* Bottom Strip: Gate & Risk Indicators */}
+          <div className='pt-3 border-t border-zinc-100 flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono'>
+            <div className='flex items-center gap-1.5'>
               <span className='text-zinc-500'>Cổng Chờ Xét Duyệt</span>
               <span className='text-zinc-400'>:</span>
-              <strong className='text-amber-700 font-bold'>
+              <strong className='text-amber-700 font-bold px-1.5 py-0.5 bg-amber-50 rounded border border-amber-200'>
                 {waitingReviewTotal} <span>Việc nộp</span>
               </strong>
             </div>
-            <div className='flex items-center gap-1'>
+            <div className='flex items-center gap-1.5'>
               <span className='text-zinc-500'>Việc Quá Hạn &amp; Rủi Ro</span>
               <span className='text-zinc-400'>:</span>
-              <strong className={overdueTotal > 0 ? 'text-red-600 font-bold' : 'text-emerald-700 font-bold'}>
+              <strong className={overdueTotal > 0 ? 'text-red-600 font-bold px-1.5 py-0.5 bg-red-50 rounded border border-red-200' : 'text-emerald-700 font-bold px-1.5 py-0.5 bg-emerald-50 rounded border border-emerald-200'}>
                 {overdueTotal} Mục
               </strong>
             </div>
-          </div>
-        </div>
-
-        {/* Card 3: Đội Ngũ Sản Xuất (Series Crew) */}
-        <div
-          onClick={() => setIsMembersModalOpen(true)}
-          role='button'
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              setIsMembersModalOpen(true);
-            }
-          }}
-          className='bg-white border border-zinc-200 rounded-2xl p-5 shadow-xs hover:border-[#F97316]/50 transition-all flex flex-col justify-between space-y-3 cursor-pointer group text-left'
-        >
-          <div>
-            <div className='flex items-center justify-between text-xs font-semibold text-zinc-500 mb-1'>
-              <span className='font-bold uppercase tracking-wider text-[11px] text-zinc-600'>
-                Đội Ngũ Sản Xuất
-              </span>
-              <span className='text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full text-[11px] font-mono font-bold'>
-                {seriesMembers.length || 0} thành viên
-              </span>
-            </div>
-
-            {/* Overlapping Avatar Stack */}
-            <div className='flex items-center -space-x-2 py-2 overflow-hidden'>
-              {seriesMembers.length === 0 ? (
-                <span className='text-xs text-zinc-400 italic'>Chưa gán thành viên</span>
-              ) : (
-                seriesMembers.slice(0, 5).map((m, idx) => (
-                  <div
-                    key={m.id || m.userId || idx}
-                    title={`${m.fullName || m.email} (${m.seriesRole || (m as any).role || 'Member'})`}
-                    className='w-9 h-9 rounded-full border-2 border-white bg-zinc-900 text-white flex items-center justify-center font-bold text-xs shadow-xs transition-transform group-hover:scale-105'
-                    style={{ zIndex: 10 - idx }}
-                  >
-                    {(m.fullName || m.email || 'U').charAt(0).toUpperCase()}
-                  </div>
-                ))
-              )}
-              {seriesMembers.length > 5 && (
-                <div
-                  className='w-9 h-9 rounded-full border-2 border-white bg-zinc-200 text-zinc-800 flex items-center justify-center font-bold text-xs shadow-xs'
-                  style={{ zIndex: 4 }}
-                >
-                  +{seriesMembers.length - 5}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className='pt-2.5 border-t border-zinc-100 flex items-center justify-between text-[11px]'>
-            <span className='text-zinc-500'>Phân công &amp; Quyền hạn:</span>
-            <span className='text-[#F97316] font-bold group-hover:underline flex items-center gap-1'>
-              Quản lý đội ngũ <ArrowRight className='w-3 h-3' />
-            </span>
           </div>
         </div>
       </section>
