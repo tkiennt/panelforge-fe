@@ -11,6 +11,7 @@ vi.mock('@/services/series.service', () => ({
   seriesService: {
     getSeriesProgress: vi.fn(),
     getSeriesById: vi.fn(),
+    getSeriesMembers: vi.fn().mockResolvedValue([]),
   },
 }));
 
@@ -18,6 +19,16 @@ vi.mock('@/services/notification.service', () => ({
   notificationService: {
     sendReminders: vi.fn().mockResolvedValue({ created: 2 }),
   },
+}));
+
+vi.mock('../modals/SeriesMembersModal', () => ({
+  SeriesMembersModal: ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) =>
+    isOpen ? (
+      <div data-testid='series-members-modal'>
+        <span>SeriesMembersModal Mock</span>
+        <button onClick={onClose}>Đóng modal</button>
+      </div>
+    ) : null,
 }));
 
 vi.mock('../modals/SeriesChaptersModal', () => ({
@@ -151,6 +162,7 @@ const mockDetail: SeriesDetailDto = {
 describe('DashboardView Component (UC-16 Progress Dashboard)', () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    vi.mocked(seriesService.getSeriesMembers).mockResolvedValue([]);
   });
 
   const renderDashboard = (seriesId = 'series-demo-1') =>

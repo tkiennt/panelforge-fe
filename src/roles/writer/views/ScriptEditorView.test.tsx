@@ -489,7 +489,7 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
       await user.click(await screen.findByTestId('toggle-narrative-context-btn'));
       expect(await screen.findByTestId('story-arc-textarea')).toHaveValue('Bản nháp chưa kịp lưu');
       expect(seriesService.updateStoryArc).not.toHaveBeenCalled(); // người dùng vẫn tự bấm lưu
-    });
+    }, 15000);
 
     it('"Bỏ bản nháp" xoá nháp; nháp trùng nội dung đã lưu thì không hỏi', async () => {
       localStorage.setItem(

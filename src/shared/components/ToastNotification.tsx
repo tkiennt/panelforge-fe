@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { CheckCircle2, Clock, LogOut, AlertCircle, Info, X } from 'lucide-react';
+import '@/styles/modules/lucian/lucian-070.css';
 
 export type ToastType = 'success' | 'warning' | 'info' | 'error' | 'logout';
 

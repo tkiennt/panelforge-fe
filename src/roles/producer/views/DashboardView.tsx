@@ -21,6 +21,7 @@ import {
   Check,
   Camera,
   Image as ImageIcon,
+  UserPlus,
 } from 'lucide-react';
 import { PageContainer } from '@/shared/components/PageContainer';
 import { notificationService } from '@/services/notification.service';
@@ -29,6 +30,7 @@ import {
   SeriesProgressDto,
   ChapterProgressDto,
   SeriesDetailDto,
+  SeriesMemberDto,
 } from '@/services/series.service';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { IdentityBanner } from '@/shared/components/IdentityBanner';
@@ -40,6 +42,7 @@ import {
 import { SERIES_BANNER_POSITION } from '@/shared/utils/seriesImagePresets';
 import type { SeriesImageKind } from '@/services/series.service';
 import { SeriesChaptersModal } from '../modals/SeriesChaptersModal';
+import { SeriesMembersModal } from '../modals/SeriesMembersModal';
 import { CreateAssignmentModal } from '../modals/CreateAssignmentModal';
 import { SeriesBurndownCard } from '../components/SeriesBurndownCard';
 import { MangaProject, AssistantRosterItem, ProvenanceLogItem } from '@/types';
@@ -157,6 +160,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     }
   }, []);
 
+  // Quản lý thành viên / Đội ngũ Series
+  const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
+  const [seriesMembers, setSeriesMembers] = useState<SeriesMemberDto[]>([]);
+
   const fetchProgress = useCallback(async () => {
     if (!seriesId) {
       setLoading(false);
@@ -165,12 +172,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     setLoading(true);
     setError(null);
     try {
-      const [prog, detail] = await Promise.all([
+      const [prog, detail, members] = await Promise.all([
         seriesService.getSeriesProgress(seriesId),
         seriesService.getSeriesById(seriesId).catch(() => null),
+        seriesService.getSeriesMembers(workspaceId || '', seriesId).catch(() => []),
       ]);
       setProgress(prog);
       setSeriesDetail(detail);
+      setSeriesMembers(members);
       if (prog.chapters.length > 0) {
         setSelectedChapterId((prev) =>
           prev && prog.chapters.some((c) => c.chapterId === prev)
@@ -185,7 +194,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [seriesId, onShowToast]);
+  }, [seriesId, workspaceId, onShowToast]);
 
   useEffect(() => {
     void fetchProgress();
@@ -600,6 +609,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <Sparkles className={`w-3.5 h-3.5 ${auditRunning ? 'animate-spin' : ''}`} />
             {auditRunning ? 'Đang kiểm tra...' : 'Kiểm tra nhất quán với AI'}
           </button>
+          {seriesId && (
+            <button
+              type='button'
+              onClick={() => setIsMembersModalOpen(true)}
+              className='px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-2xs'
+              title='Quản lý nhân sự và gán vai trò vào bộ truyện này'
+            >
+              <Users className='w-3.5 h-3.5 text-emerald-600' />
+              <span>Đội ngũ Series ({seriesMembers.length})</span>
+            </button>
+          )}
           {seriesId && (
             <button
               type='button'
@@ -1312,24 +1332,45 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         <div className='lg:col-span-6 space-y-4 self-start'>
           <div className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl p-5 shadow-2xs space-y-4 pf-editorial-card'>
             <div>
-              <div className='flex items-center justify-between border-b border-[#D8D2C5] pb-3'>
+              <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#D8D2C5] pb-3'>
                 <div>
                   <h2
                     style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
                     className='text-base font-bold text-[#1C1917] flex items-center gap-2'
                   >
                     <Users className='w-4 h-4 text-[#F97316]' />
-                    <span>Phân Công Thành Viên ({progress?.workload.length || 0})</span>
+                    <span>Đội ngũ & Phân Công ({seriesMembers.length} thành viên)</span>
                   </h2>
                   <p className='text-xs text-[#57534E] mt-0.5'>
-                    Khối lượng công việc theo người · Toàn bộ series
+                    Nhân sự thực hiện bộ truyện & khối lượng công việc
                   </p>
                 </div>
+
+                <button
+                  type='button'
+                  onClick={() => setIsMembersModalOpen(true)}
+                  className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold shadow-2xs cursor-pointer transition-colors self-start sm:self-auto shrink-0'
+                >
+                  <UserPlus className='w-3.5 h-3.5' />
+                  <span>Quản lý / Thêm thành viên</span>
+                </button>
               </div>
 
               {!progress?.workload || progress.workload.length === 0 ? (
-                <div className='py-8 text-center text-xs text-[#57534E] bg-[#FAF8F5] rounded-xl border border-dashed border-[#D8D2C5] mt-4'>
-                  Chưa có thành viên nào được phân công việc trong Series này.
+                <div className='py-8 text-center text-xs text-[#57534E] bg-[#FAF8F5] rounded-xl border border-dashed border-[#D8D2C5] mt-4 space-y-2'>
+                  <p>
+                    {seriesMembers.length > 0
+                      ? `Bộ truyện đã có ${seriesMembers.length} thành viên nhưng chưa có phân công nào đang mở.`
+                      : 'Chưa có nhân sự nào được gán vào bộ truyện này.'}
+                  </p>
+                  <button
+                    type='button'
+                    onClick={() => setIsMembersModalOpen(true)}
+                    className='inline-flex items-center gap-1 px-3 py-1.5 bg-[#F97316] hover:bg-[#EA580C] text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer'
+                  >
+                    <UserPlus className='w-3.5 h-3.5' />
+                    <span>{seriesMembers.length > 0 ? 'Xem đội ngũ Series' : 'Gán thành viên từ Workspace'}</span>
+                  </button>
                 </div>
               ) : (
                 <div className='space-y-2.5 mt-4'>
@@ -1397,6 +1438,21 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         </div>
       </section>
+
+      {/* Series Members Modal (Manage series team & roles from workspace talent pool) */}
+      {seriesId && workspaceId && isMembersModalOpen && (
+        <SeriesMembersModal
+          isOpen={isMembersModalOpen}
+          workspaceId={workspaceId}
+          seriesId={seriesId}
+          seriesTitle={seriesDetail?.title || activeProject?.title || 'Series'}
+          onClose={() => setIsMembersModalOpen(false)}
+          onMembersChanged={() => {
+            void fetchProgress();
+            seriesService.getSeriesMembers(workspaceId, seriesId).then((m) => setSeriesMembers(m || []));
+          }}
+        />
+      )}
 
       {/* Series Chapters Modal (Producer can approve, reopen, manage chapters) */}
       {seriesId && (

@@ -931,12 +931,12 @@ function AppContent() {
 
 export default function App() {
   return (
-    <ConfirmProvider>
-      <ToastProvider>
-        <BrowserRouter>
+    <BrowserRouter>
+      <ConfirmProvider>
+        <ToastProvider>
           <AppContent />
-        </BrowserRouter>
-      </ToastProvider>
-    </ConfirmProvider>
+        </ToastProvider>
+      </ConfirmProvider>
+    </BrowserRouter>
   );
 }
