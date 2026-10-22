@@ -326,7 +326,7 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
           </button>
         </div>
 
-        {/* Body Layout: 2 Cột Trực Quan Thoáng Đãng (Không che khuất / Không bị chèn) */}
+        {/* Body Layout: 2 Cột Trực Quan Thoáng Đãng */}
         <div className='flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6'>
           <div className='grid grid-cols-1 lg:grid-cols-2 gap-5 items-start'>
             {/* ==================== CỘT 1: TALENT POOL SẴN SÀNG ==================== */}
@@ -335,12 +335,19 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
               <div className='p-3.5 sm:p-4 bg-[#FAF8F4] border-b border-[#E7E7E7] space-y-2.5 shrink-0'>
                 <div className='flex items-center justify-between'>
                   <div className='flex items-center gap-2'>
-                    <UserPlus className='w-4 h-4 text-orange-600' />
-                    <h4 className='text-xs font-bold text-[#171717] tracking-tight'>
-                      Nhân sự Workspace sẵn sàng
-                    </h4>
+                    <div className='w-6 h-6 rounded-lg bg-orange-100/70 border border-orange-200 text-orange-600 flex items-center justify-center shrink-0'>
+                      <UserPlus className='w-3.5 h-3.5' />
+                    </div>
+                    <div>
+                      <h4 className='text-xs font-bold text-[#171717] tracking-tight'>
+                        Nhân sự Workspace sẵn sàng
+                      </h4>
+                      <p className='text-[11px] text-[#737373]'>
+                        Chọn vai trò và thêm trực tiếp vào Series
+                      </p>
+                    </div>
                   </div>
-                  <span className='text-[10.5px] font-mono px-2 py-0.5 rounded-md bg-white text-[#737373] border border-[#E7E7E7]'>
+                  <span className='text-[10.5px] font-mono px-2 py-0.5 rounded-md bg-white text-[#737373] font-semibold border border-[#E7E7E7] shrink-0'>
                     {availableWorkspaceMembers.length} người sẵn sàng
                   </span>
                 </div>
@@ -426,7 +433,7 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                                 {displayName}
                               </span>
                               {candidate.role && (
-                                <span className='text-[10px] font-mono px-1.5 py-0.5 rounded-md bg-white border border-[#E7E7E7] text-[#555555] shrink-0'>
+                                <span className='text-[10px] font-mono px-1.5 py-0.5 rounded-md bg-white border border-[#E7E7E7] text-[#555555] font-semibold shrink-0'>
                                   {candidate.role}
                                 </span>
                               )}
@@ -458,7 +465,7 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                             type='button'
                             disabled={isAdding}
                             onClick={() => handleAddCandidateToSeries(candidate.userId)}
-                            className='h-8 px-3.5 bg-[#171717] hover:bg-black disabled:bg-[#888888] text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs shrink-0 whitespace-nowrap'
+                            className='h-8 px-3.5 bg-[#171717] hover:bg-black active:scale-[0.98] disabled:bg-[#888888] text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs shrink-0 whitespace-nowrap'
                             title='Thêm vào bộ truyện'
                           >
                             {isAdding ? (
@@ -484,12 +491,19 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
               <div className='p-3.5 sm:p-4 bg-[#FAF8F4] border-b border-[#E7E7E7] space-y-2.5 shrink-0'>
                 <div className='flex items-center justify-between'>
                   <div className='flex items-center gap-2'>
-                    <Shield className='w-4 h-4 text-stone-700' />
-                    <h4 className='text-xs font-bold text-[#171717] tracking-tight'>
-                      Thành viên trong bộ truyện
-                    </h4>
+                    <div className='w-6 h-6 rounded-lg bg-stone-100 border border-stone-200 text-stone-700 flex items-center justify-center shrink-0'>
+                      <Shield className='w-3.5 h-3.5' />
+                    </div>
+                    <div>
+                      <h4 className='text-xs font-bold text-[#171717] tracking-tight'>
+                        Thành viên trong bộ truyện
+                      </h4>
+                      <p className='text-[11px] text-[#737373]'>
+                        Đang tham gia sản xuất và phân quyền trong Series
+                      </p>
+                    </div>
                   </div>
-                  <span className='text-[10.5px] font-mono px-2 py-0.5 rounded-md bg-white text-stone-800 font-bold border border-[#E7E7E7]'>
+                  <span className='text-[10.5px] font-mono px-2 py-0.5 rounded-md bg-white text-stone-800 font-bold border border-[#E7E7E7] shrink-0'>
                     {seriesMembers.length} thành viên
                   </span>
                 </div>
@@ -519,7 +533,7 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                   <select
                     value={filterRole}
                     onChange={(e) => setFilterRole(e.target.value)}
-                    className='h-8 px-2.5 text-xs font-semibold rounded-lg border border-[#E7E7E7] bg-white text-[#171717] focus:outline-none focus:border-orange-500 shrink-0 w-32'
+                    className='h-8 px-2.5 text-xs font-semibold rounded-lg border border-[#E7E7E7] bg-white text-[#171717] focus:outline-none focus:border-orange-500 shrink-0 w-32 cursor-pointer'
                   >
                     <option value='ALL'>Tất cả vai trò</option>
                     <option value='Producer'>Producer</option>
@@ -575,7 +589,7 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                         key={m.id || m.userId}
                         className={`p-3 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs ${
                           isProducer
-                            ? 'bg-amber-50/30 border-amber-200/90 hover:bg-amber-50/50'
+                            ? 'bg-amber-50/40 border-amber-200/90 hover:bg-amber-50/60'
                             : 'bg-white hover:bg-[#FAF8F4] border-[#E7E7E7]'
                         }`}
                       >
@@ -710,14 +724,19 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className='p-4 sm:px-6 bg-[#FAF8F4] border-t border-[#E7E7E7] flex items-center justify-between text-xs shrink-0'>
-          <p className='text-xs text-[#737373] font-mono leading-none truncate max-w-xl'>
-            * Producer luôn mặc định là thành viên quản trị Series. Bấm "+ Thêm vào truyện" để gán nhân sự trực tiếp.
-          </p>
+        <div className='p-3.5 sm:px-6 bg-[#FAF8F4] border-t border-[#E7E7E7] flex items-center justify-between text-xs shrink-0'>
+          <div className='flex items-center gap-2 text-xs text-[#737373]'>
+            <span className='w-2 h-2 rounded-full bg-emerald-500 shrink-0 inline-block' />
+            <span className='font-mono'>
+              Đang tham gia: <strong className='text-[#171717] font-semibold'>{seriesMembers.length}</strong> thành viên
+              {' • '}
+              Workspace còn <strong className='text-[#171717] font-semibold'>{availableWorkspaceMembers.length}</strong> nhân sự sẵn sàng
+            </span>
+          </div>
           <button
             type='button'
             onClick={onClose}
-            className='px-4 py-2 rounded-xl bg-[#FFFFFF] hover:bg-[#F3F1EB] border border-[#E7E7E7] text-[#171717] text-xs font-bold transition-all cursor-pointer shadow-2xs'
+            className='px-4 py-2 rounded-xl bg-[#FFFFFF] hover:bg-[#F3F1EB] active:scale-[0.98] border border-[#E7E7E7] text-[#171717] text-xs font-bold transition-all cursor-pointer shadow-2xs'
           >
             Đóng
           </button>
