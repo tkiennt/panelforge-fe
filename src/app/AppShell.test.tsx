@@ -3,6 +3,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { AppShell, CurrentUser } from './AppShell';
+import { I18nProvider } from '@/lib/i18n';
 
 vi.mock('@/shared/features/collaboration/NotificationBell', () => ({
   NotificationBell: () => <div data-testid='notification-bell' />,
@@ -15,26 +16,28 @@ describe('AppShell Component', () => {
     props: Partial<React.ComponentProps<typeof AppShell>> = {},
   ) => {
     return render(
-      <MemoryRouter initialEntries={[route]}>
-        <Routes>
-          <Route
-            path='/workspaces/:workspaceId/series/:seriesId/*'
-            element={
-              <AppShell currentUser={user} {...props}>
-                <div data-testid='outlet-content'>Content</div>
-              </AppShell>
-            }
-          />
-          <Route
-            path='/*'
-            element={
-              <AppShell currentUser={user} {...props}>
-                <div data-testid='outlet-content'>Content</div>
-              </AppShell>
-            }
-          />
-        </Routes>
-      </MemoryRouter>,
+      <I18nProvider>
+        <MemoryRouter initialEntries={[route]}>
+          <Routes>
+            <Route
+              path='/workspaces/:workspaceId/series/:seriesId/*'
+              element={
+                <AppShell currentUser={user} {...props}>
+                  <div data-testid='outlet-content'>Content</div>
+                </AppShell>
+              }
+            />
+            <Route
+              path='/*'
+              element={
+                <AppShell currentUser={user} {...props}>
+                  <div data-testid='outlet-content'>Content</div>
+                </AppShell>
+              }
+            />
+          </Routes>
+        </MemoryRouter>
+      </I18nProvider>,
     );
   };
 
@@ -216,9 +219,7 @@ describe('AppShell Component', () => {
 
     const sidebar = screen.getByTestId('app-shell-sidebar');
     expect(sidebar).toBeInTheDocument();
-    // Không bị co thành rail mà có class w-64 mở rộng mặc định
-    expect(sidebar).toHaveClass('w-64');
-    expect(sidebar).not.toHaveClass('w-16');
+    expect(sidebar).toHaveStyle({ width: '256px' });
   });
 
   it('cho phép người dùng bấm nút tự thu gọn và mở rộng sidebar, trạng thái được lưu localStorage', () => {
@@ -234,27 +235,34 @@ describe('AppShell Component', () => {
     renderInRouter(producerUser, '/workspaces/ws-1/series/ser-1/dashboard');
 
     const sidebar = screen.getByTestId('app-shell-sidebar');
-    expect(sidebar).toHaveClass('w-64');
+    expect(sidebar).toHaveStyle({ width: '256px' });
 
     const toggleBtn = screen.getByTestId('sidebar-rail-toggle-btn');
     expect(toggleBtn).toBeInTheDocument();
-    expect(toggleBtn).toHaveAttribute('aria-label', 'Thu gọn menu');
+    expect(toggleBtn).toHaveAttribute('aria-label', 'Thu gọn thanh điều hướng');
+    expect(toggleBtn).toHaveAttribute('aria-expanded', 'true');
+    expect(toggleBtn).toHaveAttribute('aria-controls', 'app-shell-sidebar');
+    // Nút nằm trong header (cạnh breadcrumb), không nằm trong sidebar
+    expect(sidebar).not.toContainElement(toggleBtn);
 
     // Bấm thu gọn
     fireEvent.click(toggleBtn);
-    expect(sidebar).toHaveClass('w-16');
-    expect(sidebar).not.toHaveClass('w-64');
+    expect(sidebar).toHaveStyle({ width: '64px' });
     expect(localStorage.getItem('pf.sidebar.collapsed')).toBe('true');
-    expect(toggleBtn).toHaveAttribute('aria-label', 'Mở rộng menu');
+    expect(toggleBtn).toHaveAttribute('aria-label', 'Mở rộng thanh điều hướng');
+    expect(toggleBtn).toHaveAttribute('aria-expanded', 'false');
+
+    // Hover không tự mở rộng
+    fireEvent.mouseEnter(sidebar);
+    expect(sidebar).toHaveStyle({ width: '64px' });
 
     // Bấm mở rộng lại
     fireEvent.click(toggleBtn);
-    expect(sidebar).toHaveClass('w-64');
-    expect(sidebar).not.toHaveClass('w-16');
+    expect(sidebar).toHaveStyle({ width: '256px' });
     expect(localStorage.getItem('pf.sidebar.collapsed')).toBe('false');
   });
 
-  it('mục điều hướng đang chọn có nền cam ngà #FFF2E6, chữ than #1C1917, aria-current="page" và không có nền đen', () => {
+  it('mục điều hướng đang chọn áp dụng theme Lucianlab (#040) với highlight nổi bật và aria-current="page"', () => {
     const producerUser: CurrentUser = {
       name: 'Phạm Nhà Sản Xuất',
       role: 'USER',
@@ -269,17 +277,39 @@ describe('AppShell Component', () => {
     expect(activeLink).toBeInTheDocument();
     expect(activeLink).toHaveAttribute('aria-current', 'page');
 
-    // Nền cam ngà nhạt #FFF2E6, chữ than #1C1917, bo góc 8px (rounded-lg)
-    expect(activeLink).toHaveClass('bg-[#FFF2E6]');
-    expect(activeLink).toHaveClass('text-[#1C1917]');
-    expect(activeLink).toHaveClass('rounded-lg');
-
-    // Không có nền đen cũ #292524 hay rounded-full
-    expect(activeLink).not.toHaveClass('bg-[#292524]');
-    expect(activeLink).not.toHaveClass('rounded-full');
+    // Mục đang chọn: vạch nhấn + nền nhẹ qua token scope của sidebar
+    expect(activeLink).toHaveClass('pf-sb-item');
+    expect(activeLink).toHaveClass('rounded-xl');
+    expect(activeLink.querySelector('span[aria-hidden="true"]')).toBeInTheDocument();
   });
 
-  it('sidebar áp dụng màu nền trắng ngà #FCFBF8 và viền phải #E7E2D9', () => {
+  it('sidebar áp dụng màu nền Dark Ink #1C1917 và viền phải #292524 chuẩn theme Lucianlab (#040)', () => {
+    const producerUser: CurrentUser = {
+      name: 'Phạm Nhà Sản Xuất',
+      role: 'USER',
+      workspaceRole: 'PRODUCER' as any,
+      activeRoles: ['PRODUCER'],
+      avatarInitials: 'PN',
+    };
+
+    localStorage.clear();
+    renderInRouter(producerUser, '/workspaces/ws-1/series/ser-1/dashboard');
+
+    // Mặc định "Mực đậm" cho người chưa chọn
+    const sidebar = screen.getByTestId('app-shell-sidebar');
+    expect(sidebar).toHaveClass('pf-sidebar');
+    expect(sidebar).toHaveAttribute('data-sb-theme', 'ink');
+
+    // Đổi preset: áp dụng ngay và lưu trên thiết bị
+    fireEvent.click(screen.getByTestId('sidebar-theme-btn'));
+    const ocean = screen.getByTestId('sidebar-theme-ocean');
+    expect(screen.getByTestId('sidebar-theme-ink')).toHaveAttribute('aria-checked', 'true');
+    fireEvent.click(ocean);
+    expect(sidebar).toHaveAttribute('data-sb-theme', 'ocean');
+    expect(localStorage.getItem('pf.sidebar.theme')).toBe('ocean');
+  });
+
+  it('không còn hiển thị chữ AI: Sẵn sàng và nút Export trên navbar header', () => {
     const producerUser: CurrentUser = {
       name: 'Phạm Nhà Sản Xuất',
       role: 'USER',
@@ -290,8 +320,43 @@ describe('AppShell Component', () => {
 
     renderInRouter(producerUser, '/workspaces/ws-1/series/ser-1/dashboard');
 
-    const sidebar = screen.getByTestId('app-shell-sidebar');
-    expect(sidebar).toHaveClass('bg-[#FCFBF8]');
-    expect(sidebar).toHaveClass('border-[#E7E2D9]');
+    // Chữ AI: Sẵn sàng và nút Export không tồn tại trong Navbar
+    expect(screen.queryByText(/AI: Sẵn sàng/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Export$/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Export$/i)).not.toBeInTheDocument();
+  });
+
+  it('chuyển đổi ngôn ngữ VI sang EN qua LanguageSwitcher cập nhật tức thì toàn bộ menu và header', () => {
+    localStorage.clear();
+    const artistUser: CurrentUser = {
+      name: 'Nguyễn Văn Họa Sĩ',
+      role: 'USER',
+      workspaceRole: 'ARTIST' as any,
+      activeRoles: ['ARTIST'],
+      avatarInitials: 'AH',
+    };
+
+    renderInRouter(artistUser, '/workspaces/ws-1/series/ser-1/my-work');
+
+    // Mặc định là Tiếng Việt
+    expect(screen.getByText('Công việc của tôi')).toBeInTheDocument();
+    expect(screen.getByText('Bàn vẽ & Khung trang')).toBeInTheDocument();
+
+    // Chuyển sang Tiếng Anh
+    const enBtn = screen.getByTestId('lang-btn-en');
+    fireEvent.click(enBtn);
+
+    // Kiểm tra các nhãn điều hướng và header search đổi sang English
+    expect(screen.getByText('My Work')).toBeInTheDocument();
+    expect(screen.getByText('Drawing & Layout')).toBeInTheDocument();
+    expect(screen.getByText('Search frames, dialogues, assets...')).toBeInTheDocument();
+
+    // Chuyển lại về Tiếng Việt
+    const viBtn = screen.getByTestId('lang-btn-vi');
+    fireEvent.click(viBtn);
+
+    expect(screen.getByText('Công việc của tôi')).toBeInTheDocument();
+    expect(screen.getByText('Bàn vẽ & Khung trang')).toBeInTheDocument();
+    expect(screen.getByText('Tìm kiếm khung tranh, thoại, tư liệu...')).toBeInTheDocument();
   });
 });

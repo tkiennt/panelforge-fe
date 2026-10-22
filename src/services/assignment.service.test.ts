@@ -266,4 +266,58 @@ describe('assignmentService', () => {
     });
     expect(result).toEqual(mockReport);
   });
+  it('transferAssignmentScope gọi đúng POST /transfer với nhiều targetIds và reason riêng', async () => {
+    const mockCreated = [{ id: 'asg-transfer-1', brief: 'Vẽ trang 1' }];
+    vi.mocked(axiosClient.post).mockResolvedValueOnce({ data: mockCreated });
+
+    const result = await assignmentService.transferAssignmentScope('chap-1', 'asg-orig', {
+      targetType: 'Page',
+      targetIds: ['page-1', 'page-2'],
+      newAssigneeUserId: 'user-artist-2',
+      reason: 'Phân tải tiến độ sang hoạ sĩ khác',
+      brief: 'Vẽ trang 1 và 2',
+    });
+
+    expect(axiosClient.post).toHaveBeenCalledWith(
+      '/chapters/chap-1/assignments/asg-orig/transfer',
+      {
+        targetType: 'Page',
+        targetIds: ['page-1', 'page-2'],
+        newAssigneeUserId: 'user-artist-2',
+        reason: 'Phân tải tiến độ sang hoạ sĩ khác',
+        brief: 'Vẽ trang 1 và 2',
+      },
+    );
+    expect(result).toEqual(mockCreated);
+  });
+
+  it('resolveImpactReview gọi POST /impact-review với decision và reason', async () => {
+    const mockResult = { id: 'asg-1', impactReviewReason: null, status: 'InProgress' };
+    vi.mocked(axiosClient.post).mockResolvedValueOnce({ data: mockResult });
+
+    const result = await assignmentService.resolveImpactReview('chap-1', 'asg-1', {
+      decision: 'Keep',
+      reason: 'Đã rà soát, đầu ra vẫn tương thích',
+    });
+
+    expect(axiosClient.post).toHaveBeenCalledWith(
+      '/chapters/chap-1/assignments/asg-1/impact-review',
+      {
+        decision: 'Keep',
+        reason: 'Đã rà soát, đầu ra vẫn tương thích',
+      },
+    );
+    expect(result).toEqual(mockResult);
+  });
+
+  it('extractError nhắc tải lại trang khi gặp 409 CONFLICT', () => {
+    const err = {
+      response: {
+        status: 409,
+        data: { code: 'CONFLICT', message: 'Dữ liệu phân công đã thay đổi' },
+      },
+    };
+    const msg = extractError(err, 'Lỗi thao tác');
+    expect(msg).toContain('Vui lòng tải lại trang');
+  });
 });

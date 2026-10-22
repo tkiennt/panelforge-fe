@@ -88,6 +88,19 @@ export const TaskCard: React.FC<TaskCardProps> = ({ card, onClick, onOpenMyWork 
         {card.brief}
       </h4>
 
+      {/* Impact review warning */}
+      {card.impactReviewReason && (
+        <div
+          data-testid='task-impact-review'
+          className='text-[11px] p-2 rounded-lg bg-amber-50 border border-amber-300 text-amber-950 line-clamp-2 italic flex items-start gap-1.5'
+        >
+          <AlertCircle className='w-3.5 h-3.5 shrink-0 text-amber-600 mt-0.5' />
+          <span>
+            <strong>Cần kiểm tra ảnh hưởng:</strong> {card.impactReviewReason}
+          </span>
+        </div>
+      )}
+
       {/* Feedback comment preview if rework required */}
       {card.lastFeedbackComment && card.status === 'ReworkRequired' && (
         <div className='text-[11px] p-2 rounded-lg bg-rose-50 border border-rose-200 text-rose-900 line-clamp-2 italic flex items-start gap-1.5'>

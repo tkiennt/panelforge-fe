@@ -54,6 +54,23 @@ export const SubmissionHistory: React.FC<SubmissionHistoryProps> = ({ submission
                   <strong>Lý do trả về:</strong> {s.decisionComment}
                 </div>
               )}
+              {s.scriptRevisionIds && s.scriptRevisionIds.length > 0 && (
+                <div
+                  className='flex items-center gap-1.5 flex-wrap text-[10px] text-stone-600 pt-0.5'
+                  data-testid='submission-script-revisions'
+                >
+                  <span className='font-semibold'>Revisions kịch bản:</span>
+                  {s.scriptRevisionIds.map((revId) => (
+                    <span
+                      key={revId}
+                      className='px-1.5 py-0.5 bg-stone-100 border border-stone-200 rounded font-mono text-[9px] text-stone-700'
+                      title={revId}
+                    >
+                      {revId.length > 8 ? `${revId.slice(0, 8)}…` : revId}
+                    </span>
+                  ))}
+                </div>
+              )}
             </li>
           );
         })}

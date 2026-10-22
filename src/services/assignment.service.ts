@@ -22,6 +22,8 @@ import {
   VisualDeviationDto,
   VisualConsistencyReportDto,
   ReturnWorkFromReviewRequest,
+  TransferAssignmentScopeRequest,
+  ResolveImpactReviewRequest,
 } from '@/types';
 
 export type {
@@ -44,11 +46,20 @@ export type {
   VisualDeviationDto,
   VisualConsistencyReportDto,
   ReturnWorkFromReviewRequest,
+  TransferAssignmentScopeRequest,
+  ResolveImpactReviewRequest,
 };
 
 export function extractError(error: any, defaultMsg: string): string {
   const data = error?.response?.data || error?.data;
   if (!data) return error?.message || defaultMsg;
+
+  if (error?.response?.status === 409 || data?.code === 'CONFLICT') {
+    const detail = data?.message || data?.error || data?.detail;
+    return detail
+      ? `${detail}. Vui lòng tải lại trang để xem trạng thái mới nhất.`
+      : 'Xung đột dữ liệu (409 Conflict): Thông tin công việc đã thay đổi. Vui lòng tải lại trang để xem trạng thái mới nhất.';
+  }
 
   if (typeof data === 'string' && data.trim()) return data;
   if (data.error && typeof data.error === 'string') return data.error;
@@ -187,6 +198,46 @@ export const assignmentService = {
   },
 
   /**
+   * Producer chuyển giao trang/khung của việc cả chương sang người khác; trả các việc mới
+   * (POST /api/chapters/{chapterId}/assignments/{assignmentId}/transfer)
+   */
+  transferAssignmentScope: async (
+    chapterId: string,
+    assignmentId: string,
+    request: TransferAssignmentScopeRequest,
+  ): Promise<AssignmentDto[]> => {
+    try {
+      const response = await axiosClient.post(
+        `/chapters/${chapterId}/assignments/${assignmentId}/transfer`,
+        request,
+      );
+      return response.data;
+    } catch (error: any) {
+      throw new Error(extractError(error, 'Không thể chuyển giao phần việc'));
+    }
+  },
+
+  /**
+   * Editor/Producer quyết việc "cần kiểm tra ảnh hưởng": giữ kết quả hoặc làm lại
+   * (POST /api/chapters/{chapterId}/assignments/{assignmentId}/impact-review)
+   */
+  resolveImpactReview: async (
+    chapterId: string,
+    assignmentId: string,
+    request: ResolveImpactReviewRequest,
+  ): Promise<AssignmentDto> => {
+    try {
+      const response = await axiosClient.post(
+        `/chapters/${chapterId}/assignments/${assignmentId}/impact-review`,
+        request,
+      );
+      return response.data;
+    } catch (error: any) {
+      throw new Error(extractError(error, 'Không thể ghi quyết định kiểm tra ảnh hưởng'));
+    }
+  },
+
+  /**
    * Producer sửa, giao lại hoặc đổi dependency (PUT /api/chapters/{chapterId}/assignments/{assignmentId})
    */
   updateAssignment: async (
@@ -206,11 +257,17 @@ export const assignmentService = {
   },
 
   /**
-   * Producer xoá mềm hoặc huỷ phân công nhiệm vụ (DELETE /api/chapters/{chapterId}/assignments/{assignmentId})
+   * Producer huỷ phân công, lý do bắt buộc (DELETE /api/chapters/{chapterId}/assignments/{assignmentId}?reason=)
    */
-  deleteAssignment: async (chapterId: string, assignmentId: string): Promise<void> => {
+  deleteAssignment: async (
+    chapterId: string,
+    assignmentId: string,
+    reason: string,
+  ): Promise<void> => {
     try {
-      await axiosClient.delete(`/chapters/${chapterId}/assignments/${assignmentId}`);
+      await axiosClient.delete(`/chapters/${chapterId}/assignments/${assignmentId}`, {
+        params: { reason },
+      });
     } catch (error: any) {
       throw new Error(extractError(error, 'Không thể huỷ/xoá phân công nhiệm vụ'));
     }

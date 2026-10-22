@@ -12,6 +12,7 @@ vi.mock('@/services/assignment.service', () => ({
     getChangeRequests: vi.fn(),
     getAssignments: vi.fn(),
     deleteAssignment: vi.fn(),
+    resolveImpactReview: vi.fn(),
   },
 }));
 
@@ -174,5 +175,115 @@ describe('SideDrawer - Prerequisite Tasks (Req 7)', () => {
 
     expect(screen.getByText('Sơ Đồ Quan Hệ Phụ Thuộc')).toBeInTheDocument();
     expect(screen.getAllByText('Vẽ phác thảo chi tiết trang 02').length).toBeGreaterThan(1);
+  });
+});
+
+describe('SideDrawer - Cờ kiểm tra ảnh hưởng (impactReviewReason)', () => {
+  const mockImpactCard: BoardCard = {
+    id: 'as-impact-1',
+    seriesId: 'series-1',
+    chapterId: 'chap-1',
+    entityType: 'Page',
+    targetEntityId: 'page-2',
+    targetLabel: 'Trang 2',
+    pageNumber: 2,
+    pipelineStageId: 'st-2',
+    stageName: 'Ink',
+    stageOrder: 3,
+    assigneeUserId: 'artist-1',
+    assigneeName: 'Hoạ sĩ A',
+    assigneeAvatarInitials: 'HA',
+    assignedRole: 'ARTIST' as any,
+    brief: 'Vẽ nét trang 2',
+    priority: 'High',
+    status: 'InProgress',
+    impactReviewReason: 'Kịch bản phân cảnh 2 bị sửa lại do thay đổi cốt truyện',
+    rawAssignment: {} as any,
+  };
+
+  it('hiển thị badge và thông tin cần kiểm tra ảnh hưởng', async () => {
+    render(
+      <MemoryRouter initialEntries={['/workspaces/ws-1/series/series-1/pipeline']}>
+        <Routes>
+          <Route
+            path='/workspaces/:workspaceId/series/:seriesId/pipeline'
+            element={<SideDrawer isOpen={true} onClose={vi.fn()} card={mockImpactCard} />}
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByTestId('side-drawer-impact-badge')).toHaveTextContent(
+      'Cần kiểm tra ảnh hưởng',
+    );
+    expect(screen.getByTestId('side-drawer-impact-review')).toHaveTextContent(
+      'Kịch bản phân cảnh 2 bị sửa lại do thay đổi cốt truyện',
+    );
+  });
+
+  it('ẩn nút Giữ kết quả / Yêu cầu làm lại với chính người nhận', async () => {
+    render(
+      <MemoryRouter initialEntries={['/workspaces/ws-1/series/series-1/pipeline']}>
+        <Routes>
+          <Route
+            path='/workspaces/:workspaceId/series/:seriesId/pipeline'
+            element={
+              <SideDrawer
+                isOpen={true}
+                onClose={vi.fn()}
+                card={mockImpactCard}
+                currentUserId='artist-1'
+                currentUserRole='ARTIST'
+              />
+            }
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(screen.queryByTestId('side-drawer-impact-actions')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Giữ kết quả/i })).not.toBeInTheDocument();
+  });
+
+  it('Editor/Producer bấm Giữ kết quả, nhập lý do và gọi resolveImpactReview', async () => {
+    vi.mocked(assignmentService.resolveImpactReview).mockResolvedValueOnce({
+      id: 'as-impact-1',
+      impactReviewReason: null,
+    } as any);
+
+    render(
+      <MemoryRouter initialEntries={['/workspaces/ws-1/series/series-1/pipeline']}>
+        <Routes>
+          <Route
+            path='/workspaces/:workspaceId/series/:seriesId/pipeline'
+            element={
+              <SideDrawer
+                isOpen={true}
+                onClose={vi.fn()}
+                card={mockImpactCard}
+                currentUserId='editor-1'
+                currentUserRole='EDITOR'
+              />
+            }
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    const keepBtn = screen.getByRole('button', { name: /Giữ kết quả/i });
+    expect(keepBtn).toBeInTheDocument();
+
+    fireEvent.click(keepBtn);
+    const reasonInput = screen.getByLabelText(/Lý do xử lý ảnh hưởng/i);
+    fireEvent.change(reasonInput, { target: { value: 'Nét vẽ hiện tại vẫn phù hợp' } });
+
+    fireEvent.click(screen.getByRole('button', { name: /Xác nhận/i }));
+
+    await waitFor(() => {
+      expect(assignmentService.resolveImpactReview).toHaveBeenCalledWith('chap-1', 'as-impact-1', {
+        decision: 'Keep',
+        reason: 'Nét vẽ hiện tại vẫn phù hợp',
+      });
+    });
   });
 });

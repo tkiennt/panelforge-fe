@@ -15,6 +15,7 @@ vi.mock('@/services/assignment.service', async () => {
     assignmentService: {
       getAssignments: vi.fn(),
       createAssignment: vi.fn(),
+      transferAssignmentScope: vi.fn(),
       updateAssignment: vi.fn(),
       startAssignment: vi.fn(),
     },
@@ -546,7 +547,7 @@ describe('CreateAssignmentModal', () => {
 
     // Kiểm tra không có cảnh báo xung đột chặn tạo
     await waitFor(() => {
-      expect(screen.getByText(/Tách trang\/khung:/i)).toBeInTheDocument();
+      expect(screen.getByText(/Chuyển giao trang\/khung:/i)).toBeInTheDocument();
     });
 
     const entityTypeSelect = screen.getByLabelText(
@@ -566,5 +567,84 @@ describe('CreateAssignmentModal', () => {
       const submitBtn = screen.getByRole('button', { name: /Tạo & Giao Việc/i });
       expect(submitBtn).not.toBeDisabled();
     });
+
+    // Phần nằm trong việc cả chương: gọi chuyển giao (không tạo việc chồng phạm vi), brief làm lý do
+    vi.mocked(assignmentService.transferAssignmentScope).mockResolvedValueOnce([
+      { id: 'assign-part' } as any,
+    ]);
+    fireEvent.click(screen.getByRole('button', { name: /Tạo & Giao Việc/i }));
+    await waitFor(() => {
+      expect(assignmentService.transferAssignmentScope).toHaveBeenCalledWith(
+        'chap-1',
+        'assign-chap-art',
+        expect.objectContaining({ targetType: 'Page', reason: 'Tách vẽ trang 1' }),
+      );
+    });
+    expect(assignmentService.createAssignment).not.toHaveBeenCalled();
+  });
+  it('cho phép chuyển giao nhiều trang cùng lúc với ô lý do riêng (Task 3)', async () => {
+    vi.mocked(assignmentService.getAssignments).mockResolvedValueOnce([
+      {
+        id: 'assign-chap-art',
+        chapterId: 'chap-1',
+        pipelineStageId: 'stage-thumbnail',
+        entityType: 'Chapter',
+        targetEntityId: 'chap-1',
+        status: 'InProgress',
+        assignedRole: 'Artist',
+        assigneeUserId: 'user-art-main',
+        brief: 'Vẽ toàn chương',
+        createdAt: '2026-10-20',
+      } as any,
+    ]);
+
+    render(
+      <CreateAssignmentModal
+        isOpen={true}
+        workspaceId='ws-1'
+        seriesId='series-1'
+        chapterId='chap-1'
+        chapterNumber={1}
+        initialPipelineStageId='stage-thumbnail'
+        initialEntityType='Page'
+        onClose={vi.fn()}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/Chuyển giao trang\/khung:/i)).toBeInTheDocument();
+    });
+
+    // Nhập brief và lý do chuyển giao riêng
+    const briefInput = screen.getByLabelText(/Yêu cầu công việc/i);
+    fireEvent.change(briefInput, { target: { value: 'Vẽ chì hoàn thiện' } });
+
+    const transferReasonInput = screen.getByLabelText(/Lý do chuyển giao/i);
+    fireEvent.change(transferReasonInput, { target: { value: 'Phân tải cho hoạ sĩ khác' } });
+
+    // Chọn thêm trang 2
+    const page2Checkbox = screen.getByLabelText('Chọn trang 2');
+    fireEvent.click(page2Checkbox);
+
+    vi.mocked(assignmentService.transferAssignmentScope).mockResolvedValueOnce([
+      { id: 'assign-part-1' } as any,
+      { id: 'assign-part-2' } as any,
+    ]);
+
+    fireEvent.click(screen.getByRole('button', { name: /Tạo & Giao Việc/i }));
+
+    await waitFor(() => {
+      expect(assignmentService.transferAssignmentScope).toHaveBeenCalledWith(
+        'chap-1',
+        'assign-chap-art',
+        expect.objectContaining({
+          targetType: 'Page',
+          targetIds: expect.arrayContaining(['page-guid-001', 'page-guid-002']),
+          reason: 'Phân tải cho hoạ sĩ khác',
+          brief: 'Vẽ chì hoàn thiện',
+        }),
+      );
+    });
+    expect(assignmentService.createAssignment).not.toHaveBeenCalled();
   });
 });

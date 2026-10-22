@@ -159,7 +159,9 @@ export const getWorkActions = (a: AssignmentDto, ctx: WorkContext): WorkActions 
 
   let submitBlockedReason: string | null = null;
   if (st === 'InProgress') {
-    if (openCount > 0) {
+    if (a.impactReviewReason) {
+      submitBlockedReason = `Công việc cần kiểm tra ảnh hưởng: ${a.impactReviewReason}. Vui lòng chờ Editor hoặc Producer quyết định giữ kết quả hay yêu cầu làm lại trước khi nộp.`;
+    } else if (openCount > 0) {
       submitBlockedReason = `Còn ${openCount} yêu cầu sửa chưa xử lý, hãy sửa và bấm "Đã sửa" trước khi nộp lại.`;
     } else if (needsArtwork(a) && ctx.hasCurrentArtwork === false) {
       submitBlockedReason =

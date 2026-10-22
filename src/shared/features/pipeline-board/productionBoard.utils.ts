@@ -429,6 +429,7 @@ export const mapAssignmentsToCards = (
       startedAt: a.startedAt,
       completedAt: a.completedAt,
       lastFeedbackComment: a.lastFeedbackComment,
+      impactReviewReason: a.impactReviewReason ?? null,
       rawAssignment: a,
     };
   });

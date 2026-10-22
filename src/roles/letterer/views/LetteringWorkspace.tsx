@@ -950,6 +950,10 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
 
   // Xử lý xung đột phiên bản BR-11
   const handleConcurrencyError = (err: any, elementId?: string) => {
+    if (err?.code === 'FORBIDDEN' || err?.status === 403 || err?.response?.status === 403) {
+      showToast('Không có quyền thao tác', 'Phần này thuộc việc của người khác / đang chờ duyệt');
+      return;
+    }
     if (err.code === 'CHAPTER_READ_ONLY') {
       showToast('Chương chỉ đọc', err.message);
       return;

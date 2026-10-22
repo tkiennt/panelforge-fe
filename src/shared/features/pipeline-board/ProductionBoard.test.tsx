@@ -294,9 +294,17 @@ describe('ProductionBoard (Quy trình sản xuất: lưới + bộ lọc)', () =
     fireEvent.click(screen.getByText('Viết kịch bản cho Trang 1'));
     await waitFor(() => expect(screen.getByText('Huỷ việc')).toBeInTheDocument());
     fireEvent.click(screen.getByText('Huỷ việc'));
+    expect(screen.getByText('Xác nhận xoá?').closest('button')).toBeDisabled();
+    fireEvent.change(screen.getByLabelText('Lý do huỷ việc'), {
+      target: { value: 'Đổi kế hoạch' },
+    });
     fireEvent.click(screen.getByText('Xác nhận xoá?'));
     await waitFor(() => {
-      expect(assignmentService.deleteAssignment).toHaveBeenCalledWith('chap-1', 'assign-1');
+      expect(assignmentService.deleteAssignment).toHaveBeenCalledWith(
+        'chap-1',
+        'assign-1',
+        'Đổi kế hoạch',
+      );
       expect(screen.queryByText('Viết kịch bản cho Trang 1')).not.toBeInTheDocument();
     });
   });
