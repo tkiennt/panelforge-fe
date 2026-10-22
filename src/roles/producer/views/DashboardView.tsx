@@ -1044,11 +1044,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       </nav>
 
-      {/* 3. Chương & Mục cần chú ý (Bố cục 70/30: Chương là ngôi sao trung tâm) */}
+      {/* 3. Tiến Độ Theo Từng Chương (Trọng tâm sản xuất, trải rộng toàn chiều ngang, giữ nguyên toàn bộ chi tiết) */}
       {(activeTab === 'all' || activeTab === 'chapters') && (
-        <section className='grid grid-cols-1 lg:grid-cols-12 gap-6 items-start'>
-        {/* Left: Danh sách chương nổi bật (8 cột trên lg ~ 70%) */}
-        <div className='lg:col-span-8 space-y-4'>
+        <section aria-label='Tiến độ chương' className='space-y-4'>
           <div className='bg-white border border-zinc-200 rounded-2xl p-5 sm:p-6 shadow-xs space-y-4'>
             <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-100 pb-4'>
               <div className='flex items-center gap-3'>
@@ -1244,250 +1242,272 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
             )}
           </div>
-        </div>
+        </section>
+      )}
 
-        {/* Right: Đội ngũ sản xuất & Mục cần chú ý (4 cột trên lg ~ 30%) */}
-        <div className='lg:col-span-4 space-y-4'>
+      {/* 4. Đội Ngũ Sản Xuất & Mục Cần Chú Ý (Bố cục 2 cột cân bằng 50/50, loại bỏ hoàn toàn khoảng trống) */}
+      {(activeTab === 'all' || activeTab === 'team') && (
+        <section aria-label='Đội ngũ và rủi ro' className='grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch'>
           {/* Card Đội Ngũ Sản Xuất */}
           {seriesId && (
-            <div className='bg-white border border-zinc-200 rounded-2xl p-4.5 shadow-xs space-y-3'>
-              <div className='flex items-center justify-between border-b border-zinc-100 pb-2.5'>
-                <div className='flex items-center gap-2'>
-                  <Users className='w-4 h-4 text-[#F97316]' />
-                  <h3 className='text-xs font-bold text-zinc-900 font-sans tracking-wide uppercase'>
-                    Đội Ngũ Sản Xuất ({seriesMembers.length})
-                  </h3>
+            <div className='bg-white border border-zinc-200 rounded-2xl p-5 sm:p-6 shadow-xs flex flex-col justify-between h-full space-y-4'>
+              <div className='space-y-3.5'>
+                <div className='flex items-center justify-between border-b border-zinc-100 pb-3'>
+                  <div className='flex items-center gap-2.5'>
+                    <div className='w-8 h-8 rounded-lg bg-orange-50 border border-orange-100 text-[#F97316] flex items-center justify-center shrink-0 shadow-2xs'>
+                      <Users className='w-4 h-4' />
+                    </div>
+                    <div>
+                      <h3 className='text-xs sm:text-sm font-bold text-zinc-900 font-sans tracking-wide uppercase'>
+                        Đội Ngũ Sản Xuất ({seriesMembers.length})
+                      </h3>
+                      <p className='text-[11px] text-zinc-500'>Nhân sự chính thức của bộ truyện</p>
+                    </div>
+                  </div>
+                  <button
+                    type='button'
+                    onClick={() => setIsMembersModalOpen(true)}
+                    className='text-xs font-semibold text-[#F97316] hover:text-[#EA580C] hover:underline cursor-pointer flex items-center gap-1'
+                  >
+                    <span>Quản lý</span>
+                    <ArrowRight className='w-3 h-3' />
+                  </button>
                 </div>
-                <button
-                  type='button'
-                  onClick={() => setIsMembersModalOpen(true)}
-                  className='text-[11px] font-semibold text-[#F97316] hover:text-[#EA580C] hover:underline cursor-pointer'
-                >
-                  Quản lý →
-                </button>
-              </div>
-              {seriesMembers.length === 0 ? (
-                <div className='py-4 text-center text-xs text-zinc-400 italic bg-zinc-50/50 rounded-xl border border-dashed border-zinc-200'>
-                  Chưa gán thành viên nào vào bộ truyện.
-                </div>
-              ) : (
-                <div className='space-y-2'>
-                  {seriesMembers.slice(0, 5).map((member) => {
-                    const roleUpper = String(member.seriesRole || (member as any).role || 'ARTIST').toUpperCase();
-                    const roleStyle =
-                      ROLE_COLOR_MAP[roleUpper] || 'bg-zinc-100 text-zinc-800 border-zinc-200';
 
-                    const RoleIcon =
-                      roleUpper === 'PRODUCER'
-                        ? Crown
-                        : roleUpper === 'ARTIST'
-                        ? Palette
-                        : roleUpper === 'EDITOR'
-                        ? PenTool
-                        : Users;
+                {seriesMembers.length === 0 ? (
+                  <div className='py-8 text-center text-xs text-zinc-400 italic bg-zinc-50/50 rounded-xl border border-dashed border-zinc-200'>
+                    Chưa gán thành viên nào vào bộ truyện.
+                  </div>
+                ) : (
+                  <div className='space-y-2'>
+                    {seriesMembers.slice(0, 5).map((member) => {
+                      const roleUpper = String(member.seriesRole || (member as any).role || 'ARTIST').toUpperCase();
+                      const roleStyle =
+                        ROLE_COLOR_MAP[roleUpper] || 'bg-zinc-100 text-zinc-800 border-zinc-200';
 
-                    return (
-                      <div
-                        key={member.id || member.userId}
-                        className='flex items-center justify-between gap-2.5 p-2.5 rounded-xl bg-white hover:bg-zinc-50/80 border border-zinc-200 transition-all text-xs shadow-2xs group'
-                      >
-                        <div className='flex items-center gap-2.5 min-w-0'>
-                          <div className='w-7.5 h-7.5 rounded-full bg-zinc-900 text-white font-bold text-xs flex items-center justify-center shrink-0 ring-2 ring-[#F97316]/20 group-hover:scale-105 transition-transform'>
-                            {(member.fullName || member.email || 'U').charAt(0).toUpperCase()}
-                          </div>
-                          <div className='min-w-0'>
-                            <div className='font-bold text-zinc-900 truncate leading-tight'>
-                              {member.fullName || member.email}
-                            </div>
-                            <span
-                              className={`inline-block px-1.5 py-0.2 rounded text-[9.5px] font-medium border mt-0.5 ${roleStyle}`}
-                            >
-                              {member.seriesRole || (member as any).role || 'Thành viên'}
-                            </span>
-                          </div>
-                        </div>
+                      const RoleIcon =
+                        roleUpper === 'PRODUCER'
+                          ? Crown
+                          : roleUpper === 'ARTIST'
+                          ? Palette
+                          : roleUpper === 'EDITOR'
+                          ? PenTool
+                          : Users;
 
+                      return (
                         <div
-                          className='w-6 h-6 rounded-full bg-zinc-50 border border-zinc-200 flex items-center justify-center text-zinc-500 shrink-0'
-                          title={member.seriesRole || (member as any).role || 'Thành viên'}
+                          key={member.id || member.userId}
+                          className='flex items-center justify-between gap-2.5 p-2.5 rounded-xl bg-white hover:bg-zinc-50/80 border border-zinc-200 transition-all text-xs shadow-2xs group'
                         >
-                          <RoleIcon className='w-3 h-3 text-zinc-500' />
-                        </div>
-                      </div>
-                    );
-                  })}
+                          <div className='flex items-center gap-2.5 min-w-0'>
+                            <div className='w-8 h-8 rounded-full bg-zinc-900 text-white font-bold text-xs flex items-center justify-center shrink-0 ring-2 ring-[#F97316]/20 group-hover:scale-105 transition-transform'>
+                              {(member.fullName || member.email || 'U').charAt(0).toUpperCase()}
+                            </div>
+                            <div className='min-w-0'>
+                              <div className='font-bold text-zinc-900 truncate leading-tight'>
+                                {member.fullName || member.email}
+                              </div>
+                              <span
+                                className={`inline-block px-1.5 py-0.2 rounded text-[9.5px] font-medium border mt-0.5 ${roleStyle}`}
+                              >
+                                {member.seriesRole || (member as any).role || 'Thành viên'}
+                              </span>
+                            </div>
+                          </div>
 
-                  {seriesMembers.length > 5 && (
-                    <p className='text-[10.5px] font-mono text-zinc-400 text-center pt-0.5'>
-                      + {seriesMembers.length - 5} thành viên khác
-                    </p>
-                  )}
-                </div>
-              )}
+                          <div
+                            className='w-7 h-7 rounded-full bg-zinc-50 border border-zinc-200 flex items-center justify-center text-zinc-500 shrink-0'
+                            title={member.seriesRole || (member as any).role || 'Thành viên'}
+                          >
+                            <RoleIcon className='w-3.5 h-3.5 text-zinc-500' />
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {seriesMembers.length > 5 && (
+                      <p className='text-[10.5px] font-mono text-zinc-400 text-center pt-0.5'>
+                        + {seriesMembers.length - 5} thành viên khác
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
           {/* Card Mục Cần Chú Ý & Rủi Ro */}
-          <div className='bg-white border border-zinc-200 rounded-2xl p-4.5 shadow-xs space-y-3'>
-            <div className='flex items-center justify-between border-b border-zinc-100 pb-3'>
-              <div className='flex items-center gap-2'>
-                <AlertTriangle className='w-4 h-4 text-[#F97316]' />
-                <h2 className='text-base font-bold text-zinc-900 font-sans'>
-                  Mục Cần Chú Ý &amp; Rủi Ro
-                </h2>
-              </div>
-              {overdueTotal > 0 && (
-                <span className='text-xs font-mono font-bold px-2 py-0.5 rounded bg-red-50 text-red-700 border border-red-200'>
-                  {overdueTotal} mục
-                </span>
-              )}
-            </div>
-
-            {/* Overdue Change Requests Section (if any) */}
-            {progress?.overdueChangeRequests && progress.overdueChangeRequests.length > 0 && (
-              <div
-                data-testid='overdue-cr-banner'
-                className='bg-amber-50/70 border border-amber-200 rounded-xl p-3.5 space-y-2.5'
-              >
-                <div className='flex flex-wrap items-center justify-between gap-2'>
-                  <div className='flex items-center gap-1.5'>
-                    <AlertCircle className='w-4 h-4 text-amber-700 shrink-0' />
-                    <h3 className='text-xs font-bold text-amber-950 font-sans'>
-                      Danh Sách Yêu Cầu Sửa Đổi Quá Hạn ({progress.overdueChangeRequests.length})
-                    </h3>
+          <div className='bg-white border border-zinc-200 rounded-2xl p-5 sm:p-6 shadow-xs flex flex-col justify-between h-full space-y-4'>
+            <div className='space-y-3.5 flex-1 flex flex-col'>
+              <div className='flex items-center justify-between border-b border-zinc-100 pb-3'>
+                <div className='flex items-center gap-2.5'>
+                  <div className='w-8 h-8 rounded-lg bg-orange-50 border border-orange-100 text-[#F97316] flex items-center justify-center shrink-0 shadow-2xs'>
+                    <AlertTriangle className='w-4 h-4' />
                   </div>
-                  <button
-                    type='button'
-                    onClick={handleSendReminders}
-                    disabled={sendingReminders}
-                    className='px-2.5 py-1 rounded-md bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-semibold flex items-center gap-1 transition-colors cursor-pointer disabled:opacity-50'
-                    title='Gửi thông báo nhắc nhở đến người phụ trách yêu cầu sửa'
-                  >
-                    {sendingReminders ? (
-                      <Loader2 className='w-3 h-3 animate-spin' />
-                    ) : (
-                      <Bell className='w-3 h-3' />
-                    )}
-                    <span>{sendingReminders ? 'Đang gửi...' : 'Gửi thông báo nhắc hạn'}</span>
-                  </button>
-                </div>
-
-                <div className='space-y-2'>
-                  {progress.overdueChangeRequests.map((cr) => (
-                    <div
-                      key={cr.changeRequestId}
-                      data-testid={`overdue-cr-card-${cr.changeRequestId}`}
-                      className='p-2.5 bg-white rounded-lg border border-amber-200 shadow-2xs space-y-1.5 text-xs'
-                    >
-                      <div className='flex items-start justify-between gap-2'>
-                        <div className='font-semibold text-zinc-900 line-clamp-1'>
-                          {cr.description}
-                        </div>
-                        <span className='px-1.5 py-0.5 rounded text-[9.5px] font-mono font-bold bg-amber-100 text-amber-800 shrink-0'>
-                          1 yêu cầu sửa
-                        </span>
-                      </div>
-                      <div className='flex items-center justify-between text-[11px] text-zinc-600 font-sans'>
-                        <span>
-                          Người sửa: <strong>{cr.responsibleUserName}</strong>
-                        </span>
-                        <span className='text-red-600 font-bold'>
-                          Hạn: {new Date(cr.dueDate).toLocaleDateString('vi-VN')}
-                        </span>
-                      </div>
-                      {workspaceId && seriesId && (
-                        <button
-                          type='button'
-                          onClick={() =>
-                            navigate(
-                              `/workspaces/${workspaceId}/series/${seriesId}/my-work?chapterId=${cr.chapterId}&assignmentId=${cr.assignmentId}`,
-                            )
-                          }
-                          className='w-full text-center py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 rounded text-[11px] font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1'
-                        >
-                          <span>Xem yêu cầu cần sửa</span>
-                          <ArrowRight className='w-3 h-3' />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Overdue Assignments Section (if any) */}
-            {progress?.overdue && progress.overdue.length > 0 && (
-              <div className='bg-red-50/70 border border-red-200 rounded-xl p-3.5 space-y-2.5'>
-                <div className='flex items-center justify-between'>
-                  <div className='flex items-center gap-1.5'>
-                    <AlertTriangle className='w-4 h-4 text-red-600 shrink-0' />
-                    <h3 className='text-xs font-bold text-red-950 font-sans'>
-                      Danh Sách Công Việc Quá Hạn ({progress.overdue.length})
-                    </h3>
+                  <div>
+                    <h2 className='text-xs sm:text-sm font-bold text-zinc-900 font-sans tracking-wide uppercase'>
+                      Mục Cần Chú Ý &amp; Rủi Ro
+                    </h2>
+                    <p className='text-[11px] text-zinc-500'>Cảnh báo trễ hạn và yêu cầu sửa</p>
                   </div>
-                  <span className='text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-red-100 text-red-800 border border-red-200'>
-                    Cần xử lý
+                </div>
+                {overdueTotal > 0 ? (
+                  <span className='text-xs font-mono font-bold px-2 py-0.5 rounded bg-red-50 text-red-700 border border-red-200'>
+                    {overdueTotal} mục
                   </span>
-                </div>
-
-                <div className='space-y-2'>
-                  {progress.overdue.map((od) => (
-                    <div
-                      key={od.assignmentId}
-                      className='p-2.5 bg-white rounded-lg border border-red-200 shadow-2xs space-y-1.5 text-xs'
-                    >
-                      <div className='flex items-start justify-between gap-2'>
-                        <div className='font-semibold text-zinc-900 line-clamp-1'>
-                          {od.brief}
-                        </div>
-                        <span className='px-1.5 py-0.5 rounded text-[9.5px] font-mono font-bold bg-red-100 text-red-700 shrink-0'>
-                          {od.status}
-                        </span>
-                      </div>
-                      <div className='flex items-center justify-between text-[11px] text-zinc-600 font-sans'>
-                        <span>{od.assigneeName}</span>
-                        <span className='text-red-600 font-bold'>
-                          Hạn: {new Date(od.dueDate).toLocaleDateString('vi-VN')}
-                        </span>
-                      </div>
-                      {workspaceId && seriesId && (
-                        <button
-                          type='button'
-                          onClick={() =>
-                            navigate(
-                              `/workspaces/${workspaceId}/series/${seriesId}/my-work?chapterId=${od.chapterId}&assignmentId=${od.assignmentId}`,
-                            )
-                          }
-                          className='w-full text-center py-1 bg-red-50 hover:bg-red-100 text-red-800 border border-red-200 rounded text-[11px] font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1'
-                        >
-                          <span>Xem việc cần xử lý</span>
-                          <ArrowRight className='w-3 h-3' />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
+                ) : (
+                  <span className='inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200'>
+                    <CheckCircle2 className='w-3 h-3' />
+                    <span>Ổn định</span>
+                  </span>
+                )}
               </div>
-            )}
 
-            {/* Empty Attention State - Tinh tế và tối giản theo Manga Paper design */}
-            {(!progress?.overdue || progress.overdue.length === 0) &&
-              (!progress?.overdueChangeRequests || progress.overdueChangeRequests.length === 0) && (
-                <div className='py-6 px-4 text-center space-y-2 bg-zinc-50/50 rounded-xl border border-dashed border-zinc-200'>
-                  <div className='w-8 h-8 rounded-full bg-zinc-100 text-zinc-400 flex items-center justify-center mx-auto'>
-                    <CheckCircle2 className='w-4.5 h-4.5 text-zinc-400' />
+              {/* Overdue Change Requests Section (if any) */}
+              {progress?.overdueChangeRequests && progress.overdueChangeRequests.length > 0 && (
+                <div
+                  data-testid='overdue-cr-banner'
+                  className='bg-amber-50/70 border border-amber-200 rounded-xl p-3.5 space-y-2.5'
+                >
+                  <div className='flex flex-wrap items-center justify-between gap-2'>
+                    <div className='flex items-center gap-1.5'>
+                      <AlertCircle className='w-4 h-4 text-amber-700 shrink-0' />
+                      <h3 className='text-xs font-bold text-amber-950 font-sans'>
+                        Danh Sách Yêu Cầu Sửa Đổi Quá Hạn ({progress.overdueChangeRequests.length})
+                      </h3>
+                    </div>
+                    <button
+                      type='button'
+                      onClick={handleSendReminders}
+                      disabled={sendingReminders}
+                      className='px-2.5 py-1 rounded-md bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-semibold flex items-center gap-1 transition-colors cursor-pointer disabled:opacity-50'
+                      title='Gửi thông báo nhắc nhở đến người phụ trách yêu cầu sửa'
+                    >
+                      {sendingReminders ? (
+                        <Loader2 className='w-3 h-3 animate-spin' />
+                      ) : (
+                        <Bell className='w-3 h-3' />
+                      )}
+                      <span>{sendingReminders ? 'Đang gửi...' : 'Gửi thông báo nhắc hạn'}</span>
+                    </button>
                   </div>
-                  <p className='text-xs font-bold text-zinc-800'>
-                    Mọi thứ đang đi đúng tiến độ
-                  </p>
-                  <p className='text-[11px] text-zinc-500 max-w-xs mx-auto leading-relaxed'>
-                    Tất cả nhiệm vụ và yêu cầu sửa đổi trong Series đều đang nằm trong thời hạn xử lý.
-                  </p>
+
+                  <div className='space-y-2'>
+                    {progress.overdueChangeRequests.map((cr) => (
+                      <div
+                        key={cr.changeRequestId}
+                        data-testid={`overdue-cr-card-${cr.changeRequestId}`}
+                        className='p-2.5 bg-white rounded-lg border border-amber-200 shadow-2xs space-y-1.5 text-xs'
+                      >
+                        <div className='flex items-start justify-between gap-2'>
+                          <div className='font-semibold text-zinc-900 line-clamp-1'>
+                            {cr.description}
+                          </div>
+                          <span className='px-1.5 py-0.5 rounded text-[9.5px] font-mono font-bold bg-amber-100 text-amber-800 shrink-0'>
+                            1 yêu cầu sửa
+                          </span>
+                        </div>
+                        <div className='flex items-center justify-between text-[11px] text-zinc-600 font-sans'>
+                          <span>
+                            Người sửa: <strong>{cr.responsibleUserName}</strong>
+                          </span>
+                          <span className='text-red-600 font-bold'>
+                            Hạn: {new Date(cr.dueDate).toLocaleDateString('vi-VN')}
+                          </span>
+                        </div>
+                        {workspaceId && seriesId && (
+                          <button
+                            type='button'
+                            onClick={() =>
+                              navigate(
+                                `/workspaces/${workspaceId}/series/${seriesId}/my-work?chapterId=${cr.chapterId}&assignmentId=${cr.assignmentId}`,
+                              )
+                            }
+                            className='w-full text-center py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 rounded text-[11px] font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1'
+                          >
+                            <span>Xem yêu cầu cần sửa</span>
+                            <ArrowRight className='w-3 h-3' />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
+
+              {/* Overdue Assignments Section (if any) */}
+              {progress?.overdue && progress.overdue.length > 0 && (
+                <div className='bg-red-50/70 border border-red-200 rounded-xl p-3.5 space-y-2.5'>
+                  <div className='flex items-center justify-between'>
+                    <div className='flex items-center gap-1.5'>
+                      <AlertTriangle className='w-4 h-4 text-red-600 shrink-0' />
+                      <h3 className='text-xs font-bold text-red-950 font-sans'>
+                        Danh Sách Công Việc Quá Hạn ({progress.overdue.length})
+                      </h3>
+                    </div>
+                    <span className='text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-red-100 text-red-800 border border-red-200'>
+                      Cần xử lý
+                    </span>
+                  </div>
+
+                  <div className='space-y-2'>
+                    {progress.overdue.map((od) => (
+                      <div
+                        key={od.assignmentId}
+                        className='p-2.5 bg-white rounded-lg border border-red-200 shadow-2xs space-y-1.5 text-xs'
+                      >
+                        <div className='flex items-start justify-between gap-2'>
+                          <div className='font-semibold text-zinc-900 line-clamp-1'>
+                            {od.brief}
+                          </div>
+                          <span className='px-1.5 py-0.5 rounded text-[9.5px] font-mono font-bold bg-red-100 text-red-700 shrink-0'>
+                            {od.status}
+                          </span>
+                        </div>
+                        <div className='flex items-center justify-between text-[11px] text-zinc-600 font-sans'>
+                          <span>{od.assigneeName}</span>
+                          <span className='text-red-600 font-bold'>
+                            Hạn: {new Date(od.dueDate).toLocaleDateString('vi-VN')}
+                          </span>
+                        </div>
+                        {workspaceId && seriesId && (
+                          <button
+                            type='button'
+                            onClick={() =>
+                              navigate(
+                                `/workspaces/${workspaceId}/series/${seriesId}/my-work?chapterId=${od.chapterId}&assignmentId=${od.assignmentId}`,
+                              )
+                            }
+                            className='w-full text-center py-1 bg-red-50 hover:bg-red-100 text-red-800 border border-red-200 rounded text-[11px] font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1'
+                          >
+                            <span>Xem việc cần xử lý</span>
+                            <ArrowRight className='w-3 h-3' />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Empty Attention State - Tinh tế và tối giản theo Manga Paper design */}
+              {(!progress?.overdue || progress.overdue.length === 0) &&
+                (!progress?.overdueChangeRequests || progress.overdueChangeRequests.length === 0) && (
+                  <div className='flex-1 flex flex-col items-center justify-center py-6 px-4 text-center space-y-2 bg-zinc-50/50 rounded-xl border border-dashed border-zinc-200 min-h-[140px]'>
+                    <div className='w-8 h-8 rounded-full bg-zinc-100 text-zinc-400 flex items-center justify-center mx-auto'>
+                      <CheckCircle2 className='w-4.5 h-4.5 text-zinc-400' />
+                    </div>
+                    <p className='text-xs font-bold text-zinc-800'>
+                      Mọi thứ đang đi đúng tiến độ
+                    </p>
+                    <p className='text-[11px] text-zinc-500 max-w-xs mx-auto leading-relaxed'>
+                      Tất cả nhiệm vụ và yêu cầu sửa đổi trong Series đều đang nằm trong thời hạn xử lý.
+                    </p>
+                  </div>
+                )}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
       )}
 
       {/* 4. Tiến độ công đoạn của chương đang chọn (Ma trận công đoạn) */}
