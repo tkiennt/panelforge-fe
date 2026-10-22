@@ -28,6 +28,7 @@ import {
 } from '@/services/workspace.service';
 import { useConfirm } from '@/shared/context/ConfirmContext';
 import { useToast } from '@/shared/context/ToastContext';
+import { LucianInlineAlert } from '@/shared/components/lucian/LucianInlineAlert';
 import '@/styles/modules/lucian/lucian-285.css';
 
 export interface SeriesMembersModalProps {
@@ -80,6 +81,13 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [editingRole, setEditingRole] = useState('');
 
+  // Thông báo Alert trực tiếp bên trong Modal (thành công / lỗi / cảnh báo)
+  const [statusAlert, setStatusAlert] = useState<{
+    type: 'success' | 'danger' | 'warning' | 'info';
+    title: string;
+    message: string;
+  } | null>(null);
+
   const cardRef = useRef<HTMLDivElement>(null);
 
   const loadData = async () => {
@@ -116,6 +124,7 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
       setSeriesSearchQuery('');
       setFilterRole('ALL');
       setEditingUserId(null);
+      setStatusAlert(null);
     }
   }, [isOpen, seriesId, workspaceId]);
 
@@ -209,6 +218,12 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
         availableWorkspaceMembers.find((m) => m.userId === candidateUserId)?.fullName ||
         candidateUserId;
 
+      setStatusAlert({
+        type: 'success',
+        title: 'Thêm thành viên thành công',
+        message: `Đã gán "${memberName}" vào bộ truyện với vai trò ${roleToAdd}.`,
+      });
+
       toast.success(
         'Đã thêm vào truyện',
         `Đã gán "${memberName}" vào bộ truyện với vai trò ${roleToAdd}.`,
@@ -216,7 +231,13 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
       await loadData();
       onMembersChanged?.();
     } catch (err: any) {
-      toast.error('Thêm thất bại', err.message || 'Không thể thêm nhân sự vào bộ truyện');
+      const errorMsg = err.message || 'Không thể thêm nhân sự vào bộ truyện';
+      setStatusAlert({
+        type: 'danger',
+        title: 'Thêm thành viên thất bại',
+        message: errorMsg,
+      });
+      toast.error('Thêm thất bại', errorMsg);
     } finally {
       setActionLoadingId(null);
     }
@@ -229,12 +250,23 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
       await seriesService.updateSeriesMember(workspaceId, seriesId, userId, {
         seriesRole: newRole,
       });
+      setStatusAlert({
+        type: 'success',
+        title: 'Cập nhật thành công',
+        message: `Đã đổi vai trò thành viên thành ${newRole}.`,
+      });
       toast.success('Cập nhật thành công', `Đã đổi vai trò thành ${newRole}`);
       setEditingUserId(null);
       await loadData();
       onMembersChanged?.();
     } catch (err: any) {
-      toast.error('Cập nhật thất bại', err.message || 'Không thể đổi vai trò');
+      const errorMsg = err.message || 'Không thể đổi vai trò';
+      setStatusAlert({
+        type: 'danger',
+        title: 'Cập nhật thất bại',
+        message: errorMsg,
+      });
+      toast.error('Cập nhật thất bại', errorMsg);
     } finally {
       setActionLoadingId(null);
     }
@@ -244,6 +276,11 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
   const handleRemoveMember = async (member: SeriesMemberDto) => {
     const isProducer = (member.seriesRole || '').toLowerCase() === 'producer';
     if (isProducer) {
+      setStatusAlert({
+        type: 'warning',
+        title: 'Không thể xóa',
+        message: 'Producer và Owner của Workspace luôn mặc định là thành viên quản trị Series.',
+      });
       toast.warning(
         'Không thể xóa',
         'Producer và Owner của Workspace luôn mặc định là thành viên quản trị Series.',
@@ -264,11 +301,22 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
     setActionLoadingId(member.userId);
     try {
       await seriesService.removeSeriesMember(workspaceId, seriesId, member.userId);
+      setStatusAlert({
+        type: 'info',
+        title: 'Đã xóa khỏi Series',
+        message: `Đã loại "${member.fullName || member.email}" khỏi bộ truyện.`,
+      });
       toast.success('Đã xóa thành công', `Đã loại "${member.fullName || member.email}" khỏi bộ truyện`);
       await loadData();
       onMembersChanged?.();
     } catch (err: any) {
-      toast.error('Xóa thất bại', err.message || 'Không thể xóa thành viên khỏi bộ truyện');
+      const errorMsg = err.message || 'Không thể xóa thành viên khỏi bộ truyện';
+      setStatusAlert({
+        type: 'danger',
+        title: 'Xóa thất bại',
+        message: errorMsg,
+      });
+      toast.error('Xóa thất bại', errorMsg);
     } finally {
       setActionLoadingId(null);
     }
@@ -325,6 +373,19 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
             <X className='w-4.5 h-4.5' />
           </button>
         </div>
+
+        {/* In-Modal Alert Báo trạng thái thành công / thất bại */}
+        {statusAlert && (
+          <div className='px-4 sm:px-6 pt-3.5 pb-0 shrink-0'>
+            <LucianInlineAlert
+              type={statusAlert.type}
+              title={statusAlert.title}
+              description={statusAlert.message}
+              dismissible
+              onDismiss={() => setStatusAlert(null)}
+            />
+          </div>
+        )}
 
         {/* Body Layout: 2 Cột Trực Quan Thoáng Đãng */}
         <div className='flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6'>
