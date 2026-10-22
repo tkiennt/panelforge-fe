@@ -597,71 +597,87 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         }
       >
-        {/* Ngữ cảnh & đồng bộ */}
-        <div className='flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono text-[#57534E]'>
-          <span className='uppercase tracking-wider font-semibold break-words min-w-0'>
-            {workspaceName} / Tổng quan bộ truyện
-          </span>
+        {/* Ngữ cảnh & đồng bộ phong cách bản thảo Manga */}
+        <div className='flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono text-zinc-500'>
+          <div className='flex items-center gap-1.5 min-w-0'>
+            <span className='inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-orange-100/70 border border-orange-200/80 text-[#C2410C] text-[9.5px] font-bold tracking-wider uppercase'>
+              Bản Thảo Studio
+            </span>
+            <span className='text-zinc-400'>/</span>
+            <span className='uppercase tracking-wider font-semibold text-zinc-600 truncate'>
+              {workspaceName}
+            </span>
+          </div>
           {loading ? (
             <span className='inline-flex items-center gap-1.5 text-[#C2410C]'>
               <Loader2 className='w-3.5 h-3.5 animate-spin' />
               Đang nạp...
             </span>
           ) : progress?.generatedAt ? (
-            <span className='inline-flex items-center gap-1'>
-              <span className='w-1.5 h-1.5 rounded-full bg-emerald-500' />
-              Đồng bộ: {new Date(progress.generatedAt).toLocaleTimeString('vi-VN')}
+            <span className='inline-flex items-center gap-1.5 text-zinc-500'>
+              <span className='w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-2xs' />
+              <span>Đồng bộ: {new Date(progress.generatedAt).toLocaleTimeString('vi-VN')}</span>
             </span>
           ) : null}
         </div>
 
+        {/* Tiêu đề truyện Manga với nét cọ Sumi-e & con dấu ấn triện */}
         <div className='relative inline-block max-w-full'>
-          <h1
-            style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
-            className='pf-ink-bleed-title relative z-10 text-2xl sm:text-3xl lg:text-4xl font-bold text-[#1C1917] tracking-tight leading-tight break-words [overflow-wrap:anywhere]'
-            data-testid='series-title'
-          >
-            <span className='sr-only'>Tổng quan bộ truyện: </span>
-            {seriesTitle}
-          </h1>
+          <div className='flex items-center gap-2.5 flex-wrap'>
+            <h1
+              style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
+              className='pf-ink-bleed-title relative z-10 text-2xl sm:text-3xl lg:text-4xl font-bold text-zinc-900 tracking-tight leading-tight break-words [overflow-wrap:anywhere]'
+              data-testid='series-title'
+            >
+              <span className='sr-only'>Tổng quan bộ truyện: </span>
+              {seriesTitle}
+            </h1>
+            <span
+              title='Tác phẩm đang được xuất bản kỳ dài tập (Serial Manga Edition)'
+              className='inline-flex items-center px-1.5 py-0.5 rounded border border-red-300 bg-red-50 text-red-700 text-[10px] font-serif font-bold tracking-wider shadow-2xs uppercase select-none'
+            >
+              連載 · Serial
+            </span>
+          </div>
           <svg
-            className={`absolute -bottom-1.5 left-0 w-full max-w-[280px] h-[12px] pointer-events-none z-0 overflow-visible ${
+            className={`absolute -bottom-1.5 left-0 w-full max-w-[320px] h-[14px] pointer-events-none z-0 overflow-visible ${
               !hasAnimatedMount ? 'pf-brush-wipe' : ''
             }`}
-            viewBox='0 0 320 16'
+            viewBox='0 0 340 18'
             fill='none'
             aria-hidden='true'
           >
             <path
-              d='M 3 10 C 14 6.2, 40 8.5, 78 7.2 C 126 5.5, 192 9.5, 248 7.0 C 278 5.6, 304 7.2, 317 6.0 C 314 9.0, 286 11.2, 252 10.8 C 196 10.2, 134 13.0, 82 11.6 C 46 10.5, 16 12.2, 3 10 Z'
+              d='M 2 11 C 18 6.5, 48 9.0, 92 7.5 C 146 5.8, 218 10.0, 276 7.2 C 308 5.8, 328 7.6, 338 6.2 C 334 9.5, 304 12.0, 268 11.4 C 208 10.8, 142 14.0, 88 12.2 C 48 11.0, 16 13.0, 2 11 Z'
               fill='#F97316'
-              opacity='0.8'
+              opacity='0.85'
             />
           </svg>
         </div>
 
-        <div className='flex flex-wrap items-center gap-1.5 text-[11px] font-semibold font-mono text-[#57534E]'>
+        {/* Phân loại & Thông số tác phẩm dạng tem nhãn ấn bản truyện tranh */}
+        <div className='flex flex-wrap items-center gap-1.5 text-[11px] font-semibold font-mono text-zinc-600'>
           {seriesDetail?.storyArc && (
-            <span className='px-2 py-0.5 rounded-md bg-white/70 text-[#1C1917] border border-[#D8D2C5] break-words'>
+            <span className='px-2 py-0.5 rounded-md bg-white text-zinc-800 border border-zinc-200 shadow-2xs break-words'>
               {seriesDetail.storyArc}
             </span>
           )}
           {(seriesDetail?.format || activeProject?.format) && (
-            <span className='px-2 py-0.5 rounded-md bg-[#FFF2E6] text-[#C2410C] border border-[#FDBA74]'>
+            <span className='px-2 py-0.5 rounded-md bg-orange-50 text-[#C2410C] border border-orange-200/90 shadow-2xs font-bold'>
               {seriesDetail?.format || activeProject?.format}
             </span>
           )}
           {(seriesDetail?.genre || activeProject?.genres?.[0]) && (
-            <span className='px-2 py-0.5 rounded-md bg-white/70 text-[#1C1917] border border-[#D8D2C5]'>
+            <span className='px-2 py-0.5 rounded-md bg-white text-zinc-800 border border-zinc-200 shadow-2xs'>
               {seriesDetail?.genre || activeProject?.genres?.[0]}
             </span>
           )}
           {seriesDetail?.readingDirection && (
-            <span className='px-2 py-0.5 rounded-md bg-white/70 border border-[#D8D2C5]'>
+            <span className='px-2 py-0.5 rounded-md bg-white text-zinc-700 border border-zinc-200 shadow-2xs'>
               {seriesDetail.readingDirection === 'Vertical' ? 'Cuộn dọc' : 'Phải sang trái'}
             </span>
           )}
-          <span className='px-2 py-0.5 rounded-md bg-white/70 border border-[#D8D2C5]'>
+          <span className='px-2 py-0.5 rounded-md bg-zinc-50 text-zinc-700 border border-zinc-200 shadow-2xs'>
             {progress?.chapters.length || seriesDetail?.chaptersCount || 0} Chương
           </span>
         </div>
@@ -678,20 +694,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             return null;
           }
           return (
-            <p className='text-xs sm:text-[13px] text-[#44403C] leading-relaxed max-w-2xl break-words line-clamp-2'>
+            <p className='text-xs sm:text-[13px] text-zinc-700 leading-relaxed max-w-2xl break-words line-clamp-2'>
               {text}
             </p>
           );
         })()}
 
-        {/* Thanh tác vụ quản lý dự án & điều phối Studio */}
-        <div className='flex flex-wrap items-center justify-between gap-2.5 pt-2 border-t border-[#D8D2C5]/60'>
+        {/* Thanh tác vụ quản lý dự án & điều phối Studio (Đã bỏ Kiểm tra AI) */}
+        <div className='flex flex-wrap items-center justify-between gap-2.5 pt-2 border-t border-zinc-200/60'>
           <div className='flex flex-wrap items-center gap-1.5 sm:gap-2'>
             {seriesId && (
               <button
                 type='button'
                 onClick={() => setIsChapterModalOpen(true)}
-                className='h-8.5 px-3 rounded-lg bg-white/90 hover:bg-[#FFF2E6] border border-[#D8D2C5] hover:border-[#FDBA74] text-[#1C1917] hover:text-[#C2410C] text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors shadow-2xs'
+                className='h-8.5 px-3 rounded-lg bg-white hover:bg-orange-50 border border-zinc-200 hover:border-orange-300 text-zinc-800 hover:text-[#C2410C] text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors shadow-2xs'
                 title='Quản lý danh sách chương, kiểm duyệt và điều phối tập truyện'
               >
                 <BookOpen className='w-3.5 h-3.5 text-[#F97316]' />
@@ -700,19 +716,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             )}
             <button
               type='button'
-              onClick={handleAuditClick}
-              disabled={auditRunning}
-              className='h-8.5 px-3 rounded-lg bg-white/90 hover:bg-[#FFF2E6] border border-[#D8D2C5] hover:border-[#FDBA74] text-[#1C1917] hover:text-[#C2410C] text-xs font-semibold flex items-center gap-1.5 cursor-pointer disabled:opacity-70 transition-colors shadow-2xs'
-              title='Kiểm tra tính nhất quán model nhân vật và khung truyện với AI'
-            >
-              <Sparkles className={`w-3.5 h-3.5 text-purple-600 ${auditRunning ? 'animate-spin' : ''}`} />
-              <span>{auditRunning ? 'Đang kiểm tra...' : 'Kiểm tra AI'}</span>
-            </button>
-            <button
-              type='button'
               onClick={() => void fetchProgress()}
               disabled={loading}
-              className='h-8.5 px-2.5 rounded-lg bg-white/90 hover:bg-stone-50 border border-[#D8D2C5] text-[#57534E] hover:text-[#1C1917] text-xs font-medium flex items-center gap-1 cursor-pointer disabled:opacity-50 transition-colors shadow-2xs'
+              className='h-8.5 px-2.5 rounded-lg bg-white hover:bg-zinc-50 border border-zinc-200 text-zinc-600 hover:text-zinc-900 text-xs font-medium flex items-center gap-1 cursor-pointer disabled:opacity-50 transition-colors shadow-2xs'
               title='Làm mới dữ liệu tiến độ từ máy chủ'
             >
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
