@@ -507,7 +507,7 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                 )}
               </div>
               <h2 className='text-base font-bold text-[#171717] mt-0.5'>
-                Phân Công Nhiệm Vụ Sản Xuất
+                Giao Việc Mới {chapterNumber ? `– Chương ${chapterNumber}` : ''}
               </h2>
             </div>
           </div>
