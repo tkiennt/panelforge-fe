@@ -1497,136 +1497,342 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       )}
 
       {/* 4. Tiến độ công đoạn của chương đang chọn (Ma trận công đoạn) */}
-      {(activeTab === 'all' || activeTab === 'chapters') && selectedChapter && (
-        <section
-          aria-label='Ma trận công đoạn'
-          className='bg-white border border-zinc-200 rounded-2xl p-5 sm:p-6 shadow-xs space-y-4'
-        >
-          <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-100 pb-3'>
-            <div>
-              <h2
-                style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
-                className='text-lg font-bold text-zinc-900 flex items-center gap-2'
-              >
-                <Sliders className='w-4 h-4 text-[#F97316]' />
-                <span>Tiến độ công đoạn · Chương {selectedChapter.chapterNumber}</span>
-              </h2>
-              <p className='text-xs text-zinc-500 mt-0.5'>
-                Bảng đối chiếu trạng thái {selectedChapter.panelCount} Panel theo từng công đoạn sản xuất
-              </p>
-            </div>
-            <div className='flex items-center gap-2'>
-              <button
-                type='button'
-                onClick={() => {
-                  setAssignModalChapter({
-                    id: selectedChapter.chapterId,
-                    number: selectedChapter.chapterNumber,
-                  });
-                  setIsAssignModalOpen(true);
-                }}
-                className='px-3 py-1.5 rounded-lg bg-white hover:bg-orange-50 border border-zinc-200 hover:border-orange-200 text-zinc-700 hover:text-[#F97316] text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer'
-              >
-                <UserCheck className='w-3.5 h-3.5 text-zinc-500' />
-                <span>Giao Việc Cho Chương {selectedChapter.chapterNumber}</span>
-              </button>
-              {workspaceId && seriesId && (
+      {/* 4. Tiến độ công đoạn của chương đang chọn (Ma trận công đoạn) */}
+      {(activeTab === 'all' || activeTab === 'chapters') && selectedChapter && (() => {
+        const chapterTotalPanels = selectedChapter.panelCount || 0;
+        const chapterInProgress = selectedChapter.stages.reduce((s, st) => s + (st.inProgress || 0), 0);
+        const chapterInReview = selectedChapter.stages.reduce(
+          (s, st) => s + (st.submitted || 0) + (st.inReview || 0),
+          0,
+        );
+        const chapterChanges = selectedChapter.stages.reduce(
+          (s, st) => s + (st.changesRequested || 0),
+          0,
+        );
+        const chapterApproved = selectedChapter.stages.reduce((s, st) => s + (st.approved || 0), 0);
+
+        const renderCellCount = (
+          count: number,
+          tone:
+            | 'notStarted'
+            | 'inProgress'
+            | 'submitted'
+            | 'inReview'
+            | 'changesRequested'
+            | 'approved',
+        ) => {
+          if (count === 0) {
+            return <span className='text-zinc-300 font-normal select-none'>—</span>;
+          }
+          switch (tone) {
+            case 'notStarted':
+              return <span className='text-zinc-600 font-semibold'>{count}</span>;
+            case 'inProgress':
+              return (
+                <span className='inline-flex items-center justify-center min-w-6 px-1.5 py-0.5 rounded-md text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200/80 shadow-2xs'>
+                  {count}
+                </span>
+              );
+            case 'submitted':
+              return (
+                <span className='inline-flex items-center justify-center min-w-6 px-1.5 py-0.5 rounded-md text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200/80 shadow-2xs'>
+                  {count}
+                </span>
+              );
+            case 'inReview':
+              return (
+                <span className='inline-flex items-center justify-center min-w-6 px-1.5 py-0.5 rounded-md text-[11px] font-bold bg-purple-50 text-purple-800 border border-purple-200/80 shadow-2xs'>
+                  {count}
+                </span>
+              );
+            case 'changesRequested':
+              return (
+                <span className='inline-flex items-center justify-center min-w-6 px-1.5 py-0.5 rounded-md text-[11px] font-bold bg-red-50 text-red-700 border border-red-300/80 shadow-2xs ring-1 ring-red-400/20'>
+                  {count}
+                </span>
+              );
+            case 'approved':
+              return (
+                <span className='inline-flex items-center justify-center min-w-6 px-1.5 py-0.5 rounded-md text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80 shadow-2xs'>
+                  {count}
+                </span>
+              );
+          }
+        };
+
+        return (
+          <section
+            aria-label='Ma trận công đoạn'
+            className='bg-white border border-zinc-200 rounded-2xl p-5 sm:p-6 shadow-xs space-y-4'
+          >
+            {/* Header: Tiêu đề + Chuyển nhanh chương + Cụm nút hành động */}
+            <div className='flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-zinc-100 pb-4'>
+              <div className='space-y-1.5'>
+                <div className='flex items-center gap-2.5 flex-wrap'>
+                  <h2
+                    style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
+                    className='text-lg font-bold text-zinc-900 flex items-center gap-2'
+                  >
+                    <Sliders className='w-4.5 h-4.5 text-[#F97316]' />
+                    <span>Tiến độ công đoạn · Chương {selectedChapter.chapterNumber}</span>
+                  </h2>
+
+                  {/* Quick Chapter Selector Chips */}
+                  {progress?.chapters && progress.chapters.length > 1 && (
+                    <div className='flex items-center gap-1 bg-zinc-100/80 p-0.5 rounded-lg border border-zinc-200/60'>
+                      {progress.chapters.map((ch) => {
+                        const isSelected = ch.chapterId === selectedChapter.chapterId;
+                        return (
+                          <button
+                            key={ch.chapterId}
+                            type='button'
+                            onClick={() => setSelectedChapterId(ch.chapterId)}
+                            className={`px-2.5 py-0.5 rounded-md text-xs font-medium transition-all cursor-pointer ${
+                              isSelected
+                                ? 'bg-[#F97316] text-white shadow-2xs font-semibold'
+                                : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/60'
+                            }`}
+                          >
+                            Chương {ch.chapterNumber}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                <p className='text-xs text-zinc-500'>
+                  {chapterTotalPanels === 0 ? (
+                    <span className='text-zinc-500'>
+                      Chương hiện chưa có panel phân rã · Các công đoạn sẵn sàng cho phân bổ kịch bản & vẽ
+                    </span>
+                  ) : (
+                    <span>
+                      Bảng đối chiếu trạng thái {selectedChapter.panelCount} Panel theo từng công đoạn sản xuất
+                    </span>
+                  )}
+                </p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className='flex items-center gap-2 shrink-0'>
                 <button
                   type='button'
-                  onClick={() =>
-                    navigate(
-                      `/workspaces/${workspaceId}/series/${seriesId}/workspace?chapterId=${selectedChapter.chapterId}`,
-                    )
-                  }
-                  className='px-3.5 py-1.5 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs'
+                  onClick={() => {
+                    setAssignModalChapter({
+                      id: selectedChapter.chapterId,
+                      number: selectedChapter.chapterNumber,
+                    });
+                    setIsAssignModalOpen(true);
+                  }}
+                  className='px-3 py-1.5 rounded-lg bg-white hover:bg-orange-50 border border-zinc-200 hover:border-orange-200 text-zinc-700 hover:text-[#F97316] text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer'
                 >
-                  <ExternalLink className='w-3.5 h-3.5' />
-                  <span>Mở Pipeline</span>
+                  <UserCheck className='w-3.5 h-3.5 text-zinc-500' />
+                  <span>Giao Việc Cho Chương {selectedChapter.chapterNumber}</span>
                 </button>
-              )}
+                {workspaceId && seriesId && (
+                  <button
+                    type='button'
+                    onClick={() =>
+                      navigate(
+                        `/workspaces/${workspaceId}/series/${seriesId}/workspace?chapterId=${selectedChapter.chapterId}`,
+                      )
+                    }
+                    className='px-3.5 py-1.5 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs'
+                  >
+                    <ExternalLink className='w-3.5 h-3.5' />
+                    <span>Mở Pipeline</span>
+                  </button>
+                )}
+              </div>
             </div>
-          </div>
 
-          {selectedChapter.stages.length === 0 ? (
-            <div className='py-8 text-center text-xs text-zinc-500 bg-zinc-50/50 rounded-xl border border-dashed border-zinc-200'>
-              Chưa có công đoạn nào được thiết lập cho Series này.
+            {/* Chapter Pulse KPI Strip: Tóm tắt trạng thái của Chương đang chọn */}
+            <div className='grid grid-cols-2 sm:grid-cols-4 gap-2.5'>
+              <div className='p-2.5 rounded-xl bg-zinc-50 border border-zinc-200/70 flex items-center justify-between'>
+                <div>
+                  <span className='text-[11px] text-zinc-500 block font-medium'>Tổng Panel</span>
+                  <span className='text-base font-bold font-mono text-zinc-900'>
+                    {chapterTotalPanels} <span className='text-[11px] font-normal text-zinc-400'>khung</span>
+                  </span>
+                </div>
+                <div className='w-7 h-7 rounded-lg bg-white border border-zinc-200 text-zinc-500 flex items-center justify-center text-xs font-mono font-bold shadow-2xs'>
+                  #
+                </div>
+              </div>
+
+              <div className='p-2.5 rounded-xl bg-blue-50/50 border border-blue-200/60 flex items-center justify-between'>
+                <div>
+                  <span className='text-[11px] text-blue-700 block font-medium'>Đang Sản Xuất</span>
+                  <span className='text-base font-bold font-mono text-blue-900'>
+                    {chapterInProgress} <span className='text-[11px] font-normal text-blue-500'>panel</span>
+                  </span>
+                </div>
+                <div className='w-7 h-7 rounded-lg bg-blue-100/80 text-blue-700 flex items-center justify-center text-xs font-bold shadow-2xs'>
+                  ⚡
+                </div>
+              </div>
+
+              <div className='p-2.5 rounded-xl bg-purple-50/50 border border-purple-200/60 flex items-center justify-between'>
+                <div>
+                  <span className='text-[11px] text-purple-700 block font-medium'>Chờ Kiểm Duyệt</span>
+                  <span className='text-base font-bold font-mono text-purple-900'>
+                    {chapterInReview} <span className='text-[11px] font-normal text-purple-500'>panel</span>
+                  </span>
+                </div>
+                <div className='w-7 h-7 rounded-lg bg-purple-100/80 text-purple-700 flex items-center justify-center text-xs font-bold shadow-2xs'>
+                  👁️
+                </div>
+              </div>
+
+              <div
+                className={`p-2.5 rounded-xl border flex items-center justify-between ${
+                  chapterChanges > 0
+                    ? 'bg-red-50/60 border-red-200/80 text-red-900'
+                    : 'bg-emerald-50/50 border-emerald-200/60 text-emerald-900'
+                }`}
+              >
+                <div>
+                  <span className='text-[11px] block font-medium'>
+                    {chapterChanges > 0 ? 'Yêu Cầu Sửa Đổi' : 'Đã Duyệt Đạt Chuẩn'}
+                  </span>
+                  <span className='text-base font-bold font-mono'>
+                    {chapterChanges > 0 ? chapterChanges : chapterApproved}{' '}
+                    <span className='text-[11px] font-normal opacity-70'>panel</span>
+                  </span>
+                </div>
+                <div
+                  className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shadow-2xs ${
+                    chapterChanges > 0
+                      ? 'bg-red-100 text-red-700'
+                      : 'bg-emerald-100 text-emerald-700'
+                  }`}
+                >
+                  {chapterChanges > 0 ? '!' : '✓'}
+                </div>
+              </div>
             </div>
-          ) : (
-            <div className='overflow-x-auto rounded-xl border border-zinc-200 bg-white shadow-2xs'>
-              <table className='w-full text-xs text-left border-collapse'>
-                <thead>
-                  <tr className='border-b border-zinc-200 text-zinc-600 font-sans text-xs bg-zinc-50/70'>
-                    <th className='py-3 px-3.5 font-semibold'>Công Đoạn</th>
-                    <th className='py-3 px-2 text-center text-zinc-500 font-semibold'>Chưa làm</th>
-                    <th className='py-3 px-2 text-center text-blue-700 font-semibold'>Đang làm</th>
-                    <th className='py-3 px-2 text-center text-amber-700 font-semibold'>Đã nộp</th>
-                    <th className='py-3 px-2 text-center text-purple-700 font-semibold'>
-                      Đang duyệt
-                    </th>
-                    <th className='py-3 px-2 text-center text-red-700 font-semibold'>
-                      Yêu cầu sửa
-                    </th>
-                    <th className='py-3 px-2 text-center text-emerald-700 font-semibold'>
-                      Đã duyệt
-                    </th>
-                    <th className='py-3 px-3.5 text-right font-semibold'>Tiến độ</th>
-                  </tr>
-                </thead>
-                <tbody className='divide-y divide-zinc-100 font-mono tabular-nums'>
-                  {selectedChapter.stages.map((st) => {
-                    const total = selectedChapter.panelCount;
-                    const pct = total > 0 ? Math.round((st.approved / total) * 100) : 0;
 
-                    return (
-                      <tr key={st.stageId} className='hover:bg-zinc-50/70 transition-colors'>
-                        <td className='py-3 px-3.5 font-sans font-semibold text-zinc-900'>
-                          <div className='flex items-center gap-2'>
-                            <span className='w-4 h-4 rounded bg-zinc-900 text-white text-[10px] font-mono flex items-center justify-center shrink-0'>
-                              {st.stageOrder}
-                            </span>
-                            <span>{st.name}</span>
-                          </div>
-                        </td>
-                        <td className='py-3 px-2 text-center text-zinc-500 font-medium'>
-                          {st.notStarted}
-                        </td>
-                        <td className='py-3 px-2 text-center text-blue-600 font-semibold'>
-                          {st.inProgress}
-                        </td>
-                        <td className='py-3 px-2 text-center text-amber-600 font-semibold'>
-                          {st.submitted}
-                        </td>
-                        <td className='py-3 px-2 text-center text-purple-600 font-semibold'>
-                          {st.inReview}
-                        </td>
-                        <td className='py-3 px-2 text-center text-red-600 font-semibold'>
-                          {st.changesRequested}
-                        </td>
-                        <td className='py-3 px-2 text-center text-emerald-600 font-bold'>
-                          {st.approved}
-                        </td>
-                        <td className='py-3 px-3.5 text-right'>
-                          <div className='flex items-center justify-end gap-2'>
-                            <div className='w-16 bg-zinc-100 h-1.5 rounded-full overflow-hidden border border-zinc-200/50'>
-                              <div
-                                className='bg-emerald-600 h-full rounded-full'
-                                style={{ width: `${pct}%` }}
-                              />
+            {/* Context callout when chapter has 0 panels */}
+            {chapterTotalPanels === 0 && (
+              <div className='flex items-center justify-between gap-3 p-3 rounded-xl bg-orange-50/50 border border-orange-200/60 text-zinc-700 text-xs'>
+                <div className='flex items-center gap-2.5'>
+                  <div className='w-5 h-5 rounded-full bg-[#F97316]/10 text-[#F97316] flex items-center justify-center shrink-0 font-bold text-xs'>
+                    i
+                  </div>
+                  <span>
+                    Chương {selectedChapter.chapterNumber} chưa phân rã trang thành Panel. Các cột công đoạn đang ở trạng thái chuẩn bị.
+                  </span>
+                </div>
+                {workspaceId && seriesId && (
+                  <button
+                    type='button'
+                    onClick={() =>
+                      navigate(
+                        `/workspaces/${workspaceId}/series/${seriesId}/workspace?chapterId=${selectedChapter.chapterId}`,
+                      )
+                    }
+                    className='shrink-0 text-xs font-bold text-[#F97316] hover:text-[#EA580C] hover:underline flex items-center gap-1 cursor-pointer'
+                  >
+                    <span>Mở Pipeline chia khung</span>
+                    <ArrowRight className='w-3 h-3' />
+                  </button>
+                )}
+              </div>
+            )}
+
+            {selectedChapter.stages.length === 0 ? (
+              <div className='py-8 text-center text-xs text-zinc-500 bg-zinc-50/50 rounded-xl border border-dashed border-zinc-200'>
+                Chưa có công đoạn nào được thiết lập cho Series này.
+              </div>
+            ) : (
+              <div className='overflow-x-auto rounded-xl border border-zinc-200 bg-white shadow-2xs'>
+                <table className='w-full text-xs text-left border-collapse'>
+                  <thead>
+                    <tr className='border-b border-zinc-200 text-zinc-600 font-sans text-xs bg-zinc-50/70'>
+                      <th className='py-3 px-3.5 font-semibold text-zinc-700'>Công Đoạn</th>
+                      <th className='py-3 px-2 text-center text-zinc-500 font-semibold'>Chưa làm</th>
+                      <th className='py-3 px-2 text-center text-blue-700 font-semibold'>Đang làm</th>
+                      <th className='py-3 px-2 text-center text-amber-700 font-semibold'>Đã nộp</th>
+                      <th className='py-3 px-2 text-center text-purple-700 font-semibold'>
+                        Đang duyệt
+                      </th>
+                      <th className='py-3 px-2 text-center text-red-700 font-semibold'>
+                        Yêu cầu sửa
+                      </th>
+                      <th className='py-3 px-2 text-center text-emerald-700 font-semibold'>
+                        Đã duyệt
+                      </th>
+                      <th className='py-3 px-3.5 text-right font-semibold text-zinc-700'>Tiến độ</th>
+                    </tr>
+                  </thead>
+                  <tbody className='divide-y divide-zinc-100 font-mono tabular-nums'>
+                    {selectedChapter.stages.map((st) => {
+                      const total = selectedChapter.panelCount;
+                      const pct = total > 0 ? Math.round((st.approved / total) * 100) : 0;
+
+                      return (
+                        <tr
+                          key={st.stageId}
+                          className='hover:bg-amber-50/20 transition-colors'
+                        >
+                          <td className='py-3 px-3.5 font-sans font-semibold text-zinc-900'>
+                            <div className='flex items-center gap-2'>
+                              <span className='w-4.5 h-4.5 rounded bg-zinc-900 text-white text-[10px] font-mono flex items-center justify-center shrink-0 shadow-2xs'>
+                                {st.stageOrder}
+                              </span>
+                              <span className='font-medium text-zinc-900'>{st.name}</span>
                             </div>
-                            <span className='text-[11px] text-zinc-500 font-medium w-12 text-right'>
-                              {st.approved}/{total} ({pct}%)
-                            </span>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
-      )}
+                          </td>
+                          <td className='py-3 px-2 text-center'>
+                            {renderCellCount(st.notStarted, 'notStarted')}
+                          </td>
+                          <td className='py-3 px-2 text-center'>
+                            {renderCellCount(st.inProgress, 'inProgress')}
+                          </td>
+                          <td className='py-3 px-2 text-center'>
+                            {renderCellCount(st.submitted, 'submitted')}
+                          </td>
+                          <td className='py-3 px-2 text-center'>
+                            {renderCellCount(st.inReview, 'inReview')}
+                          </td>
+                          <td className='py-3 px-2 text-center'>
+                            {renderCellCount(st.changesRequested, 'changesRequested')}
+                          </td>
+                          <td className='py-3 px-2 text-center'>
+                            {renderCellCount(st.approved, 'approved')}
+                          </td>
+                          <td className='py-3 px-3.5 text-right'>
+                            {total === 0 ? (
+                              <div className='flex items-center justify-end text-zinc-400'>
+                                <span className='text-[11px] font-normal italic select-none'>—</span>
+                              </div>
+                            ) : (
+                              <div className='flex items-center justify-end gap-2.5'>
+                                <div className='w-16 bg-zinc-100 h-1.5 rounded-full overflow-hidden border border-zinc-200/50'>
+                                  <div
+                                    className={`h-full rounded-full transition-all duration-300 ${
+                                      pct === 100 ? 'bg-emerald-500' : 'bg-[#F97316]'
+                                    }`}
+                                    style={{ width: `${pct}%` }}
+                                  />
+                                </div>
+                                <span className='text-[11px] text-zinc-600 font-medium w-12 text-right'>
+                                  {st.approved}/{total} ({pct}%)
+                                </span>
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        );
+      })()}
 
       {/* 5. Xu hướng công việc & Phân công thành viên */}
       {(activeTab === 'all' || activeTab === 'team' || activeTab === 'reports') && (
