@@ -27,9 +27,16 @@ import {
   ExternalLink,
   ShieldCheck,
   HelpCircle,
+  MessageSquare,
+  Sparkles,
 } from 'lucide-react';
 import { BibleEntity, BibleCategory, MangaProject, normalizeWorkspaceRole } from '@/types';
-import { bibleService, BibleEntryRevisionDto, BibleEntryDto } from '@/services/bible.service';
+import {
+  bibleService,
+  BibleEntryRevisionDto,
+  BibleEntryDto,
+  BibleDesignQueueItemDto,
+} from '@/services/bible.service';
 import { seriesService } from '@/services/series.service';
 import { chapterService, ChapterDto } from '@/services/chapter.service';
 import { AddEntityModal } from './AddEntityModal';
@@ -372,8 +379,93 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
     }
   };
 
+  // Bible Design Queue State
+  const [designQueue, setDesignQueue] = useState<BibleDesignQueueItemDto[]>([]);
+  const [loadingQueue, setLoadingQueue] = useState(false);
+
+  // 2-tier Review: Rework Modal State
+  const [reworkModalOpen, setReworkModalOpen] = useState(false);
+  const [reworkTargetRev, setReworkTargetRev] = useState<BibleEntryRevisionDto | null>(null);
+  const [reworkReason, setReworkReason] = useState('');
+  const [submittingRework, setSubmittingRework] = useState(false);
+  const [endorsingRevId, setEndorsingRevId] = useState<string | null>(null);
+
+  const canReview = useMemo(() => {
+    return isProducer || currentUserRole === 'WRITER' || currentUserRole === 'EDITOR';
+  }, [isProducer, currentUserRole]);
+
+  const handleEndorseRevision = async (rev: BibleEntryRevisionDto) => {
+    if (!effectiveSeries?.id || !historyEntity) return;
+
+    setEndorsingRevId(rev.id);
+    try {
+      const updatedRev = await bibleService.endorseRevision(
+        effectiveSeries.id,
+        historyEntity.id,
+        rev.id,
+      );
+      onShowToast(
+        'Đã xác nhận thiết kế',
+        `Phiên bản v${rev.versionNumber} của "${historyEntity.name}" đã được xác nhận (Writer Endorsed).`,
+      );
+      setHistoryRevisions((prev) =>
+        prev.map((r) =>
+          r.id === rev.id ? { ...r, ...updatedRev, reviewStatus: 'WriterEndorsed' } : r,
+        ),
+      );
+      setRefreshTrigger((prev) => prev + 1);
+    } catch (err: any) {
+      onShowToast('Lỗi xác nhận thiết kế', err.message || 'Không thể xác nhận phiên bản này.');
+    } finally {
+      setEndorsingRevId(null);
+    }
+  };
+
+  const handleOpenReworkModal = (rev: BibleEntryRevisionDto) => {
+    setReworkTargetRev(rev);
+    setReworkReason('');
+    setReworkModalOpen(true);
+  };
+
+  const handleSubmitRework = async () => {
+    if (!effectiveSeries?.id || !historyEntity || !reworkTargetRev || !reworkReason.trim()) return;
+
+    setSubmittingRework(true);
+    try {
+      const updatedRev = await bibleService.requestReworkRevision(
+        effectiveSeries.id,
+        historyEntity.id,
+        reworkTargetRev.id,
+        { reworkReason: reworkReason.trim() },
+      );
+      onShowToast(
+        'Đã gửi yêu cầu vẽ lại',
+        `Đã tạo nhận xét yêu cầu vẽ lại cho phiên bản v${reworkTargetRev.versionNumber} của "${historyEntity.name}".`,
+      );
+      setHistoryRevisions((prev) =>
+        prev.map((r) =>
+          r.id === reworkTargetRev.id
+            ? {
+                ...r,
+                ...updatedRev,
+                reviewStatus: 'ReworkRequired',
+                reworkFeedback: reworkReason.trim(),
+              }
+            : r,
+        ),
+      );
+      setReworkModalOpen(false);
+      setRefreshTrigger((prev) => prev + 1);
+    } catch (err: any) {
+      onShowToast('Lỗi gửi yêu cầu vẽ lại', err.message || 'Không thể gửi yêu cầu vẽ lại.');
+    } finally {
+      setSubmittingRework(false);
+    }
+  };
+
   // Add Revision Modal State
   const [addRevModalOpen, setAddRevModalOpen] = useState(false);
+  const [isArtistConceptSubmit, setIsArtistConceptSubmit] = useState(false);
   const [revisionTarget, setRevisionTarget] = useState<BibleEntity | null>(null);
   const [supersedeTarget, setSupersedeTarget] = useState<BibleEntryRevisionDto | null>(null);
   const [revisionSummary, setRevisionSummary] = useState('');
@@ -502,8 +594,25 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
     }
   };
 
+  const fetchDesignQueue = async () => {
+    if (!effectiveSeries?.id) {
+      setDesignQueue([]);
+      return;
+    }
+    setLoadingQueue(true);
+    try {
+      const queue = await bibleService.getBibleDesignQueue(effectiveSeries.id);
+      setDesignQueue(queue || []);
+    } catch {
+      setDesignQueue([]);
+    } finally {
+      setLoadingQueue(false);
+    }
+  };
+
   useEffect(() => {
     void fetchBible();
+    void fetchDesignQueue();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveSeries?.id, effectiveChapter, refreshTrigger]);
 
@@ -735,6 +844,83 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
           </div>
         </div>
       </div>
+
+      {/* V2.5: Bible Design Queue cho Artist & Writer */}
+      {designQueue.length > 0 && (
+        <div
+          className='bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/90 rounded-xl p-3.5 sm:p-4 shadow-xs'
+          data-testid='bible-design-queue-widget'
+        >
+          <div className='flex items-center justify-between gap-2 mb-2.5'>
+            <div className='flex items-center gap-2'>
+              <div className='w-6 h-6 rounded-lg bg-orange-100 border border-orange-300 flex items-center justify-center text-orange-700'>
+                <Palette className='w-3.5 h-3.5' />
+              </div>
+              <h2 className='text-xs sm:text-sm font-bold text-amber-950 font-serif'>
+                Hàng đợi vẽ thiết kế Concept Art ({designQueue.length} mục chờ xử lý)
+              </h2>
+            </div>
+            <span className='text-[11px] text-amber-800 font-medium hidden sm:inline'>
+              Artist &amp; Writer phối hợp thiết kế trước khi đưa vào sản xuất chương
+            </span>
+          </div>
+
+          <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5'>
+            {designQueue.map((item) => {
+              const matchedEntity = localEntities.find((e) => e.id === item.entryId);
+              return (
+                <div
+                  key={item.entryId}
+                  className='bg-white/95 rounded-lg border border-amber-200 p-2.5 flex items-center justify-between gap-2 hover:border-orange-400 transition-colors shadow-2xs'
+                >
+                  <div className='min-w-0 flex-1'>
+                    <div className='flex items-center gap-1.5 flex-wrap'>
+                      <span className='font-mono font-bold text-[10px] px-1.5 py-0.2 bg-zinc-100 text-zinc-800 rounded'>
+                        {item.code}
+                      </span>
+                      <span className='font-semibold text-xs text-zinc-900 truncate'>
+                        {item.name}
+                      </span>
+                    </div>
+                    <div className='flex items-center gap-1 mt-1'>
+                      {item.reviewStatus === 'ReworkRequired' || item.reviewStatus === 3 ? (
+                        <span className='px-1.5 py-0.2 rounded bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-semibold'>
+                          ⚠️ Yêu cầu vẽ lại
+                        </span>
+                      ) : (
+                        <span className='px-1.5 py-0.2 rounded bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-semibold'>
+                          Chờ nộp Concept Art
+                        </span>
+                      )}
+                      <span className='text-[10px] text-zinc-500 font-mono'>
+                        Ch.{item.effectiveFromChapterNumber}
+                      </span>
+                    </div>
+                    {item.reworkFeedback && (
+                      <p className='text-[10px] text-rose-800 truncate mt-0.5 italic'>
+                        &quot;{item.reworkFeedback}&quot;
+                      </p>
+                    )}
+                  </div>
+
+                  <button
+                    type='button'
+                    onClick={() => {
+                      if (matchedEntity) {
+                        void handleOpenAddRevision(matchedEntity);
+                      }
+                    }}
+                    className='px-2.5 py-1 bg-orange-600 hover:bg-orange-700 text-white rounded text-[11px] font-semibold shrink-0 cursor-pointer transition-colors shadow-2xs flex items-center gap-1'
+                  >
+                    <Upload className='w-3 h-3' />
+                    <span>Tải ảnh</span>
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Thanh công cụ tra cứu tích hợp (Category Tabs + Search + Chapter + Filters + View Mode) */}
       <div className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl p-3 sm:p-4 shadow-xs space-y-3'>
@@ -1444,9 +1630,22 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                                   </span>
                                 ) : (
                                   <span className='px-2 py-0.5 rounded bg-zinc-100 text-zinc-600 border border-zinc-200 text-[10px] font-medium'>
-                                    Bản nháp – chờ Producer duyệt
+                                    Bản nháp / Chưa khóa
                                   </span>
                                 )}
+                                {rev.reviewStatus === 'WriterEndorsed' ? (
+                                  <span className='px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300 text-[10px] font-semibold'>
+                                    ✓ Writer Endorsed
+                                  </span>
+                                ) : rev.reviewStatus === 'ConceptSubmitted' ? (
+                                  <span className='px-2 py-0.5 rounded bg-blue-100 text-blue-800 border border-blue-300 text-[10px] font-semibold'>
+                                    🎨 Concept Submitted
+                                  </span>
+                                ) : rev.reviewStatus === 'ReworkRequired' ? (
+                                  <span className='px-2 py-0.5 rounded bg-rose-100 text-rose-800 border border-rose-300 text-[10px] font-semibold'>
+                                    ⚠️ Cần vẽ lại
+                                  </span>
+                                ) : null}
                               </div>
                               <span className='text-[10px] font-mono text-zinc-500 flex items-center gap-1'>
                                 <Clock className='w-3 h-3' />
@@ -1455,6 +1654,12 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                             </div>
 
                             <div className='text-xs font-semibold text-zinc-900'>{rev.summary}</div>
+
+                            {rev.reworkFeedback && (
+                              <div className='p-2 bg-rose-50 border border-rose-200 rounded text-rose-900 text-xs'>
+                                <strong>Nhận xét yêu cầu sửa:</strong> {rev.reworkFeedback}
+                              </div>
+                            )}
 
                             <div className='flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-zinc-200/70'>
                               <div className='flex items-center gap-2'>
@@ -1471,41 +1676,71 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                                 </span>
                               </div>
 
-                              {!rev.isLocked &&
-                                historyEntity?.category === 'characters' &&
-                                isProducer && (
-                                  <button
-                                    type='button'
-                                    disabled={lockingRevisionId === rev.id}
-                                    onClick={() => void handleLockRevision(rev)}
-                                    className='px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-semibold flex items-center gap-1 transition-colors shadow-2xs disabled:opacity-50 cursor-pointer'
-                                    title='Producer phê duyệt và khoá phiên bản này làm tham chiếu chuẩn'
-                                  >
-                                    <Lock className='w-3 h-3' />
-                                    <span>
-                                      {lockingRevisionId === rev.id
-                                        ? 'Đang khoá...'
-                                        : 'Duyệt & Khoá Character Sheet'}
-                                    </span>
-                                  </button>
+                              <div className='flex items-center gap-1.5 flex-wrap'>
+                                {canReview && !rev.isLocked && (
+                                  <>
+                                    <button
+                                      type='button'
+                                      disabled={endorsingRevId === rev.id}
+                                      onClick={() => void handleEndorseRevision(rev)}
+                                      className='px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold flex items-center gap-1 transition-colors shadow-2xs cursor-pointer'
+                                      title='Writer / Editor xác nhận thiết kế đạt chuẩn'
+                                    >
+                                      <CheckCircle2 className='w-3 h-3' />
+                                      <span>
+                                        {endorsingRevId === rev.id
+                                          ? 'Đang duyệt...'
+                                          : 'Duyệt thiết kế'}
+                                      </span>
+                                    </button>
+                                    <button
+                                      type='button'
+                                      onClick={() => handleOpenReworkModal(rev)}
+                                      className='px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 text-[11px] font-semibold flex items-center gap-1 transition-colors shadow-2xs cursor-pointer'
+                                      title='Yêu cầu Artist vẽ lại theo nhận xét'
+                                    >
+                                      <MessageSquare className='w-3 h-3' />
+                                      <span>Yêu cầu sửa</span>
+                                    </button>
+                                  </>
                                 )}
-                              {rev.isLocked &&
-                                historyEntity?.category === 'characters' &&
-                                isProducer && (
-                                  <button
-                                    type='button'
-                                    onClick={() => {
-                                      if (!historyEntity) return;
-                                      setHistoryModalOpen(false);
-                                      void handleOpenAddRevision(historyEntity, rev);
-                                    }}
-                                    className='px-2.5 py-1 rounded-lg bg-zinc-600 hover:bg-zinc-700 text-white text-[11px] font-semibold flex items-center gap-1 transition-colors shadow-2xs cursor-pointer'
-                                    title='Tạo bản mới cùng chương thay cho bản khoá này'
-                                  >
-                                    <Lock className='w-3 h-3' />
-                                    <span>Thay thế bản khoá</span>
-                                  </button>
-                                )}
+
+                                {!rev.isLocked &&
+                                  historyEntity?.category === 'characters' &&
+                                  isProducer && (
+                                    <button
+                                      type='button'
+                                      disabled={lockingRevisionId === rev.id}
+                                      onClick={() => void handleLockRevision(rev)}
+                                      className='px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-semibold flex items-center gap-1 transition-colors shadow-2xs disabled:opacity-50 cursor-pointer'
+                                      title='Producer phê duyệt và khoá phiên bản này làm tham chiếu chuẩn Canon'
+                                    >
+                                      <Lock className='w-3 h-3' />
+                                      <span>
+                                        {lockingRevisionId === rev.id
+                                          ? 'Đang khoá...'
+                                          : 'Duyệt & Khoá Canon'}
+                                      </span>
+                                    </button>
+                                  )}
+                                {rev.isLocked &&
+                                  historyEntity?.category === 'characters' &&
+                                  isProducer && (
+                                    <button
+                                      type='button'
+                                      onClick={() => {
+                                        if (!historyEntity) return;
+                                        setHistoryModalOpen(false);
+                                        void handleOpenAddRevision(historyEntity, rev);
+                                      }}
+                                      className='px-2.5 py-1 rounded-lg bg-zinc-600 hover:bg-zinc-700 text-white text-[11px] font-semibold flex items-center gap-1 transition-colors shadow-2xs cursor-pointer'
+                                      title='Tạo bản mới cùng chương thay cho bản khoá này'
+                                    >
+                                      <Lock className='w-3 h-3' />
+                                      <span>Thay thế bản khoá</span>
+                                    </button>
+                                  )}
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -1907,6 +2142,81 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                   <span>
                     {savingRevision ? 'Đang lưu...' : isProducer ? 'Lưu phiên bản' : 'Gửi bản nháp'}
                   </span>
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
+
+      {/* REWORK MODAL PORTAL */}
+      {reworkModalOpen &&
+        reworkTargetRev &&
+        createPortal(
+          <div
+            className='fixed inset-0 bg-black/60 backdrop-blur-xs z-[1000] flex items-center justify-center p-4'
+            role='dialog'
+            aria-modal='true'
+          >
+            <div className='bg-white rounded-2xl max-w-md w-full border border-zinc-200 shadow-2xl p-5 space-y-4 animate-in fade-in zoom-in-95 duration-150'>
+              <div className='flex items-center justify-between border-b border-zinc-100 pb-3'>
+                <div className='flex items-center gap-2'>
+                  <div className='w-7 h-7 rounded-lg bg-rose-100 text-rose-700 flex items-center justify-center'>
+                    <MessageSquare className='w-4 h-4' />
+                  </div>
+                  <div>
+                    <h3 className='font-bold text-sm text-zinc-900'>
+                      Yêu cầu vẽ lại thiết kế (Rework)
+                    </h3>
+                    <p className='text-[11px] text-zinc-500'>
+                      Phiên bản v{reworkTargetRev.versionNumber} của &quot;{historyEntity?.name}
+                      &quot;
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type='button'
+                  onClick={() => setReworkModalOpen(false)}
+                  className='p-1 rounded-lg hover:bg-zinc-100 text-zinc-400 hover:text-zinc-700'
+                >
+                  <X className='w-4 h-4' />
+                </button>
+              </div>
+
+              <div>
+                <label className='block text-xs font-semibold text-zinc-800 mb-1.5'>
+                  Nhận xét chi tiết cho Artist (Lý do chưa chuẩn / Rắc-co) *
+                </label>
+                <textarea
+                  rows={4}
+                  required
+                  placeholder='Ví dụ: Kiểu tóc chưa đúng với nguyên tác, màu trang phục cần chỉnh lại thành màu xanh đậm, thiếu biểu cảm giận dữ...'
+                  value={reworkReason}
+                  onChange={(e) => setReworkReason(e.target.value)}
+                  className='w-full px-3 py-2 bg-[#FAF8F5] border border-zinc-300 rounded-lg text-xs text-zinc-900 focus:outline-none focus:border-rose-500 resize-none'
+                />
+                <p className='text-[10px] text-zinc-500 mt-1'>
+                  Ghi chú này sẽ được chuyển ngay đến hàng đợi vẽ của Artist để vẽ bản cập nhật tiếp
+                  theo.
+                </p>
+              </div>
+
+              <div className='flex items-center justify-end gap-2 pt-2 border-t border-zinc-100'>
+                <button
+                  type='button'
+                  onClick={() => setReworkModalOpen(false)}
+                  className='px-3.5 py-1.5 border border-zinc-200 rounded-lg text-xs font-semibold text-zinc-600 hover:bg-zinc-50'
+                >
+                  Hủy
+                </button>
+                <button
+                  type='button'
+                  disabled={!reworkReason.trim() || submittingRework}
+                  onClick={() => void handleSubmitRework()}
+                  className='px-4 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold disabled:opacity-50 flex items-center gap-1.5 shadow-2xs'
+                >
+                  <MessageSquare className='w-3.5 h-3.5' />
+                  <span>{submittingRework ? 'Đang gửi...' : 'Gửi yêu cầu vẽ lại'}</span>
                 </button>
               </div>
             </div>

@@ -305,7 +305,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
         {/* Scrollable Body */}
         <div className='p-4 sm:p-6 overflow-y-auto space-y-4 sm:space-y-5 flex-1 custom-scrollbar'>
           {/* Trạng thái: Canon/khóa và thông tin hiệu lực theo chương */}
-          {entity.isLocked ? (
+          {entity.isLocked || effectiveRevision?.reviewStatus === 'CanonLocked' ? (
             <div className='p-3 sm:p-3.5 bg-amber-50/90 border border-amber-200 rounded-xl flex items-start gap-3 text-xs text-amber-950'>
               <div className='w-7 h-7 rounded-lg bg-amber-100 border border-amber-300/70 flex items-center justify-center text-amber-700 shrink-0 mt-0.5'>
                 <Lock className='w-4 h-4' />
@@ -313,7 +313,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
               <div className='space-y-1 flex-1 min-w-0'>
                 <div className='flex items-center gap-2 flex-wrap'>
                   <span className='font-bold uppercase tracking-wider text-[10px] bg-amber-200/90 text-amber-900 px-2 py-0.5 rounded'>
-                    Canon đã khoá
+                    🔒 Canon đã khoá
                   </span>
                   <span className='text-[11px] font-semibold text-amber-900 bg-amber-100/90 px-2 py-0.5 rounded border border-amber-300/60'>
                     {effectiveRevision?.stageName ? `${effectiveRevision.stageName} · ` : ''}
@@ -329,8 +329,8 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                   )}
                 </div>
                 <p className='text-xs text-amber-900/90 leading-relaxed'>
-                  Bản thiết kế đã được Producer phê duyệt chính thức. Hoạ sĩ và các bộ phận sản xuất
-                  sử dụng bản vẽ này làm quy chuẩn tham chiếu duy nhất.
+                  Bản thiết kế đã được Producer phê duyệt chính thức (Canon Locked). Hoạ sĩ và các
+                  bộ phận sản xuất sử dụng bản vẽ này làm quy chuẩn tham chiếu duy nhất.
                 </p>
               </div>
             </div>
@@ -339,9 +339,25 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
               <div className='w-7 h-7 rounded-lg bg-zinc-100 border border-zinc-200 flex items-center justify-center text-zinc-500 shrink-0 mt-0.5'>
                 <HelpCircle className='w-4 h-4' />
               </div>
-              <div className='space-y-1 flex-1 min-w-0'>
+              <div className='space-y-1.5 flex-1 min-w-0'>
                 <div className='flex items-center gap-2 flex-wrap'>
-                  <span className='font-semibold text-zinc-900'>Bản nháp – chờ Producer duyệt</span>
+                  {effectiveRevision?.reviewStatus === 'WriterEndorsed' ? (
+                    <span className='font-semibold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded text-[11px]'>
+                      ✓ Writer đã duyệt (Chờ Producer khóa Canon)
+                    </span>
+                  ) : effectiveRevision?.reviewStatus === 'ConceptSubmitted' ? (
+                    <span className='font-semibold text-blue-800 bg-blue-100 px-2 py-0.5 rounded text-[11px]'>
+                      🎨 Concept đã nộp (Chờ Writer/Editor duyệt)
+                    </span>
+                  ) : effectiveRevision?.reviewStatus === 'ReworkRequired' ? (
+                    <span className='font-semibold text-rose-800 bg-rose-100 px-2 py-0.5 rounded text-[11px]'>
+                      ⚠️ Cần vẽ lại (Rework Required)
+                    </span>
+                  ) : (
+                    <span className='font-semibold text-zinc-900'>
+                      Bản nháp / Đặc tả kịch bản (Chờ Artist vẽ)
+                    </span>
+                  )}
                   <span className='text-[11px] font-medium text-zinc-600 bg-zinc-200/80 px-2 py-0.5 rounded'>
                     {effectiveRevision?.stageName ? `${effectiveRevision.stageName} · ` : ''}
                     Ch.{effectiveRevision?.effectiveFromChapterNumber ?? 1}
@@ -350,9 +366,14 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                       : ' → hết'}
                   </span>
                 </div>
+                {effectiveRevision?.reworkFeedback && (
+                  <div className='p-2 bg-rose-50 border border-rose-200 rounded text-rose-900 text-xs'>
+                    <strong>Ghi chú nhận xét:</strong> {effectiveRevision.reworkFeedback}
+                  </div>
+                )}
                 <p className='text-xs text-zinc-600 leading-relaxed'>
-                  Mục này chưa chốt quy chuẩn chính thức. Producer có thể kiểm tra các phiên bản và
-                  khoá làm tham chiếu Canon trong mục Lịch sử.
+                  Quy trình duyệt 2 tầng: Writer tạo đặc tả ➔ Artist vẽ tải lên ➔ Writer/Editor kiểm
+                  duyệt ➔ Producer bấm khóa Canon.
                 </p>
               </div>
             </div>
@@ -523,7 +544,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                     </p>
                   </div>
                 </div>
-                {isProducer && (
+                {(isProducer || canCreateDraft) && (
                   <button
                     type='button'
                     onClick={() => {

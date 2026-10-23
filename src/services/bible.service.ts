@@ -6,6 +6,9 @@ export type BibleCategory =
 
 export type BiblePriority = 'Low' | 'Standard' | 'StrictCheck' | 'High' | 'CanonCritical' | number;
 
+export type BibleReviewStatus =
+  'Draft' | 'ConceptSubmitted' | 'ReworkRequired' | 'WriterEndorsed' | 'CanonLocked' | number;
+
 export interface BibleEntryRevisionDto {
   id: string;
   bibleEntryId: string;
@@ -14,6 +17,9 @@ export interface BibleEntryRevisionDto {
   snapshotJson: string;
   contentHash: string;
   authorId?: string | null;
+  artistUserId?: string | null;
+  reviewStatus?: BibleReviewStatus;
+  reworkFeedback?: string | null;
   associatedChapterId?: string | null;
   effectiveFromChapterNumber: number;
   isInitialVersion: boolean;
@@ -244,4 +250,105 @@ export const bibleService = {
       throw extractError(error, 'Không thể thay thế bản đã khoá.');
     }
   },
+
+  /**
+   * Lấy hàng đợi thiết kế Series Bible cho Artist (các mục Draft hoặc ReworkRequired)
+   */
+  async getBibleDesignQueue(seriesId: string): Promise<BibleDesignQueueItemDto[]> {
+    try {
+      const response = await axiosClient.get(`/series/${seriesId}/bible/design-queue`);
+      return response.data;
+    } catch (error) {
+      throw extractError(error, 'Không thể tải hàng đợi thiết kế Series Bible.');
+    }
+  },
+
+  /**
+   * Artist nộp bản vẽ Concept Art/Model Sheet
+   */
+  async submitConceptArt(
+    seriesId: string,
+    entryId: string,
+    data: SubmitConceptArtRequest,
+  ): Promise<BibleEntryRevisionDto> {
+    try {
+      const response = await axiosClient.post(
+        `/series/${seriesId}/bible/entries/${entryId}/concept`,
+        data,
+      );
+      return response.data;
+    } catch (error) {
+      throw extractError(error, 'Không thể nộp bản vẽ Concept Art.');
+    }
+  },
+
+  /**
+   * Writer/Editor xác nhận thiết kế (Endorse)
+   */
+  async endorseRevision(
+    seriesId: string,
+    entryId: string,
+    revisionId: string,
+    data?: EndorseBibleRevisionRequest,
+  ): Promise<BibleEntryRevisionDto> {
+    try {
+      const response = await axiosClient.post(
+        `/series/${seriesId}/bible/entries/${entryId}/revisions/${revisionId}/endorse`,
+        data ?? {},
+      );
+      return response.data;
+    } catch (error) {
+      throw extractError(error, 'Không thể xác nhận thiết kế.');
+    }
+  },
+
+  /**
+   * Writer/Editor yêu cầu sửa đổi thiết kế (Rework)
+   */
+  async requestReworkRevision(
+    seriesId: string,
+    entryId: string,
+    revisionId: string,
+    data: RequestReworkBibleRevisionRequest,
+  ): Promise<BibleEntryRevisionDto> {
+    try {
+      const response = await axiosClient.post(
+        `/series/${seriesId}/bible/entries/${entryId}/revisions/${revisionId}/request-rework`,
+        data,
+      );
+      return response.data;
+    } catch (error) {
+      throw extractError(error, 'Không thể gửi yêu cầu vẽ lại thiết kế.');
+    }
+  },
 };
+
+export interface BibleDesignQueueItemDto {
+  entryId: string;
+  code: string;
+  name: string;
+  category: BibleCategory;
+  latestRevisionId: string;
+  reviewStatus: BibleReviewStatus;
+  reworkFeedback?: string | null;
+  artistUserId?: string | null;
+  referenceImageUrl?: string | null;
+  effectiveFromChapterNumber: number;
+  updatedAt: string;
+}
+
+export interface SubmitConceptArtRequest {
+  imageAssetUrl: string;
+  imageSha256: string;
+  stageName?: string;
+  note?: string;
+  effectiveFromChapterNumber?: number;
+}
+
+export interface EndorseBibleRevisionRequest {
+  endorsementNote?: string;
+}
+
+export interface RequestReworkBibleRevisionRequest {
+  reworkReason: string;
+}

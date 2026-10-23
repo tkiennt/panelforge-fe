@@ -18,6 +18,9 @@ export interface ChapterDto {
   status?: ChapterStatus;
   publishedAt?: string | null;
   outline?: string | null;
+  isScriptFrozen?: boolean;
+  scriptFrozenAt?: string | null;
+  scriptFrozenById?: string | null;
 }
 
 export interface PagedResult<T> {
@@ -269,4 +272,65 @@ export const chapterService = {
       throw new Error(extractError(error, 'Không thể cập nhật đề cương chương.'));
     }
   },
+
+  /**
+   * Kiểm tra rào chắn Series Bible theo Chương (Chapter-Scoped Bible Gate)
+   */
+  checkBibleGate: async (chapterId: string): Promise<ChapterBibleGateResultDto> => {
+    try {
+      const response = await axiosClient.get(`/chapters/${chapterId}/bible-gate`);
+      return response.data;
+    } catch (error) {
+      throw new Error(extractError(error, 'Không thể kiểm tra Chapter Bible Gate.'));
+    }
+  },
+
+  /**
+   * Producer duyệt kịch bản và bắt đầu sản xuất hình ảnh (Freeze Script & Unlock Thumbnail)
+   */
+  freezeScript: async (chapterId: string): Promise<any> => {
+    try {
+      const response = await axiosClient.post(`/chapters/${chapterId}/freeze-script`);
+      return response.data;
+    } catch (error) {
+      throw new Error(extractError(error, 'Không thể đóng băng kịch bản để bắt đầu sản xuất.'));
+    }
+  },
+
+  /**
+   * Producer mở lại kịch bản (Unfreeze Script)
+   */
+  unfreezeScript: async (chapterId: string, reason?: string): Promise<any> => {
+    try {
+      const response = await axiosClient.post(`/chapters/${chapterId}/unfreeze-script`, { reason });
+      return response.data;
+    } catch (error) {
+      throw new Error(extractError(error, 'Không thể mở lại kịch bản.'));
+    }
+  },
 };
+
+export interface ChapterBibleGateItemDto {
+  bibleEntryId: string;
+  code: string;
+  name: string;
+  category: string;
+  isReferencedAsSpeaker: boolean;
+  isReferencedInScriptLink: boolean;
+  hasEffectiveRevision: boolean;
+  isLocked: boolean;
+  effectiveRevisionVersion?: number | null;
+  effectiveFromChapterNumber?: number | null;
+  warningCode?: string | null;
+  warningMessage?: string | null;
+}
+
+export interface ChapterBibleGateResultDto {
+  chapterId: string;
+  chapterNumber: number;
+  isPassed: boolean;
+  totalReferencedEntries: number;
+  lockedCount: number;
+  pendingCount: number;
+  items: ChapterBibleGateItemDto[];
+}

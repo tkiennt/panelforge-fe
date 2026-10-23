@@ -32,6 +32,7 @@ import {
   PanelLeftClose,
   PanelLeft,
   Check,
+  Lock,
 } from 'lucide-react';
 import {
   scriptLineService,
@@ -44,7 +45,7 @@ import {
   UpdateSceneRequest,
   NarrationMode,
 } from '@/services/scriptLine.service';
-import { chapterService, ChapterDto } from '@/services/chapter.service';
+import { chapterService, ChapterDto, ChapterBibleGateResultDto } from '@/services/chapter.service';
 import { bibleService, BibleEntryDto } from '@/services/bible.service';
 import { seriesService, SeriesDetailDto } from '@/services/series.service';
 import {
@@ -203,6 +204,12 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
 
+  // V2.5: Chapter-Scoped Bible Gate & Script Freeze Gate
+  const [bibleGateResult, setBibleGateResult] = useState<ChapterBibleGateResultDto | null>(null);
+  const [loadingBibleGate, setLoadingBibleGate] = useState(false);
+  const [freezingScript, setFreezingScript] = useState(false);
+  const [bibleGateModalOpen, setBibleGateModalOpen] = useState(false);
+
   const notify = useCallback(
     (title: string, desc: string) => {
       if (onShowToast) {
@@ -211,6 +218,18 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     },
     [onShowToast],
   );
+
+  const checkChapterBibleGate = useCallback(async (chapId: string) => {
+    setLoadingBibleGate(true);
+    try {
+      const res = await chapterService.checkBibleGate(chapId);
+      setBibleGateResult(res);
+    } catch {
+      setBibleGateResult(null);
+    } finally {
+      setLoadingBibleGate(false);
+    }
+  }, []);
 
   // Theo dõi trạng thái chưa lưu (dirty checking)
   const isStoryArcDirty = useMemo(
@@ -344,7 +363,9 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       .catch(() => {
         setFindings([]);
       });
-  }, [currentChapter?.id, currentChapter?.outline]);
+
+    void checkChapterBibleGate(currentChapter.id);
+  }, [currentChapter?.id, currentChapter?.outline, checkChapterBibleGate]);
 
   // 2. Nạp chi tiết Chapter (cập nhật versionVector)
   const refreshChapterDetail = useCallback(async (chapId: string) => {
@@ -742,13 +763,13 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               scriptLines: prev.scriptLines.map((l) =>
                 l.id === editingLine.id
                   ? {
-                    ...l,
-                    dialogueText: lineDialogue.trim() || null,
-                    stageDirection: lineStageDirection.trim() || null,
-                    speakerCharacterId: lineSpeakerId || null,
-                    bibleEntryIds: lineBibleEntryIds,
-                    narrationMode: lineNarrationMode || undefined,
-                  }
+                      ...l,
+                      dialogueText: lineDialogue.trim() || null,
+                      stageDirection: lineStageDirection.trim() || null,
+                      speakerCharacterId: lineSpeakerId || null,
+                      bibleEntryIds: lineBibleEntryIds,
+                      narrationMode: lineNarrationMode || undefined,
+                    }
                   : l,
               ),
             };
@@ -1011,8 +1032,69 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     return found ? getBibleEntryNameWithStage(found) : 'Nhân vật (Chưa rõ)';
   };
 
+  const isScriptFrozen = currentChapter?.isScriptFrozen === true;
   const isChapterLocked =
-    currentChapter?.status === 'Approved' || currentChapter?.status === 'Published';
+    isScriptFrozen ||
+    currentChapter?.status === 'Approved' ||
+    currentChapter?.status === 'Published';
+
+  const handleFreezeScript = async () => {
+    if (!currentChapter?.id) return;
+    const confirmed = await confirm({
+      title: `Duyệt kịch bản & Đưa vào sản xuất Chương ${currentChapter.chapterNumber}?`,
+      description:
+        'Kịch bản sẽ được đóng băng (Frozen / Read-only) để bộ phận Artist bắt đầu dàn trang (Thumbnail & Layout). Bước giao việc Script trên Kanban sẽ tự động hoàn tất.',
+      confirmText: 'Duyệt kịch bản & Đưa vào sản xuất',
+      cancelText: 'Hủy',
+      variant: 'info',
+    });
+    if (!confirmed) return;
+
+    setFreezingScript(true);
+    try {
+      await chapterService.freezeScript(currentChapter.id);
+      notify(
+        'Đã duyệt kịch bản',
+        `Kịch bản Chương ${currentChapter.chapterNumber} đã đóng băng và chuyển giao sang khâu sản xuất hình ảnh thành công.`,
+      );
+      setCurrentChapter((prev) => (prev ? { ...prev, isScriptFrozen: true } : prev));
+      await refreshChapterDetail(currentChapter.id);
+      void checkChapterBibleGate(currentChapter.id);
+    } catch (err: any) {
+      notify('Không thể duyệt kịch bản', err.message);
+    } finally {
+      setFreezingScript(false);
+    }
+  };
+
+  const handleUnfreezeScript = async () => {
+    if (!currentChapter?.id) return;
+    const confirmed = await confirm({
+      title: `Mở lại kịch bản Chương ${currentChapter.chapterNumber}?`,
+      description:
+        'Mở lại kịch bản để Writer chỉnh sửa sẽ tạm dừng khâu vẽ Thumbnail của Artist cho đến khi kịch bản được duyệt lại.',
+      confirmText: 'Mở lại kịch bản',
+      cancelText: 'Hủy',
+      variant: 'warning',
+    });
+    if (!confirmed) return;
+
+    setFreezingScript(true);
+    try {
+      await chapterService.unfreezeScript(currentChapter.id);
+      notify(
+        'Đã mở lại kịch bản',
+        `Kịch bản Chương ${currentChapter.chapterNumber} đã được mở lại cho Writer chỉnh sửa.`,
+      );
+      setCurrentChapter((prev) => (prev ? { ...prev, isScriptFrozen: false } : prev));
+      await refreshChapterDetail(currentChapter.id);
+      void checkChapterBibleGate(currentChapter.id);
+    } catch (err: any) {
+      notify('Không thể mở lại kịch bản', err.message);
+    } finally {
+      setFreezingScript(false);
+    }
+  };
 
   const aiReadingDirection =
     seriesDetail?.readingDirection === 1 || seriesDetail?.readingDirection === 'RightToLeft'
@@ -1083,14 +1165,15 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                 </span>
                 {currentChapter && (
                   <span
-                    className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border ${currentChapter.status === 'Approved'
+                    className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border ${
+                      currentChapter.status === 'Approved'
                         ? 'badge-status-approved'
                         : currentChapter.status === 'Published'
                           ? 'badge-status-published'
                           : currentChapter.status === 'Locked'
                             ? 'badge-status-locked'
                             : 'badge-status-inproduction'
-                      }`}
+                    }`}
                   >
                     {currentChapter.status === 'Approved'
                       ? 'Đã duyệt'
@@ -1194,10 +1277,11 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             data-testid='run-consistency-check-btn'
             onClick={handleRunConsistencyCheck}
             disabled={loadingConsistency || !currentChapter?.id}
-            className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-full border transition-all cursor-pointer shadow-soft-sm disabled:opacity-50 ${activeSideDrawer === 'consistency'
+            className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-full border transition-all cursor-pointer shadow-soft-sm disabled:opacity-50 ${
+              activeSideDrawer === 'consistency'
                 ? 'bg-[#7c3aed] text-white border-transparent shadow-glow-violet font-bold'
                 : 'text-violet-900 bg-violet-50 hover:bg-violet-100 border-violet-200'
-              }`}
+            }`}
             title={`Kiểm tra nhất quán (${openFindingsCount} cần xử lý / ${totalFindingsCount} tổng số)`}
           >
             <ShieldCheck
@@ -1224,10 +1308,11 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             onClick={() =>
               setActiveSideDrawer((prev) => (prev === 'characters' ? null : 'characters'))
             }
-            className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-full border transition-all cursor-pointer shadow-soft-sm ${activeSideDrawer === 'characters'
+            className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-full border transition-all cursor-pointer shadow-soft-sm ${
+              activeSideDrawer === 'characters'
                 ? 'bg-purple-700 text-white border-transparent font-bold'
                 : 'bg-purple-50 text-purple-900 hover:bg-purple-100 border-purple-200'
-              }`}
+            }`}
             title='Xem danh sách nhân vật Canon từ Series Bible'
           >
             <User
@@ -1244,6 +1329,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               if (currentChapter?.id) {
                 refreshChapterDetail(currentChapter.id);
                 loadScenes();
+                void checkChapterBibleGate(currentChapter.id);
               }
             }}
             disabled={loadingScenes || loadingDetail}
@@ -1255,6 +1341,65 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             />
             <span className='hidden sm:inline'>Làm mới</span>
           </button>
+
+          {/* Chapter-Scoped Bible Gate Button */}
+          {currentChapter && (
+            <button
+              type='button'
+              onClick={() => setBibleGateModalOpen(true)}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer shadow-2xs ${
+                bibleGateResult?.isPassed
+                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
+                  : bibleGateResult && !bibleGateResult.isPassed
+                    ? 'bg-rose-50 text-rose-800 border-rose-300 hover:bg-rose-100'
+                    : 'bg-[#FCFBF8] text-[#57534E] border-[#D8D2C5] hover:bg-[#F3F0E9]'
+              }`}
+              title='Rào chắn Series Bible theo Chương (Chapter-Scoped Bible Gate)'
+              data-testid='chapter-bible-gate-btn'
+            >
+              <ShieldCheck
+                className={`w-3.5 h-3.5 ${
+                  bibleGateResult?.isPassed
+                    ? 'text-emerald-600'
+                    : bibleGateResult && !bibleGateResult.isPassed
+                      ? 'text-rose-600'
+                      : 'text-[#78716C]'
+                }`}
+              />
+              <span className='hidden sm:inline'>
+                {loadingBibleGate
+                  ? 'Kiểm tra Gate...'
+                  : bibleGateResult?.isPassed
+                    ? `Bible Gate Đạt (${bibleGateResult.lockedCount}/${bibleGateResult.totalReferencedEntries})`
+                    : bibleGateResult && !bibleGateResult.isPassed
+                      ? `Bible Gate: Còn ${bibleGateResult.pendingCount} mục chưa khóa`
+                      : 'Bible Gate'}
+              </span>
+              <span className='sm:hidden'>Gate</span>
+            </button>
+          )}
+
+          {/* Producer Duyệt Kịch Bản & Đưa Vào Sản Xuất (Freeze Script) */}
+          {normRole === 'PRODUCER' && !isScriptFrozen && currentChapter && (
+            <button
+              type='button'
+              disabled={freezingScript || (bibleGateResult !== null && !bibleGateResult.isPassed)}
+              onClick={() => void handleFreezeScript()}
+              className='inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-[#F97316] hover:bg-[#EA580C] disabled:bg-zinc-300 disabled:text-zinc-500 rounded-xl transition-all cursor-pointer shadow-sm active:scale-95'
+              title={
+                bibleGateResult !== null && !bibleGateResult.isPassed
+                  ? 'Cần khóa toàn bộ Series Bible được tham chiếu trong chương trước khi duyệt đưa vào sản xuất'
+                  : 'Duyệt kịch bản, đóng băng chỉ đọc và mở khóa công đoạn Thumbnail Layout cho Artist'
+              }
+              data-testid='freeze-script-btn'
+            >
+              <Sparkles className='w-3.5 h-3.5' />
+              <span className='hidden sm:inline'>
+                {freezingScript ? 'Đang duyệt...' : 'Duyệt Kịch Bản & Bắt Đầu Sản Xuất'}
+              </span>
+              <span className='sm:hidden'>Duyệt kịch bản</span>
+            </button>
+          )}
         </div>
       </header>
 
@@ -1350,7 +1495,46 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             </div>
           )}
 
-          {isChapterLocked && (
+          {isScriptFrozen && (
+            <div
+              data-testid='script-frozen-banner'
+              className='p-3 bg-indigo-50/90 border border-indigo-200 rounded-xl flex flex-wrap items-center justify-between gap-3 text-indigo-950 shadow-xs'
+            >
+              <div className='flex items-center gap-2.5 min-w-0'>
+                <div className='w-7 h-7 rounded-lg bg-indigo-100 border border-indigo-300 flex items-center justify-center text-indigo-700 shrink-0'>
+                  <Lock className='w-4 h-4' />
+                </div>
+                <div>
+                  <div className='flex items-center gap-2'>
+                    <span className='font-bold text-xs uppercase tracking-wider bg-indigo-200 text-indigo-900 px-2 py-0.5 rounded'>
+                      🔒 Kịch bản đã đóng băng (Frozen / Read-only)
+                    </span>
+                    <span className='text-[11px] text-indigo-700 font-medium'>
+                      Đã chuyển giao cho Artist dựng Thumbnail &amp; Layout
+                    </span>
+                  </div>
+                  <p className='text-[11px] text-indigo-800/80 mt-0.5'>
+                    Writer không thể sửa trực tiếp kịch bản để tránh xung đột khung tranh của hoạ
+                    sĩ.
+                  </p>
+                </div>
+              </div>
+
+              {normRole === 'PRODUCER' && (
+                <button
+                  type='button'
+                  disabled={freezingScript}
+                  onClick={() => void handleUnfreezeScript()}
+                  className='px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shrink-0 cursor-pointer transition-colors shadow-2xs flex items-center gap-1.5'
+                >
+                  <RefreshCw className='w-3.5 h-3.5' />
+                  <span>Mở lại kịch bản (Unfreeze)</span>
+                </button>
+              )}
+            </div>
+          )}
+
+          {isChapterLocked && !isScriptFrozen && (
             <div
               data-testid='chapter-locked-banner'
               className='p-2.5 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between gap-2 text-amber-900'
@@ -2151,6 +2335,138 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         }}
         onClose={() => setConflictModalOpen(false)}
       />
+
+      {/* Chapter-Scoped Bible Gate Modal */}
+      {bibleGateModalOpen && (
+        <div
+          role='dialog'
+          aria-modal='true'
+          className='fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4'
+        >
+          <div className='bg-white rounded-2xl max-w-lg w-full border border-zinc-200 shadow-2xl p-5 space-y-4 animate-in fade-in zoom-in-95 duration-150'>
+            <div className='flex items-center justify-between border-b border-zinc-100 pb-3'>
+              <div className='flex items-center gap-2'>
+                <div
+                  className={`w-7 h-7 rounded-lg flex items-center justify-center ${
+                    bibleGateResult?.isPassed
+                      ? 'bg-emerald-100 text-emerald-700'
+                      : 'bg-rose-100 text-rose-700'
+                  }`}
+                >
+                  <ShieldCheck className='w-4 h-4' />
+                </div>
+                <div>
+                  <h3 className='font-bold text-sm text-zinc-900'>
+                    Rào chắn Series Bible — Chương {currentChapter?.chapterNumber}
+                  </h3>
+                  <p className='text-[11px] text-zinc-500'>
+                    Kiểm tra các mục Bible xuất hiện trong kịch bản chương này
+                  </p>
+                </div>
+              </div>
+              <button
+                type='button'
+                onClick={() => setBibleGateModalOpen(false)}
+                className='p-1 rounded-lg hover:bg-zinc-100 text-zinc-400 hover:text-zinc-700'
+              >
+                <X className='w-4 h-4' />
+              </button>
+            </div>
+
+            {loadingBibleGate ? (
+              <div className='py-8 text-center text-xs text-zinc-500 flex flex-col items-center gap-2'>
+                <RefreshCw className='w-5 h-5 animate-spin text-[#F97316]' />
+                <span>Đang quét các thực thể xuất hiện trong chương...</span>
+              </div>
+            ) : bibleGateResult ? (
+              <div className='space-y-3'>
+                <div
+                  className={`p-3 rounded-xl border flex items-center justify-between ${
+                    bibleGateResult.isPassed
+                      ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                      : 'bg-rose-50 border-rose-200 text-rose-900'
+                  }`}
+                >
+                  <div>
+                    <span className='font-bold text-xs block'>
+                      {bibleGateResult.isPassed
+                        ? '✓ Đủ điều kiện đưa vào sản xuất'
+                        : `⚠️ Chưa đạt: Còn ${bibleGateResult.pendingCount} mục chưa khóa`}
+                    </span>
+                    <span className='text-[11px] opacity-80'>
+                      Đã khóa {bibleGateResult.lockedCount} /{' '}
+                      {bibleGateResult.totalReferencedEntries} mục được thoại/gắn thẻ.
+                    </span>
+                  </div>
+                  <span
+                    className={`font-mono font-bold text-xs px-2 py-0.5 rounded ${
+                      bibleGateResult.isPassed
+                        ? 'bg-emerald-200 text-emerald-900'
+                        : 'bg-rose-200 text-rose-900'
+                    }`}
+                  >
+                    {bibleGateResult.isPassed ? 'PASSED' : 'BLOCKED'}
+                  </span>
+                </div>
+
+                <div className='max-h-60 overflow-y-auto space-y-1.5 custom-scrollbar'>
+                  {bibleGateResult.items.map((item) => (
+                    <div
+                      key={item.bibleEntryId}
+                      className='p-2.5 rounded-lg border border-zinc-100 bg-[#FAF8F5] flex items-center justify-between gap-2 text-xs'
+                    >
+                      <div className='min-w-0'>
+                        <div className='flex items-center gap-1.5 flex-wrap'>
+                          <span className='font-mono font-bold text-[10px] px-1.5 py-0.2 bg-zinc-200 rounded'>
+                            {item.code}
+                          </span>
+                          <span className='font-semibold text-zinc-900 truncate'>{item.name}</span>
+                        </div>
+                        {item.warningMessage && (
+                          <p className='text-[10px] text-rose-700 mt-0.5'>{item.warningMessage}</p>
+                        )}
+                      </div>
+                      <span
+                        className={`text-[10px] font-semibold px-2 py-0.5 rounded shrink-0 ${
+                          item.isLocked
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : 'bg-amber-100 text-amber-800'
+                        }`}
+                      >
+                        {item.isLocked ? '🔒 Canon Locked' : 'Chờ khóa'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <p className='text-xs text-zinc-500 py-4 text-center'>
+                Chưa có dữ liệu kiểm tra Bible Gate cho chương này.
+              </p>
+            )}
+
+            <div className='flex items-center justify-between pt-2 border-t border-zinc-100'>
+              <button
+                type='button'
+                onClick={() => {
+                  if (currentChapter?.id) void checkChapterBibleGate(currentChapter.id);
+                }}
+                className='text-xs font-semibold text-zinc-600 hover:text-zinc-900 flex items-center gap-1'
+              >
+                <RefreshCw className='w-3 h-3' />
+                <span>Quét lại</span>
+              </button>
+              <button
+                type='button'
+                onClick={() => setBibleGateModalOpen(false)}
+                className='px-4 py-1.5 bg-zinc-900 hover:bg-black text-white rounded-lg text-xs font-semibold'
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
