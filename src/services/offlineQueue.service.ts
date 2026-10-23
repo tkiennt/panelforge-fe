@@ -195,6 +195,20 @@ class OfflineQueueService {
           remaining.push(item, ...queue.slice(i + 1));
           failed++;
           break;
+        } else if (status === 403 || err.response?.data?.code === 'FORBIDDEN') {
+          // 403 FORBIDDEN: không thuộc quyền / đang chờ duyệt -> huỷ item, không retry!
+          failed++;
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(
+              new CustomEvent('panelforge:forbidden_action', {
+                detail: {
+                  item,
+                  status,
+                  message: 'Phần này thuộc việc của người khác / đang chờ duyệt',
+                },
+              }),
+            );
+          }
         } else if (status && status >= 400 && status < 500) {
           // Lỗi 4xx (409 Conflict, 400 Validation, v.v.):
           // TUYỆT ĐỐI KHÔNG thử lại mù quáng rồi xoá bỏ làm mất thao tác của người dùng!

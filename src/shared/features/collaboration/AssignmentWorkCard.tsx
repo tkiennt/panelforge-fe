@@ -119,6 +119,8 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
   const [highlightedCrId, setHighlightedCrId] = useState<string | null>(null);
   const [targetArtworkId, setTargetArtworkId] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [impactDecision, setImpactDecision] = useState<'Keep' | 'Rework' | null>(null);
+  const [impactReason, setImpactReason] = useState('');
   const [bibleDrawerOpen, setBibleDrawerOpen] = useState(false);
   const [selectedBiblePanelId, setSelectedBiblePanelId] = useState<string | null>(null);
 
@@ -249,16 +251,131 @@ export const AssignmentWorkCard: React.FC<AssignmentWorkCardProps> = ({
             {stageName}
           </span>
         </div>
-        <span
-          className={`px-2.5 py-1 rounded-full border text-xs font-mono font-semibold ${style.className}`}
-        >
-          {style.label}
-        </span>
+        <div className='flex items-center gap-2 flex-wrap'>
+          {assignment.impactReviewReason && (
+            <span
+              data-testid='impact-review-badge'
+              className='px-2.5 py-1 rounded-full border text-xs font-semibold bg-amber-100 text-amber-900 border-amber-300 flex items-center gap-1'
+            >
+              <AlertTriangle className='w-3.5 h-3.5 text-amber-700' />
+              Cần kiểm tra ảnh hưởng
+            </span>
+          )}
+          <span
+            className={`px-2.5 py-1 rounded-full border text-xs font-mono font-semibold ${style.className}`}
+          >
+            {style.label}
+          </span>
+        </div>
       </div>
 
       <div className='text-xs md:text-sm text-[#292524] leading-relaxed bg-[#FAF8F5] p-3.5 rounded-xl border border-[#F0ECE1] font-sans shadow-2xs'>
         {assignment.brief}
       </div>
+
+      {assignment.impactReviewReason && (
+        <div
+          data-testid='impact-review-banner'
+          className='p-4 bg-amber-50/90 border border-amber-300 rounded-2xl text-xs text-amber-950 space-y-2'
+        >
+          <div className='flex items-center gap-2 font-bold text-amber-900'>
+            <AlertTriangle className='w-4 h-4 text-amber-600 shrink-0' />
+            <span>Công việc cần kiểm tra ảnh hưởng</span>
+          </div>
+          <p className='text-xs text-amber-900 leading-relaxed font-sans'>
+            <strong>Lý do:</strong> {assignment.impactReviewReason}
+          </p>
+          <p className='text-[11px] text-amber-800 italic'>
+            Đầu vào của công việc đã bị thay đổi hoặc mở lại. Nút nộp bị tạm khoá cho tới khi Editor
+            hoặc Producer quyết định giữ kết quả hay yêu cầu làm lại.
+          </p>
+
+          {actions.isReviewer && !actions.isAssignee && (
+            <div
+              className='pt-2 border-t border-amber-200/80 space-y-2'
+              data-testid='impact-review-reviewer-actions'
+            >
+              <div className='flex items-center gap-2 flex-wrap'>
+                <button
+                  type='button'
+                  onClick={() => {
+                    setImpactDecision('Keep');
+                    setImpactReason('');
+                  }}
+                  className='px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold cursor-pointer'
+                >
+                  Giữ kết quả
+                </button>
+                <button
+                  type='button'
+                  onClick={() => {
+                    if (status === 'Submitted' || status === 'UnderReview') {
+                      onToast?.(
+                        'Yêu cầu làm lại qua cổng duyệt',
+                        'Với việc đang nộp/chờ duyệt, vui lòng thực hiện qua cổng xét duyệt bên dưới.',
+                      );
+                    } else {
+                      setImpactDecision('Rework');
+                      setImpactReason('');
+                    }
+                  }}
+                  className='px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold cursor-pointer'
+                >
+                  Yêu cầu làm lại
+                </button>
+              </div>
+
+              {impactDecision && (
+                <div className='p-3 bg-white rounded-xl border border-amber-300 space-y-2'>
+                  <p className='text-xs font-bold text-stone-800'>
+                    {impactDecision === 'Keep'
+                      ? 'Xác nhận giữ kết quả:'
+                      : 'Xác nhận yêu cầu làm lại:'}
+                  </p>
+                  <input
+                    type='text'
+                    aria-label='Lý do xử lý ảnh hưởng'
+                    placeholder='Nhập lý do bắt buộc...'
+                    value={impactReason}
+                    onChange={(e) => setImpactReason(e.target.value)}
+                    className='w-full px-2.5 py-1.5 text-xs border border-stone-300 rounded-lg'
+                  />
+                  <div className='flex items-center gap-2 justify-end'>
+                    <button
+                      type='button'
+                      onClick={() => setImpactDecision(null)}
+                      className='px-2.5 py-1 text-xs text-stone-600 hover:text-stone-900 cursor-pointer'
+                    >
+                      Huỷ
+                    </button>
+                    <button
+                      type='button'
+                      disabled={busy || !impactReason.trim()}
+                      onClick={() =>
+                        void run(
+                          () =>
+                            assignmentService.resolveImpactReview(chapterId, assignment.id, {
+                              decision: impactDecision,
+                              reason: impactReason.trim(),
+                            }),
+                          impactDecision === 'Keep' ? 'Đã giữ kết quả' : 'Đã yêu cầu làm lại',
+                          `Đã cập nhật việc "${assignment.brief}".`,
+                        ).then(() => {
+                          setImpactDecision(null);
+                          setImpactReason('');
+                        })
+                      }
+                      className='px-3 py-1 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white text-xs font-semibold rounded-lg cursor-pointer'
+                    >
+                      Xác nhận
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {status === 'ReworkRequired' && (
         <div className='p-4 bg-rose-50/70 border border-rose-200 rounded-2xl text-xs text-rose-900 space-y-2 animate-in fade-in duration-150'>

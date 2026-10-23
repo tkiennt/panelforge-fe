@@ -157,4 +157,38 @@ describe('offlineQueueService', () => {
     localStorage.setItem('user', JSON.stringify({ id: 'user-a' }));
     expect(offlineQueueService.getState().pendingCount).toBe(1);
   });
+  it('flushQueue gặp 403 FORBIDDEN thì huỷ item không retry và phát sự kiện panelforge:forbidden_action', async () => {
+    const forbiddenError: any = new Error('Forbidden');
+    forbiddenError.response = {
+      status: 403,
+      data: {
+        code: 'FORBIDDEN',
+        message: 'Phần này thuộc việc của người khác / đang chờ duyệt',
+      },
+    };
+    vi.mocked(axiosClient.post).mockRejectedValueOnce(forbiddenError);
+
+    const forbiddenHandler = vi.fn();
+    window.addEventListener('panelforge:forbidden_action', forbiddenHandler);
+
+    offlineQueueService.enqueue(
+      {
+        type: 'ADD_ELEMENT',
+        endpoint: '/pages/p1/elements',
+        method: 'POST',
+        payload: { content: 'Forbidden action' },
+        clientRefId: 'elem-403',
+      },
+      { autoFlush: false },
+    );
+
+    const result = await offlineQueueService.flushQueue();
+
+    expect(result.failed).toBe(1);
+    // Item bị huỷ, không retry -> pendingCount trở về 0
+    expect(offlineQueueService.getState().pendingCount).toBe(0);
+    expect(forbiddenHandler).toHaveBeenCalledTimes(1);
+
+    window.removeEventListener('panelforge:forbidden_action', forbiddenHandler);
+  });
 });

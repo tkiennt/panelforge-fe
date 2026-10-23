@@ -33,16 +33,22 @@ export interface SideDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   card: BoardCard | null;
+  currentUserId?: string | null;
+  currentUserRole?: string | null;
   onShowToast?: (title: string, desc: string) => void;
   onDeleted?: (cardId: string) => void;
+  onImpactResolved?: (card: BoardCard) => void;
 }
 
 export const SideDrawer: React.FC<SideDrawerProps> = ({
   isOpen,
   onClose,
   card,
+  currentUserId,
+  currentUserRole,
   onShowToast,
   onDeleted,
+  onImpactResolved,
 }) => {
   const navigate = useNavigate();
   const { workspaceId, seriesId } = useParams();
@@ -55,6 +61,10 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
   const [loadingData, setLoadingData] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+  const [impactDecision, setImpactDecision] = useState<'Keep' | 'Rework' | null>(null);
+  const [impactReason, setImpactReason] = useState('');
+  const [isResolvingImpact, setIsResolvingImpact] = useState(false);
 
   // Artwork thumbnail
   const thumbnail = useTaskThumbnail(card);
@@ -71,7 +81,11 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
 
   useEffect(() => {
     setConfirmDelete(false);
+    setCancelReason('');
     setIsDeleting(false);
+    setImpactDecision(null);
+    setImpactReason('');
+    setIsResolvingImpact(false);
     if (!isOpen || !card) return;
 
     let isMounted = true;
@@ -121,16 +135,54 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
     }
   };
 
+  const isAssignee = !!currentUserId && !!card && card.assigneeUserId === currentUserId;
+  const canResolveImpact =
+    !isAssignee &&
+    (!currentUserRole ||
+      currentUserRole.toString().toUpperCase() === 'PRODUCER' ||
+      currentUserRole.toString().toUpperCase() === 'EDITOR');
+
+  const handleResolveImpact = async () => {
+    if (!card || !impactDecision || !impactReason.trim()) return;
+    setIsResolvingImpact(true);
+    try {
+      await assignmentService.resolveImpactReview(card.chapterId, card.id, {
+        decision: impactDecision,
+        reason: impactReason.trim(),
+      });
+      onShowToast?.(
+        impactDecision === 'Keep' ? 'Đã giữ kết quả' : 'Đã yêu cầu làm lại',
+        `Đã giải quyết yêu cầu kiểm tra ảnh hưởng cho nhiệm vụ "${card.brief}".`,
+      );
+      const updatedCard: BoardCard = {
+        ...card,
+        impactReviewReason: null,
+        status: impactDecision === 'Rework' ? ('ReworkRequired' as const) : card.status,
+      };
+      setImpactDecision(null);
+      setImpactReason('');
+      onImpactResolved?.(updatedCard);
+    } catch (err: any) {
+      onShowToast?.(
+        'Không thể xử lý ảnh hưởng',
+        err.message || 'Thao tác giải quyết ảnh hưởng thất bại.',
+      );
+    } finally {
+      setIsResolvingImpact(false);
+    }
+  };
+
   const handleDeleteAssignment = async () => {
     if (!card) return;
     if (!confirmDelete) {
       setConfirmDelete(true);
       return;
     }
+    if (!cancelReason.trim()) return;
 
     setIsDeleting(true);
     try {
-      await assignmentService.deleteAssignment(card.chapterId, card.id);
+      await assignmentService.deleteAssignment(card.chapterId, card.id, cancelReason.trim());
       onShowToast?.('Đã huỷ nhiệm vụ', `Nhiệm vụ "${card.brief}" đã được gỡ khỏi chương.`);
       onDeleted?.(card.id);
       onClose();
@@ -172,6 +224,15 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
                 {card.targetLabel}
               </span>
               <StatusBadge status={card.status} />
+              {card.impactReviewReason && (
+                <span
+                  data-testid='side-drawer-impact-badge'
+                  className='inline-flex items-center gap-1 rounded-md border border-amber-300 bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-900 shadow-2xs'
+                >
+                  <AlertCircle className='h-3.5 w-3.5 shrink-0 text-amber-600' />
+                  Cần kiểm tra ảnh hưởng
+                </span>
+              )}
             </div>
             <h2 className='text-base sm:text-lg font-bold text-landing-ink leading-snug break-words'>
               {card.brief}
@@ -190,6 +251,104 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
 
         {/* Thân Modal cuộn được, phân chia các nhóm thông tin rõ ràng */}
         <div className='flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 custom-scrollbar'>
+          {/* Nhóm 0: Cảnh báo cần kiểm tra ảnh hưởng */}
+          {card.impactReviewReason && (
+            <section
+              aria-label='Cần kiểm tra ảnh hưởng'
+              className='space-y-1.5'
+              data-testid='side-drawer-impact-review'
+            >
+              <h3 className='text-xs font-bold text-amber-900 uppercase tracking-wider flex items-center gap-1.5'>
+                <AlertCircle className='w-3.5 h-3.5 text-amber-600' aria-hidden='true' />
+                <span>Cần kiểm tra ảnh hưởng</span>
+              </h3>
+              <div className='p-3.5 bg-amber-50 border border-amber-300 rounded-xl text-xs sm:text-sm text-amber-950 leading-relaxed font-medium space-y-2 break-words'>
+                <p>
+                  <strong>Lý do:</strong> {card.impactReviewReason}
+                </p>
+                <p className='text-xs text-amber-800 font-normal italic'>
+                  Đầu vào của công việc đã bị mở lại hoặc thay đổi. Vui lòng chờ Editor hoặc
+                  Producer quyết định giữ kết quả hay yêu cầu làm lại trước khi nộp.
+                </p>
+
+                {/* Editor / Producer action buttons (hidden for assignee) */}
+                {canResolveImpact && (
+                  <div
+                    className='pt-2 border-t border-amber-200/80 space-y-2'
+                    data-testid='side-drawer-impact-actions'
+                  >
+                    <div className='flex items-center gap-2 flex-wrap'>
+                      <button
+                        type='button'
+                        onClick={() => {
+                          setImpactDecision('Keep');
+                          setImpactReason('');
+                        }}
+                        className='px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold cursor-pointer shadow-xs'
+                      >
+                        Giữ kết quả
+                      </button>
+                      <button
+                        type='button'
+                        onClick={() => {
+                          const s = String(card.status);
+                          if (s === 'Submitted' || s === 'UnderReview') {
+                            onShowToast?.(
+                              'Yêu cầu làm lại qua cổng duyệt',
+                              'Công việc đang chờ duyệt. Vui lòng chuyển sang màn Xét duyệt để trả về kèm yêu cầu sửa.',
+                            );
+                            handleOpenMyWork();
+                          } else {
+                            setImpactDecision('Rework');
+                            setImpactReason('');
+                          }
+                        }}
+                        className='px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold cursor-pointer shadow-xs'
+                      >
+                        Yêu cầu làm lại
+                      </button>
+                    </div>
+
+                    {impactDecision && (
+                      <div className='p-3 bg-white rounded-xl border border-amber-300 space-y-2'>
+                        <p className='text-xs font-bold text-stone-800'>
+                          {impactDecision === 'Keep'
+                            ? 'Xác nhận giữ kết quả:'
+                            : 'Xác nhận yêu cầu làm lại:'}
+                        </p>
+                        <input
+                          type='text'
+                          aria-label='Lý do xử lý ảnh hưởng'
+                          placeholder='Nhập lý do bắt buộc...'
+                          value={impactReason}
+                          onChange={(e) => setImpactReason(e.target.value)}
+                          className='w-full px-2.5 py-1.5 text-xs border border-stone-300 rounded-lg'
+                        />
+                        <div className='flex items-center gap-2 justify-end'>
+                          <button
+                            type='button'
+                            onClick={() => setImpactDecision(null)}
+                            className='px-2.5 py-1 text-xs text-stone-600 hover:text-stone-900 cursor-pointer'
+                          >
+                            Huỷ
+                          </button>
+                          <button
+                            type='button'
+                            disabled={isResolvingImpact || !impactReason.trim()}
+                            onClick={handleResolveImpact}
+                            className='inline-flex items-center gap-1.5 px-3 py-1 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white text-xs font-semibold rounded-lg cursor-pointer'
+                          >
+                            {isResolvingImpact && <Loader2 className='w-3 h-3 animate-spin' />}
+                            <span>Xác nhận</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
           {/* Nhóm 1: Bản vẽ bản thảo / Artwork liên quan */}
           <section aria-label='Bản vẽ bản thảo' className='space-y-2'>
             <h3 className='text-xs font-bold uppercase tracking-wider text-landing-ink-muted flex items-center gap-1.5'>
@@ -291,148 +450,151 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
             </div>
 
             {((card.dependsOnAssignmentIds && card.dependsOnAssignmentIds.length > 0) ||
-              card.dependsOnAssignmentId) && (() => {
-              const depIds = (
-                card.dependsOnAssignmentIds && card.dependsOnAssignmentIds.length > 0
-                  ? card.dependsOnAssignmentIds
-                  : card.dependsOnAssignmentId
-                    ? [card.dependsOnAssignmentId]
-                    : []
-              ).filter(Boolean);
+              card.dependsOnAssignmentId) &&
+              (() => {
+                const depIds = (
+                  card.dependsOnAssignmentIds && card.dependsOnAssignmentIds.length > 0
+                    ? card.dependsOnAssignmentIds
+                    : card.dependsOnAssignmentId
+                      ? [card.dependsOnAssignmentId]
+                      : []
+                ).filter(Boolean);
 
-              const resolvedDeps = depIds.map((id) => {
-                const found = chapterAssignments.find((a) => a.id === id);
-                return { id, assignment: found };
-              });
+                const resolvedDeps = depIds.map((id) => {
+                  const found = chapterAssignments.find((a) => a.id === id);
+                  return { id, assignment: found };
+                });
 
-              const approvedCount = resolvedDeps.filter(
-                (d) => d.assignment && String(d.assignment.status).toLowerCase() === 'approved',
-              ).length;
-              const unapprovedList = resolvedDeps.filter(
-                (d) => !d.assignment || String(d.assignment.status).toLowerCase() !== 'approved',
-              );
-              const allApproved = resolvedDeps.length > 0 && unapprovedList.length === 0;
+                const approvedCount = resolvedDeps.filter(
+                  (d) => d.assignment && String(d.assignment.status).toLowerCase() === 'approved',
+                ).length;
+                const unapprovedList = resolvedDeps.filter(
+                  (d) => !d.assignment || String(d.assignment.status).toLowerCase() !== 'approved',
+                );
+                const allApproved = resolvedDeps.length > 0 && unapprovedList.length === 0;
 
-              return (
-                <div className='py-2 space-y-2.5 pt-3 border-t border-landing-border'>
-                  <div className='flex items-center justify-between flex-wrap gap-2'>
-                    <div className='flex items-center gap-1.5'>
-                      <Lock className='w-3.5 h-3.5 text-amber-600' aria-hidden='true' />
-                      <span className='font-bold text-xs text-landing-ink'>
-                        Cần hoàn thành trước · {approvedCount}/{depIds.length} đã duyệt
-                      </span>
+                return (
+                  <div className='py-2 space-y-2.5 pt-3 border-t border-landing-border'>
+                    <div className='flex items-center justify-between flex-wrap gap-2'>
+                      <div className='flex items-center gap-1.5'>
+                        <Lock className='w-3.5 h-3.5 text-amber-600' aria-hidden='true' />
+                        <span className='font-bold text-xs text-landing-ink'>
+                          Cần hoàn thành trước · {approvedCount}/{depIds.length} đã duyệt
+                        </span>
+                      </div>
+
+                      <button
+                        type='button'
+                        onClick={() => setIsGraphModalOpen(true)}
+                        className='text-[11px] font-semibold text-[#F97316] hover:text-[#EA580C] hover:underline flex items-center gap-1 cursor-pointer'
+                      >
+                        <Network className='w-3 h-3' />
+                        <span>Xem sơ đồ</span>
+                      </button>
                     </div>
 
-                    <button
-                      type='button'
-                      onClick={() => setIsGraphModalOpen(true)}
-                      className='text-[11px] font-semibold text-[#F97316] hover:text-[#EA580C] hover:underline flex items-center gap-1 cursor-pointer'
+                    {/* Banner trạng thái điều kiện */}
+                    <div
+                      className={`p-2.5 rounded-lg border text-xs leading-relaxed flex items-start gap-2 ${
+                        allApproved
+                          ? 'bg-emerald-50 border-emerald-300 text-emerald-950'
+                          : 'bg-amber-50 border-amber-300 text-amber-950'
+                      }`}
                     >
-                      <Network className='w-3 h-3' />
-                      <span>Xem sơ đồ</span>
-                    </button>
-                  </div>
+                      {allApproved ? (
+                        <>
+                          <CheckCircle2 className='w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5' />
+                          <div>
+                            Tất cả công việc tiền đề đã được duyệt. Đã đáp ứng điều kiện phụ thuộc.
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <Clock className='w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5' />
+                          <div>
+                            <strong>Đang chờ:</strong>{' '}
+                            {unapprovedList
+                              .map((u) => u.assignment?.brief || `#${u.id.slice(0, 8)}`)
+                              .join(', ')}{' '}
+                            được duyệt trước khi bắt đầu.
+                          </div>
+                        </>
+                      )}
+                    </div>
 
-                  {/* Banner trạng thái điều kiện */}
-                  <div
-                    className={`p-2.5 rounded-lg border text-xs leading-relaxed flex items-start gap-2 ${
-                      allApproved
-                        ? 'bg-emerald-50 border-emerald-300 text-emerald-950'
-                        : 'bg-amber-50 border-amber-300 text-amber-950'
-                    }`}
-                  >
-                    {allApproved ? (
-                      <>
-                        <CheckCircle2 className='w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5' />
-                        <div>Tất cả công việc tiền đề đã được duyệt. Đã đáp ứng điều kiện phụ thuộc.</div>
-                      </>
-                    ) : (
-                      <>
-                        <Clock className='w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5' />
-                        <div>
-                          <strong>Đang chờ:</strong>{' '}
-                          {unapprovedList
-                            .map((u) => u.assignment?.brief || `#${u.id.slice(0, 8)}`)
-                            .join(', ')}{' '}
-                          được duyệt trước khi bắt đầu.
-                        </div>
-                      </>
-                    )}
-                  </div>
+                    {/* Danh sách thẻ công việc chi tiết */}
+                    <div className='space-y-1.5'>
+                      {resolvedDeps.map(({ id, assignment }) => {
+                        if (!assignment) {
+                          return (
+                            <div
+                              key={id}
+                              className='p-2 rounded-lg bg-stone-50 border border-stone-200 text-stone-600 text-xs flex items-center justify-between gap-2'
+                            >
+                              <div className='flex items-center gap-1.5'>
+                                <AlertCircle className='w-3.5 h-3.5 text-amber-500 shrink-0' />
+                                <span className='font-mono text-[11px]'>#{id.slice(0, 8)}</span>
+                                <span className='text-[10px] text-stone-400'>
+                                  (Không tìm thấy thông tin hoặc đã bị xoá)
+                                </span>
+                              </div>
+                              <span className='text-[10px] font-bold text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded'>
+                                Chưa xác nhận
+                              </span>
+                            </div>
+                          );
+                        }
 
-                  {/* Danh sách thẻ công việc chi tiết */}
-                  <div className='space-y-1.5'>
-                    {resolvedDeps.map(({ id, assignment }) => {
-                      if (!assignment) {
+                        const isAppr = String(assignment.status).toLowerCase() === 'approved';
                         return (
                           <div
                             key={id}
-                            className='p-2 rounded-lg bg-stone-50 border border-stone-200 text-stone-600 text-xs flex items-center justify-between gap-2'
+                            className={`p-2.5 rounded-xl border text-xs transition-colors flex items-start justify-between gap-2 ${
+                              isAppr
+                                ? 'bg-emerald-50/60 border-emerald-200 text-emerald-950'
+                                : 'bg-[#FCFBF8] border-[#E7E5E4] text-stone-900'
+                            }`}
                           >
-                            <div className='flex items-center gap-1.5'>
-                              <AlertCircle className='w-3.5 h-3.5 text-amber-500 shrink-0' />
-                              <span className='font-mono text-[11px]'>#{id.slice(0, 8)}</span>
-                              <span className='text-[10px] text-stone-400'>
-                                (Không tìm thấy thông tin hoặc đã bị xoá)
-                              </span>
+                            <div className='min-w-0 space-y-0.5'>
+                              <div className='font-semibold truncate max-w-[260px]'>
+                                {assignment.brief || '[Không có mô tả]'}
+                              </div>
+                              <div className='text-[11px] text-stone-500 flex items-center gap-1.5'>
+                                <span>{assignment.stageName || 'Pipeline'}</span>
+                                <span>•</span>
+                                <span className='font-mono text-[10px]'>#{id.slice(0, 8)}</span>
+                              </div>
                             </div>
-                            <span className='text-[10px] font-bold text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded'>
-                              Chưa xác nhận
-                            </span>
+
+                            <div className='flex items-center gap-2 shrink-0'>
+                              <span
+                                className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${
+                                  isAppr
+                                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                    : 'bg-amber-100 text-amber-800 border-amber-300'
+                                }`}
+                              >
+                                {isAppr ? 'Đã duyệt' : assignment.status}
+                              </span>
+                              <button
+                                type='button'
+                                onClick={() => {
+                                  const url = `/workspaces/${workspaceId}/series/${seriesId}/workspace?chapterId=${card.chapterId}&assignmentId=${id}`;
+                                  window.open(url, '_blank', 'noopener,noreferrer');
+                                }}
+                                className='p-1 rounded text-stone-400 hover:text-[#F97316] transition-colors cursor-pointer'
+                                title='Mở xem chi tiết'
+                              >
+                                <ExternalLink className='w-3.5 h-3.5' />
+                              </button>
+                            </div>
                           </div>
                         );
-                      }
-
-                      const isAppr = String(assignment.status).toLowerCase() === 'approved';
-                      return (
-                        <div
-                          key={id}
-                          className={`p-2.5 rounded-xl border text-xs transition-colors flex items-start justify-between gap-2 ${
-                            isAppr
-                              ? 'bg-emerald-50/60 border-emerald-200 text-emerald-950'
-                              : 'bg-[#FCFBF8] border-[#E7E5E4] text-stone-900'
-                          }`}
-                        >
-                          <div className='min-w-0 space-y-0.5'>
-                            <div className='font-semibold truncate max-w-[260px]'>
-                              {assignment.brief || '[Không có mô tả]'}
-                            </div>
-                            <div className='text-[11px] text-stone-500 flex items-center gap-1.5'>
-                              <span>{assignment.stageName || 'Pipeline'}</span>
-                              <span>•</span>
-                              <span className='font-mono text-[10px]'>#{id.slice(0, 8)}</span>
-                            </div>
-                          </div>
-
-                          <div className='flex items-center gap-2 shrink-0'>
-                            <span
-                              className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${
-                                isAppr
-                                  ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                                  : 'bg-amber-100 text-amber-800 border-amber-300'
-                              }`}
-                            >
-                              {isAppr ? 'Đã duyệt' : assignment.status}
-                            </span>
-                            <button
-                              type='button'
-                              onClick={() => {
-                                const url = `/workspaces/${workspaceId}/series/${seriesId}/workspace?chapterId=${card.chapterId}&assignmentId=${id}`;
-                                window.open(url, '_blank', 'noopener,noreferrer');
-                              }}
-                              className='p-1 rounded text-stone-400 hover:text-[#F97316] transition-colors cursor-pointer'
-                              title='Mở xem chi tiết'
-                            >
-                              <ExternalLink className='w-3.5 h-3.5' />
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
+                      })}
+                    </div>
                   </div>
-                </div>
-              );
-            })()}
+                );
+              })()}
           </section>
 
           {/* Nhóm 5: Lịch sử nộp bài */}
@@ -523,10 +685,20 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
         <div className='p-4 border-t border-landing-border bg-[#F3F0E9]/90 flex items-center justify-between gap-2.5 flex-wrap shrink-0'>
           {card.status !== 'Approved' && (
             <div className='flex items-center gap-1.5'>
+              {confirmDelete && (
+                <input
+                  type='text'
+                  aria-label='Lý do huỷ việc'
+                  placeholder='Lý do huỷ (bắt buộc)'
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  className='px-2 py-1.5 text-xs border border-rose-300 rounded-lg bg-white w-44'
+                />
+              )}
               <button
                 type='button'
                 onClick={handleDeleteAssignment}
-                disabled={isDeleting}
+                disabled={isDeleting || (confirmDelete && !cancelReason.trim())}
                 className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                   confirmDelete
                     ? 'bg-rose-700 hover:bg-rose-800 text-white shadow-xs'
@@ -584,12 +756,11 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
             assigneeName: card.assigneeName,
             isCreating: false,
           }}
-          dependencies={(
-            card.dependsOnAssignmentIds && card.dependsOnAssignmentIds.length > 0
-              ? card.dependsOnAssignmentIds
-              : card.dependsOnAssignmentId
-                ? [card.dependsOnAssignmentId]
-                : []
+          dependencies={(card.dependsOnAssignmentIds && card.dependsOnAssignmentIds.length > 0
+            ? card.dependsOnAssignmentIds
+            : card.dependsOnAssignmentId
+              ? [card.dependsOnAssignmentId]
+              : []
           ).map((id) => {
             const a = chapterAssignments.find((item) => item.id === id);
             return {

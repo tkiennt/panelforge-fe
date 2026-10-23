@@ -155,4 +155,21 @@ describe('panelService', () => {
       }),
     ).rejects.toThrow('Tọa độ không hợp lệ');
   });
+  it('ném lỗi 403 FORBIDDEN với thông điệp "Phần này thuộc việc của người khác / đang chờ duyệt"', async () => {
+    vi.mocked(axiosClient.post).mockRejectedValueOnce({
+      response: {
+        status: 403,
+        data: { code: 'FORBIDDEN', message: 'Forbidden action' },
+      },
+    });
+
+    const promise = panelService.createPanel('page-101', {
+      panelNumber: 1,
+      readingOrder: 1,
+      boundingBox: '{"x": 10, "y": 10, "width": 80, "height": 40}',
+    });
+
+    await expect(promise).rejects.toThrow('Phần này thuộc việc của người khác / đang chờ duyệt');
+    await expect(promise).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
+  });
 });

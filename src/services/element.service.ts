@@ -172,7 +172,13 @@ function extractError(error: any, defaultMsg: string): any {
   err.conflict =
     data?.conflict ||
     (error.response?.status === 409 && !readOnly ? 'ELEMENT_VERSION_CONFLICT' : undefined);
-  err.code = data?.code || (error.response?.status === 409 ? 'CONFLICT' : undefined);
+  err.code =
+    data?.code ||
+    (error.response?.status === 403
+      ? 'FORBIDDEN'
+      : error.response?.status === 409
+        ? 'CONFLICT'
+        : undefined);
   err.status = error.response?.status;
   return err;
 }

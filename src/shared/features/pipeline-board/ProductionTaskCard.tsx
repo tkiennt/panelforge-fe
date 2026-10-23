@@ -149,6 +149,18 @@ export const StatusNotes: React.FC<{ card: BoardCard; blockedReason: string | nu
           <span>Công đoạn đang tắt trong quy trình — không tính là hoàn tất.</span>
         </p>
       )}
+      {card.impactReviewReason && (
+        <p
+          data-testid='production-task-impact-review'
+          className='flex items-start gap-1.5 rounded-md border border-amber-300 bg-amber-50 px-2.5 py-1.5 text-xs text-amber-900'
+        >
+          <AlertTriangle className='mt-px h-3.5 w-3.5 shrink-0 text-amber-600' aria-hidden='true' />
+          <span className='line-clamp-2'>
+            <span className='font-semibold'>Cần kiểm tra ảnh hưởng: </span>
+            {card.impactReviewReason}
+          </span>
+        </p>
+      )}
       {st === 'Blocked' && blockedReason && (
         <p className='flex items-start gap-1.5 rounded-md border border-stone-300 bg-stone-100/80 px-2.5 py-1.5 text-xs text-stone-800'>
           <Lock className='mt-px h-3.5 w-3.5 shrink-0 text-stone-600' aria-hidden='true' />

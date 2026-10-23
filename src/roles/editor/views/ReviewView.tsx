@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
+  AlertCircle,
   AlertTriangle,
   ArrowLeft,
   CheckCircle2,
@@ -347,6 +348,8 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [impactDecision, setImpactDecision] = useState<'Keep' | 'Rework' | null>(null);
+  const [impactReason, setImpactReason] = useState('');
 
   const [tab, setTab] = useState<Tab>('changes');
   const [crFilter, setCrFilter] = useState<'all' | 'version'>('all');
@@ -1048,6 +1051,39 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
     };
   }, []);
 
+  const isAssignee = !!effectiveUser && assignment?.assigneeUserId === effectiveUser;
+  const canResolveImpactInReview =
+    !isAssignee &&
+    (!effectiveRole ||
+      effectiveRole.toString().toUpperCase() === 'PRODUCER' ||
+      effectiveRole.toString().toUpperCase() === 'EDITOR');
+
+  const handleResolveImpactInReview = async () => {
+    if (!chapterId || !assignment || !impactDecision || !impactReason.trim()) return;
+    const ok = await run(
+      () =>
+        assignmentService.resolveImpactReview(chapterId, assignment.id, {
+          decision: impactDecision,
+          reason: impactReason.trim(),
+        }),
+      impactDecision === 'Keep' ? 'Đã giữ kết quả' : 'Đã yêu cầu làm lại',
+      assignment.brief,
+    );
+    if (ok) {
+      setAssignment((prev) =>
+        prev
+          ? {
+              ...prev,
+              impactReviewReason: null,
+              status: impactDecision === 'Rework' ? 'ReworkRequired' : prev.status,
+            }
+          : prev,
+      );
+      setImpactDecision(null);
+      setImpactReason('');
+    }
+  };
+
   // ── Hành động Duyệt & Trả về (với chống xung đột expectedSubmissionId) ──
   const onApprove = async () => {
     if (!chapterId || !assignment) return;
@@ -1665,6 +1701,97 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
         </div>
       </div>
 
+      {/* Banner Cần kiểm tra ảnh hưởng */}
+      {assignment?.impactReviewReason && (
+        <div
+          data-testid='review-impact-review-banner'
+          className='shrink-0 bg-amber-50 border-b border-amber-300 px-6 py-3 flex items-center justify-between gap-4 text-xs flex-wrap z-10'
+        >
+          <div className='flex items-center gap-2 text-amber-950'>
+            <AlertCircle className='w-4 h-4 text-amber-600 shrink-0' />
+            <div>
+              <span className='font-bold text-amber-900'>Cần kiểm tra ảnh hưởng: </span>
+              <span>{assignment.impactReviewReason}</span>
+            </div>
+          </div>
+
+          {canResolveImpactInReview && (
+            <div className='flex items-center gap-2 flex-wrap' data-testid='review-impact-actions'>
+              <button
+                type='button'
+                onClick={() => {
+                  setImpactDecision('Keep');
+                  setImpactReason('');
+                }}
+                className='px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold cursor-pointer shadow-xs'
+              >
+                Giữ kết quả
+              </button>
+              <button
+                type='button'
+                onClick={() => {
+                  const st = String(assignment.status);
+                  if (st === 'Submitted' || st === 'UnderReview') {
+                    setTab('changes');
+                    onShowToast?.(
+                      'Yêu cầu làm lại qua cổng duyệt',
+                      'Với việc đang nộp/chờ duyệt, vui lòng soạn nội dung trả về qua cổng xét duyệt.',
+                    );
+                    if (!comment.trim()) {
+                      setComment(`Yêu cầu làm lại do ảnh hưởng: ${assignment.impactReviewReason}`);
+                    }
+                  } else {
+                    setImpactDecision('Rework');
+                    setImpactReason('');
+                  }
+                }}
+                className='px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold cursor-pointer shadow-xs'
+              >
+                Yêu cầu làm lại
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Modal xác nhận lý do xử lý ảnh hưởng */}
+      {impactDecision && (
+        <div className='fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4'>
+          <div className='bg-white rounded-xl shadow-xl max-w-md w-full p-5 space-y-4 border border-landing-border'>
+            <h3 className='text-sm font-bold text-stone-900'>
+              {impactDecision === 'Keep' ? 'Xác nhận giữ kết quả' : 'Xác nhận yêu cầu làm lại'}
+            </h3>
+            <p className='text-xs text-stone-600'>
+              Vui lòng nhập lý do quyết định kiểm tra ảnh hưởng (bắt buộc):
+            </p>
+            <textarea
+              aria-label='Lý do xử lý ảnh hưởng'
+              placeholder='Nhập lý do...'
+              value={impactReason}
+              onChange={(e) => setImpactReason(e.target.value)}
+              className='w-full h-24 p-2.5 text-xs border border-stone-300 rounded-lg'
+            />
+            <div className='flex items-center justify-end gap-2'>
+              <button
+                type='button'
+                onClick={() => setImpactDecision(null)}
+                className='px-3 py-1.5 text-xs text-stone-600 hover:text-stone-900 cursor-pointer'
+              >
+                Huỷ
+              </button>
+              <button
+                type='button'
+                disabled={busy || !impactReason.trim()}
+                onClick={() => void handleResolveImpactInReview()}
+                className='px-4 py-1.5 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white text-xs font-semibold rounded-lg cursor-pointer'
+              >
+                Xác nhận
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* TOOLBAR SO SÁNH & ĐIỀU KHIỂN GÓC NHÌN */}
       <div className='shrink-0 bg-[#F8F6F0] border-b border-[#D8D2C5] px-6 py-2 flex items-center justify-between gap-4 text-xs z-10 flex-wrap'>
         {/* Nhóm chế độ hiển thị */}
@@ -1759,7 +1886,11 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
                 : 'bg-[#FCFBF8] text-[#57534E] border-[#D8D2C5] hover:bg-[#F3F0E9]'
             }`}
           >
-            {zoomSync ? <Lock className='w-3 h-3 text-[#C2410C]' /> : <Unlock className='w-3 h-3 text-[#78716C]' />}
+            {zoomSync ? (
+              <Lock className='w-3 h-3 text-[#C2410C]' />
+            ) : (
+              <Unlock className='w-3 h-3 text-[#78716C]' />
+            )}
             <span>Đồng bộ: {zoomSync ? 'Bật' : 'Tắt'}</span>
           </button>
         </div>
@@ -1773,7 +1904,9 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
                   type='button'
                   onClick={() => setIsDrawTool(true)}
                   className={`px-2 py-0.5 rounded text-xs font-semibold flex items-center gap-1 cursor-pointer ${
-                    isDrawTool ? 'bg-[#FFF2E6] text-[#1C1917] border border-[#C2410C]' : 'text-[#57534E]'
+                    isDrawTool
+                      ? 'bg-[#FFF2E6] text-[#1C1917] border border-[#C2410C]'
+                      : 'text-[#57534E]'
                   }`}
                 >
                   <Square className='w-3 h-3 text-[#C2410C]' /> Khoanh vùng
@@ -1782,7 +1915,9 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
                   type='button'
                   onClick={() => setIsDrawTool(false)}
                   className={`px-2 py-0.5 rounded text-xs font-semibold flex items-center gap-1 cursor-pointer ${
-                    !isDrawTool ? 'bg-[#FFF2E6] text-[#1C1917] border border-[#C2410C]' : 'text-[#57534E]'
+                    !isDrawTool
+                      ? 'bg-[#FFF2E6] text-[#1C1917] border border-[#C2410C]'
+                      : 'text-[#57534E]'
                   }`}
                 >
                   <Move className='w-3 h-3 text-[#C2410C]' /> Di chuyển
@@ -2047,7 +2182,10 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
                     : 'text-[#57534E] bg-[#FCFBF8] hover:text-[#1C1917] hover:bg-[#F3F0E9]'
                 }`}
               >
-                <Icon className={`w-3.5 h-3.5 ${tab === key ? 'text-[#C2410C]' : 'text-[#78716C]'}`} /> {tabLabel}
+                <Icon
+                  className={`w-3.5 h-3.5 ${tab === key ? 'text-[#C2410C]' : 'text-[#78716C]'}`}
+                />{' '}
+                {tabLabel}
               </button>
             ))}
           </div>

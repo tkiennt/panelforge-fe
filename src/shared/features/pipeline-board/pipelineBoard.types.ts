@@ -35,6 +35,7 @@ export interface BoardCard {
   startedAt?: string | null;
   completedAt?: string | null;
   lastFeedbackComment?: string | null;
+  impactReviewReason?: string | null;
   rawAssignment: AssignmentDto;
 }
 

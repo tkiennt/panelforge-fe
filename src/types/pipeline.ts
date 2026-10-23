@@ -112,6 +112,24 @@ export interface AssignmentDto {
   lastFeedbackComment?: string | null;
   createdAt: string;
   updatedAt?: string | null;
+  /** "Cần kiểm tra ảnh hưởng": đầu vào bị mở lại; chặn nộp/duyệt tới khi Editor/Producer quyết giữ hay làm lại. */
+  impactReviewReason?: string | null;
+}
+
+/** POST .../assignments/{id}/transfer — chuyển giao trang/khung của việc cả chương (Artist/Letterer). */
+export interface TransferAssignmentScopeRequest {
+  targetType: 'Page' | 'Panel';
+  targetIds: string[];
+  newAssigneeUserId: string;
+  reason: string;
+  brief?: string | null;
+  dueDate?: string | null;
+}
+
+/** POST .../assignments/{id}/impact-review — Keep giữ kết quả, Rework yêu cầu làm lại. */
+export interface ResolveImpactReviewRequest {
+  decision: 'Keep' | 'Rework';
+  reason: string;
 }
 
 /** Việc cá nhân xuyên chương: GET /api/workspaces/{workspaceId}/my-assignments */
@@ -119,6 +137,8 @@ export interface WorkspaceAssignmentDto extends AssignmentDto {
   seriesTitle: string;
   chapterNumber: number;
   chapterTitle?: string | null;
+  /** "Cả chương" | "Trang 2 · Cảnh 3, 4" | "Trang 2 · Khung 1 · Cảnh 3" */
+  scopeLabel?: string | null;
   stageName: string;
   stageOrder: number;
   stageColorCode?: string | null;
@@ -195,6 +215,8 @@ export interface SubmissionDto {
   panelLayout?: SubmissionPanelDto[];
   /** pageId → version canvas (event stream) lúc nộp; dùng dựng lại lớp chữ của việc Letter. Rỗng với lần nộp cũ. */
   canvasVersions?: Record<string, number>;
+  /** Revision script (mỗi Scene) mà lần nộp này dựa vào; rỗng với lần nộp cũ. */
+  scriptRevisionIds?: string[];
 }
 
 export type ChangeRequestStatus = 'Open' | 'Resolved' | 'Verified' | 'Rejected' | number;

@@ -43,12 +43,15 @@ import {
   KeyRound,
   Send,
   Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react';
 import { AppShellSidebar } from './AppShellSidebar';
+import { SIDEBAR_ID, SIDEBAR_THEMES, type SidebarTheme } from './sidebarTheme';
 import { NotificationBell } from '@/shared/features/collaboration/NotificationBell';
 import { SidebarDrawer } from '@/shared/components/SidebarDrawer';
 import { getRoleDefaultPath } from '@/roles/roles';
-import { LanguageSwitcher } from '@/lib/i18n';
+import { LanguageSwitcher, useTranslation } from '@/lib/i18n';
 import { notificationService } from '@/services/notification.service';
 
 export interface CurrentUser {
@@ -57,6 +60,7 @@ export interface CurrentUser {
   workspaceRole?: WorkspaceRole | null;
   activeRoles?: string[];
   avatarInitials: string;
+  avatarUrl?: string | null;
 }
 
 interface GlobalAppShellProps {
@@ -76,109 +80,111 @@ interface GlobalAppShellProps {
   onSelectSeries?: (seriesId: string) => void;
 }
 
-const ROLE_NAV_CONFIG: Record<string, { section: string; items: any[] }[]> = {
+const getRoleNavConfig = (
+  t: (k: string) => string,
+): Record<string, { section: string; items: any[] }[]> => ({
   ADMINISTRATOR: [
     {
-      section: 'SYSTEM ADMIN',
+      section: t('navigation.sections.systemAdmin'),
       items: [
-        { icon: LayoutDashboard, label: 'System Dashboard', href: '/admin' },
-        { icon: Users, label: 'Users & Roles', href: '/users' },
+        { icon: LayoutDashboard, label: t('navigation.menu.systemDashboard'), href: '/admin' },
+        { icon: Users, label: t('navigation.menu.usersAndRoles'), href: '/users' },
         {
           icon: Cpu,
-          label: 'AI Provider & Quota',
+          label: t('navigation.menu.aiQuota'),
           href: '/ai-quota',
           badge: { type: 'dot', color: 'bg-emerald-500' },
         },
-        { icon: List, label: 'Global Audit Log', href: '/audit-log' },
+        { icon: List, label: t('navigation.menu.auditLog'), href: '/audit-log' },
       ],
     },
   ],
   PRODUCER: [
     {
-      section: 'WORKSPACE',
+      section: t('navigation.sections.workspace'),
       items: [
-        { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
-        { icon: Briefcase, label: 'Studio Workspaces', href: '/producer' },
+        { icon: LayoutDashboard, label: t('navigation.menu.dashboard'), href: '/dashboard' },
+        { icon: Briefcase, label: t('navigation.menu.studioWorkspaces'), href: '/producer' },
         {
           icon: Kanban,
-          label: 'Quy trình sản xuất',
+          label: t('navigation.menu.production'),
           href: '/workspace',
           badge: { type: 'text', text: 'Ch. 5', color: 'bg-[#F97316]/10 text-[#F97316]' },
         },
         {
           icon: BookMarked,
-          label: 'Series Bible',
+          label: t('navigation.menu.bible'),
           href: '/bible',
           badge: { type: 'dot', color: 'bg-[#8B5CF6]' },
         },
-        { icon: Calendar, label: 'Release Calendar', href: '/calendar' },
-        { icon: History, label: 'Provenance / Restore', href: '/provenance' },
+        { icon: Calendar, label: t('navigation.menu.releaseCalendar'), href: '/calendar' },
+        { icon: History, label: t('navigation.menu.provenance'), href: '/provenance' },
       ],
     },
     {
-      section: 'PUBLISHING',
+      section: t('navigation.sections.publishing'),
       items: [
         { icon: FileText, label: 'B5 Pre-Press Specs', href: '/specs' },
         { icon: ShieldCheck, label: 'SHA-256 Provenance', href: '/sha' },
-        { icon: Upload, label: 'Export / Publish', href: '/export' },
+        { icon: Send, label: t('navigation.menu.publishingGate'), href: '/publishing' },
       ],
     },
   ],
   WRITER: [
     {
-      section: 'BÀN LÀM VIỆC',
+      section: t('navigation.sections.desk'),
       items: [
-        { icon: Layers, label: 'Công việc của tôi', href: '/my-work' },
-        { icon: FileText, label: 'Kịch bản (Script)', href: '/script' },
-        { icon: BookMarked, label: 'Series Bible', href: '/bible' },
+        { icon: Layers, label: t('navigation.menu.myWork'), href: '/my-work' },
+        { icon: FileText, label: t('navigation.menu.script'), href: '/script' },
+        { icon: BookMarked, label: t('navigation.menu.bible'), href: '/bible' },
       ],
     },
   ],
   ARTIST: [
     {
-      section: 'BÀN LÀM VIỆC',
+      section: t('navigation.sections.desk'),
       items: [
-        { icon: Layers, label: 'Công việc của tôi', href: '/my-work' },
-        { icon: LayoutTemplate, label: 'Bàn vẽ & Khung trang', href: '/artist' },
-        { icon: BookMarked, label: 'Series Bible', href: '/bible' },
+        { icon: Layers, label: t('navigation.menu.myWork'), href: '/my-work' },
+        { icon: LayoutTemplate, label: t('navigation.menu.desk'), href: '/artist' },
+        { icon: BookMarked, label: t('navigation.menu.bible'), href: '/bible' },
       ],
     },
   ],
   LETTERER: [
     {
-      section: 'BÀN LÀM VIỆC',
+      section: t('navigation.sections.desk'),
       items: [
-        { icon: Layers, label: 'Công việc của tôi', href: '/my-work' },
-        { icon: Type, label: 'Chèn chữ & Bóng thoại', href: '/letterer' },
-        { icon: BookMarked, label: 'Series Bible', href: '/bible' },
+        { icon: Layers, label: t('navigation.menu.myWork'), href: '/my-work' },
+        { icon: Type, label: t('navigation.menu.lettering'), href: '/letterer' },
+        { icon: BookMarked, label: t('navigation.menu.bible'), href: '/bible' },
       ],
     },
   ],
   EDITOR: [
     {
-      section: 'BÀN LÀM VIỆC',
+      section: t('navigation.sections.desk'),
       items: [
-        { icon: Layers, label: 'Công việc của tôi', href: '/my-work' },
-        { icon: BookMarked, label: 'Series Bible', href: '/bible' },
+        { icon: Layers, label: t('navigation.menu.myWork'), href: '/my-work' },
+        { icon: BookMarked, label: t('navigation.menu.bible'), href: '/bible' },
       ],
     },
   ],
   READER: [],
   PUBLISHER: [
     {
-      section: 'PUBLISHING',
+      section: t('navigation.sections.publishing'),
       items: [
         {
           icon: Send,
-          label: 'Cổng Duyệt Xuất Bản',
+          label: t('navigation.menu.publishingGate'),
           href: '/publishing',
           badge: { type: 'dot', color: 'bg-indigo-600' },
         },
-        { icon: BookOpen, label: 'Public Catalog', href: '/catalog' },
+        { icon: BookOpen, label: t('navigation.menu.publicCatalog'), href: '/catalog' },
       ],
     },
   ],
-};
+});
 
 export function AppShell({
   currentUser,
@@ -196,6 +202,7 @@ export function AppShell({
   onOpenActivityHistory,
   onSelectSeries,
 }: GlobalAppShellProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const params = useParams();
@@ -211,6 +218,7 @@ export function AppShell({
       navigate({ pathname: '/workspaces', search: location.search }, { replace: true });
   }, [routeHasBadWorkspace, navigate, location.search]);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [failedAvatarUrl, setFailedAvatarUrl] = useState<string | null>(null);
   const searchParams = new URLSearchParams(location.search);
   const chapterId = searchParams.get('chapterId');
 
@@ -219,14 +227,11 @@ export function AppShell({
     currentUser.role === 'READER' ||
     currentUser.workspaceRole === ('READER' as any);
 
-  const effectiveRole =
-    currentUser.role === 'ADMINISTRATOR' && !currentUser.workspaceRole
-      ? 'ADMINISTRATOR'
-      : currentUser.workspaceRole
-        ? String(currentUser.workspaceRole).toUpperCase()
-        : currentUser.activeRoles && currentUser.activeRoles.length > 0
-          ? String(currentUser.activeRoles[0]).toUpperCase()
-          : 'PRODUCER';
+  const effectiveRole = currentUser.workspaceRole
+    ? String(currentUser.workspaceRole).toUpperCase()
+    : currentUser.activeRoles && currentUser.activeRoles.length > 0
+      ? String(currentUser.activeRoles[0]).toUpperCase()
+      : 'PRODUCER';
 
   const isSeriesContext = !!seriesId;
   const effectiveActiveSeries = isSeriesContext
@@ -235,66 +240,62 @@ export function AppShell({
 
   // Dynamic configuration based on context
   const getNavSections = () => {
+    const roleNavConfig = getRoleNavConfig(t);
     if (
       (currentUser.role === 'ADMINISTRATOR' ||
         currentUser.activeRoles?.includes('ADMINISTRATOR')) &&
       !currentUser.workspaceRole
     ) {
-      return ROLE_NAV_CONFIG['ADMINISTRATOR'] || [];
+      return roleNavConfig['ADMINISTRATOR'] || [];
     }
 
     if (effectiveRole === 'PRODUCER') {
       if (isSeriesContext) {
         return [
           {
-            section: 'SERIES MANAGEMENT',
+            section: t('navigation.sections.seriesManagement'),
             items: [
               {
                 icon: LayoutDashboard,
-                label: 'Series Dashboard',
+                label: t('navigation.menu.seriesDashboard'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/dashboard`,
               },
 
               {
                 icon: Kanban,
-                label: 'Quy trình sản xuất',
+                label: t('navigation.menu.production'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/workspace`,
               },
               {
                 icon: Layers,
-                label: 'Công việc & Xét duyệt',
+                label: t('navigation.menu.workAndReview'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/my-work`,
               },
               {
                 icon: FileText,
-                label: 'Kịch bản (Script)',
+                label: t('navigation.menu.script'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/script`,
               },
               {
                 icon: LayoutTemplate,
-                label: 'Bàn vẽ & Khung trang',
+                label: t('navigation.menu.desk'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/artist`,
               },
               {
                 icon: Type,
-                label: 'Chèn chữ & Bóng thoại',
+                label: t('navigation.menu.lettering'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/letterer`,
               },
               {
                 icon: BookMarked,
-                label: 'Series Bible',
+                label: t('navigation.menu.bible'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/bible`,
                 badge: { type: 'dot', color: 'bg-[#8B5CF6]' },
               },
               {
                 icon: Send,
-                label: 'Cổng Duyệt Xuất Bản',
+                label: t('navigation.menu.publishingGate'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/publishing`,
-              },
-              {
-                icon: Upload,
-                label: 'Export / Publish',
-                href: `/workspaces/${workspaceId}/series/${seriesId}/export`,
               },
             ],
           },
@@ -302,11 +303,11 @@ export function AppShell({
       } else {
         return [
           {
-            section: 'STUDIO MANAGEMENT',
+            section: t('navigation.sections.studioManagement'),
             items: [
               {
                 icon: LayoutDashboard,
-                label: 'Studio Workspaces',
+                label: t('navigation.menu.studioWorkspaces'),
                 href: seriesListHref,
               },
             ],
@@ -319,22 +320,22 @@ export function AppShell({
       if (isSeriesContext) {
         return [
           {
-            section: 'PUBLISHING',
+            section: t('navigation.sections.publishing'),
             items: [
               {
                 icon: Send,
-                label: 'Cổng Duyệt Xuất Bản',
+                label: t('navigation.menu.publishingGate'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/publishing`,
                 badge: { type: 'dot', color: 'bg-indigo-600' },
               },
               {
                 icon: BookMarked,
-                label: 'Series Bible',
+                label: t('navigation.menu.bible'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/bible`,
               },
               {
                 icon: BookOpen,
-                label: 'Public Catalog',
+                label: t('navigation.menu.publicCatalog'),
                 href: '/catalog',
               },
             ],
@@ -343,16 +344,16 @@ export function AppShell({
       } else {
         return [
           {
-            section: 'PUBLISHER DESK',
+            section: t('navigation.sections.publisherDesk'),
             items: [
               {
                 icon: LayoutDashboard,
-                label: 'Danh sách Series',
+                label: t('navigation.menu.seriesList'),
                 href: seriesListHref,
               },
               {
                 icon: BookOpen,
-                label: 'Public Catalog',
+                label: t('navigation.menu.publicCatalog'),
                 href: '/catalog',
               },
             ],
@@ -370,16 +371,16 @@ export function AppShell({
       if (isSeriesContext) {
         return [
           {
-            section: 'BÀN LÀM VIỆC',
+            section: t('navigation.sections.desk'),
             items: [
               {
                 icon: Layers,
-                label: 'Công việc của tôi',
+                label: t('navigation.menu.myWork'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/my-work`,
               },
               {
                 icon: FileText,
-                label: 'Kịch bản (Script)',
+                label: t('navigation.menu.script'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/script`,
               },
               // Màn làm việc riêng theo vai trò (route artist/letterer đã có trong routes.tsx)
@@ -387,7 +388,7 @@ export function AppShell({
                 ? [
                     {
                       icon: LayoutTemplate,
-                      label: 'Bàn vẽ & Khung trang',
+                      label: t('navigation.menu.desk'),
                       href: `/workspaces/${workspaceId}/series/${seriesId}/artist`,
                     },
                   ]
@@ -396,14 +397,14 @@ export function AppShell({
                 ? [
                     {
                       icon: Type,
-                      label: 'Chèn chữ & Bóng thoại',
+                      label: t('navigation.menu.lettering'),
                       href: `/workspaces/${workspaceId}/series/${seriesId}/letterer`,
                     },
                   ]
                 : []),
               {
                 icon: BookMarked,
-                label: 'Series Bible',
+                label: t('navigation.menu.bible'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/bible`,
               },
             ],
@@ -413,7 +414,7 @@ export function AppShell({
             items: [
               {
                 icon: Kanban,
-                label: 'Bảng Pipeline',
+                label: t('navigation.menu.production'),
                 href: `/workspaces/${workspaceId}/series/${seriesId}/workspace`,
               },
             ],
@@ -422,11 +423,11 @@ export function AppShell({
       } else {
         return [
           {
-            section: 'STUDIO',
+            section: t('navigation.sections.desk'),
             items: [
               {
                 icon: LayoutDashboard,
-                label: 'Danh sách Series',
+                label: t('navigation.menu.studioWorkspaces'),
                 href: seriesListHref,
               },
             ],
@@ -435,7 +436,7 @@ export function AppShell({
       }
     }
 
-    const base = ROLE_NAV_CONFIG[effectiveRole] || ROLE_NAV_CONFIG['PRODUCER'] || [];
+    const base = roleNavConfig[effectiveRole] || roleNavConfig['PRODUCER'] || [];
     return base;
   };
 
@@ -516,6 +517,27 @@ export function AppShell({
       return next;
     });
   };
+
+  // Giao diện thanh bên: cài đặt trên thiết bị (localStorage), mặc định "Mực đậm"
+  const [sidebarTheme, setSidebarTheme] = useState<SidebarTheme>(() => {
+    try {
+      const saved = localStorage.getItem('pf.sidebar.theme');
+      return SIDEBAR_THEMES.some((x) => x.id === saved) ? (saved as SidebarTheme) : 'ink';
+    } catch {
+      return 'ink';
+    }
+  });
+  const handleChangeSidebarTheme = (next: SidebarTheme) => {
+    setSidebarTheme(next);
+    try {
+      localStorage.setItem('pf.sidebar.theme', next);
+    } catch {
+      // ignore
+    }
+  };
+  const toggleLabel = isSidebarCollapsed
+    ? t('navigation.sidebar.expand', 'Mở rộng thanh điều hướng')
+    : t('navigation.sidebar.collapse', 'Thu gọn thanh điều hướng');
 
   const navSections = rawSections.map((sec) => ({
     ...sec,
@@ -618,6 +640,8 @@ export function AppShell({
             onSelectSeries={onSelectSeries}
             isRailExpanded={true}
             isMobileDrawer={true}
+            theme={sidebarTheme}
+            onChangeTheme={handleChangeSidebarTheme}
           />
         </SidebarDrawer>
       )}
@@ -633,20 +657,16 @@ export function AppShell({
         navSections={navSections}
         handleNavClick={handleNavClick}
         renderBadge={renderBadge}
-        unreadNotificationCount={unreadNotifications}
-        onOpenNotifications={handleOpenNotifications}
-        onOpenCommandPalette={handleOpenCommandPalette}
-        onOpenActivityHistory={handleOpenActivityHistory}
-        onOpenTwoFactor={onOpenTwoFactor}
         onLogout={onLogout}
         onSelectSeries={onSelectSeries}
         isCollapsed={isSidebarCollapsed}
-        onToggleCollapse={handleToggleSidebar}
         isMobileDrawer={false}
+        theme={sidebarTheme}
+        onChangeTheme={handleChangeSidebarTheme}
       />
 
       {/* --- RIGHT WRAPPER --- */}
-      <div className='flex-1 flex flex-col min-w-0 h-full bg-[#F3F0E9] relative'>
+      <div className='flex-1 flex flex-col min-w-0 h-full bg-[#F3F0E9] relative overflow-hidden'>
         <header className='h-16 bg-[#FCFBF8]/95 backdrop-blur-md border-b border-[#D8D2C5] flex items-center justify-between px-4 md:px-6 shrink-0 z-20'>
           <div className='flex items-center gap-2 min-w-0'>
             {!isReader && (
@@ -659,6 +679,24 @@ export function AppShell({
                 data-testid='appshell-hamburger-btn'
               >
                 <Menu className='w-5 h-5' />
+              </button>
+            )}
+            {!isReader && (
+              <button
+                type='button'
+                onClick={handleToggleSidebar}
+                aria-label={toggleLabel}
+                title={toggleLabel}
+                aria-expanded={!isSidebarCollapsed}
+                aria-controls={SIDEBAR_ID}
+                data-testid='sidebar-rail-toggle-btn'
+                className='hidden md:inline-flex items-center justify-center w-10 h-10 -ml-2 rounded-lg text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9] transition-colors duration-150 cursor-pointer shrink-0 focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#C2410C]'
+              >
+                {isSidebarCollapsed ? (
+                  <PanelLeftOpen className='w-[18px] h-[18px]' />
+                ) : (
+                  <PanelLeftClose className='w-[18px] h-[18px]' />
+                )}
               </button>
             )}
             {isReader ? (
@@ -758,7 +796,7 @@ export function AppShell({
               >
                 <Search className='w-3.5 h-3.5 text-[#57534E] absolute left-3.5 pointer-events-none stroke-[2] group-hover:text-[#1C1917] transition-colors' />
                 <div className='pl-9 pr-12 py-2 bg-[#FCFBF8] group-hover:bg-[#FCFBF8] text-xs text-[#57534E] rounded-full border border-[#D8D2C5] group-hover:border-[#1C1917] shadow-2xs w-64 transition-all truncate select-none'>
-                  Search frames, dialogues, assets...
+                  {t('navigation.header.searchPlaceholder')}
                 </div>
                 <span className='absolute right-2 px-2 py-0.5 text-xs font-mono text-[#57534E] bg-[#F3F0E9] rounded-full select-none group-hover:bg-[#EAE5DC]'>
                   ⌘K
@@ -780,15 +818,24 @@ export function AppShell({
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
                 className='flex items-center gap-2.5 p-1 rounded-full hover:bg-[#FFF2E6] transition-all cursor-pointer'
               >
-                <div className='w-8 h-8 rounded-full bg-[#1C1917] text-white flex items-center justify-center font-bold text-xs shadow-2xs'>
-                  {currentUser.avatarInitials}
+                <div className='w-8 h-8 rounded-full overflow-hidden bg-[#1C1917] text-white flex items-center justify-center font-bold text-xs shadow-2xs'>
+                  {currentUser.avatarUrl && currentUser.avatarUrl !== failedAvatarUrl ? (
+                    <img
+                      src={currentUser.avatarUrl}
+                      alt={currentUser.name}
+                      className='w-full h-full object-cover'
+                      onError={() => setFailedAvatarUrl(currentUser.avatarUrl ?? null)}
+                    />
+                  ) : (
+                    currentUser.avatarInitials
+                  )}
                 </div>
                 <div className='hidden md:flex flex-col text-left'>
                   <span className='text-xs font-semibold text-[#1C1917] leading-tight'>
                     {currentUser.name}
                   </span>
-                  <span className='text-[10px] text-[#C2410C] font-mono font-semibold leading-tight'>
-                    {effectiveRole}
+                  <span className='text-[10px] text-[#57534E] font-mono leading-tight'>
+                    {currentUser.role}
                   </span>
                 </div>
                 <ChevronDown className='w-3 h-3 text-[#57534E]' />
@@ -800,9 +847,7 @@ export function AppShell({
                   <div className='absolute right-0 mt-2 w-56 bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl shadow-editorial z-50 p-1.5 text-xs animate-in fade-in-50 zoom-in-95'>
                     <div className='px-3 py-2 border-b border-[#D8D2C5] mb-1'>
                       <p className='font-semibold text-[#1C1917]'>{currentUser.name}</p>
-                      <p className='text-[10px] text-[#C2410C] font-mono font-semibold'>
-                        {effectiveRole}
-                      </p>
+                      <p className='text-[10px] text-[#57534E] font-mono'>{currentUser.role}</p>
                     </div>
 
                     <button
@@ -814,7 +859,7 @@ export function AppShell({
                       className='w-full text-left flex items-center gap-2 text-xs text-[#1C1917] hover:bg-[#FFF2E6] px-3 py-2 rounded-lg transition-colors cursor-pointer'
                     >
                       <UserCircle className='w-3.5 h-3.5 text-[#57534E]' />
-                      <span>Hồ sơ cá nhân</span>
+                      <span>{t('navigation.menu.profile')}</span>
                     </button>
 
                     <button
@@ -826,7 +871,7 @@ export function AppShell({
                       className='w-full text-left flex items-center gap-2 text-xs text-[#1C1917] hover:bg-[#FFF2E6] px-3 py-2 rounded-lg transition-colors cursor-pointer'
                     >
                       <KeyRound className='w-3.5 h-3.5 text-[#57534E]' />
-                      <span>Đổi mật khẩu</span>
+                      <span>{t('navigation.menu.changePassword')}</span>
                     </button>
 
                     <button
@@ -838,7 +883,7 @@ export function AppShell({
                       className='w-full text-left flex items-center gap-2 text-xs text-[#1C1917] hover:bg-[#FFF2E6] px-3 py-2 rounded-lg transition-colors cursor-pointer'
                     >
                       <Shield className='w-3.5 h-3.5 text-[#F97316]' />
-                      <span>Bảo mật hai lớp (2FA)</span>
+                      <span>{t('navigation.menu.twoFactor')}</span>
                     </button>
 
                     <button
@@ -852,7 +897,7 @@ export function AppShell({
                       className='w-full text-left flex items-center gap-2 text-xs text-[#57534E] hover:text-[#1C1917] hover:bg-[#FFF2E6] px-3 py-2 rounded-lg transition-colors cursor-pointer'
                     >
                       <Briefcase className='w-3.5 h-3.5 text-[#F97316]' />
-                      <span>Đổi Workspace (Workspaces)</span>
+                      <span>{t('navigation.menu.switchWorkspace')}</span>
                     </button>
 
                     <div className='my-1 border-t border-[#D8D2C5]' />
@@ -867,46 +912,12 @@ export function AppShell({
                       className='w-full text-left flex items-center gap-2 text-xs text-red-600 hover:bg-red-50 px-3 py-2 rounded-lg transition-colors cursor-pointer'
                     >
                       <LogOut className='w-3.5 h-3.5 text-red-500' />
-                      <span>Logout</span>
+                      <span>{t('navigation.menu.logout')}</span>
                     </button>
                   </div>
                 </>
               )}
             </div>
-
-            {(currentUser.role === 'ADMINISTRATOR' ||
-              currentUser.activeRoles?.includes('ADMINISTRATOR') ||
-              currentUser.activeRoles?.includes('PRODUCER') ||
-              currentUser.workspaceRole === 'PRODUCER' ||
-              currentUser.activeRoles?.includes('ARTIST') ||
-              currentUser.workspaceRole === 'ARTIST') && (
-              <button
-                onClick={() => {
-                  if (
-                    currentUser.workspaceRole === 'ARTIST' ||
-                    currentUser.activeRoles?.includes('ARTIST')
-                  ) {
-                    navigate('/workspace/task/default');
-                  } else {
-                    navigate('/export');
-                  }
-                }}
-                className='bg-[#EA580C] hover:bg-[#C2410C] text-white px-4 py-1.5 rounded-full text-xs font-medium active:scale-[0.98] transition-all flex items-center gap-1.5 shadow-soft-sm'
-              >
-                {currentUser.workspaceRole === 'ARTIST' ||
-                currentUser.activeRoles?.includes('ARTIST') ? (
-                  <>
-                    <UploadCloud className='w-3.5 h-3.5 stroke-[2.5]' />
-                    <span>Submit</span>
-                  </>
-                ) : (
-                  <>
-                    <Upload className='w-3.5 h-3.5 stroke-[2.5]' />
-                    <span>Export</span>
-                  </>
-                )}
-              </button>
-            )}
 
             {isReader && (
               <button
