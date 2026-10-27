@@ -332,6 +332,14 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
     return false;
   }, []);
 
+  const isArtist = useMemo(() => {
+    return currentUserRole === 'ARTIST';
+  }, [currentUserRole]);
+
+  const isWriter = useMemo(() => {
+    return currentUserRole === 'WRITER';
+  }, [currentUserRole]);
+
   const canCreateDraft = useMemo(() => {
     if (isProducer) return true;
     return currentUserRole === 'WRITER' || currentUserRole === 'ARTIST';
@@ -516,11 +524,13 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
   const handleOpenAddRevision = async (
     entity: BibleEntity,
     supersede: BibleEntryRevisionDto | null = null,
+    fromQueue: boolean = false,
+    queueEffectiveChapter?: number,
   ) => {
     const snapshot = supersede ? readSnapshot(supersede.snapshotJson) : {};
     setRevisionTarget(entity);
     setSupersedeTarget(supersede);
-    setRevisionSummary('');
+    setRevisionSummary(fromQueue ? 'Nộp bản vẽ Concept Art' : '');
     setRevisionName(snapshot.Name ?? entity.name);
     setRevisionSubtitle(snapshot.Subtitle ?? entity.subtitle ?? '');
     setRevisionDescription(snapshot.Description ?? entity.description ?? '');
@@ -529,13 +539,16 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
     setRevisionEffectiveChapter(
       supersede
         ? supersede.effectiveFromChapterNumber
-        : typeof effectiveChapter === 'number'
-          ? effectiveChapter
-          : effectiveSeries?.chapter || 1,
+        : typeof queueEffectiveChapter === 'number'
+          ? queueEffectiveChapter
+          : typeof effectiveChapter === 'number'
+            ? effectiveChapter
+            : effectiveSeries?.chapter || 1,
     );
     setRevisionEffectiveToChapter(supersede?.effectiveToChapterNumber ?? '');
     setExpectedVersionNumber(1);
     setLockedChapterNumbers([]);
+    setIsArtistConceptSubmit(fromQueue);
     setAddRevModalOpen(true);
 
     if (effectiveSeries?.id) {
@@ -903,18 +916,41 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                     )}
                   </div>
 
-                  <button
-                    type='button'
-                    onClick={() => {
-                      if (matchedEntity) {
-                        void handleOpenAddRevision(matchedEntity);
-                      }
-                    }}
-                    className='px-2.5 py-1 bg-orange-600 hover:bg-orange-700 text-white rounded text-[11px] font-semibold shrink-0 cursor-pointer transition-colors shadow-2xs flex items-center gap-1'
-                  >
-                    <Upload className='w-3 h-3' />
-                    <span>Tải ảnh</span>
-                  </button>
+                  {isArtist ? (
+                    <button
+                      type='button'
+                      onClick={() => {
+                        if (matchedEntity) {
+                          void handleOpenAddRevision(
+                            matchedEntity,
+                            null,
+                            true,
+                            item.effectiveFromChapterNumber,
+                          );
+                        }
+                      }}
+                      className='px-2.5 py-1 bg-orange-600 hover:bg-orange-700 text-white rounded text-[11px] font-semibold shrink-0 cursor-pointer transition-colors shadow-2xs flex items-center gap-1'
+                      data-testid={`upload-concept-${item.entryId}`}
+                    >
+                      <Upload className='w-3 h-3' />
+                      <span>Tải ảnh</span>
+                    </button>
+                  ) : (
+                    <button
+                      type='button'
+                      onClick={() => {
+                        if (matchedEntity) {
+                          void handleOpenHistory(matchedEntity);
+                        }
+                      }}
+                      className='px-2.5 py-1 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded text-[11px] font-semibold shrink-0 cursor-pointer transition-colors border border-zinc-300 flex items-center gap-1'
+                      title='Chỉ Họa sĩ (Artist) mới có quyền tải ảnh Concept Art'
+                      data-testid={`view-concept-history-${item.entryId}`}
+                    >
+                      <Eye className='w-3 h-3' />
+                      <span>Xem chi tiết</span>
+                    </button>
+                  )}
                 </div>
               );
             })}
@@ -1971,9 +2007,14 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
 
                 {/* Upload reference sheet image */}
                 <div>
-                  <label className='block text-xs font-semibold text-zinc-800 mb-1'>
-                    Ảnh Reference Sheet của phiên bản (Tùy chọn)
-                  </label>
+                  <div className='flex items-center justify-between mb-1'>
+                    <label className='text-xs font-semibold text-zinc-800'>
+                      Ảnh Reference Sheet của phiên bản (Tùy chọn)
+                    </label>
+                    <span className='text-[10px] text-zinc-400 font-normal'>
+                      {isArtist ? 'Dành cho Artist' : 'Chỉ Artist được tải'}
+                    </span>
+                  </div>
                   <input
                     type='file'
                     ref={revFileInputRef}
@@ -2001,23 +2042,30 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                           </span>
                         </div>
                       </div>
-                      <div className='flex items-center gap-1 shrink-0'>
-                        <button
-                          type='button'
-                          onClick={() => revFileInputRef.current?.click()}
-                          className='px-2 py-1 text-[11px] font-semibold rounded bg-white border border-[#E7E7E7] hover:bg-zinc-50 text-zinc-700'
-                        >
-                          Đổi ảnh
-                        </button>
-                        <button
-                          type='button'
-                          onClick={() => setRevisionReferenceImageUrl('')}
-                          className='p-1 text-red-600 hover:bg-red-50 rounded'
-                          title='Gỡ ảnh'
-                        >
-                          <Trash2 className='w-3.5 h-3.5' />
-                        </button>
-                      </div>
+                      {isArtist && (
+                        <div className='flex items-center gap-1 shrink-0'>
+                          <button
+                            type='button'
+                            onClick={() => revFileInputRef.current?.click()}
+                            className='px-2 py-1 text-[11px] font-semibold rounded bg-white border border-[#E7E7E7] hover:bg-zinc-50 text-zinc-700'
+                          >
+                            Đổi ảnh
+                          </button>
+                          <button
+                            type='button'
+                            onClick={() => setRevisionReferenceImageUrl('')}
+                            className='p-1 text-red-600 hover:bg-red-50 rounded'
+                            title='Gỡ ảnh'
+                          >
+                            <Trash2 className='w-3.5 h-3.5' />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ) : !isArtist ? (
+                    <div className='p-3 rounded-xl border border-dashed border-zinc-200 bg-zinc-50 text-center text-xs text-zinc-500 flex items-center justify-center gap-2'>
+                      <Lock className='w-3.5 h-3.5 text-zinc-400' />
+                      <span>Chỉ Họa sĩ (Artist) mới có quyền tải ảnh Reference Sheet mới.</span>
                     </div>
                   ) : (
                     <button
@@ -2082,6 +2130,16 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                             supersedeTarget.id,
                             { ...content, reason: revisionSummary.trim() },
                           );
+                        } else if (isArtistConceptSubmit && isArtist) {
+                          await bibleService.submitConceptArt(
+                            effectiveSeries.id,
+                            revisionTarget.id,
+                            {
+                              ...content,
+                              summary: revisionSummary.trim(),
+                              effectiveToChapterNumber: content.effectiveToChapterNumber,
+                            },
+                          );
                         } else {
                           await bibleService.addRevision(effectiveSeries.id, revisionTarget.id, {
                             ...content,
@@ -2093,14 +2151,18 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                       onShowToast(
                         supersedeTarget
                           ? 'Đã thay thế bản khoá'
-                          : isProducer
-                            ? 'Tạo phiên bản mới thành công'
-                            : 'Đã tạo bản nháp mới',
+                          : isArtistConceptSubmit && isArtist
+                            ? 'Đã nộp bản vẽ Concept Art'
+                            : isProducer
+                              ? 'Tạo phiên bản mới thành công'
+                              : 'Đã tạo bản nháp mới',
                         supersedeTarget
                           ? `Bản mới của ${revisionName || revisionTarget.name} đã được khoá ở Chương ${revisionEffectiveChapter}.`
-                          : isProducer
-                            ? `Đã ghi nhận phiên bản mới cho ${revisionName || revisionTarget.name} có hiệu lực từ Chương ${revisionEffectiveChapter}.`
-                            : `Đã gửi bản nháp mới cho ${revisionName || revisionTarget.name} – chờ Producer duyệt.`,
+                          : isArtistConceptSubmit && isArtist
+                            ? `Đã gửi bản vẽ Concept Art cho ${revisionName || revisionTarget.name} – chờ Writer/Editor duyệt.`
+                            : isProducer
+                              ? `Đã ghi nhận phiên bản mới cho ${revisionName || revisionTarget.name} có hiệu lực từ Chương ${revisionEffectiveChapter}.`
+                              : `Đã gửi bản nháp mới cho ${revisionName || revisionTarget.name} – chờ Producer duyệt.`,
                       );
                       setRefreshTrigger((prev) => prev + 1);
                       setAddRevModalOpen(false);
@@ -2228,6 +2290,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
       <AddEntityModal
         isOpen={addEntityOpen}
         isProducer={isProducer}
+        isArtist={isArtist}
         onClose={() => setAddEntityOpen(false)}
         onAdd={handleCreateEntity}
         onShowToast={onShowToast}

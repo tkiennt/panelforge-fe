@@ -364,6 +364,7 @@ export interface SubmitConceptArtRequest {
   subtitle?: string;
   detailsJson?: string;
   effectiveFromChapterNumber?: number;
+  effectiveToChapterNumber?: number;
   expectedVersionNumber?: number;
 }
 

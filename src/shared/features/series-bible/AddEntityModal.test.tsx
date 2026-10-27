@@ -173,4 +173,12 @@ describe('AddEntityModal UX/UI improvements', () => {
       }),
     );
   });
+
+  it('renders artist role separation banner and hides image upload when isArtist is false', async () => {
+    render(<AddEntityModal {...defaultProps} isArtist={false} />);
+
+    expect(screen.getByTestId('artist-role-separation-banner')).toBeInTheDocument();
+    expect(screen.getByText(/Chỉ Họa sĩ \(Artist\) mới tải ảnh lên/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Kéo thả ảnh reference sheet vào đây/i)).toBeNull();
+  });
 });

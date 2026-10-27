@@ -28,6 +28,7 @@ interface AddEntityModalProps {
   onShowToast: (title: string, desc: string) => void;
   seriesId?: string;
   isProducer?: boolean;
+  isArtist?: boolean;
 }
 
 export const AddEntityModal: React.FC<AddEntityModalProps> = ({
@@ -37,6 +38,7 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
   onShowToast,
   seriesId,
   isProducer = true,
+  isArtist = true,
 }) => {
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
@@ -408,7 +410,24 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
             </div>
           )}
 
-          {/* Reference Sheet Image Upload Dropzone */}
+          {!isArtist ? (
+            <div
+              className='p-4 rounded-xl border border-dashed border-[#D8D2C5] bg-[#F7F5F0] text-center space-y-2'
+              data-testid='artist-role-separation-banner'
+            >
+              <div className='w-8 h-8 rounded-full bg-[#E5DFD3] text-[#78716C] flex items-center justify-center mx-auto'>
+                <HelpCircle className='w-4 h-4' />
+              </div>
+              <p className='text-xs font-semibold text-[#44403C]'>
+                Phân vai chuyên trách: Chỉ Họa sĩ (Artist) mới tải ảnh lên
+              </p>
+              <p className='text-[11px] text-[#78716C] max-w-md mx-auto leading-relaxed'>
+                Biên kịch và Nhà sản xuất thiết lập thông tin kịch bản và quy chuẩn thiết kế bằng văn bản. Sau khi lưu, mục này sẽ tự động chuyển vào <b>Hàng đợi thiết kế (Bible Design Queue)</b> để Họa sĩ vẽ và tải Model Sheet / Concept Art lên.
+              </p>
+            </div>
+          ) : (
+            <>
+              {/* Reference Sheet Image Upload Dropzone */}
           <div>
             <div className='flex items-center justify-between mb-1'>
               <label className='text-xs font-semibold text-zinc-800 flex items-center gap-1.5'>
@@ -629,6 +648,9 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
               </div>
             )}
           </div>
+
+            </>
+          )}
 
           {/* Mô tả thiết kế */}
           <div>
