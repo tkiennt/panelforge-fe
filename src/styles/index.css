@@ -10,6 +10,34 @@
   --font-comic: 'Patrick Hand SC', 'Patrick Hand', 'Be Vietnam Pro', cursive, sans-serif;
   --font-handwriting: 'Patrick Hand', 'Be Vietnam Pro', cursive, sans-serif;
   --font-studio: 'Be Vietnam Pro', 'Inter', 'Plus Jakarta Sans', sans-serif;
+  /* Universal PanelForge Manga Studio Tokens (Hallmark Tier-1 Compliant) */
+  --color-studio-ink: var(--studio-ink, #1c1917);
+  --color-studio-ink-muted: var(--studio-ink-muted, #57534e);
+  --color-studio-ink-subtle: var(--studio-ink-subtle, #78716c);
+  --color-studio-ink-faint: var(--studio-ink-faint, #a8a29e);
+
+  --color-studio-paper: var(--studio-paper, #f3f0e9);
+  --color-studio-paper-card: var(--studio-paper-card, #fcfbf8);
+  --color-studio-paper-warm: var(--studio-paper-warm, #faf8f5);
+  --color-studio-paper-deckle: var(--studio-paper-deckle, #eae5dc);
+  --color-studio-paper-pure: var(--studio-paper-pure, #ffffff);
+
+  --color-studio-line: var(--studio-line, #d8d2c5);
+  --color-studio-line-soft: var(--studio-line-soft, #e8e4da);
+  --color-studio-line-strong: var(--studio-line-strong, #a8a29e);
+
+  --color-studio-accent: var(--studio-accent, #f97316);
+  --color-studio-accent-hover: var(--studio-accent-hover, #ea580c);
+  --color-studio-accent-dark: var(--studio-accent-dark, #c2410c);
+  --color-studio-accent-soft: var(--studio-accent-soft, #fff2e6);
+  --color-studio-accent-border: var(--studio-accent-border, #fdba74);
+
+  --color-studio-mint: var(--studio-mint, #119c72);
+  --color-studio-mint-soft: var(--studio-mint-soft, #ecfdf5);
+  --color-studio-amber: var(--studio-amber, #d6731e);
+  --color-studio-amber-soft: var(--studio-amber-soft, #fffbeb);
+  --color-studio-danger: var(--studio-danger, #d93a55);
+  --color-studio-danger-soft: var(--studio-danger-soft, #fef2f2);
 
   --color-ink-black: #171717;
   --color-ink-dark: #262626;

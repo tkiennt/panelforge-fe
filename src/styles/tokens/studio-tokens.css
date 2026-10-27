@@ -1,0 +1,111 @@
+/**
+ * PanelForge Studio Design Tokens · Hallmark Tier-1 Compliant
+ * Comprehensive Color & Accessibility System for Manga Production Studio
+ */
+
+:root {
+  /* --- INK (Mực than & văn bản) --- */
+  --studio-ink: #1C1917;
+  --studio-ink-muted: #57534E;
+  --studio-ink-subtle: #78716C;
+  --studio-ink-faint: #A8A29E;
+
+  /* --- PAPER (Bề mặt giấy vẽ & thẻ panel) --- */
+  --studio-paper: #F3F0E9;
+  --studio-paper-card: #FCFBF8;
+  --studio-paper-warm: #FAF8F5;
+  --studio-paper-deckle: #EAE5DC;
+  --studio-paper-pure: #FFFFFF;
+
+  /* --- LINE (Đường khung viền & đường biên panel) --- */
+  --studio-line: #D8D2C5;
+  --studio-line-soft: #E8E4DA;
+  --studio-line-strong: #A8A29E;
+
+  /* --- ACCENT (Điểm nhấn màu cam Studio PanelForge) --- */
+  --studio-accent: #F97316;
+  --studio-accent-hover: #EA580C;
+  --studio-accent-dark: #C2410C;
+  --studio-accent-soft: #FFF2E6;
+  --studio-accent-border: #FDBA74;
+
+  /* --- STATUS (Trạng thái công đoạn duyệt) --- */
+  --studio-mint: #119C72;
+  --studio-mint-soft: #ECFDF5;
+  --studio-amber: #D6731E;
+  --studio-amber-soft: #FFFBEB;
+  --studio-danger: #D93A55;
+  --studio-danger-soft: #FEF2F2;
+
+  /* --- FOCUS & TRANSITION --- */
+  --studio-focus-outline: #F97316;
+}
+
+/* Explicit opt-in Dark Mode: Only activates when root container has data-theme="dark" */
+:root[data-theme="dark"] {
+  --studio-ink: #F4F0E8;
+  --studio-ink-muted: rgba(244, 240, 232, 0.72);
+  --studio-ink-subtle: rgba(244, 240, 232, 0.45);
+  --studio-ink-faint: rgba(244, 240, 232, 0.25);
+
+  --studio-paper: #0C0A09;
+  --studio-paper-card: #181512;
+  --studio-paper-warm: #141210;
+  --studio-paper-deckle: #24201C;
+  --studio-paper-pure: #1C1917;
+
+  --studio-line: rgba(244, 240, 232, 0.14);
+  --studio-line-soft: rgba(244, 240, 232, 0.08);
+  --studio-line-strong: rgba(244, 240, 232, 0.25);
+
+  --studio-accent: #FB923C;
+  --studio-accent-hover: #F97316;
+  --studio-accent-dark: #EA580C;
+  --studio-accent-soft: rgba(251, 146, 60, 0.16);
+  --studio-accent-border: rgba(251, 146, 60, 0.42);
+
+  --studio-mint: #7EE8C0;
+  --studio-mint-soft: rgba(17, 156, 114, 0.18);
+  --studio-amber: #FFB26B;
+  --studio-amber-soft: rgba(214, 115, 30, 0.18);
+  --studio-danger: #FF7D8C;
+  --studio-danger-soft: rgba(217, 58, 85, 0.18);
+
+  --studio-focus-outline: #FB923C;
+}
+
+/* ==========================================================================
+   Hallmark The Floor Utilities: Focus ring, Motion reduction, Safe transitions
+   ========================================================================== */
+
+/* Floor 6: Instant focus-visible ring on all interactive elements */
+.focus-ring {
+  outline: none;
+}
+.focus-ring:focus-visible {
+  outline: 2px solid var(--studio-focus-outline);
+  outline-offset: 2px;
+}
+
+/* Floor 2: Safe targeted micro-interactions (Never transition: all) */
+.transition-studio {
+  transition-property: color, background-color, border-color, opacity, box-shadow;
+  transition-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+.transition-studio-transform {
+  transition-property: color, background-color, border-color, opacity, transform;
+  transition-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* Floor 7: Universal prefers-reduced-motion fallback */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
