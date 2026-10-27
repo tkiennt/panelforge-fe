@@ -292,9 +292,15 @@ export const bibleService = {
     data?: EndorseBibleRevisionRequest,
   ): Promise<BibleEntryRevisionDto> {
     try {
+      const payload = data
+        ? {
+            note: data.note || data.endorsementNote,
+            endorsementNote: data.endorsementNote || data.note,
+          }
+        : {};
       const response = await axiosClient.post(
         `/series/${seriesId}/bible/entries/${entryId}/revisions/${revisionId}/endorse`,
-        data ?? {},
+        payload,
       );
       return response.data;
     } catch (error) {
@@ -312,9 +318,13 @@ export const bibleService = {
     data: RequestReworkBibleRevisionRequest,
   ): Promise<BibleEntryRevisionDto> {
     try {
+      const payload = {
+        reason: data.reason || data.reworkReason || '',
+        reworkReason: data.reworkReason || data.reason || '',
+      };
       const response = await axiosClient.post(
         `/series/${seriesId}/bible/entries/${entryId}/revisions/${revisionId}/request-rework`,
-        data,
+        payload,
       );
       return response.data;
     } catch (error) {
@@ -325,30 +335,44 @@ export const bibleService = {
 
 export interface BibleDesignQueueItemDto {
   entryId: string;
+  seriesId?: string;
   code: string;
   name: string;
   category: BibleCategory;
-  latestRevisionId: string;
+  latestRevisionId?: string;
+  status?: BibleReviewStatus;
   reviewStatus: BibleReviewStatus;
   reworkFeedback?: string | null;
   artistUserId?: string | null;
   referenceImageUrl?: string | null;
   effectiveFromChapterNumber: number;
+  stageName?: string | null;
+  versionNumber?: number;
+  createdAt?: string;
   updatedAt: string;
 }
 
 export interface SubmitConceptArtRequest {
-  imageAssetUrl: string;
-  imageSha256: string;
+  imageAssetUrl?: string;
+  referenceImageUrl?: string;
+  imageSha256?: string;
   stageName?: string;
   note?: string;
+  summary?: string;
+  name?: string;
+  description?: string;
+  subtitle?: string;
+  detailsJson?: string;
   effectiveFromChapterNumber?: number;
+  expectedVersionNumber?: number;
 }
 
 export interface EndorseBibleRevisionRequest {
+  note?: string;
   endorsementNote?: string;
 }
 
 export interface RequestReworkBibleRevisionRequest {
-  reworkReason: string;
+  reason?: string;
+  reworkReason?: string;
 }

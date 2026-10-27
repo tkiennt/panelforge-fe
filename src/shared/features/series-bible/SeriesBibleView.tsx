@@ -883,7 +883,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                       </span>
                     </div>
                     <div className='flex items-center gap-1 mt-1'>
-                      {item.reviewStatus === 'ReworkRequired' || item.reviewStatus === 3 ? (
+                      {item.reviewStatus === 'ReworkRequired' || (item as any).status === 'ReworkRequired' || item.reviewStatus === 3 || (item as any).status === 3 ? (
                         <span className='px-1.5 py-0.2 rounded bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-semibold'>
                           ⚠️ Yêu cầu vẽ lại
                         </span>
