@@ -22,6 +22,7 @@ import { seriesService, SeriesDto } from '@/services/series.service';
 import { SeriesPipelineModal } from '@/roles/producer/modals/SeriesPipelineModal';
 import { SeriesChaptersModal } from '@/roles/producer/modals/SeriesChaptersModal';
 import { SeriesPresetsModal } from '@/roles/producer/modals/SeriesPresetsModal';
+import { SeriesMembersModal } from '@/roles/producer/modals/SeriesMembersModal';
 import { InviteMemberModal } from '@/roles/producer/modals/InviteMemberModal';
 import { systemImageToFile, type SystemImage } from '@/shared/utils/systemImages';
 import { getRoleDefaultPath } from '@/roles/roles';
@@ -76,6 +77,10 @@ export const StudioOverviewView: React.FC = () => {
     title: string;
   } | null>(null);
   const [selectedPresetsSeries, setSelectedPresetsSeries] = useState<{
+    id: string;
+    title: string;
+  } | null>(null);
+  const [selectedMembersSeries, setSelectedMembersSeries] = useState<{
     id: string;
     title: string;
   } | null>(null);
@@ -895,6 +900,7 @@ export const StudioOverviewView: React.FC = () => {
                     onOpenChapters={(ser) => setSelectedChapterSeries(ser)}
                     onOpenPipeline={(ser) => setSelectedPipelineSeries(ser)}
                     onOpenPresets={(ser) => setSelectedPresetsSeries(ser)}
+                    onOpenMembers={(ser) => setSelectedMembersSeries(ser)}
                     onPickCover={(ser) => setCoverPickerSeries(ser)}
                     onClearCover={(sId) => void handleClearCover(sId)}
                     onEditSeries={handleOpenEditSeries}
@@ -1003,6 +1009,17 @@ export const StudioOverviewView: React.FC = () => {
           seriesTitle={selectedPresetsSeries.title}
           onClose={() => setSelectedPresetsSeries(null)}
           onShowToast={showToast}
+        />
+      )}
+
+      {/* UC-04 / RBAC: Series Members Management Modal */}
+      {selectedMembersSeries && activeWorkspace && (
+        <SeriesMembersModal
+          isOpen={!!selectedMembersSeries}
+          workspaceId={activeWorkspace.id}
+          seriesId={selectedMembersSeries.id}
+          seriesTitle={selectedMembersSeries.title}
+          onClose={() => setSelectedMembersSeries(null)}
         />
       )}
 

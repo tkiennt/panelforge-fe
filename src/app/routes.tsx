@@ -338,7 +338,7 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                       const adapted: MangaProject = {
                         id: series.id,
                         title: series.title,
-                        subtitle: series.synopsis || 'N/A',
+                        subtitle: series.synopsis || '',
                         arc: 'Arc 01',
                         chapter: 1,
                         format: series.format || 'B5 Tankōbon Master (600 DPI)',

@@ -12,10 +12,18 @@ import {
 } from '../types/pipeline';
 
 function extractError(error: any, defaultMsg: string): any {
-  const message = error.response?.data?.error || error.response?.data?.message || defaultMsg;
+  let message = error.response?.data?.error || error.response?.data?.message || defaultMsg;
+  if (error.response?.status === 403 || error.response?.data?.code === 'FORBIDDEN') {
+    message = 'Phần này thuộc việc của người khác / đang chờ duyệt';
+  }
   const err: any = new Error(message);
   err.code =
-    error.response?.data?.code || (error.response?.status === 409 ? 'CONFLICT' : undefined);
+    error.response?.data?.code ||
+    (error.response?.status === 403
+      ? 'FORBIDDEN'
+      : error.response?.status === 409
+        ? 'CONFLICT'
+        : undefined);
   err.status = error.response?.status;
   return err;
 }

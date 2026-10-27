@@ -186,8 +186,9 @@ describe('ProductionBoard (Quy trình sản xuất: lưới + bộ lọc)', () =
   it('thành viên mặc định "Cần tôi xử lý"; tham số filter hợp lệ trên URL được ưu tiên', async () => {
     const { unmount } = renderBoard({ currentUserRole: 'ARTIST', currentUserId: 'user-2' });
     await waitFor(() => expect(quick(/Cần tôi xử lý/)).toHaveAttribute('aria-pressed', 'true'));
-    // user-2 chỉ có việc đã nộp (chờ người khác duyệt) => không có việc cần xử lý
-    expect(screen.getByText('Không có việc nào cần bạn xử lý')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByText('Không có việc nào cần bạn xử lý')).toBeInTheDocument(),
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Xem tất cả công việc của chương' }));
     await waitFor(() => expect(screen.getAllByTestId('production-task-card')).toHaveLength(3));
     unmount();
@@ -294,9 +295,17 @@ describe('ProductionBoard (Quy trình sản xuất: lưới + bộ lọc)', () =
     fireEvent.click(screen.getByText('Viết kịch bản cho Trang 1'));
     await waitFor(() => expect(screen.getByText('Huỷ việc')).toBeInTheDocument());
     fireEvent.click(screen.getByText('Huỷ việc'));
+    expect(screen.getByText('Xác nhận xoá?').closest('button')).toBeDisabled();
+    fireEvent.change(screen.getByLabelText('Lý do huỷ việc'), {
+      target: { value: 'Đổi kế hoạch' },
+    });
     fireEvent.click(screen.getByText('Xác nhận xoá?'));
     await waitFor(() => {
-      expect(assignmentService.deleteAssignment).toHaveBeenCalledWith('chap-1', 'assign-1');
+      expect(assignmentService.deleteAssignment).toHaveBeenCalledWith(
+        'chap-1',
+        'assign-1',
+        'Đổi kế hoạch',
+      );
       expect(screen.queryByText('Viết kịch bản cho Trang 1')).not.toBeInTheDocument();
     });
   });

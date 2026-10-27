@@ -21,6 +21,12 @@ import {
   Check,
   Camera,
   Image as ImageIcon,
+  UserPlus,
+  LayoutDashboard,
+  TrendingDown,
+  PenTool,
+  Palette,
+  Crown,
 } from 'lucide-react';
 import { PageContainer } from '@/shared/components/PageContainer';
 import { notificationService } from '@/services/notification.service';
@@ -29,6 +35,7 @@ import {
   SeriesProgressDto,
   ChapterProgressDto,
   SeriesDetailDto,
+  SeriesMemberDto,
 } from '@/services/series.service';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { IdentityBanner } from '@/shared/components/IdentityBanner';
@@ -40,6 +47,7 @@ import {
 import { SERIES_BANNER_POSITION } from '@/shared/utils/seriesImagePresets';
 import type { SeriesImageKind } from '@/services/series.service';
 import { SeriesChaptersModal } from '../modals/SeriesChaptersModal';
+import { SeriesMembersModal } from '../modals/SeriesMembersModal';
 import { CreateAssignmentModal } from '../modals/CreateAssignmentModal';
 import { SeriesBurndownCard } from '../components/SeriesBurndownCard';
 import { MangaProject, AssistantRosterItem, ProvenanceLogItem } from '@/types';
@@ -104,6 +112,74 @@ const formatReleaseDate = (dateStr?: string | null): string | null => {
   }
 };
 
+/**
+ * Compact 4-Step Mini-Stepper cho từng chương (Manga Studio Pipeline).
+ * Chuỗi 4 công đoạn: Script (Bản thảo) -> Sketch (Phác thảo) -> Ink/Color (Vẽ nét & Màu) -> Done (Hoàn tất).
+ */
+const ChapterPipelineStepper: React.FC<{
+  percentComplete: number;
+  status?: string;
+}> = ({ percentComplete, status }) => {
+  const isFinished = status === 'Approved' || status === 'Published' || percentComplete >= 100;
+
+  let currentStageIndex = 0;
+  if (isFinished) {
+    currentStageIndex = 3;
+  } else if (percentComplete >= 66) {
+    currentStageIndex = 2;
+  } else if (percentComplete >= 33) {
+    currentStageIndex = 1;
+  } else {
+    currentStageIndex = 0;
+  }
+
+  const stages = [
+    { label: 'Bản thảo', short: 'Script', icon: BookOpen },
+    { label: 'Phác thảo', short: 'Sketch', icon: PenTool },
+    { label: 'Vẽ nét & màu', short: 'Ink/Color', icon: Palette },
+    { label: 'Hoàn tất', short: 'Done', icon: CheckCircle2 },
+  ];
+
+  return (
+    <div
+      className='flex items-center gap-1 sm:gap-2 shrink-0 py-0.5'
+      aria-label={`Tiến trình chương: ${percentComplete}%`}
+    >
+      {stages.map((st, idx) => {
+        const isReached = isFinished || idx <= currentStageIndex;
+        const isCurrent = !isFinished && idx === currentStageIndex;
+        const IconComponent = st.icon;
+
+        return (
+          <React.Fragment key={st.label}>
+            {idx > 0 && (
+              <div
+                className={`h-[2px] w-4 sm:w-6 md:w-8 lg:w-10 rounded-full transition-colors ${
+                  idx <= currentStageIndex || isFinished
+                    ? 'bg-[#F97316]'
+                    : 'bg-zinc-200'
+                }`}
+              />
+            )}
+            <div
+              className={`relative flex items-center justify-center transition-all w-6 h-6 sm:w-7 sm:h-7 rounded-lg ${
+                isCurrent
+                  ? 'bg-[#F97316] text-white ring-2 ring-[#F97316]/30 shadow-xs'
+                  : isReached
+                  ? 'bg-[#F97316] text-white shadow-2xs'
+                  : 'bg-zinc-100 text-zinc-400 border border-zinc-200'
+              }`}
+              title={`${st.label} (${st.short}): ${isReached ? 'Đã hoàn thành / Đang thực hiện' : 'Chưa bắt đầu'}`}
+            >
+              <IconComponent className='w-3 h-3 sm:w-3.5 sm:h-3.5' />
+            </div>
+          </React.Fragment>
+        );
+      })}
+    </div>
+  );
+};
+
 export const DashboardView: React.FC<DashboardViewProps> = ({
   workspaceRole,
   activeProject,
@@ -130,6 +206,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   } | null>(null);
   const [auditRunning, setAuditRunning] = useState(false);
   const [sendingReminders, setSendingReminders] = useState(false);
+  const [activeTab, setActiveTab] = useState<'all' | 'chapters' | 'team' | 'reports'>('all');
 
   // Entrance animation played state - ensures entrance animations only execute once on initial mount
   const [hasAnimatedMount, setHasAnimatedMount] = useState(false);
@@ -157,6 +234,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     }
   }, []);
 
+  // Quản lý thành viên / Đội ngũ Series
+  const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
+  const [seriesMembers, setSeriesMembers] = useState<SeriesMemberDto[]>([]);
+
   const fetchProgress = useCallback(async () => {
     if (!seriesId) {
       setLoading(false);
@@ -165,12 +246,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     setLoading(true);
     setError(null);
     try {
-      const [prog, detail] = await Promise.all([
+      const [prog, detail, members] = await Promise.all([
         seriesService.getSeriesProgress(seriesId),
         seriesService.getSeriesById(seriesId).catch(() => null),
+        seriesService.getSeriesMembers(workspaceId || '', seriesId).catch(() => []),
       ]);
       setProgress(prog);
       setSeriesDetail(detail);
+      setSeriesMembers(members);
       if (prog.chapters.length > 0) {
         setSelectedChapterId((prev) =>
           prev && prog.chapters.some((c) => c.chapterId === prev)
@@ -185,7 +268,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [seriesId, onShowToast]);
+  }, [seriesId, workspaceId, onShowToast]);
 
   useEffect(() => {
     void fetchProgress();
@@ -287,6 +370,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     if (!selectedChapterId) return progress.chapters[0];
     return progress.chapters.find((c) => c.chapterId === selectedChapterId) || progress.chapters[0];
   }, [progress, selectedChapterId]);
+
+  // Active production chapter for detailed cockpit view
+  const activeProductionChapter: ChapterProgressDto | undefined = useMemo(() => {
+    if (!progress?.chapters?.length) return undefined;
+    return (
+      progress.chapters.find(
+        (c) => c.status === 'InProduction' || c.status === 'Draft' || c.status === 'Review',
+      ) || progress.chapters[0]
+    );
+  }, [progress]);
 
   const seriesTitle = seriesDetail?.title || activeProject?.title || 'Bộ truyện';
 
@@ -475,7 +568,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         }
         avatar={
           <div className='relative'>
-            <div className='w-24 h-24 sm:w-28 sm:h-28 lg:w-32 lg:h-32 rounded-2xl border-[3px] border-[#FCFBF8] bg-[#FCFBF8] p-0.5 shadow-[0_8px_24px_rgba(28,25,23,0.25)] overflow-hidden'>
+            <div className='w-24 sm:w-28 lg:w-32 aspect-[3/4] rounded-xl sm:rounded-2xl border-[3px] border-[#FCFBF8] bg-[#FCFBF8] p-0.5 shadow-[0_8px_24px_rgba(28,25,23,0.25)] overflow-hidden shrink-0'>
               {seriesDetail?.avatarUrl ? (
                 <AuthenticatedImage
                   key={seriesDetail.avatarUrl}
@@ -504,112 +597,136 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         }
       >
-        {/* Ngữ cảnh & đồng bộ */}
-        <div className='flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono text-[#57534E]'>
-          <span className='uppercase tracking-wider font-semibold break-words min-w-0'>
-            {workspaceName} / Tổng quan bộ truyện
-          </span>
+        {/* Ngữ cảnh & đồng bộ phong cách bản thảo Manga */}
+        <div className='flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono text-zinc-500'>
+          <div className='flex items-center gap-1.5 min-w-0'>
+            <span className='inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-orange-100/70 border border-orange-200/80 text-[#C2410C] text-[9.5px] font-bold tracking-wider uppercase'>
+              Bản Thảo Studio
+            </span>
+            <span className='text-zinc-400'>/</span>
+            <span className='uppercase tracking-wider font-semibold text-zinc-600 truncate'>
+              {workspaceName}
+            </span>
+          </div>
           {loading ? (
             <span className='inline-flex items-center gap-1.5 text-[#C2410C]'>
               <Loader2 className='w-3.5 h-3.5 animate-spin' />
               Đang nạp...
             </span>
           ) : progress?.generatedAt ? (
-            <span className='inline-flex items-center gap-1'>
-              <span className='w-1.5 h-1.5 rounded-full bg-emerald-500' />
-              Đồng bộ: {new Date(progress.generatedAt).toLocaleTimeString('vi-VN')}
+            <span className='inline-flex items-center gap-1.5 text-zinc-500'>
+              <span className='w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-2xs' />
+              <span>Đồng bộ: {new Date(progress.generatedAt).toLocaleTimeString('vi-VN')}</span>
             </span>
           ) : null}
         </div>
 
+        {/* Tiêu đề truyện Manga với nét cọ Sumi-e & con dấu ấn triện */}
         <div className='relative inline-block max-w-full'>
-          <h1
-            style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
-            className='pf-ink-bleed-title relative z-10 text-2xl sm:text-3xl lg:text-4xl font-bold text-[#1C1917] tracking-tight leading-tight break-words [overflow-wrap:anywhere]'
-            data-testid='series-title'
-          >
-            <span className='sr-only'>Tổng quan bộ truyện: </span>
-            {seriesTitle}
-          </h1>
+          <div className='flex items-center gap-2.5 flex-wrap'>
+            <h1
+              style={{ fontFamily: "'Playfair Display', 'Lora', 'Be Vietnam Pro', Georgia, serif" }}
+              className='pf-ink-bleed-title relative z-10 text-2xl sm:text-3xl lg:text-4xl font-bold text-zinc-900 tracking-tight leading-tight break-words [overflow-wrap:anywhere]'
+              data-testid='series-title'
+            >
+              <span className='sr-only'>Tổng quan bộ truyện: </span>
+              {seriesTitle}
+            </h1>
+            <span
+              title='Tác phẩm đang được xuất bản kỳ dài tập (Serial Manga Edition)'
+              className='inline-flex items-center px-1.5 py-0.5 rounded border border-red-300 bg-red-50 text-red-700 text-[10px] font-serif font-bold tracking-wider shadow-2xs uppercase select-none'
+            >
+              連載 · Serial
+            </span>
+          </div>
           <svg
-            className={`absolute -bottom-1.5 left-0 w-full max-w-[280px] h-[12px] pointer-events-none z-0 overflow-visible ${
+            className={`absolute -bottom-1.5 left-0 w-full max-w-[320px] h-[14px] pointer-events-none z-0 overflow-visible ${
               !hasAnimatedMount ? 'pf-brush-wipe' : ''
             }`}
-            viewBox='0 0 320 16'
+            viewBox='0 0 340 18'
             fill='none'
             aria-hidden='true'
           >
             <path
-              d='M 3 10 C 14 6.2, 40 8.5, 78 7.2 C 126 5.5, 192 9.5, 248 7.0 C 278 5.6, 304 7.2, 317 6.0 C 314 9.0, 286 11.2, 252 10.8 C 196 10.2, 134 13.0, 82 11.6 C 46 10.5, 16 12.2, 3 10 Z'
+              d='M 2 11 C 18 6.5, 48 9.0, 92 7.5 C 146 5.8, 218 10.0, 276 7.2 C 308 5.8, 328 7.6, 338 6.2 C 334 9.5, 304 12.0, 268 11.4 C 208 10.8, 142 14.0, 88 12.2 C 48 11.0, 16 13.0, 2 11 Z'
               fill='#F97316'
-              opacity='0.8'
+              opacity='0.85'
             />
           </svg>
         </div>
 
-        <div className='flex flex-wrap items-center gap-1.5 text-[11px] font-semibold font-mono text-[#57534E]'>
+        {/* Phân loại & Thông số tác phẩm dạng tem nhãn ấn bản truyện tranh */}
+        <div className='flex flex-wrap items-center gap-1.5 text-[11px] font-semibold font-mono text-zinc-600'>
           {seriesDetail?.storyArc && (
-            <span className='px-2 py-0.5 rounded-md bg-white/70 text-[#1C1917] border border-[#D8D2C5] break-words'>
+            <span className='px-2 py-0.5 rounded-md bg-white text-zinc-800 border border-zinc-200 shadow-2xs break-words'>
               {seriesDetail.storyArc}
             </span>
           )}
           {(seriesDetail?.format || activeProject?.format) && (
-            <span className='px-2 py-0.5 rounded-md bg-[#FFF2E6] text-[#C2410C] border border-[#FDBA74]'>
+            <span className='px-2 py-0.5 rounded-md bg-orange-50 text-[#C2410C] border border-orange-200/90 shadow-2xs font-bold'>
               {seriesDetail?.format || activeProject?.format}
             </span>
           )}
           {(seriesDetail?.genre || activeProject?.genres?.[0]) && (
-            <span className='px-2 py-0.5 rounded-md bg-white/70 text-[#1C1917] border border-[#D8D2C5]'>
+            <span className='px-2 py-0.5 rounded-md bg-white text-zinc-800 border border-zinc-200 shadow-2xs'>
               {seriesDetail?.genre || activeProject?.genres?.[0]}
             </span>
           )}
           {seriesDetail?.readingDirection && (
-            <span className='px-2 py-0.5 rounded-md bg-white/70 border border-[#D8D2C5]'>
+            <span className='px-2 py-0.5 rounded-md bg-white text-zinc-700 border border-zinc-200 shadow-2xs'>
               {seriesDetail.readingDirection === 'Vertical' ? 'Cuộn dọc' : 'Phải sang trái'}
             </span>
           )}
-          <span className='px-2 py-0.5 rounded-md bg-white/70 border border-[#D8D2C5]'>
+          <span className='px-2 py-0.5 rounded-md bg-zinc-50 text-zinc-700 border border-zinc-200 shadow-2xs'>
             {progress?.chapters.length || seriesDetail?.chaptersCount || 0} Chương
           </span>
         </div>
 
-        {(seriesDetail?.synopsis || activeProject?.subtitle) && (
-          <p className='text-xs sm:text-[13px] text-[#44403C] leading-relaxed max-w-2xl break-words line-clamp-3'>
-            {seriesDetail?.synopsis || activeProject?.subtitle}
-          </p>
-        )}
+        {(() => {
+          const raw = seriesDetail?.synopsis || activeProject?.subtitle;
+          const text = typeof raw === 'string' ? raw.trim() : '';
+          if (
+            !text ||
+            text.toUpperCase() === 'N/A' ||
+            text.toLowerCase() === 'null' ||
+            text.toLowerCase() === 'undefined'
+          ) {
+            return null;
+          }
+          return (
+            <p className='text-xs sm:text-[13px] text-zinc-700 leading-relaxed max-w-2xl break-words line-clamp-2'>
+              {text}
+            </p>
+          );
+        })()}
 
-        <div className='flex flex-wrap items-center gap-2 pt-1'>
-          <button
-            type='button'
-            onClick={() => void fetchProgress()}
-            disabled={loading}
-            className='px-3 py-1.5 rounded-lg bg-white/80 hover:bg-white border border-[#D8D2C5] text-[#44403C] text-xs font-semibold flex items-center gap-1.5 cursor-pointer disabled:opacity-50'
-            title='Làm mới dữ liệu tiến độ từ máy chủ'
-          >
-            <RefreshCw className={`w-3.5 h-3.5 text-[#57534E] ${loading ? 'animate-spin' : ''}`} />
-            Làm mới
-          </button>
-          <button
-            type='button'
-            onClick={handleAuditClick}
-            disabled={auditRunning}
-            className='px-3 py-1.5 rounded-lg bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-700 text-xs font-semibold flex items-center gap-1.5 cursor-pointer disabled:opacity-70'
-            title='Kiểm tra tính nhất quán model nhân vật và khung truyện với AI'
-          >
-            <Sparkles className={`w-3.5 h-3.5 ${auditRunning ? 'animate-spin' : ''}`} />
-            {auditRunning ? 'Đang kiểm tra...' : 'Kiểm tra nhất quán với AI'}
-          </button>
-          {seriesId && (
+        {/* Thanh tác vụ quản lý dự án & điều phối Studio (Đã bỏ Kiểm tra AI) */}
+        <div className='flex flex-wrap items-center justify-between gap-2.5 pt-2 border-t border-zinc-200/60'>
+          <div className='flex flex-wrap items-center gap-1.5 sm:gap-2'>
+            {seriesId && (
+              <button
+                type='button'
+                onClick={() => setIsChapterModalOpen(true)}
+                className='h-8.5 px-3 rounded-lg bg-white hover:bg-orange-50 border border-zinc-200 hover:border-orange-300 text-zinc-800 hover:text-[#C2410C] text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors shadow-2xs'
+                title='Quản lý danh sách chương, kiểm duyệt và điều phối tập truyện'
+              >
+                <BookOpen className='w-3.5 h-3.5 text-[#F97316]' />
+                <span>Quản Lý Chương (Duyệt)</span>
+              </button>
+            )}
             <button
               type='button'
-              onClick={() => setIsChapterModalOpen(true)}
-              className='px-3 py-1.5 rounded-lg bg-white/80 hover:bg-white border border-[#D8D2C5] text-[#44403C] text-xs font-semibold flex items-center gap-1.5 cursor-pointer'
+              onClick={() => void fetchProgress()}
+              disabled={loading}
+              className='h-8.5 px-2.5 rounded-lg bg-white hover:bg-zinc-50 border border-zinc-200 text-zinc-600 hover:text-zinc-900 text-xs font-medium flex items-center gap-1 cursor-pointer disabled:opacity-50 transition-colors shadow-2xs'
+              title='Làm mới dữ liệu tiến độ từ máy chủ'
             >
-              <BookOpen className='w-3.5 h-3.5 text-[#57534E]' />
-              Quản Lý Chương (Duyệt)
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+              <span className='sr-only sm:not-sr-only'>Làm mới</span>
             </button>
-          )}
+          </div>
+
+          {/* Nút hành động chính (Primary CTA) */}
           {workspaceId && seriesId && (
             <button
               type='button'
@@ -620,9 +737,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   }`,
                 )
               }
-              className='px-4 py-1.5 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs'
+              className='h-8.5 px-4 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition-all hover:shadow-sm'
             >
-              Mở Quy trình sản xuất
+              <span>Mở Quy trình sản xuất</span>
               <ArrowRight className='w-3.5 h-3.5' />
             </button>
           )}
@@ -672,214 +789,308 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       )}
 
-      {/* 2. Top 4 Core KPIs */}
+      {/* 2. Top Summary Cards (Pulse Metrics - Manga Studio Design System) */}
       <section
         aria-label='Chỉ số tổng quan'
-        className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4'
+        className='grid grid-cols-1 lg:grid-cols-12 gap-4.5'
       >
-        {/* KPI 1: Series Completion */}
-        <div className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl p-5 shadow-2xs hover:border-[#F97316] transition-colors flex flex-col justify-between space-y-3 pf-editorial-card'>
+        {/* Card 1: Tiến Độ Toàn Series (Overall Progress - 4 columns on lg ~ 33%) */}
+        <div className='lg:col-span-4 bg-white border border-zinc-200 rounded-2xl p-5 shadow-xs hover:border-[#F97316]/50 transition-all flex flex-col justify-between space-y-4'>
           <div>
-            <div className='flex items-center justify-between text-xs font-semibold text-[#57534E] mb-1'>
-              <span>Tiến Độ Toàn Series</span>
-              <span className='inline-flex items-center gap-1 text-[#C2410C] bg-[#FFF2E6] border border-[#FDBA74] px-1.5 py-0.5 rounded text-[11px] font-semibold'>
-                <TrendingUp className='w-3 h-3' /> Hoàn thiện
+            <div className='flex items-center justify-between text-xs font-semibold text-zinc-500 mb-1'>
+              <span className='font-bold uppercase tracking-wider text-[11px] text-zinc-600'>
+                Tiến Độ Toàn Series
+              </span>
+              <span className='inline-flex items-center gap-1 text-[#C2410C] bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full text-[11px] font-bold'>
+                <TrendingUp className='w-3 h-3 text-[#F97316]' /> Hoàn thiện
               </span>
             </div>
-            <div className='text-3xl font-bold font-sans tabular-nums text-[#1C1917] mt-1'>
-              {loading ? '—' : `${overallPercent}%`}
+            <div className='flex items-baseline gap-2 mt-2'>
+              <span className='text-3xl sm:text-4xl font-extrabold font-sans tabular-nums text-zinc-900'>
+                {loading ? '—' : `${overallPercent}%`}
+              </span>
+              <span className='text-xs text-zinc-500 font-medium'>
+                trung bình toàn series
+              </span>
             </div>
-            <p className='text-[11px] text-[#57534E] mt-1'>
-              Tính theo công đoạn hoàn tất cuối cùng
-            </p>
           </div>
-          <div className='pt-2 border-t border-[#D8D2C5]/70'>
-            <div className='w-full bg-[#F3F0E9] h-2 rounded-full overflow-hidden mb-1.5'>
+
+          <div className='pt-3 border-t border-zinc-100 space-y-2'>
+            <div className='w-full bg-zinc-100 h-2.5 rounded-full overflow-hidden border border-zinc-200/80'>
               <div
-                className='bg-gradient-to-r from-[#F97316] to-[#EA580C] h-full rounded-full transition-all duration-500'
+                className='bg-[#F97316] h-full rounded-full transition-all duration-700 shadow-2xs'
                 style={{ width: `${Math.min(100, Math.max(0, overallPercent))}%` }}
               />
             </div>
-            <div className='text-[11px] font-mono text-[#57534E] flex justify-between'>
+            <div className='text-[11px] font-mono text-zinc-500 flex items-center justify-between'>
               <span>
-                <strong className='text-[#1C1917] font-semibold'>{totalApprovedPanels}</strong>{' '}
-                panel đã duyệt
+                <strong className='text-zinc-900 font-semibold'>{totalApprovedPanels}</strong> panel đã duyệt
               </span>
               <span>Tổng: {totalPanels} panel</span>
             </div>
           </div>
         </div>
 
-        {/* KPI 2: Chapter Pipeline Status */}
-        <div className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl p-5 shadow-2xs hover:border-[#F97316] transition-colors flex flex-col justify-between space-y-3 pf-editorial-card'>
+        {/* Card 2: Chương Đang Sản Xuất (Chi tiết sản xuất & Điều phối công đoạn - 8 columns on lg ~ 67%) */}
+        <div className='lg:col-span-8 bg-white border border-zinc-200 rounded-2xl p-5 shadow-xs hover:border-[#F97316]/50 transition-all flex flex-col justify-between space-y-4'>
           <div>
-            <div className='flex items-center justify-between text-xs font-semibold text-[#57534E] mb-1'>
-              <span>Chương Đang Sản Xuất</span>
-              <span className='text-sky-700 bg-sky-50 border border-sky-200 px-1.5 py-0.5 rounded text-[11px] font-semibold'>
-                {totalChapters} Chương
+            {/* Header: Title + Active Chapter Badge + Total count */}
+            <div className='flex items-center justify-between text-xs font-semibold text-zinc-500 mb-3'>
+              <div className='flex items-center gap-2'>
+                <span className='font-bold uppercase tracking-wider text-[11px] text-zinc-600'>
+                  Chương Đang Sản Xuất
+                </span>
+                <span className='text-orange-700 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full text-[11px] font-mono font-bold flex items-center gap-1'>
+                  <span className='w-1.5 h-1.5 rounded-full bg-[#F97316] animate-pulse' />
+                  {inProdChapters} Đang sản xuất
+                </span>
+              </div>
+              <span className='text-zinc-700 bg-zinc-100 border border-zinc-200 px-2 py-0.5 rounded-full text-[11px] font-mono font-bold'>
+                Tổng số: {totalChapters} Chương
               </span>
             </div>
-            <div className='text-3xl font-bold font-sans tabular-nums text-[#1C1917] mt-1 flex items-baseline gap-2'>
-              <span>{loading ? '—' : inProdChapters}</span>
-              <span className='text-xs font-semibold text-[#C2410C]'>đang thực hiện</span>
-            </div>
-            <p className='text-[11px] text-[#57534E] mt-1'>Số chương đang ở giai đoạn sản xuất</p>
-          </div>
-          <div className='pt-2 border-t border-[#D8D2C5]/70 flex flex-wrap items-center gap-1.5 text-[11px] font-mono'>
-            <span className='px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200'>
-              {inProdChapters} Đang vẽ
-            </span>
-            <span className='px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200'>
-              {approvedChapters} Đã duyệt
-            </span>
-            <span className='px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-800 border border-indigo-200'>
-              {publishedChapters} Xuất bản
-            </span>
-          </div>
-        </div>
 
-        {/* KPI 3: Waiting Review Gate */}
-        <div className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl p-5 shadow-2xs hover:border-[#F97316] transition-colors flex flex-col justify-between space-y-3 pf-editorial-card'>
-          <div>
-            <div className='flex items-center justify-between text-xs font-semibold text-[#57534E] mb-1'>
-              <span className='text-purple-900'>Cổng Chờ Xét Duyệt</span>
-              <span
-                className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-semibold ${
-                  waitingReviewTotal > 0
-                    ? 'text-amber-800 bg-amber-50 border border-amber-200'
-                    : 'text-emerald-700 bg-emerald-50 border border-emerald-200'
-                }`}
-              >
-                {waitingReviewTotal > 0 ? 'Có việc chờ duyệt' : 'Không có việc tồn'}
-              </span>
-            </div>
-            <div className='text-3xl font-bold font-sans tabular-nums text-[#1C1917] mt-1'>
-              {loading ? '—' : waitingReviewTotal}{' '}
-              <span className='text-sm font-normal text-[#57534E]'>Việc nộp</span>
-            </div>
-            <p className='text-[11px] text-[#57534E] mt-1'>
-              Bài nộp cần Producer hoặc Editor kiểm duyệt
-            </p>
-          </div>
-          <div className='pt-2 border-t border-[#D8D2C5]/70 flex items-center justify-between text-[11px]'>
-            <span className='text-[#57534E]'>Hành động:</span>
-            {workspaceId && seriesId && waitingReviewTotal > 0 ? (
-              <button
-                type='button'
-                onClick={() => navigate(`/workspaces/${workspaceId}/series/${seriesId}/my-work`)}
-                className='text-[#C2410C] font-bold hover:underline flex items-center gap-1 cursor-pointer'
-              >
-                Duyệt ngay <ArrowRight className='w-3 h-3' />
-              </button>
-            ) : (
-              <span className='text-emerald-700 flex items-center gap-1 font-semibold'>
-                <CheckCircle2 className='w-3.5 h-3.5' /> Đã thông suốt
-              </span>
-            )}
-          </div>
-        </div>
+            {/* Chi tiết nội dung: 2 phân khu trực quan (Trọng tâm sản xuất + Phân bổ vòng đời) */}
+            <div className='grid grid-cols-1 sm:grid-cols-12 gap-3.5'>
+              {/* Phân khu 1: Chương trọng tâm đang chạy (7 cột) */}
+              <div className='sm:col-span-7 p-3.5 bg-zinc-50/70 rounded-xl border border-zinc-200 space-y-2.5'>
+                <div className='flex items-center justify-between'>
+                  <span className='text-[10.5px] font-bold text-zinc-500 uppercase tracking-wide flex items-center gap-1.5'>
+                    <Sparkles className='w-3 h-3 text-[#F97316]' /> Trọng tâm tiến độ
+                  </span>
+                  {activeProductionChapter && (
+                    <span className='text-xs font-mono font-bold text-zinc-900 tabular-nums'>
+                      {activeProductionChapter.percentComplete}%
+                    </span>
+                  )}
+                </div>
 
-        {/* KPI 4: Overdue & Production Risks */}
-        <div
-          className={`bg-[#FCFBF8] border rounded-xl p-5 shadow-2xs transition-colors flex flex-col justify-between space-y-3 pf-editorial-card ${
-            overdueTotal > 0
-              ? 'border-red-300 hover:border-red-400'
-              : 'border-[#D8D2C5] hover:border-[#F97316]'
-          }`}
-        >
-          <div>
-            <div className='flex items-center justify-between text-xs font-semibold text-[#57534E] mb-1'>
-              <span>Việc Quá Hạn &amp; Rủi Ro</span>
-              <span
-                className={`px-1.5 py-0.5 rounded text-[11px] font-mono font-semibold ${
-                  overdueTotal > 0
-                    ? 'text-red-700 bg-red-50 border border-red-200'
-                    : 'text-[#1C1917] bg-[#F3F0E9] border border-[#D8D2C5]'
-                }`}
-              >
-                {overdueTotal > 0 ? 'CẦN XỬ LÝ' : 'ĐÚNG HẠN'}
-              </span>
+                {activeProductionChapter ? (
+                  <div className='space-y-2'>
+                    <div className='flex items-center gap-2.5'>
+                      <div className='w-9 h-9 rounded-lg bg-zinc-900 text-white font-mono font-bold text-xs flex flex-col items-center justify-center shrink-0 leading-none shadow-2xs'>
+                        <span className='text-[7.5px] opacity-75 uppercase'>TẬP</span>
+                        <span className='text-xs font-bold mt-0.5'>
+                          {String(activeProductionChapter.chapterNumber).padStart(2, '0')}
+                        </span>
+                      </div>
+                      <div className='min-w-0 flex-1'>
+                        <div className='text-xs font-bold text-zinc-900 truncate'>
+                          {activeProductionChapter.title ? `Tiến độ: ${activeProductionChapter.title}` : `Tập ${activeProductionChapter.chapterNumber}`}
+                        </div>
+                        <div className='text-[11px] text-zinc-500 flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5'>
+                          <span>{activeProductionChapter.pageCount} trang</span>
+                          <span>·</span>
+                          <span>{activeProductionChapter.panelCount} panel</span>
+                          {activeProductionChapter.targetReleaseDate && (
+                            <>
+                              <span>·</span>
+                              <span className='text-orange-700 font-medium'>
+                                Hạn: {formatReleaseDate(activeProductionChapter.targetReleaseDate)}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Mini progress bar cho chương trọng tâm */}
+                    <div className='w-full bg-zinc-200/80 h-1.5 rounded-full overflow-hidden'>
+                      <div
+                        className='bg-[#F97316] h-full rounded-full transition-all duration-500'
+                        style={{ width: `${Math.min(100, Math.max(0, activeProductionChapter.percentComplete || 0))}%` }}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <p className='text-xs text-zinc-400 italic py-2'>Chưa có chương nào trong Series</p>
+                )}
+              </div>
+
+              {/* Phân khu 2: Phân bố vòng đời các chương (5 cột) */}
+              <div className='sm:col-span-5 grid grid-cols-3 gap-2 text-center'>
+                <div className='p-2 bg-zinc-50/70 rounded-xl border border-zinc-200 flex flex-col justify-center'>
+                  <div className='text-base font-bold font-mono text-amber-700 leading-tight'>
+                    {inProdChapters}
+                  </div>
+                  <div className='text-[11px] font-bold text-zinc-800 mt-0.5'>Đang làm</div>
+                  <div className='text-[9.5px] text-zinc-500 font-mono'>giai đoạn vẽ</div>
+                </div>
+
+                <div className='p-2 bg-zinc-50/70 rounded-xl border border-zinc-200 flex flex-col justify-center'>
+                  <div className='text-base font-bold font-mono text-emerald-700 leading-tight'>
+                    {approvedChapters}
+                  </div>
+                  <div className='text-[11px] font-bold text-zinc-800 mt-0.5'>Đã duyệt</div>
+                  <div className='text-[9.5px] text-zinc-500 font-mono'>chờ phát hành</div>
+                </div>
+
+                <div className='p-2 bg-zinc-50/70 rounded-xl border border-zinc-200 flex flex-col justify-center'>
+                  <div className='text-base font-bold font-mono text-zinc-600 leading-tight'>
+                    {publishedChapters}
+                  </div>
+                  <div className='text-[11px] font-bold text-zinc-800 mt-0.5'>Xuất bản</div>
+                  <div className='text-[9.5px] text-zinc-500 font-mono'>hoàn tất</div>
+                </div>
+              </div>
             </div>
-            <div
-              className={`text-3xl font-bold font-sans tabular-nums mt-1 ${
-                overdueTotal > 0 ? 'text-red-600' : 'text-[#1C1917]'
-              }`}
-            >
-              {loading ? '—' : overdueTotal}{' '}
-              <span className='text-sm font-normal text-[#57534E]'>Mục</span>
-            </div>
-            <p className='text-[11px] text-[#57534E] mt-1'>
-              {overdueTotal > 0
-                ? `${overdueAssignmentsCount} việc quá hạn · ${overdueChangeRequestsCount} mục sửa trễ hạn`
-                : 'Không có công việc hoặc yêu cầu sửa quá hạn'}
-            </p>
           </div>
-          <div className='pt-2 border-t border-[#D8D2C5]/70 flex items-center justify-between text-[11px]'>
-            <span className='text-[#57534E]'>Trạng thái hạn:</span>
-            <span
-              className={`font-medium flex items-center gap-1 ${
-                overdueTotal > 0 ? 'text-red-600 font-bold' : 'text-[#1C1917]'
-              }`}
-            >
-              {overdueTotal > 0 ? (
-                <>
-                  <AlertTriangle className='w-3.5 h-3.5 text-red-500' /> Cần can thiệp hạn chót
-                </>
-              ) : (
-                <>
-                  <Check className='w-3.5 h-3.5 text-emerald-600' /> Không trễ hạn
-                </>
-              )}
-            </span>
+
+          {/* Bottom Strip: Gate & Risk Indicators */}
+          <div className='pt-3 border-t border-zinc-100 flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono'>
+            <div className='flex items-center gap-1.5'>
+              <span className='text-zinc-500'>Cổng Chờ Xét Duyệt</span>
+              <span className='text-zinc-400'>:</span>
+              <strong className='text-amber-700 font-bold px-1.5 py-0.5 bg-amber-50 rounded border border-amber-200'>
+                {waitingReviewTotal} <span>Việc nộp</span>
+              </strong>
+            </div>
+            <div className='flex items-center gap-1.5'>
+              <span className='text-zinc-500'>Việc Quá Hạn &amp; Rủi Ro</span>
+              <span className='text-zinc-400'>:</span>
+              <strong className={overdueTotal > 0 ? 'text-red-600 font-bold px-1.5 py-0.5 bg-red-50 rounded border border-red-200' : 'text-emerald-700 font-bold px-1.5 py-0.5 bg-emerald-50 rounded border border-emerald-200'}>
+                {overdueTotal} Mục
+              </strong>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* 3. Chương & Mục cần chú ý (2 Cột phân bố) */}
-      <section className='grid grid-cols-1 lg:grid-cols-12 gap-6'>
-        {/* Left: Danh sách chương (7 cột trên lg) */}
-        <div className='lg:col-span-7 space-y-4'>
-          <div className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl p-5 shadow-2xs space-y-4 pf-editorial-card'>
-            <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#D8D2C5] pb-3'>
-              <div>
-                <h2
-                  style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
-                  className='text-lg font-bold text-[#1C1917] flex items-center gap-2'
-                >
-                  <BookOpen className='w-4 h-4 text-[#F97316]' />
-                  <span>Tiến Độ Theo Từng Chương ({progress?.chapters.length || 0})</span>
-                </h2>
-                <p className='text-xs text-[#57534E] mt-0.5'>
-                  {selectedChapter
-                    ? `Đang xem: Chương ${selectedChapter.chapterNumber} · Chọn chương để đối chiếu ma trận công đoạn bên dưới`
-                    : 'Chọn một chương để xem chi tiết ma trận công đoạn bên dưới'}
-                </p>
+      {/* Tab Navigation Điều Phối Quản Lý Trong Project Overview */}
+      <nav
+        aria-label='Phân nhóm quản lý tổng quan'
+        className='flex flex-wrap items-center justify-between gap-3 border-b border-[#D8D2C5] pb-3 pt-1'
+      >
+        <div className='flex flex-wrap items-center gap-1.5 sm:gap-2'>
+          <button
+            type='button'
+            onClick={() => setActiveTab('all')}
+            className={`h-8.5 px-3 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+              activeTab === 'all'
+                ? 'bg-[#1C1917] text-white shadow-xs'
+                : 'bg-[#FCFBF8] hover:bg-white text-[#57534E] hover:text-[#1C1917] border border-[#D8D2C5]'
+            }`}
+          >
+            <LayoutDashboard className='w-3.5 h-3.5' />
+            <span>Tổng quan toàn diện</span>
+          </button>
+
+          <button
+            type='button'
+            onClick={() => setActiveTab('chapters')}
+            className={`h-8.5 px-3 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+              activeTab === 'chapters'
+                ? 'bg-[#1C1917] text-white shadow-xs'
+                : 'bg-[#FCFBF8] hover:bg-white text-[#57534E] hover:text-[#1C1917] border border-[#D8D2C5]'
+            }`}
+          >
+            <BookOpen className='w-3.5 h-3.5' />
+            <span>Chương & Công đoạn</span>
+            <span
+              className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${
+                activeTab === 'chapters'
+                  ? 'bg-stone-700 text-stone-200'
+                  : 'bg-stone-100 text-stone-600'
+              }`}
+            >
+              {progress?.chapters.length || 0}
+            </span>
+          </button>
+
+          <button
+            type='button'
+            onClick={() => setActiveTab('team')}
+            className={`h-8.5 px-3 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+              activeTab === 'team'
+                ? 'bg-[#1C1917] text-white shadow-xs'
+                : 'bg-[#FCFBF8] hover:bg-white text-[#57534E] hover:text-[#1C1917] border border-[#D8D2C5]'
+            }`}
+          >
+            <Users className='w-3.5 h-3.5' />
+            <span>Đội ngũ & Phân công</span>
+            <span
+              className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${
+                activeTab === 'team'
+                  ? 'bg-stone-700 text-stone-200'
+                  : 'bg-stone-100 text-stone-600'
+              }`}
+            >
+              {seriesMembers.length || 0}
+            </span>
+          </button>
+
+          <button
+            type='button'
+            onClick={() => setActiveTab('reports')}
+            className={`h-8.5 px-3 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+              activeTab === 'reports'
+                ? 'bg-[#1C1917] text-white shadow-xs'
+                : 'bg-[#FCFBF8] hover:bg-white text-[#57534E] hover:text-[#1C1917] border border-[#D8D2C5]'
+            }`}
+          >
+            <TrendingDown className='w-3.5 h-3.5' />
+            <span>Báo cáo Burndown</span>
+          </button>
+        </div>
+
+        <div className='hidden sm:flex items-center gap-2 text-[11px] font-mono text-[#57534E]'>
+          <span>Khu vực:</span>
+          <span className='font-semibold text-[#1C1917]'>
+            {activeTab === 'all' && 'Tổng quan đầy đủ các phần'}
+            {activeTab === 'chapters' && 'Chương & Ma trận công đoạn'}
+            {activeTab === 'team' && 'Phân công nhân sự & Khối lượng'}
+            {activeTab === 'reports' && 'Phân tích tiến độ & Xu hướng'}
+          </span>
+        </div>
+      </nav>
+
+      {/* 3. Tiến Độ Theo Từng Chương (Trọng tâm sản xuất, trải rộng toàn chiều ngang, giữ nguyên toàn bộ chi tiết) */}
+      {(activeTab === 'all' || activeTab === 'chapters') && (
+        <section aria-label='Tiến độ chương' className='space-y-4'>
+          <div className='bg-white border border-zinc-200 rounded-2xl p-5 sm:p-6 shadow-xs space-y-4'>
+            <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-100 pb-4'>
+              <div className='flex items-center gap-3'>
+                <div className='w-10 h-10 rounded-xl bg-orange-50 border border-orange-100 text-[#F97316] flex items-center justify-center shrink-0 shadow-2xs'>
+                  <BookOpen className='w-5 h-5' />
+                </div>
+                <div>
+                  <div className='flex items-center gap-2.5'>
+                    <h2 className='text-lg sm:text-xl font-bold text-zinc-900 font-sans'>
+                      Tiến Độ Theo Từng Chương ({progress?.chapters.length || 0})
+                    </h2>
+                  </div>
+                  <p className='text-xs text-zinc-500 mt-0.5'>
+                    {selectedChapter
+                      ? `Đang xem: Chương ${selectedChapter.chapterNumber} · Chọn chương để đối chiếu ma trận công đoạn bên dưới`
+                      : 'Chọn một chương để xem chi tiết ma trận công đoạn bên dưới'}
+                  </p>
+                </div>
               </div>
 
               {seriesId && (
-                <button
-                  type='button'
-                  onClick={() => setIsChapterModalOpen(true)}
-                  className='text-xs font-semibold text-[#F97316] hover:text-[#EA580C] flex items-center gap-1 transition-colors cursor-pointer self-start sm:self-auto'
-                >
-                  <span>Quản lý chương</span>
-                  <ArrowRight className='w-3.5 h-3.5' />
-                </button>
+                <div className='flex items-center gap-2 self-start sm:self-auto shrink-0'>
+                  <span className='inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-50 border border-zinc-200 text-xs font-mono font-semibold text-zinc-700 shadow-2xs'>
+                    <BookOpen className='w-3.5 h-3.5 text-[#F97316]' />
+                    <span>{progress?.chapters.length || 0} tập</span>
+                  </span>
+                </div>
               )}
             </div>
 
             {/* Chapters list */}
             {!progress?.chapters || progress.chapters.length === 0 ? (
-              <div className='py-8 text-center text-xs text-[#57534E] bg-[#FAF8F5] rounded-xl border border-dashed border-[#D8D2C5]'>
-                Chưa có chương nào trong Series này. Hãy tạo chương mới từ danh sách Quản lý Chương.
+              <div className='py-12 text-center text-xs text-zinc-500 bg-zinc-50/50 rounded-xl border border-dashed border-zinc-200 space-y-2'>
+                <BookOpen className='w-8 h-8 text-zinc-300 mx-auto' />
+                <p className='font-semibold text-zinc-700'>Chưa có chương nào trong Series này</p>
+                <p className='text-zinc-400'>Hãy tạo chương mới từ danh sách Quản lý Chương.</p>
               </div>
             ) : (
-              <div className='space-y-2.5'>
+              <div className='space-y-3'>
                 {progress.chapters.map((ch) => {
                   const isSelected = selectedChapter?.chapterId === ch.chapterId;
                   const statusStyle = CHAPTER_STATUS_STYLE[ch.status] || {
                     label: ch.status,
-                    className: 'bg-[#F3F0E9] text-[#1C1917] border-[#D8D2C5]',
+                    className: 'bg-zinc-100 text-zinc-700 border-zinc-200',
                   };
                   const formattedRelease = formatReleaseDate(ch.targetReleaseDate);
                   const cleanLabel = formatChapterLabel(ch.chapterNumber, ch.title);
@@ -898,45 +1109,71 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                           setSelectedChapterId(ch.chapterId);
                         }
                       }}
-                      className={`p-3.5 rounded-xl border transition-all text-left cursor-pointer focus:outline-hidden focus-visible:ring-2 focus-visible:ring-[#F97316] ${
+                      className={`p-4 rounded-xl border transition-all text-left cursor-pointer relative group ${
                         isSelected
-                          ? 'bg-[#FFF8F0] border-[#F97316] border-l-4 border-l-[#F97316] shadow-2xs'
-                          : 'bg-[#FAF8F5] hover:bg-white border-[#D8D2C5] hover:border-[#F97316]/50'
+                          ? 'bg-white border-zinc-300 ring-2 ring-[#F97316]/20 shadow-sm'
+                          : 'bg-white hover:bg-zinc-50/60 border-zinc-200 hover:border-zinc-300 shadow-xs'
                       }`}
                     >
-                      <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-2'>
-                        <div className='flex items-center gap-3 min-w-0'>
-                          <span
-                            className={`w-7 h-7 rounded-md font-mono text-xs font-bold flex items-center justify-center shrink-0 ${
-                              isSelected ? 'bg-[#F97316] text-white' : 'bg-[#1C1917] text-white'
+                      <div className='flex flex-col lg:flex-row lg:items-center justify-between gap-3'>
+                        {/* Chapter Left: Avatar badge + Title + Metadata */}
+                        <div className='flex items-center gap-3.5 min-w-0 flex-1'>
+                          <div
+                            className={`w-11 h-11 rounded-xl flex flex-col items-center justify-center shrink-0 transition-transform group-hover:scale-105 shadow-2xs ${
+                              isSelected
+                                ? 'bg-[#F97316] text-white shadow-orange-500/20'
+                                : 'bg-zinc-900 text-white'
                             }`}
                           >
-                            C{ch.chapterNumber}
-                          </span>
-                          <div className='min-w-0'>
-                            <div className='text-sm font-semibold text-[#1C1917] truncate'>
-                              {cleanLabel}
+                            <span className='text-[8.5px] font-mono font-bold tracking-wider opacity-75 uppercase leading-none'>
+                              TẬP
+                            </span>
+                            <span className='text-sm sm:text-base font-bold font-mono leading-none mt-0.5'>
+                              {String(ch.chapterNumber).padStart(2, '0')}
+                            </span>
+                          </div>
+
+                          <div className='min-w-0 flex-1'>
+                            <div className='flex items-center gap-2 flex-wrap'>
+                              <span className='text-sm sm:text-base font-bold text-zinc-900 tracking-tight truncate'>
+                                {cleanLabel}
+                              </span>
+                              {isSelected && (
+                                <span className='text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-50 text-[#F97316] border border-orange-200/80 shrink-0'>
+                                  Đang chọn
+                                </span>
+                              )}
                             </div>
-                            <div className='text-xs text-[#57534E] font-sans flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5'>
+
+                            <div className='text-xs text-zinc-500 flex flex-wrap items-center gap-x-2.5 gap-y-1 mt-1'>
                               {hasPanels ? (
-                                <span>
+                                <span className='inline-flex items-center gap-1 font-medium'>
+                                  <Layers className='w-3 h-3 text-zinc-400' />
                                   {ch.pageCount} trang · {ch.panelCount} panel
                                 </span>
                               ) : (
-                                <span className='text-stone-400 italic'>Chưa có nội dung</span>
+                                <span className='text-zinc-400 italic text-[11px]'>Chưa có nội dung</span>
                               )}
                               {formattedRelease && (
-                                <>
-                                  <span className='text-[#D8D2C5]'>•</span>
-                                  <span>Hạn: {formattedRelease}</span>
-                                </>
+                                <span className='inline-flex items-center gap-1 font-medium'>
+                                  <Calendar className='w-3 h-3 text-zinc-400' />
+                                  Hạn: {formattedRelease}
+                                </span>
                               )}
                             </div>
                           </div>
                         </div>
 
-                        {/* Chapter Actions & Badges */}
-                        <div className='flex items-center gap-2 self-start sm:self-center shrink-0'>
+                        {/* Chapter Middle: Visual Pipeline Stepper Track */}
+                        <div className='hidden sm:flex items-center justify-center px-1'>
+                          <ChapterPipelineStepper
+                            percentComplete={ch.percentComplete || 0}
+                            status={ch.status}
+                          />
+                        </div>
+
+                        {/* Chapter Right: Badges + Action Buttons */}
+                        <div className='flex items-center gap-2 self-start lg:self-center shrink-0'>
                           {ch.overdueAssignments > 0 && (
                             <span className='px-1.5 py-0.5 rounded text-[11px] font-mono font-bold bg-red-100 text-red-700 border border-red-200 flex items-center gap-1'>
                               <AlertTriangle className='w-3 h-3' />
@@ -954,7 +1191,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                           >
                             {statusStyle.label}
                           </span>
-                          <span className='text-xs font-mono font-bold tabular-nums text-[#1C1917] min-w-10 text-right'>
+                          <span className='text-xs font-mono font-bold tabular-nums text-zinc-900 min-w-10 text-right'>
                             {hasPanels ? `${ch.percentComplete}%` : '—'}
                           </span>
                           <button
@@ -967,436 +1204,799 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                               });
                               setIsAssignModalOpen(true);
                             }}
-                            className='px-2.5 py-1 rounded-md bg-[#FCFBF8] hover:bg-[#FFF2E6] text-[#44403C] hover:text-[#EA580C] border border-[#D8D2C5] hover:border-[#FDBA74] text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer shadow-2xs'
+                            className='px-2.5 py-1 rounded-md bg-white hover:bg-orange-50 text-zinc-700 hover:text-[#F97316] border border-zinc-200 hover:border-orange-200 text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer shadow-2xs'
                             title={`Giao việc mới cho Chương ${ch.chapterNumber}`}
                           >
-                            <UserCheck className='w-3.5 h-3.5 text-[#57534E]' />
+                            <UserCheck className='w-3.5 h-3.5 text-zinc-500' />
                             <span>Giao việc</span>
                           </button>
                         </div>
                       </div>
 
-                      {/* Progress Bar (only if has panels) */}
-                      {hasPanels && (
-                        <div className='w-full bg-[#F3F0E9] h-1.5 rounded-full overflow-hidden mt-2 border border-[#D8D2C5]/50'>
-                          <div
-                            className={`h-full rounded-full transition-all duration-300 ${
-                              isSelected
-                                ? 'bg-[#F97316]'
-                                : ch.status === 'Approved' || ch.status === 'Published'
-                                  ? 'bg-emerald-600'
-                                  : 'bg-[#57534E]'
-                            }`}
-                            style={{ width: `${Math.min(100, Math.max(0, ch.percentComplete))}%` }}
-                          />
-                        </div>
-                      )}
+                      {/* Visual Stepper trên mobile */}
+                      <div className='sm:hidden flex items-center justify-start overflow-x-auto pt-2 pb-0.5'>
+                        <ChapterPipelineStepper
+                          percentComplete={ch.percentComplete || 0}
+                          status={ch.status}
+                        />
+                      </div>
+
+                      {/* Progress Bar under chapter card */}
+                      <div className='w-full bg-zinc-100 h-1.5 rounded-full overflow-hidden mt-3'>
+                        <div
+                          className={`h-full rounded-full transition-all duration-500 ${
+                            isSelected
+                              ? 'bg-[#F97316]'
+                              : ch.status === 'Approved' || ch.status === 'Published'
+                              ? 'bg-emerald-600'
+                              : 'bg-zinc-400'
+                          }`}
+                          style={{
+                            width: `${Math.min(100, Math.max(0, ch.percentComplete || 0))}%`,
+                          }}
+                        />
+                      </div>
                     </div>
                   );
                 })}
               </div>
             )}
           </div>
-        </div>
+        </section>
+      )}
 
-        {/* Right: Mục cần chú ý & Rủi ro (5 cột trên lg) */}
-        <div className='lg:col-span-5 space-y-4'>
-          <div className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl p-5 shadow-2xs space-y-4 pf-editorial-card'>
-            <div className='flex items-center justify-between border-b border-[#D8D2C5] pb-3'>
-              <div className='flex items-center gap-2'>
-                <AlertTriangle className='w-4 h-4 text-[#F97316]' />
-                <h2
-                  style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
-                  className='text-lg font-bold text-[#1C1917]'
-                >
-                  Mục Cần Chú Ý &amp; Rủi Ro
-                </h2>
-              </div>
-              {overdueTotal > 0 && (
-                <span className='text-xs font-mono font-bold px-2 py-0.5 rounded bg-red-100 text-red-700 border border-red-200'>
-                  {overdueTotal} mục
-                </span>
-              )}
-            </div>
-
-            {/* Overdue Change Requests Section (if any) */}
-            {progress?.overdueChangeRequests && progress.overdueChangeRequests.length > 0 && (
-              <div
-                data-testid='overdue-cr-banner'
-                className='bg-amber-50/70 border border-amber-200 rounded-xl p-4 space-y-3'
-              >
-                <div className='flex flex-wrap items-center justify-between gap-2'>
-                  <div className='flex items-center gap-1.5'>
-                    <AlertCircle className='w-4 h-4 text-amber-700 shrink-0' />
-                    <h3 className='text-xs font-bold text-amber-950 font-sans'>
-                      Danh Sách Yêu Cầu Sửa Đổi Quá Hạn ({progress.overdueChangeRequests.length})
-                    </h3>
+      {/* 4. Đội Ngũ Sản Xuất & Mục Cần Chú Ý (Bố cục 2 cột cân bằng 50/50, loại bỏ hoàn toàn khoảng trống) */}
+      {(activeTab === 'all' || activeTab === 'team') && (
+        <section aria-label='Đội ngũ và rủi ro' className='grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch'>
+          {/* Card Đội Ngũ Sản Xuất */}
+          {seriesId && (
+            <div className='bg-white border border-zinc-200 rounded-2xl p-5 sm:p-6 shadow-xs flex flex-col justify-between h-full space-y-4'>
+              <div className='space-y-3.5'>
+                <div className='flex items-center justify-between border-b border-zinc-100 pb-3'>
+                  <div className='flex items-center gap-2.5'>
+                    <div className='w-8 h-8 rounded-lg bg-orange-50 border border-orange-100 text-[#F97316] flex items-center justify-center shrink-0 shadow-2xs'>
+                      <Users className='w-4 h-4' />
+                    </div>
+                    <div>
+                      <h3 className='text-xs sm:text-sm font-bold text-zinc-900 font-sans tracking-wide uppercase'>
+                        Đội Ngũ Sản Xuất ({seriesMembers.length})
+                      </h3>
+                      <p className='text-[11px] text-zinc-500'>Nhân sự chính thức của bộ truyện</p>
+                    </div>
                   </div>
                   <button
                     type='button'
-                    onClick={handleSendReminders}
-                    disabled={sendingReminders}
-                    className='px-2 py-1 rounded-md bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-semibold flex items-center gap-1 transition-colors cursor-pointer disabled:opacity-50'
-                    title='Gửi thông báo nhắc nhở đến người phụ trách yêu cầu sửa'
+                    onClick={() => setIsMembersModalOpen(true)}
+                    className='text-xs font-semibold text-[#F97316] hover:text-[#EA580C] hover:underline cursor-pointer flex items-center gap-1'
                   >
-                    {sendingReminders ? (
-                      <Loader2 className='w-3 h-3 animate-spin' />
-                    ) : (
-                      <Bell className='w-3 h-3' />
-                    )}
-                    <span>{sendingReminders ? 'Đang gửi...' : 'Gửi thông báo nhắc hạn'}</span>
+                    <span>Quản lý</span>
+                    <ArrowRight className='w-3 h-3' />
                   </button>
                 </div>
 
-                <div className='space-y-2'>
-                  {progress.overdueChangeRequests.map((cr) => (
-                    <div
-                      key={cr.changeRequestId}
-                      data-testid={`overdue-cr-card-${cr.changeRequestId}`}
-                      className='p-3 bg-white rounded-lg border border-amber-200 shadow-2xs space-y-2'
-                    >
-                      <div className='flex items-start justify-between gap-2'>
-                        <div className='text-xs font-semibold text-[#1C1917] line-clamp-1'>
-                          {cr.description}
-                        </div>
-                        <span className='px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-100 text-amber-800 shrink-0'>
-                          1 yêu cầu sửa
-                        </span>
-                      </div>
-                      <div className='flex items-center justify-between text-xs text-stone-600 font-sans'>
-                        <span>
-                          Người sửa: <strong>{cr.responsibleUserName}</strong>
-                        </span>
-                        <span className='text-red-600 font-bold'>
-                          Hạn: {new Date(cr.dueDate).toLocaleDateString('vi-VN')}
-                        </span>
-                      </div>
-                      {workspaceId && seriesId && (
-                        <button
-                          type='button'
-                          onClick={() =>
-                            navigate(
-                              `/workspaces/${workspaceId}/series/${seriesId}/my-work?chapterId=${cr.chapterId}&assignmentId=${cr.assignmentId}`,
-                            )
-                          }
-                          className='w-full text-center py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 rounded text-xs font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1'
-                        >
-                          <span>Xem yêu cầu cần sửa</span>
-                          <ArrowRight className='w-3 h-3' />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Overdue Assignments Section (if any) */}
-            {progress?.overdue && progress.overdue.length > 0 && (
-              <div className='bg-red-50/70 border border-red-200 rounded-xl p-4 space-y-3'>
-                <div className='flex items-center justify-between'>
-                  <div className='flex items-center gap-1.5'>
-                    <AlertTriangle className='w-4 h-4 text-red-600 shrink-0' />
-                    <h3 className='text-xs font-bold text-red-950 font-sans'>
-                      Danh Sách Công Việc Quá Hạn ({progress.overdue.length})
-                    </h3>
+                {seriesMembers.length === 0 ? (
+                  <div className='py-8 text-center text-xs text-zinc-400 italic bg-zinc-50/50 rounded-xl border border-dashed border-zinc-200'>
+                    Chưa gán thành viên nào vào bộ truyện.
                   </div>
-                  <span className='text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-red-100 text-red-800 border border-red-200'>
-                    Ưu tiên
+                ) : (
+                  <div className='space-y-2'>
+                    {seriesMembers.slice(0, 5).map((member) => {
+                      const roleUpper = String(member.seriesRole || (member as any).role || 'ARTIST').toUpperCase();
+                      const roleStyle =
+                        ROLE_COLOR_MAP[roleUpper] || 'bg-zinc-100 text-zinc-800 border-zinc-200';
+
+                      const RoleIcon =
+                        roleUpper === 'PRODUCER'
+                          ? Crown
+                          : roleUpper === 'ARTIST'
+                          ? Palette
+                          : roleUpper === 'EDITOR'
+                          ? PenTool
+                          : Users;
+
+                      return (
+                        <div
+                          key={member.id || member.userId}
+                          className='flex items-center justify-between gap-2.5 p-2.5 rounded-xl bg-white hover:bg-zinc-50/80 border border-zinc-200 transition-all text-xs shadow-2xs group'
+                        >
+                          <div className='flex items-center gap-2.5 min-w-0'>
+                            <div className='w-8 h-8 rounded-full bg-zinc-900 text-white font-bold text-xs flex items-center justify-center shrink-0 ring-2 ring-[#F97316]/20 group-hover:scale-105 transition-transform'>
+                              {(member.fullName || member.email || 'U').charAt(0).toUpperCase()}
+                            </div>
+                            <div className='min-w-0'>
+                              <div className='font-bold text-zinc-900 truncate leading-tight'>
+                                {member.fullName || member.email}
+                              </div>
+                              <span
+                                className={`inline-block px-1.5 py-0.2 rounded text-[9.5px] font-medium border mt-0.5 ${roleStyle}`}
+                              >
+                                {member.seriesRole || (member as any).role || 'Thành viên'}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div
+                            className='w-7 h-7 rounded-full bg-zinc-50 border border-zinc-200 flex items-center justify-center text-zinc-500 shrink-0'
+                            title={member.seriesRole || (member as any).role || 'Thành viên'}
+                          >
+                            <RoleIcon className='w-3.5 h-3.5 text-zinc-500' />
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {seriesMembers.length > 5 && (
+                      <p className='text-[10.5px] font-mono text-zinc-400 text-center pt-0.5'>
+                        + {seriesMembers.length - 5} thành viên khác
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Card Mục Cần Chú Ý & Rủi Ro */}
+          <div className='bg-white border border-zinc-200 rounded-2xl p-5 sm:p-6 shadow-xs flex flex-col justify-between h-full space-y-4'>
+            <div className='space-y-3.5 flex-1 flex flex-col'>
+              <div className='flex items-center justify-between border-b border-zinc-100 pb-3'>
+                <div className='flex items-center gap-2.5'>
+                  <div className='w-8 h-8 rounded-lg bg-orange-50 border border-orange-100 text-[#F97316] flex items-center justify-center shrink-0 shadow-2xs'>
+                    <AlertTriangle className='w-4 h-4' />
+                  </div>
+                  <div>
+                    <h2 className='text-xs sm:text-sm font-bold text-zinc-900 font-sans tracking-wide uppercase'>
+                      Mục Cần Chú Ý &amp; Rủi Ro
+                    </h2>
+                    <p className='text-[11px] text-zinc-500'>Cảnh báo trễ hạn và yêu cầu sửa</p>
+                  </div>
+                </div>
+                {overdueTotal > 0 ? (
+                  <span className='text-xs font-mono font-bold px-2 py-0.5 rounded bg-red-50 text-red-700 border border-red-200'>
+                    {overdueTotal} mục
                   </span>
-                </div>
-
-                <div className='space-y-2'>
-                  {progress.overdue.map((od) => (
-                    <div
-                      key={od.assignmentId}
-                      className='p-3 bg-white rounded-lg border border-red-200 shadow-2xs space-y-2'
-                    >
-                      <div className='flex items-start justify-between gap-2'>
-                        <div className='text-xs font-semibold text-[#1C1917] line-clamp-1'>
-                          {od.brief}
-                        </div>
-                        <span className='px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-red-100 text-red-700 shrink-0'>
-                          {od.status}
-                        </span>
-                      </div>
-                      <div className='flex items-center justify-between text-xs text-stone-600 font-sans'>
-                        <span>
-                          Người làm: <strong>{od.assigneeName}</strong>
-                        </span>
-                        <span className='text-red-600 font-bold'>
-                          Hạn: {new Date(od.dueDate).toLocaleDateString('vi-VN')}
-                        </span>
-                      </div>
-                      {workspaceId && seriesId && (
-                        <button
-                          type='button'
-                          onClick={() =>
-                            navigate(
-                              `/workspaces/${workspaceId}/series/${seriesId}/my-work?chapterId=${od.chapterId}&assignmentId=${od.assignmentId}`,
-                            )
-                          }
-                          className='w-full text-center py-1 bg-red-50 hover:bg-red-100 text-red-800 border border-red-200 rounded text-xs font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1'
-                        >
-                          <span>Xem việc cần xử lý</span>
-                          <ArrowRight className='w-3 h-3' />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
+                ) : (
+                  <span className='inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200'>
+                    <CheckCircle2 className='w-3 h-3' />
+                    <span>Ổn định</span>
+                  </span>
+                )}
               </div>
-            )}
 
-            {/* Empty Attention State */}
-            {(!progress?.overdue || progress.overdue.length === 0) &&
-              (!progress?.overdueChangeRequests || progress.overdueChangeRequests.length === 0) && (
-                <div className='py-10 text-center space-y-2 text-stone-500 bg-[#FCFBF8] rounded-xl border border-dashed border-stone-200 p-4'>
-                  <div className='w-9 h-9 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto'>
-                    <CheckCircle2 className='w-5 h-5' />
+              {/* Overdue Change Requests Section (if any) */}
+              {progress?.overdueChangeRequests && progress.overdueChangeRequests.length > 0 && (
+                <div
+                  data-testid='overdue-cr-banner'
+                  className='bg-amber-50/70 border border-amber-200 rounded-xl p-3.5 space-y-2.5'
+                >
+                  <div className='flex flex-wrap items-center justify-between gap-2'>
+                    <div className='flex items-center gap-1.5'>
+                      <AlertCircle className='w-4 h-4 text-amber-700 shrink-0' />
+                      <h3 className='text-xs font-bold text-amber-950 font-sans'>
+                        Danh Sách Yêu Cầu Sửa Đổi Quá Hạn ({progress.overdueChangeRequests.length})
+                      </h3>
+                    </div>
+                    <button
+                      type='button'
+                      onClick={handleSendReminders}
+                      disabled={sendingReminders}
+                      className='px-2.5 py-1 rounded-md bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-semibold flex items-center gap-1 transition-colors cursor-pointer disabled:opacity-50'
+                      title='Gửi thông báo nhắc nhở đến người phụ trách yêu cầu sửa'
+                    >
+                      {sendingReminders ? (
+                        <Loader2 className='w-3 h-3 animate-spin' />
+                      ) : (
+                        <Bell className='w-3 h-3' />
+                      )}
+                      <span>{sendingReminders ? 'Đang gửi...' : 'Gửi thông báo nhắc hạn'}</span>
+                    </button>
                   </div>
-                  <p className='text-xs font-semibold text-stone-800'>
-                    Không có công việc hoặc yêu cầu sửa quá hạn
-                  </p>
-                  <p className='text-[11px] text-stone-500 max-w-xs mx-auto'>
-                    Tất cả nhiệm vụ và yêu cầu sửa đổi trong Series đều đang nằm trong thời hạn xử
-                    lý.
-                  </p>
+
+                  <div className='space-y-2'>
+                    {progress.overdueChangeRequests.map((cr) => (
+                      <div
+                        key={cr.changeRequestId}
+                        data-testid={`overdue-cr-card-${cr.changeRequestId}`}
+                        className='p-2.5 bg-white rounded-lg border border-amber-200 shadow-2xs space-y-1.5 text-xs'
+                      >
+                        <div className='flex items-start justify-between gap-2'>
+                          <div className='font-semibold text-zinc-900 line-clamp-1'>
+                            {cr.description}
+                          </div>
+                          <span className='px-1.5 py-0.5 rounded text-[9.5px] font-mono font-bold bg-amber-100 text-amber-800 shrink-0'>
+                            1 yêu cầu sửa
+                          </span>
+                        </div>
+                        <div className='flex items-center justify-between text-[11px] text-zinc-600 font-sans'>
+                          <span>
+                            Người sửa: <strong>{cr.responsibleUserName}</strong>
+                          </span>
+                          <span className='text-red-600 font-bold'>
+                            Hạn: {new Date(cr.dueDate).toLocaleDateString('vi-VN')}
+                          </span>
+                        </div>
+                        {workspaceId && seriesId && (
+                          <button
+                            type='button'
+                            onClick={() =>
+                              navigate(
+                                `/workspaces/${workspaceId}/series/${seriesId}/my-work?chapterId=${cr.chapterId}&assignmentId=${cr.assignmentId}`,
+                              )
+                            }
+                            className='w-full text-center py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 rounded text-[11px] font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1'
+                          >
+                            <span>Xem yêu cầu cần sửa</span>
+                            <ArrowRight className='w-3 h-3' />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
+
+              {/* Overdue Assignments Section (if any) */}
+              {progress?.overdue && progress.overdue.length > 0 && (
+                <div className='bg-red-50/70 border border-red-200 rounded-xl p-3.5 space-y-2.5'>
+                  <div className='flex items-center justify-between'>
+                    <div className='flex items-center gap-1.5'>
+                      <AlertTriangle className='w-4 h-4 text-red-600 shrink-0' />
+                      <h3 className='text-xs font-bold text-red-950 font-sans'>
+                        Danh Sách Công Việc Quá Hạn ({progress.overdue.length})
+                      </h3>
+                    </div>
+                    <span className='text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-red-100 text-red-800 border border-red-200'>
+                      Cần xử lý
+                    </span>
+                  </div>
+
+                  <div className='space-y-2'>
+                    {progress.overdue.map((od) => (
+                      <div
+                        key={od.assignmentId}
+                        className='p-2.5 bg-white rounded-lg border border-red-200 shadow-2xs space-y-1.5 text-xs'
+                      >
+                        <div className='flex items-start justify-between gap-2'>
+                          <div className='font-semibold text-zinc-900 line-clamp-1'>
+                            {od.brief}
+                          </div>
+                          <span className='px-1.5 py-0.5 rounded text-[9.5px] font-mono font-bold bg-red-100 text-red-700 shrink-0'>
+                            {od.status}
+                          </span>
+                        </div>
+                        <div className='flex items-center justify-between text-[11px] text-zinc-600 font-sans'>
+                          <span>{od.assigneeName}</span>
+                          <span className='text-red-600 font-bold'>
+                            Hạn: {new Date(od.dueDate).toLocaleDateString('vi-VN')}
+                          </span>
+                        </div>
+                        {workspaceId && seriesId && (
+                          <button
+                            type='button'
+                            onClick={() =>
+                              navigate(
+                                `/workspaces/${workspaceId}/series/${seriesId}/my-work?chapterId=${od.chapterId}&assignmentId=${od.assignmentId}`,
+                              )
+                            }
+                            className='w-full text-center py-1 bg-red-50 hover:bg-red-100 text-red-800 border border-red-200 rounded text-[11px] font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1'
+                          >
+                            <span>Xem việc cần xử lý</span>
+                            <ArrowRight className='w-3 h-3' />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Empty Attention State - Tinh tế và tối giản theo Manga Paper design */}
+              {(!progress?.overdue || progress.overdue.length === 0) &&
+                (!progress?.overdueChangeRequests || progress.overdueChangeRequests.length === 0) && (
+                  <div className='flex-1 flex flex-col items-center justify-center py-6 px-4 text-center space-y-2 bg-zinc-50/50 rounded-xl border border-dashed border-zinc-200 min-h-[140px]'>
+                    <div className='w-8 h-8 rounded-full bg-zinc-100 text-zinc-400 flex items-center justify-center mx-auto'>
+                      <CheckCircle2 className='w-4.5 h-4.5 text-zinc-400' />
+                    </div>
+                    <p className='text-xs font-bold text-zinc-800'>
+                      Mọi thứ đang đi đúng tiến độ
+                    </p>
+                    <p className='text-[11px] text-zinc-500 max-w-xs mx-auto leading-relaxed'>
+                      Tất cả nhiệm vụ và yêu cầu sửa đổi trong Series đều đang nằm trong thời hạn xử lý.
+                    </p>
+                  </div>
+                )}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* 4. Tiến độ công đoạn của chương đang chọn (Ma trận công đoạn) */}
-      {selectedChapter && (
-        <section
-          aria-label='Ma trận công đoạn'
-          className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl p-5 shadow-2xs space-y-4 pf-editorial-card'
-        >
-          <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#D8D2C5] pb-3'>
-            <div>
-              <h2
-                style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
-                className='text-lg font-bold text-[#1C1917] flex items-center gap-2'
-              >
-                <Sliders className='w-4 h-4 text-[#F97316]' />
-                <span>Tiến độ công đoạn · Chương {selectedChapter.chapterNumber}</span>
-              </h2>
-              <p className='text-xs text-[#57534E] mt-0.5'>
-                Bảng đối chiếu trạng thái {selectedChapter.panelCount} Panel theo từng công đoạn sản
-                xuất
-              </p>
+      {/* 4. Tiến độ công đoạn của chương đang chọn (Ma trận công đoạn) */}
+      {(activeTab === 'all' || activeTab === 'chapters') && selectedChapter && (() => {
+        const chapterTotalPanels = selectedChapter.panelCount || 0;
+        const chapterInProgress = selectedChapter.stages.reduce((s, st) => s + (st.inProgress || 0), 0);
+        const chapterInReview = selectedChapter.stages.reduce(
+          (s, st) => s + (st.submitted || 0) + (st.inReview || 0),
+          0,
+        );
+        const chapterChanges = selectedChapter.stages.reduce(
+          (s, st) => s + (st.changesRequested || 0),
+          0,
+        );
+        const chapterApproved = selectedChapter.stages.reduce((s, st) => s + (st.approved || 0), 0);
+
+        const renderCellCount = (
+          count: number,
+          tone:
+            | 'notStarted'
+            | 'inProgress'
+            | 'submitted'
+            | 'inReview'
+            | 'changesRequested'
+            | 'approved',
+        ) => {
+          if (count === 0) {
+            return <span className='text-zinc-300 font-normal select-none'>—</span>;
+          }
+          switch (tone) {
+            case 'notStarted':
+              return <span className='text-zinc-600 font-semibold'>{count}</span>;
+            case 'inProgress':
+              return (
+                <span className='inline-flex items-center justify-center min-w-6 px-1.5 py-0.5 rounded-md text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200/80 shadow-2xs'>
+                  {count}
+                </span>
+              );
+            case 'submitted':
+              return (
+                <span className='inline-flex items-center justify-center min-w-6 px-1.5 py-0.5 rounded-md text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200/80 shadow-2xs'>
+                  {count}
+                </span>
+              );
+            case 'inReview':
+              return (
+                <span className='inline-flex items-center justify-center min-w-6 px-1.5 py-0.5 rounded-md text-[11px] font-bold bg-purple-50 text-purple-800 border border-purple-200/80 shadow-2xs'>
+                  {count}
+                </span>
+              );
+            case 'changesRequested':
+              return (
+                <span className='inline-flex items-center justify-center min-w-6 px-1.5 py-0.5 rounded-md text-[11px] font-bold bg-red-50 text-red-700 border border-red-300/80 shadow-2xs ring-1 ring-red-400/20'>
+                  {count}
+                </span>
+              );
+            case 'approved':
+              return (
+                <span className='inline-flex items-center justify-center min-w-6 px-1.5 py-0.5 rounded-md text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80 shadow-2xs'>
+                  {count}
+                </span>
+              );
+          }
+        };
+
+        return (
+          <section
+            aria-label='Ma trận công đoạn'
+            className='bg-white border border-zinc-200 rounded-2xl p-5 sm:p-6 shadow-xs space-y-4'
+          >
+            {/* Header: Tiêu đề + Chuyển nhanh chương + Cụm nút hành động */}
+            <div className='flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-zinc-100 pb-4'>
+              <div className='space-y-1.5'>
+                <div className='flex items-center gap-2.5 flex-wrap'>
+                  <h2 className='text-lg font-bold text-zinc-900 font-sans flex items-center gap-2'>
+                    <Sliders className='w-4.5 h-4.5 text-[#F97316]' />
+                    <span>Tiến độ công đoạn · Chương {selectedChapter.chapterNumber}</span>
+                  </h2>
+
+                  {/* Quick Chapter Selector Chips */}
+                  {progress?.chapters && progress.chapters.length > 1 && (
+                    <div className='flex items-center gap-1 bg-zinc-100/80 p-0.5 rounded-lg border border-zinc-200/60'>
+                      {progress.chapters.map((ch) => {
+                        const isSelected = ch.chapterId === selectedChapter.chapterId;
+                        return (
+                          <button
+                            key={ch.chapterId}
+                            type='button'
+                            onClick={() => setSelectedChapterId(ch.chapterId)}
+                            className={`px-2.5 py-0.5 rounded-md text-xs font-medium transition-all cursor-pointer ${
+                              isSelected
+                                ? 'bg-[#F97316] text-white shadow-2xs font-semibold'
+                                : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/60'
+                            }`}
+                          >
+                            Chương {ch.chapterNumber}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                <p className='text-xs text-zinc-500'>
+                  {chapterTotalPanels === 0 ? (
+                    <span className='text-zinc-500'>
+                      Chương hiện chưa có panel phân rã · Các công đoạn sẵn sàng cho phân bổ kịch bản & vẽ
+                    </span>
+                  ) : (
+                    <span>
+                      Bảng đối chiếu trạng thái {selectedChapter.panelCount} Panel theo từng công đoạn sản xuất
+                    </span>
+                  )}
+                </p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className='flex items-center gap-2 shrink-0'>
+                {workspaceId && seriesId && (
+                  <button
+                    type='button'
+                    onClick={() =>
+                      navigate(
+                        `/workspaces/${workspaceId}/series/${seriesId}/workspace?chapterId=${selectedChapter.chapterId}`,
+                      )
+                    }
+                    className='px-3.5 py-1.5 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs'
+                  >
+                    <ExternalLink className='w-3.5 h-3.5' />
+                    <span>Mở Pipeline</span>
+                  </button>
+                )}
+              </div>
             </div>
-            <div className='flex items-center gap-2'>
-              <button
-                type='button'
-                onClick={() => {
-                  setAssignModalChapter({
-                    id: selectedChapter.chapterId,
-                    number: selectedChapter.chapterNumber,
-                  });
-                  setIsAssignModalOpen(true);
-                }}
-                className='px-3 py-1.5 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer'
+
+            {/* Chapter Pulse KPI Strip: Tóm tắt trạng thái của Chương đang chọn */}
+            <div className='grid grid-cols-2 sm:grid-cols-4 gap-2.5'>
+              <div className='p-2.5 rounded-xl bg-zinc-50 border border-zinc-200/70 flex items-center justify-between'>
+                <div>
+                  <span className='text-[11px] text-zinc-500 block font-medium'>Tổng Panel</span>
+                  <span className='text-base font-bold font-mono text-zinc-900'>
+                    {chapterTotalPanels} <span className='text-[11px] font-normal text-zinc-400'>khung</span>
+                  </span>
+                </div>
+                <div className='w-7 h-7 rounded-lg bg-white border border-zinc-200 text-zinc-500 flex items-center justify-center text-xs font-mono font-bold shadow-2xs'>
+                  #
+                </div>
+              </div>
+
+              <div className='p-2.5 rounded-xl bg-blue-50/50 border border-blue-200/60 flex items-center justify-between'>
+                <div>
+                  <span className='text-[11px] text-blue-700 block font-medium'>Đang Sản Xuất</span>
+                  <span className='text-base font-bold font-mono text-blue-900'>
+                    {chapterInProgress} <span className='text-[11px] font-normal text-blue-500'>panel</span>
+                  </span>
+                </div>
+                <div className='w-7 h-7 rounded-lg bg-blue-100/80 text-blue-700 flex items-center justify-center text-xs font-bold shadow-2xs'>
+                  ⚡
+                </div>
+              </div>
+
+              <div className='p-2.5 rounded-xl bg-purple-50/50 border border-purple-200/60 flex items-center justify-between'>
+                <div>
+                  <span className='text-[11px] text-purple-700 block font-medium'>Chờ Kiểm Duyệt</span>
+                  <span className='text-base font-bold font-mono text-purple-900'>
+                    {chapterInReview} <span className='text-[11px] font-normal text-purple-500'>panel</span>
+                  </span>
+                </div>
+                <div className='w-7 h-7 rounded-lg bg-purple-100/80 text-purple-700 flex items-center justify-center text-xs font-bold shadow-2xs'>
+                  👁️
+                </div>
+              </div>
+
+              <div
+                className={`p-2.5 rounded-xl border flex items-center justify-between ${
+                  chapterChanges > 0
+                    ? 'bg-red-50/60 border-red-200/80 text-red-900'
+                    : 'bg-emerald-50/50 border-emerald-200/60 text-emerald-900'
+                }`}
               >
-                <UserCheck className='w-3.5 h-3.5' />
-                <span>Giao Việc Cho Chương {selectedChapter.chapterNumber}</span>
-              </button>
-              {workspaceId && seriesId && (
-                <button
-                  type='button'
-                  onClick={() =>
-                    navigate(
-                      `/workspaces/${workspaceId}/series/${seriesId}/workspace?chapterId=${selectedChapter.chapterId}`,
-                    )
-                  }
-                  className='px-3 py-1.5 rounded-lg bg-[#FAF8F5] hover:bg-[#F3F0E9] border border-[#D8D2C5] text-[#1C1917] text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs'
+                <div>
+                  <span className='text-[11px] block font-medium'>
+                    {chapterChanges > 0 ? 'Yêu Cầu Sửa Đổi' : 'Đã Duyệt Đạt Chuẩn'}
+                  </span>
+                  <span className='text-base font-bold font-mono'>
+                    {chapterChanges > 0 ? chapterChanges : chapterApproved}{' '}
+                    <span className='text-[11px] font-normal opacity-70'>panel</span>
+                  </span>
+                </div>
+                <div
+                  className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shadow-2xs ${
+                    chapterChanges > 0
+                      ? 'bg-red-100 text-red-700'
+                      : 'bg-emerald-100 text-emerald-700'
+                  }`}
                 >
-                  <ExternalLink className='w-3.5 h-3.5 text-[#57534E]' />
-                  <span>Mở Pipeline</span>
-                </button>
-              )}
+                  {chapterChanges > 0 ? '!' : '✓'}
+                </div>
+              </div>
             </div>
-          </div>
 
-          {selectedChapter.stages.length === 0 ? (
-            <div className='py-8 text-center text-xs text-[#57534E] bg-[#FAF8F5] rounded-xl border border-dashed border-[#D8D2C5]'>
-              Chưa có công đoạn nào được thiết lập cho Series này.
-            </div>
-          ) : (
-            <div className='overflow-x-auto rounded-lg border border-[#D8D2C5] bg-[#FCFBF8]'>
-              <table className='w-full text-xs text-left border-collapse'>
-                <thead>
-                  <tr className='border-b border-[#D8D2C5] text-[#57534E] font-sans text-xs bg-[#FAF8F5]'>
-                    <th className='py-3 px-3.5 font-semibold'>Công Đoạn</th>
-                    <th className='py-3 px-2 text-center text-[#57534E] font-semibold'>Chưa làm</th>
-                    <th className='py-3 px-2 text-center text-blue-700 font-semibold'>Đang làm</th>
-                    <th className='py-3 px-2 text-center text-amber-700 font-semibold'>Đã nộp</th>
-                    <th className='py-3 px-2 text-center text-purple-700 font-semibold'>
-                      Đang duyệt
-                    </th>
-                    <th className='py-3 px-2 text-center text-red-700 font-semibold'>
-                      Yêu cầu sửa
-                    </th>
-                    <th className='py-3 px-2 text-center text-emerald-700 font-semibold'>
-                      Đã duyệt
-                    </th>
-                    <th className='py-3 px-3.5 text-right font-semibold'>Tiến độ</th>
-                  </tr>
-                </thead>
-                <tbody className='divide-y divide-[#EAE5DC] font-mono tabular-nums'>
-                  {selectedChapter.stages.map((st) => {
-                    const total = selectedChapter.panelCount;
-                    const pct = total > 0 ? Math.round((st.approved / total) * 100) : 0;
+            {/* Context callout when chapter has 0 panels */}
+            {chapterTotalPanels === 0 && (
+              <div className='flex items-center justify-between gap-3 p-3 rounded-xl bg-orange-50/50 border border-orange-200/60 text-zinc-700 text-xs'>
+                <div className='flex items-center gap-2.5'>
+                  <div className='w-5 h-5 rounded-full bg-[#F97316]/10 text-[#F97316] flex items-center justify-center shrink-0 font-bold text-xs'>
+                    i
+                  </div>
+                  <span>
+                    Chương {selectedChapter.chapterNumber} chưa phân rã trang thành Panel. Các cột công đoạn đang ở trạng thái chuẩn bị.
+                  </span>
+                </div>
+                {workspaceId && seriesId && (
+                  <button
+                    type='button'
+                    onClick={() =>
+                      navigate(
+                        `/workspaces/${workspaceId}/series/${seriesId}/workspace?chapterId=${selectedChapter.chapterId}`,
+                      )
+                    }
+                    className='shrink-0 text-xs font-bold text-[#F97316] hover:text-[#EA580C] hover:underline flex items-center gap-1 cursor-pointer'
+                  >
+                    <span>Mở Pipeline chia khung</span>
+                    <ArrowRight className='w-3 h-3' />
+                  </button>
+                )}
+              </div>
+            )}
 
-                    return (
-                      <tr key={st.stageId} className='hover:bg-[#F3F0E9]/60 transition-colors'>
-                        <td className='py-3 px-3.5 font-sans font-semibold text-[#1C1917]'>
-                          <div className='flex items-center gap-2'>
-                            <span className='w-4 h-4 rounded bg-[#1C1917] text-white text-[10px] font-mono flex items-center justify-center shrink-0'>
-                              {st.stageOrder}
-                            </span>
-                            <span>{st.name}</span>
-                          </div>
-                        </td>
-                        <td className='py-3 px-2 text-center text-[#57534E] font-medium'>
-                          {st.notStarted}
-                        </td>
-                        <td className='py-3 px-2 text-center text-blue-600 font-semibold'>
-                          {st.inProgress}
-                        </td>
-                        <td className='py-3 px-2 text-center text-amber-600 font-semibold'>
-                          {st.submitted}
-                        </td>
-                        <td className='py-3 px-2 text-center text-purple-600 font-semibold'>
-                          {st.inReview}
-                        </td>
-                        <td className='py-3 px-2 text-center text-red-600 font-semibold'>
-                          {st.changesRequested}
-                        </td>
-                        <td className='py-3 px-2 text-center text-emerald-600 font-bold'>
-                          {st.approved}
-                        </td>
-                        <td className='py-3 px-3.5 text-right'>
-                          <div className='flex items-center justify-end gap-2'>
-                            <div className='w-16 bg-[#F3F0E9] h-1.5 rounded-full overflow-hidden border border-[#D8D2C5]/50'>
-                              <div
-                                className='bg-emerald-600 h-full rounded-full'
-                                style={{ width: `${pct}%` }}
-                              />
+            {selectedChapter.stages.length === 0 ? (
+              <div className='py-8 text-center text-xs text-zinc-500 bg-zinc-50/50 rounded-xl border border-dashed border-zinc-200'>
+                Chưa có công đoạn nào được thiết lập cho Series này.
+              </div>
+            ) : (
+              <div className='overflow-x-auto rounded-xl border border-zinc-200 bg-white shadow-2xs'>
+                <table className='w-full text-xs text-left border-collapse'>
+                  <thead>
+                    <tr className='border-b border-zinc-200 text-zinc-600 font-sans text-xs bg-zinc-50/70'>
+                      <th className='py-3 px-3.5 font-semibold text-zinc-700'>Công Đoạn</th>
+                      <th className='py-3 px-2 text-center text-zinc-500 font-semibold'>Chưa làm</th>
+                      <th className='py-3 px-2 text-center text-blue-700 font-semibold'>Đang làm</th>
+                      <th className='py-3 px-2 text-center text-amber-700 font-semibold'>Đã nộp</th>
+                      <th className='py-3 px-2 text-center text-purple-700 font-semibold'>
+                        Đang duyệt
+                      </th>
+                      <th className='py-3 px-2 text-center text-red-700 font-semibold'>
+                        Yêu cầu sửa
+                      </th>
+                      <th className='py-3 px-2 text-center text-emerald-700 font-semibold'>
+                        Đã duyệt
+                      </th>
+                      <th className='py-3 px-3.5 text-right font-semibold text-zinc-700'>Tiến độ</th>
+                    </tr>
+                  </thead>
+                  <tbody className='divide-y divide-zinc-100 font-mono tabular-nums'>
+                    {selectedChapter.stages.map((st) => {
+                      const total = selectedChapter.panelCount;
+                      const pct = total > 0 ? Math.round((st.approved / total) * 100) : 0;
+
+                      return (
+                        <tr
+                          key={st.stageId}
+                          className='hover:bg-amber-50/20 transition-colors'
+                        >
+                          <td className='py-3 px-3.5 font-sans font-semibold text-zinc-900'>
+                            <div className='flex items-center gap-2'>
+                              <span className='w-4.5 h-4.5 rounded bg-zinc-900 text-white text-[10px] font-mono flex items-center justify-center shrink-0 shadow-2xs'>
+                                {st.stageOrder}
+                              </span>
+                              <span className='font-medium text-zinc-900'>{st.name}</span>
                             </div>
-                            <span className='text-[11px] text-[#57534E] font-medium w-12 text-right'>
-                              {st.approved}/{total} ({pct}%)
-                            </span>
+                          </td>
+                          <td className='py-3 px-2 text-center'>
+                            {renderCellCount(st.notStarted, 'notStarted')}
+                          </td>
+                          <td className='py-3 px-2 text-center'>
+                            {renderCellCount(st.inProgress, 'inProgress')}
+                          </td>
+                          <td className='py-3 px-2 text-center'>
+                            {renderCellCount(st.submitted, 'submitted')}
+                          </td>
+                          <td className='py-3 px-2 text-center'>
+                            {renderCellCount(st.inReview, 'inReview')}
+                          </td>
+                          <td className='py-3 px-2 text-center'>
+                            {renderCellCount(st.changesRequested, 'changesRequested')}
+                          </td>
+                          <td className='py-3 px-2 text-center'>
+                            {renderCellCount(st.approved, 'approved')}
+                          </td>
+                          <td className='py-3 px-3.5 text-right'>
+                            {total === 0 ? (
+                              <div className='flex items-center justify-end text-zinc-400'>
+                                <span className='text-[11px] font-normal italic select-none'>—</span>
+                              </div>
+                            ) : (
+                              <div className='flex items-center justify-end gap-2.5'>
+                                <div className='w-16 bg-zinc-100 h-1.5 rounded-full overflow-hidden border border-zinc-200/50'>
+                                  <div
+                                    className={`h-full rounded-full transition-all duration-300 ${
+                                      pct === 100 ? 'bg-emerald-500' : 'bg-[#F97316]'
+                                    }`}
+                                    style={{ width: `${pct}%` }}
+                                  />
+                                </div>
+                                <span className='text-[11px] text-zinc-600 font-medium w-12 text-right'>
+                                  {st.approved}/{total} ({pct}%)
+                                </span>
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        );
+      })()}
+
+      {/* 5. Xu hướng công việc & Phân công thành viên */}
+      {(activeTab === 'all' || activeTab === 'team' || activeTab === 'reports') && (
+        <section className='grid grid-cols-1 lg:grid-cols-12 gap-6 items-start'>
+          {/* Biểu đồ Burndown / Công việc còn lại theo thời gian */}
+          {(activeTab === 'all' || activeTab === 'reports') && (
+            <div
+              className={`${
+                activeTab === 'reports' ? 'lg:col-span-12' : 'lg:col-span-6'
+              } space-y-4 self-start`}
+            >
+              <SeriesBurndownCard burndown={progress?.burndown} loading={loading} />
+            </div>
+          )}
+
+          {/* Phân công thành viên / Khối lượng công việc theo người */}
+          {(activeTab === 'all' || activeTab === 'team') && (
+            <div
+              className={`${
+                activeTab === 'team' ? 'lg:col-span-12' : 'lg:col-span-6'
+              } space-y-4 self-start`}
+            >
+              <div className='bg-white border border-zinc-200 rounded-2xl p-5 sm:p-6 shadow-xs space-y-4'>
+                <div>
+                  <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-zinc-100 pb-3'>
+                    <div>
+                      <h2 className='text-base font-bold text-zinc-900 font-sans flex items-center gap-2'>
+                        <Users className='w-4 h-4 text-[#F97316]' />
+                        <span>Phân Bổ Khối Lượng Công Việc</span>
+                      </h2>
+                      <p className='text-xs text-zinc-500 mt-0.5'>
+                        Số lượng panel và nhiệm vụ đang phụ trách theo từng nhân sự
+                      </p>
+                    </div>
+
+                    <div className='flex items-center gap-2 self-start sm:self-auto shrink-0'>
+                      <span className='inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-50 border border-zinc-200 text-xs font-mono font-semibold text-zinc-700 shadow-2xs'>
+                        <span>{progress?.workload?.length || 0} Nhân sự có việc</span>
+                      </span>
+                    </div>
+                  </div>
+
+                  {!progress?.workload || progress.workload.length === 0 ? (
+                    <div className='py-8 text-center text-xs text-zinc-500 bg-zinc-50/50 rounded-xl border border-dashed border-zinc-200 mt-4 space-y-3 px-4'>
+                      <div className='w-9 h-9 rounded-full bg-zinc-100 text-zinc-400 flex items-center justify-center mx-auto'>
+                        <Users className='w-4.5 h-4.5' />
+                      </div>
+                      <div className='space-y-1'>
+                        <p className='font-semibold text-zinc-800 text-xs'>
+                          {seriesMembers.length > 0
+                            ? `Đội ngũ sẵn sàng (${seriesMembers.length} thành viên) · Chưa có phân công đang mở`
+                            : 'Chưa có nhân sự được phân công vào Series'}
+                        </p>
+                        <p className='text-[11px] text-zinc-400 max-w-xs mx-auto'>
+                          {seriesMembers.length > 0
+                            ? 'Giao nhiệm vụ vẽ/lên kịch bản cho nghệ sĩ để bắt đầu theo dõi khối lượng công việc.'
+                            : 'Gán thành viên vào ban sản xuất để phân bổ trang và panel.'}
+                        </p>
+                      </div>
+                      <div className='pt-1'>
+                        {seriesMembers.length > 0 && selectedChapter ? (
+                          <button
+                            type='button'
+                            onClick={() => {
+                              setAssignModalChapter({
+                                id: selectedChapter.chapterId,
+                                number: selectedChapter.chapterNumber,
+                              });
+                              setIsAssignModalOpen(true);
+                            }}
+                            className='inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#F97316] hover:bg-[#EA580C] text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer shadow-2xs'
+                          >
+                            <UserPlus className='w-3.5 h-3.5' />
+                            <span>Giao việc mới (Chương {selectedChapter.chapterNumber})</span>
+                          </button>
+                        ) : (
+                          <button
+                            type='button'
+                            onClick={() => setIsMembersModalOpen(true)}
+                            className='inline-flex items-center gap-1.5 px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer shadow-2xs'
+                          >
+                            <UserPlus className='w-3.5 h-3.5' />
+                            <span>Gán thành viên vào Series</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className='space-y-2.5 mt-4'>
+                      {progress.workload.map((w) => {
+                        const roleUpper = String(w.role || '').toUpperCase();
+                        const roleStyle =
+                          ROLE_COLOR_MAP[roleUpper] || 'bg-zinc-100 text-zinc-800 border-zinc-200';
+
+                        return (
+                          <div
+                            key={w.userId + w.role}
+                            className='p-3 bg-white hover:bg-zinc-50/80 border border-zinc-200 rounded-xl transition-all shadow-2xs space-y-2'
+                          >
+                            <div className='flex items-center justify-between gap-2'>
+                              <div className='flex items-center gap-2.5 min-w-0'>
+                                <div className='w-7 h-7 rounded-full bg-zinc-900 text-white font-bold text-xs flex items-center justify-center shrink-0'>
+                                  {w.fullName.charAt(0).toUpperCase()}
+                                </div>
+                                <div className='min-w-0'>
+                                  <div className='text-xs font-bold text-zinc-900 truncate'>
+                                    {w.fullName}
+                                  </div>
+                                  <span
+                                    className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium border ${roleStyle}`}
+                                  >
+                                    {w.role}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {w.overdue > 0 && (
+                                <span className='px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-red-100 text-red-700 border border-red-200 shrink-0'>
+                                  {w.overdue} Quá hạn
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Workload metric counters */}
+                            <div className='grid grid-cols-3 gap-2 pt-2 border-t border-zinc-100 text-xs font-mono text-center tabular-nums'>
+                              <div className='bg-zinc-50/70 p-1.5 rounded-lg border border-zinc-200'>
+                                <div className='text-zinc-500 text-[11px] font-sans'>Đang làm</div>
+                                <div className='font-bold text-zinc-900 text-sm'>{w.open}</div>
+                              </div>
+                              <div className='bg-zinc-50/70 p-1.5 rounded-lg border border-zinc-200'>
+                                <div className='text-zinc-500 text-[11px] font-sans'>Chờ duyệt</div>
+                                <div className='font-bold text-amber-600 text-sm'>
+                                  {w.waitingReview}
+                                </div>
+                              </div>
+                              <div className='bg-zinc-50/70 p-1.5 rounded-lg border border-zinc-200'>
+                                <div className='text-zinc-500 text-[11px] font-sans'>Hoàn thành</div>
+                                <div className='font-bold text-emerald-600 text-sm'>{w.done}</div>
+                              </div>
+                            </div>
                           </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           )}
         </section>
       )}
 
-      {/* 5. Xu hướng công việc & Phân công thành viên */}
-      <section className='grid grid-cols-1 lg:grid-cols-12 gap-6 items-start'>
-        {/* Biểu đồ Burndown / Công việc còn lại theo thời gian (6 cột trên lg) */}
-        <div className='lg:col-span-6 space-y-4 self-start'>
-          <SeriesBurndownCard burndown={progress?.burndown} loading={loading} />
-        </div>
-
-        {/* Phân công thành viên / Khối lượng công việc theo người (6 cột trên lg) */}
-        <div className='lg:col-span-6 space-y-4 self-start'>
-          <div className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl p-5 shadow-2xs space-y-4 pf-editorial-card'>
-            <div>
-              <div className='flex items-center justify-between border-b border-[#D8D2C5] pb-3'>
-                <div>
-                  <h2
-                    style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
-                    className='text-base font-bold text-[#1C1917] flex items-center gap-2'
-                  >
-                    <Users className='w-4 h-4 text-[#F97316]' />
-                    <span>Phân Công Thành Viên ({progress?.workload.length || 0})</span>
-                  </h2>
-                  <p className='text-xs text-[#57534E] mt-0.5'>
-                    Khối lượng công việc theo người · Toàn bộ series
-                  </p>
-                </div>
-              </div>
-
-              {!progress?.workload || progress.workload.length === 0 ? (
-                <div className='py-8 text-center text-xs text-[#57534E] bg-[#FAF8F5] rounded-xl border border-dashed border-[#D8D2C5] mt-4'>
-                  Chưa có thành viên nào được phân công việc trong Series này.
-                </div>
-              ) : (
-                <div className='space-y-2.5 mt-4'>
-                  {progress.workload.map((w) => {
-                    const roleUpper = String(w.role || '').toUpperCase();
-                    const roleStyle =
-                      ROLE_COLOR_MAP[roleUpper] || 'bg-[#F3F0E9] text-[#1C1917] border-[#D8D2C5]';
-
-                    return (
-                      <div
-                        key={w.userId + w.role}
-                        className='p-3 bg-[#FAF8F5] hover:bg-white border border-[#D8D2C5] rounded-xl transition-all shadow-2xs space-y-2'
-                      >
-                        <div className='flex items-center justify-between gap-2'>
-                          <div className='flex items-center gap-2.5 min-w-0'>
-                            <div className='w-7 h-7 rounded-full bg-[#1C1917] text-white font-bold text-xs flex items-center justify-center shrink-0'>
-                              {w.fullName.charAt(0).toUpperCase()}
-                            </div>
-                            <div className='min-w-0'>
-                              <div className='text-xs font-bold text-[#1C1917] truncate'>
-                                {w.fullName}
-                              </div>
-                              <span
-                                className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium border ${roleStyle}`}
-                              >
-                                {w.role}
-                              </span>
-                            </div>
-                          </div>
-
-                          {w.overdue > 0 && (
-                            <span className='px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-red-100 text-red-700 border border-red-200 shrink-0'>
-                              {w.overdue} Quá hạn
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Workload metric counters */}
-                        <div className='grid grid-cols-3 gap-2 pt-2 border-t border-[#D8D2C5] text-xs font-mono text-center tabular-nums'>
-                          <div className='bg-[#FCFBF8] p-1.5 rounded-lg border border-[#D8D2C5]'>
-                            <div className='text-[#57534E] text-[11px] font-sans'>Đang làm</div>
-                            <div className='font-bold text-[#1C1917] text-sm'>{w.open}</div>
-                          </div>
-                          <div className='bg-[#FCFBF8] p-1.5 rounded-lg border border-[#D8D2C5]'>
-                            <div className='text-[#57534E] text-[11px] font-sans'>Chờ duyệt</div>
-                            <div className='font-bold text-amber-600 text-sm'>
-                              {w.waitingReview}
-                            </div>
-                          </div>
-                          <div className='bg-[#FCFBF8] p-1.5 rounded-lg border border-[#D8D2C5]'>
-                            <div className='text-[#57534E] text-[11px] font-sans'>Hoàn thành</div>
-                            <div className='font-bold text-emerald-600 text-sm'>{w.done}</div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            <p className='text-xs text-[#57534E] font-sans text-center mt-3 pt-2 border-t border-[#D8D2C5]/60'>
-              Số lượng nhiệm vụ được gán, không phản ánh độ dài hay độ khó của từng panel
-            </p>
-          </div>
-        </div>
-      </section>
+      {/* Series Members Modal (Manage series team & roles from workspace talent pool) */}
+      {seriesId && workspaceId && isMembersModalOpen && (
+        <SeriesMembersModal
+          isOpen={isMembersModalOpen}
+          workspaceId={workspaceId}
+          workspaceName={workspaceName}
+          seriesId={seriesId}
+          seriesTitle={seriesDetail?.title || activeProject?.title || 'Series'}
+          onClose={() => setIsMembersModalOpen(false)}
+          onMembersChanged={() => {
+            void fetchProgress();
+            seriesService.getSeriesMembers(workspaceId, seriesId).then((m) => setSeriesMembers(m || []));
+          }}
+        />
+      )}
 
       {/* Series Chapters Modal (Producer can approve, reopen, manage chapters) */}
       {seriesId && (

@@ -447,8 +447,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             >
               {t('common.auth.email')}
             </label>
-            <div className='pf-panel pf-field' data-invalid={!!fieldErrors.email}>
-              <PanelLayers />
+            <div className='pf-field' data-invalid={!!fieldErrors.email}>
               <span className='pf-field-icon' aria-hidden='true'>
                 <Mail className='w-4 h-4' />
               </span>
@@ -499,8 +498,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                 {t('common.auth.forgot')}
               </button>
             </div>
-            <div className='pf-panel pf-field' data-invalid={!!fieldErrors.password}>
-              <PanelLayers />
+            <div className='pf-field' data-invalid={!!fieldErrors.password}>
               <span className='pf-field-icon' aria-hidden='true'>
                 <KeyRound className='w-4 h-4' />
               </span>
@@ -543,6 +541,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
 
           {/* Submit Button */}
           <button
+            id='login-submit-btn'
             type='submit'
             disabled={isLoading}
             aria-busy={isLoading}

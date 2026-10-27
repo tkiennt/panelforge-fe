@@ -672,8 +672,8 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
             {sortedStudioWork.map((a) => (
               <div key={a.id} className='space-y-1'>
                 <p className='text-xs font-semibold text-[#57534E]'>
-                  {a.seriesTitle} · Chương {a.chapterNumber}
-                  {a.chapterTitle ? `: ${a.chapterTitle}` : ''}
+                  Series: {a.seriesTitle} | Chương {a.chapterNumber}
+                  {a.scopeLabel ? ` | ${a.scopeLabel}` : ''}
                 </p>
                 <AssignmentWorkCard
                   chapterId={a.chapterId}
@@ -741,12 +741,15 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
             <div key={a.id} className='space-y-1.5'>
               {(a as any).seriesTitle && (
                 <div className='flex items-center gap-1.5 text-xs font-semibold text-[#C2410C] bg-[#FFF2E6] px-2.5 py-1 rounded-md border border-[#F97316]/30 w-fit'>
-                  <span>{(a as any).seriesTitle}</span>
-                  <span className='text-[#F97316]'>•</span>
-                  <span>
-                    Chương {(a as any).chapterNumber}
-                    {(a as any).chapterTitle ? `: ${(a as any).chapterTitle}` : ''}
-                  </span>
+                  <span>Series: {(a as any).seriesTitle}</span>
+                  <span className='text-[#F97316]'>|</span>
+                  <span>Chương {(a as any).chapterNumber}</span>
+                  {(a as any).scopeLabel && (
+                    <>
+                      <span className='text-[#F97316]'>|</span>
+                      <span>{(a as any).scopeLabel}</span>
+                    </>
+                  )}
                 </div>
               )}
               <AssignmentWorkCard
@@ -819,12 +822,15 @@ export const MyWorkView: React.FC<MyWorkViewProps> = ({
                       <div key={a.id} className='space-y-1.5'>
                         {(a as any).seriesTitle && (
                           <div className='flex items-center gap-1.5 text-xs font-semibold text-orange-800 bg-orange-50 px-2.5 py-1 rounded-md border border-orange-200/80 w-fit'>
-                            <span>{(a as any).seriesTitle}</span>
-                            <span className='text-orange-400'>•</span>
-                            <span>
-                              Chương {(a as any).chapterNumber}
-                              {(a as any).chapterTitle ? `: ${(a as any).chapterTitle}` : ''}
-                            </span>
+                            <span>Series: {(a as any).seriesTitle}</span>
+                            <span className='text-orange-400'>|</span>
+                            <span>Chương {(a as any).chapterNumber}</span>
+                            {(a as any).scopeLabel && (
+                              <>
+                                <span className='text-orange-400'>|</span>
+                                <span>{(a as any).scopeLabel}</span>
+                              </>
+                            )}
                           </div>
                         )}
                         <AssignmentWorkCard

@@ -87,6 +87,15 @@ export const formatChapterOption = (chapterNumber: number, title?: string | null
   return `Chương ${chapterNumber}: ${trimmed}`;
 };
 
+/**
+ * Trả về tên kèm giai đoạn (stageName) hoặc phụ đề (subtitle) để phân biệt các phiên bản nhân vật.
+ */
+export const getBibleEntryNameWithStage = (entry?: BibleEntryDto | null): string => {
+  if (!entry) return '';
+  const stage = entry.effectiveRevision?.stageName?.trim() || entry.subtitle?.trim();
+  return stage ? `${entry.name} (${stage})` : entry.name;
+};
+
 export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   onShowToast,
   workspaceRole,
@@ -215,6 +224,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   );
 
   const hasUnsavedChanges = isStoryArcDirty || isOutlineDirty;
+  const [barWarn, setBarWarn] = useState(false);
 
   // Bản nháp cục bộ: lưu chữ đang gõ (debounce 1s) để không mất khi hết phiên / rớt mạng / đóng tab.
   const storyArcDraftKey = seriesId ? `storyArc.${seriesId}` : null;
@@ -407,6 +417,8 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   // Chọn Chapter từ dropdown (bảo vệ thay đổi chưa lưu)
   const handleSelectChapter = (chapId: string) => {
     if (hasUnsavedChanges) {
+      setBarWarn(true);
+      setTimeout(() => setBarWarn(false), 800);
       const confirmSwitch = window.confirm(
         'Bạn có thay đổi đề cương hoặc Story Arc chưa lưu. Bạn có muốn bỏ qua các thay đổi này để chuyển chương không?',
       );
@@ -992,11 +1004,11 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     void applyReorder(items);
   };
 
-  // Helper tìm tên nhân vật từ ID
+  // Helper tìm tên nhân vật từ ID có kèm giai đoạn
   const getSpeakerName = (speakerId?: string | null) => {
     if (!speakerId) return null;
     const found = characters.find((c) => c.id === speakerId);
-    return found ? found.name : 'Nhân vật (Chưa rõ)';
+    return found ? getBibleEntryNameWithStage(found) : 'Nhân vật (Chưa rõ)';
   };
 
   const isChapterLocked =
@@ -1013,7 +1025,9 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     await loadSceneDetail(selectedScene.id);
   };
 
-  const aiNameById = Object.fromEntries(allBibleEntries.map((e) => [e.id, e.name]));
+  const aiNameById = Object.fromEntries(
+    allBibleEntries.map((e) => [e.id, getBibleEntryNameWithStage(e)]),
+  );
 
   // Số lượng vấn đề nhất quán
   const openFindingsCount = findings.filter(
@@ -1038,6 +1052,22 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
   return (
     <div className='flex-1 flex flex-col bg-[#F3F0E9] h-[calc(100vh-64px)] overflow-hidden text-[#1C1917]'>
+      <UnsavedChangesBar
+        isDirty={hasUnsavedChanges}
+        isWarn={barWarn}
+        count={(isStoryArcDirty ? 1 : 0) + (isOutlineDirty ? 1 : 0)}
+        onSave={async () => {
+          if (isStoryArcDirty) await handleSaveStoryArc();
+          if (isOutlineDirty) await handleSaveOutline();
+        }}
+        onDiscard={() => {
+          setStoryArcInput(seriesDetail?.storyArc || '');
+          setOutlineInput(currentChapter?.outline || '');
+          if (storyArcDraftKey) clearDraft(storyArcDraftKey);
+          if (outlineDraftKey) clearDraft(outlineDraftKey);
+        }}
+        isSaving={savingStoryArc || savingOutline}
+      />
       {/* 1. Gọn gàng Header Toolbar */}
       <header className='shrink-0 bg-[#FCFBF8] border-b border-[#D8D2C5] px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 shadow-2xs z-30'>
         {/* Left: Tên trang, Chương, Trạng thái & Phiên bản */}
@@ -1937,7 +1967,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                       <option value=''>-- Không có người nói (Lời dẫn ngoài / Hành động) --</option>
                       {characters.map((char) => (
                         <option key={char.id} value={char.id}>
-                          {char.name} {char.subtitle ? `(${char.subtitle})` : ''}
+                          {getBibleEntryNameWithStage(char)}
                         </option>
                       ))}
                     </select>
@@ -2057,7 +2087,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                                   : 'bg-white border-zinc-200 text-zinc-600 hover:border-purple-200 hover:bg-purple-50/30'
                               }`}
                             >
-                              <span>{entry.name}</span>
+                              <span>{getBibleEntryNameWithStage(entry)}</span>
                               {isChecked ? (
                                 <CheckCircle2 className='w-3.5 h-3.5 text-purple-700' />
                               ) : (

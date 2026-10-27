@@ -11,6 +11,9 @@ import {
   Layers,
   FileText,
   Sparkles,
+  Network,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import {
   assignmentService,
@@ -64,6 +67,9 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
   const [priority, setPriority] = useState<AssignmentPriority>('Medium');
   const [dependsOnAssignmentId, setDependsOnAssignmentId] = useState('');
   const [selectedDependsOnIds, setSelectedDependsOnIds] = useState<string[]>([]);
+  const [selectedTargetIds, setSelectedTargetIds] = useState<string[]>([]);
+  const [transferReason, setTransferReason] = useState('');
+  const [showDependencies, setShowDependencies] = useState(false);
 
   const [stages, setStages] = useState<PipelineStageDto[]>([]);
   const [members, setMembers] = useState<SeriesMemberDto[]>([]);
@@ -156,6 +162,7 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
         setPages(loadedPages);
         if (loadedPages.length > 0) {
           setSelectedPageId(loadedPages[0].id);
+          setSelectedTargetIds([loadedPages[0].id]);
         }
       })
       .catch((err) => {
@@ -210,6 +217,12 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
       isMounted = false;
     };
   }, [isOpen, entityType, selectedPageId]);
+
+  useEffect(() => {
+    if (selectedPageId) {
+      setSelectedTargetIds((prev) => (prev.length === 0 ? [selectedPageId] : prev));
+    }
+  }, [selectedPageId]);
 
   // Stage hiện tại được chọn và vai trò yêu cầu
   const currentStage = useMemo(
@@ -463,9 +476,29 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
     };
 
     try {
-      const created = await assignmentService.createAssignment(chapterId, payload);
+      // Phần nằm trong việc cả chương cùng công đoạn: BE chặn tạo việc chồng phạm vi, phải chuyển giao (lý do riêng hoặc fallback brief)
+      const targetIds =
+        selectedTargetIds.length > 0 ? selectedTargetIds : targetEntityId ? [targetEntityId] : [];
+
+      const created =
+        chapterAssignmentAtStage && canCarveOutFromChapter && targetIds.length > 0
+          ? (
+              await assignmentService.transferAssignmentScope(
+                chapterId,
+                chapterAssignmentAtStage.id,
+                {
+                  targetType: entityType as 'Page' | 'Panel',
+                  targetIds,
+                  newAssigneeUserId: assigneeUserId,
+                  reason: transferReason.trim() || brief.trim(),
+                  brief: brief.trim(),
+                  dueDate: payload.dueDate,
+                },
+              )
+            )[0]
+          : await assignmentService.createAssignment(chapterId, payload);
       onShowToast?.(
-        'Giao việc thành công (UC-05)',
+        'Giao việc thành công',
         `Đã tạo công việc cho công đoạn ${currentStage?.name || 'Pipeline'}.`,
       );
       onSuccess?.(created);
@@ -493,10 +526,14 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
             </div>
             <div>
               <div className='flex items-center gap-2'>
-                <span className='px-2 py-0.5 rounded bg-[#171717] text-white font-mono text-[9px] font-bold'>
-                  UC-05 // TASK ASSIGNMENT
+                <span className='px-2 py-0.5 rounded-full bg-orange-50 text-[#F97316] border border-orange-200/80 font-bold text-[10px]'>
+                  Giao việc mới
                 </span>
-                <span className='text-[10px] text-[#888888] font-mono'>Producer Workflow</span>
+                {chapterNumber && (
+                  <span className='text-[11px] text-zinc-500 font-medium'>
+                    Chương {chapterNumber}
+                  </span>
+                )}
               </div>
               <h2 className='text-base font-bold text-[#171717] mt-0.5'>
                 Giao Việc Mới {chapterNumber ? `– Chương ${chapterNumber}` : ''}
@@ -727,14 +764,82 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                   </div>
                 )}
 
-                {isChapterAssignedAtStage && canCarveOutFromChapter && (entityType === 'Page' || entityType === 'Panel') && (
-                  <div className='p-2.5 bg-blue-50 border border-blue-200 rounded-lg text-blue-900 text-xs flex items-center gap-2'>
-                    <Sparkles className='w-4 h-4 text-blue-600 shrink-0' />
-                    <span>
-                      <strong>Tách trang/khung:</strong> Việc này được tách từ việc cả chương của công đoạn. Sau khi tạo, phạm vi việc cả chương sẽ tự động thu hẹp lại (trừ phần đã tách).
-                    </span>
-                  </div>
-                )}
+                {isChapterAssignedAtStage &&
+                  canCarveOutFromChapter &&
+                  (entityType === 'Page' || entityType === 'Panel') && (
+                    <div className='p-3 bg-blue-50 border border-blue-200 rounded-lg text-blue-900 text-xs space-y-2.5'>
+                      <div className='flex items-center gap-2'>
+                        <Sparkles className='w-4 h-4 text-blue-600 shrink-0' />
+                        <span>
+                          <strong>Chuyển giao trang/khung:</strong> Phần này đang thuộc việc cả
+                          chương của công đoạn. Chọn nhiều trang/khung và nhập lý do riêng để chuyển
+                          giao sang người mới.
+                        </span>
+                      </div>
+
+                      {/* Chọn nhiều trang cùng lúc khi chuyển giao Page */}
+                      {entityType === 'Page' && pages.length > 0 && (
+                        <div className='space-y-1' data-testid='transfer-multi-pages'>
+                          <span className='text-[11px] font-semibold text-blue-950 flex items-center justify-between'>
+                            <span>Chọn các trang chuyển giao:</span>
+                            <span className='text-[10px] text-blue-800 font-normal'>
+                              Đã chọn {selectedTargetIds.length} trang
+                            </span>
+                          </span>
+                          <div className='max-h-32 overflow-y-auto border border-blue-200 rounded-md p-1.5 bg-white space-y-1'>
+                            {pages.map((p) => {
+                              const isChecked = selectedTargetIds.includes(p.id);
+                              return (
+                                <label
+                                  key={p.id}
+                                  className='flex items-center gap-2 px-1.5 py-1 text-xs hover:bg-blue-50/50 rounded cursor-pointer'
+                                >
+                                  <input
+                                    type='checkbox'
+                                    aria-label={`Chọn trang ${p.pageNumber}`}
+                                    checked={isChecked}
+                                    onChange={(e) => {
+                                      if (e.target.checked) {
+                                        setSelectedTargetIds((prev) => [...prev, p.id]);
+                                        setSelectedPageId(p.id);
+                                      } else {
+                                        setSelectedTargetIds((prev) =>
+                                          prev.filter((id) => id !== p.id),
+                                        );
+                                      }
+                                    }}
+                                    className='rounded border-blue-300 text-[#F97316]'
+                                  />
+                                  <span className='font-mono font-medium'>
+                                    Trang {p.pageNumber}
+                                  </span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Ô nhập lý do chuyển giao riêng */}
+                      <div>
+                        <label
+                          htmlFor='assignment-transfer-reason'
+                          className='block font-semibold text-blue-950 mb-1 text-[11px]'
+                        >
+                          Lý do chuyển giao (riêng biệt) *
+                        </label>
+                        <input
+                          id='assignment-transfer-reason'
+                          aria-label='Lý do chuyển giao'
+                          type='text'
+                          value={transferReason}
+                          onChange={(e) => setTransferReason(e.target.value)}
+                          placeholder='Nhập lý do chuyển giao cho người nhận mới...'
+                          className='w-full px-3 py-1.5 bg-white border border-blue-300 rounded-md text-xs font-medium focus:outline-none focus:border-[#F97316]'
+                        />
+                      </div>
+                    </div>
+                  )}
               </div>
 
               {/* Pipeline Stage & Assignee with Role Filter */}
@@ -825,8 +930,8 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                   className='block font-semibold text-[#171717] mb-1 flex items-center justify-between'
                 >
                   <span>Yêu cầu công việc (Brief) *</span>
-                  <span className='text-[10px] text-[#888888] font-normal'>
-                    Bắt buộc theo BR-19
+                  <span className='text-[10px] text-zinc-400 font-normal'>
+                    Yêu cầu bắt buộc
                   </span>
                 </label>
                 <textarea
@@ -897,28 +1002,64 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                 </div>
               </div>
 
-              {/* Dependency on another assignment (Cần hoàn thành trước · Không bắt buộc) */}
-              <DependencySelector
-                workspaceId={workspaceId}
-                seriesId={seriesId}
-                chapterId={chapterId}
-                chapterNumber={chapterNumber}
-                currentBrief={brief}
-                currentEntityType={entityType}
-                currentPageId={selectedPageId}
-                currentPanelId={selectedPanelId}
-                currentStageId={pipelineStageId}
-                stages={stages}
-                pages={pages}
-                members={members}
-                existingAssignments={existingAssignments}
-                selectedIds={selectedDependsOnIds}
-                onChange={(newIds) => {
-                  setSelectedDependsOnIds(newIds);
-                  setDependsOnAssignmentId(newIds[0] || '');
-                }}
-                backendError={isDependencyError ? error : null}
-              />
+              {/* Dependency on another assignment (Cần hoàn thành trước · Thu gọn dạng Accordion) */}
+              <div className='border border-[#E7E7E7] rounded-xl overflow-hidden bg-[#FAF8F5] transition-all'>
+                <button
+                  type='button'
+                  onClick={() => setShowDependencies((prev) => !prev)}
+                  className='w-full px-3.5 py-2.5 flex items-center justify-between text-left hover:bg-[#F2EFE9] transition-colors cursor-pointer'
+                >
+                  <div className='flex items-center gap-2'>
+                    <Network className='w-4 h-4 text-[#F97316]' />
+                    <span className='font-semibold text-[#171717] text-xs'>
+                      Điều kiện tiên quyết / Phụ thuộc (Dependencies)
+                    </span>
+                    {selectedDependsOnIds.length > 0 ? (
+                      <span className='px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-orange-100 text-[#F97316]'>
+                        {selectedDependsOnIds.length} đã chọn
+                      </span>
+                    ) : (
+                      <span className='text-[10px] text-zinc-400 font-normal'>
+                        (Tùy chọn)
+                      </span>
+                    )}
+                  </div>
+                  <div className='flex items-center gap-1.5 text-zinc-400 text-xs'>
+                    <span className='text-[11px]'>{showDependencies || isDependencyError ? 'Thu gọn' : 'Thiết lập'}</span>
+                    {showDependencies || isDependencyError ? (
+                      <ChevronUp className='w-3.5 h-3.5' />
+                    ) : (
+                      <ChevronDown className='w-3.5 h-3.5' />
+                    )}
+                  </div>
+                </button>
+
+                {(showDependencies || isDependencyError || selectedDependsOnIds.length > 0) && (
+                  <div className='p-3.5 pt-1 border-t border-[#EAE6DF] bg-white'>
+                    <DependencySelector
+                      workspaceId={workspaceId}
+                      seriesId={seriesId}
+                      chapterId={chapterId}
+                      chapterNumber={chapterNumber}
+                      currentBrief={brief}
+                      currentEntityType={entityType}
+                      currentPageId={selectedPageId}
+                      currentPanelId={selectedPanelId}
+                      currentStageId={pipelineStageId}
+                      stages={stages}
+                      pages={pages}
+                      members={members}
+                      existingAssignments={existingAssignments}
+                      selectedIds={selectedDependsOnIds}
+                      onChange={(newIds) => {
+                        setSelectedDependsOnIds(newIds);
+                        setDependsOnAssignmentId(newIds[0] || '');
+                      }}
+                      backendError={isDependencyError ? error : null}
+                    />
+                  </div>
+                )}
+              </div>
             </>
           )}
         </form>

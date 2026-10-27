@@ -11,6 +11,7 @@ vi.mock('@/services/series.service', () => ({
   seriesService: {
     getSeriesProgress: vi.fn(),
     getSeriesById: vi.fn(),
+    getSeriesMembers: vi.fn().mockResolvedValue([]),
   },
 }));
 
@@ -18,6 +19,16 @@ vi.mock('@/services/notification.service', () => ({
   notificationService: {
     sendReminders: vi.fn().mockResolvedValue({ created: 2 }),
   },
+}));
+
+vi.mock('../modals/SeriesMembersModal', () => ({
+  SeriesMembersModal: ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) =>
+    isOpen ? (
+      <div data-testid='series-members-modal'>
+        <span>SeriesMembersModal Mock</span>
+        <button onClick={onClose}>Đóng modal</button>
+      </div>
+    ) : null,
 }));
 
 vi.mock('../modals/SeriesChaptersModal', () => ({
@@ -151,6 +162,7 @@ const mockDetail: SeriesDetailDto = {
 describe('DashboardView Component (UC-16 Progress Dashboard)', () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    vi.mocked(seriesService.getSeriesMembers).mockResolvedValue([]);
   });
 
   const renderDashboard = (seriesId = 'series-demo-1') =>
@@ -319,5 +331,43 @@ describe('DashboardView Component (UC-16 Progress Dashboard)', () => {
     expect(sendReminderBtn).toBeInTheDocument();
     fireEvent.click(sendReminderBtn);
     expect(notificationService.sendReminders).toHaveBeenCalled();
+  });
+
+  it('chuyển đổi mượt mà giữa các tab quản lý trong Project Overview', async () => {
+    vi.mocked(seriesService.getSeriesProgress).mockResolvedValueOnce(mockProgress);
+    vi.mocked(seriesService.getSeriesById).mockResolvedValueOnce(mockDetail);
+
+    renderDashboard();
+
+    await waitFor(() => {
+      expect(screen.getByText(/Chương 1: Neon Awakening/i)).toBeInTheDocument();
+    });
+
+    // Mặc định hiển thị đầy đủ
+    expect(screen.getByText('Tổng quan toàn diện')).toBeInTheDocument();
+    expect(screen.getByText('Công việc còn lại theo thời gian')).toBeInTheDocument();
+    expect(screen.getByText('Artist')).toBeInTheDocument();
+
+    // Chuyển sang tab "Chương & Công đoạn" -> ẩn Burndown và Workload
+    fireEvent.click(screen.getByText('Chương & Công đoạn'));
+    expect(screen.getByText(/Chương 1: Neon Awakening/i)).toBeInTheDocument();
+    expect(screen.queryByText('Công việc còn lại theo thời gian')).not.toBeInTheDocument();
+    expect(screen.queryByText('Artist')).not.toBeInTheDocument();
+
+    // Chuyển sang tab "Đội ngũ & Phân công" -> hiện Workload, ẩn Chương
+    fireEvent.click(screen.getByText('Đội ngũ & Phân công'));
+    expect(screen.getByText('Artist')).toBeInTheDocument();
+    expect(screen.queryByText(/Chương 1: Neon Awakening/i)).not.toBeInTheDocument();
+
+    // Chuyển sang tab "Báo cáo Burndown" -> hiện Burndown, ẩn Workload
+    fireEvent.click(screen.getByText('Báo cáo Burndown'));
+    expect(screen.getByText('Công việc còn lại theo thời gian')).toBeInTheDocument();
+    expect(screen.queryByText('Artist')).not.toBeInTheDocument();
+
+    // Quay lại "Tổng quan toàn diện" -> hiển thị lại tất cả
+    fireEvent.click(screen.getByText('Tổng quan toàn diện'));
+    expect(screen.getByText(/Chương 1: Neon Awakening/i)).toBeInTheDocument();
+    expect(screen.getByText('Công việc còn lại theo thời gian')).toBeInTheDocument();
+    expect(screen.getByText('Artist')).toBeInTheDocument();
   });
 });

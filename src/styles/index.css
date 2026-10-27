@@ -2,10 +2,10 @@
 @import './tokens/index.css';
 
 @theme {
-  --font-serif: 'Playfair Display', 'Merriweather', Georgia, serif;
-  --font-sans: 'Plus Jakarta Sans', 'Inter', 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
-  --font-display: 'Playfair Display', 'Merriweather', Georgia, serif;
-  --font-heading: 'Playfair Display', 'Merriweather', Georgia, serif;
+  --font-serif: 'Playfair Display', 'Lora', 'Be Vietnam Pro', Georgia, serif;
+  --font-sans: 'Be Vietnam Pro', 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
+  --font-display: 'Playfair Display', 'Lora', 'Be Vietnam Pro', Georgia, serif;
+  --font-heading: 'Be Vietnam Pro', 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
   --font-comic: 'Patrick Hand SC', 'Patrick Hand', 'Be Vietnam Pro', cursive, sans-serif;
   --font-handwriting: 'Patrick Hand', 'Be Vietnam Pro', cursive, sans-serif;
@@ -177,13 +177,13 @@ html {
 }
 
 body {
-  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-family: 'Be Vietnam Pro', 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
   background: #faf8f5;
   color: #171717;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  /* Playfair defaults to old-style figures; force lining so numbers read correctly */
+  /* Force lining so numbers read consistently */
   font-variant-numeric: lining-nums;
 }
 
@@ -199,13 +199,10 @@ body {
     font-feature-settings: 'lnum' 1;
   }
 
-  h1,
-  h2,
-  h3,
-  h4,
-  .font-heading,
-  .font-display {
-    font-family: 'Playfair Display', Georgia, serif;
+  /* Decorative editorial font specifically for elements marked with font-display or font-serif */
+  .font-display,
+  .font-serif {
+    font-family: 'Playfair Display', 'Lora', 'Be Vietnam Pro', Georgia, serif;
   }
 }
 

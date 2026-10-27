@@ -1,0 +1,78 @@
+{
+  "modal": {
+    "title": "Series Production Team",
+    "seriesSubtitle": "Series: {seriesTitle}",
+    "membersBadge": "{count} members"
+  },
+  "candidatePool": {
+    "title": "Available Workspace Talent",
+    "subtitle": "Select role and assign directly to Series",
+    "countBadge": "{count} available",
+    "searchPlaceholder": "Search by name, email, role...",
+    "addBtn": "Add to Series",
+    "emptySearch": "No matching talent found",
+    "emptySearchDesc": "Try searching with a different keyword or email.",
+    "emptyAllAssigned": "All Workspace members have been assigned to this Series.",
+    "emptyAllAssignedDesc": "Invite more members to the Workspace Studio to expand your team."
+  },
+  "seriesRoster": {
+    "title": "Series Team Members",
+    "subtitle": "Currently assigned to production and permissions",
+    "countBadge": "{count} members",
+    "searchPlaceholder": "Search by name, email, role...",
+    "allRoles": "All Roles",
+    "producerAdminTag": "Admin",
+    "producerLockTooltip": "Cannot remove Producer",
+    "changeRoleTooltip": "Change role",
+    "removeMemberTooltip": "Remove from Series",
+    "saveRole": "Save",
+    "cancelRole": "Cancel",
+    "emptySearch": "No members match your search",
+    "emptySearchDesc": "Try adjusting your search filters.",
+    "emptyRoster": "No members in this Series yet.",
+    "emptyRosterDesc": "Select a role and click \"+ Add to Series\" from the list on the left."
+  },
+  "alerts": {
+    "addSuccessTitle": "Member added successfully",
+    "addSuccessMsg": "Assigned \"{name}\" to Series team with role {role}.",
+    "addErrorTitle": "Failed to add member",
+    "updateRoleSuccessTitle": "Role updated successfully",
+    "updateRoleSuccessMsg": "Updated role of \"{name}\" to {role}.",
+    "updateRoleErrorTitle": "Failed to update role",
+    "removeSuccessTitle": "Removed from Series",
+    "removeSuccessMsg": "\"{name}\" has been returned to the available talent pool.",
+    "removeErrorTitle": "Action failed",
+    "cannotRemoveProducerTitle": "Cannot remove member",
+    "cannotRemoveProducerMsg": "Producer and Owner are default Series administrators."
+  },
+  "confirms": {
+    "removeMemberTitle": "Remove from Series?",
+    "removeMemberDesc": "Are you sure you want to remove \"{name}\" from \"{seriesTitle}\"? They will return to the Workspace talent pool.",
+    "confirmRemoveBtn": "Remove",
+    "cancelBtn": "Keep"
+  },
+  "footer": {
+    "status": "Assigned: {seriesCount} • Available: {availableCount}",
+    "close": "Close"
+  },
+  "roles": {
+    "writer": "Writer",
+    "artist": "Artist",
+    "storyboarder": "Storyboarder",
+    "lineArtist": "Line Artist",
+    "colorist": "Colorist",
+    "letterer": "Letterer",
+    "editor": "Editor",
+    "producer": "Producer",
+    "publisher": "Publisher"
+  },
+  "view": {
+    "selectProjectTitle": "Select Series",
+    "selectProjectDesc": "Choose a series below to view and manage the production team",
+    "projectMembersTitle": "Production Team",
+    "manageRosterBtn": "Manage Series Team",
+    "searchMembers": "Search members...",
+    "noMembers": "No members in this series yet.",
+    "backToProjects": "Back to Series list"
+  }
+}

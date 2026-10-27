@@ -303,8 +303,117 @@
   outline-offset: 1px;
 }
 
+/* Lucian Series Members Modal Extensions */
+.u285-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  background: rgba(23, 23, 23, 0.65);
+  backdrop-filter: blur(6px);
+  animation: u285-fade-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.u285-modal-card {
+  width: 100%;
+  max-width: min(1140px, 94vw);
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  background: #FCFBF8;
+  border: 1px solid #E7E7E7;
+  border-radius: 20px;
+  box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.24), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+  color: #171717;
+  animation: u285-zoom-in 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.u285-select-native {
+  width: 100%;
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--u285-border);
+  border-radius: 10px;
+  background: #FFFFFF;
+  color: var(--u285-ink);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  outline: none;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.u285-select-native:focus {
+  border-color: var(--u285-accent);
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.15);
+}
+
+.u285-role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  border: 1px solid transparent;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.u285-role-badge.writer {
+  background: #ECFDF5;
+  color: #047857;
+  border-color: #A7F3D0;
+}
+
+.u285-role-badge.artist {
+  background: #EFF6FF;
+  color: #1D4ED8;
+  border-color: #BFDBFE;
+}
+
+.u285-role-badge.letterer {
+  background: #FDF2F8;
+  color: #BE185D;
+  border-color: #FBCFE8;
+}
+
+.u285-role-badge.editor {
+  background: #FEF3C7;
+  color: #B45309;
+  border-color: #FDE68A;
+}
+
+.u285-role-badge.publisher {
+  background: #F5F3FF;
+  color: #6D28D9;
+  border-color: #DDD6FE;
+}
+
+.u285-role-badge.producer {
+  background: #FFFBEB;
+  color: #D97706;
+  border-color: #FDE68A;
+}
+
+@keyframes u285-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes u285-zoom-in {
+  from { opacity: 0; transform: scale(0.97) translateY(4px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .u285-it, .u285-av::before { transition: none; }
+  .u285-it, .u285-av::before, .u285-modal-overlay, .u285-modal-card { transition: none; animation: none; }
   .u285-st.pd, .u285-st.ok, .u285-rb.is-fl { animation: none; }
 }
 

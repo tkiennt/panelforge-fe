@@ -498,6 +498,10 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
    * BR-12: 409 `CHAPTER_READ_ONLY` = chương đã Approved/Published, KHÔNG phải xung đột phiên bản.
    */
   const showMutationError = (title: string, err: any, fallback?: string) => {
+    if (err?.code === 'FORBIDDEN' || err?.status === 403 || err?.response?.status === 403) {
+      showToast('Không có quyền thao tác', 'Phần này thuộc việc của người khác / đang chờ duyệt');
+      return;
+    }
     if (err?.code === 'CHAPTER_READ_ONLY') {
       showToast(
         'Chương chỉ đọc',
@@ -510,6 +514,10 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
 
   /** Xoá Page/Panel bị BE chặn (409 CONFLICT) vì còn Assignment đang giao: giữ nguyên trên giao diện. */
   const showDeleteError = (title: string, err: any) => {
+    if (err?.code === 'FORBIDDEN' || err?.status === 403 || err?.response?.status === 403) {
+      showToast('Không có quyền thao tác', 'Phần này thuộc việc của người khác / đang chờ duyệt');
+      return;
+    }
     if (err?.code === 'CONFLICT' || (err?.status === 409 && err?.code !== 'CHAPTER_READ_ONLY')) {
       showToast(
         title,

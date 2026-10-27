@@ -27,6 +27,7 @@ vi.mock('@/services/assignment.service', () => ({
     verifyChangeRequest: vi.fn(),
     reopenChangeRequest: vi.fn(),
     rejectChangeRequest: vi.fn(),
+    resolveImpactReview: vi.fn(),
   },
 }));
 
@@ -117,6 +118,7 @@ interface Setup {
   assignment?: AssignmentDto;
   userId?: string;
   role?: string;
+  workspaceRole?: string;
   crs?: ChangeRequestDto[];
   artworks?: AssetReferenceDto[];
   submissions?: SubmissionDto[];
@@ -137,7 +139,7 @@ const renderCard = (s: Setup = {}) => {
       stageName='2. Pencil'
       assigneeName='An'
       userId={s.userId ?? 'artist-1'}
-      workspaceRole={s.role ?? 'ARTIST'}
+      workspaceRole={s.workspaceRole ?? s.role ?? 'ARTIST'}
       stageProgress={s.progress ?? []}
       onChanged={onChanged}
       onToast={onToast}
@@ -653,6 +655,82 @@ describe('AssignmentWorkCard: vùng khoanh trên artwork cho Artist', () => {
     // ArtworkPanel nạp link và hiển thị box
     await waitFor(() => {
       expect(screen.getByTestId('cr-box-cr-click')).toBeInTheDocument();
+    });
+  });
+});
+
+describe('AssignmentWorkCard: cờ kiểm tra ảnh hưởng (impactReviewReason)', () => {
+  it('hiển thị badge, banner và khoá nút nộp khi có impactReviewReason', async () => {
+    renderCard({
+      assignment: assignment({
+        status: 'InProgress',
+        impactReviewReason: 'Kịch bản Scene 1 đã được biên tập lại',
+      }),
+      artworks: [artwork({ id: 'art-1', versionNumber: 1 })],
+    });
+
+    expect(await screen.findByTestId('impact-review-badge')).toHaveTextContent(
+      'Cần kiểm tra ảnh hưởng',
+    );
+    expect(screen.getByTestId('impact-review-banner')).toHaveTextContent(
+      'Kịch bản Scene 1 đã được biên tập lại',
+    );
+
+    const submitBtn = screen.getByRole('button', { name: /Nộp bài/i });
+    expect(submitBtn).toBeDisabled();
+    expect(screen.getByTestId('submit-blocked-reason')).toHaveTextContent(
+      'Công việc cần kiểm tra ảnh hưởng: Kịch bản Scene 1 đã được biên tập lại',
+    );
+  });
+
+  it('ẩn nút Giữ kết quả / Yêu cầu làm lại với chính người nhận', async () => {
+    renderCard({
+      userId: 'artist-1',
+      workspaceRole: 'ARTIST',
+      assignment: assignment({
+        assigneeUserId: 'artist-1',
+        status: 'InProgress',
+        impactReviewReason: 'Kịch bản thay đổi',
+      }),
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('impact-review-reviewer-actions')).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /Giữ kết quả/i })).not.toBeInTheDocument();
+    });
+  });
+
+  it('Editor/Producer thấy nút Giữ kết quả, nhập lý do và gọi resolveImpactReview', async () => {
+    vi.mocked(assignmentService.resolveImpactReview).mockResolvedValueOnce({
+      ...assignment(),
+      impactReviewReason: null,
+    });
+
+    renderCard({
+      userId: 'editor-1',
+      workspaceRole: 'EDITOR',
+      assignment: assignment({
+        assigneeUserId: 'artist-1',
+        status: 'InProgress',
+        impactReviewReason: 'Kịch bản thay đổi',
+      }),
+    });
+
+    const keepBtn = await screen.findByRole('button', { name: /Giữ kết quả/i });
+    expect(keepBtn).toBeInTheDocument();
+
+    await userEvent.click(keepBtn);
+    const reasonInput = screen.getByLabelText(/Lý do xử lý ảnh hưởng/i);
+    await userEvent.type(reasonInput, 'Đã kiểm tra, kết quả hiện tại vẫn khớp');
+
+    const confirmBtn = screen.getByRole('button', { name: /Xác nhận/i });
+    await userEvent.click(confirmBtn);
+
+    await waitFor(() => {
+      expect(assignmentService.resolveImpactReview).toHaveBeenCalledWith('c1', 'a1', {
+        decision: 'Keep',
+        reason: 'Đã kiểm tra, kết quả hiện tại vẫn khớp',
+      });
     });
   });
 });
