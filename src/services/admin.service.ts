@@ -71,7 +71,9 @@ export interface AuditLogDto {
   details?: string | null;
   changesJson?: string | null;
   ipAddress?: string | null;
-  createdAt: string;
+  /** BE trả timestampUtc; createdAt giữ cho tương thích. */
+  timestampUtc?: string;
+  createdAt?: string;
 }
 
 export interface AuditLogsPagedResponse {
@@ -170,6 +172,61 @@ export interface AiUsageRecordsPagedResponse {
   page: number;
   pageSize: number;
   items: AiUsageRecordDto[];
+}
+
+export interface WorkspaceSessionPolicyDto {
+  workspaceId: string;
+  sessionLifetimeMinutes: number | null;
+  idleTimeoutMinutes: number | null;
+  maxConcurrentSessions: number | null;
+}
+
+export interface UpdateWorkspaceSessionPolicyRequest {
+  sessionLifetimeMinutes?: number | null;
+  idleTimeoutMinutes?: number | null;
+  maxConcurrentSessions?: number | null;
+}
+
+export interface WorkspaceAiConfigDto {
+  id: string;
+  workspaceId: string;
+  provider: string;
+  hasApiKey: boolean;
+  isEnabled: boolean;
+  monthlyTokenQuota: number;
+  usedTokensCurrentMonth: number;
+  allowedModels: string[];
+  lastResetAt?: string | null;
+  createdAt: string;
+  updatedAt?: string | null;
+  monthlyImageQuota: number;
+  usedImagesCurrentMonth: number;
+}
+
+export interface UpdateWorkspaceAiConfigRequest {
+  provider: string;
+  apiKey?: string;
+  isEnabled: boolean;
+  monthlyTokenQuota: number;
+  allowedModels: string[];
+  monthlyImageQuota?: number;
+}
+
+export interface AdminWorkspaceDto {
+  id: string;
+  name: string;
+  ownerId: string;
+  ownerName: string;
+  ownerEmail: string;
+  storageQuotaBytes: number;
+  usedStorageBytes: number;
+  memberCount: number;
+  seriesCount: number;
+  createdAt: string;
+}
+
+export interface UpdateWorkspaceQuotaRequest {
+  storageQuotaBytes: number;
 }
 
 function extractError(error: any, defaultMsg: string): string {
@@ -378,7 +435,7 @@ export const adminService = {
     }
   },
 
-  getWorkspaceAiConfig: async (workspaceId: string): Promise<any> => {
+  getWorkspaceAiConfig: async (workspaceId: string): Promise<WorkspaceAiConfigDto> => {
     try {
       const response = await axiosClient.get(`/Admin/workspaces/${workspaceId}/ai-config`);
       return response.data;
@@ -389,19 +446,72 @@ export const adminService = {
 
   updateWorkspaceAiConfig: async (
     workspaceId: string,
-    data: {
-      provider: string;
-      apiKey?: string;
-      isEnabled: boolean;
-      monthlyTokenQuota: number;
-      allowedModels: string[];
-    },
-  ): Promise<any> => {
+    data: UpdateWorkspaceAiConfigRequest,
+  ): Promise<WorkspaceAiConfigDto> => {
     try {
       const response = await axiosClient.put(`/Admin/workspaces/${workspaceId}/ai-config`, data);
       return response.data;
     } catch (error) {
       throw new Error(extractError(error, 'Không thể lưu cấu hình AI của Workspace.'));
+    }
+  },
+
+  getWorkspaceSessionPolicy: async (workspaceId: string): Promise<WorkspaceSessionPolicyDto> => {
+    try {
+      const response = await axiosClient.get(`/Admin/workspaces/${workspaceId}/session-policy`);
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        extractError(error, 'Không thể tải chính sách phiên làm việc của Workspace.'),
+      );
+    }
+  },
+
+  updateWorkspaceSessionPolicy: async (
+    workspaceId: string,
+    data: UpdateWorkspaceSessionPolicyRequest,
+  ): Promise<WorkspaceSessionPolicyDto> => {
+    try {
+      // Đảm bảo luôn gửi đủ 3 field (null nếu không đặt giới hạn) vì PUT thay thế toàn bộ policy
+      const payload: UpdateWorkspaceSessionPolicyRequest = {
+        sessionLifetimeMinutes: data.sessionLifetimeMinutes ?? null,
+        idleTimeoutMinutes: data.idleTimeoutMinutes ?? null,
+        maxConcurrentSessions: data.maxConcurrentSessions ?? null,
+      };
+      const response = await axiosClient.put(
+        `/Admin/workspaces/${workspaceId}/session-policy`,
+        payload,
+      );
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        extractError(error, 'Không thể cập nhật chính sách phiên làm việc của Workspace.'),
+      );
+    }
+  },
+
+  getWorkspaces: async (): Promise<AdminWorkspaceDto[]> => {
+    try {
+      const response = await axiosClient.get('/Admin/workspaces');
+      return response.data;
+    } catch (error) {
+      throw new Error(extractError(error, 'Không thể tải danh sách Studio Workspace.'));
+    }
+  },
+
+  updateWorkspaceQuota: async (
+    workspaceId: string,
+    storageQuotaBytes: number,
+  ): Promise<AdminWorkspaceDto> => {
+    try {
+      const response = await axiosClient.put(`/Admin/workspaces/${workspaceId}/quota`, {
+        storageQuotaBytes,
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        extractError(error, 'Không thể cập nhật hạn mức lưu trữ (Quota) của Workspace.'),
+      );
     }
   },
 };

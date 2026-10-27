@@ -1,0 +1,73 @@
+{
+  "roles": {
+    "producer": "Producer",
+    "writer": "Writer",
+    "artist": "Artist",
+    "letterer": "Letterer",
+    "editor": "Editor",
+    "publisher": "Publisher",
+    "admin": "Admin",
+    "reader": "Reader"
+  },
+  "sections": {
+    "workspace": "WORKSPACE",
+    "desk": "WORKSPACE DESK",
+    "seriesManagement": "SERIES MANAGEMENT",
+    "publishing": "PUBLISHING",
+    "systemAdmin": "SYSTEM ADMIN",
+    "studioManagement": "STUDIO MANAGEMENT",
+    "publisherDesk": "PUBLISHER DESK"
+  },
+  "menu": {
+    "dashboard": "Dashboard",
+    "seriesDashboard": "Series Dashboard",
+    "systemDashboard": "System Dashboard",
+    "myWork": "My Work",
+    "workAndReview": "Work & Review",
+    "production": "Production Workflow",
+    "script": "Script",
+    "desk": "Drawing & Layout",
+    "lettering": "Lettering & Balloons",
+    "review": "Review",
+    "bible": "Series Bible",
+    "publishingGate": "Publishing Gate",
+    "usersAndRoles": "Users & Roles",
+    "aiQuota": "AI Provider & Quota",
+    "auditLog": "Global Audit Log",
+    "releaseCalendar": "Release Calendar",
+    "provenance": "Provenance / Restore",
+    "studioWorkspaces": "Studio Workspaces",
+    "seriesList": "Series List",
+    "publicCatalog": "Public Catalog",
+    "settings": "Studio Settings",
+    "switchStudio": "Switch Studio",
+    "profile": "Profile",
+    "changePassword": "Change Password",
+    "twoFactor": "Two-Factor Auth (2FA)",
+    "switchWorkspace": "Switch Workspace",
+    "logout": "Log Out"
+  },
+  "header": {
+    "searchPlaceholder": "Search frames, dialogues, assets...",
+    "workspaces": "Workspaces",
+    "menuTitle": "Navigation Menu",
+    "chapter": "Chapter"
+  },
+  "breadcrumbs": {
+    "studios": "Studio",
+    "series": "Series",
+    "chapters": "Chapter",
+    "pages": "Page"
+  },
+  "sidebar": {
+    "collapse": "Collapse navigation",
+    "expand": "Expand navigation",
+    "appearance": "Sidebar appearance",
+    "themes": {
+      "paper": "Light paper",
+      "ink": "Dark ink",
+      "ocean": "Night sea",
+      "plum": "Manuscript plum"
+    }
+  }
+}

@@ -1,0 +1,302 @@
+/* Lucian UX/UI Prompt #040 · Collapsible navigation rail · (c) 2026 Seokwoo Lee · MIT License */
+/* Adapted for PanelForge Editorial AI Studio Design System */
+
+.u040-container {
+  --rw: 72px;
+  position: relative;
+  display: flex;
+  height: 100%;
+  font-family: var(--font-sans, system-ui, sans-serif);
+}
+
+.u040-container.is-wide {
+  --rw: 220px;
+}
+
+.u040-rail {
+  position: relative;
+  flex: none;
+  background: #1C1917;
+  color: #FCFBF8;
+  border-right: 1px solid #292524;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: width 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+}
+
+.u040-container .u040-rail {
+  width: var(--rw, 72px);
+  padding: 14px 10px;
+  border-radius: 20px;
+  box-shadow: 0 10px 25px -5px rgba(28, 25, 23, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.u040-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 44px;
+  margin-bottom: 16px;
+  position: relative;
+}
+
+.u040-logo {
+  width: 36px;
+  height: 36px;
+  flex: none;
+  margin-left: 8px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #F97316 0%, #EA580C 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #FFFFFF;
+  font-weight: 800;
+  font-size: 15px;
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.35);
+}
+
+.u040-name {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  color: #FCFBF8;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.u040-container.is-wide .u040-name {
+  opacity: 1;
+  transition: opacity 0.3s ease 0.12s;
+}
+
+.u040-tog {
+  position: absolute;
+  right: 0;
+  top: 16px;
+  width: 28px;
+  height: 32px;
+  border: 0;
+  padding: 0;
+  border-radius: 8px 0 0 8px;
+  background: rgba(252, 251, 248, 0.12);
+  color: #FCFBF8;
+  display: grid;
+  place-items: center;
+  opacity: 0.85;
+  cursor: pointer;
+  transition: opacity 0.2s ease, background-color 0.15s ease;
+  z-index: 20;
+}
+
+.u040-top .u040-tog {
+  top: 6px;
+  opacity: 0;
+}
+
+.u040-rail:hover .u040-tog,
+.u040-rail.is-wide .u040-tog,
+.u040-tog:focus-visible,
+.u040-container.is-wide .u040-tog {
+  opacity: 1;
+}
+
+.u040-tog:hover {
+  background: rgba(252, 251, 248, 0.22);
+}
+
+.u040-tog:focus-visible {
+  outline: 2px solid #F97316;
+  outline-offset: -2px;
+}
+
+.u040-tog svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.u040-rail.is-wide .u040-tog svg,
+.u040-container.is-wide .u040-tog svg {
+  transform: rotate(180deg);
+}
+
+.u040-nav {
+  position: relative;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.u040-hl {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(252, 251, 248, 0.12);
+  transform: translateY(var(--y, 0));
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+}
+
+.u040-hl::before {
+  content: "";
+  position: absolute;
+  left: -10px;
+  top: 10px;
+  bottom: 10px;
+  width: 4px;
+  border-radius: 0 4px 4px 0;
+  background: linear-gradient(135deg, #F97316, #EA580C);
+}
+
+.u040-it {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  height: 44px;
+  padding: 0 0 0 14px;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  color: inherit;
+  opacity: 0.65;
+  text-align: left;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.u040-it:hover,
+.u040-it[aria-current="page"] {
+  opacity: 1;
+}
+
+.u040-it:focus-visible {
+  outline: 2px solid #F97316;
+  outline-offset: -2px;
+}
+
+.u040-it svg {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.u040-it span {
+  font-size: 13.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateX(-8px);
+  transition: opacity 0.2s ease, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.u040-container.is-wide .u040-it span {
+  opacity: 1;
+  transform: none;
+  transition: opacity 0.25s ease, transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  transition-delay: calc(0.08s + var(--i) * 30ms);
+}
+
+.u040-bd {
+  position: absolute;
+  left: 32px;
+  top: 6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 9px;
+  background: #F97316;
+  color: #FFFFFF;
+  font-size: 10px;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+  font-style: normal;
+  box-shadow: 0 0 0 2px var(--ux-ink, #1C1917);
+  transition: left 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.u040-container.is-wide .u040-bd {
+  left: 175px;
+}
+
+.u040-me {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 48px;
+  padding: 0 0 0 8px;
+  border-radius: 12px;
+  background: rgba(252, 251, 248, 0.08);
+  margin-top: 10px;
+  overflow: hidden;
+}
+
+.u040-me-avatar {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #FFD3A8, #F97316 60%, #C2410C);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #FFFFFF;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.u040-me-info {
+  font-size: 12.5px;
+  font-weight: 650;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  min-width: 0;
+}
+
+.u040-me-info small {
+  display: block;
+  font-size: 11px;
+  opacity: 0.6;
+  font-weight: 400;
+}
+
+.u040-container.is-wide .u040-me-info {
+  opacity: 1;
+  transition-delay: 0.15s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .u040-rail,
+  .u040-hl,
+  .u040-tog svg,
+  .u040-it span,
+  .u040-bd {
+    transition: none !important;
+  }
+}

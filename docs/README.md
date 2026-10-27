@@ -1,60 +1,78 @@
-# PanelForge 🖋️✨
-> *An AI-Assisted Manga & Webtoon Production Management Platform*
+# 📚 PanelForge Technical Documentation Hub (`docs/`)
 
-[![React](https://img.shields.io/badge/React-18.x-blue?style=flat-square&logo=react)](https://react.dev/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind-CSS-3.x-38BDF8?style=flat-square&logo=tailwindcss)](https://tailwindcss.com/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+> Trung tâm lưu trữ và điều hướng toàn bộ tài liệu kỹ thuật, quy chuẩn thiết kế, kiến trúc hệ thống và kế hoạch triển khai của **PanelForge Manga Studio Frontend**.
 
 ---
 
-## 📖 Overview
-**PanelForge** is a modern, collaborative SaaS platform tailored for manga studios, writers, artists, and editors. It bridges the gap between creative storytelling and complex project management, combining an intuitive **Kanban production pipeline**, an **AI-powered script breakdown & continuity engine**, and a centralized **Series Bible (RAG repository)**.
+## 🧭 CÁC TÀI LIỆU CHÍNH (CORE DOCUMENTS)
 
-Designed around a pristine **"Manga Paper × Ink × Tangerine"** artistic editorial aesthetic, PanelForge provides a distraction-free, professional digital workspace for comic creators.
-
----
-
-## 🎨 Design System & Theme
-* **Visual Identity:** Clean, bright editorial light-theme inspired by high-grade manuscript drawing paper and traditional Japanese manga publishing.
-* **Color Palette:**
-  * **Paper & Backgrounds:** Pure White (`#FFFFFF`) & Warm Organic Paper (`#FAF8F5`).
-  * **Ink & Structure:** Crisp Ink Black (`#171717`) for typography, outlines, and borders (`1.5px`).
-  * **Brand Accent:** Tangerine Orange (`#F97316`) for primary creator actions.
-  * **AI Accent:** Refined AI Violet (`#8B5CF6`) for intelligent assistance and vectorization logs.
-* **Typography:**
-  * **Headings & Series Titles:** Serif editorial font (`Playfair Display` / `Cinzel`).
-  * **UI & Body Elements:** Clean geometric sans-serif (`Plus Jakarta Sans` / `Inter`).
-  * **Scripts & Technical Metadata:** Crisp monospace (`JetBrains Mono`).
+| Tài liệu | Mô tả | Trạng thái |
+| :--- | :--- | :--- |
+| [**DOCUMENTATION_PROCESS.md**](./DOCUMENTATION_PROCESS.md) | **Quy trình quản lý tài liệu & Quy tắc Source-Code-Doc-Sync** (Vòng đời kế hoạch `ongoing` → `completed`, ma trận cập nhật code-to-docs). | 🟢 Active |
+| [**DESIGN_RULES.md**](./DESIGN_RULES.md) | **Quy chuẩn thiết kế giao diện Editorial AI Studio**: Bảng token màu, font Inter, pill buttons, atmospheric orbs, spacing và layout. | 🟢 Active |
+| [**PRODUCT.md**](../PRODUCT.md) | **Đặc tả nghiệp vụ sản phẩm**: 5 core flows, phân quyền 9 vai trò, Series Bible RAG, AI Assistant. | 🟢 Active |
+| [**CLAUDE.md**](../CLAUDE.md) | **Chỉ dẫn phát triển**: Coding conventions, scripts kiểm thử và ràng buộc đồng bộ tài liệu. | 🟢 Active |
 
 ---
 
-## 🚀 Core Features & Modules
-1. **Portfolio Content Hub:** Manage multiple manga series/projects with live progress tracking, publication metadata, and a streamlined "Create New Series" setup flow.
-2. **Project Workspace (App Shell):** Persistent navigation and single-page application (SPA) routing across four core modules:
-   * **Dashboard:** Real-time burndown metrics, velocity charts, and append-only SHA-256 provenance audit logs.
-   * **Production Pipeline (Kanban):** Multi-stage workflow board (Script ➔ Thumbnail ➔ Pencil ➔ Ink ➔ Review ➔ Approved) featuring rich page cards with strict deadline tracking and assignee filters.
-   * **Series Bible (RAG Repository):** Categorized lore storage (Characters, Locations, Props, Plot Rules) synced with `pgvector` for real-time AI continuity checking.
-   * **Members & Roles (RBAC):** Role-based permission matrix and team management for Producers, Writers, Artists, and Reviewers.
+## 📋 KẾ HOẠCH TRIỂN KHAI (IMPLEMENTATION PLANS)
+
+Thư mục: [`docs/implement-plan/`](./implement-plan/)
+
+### 🟡 Đang Thực Hiện (`ongoing/`)
+> *Chứa các kế hoạch tính năng hoặc đợt refactor đang trong quá trình phát triển.*
+
+- [**LUCIAN_UXUI_ENHANCEMENT_INTEGRATION_PLAN.md**](./implement-plan/ongoing/LUCIAN_UXUI_ENHANCEMENT_INTEGRATION_PLAN.md): Kế hoạch nghiên cứu, tuyển chọn 20+ elements tiêu biểu từ thư viện Lucian UX/UI Prompt và tích hợp vào PanelForge Manga Studio (Bàn vẽ Artist, Kịch bản Writer, Kiểm duyệt Editor, Điều phối Producer, AI Multi-Agent Studio và Cổng xuất bản Publisher).
+
+### 🟢 Đã Hoàn Thành (`completed/`)
+> *Chứa các kế hoạch đã hoàn thành 100% nhiệm vụ, pass typecheck, lint và unit test.*
+
+- [**SYSTEM_WIDE_I18N_AND_ENGLISH_LOCALIZATION_PLAN.md**](./implement-plan/completed/SYSTEM_WIDE_I18N_AND_ENGLISH_LOCALIZATION_PLAN.md): Kế hoạch mở rộng và bản địa hóa Tiếng Anh toàn diện cho toàn hệ thống – đưa `useTranslation` và từ điển 12 namespaces vào 100% các màn hình giao diện (Views), bàn làm việc theo vai trò (Role Desks), các thành phần dùng chung (Shared Components) và hộp thoại (Modals) bên trong AppShell.
+- [**UI_UX_COPY_STANDARDIZATION_AND_I18N_PLAN.md**](./implement-plan/completed/UI_UX_COPY_STANDARDIZATION_AND_I18N_PLAN.md): Kế hoạch chuẩn hóa văn phong UI/UX, triệt tiêu từ thừa, áp dụng bảng thuật ngữ sáng tác truyện tranh thống nhất và thiết lập hệ thống từ điển song ngữ (i18n) phân tầng (Việt - Anh).
+- [**VISUAL_PANEL_UPLOADER_REFACTOR_PLAN.md**](./implement-plan/completed/VISUAL_PANEL_UPLOADER_REFACTOR_PLAN.md): Kế hoạch triển khai "Bàn Tải & Khớp Nét Panel Trực Quan" (Visual Panel Uploader) trên Bàn Vẽ Artist Desk (CF2) – kéo thả trực tiếp vào ô canvas, giải quyết cảnh báo chặn bắt đầu nhiệm vụ, tái cấu trúc bố cục 3 cột hiện đại và hỗ trợ 2 chế độ tải.
+- [**MY_WORK_UI_COMPREHENSIVE_REFACTOR_PLAN.md**](./implement-plan/completed/MY_WORK_UI_COMPREHENSIVE_REFACTOR_PLAN.md): Kế hoạch tối ưu hóa & refactor toàn diện màn hình "Công việc của tôi" (My Work View) – cân đối kích cỡ chữ, thu gọn tab, compact row cho danh sách Panel Artwork, chuẩn hóa màu sắc trạng thái, tích hợp Series Bible Drawer và hiển thị phiên bản `(v...)`.
+- [**SCRIPT_UI_COMPREHENSIVE_REFACTOR_PLAN.md**](./implement-plan/completed/SCRIPT_UI_COMPREHENSIVE_REFACTOR_PLAN.md): Kế hoạch refactor toàn diện UI trang Script (Kịch bản) trên tất cả các roles – chữ, khoảng cách, độ to, màu sắc, thẻ, canh lề, modal.
+- [**ARTIST_UI_COMPREHENSIVE_REFACTOR_PLAN.md**](./implement-plan/completed/ARTIST_UI_COMPREHENSIVE_REFACTOR_PLAN.md): Kế hoạch refactor toàn diện không gian làm việc của Họa Sĩ (Artist Desk UI) – chữ, khoảng cách, độ to, màu sắc, thẻ, canh lề, modal.
+- [**COLOR_SYSTEM_AND_STATUS_ENHANCEMENT_PLAN.md**](./implement-plan/completed/COLOR_SYSTEM_AND_STATUS_ENHANCEMENT_PLAN.md): Kế hoạch bổ sung & đồng bộ hệ thống màu sắc trạng thái, nút bấm và các yếu tố cần chú ý (Artisan Ink Pigments).
+- [**EDITORIAL_STUDIO_DESIGN_PLAN.md**](./implement-plan/completed/EDITORIAL_STUDIO_DESIGN_PLAN.md): Kế hoạch áp dụng Editorial AI Studio Design System vào PanelForge.
+- [**EDITORIAL_STUDIO_TASK_LIST.md**](./implement-plan/completed/EDITORIAL_STUDIO_TASK_LIST.md): Danh sách kiểm tra chi tiết các màn hình và components đã chuyển đổi sang phong cách Editorial Studio.
+- [**UI_REFACTOR_CHECKLIST.md**](./implement-plan/completed/UI_REFACTOR_CHECKLIST.md): Danh mục tinh giản kiến trúc UI, loại bỏ duplicate role views và dọn dẹp mock data.
 
 ---
 
-## 🛠️ Tech Stack
-* **Frontend Library:** React (Vite / Next.js architecture)
-* **Styling:** Tailwind CSS
-* **Icons:** Lucide React
-* **State Management:** React Hooks (`useState` SPA navigation)
+## 🔍 KIỂM ĐỊNH CHẤT LƯỢNG (AUDIT & QUALITY)
+
+- [**UI_SCREEN_AUDIT.md**](./audit/UI_SCREEN_AUDIT.md): Báo cáo rà soát hiện trạng 100% các màn hình giao diện (Auth, Workspace, Production Pipeline, Series Bible, AI Tools, Role Desks).
 
 ---
 
-## 📂 Project Structure
-```text
-panel-forge/
-├── public/                 # Static assets & cover art placeholders
-├── src/
-│   ├── components/         # Reusable UI components (Modals, Cards, App Shell)
-│   ├── views/              # Core screen modules (Content Hub, Kanban, Bible, Dashboard)
-│   ├── styles/             # Tailwind configuration & global typography
-│   └── App.jsx             # Main SPA router & state controller
-├── DESIGN.md               # Complete design system & UI guidelines
-├── package.json
-└── README.md
+## 📦 LƯU TRỮ LỊCH SỬ (ARCHIVE)
+
+Thư mục: [`docs/archive/reviews/`](./archive/reviews/)
+- [**2FA_AUTHENTICATION_REVIEW.md**](./archive/reviews/2FA_AUTHENTICATION_REVIEW.md): Báo cáo nghiệm thu tính năng xác thực 2 yếu tố (TOTP RFC 6238).
+- [**BACKEND_EMAIL_PIN_VERIFICATION_REVIEW.md**](./archive/reviews/BACKEND_EMAIL_PIN_VERIFICATION_REVIEW.md): Báo cáo rà soát luồng gửi mã PIN qua email và bảo mật API.
+- [**FE_TESTING_REVIEW.md**](./archive/reviews/FE_TESTING_REVIEW.md): Kế hoạch thiết lập Vitest, giải quyết lỗi xung đột CRLF/Prettier và chuẩn hóa TypeScript ban đầu.
+
+---
+
+## 🧩 TÀI LIỆU KIẾN TRÚC THEO VAI TRÒ (ROLE-BASED MODULES)
+
+Mỗi vai trò nghiệp vụ trong PanelForge có tài liệu kiến trúc cục bộ tại thư mục tương ứng:
+
+| Vai trò | Đường dẫn tài liệu | Trách nhiệm chính |
+| :--- | :--- | :--- |
+| **Overview** | [src/README.md](../src/README.md) | Kiến trúc phân tầng và điều hướng phân quyền (RBAC) |
+| **Shared** | [src/shared/README.md](../src/shared/README.md) | Các component dùng chung, Pipeline Kanban Board, Modals |
+| **Admin** | [src/roles/admin/README.md](../src/roles/admin/README.md) | Quản lý người dùng, phân quyền, cài đặt hệ thống |
+| **Artist** | [src/roles/artist/README.md](../src/roles/artist/README.md) | Bàn vẽ Manga, layout panel, layer quản lý |
+| **Editor** | [src/roles/editor/README.md](../src/roles/editor/README.md) | Soát lỗi, kiểm tra tính liên tục, duyệt bản thảo |
+| **Guest** | [src/roles/guest/README.md](../src/roles/guest/README.md) | Xem portfolio công khai, xem demo |
+| **Letterer** | [src/roles/letterer/README.md](../src/roles/letterer/README.md) | Đặt bóng thoại (speech bubble), hiệu ứng âm thanh (SFX) |
+| **Producer** | [src/roles/producer/README.md](../src/roles/producer/README.md) | Quản lý dự án, tiến độ sprint, Kanban pipeline |
+| **Publisher** | [src/roles/publisher/README.md](../src/roles/publisher/README.md) | Xuất bản, catalog, thông tin phát hành |
+| **Reader** | [src/roles/reader/README.md](../src/roles/reader/README.md) | Trải nghiệm đọc truyện, tương tác độc giả |
+| **Writer** | [src/roles/writer/README.md](../src/roles/writer/README.md) | Viết kịch bản, quản lý Series Bible, AI Script Breakdown |
+
+---
+
+> 💡 **Quy tắc bắt buộc:** Khi thực hiện bất kỳ thay đổi nào trong mã nguồn, hãy tham chiếu [`DOCUMENTATION_PROCESS.md`](./DOCUMENTATION_PROCESS.md) để cập nhật tài liệu tương ứng trước khi commit.

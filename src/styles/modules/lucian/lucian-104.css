@@ -1,0 +1,74 @@
+/* Lucian UX/UI Prompt #104 · Canvas minimap · (c) 2026 Seokwoo Lee · MIT License */
+/* Adapted for PanelForge Editorial AI Studio Design System */
+
+.pf-minimap-container {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  font-family: var(--font-sans, system-ui, sans-serif);
+}
+
+.pf-minimap-btn {
+  position: relative;
+  width: 140px;
+  height: 96px;
+  padding: 0;
+  border: 2px solid var(--ux-border-default, #D8D2C5);
+  border-radius: 10px;
+  background: var(--ux-bg-canvas, #FCFBF8);
+  box-shadow: 0 10px 25px -5px rgba(28, 25, 23, 0.15), 0 0 0 1px rgba(28, 25, 23, 0.05);
+  cursor: crosshair;
+  touch-action: none;
+  overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.pf-minimap-btn:hover,
+.pf-minimap-btn:focus-visible {
+  border-color: var(--ux-brand-primary, #F97316);
+  box-shadow: 0 12px 30px -5px rgba(249, 115, 22, 0.25);
+  outline: none;
+}
+
+.pf-minimap-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+}
+
+.pf-minimap-viewport {
+  position: absolute;
+  border: 2px solid var(--ux-brand-primary, #F97316);
+  background: rgba(249, 115, 22, 0.18);
+  border-radius: 3px;
+  pointer-events: none;
+  box-shadow: 0 0 8px rgba(249, 115, 22, 0.4);
+  transition: transform 0.08s ease-out;
+}
+
+.pf-minimap-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(28, 25, 23, 0.85);
+  color: var(--ux-bg-canvas, #FCFBF8);
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  font-weight: 600;
+  backdrop-filter: blur(4px);
+  user-select: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pf-minimap-viewport {
+    transition: none;
+  }
+}

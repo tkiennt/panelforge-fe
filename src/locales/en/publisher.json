@@ -1,0 +1,26 @@
+{
+  "gate": {
+    "title": "Publishing Gate",
+    "subtitle": "Comprehensive quality assurance before releasing chapter releases",
+    "ready": "Ready for Publication",
+    "notReady": "Not Ready for Publication",
+    "checklist": "Quality Assurance Checklist",
+    "publishNow": "Publish Now",
+    "publishing": "Publishing..."
+  },
+  "calendar": {
+    "title": "Release Calendar",
+    "subtitle": "Launch schedule across distribution channels and platforms",
+    "upcoming": "Upcoming Releases",
+    "scheduled": "Scheduled"
+  },
+  "desk": {
+    "title": "Publisher Desk // Publishing Gate",
+    "subtitle": "Review chapters after Producer completes production, schedule releases or publish directly to public readers.",
+    "waitingApproval": "Awaiting Publishing Approval",
+    "waitingApprovalDesc": "Producer has approved production",
+    "publishedAndScheduled": "Published & Scheduled",
+    "allChapters": "All Chapters",
+    "enterBoard": "Enter Production Board"
+  }
+}

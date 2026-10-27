@@ -1,0 +1,207 @@
+/* Studio shelf page (/workspaces). Scoped to .ws-shelf. */
+.ws-shelf {
+  background: #f3f0e9;
+  color: #1c1917;
+}
+
+.ws-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+@media (min-width: 640px) {
+  .ws-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .ws-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 24px;
+  }
+}
+
+.ws-card {
+  --ws-tone: #f97316;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  text-align: left;
+  background: #fcfbf8;
+  border: 1px solid #d8d2c5;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(28, 25, 23, 0.05);
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.ws-card:hover,
+.ws-card:focus-within {
+  transform: translateY(-2px);
+  border-color: var(--ws-tone);
+  box-shadow: 0 8px 20px -8px rgba(28, 25, 23, 0.18);
+}
+
+.ws-card:focus-visible {
+  outline: 2px solid #f97316;
+  outline-offset: 3px;
+}
+
+/* 2:1 ratio cover section at top of card */
+.ws-card-cover {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 2 / 1;
+  overflow: hidden;
+  background: #f3f0e9;
+  border-bottom: 1px solid #d8d2c5;
+}
+
+/* Notebook spine tab */
+.ws-card-tab {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  background: var(--ws-tone);
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* Folded paper corner */
+.ws-card-fold {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 18px;
+  height: 18px;
+  background: linear-gradient(225deg, #f3f0e9 50%, #e7e1d5 50%);
+  border-bottom-left-radius: 4px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.ws-arrow {
+  transition: transform 180ms ease;
+}
+
+.ws-card:hover .ws-arrow {
+  transform: translateX(3px);
+}
+
+.ws-monogram {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  font-family: var(--font-serif, Georgia, serif);
+  font-weight: 700;
+  font-size: 19px;
+  color: #fff;
+  background: var(--ws-tone);
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(28, 25, 23, 0.1);
+}
+
+.ws-recent {
+  background: #fcfbf8;
+  border: 1px dashed #d8d2c5;
+  border-radius: 12px;
+}
+
+.ws-btn-primary {
+  border-radius: 10px;
+  background: #f97316;
+  color: #fff;
+  transition:
+    background-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.ws-btn-primary:hover {
+  background: #ea580c;
+  box-shadow: 0 2px 8px -2px rgba(249, 115, 22, 0.4);
+}
+
+.ws-btn-secondary {
+  border-radius: 10px;
+  border: 1px solid #d8d2c5;
+  background: #fff;
+  color: #292524;
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease;
+}
+
+.ws-btn-secondary:hover {
+  background: #f8f6f1;
+  border-color: #c4bcb0;
+}
+
+.ws-btn-enter {
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease;
+}
+
+.ws-cover-btn {
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    transform 150ms ease;
+}
+
+.ws-cover-btn:hover {
+  transform: translateY(-1px);
+}
+
+.ws-shelf
+  :is(.ws-btn-primary, .ws-btn-secondary, .ws-btn-enter, .ws-cover-btn, .ws-focus):focus-visible {
+  outline: 2px solid #f97316;
+  outline-offset: 2px;
+}
+
+/* Skeleton styling matching 2:1 cover cards */
+.ws-card-skel {
+  cursor: default;
+}
+
+.ws-card-skel:hover {
+  transform: none;
+  border-color: #d8d2c5;
+  box-shadow: 0 1px 3px rgba(28, 25, 23, 0.05);
+}
+
+.ws-skel {
+  background: #e7e1d5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ws-card,
+  .ws-arrow,
+  .ws-btn-primary,
+  .ws-btn-secondary,
+  .ws-btn-enter,
+  .ws-cover-btn {
+    transition: none;
+  }
+  .ws-card:hover,
+  .ws-card:hover .ws-arrow,
+  .ws-cover-btn:hover {
+    transform: none;
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "title": "Notification Center",
+  "subtitle": "Updates on task progress, editorial feedback, and assignments",
+  "markAllAsRead": "Mark all as read",
+  "emptyTitle": "No new notifications",
+  "emptyDesc": "You are completely up to date with the latest production activities.",
+  "all": "All notifications",
+  "unread": "{count} unread",
+  "unreadTab": "Unread",
+  "loading": "Loading notifications from system...",
+  "viewTask": "View Task",
+  "types": {
+    "AssignmentAssigned": "New Task Assigned",
+    "AssignmentUnassigned": "Task Unassigned",
+    "AssignmentUpdated": "Task Updated",
+    "AssignmentSubmitted": "Pending Review",
+    "AssignmentApproved": "Task Approved",
+    "AssignmentChangesRequested": "Changes Requested",
+    "ChangeRequestResolved": "Request Resolved",
+    "ChangeRequestReopened": "Request Reopened",
+    "ChapterReadyForPublication": "Ready for Publication",
+    "ChapterReopened": "Chapter Reopened",
+    "ChapterPublished": "Published Successfully",
+    "AssignmentDueSoon": "Due Soon"
+  }
+}

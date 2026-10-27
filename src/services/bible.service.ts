@@ -1,8 +1,10 @@
 // src/services/bible.service.ts
 import axiosClient from '../api/axiosClient';
 
-export type BibleCategory = 0 | 1 | 2 | 3 | 4 | 5; // Character, Location, Prop, Terminology, StyleRule, PlotFact
-export type BiblePriority = 0 | 1 | 2 | 3; // Low, Standard, High, CanonCritical
+export type BibleCategory =
+  'Character' | 'Location' | 'Prop' | 'Terminology' | 'StyleRule' | 'PlotFact' | number;
+
+export type BiblePriority = 'Low' | 'Standard' | 'StrictCheck' | 'High' | 'CanonCritical' | number;
 
 export interface BibleEntryRevisionDto {
   id: string;
@@ -16,6 +18,11 @@ export interface BibleEntryRevisionDto {
   effectiveFromChapterNumber: number;
   isInitialVersion: boolean;
   createdAt: string;
+  isLocked?: boolean;
+  lockedAt?: string | null;
+  lockedById?: string | null;
+  stageName?: string | null;
+  effectiveToChapterNumber?: number | null;
 }
 
 export interface BibleEntryDto {
@@ -57,6 +64,15 @@ export interface CreateBibleEntryRequest {
   priority?: BiblePriority;
   strictCheck?: boolean;
   effectiveFromChapterNumber?: number;
+  stageName?: string | null;
+  effectiveToChapterNumber?: number | null;
+}
+
+export interface BibleReferenceImageDto {
+  url: string;
+  sha256: string;
+  contentType: string;
+  sizeBytes: number;
 }
 
 export interface AddBibleEntryRevisionRequest {
@@ -70,7 +86,15 @@ export interface AddBibleEntryRevisionRequest {
   priority?: BiblePriority;
   strictCheck?: boolean;
   effectiveFromChapterNumber?: number;
+  stageName?: string | null;
+  effectiveToChapterNumber?: number | null;
 }
+
+/** Producer thay thế bản đã khoá: nội dung mới + lý do; chương hiệu lực lấy theo bản bị thay. */
+export type SupersedeBibleEntryRevisionRequest = Omit<
+  AddBibleEntryRevisionRequest,
+  'summary' | 'effectiveFromChapterNumber'
+> & { reason: string };
 
 function extractError(error: any, defaultMsg: string): any {
   const message = error.response?.data?.error || error.response?.data?.message || defaultMsg;
@@ -94,11 +118,13 @@ export const bibleService = {
   async getBibleEntriesAtChapter(
     seriesId: string,
     chapterNumber: number,
+    canonOnly?: boolean,
   ): Promise<BibleEntryDto[]> {
     try {
-      const response = await axiosClient.get(
-        `/series/${seriesId}/bible/at-chapter/${chapterNumber}`,
-      );
+      const url = `/series/${seriesId}/bible/at-chapter/${chapterNumber}${
+        canonOnly ? '?canonOnly=true' : ''
+      }`;
+      const response = await axiosClient.get(url);
       return response.data;
     } catch (error) {
       throw extractError(error, `Không thể tải Bible cho Chapter ${chapterNumber}.`);
@@ -108,9 +134,40 @@ export const bibleService = {
   async getSeriesBibleAtChapter(
     seriesId: string,
     chapterNumber: number,
+    canonOnly?: boolean,
   ): Promise<{ entries: BibleEntryDto[] }> {
-    const entries = await this.getBibleEntriesAtChapter(seriesId, chapterNumber);
+    const entries = await this.getBibleEntriesAtChapter(seriesId, chapterNumber, canonOnly);
     return { entries };
+  },
+
+  /**
+   * Producer tải ảnh reference sheet lên kho (POST /api/series/{seriesId}/bible/assets).
+   * Trả về URL để gán vào referenceImageUrl của entry/revision.
+   */
+  async uploadReferenceImage(seriesId: string, file: File): Promise<BibleReferenceImageDto> {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await axiosClient.post(`/series/${seriesId}/bible/assets`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      return response.data;
+    } catch (error) {
+      throw extractError(error, 'Không thể tải ảnh reference sheet lên máy chủ.');
+    }
+  },
+
+  /**
+   * GET /api/panels/{panelId}/bible — mục Bible của các nhân vật nói trong Panel, bản canon đã khoá.
+   * Dùng cho drawer tham chiếu trong task của Artist (UC-07 bước 1, BR-15).
+   */
+  async getPanelBible(panelId: string): Promise<BibleEntryDto[]> {
+    try {
+      const response = await axiosClient.get(`/panels/${panelId}/bible`);
+      return response.data;
+    } catch (error) {
+      throw extractError(error, 'Không thể tải danh sách Bible cho khung tranh.');
+    }
   },
 
   async createBibleEntry(seriesId: string, data: CreateBibleEntryRequest): Promise<BibleEntryDto> {
@@ -146,6 +203,45 @@ export const bibleService = {
       return response.data;
     } catch (error) {
       throw extractError(error, 'Không thể tải lịch sử phiên bản của mục.');
+    }
+  },
+
+  /**
+   * Producer duyệt và khoá một revision của mục Nhân vật (POST /api/series/{seriesId}/bible/entries/{entryId}/revisions/{revisionId}/lock)
+   */
+  async lockRevision(
+    seriesId: string,
+    entryId: string,
+    revisionId: string,
+  ): Promise<BibleEntryRevisionDto> {
+    try {
+      const response = await axiosClient.post(
+        `/series/${seriesId}/bible/entries/${entryId}/revisions/${revisionId}/lock`,
+      );
+      return response.data;
+    } catch (error) {
+      throw extractError(error, 'Không thể khoá phiên bản mục Bible.');
+    }
+  },
+
+  /**
+   * Producer thay thế một bản đã khoá (POST .../revisions/{revisionId}/supersede): tạo bản mới cùng chương, khoá luôn.
+   * Bản cũ giữ nguyên trong lịch sử, không có thao tác mở khoá (V1.2).
+   */
+  async supersedeRevision(
+    seriesId: string,
+    entryId: string,
+    revisionId: string,
+    data: SupersedeBibleEntryRevisionRequest,
+  ): Promise<BibleEntryRevisionDto> {
+    try {
+      const response = await axiosClient.post(
+        `/series/${seriesId}/bible/entries/${entryId}/revisions/${revisionId}/supersede`,
+        data,
+      );
+      return response.data;
+    } catch (error) {
+      throw extractError(error, 'Không thể thay thế bản đã khoá.');
     }
   },
 };

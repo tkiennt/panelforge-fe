@@ -1,0 +1,65 @@
+{
+  "nav": {
+    "workflow": "Workflow",
+    "features": "Features",
+    "showcase": "Showcase",
+    "faq": "FAQ",
+    "login": "Sign In",
+    "register": "Sign Up"
+  },
+  "hero": {
+    "docket": "PF / 01 — COMIC PRODUCTION STUDIO",
+    "titleLine1": "FROM SCRIPT TO",
+    "titleLine2": "EVERY PANEL.",
+    "subtitleLead": "Write, draw, and review comics in one shared workspace.",
+    "subtitleTail": "Pin feedback directly to panels, track every version, and ensure consistency with AI.",
+    "ctaPrimary": "Create Free Account",
+    "haveAccount": "Already have an account?",
+    "login": "Sign In",
+    "discoverWorkflow": "Discover the production workflow",
+    "badgeScript": "Structured Scripts",
+    "badgeCollab": "Collaboration",
+    "badgeVersion": "Version Provenance"
+  },
+  "pillars": {
+    "tag": "02 / FOUNDATIONS",
+    "title": "Three pillars for a professional comic studio.",
+    "subtitle": "Building modern, transparent, and multi-role collaborative comic production standards.",
+    "hierarchy": {
+      "tag": "01 / Hierarchy",
+      "title": "Structured Content",
+      "desc": "Organize your manga cleanly across series, volume, chapter, scene, and panel levels."
+    },
+    "provenance": {
+      "tag": "02 / Transparency",
+      "title": "Version History",
+      "desc": "Audit all edits with contributors and timestamps, preventing accidental artwork overwrites."
+    },
+    "bible": {
+      "tag": "03 / Consistency",
+      "title": "Series Bible",
+      "desc": "Centrally manage character lore, props, and environments with AI consistency checks."
+    }
+  },
+  "workflow": {
+    "tag": "03 / Production Pipeline",
+    "title": "From raw script to polished artwork.",
+    "subtitle": "Four seamless stages visualizing your creative journey from outline draft to final color print.",
+    "stages": {
+      "script": "Script",
+      "sketch": "Sketch",
+      "ink": "Inking",
+      "color": "Finishing"
+    },
+    "roles": {
+      "writer": "Writer",
+      "artist": "Artist",
+      "editor": "Editor & Colorist"
+    }
+  },
+  "footer": {
+    "brand": "PanelForge Manga Studio AI",
+    "tagline": "Professional collaborative comic production and publishing platform.",
+    "rights": "All rights reserved by PanelForge Studio"
+  }
+}

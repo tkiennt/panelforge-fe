@@ -1,5 +1,5 @@
 // src/services/auth.service.ts
-import axiosClient from '../api/axiosClient';
+import axiosClient, { REFRESH_TOKEN_KEY, storeRefreshToken } from '../api/axiosClient';
 
 export interface VerifyTwoFactorPayload {
   code: string;
@@ -21,6 +21,14 @@ export interface ResetPasswordPayload {
   token: string;
   newPassword: string;
   confirmPassword: string;
+}
+
+export interface CurrentUserDto {
+  id: string;
+  email: string;
+  fullName?: string;
+  role: string;
+  canCreateStudio: boolean;
 }
 
 export interface LandingWorkspaceDto {
@@ -54,6 +62,21 @@ async function parseErrorResponse(error: any, defaultMessage: string): Promise<s
 }
 
 export const authService = {
+  /**
+   * Lấy thông tin người dùng đang đăng nhập từ BE qua cookie HttpOnly pf_access.
+   * Đây là Single Source of Truth để xác định trạng thái đăng nhập khi mở app.
+   */
+  getMe: async (): Promise<CurrentUserDto> => {
+    try {
+      const response = await axiosClient.get('/Auth/me');
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        await parseErrorResponse(error, 'Không thể lấy thông tin người dùng hiện tại'),
+      );
+    }
+  },
+
   login: async (email: string, password: string, rememberDeviceToken?: string) => {
     const tokenToSend =
       rememberDeviceToken ||
@@ -75,6 +98,7 @@ export const authService = {
           headers,
         },
       );
+      storeRefreshToken(response.data);
       return response.data;
     } catch (error) {
       throw new Error(await parseErrorResponse(error, 'Đăng nhập thất bại'));
@@ -90,6 +114,7 @@ export const authService = {
           withCredentials: true,
         },
       );
+      storeRefreshToken(response.data);
       return response.data;
     } catch (error) {
       throw new Error(await parseErrorResponse(error, 'Đăng nhập bằng mạng xã hội thất bại'));
@@ -113,6 +138,7 @@ export const authService = {
   verifyEmail: async (email: string, token: string) => {
     try {
       const response = await axiosClient.post('/Auth/verify-email', { email, token });
+      storeRefreshToken(response.data);
       return response.data;
     } catch (error) {
       throw new Error(await parseErrorResponse(error, 'Xác thực mã PIN thất bại'));
@@ -128,16 +154,18 @@ export const authService = {
     }
   },
 
-  enableTwoFactor: async (token: string) => {
+  enableTwoFactor: async (token?: string) => {
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
     try {
       const response = await axiosClient.post(
         '/Auth/enable-2fa',
         {},
         {
           withCredentials: true,
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers,
         },
       );
       return response.data;
@@ -157,11 +185,33 @@ export const authService = {
         withCredentials: true,
         headers,
       });
+      storeRefreshToken(response.data);
       return response.data;
     } catch (error) {
       throw new Error(
         await parseErrorResponse(error, 'Mã xác thực 2FA không chính xác hoặc đã hết hạn'),
       );
+    }
+  },
+
+  /** Đăng xuất: gọi POST /Auth/logout không body để BE thu hồi refresh token và xóa 2 cookie pf_access, pf_refresh */
+  logout: async () => {
+    try {
+      await axiosClient.post('/Auth/logout', {});
+    } catch {
+      // bỏ qua: lỗi mạng không chặn việc dọn dẹp phiên phía FE
+    }
+  },
+
+  /** Tắt 2FA: POST /Auth/disable-2fa { code, currentPassword? } (currentPassword bắt buộc nếu tài khoản có mật khẩu) */
+  disableTwoFactor: async (data: { code: string; currentPassword?: string }) => {
+    try {
+      const response = await axiosClient.post('/Auth/disable-2fa', data, {
+        withCredentials: true,
+      });
+      return response.data as { message: string };
+    } catch (error) {
+      throw new Error(await parseErrorResponse(error, 'Không thể tắt 2FA'));
     }
   },
 
@@ -180,15 +230,17 @@ export const authService = {
     }
   },
 
-  sendChangePasswordOtp: async (token: string) => {
+  sendChangePasswordOtp: async (token?: string) => {
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
     try {
       const response = await axiosClient.post(
         '/Auth/send-change-password-otp',
         {},
         {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers,
         },
       );
       return response.data;
@@ -197,12 +249,15 @@ export const authService = {
     }
   },
 
-  changePassword: async (data: ChangePasswordPayload, token: string) => {
+  changePassword: async (data: ChangePasswordPayload, token?: string) => {
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
     try {
+      // BE đọc refresh token từ cookie pf_refresh để giữ lại phiên này, không cần gửi currentRefreshToken trong body
       const response = await axiosClient.post('/Auth/change-password', data, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers,
       });
       return response.data;
     } catch (error) {
@@ -229,12 +284,14 @@ export const authService = {
   },
 
   getLandingContext: async (customToken?: string): Promise<LandingContextDto> => {
-    const token =
-      customToken || (typeof window !== 'undefined' ? localStorage.getItem('token') : null) || '';
+    const headers: Record<string, string> = {};
+    if (customToken) {
+      headers.Authorization = `Bearer ${customToken}`;
+    }
 
     try {
       const response = await axiosClient.get('/Auth/me/landing-context', {
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        headers,
       });
       return response.data;
     } catch (error) {

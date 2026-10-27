@@ -8,7 +8,18 @@ export default defineConfig(() => {
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, '.'),
+        '@': path.resolve(__dirname, './src'),
+      },
+    },
+    build: {
+      rollupOptions: {
+        output: {
+          // Thư viện nặng tách chunk riêng để trình duyệt cache lâu và Landing/Login không phải tải.
+          manualChunks: {
+            'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+            'vendor-konva': ['konva', 'react-konva'],
+          },
+        },
       },
     },
     server: {

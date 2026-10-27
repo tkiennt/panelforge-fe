@@ -1,0 +1,19 @@
+{
+  "title": "Personal Profile",
+  "subtitle": "Manage your account information, avatar, and security credentials",
+  "fullName": "Full Name",
+  "email": "Email Address",
+  "role": "System Role",
+  "avatar": "Profile Avatar",
+  "changeAvatar": "Change Avatar",
+  "security": "Security & Authentication",
+  "changePassword": "Change Password",
+  "twoFactor": "Two-Factor Authentication (2FA TOTP)",
+  "twoFactorEnabled": "2-step protection is enabled",
+  "twoFactorDisabled": "Not activated",
+  "enable2FA": "Enable Two-Factor",
+  "disable2FA": "Disable Two-Factor",
+  "myStudios": "Your Studios",
+  "saveChanges": "Save Changes",
+  "logout": "Log Out"
+}

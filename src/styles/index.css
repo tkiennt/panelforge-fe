@@ -1,11 +1,15 @@
 @import 'tailwindcss';
+@import './tokens/index.css';
 
 @theme {
-  --font-serif: 'Playfair Display', Georgia, serif;
-  --font-sans: 'Plus Jakarta Sans', Inter, sans-serif;
-  --font-display: 'Playfair Display', Georgia, serif;
-  --font-heading: 'Playfair Display', Georgia, serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  --font-serif: 'Playfair Display', 'Lora', 'Be Vietnam Pro', Georgia, serif;
+  --font-sans: 'Be Vietnam Pro', 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
+  --font-display: 'Playfair Display', 'Lora', 'Be Vietnam Pro', Georgia, serif;
+  --font-heading: 'Be Vietnam Pro', 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --font-comic: 'Patrick Hand SC', 'Patrick Hand', 'Be Vietnam Pro', cursive, sans-serif;
+  --font-handwriting: 'Patrick Hand', 'Be Vietnam Pro', cursive, sans-serif;
+  --font-studio: 'Be Vietnam Pro', 'Inter', 'Plus Jakarta Sans', sans-serif;
 
   --color-ink-black: #171717;
   --color-ink-dark: #262626;
@@ -23,6 +27,33 @@
   --color-tangerine-light: #fff7ed;
   --color-tangerine-border: #fdba74;
 
+  /* PanelForge Landing Page Manuscript & Paper Design Tokens */
+  --color-landing-paper: #f3f0e9;
+  --color-landing-paper-light: #fcfbf8;
+  --color-landing-paper-secondary: #eae5dc;
+  --color-landing-paper-card: #fffefa;
+  --color-landing-paper-deckle: #faf7f0;
+  --color-landing-ink: #1c1917;
+  --color-landing-ink-muted: #57534e;
+  --color-landing-border: #d8d2c5;
+  --color-landing-orange: #f97316;
+  --color-landing-orange-hover: #ea580c;
+
+  /* Admin portal (/admin only) — warm paper, no black surfaces */
+  --color-admin-bg: #f3f0e9;
+  --color-admin-card: #fcfbf8;
+  --color-admin-field: #ffffff;
+  --color-admin-subtle: #f7f4ee;
+  --color-admin-hover: #efebe3;
+  --color-admin-line: #d8d2c5;
+  --color-admin-accent: #f97316;
+  --color-admin-accent-hover: #ea580c;
+  --color-admin-accent-soft: #fff1e6;
+  --color-admin-accent-text: #c2410c;
+  --color-admin-ink: #44403c;
+  --color-admin-ink-strong: #292524;
+  --color-admin-muted: #716b65;
+
   --color-ai-violet: #8b5cf6;
   --color-ai-violet-light: #f5f3ff;
   --color-ai-deep: #6d28d9;
@@ -34,6 +65,42 @@
   --color-status-amber: #f59e0b;
   --color-status-amber-dark: #d97706;
   --color-status-amber-surface: #fffbeb;
+
+  /* Editorial AI Studio Design Tokens (Quiet Editorial & Atmospheric Canvas) */
+  --color-canvas-editorial: #f5f5f5;
+  --color-canvas-soft: #fafafa;
+  --color-canvas-deep: #0c0a09;
+  --color-ink: #0c0a09;
+  --color-ink-primary: #292524;
+  --color-ink-primary-active: #0c0a09;
+  --color-body-editorial: #4e4e4e;
+  --color-body-strong: #292524;
+  --color-muted-editorial: #777169;
+  --color-muted-soft: #a8a29e;
+  --color-hairline: #e7e5e4;
+  --color-hairline-soft: #f0efed;
+  --color-hairline-strong: #d6d3d1;
+  --color-surface-card: #ffffff;
+  --color-surface-strong: #f0efed;
+
+  /* Shared Hero & Auth Identity Tokens */
+  --color-charcoal-ink: #0c0a09;
+  --color-charcoal-deep: #171717;
+  --color-charcoal-cta: #292524;
+  --color-charcoal-cta-hover: #0c0a09;
+  --color-charcoal-desk: #1a1714;
+  --color-editorial-muted: #777169;
+  --color-editorial-body: #4e4e4e;
+  --color-paper-base: #faf8f5;
+  --color-paper-card: #fffefa;
+  --color-tangerine-accent: #f97316;
+
+  /* Atmospheric Gradient Orbs */
+  --color-orb-mint: #a7e5d3;
+  --color-orb-peach: #f4c5a8;
+  --color-orb-lavender: #c8b8e0;
+  --color-orb-sky: #a8c8e8;
+  --color-orb-rose: #e8b8c4;
 
   --shadow-manga: 3px 3px 0px #171717;
   --shadow-manga-lg: 5px 5px 0px #171717;
@@ -55,6 +122,8 @@
   --animate-float-slow: float 7s ease-in-out infinite;
   --animate-float-delayed: float 8s ease-in-out 2.5s infinite;
   --animate-pulse-subtle: pulseSubtle 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-orb-float-slow: orbFloat 20s ease-in-out infinite;
+  --animate-orb-float-reverse: orbFloat 25s ease-in-out infinite reverse;
 }
 
 @keyframes float {
@@ -62,20 +131,45 @@
   100% {
     transform: translateY(0px);
   }
+
   50% {
     transform: translateY(-10px);
   }
 }
+
 @keyframes pulseSubtle {
   0%,
   100% {
     opacity: 1;
     transform: scale(1);
   }
+
   50% {
     opacity: 0.6;
     transform: scale(1.05);
   }
+}
+
+@keyframes orbFloat {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  33% {
+    transform: translate(32px, -38px) scale(1.07);
+  }
+
+  66% {
+    transform: translate(-28px, 24px) scale(0.96);
+  }
+}
+
+.orb-glow {
+  filter: blur(90px);
+  will-change: transform;
+  mix-blend-mode: multiply;
+  pointer-events: none;
 }
 
 html {
@@ -83,21 +177,33 @@ html {
 }
 
 body {
-  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-family: 'Be Vietnam Pro', 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
   background: #faf8f5;
   color: #171717;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Force lining so numbers read consistently */
+  font-variant-numeric: lining-nums;
 }
 
-h1,
-h2,
-h3,
-h4,
-.font-heading,
-.font-display {
-  font-family: 'Playfair Display', Georgia, serif;
+@layer base {
+  h1,
+  h2,
+  h3,
+  h4,
+  .font-heading,
+  .font-display,
+  .font-serif {
+    font-variant-numeric: lining-nums;
+    font-feature-settings: 'lnum' 1;
+  }
+
+  /* Decorative editorial font specifically for elements marked with font-display or font-serif */
+  .font-display,
+  .font-serif {
+    font-family: 'Playfair Display', 'Lora', 'Be Vietnam Pro', Georgia, serif;
+  }
 }
 
 @keyframes float-y {
@@ -105,67 +211,298 @@ h4,
   100% {
     transform: translateY(0);
   }
+
   50% {
     transform: translateY(-10px);
   }
 }
+
 @keyframes float-y-lg {
   0%,
   100% {
     transform: translateY(0);
   }
+
   50% {
     transform: translateY(-16px);
   }
 }
+
 @keyframes pulse-dot {
   0%,
   100% {
     transform: scale(1);
     opacity: 1;
   }
+
   50% {
     transform: scale(1.4);
     opacity: 0.5;
   }
 }
 
+/* Scroll Reveal with Progressive Enhancement:
+   1. Default: Content is fully visible (no blank page if JS or observer fails)
+   2. When JS observer is initialized and ready, elements animate in smoothly
+   3. Always fully visible in print mode and when prefers-reduced-motion is active */
 .animate-on-scroll {
-  opacity: 0;
-  transform: translateY(28px);
-  transition:
-    opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1),
-    transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.animate-on-scroll.is-visible {
   opacity: 1;
-  transform: translateY(0);
+  transform: none;
 }
+
+@media screen and (prefers-reduced-motion: no-preference) {
+  .js-observer-ready .animate-on-scroll:not(.is-visible) {
+    opacity: 0;
+    transform: translateY(22px);
+    transition:
+      opacity 0.75s cubic-bezier(0.16, 1, 0.3, 1),
+      transform 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: opacity, transform;
+  }
+
+  .js-observer-ready .animate-on-scroll.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+    transition:
+      opacity 0.75s cubic-bezier(0.16, 1, 0.3, 1),
+      transform 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce), print {
+  .animate-on-scroll,
+  .animate-on-scroll:not(.is-visible),
+  .animate-on-scroll.is-visible {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}
+
 .delay-100 {
   transition-delay: 0.1s;
 }
+
 .delay-200 {
   transition-delay: 0.2s;
 }
+
 .delay-300 {
   transition-delay: 0.3s;
 }
+
 .delay-400 {
   transition-delay: 0.4s;
+}
+
+/* ========================================================
+   Landing: hero → intro "ink guide + paper lift" and value-card frames.
+   Driven by the landing scroll-reveal observer ([data-reveal] + .is-visible), runs once.
+   Default (no JS / no observer / reduced motion / print) = final, fully visible state.
+   ======================================================== */
+.ink-guide {
+  top: -60px;
+  width: 40px;
+  height: 150px;
+  margin-left: -20px;
+}
+
+.frame-ink {
+  position: absolute;
+  inset: -1px;
+  width: calc(100% + 2px);
+  height: calc(100% + 2px);
+  pointer-events: none;
+  overflow: visible;
+  opacity: 0;
+}
+
+.frame-ink-rect {
+  width: calc(100% - 1px);
+  height: calc(100% - 1px);
+  fill: none;
+  stroke: #1c1917;
+  stroke-opacity: 0.55;
+  stroke-width: 1.25;
+}
+
+@media (max-width: 767px) {
+  .ink-guide {
+    top: -4px;
+    height: 64px;
+  }
+}
+
+@keyframes inkDraw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes paperLift {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  45% {
+    transform: translateY(var(--paper-lift, -12px));
+  }
+}
+
+@keyframes frameTrace {
+  0% {
+    stroke-dashoffset: 1;
+    opacity: 1;
+  }
+
+  75% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+}
+
+@keyframes frameBorderIn {
+  0%,
+  70% {
+    border-color: transparent;
+  }
+
+  100% {
+    border-color: #d8d2c5;
+  }
+}
+
+@keyframes frameContentIn {
+  from {
+    opacity: 0.4;
+  }
+}
+
+@media screen and (prefers-reduced-motion: no-preference) {
+  /* Waiting state only once the observer is live */
+  .js-observer-ready .ink-transition:not(.is-visible) .ink-guide-path {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+  }
+
+  .js-observer-ready .ink-transition:not(.is-visible) .ink-seq {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  .js-observer-ready .frame-card:not(.is-visible) {
+    border-color: transparent;
+  }
+
+  /* Played state */
+  .ink-transition.is-visible .ink-guide-path {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: inkDraw 600ms cubic-bezier(0.65, 0, 0.35, 1) forwards;
+  }
+
+  .ink-transition.is-visible .paper-lift {
+    animation: paperLift 520ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .ink-transition.is-visible .ink-seq {
+    opacity: 1;
+    transform: none;
+    transition:
+      opacity 360ms cubic-bezier(0.16, 1, 0.3, 1),
+      transform 360ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .ink-transition.is-visible .ink-seq-1 {
+    transition-delay: 140ms;
+  }
+
+  .ink-transition.is-visible .ink-seq-2 {
+    transition-delay: 220ms;
+  }
+
+  .ink-transition.is-visible .ink-seq-3 {
+    transition-delay: 300ms;
+  }
+
+  .frame-card.is-visible {
+    animation:
+      frameBorderIn 760ms ease-out backwards,
+      frameContentIn 260ms ease-out backwards;
+    animation-delay: var(--frame-delay, 0ms);
+  }
+
+  .frame-card.is-visible .frame-ink {
+    opacity: 1;
+  }
+
+  .frame-card.is-visible .frame-ink-rect {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: frameTrace 760ms cubic-bezier(0.65, 0, 0.35, 1) var(--frame-delay, 0ms) forwards;
+  }
+
+  @media (min-width: 768px) {
+    .frame-card-2 {
+      --frame-delay: 90ms;
+    }
+
+    .frame-card-3 {
+      --frame-delay: 180ms;
+    }
+  }
+
+  @media (max-width: 767px) {
+    .ink-transition {
+      --paper-lift: -5px;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce), print {
+  .ink-seq {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .ink-guide-path {
+    animation: none !important;
+    stroke-dasharray: none !important;
+    stroke-dashoffset: 0 !important;
+  }
+
+  .paper-lift,
+  .frame-card {
+    animation: none !important;
+  }
+
+  .frame-ink {
+    display: none !important;
+  }
 }
 
 .float-anim {
   animation: float-y 6s ease-in-out infinite;
 }
+
 .float-anim-lg {
   animation: float-y-lg 8s ease-in-out infinite;
 }
+
 .float-anim-slow {
   animation: float-y 9s ease-in-out infinite;
 }
+
 .float-anim-delay {
   animation: float-y 7s ease-in-out 0.6s infinite;
 }
+
 .pulse-dot {
   animation: pulse-dot 2.4s ease-in-out infinite;
 }
@@ -176,6 +513,7 @@ h4,
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   border: 1px solid rgba(231, 231, 231, 0.7);
 }
+
 .glass-strong {
   background: rgba(255, 255, 255, 0.86);
   backdrop-filter: blur(28px) saturate(180%);
@@ -188,30 +526,36 @@ h4,
     linear-gradient(90deg, rgba(23, 23, 23, 0.035) 1px, transparent 1px);
   background-size: 36px 36px;
 }
+
 .dot-bg {
   background-image: radial-gradient(circle, rgba(23, 23, 23, 0.07) 1px, transparent 1px);
   background-size: 22px 22px;
 }
+
 .manuscript-grid {
   background-size: 24px 24px;
   background-image:
     linear-gradient(to right, rgba(23, 23, 23, 0.04) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(23, 23, 23, 0.04) 1px, transparent 1px);
 }
+
 .halftone-pattern {
   background-image: radial-gradient(#e7e7e7 1px, transparent 1px);
   background-size: 20px 20px;
   opacity: 0.8;
 }
+
 .paper-gradient {
   background: linear-gradient(180deg, #faf8f5 0%, #f3f3f3 100%);
 }
+
 .hero-radial {
   background:
     radial-gradient(ellipse 50% 50% at 25% 30%, rgba(249, 115, 22, 0.05), transparent 60%),
     radial-gradient(ellipse 50% 50% at 80% 25%, rgba(139, 92, 246, 0.06), transparent 60%),
     radial-gradient(ellipse 70% 60% at 50% 100%, rgba(249, 115, 22, 0.03), transparent 60%);
 }
+
 .connector-dashed {
   background-image: linear-gradient(to right, #e7e7e7 50%, transparent 50%);
   background-size: 12px 1px;
@@ -221,12 +565,15 @@ h4,
 .tangerine-gradient {
   background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
 }
+
 .ai-gradient {
   background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
 }
+
 .ink-gradient {
   background: linear-gradient(135deg, #171717 0%, #2a2a2a 100%);
 }
+
 .text-gradient-tangerine {
   background: linear-gradient(135deg, #f97316 0%, #ea580c 60%, #c2410c 100%);
   -webkit-background-clip: text;
@@ -237,12 +584,15 @@ h4,
 .soft-shadow {
   box-shadow: var(--shadow-editorial);
 }
+
 .soft-shadow-lg {
   box-shadow: var(--shadow-editorial-hover);
 }
+
 .tangerine-shadow {
   box-shadow: 0 8px 24px rgba(249, 115, 22, 0.3);
 }
+
 .tangerine-shadow-lg {
   box-shadow: 0 14px 44px rgba(249, 115, 22, 0.38);
 }
@@ -250,6 +600,7 @@ h4,
 .nav-link {
   position: relative;
 }
+
 .nav-link::after {
   content: '';
   position: absolute;
@@ -262,6 +613,7 @@ h4,
   transform-origin: left;
   transition: transform 0.3s ease;
 }
+
 .nav-link:hover::after {
   transform: scaleX(1);
 }
@@ -270,17 +622,21 @@ h4,
   width: 6px;
   height: 6px;
 }
+
 .custom-scrollbar::-webkit-scrollbar-track {
   background: #faf8f5;
 }
+
 .custom-scrollbar::-webkit-scrollbar-thumb {
   background: #dcdcdc;
   border-radius: 5px;
   border: 2px solid #faf8f5;
 }
+
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #c8c8c8;
 }
+
 ::selection {
   background: #f97316;
   color: white;
@@ -291,19 +647,270 @@ h4,
   100% {
     transform: translateY(0);
   }
+
   50% {
     transform: translateY(-15px);
   }
 }
+
 .animate-float {
   animation: float 6s ease-in-out infinite;
 }
+
 .animation-delay-1000 {
   animation-delay: 1s;
 }
+
 .animation-delay-2000 {
   animation-delay: 2s;
 }
+
 .animation-delay-3000 {
   animation-delay: 3s;
+}
+
+/* ========================================================
+   Editorial Button Hierarchy & Semantic Status Classes
+   ======================================================== */
+
+/* Primary Creator CTA (Warm Tangerine Terracotta) */
+.btn-cta-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background-color: #ea580c;
+  color: #ffffff;
+  font-weight: 600;
+  border-radius: 9999px;
+  padding: 0.5rem 1.125rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  box-shadow: 0 4px 16px -2px rgba(234, 88, 12, 0.25);
+  transition: all 0.15s ease-in-out;
+  cursor: pointer;
+  user-select: none;
+  border: 1px solid transparent;
+}
+
+.btn-cta-primary:hover:not(:disabled) {
+  background-color: #c2410c;
+  box-shadow: 0 6px 20px -2px rgba(234, 88, 12, 0.35);
+  transform: translateY(-1px);
+}
+
+.btn-cta-primary:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.btn-cta-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* AI & Intelligence CTA (Iris Violet Atmosphere) */
+.btn-cta-ai {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  background-color: #7c3aed;
+  color: #ffffff;
+  font-weight: 600;
+  border-radius: 9999px;
+  padding: 0.375rem 0.875rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  box-shadow: 0 4px 16px -2px rgba(124, 58, 237, 0.25);
+  transition: all 0.15s ease-in-out;
+  cursor: pointer;
+  user-select: none;
+  border: 1px solid transparent;
+}
+
+.btn-cta-ai:hover:not(:disabled) {
+  background-color: #6d28d9;
+  box-shadow: 0 6px 20px -2px rgba(124, 58, 237, 0.35);
+}
+
+.btn-cta-ai:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Success / Approve CTA (Sage Emerald) */
+.btn-cta-success {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  background-color: #059669;
+  color: #ffffff;
+  font-weight: 600;
+  border-radius: 9999px;
+  padding: 0.375rem 0.875rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  box-shadow: 0 4px 14px -2px rgba(5, 150, 105, 0.25);
+  transition: all 0.15s ease-in-out;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.btn-cta-success:hover:not(:disabled) {
+  background-color: #047857;
+  transform: translateY(-1px);
+}
+
+.btn-cta-success:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Danger / Return for Rework CTA (Crimson Rust Outline) */
+.btn-cta-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  background-color: #ffffff;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+  font-weight: 600;
+  border-radius: 9999px;
+  padding: 0.375rem 0.875rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  transition: all 0.15s ease-in-out;
+  cursor: pointer;
+}
+
+.btn-cta-danger:hover:not(:disabled) {
+  background-color: #fef2f2;
+  border-color: #f87171;
+}
+
+/* Secondary Neutral Pill (Editorial Ink Outline) */
+.btn-cta-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  background-color: #ffffff;
+  color: #292524;
+  border: 1px solid #e7e5e4;
+  font-weight: 500;
+  border-radius: 9999px;
+  padding: 0.375rem 0.875rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.04);
+  transition: all 0.15s ease-in-out;
+  cursor: pointer;
+}
+
+.btn-cta-secondary:hover:not(:disabled) {
+  background-color: #f5f5f5;
+  border-color: #d6d3d1;
+}
+
+/* Status Badges */
+.badge-status-approved {
+  background-color: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+  font-weight: 600;
+}
+
+.badge-status-published {
+  background-color: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+  font-weight: 600;
+}
+
+.badge-status-inreview {
+  background-color: #fffbeb;
+  color: #b45309;
+  border: 1px solid #fde68a;
+  font-weight: 600;
+}
+
+.badge-status-inproduction {
+  background-color: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  font-weight: 600;
+}
+
+.badge-status-rework {
+  background-color: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+  font-weight: 600;
+}
+
+.badge-status-ai {
+  background-color: #f5f3ff;
+  color: #6d28d9;
+  border: 1px solid #ddd6fe;
+  font-weight: 600;
+}
+
+/* ============================================================== */
+/* AUTH DIALOG CARD ANIMATION (180ms fade + scale 0.98 -> 1)      */
+/* ============================================================== */
+@keyframes authDialogIn {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-auth-dialog-in {
+  animation: authDialogIn 180ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ============================================================== */
+/* THE VERSIONED BLUEPRINT & ACCESSIBILITY RULES                  */
+/* ============================================================== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.001s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001s !important;
+    scroll-behavior: auto !important;
+  }
+
+  .animate-auth-dialog-in {
+    animation: none !important;
+    transform: none !important;
+  }
+
+  /* Disable dynamic 3D tilt and translate when user prefers reduced motion */
+  [style*='transformStyle: preserve-3d'],
+  [style*='preserve-3d'] {
+    transform: none !important;
+  }
+}
+
+/* ============================================================== */
+/* HERO VIEWPORT SIZING (EXACT DESKTOP FIT)                       */
+/* ============================================================== */
+@media (min-width: 1024px) {
+  .hero-desktop-screen {
+    min-height: calc(100vh - 4rem);
+    min-height: calc(100svh - 4rem);
+  }
+
+  .hero-grid-layout {
+    grid-template-columns: 52fr 48fr !important;
+  }
 }

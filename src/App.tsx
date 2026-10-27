@@ -1,6 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { RoleDemoBar, DemoRole } from './components/RoleDemoBar';
-import { DevFloatingMenu } from './components/DevFloatingMenu';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   ViewMode,
   MangaProject,
@@ -8,125 +6,41 @@ import {
   KanbanStageKey,
   BibleEntity,
   StudioMember,
-} from './types';
-import {
-  INITIAL_PROJECTS,
-  INITIAL_KANBAN_CARDS,
-  INITIAL_BIBLE_ENTITIES,
-  INITIAL_MEMBERS,
-  INITIAL_PROVENANCE_LOGS,
-  INITIAL_ASSISTANTS,
-  INITIAL_PROJECT_MEMBERSHIPS,
-} from './data/mockData';
-import {
-  BrowserRouter,
-  Routes,
-  Route,
-  Navigate,
-  useNavigate,
-  useLocation,
-  Outlet,
-} from 'react-router-dom';
-import { ReviewView } from './views/ReviewView';
-import { Header } from './components/Header';
-import { DashboardView } from './views/DashboardView';
-import { WorkflowBoardView } from './views/WorkflowBoardView';
-import { SeriesBibleView } from './views/SeriesBibleView';
-import { MembersRolesView } from './views/MembersRolesView';
-import { SeriesMembersView } from './views/series/SeriesMembersView';
-import { GlobalModals } from './components/GlobalModals';
-import {
-  CheckCircle2,
-  Home,
-  Briefcase,
-  PenLine,
-  Layers,
-  CheckCheck,
-  Shield,
-  Type,
-  BookOpen,
-} from 'lucide-react';
-import { GlobalAppShell } from './layouts/GlobalAppShell';
-import { WorkspaceView } from './views/WorkspaceView';
-import { ScriptEditorView } from './views/ScriptEditorView';
-import { TaskEditor } from './views/TaskEditor';
-import { ExportView } from './views/ExportView';
-
-import {
-  AdminDashboard,
-  AdminDashboardView,
-  AdminUserManagementView,
-  AdminSystemSettingsView,
-  AdminAuditLogView,
-} from './views/admin';
-
-import { ArtistDeskView } from './views/artist/ArtistDeskView';
-import { ProducerWorkspaceView } from './views/producer/ProducerWorkspaceView';
-import { NotificationCenterView } from './views/NotificationCenterView';
-import { ReaderPortalView } from './views/ReaderPortalView';
-import { PublicCatalogView } from './views/catalog/PublicCatalogView';
-import { authService } from './services/auth.service';
-import { seriesService } from './services/series.service';
-
-import {
   SystemRole,
   WorkspaceRole,
   WorkspaceDto,
   normalizeSystemRole,
   normalizeWorkspaceRole,
   getRoleFromToken,
+  ProvenanceLogItem,
+  AssistantRosterItem,
 } from './types';
-import { LoginModal } from './components/modals/LoginModal';
-import { RegisterModal } from './components/modals/RegisterModal';
-import { TwoFactorSetupModal } from './components/modals/TwoFactorSetupModal';
-import { ChangePasswordModal } from './components/modals/ChangePasswordModal';
-import { LandingPageView } from './views/LandingPageView';
-import { WorkspaceListView } from './views/WorkspaceListView';
-import { UserProfile } from './views/UserProfile';
-import { auth, onAuthStateChanged } from './firebase';
+import { BrowserRouter, useNavigate, useLocation } from 'react-router-dom';
+import { GlobalModals } from './app/GlobalModals';
+import { AppRoutes } from './app/routes';
+import { ROLE_MANIFEST } from './roles/roles';
+import {
+  ToastItemData,
+  ToastOptions,
+  ToastType,
+} from '@/shared/components/ToastNotification';
+import { useToast, ToastProvider } from '@/shared/context/ToastContext';
+import { ConfirmProvider } from '@/shared/context/ConfirmContext';
+import { authService } from './services/auth.service';
+import { refreshAccessToken } from './api/axiosClient';
+import { startSessionKeepAlive } from './api/sessionKeepAlive';
+import { seriesService } from './services/series.service';
+import { workspaceService } from './services/workspace.service';
+import { offlineQueueService } from './services/offlineQueue.service';
+import { LoginModal } from '@/roles/guest/modals/LoginModal';
+import { RegisterModal } from '@/roles/guest/modals/RegisterModal';
+import { TwoFactorSetupModal } from '@/shared/features/account/TwoFactorSetupModal';
+import { ChangePasswordModal } from '@/shared/features/account/ChangePasswordModal';
+import { auth, onAuthStateChanged } from '@/config/firebase';
 import { User } from 'firebase/auth';
 
-interface Toast {
-  id: string;
-  title: string;
-  desc: string;
-}
-
-const PrivateRoute = ({
-  isAuthenticated,
-  children,
-}: {
-  isAuthenticated: boolean;
-  children: React.ReactNode;
-}) => {
-  if (!isAuthenticated) {
-    return <Navigate to='/login' replace />;
-  }
-  return <>{children}</>;
-};
-
-const AdminRoute = ({
-  activeRoles,
-  currentRole,
-  children,
-}: {
-  activeRoles?: any[];
-  currentRole?: any;
-  children: React.ReactNode;
-}) => {
-  // Lấy role xác thực từ Token JWT hoặc State/localStorage nếu vừa đăng nhập thành công
-  const verifiedRole = getRoleFromToken();
-  const storedRole = typeof window !== 'undefined' ? localStorage.getItem('userRole') : null;
-  const isAdmin =
-    verifiedRole === 'ADMINISTRATOR' ||
-    currentRole === 'ADMINISTRATOR' ||
-    storedRole === 'ADMINISTRATOR';
-
-  if (!isAdmin) {
-    return <Navigate to='/workspaces' replace />;
-  }
-  return <>{children}</>;
-};
+export type Toast = ToastItemData;
+export type { ToastOptions, ToastType };
 
 const IS_DEV_MODE = import.meta.env.VITE_DEV_MODE === 'true';
 
@@ -134,10 +48,16 @@ function AppContent() {
   const navigate = useNavigate();
   // ---> STATE QUẢN LÝ ĐĂNG NHẬP VÀ ĐIỀU HƯỚNG BÊN NGOÀI <---
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    return !!localStorage.getItem('token');
+    return !!localStorage.getItem('user') || !!localStorage.getItem('token');
   });
   const [authMode, setAuthMode] = useState<'landing' | 'login' | 'register'>('landing');
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
+
+  // Giữ phiên khi người dùng còn thao tác (không áp dụng cho token demo 'mock-...').
+  useEffect(() => {
+    if (!isAuthenticated || localStorage.getItem('token')?.startsWith('mock-')) return;
+    return startSessionKeepAlive();
+  }, [isAuthenticated]);
 
   // Navigation & Data State
   const [viewScope, setViewScope] = useState<'hub' | 'project'>('hub');
@@ -204,7 +124,7 @@ function AppContent() {
       setCurrentWorkspaceRole(null);
       setViewScope('project');
       setCurrentView('admin-dash');
-      navigate('/admin');
+      navigate(ROLE_MANIFEST.ADMINISTRATOR.defaultRoute);
     } else {
       setCurrentRole('USER');
       setCurrentWorkspaceRole(null);
@@ -237,38 +157,31 @@ function AppContent() {
       if (user) {
         setIsAuthenticated(true);
         try {
-          const existingToken = localStorage.getItem('token');
-          if (!existingToken) {
-            const idToken = await user.getIdToken();
-            const res = await authService.externalLogin(idToken);
-            if (res?.token) {
-              localStorage.setItem('token', res.token);
+          const idToken = await user.getIdToken();
+          const res = await authService.externalLogin(idToken);
+          if (res?.user?.role) {
+            const role = normalizeSystemRole(res.user.role);
+            setCurrentRole(role);
+            localStorage.setItem('userRole', role);
+            if (role === 'ADMINISTRATOR') {
+              setActiveProjectRoles(['ADMINISTRATOR']);
             }
-            if (res?.user?.role) {
-              const role = normalizeSystemRole(res.user.role);
-              setCurrentRole(role);
-              localStorage.setItem('userRole', role);
-              if (role === 'ADMINISTRATOR') {
-                setActiveProjectRoles(['ADMINISTRATOR']);
-              }
-              setCurrentUserInfo({
-                id: res.user.id,
-                name: res.user.fullName || user.displayName || user.email?.split('@')[0] || 'User',
-                email: res.user.email || user.email || '',
-                role,
-                isTwoFactorEnabled: !!res.user.twoFactorEnabled,
-              });
-              localStorage.setItem('user', JSON.stringify(res.user));
-              navigateRoleDefaultView(role);
-            }
+            setCurrentUserInfo({
+              id: res.user.id,
+              name: res.user.fullName || user.displayName || user.email?.split('@')[0] || 'User',
+              email: res.user.email || user.email || '',
+              role,
+              isTwoFactorEnabled: !!res.user.twoFactorEnabled,
+            });
+            localStorage.setItem('user', JSON.stringify(res.user));
+            navigateRoleDefaultView(role);
           }
         } catch (err) {
           console.warn('Không thể đồng bộ token backend từ Firebase session:', err);
         }
       } else {
-        // Không có phiên Firebase (vd. đăng nhập email/mật khẩu qua backend): giữ JWT backend,
-        // chỉ coi là chưa đăng nhập khi không còn token. Đăng xuất do handleLogout xoá token.
-        setIsAuthenticated(!!localStorage.getItem('token'));
+        // Không có phiên Firebase (vd. đăng nhập email/mật khẩu qua backend):
+        // Trạng thái được kiểm tra và đồng bộ chính xác qua authService.getMe() ở effect mount.
       }
     });
     return () => unsubscribe();
@@ -277,25 +190,8 @@ function AppContent() {
   }, []);
 
   const navigateToWorkspaceRoleView = (role: WorkspaceRole) => {
-    switch (role) {
-      case 'PRODUCER':
-        setCurrentView('dashboard');
-        break;
-      case 'WRITER':
-        setCurrentView('script');
-        break;
-      case 'ARTIST':
-        setCurrentView('layout');
-        break;
-      case 'LETTERER':
-        setCurrentView('canvas');
-        break;
-      case 'EDITOR':
-        setCurrentView('review');
-        break;
-      default:
-        setCurrentView('dashboard');
-    }
+    const target = ROLE_MANIFEST[role]?.defaultRoute || 'dashboard';
+    setCurrentView(target as ViewMode);
   };
 
   const location = useLocation();
@@ -329,13 +225,15 @@ function AppContent() {
     setActiveProjectRoles([wsRole]);
     setViewScope('project');
 
-    let hasSeries = false;
+    let firstSeriesId: string | null = null;
+    // Clear stale project before loading new workspace's series
+    setActiveProject(null as any);
     // Tải danh sách Series thật từ Backend API PostgreSQL cho Workspace này
     try {
       const realSeriesList = await seriesService.getSeriesList(ws.id);
       if (realSeriesList && realSeriesList.length > 0) {
-        hasSeries = true;
         const firstSeries = realSeriesList[0];
+        firstSeriesId = firstSeries.id;
         const adaptedProject: MangaProject = {
           id: firstSeries.id,
           title: firstSeries.title,
@@ -361,46 +259,37 @@ function AppContent() {
       console.warn('Không thể nạp Series thật cho Workspace:', err);
     }
 
-    // Smart Landing by Persona & Series Availability
-    if (wsRole === 'PRODUCER' || currentRole === 'ADMINISTRATOR') {
-      navigate(`/workspaces/${ws.id}/overview`);
-    } else {
-      navigateToWorkspaceRoleView(wsRole);
-      navigate(`/workspaces/${ws.id}/workspace`);
-    }
+    // Strict UI flow: Workspaces list (/workspaces) -> Select a Workspace -> Series Selection Screen (/workspaces/{id}/series)
+    navigateToWorkspaceRoleView(wsRole);
+    navigate(`/workspaces/${ws.id}/series`);
   };
 
-  // Khôi phục vai trò và phiên làm việc từ JWT token (Single Source of Truth) khi tải lại trang
+  // Khôi phục vai trò và phiên làm việc: nạp nhanh từ localStorage, xác thực qua GET /Auth/me
   useEffect(() => {
-    const verifiedRole = getRoleFromToken();
+    const token = localStorage.getItem('token');
+    const verifiedRole = getRoleFromToken(token);
     if (verifiedRole) {
       setIsAuthenticated(true);
       setCurrentRole(verifiedRole);
-      localStorage.setItem('userRole', verifiedRole); // Luôn ghi đè đồng bộ đúng role từ token
+      localStorage.setItem('userRole', verifiedRole);
       if (verifiedRole === 'ADMINISTRATOR') {
         setActiveProjectRoles(['ADMINISTRATOR']);
         setCurrentWorkspaceRole(null);
       } else {
-        if (activeProjectRoles.includes('ADMINISTRATOR')) {
-          setActiveProjectRoles(['ARTIST']);
-        }
+        setActiveProjectRoles((prev) => (prev.includes('ADMINISTRATOR') ? ['ARTIST'] : prev));
       }
-    } else {
-      const savedToken = localStorage.getItem('token');
-      if (savedToken && !savedToken.startsWith('mock-')) {
-        // Token hết hạn hoặc không hợp lệ -> xóa sạch
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        localStorage.removeItem('userRole');
-        setIsAuthenticated(false);
+      if (token && token.startsWith('mock-')) {
+        return;
       }
     }
 
+    // Nạp thông tin user từ localStorage để hiển thị nhanh (optimistic UI)
     const savedUser = localStorage.getItem('user');
     if (savedUser) {
       try {
         const u = JSON.parse(savedUser);
-        const role = verifiedRole || normalizeSystemRole(u.role);
+        const storedRole = localStorage.getItem('userRole');
+        const role = storedRole ? normalizeSystemRole(storedRole) : normalizeSystemRole(u.role);
         setCurrentUserInfo({
           id: u.id,
           name: u.fullName || u.username || u.email?.split('@')[0] || 'User',
@@ -409,12 +298,54 @@ function AppContent() {
           canCreateStudio: !!u.canCreateStudio,
           isTwoFactorEnabled: !!u.isTwoFactorEnabled,
         });
+        setCurrentRole(role);
+        if (role === 'ADMINISTRATOR') {
+          setActiveProjectRoles(['ADMINISTRATOR']);
+          setCurrentWorkspaceRole(null);
+        }
       } catch {
         // bỏ qua lỗi parse
       }
     }
-    // Chỉ khôi phục phiên một lần khi mount.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
+    // Gọi GET /Auth/me để xác thực phiên với Backend qua cookie HttpOnly pf_access
+    let isMounted = true;
+    authService
+      .getMe()
+      .then((me) => {
+        if (!isMounted) return;
+        setIsAuthenticated(true);
+        const role = normalizeSystemRole(me.role);
+        setCurrentRole(role);
+        localStorage.setItem('userRole', role);
+        setCurrentUserInfo({
+          id: me.id,
+          name: me.fullName || me.email?.split('@')[0] || 'User',
+          email: me.email,
+          role,
+          canCreateStudio: !!me.canCreateStudio,
+        });
+        localStorage.setItem('user', JSON.stringify(me));
+        if (role === 'ADMINISTRATOR') {
+          setActiveProjectRoles(['ADMINISTRATOR']);
+          setCurrentWorkspaceRole(null);
+        }
+      })
+      .catch((err) => {
+        if (!isMounted) return;
+        // 401: phiên không hợp lệ hoặc đã hết hạn
+        const status = err?.response?.status;
+        if (status === 401 || (!savedUser && !token)) {
+          setIsAuthenticated(false);
+          setCurrentUserInfo(null);
+          localStorage.removeItem('user');
+          localStorage.removeItem('userRole');
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -425,13 +356,13 @@ function AppContent() {
     }
   }, [currentRole, viewScope]);
 
-  const [projects, setProjects] = useState<MangaProject[]>(INITIAL_PROJECTS);
+  const [projects, setProjects] = useState<MangaProject[]>([]);
   const [activeProject, setActiveProject] = useState<MangaProject | undefined>(() => {
     try {
       const saved = localStorage.getItem('activeProject');
-      return saved ? JSON.parse(saved) : INITIAL_PROJECTS[0];
+      return saved ? JSON.parse(saved) : undefined;
     } catch {
-      return INITIAL_PROJECTS[0];
+      return undefined;
     }
   });
 
@@ -477,11 +408,44 @@ function AppContent() {
     }
   }, [location.pathname, activeProject?.id]);
 
-  const [cards, setCards] = useState<KanbanCard[]>(INITIAL_KANBAN_CARDS);
-  const [entities, setEntities] = useState<BibleEntity[]>(INITIAL_BIBLE_ENTITIES);
-  const [members, setMembers] = useState<StudioMember[]>(INITIAL_MEMBERS);
-  const [provenanceLogs, setProvenanceLogs] = useState(INITIAL_PROVENANCE_LOGS);
-  const [assistants] = useState(INITIAL_ASSISTANTS);
+  // Tự nạp thông tin và vai trò trong Workspace khi mở trực tiếp bằng URL hoặc F5
+  useEffect(() => {
+    const wsMatch = location.pathname.match(/\/workspaces\/([^/]+)/);
+    if (wsMatch && wsMatch[1]) {
+      const wsId = wsMatch[1];
+      if (!currentWorkspaceRole || activeWorkspace?.id !== wsId) {
+        workspaceService
+          .getWorkspaceById(wsId)
+          .then((ws) => {
+            if (ws) {
+              setActiveWorkspace({
+                ...ws,
+                currentUserRole: normalizeWorkspaceRole(ws.currentUserRole),
+              });
+              try {
+                localStorage.setItem('activeWorkspace', JSON.stringify(ws));
+              } catch {
+                /* ignore */
+              }
+              const derivedRole =
+                normalizeWorkspaceRole(ws.currentUserRole) ||
+                (ws.isOwner ? 'PRODUCER' : currentRole === 'ADMINISTRATOR' ? 'PRODUCER' : 'ARTIST');
+              setCurrentWorkspaceRole(derivedRole);
+              setActiveProjectRoles([derivedRole]);
+            }
+          })
+          .catch((err) => {
+            console.warn('Failed to load workspace for URL sync:', err);
+          });
+      }
+    }
+  }, [location.pathname, activeWorkspace?.id, currentWorkspaceRole, currentRole]);
+
+  const [cards, setCards] = useState<KanbanCard[]>([]);
+  const [entities, setEntities] = useState<BibleEntity[]>([]);
+  const [members, setMembers] = useState<StudioMember[]>([]);
+  const [provenanceLogs, setProvenanceLogs] = useState<ProvenanceLogItem[]>([]);
+  const [assistants] = useState<AssistantRosterItem[]>([]);
 
   // Modals
   const [spreadModalOpen, setSpreadModalOpen] = useState(false);
@@ -493,16 +457,55 @@ function AppContent() {
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
   const [isTwoFactorModalOpen, setIsTwoFactorModalOpen] = useState(false);
 
-  // Toast System
-  const [toasts, setToasts] = useState<Toast[]>([]);
+  // Global Lucian #070 Toast System via ToastContext
+  const { showToast } = useToast();
 
-  const showToast = (title: string, desc: string) => {
-    const id = `toast-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-    setToasts((prev) => [...prev, { id, title, desc }]);
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 4000);
-  };
+  // axiosClient phát 'auth:unauthorized' khi hết phiên (refresh token bị từ chối / 401 không phục hồi được)
+  const lastUnauthorizedAtRef = useRef<number>(0);
+
+  useEffect(() => {
+    const onUnauthorized = () => {
+      const now = Date.now();
+      // Chống xử lý trùng lặp khi nhiều request đồng thời nhận 401
+      if (now - lastUnauthorizedAtRef.current < 4000) {
+        return;
+      }
+      lastUnauthorizedAtRef.current = now;
+
+      localStorage.removeItem('user');
+      localStorage.removeItem('userRole');
+      localStorage.removeItem('activeWorkspace');
+      setCurrentUserInfo(null);
+      setIsAuthenticated(false);
+      setCurrentRole('USER');
+      setCurrentWorkspaceRole(null);
+
+      const currentPath = window.location.pathname;
+      const isAlreadyOnLogin = currentPath.startsWith('/login');
+      const isPublicPath =
+        currentPath === '/' ||
+        currentPath.startsWith('/catalog') ||
+        currentPath.startsWith('/terms');
+
+      // Nếu hệ thống đã chuyển tới /login (hoặc được PrivateRoute chuyển tới /login),
+      // không thêm nút "Đăng nhập lại" dư thừa.
+      // Chỉ khi người dùng đang ở các màn public (như / landing), cơ chế cho phép thì mới cung cấp action "Đăng nhập lại".
+      showToast('Phiên đăng nhập đã hết hạn', 'Vui lòng đăng nhập lại để tiếp tục.', {
+        id: 'session-expired',
+        type: 'warning',
+        duration: 7000,
+        action:
+          !isAlreadyOnLogin && isPublicPath
+            ? {
+                label: 'Đăng nhập lại',
+                onClick: () => navigate('/login'),
+              }
+            : undefined,
+      });
+    };
+    window.addEventListener('auth:unauthorized', onUnauthorized);
+    return () => window.removeEventListener('auth:unauthorized', onUnauthorized);
+  }, [navigate]);
 
   // Keyboard shortcut for Command Palette
   useEffect(() => {
@@ -570,18 +573,8 @@ function AppContent() {
   const handleEnterProject = (proj: MangaProject, targetView: ViewMode | string = 'workspace') => {
     setActiveProject(proj);
 
-    // Find roles for the current user in this project
-    const userId = currentUserInfo?.id || 'member-tf'; // default to TF for testing
-    const membership = INITIAL_PROJECT_MEMBERSHIPS.find(
-      (m) => m.projectId === proj.id && m.userId === userId,
-    );
-
-    if (membership && membership.roles.length > 0) {
-      setActiveProjectRoles(membership.roles);
-    } else {
-      // Default fallback
-      setActiveProjectRoles(['READER']);
-    }
+    const defaultRole = currentWorkspaceRole || 'PRODUCER';
+    setActiveProjectRoles([defaultRole]);
 
     navigate(targetView === 'workspace' ? '/workspace' : `/${targetView}`);
     showToast('Entered Studio Workspace', `Active workspace: ${proj.title}`);
@@ -596,8 +589,11 @@ function AppContent() {
   };
 
   const handleLogout = () => {
+    void authService.logout(); // thu hồi refresh token trên BE (đọc token trước khi xoá bên dưới)
     auth.signOut();
+    offlineQueueService.clearQueue();
     localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
     localStorage.removeItem('userRole');
     localStorage.removeItem('user');
     localStorage.removeItem('pf_remember_device');
@@ -609,7 +605,13 @@ function AppContent() {
     setIsAuthenticated(false);
     setCurrentRole('USER');
     setCurrentWorkspaceRole(null);
-    showToast('Đăng xuất', 'Đã đăng xuất khỏi phiên làm việc.');
+    // Chủ động đăng xuất: về trang chủ sạch, không để PrivateRoute đẩy sang /login?redirect=<trang cũ>.
+    navigate('/', { replace: true });
+    showToast('Đã đăng xuất', 'Bạn đã đăng xuất khỏi PanelForge.', {
+      id: 'auth-logout',
+      type: 'logout',
+      duration: 5000,
+    });
   };
 
   const verifiedRole = getRoleFromToken();
@@ -618,214 +620,105 @@ function AppContent() {
       ? '/admin'
       : '/workspaces';
 
+  const handleApiLoginSuccess = (authResponse: any, customRedirect?: string) => {
+    setIsLoginModalOpen(false);
+    setIsRegisterModalOpen(false);
+    setIsAuthenticated(true);
+    localStorage.removeItem('demoRole');
+    localStorage.removeItem('isDemoMode');
+    const role = normalizeSystemRole(authResponse?.user?.role);
+    setCurrentRole(role);
+    setCurrentUserInfo({
+      id: authResponse?.user?.id,
+      name: authResponse?.user?.fullName || authResponse?.user?.email?.split('@')[0] || 'User',
+      email: authResponse?.user?.email || '',
+      role,
+      canCreateStudio: authResponse?.user?.canCreateStudio,
+      isTwoFactorEnabled: authResponse?.user?.isTwoFactorEnabled,
+    });
+    if (authResponse?.user) {
+      localStorage.setItem('user', JSON.stringify(authResponse.user));
+    }
+    localStorage.setItem('userRole', role);
+
+    if (authResponse?.token) {
+      localStorage.setItem('token', authResponse.token);
+    }
+    if (authResponse?.refreshToken) {
+      localStorage.setItem('refreshToken', authResponse.refreshToken);
+    }
+
+    if (customRedirect) {
+      navigate(customRedirect);
+      showToast(
+        'Đăng nhập thành công',
+        `Chào mừng ${authResponse?.user?.fullName || 'bạn'} (Vai trò: ${role})!`,
+      );
+      return;
+    }
+
+    // BR-23 / F3: Điều hướng theo suggestedLanding từ landing-context API
+    authService
+      .getLandingContext()
+      .then((landing) => {
+        if (landing?.suggestedLanding === 'AdminDashboard') {
+          navigate('/admin');
+        } else if (landing?.suggestedLanding === 'YourWorkspaces') {
+          navigate('/workspaces');
+        } else if (landing?.suggestedLanding === 'StudioCreation') {
+          navigate(landing.canCreateStudio ? '/producer' : '/workspaces');
+        } else if (landing?.suggestedLanding === 'PublicCatalog') {
+          navigate('/catalog');
+        } else {
+          navigate(role === 'ADMINISTRATOR' ? '/admin' : '/workspaces');
+        }
+      })
+      .catch(() => {
+        navigate(role === 'ADMINISTRATOR' ? '/admin' : '/workspaces');
+      });
+
+    showToast(
+      'Đăng nhập thành công',
+      `Chào mừng ${authResponse?.user?.fullName || 'bạn'} (Vai trò: ${role})!`,
+    );
+  };
+
+  const handleRegisterSuccess = (authResponse: any, customRedirect?: string) => {
+    handleApiLoginSuccess(authResponse, customRedirect);
+  };
+
   return (
     <div className='min-h-screen bg-[#F8F6F0] text-[#171717] font-sans antialiased selection:bg-[#F97316]/20 selection:text-[#EA580C] relative'>
-      <Routes>
-        <Route
-          path='/'
-          element={
-            !isAuthenticated ? (
-              <LandingPageView
-                onOpenLogin={() => setIsLoginModalOpen(true)}
-                onOpenRegister={() => setIsRegisterModalOpen(true)}
-              />
-            ) : (
-              <Navigate to={defaultRedirectPath} replace />
-            )
-          }
-        />
-
-        <Route
-          path='/login'
-          element={
-            !isAuthenticated ? (
-              <LandingPageView
-                onOpenLogin={() => setIsLoginModalOpen(true)}
-                onOpenRegister={() => setIsRegisterModalOpen(true)}
-              />
-            ) : (
-              <Navigate to={defaultRedirectPath} replace />
-            )
-          }
-        />
-
-        <Route
-          element={
-            <PrivateRoute isAuthenticated={isAuthenticated}>
-              <Outlet />
-            </PrivateRoute>
-          }
-        >
-          <Route
-            path='workspaces'
-            element={
-              <div className='h-screen w-full overflow-y-auto custom-scrollbar bg-[#FAF8F4]'>
-                <WorkspaceListView
-                  onSelectWorkspace={handleSelectWorkspace}
-                  currentUser={{
-                    name:
-                      currentUserInfo?.name ||
-                      firebaseUser?.displayName ||
-                      firebaseUser?.email?.split('@')[0] ||
-                      'User',
-                    email: currentUserInfo?.email || firebaseUser?.email || '',
-                    role: currentRole,
-                    avatarUrl: firebaseUser?.photoURL,
-                    canCreateStudio: currentUserInfo?.canCreateStudio,
-                  }}
-                  onLogout={handleLogout}
-                />
-              </div>
-            }
-          />
-
-          <Route path='projects' element={<Navigate to='/workspaces' replace />} />
-
-          <Route
-            element={
-              <GlobalAppShell
-                currentUser={{
-                  name:
-                    currentUserInfo?.name ||
-                    firebaseUser?.displayName ||
-                    firebaseUser?.email?.split('@')[0] ||
-                    'Tatsuki F.',
-                  role: currentRole,
-                  workspaceRole: currentWorkspaceRole,
-                  activeRoles: activeProjectRoles,
-                  avatarInitials: (
-                    currentUserInfo?.name ||
-                    firebaseUser?.displayName ||
-                    currentRole ||
-                    'U'
-                  )
-                    .charAt(0)
-                    .toUpperCase(),
-                }}
-                activeWorkspace={activeWorkspace}
-                activeSeries={activeProject}
-                aiState='active'
-                onLogout={handleLogout}
-                onLeaveFeedback={() => showToast('Feedback', 'Thanks for your feedback!')}
-                onOpenTwoFactor={() => setIsTwoFactorModalOpen(true)}
-                onOpenChangePassword={() => setIsChangePasswordModalOpen(true)}
-              />
-            }
-          >
-            <Route path='workspaces/:workspaceId'>
-              <Route index element={<ProducerWorkspaceView />} />
-              <Route path='overview' element={<ProducerWorkspaceView />} />
-              <Route
-                path='members'
-                element={
-                  <MembersRolesView
-                    activeProject={activeProject}
-                    workspaceId={activeWorkspace?.id}
-                    members={members}
-                    onInviteMember={handleInviteMember}
-                    onUpdateMemberRole={(memberId, newRole) => {
-                      setMembers((prev) =>
-                        prev.map((m) => (m.id === memberId ? { ...m, role: newRole } : m)),
-                      );
-                      showToast('Cập nhật quyền', `Đã phân quyền ${newRole} cho thành viên`);
-                    }}
-                    onShowToast={showToast}
-                  />
-                }
-              />
-
-              <Route path='series/:seriesId'>
-                <Route path='members' element={<SeriesMembersView onShowToast={showToast} />} />
-                <Route
-                  path='dashboard'
-                  element={
-                    <DashboardView
-                      activeProject={activeProject}
-                      assistants={assistants}
-                      provenanceLogs={provenanceLogs}
-                      onShowToast={showToast}
-                    />
-                  }
-                />
-                <Route
-                  path='workspace'
-                  element={
-                    <WorkspaceView
-                      currentUserRole={currentWorkspaceRole}
-                      systemRole={currentRole}
-                      userRoles={activeProjectRoles}
-                      onShowToast={showToast}
-                    />
-                  }
-                />
-                <Route
-                  path='task/:taskId'
-                  element={
-                    <TaskEditor
-                      activeRoles={activeProjectRoles}
-                      onShowToast={showToast}
-                      isDevMode={IS_DEV_MODE}
-                    />
-                  }
-                />
-                <Route
-                  path='bible'
-                  element={
-                    <SeriesBibleView
-                      activeProject={activeProject}
-                      onAddEntity={handleAddEntity}
-                      onSelectSeries={(p) => setActiveProject(p)}
-                      onEditEntity={(e) => showToast('Series Bible', `Mở chi tiết ${e.name}`)}
-                      onShowToast={showToast}
-                    />
-                  }
-                />
-                <Route path='export' element={<ExportView onShowToast={showToast} />} />
-              </Route>
-            </Route>
-
-            {/* Flat routes for backward compatibility / other views */}
-            <Route path='producer' element={<ProducerWorkspaceView />} />
-            <Route
-              path='review/:taskId'
-              element={
-                <ReviewView
-                  activeRoles={activeProjectRoles}
-                  onShowToast={showToast}
-                  isDevMode={IS_DEV_MODE}
-                />
-              }
-            />
-            <Route path='reader' element={<ReaderPortalView />} />
-            <Route path='profile' element={<UserProfile />} />
-            <Route path='artist' element={<ArtistDeskView />} />
-            <Route
-              path='catalog'
-              element={<PublicCatalogView onBackToWorkspaces={() => navigate('/workspaces')} />}
-            />
-            <Route path='notifications' element={<NotificationCenterView />} />
-          </Route>
-
-          {/* Standalone Global Admin Portal (Decoupled completely from GlobalAppShell) */}
-          <Route
-            path='admin'
-            element={
-              <AdminRoute activeRoles={activeProjectRoles} currentRole={currentRole}>
-                <AdminDashboard
-                  onLogout={handleLogout}
-                  currentUser={{
-                    name: currentUserInfo?.name || firebaseUser?.displayName || 'Administrator',
-                    email: currentUserInfo?.email || firebaseUser?.email || 'admin@panelforge.sys',
-                    role: currentRole,
-                  }}
-                />
-              </AdminRoute>
-            }
-          />
-
-          <Route path='*' element={<Navigate to={defaultRedirectPath} replace />} />
-        </Route>
-      </Routes>
+      <AppRoutes
+        isAuthenticated={isAuthenticated}
+        defaultRedirectPath={defaultRedirectPath}
+        handleSelectWorkspace={handleSelectWorkspace}
+        currentUserInfo={currentUserInfo}
+        firebaseUser={firebaseUser}
+        currentRole={currentRole}
+        currentWorkspaceRole={currentWorkspaceRole}
+        activeProjectRoles={activeProjectRoles}
+        activeWorkspace={activeWorkspace}
+        activeProject={activeProject}
+        setActiveProject={setActiveProject}
+        handleLogout={handleLogout}
+        showToast={showToast}
+        setIsTwoFactorModalOpen={setIsTwoFactorModalOpen}
+        setIsChangePasswordModalOpen={setIsChangePasswordModalOpen}
+        setIsLoginModalOpen={setIsLoginModalOpen}
+        setIsRegisterModalOpen={setIsRegisterModalOpen}
+        setIsCommandPaletteOpen={setCommandPaletteOpen}
+        setIsAuditLogOpen={setAuditLogOpen}
+        members={members}
+        setMembers={setMembers}
+        handleInviteMember={handleInviteMember}
+        assistants={assistants}
+        provenanceLogs={provenanceLogs}
+        handleAddEntity={handleAddEntity}
+        isDevMode={IS_DEV_MODE}
+        onApiLoginSuccess={handleApiLoginSuccess}
+        onRegisterSuccess={handleRegisterSuccess}
+      />
 
       {/* Các Modals dùng chung */}
       <GlobalModals
@@ -843,6 +736,8 @@ function AppContent() {
         entities={entities}
         provenanceLogs={provenanceLogs}
         activeProjectRoles={activeProjectRoles}
+        activeWorkspace={activeWorkspace}
+        currentRole={currentRole}
         setCurrentView={(v) => navigate(`/${v}`)}
         showToast={showToast}
         handleUpdateCardStage={handleUpdateCardStage}
@@ -898,9 +793,6 @@ function AppContent() {
             setIsAuthenticated(true);
             localStorage.removeItem('demoRole');
             localStorage.removeItem('isDemoMode');
-            if (res?.token) {
-              localStorage.setItem('token', res.token);
-            }
             const role = normalizeSystemRole(res?.user?.role);
             setCurrentRole(role);
             setCurrentUserInfo({
@@ -913,62 +805,25 @@ function AppContent() {
               email: res?.user?.email || res?.email || '',
               role,
             });
+            if (res?.user) {
+              localStorage.setItem('user', JSON.stringify(res.user));
+            }
             localStorage.setItem('userRole', role);
+
+            if (res?.token) {
+              localStorage.setItem('token', res.token);
+            }
+            if (res?.refreshToken) {
+              localStorage.setItem('refreshToken', res.refreshToken);
+            }
+
             navigate(role === 'ADMINISTRATOR' ? '/admin' : '/workspaces');
             const displayName =
               res?.user?.fullName || res?.user?.email || res?.displayName || res?.email || 'bạn';
             const roleLabel = role === 'ADMINISTRATOR' ? 'Administrator' : 'User';
             showToast('Đăng nhập thành công', `Chào mừng ${displayName} (Vai trò: ${roleLabel})!`);
           }}
-          onApiLoginSuccess={(authResponse) => {
-            setIsLoginModalOpen(false);
-            setIsAuthenticated(true);
-            localStorage.removeItem('demoRole');
-            localStorage.removeItem('isDemoMode');
-            if (authResponse?.token) {
-              localStorage.setItem('token', authResponse.token);
-            }
-            const role = normalizeSystemRole(authResponse?.user?.role);
-            setCurrentRole(role);
-            setCurrentUserInfo({
-              id: authResponse?.user?.id,
-              name:
-                authResponse?.user?.fullName || authResponse?.user?.email?.split('@')[0] || 'User',
-              email: authResponse?.user?.email || '',
-              role,
-              canCreateStudio: authResponse?.user?.canCreateStudio,
-              isTwoFactorEnabled: authResponse?.user?.isTwoFactorEnabled,
-            });
-            if (authResponse?.user) {
-              localStorage.setItem('user', JSON.stringify(authResponse.user));
-            }
-            localStorage.setItem('userRole', role);
-
-            // BR-23 / F3: Điều hướng theo suggestedLanding từ landing-context API
-            authService
-              .getLandingContext(authResponse?.token)
-              .then((landing) => {
-                if (landing?.suggestedLanding === 'AdminDashboard') {
-                  navigate('/admin');
-                } else if (landing?.suggestedLanding === 'YourWorkspaces') {
-                  navigate('/workspaces');
-                } else if (landing?.suggestedLanding === 'StudioCreation') {
-                  navigate(landing.canCreateStudio ? '/producer' : '/workspaces');
-                } else if (landing?.suggestedLanding === 'PublicCatalog') {
-                  navigate('/catalog');
-                } else {
-                  navigate(role === 'ADMINISTRATOR' ? '/admin' : '/workspaces');
-                }
-              })
-              .catch(() => {
-                navigate(role === 'ADMINISTRATOR' ? '/admin' : '/workspaces');
-              });
-
-            showToast(
-              'Đăng nhập thành công',
-              `Chào mừng ${authResponse?.user?.fullName || 'bạn'} (Vai trò: ${role})!`,
-            );
-          }}
+          onApiLoginSuccess={handleApiLoginSuccess}
         />
       )}
 
@@ -979,28 +834,7 @@ function AppContent() {
             setIsRegisterModalOpen(false);
             setIsLoginModalOpen(true);
           }}
-          onSuccess={(authResponse) => {
-            setIsRegisterModalOpen(false);
-            setIsAuthenticated(true);
-            if (authResponse?.token) {
-              localStorage.setItem('token', authResponse.token);
-            }
-            const role = normalizeSystemRole(authResponse?.user?.role);
-            setCurrentRole(role);
-            setCurrentUserInfo({
-              id: authResponse?.user?.id,
-              name:
-                authResponse?.user?.fullName || authResponse?.user?.email?.split('@')[0] || 'User',
-              email: authResponse?.user?.email || '',
-              role,
-            });
-            localStorage.setItem('userRole', role);
-            navigate(role === 'ADMINISTRATOR' ? '/admin' : '/workspaces');
-            showToast(
-              'Kích hoạt thành công',
-              `Chào mừng ${authResponse?.user?.fullName || 'bạn'} (Vai trò: ${role})!`,
-            );
-          }}
+          onSuccess={handleRegisterSuccess}
         />
       )}
 
@@ -1009,7 +843,6 @@ function AppContent() {
         onClose={() => setIsTwoFactorModalOpen(false)}
         twoFactorEnabled={currentUserInfo?.isTwoFactorEnabled ?? false}
         isTwoFactorEnabled={currentUserInfo?.isTwoFactorEnabled ?? false}
-        token={localStorage.getItem('token') || ''}
         onSuccess={() => {
           showToast('Bảo mật 2FA', 'Đã kích hoạt thành công Google Authenticator cho tài khoản!');
           setCurrentUserInfo((prev) => (prev ? { ...prev, isTwoFactorEnabled: true } : prev));
@@ -1024,6 +857,10 @@ function AppContent() {
             }
           }
         }}
+        onDisabled={() => {
+          showToast('Bảo mật 2FA', 'Đã tắt xác thực 2 lớp cho tài khoản.');
+          setCurrentUserInfo((prev) => (prev ? { ...prev, isTwoFactorEnabled: false } : prev));
+        }}
       />
 
       <ChangePasswordModal
@@ -1031,7 +868,6 @@ function AppContent() {
         onClose={() => setIsChangePasswordModalOpen(false)}
         twoFactorEnabled={currentUserInfo?.isTwoFactorEnabled ?? false}
         isTwoFactorEnabled={currentUserInfo?.isTwoFactorEnabled ?? false}
-        token={localStorage.getItem('token') || ''}
         onSuccess={() => {
           showToast('Change Password', 'Account password updated successfully!');
         }}
@@ -1045,7 +881,7 @@ function AppContent() {
           <div className='glass rounded-full shadow-[0_8px_30px_rgba(0,0,0,0.14)] border border-[#e7e7e7]/80 p-1.5 flex items-center gap-1'>
             <div className='hidden sm:flex items-center gap-1.5 pl-2 pr-1.5 py-1'>
               <span className='w-1.5 h-1.5 rounded-full bg-[#f97316] pulse-dot'></span>
-              <span className='text-[10px] font-semibold text-[#404040] uppercase tracking-[0.15em]'>
+              <span className='text-xs font-semibold text-[#404040] uppercase tracking-[0.15em]'>
                 Preview
               </span>
             </div>
@@ -1076,7 +912,7 @@ function AppContent() {
                   >
                     <Icon className='w-4 h-4' />
                   </button>
-                  <div className='absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-[#171717] text-white text-[10px] rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none'>
+                  <div className='absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-[#171717] text-white text-xs rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none'>
                     {label}
                     <div className='absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[#171717]'></div>
                   </div>
@@ -1088,21 +924,7 @@ function AppContent() {
       )}
       */}
 
-      {/* Floating Toast Notification Stack */}
-      <div className='fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none'>
-        {toasts.map((toast) => (
-          <div
-            key={toast.id}
-            className='pointer-events-auto bg-[#171717] text-white px-4 py-3 rounded-xl shadow-2xl border border-[#333333] flex items-start gap-3 max-w-sm animate-in slide-in-from-bottom-5 fade-in duration-200'
-          >
-            <CheckCircle2 className='w-4 h-4 text-[#10B981] shrink-0 mt-0.5' />
-            <div>
-              <div className='text-xs font-bold text-white font-display'>{toast.title}</div>
-              <div className='text-[11px] text-[#CCCCCC] mt-0.5 leading-snug'>{toast.desc}</div>
-            </div>
-          </div>
-        ))}
-      </div>
+      
     </div>
   );
 }
@@ -1110,7 +932,11 @@ function AppContent() {
 export default function App() {
   return (
     <BrowserRouter>
-      <AppContent />
+      <ConfirmProvider>
+        <ToastProvider>
+          <AppContent />
+        </ToastProvider>
+      </ConfirmProvider>
     </BrowserRouter>
   );
 }

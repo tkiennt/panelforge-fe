@@ -1,0 +1,19 @@
+{
+  "title": "Hồ sơ cá nhân",
+  "subtitle": "Quản lý thông tin tài khoản, ảnh đại diện và bảo mật",
+  "fullName": "Họ và tên",
+  "email": "Địa chỉ Email",
+  "role": "Vai trò hệ thống",
+  "avatar": "Ảnh đại diện",
+  "changeAvatar": "Đổi ảnh đại diện",
+  "security": "Bảo mật & Xác thực",
+  "changePassword": "Đổi mật khẩu",
+  "twoFactor": "Xác thực 2 bước (2FA TOTP)",
+  "twoFactorEnabled": "Đã bật bảo vệ 2 lớp",
+  "twoFactorDisabled": "Chưa kích hoạt",
+  "enable2FA": "Bật xác thực 2 bước",
+  "disable2FA": "Tắt xác thực 2 bước",
+  "myStudios": "Studio của bạn",
+  "saveChanges": "Lưu thay đổi",
+  "logout": "Đăng xuất"
+}

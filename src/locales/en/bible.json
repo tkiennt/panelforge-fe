@@ -1,0 +1,39 @@
+{
+  "title": "Series Bible",
+  "subtitle": "Canonical world-building and character repository",
+  "categories": {
+    "all": "All Entries",
+    "character": "Character",
+    "location": "Location & Setting",
+    "item": "Item & Equipment",
+    "lore": "World Rule & Lore"
+  },
+  "fields": {
+    "name": "Name",
+    "alias": "Alias / Nickname",
+    "role": "Narrative Role",
+    "visualDescription": "Visual Description",
+    "personality": "Personality & Traits",
+    "referenceImages": "Reference Images",
+    "traits": "Traits",
+    "tags": "Tags",
+    "version": "Version"
+  },
+  "canonLock": {
+    "badge": "Canon Locked",
+    "lockedTooltip": "This entry is canon-locked. Direct edits are disabled.",
+    "supersedeAction": "Supersede Locked Revision",
+    "supersedeTitle": "Create Supersede Revision",
+    "supersedeDesc": "The new revision will be submitted to Editorial review before superseding the locked entry.",
+    "supersedeConfirm": "Confirm Revision",
+    "lockedWarning": "This entry is canon-locked. Editor approval required to supersede."
+  },
+  "drawer": {
+    "title": "Series Bible Reference",
+    "panelReference": "References for Panel #{number}",
+    "noPanelSelection": "No panel selected",
+    "selectToView": "Select a panel to inspect characters and settings anchored to this scene.",
+    "copyPrompt": "Copy AI Prompt",
+    "promptCopied": "Reference prompt copied."
+  }
+}

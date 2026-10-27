@@ -1,0 +1,22 @@
+{
+  "dashboard": {
+    "title": "System Administration",
+    "subtitle": "User administration, role assignment, and resource monitoring",
+    "usersTab": "Users",
+    "studiosTab": "Studios List",
+    "quotasTab": "Quotas & Resources",
+    "logsTab": "System Audit Logs",
+    "searchUser": "Search users...",
+    "grantRole": "Assign Role",
+    "createStudioPermission": "Producer Studio Creation Privilege"
+  },
+  "overview": {
+    "title": "System Overview",
+    "updatedAt": "Updated at {time}",
+    "errorLoading": "Failed to load system statistics.",
+    "totalUsers": "Total Users",
+    "registeredUsers": "Standard Users",
+    "activeWorkspaces": "Active Workspaces",
+    "storageUsed": "Storage Used"
+  }
+}

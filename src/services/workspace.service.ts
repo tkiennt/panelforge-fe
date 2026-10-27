@@ -10,6 +10,12 @@ export interface UpdateWorkspaceRequest {
   name: string;
 }
 
+export interface WorkspaceMemberPreviewDto {
+  userId: string;
+  fullName: string;
+  avatarUrl?: string | null;
+}
+
 export interface WorkspaceDto {
   id: string;
   name: string;
@@ -20,8 +26,44 @@ export interface WorkspaceDto {
   usedStorageBytes: number;
   createdAt: string;
   isOwner: boolean;
-  currentUserRole: string | number | null;
+  currentUserRole?: string | number | null;
   memberCount: number;
+  pendingTasks?: number;
+  coverUrl?: string | null;
+  description?: string | null;
+  memberPreviews?: WorkspaceMemberPreviewDto[] | null;
+}
+
+export interface UsageMeterDto {
+  used: number;
+  quota: number;
+  isUnlimited: boolean;
+  percentUsed: number | null;
+}
+
+export interface WorkspaceUsageDto {
+  workspaceId: string;
+  storage: UsageMeterDto;
+  aiTokens: UsageMeterDto | null;
+  aiEnabled: boolean | null;
+  images: UsageMeterDto | null;
+  activeSessions?: UsageMeterDto | null;
+  activeMemberCount?: number | null;
+  maxConcurrentSessionsPerUser?: number | null;
+}
+
+export interface WorkspaceSessionDto {
+  sessionId: string;
+  userId: string;
+  fullName: string;
+  email: string;
+  role: string;
+  deviceName?: string | null;
+  ipAddress?: string | null;
+  userAgent?: string | null;
+  sessionStartedAt: string;
+  lastActiveAt: string;
+  isCurrentSession: boolean;
 }
 
 export interface WorkspaceMemberDto {
@@ -33,6 +75,9 @@ export interface WorkspaceMemberDto {
   role: string | number;
   isOwner: boolean;
   joinedAt: string;
+  isEmailConfirmed?: boolean;
+  invitationEmailSent?: boolean;
+  status?: 'Active' | 'Pending' | 'Rejected' | string;
 }
 
 export interface AddWorkspaceMemberRequest {
@@ -73,6 +118,14 @@ export const workspaceService = {
   },
 
   getMyWorkspaces: async (): Promise<WorkspaceDto[]> => {
+    // Chưa đăng nhập thì không gọi API (tránh 401 làm phát 'auth:unauthorized')
+    if (
+      typeof window !== 'undefined' &&
+      !localStorage.getItem('user') &&
+      !localStorage.getItem('token')
+    ) {
+      return [];
+    }
     try {
       const response = await axiosClient.get('/Workspaces');
       return response.data;
@@ -131,6 +184,14 @@ export const workspaceService = {
     }
   },
 
+  resendInvitation: async (id: string, userId: string): Promise<void> => {
+    try {
+      await axiosClient.post(`/Workspaces/${id}/members/${userId}/resend-invitation`);
+    } catch (error) {
+      throw new Error(await parseErrorResponse(error, 'Gửi lại lời mời thất bại.'));
+    }
+  },
+
   updateMemberRole: async (
     id: string,
     userId: string,
@@ -153,6 +214,42 @@ export const workspaceService = {
     }
   },
 
+  acceptInvitation: async (workspaceId: string): Promise<WorkspaceMemberDto> => {
+    try {
+      const response = await axiosClient.post(`/Workspaces/${workspaceId}/accept-invitation`);
+      return response.data;
+    } catch (error) {
+      throw new Error(await parseErrorResponse(error, 'Chấp nhận lời mời thất bại.'));
+    }
+  },
+
+  rejectInvitation: async (workspaceId: string): Promise<void> => {
+    try {
+      await axiosClient.post(`/Workspaces/${workspaceId}/reject-invitation`);
+    } catch (error) {
+      throw new Error(await parseErrorResponse(error, 'Từ chối lời mời thất bại.'));
+    }
+  },
+
+  getPendingInvitations: async (): Promise<
+    Array<{
+      workspaceId: string;
+      workspaceName: string;
+      ownerName: string;
+      ownerEmail: string;
+      role: string;
+      invitedAt: string;
+    }>
+  > => {
+    try {
+      const response = await axiosClient.get('/Workspaces/pending-invitations');
+      return response.data;
+    } catch (error) {
+      console.warn('workspaceService.getPendingInvitations error:', error);
+      return [];
+    }
+  },
+
   getWorkspaceAuditLogs: async (
     workspaceId: string,
     params?: Record<string, any>,
@@ -164,6 +261,79 @@ export const workspaceService = {
       throw new Error(
         await parseErrorResponse(error, 'Không thể tải lịch sử Audit của Workspace.'),
       );
+    }
+  },
+
+  /**
+   * Lấy mức dùng Storage và AI Tokens so với giới hạn (GET /api/workspaces/{id}/usage)
+   */
+  getWorkspaceUsage: async (workspaceId: string): Promise<WorkspaceUsageDto> => {
+    try {
+      const response = await axiosClient.get(`/workspaces/${workspaceId}/usage`);
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        await parseErrorResponse(error, 'Không thể tải mức dùng tài nguyên của Workspace.'),
+      );
+    }
+  },
+
+  /**
+   * Lấy danh sách thiết bị và phiên làm việc đồng thời trong Studio (GET /api/workspaces/{id}/sessions)
+   */
+  getActiveSessions: async (workspaceId: string): Promise<WorkspaceSessionDto[]> => {
+    try {
+      const response = await axiosClient.get(`/workspaces/${workspaceId}/sessions`);
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        await parseErrorResponse(error, 'Không thể tải danh sách phiên làm việc của Studio.'),
+      );
+    }
+  },
+
+  /**
+   * Thu hồi phiên làm việc của một thiết bị (DELETE /api/workspaces/{id}/sessions/{sessionId})
+   */
+  revokeSession: async (workspaceId: string, sessionId: string): Promise<void> => {
+    try {
+      await axiosClient.delete(`/workspaces/${workspaceId}/sessions/${sessionId}`);
+    } catch (error) {
+      throw new Error(await parseErrorResponse(error, 'Không thể thu hồi phiên làm việc.'));
+    }
+  },
+
+  /**
+   * Đặt ảnh bìa Studio (PUT /api/workspaces/{id}/cover, multipart/form-data)
+   * Backend lưu lên Cloudflare R2 và cập nhật DB, trả về URL ảnh kèm version hash.
+   */
+  setWorkspaceCover: async (id: string, file: File): Promise<string | null> => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await axiosClient.put<{ value?: string | null }>(
+        `/workspaces/${id}/cover`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        },
+      );
+      return response.data?.value ?? null;
+    } catch (error) {
+      throw new Error(await parseErrorResponse(error, 'Tải ảnh bìa Studio thất bại.'));
+    }
+  },
+
+  /**
+   * Xóa ảnh bìa Studio, quay về ảnh mặc định (DELETE /api/workspaces/{id}/cover)
+   */
+  clearWorkspaceCover: async (id: string): Promise<void> => {
+    try {
+      await axiosClient.delete(`/workspaces/${id}/cover`);
+    } catch (error) {
+      throw new Error(await parseErrorResponse(error, 'Xóa ảnh bìa Studio thất bại.'));
     }
   },
 };
