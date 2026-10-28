@@ -27,11 +27,13 @@ import {
   Info,
   FileText,
   Edit3,
+  Trash2,
 } from 'lucide-react';
 import { BibleEntity, normalizeWorkspaceRole } from '@/types';
 import { BibleEntryDto, BibleEntryRevisionDto, bibleService } from '@/services/bible.service';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { LucianInlineAlert } from '@/shared/components/lucian/LucianInlineAlert';
+import { LucianConfirmModal } from '@/shared/components/lucian/LucianConfirmModal';
 
 export interface CharacterEraStage {
   stageKey: string;
@@ -70,14 +72,24 @@ export function groupRevisionsIntoStages(
     return [];
   }
 
-  // Nhóm các revision thành từng Narrative Era:
-  // Nếu revision có stageName riêng biệt thì tạo thành Era riêng biệt theo stageName + effectiveFrom.
-  // Nếu không có stageName hoặc cùng stageName thì gộp chung theo cùng mốc chương (Asset Version Control).
+  // 1. Tìm stageName chính thức của Chapter 1 (nếu có revision nào ở ch 1 được đặt tên riêng)
+  const ch1NamedRev = all.find(
+    (r) => (r.effectiveFromChapterNumber || 1) === 1 && r.stageName && r.stageName.trim().length > 0,
+  );
+  const ch1DefaultStageName = ch1NamedRev?.stageName?.trim() || null;
+
+  // 2. Nhóm các revision thành từng Narrative Era:
+  // Nếu ở Chapter 1 mà có revision chưa đặt tên, ta gộp nó vào Era của Chapter 1 thay vì tách thành "Giai đoạn chuẩn" riêng biệt
   const groupMap = new Map<string, BibleEntryRevisionDto[]>();
   for (const rev of all) {
     const ch = typeof rev.effectiveFromChapterNumber === 'number' ? rev.effectiveFromChapterNumber : 1;
-    const sName = (rev.stageName || '').trim().toLowerCase();
-    // Khóa nhóm: nếu có stageName riêng thì tách Era theo `ch_${ch}_stage_${sName}`, ngược lại theo `ch_${ch}`
+    let sName = (rev.stageName || '').trim().toLowerCase();
+
+    // Nếu ở Chapter 1 và revision chưa có tên, kế thừa tên stageName của ch 1 nếu đã có
+    if (ch === 1 && !sName && ch1DefaultStageName) {
+      sName = ch1DefaultStageName.toLowerCase();
+    }
+
     const groupKey = sName ? `ch_${ch}_stage_${sName}` : `ch_${ch}`;
     if (!groupMap.has(groupKey)) {
       groupMap.set(groupKey, []);
@@ -97,7 +109,6 @@ export function groupRevisionsIntoStages(
 
   for (const groupKey of sortedGroupKeys) {
     const revList = groupMap.get(groupKey)!;
-    // Sắp xếp các phiên bản của cùng 1 Era theo version giảm dần (version mới nhất đứng đầu)
     const sortedRevs = [...revList].sort((a, b) => (b.versionNumber || 0) - (a.versionNumber || 0));
     const latest = sortedRevs[0];
     const isLocked = sortedRevs.some((r) => r.isLocked);
@@ -107,7 +118,7 @@ export function groupRevisionsIntoStages(
     const namedRev = sortedRevs.find((r) => r.stageName && r.stageName.trim().length > 0);
     const stageName =
       namedRev?.stageName?.trim() ||
-      (ch === 1 ? 'Giai đoạn chuẩn' : `Giai đoạn từ Ch.${ch}`);
+      (ch === 1 ? (ch1DefaultStageName || 'Giai đoạn chuẩn') : `Giai đoạn từ Ch.${ch}`);
 
     stages.push({
       stageKey: `stage-${groupKey.replace(/[^a-zA-Z0-9_-]/g, '_')}`,
@@ -180,6 +191,8 @@ interface BibleEntityDetailModalProps {
   onLockRevision?: (rev: BibleEntryRevisionDto) => Promise<void>;
   onShowToast: (title: string, desc: string) => void;
   onZoomImage: (image: { url: string; title: string }) => void;
+  onDeleteRevision?: (entity: BibleEntity, rev: BibleEntryRevisionDto) => Promise<void>;
+  onDeleteEra?: (entity: BibleEntity, stage: CharacterEraStage) => Promise<void>;
 }
 
 export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
@@ -198,6 +211,8 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
   onLockRevision,
   onShowToast,
   onZoomImage,
+  onDeleteRevision,
+  onDeleteEra,
 }) => {
   const [copiedHash, setCopiedHash] = useState(false);
   const [techOpen, setTechOpen] = useState(false);
@@ -210,6 +225,9 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
   const [isEndorsing, setIsEndorsing] = useState(false);
   const [isLocking, setIsLocking] = useState(false);
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
+  const [revisionToDelete, setRevisionToDelete] = useState<BibleEntryRevisionDto | null>(null);
+  const [eraToDelete, setEraToDelete] = useState<CharacterEraStage | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // User workspace role detection
   const currentRole = useMemo(() => {
@@ -675,7 +693,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                     <span className='font-bold text-[#C2410C] uppercase tracking-wider text-[10px] block mb-0.5'>
                       Trục Cốt Truyện — ERA (Narrative Timeline)
                     </span>
-                    Nhân vật thay đổi theo cốt truyện (Tuổi, Timeskip, Sẹo, Dạng quỷ). Gắn với <strong>Mốc chương hiệu lực (Effective from Chapter)</strong> để AI và Họa sĩ vẽ đúng hình thái.
+                    Nhân vật thay đổi theo cốt truyện (Tuổi, Timeskip, Sẹo, Dạng quỷ). Gắn với <strong>Mốc chương hiệu lực (Effective from Chapter)</strong> để Họa sĩ và ban biên kịch đảm bảo tính nhất quán hình thái.
                   </div>
                   <div className='bg-white/90 p-2.5 rounded-lg border border-violet-100'>
                     <span className='font-bold text-violet-700 uppercase tracking-wider text-[10px] block mb-0.5'>
@@ -734,7 +752,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
               </div>
               <p className='text-xs text-amber-900/90 leading-relaxed'>
                 Bản thiết kế cho giai đoạn này đã được Producer phê duyệt chính thức (Canon Locked).
-                Họa sĩ và AI sử dụng bản vẽ này làm quy chuẩn tham chiếu duy nhất.
+                Toàn bộ đội ngũ sản xuất sử dụng bản vẽ này làm quy chuẩn tham chiếu thống nhất.
               </p>
             </div>
           </div>
@@ -785,7 +803,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
               onClick={() => {
                 onOpenAddRevision(entity);
               }}
-              className='inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-dashed border-[#F97316] text-[#EA580C] hover:bg-[#FFF7ED] text-xs font-semibold rounded-xl transition-all cursor-pointer shadow-2xs ml-auto shrink-0'
+              className='inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white text-xs sm:text-sm font-bold rounded-xl transition-all cursor-pointer shadow-sm hover:shadow active:scale-[0.98] ml-auto shrink-0'
               title='Tạo thời kỳ hoặc hình thái cốt truyện mới'
             >
               <Plus className='w-3.5 h-3.5' />
@@ -815,11 +833,23 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                     <button
                       type='button'
                       onClick={() => onOpenAddRevision(entity, activeRevision)}
-                      className='inline-flex items-center gap-1 px-2.5 py-1 bg-stone-50 hover:bg-[#FFF7ED] border border-stone-200 hover:border-[#F97316] text-[#EA580C] text-[11px] font-semibold rounded-lg transition-colors cursor-pointer'
+                      className='inline-flex items-center gap-1.5 px-3 py-1.5 bg-stone-50 hover:bg-[#FFF7ED] border border-stone-200 hover:border-[#F97316] text-[#EA580C] text-xs font-semibold rounded-xl transition-all cursor-pointer shadow-2xs active:scale-[0.98]'
                       title='Cập nhật đặc tả, độ tuổi, vóc dáng cho thời kỳ này'
                     >
                       <Edit3 className='w-3 h-3' />
                       <span>Sửa đặc tả</span>
+                    </button>
+                  )}
+                  {canCreateDraft && activeStage && !activeStage.isLocked && !activeStage.revisions.some((r) => r.isInitialVersion) && onDeleteEra && (
+                    <button
+                      type='button'
+                      onClick={() => setEraToDelete(activeStage)}
+                      className='inline-flex items-center gap-1.5 px-3 py-1.5 bg-stone-50 hover:bg-rose-50 border border-stone-200 hover:border-rose-300 text-stone-600 hover:text-rose-600 text-xs font-semibold rounded-xl transition-all cursor-pointer shadow-2xs active:scale-[0.98]'
+                      title='Xóa toàn bộ thời kỳ này'
+                      data-testid='delete-era-btn'
+                    >
+                      <Trash2 className='w-3 h-3' />
+                      <span>Xóa thời kỳ</span>
                     </button>
                   )}
                 </div>
@@ -854,7 +884,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                     </span>
                   </div>
                   <p className='text-[11px] text-stone-500'>
-                    Bản vẽ tham chiếu chuẩn cho Họa sĩ &amp; AI
+                    Bản vẽ tham chiếu chuẩn cho đội ngũ sáng tác
                   </p>
                 </div>
 
@@ -1060,7 +1090,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                               true,
                             );
                           }}
-                          className='px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1 shadow-2xs transition-colors cursor-pointer'
+                          className='px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 shadow-sm hover:shadow transition-all cursor-pointer active:scale-[0.98]'
                           data-testid='detail-artist-resubmit-btn'
                         >
                           <RotateCcw className='w-3.5 h-3.5' />
@@ -1080,7 +1110,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                               false,
                             );
                           }}
-                          className='px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1 shadow-2xs transition-colors cursor-pointer'
+                          className='px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 shadow-sm hover:shadow transition-all cursor-pointer active:scale-[0.98]'
                           data-testid='detail-artist-rework-btn'
                         >
                           <Palette className='w-3.5 h-3.5' />
@@ -1093,7 +1123,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                           onClick={() => {
                             onOpenAddRevision(entity, null, true, activeRevision?.effectiveFromChapterNumber);
                           }}
-                          className='px-3 py-1.5 rounded-lg border border-stone-200 hover:bg-stone-50 text-xs font-semibold text-stone-700 hover:text-stone-900 transition flex items-center gap-1.5 cursor-pointer shadow-2xs'
+                          className='px-3.5 py-2 rounded-xl border border-stone-300 bg-white hover:bg-stone-50 text-xs sm:text-sm font-semibold text-stone-700 hover:text-stone-900 transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-[0.98]'
                         >
                           <Upload className='w-3.5 h-3.5 text-[#F97316]' />
                           <span>+ Tải lên Sketch mới</span>
@@ -1109,7 +1139,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                         type='button'
                         disabled={isEndorsing}
                         onClick={() => void handleEndorse(activeRevision)}
-                        className='px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1 shadow-2xs transition-colors cursor-pointer disabled:opacity-50'
+                        className='px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 shadow-sm hover:shadow transition-all cursor-pointer disabled:opacity-50 active:scale-[0.98]'
                         data-testid='detail-endorse-btn'
                       >
                         <CheckCircle2 className='w-3.5 h-3.5' />
@@ -1118,7 +1148,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                       <button
                         type='button'
                         onClick={() => handleRequestRework(activeRevision)}
-                        className='px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-2xs transition-colors cursor-pointer'
+                        className='px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer active:scale-[0.98]'
                         data-testid='detail-rework-btn'
                       >
                         <MessageSquare className='w-3.5 h-3.5' />
@@ -1133,7 +1163,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                       type='button'
                       disabled={isLocking || activeRevision.reviewStatus === 'ReworkRequired'}
                       onClick={() => void handleLock(activeRevision)}
-                      className='px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1 shadow-2xs transition-colors cursor-pointer disabled:opacity-50'
+                      className='px-4 py-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 shadow-sm hover:shadow transition-all cursor-pointer disabled:opacity-50 active:scale-[0.98]'
                       data-testid='detail-lock-btn'
                     >
                       <Lock className='w-3.5 h-3.5' />
@@ -1247,6 +1277,21 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                               aria-label='Copy hash'
                             >
                               <Copy className='w-3 h-3' />
+                            </button>
+                          )}
+                          {canCreateDraft && !isCanon && !rev.isInitialVersion && onDeleteRevision && (
+                            <button
+                              type='button'
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setRevisionToDelete(rev);
+                              }}
+                              className='opacity-0 group-hover:opacity-100 text-stone-400 hover:text-rose-600 transition p-1 cursor-pointer'
+                              title='Xóa phiên bản này'
+                              aria-label='Xóa phiên bản này'
+                              data-testid={`delete-revision-btn-${rev.id}`}
+                            >
+                              <Trash2 className='w-3 h-3' />
                             </button>
                           )}
                         </div>
@@ -1442,7 +1487,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
             onClick={() => {
               onOpenHistory(entity);
             }}
-            className='px-3.5 py-1.5 bg-white hover:bg-stone-50 border border-stone-200 text-stone-700 text-xs font-semibold rounded-full flex items-center gap-1.5 transition-colors cursor-pointer shadow-soft-sm'
+            className='px-4 py-2 bg-white hover:bg-stone-50 border border-stone-300 text-stone-700 text-xs font-semibold rounded-xl flex items-center gap-2 transition-all cursor-pointer shadow-2xs active:scale-[0.98]'
           >
             <History className='w-3.5 h-3.5 text-[#EA580C]' />
             <span>Xem lịch sử phiên bản</span>
@@ -1454,7 +1499,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
               onClick={() => {
                 onOpenAddRevision(entity);
               }}
-              className='px-3.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-semibold rounded-full flex items-center gap-1.5 transition-colors cursor-pointer shadow-soft-sm'
+              className='px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl flex items-center gap-2 transition-all cursor-pointer shadow-sm hover:shadow active:scale-[0.98]'
             >
               <GitCommit className='w-3.5 h-3.5' />
               <span>{isProducer ? '+ Tạo phiên bản mới' : '+ Tạo bản nháp mới'}</span>
@@ -1471,7 +1516,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
         <button
           type='button'
           onClick={onClose}
-          className='px-4 py-1.5 bg-[#292524] hover:bg-black text-white text-xs font-semibold rounded-full transition-colors cursor-pointer active:scale-95 shadow-soft-sm'
+          className='px-5 py-2 bg-stone-900 hover:bg-black text-white text-xs font-semibold rounded-xl transition-all cursor-pointer active:scale-95 shadow-sm'
         >
           Đóng
         </button>
@@ -1479,5 +1524,65 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
     </div>
   );
 
-  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : modalContent;
+  const finalContent = (
+    <>
+      {modalContent}
+
+      {/* Confirm Delete Revision Modal */}
+      <LucianConfirmModal
+        isOpen={!!revisionToDelete}
+        title="Xác nhận xóa phiên bản"
+        description={`Bạn có chắc chắn muốn xóa phiên bản v${revisionToDelete?.versionNumber || ''} này không? Thao tác này không thể hoàn tác.`}
+        confirmText={isDeleting ? "Đang xóa..." : "Xóa phiên bản"}
+        cancelText="Hủy"
+        variant="danger"
+        onCancel={() => setRevisionToDelete(null)}
+        onConfirm={async () => {
+          if (!revisionToDelete || !onDeleteRevision) return;
+          try {
+            setIsDeleting(true);
+            await onDeleteRevision(entity, revisionToDelete);
+            setRevisionToDelete(null);
+            setAllRevisions((prev) => prev.filter((r) => r.id !== revisionToDelete.id));
+            if (selectedVersionId === revisionToDelete.id) {
+              setSelectedVersionId(null);
+            }
+          } catch (err: any) {
+            onShowToast('Lỗi', err.message || 'Không thể xóa phiên bản.');
+          } finally {
+            setIsDeleting(false);
+          }
+        }}
+      />
+
+      {/* Confirm Delete Era Modal */}
+      <LucianConfirmModal
+        isOpen={!!eraToDelete}
+        title="Xác nhận xóa thời kỳ"
+        description={`Bạn có chắc chắn muốn xóa thời kỳ "${eraToDelete?.stageName || ''}" (Chương ${eraToDelete?.effectiveFromChapterNumber || 1}) và tất cả các phiên bản liên quan chưa khóa? Thao tác này không thể hoàn tác.`}
+        confirmText={isDeleting ? "Đang xóa..." : "Xóa thời kỳ"}
+        cancelText="Hủy"
+        variant="danger"
+        onCancel={() => setEraToDelete(null)}
+        onConfirm={async () => {
+          if (!eraToDelete || !onDeleteEra) return;
+          try {
+            setIsDeleting(true);
+            await onDeleteEra(entity, eraToDelete);
+            const eraRevIds = new Set(eraToDelete.revisions.map((r) => r.id));
+            setEraToDelete(null);
+            setAllRevisions((prev) => prev.filter((r) => !eraRevIds.has(r.id)));
+            setSelectedStageKey('');
+            setSelectedVersionId(null);
+          } catch (err: any) {
+            onShowToast('Lỗi', err.message || 'Không thể xóa thời kỳ.');
+          } finally {
+            setIsDeleting(false);
+          }
+        }}
+      />
+    </>
+  );
+
+  return typeof document !== 'undefined' ? createPortal(finalContent, document.body) : finalContent;
 };

@@ -122,6 +122,24 @@ export const bibleService = {
     }
   },
 
+  async deleteRevision(seriesId: string, entryId: string, revisionId: string): Promise<void> {
+    try {
+      await axiosClient.delete(`/series/${seriesId}/bible/entries/${entryId}/revisions/${revisionId}`);
+    } catch (error) {
+      throw extractError(error, 'Không thể xóa phiên bản.');
+    }
+  },
+
+  async deleteEra(seriesId: string, entryId: string, chapterNumber: number, stageName?: string | null): Promise<void> {
+    try {
+      const query = new URLSearchParams({ chapterNumber: chapterNumber.toString() });
+      if (stageName) query.append('stageName', stageName);
+      await axiosClient.delete(`/series/${seriesId}/bible/entries/${entryId}/eras?${query.toString()}`);
+    } catch (error) {
+      throw extractError(error, 'Không thể xóa thời kỳ.');
+    }
+  },
+
   async getBibleEntriesAtChapter(
     seriesId: string,
     chapterNumber: number,

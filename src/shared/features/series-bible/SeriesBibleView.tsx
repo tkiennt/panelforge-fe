@@ -42,7 +42,7 @@ import {
 import { seriesService } from '@/services/series.service';
 import { chapterService, ChapterDto } from '@/services/chapter.service';
 import { AddEntityModal } from './AddEntityModal';
-import { BibleEntityDetailModal } from './BibleEntityDetailModal';
+import { BibleEntityDetailModal, type CharacterEraStage } from './BibleEntityDetailModal';
 import { PageContainer } from '@/shared/components/PageContainer';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { createPortal } from 'react-dom';
@@ -909,7 +909,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
 
     const confirmed = await confirm({
       title: `Duyệt & Khóa phiên bản v${rev.versionNumber}?`,
-      description: `Cố định phiên bản này của nhân vật "${targetEntity.name}" làm tham chiếu chuẩn (Canon) để Artist và AI đối chiếu.`,
+      description: `Cố định phiên bản này của nhân vật "${targetEntity.name}" làm tham chiếu chuẩn (Canon) cho toàn bộ đội ngũ sáng tác và sản xuất.`,
       confirmText: 'Duyệt & Khóa Canon',
       cancelText: 'Hủy',
       variant: 'warning',
@@ -1409,6 +1409,33 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
       );
     } catch (err: any) {
       onShowToast('Lỗi thêm mục Bible', err.message || 'Không thể tạo bản ghi Series Bible.');
+    }
+  };
+
+  const handleDeleteRevision = async (entity: BibleEntity, rev: BibleEntryRevisionDto) => {
+    if (!effectiveSeries?.id) return;
+    try {
+      await bibleService.deleteRevision(effectiveSeries.id, entity.id, rev.id);
+      onShowToast('Thành công', `Đã xóa phiên bản v${rev.versionNumber} của ${entity.name}.`);
+      setRefreshTrigger((prev) => prev + 1);
+    } catch (err: any) {
+      throw err;
+    }
+  };
+
+  const handleDeleteEra = async (entity: BibleEntity, stage: CharacterEraStage) => {
+    if (!effectiveSeries?.id) return;
+    try {
+      await bibleService.deleteEra(
+        effectiveSeries.id,
+        entity.id,
+        stage.effectiveFromChapterNumber,
+        stage.stageName,
+      );
+      onShowToast('Thành công', `Đã xóa thời kỳ "${stage.stageName}" (Chương ${stage.effectiveFromChapterNumber}) của ${entity.name}.`);
+      setRefreshTrigger((prev) => prev + 1);
+    } catch (err: any) {
+      throw err;
     }
   };
 
@@ -2527,6 +2554,8 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
           onLockRevision={(rev) => handleLockRevision(rev, selectedEntity)}
           onShowToast={onShowToast}
           onZoomImage={(img) => setSelectedImageZoom(img)}
+          onDeleteRevision={(ent, rev) => handleDeleteRevision(ent, rev)}
+          onDeleteEra={(ent, stg) => handleDeleteEra(ent, stg)}
         />
       )}
 

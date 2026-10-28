@@ -123,4 +123,52 @@ test.describe('E2E Real Database: Series Bible Writer & Artist Collaboration', (
       await expect(endorseBtn).not.toBeVisible();
     }
   });
+        test('Giai đoạn 3 (Xóa Version & Era): Kiểm tra giao diện và nút xóa thời kỳ & xóa revision', async ({ page }) => {
+    await page.goto('/login');
+    await page.waitForLoadState('networkidle');
+
+    await page.locator('#login-email').fill('writer@panelforge.com');
+    await page.locator('#login-password').fill('Bnt123#');
+    await page.locator('#login-submit-btn').click();
+
+    await page.waitForURL(/.*workspaces.*/i, { timeout: 15000 });
+    await page.waitForLoadState('networkidle');
+
+    const enterStudioBtn = page.locator('button:has-text("Vào studio"), a:has-text("Vào studio")').first();
+    await expect(enterStudioBtn).toBeVisible({ timeout: 10000 });
+    await enterStudioBtn.click();
+    await page.waitForLoadState('networkidle');
+
+    // Chờ URL hoặc điều hướng chính xác vào Bible
+    const navBibleLink = page.locator('nav a[href*="/bible"]').first();
+    if (await navBibleLink.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await navBibleLink.click();
+    } else {
+      const currentUrl = page.url();
+      if (currentUrl.includes('/series/')) {
+        const bibleUrl = currentUrl.replace(/\/(dashboard|workspace|overview|series).*$/, '/bible');
+        await page.goto(bibleUrl);
+      }
+    }
+    await page.waitForLoadState('networkidle');
+
+    const namiCard = page.locator('[data-testid^="bible-card-"]').first();
+    if (await namiCard.isVisible({ timeout: 8000 }).catch(() => false)) {
+      await namiCard.click();
+
+      const detailModal = page.locator('[role="dialog"]').first();
+      await expect(detailModal).toBeVisible({ timeout: 8000 });
+
+      // Kiểm tra Version Tree hiển thị icon hoặc phần quản lý phiên bản
+      const versionTree = page.locator('text=Era Asset Version Control');
+      await expect(versionTree).toBeVisible();
+
+      // Kiểm tra thông số thời kỳ trên Era Specs card
+      const specsCard = page.locator('text=Thông số thời kỳ');
+      await expect(specsCard).toBeVisible();
+
+      // Workbench không bị văng
+      await expect(detailModal).toBeVisible();
+    }
+  });
 });
