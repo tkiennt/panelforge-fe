@@ -16,6 +16,12 @@ vi.mock('@/services/bible.service', () => ({
     lockRevision: vi.fn(),
     supersedeRevision: vi.fn(),
     uploadReferenceImage: vi.fn(),
+    getDesignQueue: vi.fn().mockResolvedValue([]),
+    submitConceptArt: vi.fn().mockResolvedValue({}),
+    endorseRevision: vi.fn().mockResolvedValue({}),
+    requestReworkRevision: vi.fn().mockResolvedValue({}),
+    addRevision: vi.fn().mockResolvedValue({}),
+    getEntryHistory: vi.fn().mockResolvedValue([]),
   },
 }));
 
@@ -270,7 +276,7 @@ describe('SeriesBibleView UX/UI improvements', () => {
     expect(addRevBtns.length).toBeGreaterThan(0);
   });
 
-  it('allows Artist to create draft entries and add revisions (Direction B)', async () => {
+  it('restricts Artist from creating draft entries (Series Bible only created by Writer)', async () => {
     localStorage.setItem(
       'activeWorkspace',
       JSON.stringify({ id: 'ws-1', currentUserRole: 'ARTIST', isOwner: false }),
@@ -282,9 +288,11 @@ describe('SeriesBibleView UX/UI improvements', () => {
       expect(screen.getByText('Tần Mục')).toBeDefined();
     });
 
-    expect(screen.getByText('Tạo mục nháp')).toBeDefined();
-    const addRevBtns = screen.getAllByTestId(/add-revision-btn-/i);
-    expect(addRevBtns.length).toBeGreaterThan(0);
+    // Shows read-only badge and no draft buttons
+    expect(screen.getByTestId('bible-readonly-badge')).toBeDefined();
+    expect(screen.queryByTestId('add-bible-entry-btn')).toBeNull();
+    const addRevBtns = screen.queryAllByTestId(/add-revision-btn-/i);
+    expect(addRevBtns.length).toBe(0);
   });
 
   it('restricts Editor to read-only mode without draft buttons (Direction B)', async () => {
@@ -339,5 +347,106 @@ describe('SeriesBibleView UX/UI improvements', () => {
     expect(screen.getByText(/· Lúc nhỏ/i)).toBeDefined();
     // Range format: "Ch.1–19"
     expect(screen.getByText(/Ch\.1–19/i)).toBeDefined();
+  });
+
+  it('renders "Nộp lại" button for Artist when entry has ConceptSubmitted revision', async () => {
+    localStorage.setItem(
+      'activeWorkspace',
+      JSON.stringify({ id: 'ws-1', currentUserRole: 'ARTIST', isOwner: false }),
+    );
+
+    const entriesWithConcept = [
+      {
+        ...mockEntries[0],
+        effectiveRevision: {
+          ...mockEntries[0].effectiveRevision!,
+          reviewStatus: 'ConceptSubmitted',
+          isLocked: false,
+        },
+      },
+    ];
+
+    (bibleService.getSeriesBible as any).mockResolvedValue({
+      id: 'bible-1',
+      seriesId: 'series-123',
+      workspaceId: 'ws-1',
+      name: 'Series Bible',
+      version: 1,
+      entries: entriesWithConcept,
+    });
+
+    render(
+      <SeriesBibleView
+        activeProject={mockSeries as any}
+        onShowToast={vi.fn()}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/Tần Mục/)).toBeDefined();
+    });
+
+    const resubmitBtn = screen.getByTestId('artist-resubmit-btn-entry-chr-1');
+    expect(resubmitBtn).toBeDefined();
+    expect(resubmitBtn.textContent).toContain('Nộp lại');
+
+    fireEvent.click(resubmitBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Nộp lại bản vẽ Concept Art \(Sửa nộp nhầm\)/i)).toBeDefined();
+    });
+  });
+
+  it('opens LucianConfirmModal when Artist clicks submit concept art', async () => {
+    localStorage.setItem(
+      'activeWorkspace',
+      JSON.stringify({ id: 'ws-1', currentUserRole: 'ARTIST', isOwner: false }),
+    );
+
+    const entriesWithConcept = [
+      {
+        ...mockEntries[0],
+        effectiveRevision: {
+          ...mockEntries[0].effectiveRevision!,
+          reviewStatus: 'ConceptSubmitted',
+          isLocked: false,
+        },
+      },
+    ];
+
+    (bibleService.getSeriesBible as any).mockResolvedValue({
+      id: 'bible-1',
+      seriesId: 'series-123',
+      workspaceId: 'ws-1',
+      name: 'Series Bible',
+      version: 1,
+      entries: entriesWithConcept,
+    });
+
+    render(
+      <SeriesBibleView
+        activeProject={mockSeries as any}
+        onShowToast={vi.fn()}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('artist-resubmit-btn-entry-chr-1')).toBeDefined();
+    });
+
+    fireEvent.click(screen.getByTestId('artist-resubmit-btn-entry-chr-1'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('save-revision-submit-btn')).toBeDefined();
+    });
+
+    // Click submit button in AddRevisionModal
+    fireEvent.click(screen.getByTestId('save-revision-submit-btn'));
+
+    // Should display LucianConfirmModal
+    await waitFor(() => {
+      expect(screen.getByText('Xác nhận nộp lại bản vẽ Concept Art')).toBeDefined();
+      expect(screen.getByText('Xác nhận nộp lại')).toBeDefined();
+    });
   });
 });

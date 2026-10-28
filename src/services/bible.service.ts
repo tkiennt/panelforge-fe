@@ -29,6 +29,7 @@ export interface BibleEntryRevisionDto {
   lockedById?: string | null;
   stageName?: string | null;
   effectiveToChapterNumber?: number | null;
+  referenceImageUrl?: string | null;
 }
 
 export interface BibleEntryDto {

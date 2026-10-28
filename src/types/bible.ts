@@ -55,4 +55,5 @@ export interface BibleEntity {
   isLocked?: boolean;
   lockedAt?: string | null;
   gallery?: Array<{ url: string; label?: string; sha256?: string }>;
+  attributes?: Record<string, any>;
 }

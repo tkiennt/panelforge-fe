@@ -2,6 +2,7 @@
 /* Adapted for PanelForge Editorial AI Studio Quick Confirmation Modal */
 
 import React, { useEffect, useRef, useId } from 'react';
+import { createPortal } from 'react-dom';
 import { AlertTriangle, AlertCircle, Info, X } from 'lucide-react';
 import '@/styles/modules/lucian/lucian-269.css';
 
@@ -50,7 +51,7 @@ export const LucianConfirmModal: React.FC<LucianConfirmModalProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onCancel]);
 
-  if (!isOpen) return null;
+  if (!isOpen || typeof document === 'undefined') return null;
 
   const isDanger = variant === 'danger';
   const isWarning = variant === 'warning';
@@ -60,7 +61,7 @@ export const LucianConfirmModal: React.FC<LucianConfirmModalProps> = ({
   const iconColor = isDanger ? '#DC2626' : isWarning ? '#D97706' : '#0284C7';
   const confirmBtnBg = isDanger ? '#DC2626' : isWarning ? '#D97706' : '#2563EB';
 
-  return (
+  return createPortal(
     <div
       className='pf-delete-overlay'
       role='alertdialog'
@@ -133,6 +134,7 @@ export const LucianConfirmModal: React.FC<LucianConfirmModalProps> = ({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };

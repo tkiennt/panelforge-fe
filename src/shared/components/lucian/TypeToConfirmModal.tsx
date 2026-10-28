@@ -2,6 +2,7 @@
 /* Adapted for PanelForge Editorial AI Studio Design System */
 
 import React, { useState, useEffect, useRef, useId } from 'react';
+import { createPortal } from 'react-dom';
 import { AlertTriangle } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import '@/styles/modules/lucian/lucian-269.css';
@@ -59,7 +60,7 @@ export const TypeToConfirmModal: React.FC<TypeToConfirmModalProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, isDeleting, onCancel]);
 
-  if (!isOpen) return null;
+  if (!isOpen || typeof document === 'undefined') return null;
 
   const isMatched = typedValue.trim() === targetName.trim();
 
@@ -97,7 +98,7 @@ export const TypeToConfirmModal: React.FC<TypeToConfirmModalProps> = ({
       'Hành động này không thể hoàn tác. Vui lòng nhập chính xác tên bên dưới để xác nhận xóa:',
     );
 
-  return (
+  return createPortal(
     <div
       className='pf-delete-overlay'
       role='dialog'
@@ -174,6 +175,7 @@ export const TypeToConfirmModal: React.FC<TypeToConfirmModalProps> = ({
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };

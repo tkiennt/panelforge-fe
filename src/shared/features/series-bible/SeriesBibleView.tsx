@@ -12,7 +12,9 @@ import {
   GitCommit,
   Clock,
   CheckCircle2,
+  Check,
   AlertCircle,
+  AlertTriangle,
   Lock,
   Upload,
   Trash2,
@@ -45,7 +47,7 @@ import { PageContainer } from '@/shared/components/PageContainer';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { createPortal } from 'react-dom';
 import { useTranslation } from '@/lib/i18n';
-import { EmptyFolderState } from '@/shared/components/lucian';
+import { EmptyFolderState, LucianConfirmModal, LucianInlineAlert } from '@/shared/components/lucian';
 import { useConfirm } from '@/shared/context/ConfirmContext';
 
 interface SeriesBibleViewProps {
@@ -176,6 +178,546 @@ const readSnapshot = (
     return {};
   }
 };
+
+interface AddRevisionModalProps {
+  isOpen: boolean;
+  revisionTarget: BibleEntity | null;
+  supersedeTarget: BibleEntryRevisionDto | null;
+  isArtistConceptSubmit: boolean;
+  isArtistResubmit: boolean;
+  isArtist: boolean;
+  isProducer: boolean;
+  revisionReworkFeedback: string | null;
+  initialStageName: string;
+  initialEffectiveChapter: number;
+  initialEffectiveToChapter: number | '';
+  initialName: string;
+  initialSubtitle: string;
+  initialSummary: string;
+  initialDescription: string;
+  initialReferenceImageUrl: string;
+  expectedVersionNumber: number | null;
+  lockedChapterNumbers: number[];
+  savingRevision: boolean;
+  uploadingRevImage: boolean;
+  onUploadImage: (file: File) => Promise<string | void>;
+  onClose: () => void;
+  onSubmit: (content: {
+    expectedVersionNumber?: number;
+    name: string;
+    subtitle: string;
+    description: string;
+    referenceImageUrl?: string;
+    stageName?: string;
+    effectiveFromChapterNumber: number;
+    effectiveToChapterNumber?: number;
+    summary: string;
+  }) => Promise<void>;
+  onConfirmArtistSubmit?: () => void;
+}
+
+const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
+  ({
+    isOpen,
+    revisionTarget,
+    supersedeTarget,
+    isArtistConceptSubmit,
+    isArtistResubmit,
+    isArtist,
+    isProducer,
+    revisionReworkFeedback,
+    initialStageName,
+    initialEffectiveChapter,
+    initialEffectiveToChapter,
+    initialName,
+    initialSubtitle,
+    initialSummary,
+    initialDescription,
+    initialReferenceImageUrl,
+    expectedVersionNumber,
+    lockedChapterNumbers,
+    savingRevision,
+    uploadingRevImage,
+    onUploadImage,
+    onClose,
+    onSubmit,
+    onConfirmArtistSubmit,
+  }) => {
+    const [stageName, setStageName] = useState(initialStageName);
+    const [effectiveChapter, setEffectiveChapter] = useState(initialEffectiveChapter);
+    const [effectiveToChapter, setEffectiveToChapter] = useState<number | ''>(initialEffectiveToChapter);
+    const [name, setName] = useState(initialName);
+    const [subtitle, setSubtitle] = useState(initialSubtitle);
+    const [summary, setSummary] = useState(initialSummary);
+    const [description, setDescription] = useState(initialDescription);
+    const [referenceImageUrl, setReferenceImageUrl] = useState(initialReferenceImageUrl);
+    const revFileInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+      if (isOpen) {
+        setStageName(initialStageName);
+        setEffectiveChapter(initialEffectiveChapter);
+        setEffectiveToChapter(initialEffectiveToChapter);
+        setName(initialName);
+        setSubtitle(initialSubtitle);
+        setSummary(initialSummary);
+        setDescription(initialDescription);
+        setReferenceImageUrl(initialReferenceImageUrl);
+      }
+    }, [
+      isOpen,
+      initialStageName,
+      initialEffectiveChapter,
+      initialEffectiveToChapter,
+      initialName,
+      initialSubtitle,
+      initialSummary,
+      initialDescription,
+      initialReferenceImageUrl,
+    ]);
+
+    if (!isOpen || !revisionTarget) return null;
+
+    const handleSubmit = () => {
+      if (isArtistConceptSubmit && isArtist && onConfirmArtistSubmit) {
+        onConfirmArtistSubmit();
+      } else {
+        void onSubmit({
+          expectedVersionNumber: expectedVersionNumber ?? undefined,
+          name: name.trim() || revisionTarget.name,
+          subtitle: subtitle.trim() || revisionTarget.subtitle || '',
+          description: description.trim() || revisionTarget.description || '',
+          referenceImageUrl: referenceImageUrl || undefined,
+          stageName: stageName.trim() || undefined,
+          effectiveFromChapterNumber: effectiveChapter,
+          effectiveToChapterNumber: effectiveToChapter !== '' ? Number(effectiveToChapter) : undefined,
+          summary: summary.trim(),
+        });
+      }
+    };
+
+    return createPortal(
+      <div
+        className='fixed inset-0 bg-black/60 backdrop-blur-xs z-[1050] flex items-center justify-center p-4'
+        role='dialog'
+        aria-modal='true'
+        data-child-modal='true'
+        onClick={(e) => {
+          if (e.target === e.currentTarget) {
+            onClose();
+          }
+        }}
+      >
+        <div
+          className='bg-white border border-[#E7E7E7] rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-5 sm:p-6 space-y-4 shadow-2xl animate-in fade-in zoom-in-95 duration-150 custom-scrollbar'
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className='flex items-center justify-between border-b border-[#E7E7E7] pb-3'>
+            <div className='flex items-center gap-2'>
+              <GitCommit className='w-4 h-4 text-[#059669]' />
+              <h3 className='text-sm font-bold font-sans text-zinc-900'>
+                {supersedeTarget
+                  ? `Thay thế bản khoá v${supersedeTarget.versionNumber}: ${revisionTarget.name}`
+                  : isArtistResubmit
+                    ? `Nộp lại bản vẽ Concept Art: ${revisionTarget.name}`
+                    : isArtistConceptSubmit && isArtist
+                      ? `Nộp bản vẽ Concept Art: ${revisionTarget.name}`
+                      : isProducer
+                        ? `Tạo phiên bản mới: ${revisionTarget.name}`
+                        : `Tạo bản nháp mới: ${revisionTarget.name}`}
+              </h3>
+            </div>
+            <button
+              type='button'
+              onClick={onClose}
+              aria-label='Đóng'
+              className='w-6 h-6 rounded flex items-center justify-center text-zinc-400 hover:text-zinc-700'
+            >
+              <X className='w-4 h-4' />
+            </button>
+          </div>
+
+          {/* Context Alert */}
+          {revisionReworkFeedback ? (
+            <LucianInlineAlert
+              type='warning'
+              title='Yêu cầu chỉnh sửa từ Writer / Editor'
+              description={`"${revisionReworkFeedback}"`}
+              details='Vui lòng điều chỉnh thiết kế theo nhận xét trên và tải lên bản vẽ Concept Art mới.'
+              dismissible={false}
+            />
+          ) : isArtistResubmit ? (
+            <LucianInlineAlert
+              type='info'
+              title='Nộp lại bản vẽ Concept Art (Sửa nộp nhầm)'
+              description='Bạn đang tạo bản vẽ thay thế cho bản đang chờ duyệt. Bản mới sẽ thay thế bản cũ mà không làm mất lịch sử phiên bản.'
+              dismissible={false}
+            />
+          ) : !supersedeTarget && lockedChapterNumbers.includes(effectiveChapter) ? (
+            <LucianInlineAlert
+              type='warning'
+              title='Chương đã có phiên bản khoá tham chiếu'
+              description={`Chương ${effectiveChapter} đã có bản khoá Canon.`}
+              details='Vui lòng chọn số chương khác cho thời kỳ mới, hoặc dùng chức năng Thay thế bản khoá.'
+              dismissible={false}
+            />
+          ) : null}
+
+          <div className='space-y-3'>
+            {/* Stage Name */}
+            <div>
+              <label className='block text-xs font-semibold text-zinc-800 mb-1'>
+                Tên giai đoạn (Tùy chọn)
+              </label>
+              <input
+                type='text'
+                maxLength={100}
+                placeholder='Ví dụ: Lúc nhỏ, Siêu Saiyan cấp 1, Trưởng thành, Arc Neo-Tokyo...'
+                value={stageName}
+                onChange={(e) => setStageName(e.target.value)}
+                className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg text-xs text-zinc-900 focus:outline-none focus:border-[#F97316]'
+                data-testid='revision-stage-name-input'
+              />
+            </div>
+
+            {/* Chapter Range: From & To */}
+            <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
+              <div>
+                <label className='block text-xs font-semibold text-zinc-800 mb-1'>
+                  Có hiệu lực từ Chương *
+                </label>
+                <input
+                  type='number'
+                  min={1}
+                  value={effectiveChapter}
+                  disabled={!!supersedeTarget}
+                  onChange={(e) =>
+                    setEffectiveChapter(Math.max(1, parseInt(e.target.value, 10) || 1))
+                  }
+                  className={`w-full px-3 py-2 bg-[#FAF8F5] border rounded-lg text-xs font-mono text-zinc-900 focus:outline-none disabled:opacity-60 ${
+                    !supersedeTarget && lockedChapterNumbers.includes(effectiveChapter)
+                      ? 'border-red-400 focus:border-red-500'
+                      : 'border-[#E7E7E7] focus:border-[#F97316]'
+                  }`}
+                />
+                {!supersedeTarget && lockedChapterNumbers.includes(effectiveChapter) && (
+                  <p className='text-[11px] text-red-600 mt-1 font-medium flex items-center gap-1'>
+                    <AlertCircle className='w-3 h-3 text-red-500 shrink-0' />
+                    Chương {effectiveChapter} đã có phiên bản bị khoá!
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className='block text-xs font-semibold text-zinc-800 mb-1'>
+                  Đến Chương (Tùy chọn)
+                </label>
+                <input
+                  type='number'
+                  min={effectiveChapter}
+                  placeholder='Để trống = Đến hết truyện'
+                  value={effectiveToChapter}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setEffectiveToChapter(val === '' ? '' : parseInt(val, 10));
+                  }}
+                  className={`w-full px-3 py-2 bg-[#FAF8F5] border rounded-lg text-xs font-mono text-zinc-900 focus:outline-none ${
+                    effectiveToChapter !== '' && Number(effectiveToChapter) < effectiveChapter
+                      ? 'border-red-400 focus:border-red-500'
+                      : 'border-[#E7E7E7] focus:border-[#F97316]'
+                  }`}
+                />
+                {effectiveToChapter !== '' && Number(effectiveToChapter) < effectiveChapter && (
+                  <p className='text-[11px] text-red-600 mt-1 font-medium'>
+                    Chương kết thúc phải ≥ chương bắt đầu ({effectiveChapter}).
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <label className='block text-xs font-semibold text-zinc-800 mb-1'>
+                Tên mục *
+              </label>
+              <input
+                type='text'
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg text-xs text-zinc-900 focus:outline-none focus:border-[#F97316]'
+              />
+            </div>
+
+            <div>
+              <label className='block text-xs font-semibold text-zinc-800 mb-1'>
+                Phụ đề / Vai trò
+              </label>
+              <input
+                type='text'
+                value={subtitle}
+                onChange={(e) => setSubtitle(e.target.value)}
+                className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg text-xs text-zinc-900 focus:outline-none focus:border-[#F97316]'
+              />
+            </div>
+
+            <div>
+              <label className='block text-xs font-semibold text-zinc-800 mb-1'>
+                {supersedeTarget ? 'Lý do thay thế bản đã khoá *' : 'Tóm tắt thay đổi *'}
+              </label>
+              <input
+                type='text'
+                maxLength={supersedeTarget ? 400 : undefined}
+                placeholder='Ví dụ: Cập nhật trang phục chiến đấu mới...'
+                value={summary}
+                onChange={(e) => setSummary(e.target.value)}
+                className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg text-xs text-zinc-900 focus:outline-none focus:border-[#F97316]'
+              />
+            </div>
+
+            <div>
+              <label className='block text-xs font-semibold text-zinc-800 mb-1'>
+                Mô tả chi tiết (Tùy chọn)
+              </label>
+              <textarea
+                rows={2}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg text-xs text-zinc-900 focus:outline-none focus:border-[#F97316] resize-none'
+              />
+            </div>
+
+            {/* Upload reference sheet image */}
+            <div>
+              <div className='flex items-center justify-between mb-1'>
+                <label className='text-xs font-semibold text-zinc-800'>
+                  Ảnh Model Sheet / Concept (Tùy chọn)
+                </label>
+                <span className='text-[10px] text-zinc-400 font-normal'>
+                  {isArtist ? 'Dành cho Artist' : 'Chỉ Artist được tải'}
+                </span>
+              </div>
+              <input
+                type='file'
+                ref={revFileInputRef}
+                accept='image/png,image/jpeg,image/webp'
+                className='hidden'
+                onChange={async (e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    const uploadedUrl = await onUploadImage(e.target.files[0]);
+                    if (uploadedUrl) setReferenceImageUrl(uploadedUrl);
+                  }
+                }}
+              />
+              {referenceImageUrl ? (
+                <div className='p-2.5 bg-[#FAF8F4] border border-[#E7E7E7] rounded-xl flex items-center justify-between gap-3'>
+                  <div className='flex items-center gap-2.5 min-w-0'>
+                    <div className='w-12 h-12 rounded-lg overflow-hidden border border-zinc-200 bg-zinc-900 shrink-0 relative'>
+                      <AuthenticatedImage
+                        src={referenceImageUrl}
+                        alt={name || 'Reference Sheet'}
+                        className='w-full h-full object-cover'
+                      />
+                    </div>
+                    <div className='min-w-0'>
+                      <span className='text-[10px] text-zinc-500 font-mono truncate block max-w-[200px]'>
+                        {referenceImageUrl}
+                      </span>
+                    </div>
+                  </div>
+                  {isArtist && (
+                    <div className='flex items-center gap-1 shrink-0'>
+                      <button
+                        type='button'
+                        onClick={() => revFileInputRef.current?.click()}
+                        className='px-2 py-1 text-[11px] font-semibold rounded bg-white border border-[#E7E7E7] hover:bg-zinc-50 text-zinc-700'
+                      >
+                        Đổi ảnh
+                      </button>
+                      <button
+                        type='button'
+                        onClick={() => setReferenceImageUrl('')}
+                        className='p-1 text-red-600 hover:bg-red-50 rounded'
+                        title='Gỡ ảnh'
+                      >
+                        <Trash2 className='w-3.5 h-3.5' />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : !isArtist ? (
+                <div className='p-3 rounded-xl border border-dashed border-zinc-200 bg-zinc-50 text-center text-xs text-zinc-500 flex items-center justify-center gap-2'>
+                  <Lock className='w-3.5 h-3.5 text-zinc-400' />
+                  <span>Chỉ Họa sĩ (Artist) mới có quyền tải ảnh Model Sheet mới.</span>
+                </div>
+              ) : (
+                <button
+                  type='button'
+                  onClick={() => revFileInputRef.current?.click()}
+                  disabled={uploadingRevImage}
+                  className='w-full p-3 rounded-xl border border-dashed border-zinc-300 hover:border-[#F97316] bg-[#FAF8F5] text-center text-xs text-zinc-600 hover:text-zinc-900 flex items-center justify-center gap-2 cursor-pointer transition-colors'
+                >
+                  {uploadingRevImage ? (
+                    <>
+                      <Loader2 className='w-3.5 h-3.5 animate-spin text-[#F97316]' />
+                      <span>Đang tải ảnh lên...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className='w-3.5 h-3.5 text-[#F97316]' />
+                      <span>+ Tải ảnh Model Sheet / Concept (PNG, JPEG, WebP ≤ 10MB)</span>
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className='pt-3 border-t border-[#E7E7E7] flex items-center justify-end gap-2'>
+            <button
+              type='button'
+              onClick={onClose}
+              className='px-3.5 py-1.5 border border-[#E7E7E7] rounded-lg text-xs font-semibold text-zinc-600 hover:bg-zinc-50'
+            >
+              Hủy
+            </button>
+            <button
+              type='button'
+              disabled={
+                !summary.trim() ||
+                savingRevision ||
+                (!supersedeTarget && lockedChapterNumbers.includes(effectiveChapter)) ||
+                (effectiveToChapter !== '' && Number(effectiveToChapter) < effectiveChapter)
+              }
+              onClick={handleSubmit}
+              className='px-4 py-1.5 bg-[#059669] hover:bg-[#047857] text-white rounded-lg text-xs font-semibold disabled:opacity-50 flex items-center gap-1.5 shadow-2xs cursor-pointer'
+              data-testid='save-revision-submit-btn'
+            >
+              <CheckCircle2 className='w-3.5 h-3.5' />
+              <span>
+                {savingRevision
+                  ? 'Đang lưu...'
+                  : supersedeTarget
+                    ? 'Khoá & Thay thế'
+                    : isArtistConceptSubmit && isArtist
+                      ? isArtistResubmit
+                        ? '🔄 Nộp lại Concept Art'
+                        : '🎨 Nộp Concept Art'
+                      : isProducer
+                        ? 'Lưu phiên bản'
+                        : 'Gửi bản nháp'}
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>,
+      document.body,
+    );
+  },
+);
+AddRevisionModal.displayName = 'AddRevisionModal';
+
+interface ReworkModalProps {
+  isOpen: boolean;
+  targetRev: BibleEntryRevisionDto | null;
+  entityName: string;
+  isSubmitting: boolean;
+  onClose: () => void;
+  onSubmit: (reason: string) => Promise<void>;
+}
+
+const ReworkModal: React.FC<ReworkModalProps> = React.memo(
+  ({ isOpen, targetRev, entityName, isSubmitting, onClose, onSubmit }) => {
+    const [localReason, setLocalReason] = useState('');
+
+    useEffect(() => {
+      if (isOpen) {
+        setLocalReason('');
+      }
+    }, [isOpen]);
+
+    if (!isOpen || !targetRev) return null;
+
+    return createPortal(
+      <div
+        className='fixed inset-0 bg-black/60 backdrop-blur-xs z-[1050] flex items-center justify-center p-4'
+        role='dialog'
+        aria-modal='true'
+        data-child-modal='true'
+        onClick={(e) => {
+          if (e.target === e.currentTarget) {
+            onClose();
+          }
+        }}
+      >
+        <div
+          className='bg-white rounded-2xl max-w-md w-full border border-zinc-200 shadow-2xl p-5 space-y-4 animate-in fade-in zoom-in-95 duration-150'
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className='flex items-center justify-between border-b border-zinc-100 pb-3'>
+            <div className='flex items-center gap-2'>
+              <div className='w-7 h-7 rounded-lg bg-rose-100 text-rose-700 flex items-center justify-center'>
+                <MessageSquare className='w-4 h-4' />
+              </div>
+              <div>
+                <h3 className='font-bold text-sm text-zinc-900'>
+                  Yêu cầu vẽ lại thiết kế (Rework)
+                </h3>
+                <p className='text-[11px] text-zinc-500'>
+                  Phiên bản v{targetRev.versionNumber} của &quot;{entityName}&quot;
+                </p>
+              </div>
+            </div>
+            <button
+              type='button'
+              onClick={onClose}
+              className='p-1 rounded-lg hover:bg-zinc-100 text-zinc-400 hover:text-zinc-700'
+            >
+              <X className='w-4 h-4' />
+            </button>
+          </div>
+
+          <div>
+            <label className='block text-xs font-semibold text-zinc-800 mb-1.5'>
+              Nhận xét chi tiết cho Artist (Lý do chưa chuẩn / Rắc-co) *
+            </label>
+            <textarea
+              rows={4}
+              required
+              autoFocus
+              placeholder='Ví dụ: Kiểu tóc chưa đúng với nguyên tác, màu trang phục cần chỉnh lại thành màu xanh đậm, thiếu biểu cảm giận dữ...'
+              value={localReason}
+              onChange={(e) => setLocalReason(e.target.value)}
+              className='w-full px-3 py-2 bg-[#FAF8F5] border border-zinc-300 rounded-lg text-xs text-zinc-900 focus:outline-none focus:border-rose-500 resize-none'
+            />
+            <p className='text-[10px] text-zinc-500 mt-1'>
+              Ghi chú này sẽ được chuyển ngay đến hàng đợi vẽ của Artist để vẽ bản cập nhật tiếp theo.
+            </p>
+          </div>
+
+          <div className='flex items-center justify-end gap-2 pt-2 border-t border-zinc-100'>
+            <button
+              type='button'
+              onClick={onClose}
+              className='px-3.5 py-1.5 border border-zinc-200 rounded-lg text-xs font-semibold text-zinc-600 hover:bg-zinc-50'
+            >
+              Hủy
+            </button>
+            <button
+              type='button'
+              disabled={!localReason.trim() || isSubmitting}
+              onClick={() => void onSubmit(localReason)}
+              className='px-4 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold disabled:opacity-50 flex items-center gap-1.5 shadow-2xs'
+            >
+              <MessageSquare className='w-3.5 h-3.5' />
+              <span>{isSubmitting ? 'Đang gửi...' : 'Gửi yêu cầu vẽ lại'}</span>
+            </button>
+          </div>
+        </div>
+      </div>,
+      document.body,
+    );
+  },
+);
+ReworkModal.displayName = 'ReworkModal';
 
 export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
   activeProject,
@@ -342,13 +884,14 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
 
   const canCreateDraft = useMemo(() => {
     if (isProducer) return true;
-    return currentUserRole === 'WRITER' || currentUserRole === 'ARTIST';
+    return currentUserRole === 'WRITER';
   }, [isProducer, currentUserRole]);
 
-  const handleLockRevision = async (rev: BibleEntryRevisionDto) => {
-    if (!effectiveSeries?.id || !historyEntity) return;
+  const handleLockRevision = async (rev: BibleEntryRevisionDto, entity?: BibleEntity) => {
+    const targetEntity = entity || historyEntity || selectedEntity || null;
+    if (!effectiveSeries?.id || !targetEntity) return;
 
-    if (historyEntity.category !== 'characters') {
+    if (targetEntity.category !== 'characters') {
       onShowToast(
         'Chỉ áp dụng cho Nhân vật',
         'Theo quy tắc chuẩn Canon, chỉ có thể duyệt & khoá phiên bản thuộc nhóm Nhân vật.',
@@ -356,9 +899,17 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
       return;
     }
 
+    if (rev.reviewStatus === 'ReworkRequired') {
+      onShowToast(
+        'Chưa thể khoá Canon',
+        'Phiên bản đang bị yêu cầu vẽ lại (ReworkRequired), không thể duyệt & khoá Canon.',
+      );
+      return;
+    }
+
     const confirmed = await confirm({
       title: `Duyệt & Khóa phiên bản v${rev.versionNumber}?`,
-      description: `Cố định phiên bản này của nhân vật "${historyEntity.name}" làm tham chiếu chuẩn (Canon) để Artist và AI đối chiếu.`,
+      description: `Cố định phiên bản này của nhân vật "${targetEntity.name}" làm tham chiếu chuẩn (Canon) để Artist và AI đối chiếu.`,
       confirmText: 'Duyệt & Khóa Canon',
       cancelText: 'Hủy',
       variant: 'warning',
@@ -369,12 +920,12 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
     try {
       const updatedRev = await bibleService.lockRevision(
         effectiveSeries.id,
-        historyEntity.id,
+        targetEntity.id,
         rev.id,
       );
       onShowToast(
         'Đã duyệt & khoá Character Sheet',
-        `Phiên bản v${rev.versionNumber} của "${historyEntity.name}" đã được khoá làm tham chiếu chuẩn thành công.`,
+        `Phiên bản v${rev.versionNumber} của "${targetEntity.name}" đã được khoá làm tham chiếu chuẩn thành công.`,
       );
       setHistoryRevisions((prev) =>
         prev.map((r) => (r.id === rev.id ? { ...r, ...updatedRev, isLocked: true } : r)),
@@ -402,19 +953,20 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
     return isProducer || currentUserRole === 'WRITER' || currentUserRole === 'EDITOR';
   }, [isProducer, currentUserRole]);
 
-  const handleEndorseRevision = async (rev: BibleEntryRevisionDto) => {
-    if (!effectiveSeries?.id || !historyEntity) return;
+  const handleEndorseRevision = async (rev: BibleEntryRevisionDto, entity?: BibleEntity) => {
+    const targetEntity = entity || historyEntity || selectedEntity || null;
+    if (!effectiveSeries?.id || !targetEntity) return;
 
     setEndorsingRevId(rev.id);
     try {
       const updatedRev = await bibleService.endorseRevision(
         effectiveSeries.id,
-        historyEntity.id,
+        targetEntity.id,
         rev.id,
       );
       onShowToast(
         'Đã xác nhận thiết kế',
-        `Phiên bản v${rev.versionNumber} của "${historyEntity.name}" đã được xác nhận (Writer Endorsed).`,
+        `Phiên bản v${rev.versionNumber} của "${targetEntity.name}" đã được xác nhận (Writer Endorsed).`,
       );
       setHistoryRevisions((prev) =>
         prev.map((r) =>
@@ -429,26 +981,31 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
     }
   };
 
-  const handleOpenReworkModal = (rev: BibleEntryRevisionDto) => {
+  const handleOpenReworkModal = (rev: BibleEntryRevisionDto, entity?: BibleEntity) => {
+    if (entity) {
+      setHistoryEntity(entity);
+      setHistoryEntityName(entity.name);
+    }
     setReworkTargetRev(rev);
     setReworkReason('');
     setReworkModalOpen(true);
   };
 
-  const handleSubmitRework = async () => {
-    if (!effectiveSeries?.id || !historyEntity || !reworkTargetRev || !reworkReason.trim()) return;
+  const handleSubmitRework = async (reason: string) => {
+    const targetEntity = historyEntity || selectedEntity || null;
+    if (!effectiveSeries?.id || !targetEntity || !reworkTargetRev || !reason.trim()) return;
 
     setSubmittingRework(true);
     try {
       const updatedRev = await bibleService.requestReworkRevision(
         effectiveSeries.id,
-        historyEntity.id,
+        targetEntity.id,
         reworkTargetRev.id,
-        { reworkReason: reworkReason.trim() },
+        { reworkReason: reason.trim() },
       );
       onShowToast(
         'Đã gửi yêu cầu vẽ lại',
-        `Đã tạo nhận xét yêu cầu vẽ lại cho phiên bản v${reworkTargetRev.versionNumber} của "${historyEntity.name}".`,
+        `Đã tạo nhận xét yêu cầu vẽ lại cho phiên bản v${reworkTargetRev.versionNumber} của "${targetEntity.name}".`,
       );
       setHistoryRevisions((prev) =>
         prev.map((r) =>
@@ -457,12 +1014,31 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                 ...r,
                 ...updatedRev,
                 reviewStatus: 'ReworkRequired',
-                reworkFeedback: reworkReason.trim(),
+                reworkFeedback: reason.trim(),
               }
             : r,
         ),
       );
+      // Đóng modal rework nhưng giữ nguyên selectedEntity để Workbench không bị đóng
       setReworkModalOpen(false);
+      setHistoryRevisions((prev) =>
+        prev.map((r) =>
+          r.id === reworkTargetRev.id
+            ? {
+                ...r,
+                ...updatedRev,
+                reviewStatus: 'ReworkRequired',
+                reworkFeedback: reason.trim(),
+              }
+            : r,
+        ),
+      );
+      if (selectedEntity && selectedEntity.id === targetEntity.id) {
+        setSelectedEntity({
+          ...selectedEntity,
+          status: 'ReworkRequired',
+        });
+      }
       setRefreshTrigger((prev) => prev + 1);
     } catch (err: any) {
       onShowToast('Lỗi gửi yêu cầu vẽ lại', err.message || 'Không thể gửi yêu cầu vẽ lại.');
@@ -490,6 +1066,9 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
   const [fetchingBaseVersion, setFetchingBaseVersion] = useState(false);
   const [savingRevision, setSavingRevision] = useState(false);
   const [revisionReferenceImageUrl, setRevisionReferenceImageUrl] = useState('');
+  const [revisionReworkFeedback, setRevisionReworkFeedback] = useState<string | null>(null);
+  const [isArtistResubmit, setIsArtistResubmit] = useState(false);
+  const [confirmSubmitModalOpen, setConfirmSubmitModalOpen] = useState(false);
   const [uploadingRevImage, setUploadingRevImage] = useState(false);
   const revFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -526,11 +1105,23 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
     supersede: BibleEntryRevisionDto | null = null,
     fromQueue: boolean = false,
     queueEffectiveChapter?: number,
+    reworkFeedback?: string,
+    isResubmit: boolean = false,
   ) => {
     const snapshot = supersede ? readSnapshot(supersede.snapshotJson) : {};
     setRevisionTarget(entity);
     setSupersedeTarget(supersede);
-    setRevisionSummary(fromQueue ? 'Nộp bản vẽ Concept Art' : '');
+    setRevisionReworkFeedback(reworkFeedback || null);
+    setIsArtistResubmit(isResubmit);
+    setRevisionSummary(
+      isResubmit
+        ? 'Artist cập nhật lại Concept Art (nộp lại bản vẽ)'
+        : reworkFeedback
+          ? 'Artist nộp bản vẽ sửa đổi theo nhận xét'
+          : fromQueue
+            ? 'Nộp bản vẽ Concept Art'
+            : '',
+    );
     setRevisionName(snapshot.Name ?? entity.name);
     setRevisionSubtitle(snapshot.Subtitle ?? entity.subtitle ?? '');
     setRevisionDescription(snapshot.Description ?? entity.description ?? '');
@@ -562,12 +1153,138 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
             .filter((h) => h.isLocked)
             .map((h) => h.effectiveFromChapterNumber);
           setLockedChapterNumbers(lockedChs);
+
+          // Tự động đồng bộ lại thực thể được chọn nếu đang xem trong Workbench
+          setSelectedEntity((current) => (current && current.id === entity.id ? { ...current, ...entity } : current));
         }
       } catch (err) {
         console.warn('Cannot fetch history for version tracking:', err);
       } finally {
         setFetchingBaseVersion(false);
       }
+    }
+  };
+
+  const executeSaveRevision = async (submittedContent?: {
+    expectedVersionNumber?: number;
+    name: string;
+    subtitle: string;
+    description: string;
+    referenceImageUrl?: string;
+    stageName?: string;
+    effectiveFromChapterNumber: number;
+    effectiveToChapterNumber?: number;
+    summary: string;
+  }) => {
+    if (!revisionTarget) return;
+    setSavingRevision(true);
+    try {
+      if (effectiveSeries?.id) {
+        const content = submittedContent || {
+          expectedVersionNumber: expectedVersionNumber ?? undefined,
+          name: revisionName.trim() || revisionTarget.name,
+          subtitle: revisionSubtitle.trim() || revisionTarget.subtitle,
+          description: revisionDescription.trim() || revisionTarget.description,
+          referenceImageUrl: revisionReferenceImageUrl || undefined,
+          stageName: revisionStageName.trim() || undefined,
+          effectiveToChapterNumber:
+            revisionEffectiveToChapter !== ''
+              ? Number(revisionEffectiveToChapter)
+              : undefined,
+        };
+        const summaryText = submittedContent ? submittedContent.summary : revisionSummary.trim();
+        const effectiveFromCh = submittedContent ? submittedContent.effectiveFromChapterNumber : revisionEffectiveChapter;
+
+        if (supersedeTarget) {
+          await bibleService.supersedeRevision(
+            effectiveSeries.id,
+            revisionTarget.id,
+            supersedeTarget.id,
+            { ...content, reason: summaryText },
+          );
+        } else if (isArtistConceptSubmit && isArtist) {
+          await bibleService.submitConceptArt(
+            effectiveSeries.id,
+            revisionTarget.id,
+            {
+              ...content,
+              summary: summaryText,
+              effectiveToChapterNumber: content.effectiveToChapterNumber,
+            },
+          );
+        } else {
+          await bibleService.addRevision(effectiveSeries.id, revisionTarget.id, {
+            ...content,
+            summary: summaryText,
+            effectiveFromChapterNumber: effectiveFromCh,
+          });
+        }
+      }
+      const displayName = submittedContent?.name || revisionName || revisionTarget.name;
+      const displayEffectiveCh = submittedContent?.effectiveFromChapterNumber || revisionEffectiveChapter;
+
+      onShowToast(
+        supersedeTarget
+          ? 'Đã thay thế bản khoá'
+          : isArtistConceptSubmit && isArtist
+            ? isArtistResubmit
+              ? 'Đã nộp lại bản vẽ Concept Art thành công'
+              : 'Đã nộp bản vẽ Concept Art'
+            : isProducer
+              ? 'Tạo phiên bản mới thành công'
+              : 'Đã tạo bản nháp mới',
+        supersedeTarget
+          ? `Bản mới của ${displayName} đã được khoá ở Chương ${displayEffectiveCh}.`
+          : isArtistConceptSubmit && isArtist
+            ? `Đã gửi bản vẽ Concept Art cho ${displayName} – chờ Writer/Editor duyệt.`
+            : isProducer
+              ? `Đã ghi nhận phiên bản mới cho ${displayName} có hiệu lực từ Chương ${displayEffectiveCh}.`
+              : `Đã gửi bản nháp mới cho ${displayName} – chờ Producer duyệt.`,
+      );
+      setRefreshTrigger((prev) => prev + 1);
+      setAddRevModalOpen(false);
+      setConfirmSubmitModalOpen(false);
+      // Giữ người dùng ở lại không gian làm việc (Workbench) của thực thể, cập nhật dữ liệu mới
+      if (revisionTarget) {
+        setSelectedEntity({
+          ...revisionTarget,
+          name: submittedContent?.name || revisionName.trim() || revisionTarget.name,
+          subtitle: submittedContent?.subtitle || revisionSubtitle.trim() || revisionTarget.subtitle,
+          description: submittedContent?.description || revisionDescription.trim() || revisionTarget.description,
+          imageUrl: submittedContent?.referenceImageUrl || revisionReferenceImageUrl || revisionTarget.imageUrl,
+        });
+      }
+    } catch (err: any) {
+      if (err.code === 'CONFLICT' || err.status === 409) {
+        onShowToast(
+          'Xung đột phiên bản (409 CONFLICT)',
+          'Đã có người khác sửa đổi mục này hoặc mốc chương bị trùng! Đang mở Lịch sử để bạn đối chiếu.',
+        );
+        setAddRevModalOpen(false);
+        setConfirmSubmitModalOpen(false);
+        setHistoryEntity(revisionTarget);
+        setHistoryEntityName(revisionTarget.name);
+        setHistoryModalOpen(true);
+        setLoadingHistory(true);
+        try {
+          if (effectiveSeries?.id) {
+            const history = await bibleService.getEntryHistory(
+              effectiveSeries.id,
+              revisionTarget.id,
+            );
+            setHistoryRevisions(history);
+          }
+        } catch (hErr) {
+          console.error('Failed to load history on conflict:', hErr);
+        } finally {
+          setLoadingHistory(false);
+          setRefreshTrigger((prev) => prev + 1);
+        }
+      } else {
+        onShowToast('Lỗi tạo phiên bản', err.message);
+      }
+    } finally {
+      setSavingRevision(false);
     }
   };
 
@@ -592,7 +1309,15 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
           rawMap[e.id] = e;
         });
         setRawEntries(rawMap);
-        setLocalEntities(bibleData.entries.map(mapEntryToBibleEntity));
+        const mappedEntities = bibleData.entries.map(mapEntryToBibleEntity);
+        setLocalEntities(mappedEntities);
+
+        // Giữ đồng bộ selectedEntity nếu đang xem trong Workbench, tránh bị reset state
+        setSelectedEntity((current) => {
+          if (!current) return null;
+          const updated = mappedEntities.find((e) => e.id === current.id);
+          return updated ? { ...current, ...updated } : current;
+        });
       } else {
         setLocalEntities([]);
         setRawEntries({});
@@ -600,8 +1325,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
     } catch (err: any) {
       console.warn('Không thể tải Series Bible từ backend:', err);
       setLoadError(err.message || 'Không thể tải dữ liệu Series Bible từ máy chủ.');
-      setLocalEntities([]);
-      setRawEntries({});
+      // Không wipe sạch localEntities để tránh giật giao diện và đóng Workbench của người dùng khi mạng chập chờn
     } finally {
       setIsLoading(false);
     }
@@ -674,6 +1398,9 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
       setRefreshTrigger((prev) => prev + 1);
       const mapped = mapEntryToBibleEntity(created);
       if (onAddEntity) onAddEntity(mapped);
+      // Mở ngay bàn làm việc (Character Workbench) cho mục vừa tạo, không đẩy người dùng ra màn ngoài
+      setSelectedEntity(mapped);
+      setAddEntityOpen(false);
       onShowToast(
         isProducer ? 'Đã tạo mục Series Bible thành công' : 'Đã tạo bản nháp thành công',
         isProducer
@@ -847,7 +1574,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
             ) : (
               <span
                 className='px-3 py-1.5 rounded-xl bg-[#F3F0E9] border border-[#D8D2C5] text-[#57534E] text-xs font-medium flex items-center gap-1.5'
-                title='Chỉ Producer, Writer hoặc Artist mới có quyền thêm mục hoặc bản nháp trong Series Bible'
+                title='Chỉ Biên kịch (Writer) hoặc Producer mới có quyền tạo mục trong Series Bible'
                 data-testid='bible-readonly-badge'
               >
                 <Lock className='w-3.5 h-3.5 text-[#78716C]' />
@@ -900,6 +1627,10 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                         <span className='px-1.5 py-0.2 rounded bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-semibold'>
                           ⚠️ Yêu cầu vẽ lại
                         </span>
+                      ) : item.reviewStatus === 'ConceptSubmitted' || (item as any).status === 'ConceptSubmitted' || item.reviewStatus === 2 || (item as any).status === 2 ? (
+                        <span className='px-1.5 py-0.2 rounded bg-indigo-50 text-indigo-700 border border-indigo-200 text-[10px] font-semibold'>
+                          🎨 Đã nộp (Chờ duyệt)
+                        </span>
                       ) : (
                         <span className='px-1.5 py-0.2 rounded bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-semibold'>
                           Chờ nộp Concept Art
@@ -917,24 +1648,70 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                   </div>
 
                   {isArtist ? (
-                    <button
-                      type='button'
-                      onClick={() => {
-                        if (matchedEntity) {
-                          void handleOpenAddRevision(
-                            matchedEntity,
-                            null,
-                            true,
-                            item.effectiveFromChapterNumber,
-                          );
-                        }
-                      }}
-                      className='px-2.5 py-1 bg-orange-600 hover:bg-orange-700 text-white rounded text-[11px] font-semibold shrink-0 cursor-pointer transition-colors shadow-2xs flex items-center gap-1'
-                      data-testid={`upload-concept-${item.entryId}`}
-                    >
-                      <Upload className='w-3 h-3' />
-                      <span>Tải ảnh</span>
-                    </button>
+                    item.reviewStatus === 'ConceptSubmitted' || (item as any).status === 'ConceptSubmitted' || item.reviewStatus === 2 || (item as any).status === 2 ? (
+                      <button
+                        type='button'
+                        onClick={() => {
+                          if (matchedEntity) {
+                            void handleOpenAddRevision(
+                              matchedEntity,
+                              null,
+                              true,
+                              item.effectiveFromChapterNumber,
+                              undefined,
+                              true,
+                            );
+                          }
+                        }}
+                        className='px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-[11px] font-semibold shrink-0 cursor-pointer transition-colors shadow-2xs flex items-center gap-1'
+                        title='Nộp lại nếu bạn lỡ tải nhầm file ảnh trước khi duyệt'
+                        data-testid={`resubmit-concept-${item.entryId}`}
+                      >
+                        <RotateCcw className='w-3 h-3' />
+                        <span>Nộp lại</span>
+                      </button>
+                    ) : item.reviewStatus === 'ReworkRequired' || (item as any).status === 'ReworkRequired' || item.reviewStatus === 3 || (item as any).status === 3 ? (
+                      <button
+                        type='button'
+                        onClick={() => {
+                          if (matchedEntity) {
+                            void handleOpenAddRevision(
+                              matchedEntity,
+                              null,
+                              true,
+                              item.effectiveFromChapterNumber,
+                              item.reworkFeedback || undefined,
+                              false,
+                            );
+                          }
+                        }}
+                        className='px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded text-[11px] font-semibold shrink-0 cursor-pointer transition-colors shadow-2xs flex items-center gap-1'
+                        title='Nộp lại bản vẽ sau khi đã sửa theo góp ý'
+                        data-testid={`rework-concept-${item.entryId}`}
+                      >
+                        <Palette className='w-3 h-3' />
+                        <span>Sửa lại</span>
+                      </button>
+                    ) : (
+                      <button
+                        type='button'
+                        onClick={() => {
+                          if (matchedEntity) {
+                            void handleOpenAddRevision(
+                              matchedEntity,
+                              null,
+                              true,
+                              item.effectiveFromChapterNumber,
+                            );
+                          }
+                        }}
+                        className='px-2.5 py-1 bg-orange-600 hover:bg-orange-700 text-white rounded text-[11px] font-semibold shrink-0 cursor-pointer transition-colors shadow-2xs flex items-center gap-1'
+                        data-testid={`upload-concept-${item.entryId}`}
+                      >
+                        <Upload className='w-3 h-3' />
+                        <span>Tải ảnh</span>
+                      </button>
+                    )
                   ) : (
                     <button
                       type='button'
@@ -1216,7 +1993,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                         <span className='px-1.5 py-0.5 rounded bg-black/75 backdrop-blur-xs text-white text-[10px] font-mono font-bold'>
                           {entity.code}
                         </span>
-                        {entity.isLocked && (
+                        {entity.isLocked ? (
                           <span
                             className='px-2 py-0.5 rounded bg-amber-500 text-white text-[9px] font-medium flex items-center gap-1 shadow-2xs'
                             title='Character Sheet đã được Producer duyệt & khoá tham chiếu'
@@ -1224,7 +2001,31 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                             <Lock className='w-2.5 h-2.5' />
                             Đã khoá Canon
                           </span>
-                        )}
+                        ) : effRev?.reviewStatus === 'WriterEndorsed' ? (
+                          <span
+                            className='px-2 py-0.5 rounded bg-emerald-600 text-white text-[9px] font-semibold flex items-center gap-1 shadow-2xs'
+                            title='Writer đã duyệt thiết kế (Chờ Producer duyệt & khóa)'
+                          >
+                            <Check className='w-2.5 h-2.5' />
+                            Writer duyệt
+                          </span>
+                        ) : effRev?.reviewStatus === 'ConceptSubmitted' ? (
+                          <span
+                            className='px-2 py-0.5 rounded bg-blue-600 text-white text-[9px] font-semibold flex items-center gap-1 shadow-2xs'
+                            title='Artist đã nộp concept (Chờ kiểm duyệt)'
+                          >
+                            <Palette className='w-2.5 h-2.5' />
+                            Concept đã nộp
+                          </span>
+                        ) : effRev?.reviewStatus === 'ReworkRequired' ? (
+                          <span
+                            className='px-2 py-0.5 rounded bg-rose-600 text-white text-[9px] font-semibold flex items-center gap-1 shadow-2xs'
+                            title='Yêu cầu Artist vẽ lại theo nhận xét'
+                          >
+                            <AlertTriangle className='w-2.5 h-2.5' />
+                            Cần vẽ lại
+                          </span>
+                        ) : null}
                       </div>
                       <div className='absolute bottom-2 right-2'>
                         <span className='px-1.5 py-0.5 rounded bg-[#FCFBF8]/95 backdrop-blur-xs text-[#57534E] text-[10px] font-semibold border border-[#D8D2C5] shadow-xs'>
@@ -1250,6 +2051,18 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                           >
                             <Lock className='w-2.5 h-2.5 text-amber-600' />
                             Đã khoá Canon
+                          </span>
+                        ) : effRev?.reviewStatus === 'WriterEndorsed' ? (
+                          <span className='px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-medium flex items-center gap-1'>
+                            <Check className='w-2.5 h-2.5' /> Writer duyệt
+                          </span>
+                        ) : effRev?.reviewStatus === 'ConceptSubmitted' ? (
+                          <span className='px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 text-[10px] font-medium flex items-center gap-1'>
+                            <Palette className='w-2.5 h-2.5' /> Concept đã nộp
+                          </span>
+                        ) : effRev?.reviewStatus === 'ReworkRequired' ? (
+                          <span className='px-1.5 py-0.5 rounded bg-rose-100 text-rose-800 text-[10px] font-medium flex items-center gap-1'>
+                            <AlertTriangle className='w-2.5 h-2.5' /> Cần vẽ lại
                           </span>
                         ) : (
                           <span className='px-1.5 py-0.5 rounded bg-[#F3F0E9] text-[#57534E] text-[10px] font-medium'>
@@ -1279,6 +2092,15 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                       )}
                     </div>
 
+                    {effRev?.reviewStatus === 'ReworkRequired' && effRev.reworkFeedback && (
+                      <div className='p-2 bg-rose-50 border border-rose-200 rounded-lg text-rose-900 text-[11px] leading-tight flex items-start gap-1.5'>
+                        <AlertTriangle className='w-3 h-3 text-rose-500 shrink-0 mt-0.5' />
+                        <span className='line-clamp-2'>
+                          <strong>Cần sửa:</strong> &quot;{effRev.reworkFeedback}&quot;
+                        </span>
+                      </div>
+                    )}
+
                     <p
                       className='text-xs text-[#57534E] leading-relaxed line-clamp-2'
                       title={entity.description}
@@ -1306,8 +2128,8 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                 </div>
 
                 {/* Card Action Footer */}
-                <div className='p-2.5 bg-[#F8F6F0] border-t border-[#D8D2C5] flex items-center justify-between gap-1.5'>
-                  <div className='flex items-center gap-1.5'>
+                <div className='p-2.5 bg-[#F8F6F0] border-t border-[#D8D2C5] flex items-center justify-between gap-1.5 flex-wrap'>
+                  <div className='flex items-center gap-1.5 flex-wrap'>
                     <button
                       type='button'
                       onClick={(e) => {
@@ -1331,6 +2153,82 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                       <History className='w-3 h-3 text-[#78716C]' />
                       <span>Lịch sử</span>
                     </button>
+
+                    {/* Quick review actions for Writer/Editor when concept is submitted */}
+                    {canReview && !entity.isLocked && effRev?.reviewStatus === 'ConceptSubmitted' && (
+                      <div className='flex items-center gap-1'>
+                        <button
+                          type='button'
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void handleEndorseRevision(effRev, entity);
+                          }}
+                          className='px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
+                          title='Writer/Editor duyệt concept art này'
+                        >
+                          <Check className='w-3 h-3' />
+                          <span>Duyệt</span>
+                        </button>
+                        <button
+                          type='button'
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenReworkModal(effRev, entity);
+                          }}
+                          className='px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
+                          title='Yêu cầu Artist vẽ lại concept'
+                        >
+                          <MessageSquare className='w-3 h-3' />
+                          <span>Sửa lại</span>
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Artist actions: Resubmit if mistakenly submitted, or rework */}
+                    {isArtist && !entity.isLocked && effRev?.reviewStatus === 'ConceptSubmitted' && (
+                      <button
+                        type='button'
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void handleOpenAddRevision(
+                            entity,
+                            effRev,
+                            true,
+                            effRev.effectiveFromChapterNumber,
+                            undefined,
+                            true,
+                          );
+                        }}
+                        className='px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
+                        title='Nộp lại bản vẽ thay thế nếu nộp nhầm file'
+                        data-testid={`artist-resubmit-btn-${entity.id}`}
+                      >
+                        <RotateCcw className='w-3 h-3 text-amber-600' />
+                        <span>Nộp lại</span>
+                      </button>
+                    )}
+                    {isArtist && !entity.isLocked && effRev?.reviewStatus === 'ReworkRequired' && (
+                      <button
+                        type='button'
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void handleOpenAddRevision(
+                            entity,
+                            effRev,
+                            true,
+                            effRev.effectiveFromChapterNumber,
+                            effRev.reworkFeedback || undefined,
+                            false,
+                          );
+                        }}
+                        className='px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-300 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
+                        title='Nộp bản vẽ sửa đổi theo nhận xét của Writer'
+                        data-testid={`artist-rework-btn-${entity.id}`}
+                      >
+                        <Palette className='w-3 h-3 text-rose-600' />
+                        <span>Sửa lại</span>
+                      </button>
+                    )}
                   </div>
 
                   {canCreateDraft && (
@@ -1420,7 +2318,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                       <span className='px-1.5 py-0.5 rounded bg-[#F3F0E9] text-[#57534E] text-[10px] font-medium'>
                         {getCategoryLabel(entity.category)}
                       </span>
-                      {entity.isLocked && (
+                      {entity.isLocked ? (
                         <span
                           className='px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300 text-[10px] font-medium flex items-center gap-1'
                           title='Character Sheet đã được Producer duyệt & khoá tham chiếu'
@@ -1428,11 +2326,28 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                           <Lock className='w-2.5 h-2.5 text-amber-600' />
                           Đã khoá Canon
                         </span>
-                      )}
+                      ) : effRev?.reviewStatus === 'WriterEndorsed' ? (
+                        <span className='px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-medium flex items-center gap-1'>
+                          <Check className='w-2.5 h-2.5' /> Writer duyệt
+                        </span>
+                      ) : effRev?.reviewStatus === 'ConceptSubmitted' ? (
+                        <span className='px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 text-[10px] font-medium flex items-center gap-1'>
+                          <Palette className='w-2.5 h-2.5' /> Concept đã nộp
+                        </span>
+                      ) : effRev?.reviewStatus === 'ReworkRequired' ? (
+                        <span className='px-1.5 py-0.5 rounded bg-rose-100 text-rose-800 text-[10px] font-medium flex items-center gap-1'>
+                          <AlertTriangle className='w-2.5 h-2.5' /> Cần vẽ lại
+                        </span>
+                      ) : null}
                     </div>
                     {entity.subtitle && (
                       <p className='text-xs text-[#C2410C] font-medium truncate'>
                         {entity.subtitle}
+                      </p>
+                    )}
+                    {effRev?.reviewStatus === 'ReworkRequired' && effRev.reworkFeedback && (
+                      <p className='text-[11px] text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200 line-clamp-1 italic'>
+                        ⚠️ Cần sửa: &quot;{effRev.reworkFeedback}&quot;
                       </p>
                     )}
                     <p className='text-xs text-[#57534E] line-clamp-1'>
@@ -1455,7 +2370,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                     </div>
                   </div>
 
-                  <div className='flex items-center gap-1.5'>
+                  <div className='flex items-center gap-1.5 flex-wrap'>
                     <button
                       type='button'
                       onClick={(e) => {
@@ -1478,6 +2393,79 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                     >
                       <History className='w-3 h-3 text-[#78716C]' />
                     </button>
+
+                    {canReview && !entity.isLocked && effRev?.reviewStatus === 'ConceptSubmitted' && (
+                      <>
+                        <button
+                          type='button'
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void handleEndorseRevision(effRev, entity);
+                          }}
+                          className='px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
+                          title='Writer/Editor duyệt concept art này'
+                        >
+                          <Check className='w-3 h-3' />
+                          <span className='hidden sm:inline'>Duyệt</span>
+                        </button>
+                        <button
+                          type='button'
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenReworkModal(effRev, entity);
+                          }}
+                          className='px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
+                          title='Yêu cầu Artist vẽ lại concept'
+                        >
+                          <MessageSquare className='w-3 h-3' />
+                          <span className='hidden sm:inline'>Sửa lại</span>
+                        </button>
+                      </>
+                    )}
+                    {isArtist && !entity.isLocked && effRev?.reviewStatus === 'ConceptSubmitted' && (
+                      <button
+                        type='button'
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void handleOpenAddRevision(
+                            entity,
+                            effRev,
+                            true,
+                            effRev.effectiveFromChapterNumber,
+                            undefined,
+                            true,
+                          );
+                        }}
+                        className='px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
+                        title='Nộp lại bản vẽ thay thế nếu nộp nhầm file'
+                        data-testid={`artist-resubmit-btn-${entity.id}`}
+                      >
+                        <RotateCcw className='w-3 h-3 text-amber-600' />
+                        <span className='hidden sm:inline'>Nộp lại</span>
+                      </button>
+                    )}
+                    {isArtist && !entity.isLocked && effRev?.reviewStatus === 'ReworkRequired' && (
+                      <button
+                        type='button'
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void handleOpenAddRevision(
+                            entity,
+                            effRev,
+                            true,
+                            effRev.effectiveFromChapterNumber,
+                            effRev.reworkFeedback || undefined,
+                            false,
+                          );
+                        }}
+                        className='px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-300 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
+                        title='Nộp bản vẽ sửa đổi theo nhận xét của Writer'
+                        data-testid={`artist-rework-btn-${entity.id}`}
+                      >
+                        <Palette className='w-3 h-3 text-rose-600' />
+                        <span className='hidden sm:inline'>Sửa lại</span>
+                      </button>
+                    )}
                     {canCreateDraft && (
                       <button
                         type='button'
@@ -1509,16 +2497,34 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
           entity={selectedEntity}
           rawEntry={rawEntries[selectedEntity.id]}
           isProducer={isProducer}
+          isArtist={isArtist}
           canCreateDraft={canCreateDraft}
+          canReview={canReview}
+          seriesId={effectiveSeries?.id}
           onClose={() => setSelectedEntity(null)}
           onOpenHistory={(e) => {
-            setSelectedEntity(null);
             void handleOpenHistory(e);
           }}
-          onOpenAddRevision={(e) => {
-            setSelectedEntity(null);
-            void handleOpenAddRevision(e);
+          onOpenAddRevision={(
+            e,
+            supersede,
+            fromQueue,
+            queueEffectiveChapter,
+            reworkFeedback,
+            isResubmit,
+          ) => {
+            void handleOpenAddRevision(
+              e,
+              supersede,
+              fromQueue,
+              queueEffectiveChapter,
+              reworkFeedback,
+              isResubmit,
+            );
           }}
+          onEndorseRevision={(ent, rev) => handleEndorseRevision(rev, ent)}
+          onRequestRework={(ent, rev) => handleOpenReworkModal(rev, ent)}
+          onLockRevision={(rev) => handleLockRevision(rev, selectedEntity)}
           onShowToast={onShowToast}
           onZoomImage={(img) => setSelectedImageZoom(img)}
         />
@@ -1566,12 +2572,21 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
       {historyModalOpen &&
         createPortal(
           <div
-            className='fixed inset-0 bg-black/60 backdrop-blur-xs z-[1000] flex items-center justify-center p-4'
+            className='fixed inset-0 bg-black/60 backdrop-blur-xs z-[1050] flex items-center justify-center p-4'
             role='dialog'
             aria-modal='true'
+            data-child-modal='true'
             aria-labelledby='bible-history-modal-title'
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setHistoryModalOpen(false);
+              }
+            }}
           >
-            <div className='bg-white border border-[#E7E7E7] rounded-2xl max-w-xl w-full max-h-[85vh] flex flex-col shadow-2xl animate-in fade-in zoom-in-95 duration-150'>
+            <div
+              className='bg-white border border-[#E7E7E7] rounded-2xl max-w-xl w-full max-h-[85vh] flex flex-col shadow-2xl animate-in fade-in zoom-in-95 duration-150'
+              onClick={(e) => e.stopPropagation()}
+            >
               <div className='p-4 border-b border-[#E7E7E7] flex items-center justify-between bg-[#FAF8F5]'>
                 <div className='flex items-center gap-2'>
                   <History className='w-4 h-4 text-[#F97316]' />
@@ -1616,35 +2631,47 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                         <span>Tiến trình các giai đoạn ({historyEntityName}):</span>
                       </div>
                       <div className='flex items-center gap-1.5 overflow-x-auto pb-1 text-xs custom-scrollbar flex-wrap'>
-                        {[...historyRevisions]
-                          .sort(
-                            (a, b) => a.effectiveFromChapterNumber - b.effectiveFromChapterNumber,
-                          )
-                          .map((r, idx, arr) => {
-                            const stageTitle = r.stageName?.trim() || `Bản v${r.versionNumber}`;
-                            const toStr = r.effectiveToChapterNumber
-                              ? `Ch.${r.effectiveFromChapterNumber}–${r.effectiveToChapterNumber}`
-                              : `Ch.${r.effectiveFromChapterNumber} → hết`;
-                            return (
-                              <React.Fragment key={r.id}>
-                                <span
-                                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border font-medium ${
-                                    r.isLocked
-                                      ? 'bg-amber-50 border-amber-300 text-amber-900 font-semibold'
-                                      : 'bg-white border-zinc-200 text-zinc-700'
-                                  }`}
-                                >
-                                  {r.isLocked && <Lock className='w-2.5 h-2.5 text-amber-600' />}
-                                  <span>
-                                    {stageTitle} ({toStr})
-                                  </span>
+                        {(() => {
+                          const eraMap = new Map<number, BibleEntryRevisionDto[]>();
+                          for (const r of historyRevisions) {
+                            const ch = r.effectiveFromChapterNumber || 1;
+                            if (!eraMap.has(ch)) eraMap.set(ch, []);
+                            eraMap.get(ch)!.push(r);
+                          }
+                          const distinctEras = Array.from(eraMap.entries())
+                            .sort(([a], [b]) => a - b)
+                            .map(([ch, rList]) => {
+                              const sorted = [...rList].sort((a, b) => b.versionNumber - a.versionNumber);
+                              const latest = sorted[0];
+                              const isLocked = sorted.some((r) => r.isLocked);
+                              const named = sorted.find((r) => r.stageName?.trim());
+                              const title = named?.stageName?.trim() || (ch === 1 ? 'Giai đoạn chuẩn' : `Chương ${ch}`);
+                              const toStr = latest.effectiveToChapterNumber
+                                ? `Ch.${ch}–${latest.effectiveToChapterNumber}`
+                                : `Ch.${ch} → hết`;
+                              return { ch, title, toStr, isLocked };
+                            });
+
+                          return distinctEras.map((era, idx, arr) => (
+                            <React.Fragment key={era.ch}>
+                              <span
+                                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border font-medium ${
+                                  era.isLocked
+                                    ? 'bg-amber-50 border-amber-300 text-amber-900 font-semibold'
+                                    : 'bg-white border-zinc-200 text-zinc-700'
+                                }`}
+                              >
+                                {era.isLocked && <Lock className='w-2.5 h-2.5 text-amber-600' />}
+                                <span>
+                                  {era.title} ({era.toStr})
                                 </span>
-                                {idx < arr.length - 1 && (
-                                  <span className='text-zinc-400 font-bold'>→</span>
-                                )}
-                              </React.Fragment>
-                            );
-                          })}
+                              </span>
+                              {idx < arr.length - 1 && (
+                                <span className='text-zinc-400 font-bold'>→</span>
+                              )}
+                            </React.Fragment>
+                          ));
+                        })()}
                       </div>
                     </div>
 
@@ -1746,10 +2773,18 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                                   isProducer && (
                                     <button
                                       type='button'
-                                      disabled={lockingRevisionId === rev.id}
+                                      disabled={
+                                        lockingRevisionId === rev.id ||
+                                        rev.reviewStatus === 'ReworkRequired'
+                                      }
                                       onClick={() => void handleLockRevision(rev)}
                                       className='px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-semibold flex items-center gap-1 transition-colors shadow-2xs disabled:opacity-50 cursor-pointer'
-                                      title='Producer phê duyệt và khoá phiên bản này làm tham chiếu chuẩn Canon'
+                                      title={
+                                        rev.reviewStatus === 'ReworkRequired'
+                                          ? 'Bản vẽ đang bị yêu cầu vẽ lại, chưa thể khoá Canon'
+                                          : 'Producer phê duyệt và khoá phiên bản này làm tham chiếu chuẩn Canon'
+                                      }
+                                      data-testid={`btn-lock-canon-${rev.id}`}
                                     >
                                       <Lock className='w-3 h-3' />
                                       <span>
@@ -1814,477 +2849,87 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
         )}
 
       {/* ADD REVISION MODAL */}
-      {addRevModalOpen &&
-        revisionTarget &&
-        createPortal(
-          <div
-            className='fixed inset-0 bg-black/60 backdrop-blur-xs z-[1000] flex items-center justify-center p-4'
-            role='dialog'
-            aria-modal='true'
-          >
-            <div className='bg-white border border-[#E7E7E7] rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-5 sm:p-6 space-y-4 shadow-2xl animate-in fade-in zoom-in-95 duration-150 custom-scrollbar'>
-              <div className='flex items-center justify-between border-b border-[#E7E7E7] pb-3'>
-                <div className='flex items-center gap-2'>
-                  <GitCommit className='w-4 h-4 text-[#059669]' />
-                  <h3 className='text-sm font-bold font-sans text-zinc-900'>
-                    {supersedeTarget
-                      ? `Thay thế bản khoá v${supersedeTarget.versionNumber}: ${revisionTarget.name}`
-                      : isProducer
-                        ? `Tạo phiên bản mới: ${revisionTarget.name}`
-                        : `Tạo bản nháp mới: ${revisionTarget.name}`}
-                  </h3>
-                </div>
-                <button
-                  type='button'
-                  onClick={() => setAddRevModalOpen(false)}
-                  aria-label='Đóng'
-                  className='w-6 h-6 rounded flex items-center justify-center text-zinc-400 hover:text-zinc-700'
-                >
-                  <X className='w-4 h-4' />
-                </button>
-              </div>
-
-              {/* Writer/Artist Draft Banner */}
-              {!isProducer && (
-                <div className='p-2.5 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-900 flex items-start gap-2'>
-                  <AlertCircle className='w-4 h-4 text-blue-600 shrink-0 mt-0.5' />
-                  <div>
-                    <span className='font-semibold'>Bản nháp – chờ Producer duyệt:</span> Phiên bản
-                    bạn tạo sẽ ở trạng thái bản thảo (Draft) cho tới khi Producer duyệt &amp; khoá
-                    Canon.
-                  </div>
-                </div>
-              )}
-
-              {/* Locked Chapters Notice */}
-              {!supersedeTarget && lockedChapterNumbers.length > 0 && (
-                <div className='p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 space-y-1'>
-                  <div className='flex items-center gap-1.5 font-semibold'>
-                    <Lock className='w-3.5 h-3.5 text-amber-600 shrink-0' />
-                    <span>Các chương đã có phiên bản khoá tham chiếu:</span>
-                  </div>
-                  <div className='text-[11px] font-mono text-amber-700 pl-5'>
-                    {lockedChapterNumbers.map((ch) => `Chương ${ch}`).join(', ')}
-                  </div>
-                  <div className='text-[10px] text-amber-700/90 pl-5'>
-                    Không thể tạo revision trùng chương bắt đầu của bản đã khoá. Muốn cập nhật nội
-                    dung, hãy chọn số chương khác hoặc dùng nút &quot;Thay thế bản khoá&quot; trong
-                    Lịch sử.
-                  </div>
-                </div>
-              )}
-
-              <div className='space-y-3'>
-                {/* Stage Name */}
-                <div>
-                  <label className='block text-xs font-semibold text-zinc-800 mb-1'>
-                    Giai đoạn nhân vật / bối cảnh (Tùy chọn)
-                  </label>
-                  <input
-                    type='text'
-                    maxLength={100}
-                    placeholder='Ví dụ: Lúc nhỏ, Siêu Saiyan cấp 1, Trưởng thành, Arc Neo-Tokyo...'
-                    value={revisionStageName}
-                    onChange={(e) => setRevisionStageName(e.target.value)}
-                    className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg text-xs text-zinc-900 focus:outline-none focus:border-[#F97316]'
-                    data-testid='revision-stage-name-input'
-                  />
-                  <p className='text-[10px] text-zinc-500 mt-0.5'>
-                    Đặt tên giai đoạn giúp nhận biết bối cảnh thay đổi của nhân vật (ví dụ: Lúc nhỏ,
-                    Trưởng thành).
-                  </p>
-                </div>
-
-                {/* Chapter Range: From & To */}
-                <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
-                  <div>
-                    <label className='block text-xs font-semibold text-zinc-800 mb-1'>
-                      Có hiệu lực từ Chương *
-                    </label>
-                    <input
-                      type='number'
-                      min={1}
-                      value={revisionEffectiveChapter}
-                      disabled={!!supersedeTarget}
-                      onChange={(e) =>
-                        setRevisionEffectiveChapter(Math.max(1, parseInt(e.target.value, 10) || 1))
-                      }
-                      className={`w-full px-3 py-2 bg-[#FAF8F5] border rounded-lg text-xs font-mono text-zinc-900 focus:outline-none disabled:opacity-60 ${
-                        !supersedeTarget && lockedChapterNumbers.includes(revisionEffectiveChapter)
-                          ? 'border-red-400 focus:border-red-500'
-                          : 'border-[#E7E7E7] focus:border-[#F97316]'
-                      }`}
-                    />
-                    {!supersedeTarget &&
-                      lockedChapterNumbers.includes(revisionEffectiveChapter) && (
-                        <p className='text-[11px] text-red-600 mt-1 font-medium flex items-center gap-1'>
-                          <AlertCircle className='w-3 h-3 text-red-500 shrink-0' />
-                          Chương {revisionEffectiveChapter} đã có phiên bản bị khoá!
-                        </p>
-                      )}
-                  </div>
-
-                  <div>
-                    <label className='block text-xs font-semibold text-zinc-800 mb-1'>
-                      Đến Chương (Tùy chọn)
-                    </label>
-                    <input
-                      type='number'
-                      min={revisionEffectiveChapter}
-                      placeholder='Để trống = Đến hết truyện'
-                      value={revisionEffectiveToChapter}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setRevisionEffectiveToChapter(val === '' ? '' : parseInt(val, 10));
-                      }}
-                      className={`w-full px-3 py-2 bg-[#FAF8F5] border rounded-lg text-xs font-mono text-zinc-900 focus:outline-none ${
-                        revisionEffectiveToChapter !== '' &&
-                        Number(revisionEffectiveToChapter) < revisionEffectiveChapter
-                          ? 'border-red-400 focus:border-red-500'
-                          : 'border-[#E7E7E7] focus:border-[#F97316]'
-                      }`}
-                    />
-                    {revisionEffectiveToChapter !== '' &&
-                      Number(revisionEffectiveToChapter) < revisionEffectiveChapter && (
-                        <p className='text-[11px] text-red-600 mt-1 font-medium'>
-                          Chương kết thúc phải ≥ chương bắt đầu ({revisionEffectiveChapter}).
-                        </p>
-                      )}
-                  </div>
-                </div>
-
-                <div>
-                  <label className='block text-xs font-semibold text-zinc-800 mb-1'>
-                    Tên mục *
-                  </label>
-                  <input
-                    type='text'
-                    value={revisionName}
-                    onChange={(e) => setRevisionName(e.target.value)}
-                    className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg text-xs text-zinc-900 focus:outline-none focus:border-[#F97316]'
-                  />
-                </div>
-
-                <div>
-                  <label className='block text-xs font-semibold text-zinc-800 mb-1'>
-                    Phụ đề / Vai trò
-                  </label>
-                  <input
-                    type='text'
-                    value={revisionSubtitle}
-                    onChange={(e) => setRevisionSubtitle(e.target.value)}
-                    className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg text-xs text-zinc-900 focus:outline-none focus:border-[#F97316]'
-                  />
-                </div>
-
-                <div>
-                  <label className='block text-xs font-semibold text-zinc-800 mb-1'>
-                    {supersedeTarget
-                      ? 'Lý do thay thế bản đã khoá *'
-                      : 'Lý do thay đổi / Tóm tắt phiên bản mới *'}
-                  </label>
-                  <input
-                    type='text'
-                    maxLength={supersedeTarget ? 400 : undefined}
-                    placeholder='Ví dụ: Cập nhật trang phục chiến đấu mới từ Arc Neo-Tokyo'
-                    value={revisionSummary}
-                    onChange={(e) => setRevisionSummary(e.target.value)}
-                    className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg text-xs text-zinc-900 focus:outline-none focus:border-[#F97316]'
-                  />
-                </div>
-
-                <div>
-                  <label className='block text-xs font-semibold text-zinc-800 mb-1'>
-                    Mô tả chi tiết phiên bản
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={revisionDescription}
-                    onChange={(e) => setRevisionDescription(e.target.value)}
-                    className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg text-xs text-zinc-900 focus:outline-none focus:border-[#F97316] resize-none'
-                  />
-                </div>
-
-                {/* Upload reference sheet image */}
-                <div>
-                  <div className='flex items-center justify-between mb-1'>
-                    <label className='text-xs font-semibold text-zinc-800'>
-                      Ảnh Reference Sheet của phiên bản (Tùy chọn)
-                    </label>
-                    <span className='text-[10px] text-zinc-400 font-normal'>
-                      {isArtist ? 'Dành cho Artist' : 'Chỉ Artist được tải'}
-                    </span>
-                  </div>
-                  <input
-                    type='file'
-                    ref={revFileInputRef}
-                    accept='image/png,image/jpeg,image/webp'
-                    className='hidden'
-                    onChange={(e) => {
-                      if (e.target.files && e.target.files[0]) {
-                        void handleRevFileUpload(e.target.files[0]);
-                      }
-                    }}
-                  />
-                  {revisionReferenceImageUrl ? (
-                    <div className='p-2.5 bg-[#FAF8F4] border border-[#E7E7E7] rounded-xl flex items-center justify-between gap-3'>
-                      <div className='flex items-center gap-2.5 min-w-0'>
-                        <div className='w-12 h-12 rounded-lg overflow-hidden border border-zinc-200 bg-zinc-900 shrink-0 relative'>
-                          <AuthenticatedImage
-                            src={revisionReferenceImageUrl}
-                            alt={revisionName || 'Reference Sheet'}
-                            className='w-full h-full object-cover'
-                          />
-                        </div>
-                        <div className='min-w-0'>
-                          <span className='text-[10px] text-zinc-500 font-mono truncate block max-w-[200px]'>
-                            {revisionReferenceImageUrl}
-                          </span>
-                        </div>
-                      </div>
-                      {isArtist && (
-                        <div className='flex items-center gap-1 shrink-0'>
-                          <button
-                            type='button'
-                            onClick={() => revFileInputRef.current?.click()}
-                            className='px-2 py-1 text-[11px] font-semibold rounded bg-white border border-[#E7E7E7] hover:bg-zinc-50 text-zinc-700'
-                          >
-                            Đổi ảnh
-                          </button>
-                          <button
-                            type='button'
-                            onClick={() => setRevisionReferenceImageUrl('')}
-                            className='p-1 text-red-600 hover:bg-red-50 rounded'
-                            title='Gỡ ảnh'
-                          >
-                            <Trash2 className='w-3.5 h-3.5' />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  ) : !isArtist ? (
-                    <div className='p-3 rounded-xl border border-dashed border-zinc-200 bg-zinc-50 text-center text-xs text-zinc-500 flex items-center justify-center gap-2'>
-                      <Lock className='w-3.5 h-3.5 text-zinc-400' />
-                      <span>Chỉ Họa sĩ (Artist) mới có quyền tải ảnh Reference Sheet mới.</span>
-                    </div>
-                  ) : (
-                    <button
-                      type='button'
-                      onClick={() => revFileInputRef.current?.click()}
-                      disabled={uploadingRevImage}
-                      className='w-full p-3 rounded-xl border border-dashed border-zinc-300 hover:border-[#F97316] bg-[#FAF8F5] text-center text-xs text-zinc-600 hover:text-zinc-900 flex items-center justify-center gap-2 cursor-pointer transition-colors'
-                    >
-                      {uploadingRevImage ? (
-                        <>
-                          <Loader2 className='w-3.5 h-3.5 animate-spin text-[#F97316]' />
-                          <span>Đang tải ảnh lên...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Upload className='w-3.5 h-3.5 text-[#F97316]' />
-                          <span>Tải ảnh Reference Sheet mới (PNG, JPEG, WebP ≤ 10MB)</span>
-                        </>
-                      )}
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              <div className='pt-3 border-t border-[#E7E7E7] flex items-center justify-end gap-2'>
-                <button
-                  type='button'
-                  onClick={() => setAddRevModalOpen(false)}
-                  className='px-3.5 py-1.5 border border-[#E7E7E7] rounded-lg text-xs font-semibold text-zinc-600 hover:bg-zinc-50'
-                >
-                  Hủy
-                </button>
-                <button
-                  type='button'
-                  disabled={
-                    !revisionSummary.trim() ||
-                    savingRevision ||
-                    (!supersedeTarget && lockedChapterNumbers.includes(revisionEffectiveChapter)) ||
-                    (revisionEffectiveToChapter !== '' &&
-                      Number(revisionEffectiveToChapter) < revisionEffectiveChapter)
-                  }
-                  onClick={async () => {
-                    setSavingRevision(true);
-                    try {
-                      if (effectiveSeries?.id) {
-                        const content = {
-                          expectedVersionNumber: expectedVersionNumber ?? undefined,
-                          name: revisionName.trim() || revisionTarget.name,
-                          subtitle: revisionSubtitle.trim() || revisionTarget.subtitle,
-                          description: revisionDescription.trim() || revisionTarget.description,
-                          referenceImageUrl: revisionReferenceImageUrl || undefined,
-                          stageName: revisionStageName.trim() || undefined,
-                          effectiveToChapterNumber:
-                            revisionEffectiveToChapter !== ''
-                              ? Number(revisionEffectiveToChapter)
-                              : undefined,
-                        };
-                        if (supersedeTarget) {
-                          await bibleService.supersedeRevision(
-                            effectiveSeries.id,
-                            revisionTarget.id,
-                            supersedeTarget.id,
-                            { ...content, reason: revisionSummary.trim() },
-                          );
-                        } else if (isArtistConceptSubmit && isArtist) {
-                          await bibleService.submitConceptArt(
-                            effectiveSeries.id,
-                            revisionTarget.id,
-                            {
-                              ...content,
-                              summary: revisionSummary.trim(),
-                              effectiveToChapterNumber: content.effectiveToChapterNumber,
-                            },
-                          );
-                        } else {
-                          await bibleService.addRevision(effectiveSeries.id, revisionTarget.id, {
-                            ...content,
-                            summary: revisionSummary.trim(),
-                            effectiveFromChapterNumber: revisionEffectiveChapter,
-                          });
-                        }
-                      }
-                      onShowToast(
-                        supersedeTarget
-                          ? 'Đã thay thế bản khoá'
-                          : isArtistConceptSubmit && isArtist
-                            ? 'Đã nộp bản vẽ Concept Art'
-                            : isProducer
-                              ? 'Tạo phiên bản mới thành công'
-                              : 'Đã tạo bản nháp mới',
-                        supersedeTarget
-                          ? `Bản mới của ${revisionName || revisionTarget.name} đã được khoá ở Chương ${revisionEffectiveChapter}.`
-                          : isArtistConceptSubmit && isArtist
-                            ? `Đã gửi bản vẽ Concept Art cho ${revisionName || revisionTarget.name} – chờ Writer/Editor duyệt.`
-                            : isProducer
-                              ? `Đã ghi nhận phiên bản mới cho ${revisionName || revisionTarget.name} có hiệu lực từ Chương ${revisionEffectiveChapter}.`
-                              : `Đã gửi bản nháp mới cho ${revisionName || revisionTarget.name} – chờ Producer duyệt.`,
-                      );
-                      setRefreshTrigger((prev) => prev + 1);
-                      setAddRevModalOpen(false);
-                    } catch (err: any) {
-                      if (err.code === 'CONFLICT' || err.status === 409) {
-                        onShowToast(
-                          'Xung đột phiên bản (409 CONFLICT)',
-                          'Đã có người khác sửa đổi mục này hoặc mốc chương bị trùng! Đang mở Lịch sử để bạn đối chiếu.',
-                        );
-                        setAddRevModalOpen(false);
-                        setHistoryEntity(revisionTarget);
-                        setHistoryEntityName(revisionTarget.name);
-                        setHistoryModalOpen(true);
-                        setLoadingHistory(true);
-                        try {
-                          if (effectiveSeries?.id) {
-                            const history = await bibleService.getEntryHistory(
-                              effectiveSeries.id,
-                              revisionTarget.id,
-                            );
-                            setHistoryRevisions(history);
-                          }
-                        } catch (hErr) {
-                          console.error('Failed to load history on conflict:', hErr);
-                        } finally {
-                          setLoadingHistory(false);
-                          setRefreshTrigger((prev) => prev + 1);
-                        }
-                      } else {
-                        onShowToast('Lỗi tạo phiên bản', err.message);
-                      }
-                    } finally {
-                      setSavingRevision(false);
-                    }
-                  }}
-                  className='px-4 py-1.5 bg-[#059669] hover:bg-[#047857] text-white rounded-lg text-xs font-semibold disabled:opacity-50 flex items-center gap-1.5 shadow-2xs'
-                >
-                  <CheckCircle2 className='w-3.5 h-3.5' />
-                  <span>
-                    {savingRevision ? 'Đang lưu...' : isProducer ? 'Lưu phiên bản' : 'Gửi bản nháp'}
-                  </span>
-                </button>
-              </div>
-            </div>
-          </div>,
-          document.body,
-        )}
+      <AddRevisionModal
+        isOpen={addRevModalOpen}
+        revisionTarget={revisionTarget}
+        supersedeTarget={supersedeTarget}
+        isArtistConceptSubmit={isArtistConceptSubmit}
+        isArtistResubmit={isArtistResubmit}
+        isArtist={isArtist}
+        isProducer={isProducer}
+        revisionReworkFeedback={revisionReworkFeedback}
+        initialStageName={revisionStageName}
+        initialEffectiveChapter={revisionEffectiveChapter}
+        initialEffectiveToChapter={revisionEffectiveToChapter}
+        initialName={revisionName}
+        initialSubtitle={revisionSubtitle}
+        initialSummary={revisionSummary}
+        initialDescription={revisionDescription}
+        initialReferenceImageUrl={revisionReferenceImageUrl}
+        expectedVersionNumber={expectedVersionNumber}
+        lockedChapterNumbers={lockedChapterNumbers}
+        savingRevision={savingRevision}
+        uploadingRevImage={uploadingRevImage}
+        onUploadImage={async (file) => {
+          if (!file || !effectiveSeries?.id) return;
+          const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+          if (!validTypes.includes(file.type)) {
+            onShowToast('Định dạng ảnh không hợp lệ', 'Hệ thống chỉ nhận ảnh PNG, JPEG hoặc WebP.');
+            return;
+          }
+          if (file.size > 10 * 1024 * 1024) {
+            onShowToast('Dung lượng ảnh vượt giới hạn', 'Ảnh tối đa 10 MB.');
+            return;
+          }
+          setUploadingRevImage(true);
+          try {
+            const res = await bibleService.uploadReferenceImage(effectiveSeries.id, file);
+            setRevisionReferenceImageUrl(res.url);
+            onShowToast(
+              'Đã tải ảnh reference sheet mới',
+              `${file.name} (${Math.round(res.sizeBytes / 1024)} KB)`,
+            );
+            return res.url;
+          } catch (err: any) {
+            onShowToast('Lỗi tải ảnh tham chiếu', err.message || 'Không thể tải ảnh reference sheet.');
+          } finally {
+            setUploadingRevImage(false);
+          }
+        }}
+        onClose={() => setAddRevModalOpen(false)}
+        onSubmit={executeSaveRevision}
+        onConfirmArtistSubmit={() => setConfirmSubmitModalOpen(true)}
+      />
 
       {/* REWORK MODAL PORTAL */}
-      {reworkModalOpen &&
-        reworkTargetRev &&
-        createPortal(
-          <div
-            className='fixed inset-0 bg-black/60 backdrop-blur-xs z-[1000] flex items-center justify-center p-4'
-            role='dialog'
-            aria-modal='true'
-          >
-            <div className='bg-white rounded-2xl max-w-md w-full border border-zinc-200 shadow-2xl p-5 space-y-4 animate-in fade-in zoom-in-95 duration-150'>
-              <div className='flex items-center justify-between border-b border-zinc-100 pb-3'>
-                <div className='flex items-center gap-2'>
-                  <div className='w-7 h-7 rounded-lg bg-rose-100 text-rose-700 flex items-center justify-center'>
-                    <MessageSquare className='w-4 h-4' />
-                  </div>
-                  <div>
-                    <h3 className='font-bold text-sm text-zinc-900'>
-                      Yêu cầu vẽ lại thiết kế (Rework)
-                    </h3>
-                    <p className='text-[11px] text-zinc-500'>
-                      Phiên bản v{reworkTargetRev.versionNumber} của &quot;{historyEntity?.name}
-                      &quot;
-                    </p>
-                  </div>
-                </div>
-                <button
-                  type='button'
-                  onClick={() => setReworkModalOpen(false)}
-                  className='p-1 rounded-lg hover:bg-zinc-100 text-zinc-400 hover:text-zinc-700'
-                >
-                  <X className='w-4 h-4' />
-                </button>
-              </div>
+      <ReworkModal
+        isOpen={reworkModalOpen}
+        targetRev={reworkTargetRev}
+        entityName={historyEntity?.name || selectedEntity?.name || ''}
+        isSubmitting={submittingRework}
+        onClose={() => setReworkModalOpen(false)}
+        onSubmit={handleSubmitRework}
+      />
 
-              <div>
-                <label className='block text-xs font-semibold text-zinc-800 mb-1.5'>
-                  Nhận xét chi tiết cho Artist (Lý do chưa chuẩn / Rắc-co) *
-                </label>
-                <textarea
-                  rows={4}
-                  required
-                  placeholder='Ví dụ: Kiểu tóc chưa đúng với nguyên tác, màu trang phục cần chỉnh lại thành màu xanh đậm, thiếu biểu cảm giận dữ...'
-                  value={reworkReason}
-                  onChange={(e) => setReworkReason(e.target.value)}
-                  className='w-full px-3 py-2 bg-[#FAF8F5] border border-zinc-300 rounded-lg text-xs text-zinc-900 focus:outline-none focus:border-rose-500 resize-none'
-                />
-                <p className='text-[10px] text-zinc-500 mt-1'>
-                  Ghi chú này sẽ được chuyển ngay đến hàng đợi vẽ của Artist để vẽ bản cập nhật tiếp
-                  theo.
-                </p>
-              </div>
-
-              <div className='flex items-center justify-end gap-2 pt-2 border-t border-zinc-100'>
-                <button
-                  type='button'
-                  onClick={() => setReworkModalOpen(false)}
-                  className='px-3.5 py-1.5 border border-zinc-200 rounded-lg text-xs font-semibold text-zinc-600 hover:bg-zinc-50'
-                >
-                  Hủy
-                </button>
-                <button
-                  type='button'
-                  disabled={!reworkReason.trim() || submittingRework}
-                  onClick={() => void handleSubmitRework()}
-                  className='px-4 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold disabled:opacity-50 flex items-center gap-1.5 shadow-2xs'
-                >
-                  <MessageSquare className='w-3.5 h-3.5' />
-                  <span>{submittingRework ? 'Đang gửi...' : 'Gửi yêu cầu vẽ lại'}</span>
-                </button>
-              </div>
-            </div>
-          </div>,
-          document.body,
-        )}
+      {/* CONFIRM CONCEPT SUBMISSION MODAL (ARTIST) */}
+      <LucianConfirmModal
+        isOpen={confirmSubmitModalOpen}
+        onCancel={() => setConfirmSubmitModalOpen(false)}
+        onConfirm={() => void executeSaveRevision()}
+        title={
+          isArtistResubmit
+            ? 'Xác nhận nộp lại bản vẽ Concept Art'
+            : 'Xác nhận nộp bản vẽ Concept Art'
+        }
+        confirmText={isArtistResubmit ? 'Xác nhận nộp lại' : 'Xác nhận nộp'}
+        cancelText='Kiểm tra lại'
+        variant='info'
+        description={
+          isArtistResubmit
+            ? `Bạn có chắc chắn muốn nộp lại bản vẽ thay thế cho "${revisionName || revisionTarget?.name}" không? Bản nộp mới này sẽ thay thế bản vẽ đang chờ duyệt.`
+            : `Bạn có chắc chắn muốn nộp bản vẽ Concept Art cho "${revisionName || revisionTarget?.name}" không? Bản vẽ sẽ được chuyển đến Writer / Producer để duyệt Canon.`
+        }
+      />
 
       {/* Add Entity Modal */}
       <AddEntityModal

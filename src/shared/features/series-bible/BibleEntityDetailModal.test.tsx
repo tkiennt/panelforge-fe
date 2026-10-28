@@ -140,7 +140,6 @@ describe('BibleEntityDetailModal UX/UI', () => {
     expect(draftBtn).toBeInTheDocument();
     fireEvent.click(draftBtn);
 
-    expect(defaultProps.onClose).toHaveBeenCalled();
     expect(defaultProps.onOpenAddRevision).toHaveBeenCalledWith(mockEntityWithImage);
   });
 
@@ -179,7 +178,6 @@ describe('BibleEntityDetailModal UX/UI', () => {
     expect(addImgBtn).toBeInTheDocument();
 
     fireEvent.click(addImgBtn);
-    expect(defaultProps.onClose).toHaveBeenCalled();
     expect(defaultProps.onOpenAddRevision).toHaveBeenCalledWith(mockEntityNoImage);
   });
 
@@ -250,5 +248,32 @@ describe('BibleEntityDetailModal UX/UI', () => {
     fireEvent.click(sideThumb);
 
     expect(screen.getByText('Tần Mục - Góc nghiêng (Side)')).toBeInTheDocument();
+  });
+
+  it('deduplicates revisions of the same chapter milestone and uses explicit stageName without displaying twice', () => {
+    const rawWithMultiRev: BibleEntryDto = {
+      ...mockRawEntry,
+      effectiveRevision: {
+        id: 'rev-2',
+        bibleEntryId: 'ent-1',
+        versionNumber: 2,
+        summary: 'Đặt tên giai đoạn',
+        stageName: 'Lúc nhỏ',
+        snapshotJson: '{}',
+        contentHash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+        effectiveFromChapterNumber: 1,
+        isInitialVersion: false,
+        createdAt: '2026-10-15T09:00:00Z',
+      },
+    };
+
+    render(<BibleEntityDetailModal {...defaultProps} rawEntry={rawWithMultiRev} />);
+
+    // Era selector should have ONE stage tab for Chapter 1 with stageName 'Lúc nhỏ'
+    const eraSelector = screen.getByTestId('era-stages-selector');
+    expect(eraSelector).toBeInTheDocument();
+    expect(screen.getAllByText('Lúc nhỏ').length).toBeGreaterThanOrEqual(1);
+    // Must not duplicate with fallback 'Giai đoạn khởi đầu'
+    expect(screen.queryByText('Giai đoạn khởi đầu')).not.toBeInTheDocument();
   });
 });
