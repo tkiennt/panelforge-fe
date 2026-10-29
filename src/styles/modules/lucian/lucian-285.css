@@ -417,3 +417,47 @@
   .u285-st.pd, .u285-st.ok, .u285-rb.is-fl { animation: none; }
 }
 
+/* PanelForge: chọn vai trò bằng <select> thật (thay nút bấm xoay vòng) */
+.u285-rl {
+  position: relative;
+  padding: 0;
+}
+
+.u285-rl select {
+  height: 100%;
+  padding: 0 24px 0 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  appearance: none;
+  outline: none;
+}
+
+.u285-rl select:focus-visible {
+  box-shadow: 0 0 0 2px var(--u285-accent);
+}
+
+.u285-rl svg {
+  position: absolute;
+  right: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+select.u285-rb {
+  padding-right: 6px;
+}
+
+.u285-rb.is-owner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border-color: transparent;
+  cursor: default;
+  color: var(--u285-ink-subtle);
+}

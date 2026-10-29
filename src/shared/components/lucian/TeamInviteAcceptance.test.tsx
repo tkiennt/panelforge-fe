@@ -6,15 +6,25 @@ import { TeamInviteAcceptance } from './TeamInviteAcceptance';
 describe('TeamInviteAcceptance Component (Lucian UX/UI Prompt #285)', () => {
   it('renders initial members and active counter badge correctly', () => {
     const initialMembers = [
-      { id: '1', name: 'Eiichiro Oda', email: 'oda@shonen.com', role: 'Artist', status: 'Active' as const, isOwner: true },
-      { id: '2', name: 'Masashi Kishimoto', email: 'kishi@shonen.com', role: 'Writer', status: 'Joined' as const },
+      {
+        id: '1',
+        name: 'Eiichiro Oda',
+        email: 'oda@shonen.com',
+        role: 'Artist',
+        status: 'Active' as const,
+        isOwner: true,
+      },
+      {
+        id: '2',
+        name: 'Masashi Kishimoto',
+        email: 'kishi@shonen.com',
+        role: 'Writer',
+        status: 'Joined' as const,
+      },
     ];
 
     render(
-      <TeamInviteAcceptance
-        workspaceName='Grand Line Studio'
-        initialMembers={initialMembers}
-      />,
+      <TeamInviteAcceptance workspaceName='Grand Line Studio' initialMembers={initialMembers} />,
     );
 
     expect(screen.getByText('Thành viên')).toBeInTheDocument();
@@ -23,40 +33,41 @@ describe('TeamInviteAcceptance Component (Lucian UX/UI Prompt #285)', () => {
     expect(screen.getByText('2')).toBeInTheDocument(); // active counter badge
   });
 
-  it('cycles through available roles on role pill button click', async () => {
-    const user = userEvent.setup();
-    const availableRoles = ['Artist', 'Writer', 'Editor'];
-
-    render(
-      <TeamInviteAcceptance
-        workspaceName='Grand Line Studio'
-        availableRoles={availableRoles}
-      />,
-    );
-
-    const roleBtn = screen.getByTitle(/Đổi vai trò mặc định/i);
-    expect(roleBtn).toHaveTextContent('Artist');
-
-    await user.click(roleBtn);
-    expect(roleBtn).toHaveTextContent('Writer');
-
-    await user.click(roleBtn);
-    expect(roleBtn).toHaveTextContent('Editor');
-
-    await user.click(roleBtn);
-    expect(roleBtn).toHaveTextContent('Artist');
-  });
-
-  it('submits a new member invitation and displays pending state', async () => {
+  it('lets the inviter pick any role from a dropdown and invites with that role', async () => {
     const user = userEvent.setup();
     const onInvite = vi.fn().mockResolvedValue(undefined);
 
     render(
       <TeamInviteAcceptance
         workspaceName='Grand Line Studio'
+        availableRoles={['Artist', 'Writer', 'Editor']}
         onInvite={onInvite}
       />,
     );
+
+    const roleSelect = screen.getByRole('combobox', { name: 'Vai trò mời' });
+    expect(roleSelect).toHaveValue('Artist');
+    expect(screen.getAllByRole('option').map((o) => o.textContent)).toEqual([
+      'Artist',
+      'Writer',
+      'Editor',
+    ]);
+
+    // Chọn thẳng vai trò thứ ba, không phải bấm xoay vòng
+    await user.selectOptions(roleSelect, 'Editor');
+    expect(roleSelect).toHaveValue('Editor');
+
+    await user.type(screen.getByPlaceholderText(/Nhập email/i), 'oda@shonen.com');
+    await user.click(screen.getByRole('button', { name: /^Mời$/i }));
+
+    expect(onInvite).toHaveBeenCalledWith('oda@shonen.com', 'Editor');
+  });
+
+  it('submits a new member invitation and displays pending state', async () => {
+    const user = userEvent.setup();
+    const onInvite = vi.fn().mockResolvedValue(undefined);
+
+    render(<TeamInviteAcceptance workspaceName='Grand Line Studio' onInvite={onInvite} />);
 
     const input = screen.getByPlaceholderText(/Nhập email/i);
     const submitBtn = screen.getByRole('button', { name: /^Mời$/i });
@@ -78,7 +89,13 @@ describe('TeamInviteAcceptance Component (Lucian UX/UI Prompt #285)', () => {
     const user = userEvent.setup();
     const onRoleChange = vi.fn();
     const initialMembers = [
-      { id: 'mem-1', name: 'Tite Kubo', email: 'kubo@bleach.com', role: 'Artist', status: 'Joined' as const },
+      {
+        id: 'mem-1',
+        name: 'Tite Kubo',
+        email: 'kubo@bleach.com',
+        role: 'Artist',
+        status: 'Joined' as const,
+      },
     ];
 
     render(
@@ -89,10 +106,37 @@ describe('TeamInviteAcceptance Component (Lucian UX/UI Prompt #285)', () => {
       />,
     );
 
-    const memberRoleBtn = screen.getByRole('button', { name: /Tite Kubo/i });
-    await user.click(memberRoleBtn);
+    const memberRole = screen.getByRole('combobox', { name: /Tite Kubo/i });
+    await user.selectOptions(memberRole, 'Editor');
 
-    expect(onRoleChange).toHaveBeenCalledWith('mem-1', 'kubo@bleach.com', 'Writer');
-    expect(memberRoleBtn).toHaveTextContent('Writer');
+    expect(onRoleChange).toHaveBeenCalledWith('mem-1', 'kubo@bleach.com', 'Editor');
+    expect(memberRole).toHaveValue('Editor');
+
+    // Chọn lại đúng vai trò đang có thì không gọi API
+    await user.selectOptions(memberRole, 'Editor');
+    expect(onRoleChange).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the owner fixed and shows a member role that is outside the list', () => {
+    render(
+      <TeamInviteAcceptance
+        initialMembers={[
+          {
+            id: 'o',
+            name: 'Owner',
+            email: 'o@x.com',
+            role: 'Producer',
+            isOwner: true,
+            status: 'Active' as const,
+          },
+          { id: 'p', name: 'Phó', email: 'p@x.com', role: 'Producer', status: 'Joined' as const },
+        ]}
+        availableRoles={['Artist', 'Writer']}
+      />,
+    );
+
+    expect(screen.getByText('Chủ phòng')).toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: /Owner/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: /Phó/i })).toHaveValue('Producer');
   });
 });

@@ -42,7 +42,7 @@ export const TeamInviteAcceptance: React.FC<TeamInviteAcceptanceProps> = ({
   className = '',
 }) => {
   const [emailInput, setEmailInput] = useState('');
-  const [selectedRoleIndex, setSelectedRoleIndex] = useState(0);
+  const [selectedRole, setSelectedRole] = useState(availableRoles[0] ?? '');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [animatingId, setAnimatingId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
@@ -93,22 +93,20 @@ export const TeamInviteAcceptance: React.FC<TeamInviteAcceptanceProps> = ({
   const activeCount = members.filter((m) => m.status === 'Active' || m.status === 'Joined').length;
   const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(emailInput.trim());
 
-  const currentRole = availableRoles[selectedRoleIndex % availableRoles.length];
+  // Danh sách vai trò có thể đổi khi đang mở, nên luôn rơi về vai trò đầu nếu lựa chọn cũ không còn
+  const currentRole = availableRoles.includes(selectedRole)
+    ? selectedRole
+    : (availableRoles[0] ?? '');
 
-  const handleToggleRole = () => {
-    setSelectedRoleIndex((prev) => (prev + 1) % availableRoles.length);
-  };
+  /** Vai trò hiện tại của thành viên có thể không nằm trong danh sách (vd Producer cũ) → vẫn hiện để không bị đổi ngầm. */
+  const roleOptions = (role: string) =>
+    availableRoles.includes(role) ? availableRoles : [role, ...availableRoles];
 
-  const handleCycleMemberRole = (member: TeamMemberItem) => {
-    if (member.isOwner) return;
+  const handleChangeMemberRole = (member: TeamMemberItem, nextRole: string) => {
+    if (member.isOwner || nextRole === member.role) return;
 
     setAnimatingId(member.id);
-    const currentIndex = availableRoles.indexOf(member.role);
-    const nextRole = availableRoles[(currentIndex + 1) % availableRoles.length];
-
-    setMembers((prev) =>
-      prev.map((m) => (m.id === member.id ? { ...m, role: nextRole } : m)),
-    );
+    setMembers((prev) => prev.map((m) => (m.id === member.id ? { ...m, role: nextRole } : m)));
 
     onRoleChange?.(member.id, member.email, nextRole);
 
@@ -187,14 +185,19 @@ export const TeamInviteAcceptance: React.FC<TeamInviteAcceptanceProps> = ({
           autoComplete='off'
         />
 
-        <button
-          type='button'
-          onClick={handleToggleRole}
-          className='u285-rl'
-          title='Đổi vai trò mặc định'
-          aria-label={`Vai trò: ${currentRole}`}
-        >
-          <span>{currentRole}</span>
+        <div className='u285-rl'>
+          <select
+            value={currentRole}
+            onChange={(e) => setSelectedRole(e.target.value)}
+            title='Chọn vai trò cho email được mời'
+            aria-label='Vai trò mời'
+          >
+            {availableRoles.map((r) => (
+              <option key={r} value={r}>
+                {r}
+              </option>
+            ))}
+          </select>
           <svg viewBox='0 0 9 9' aria-hidden='true'>
             <path
               d='M1.5 3l3 3 3-3'
@@ -205,13 +208,9 @@ export const TeamInviteAcceptance: React.FC<TeamInviteAcceptanceProps> = ({
               strokeLinejoin='round'
             />
           </svg>
-        </button>
+        </div>
 
-        <button
-          type='submit'
-          disabled={!isEmailValid || isSubmitting}
-          className='u285-go'
-        >
+        <button type='submit' disabled={!isEmailValid || isSubmitting} className='u285-go'>
           {isSubmitting ? 'Đang gửi...' : 'Mời'}
         </button>
       </form>
@@ -257,17 +256,26 @@ export const TeamInviteAcceptance: React.FC<TeamInviteAcceptanceProps> = ({
                     </span>
                   )}
 
-                  {/* Role Button (Click to cycle roles) */}
-                  <button
-                    type='button'
-                    disabled={m.isOwner}
-                    onClick={() => handleCycleMemberRole(m)}
-                    className={`u285-rb ${animatingId === m.id ? 'is-fl' : ''}`}
-                    aria-label={`${m.name} - ${m.isOwner ? 'Chủ phòng' : m.role}`}
-                    title={m.isOwner ? 'Chủ phòng' : 'Bấm để đổi vai trò'}
-                  >
-                    {m.isOwner ? 'Chủ phòng' : m.role}
-                  </button>
+                  {/* Vai trò: chủ phòng cố định, thành viên khác chọn từ danh sách */}
+                  {m.isOwner ? (
+                    <span className='u285-rb is-owner' title='Chủ phòng'>
+                      Chủ phòng
+                    </span>
+                  ) : (
+                    <select
+                      value={m.role}
+                      onChange={(e) => handleChangeMemberRole(m, e.target.value)}
+                      className={`u285-rb ${animatingId === m.id ? 'is-fl' : ''}`}
+                      aria-label={`Vai trò của ${m.name}`}
+                      title='Chọn vai trò'
+                    >
+                      {roleOptions(m.role).map((r) => (
+                        <option key={r} value={r}>
+                          {r}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
               </div>
             </li>
