@@ -222,6 +222,9 @@ function AppContent() {
       normalizeWorkspaceRole(ws.currentUserRole) ||
       (currentRole === 'ADMINISTRATOR' ? 'PRODUCER' : 'ARTIST');
     setCurrentWorkspaceRole(wsRole);
+    try {
+      localStorage.setItem('workspaceRole', wsRole);
+    } catch {}
     setActiveProjectRoles([wsRole]);
     setViewScope('project');
 
@@ -657,20 +660,14 @@ function AppContent() {
       return;
     }
 
-    // BR-23 / F3: Điều hướng theo suggestedLanding từ landing-context API
+    // BR-23 / F3: Luồng chuẩn PanelForge: Admin -> /admin, còn lại vào /workspaces -> Series -> Không gian làm việc
     authService
       .getLandingContext()
       .then((landing) => {
-        if (landing?.suggestedLanding === 'AdminDashboard') {
+        if (landing?.suggestedLanding === 'AdminDashboard' || role === 'ADMINISTRATOR') {
           navigate('/admin');
-        } else if (landing?.suggestedLanding === 'YourWorkspaces') {
-          navigate('/workspaces');
-        } else if (landing?.suggestedLanding === 'StudioCreation') {
-          navigate(landing.canCreateStudio ? '/producer' : '/workspaces');
-        } else if (landing?.suggestedLanding === 'PublicCatalog') {
-          navigate('/catalog');
         } else {
-          navigate(role === 'ADMINISTRATOR' ? '/admin' : '/workspaces');
+          navigate('/workspaces');
         }
       })
       .catch(() => {

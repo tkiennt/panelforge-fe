@@ -126,16 +126,10 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onRegisterSuccess })
 
     try {
       const landing = await authService.getLandingContext();
-      if (landing?.suggestedLanding === 'AdminDashboard') {
+      if (landing?.suggestedLanding === 'AdminDashboard' || role === 'ADMINISTRATOR') {
         navigate('/admin');
-      } else if (landing?.suggestedLanding === 'YourWorkspaces') {
-        navigate('/workspaces');
-      } else if (landing?.suggestedLanding === 'StudioCreation') {
-        navigate(landing.canCreateStudio ? '/producer' : '/workspaces');
-      } else if (landing?.suggestedLanding === 'PublicCatalog') {
-        navigate('/catalog');
       } else {
-        navigate(role === 'ADMINISTRATOR' ? '/admin' : '/workspaces');
+        navigate('/workspaces');
       }
     } catch {
       navigate(role === 'ADMINISTRATOR' ? '/admin' : '/workspaces');
