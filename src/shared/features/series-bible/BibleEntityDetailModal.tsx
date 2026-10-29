@@ -185,6 +185,7 @@ interface BibleEntityDetailModalProps {
     queueEffectiveChapter?: number,
     reworkFeedback?: string,
     isResubmit?: boolean,
+    isNewEra?: boolean,
   ) => void;
   onEndorseRevision?: (entity: BibleEntity, rev: BibleEntryRevisionDto) => Promise<void>;
   onRequestRework?: (entity: BibleEntity, rev: BibleEntryRevisionDto) => void;
@@ -801,8 +802,9 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
             <button
               type='button'
               onClick={() => {
-                onOpenAddRevision(entity);
+                onOpenAddRevision(entity, null, false, undefined, undefined, false, true);
               }}
+              data-testid='add-new-era-btn'
               className='inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white text-xs sm:text-sm font-bold rounded-xl transition-all cursor-pointer shadow-sm hover:shadow active:scale-[0.98] ml-auto shrink-0'
               title='Tạo thời kỳ hoặc hình thái cốt truyện mới'
             >

@@ -42,7 +42,7 @@ import {
 import { seriesService } from '@/services/series.service';
 import { chapterService, ChapterDto } from '@/services/chapter.service';
 import { AddEntityModal } from './AddEntityModal';
-import { BibleEntityDetailModal, type CharacterEraStage } from './BibleEntityDetailModal';
+import { BibleEntityDetailModal, groupRevisionsIntoStages, type CharacterEraStage } from './BibleEntityDetailModal';
 import { PageContainer } from '@/shared/components/PageContainer';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { createPortal } from 'react-dom';
@@ -183,6 +183,8 @@ interface AddRevisionModalProps {
   isOpen: boolean;
   revisionTarget: BibleEntity | null;
   supersedeTarget: BibleEntryRevisionDto | null;
+  isNewEraInitial?: boolean;
+  existingStages?: CharacterEraStage[];
   isArtistConceptSubmit: boolean;
   isArtistResubmit: boolean;
   isArtist: boolean;
@@ -221,6 +223,8 @@ const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
     isOpen,
     revisionTarget,
     supersedeTarget,
+    isNewEraInitial = false,
+    existingStages = [],
     isArtistConceptSubmit,
     isArtistResubmit,
     isArtist,
@@ -243,6 +247,12 @@ const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
     onSubmit,
     onConfirmArtistSubmit,
   }) => {
+    const [eraMode, setEraMode] = useState<'existing' | 'new'>(() => {
+      if (isNewEraInitial) return 'new';
+      if (existingStages && existingStages.length > 0) return 'existing';
+      return 'new';
+    });
+    const [selectedExistingStageKey, setSelectedExistingStageKey] = useState<string>('');
     const [stageName, setStageName] = useState(initialStageName);
     const [effectiveChapter, setEffectiveChapter] = useState(initialEffectiveChapter);
     const [effectiveToChapter, setEffectiveToChapter] = useState<number | ''>(initialEffectiveToChapter);
@@ -252,20 +262,42 @@ const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
     const [description, setDescription] = useState(initialDescription);
     const [referenceImageUrl, setReferenceImageUrl] = useState(initialReferenceImageUrl);
     const revFileInputRef = useRef<HTMLInputElement>(null);
+    const isInitRef = useRef(false);
 
     useEffect(() => {
-      if (isOpen) {
-        setStageName(initialStageName);
-        setEffectiveChapter(initialEffectiveChapter);
-        setEffectiveToChapter(initialEffectiveToChapter);
+      if (!isOpen) {
+        isInitRef.current = false;
+        return;
+      }
+      if (!isInitRef.current) {
+        isInitRef.current = true;
+        const mode = isNewEraInitial || !existingStages || existingStages.length === 0 ? 'new' : 'existing';
+        setEraMode(mode);
         setName(initialName);
         setSubtitle(initialSubtitle);
         setSummary(initialSummary);
         setDescription(initialDescription);
         setReferenceImageUrl(initialReferenceImageUrl);
+
+        if (mode === 'existing' && existingStages && existingStages.length > 0) {
+          const matching = existingStages.find(
+            (s) => s.effectiveFromChapterNumber === initialEffectiveChapter ||
+                   (initialStageName && s.stageName.toLowerCase() === initialStageName.toLowerCase())
+          ) || existingStages[0];
+          setSelectedExistingStageKey(matching.stageKey);
+          setStageName(matching.stageName);
+          setEffectiveChapter(matching.effectiveFromChapterNumber);
+          setEffectiveToChapter(matching.effectiveToChapterNumber ?? '');
+        } else {
+          setStageName(initialStageName);
+          setEffectiveChapter(initialEffectiveChapter);
+          setEffectiveToChapter(initialEffectiveToChapter);
+        }
       }
     }, [
       isOpen,
+      isNewEraInitial,
+      existingStages,
       initialStageName,
       initialEffectiveChapter,
       initialEffectiveToChapter,
@@ -315,17 +347,26 @@ const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
           <div className='flex items-center justify-between border-b border-[#E7E7E7] pb-3'>
             <div className='flex items-center gap-2'>
               <GitCommit className='w-4 h-4 text-[#059669]' />
-              <h3 className='text-sm font-bold font-sans text-zinc-900'>
-                {supersedeTarget
-                  ? `Thay thế bản khoá v${supersedeTarget.versionNumber}: ${revisionTarget.name}`
-                  : isArtistResubmit
-                    ? `Nộp lại bản vẽ Concept Art: ${revisionTarget.name}`
-                    : isArtistConceptSubmit && isArtist
-                      ? `Nộp bản vẽ Concept Art: ${revisionTarget.name}`
-                      : isProducer
-                        ? `Tạo phiên bản mới: ${revisionTarget.name}`
-                        : `Tạo bản nháp mới: ${revisionTarget.name}`}
-              </h3>
+              <div className='flex items-center gap-2 flex-wrap'>
+                <h3 className='text-sm font-bold font-sans text-zinc-900'>
+                  {supersedeTarget
+                    ? `Thay thế bản khoá v${supersedeTarget.versionNumber}: ${revisionTarget.name}`
+                    : eraMode === 'new'
+                      ? `Tạo Thời kỳ (Era) mới: ${revisionTarget.name}`
+                      : isArtistResubmit
+                        ? `Nộp lại bản vẽ Concept Art: ${revisionTarget.name}`
+                        : isArtistConceptSubmit && isArtist
+                          ? `Nộp bản vẽ Concept Art: ${revisionTarget.name}`
+                          : isProducer
+                            ? `Tạo phiên bản mới: ${revisionTarget.name}`
+                            : `Tạo bản nháp mới: ${revisionTarget.name}`}
+                </h3>
+                {eraMode === 'new' && (
+                  <span className='px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300'>
+                    ✨ Thời kỳ mới (Era)
+                  </span>
+                )}
+              </div>
             </div>
             <button
               type='button'
@@ -364,75 +405,185 @@ const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
           ) : null}
 
           <div className='space-y-3'>
-            {/* Stage Name */}
-            <div>
-              <label className='block text-xs font-semibold text-zinc-800 mb-1'>
-                Tên giai đoạn (Tùy chọn)
-              </label>
-              <input
-                type='text'
-                maxLength={100}
-                placeholder='Ví dụ: Lúc nhỏ, Siêu Saiyan cấp 1, Trưởng thành, Arc Neo-Tokyo...'
-                value={stageName}
-                onChange={(e) => setStageName(e.target.value)}
-                className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg text-xs text-zinc-900 focus:outline-none focus:border-[#F97316]'
-                data-testid='revision-stage-name-input'
-              />
-            </div>
-
-            {/* Chapter Range: From & To */}
-            <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
-              <div>
-                <label className='block text-xs font-semibold text-zinc-800 mb-1'>
-                  Có hiệu lực từ Chương *
-                </label>
-                <input
-                  type='number'
-                  min={1}
-                  value={effectiveChapter}
-                  disabled={!!supersedeTarget}
-                  onChange={(e) =>
-                    setEffectiveChapter(Math.max(1, parseInt(e.target.value, 10) || 1))
-                  }
-                  className={`w-full px-3 py-2 bg-[#FAF8F5] border rounded-lg text-xs font-mono text-zinc-900 focus:outline-none disabled:opacity-60 ${
-                    !supersedeTarget && lockedChapterNumbers.includes(effectiveChapter)
-                      ? 'border-red-400 focus:border-red-500'
-                      : 'border-[#E7E7E7] focus:border-[#F97316]'
-                  }`}
-                />
-                {!supersedeTarget && lockedChapterNumbers.includes(effectiveChapter) && (
-                  <p className='text-[11px] text-red-600 mt-1 font-medium flex items-center gap-1'>
-                    <AlertCircle className='w-3 h-3 text-red-500 shrink-0' />
-                    Chương {effectiveChapter} đã có phiên bản bị khoá!
-                  </p>
+            {/* THỜI KỲ (ERA) & TIẾN TRÌNH CỐT TRUYỆN */}
+            <div className='bg-[#FAF8F5] border border-[#E7E5E4] rounded-xl p-3.5 space-y-3' data-testid='era-config-block'>
+              <div className='flex items-center justify-between gap-2 flex-wrap'>
+                <div className='flex items-center gap-2'>
+                  <Clock className='w-4 h-4 text-[#EA580C]' />
+                  <span className='text-xs font-bold text-zinc-900'>Thời kỳ & Tiến trình cốt truyện (Era)</span>
+                </div>
+                {!supersedeTarget && existingStages && existingStages.length > 0 && (
+                  <div className='inline-flex rounded-lg bg-stone-200/70 p-0.5 text-xs font-medium' role='tablist'>
+                    <button
+                      type='button'
+                      role='tab'
+                      aria-selected={eraMode === 'existing'}
+                      onClick={() => {
+                        setEraMode('existing');
+                        const stg = existingStages.find((s) => s.stageKey === selectedExistingStageKey) || existingStages[0];
+                        if (stg) {
+                          setStageName(stg.stageName);
+                          setEffectiveChapter(stg.effectiveFromChapterNumber);
+                          setEffectiveToChapter(stg.effectiveToChapterNumber ?? '');
+                        }
+                      }}
+                      className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer ${
+                        eraMode === 'existing'
+                          ? 'bg-white text-zinc-900 shadow-2xs'
+                          : 'text-zinc-600 hover:text-zinc-900'
+                      }`}
+                      data-testid='switch-to-existing-era-tab'
+                    >
+                      Thời kỳ hiện có
+                    </button>
+                    <button
+                      type='button'
+                      role='tab'
+                      aria-selected={eraMode === 'new'}
+                      onClick={() => {
+                        setEraMode('new');
+                        setStageName('');
+                        const maxCh = Math.max(...existingStages.map((s) => s.effectiveFromChapterNumber || 1));
+                        setEffectiveChapter(maxCh + 1);
+                        setEffectiveToChapter('');
+                      }}
+                      className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1 ${
+                        eraMode === 'new'
+                          ? 'bg-[#EA580C] text-white shadow-2xs'
+                          : 'text-zinc-600 hover:text-zinc-900'
+                      }`}
+                      data-testid='switch-to-new-era-tab'
+                    >
+                      <Plus className='w-3 h-3' />
+                      <span>Tạo thời kỳ mới</span>
+                    </button>
+                  </div>
                 )}
               </div>
 
-              <div>
-                <label className='block text-xs font-semibold text-zinc-800 mb-1'>
-                  Đến Chương (Tùy chọn)
-                </label>
-                <input
-                  type='number'
-                  min={effectiveChapter}
-                  placeholder='Để trống = Đến hết truyện'
-                  value={effectiveToChapter}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setEffectiveToChapter(val === '' ? '' : parseInt(val, 10));
-                  }}
-                  className={`w-full px-3 py-2 bg-[#FAF8F5] border rounded-lg text-xs font-mono text-zinc-900 focus:outline-none ${
-                    effectiveToChapter !== '' && Number(effectiveToChapter) < effectiveChapter
-                      ? 'border-red-400 focus:border-red-500'
-                      : 'border-[#E7E7E7] focus:border-[#F97316]'
-                  }`}
-                />
-                {effectiveToChapter !== '' && Number(effectiveToChapter) < effectiveChapter && (
-                  <p className='text-[11px] text-red-600 mt-1 font-medium'>
-                    Chương kết thúc phải ≥ chương bắt đầu ({effectiveChapter}).
+              {eraMode === 'existing' && existingStages && existingStages.length > 0 && !supersedeTarget ? (
+                <div className='space-y-2 pt-1'>
+                  <label className='block text-xs font-semibold text-zinc-700'>
+                    Chọn thời kỳ của nhân vật để thêm phiên bản *
+                  </label>
+                  <select
+                    value={selectedExistingStageKey}
+                    onChange={(e) => {
+                      const key = e.target.value;
+                      setSelectedExistingStageKey(key);
+                      const stg = existingStages.find((s) => s.stageKey === key);
+                      if (stg) {
+                        setStageName(stg.stageName);
+                        setEffectiveChapter(stg.effectiveFromChapterNumber);
+                        setEffectiveToChapter(stg.effectiveToChapterNumber ?? '');
+                      }
+                    }}
+                    className='w-full px-3 py-2 bg-white border border-[#D8D2C5] rounded-xl text-xs font-medium text-zinc-900 focus:outline-none focus:border-[#F97316] cursor-pointer'
+                    data-testid='existing-era-select'
+                  >
+                    {existingStages.map((stg) => (
+                      <option key={stg.stageKey} value={stg.stageKey}>
+                        {stg.stageName} (Chương {stg.effectiveFromChapterNumber}{stg.effectiveToChapterNumber ? `–${stg.effectiveToChapterNumber}` : '+'})
+                      </option>
+                    ))}
+                  </select>
+                  <p className='text-[11px] text-zinc-500'>
+                    Phiên bản mới sẽ bổ sung vào thời kỳ <strong>{stageName || 'Giai đoạn chuẩn'}</strong> (từ Chương {effectiveChapter}{effectiveToChapter ? ` đến Chương ${effectiveToChapter}` : '+'}).
                   </p>
-                )}
-              </div>
+                </div>
+              ) : (
+                <div className='space-y-3 pt-1'>
+                  <div>
+                    <div className='flex items-center justify-between mb-1'>
+                      <label className='text-xs font-semibold text-zinc-800 flex items-center gap-1.5'>
+                        <span>Tên Thời kỳ mới (Era Name)</span>
+                        <span className='text-red-500'>*</span>
+                      </label>
+                      <span className='text-[10.5px] text-zinc-400'>VD: Lúc nhỏ, Siêu Saiyan, Trưởng thành...</span>
+                    </div>
+                    <input
+                      type='text'
+                      maxLength={100}
+                      placeholder='Nhập tên thời kỳ (VD: Thiếu niên, Trưởng thành, Hắc hóa...)'
+                      value={stageName}
+                      onChange={(e) => setStageName(e.target.value)}
+                      className='w-full px-3 py-2 bg-white border border-[#D8D2C5] rounded-xl text-xs text-zinc-900 focus:outline-none focus:border-[#F97316]'
+                      data-testid='revision-stage-name-input'
+                    />
+                    {/* Quick Preset Pills */}
+                    <div className='flex items-center gap-1.5 mt-2 flex-wrap'>
+                      <span className='text-[11px] text-zinc-400'>Gợi ý nhanh:</span>
+                      {['Lúc nhỏ', 'Thiếu niên', 'Trưởng thành', 'Biến hình / Hóa thú', 'Arc mới'].map((preset) => (
+                        <button
+                          key={preset}
+                          type='button'
+                          onClick={() => setStageName(preset)}
+                          className='px-2 py-0.5 rounded-md bg-stone-100 hover:bg-orange-50 hover:text-[#EA580C] hover:border-orange-200 border border-stone-200 text-[11px] text-zinc-600 transition-colors cursor-pointer'
+                        >
+                          +{preset}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Chapter Range: From & To */}
+                  <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
+                    <div>
+                      <label className='block text-xs font-semibold text-zinc-800 mb-1'>
+                        Bắt đầu từ Chương *
+                      </label>
+                      <input
+                        type='number'
+                        min={1}
+                        value={effectiveChapter}
+                        disabled={!!supersedeTarget}
+                        onChange={(e) =>
+                          setEffectiveChapter(Math.max(1, parseInt(e.target.value, 10) || 1))
+                        }
+                        className={`w-full px-3 py-2 bg-white border rounded-xl text-xs font-mono text-zinc-900 focus:outline-none disabled:opacity-60 ${
+                          !supersedeTarget && lockedChapterNumbers.includes(effectiveChapter)
+                            ? 'border-red-400 focus:border-red-500'
+                            : 'border-[#D8D2C5] focus:border-[#F97316]'
+                        }`}
+                        data-testid='revision-effective-from-input'
+                      />
+                      {!supersedeTarget && lockedChapterNumbers.includes(effectiveChapter) && (
+                        <p className='text-[11px] text-red-600 mt-1 font-medium flex items-center gap-1'>
+                          <AlertCircle className='w-3 h-3 text-red-500 shrink-0' />
+                          Chương {effectiveChapter} đã có phiên bản bị khoá!
+                        </p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className='block text-xs font-semibold text-zinc-800 mb-1'>
+                        Đến Chương (Tùy chọn)
+                      </label>
+                      <input
+                        type='number'
+                        min={effectiveChapter}
+                        placeholder='Để trống = Đến hết truyện'
+                        value={effectiveToChapter}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setEffectiveToChapter(val === '' ? '' : parseInt(val, 10));
+                        }}
+                        className={`w-full px-3 py-2 bg-white border rounded-xl text-xs font-mono text-zinc-900 focus:outline-none ${
+                          effectiveToChapter !== '' && Number(effectiveToChapter) < effectiveChapter
+                            ? 'border-red-400 focus:border-red-500'
+                            : 'border-[#D8D2C5] focus:border-[#F97316]'
+                        }`}
+                        data-testid='revision-effective-to-input'
+                      />
+                      {effectiveToChapter !== '' && Number(effectiveToChapter) < effectiveChapter && (
+                        <p className='text-[11px] text-red-600 mt-1 font-medium'>
+                          Chương kết thúc phải ≥ chương bắt đầu ({effectiveChapter}).
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div>
@@ -469,6 +620,7 @@ const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                 placeholder='Ví dụ: Cập nhật trang phục chiến đấu mới...'
                 value={summary}
                 onChange={(e) => setSummary(e.target.value)}
+                data-testid='revision-summary-input'
                 className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg text-xs text-zinc-900 focus:outline-none focus:border-[#F97316]'
               />
             </div>
@@ -601,9 +753,11 @@ const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                       ? isArtistResubmit
                         ? '🔄 Nộp lại Concept Art'
                         : '🎨 Nộp Concept Art'
-                      : isProducer
-                        ? 'Lưu phiên bản'
-                        : 'Gửi bản nháp'}
+                      : eraMode === 'new'
+                        ? (isProducer ? '✨ Tạo thời kỳ & Lưu phiên bản' : '✨ Tạo thời kỳ & Gửi bản nháp')
+                        : isProducer
+                          ? 'Lưu phiên bản'
+                          : 'Gửi bản nháp'}
               </span>
             </button>
           </div>
@@ -1049,6 +1203,8 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
 
   // Add Revision Modal State
   const [addRevModalOpen, setAddRevModalOpen] = useState(false);
+  const [isNewEraRequested, setIsNewEraRequested] = useState(false);
+  const [targetEntityStages, setTargetEntityStages] = useState<CharacterEraStage[]>([]);
   const [isArtistConceptSubmit, setIsArtistConceptSubmit] = useState(false);
   const [revisionTarget, setRevisionTarget] = useState<BibleEntity | null>(null);
   const [supersedeTarget, setSupersedeTarget] = useState<BibleEntryRevisionDto | null>(null);
@@ -1107,12 +1263,15 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
     queueEffectiveChapter?: number,
     reworkFeedback?: string,
     isResubmit: boolean = false,
+    isNewEra: boolean = false,
   ) => {
     const snapshot = supersede ? readSnapshot(supersede.snapshotJson) : {};
     setRevisionTarget(entity);
     setSupersedeTarget(supersede);
     setRevisionReworkFeedback(reworkFeedback || null);
     setIsArtistResubmit(isResubmit);
+    setIsNewEraRequested(isNewEra);
+    setTargetEntityStages([]);
     setRevisionSummary(
       isResubmit
         ? 'Artist cập nhật lại Concept Art (nộp lại bản vẽ)'
@@ -1120,13 +1279,15 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
           ? 'Artist nộp bản vẽ sửa đổi theo nhận xét'
           : fromQueue
             ? 'Nộp bản vẽ Concept Art'
-            : '',
+            : isNewEra
+              ? 'Khởi tạo thời kỳ (Era) mới cho nhân vật'
+              : '',
     );
     setRevisionName(snapshot.Name ?? entity.name);
     setRevisionSubtitle(snapshot.Subtitle ?? entity.subtitle ?? '');
     setRevisionDescription(snapshot.Description ?? entity.description ?? '');
     setRevisionReferenceImageUrl(snapshot.ReferenceImageUrl ?? entity.imageUrl ?? '');
-    setRevisionStageName(supersede?.stageName || '');
+    setRevisionStageName(isNewEra ? '' : (supersede?.stageName || ''));
     setRevisionEffectiveChapter(
       supersede
         ? supersede.effectiveFromChapterNumber
@@ -1136,23 +1297,32 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
             ? effectiveChapter
             : effectiveSeries?.chapter || 1,
     );
-    setRevisionEffectiveToChapter(supersede?.effectiveToChapterNumber ?? '');
+    setRevisionEffectiveToChapter(isNewEra ? '' : (supersede?.effectiveToChapterNumber ?? ''));
     setExpectedVersionNumber(1);
     setLockedChapterNumbers([]);
     setIsArtistConceptSubmit(fromQueue);
-    setAddRevModalOpen(true);
 
     if (effectiveSeries?.id) {
       setFetchingBaseVersion(true);
       try {
         const history = await bibleService.getEntryHistory(effectiveSeries.id, entity.id);
         if (history && history.length > 0) {
+          const stages = groupRevisionsIntoStages(history);
+          setTargetEntityStages(stages);
           const maxVer = Math.max(...history.map((h) => h.versionNumber));
           setExpectedVersionNumber(maxVer);
           const lockedChs = history
             .filter((h) => h.isLocked)
             .map((h) => h.effectiveFromChapterNumber);
           setLockedChapterNumbers(lockedChs);
+
+          // Nếu mở để tạo Era mới, tự động đề xuất số chương tiếp theo
+          if (isNewEra) {
+            const maxFrom = Math.max(...stages.map((s) => s.effectiveFromChapterNumber || 1));
+            setRevisionEffectiveChapter(maxFrom + 1);
+            setRevisionStageName('');
+            setRevisionEffectiveToChapter('');
+          }
 
           // Tự động đồng bộ lại thực thể được chọn nếu đang xem trong Workbench
           setSelectedEntity((current) => (current && current.id === entity.id ? { ...current, ...entity } : current));
@@ -1163,6 +1333,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
         setFetchingBaseVersion(false);
       }
     }
+    setAddRevModalOpen(true);
   };
 
   const executeSaveRevision = async (submittedContent?: {
@@ -2539,6 +2710,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
             queueEffectiveChapter,
             reworkFeedback,
             isResubmit,
+            isNewEra,
           ) => {
             void handleOpenAddRevision(
               e,
@@ -2547,6 +2719,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
               queueEffectiveChapter,
               reworkFeedback,
               isResubmit,
+              isNewEra,
             );
           }}
           onEndorseRevision={(ent, rev) => handleEndorseRevision(rev, ent)}
@@ -2882,6 +3055,8 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
         isOpen={addRevModalOpen}
         revisionTarget={revisionTarget}
         supersedeTarget={supersedeTarget}
+        isNewEraInitial={isNewEraRequested}
+        existingStages={targetEntityStages}
         isArtistConceptSubmit={isArtistConceptSubmit}
         isArtistResubmit={isArtistResubmit}
         isArtist={isArtist}

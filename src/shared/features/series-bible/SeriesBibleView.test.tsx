@@ -449,4 +449,90 @@ describe('SeriesBibleView UX/UI improvements', () => {
       expect(screen.getByText('Xác nhận nộp lại')).toBeDefined();
     });
   });
+  it('cho phép cấu hình tạo Thời kỳ (Era) mới ngay trên giao diện sinh version', async () => {
+    localStorage.setItem(
+      'activeWorkspace',
+      JSON.stringify({ id: 'ws-1', currentUserRole: 'PRODUCER', isOwner: true }),
+    );
+
+    (bibleService.getSeriesBible as any).mockResolvedValue({
+      id: 'bible-1',
+      seriesId: 'series-123',
+      workspaceId: 'ws-1',
+      name: 'Series Bible',
+      version: 1,
+      entries: mockEntries,
+    });
+
+    (bibleService.getEntryHistory as any).mockResolvedValue([
+      {
+        id: 'rev-1',
+        versionNumber: 1,
+        stageName: 'Giai đoạn chuẩn',
+        effectiveFromChapterNumber: 1,
+        isLocked: false,
+        summary: 'Bản khởi tạo',
+        snapshotJson: '{}',
+      },
+    ]);
+
+    (bibleService.addRevision as any).mockResolvedValue({
+      id: 'rev-2',
+      versionNumber: 2,
+      stageName: 'Thiếu niên',
+      effectiveFromChapterNumber: 15,
+      isLocked: false,
+    });
+
+    render(
+      <SeriesBibleView
+        activeProject={mockSeries as any}
+        onShowToast={vi.fn()}
+      />,
+    );
+
+    // Mở Workbench của nhân vật
+    await waitFor(() => {
+      expect(screen.getByText('Tần Mục')).toBeDefined();
+    });
+    fireEvent.click(screen.getByText('Tần Mục'));
+
+    // Mở modal tạo version
+    await waitFor(() => {
+      expect(screen.getByTestId('add-new-era-btn')).toBeDefined();
+    });
+    fireEvent.click(screen.getByTestId('add-new-era-btn'));
+
+    // Kiểm tra khối Era trên modal sinh version
+    await waitFor(() => {
+      expect(screen.getByTestId('era-config-block')).toBeDefined();
+      expect(screen.getByTestId('revision-stage-name-input')).toBeDefined();
+    });
+
+    // Nhập tên thời kỳ mới
+    fireEvent.change(screen.getByTestId('revision-stage-name-input'), {
+      target: { value: 'Thiếu niên' },
+    });
+    fireEvent.change(screen.getByTestId('revision-effective-from-input'), {
+      target: { value: '15' },
+    });
+    fireEvent.change(screen.getByTestId('revision-summary-input'), {
+      target: { value: 'Tạo thời kỳ thiếu niên cho nhân vật' },
+    });
+
+    // Bấm nút Lưu phiên bản & Tạo thời kỳ
+    fireEvent.click(screen.getByTestId('save-revision-submit-btn'));
+
+    await waitFor(() => {
+      expect(bibleService.addRevision).toHaveBeenCalledWith(
+        'series-123',
+        mockEntries[0].id,
+        expect.objectContaining({
+          stageName: 'Thiếu niên',
+          effectiveFromChapterNumber: 15,
+          summary: 'Tạo thời kỳ thiếu niên cho nhân vật',
+        }),
+      );
+    });
+  });
 });
