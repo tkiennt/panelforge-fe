@@ -302,7 +302,7 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
                 className='w-full px-3 py-2 bg-[#FAF8F5] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-zinc-900 font-medium focus:outline-none focus:border-[#F97316] cursor-pointer'
               >
                 <option value='characters'>Nhân vật (Character)</option>
-                <option value='locations'>Địa điểm &amp; Bối cảnh (Location)</option>
+                <option value='locations'>Bối cảnh &amp; Địa điểm (Location)</option>
                 <option value='terminology'>Thuật ngữ &amp; Đạo cụ (Terminology &amp; Prop)</option>
                 <option value='style'>Quy tắc mỹ thuật (Style Rule)</option>
               </select>

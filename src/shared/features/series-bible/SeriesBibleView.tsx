@@ -67,12 +67,12 @@ const CATEGORIES: {
 }[] = [
   { key: 'all', label: 'Tất cả', icon: BookOpen },
   { key: 'characters', label: 'Nhân vật', icon: User },
-  { key: 'locations', label: 'Địa điểm & Bối cảnh', icon: MapPin },
+  { key: 'locations', label: 'Bối cảnh & Địa điểm', icon: MapPin },
   { key: 'terminology', label: 'Thuật ngữ & Đạo cụ', icon: BookMarked },
   { key: 'style', label: 'Quy tắc mỹ thuật', icon: Palette },
 ];
 
-const mapCategoryToTab = (cat: any): BibleCategory => {
+export const mapCategoryToTab = (cat: any): BibleCategory => {
   if (typeof cat === 'string') {
     const s = cat.toLowerCase();
     if (s.includes('char')) return 'characters';
@@ -98,23 +98,48 @@ const mapCategoryToTab = (cat: any): BibleCategory => {
   }
 };
 
-const getCategoryLabel = (category: string): string => {
-  switch (category) {
+export const getCategoryLabel = (category: string | number): string => {
+  const catStr = String(category).toLowerCase();
+  switch (catStr) {
     case 'characters':
     case 'character':
+    case '0':
+    case '1':
       return 'Nhân vật';
     case 'locations':
     case 'location':
-      return 'Địa điểm';
+    case '2':
+      return 'Bối cảnh & Địa điểm';
     case 'terminology':
     case 'prop':
+    case '3':
+    case '4':
+    case '6':
       return 'Thuật ngữ & Đạo cụ';
     case 'style':
     case 'rule':
+    case '5':
       return 'Quy tắc mỹ thuật';
     default:
       return 'Mục tri thức';
   }
+};
+
+export const getCategoryBadgeStyle = (category: string | number): string => {
+  const catStr = String(category).toLowerCase();
+  if (catStr.includes('char') || catStr === '1' || catStr === '0') {
+    return 'bg-amber-50 text-amber-800 border-amber-300';
+  }
+  if (catStr.includes('loc') || catStr === '2') {
+    return 'bg-emerald-50 text-emerald-800 border-emerald-300';
+  }
+  if (catStr.includes('term') || catStr.includes('prop') || ['3', '4', '6'].includes(catStr)) {
+    return 'bg-blue-50 text-blue-800 border-blue-300';
+  }
+  if (catStr.includes('style') || catStr.includes('rule') || catStr === '5') {
+    return 'bg-violet-50 text-violet-800 border-violet-300';
+  }
+  return 'bg-stone-50 text-stone-700 border-stone-200';
 };
 
 const getCategoryIcon = (category: string, className = 'w-4 h-4') => {
@@ -1229,6 +1254,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
   const revFileInputRef = useRef<HTMLInputElement>(null);
 
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [lastSavedRevision, setLastSavedRevision] = useState<BibleEntryRevisionDto | null>(null);
 
   const handleRevFileUpload = async (file: File) => {
     if (!file || !effectiveSeries?.id) return;
@@ -2390,7 +2416,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                           e.stopPropagation();
                           void handleOpenAddRevision(
                             entity,
-                            effRev,
+                            null,
                             true,
                             effRev.effectiveFromChapterNumber,
                             undefined,
@@ -2627,7 +2653,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                           e.stopPropagation();
                           void handleOpenAddRevision(
                             entity,
-                            effRev,
+                            null,
                             true,
                             effRev.effectiveFromChapterNumber,
                             undefined,

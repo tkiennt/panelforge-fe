@@ -437,7 +437,7 @@ describe('SeriesBibleView UX/UI improvements', () => {
     fireEvent.click(screen.getByTestId('artist-resubmit-btn-entry-chr-1'));
 
     await waitFor(() => {
-      expect(screen.getByTestId('save-revision-submit-btn')).toBeDefined();
+      expect(screen.getByTestId('save-revision-submit-btn')).not.toBeDisabled();
     });
 
     // Click submit button in AddRevisionModal

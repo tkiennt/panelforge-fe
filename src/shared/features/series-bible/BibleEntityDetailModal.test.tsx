@@ -276,4 +276,84 @@ describe('BibleEntityDetailModal UX/UI', () => {
     // Must not duplicate with fallback 'Giai đoạn khởi đầu'
     expect(screen.queryByText('Giai đoạn khởi đầu')).not.toBeInTheDocument();
   });
+  it('disables rework button and marks endorse button as endorsed when revision is WriterEndorsed (Bug 5)', () => {
+    const rawWithEndorsed: BibleEntryDto = {
+      ...mockRawEntry,
+      effectiveRevision: {
+        id: 'rev-endorsed',
+        bibleEntryId: 'ent-1',
+        versionNumber: 2,
+        summary: 'Writer đã duyệt',
+        stageName: 'Giai đoạn chuẩn',
+        snapshotJson: '{}',
+        contentHash: 'abc',
+        effectiveFromChapterNumber: 1,
+        isInitialVersion: false,
+        createdAt: '2026-10-15T09:00:00Z',
+        reviewStatus: 'WriterEndorsed',
+        referenceImageUrl: 'https://example.com/sheet.png',
+      },
+    };
+
+    render(
+      <BibleEntityDetailModal
+        {...defaultProps}
+        rawEntry={rawWithEndorsed}
+        canReview={true}
+      />
+    );
+
+    const reworkBtn = screen.getByTestId('detail-rework-btn');
+    expect(reworkBtn).toBeDisabled();
+
+    const endorseBtn = screen.getByTestId('detail-endorse-btn');
+    expect(endorseBtn).toBeDisabled();
+    expect(screen.getByText('✓ Đã duyệt thiết kế')).toBeInTheDocument();
+  });
+
+  it('renders correct category type badge in header for characters and locations (Bug 1)', () => {
+    const { rerender } = render(<BibleEntityDetailModal {...defaultProps} entity={{ ...mockEntityWithImage, category: 'characters' }} />);
+    expect(screen.getByText('Nhân vật')).toBeInTheDocument();
+
+    rerender(<BibleEntityDetailModal {...defaultProps} entity={{ ...mockEntityWithImage, category: 'locations' }} />);
+    expect(screen.getByText('Bối cảnh & Địa điểm')).toBeInTheDocument();
+  });
+
+  it('selects latestSavedRevision immediately without overriding current view (Bug 4)', () => {
+    const newRev = {
+      id: 'rev-new-submitted',
+      bibleEntryId: 'ent-1',
+      versionNumber: 3,
+      summary: 'Artist nộp concept mới',
+      snapshotJson: '{}',
+      contentHash: 'hash3',
+      effectiveFromChapterNumber: 1,
+      isInitialVersion: false,
+      createdAt: '2026-10-29T10:00:00Z',
+      reviewStatus: 'ConceptSubmitted' as const,
+      referenceImageUrl: 'https://example.com/new.png',
+    };
+
+    render(
+      <BibleEntityDetailModal
+        {...defaultProps}
+        latestSavedRevision={newRev}
+      />
+    );
+
+    expect(screen.getByText('v3')).toBeInTheDocument();
+    expect(screen.getByText('Under Review')).toBeInTheDocument();
+  });
+
+  it('does not close workbench when Escape is pressed while a child modal is open (Bug 2)', () => {
+    const childModal = document.createElement('div');
+    childModal.setAttribute('data-child-modal', 'true');
+    document.body.appendChild(childModal);
+
+    render(<BibleEntityDetailModal {...defaultProps} />);
+    fireEvent.keyDown(window, { key: 'Escape' });
+
+    expect(defaultProps.onClose).not.toHaveBeenCalled();
+    document.body.removeChild(childModal);
+  });
 });
