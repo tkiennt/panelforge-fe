@@ -71,3 +71,4 @@ describe('scriptFlowAdapter (Dual-Mode Single Source of Truth)', () => {
     expect(extracted[1].dialogueText).toBeNull();
   });
 });
+

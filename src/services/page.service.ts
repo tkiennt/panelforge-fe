@@ -27,6 +27,9 @@ export interface PageDto {
   heightPx: number;
   dpi: number;
   elementsCount: number;
+  isContentReady?: boolean;
+  contentReadyAt?: string | null;
+  contentReadyById?: string | null;
 }
 
 export interface PageDetailDto {
@@ -40,6 +43,9 @@ export interface PageDetailDto {
   dpi: number;
   version: number;
   activeElementsCount: number;
+  isContentReady?: boolean;
+  contentReadyAt?: string | null;
+  contentReadyById?: string | null;
 }
 
 async function parseErrorResponse(error: any, defaultMsg: string): Promise<string> {
@@ -192,6 +198,16 @@ export const pageService = {
       return response.data;
     } catch (error) {
       throw await toPageError(error, 'Khôi phục phiên bản trang thất bại.');
+    }
+  },
+
+  /** V2.5: Bật/tắt trạng thái phân trang sẵn sàng (POST /api/chapters/{chapterId}/pages/{pageId}/content-ready) */
+  toggleContentReady: async (chapterId: string, pageId: string): Promise<PageDto> => {
+    try {
+      const response = await axiosClient.post(`/chapters/${chapterId}/pages/${pageId}/content-ready`);
+      return response.data;
+    } catch (error) {
+      throw await toPageError(error, 'Không thể cập nhật trạng thái ContentReady của trang.');
     }
   },
 };

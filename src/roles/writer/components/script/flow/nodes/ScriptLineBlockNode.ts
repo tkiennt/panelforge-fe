@@ -1,6 +1,7 @@
 // src/roles/writer/components/script/flow/nodes/ScriptLineBlockNode.ts
 import { Node, mergeAttributes } from '@tiptap/core';
 import { MangaBlockType } from '../types';
+import { generateGuid } from '../scriptFlowAdapter';
 
 export const ScriptLineBlockNode = Node.create({
   name: 'scriptLineBlock',
@@ -141,7 +142,7 @@ export const ScriptLineBlockNode = Node.create({
           .chain()
           .splitBlock()
           .updateAttributes(this.name, {
-            scriptLineId: crypto.randomUUID ? crypto.randomUUID() : `line_${Date.now()}`,
+            scriptLineId: generateGuid(),
             blockType: nextType,
             panelId: null,
           })
@@ -166,3 +167,4 @@ export const ScriptLineBlockNode = Node.create({
     };
   },
 });
+

@@ -21,6 +21,10 @@ export interface ChapterDto {
   isScriptFrozen?: boolean;
   scriptFrozenAt?: string | null;
   scriptFrozenById?: string | null;
+  scriptReopenStatus?: 'None' | 'Requested' | 'Approved' | 'Rejected';
+  scriptReopenReason?: string | null;
+  scriptReopenRequestedById?: string | null;
+  scriptReopenRequestedAt?: string | null;
 }
 
 export interface PagedResult<T> {
@@ -308,6 +312,42 @@ export const chapterService = {
       throw new Error(extractError(error, 'Không thể mở lại kịch bản.'));
     }
   },
+
+  /**
+   * Writer gửi yêu cầu mở lại kịch bản kèm lý do (POST /api/chapters/{chapterId}/request-script-reopen)
+   */
+  requestScriptReopen: async (chapterId: string, reason: string): Promise<ChapterDto> => {
+    try {
+      const response = await axiosClient.post(`/chapters/${chapterId}/request-script-reopen`, { reason });
+      return response.data;
+    } catch (error) {
+      throw new Error(extractError(error, 'Không thể gửi yêu cầu mở lại kịch bản.'));
+    }
+  },
+
+  /**
+   * Producer chấp thuận mở lại kịch bản (POST /api/chapters/{chapterId}/approve-script-reopen)
+   */
+  approveScriptReopen: async (chapterId: string): Promise<ChapterDto> => {
+    try {
+      const response = await axiosClient.post(`/chapters/${chapterId}/approve-script-reopen`);
+      return response.data;
+    } catch (error) {
+      throw new Error(extractError(error, 'Không thể phê duyệt mở lại kịch bản.'));
+    }
+  },
+
+  /**
+   * Producer từ chối yêu cầu mở lại kịch bản (POST /api/chapters/{chapterId}/reject-script-reopen)
+   */
+  rejectScriptReopen: async (chapterId: string): Promise<ChapterDto> => {
+    try {
+      const response = await axiosClient.post(`/chapters/${chapterId}/reject-script-reopen`);
+      return response.data;
+    } catch (error) {
+      throw new Error(extractError(error, 'Không thể từ chối mở lại kịch bản.'));
+    }
+  },
 };
 
 export interface ChapterBibleGateItemDto {
@@ -326,10 +366,11 @@ export interface ChapterBibleGateItemDto {
 }
 
 export interface ChapterBibleGateResultDto {
-  chapterId: string;
-  chapterNumber: number;
+  chapterId?: string;
+  chapterNumber?: number;
   isPassed: boolean;
-  totalReferencedEntries: number;
+  totalReferenced?: number;
+  totalReferencedEntries?: number;
   lockedCount: number;
   pendingCount: number;
   items: ChapterBibleGateItemDto[];

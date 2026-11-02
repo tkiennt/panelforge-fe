@@ -343,4 +343,44 @@ export const scriptLineService = {
       throw extractError(error, 'Không thể khôi phục phiên bản kịch bản.');
     }
   },
+
+  /**
+   * V2.5: Gắn liên kết @-mentions từ kịch bản vào Series Bible (POST /api/chapters/{chapterId}/script-lines/{lineId}/bible-links)
+   */
+  async linkBibleEntries(
+    chapterId: string,
+    lineId: string,
+    mentions: ScriptMentionItemDto[],
+  ): Promise<ScriptLineBibleLinkDto[]> {
+    try {
+      const response = await axiosClient.post(
+        `/chapters/${chapterId}/script-lines/${lineId}/bible-links`,
+        { mentions },
+      );
+      return response.data;
+    } catch (error) {
+      throw extractError(error, 'Không thể liên kết thực thể Bible với dòng kịch bản.');
+    }
+  },
 };
+
+export interface ScriptMentionItemDto {
+  bibleEntryId?: string | null;
+  rawText?: string | null;
+  categoryHint?: string | null;
+  resolvedRevisionId?: string | null;
+}
+
+export interface ScriptLineBibleLinkDto {
+  id: string;
+  scriptLineId: string;
+  bibleEntryId: string;
+  rawMentionText?: string | null;
+  resolvedRevisionId?: string | null;
+  entryName: string;
+  category: string;
+  isStub: boolean;
+  stageName?: string | null;
+  referenceImageUrl?: string | null;
+  createdAt: string;
+}

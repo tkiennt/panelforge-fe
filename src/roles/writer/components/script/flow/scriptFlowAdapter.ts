@@ -3,6 +3,20 @@ import { SceneDetailDto, NarrationMode } from '@/services/scriptLine.service';
 import { MangaBlockType } from './types';
 
 /**
+ * Sinh UUID v4 chuẩn RFC 4122 (tương thích Backend Guid)
+ */
+export function generateGuid(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
+/**
  * Chuyển đổi từ danh sách Scene + ScriptLine của PanelForge sang cấu trúc TipTap Document JSON
  */
 export function scenesToTipTapDoc(
@@ -108,7 +122,7 @@ export function scenesToTipTapDoc(
     content.push({
       type: 'scriptLineBlock',
       attrs: {
-        scriptLineId: `init_${Date.now()}`,
+        scriptLineId: generateGuid(),
         blockType: 'scene_heading',
         panelId: null,
       },
@@ -138,7 +152,8 @@ export interface ExtractedScriptLinePayload {
 }
 
 /**
- * Phân tích TipTap Document JSON thành danh sách ScriptLine cập nhật cho backend
+ * Phân tích TipTap Document JSON thành danh sách ScriptLine cập nhật cho backend.
+ * Tự động bỏ qua các khối rỗng hoàn toàn để tuân thủ quy tắc toàn vẹn của ScriptLine Entity ở Backend.
  */
 export function extractScriptLinesFromDoc(doc: any, defaultSceneId: string): ExtractedScriptLinePayload[] {
   if (!doc || !doc.content || !Array.isArray(doc.content)) return [];
@@ -165,10 +180,14 @@ export function extractScriptLinesFromDoc(doc: any, defaultSceneId: string): Ext
     }
 
     if (attrs.blockType === 'dialogue') {
+      const dialogueText = text.trim();
+      // Bỏ qua nếu dòng thoại rỗng để tránh lỗi ArgumentException ở Backend
+      if (!dialogueText) continue;
+
       results.push({
-        scriptLineId: attrs.scriptLineId || (crypto.randomUUID ? crypto.randomUUID() : `line_${Date.now()}_${order}`),
+        scriptLineId: attrs.scriptLineId || generateGuid(),
         sceneId: attrs.sceneId || currentSceneId,
-        dialogueText: text.trim(),
+        dialogueText,
         stageDirection: null,
         speakerCharacterId: attrs.speakerCharacterId || currentSpeakerId,
         narrationMode: attrs.narrationMode || 'Present',
@@ -176,11 +195,15 @@ export function extractScriptLinesFromDoc(doc: any, defaultSceneId: string): Ext
       });
       currentSpeakerId = null; // Reset speaker sau thoại
     } else if (attrs.blockType === 'stage_direction') {
+      const stageDirection = text.trim();
+      // Bỏ qua nếu chỉ dẫn sân khấu rỗng
+      if (!stageDirection) continue;
+
       results.push({
-        scriptLineId: attrs.scriptLineId || (crypto.randomUUID ? crypto.randomUUID() : `line_${Date.now()}_${order}`),
+        scriptLineId: attrs.scriptLineId || generateGuid(),
         sceneId: attrs.sceneId || currentSceneId,
         dialogueText: null,
-        stageDirection: text.trim(),
+        stageDirection,
         speakerCharacterId: null,
         narrationMode: attrs.narrationMode || 'Present',
         lineOrder: order++,

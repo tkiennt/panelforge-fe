@@ -410,6 +410,10 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       let hasChanges = false;
 
       for (const line of extractedLines) {
+        // Tuân thủ Backend Domain Invariant: Phải có ít nhất DialogueText hoặc StageDirection
+        const hasValidText = Boolean(line.dialogueText?.trim() || line.stageDirection?.trim());
+        if (!hasValidText) continue;
+
         const existing = currentMap.get(line.scriptLineId);
         if (existing) {
           const isChanged =

@@ -54,3 +54,4 @@ export const BibleMention = Mention.extend({
     ];
   },
 });
+
