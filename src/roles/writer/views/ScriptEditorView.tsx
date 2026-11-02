@@ -59,6 +59,8 @@ import { ScriptHistoryModal } from '../components/script/ScriptHistoryModal';
 import { ScriptLineItem } from '../components/script/ScriptLineItem';
 import { NarrativeContextDrawer } from '../components/script/NarrativeContextDrawer';
 import { ConsistencyFindingsDrawer } from '../components/script/ConsistencyFindingsDrawer';
+import { ScreenplayFlowEditor } from '../components/script/flow/ScreenplayFlowEditor';
+import { ExtractedScriptLinePayload } from '../components/script/flow/scriptFlowAdapter';
 import { BibleCharactersDrawer } from '../components/script/BibleCharactersDrawer';
 import { offlineQueueService } from '@/services/offlineQueue.service';
 import { saveDraft, clearDraft, readRestorableDraft, type LocalDraft } from '@/lib/localDraft';
@@ -209,6 +211,9 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   const [loadingBibleGate, setLoadingBibleGate] = useState(false);
   const [freezingScript, setFreezingScript] = useState(false);
   const [bibleGateModalOpen, setBibleGateModalOpen] = useState(false);
+
+  // V2.5: Chế độ soạn thảo kịch bản kép (Dual-Mode: Screenplay Flow làm mặc định + Card Mode làm tùy chọn xem cấu trúc)
+  const [editorMode, setEditorMode] = useState<'flow' | 'cards'>('flow');
 
   const notify = useCallback(
     (title: string, desc: string) => {
@@ -395,6 +400,67 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   );
 
   // 4. Tải danh sách Scenes khi currentChapter thay đổi
+  // V2.5: Lưu tự động và đồng bộ các dòng thoại từ Screenplay Flow Editor (TipTap)
+  const handleSaveFlowLines = useCallback(
+    async (extractedLines: ExtractedScriptLinePayload[]) => {
+      if (!currentChapter || !selectedScene) return;
+
+      const currentLines = selectedScene.scriptLines || [];
+      const currentMap = new Map(currentLines.map((l) => [l.id, l]));
+      let hasChanges = false;
+
+      for (const line of extractedLines) {
+        const existing = currentMap.get(line.scriptLineId);
+        if (existing) {
+          const isChanged =
+            existing.dialogueText !== line.dialogueText ||
+            existing.stageDirection !== line.stageDirection ||
+            existing.speakerCharacterId !== line.speakerCharacterId ||
+            existing.narrationMode !== line.narrationMode;
+
+          if (isChanged) {
+            hasChanges = true;
+            const req: UpdateScriptLineRequest = {
+              dialogueText: line.dialogueText || null,
+              stageDirection: line.stageDirection || null,
+              speakerCharacterId: line.speakerCharacterId || null,
+              expectedChapterVersion: currentChapter.versionVector || 1,
+              narrationMode: line.narrationMode,
+            };
+            const res = await scriptLineService.updateScriptLine(
+              currentChapter.id,
+              line.scriptLineId,
+              req
+            );
+            setCurrentChapter((prev) => (prev ? { ...prev, versionVector: res.chapterVersion } : null));
+          }
+        } else {
+          hasChanges = true;
+          const req: CreateScriptLineRequest = {
+            dialogueText: line.dialogueText || null,
+            stageDirection: line.stageDirection || null,
+            speakerCharacterId: line.speakerCharacterId || null,
+            lineOrder: line.lineOrder,
+            expectedChapterVersion: currentChapter.versionVector || 1,
+            clientLineId: line.scriptLineId,
+            narrationMode: line.narrationMode,
+          };
+          const res = await scriptLineService.createScriptLine(
+            currentChapter.id,
+            line.sceneId || selectedScene.id,
+            req
+          );
+          setCurrentChapter((prev) => (prev ? { ...prev, versionVector: res.chapterVersion } : null));
+        }
+      }
+
+      if (hasChanges) {
+        await loadSceneDetail(selectedScene.id);
+      }
+    },
+    [currentChapter, selectedScene, loadSceneDetail]
+  );
+
   const loadScenes = useCallback(async () => {
     if (!currentChapter?.id) {
       setScenes([]);
@@ -1771,6 +1837,34 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                     </div>
                   )}
 
+                  {/* V2.5 Dual-Mode Tab Switcher (Screenplay Flow vs Beat Board Cards) */}
+                  <div className='flex items-center gap-1 bg-[#EBE7DF]/80 p-0.5 rounded-xl border border-[#D8D2C5] mr-2'>
+                    <button
+                      type='button'
+                      onClick={() => setEditorMode('flow')}
+                      className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        editorMode === 'flow'
+                          ? 'bg-[#C2410C] text-white shadow-2xs'
+                          : 'text-[#57534E] hover:text-[#1C1917]'
+                      }`}
+                    >
+                      <FileText className='w-3.5 h-3.5' />
+                      <span>Dòng chảy (TipTap)</span>
+                    </button>
+                    <button
+                      type='button'
+                      onClick={() => setEditorMode('cards')}
+                      className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        editorMode === 'cards'
+                          ? 'bg-[#C2410C] text-white shadow-2xs'
+                          : 'text-[#57534E] hover:text-[#1C1917]'
+                      }`}
+                    >
+                      <Layers className='w-3.5 h-3.5' />
+                      <span>Thẻ phân cảnh</span>
+                    </button>
+                  </div>
+
                   <button
                     type='button'
                     data-testid='open-script-history-btn'
@@ -1814,6 +1908,17 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                     <RefreshCw className='w-5 h-5 animate-spin mr-2 text-[#C2410C]' />
                     <span>Đang nạp chi tiết phân cảnh...</span>
                   </div>
+                ) : editorMode === 'flow' ? (
+                  <ScreenplayFlowEditor
+                    scenes={[selectedScene]}
+                    allBibleEntries={allBibleEntries}
+                    consistencyFindings={findings}
+                    canEditScript={canEditScript}
+                    isChapterLocked={isChapterLocked}
+                    getSpeakerName={getSpeakerName}
+                    onSaveLines={handleSaveFlowLines}
+                    onShowToast={onShowToast}
+                  />
                 ) : !selectedScene.scriptLines || selectedScene.scriptLines.length === 0 ? (
                   <div className='text-center py-16 border border-dashed border-[#D8D2C5] rounded-2xl text-[#57534E] text-xs bg-[#FCFBF8]'>
                     <MessageSquare className='w-8 h-8 text-[#57534E]/50 mx-auto mb-2' />
