@@ -87,6 +87,12 @@ export const ScriptLineBlockNode = Node.create({
       case 'scene_heading':
         classNames += 'font-bold uppercase tracking-wider text-base text-gray-900 border-b border-gray-300 pb-1 mt-4 mb-2';
         break;
+      case 'page_heading':
+        classNames += 'font-bold uppercase tracking-wider text-xs sm:text-sm text-[#C2410C] bg-[#FFF2E6] border border-[#FDBA74] px-3.5 py-1.5 mt-5 mb-2.5 rounded-xl shadow-2xs flex items-center gap-2';
+        break;
+      case 'panel_heading':
+        classNames += 'font-bold text-xs uppercase tracking-wide text-indigo-900 bg-indigo-50/90 border-l-4 border-indigo-600 px-3 py-1 mt-3 mb-1.5 rounded-r-lg shadow-2xs';
+        break;
       case 'character':
         classNames += 'font-bold uppercase tracking-wide text-amber-700 max-w-md ml-12 sm:ml-24 mt-3 mb-0.5';
         break;
@@ -123,6 +129,10 @@ export const ScriptLineBlockNode = Node.create({
         let nextType: MangaBlockType = 'dialogue';
 
         if (currentType === 'scene_heading') {
+          nextType = 'page_heading';
+        } else if (currentType === 'page_heading') {
+          nextType = 'panel_heading';
+        } else if (currentType === 'panel_heading') {
           nextType = 'stage_direction';
         } else if (currentType === 'character') {
           nextType = 'dialogue';
@@ -167,4 +177,3 @@ export const ScriptLineBlockNode = Node.create({
     };
   },
 });
-

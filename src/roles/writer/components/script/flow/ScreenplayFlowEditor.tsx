@@ -15,6 +15,13 @@ import {
   Compass,
   RotateCcw,
   Trash2,
+  Plus,
+  Layers,
+  LayoutGrid,
+  HelpCircle,
+  Sparkles,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { SceneDetailDto, NarrationMode } from '@/services/scriptLine.service';
 import { BibleEntryDto } from '@/services/bible.service';
@@ -23,7 +30,12 @@ import { ScriptLineBlockNode } from './nodes/ScriptLineBlockNode';
 import { BibleMention } from './extensions/BibleMention';
 import { createMentionSuggestion } from './extensions/mentionSuggestion';
 import { ConsistencyLinterExtension } from './plugins/consistencyLinterPlugin';
-import { scenesToTipTapDoc, extractScriptLinesFromDoc, ExtractedScriptLinePayload } from './scriptFlowAdapter';
+import {
+  scenesToTipTapDoc,
+  extractScriptLinesFromDoc,
+  ExtractedScriptLinePayload,
+  generateGuid,
+} from './scriptFlowAdapter';
 import { MangaBlockType } from './types';
 
 interface ScreenplayFlowEditorProps {
@@ -62,6 +74,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   const [activeBlockType, setActiveBlockType] = useState<MangaBlockType>('dialogue');
   const [activeNarrationMode, setActiveNarrationMode] = useState<NarrationMode>('Present');
   const [pendingDraft, setPendingDraft] = useState<LocalScriptDraft | null>(null);
+  const [showCheatSheet, setShowCheatSheet] = useState(false);
 
   const localDraftTimerRef = useRef<NodeJS.Timeout | null>(null);
   const draftStorageKey = useMemo(
@@ -250,18 +263,142 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
     setActiveBlockType(type);
   };
 
-  const setNarration = (mode: NarrationMode) => {
-    if (!editor) return;
-    editor.chain().focus().updateAttributes('scriptLineBlock', { narrationMode: mode }).run();
-    setActiveNarrationMode(mode);
+  // Chèn nhanh Trang mới (# Page X)
+  const handleInsertPage = () => {
+    if (!editor || !canEditScript || isChapterLocked) return;
+    const json = editor.getJSON();
+    const existingPageCount = (json.content || []).filter((c: any) => {
+      const t = c.content?.[0]?.text || '';
+      return c.attrs?.blockType === 'page_heading' || /^(?:#\s*Page|Trang)/i.test(t);
+    }).length;
+    const nextNum = existingPageCount + 1;
+
+    editor
+      .chain()
+      .focus()
+      .insertContent([
+        {
+          type: 'scriptLineBlock',
+          attrs: {
+            scriptLineId: generateGuid(),
+            blockType: 'page_heading',
+          },
+          content: [{ type: 'text', text: `# Page ${nextNum}` }],
+        },
+        {
+          type: 'scriptLineBlock',
+          attrs: {
+            scriptLineId: generateGuid(),
+            blockType: 'panel_heading',
+          },
+          content: [{ type: 'text', text: `- Panel 1: Toàn cảnh` }],
+        },
+        {
+          type: 'scriptLineBlock',
+          attrs: {
+            scriptLineId: generateGuid(),
+            blockType: 'stage_direction',
+          },
+          content: [{ type: 'text', text: `Mô tả bối cảnh hoặc cử chỉ nhân vật trong khung 1...` }],
+        },
+      ])
+      .run();
+
+    onShowToast?.('Đã chèn Trang mới', `Đã thêm khối # Page ${nextNum} kèm khung hình 1.`);
+  };
+
+  // Chèn nhanh Khung hình mới (- Panel Y: Cận cảnh)
+  const handleInsertPanel = (shotName: string = 'Cận cảnh') => {
+    if (!editor || !canEditScript || isChapterLocked) return;
+    const json = editor.getJSON();
+    const existingPanels = (json.content || []).filter((c: any) => {
+      const t = c.content?.[0]?.text || '';
+      return c.attrs?.blockType === 'panel_heading' || /^(?:-\s*Panel|#panel)/i.test(t);
+    }).length;
+    const nextNum = (existingPanels % 6) + 1;
+
+    editor
+      .chain()
+      .focus()
+      .insertContent([
+        {
+          type: 'scriptLineBlock',
+          attrs: {
+            scriptLineId: generateGuid(),
+            blockType: 'panel_heading',
+          },
+          content: [{ type: 'text', text: `- Panel ${nextNum}: ${shotName}` }],
+        },
+        {
+          type: 'scriptLineBlock',
+          attrs: {
+            scriptLineId: generateGuid(),
+            blockType: 'stage_direction',
+          },
+          content: [{ type: 'text', text: `Mô tả góc nhìn hoặc hành động của khung hình ${nextNum}...` }],
+        },
+      ])
+      .run();
+
+    onShowToast?.('Đã chèn Khung hình', `Đã thêm khối - Panel ${nextNum}: ${shotName}`);
+  };
+
+  // Chèn mẫu cấu trúc Manga/Webtoon hoàn chỉnh
+  const handleInsertComicTemplate = () => {
+    if (!editor || !canEditScript || isChapterLocked) return;
+    editor
+      .chain()
+      .focus()
+      .insertContent([
+        {
+          type: 'scriptLineBlock',
+          attrs: { scriptLineId: generateGuid(), blockType: 'page_heading' },
+          content: [{ type: 'text', text: '# Page 1' }],
+        },
+        {
+          type: 'scriptLineBlock',
+          attrs: { scriptLineId: generateGuid(), blockType: 'panel_heading' },
+          content: [{ type: 'text', text: '- Panel 1: Toàn cảnh (Wide Shot)' }],
+        },
+        {
+          type: 'scriptLineBlock',
+          attrs: { scriptLineId: generateGuid(), blockType: 'stage_direction' },
+          content: [{ type: 'text', text: 'Thành phố Neo Tokyo về đêm rực rỡ ánh đèn neon dưới làn mưa phùn.' }],
+        },
+        {
+          type: 'scriptLineBlock',
+          attrs: { scriptLineId: generateGuid(), blockType: 'panel_heading' },
+          content: [{ type: 'text', text: '- Panel 2: Cận cảnh (Close-up)' }],
+        },
+        {
+          type: 'scriptLineBlock',
+          attrs: { scriptLineId: generateGuid(), blockType: 'character', speakerName: 'MINH' },
+          content: [{ type: 'text', text: 'MINH' }],
+        },
+        {
+          type: 'scriptLineBlock',
+          attrs: { scriptLineId: generateGuid(), blockType: 'dialogue' },
+          content: [{ type: 'text', text: 'Chúng ta không còn nhiều thời gian nữa...' }],
+        },
+        {
+          type: 'scriptLineBlock',
+          attrs: { scriptLineId: generateGuid(), blockType: 'stage_direction' },
+          content: [{ type: 'text', text: '* SFX: TIẾNG SẤM RỀN *' }],
+        },
+      ])
+      .run();
+
+    onShowToast?.('Đã chèn mẫu Trang & Khung hình', 'Đã thêm mẫu cấu trúc chuẩn gồm Trang, Panel, Thoại và SFX.');
   };
 
   const blockButtons: { type: MangaBlockType; label: string; icon: any }[] = [
+    { type: 'page_heading', label: 'Trang (# Page)', icon: Layers },
+    { type: 'panel_heading', label: 'Khung (- Panel)', icon: LayoutGrid },
     { type: 'scene_heading', label: 'Cảnh (H)', icon: Clapperboard },
     { type: 'stage_direction', label: 'Chỉ dẫn (Action)', icon: Film },
-    { type: 'character', label: 'Nhân vật (Character)', icon: User },
-    { type: 'dialogue', label: 'Thoại (Dialogue)', icon: MessageSquare },
-    { type: 'transition', label: 'Chuyển cảnh (Trans)', icon: Type },
+    { type: 'character', label: 'Nhân vật', icon: User },
+    { type: 'dialogue', label: 'Thoại', icon: MessageSquare },
+    { type: 'transition', label: 'Chuyển cảnh', icon: Type },
   ];
 
   return (
@@ -299,7 +436,45 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
       {/* Thanh công cụ định dạng khối (Toolbar) */}
       <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 border-b border-[#EBE7DF] bg-[#F7F5EE]/70">
         <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-xs font-semibold uppercase tracking-wider text-gray-500 mr-2 flex items-center gap-1">
+          {/* Nút chèn cấu trúc Comic/Manga nhanh */}
+          <div className="flex items-center gap-1 pr-2 border-r border-[#E5E0D8]">
+            <button
+              type="button"
+              disabled={!canEditScript || isChapterLocked}
+              onClick={handleInsertPage}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold text-white bg-[#C2410C] hover:bg-[#9A3412] shadow-2xs transition-all disabled:opacity-40 cursor-pointer"
+              title="Chèn Trang mới: # Page N"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <Layers className="w-3.5 h-3.5" />
+              <span>+ Trang</span>
+            </button>
+
+            <button
+              type="button"
+              disabled={!canEditScript || isChapterLocked}
+              onClick={() => handleInsertPanel('Cận cảnh')}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold text-white bg-indigo-700 hover:bg-indigo-800 shadow-2xs transition-all disabled:opacity-40 cursor-pointer"
+              title="Chèn Khung hình mới: - Panel N: Cận cảnh"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <LayoutGrid className="w-3.5 h-3.5" />
+              <span>+ Panel</span>
+            </button>
+
+            <button
+              type="button"
+              disabled={!canEditScript || isChapterLocked}
+              onClick={handleInsertComicTemplate}
+              className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-semibold text-amber-900 bg-amber-100 hover:bg-amber-200 border border-amber-300 transition-all disabled:opacity-40 cursor-pointer"
+              title="Chèn mẫu kịch bản gồm Trang, Panel, Thoại và SFX"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+              <span>Chèn mẫu</span>
+            </button>
+          </div>
+
+          <span className="text-xs font-semibold uppercase tracking-wider text-gray-500 mr-1 ml-1 flex items-center gap-1">
             <Compass className="w-3.5 h-3.5" /> Khối:
           </span>
 
@@ -309,7 +484,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
               type="button"
               disabled={!canEditScript || isChapterLocked}
               onClick={() => setBlockType(type)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 ${
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 ${
                 activeBlockType === type
                   ? 'bg-amber-600 text-white shadow-2xs'
                   : 'bg-white text-gray-700 border border-gray-200 hover:border-amber-400 hover:text-amber-700'
@@ -319,6 +494,21 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
               <span>{label}</span>
             </button>
           ))}
+
+          <button
+            type="button"
+            onClick={() => setShowCheatSheet((prev) => !prev)}
+            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ml-1 ${
+              showCheatSheet
+                ? 'bg-[#EFECE6] text-[#C2410C] border border-[#FDBA74]'
+                : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
+            }`}
+            title="Xem bảng hướng dẫn cú pháp gõ Trang & Khung hình"
+          >
+            <HelpCircle className="w-3.5 h-3.5 text-[#C2410C]" />
+            <span>Cú pháp Comic</span>
+            {showCheatSheet ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+          </button>
         </div>
 
         {/* Trạng thái lưu & Nút lưu thủ công */}
@@ -353,40 +543,97 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
         </div>
       </div>
 
+      {/* Bảng Cẩm Nang Cú Pháp Soạn Thảo (Collapsible Comic Markdown Cheat Sheet) */}
+      {showCheatSheet && (
+        <div className="bg-[#FAF8F5] border-b border-[#E5E0D8] p-4 text-xs space-y-2 animate-in fade-in duration-150">
+          <div className="flex items-center justify-between">
+            <span className="font-bold text-[#C2410C] flex items-center gap-1.5">
+              <Sparkles className="w-4 h-4" />
+              CẨM NANG CÚ PHÁP TẠO TRANG & KHUNG HÌNH (COMIC MARKDOWN):
+            </span>
+            <span className="text-[11px] text-[#78716C] italic">
+              Khi lưu và chuyển sang tab <strong>[🎞️ Thumbnail]</strong>, hệ thống sẽ tự động bóc tách từng Trang và Khung hình trực quan.
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
+            <div className="bg-white p-3 rounded-xl border border-[#E5E0D8] space-y-1">
+              <div className="font-bold text-[#C2410C] flex items-center gap-1">
+                <Layers className="w-3.5 h-3.5" /> 1. Tạo Trang mới
+              </div>
+              <code className="block bg-[#FFF2E6] text-[#C2410C] px-2 py-1 rounded text-[11px] font-bold">
+                # Page 1
+              </code>
+              <p className="text-[11px] text-gray-500">
+                Hoặc gõ <code className="bg-stone-100 px-1">Trang 1</code>, <code className="bg-stone-100 px-1"># 1</code>
+              </p>
+            </div>
+
+            <div className="bg-white p-3 rounded-xl border border-[#E5E0D8] space-y-1">
+              <div className="font-bold text-indigo-700 flex items-center gap-1">
+                <LayoutGrid className="w-3.5 h-3.5" /> 2. Tạo Khung hình & Góc máy
+              </div>
+              <code className="block bg-indigo-50 text-indigo-800 px-2 py-1 rounded text-[11px] font-bold">
+                - Panel 1: Cận cảnh
+              </code>
+              <p className="text-[11px] text-gray-500">
+                Góc máy: <span className="font-semibold text-stone-700">Toàn cảnh, Trung cảnh, Đặc tả, POV</span>
+              </p>
+            </div>
+
+            <div className="bg-white p-3 rounded-xl border border-[#E5E0D8] space-y-1">
+              <div className="font-bold text-amber-800 flex items-center gap-1">
+                <MessageSquare className="w-3.5 h-3.5" /> 3. Lời thoại & Suy nghĩ
+              </div>
+              <code className="block bg-amber-50 text-amber-900 px-2 py-1 rounded text-[11px]">
+                LUFFY: Ra khơi thôi!
+              </code>
+              <p className="text-[11px] text-gray-500">
+                Suy nghĩ / hét: <code className="bg-stone-100 px-1">ZORO/Thought: Chờ đã...</code>
+              </p>
+            </div>
+
+            <div className="bg-white p-3 rounded-xl border border-[#E5E0D8] space-y-1">
+              <div className="font-bold text-stone-700 flex items-center gap-1">
+                <Film className="w-3.5 h-3.5" /> 4. Hành động & Hiệu ứng âm
+              </div>
+              <code className="block bg-stone-100 text-stone-800 px-2 py-1 rounded text-[11px]">
+                * BÙM! * hoặc SFX: RẦM!
+              </code>
+              <p className="text-[11px] text-gray-500">
+                Các dòng văn bản dưới Panel là mô tả hành động bối cảnh.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Banner kịch bản đã đóng băng (Read-only status banner) */}
       {isChapterLocked && (
         <div className="flex items-center gap-2 px-5 py-2.5 bg-amber-50 border-b border-amber-200 text-amber-800 text-xs font-medium">
           <Lock className="w-4 h-4 text-amber-600 shrink-0" />
           <span>
-            <strong>Kịch bản đang ở chế độ Đóng Băng (Read-Only):</strong> Producer đã khóa kịch bản để đưa vào sản xuất hình ảnh. Để sửa, Writer cần gửi yêu cầu mở lại kịch bản (Request Reopen).
+            🔒 Kịch bản chương này đã được duyệt đóng băng. Hiện đang ở chế độ xem an toàn để chuyển giao cho bộ phận dựng layout hình ảnh.
           </span>
         </div>
       )}
 
-      {/* Editor Content Area (Khung soạn thảo JetBrains Mono phong cách kịch bản phim) */}
-      <div className="relative min-h-[600px] overflow-auto">
+      {/* Khung tài liệu soạn thảo kịch bản TipTap */}
+      <div className="relative">
         <EditorContent editor={editor} />
       </div>
 
-      {/* Thanh footer hướng dẫn phím tắt (Keyboard shortcuts guide) */}
-      <div className="flex flex-wrap items-center justify-between gap-4 px-6 py-2.5 bg-[#F7F5EE]/50 border-t border-[#EBE7DF] text-[11px] text-gray-500 font-mono">
-        <div className="flex items-center gap-4 flex-wrap">
-          <span>
-            <kbd className="px-1.5 py-0.5 bg-white border border-gray-200 rounded text-gray-700 shadow-2xs">Ctrl + S</kbd> Lưu kịch bản lên máy chủ
-          </span>
-          <span>
-            <kbd className="px-1.5 py-0.5 bg-white border border-gray-200 rounded text-gray-700 shadow-2xs">Enter</kbd> Chuyển đổi khối thông minh
-          </span>
-          <span>
-            <kbd className="px-1.5 py-0.5 bg-white border border-gray-200 rounded text-gray-700 shadow-2xs">Tab</kbd> Đổi nhanh giữa Chỉ dẫn & Nhân vật
-          </span>
-          <span>
-            <kbd className="px-1.5 py-0.5 bg-white border border-gray-200 rounded text-rose-600 border-rose-200 shadow-2xs font-bold">@</kbd> Gắn thẻ Series Bible
-          </span>
+      {/* Footer thanh trạng thái & Phím tắt */}
+      <div className="flex items-center justify-between px-6 py-2.5 bg-[#F7F5EE]/60 border-t border-[#EBE7DF] text-xs text-gray-500 font-mono">
+        <div className="flex items-center gap-4">
+          <span>Gõ <strong># Page N</strong> để tạo Trang</span>
+          <span>Gõ <strong>- Panel N: [Góc máy]</strong> để tạo Khung</span>
+          <span>Phím <strong>Tab</strong>: Đổi giữa Nhân vật & Chỉ dẫn</span>
         </div>
 
-        <div className="text-gray-400">
-          Chế độ dòng chảy ProseMirror • Single Source of Truth
+        <div className="flex items-center gap-3">
+          <span>Khối hiện tại: <strong className="text-amber-700 uppercase">{activeBlockType}</strong></span>
+          <span>Chế độ: <strong className="text-gray-700">{activeNarrationMode}</strong></span>
         </div>
       </div>
     </div>
