@@ -74,6 +74,7 @@ import { useTranslation } from '@/lib/i18n';
 import { useConfirm } from '@/shared/context/ConfirmContext';
 import { ThumbnailDrawer } from '../components/script/thumbnail-studio/components/ThumbnailDrawer';
 import { FloatingThumbnailPill } from '../components/script/thumbnail-studio/components/FloatingThumbnailPill';
+import { ThumbnailStudioBoard } from '../components/script/thumbnail-studio/components/ThumbnailStudioBoard';
 import { useComicStudioStore } from '../components/script/thumbnail-studio/store/useComicStudioStore';
 import { scenesToComicScriptText } from '../components/script/thumbnail-studio/lib/comicScriptParser';
 
@@ -236,7 +237,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   const [bibleGateModalOpen, setBibleGateModalOpen] = useState(false);
 
   // V2.5: Chế độ soạn thảo kịch bản kép (Dual-Mode: Screenplay Flow làm mặc định + Card Mode làm tùy chọn xem cấu trúc)
-  const [editorMode, setEditorMode] = useState<'flow' | 'cards' | 'storyboard'>(
+  const [editorMode, setEditorMode] = useState<'flow' | 'cards' | 'thumbnail' | 'storyboard'>(
     isTestEnvironment ? 'cards' : 'flow',
   );
 
@@ -1412,6 +1413,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         <div className='flex items-center bg-[#F3F0E9] p-0.5 rounded-xl border border-[#E5E0D8] shadow-2xs'>
           <button
             type='button'
+            data-testid='tab-flow'
             onClick={() => setEditorMode('flow')}
             className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
               editorMode === 'flow'
@@ -1425,6 +1427,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           </button>
           <button
             type='button'
+            data-testid='tab-cards'
             onClick={() => setEditorMode('cards')}
             className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
               editorMode === 'cards'
@@ -1438,16 +1441,17 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           </button>
           <button
             type='button'
-            onClick={() => setEditorMode('storyboard')}
+            data-testid='tab-thumbnail'
+            onClick={() => setEditorMode('thumbnail')}
             className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-              editorMode === 'storyboard'
+              editorMode === 'thumbnail' || editorMode === 'storyboard'
                 ? 'bg-white text-[#1C1917] shadow-2xs'
                 : 'text-[#78716C] hover:text-[#1C1917]'
             }`}
-            title='Dàn khung & Chèn thumbnail vào từng panel'
+            title='Không gian phân rã khung & vẽ phác thảo Thumbnail'
           >
-            <LayoutTemplate className='w-3.5 h-3.5' />
-            <span className='hidden sm:inline'>Dàn khung</span>
+            <Film className='w-3.5 h-3.5' />
+            <span className='hidden sm:inline'>Thumbnail</span>
           </button>
         </div>
 
@@ -2009,7 +2013,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                   <button
                     type='button'
                     data-testid='toggle-thumbnail-drawer-btn'
-                    onClick={() => useComicStudioStore.getState().toggleDrawer()}
+                    onClick={() => setEditorMode('thumbnail')}
                     className='inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-[#C2410C] bg-[#FFF2E6] hover:bg-[#FFE5D0] border border-[#F97316]/40 rounded-full transition-all cursor-pointer shadow-xs'
                     title='Xem Storyboard & Thẻ phân cảnh Thumbnail (Phím tắt: Ctrl+B)'
                   >
@@ -2060,10 +2064,10 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                     <RefreshCw className='w-5 h-5 animate-spin mr-2 text-[#C2410C]' />
                     <span>Đang nạp chi tiết phân cảnh...</span>
                   </div>
-                ) : editorMode === 'storyboard' ? (
-                  /* DÀN TRANG & THUMBNAIL (STORYBOARD BREAKDOWN) */
-                  <div className='max-w-6xl mx-auto'>
-                    <ScriptThumbnailStoryboardView
+                ) : editorMode === 'thumbnail' || editorMode === 'storyboard' ? (
+                  /* THUMBNAIL STUDIO & STORYBOARD BOARD */
+                  <div className='flex-1 flex flex-col h-full -m-4 md:-m-6'>
+                    <ThumbnailStudioBoard
                       scenes={chapterScenesDetail.length > 0 ? chapterScenesDetail : (selectedScene ? [selectedScene] : [])}
                       canEdit={canEditScript && !isChapterLocked}
                       getSpeakerName={getSpeakerName}
@@ -2161,9 +2165,9 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           ) : (
             // Mở thẳng trình soạn thảo Screenplay Flow, loại bỏ hoàn toàn màn hình trung gian chọn phân cảnh
             <div className='flex-1 flex flex-col overflow-hidden'>
-              {editorMode === 'storyboard' ? (
-                <div className='max-w-6xl mx-auto p-4 md:p-6 w-full'>
-                  <ScriptThumbnailStoryboardView
+              {editorMode === 'thumbnail' || editorMode === 'storyboard' ? (
+                <div className='flex-1 flex flex-col h-full'>
+                  <ThumbnailStudioBoard
                     scenes={chapterScenesDetail.length > 0 ? chapterScenesDetail : []}
                     canEdit={canEditScript && !isChapterLocked}
                     getSpeakerName={getSpeakerName}
