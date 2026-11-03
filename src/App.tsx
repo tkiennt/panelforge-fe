@@ -36,6 +36,7 @@ import { LoginModal } from '@/roles/guest/modals/LoginModal';
 import { RegisterModal } from '@/roles/guest/modals/RegisterModal';
 import { TwoFactorSetupModal } from '@/shared/features/account/TwoFactorSetupModal';
 import { ChangePasswordModal } from '@/shared/features/account/ChangePasswordModal';
+import { ErrorBoundary } from '@/shared/components/ErrorBoundary';
 import { auth, onAuthStateChanged } from '@/config/firebase';
 import { User } from 'firebase/auth';
 
@@ -929,11 +930,13 @@ function AppContent() {
 export default function App() {
   return (
     <BrowserRouter>
-      <ConfirmProvider>
+      <ErrorBoundary>
+        <ConfirmProvider>
         <ToastProvider>
           <AppContent />
         </ToastProvider>
-      </ConfirmProvider>
+        </ConfirmProvider>
+      </ErrorBoundary>
     </BrowserRouter>
   );
 }

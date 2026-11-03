@@ -316,7 +316,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     overdueAssignmentsCount,
     overdueChangeRequestsCount,
   } = useMemo(() => {
-    if (!progress || progress.chapters.length === 0) {
+    if (!progress || !progress.chapters || progress.chapters.length === 0) {
       return {
         overallPercent: 0,
         totalPanels: 0,
@@ -338,6 +338,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         progress.chapters.length,
     );
     const tApproved = progress.chapters.reduce((sum, c) => {
+      if (!c.stages || c.stages.length === 0) return sum;
       const lastStage = c.stages[c.stages.length - 1];
       return sum + (lastStage?.approved || 0);
     }, 0);
@@ -346,7 +347,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     const approved = progress.chapters.filter((c) => c.status === 'Approved').length;
     const published = progress.chapters.filter((c) => c.status === 'Published').length;
 
-    const waiting = progress.workload.reduce((sum, w) => sum + (w.waitingReview || 0), 0);
+    const waiting = (progress.workload || []).reduce((sum, w) => sum + (w.waitingReview || 0), 0);
     const overdueAsg = progress.overdue?.length || 0;
     const overdueCr = progress.overdueChangeRequests?.length || 0;
     const overdue = overdueAsg + overdueCr;
@@ -680,7 +681,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </span>
           )}
           <span className='px-2 py-0.5 rounded-md bg-zinc-50 text-zinc-700 border border-zinc-200 shadow-2xs'>
-            {progress?.chapters.length || seriesDetail?.chaptersCount || 0} Chương
+            {progress?.chapters?.length || seriesDetail?.chaptersCount || 0} Chương
           </span>
         </div>
 
@@ -991,7 +992,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   : 'bg-zinc-100 text-zinc-600'
               }`}
             >
-              {progress?.chapters.length || 0}
+              {progress?.chapters?.length || 0}
             </span>
           </button>
 
@@ -1054,7 +1055,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <div>
                   <div className='flex items-center gap-2.5'>
                     <h2 className='text-lg sm:text-xl font-bold text-zinc-900 font-sans'>
-                      Tiến Độ Theo Từng Chương ({progress?.chapters.length || 0})
+                      Tiến Độ Theo Từng Chương ({progress?.chapters?.length || 0})
                     </h2>
                   </div>
                   <p className='text-xs text-zinc-500 mt-0.5'>
@@ -1069,7 +1070,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <div className='flex items-center gap-2 self-start sm:self-auto shrink-0'>
                   <span className='inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-50 border border-zinc-200 text-xs font-mono font-semibold text-zinc-700 shadow-2xs'>
                     <BookOpen className='w-3.5 h-3.5 text-studio-accent' />
-                    <span>{progress?.chapters.length || 0} tập</span>
+                    <span>{progress?.chapters?.length || 0} tập</span>
                   </span>
                 </div>
               )}
@@ -1410,7 +1411,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                             Người sửa: <strong>{cr.responsibleUserName}</strong>
                           </span>
                           <span className='text-red-600 font-bold'>
-                            Hạn: {new Date(cr.dueDate).toLocaleDateString('vi-VN')}
+                            Hạn: {cr.dueDate && !isNaN(new Date(cr.dueDate).getTime()) ? new Date(cr.dueDate).toLocaleDateString('vi-VN') : '—'}
                           </span>
                         </div>
                         {workspaceId && seriesId && (
@@ -1465,7 +1466,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                         <div className='flex items-center justify-between text-[11px] text-zinc-600 font-sans'>
                           <span>{od.assigneeName}</span>
                           <span className='text-red-600 font-bold'>
-                            Hạn: {new Date(od.dueDate).toLocaleDateString('vi-VN')}
+                            Hạn: {od.dueDate && !isNaN(new Date(od.dueDate).getTime()) ? new Date(od.dueDate).toLocaleDateString('vi-VN') : '—'}
                           </span>
                         </div>
                         {workspaceId && seriesId && (
@@ -1512,16 +1513,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       {/* 4. Tiến độ công đoạn của chương đang chọn (Ma trận công đoạn) */}
       {(activeTab === 'all' || activeTab === 'chapters') && selectedChapter && (() => {
         const chapterTotalPanels = selectedChapter.panelCount || 0;
-        const chapterInProgress = selectedChapter.stages.reduce((s, st) => s + (st.inProgress || 0), 0);
-        const chapterInReview = selectedChapter.stages.reduce(
+        const chapterInProgress = (selectedChapter.stages || []).reduce((s, st) => s + (st.inProgress || 0), 0);
+        const chapterInReview = (selectedChapter.stages || []).reduce(
           (s, st) => s + (st.submitted || 0) + (st.inReview || 0),
           0,
         );
-        const chapterChanges = selectedChapter.stages.reduce(
+        const chapterChanges = (selectedChapter.stages || []).reduce(
           (s, st) => s + (st.changesRequested || 0),
           0,
         );
-        const chapterApproved = selectedChapter.stages.reduce((s, st) => s + (st.approved || 0), 0);
+        const chapterApproved = (selectedChapter.stages || []).reduce((s, st) => s + (st.approved || 0), 0);
 
         const renderCellCount = (
           count: number,
@@ -1736,7 +1737,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
             )}
 
-            {selectedChapter.stages.length === 0 ? (
+            {!selectedChapter.stages || selectedChapter.stages.length === 0 ? (
               <div className='py-8 text-center text-xs text-zinc-500 bg-zinc-50/50 rounded-xl border border-dashed border-zinc-200'>
                 Chưa có công đoạn nào được thiết lập cho Series này.
               </div>
@@ -1762,7 +1763,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     </tr>
                   </thead>
                   <tbody className='divide-y divide-zinc-100 font-mono tabular-nums'>
-                    {selectedChapter.stages.map((st) => {
+                    {(selectedChapter.stages || []).map((st) => {
                       const total = selectedChapter.panelCount;
                       const pct = total > 0 ? Math.round((st.approved / total) * 100) : 0;
 
@@ -1917,7 +1918,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     </div>
                   ) : (
                     <div className='space-y-2.5 mt-4'>
-                      {progress.workload.map((w) => {
+                      {(progress.workload || []).map((w) => {
                         const roleUpper = String(w.role || '').toUpperCase();
                         const roleStyle =
                           ROLE_COLOR_MAP[roleUpper] || 'bg-zinc-100 text-zinc-800 border-zinc-200';
@@ -1930,7 +1931,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                             <div className='flex items-center justify-between gap-2'>
                               <div className='flex items-center gap-2.5 min-w-0'>
                                 <div className='w-7 h-7 rounded-full bg-zinc-900 text-white font-bold text-xs flex items-center justify-center shrink-0'>
-                                  {w.fullName.charAt(0).toUpperCase()}
+                                  {(w.fullName || '?').charAt(0).toUpperCase()}
                                 </div>
                                 <div className='min-w-0'>
                                   <div className='text-xs font-bold text-zinc-900 truncate'>
@@ -2000,6 +2001,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       {seriesId && (
         <SeriesChaptersModal
           isOpen={isChapterModalOpen}
+          workspaceId={workspaceId}
           seriesId={seriesId}
           seriesTitle={seriesDetail?.title || activeProject?.title || 'Series'}
           onClose={() => {

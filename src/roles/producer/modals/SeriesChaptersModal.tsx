@@ -108,18 +108,19 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
       const res = await chapterService.getChaptersBySeries(seriesId, pageIndex, pageSize);
       const itemsList = Array.isArray(res) ? res : res?.items || [];
       setChapters(itemsList);
-      setTotalCount(res.totalCount || 0);
+      const total = Array.isArray(res) ? res.length : res?.totalCount ?? itemsList.length;
+      setTotalCount(total);
 
       // Auto compute next chapter number
-      if (res.items && res.items.length > 0) {
-        const maxNum = Math.max(...res.items.map((c) => Number(c.chapterNumber)));
+      if (itemsList && itemsList.length > 0) {
+        const maxNum = Math.max(...itemsList.map((c) => Number(c.chapterNumber) || 0));
         setNewChapterNumber(maxNum + 1);
       } else {
         setNewChapterNumber(1);
       }
 
       if (onChaptersCountChange) {
-        onChaptersCountChange(res.totalCount || 0);
+        onChaptersCountChange(total);
       }
     } catch (err: any) {
       setError(err.message || 'Không thể tải danh sách chương.');
@@ -293,6 +294,13 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const target = new Date(dateStr);
+    if (isNaN(target.getTime())) {
+      return (
+        <span className='px-2 py-0.5 rounded text-[10px] font-mono bg-neutral-100 text-neutral-500 border border-neutral-200'>
+          {dateStr}
+        </span>
+      );
+    }
     target.setHours(0, 0, 0, 0);
 
     const diffDays = Math.round((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
@@ -327,7 +335,9 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
   const renderChapterStatus = (status?: string, publishedAt?: string | null) => {
     switch (status) {
       case 'Published': {
-        const isScheduled = publishedAt && new Date(publishedAt) > new Date();
+        const pubDate = publishedAt ? new Date(publishedAt) : null;
+        const isValidDate = Boolean(pubDate && !isNaN(pubDate.getTime()));
+        const isScheduled = Boolean(isValidDate && pubDate! > new Date());
         return (
           <span
             className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold border flex items-center gap-1 ${
@@ -343,8 +353,8 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
             )}
             <span>
               {isScheduled
-                ? `Lên lịch (${new Date(publishedAt).toLocaleDateString('vi-VN')})`
-                : `Xuất bản ${publishedAt ? `(${new Date(publishedAt).toLocaleDateString('vi-VN')})` : ''}`}
+                ? `Lên lịch (${pubDate?.toLocaleDateString('vi-VN')})`
+                : `Xuất bản ${isValidDate ? `(${pubDate?.toLocaleDateString('vi-VN')})` : ''}`}
             </span>
           </span>
         );
@@ -687,7 +697,10 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                             </div>
                           )}
                           <div className='text-[10px] text-[#888888] font-mono mt-0.5'>
-                            Tạo ngày: {new Date(chap.createdAt).toLocaleDateString('vi-VN')}
+                            Tạo ngày:{' '}
+                            {chap.createdAt && !isNaN(new Date(chap.createdAt).getTime())
+                              ? new Date(chap.createdAt).toLocaleDateString('vi-VN')
+                              : '—'}
                           </div>
                         </td>
 

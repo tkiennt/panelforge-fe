@@ -983,6 +983,7 @@ export const StudioOverviewView: React.FC = () => {
       {selectedChapterSeries && (
         <SeriesChaptersModal
           isOpen={!!selectedChapterSeries}
+          workspaceId={activeWorkspace?.id || workspaceId}
           seriesId={selectedChapterSeries.id}
           seriesTitle={selectedChapterSeries.title}
           onClose={() => setSelectedChapterSeries(null)}

@@ -93,13 +93,8 @@ import {
 } from '@/types';
 
 /** Lazy route chunks: keeps Konva/editor code out of the Landing/Login bundle. */
-export const RouteFallback: React.FC = () => (
-  <div
-    className='flex h-full min-h-[40vh] w-full items-center justify-center'
-    role='status'
-    aria-label='Loading'
-  />
-);
+import { RouteFallback } from '@/shared/components/RouteFallback';
+export { RouteFallback };
 
 export const PrivateRoute = ({
   isAuthenticated,

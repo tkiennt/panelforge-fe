@@ -53,6 +53,8 @@ import { SidebarDrawer } from '@/shared/components/SidebarDrawer';
 import { getRoleDefaultPath } from '@/roles/roles';
 import { LanguageSwitcher, useTranslation } from '@/lib/i18n';
 import { notificationService } from '@/services/notification.service';
+import { ErrorBoundary } from '@/shared/components/ErrorBoundary';
+import { RouteFallback } from '@/shared/components/RouteFallback';
 
 export interface CurrentUser {
   name: string;
@@ -932,7 +934,9 @@ export function AppShell({
 
         <main className='flex-1 overflow-y-auto custom-scrollbar flex flex-col relative min-h-0 bg-[#F3F0E9]'>
           <div className='relative z-10 w-full min-h-full flex-1 flex flex-col'>
-            <Suspense fallback={null}>{children || <Outlet />}</Suspense>
+            <ErrorBoundary>
+              <Suspense fallback={<RouteFallback />}>{children || <Outlet />}</Suspense>
+            </ErrorBoundary>
           </div>
         </main>
       </div>
