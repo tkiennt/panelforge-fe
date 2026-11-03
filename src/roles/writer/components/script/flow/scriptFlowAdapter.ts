@@ -99,8 +99,8 @@ export function scenesToTipTapDoc(
       });
     } else {
       scene.scriptLines.forEach((line, index) => {
-        // Nếu có chỉ dẫn sân khấu (Stage Direction) mà không có thoại
-        if (line.stageDirection && !line.dialogueText) {
+        // 1. Chỉ dẫn sân khấu / Tiêu đề trang / Panel / Tên nhân vật đứng riêng
+        if (line.stageDirection) {
           const trimmed = line.stageDirection.trim();
           let detectedType: MangaBlockType = 'stage_direction';
           if (/^(?:#\s*(?:Page\s*)?\d+(?:\.\d+)?|(?:Trang|Page)\s+\d+(?:\.\d+)?)/i.test(trimmed)) {
@@ -109,6 +109,16 @@ export function scenesToTipTapDoc(
             detectedType = 'panel_heading';
           } else if (/^(?:CẢNH\s+\d+|INT\.|EXT\.|SCENE\s+\d+)/i.test(trimmed)) {
             detectedType = 'scene_heading';
+          } else if (
+            trimmed.length >= 2 &&
+            trimmed.length <= 30 &&
+            trimmed === trimmed.toUpperCase() &&
+            !trimmed.includes('.') &&
+            !trimmed.includes(':') &&
+            !trimmed.includes('-') &&
+            !/^\d+$/.test(trimmed)
+          ) {
+            detectedType = 'character';
           }
 
           content.push({
@@ -117,6 +127,7 @@ export function scenesToTipTapDoc(
               scriptLineId: line.id,
               sceneId: scene.id,
               blockType: detectedType,
+              speakerName: detectedType === 'character' ? trimmed : null,
               narrationMode: line.narrationMode || 'Present',
               lineOrder: index + 1,
               panelId: line.panelId || null,
@@ -128,54 +139,52 @@ export function scenesToTipTapDoc(
               },
             ],
           });
-        } else {
-          const resolvedSpeaker =
-            (getSpeakerName ? getSpeakerName(line.speakerCharacterId) : null) || 'NHÂN VẬT';
+        }
 
-          // Có người nói hoặc thoại
-          if (line.speakerCharacterId) {
-            content.push({
-              type: 'scriptLineBlock',
-              attrs: {
-                scriptLineId: `${line.id}_speaker`,
-                sceneId: scene.id,
-                blockType: 'character' as MangaBlockType,
-                speakerCharacterId: line.speakerCharacterId || null,
-                speakerName: resolvedSpeaker,
-                lineOrder: index + 1,
-                panelId: null,
+        // 2. Dòng người nói (nếu có speaker liên kết)
+        const resolvedSpeaker = getSpeakerName ? getSpeakerName(line.speakerCharacterId) : null;
+        if (line.speakerCharacterId && resolvedSpeaker) {
+          content.push({
+            type: 'scriptLineBlock',
+            attrs: {
+              scriptLineId: `${line.id}_speaker`,
+              sceneId: scene.id,
+              blockType: 'character' as MangaBlockType,
+              speakerCharacterId: line.speakerCharacterId,
+              speakerName: resolvedSpeaker,
+              lineOrder: index + 1,
+              panelId: null,
+            },
+            content: [
+              {
+                type: 'text',
+                text: resolvedSpeaker.toUpperCase(),
               },
-              content: [
-                {
-                  type: 'text',
-                  text: resolvedSpeaker.toUpperCase(),
-                },
-              ],
-            });
-          }
+            ],
+          });
+        }
 
-          // Dòng thoại chính
-          if (line.dialogueText) {
-            content.push({
-              type: 'scriptLineBlock',
-              attrs: {
-                scriptLineId: line.id,
-                sceneId: scene.id,
-                blockType: 'dialogue' as MangaBlockType,
-                speakerCharacterId: line.speakerCharacterId || null,
-                speakerName: line.speakerCharacterId ? resolvedSpeaker : null,
-                narrationMode: line.narrationMode || 'Present',
-                lineOrder: index + 1,
-                panelId: line.panelId || null,
+        // 3. Dòng thoại chính
+        if (line.dialogueText) {
+          content.push({
+            type: 'scriptLineBlock',
+            attrs: {
+              scriptLineId: line.id,
+              sceneId: scene.id,
+              blockType: 'dialogue' as MangaBlockType,
+              speakerCharacterId: line.speakerCharacterId || null,
+              speakerName: resolvedSpeaker || null,
+              narrationMode: line.narrationMode || 'Present',
+              lineOrder: index + 1,
+              panelId: line.panelId || null,
+            },
+            content: [
+              {
+                type: 'text',
+                text: line.dialogueText,
               },
-              content: [
-                {
-                  type: 'text',
-                  text: line.dialogueText,
-                },
-              ],
-            });
-          }
+            ],
+          });
         }
       });
     }
@@ -257,10 +266,12 @@ export function extractScriptLinesFromDoc(doc: any, defaultSceneId: string): Ext
   let order = 1;
 
   for (const block of doc.content) {
-    if (block.type !== 'scriptLineBlock') continue;
-
+    // Trích xuất toàn bộ khối có văn bản, không bỏ sót paragraph hay block tự gõ
     const attrs = block.attrs || {};
-    const text = block.content ? block.content.map((c: any) => c.text || '').join('') : '';
+    let text = '';
+    if (block.content && Array.isArray(block.content)) {
+      text = block.content.map((c: any) => c.text || c.attrs?.label || '').join('');
+    }
     const textTrimmed = text.trim();
     if (!textTrimmed) continue;
 
@@ -300,13 +311,10 @@ export function extractScriptLinesFromDoc(doc: any, defaultSceneId: string): Ext
     // Nhận diện dòng có cú pháp "NHÂN VẬT: Thoại" hoặc "NHÂN VẬT/Shout: Thoại"
     const dialogueWithSpeakerMatch = textTrimmed.match(/^([A-ZÀ-Ỹ0-9_\s]{2,30})(?:\/([a-zA-ZÀ-ỹ]+))?:\s*(.+)$/);
     if (dialogueWithSpeakerMatch) {
-      const dialogueText = dialogueWithSpeakerMatch[3].trim();
-      if (!dialogueText) continue;
-
       results.push({
         scriptLineId: attrs.scriptLineId || generateGuid(),
         sceneId: attrs.sceneId || currentSceneId,
-        dialogueText,
+        dialogueText: textTrimmed, // Giữ nguyên toàn bộ cú pháp để khi nạp lại không bị mất tên nhân vật
         stageDirection: null,
         speakerCharacterId: attrs.speakerCharacterId || currentSpeakerId,
         narrationMode: attrs.narrationMode || 'Present',
@@ -317,6 +325,15 @@ export function extractScriptLinesFromDoc(doc: any, defaultSceneId: string): Ext
     }
 
     if (effectiveBlockType === 'character') {
+      results.push({
+        scriptLineId: attrs.scriptLineId || generateGuid(),
+        sceneId: attrs.sceneId || currentSceneId,
+        dialogueText: null,
+        stageDirection: textTrimmed,
+        speakerCharacterId: attrs.speakerCharacterId || null,
+        narrationMode: attrs.narrationMode || 'Present',
+        lineOrder: order++,
+      });
       currentSpeakerId = attrs.speakerCharacterId || null;
       continue;
     }
@@ -331,7 +348,7 @@ export function extractScriptLinesFromDoc(doc: any, defaultSceneId: string): Ext
         narrationMode: attrs.narrationMode || 'Present',
         lineOrder: order++,
       });
-      currentSpeakerId = null; // Reset speaker sau thoại
+      currentSpeakerId = null;
     } else if (effectiveBlockType === 'stage_direction' || effectiveBlockType === 'transition') {
       results.push({
         scriptLineId: attrs.scriptLineId || generateGuid(),

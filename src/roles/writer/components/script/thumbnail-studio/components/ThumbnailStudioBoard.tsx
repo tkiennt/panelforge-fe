@@ -59,6 +59,17 @@ export const ThumbnailStudioBoard: React.FC<ThumbnailStudioBoardProps> = ({
     setEditorText(rawScript);
   }, [rawScript]);
 
+  // Tự động nạp kịch bản từ danh sách phân cảnh thực tế khi mount hoặc khi scenes cập nhật
+  useEffect(() => {
+    if (scenes && scenes.length > 0) {
+      const text = scenesToComicScriptText(scenes, getSpeakerName);
+      if (text.trim() && text !== rawScript) {
+        setRawScript(text);
+        setEditorText(text);
+      }
+    }
+  }, [scenes, getSpeakerName]);
+
   // Xử lý gõ văn bản kịch bản với debounce 250ms
   const handleEditorChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const val = e.target.value;

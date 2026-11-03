@@ -2247,10 +2247,22 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
               {/* Danh sách Dòng Kịch Bản (Ưu tiên vùng nhìn đầu tiên) */}
               <div className='flex-1 overflow-y-auto p-4 md:p-6 space-y-3.5 custom-scrollbar'>
-                {loadingDetail ? (
-                  <div className='flex items-center justify-center py-20 text-[#57534E] text-xs'>
-                    <RefreshCw className='w-5 h-5 animate-spin mr-2 text-[#C2410C]' />
-                    <span>Đang nạp chi tiết phân cảnh...</span>
+                {editorMode === 'flow' ? (
+                  /* TRANG GIẤY KỊCH BẢN (EDITORIAL SCRIPT PAPER) - Giữ editor luôn ổn định, không bị unmount khi lưu */
+                  <div className='max-w-6xl mx-auto w-full'>
+                    <ScreenplayFlowEditor
+                      key={selectedScene?.id || 'flow-editor'}
+                      chapterId={currentChapter?.id}
+                      scenes={selectedScene ? [selectedScene] : (chapterScenesDetail.length > 0 ? chapterScenesDetail : [])}
+                      allBibleEntries={allBibleEntries}
+                      consistencyFindings={findings}
+                      canEditScript={canEditScript}
+                      isChapterLocked={isChapterLocked}
+                      getSpeakerName={getSpeakerName}
+                      onSaveLines={handleSaveFlowLines}
+                      onCreateStub={handleCreateStubEntity}
+                      onShowToast={onShowToast}
+                    />
                   </div>
                 ) : editorMode === 'thumbnail' || editorMode === 'storyboard' ? (
                   /* THUMBNAIL STUDIO & STORYBOARD BOARD */
@@ -2262,22 +2274,10 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                       onShowToast={onShowToast}
                     />
                   </div>
-                ) : editorMode === 'flow' ? (
-                  /* TRANG GIẤY KỊCH BẢN (EDITORIAL SCRIPT PAPER) */
-                  <div className='max-w-6xl mx-auto w-full'>
-                    <ScreenplayFlowEditor
-                      key={selectedScene.id}
-                      chapterId={currentChapter?.id}
-                      scenes={[selectedScene]}
-                      allBibleEntries={allBibleEntries}
-                      consistencyFindings={findings}
-                      canEditScript={canEditScript}
-                      isChapterLocked={isChapterLocked}
-                      getSpeakerName={getSpeakerName}
-                      onSaveLines={handleSaveFlowLines}
-                      onCreateStub={handleCreateStubEntity}
-                      onShowToast={onShowToast}
-                    />
+                ) : loadingDetail ? (
+                  <div className='flex items-center justify-center py-20 text-[#57534E] text-xs'>
+                    <RefreshCw className='w-5 h-5 animate-spin mr-2 text-[#C2410C]' />
+                    <span>Đang nạp chi tiết phân cảnh...</span>
                   </div>
                 ) : !selectedScene.scriptLines || selectedScene.scriptLines.length === 0 ? (
                   <div className='text-center py-16 border border-dashed border-[#D8D2C5] rounded-2xl text-[#57534E] text-xs bg-[#FCFBF8]'>

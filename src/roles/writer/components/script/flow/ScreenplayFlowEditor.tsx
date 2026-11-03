@@ -101,6 +101,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
     extensions: [
       StarterKit.configure({
         heading: false,
+        paragraph: false,
       }),
       ScriptLineBlockNode,
       BibleMention.configure({
