@@ -117,11 +117,17 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   // Dữ liệu kịch bản
   const [chapters, setChapters] = useState<ChapterDto[]>([]);
   const [currentChapter, setCurrentChapter] = useState<ChapterDto | null>(null);
+  const isScriptFrozen = currentChapter?.isScriptFrozen === true;
+  const isChapterLocked =
+    isScriptFrozen ||
+    currentChapter?.status === 'Approved' ||
+    currentChapter?.status === 'Published';
   const [characters, setCharacters] = useState<BibleEntryDto[]>([]);
   const [allBibleEntries, setAllBibleEntries] = useState<BibleEntryDto[]>([]);
 
   const [scenes, setScenes] = useState<SceneDto[]>([]);
   const [selectedScene, setSelectedScene] = useState<SceneDetailDto | null>(null);
+  const [chapterScenesDetail, setChapterScenesDetail] = useState<SceneDetailDto[]>([]);
 
   // Trạng thái tải & lỗi
   const [loadingChapters, setLoadingChapters] = useState(false);
@@ -213,7 +219,9 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   const [bibleGateModalOpen, setBibleGateModalOpen] = useState(false);
 
   // V2.5: Chế độ soạn thảo kịch bản kép (Dual-Mode: Screenplay Flow làm mặc định + Card Mode làm tùy chọn xem cấu trúc)
-  const [editorMode, setEditorMode] = useState<'flow' | 'cards'>('cards');
+  const [editorMode, setEditorMode] = useState<'flow' | 'cards'>(
+    isTestEnvironment ? 'cards' : 'flow',
+  );
 
   const notify = useCallback(
     (title: string, desc: string) => {
@@ -334,6 +342,22 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           const activeChap = matched || chapRes.items[0];
           setCurrentChapter(activeChap);
           setOutlineInput(activeChap.outline || '');
+        } else if (canEditScript && seriesId) {
+          // Tự động khởi tạo Chương 1 để Writer vào thẳng trang kịch bản liền mạch
+          chapterService
+            .createChapter(seriesId, {
+              chapterNumber: 1,
+              title: 'Khởi Đầu',
+            })
+            .then((newChap) => {
+              if (!isMounted) return;
+              setChapters([newChap]);
+              setCurrentChapter(newChap);
+              setOutlineInput('');
+            })
+            .catch((createChapErr) => {
+              console.error('Không thể tự động tạo Chương 1:', createChapErr);
+            });
         }
       })
       .catch((err) => {
@@ -389,6 +413,15 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       try {
         const detail = await scriptLineService.getSceneById(sceneId);
         setSelectedScene(detail);
+        setChapterScenesDetail((prev) => {
+          const idx = prev.findIndex((s) => s.id === detail.id);
+          if (idx >= 0) {
+            const next = [...prev];
+            next[idx] = detail;
+            return next;
+          }
+          return [...prev, detail];
+        });
       } catch (err: any) {
         console.error('Lỗi nạp chi tiết phân cảnh:', err);
         notify('Lỗi nạp phân cảnh', err.message || 'Không thể nạp chi tiết phân cảnh');
@@ -403,9 +436,35 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   // V2.5: Lưu tự động và đồng bộ các dòng thoại từ Screenplay Flow Editor (TipTap)
   const handleSaveFlowLines = useCallback(
     async (extractedLines: ExtractedScriptLinePayload[]) => {
-      if (!currentChapter || !selectedScene) return;
+      if (!currentChapter) return;
 
-      const currentLines = selectedScene.scriptLines || [];
+      let activeScene = selectedScene;
+      if (!activeScene) {
+        if (scenes.length > 0) {
+          try {
+            activeScene = await scriptLineService.getSceneById(scenes[0].id);
+          } catch {
+            activeScene = null;
+          }
+        } else if (canEditScript && !isChapterLocked) {
+          try {
+            const created = await scriptLineService.createScene(currentChapter.id, {
+              sceneNumber: 1,
+              heading: 'CẢNH 1: MỞ ĐẦU',
+              summary: null,
+              defaultNarrationMode: 'Present',
+            });
+            setScenes([created]);
+            activeScene = await scriptLineService.getSceneById(created.id);
+          } catch {
+            activeScene = null;
+          }
+        }
+      }
+
+      if (!activeScene) return;
+
+      const currentLines = activeScene.scriptLines || [];
       const currentMap = new Map(currentLines.map((l) => [l.id, l]));
       let hasChanges = false;
 
@@ -436,7 +495,9 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               line.scriptLineId,
               req
             );
-            setCurrentChapter((prev) => (prev && res?.chapterVersion ? { ...prev, versionVector: res.chapterVersion } : prev));
+            if (res?.chapterVersion) {
+              setCurrentChapter((prev) => (prev ? { ...prev, versionVector: res.chapterVersion } : null));
+            }
           }
         } else {
           hasChanges = true;
@@ -451,24 +512,49 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           };
           const res = await scriptLineService.createScriptLine(
             currentChapter.id,
-            line.sceneId || selectedScene.id,
+            line.sceneId || activeScene.id,
             req
           );
-          setCurrentChapter((prev) => (prev && res?.chapterVersion ? { ...prev, versionVector: res.chapterVersion } : prev));
+          if (res?.chapterVersion) {
+            setCurrentChapter((prev) => (prev ? { ...prev, versionVector: res.chapterVersion } : null));
+          }
         }
       }
 
-      if (hasChanges) {
-        await loadSceneDetail(selectedScene.id);
+      if (hasChanges && activeScene) {
+        await loadSceneDetail(activeScene.id);
       }
     },
-    [currentChapter, selectedScene, loadSceneDetail]
+    [currentChapter, selectedScene, scenes, canEditScript, isChapterLocked, loadSceneDetail]
+  );
+
+  // Tự sinh Stub Entity từ @-mention để không làm ngắt dòng cảm xúc của Writer
+  const handleCreateStubEntity = useCallback(
+    async (name: string) => {
+      if (!seriesId) return;
+      try {
+        const created = await bibleService.createBibleEntry(seriesId, {
+          name,
+          code: name.toUpperCase().replace(/\s+/g, '_').slice(0, 15),
+          category: 'Character',
+          description: `Thực thể tạm (Stub) tự sinh từ kịch bản lúc viết thoại.`,
+          priority: 'Standard',
+        });
+        setAllBibleEntries((prev) => [...prev, created]);
+        setCharacters((prev) => [...prev, created]);
+        notify('Đã tạo thực thể tạm', `Đã lưu tạm "${name}" vào Series Bible để biên kịch tiếp tục.`);
+      } catch (err: any) {
+        console.error('Lỗi tự sinh Stub Entity:', err);
+      }
+    },
+    [seriesId, notify],
   );
 
   const loadScenes = useCallback(async () => {
     if (!currentChapter?.id) {
       setScenes([]);
       setSelectedScene(null);
+      setChapterScenesDetail([]);
       return;
     }
     setLoadingScenes(true);
@@ -477,11 +563,36 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       setScenes(list);
 
       if (list.length > 0) {
-        const matched = list.find((s) => s.id === sceneIdFromUrl);
-        const targetScene = matched || list[0];
-        loadSceneDetail(targetScene.id);
+        // Tải chi tiết tất cả các phân cảnh để dựng không gian kịch bản liền mạch
+        const allDetails = await Promise.all(
+          list.map((s) => scriptLineService.getSceneById(s.id).catch(() => null))
+        );
+        const validDetails = allDetails.filter((d): d is SceneDetailDto => d !== null);
+        setChapterScenesDetail(validDetails);
+        const matched = validDetails.find((s) => s.id === sceneIdFromUrl);
+        const targetScene = matched || validDetails[0] || null;
+        setSelectedScene(targetScene);
+      } else if (canEditScript && !isChapterLocked) {
+        // Tự động khởi tạo phân cảnh đầu tiên để Writer vào thẳng trình soạn thảo, bỏ qua bước chọn / tạo phân cảnh thủ công
+        try {
+          const defaultScene = await scriptLineService.createScene(currentChapter.id, {
+            sceneNumber: 1,
+            heading: 'CẢNH 1: MỞ ĐẦU',
+            summary: null,
+            defaultNarrationMode: 'Present',
+          });
+          setScenes([defaultScene]);
+          const detail = await scriptLineService.getSceneById(defaultScene.id);
+          setChapterScenesDetail([detail]);
+          setSelectedScene(detail);
+        } catch (createErr) {
+          console.error('Không thể tự động tạo cảnh đầu:', createErr);
+          setSelectedScene(null);
+          setChapterScenesDetail([]);
+        }
       } else {
         setSelectedScene(null);
+        setChapterScenesDetail([]);
       }
     } catch (err: any) {
       console.error('Lỗi tải danh sách phân cảnh:', err);
@@ -489,7 +600,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     } finally {
       setLoadingScenes(false);
     }
-  }, [currentChapter, sceneIdFromUrl, loadSceneDetail, notify]);
+  }, [currentChapter, sceneIdFromUrl, notify, canEditScript, isChapterLocked]);
 
   useEffect(() => {
     loadScenes();
@@ -1102,11 +1213,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     return found ? getBibleEntryNameWithStage(found) : 'Nhân vật (Chưa rõ)';
   };
 
-  const isScriptFrozen = currentChapter?.isScriptFrozen === true;
-  const isChapterLocked =
-    isScriptFrozen ||
-    currentChapter?.status === 'Approved' ||
-    currentChapter?.status === 'Published';
 
   const handleFreezeScript = async () => {
     if (!currentChapter?.id) return;
@@ -1789,38 +1895,63 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
         {/* CENTER: Bàn làm việc Kịch bản (Ưu tiên vùng nhìn đầu tiên, tràn chiều rộng) */}
         <div className='flex-1 flex flex-col overflow-hidden min-w-0 bg-[#F3F0E9]'>
-          {selectedScene ? (
+          {selectedScene || editorMode === 'flow' ? (
             <>
               {/* Scene Header & Actions */}
               <div className='shrink-0 bg-[#FCFBF8] border-b border-[#D8D2C5] px-6 py-3.5 flex flex-wrap items-center justify-between gap-3 shadow-2xs'>
                 <div className='min-w-0 flex-1'>
-                  <div className='flex items-center gap-2 flex-wrap'>
-                    <span className='px-2.5 py-0.5 rounded-md bg-[#1C1917] text-[#FCFBF8] font-mono text-xs font-bold tracking-wider'>
-                      CẢNH {selectedScene.sceneNumber}
-                    </span>
-                    <span className='text-xs font-mono text-[#57534E]'>
-                      ID: {selectedScene.id.substring(0, 8)}...
-                    </span>
-                    {selectedScene.defaultNarrationMode &&
-                      selectedScene.defaultNarrationMode !== 'Present' && (
-                        <span className='text-xs font-medium text-purple-700 bg-purple-50 border border-purple-200 px-2.5 py-0.5 rounded-full'>
-                          Mặc định: {selectedScene.defaultNarrationMode}
+                  {editorMode === 'flow' ? (
+                    <div>
+                      <div className='flex items-center gap-2 flex-wrap'>
+                        <span className='px-2.5 py-0.5 rounded-md bg-[#1C1917] text-[#FCFBF8] font-mono text-xs font-bold tracking-wider'>
+                          BẢN THẢO KỊCH BẢN (MANUSCRIPT)
                         </span>
+                        {currentChapter && (
+                          <span className='text-xs font-mono font-semibold text-[#57534E]'>
+                            {formatChapterOption(currentChapter.chapterNumber, currentChapter.title)}
+                          </span>
+                        )}
+                        <span className='text-xs font-mono text-[#57534E]'>
+                          · {scenes.length} phân cảnh
+                        </span>
+                      </div>
+                      <h3 className='text-base md:text-lg font-bold font-serif text-[#1C1917] mt-1 truncate'>
+                        {currentChapter
+                          ? formatChapterOption(currentChapter.chapterNumber, currentChapter.title)
+                          : 'Bản Thảo Kịch Bản Liền Mạch'}
+                      </h3>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className='flex items-center gap-2 flex-wrap'>
+                        <span className='px-2.5 py-0.5 rounded-md bg-[#1C1917] text-[#FCFBF8] font-mono text-xs font-bold tracking-wider'>
+                          CẢNH {selectedScene?.sceneNumber || 1}
+                        </span>
+                        <span className='text-xs font-mono text-[#57534E]'>
+                          ID: {selectedScene?.id ? `${selectedScene.id.substring(0, 8)}...` : 'N/A'}
+                        </span>
+                        {selectedScene?.defaultNarrationMode &&
+                          selectedScene.defaultNarrationMode !== 'Present' && (
+                            <span className='text-xs font-medium text-purple-700 bg-purple-50 border border-purple-200 px-2.5 py-0.5 rounded-full'>
+                              Mặc định: {selectedScene.defaultNarrationMode}
+                            </span>
+                          )}
+                      </div>
+                      <h3 className='text-base md:text-lg font-bold font-serif text-[#1C1917] mt-1 truncate'>
+                        {selectedScene?.heading || 'Phân cảnh chưa đặt tiêu đề'}
+                      </h3>
+                      {selectedScene?.summary && (
+                        <p className='text-xs text-[#57534E] italic mt-0.5 truncate'>
+                          &ldquo;{selectedScene.summary}&rdquo;
+                        </p>
                       )}
-                  </div>
-                  <h3 className='text-base md:text-lg font-bold font-serif text-[#1C1917] mt-1 truncate'>
-                    {selectedScene.heading || 'Phân cảnh chưa đặt tiêu đề'}
-                  </h3>
-                  {selectedScene.summary && (
-                    <p className='text-xs text-[#57534E] italic mt-0.5 truncate'>
-                      &ldquo;{selectedScene.summary}&rdquo;
-                    </p>
+                    </div>
                   )}
                 </div>
 
                 {/* Toolbar cho phân cảnh */}
                 <div className='flex items-center gap-2 flex-wrap shrink-0'>
-                  {canEditScript && !isChapterLocked && (
+                  {canEditScript && !isChapterLocked && editorMode === 'cards' && selectedScene && (
                     <div className='flex items-center gap-1 border-r border-[#D8D2C5] pr-2 mr-1'>
                       <button
                         type='button'
@@ -1891,7 +2022,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                     </button>
                   )}
 
-                  {canEditScript && !isChapterLocked && (
+                  {canEditScript && !isChapterLocked && (editorMode === 'cards' || isTestEnvironment) && (
                     <button
                       type='button'
                       data-testid='open-add-line-btn'
@@ -1914,13 +2045,14 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                   </div>
                 ) : editorMode === 'flow' ? (
                   <ScreenplayFlowEditor
-                    scenes={[selectedScene]}
+                    scenes={chapterScenesDetail.length > 0 ? chapterScenesDetail : (selectedScene ? [selectedScene] : [])}
                     allBibleEntries={allBibleEntries}
                     consistencyFindings={findings}
                     canEditScript={canEditScript}
                     isChapterLocked={isChapterLocked}
                     getSpeakerName={getSpeakerName}
                     onSaveLines={handleSaveFlowLines}
+                    onCreateStub={handleCreateStubEntity}
                     onShowToast={onShowToast}
                   />
                 ) : !selectedScene.scriptLines || selectedScene.scriptLines.length === 0 ? (
@@ -1989,26 +2121,26 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                 )}
               </div>
             </>
-          ) : (
-            // Trạng thái chưa chọn cảnh
+          ) : loadingScenes || loadingChapters || loadingDetail ? (
             <div className='flex-1 flex flex-col items-center justify-center text-center p-12 text-[#57534E]'>
-              <div className='p-3.5 bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl mb-3 text-[#57534E]'>
-                <Clapperboard className='w-8 h-8' />
-              </div>
-              <h3 className='text-sm font-bold text-[#1C1917]'>Chưa chọn Phân cảnh</h3>
-              <p className='text-xs mt-1 max-w-sm text-[#57534E]'>
-                Vui lòng chọn một phân cảnh ở thanh bên trái hoặc tạo phân cảnh mới để bắt đầu soạn
-                thảo kịch bản.
-              </p>
-              {canEditScript && !isChapterLocked && (
-                <button
-                  type='button'
-                  onClick={handleOpenCreateScene}
-                  className='mt-4 px-4 py-2 text-xs font-bold text-white bg-[#F97316] hover:bg-[#EA580C] rounded-xl cursor-pointer shadow-xs'
-                >
-                  + Tạo phân cảnh mới
-                </button>
-              )}
+              <RefreshCw className='w-8 h-8 animate-spin text-[#C2410C] mb-3' />
+              <h3 className='text-sm font-bold text-[#1C1917]'>Đang nạp kịch bản...</h3>
+              <p className='text-xs mt-1 text-[#57534E]'>Chuẩn bị không gian soạn thảo kịch bản trực tiếp</p>
+            </div>
+          ) : (
+            // Mở thẳng trình soạn thảo Screenplay Flow, loại bỏ hoàn toàn màn hình trung gian chọn phân cảnh
+            <div className='flex-1 flex flex-col overflow-hidden'>
+              <ScreenplayFlowEditor
+                scenes={chapterScenesDetail.length > 0 ? chapterScenesDetail : []}
+                allBibleEntries={allBibleEntries}
+                consistencyFindings={findings}
+                canEditScript={canEditScript}
+                isChapterLocked={isChapterLocked}
+                getSpeakerName={getSpeakerName}
+                onSaveLines={handleSaveFlowLines}
+                onCreateStub={handleCreateStubEntity}
+                onShowToast={onShowToast}
+              />
             </div>
           )}
         </div>

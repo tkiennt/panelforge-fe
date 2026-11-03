@@ -2,7 +2,10 @@
 import { BibleEntryDto } from '@/services/bible.service';
 import { MentionSuggestionItem } from '../types';
 
-export function createMentionSuggestion(getBibleEntries: () => BibleEntryDto[]) {
+export function createMentionSuggestion(
+  getBibleEntries: () => BibleEntryDto[],
+  onCreateStub?: (name: string) => Promise<void> | void
+) {
   return {
     items: ({ query }: { query: string }): MentionSuggestionItem[] => {
       const entries = getBibleEntries();
@@ -23,6 +26,8 @@ export function createMentionSuggestion(getBibleEntries: () => BibleEntryDto[]) 
         category: e.category,
         code: e.code,
         isLocked: e.effectiveRevision?.reviewStatus === 'CanonLocked',
+        avatarUrl: e.referenceImageUrl || e.effectiveRevision?.referenceImageUrl || null,
+        stageName: e.effectiveRevision?.stageName || null,
       }));
     },
 
@@ -35,7 +40,15 @@ export function createMentionSuggestion(getBibleEntries: () => BibleEntryDto[]) 
         if (!popup || !currentProps) return;
         popup.innerHTML = '';
 
-        if (currentProps.items.length === 0) {
+        const rawQuery = (currentProps.query || '').trim();
+        const hasQuery = rawQuery.length > 0;
+        const exactMatch = currentProps.items.some(
+          (i: MentionSuggestionItem) => i.name.toLowerCase() === rawQuery.toLowerCase()
+        );
+        const showStubButton = hasQuery && !exactMatch;
+        const totalCount = currentProps.items.length + (showStubButton ? 1 : 0);
+
+        if (totalCount === 0) {
           const empty = document.createElement('div');
           empty.className = 'px-3 py-2 text-xs text-gray-400 italic';
           empty.textContent = 'Không tìm thấy thực thể trong Bible';
@@ -48,35 +61,61 @@ export function createMentionSuggestion(getBibleEntries: () => BibleEntryDto[]) 
           btn.type = 'button';
           const isSelected = index === selectedIndex;
 
-          btn.className = `w-full text-left px-3 py-1.5 flex items-center justify-between text-xs rounded transition-colors ${
+          btn.className = `w-full text-left px-3 py-2 flex items-center justify-between text-xs rounded-lg transition-colors cursor-pointer ${
             isSelected ? 'bg-orange-50 text-[#FF6F61] font-semibold' : 'text-gray-700 hover:bg-gray-50'
           }`;
 
-          const nameContainer = document.createElement('div');
-          nameContainer.className = 'flex items-center gap-1.5 truncate';
+          const leftContainer = document.createElement('div');
+          leftContainer.className = 'flex items-center gap-2 truncate min-w-0';
+
+          // Avatar chân dung hoặc chữ viết tắt
+          if (item.avatarUrl) {
+            const img = document.createElement('img');
+            img.src = item.avatarUrl;
+            img.alt = item.name;
+            img.className = 'w-5 h-5 rounded-full object-cover shrink-0 border border-gray-200';
+            leftContainer.appendChild(img);
+          } else {
+            const placeholder = document.createElement('span');
+            placeholder.className =
+              'w-5 h-5 rounded-full bg-orange-100 text-orange-700 text-[10px] font-bold flex items-center justify-center shrink-0';
+            placeholder.textContent = item.name.charAt(0).toUpperCase();
+            leftContainer.appendChild(placeholder);
+          }
 
           const lockBadge = document.createElement('span');
           lockBadge.textContent = item.isLocked ? '🔒' : '⚠️';
           lockBadge.title = item.isLocked ? 'CanonLocked' : 'Chưa duyệt khóa Canon';
+          lockBadge.className = 'text-xs shrink-0';
+          leftContainer.appendChild(lockBadge);
 
           const nameText = document.createElement('span');
           nameText.textContent = item.name;
+          nameText.className = 'truncate';
+          leftContainer.appendChild(nameText);
 
-          nameContainer.appendChild(lockBadge);
-          nameContainer.appendChild(nameText);
+          // Huy hiệu Era (Ví dụ: Tuổi thơ, Cyber-Form, v.v.)
+          if (item.stageName) {
+            const eraBadge = document.createElement('span');
+            eraBadge.className =
+              'text-[9px] px-1.5 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200 shrink-0 font-medium ml-1';
+            eraBadge.textContent = item.stageName;
+            leftContainer.appendChild(eraBadge);
+          }
 
           if (item.subtitle) {
             const sub = document.createElement('span');
-            sub.className = 'text-[10px] text-gray-400 ml-1 font-normal';
+            sub.className = 'text-[10px] text-gray-400 ml-1 font-normal truncate';
             sub.textContent = `(${item.subtitle})`;
-            nameContainer.appendChild(sub);
+            leftContainer.appendChild(sub);
           }
 
           const catBadge = document.createElement('span');
-          catBadge.className = 'text-[10px] px-1 py-0.5 rounded bg-gray-100 text-gray-500 uppercase tracking-tighter shrink-0';
+          catBadge.className =
+            'text-[10px] px-1 py-0.5 rounded bg-gray-100 text-gray-500 uppercase tracking-tighter shrink-0 ml-1';
           catBadge.textContent = String(item.category);
 
-          btn.appendChild(nameContainer);
+          btn.appendChild(leftContainer);
           btn.appendChild(catBadge);
 
           btn.addEventListener('click', () => {
@@ -85,11 +124,51 @@ export function createMentionSuggestion(getBibleEntries: () => BibleEntryDto[]) 
               label: item.name,
               category: String(item.category),
               isLocked: item.isLocked,
+              isStub: false,
             });
           });
 
           popup.appendChild(btn);
         });
+
+        // Nút tự sinh Stub Entity nếu chưa có trong hồ sơ Bible
+        if (showStubButton) {
+          const stubIndex = currentProps.items.length;
+          const isStubSelected = selectedIndex === stubIndex;
+
+          const stubBtn = document.createElement('button');
+          stubBtn.type = 'button';
+          stubBtn.className = `w-full text-left px-3 py-2 flex items-center gap-2 text-xs font-semibold rounded-lg border-t border-gray-100 transition-colors cursor-pointer mt-1 ${
+            isStubSelected
+              ? 'bg-[#FFF2E6] text-[#C2410C] font-bold'
+              : 'text-[#C2410C] hover:bg-[#FFF2E6]/60'
+          }`;
+
+          const plusIcon = document.createElement('span');
+          plusIcon.className =
+            'w-4 h-4 rounded-full bg-[#F97316] text-white flex items-center justify-center text-[10px] font-bold shrink-0';
+          plusIcon.textContent = '+';
+
+          const stubText = document.createElement('span');
+          stubText.className = 'truncate';
+          stubText.textContent = `Tạo thực thể mới "${rawQuery}"`;
+
+          stubBtn.appendChild(plusIcon);
+          stubBtn.appendChild(stubText);
+
+          stubBtn.addEventListener('click', () => {
+            currentProps.command({
+              id: `stub_${Date.now()}`,
+              label: rawQuery,
+              category: 'Character',
+              isLocked: false,
+              isStub: true,
+            });
+            onCreateStub?.(rawQuery);
+          });
+
+          popup.appendChild(stubBtn);
+        }
       };
 
       return {
@@ -99,7 +178,7 @@ export function createMentionSuggestion(getBibleEntries: () => BibleEntryDto[]) 
 
           popup = document.createElement('div');
           popup.className =
-            'fixed z-50 bg-white rounded-xl shadow-xl border border-gray-200 p-1 min-w-[220px] max-w-xs animate-in fade-in zoom-in-95 duration-100';
+            'fixed z-50 bg-[#FCFBF8] rounded-xl shadow-xl border border-[#D8D2C5] p-1.5 min-w-[240px] max-w-sm animate-in fade-in zoom-in-95 duration-100';
 
           document.body.appendChild(popup);
           const rect = props.clientRect?.();
@@ -122,19 +201,41 @@ export function createMentionSuggestion(getBibleEntries: () => BibleEntryDto[]) 
         },
 
         onKeyDown: (props: any) => {
+          const rawQuery = (currentProps.query || '').trim();
+          const hasQuery = rawQuery.length > 0;
+          const exactMatch = currentProps.items.some(
+            (i: MentionSuggestionItem) => i.name.toLowerCase() === rawQuery.toLowerCase()
+          );
+          const showStubButton = hasQuery && !exactMatch;
+          const totalCount = currentProps.items.length + (showStubButton ? 1 : 0);
+
+          if (totalCount === 0) return false;
+
           if (props.event.key === 'ArrowUp') {
-            selectedIndex = (selectedIndex + currentProps.items.length - 1) % currentProps.items.length;
+            selectedIndex = (selectedIndex + totalCount - 1) % totalCount;
             renderList();
             return true;
           }
 
           if (props.event.key === 'ArrowDown') {
-            selectedIndex = (selectedIndex + 1) % currentProps.items.length;
+            selectedIndex = (selectedIndex + 1) % totalCount;
             renderList();
             return true;
           }
 
           if (props.event.key === 'Enter') {
+            if (showStubButton && selectedIndex === currentProps.items.length) {
+              currentProps.command({
+                id: `stub_${Date.now()}`,
+                label: rawQuery,
+                category: 'Character',
+                isLocked: false,
+                isStub: true,
+              });
+              onCreateStub?.(rawQuery);
+              return true;
+            }
+
             const item = currentProps.items[selectedIndex];
             if (item) {
               currentProps.command({
@@ -142,6 +243,7 @@ export function createMentionSuggestion(getBibleEntries: () => BibleEntryDto[]) 
                 label: item.name,
                 category: String(item.category),
                 isLocked: item.isLocked,
+                isStub: false,
               });
               return true;
             }

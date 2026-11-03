@@ -515,4 +515,43 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
       expect(screen.queryByTestId('draft-restore-storyArc')).toBeNull();
     });
   });
+
+  it('bỏ phần chọn phân cảnh và tự động khởi tạo cảnh đầu tiên khi chương chưa có phân cảnh nào', async () => {
+    vi.mocked(scriptLineService.getScenesByChapter).mockResolvedValueOnce([]);
+    vi.mocked(scriptLineService.createScene).mockResolvedValueOnce({
+      id: 'sc-auto-1',
+      chapterId: 'chap-1',
+      sceneNumber: 1,
+      heading: 'CẢNH 1: MỞ ĐẦU',
+      summary: null,
+      createdAt: '2026-10-01',
+      scriptLinesCount: 0,
+      pagesCount: 0,
+    });
+    vi.mocked(scriptLineService.getSceneById).mockResolvedValueOnce({
+      id: 'sc-auto-1',
+      chapterId: 'chap-1',
+      sceneNumber: 1,
+      heading: 'CẢNH 1: MỞ ĐẦU',
+      summary: null,
+      createdAt: '2026-10-01',
+      scriptLines: [],
+    });
+
+    renderView();
+
+    // Tuyệt đối không còn hiển thị màn hình rào cản "Chưa chọn Phân cảnh"
+    expect(screen.queryByText('Chưa chọn Phân cảnh')).not.toBeInTheDocument();
+
+    // Tự động gọi API createScene để tạo cảnh 1 và vào thẳng trang soạn kịch bản
+    await waitFor(() => {
+      expect(scriptLineService.createScene).toHaveBeenCalledWith(
+        'chap-1',
+        expect.objectContaining({
+          sceneNumber: 1,
+          heading: 'CẢNH 1: MỞ ĐẦU',
+        }),
+      );
+    });
+  });
 });

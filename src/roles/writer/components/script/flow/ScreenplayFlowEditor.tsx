@@ -33,6 +33,7 @@ interface ScreenplayFlowEditorProps {
   isChapterLocked: boolean;
   getSpeakerName?: (id?: string | null) => string | null;
   onSaveLines: (lines: ExtractedScriptLinePayload[]) => Promise<void>;
+  onCreateStub?: (name: string) => Promise<void> | void;
   onShowToast?: (title: string, desc: string) => void;
 }
 
@@ -44,6 +45,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   isChapterLocked,
   getSpeakerName,
   onSaveLines,
+  onCreateStub,
   onShowToast,
 }) => {
   const [isSaving, setIsSaving] = useState(false);
@@ -75,11 +77,10 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
     extensions: [
       StarterKit.configure({
         heading: false,
-
       }),
       ScriptLineBlockNode,
       BibleMention.configure({
-        suggestion: createMentionSuggestion(() => bibleEntriesRef.current),
+        suggestion: createMentionSuggestion(() => bibleEntriesRef.current, onCreateStub),
       }),
       ConsistencyLinterExtension.configure({
         getFindings: () => findingsRef.current,
@@ -131,6 +132,17 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
       editor.setEditable(canEditScript && !isChapterLocked);
     }
   }, [editor, canEditScript, isChapterLocked]);
+
+  // Đồng bộ nội dung TipTap khi danh sách phân cảnh được nạp từ máy chủ
+  useEffect(() => {
+    if (editor && !editor.isDestroyed && !hasUnsavedChanges) {
+      const newDoc = scenesToTipTapDoc(scenes, getSpeakerName);
+      const currentDoc = editor.getJSON();
+      if (JSON.stringify(currentDoc) !== JSON.stringify(newDoc)) {
+        editor.commands.setContent(newDoc);
+      }
+    }
+  }, [editor, scenes, getSpeakerName, hasUnsavedChanges]);
 
   const handleManualSave = useCallback(async () => {
     if (!editor || !hasUnsavedChanges) return;
