@@ -581,10 +581,12 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             summary: null,
             defaultNarrationMode: 'Present',
           });
-          setScenes([defaultScene]);
-          const detail = await scriptLineService.getSceneById(defaultScene.id);
-          setChapterScenesDetail([detail]);
-          setSelectedScene(detail);
+          if (defaultScene?.id) {
+            setScenes([defaultScene]);
+            const detail = await scriptLineService.getSceneById(defaultScene.id).catch(() => null);
+            setChapterScenesDetail(detail ? [detail] : [defaultScene as any]);
+            setSelectedScene(detail || (defaultScene as any));
+          }
         } catch (createErr) {
           console.error('Không thể tự động tạo cảnh đầu:', createErr);
           setSelectedScene(null);
@@ -1298,7 +1300,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     : 0;
 
   // Lọc danh sách phân cảnh
-  const filteredScenes = scenes.filter((s) => {
+  const filteredScenes = scenes.filter((s): s is SceneDto => Boolean(s && s.id)).filter((s) => {
     if (!sceneSearchQuery.trim()) return true;
     const q = sceneSearchQuery.toLowerCase();
     return (
@@ -1835,7 +1837,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                   </div>
                 ) : (
                   filteredScenes.map((s) => {
-                    const isSelected = selectedScene?.id === s.id;
+                    const isSelected = selectedScene?.id === s?.id;
                     return (
                       <div
                         key={s.id}
