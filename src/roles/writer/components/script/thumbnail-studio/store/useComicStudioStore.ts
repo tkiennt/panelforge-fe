@@ -3,8 +3,7 @@ import { create } from 'zustand';
 import { ComicScriptAST } from '../types';
 import { parseComicScript, insertTransitionPageStub } from '../lib/comicScriptParser';
 
-export const DEFAULT_DEMO_SCRIPT = `
-EXT. SHIBUYA CROSSING - NIGHT (RAIN)
+export const DEFAULT_DEMO_SCRIPT = `EXT. SHIBUYA CROSSING - NIGHT (RAIN)
 
 # Page 1
 - Panel 1: Extreme Wide
@@ -23,8 +22,7 @@ MINH/Shout: Hả?! Cái quái gì thế này?!
 # Page 2
 - Panel 1: Medium shot
 Tiếng còi xe inh ỏi khắp ngã tư.
-MINH (thì thầm): Không kịp rồi.
-`.trim();
+MINH (thì thầm): Không kịp rồi.`.trim();
 
 export interface ComicStudioState {
   rawScript: string;

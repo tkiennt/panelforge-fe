@@ -16,6 +16,7 @@ import {
   Clapperboard,
   Layers,
   ChevronRight,
+  ChevronLeft,
   ChevronDown,
   ChevronUp,
   ShieldAlert,
@@ -47,7 +48,8 @@ import {
   UpdateSceneRequest,
   NarrationMode,
 } from '@/services/scriptLine.service';
-import { chapterService, ChapterDto, ChapterBibleGateResultDto } from '@/services/chapter.service';
+import { chapterService, ChapterDto, ChapterBibleGateResultDto, CreateChapterRequest } from '@/services/chapter.service';
+import { ChapterSelectionView } from '../components/script/chapter-selection';
 import { bibleService, BibleEntryDto } from '@/services/bible.service';
 import { seriesService, SeriesDetailDto } from '@/services/series.service';
 import {
@@ -131,6 +133,8 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   // Phân quyền: Producer và Writer được ghi kịch bản
   const normRole = workspaceRole ? normalizeWorkspaceRole(workspaceRole) : null;
   const canEditScript = !normRole || normRole === 'PRODUCER' || normRole === 'WRITER';
+  const isProducer = !normRole || normRole === 'PRODUCER';
+  const canCreateChapter = isProducer;
 
   // Dữ liệu kịch bản
   const [chapters, setChapters] = useState<ChapterDto[]>([]);
@@ -357,25 +361,16 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
         if (chapRes.items.length > 0) {
           const matched = chapRes.items.find((c) => c.id === chapterIdFromUrl);
-          const activeChap = matched || chapRes.items[0];
-          setCurrentChapter(activeChap);
-          setOutlineInput(activeChap.outline || '');
-        } else if (canEditScript && seriesId) {
-          // Tự động khởi tạo Chương 1 để Writer vào thẳng trang kịch bản liền mạch
-          chapterService
-            .createChapter(seriesId, {
-              chapterNumber: 1,
-              title: 'Khởi Đầu',
-            })
-            .then((newChap) => {
-              if (!isMounted) return;
-              setChapters([newChap]);
-              setCurrentChapter(newChap);
-              setOutlineInput('');
-            })
-            .catch((createChapErr) => {
-              console.error('Không thể tự động tạo Chương 1:', createChapErr);
-            });
+          if (matched) {
+            setCurrentChapter(matched);
+            setOutlineInput(matched.outline || '');
+          } else {
+            // Không có chapterId trong URL -> Hiển thị màn hình chọn chương để Writer/Producer chọn
+            setCurrentChapter(null);
+          }
+        } else {
+          // Chưa có chương nào -> Hiển thị màn hình chọn chương (Producer tạo hoặc Writer chờ)
+          setCurrentChapter(null);
         }
       })
       .catch((err) => {
@@ -393,12 +388,20 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
   // Đảm bảo lấy đúng chương khi URL query chapterId thay đổi
   useEffect(() => {
-    if (!chapters || chapters.length === 0 || !chapterIdFromUrl) return;
+    if (!chapters || chapters.length === 0) return;
+    if (!chapterIdFromUrl) {
+      if (currentChapter !== null) {
+        setCurrentChapter(null);
+      }
+      return;
+    }
     if (currentChapter?.id !== chapterIdFromUrl) {
       const found = chapters.find((c) => c.id === chapterIdFromUrl);
       if (found) {
         setCurrentChapter(found);
         setOutlineInput(found.outline || '');
+      } else {
+        setCurrentChapter(null);
       }
     }
   }, [chapterIdFromUrl, chapters, currentChapter?.id]);
@@ -463,12 +466,16 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   );
 
   // 4. Tải danh sách Scenes khi currentChapter thay đổi
-  // V2.5: Lưu tự động và đồng bộ các dòng thoại từ Screenplay Flow Editor (TipTap)
+  // V2.5: Đồng bộ kịch bản từ Screenplay Flow Editor (TipTap) lên Backend khi bấm Lưu (Explicit Commit)
   const handleSaveFlowLines = useCallback(
     async (extractedLines: ExtractedScriptLinePayload[]) => {
       if (!currentChapter) return;
 
-      let activeScene = selectedScene;
+      // 1. Xác định ngữ cảnh phân cảnh
+      const allScenes =
+        chapterScenesDetail.length > 0 ? chapterScenesDetail : selectedScene ? [selectedScene] : [];
+      let activeScene = selectedScene || allScenes[0] || null;
+
       if (!activeScene) {
         if (scenes.length > 0) {
           try {
@@ -494,12 +501,38 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
       if (!activeScene) return;
 
-      const currentLines = activeScene.scriptLines || [];
-      const currentMap = new Map(currentLines.map((l) => [l.id, l]));
+      // 2. Theo dõi version tuần tự (Sequential Concurrency Tracker) để tránh bẫy 409 Conflict
+      let currentVersion = currentChapter.versionVector || 1;
       let hasChanges = false;
 
+      const currentLines = activeScene.scriptLines || [];
+      const currentMap = new Map(currentLines.map((l) => [l.id, l]));
+
+      // 3. Xoá dòng đã bị lược bỏ trong TipTap (Phantom Lines Deletion)
+      const extractedIds = new Set(extractedLines.map((l) => l.scriptLineId));
+      const linesToDelete = currentLines.filter((l) => !extractedIds.has(l.id));
+
+      for (const line of linesToDelete) {
+        hasChanges = true;
+        try {
+          const res = await scriptLineService.deleteScriptLine(
+            currentChapter.id,
+            line.id,
+            currentVersion
+          );
+          if (res?.chapterVersion) {
+            currentVersion = res.chapterVersion;
+          }
+        } catch (delErr: any) {
+          console.error(`Lỗi xoá dòng kịch bản ${line.id}:`, delErr);
+        }
+      }
+
+      // 4. Cập nhật hoặc thêm mới các dòng
+      const createdLineIdMap = new Map<string, string>();
+
       for (const line of extractedLines) {
-        // Tuân thủ Backend Domain Invariant: Phải có ít nhất DialogueText hoặc StageDirection
+        // Domain Invariant: Dòng kịch bản phải có thoại hoặc chỉ dẫn sân khấu
         const hasValidText = Boolean(line.dialogueText?.trim() || line.stageDirection?.trim());
         if (!hasValidText) continue;
 
@@ -517,7 +550,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               dialogueText: line.dialogueText || null,
               stageDirection: line.stageDirection || null,
               speakerCharacterId: line.speakerCharacterId || null,
-              expectedChapterVersion: currentChapter.versionVector || 1,
+              expectedChapterVersion: currentVersion,
               narrationMode: line.narrationMode,
             };
             const res = await scriptLineService.updateScriptLine(
@@ -526,7 +559,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               req
             );
             if (res?.chapterVersion) {
-              setCurrentChapter((prev) => (prev ? { ...prev, versionVector: res.chapterVersion } : null));
+              currentVersion = res.chapterVersion;
             }
           }
         } else {
@@ -536,7 +569,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             stageDirection: line.stageDirection || null,
             speakerCharacterId: line.speakerCharacterId || null,
             lineOrder: line.lineOrder,
-            expectedChapterVersion: currentChapter.versionVector || 1,
+            expectedChapterVersion: currentVersion,
             clientLineId: line.scriptLineId,
             narrationMode: line.narrationMode,
           };
@@ -546,16 +579,47 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             req
           );
           if (res?.chapterVersion) {
-            setCurrentChapter((prev) => (prev ? { ...prev, versionVector: res.chapterVersion } : null));
+            currentVersion = res.chapterVersion;
+          }
+          if (res?.id) {
+            createdLineIdMap.set(line.scriptLineId, res.id);
           }
         }
       }
 
+      // 5. Cập nhật thứ tự các dòng (Reorder)
+      const targetSceneId = activeScene.id;
+      const sceneExtractedLines = extractedLines.filter(
+        (l) => !l.sceneId || l.sceneId === targetSceneId
+      );
+      if (sceneExtractedLines.length > 1) {
+        const reorderPayload = sceneExtractedLines.map((l, idx) => ({
+          lineId: createdLineIdMap.get(l.scriptLineId) || l.scriptLineId,
+          newOrder: idx + 1,
+        }));
+        try {
+          await scriptLineService.reorderScriptLines(
+            currentChapter.id,
+            targetSceneId,
+            reorderPayload,
+            currentVersion
+          );
+          currentVersion += 1;
+          hasChanges = true;
+        } catch {
+          // Bỏ qua lỗi reorder nếu backend đã tự sắp xếp theo lineOrder
+        }
+      }
+
+      // 6. Cập nhật version mới nhất vào React state
+      setCurrentChapter((prev) => (prev ? { ...prev, versionVector: currentVersion } : null));
+
+      // 7. Đồng bộ lại chi tiết phân cảnh
       if (hasChanges && activeScene) {
         await loadSceneDetail(activeScene.id);
       }
     },
-    [currentChapter, selectedScene, scenes, canEditScript, isChapterLocked, loadSceneDetail]
+    [currentChapter, chapterScenesDetail, selectedScene, scenes, canEditScript, isChapterLocked, loadSceneDetail]
   );
 
   // Tự sinh Stub Entity từ @-mention để không làm ngắt dòng cảm xúc của Writer
@@ -648,8 +712,13 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     loadSceneDetail(scene.id);
   };
 
-  // Chọn Chapter từ dropdown (bảo vệ thay đổi chưa lưu)
+  // Chọn Chapter từ dropdown hoặc danh sách chọn chương (bảo vệ thay đổi chưa lưu)
   const handleSelectChapter = (chapId: string) => {
+    if (chapId === '__all__' || !chapId) {
+      handleBackToChapterSelection();
+      return;
+    }
+
     if (hasUnsavedChanges) {
       setBarWarn(true);
       setTimeout(() => setBarWarn(false), 800);
@@ -674,6 +743,39 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         return p;
       });
     }
+  };
+
+  // Quay lại màn hình chọn chương
+  const handleBackToChapterSelection = () => {
+    if (hasUnsavedChanges) {
+      setBarWarn(true);
+      setTimeout(() => setBarWarn(false), 800);
+      const confirmSwitch = window.confirm(
+        'Bạn có thay đổi đề cương hoặc Story Arc chưa lưu. Bạn có muốn bỏ qua các thay đổi này để quay lại danh sách chọn chương không?',
+      );
+      if (!confirmSwitch) return;
+    }
+
+    setFindings([]);
+    setConsistencyResult(null);
+    setCurrentChapter(null);
+    setSelectedScene(null);
+    setScenes([]);
+    setChapterScenesDetail([]);
+    setSearchParams((prev) => {
+      const p = new URLSearchParams(prev);
+      p.delete('chapterId');
+      p.delete('sceneId');
+      return p;
+    });
+  };
+
+  // Producer tạo chương mới
+  const handleCreateNewChapter = async (data: CreateChapterRequest) => {
+    if (!seriesId) return;
+    const created = await chapterService.createChapter(seriesId, data);
+    setChapters((prev) => [...prev, created]);
+    handleSelectChapter(created.id);
   };
 
   // --- STORY ARC (SERIES) & OUTLINE (CHAPTER) ---
@@ -1340,6 +1442,23 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     );
   });
 
+  // Nếu chưa chọn Chapter (hoặc vừa vào trang chưa có query chapterId): Hiển thị màn hình Chọn Chương
+  if (!currentChapter) {
+    return (
+      <div className='flex-1 flex flex-col bg-[#F3F0E9] h-[calc(100vh-64px)] overflow-hidden text-[#1C1917]'>
+        <ChapterSelectionView
+          chapters={chapters}
+          seriesDetail={seriesDetail}
+          canCreateChapter={canCreateChapter}
+          loadingChapters={loadingChapters}
+          onSelectChapter={(chap) => handleSelectChapter(chap.id)}
+          onCreateChapter={handleCreateNewChapter}
+          onShowToast={notify}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className='flex-1 flex flex-col bg-[#F3F0E9] h-[calc(100vh-64px)] overflow-hidden text-[#1C1917]'>
       <UnsavedChangesBar
@@ -1384,9 +1503,22 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                     {formatChapterOption(c.chapterNumber, c.title)}
                   </option>
                 ))}
+                <option value='__all__'>← Chọn chương khác...</option>
               </select>
             </div>
           )}
+
+          {/* Nút quay lại màn hình chọn chương */}
+          <button
+            type='button'
+            data-testid='back-to-chapter-selection-btn'
+            onClick={handleBackToChapterSelection}
+            className='flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-[#57534E] hover:text-[#1C1917] hover:bg-[#EBE7DF] rounded-xl transition-colors cursor-pointer shrink-0 border border-[#E5E0D8] bg-[#F3F0E9]/50 shadow-2xs'
+            title='Quay lại màn hình danh sách chọn chương'
+          >
+            <ChevronLeft className='w-3.5 h-3.5' />
+            <span className='hidden sm:inline'>Đổi chương</span>
+          </button>
 
           {/* Trạng thái lưu tinh gọn */}
           <div className='flex items-center text-xs font-mono'>
@@ -2031,6 +2163,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                   <div className='max-w-4xl mx-auto'>
                     <ScreenplayFlowEditor
                       key={selectedScene.id}
+                      chapterId={currentChapter?.id}
                       scenes={[selectedScene]}
                       allBibleEntries={allBibleEntries}
                       consistencyFindings={findings}
@@ -2128,6 +2261,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                 </div>
               ) : (
               <ScreenplayFlowEditor
+                chapterId={currentChapter?.id}
                 scenes={chapterScenesDetail.length > 0 ? chapterScenesDetail : []}
                 allBibleEntries={allBibleEntries}
                 consistencyFindings={findings}
