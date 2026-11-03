@@ -50,6 +50,10 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
   const [submitting, setSubmitting] = useState(false);
 
   const handleOpenCreateModal = () => {
+    if (!canCreateChapter) {
+      onShowToast?.('Không có quyền hạn', 'Chỉ có Producer mới được quyền khởi tạo chương mới.');
+      return;
+    }
     const nextNum = chapters && chapters.length > 0
       ? Math.max(...chapters.map((c) => c.chapterNumber || 0)) + 1
       : 1;
@@ -62,7 +66,10 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
 
   const handleSubmitCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!onCreateChapter) return;
+    if (!canCreateChapter || !onCreateChapter) {
+      onShowToast?.('Không có quyền hạn', 'Chỉ có Producer mới được quyền khởi tạo chương mới.');
+      return;
+    }
     if (chapterNumber < 1) {
       onShowToast?.('Lỗi nhập liệu', 'Số thứ tự chương phải lớn hơn hoặc bằng 1.');
       return;
@@ -251,7 +258,7 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
       </div>
 
       {/* 3. Modal Tạo Chương Mới (Chỉ Producer) */}
-      {modalOpen && (
+      {modalOpen && canCreateChapter && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-[2px] animate-in fade-in">
           <div className="bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col">
             <div className="px-6 py-4 bg-[#F7F5EE] border-b border-[#D8D2C5] flex items-center justify-between">

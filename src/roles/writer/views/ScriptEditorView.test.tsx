@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor, within, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ScriptEditorView } from './ScriptEditorView';
@@ -553,5 +553,18 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
         }),
       );
     });
+  });
+
+  it('không cho phép Writer tạo chapter, chỉ Producer mới có quyền tạo và xoá chapter (Zero-Trust RBAC)', async () => {
+    // 1. Khi vai trò là WRITER
+    renderView({ workspaceRole: 'WRITER' });
+    expect(await screen.findByText('CHƯƠNG 1')).toBeInTheDocument();
+    // Nút xoá chapter không xuất hiện cho Writer
+    expect(screen.queryByTestId('delete-current-chapter-btn')).not.toBeInTheDocument();
+
+    // 2. Khi vai trò là PRODUCER
+    cleanup();
+    renderView({ workspaceRole: 'PRODUCER' });
+    expect(await screen.findByTestId('delete-current-chapter-btn')).toBeInTheDocument();
   });
 });
