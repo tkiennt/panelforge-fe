@@ -133,6 +133,17 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
     }
   }, [editor, canEditScript, isChapterLocked]);
 
+  // Đồng bộ nội dung TipTap khi danh sách phân cảnh được nạp từ máy chủ
+  useEffect(() => {
+    if (editor && !editor.isDestroyed && !hasUnsavedChanges) {
+      const newDoc = scenesToTipTapDoc(scenes, getSpeakerName);
+      const currentDoc = editor.getJSON();
+      if (JSON.stringify(currentDoc) !== JSON.stringify(newDoc)) {
+        editor.commands.setContent(newDoc);
+      }
+    }
+  }, [editor, scenes, getSpeakerName, hasUnsavedChanges]);
+
   const handleManualSave = useCallback(async () => {
     if (!editor || !hasUnsavedChanges) return;
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
