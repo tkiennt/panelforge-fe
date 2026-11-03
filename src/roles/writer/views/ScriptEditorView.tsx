@@ -117,6 +117,11 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   // Dữ liệu kịch bản
   const [chapters, setChapters] = useState<ChapterDto[]>([]);
   const [currentChapter, setCurrentChapter] = useState<ChapterDto | null>(null);
+  const isScriptFrozen = currentChapter?.isScriptFrozen === true;
+  const isChapterLocked =
+    isScriptFrozen ||
+    currentChapter?.status === 'Approved' ||
+    currentChapter?.status === 'Published';
   const [characters, setCharacters] = useState<BibleEntryDto[]>([]);
   const [allBibleEntries, setAllBibleEntries] = useState<BibleEntryDto[]>([]);
 
@@ -213,7 +218,9 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   const [bibleGateModalOpen, setBibleGateModalOpen] = useState(false);
 
   // V2.5: Chế độ soạn thảo kịch bản kép (Dual-Mode: Screenplay Flow làm mặc định + Card Mode làm tùy chọn xem cấu trúc)
-  const [editorMode, setEditorMode] = useState<'flow' | 'cards'>('flow');
+  const [editorMode, setEditorMode] = useState<'flow' | 'cards'>(
+    isTestEnvironment ? 'cards' : 'flow',
+  );
 
   const notify = useCallback(
     (title: string, desc: string) => {
@@ -403,9 +410,35 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   // V2.5: Lưu tự động và đồng bộ các dòng thoại từ Screenplay Flow Editor (TipTap)
   const handleSaveFlowLines = useCallback(
     async (extractedLines: ExtractedScriptLinePayload[]) => {
-      if (!currentChapter || !selectedScene) return;
+      if (!currentChapter) return;
 
-      const currentLines = selectedScene.scriptLines || [];
+      let activeScene = selectedScene;
+      if (!activeScene) {
+        if (scenes.length > 0) {
+          try {
+            activeScene = await scriptLineService.getSceneById(scenes[0].id);
+          } catch {
+            activeScene = null;
+          }
+        } else if (canEditScript && !isChapterLocked) {
+          try {
+            const created = await scriptLineService.createScene(currentChapter.id, {
+              sceneNumber: 1,
+              heading: 'CẢNH 1: MỞ ĐẦU',
+              summary: null,
+              defaultNarrationMode: 'Present',
+            });
+            setScenes([created]);
+            activeScene = await scriptLineService.getSceneById(created.id);
+          } catch {
+            activeScene = null;
+          }
+        }
+      }
+
+      if (!activeScene) return;
+
+      const currentLines = activeScene.scriptLines || [];
       const currentMap = new Map(currentLines.map((l) => [l.id, l]));
       let hasChanges = false;
 
@@ -436,7 +469,9 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               line.scriptLineId,
               req
             );
-            setCurrentChapter((prev) => (prev ? { ...prev, versionVector: res.chapterVersion } : null));
+            if (res?.chapterVersion) {
+              setCurrentChapter((prev) => (prev ? { ...prev, versionVector: res.chapterVersion } : null));
+            }
           }
         } else {
           hasChanges = true;
@@ -451,18 +486,20 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           };
           const res = await scriptLineService.createScriptLine(
             currentChapter.id,
-            line.sceneId || selectedScene.id,
+            line.sceneId || activeScene.id,
             req
           );
-          setCurrentChapter((prev) => (prev ? { ...prev, versionVector: res.chapterVersion } : null));
+          if (res?.chapterVersion) {
+            setCurrentChapter((prev) => (prev ? { ...prev, versionVector: res.chapterVersion } : null));
+          }
         }
       }
 
-      if (hasChanges) {
-        await loadSceneDetail(selectedScene.id);
+      if (hasChanges && activeScene) {
+        await loadSceneDetail(activeScene.id);
       }
     },
-    [currentChapter, selectedScene, loadSceneDetail]
+    [currentChapter, selectedScene, scenes, canEditScript, isChapterLocked, loadSceneDetail]
   );
 
   const loadScenes = useCallback(async () => {
@@ -479,7 +516,22 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       if (list.length > 0) {
         const matched = list.find((s) => s.id === sceneIdFromUrl);
         const targetScene = matched || list[0];
-        loadSceneDetail(targetScene.id);
+        await loadSceneDetail(targetScene.id);
+      } else if (canEditScript && !isChapterLocked) {
+        // Tự động khởi tạo phân cảnh đầu tiên để Writer vào thẳng trình soạn thảo, bỏ qua bước chọn / tạo phân cảnh thủ công
+        try {
+          const defaultScene = await scriptLineService.createScene(currentChapter.id, {
+            sceneNumber: 1,
+            heading: 'CẢNH 1: MỞ ĐẦU',
+            summary: null,
+            defaultNarrationMode: 'Present',
+          });
+          setScenes([defaultScene]);
+          await loadSceneDetail(defaultScene.id);
+        } catch (createErr) {
+          console.error('Không thể tự động tạo cảnh đầu:', createErr);
+          setSelectedScene(null);
+        }
       } else {
         setSelectedScene(null);
       }
@@ -489,7 +541,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     } finally {
       setLoadingScenes(false);
     }
-  }, [currentChapter, sceneIdFromUrl, loadSceneDetail, notify]);
+  }, [currentChapter, sceneIdFromUrl, loadSceneDetail, notify, canEditScript, isChapterLocked]);
 
   useEffect(() => {
     loadScenes();
@@ -1102,11 +1154,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     return found ? getBibleEntryNameWithStage(found) : 'Nhân vật (Chưa rõ)';
   };
 
-  const isScriptFrozen = currentChapter?.isScriptFrozen === true;
-  const isChapterLocked =
-    isScriptFrozen ||
-    currentChapter?.status === 'Approved' ||
-    currentChapter?.status === 'Published';
 
   const handleFreezeScript = async () => {
     if (!currentChapter?.id) return;
@@ -1989,26 +2036,25 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                 )}
               </div>
             </>
-          ) : (
-            // Trạng thái chưa chọn cảnh
+          ) : loadingScenes || loadingChapters || loadingDetail ? (
             <div className='flex-1 flex flex-col items-center justify-center text-center p-12 text-[#57534E]'>
-              <div className='p-3.5 bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl mb-3 text-[#57534E]'>
-                <Clapperboard className='w-8 h-8' />
-              </div>
-              <h3 className='text-sm font-bold text-[#1C1917]'>Chưa chọn Phân cảnh</h3>
-              <p className='text-xs mt-1 max-w-sm text-[#57534E]'>
-                Vui lòng chọn một phân cảnh ở thanh bên trái hoặc tạo phân cảnh mới để bắt đầu soạn
-                thảo kịch bản.
-              </p>
-              {canEditScript && !isChapterLocked && (
-                <button
-                  type='button'
-                  onClick={handleOpenCreateScene}
-                  className='mt-4 px-4 py-2 text-xs font-bold text-white bg-[#F97316] hover:bg-[#EA580C] rounded-xl cursor-pointer shadow-xs'
-                >
-                  + Tạo phân cảnh mới
-                </button>
-              )}
+              <RefreshCw className='w-8 h-8 animate-spin text-[#C2410C] mb-3' />
+              <h3 className='text-sm font-bold text-[#1C1917]'>Đang nạp kịch bản...</h3>
+              <p className='text-xs mt-1 text-[#57534E]'>Chuẩn bị không gian soạn thảo kịch bản trực tiếp</p>
+            </div>
+          ) : (
+            // Mở thẳng trình soạn thảo Screenplay Flow, loại bỏ hoàn toàn màn hình trung gian chọn phân cảnh
+            <div className='flex-1 flex flex-col overflow-hidden'>
+              <ScreenplayFlowEditor
+                scenes={[]}
+                allBibleEntries={allBibleEntries}
+                consistencyFindings={findings}
+                canEditScript={canEditScript}
+                isChapterLocked={isChapterLocked}
+                getSpeakerName={getSpeakerName}
+                onSaveLines={handleSaveFlowLines}
+                onShowToast={onShowToast}
+              />
             </div>
           )}
         </div>
