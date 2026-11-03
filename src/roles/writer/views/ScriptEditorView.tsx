@@ -71,7 +71,7 @@ import { offlineQueueService } from '@/services/offlineQueue.service';
 import { saveDraft, clearDraft, readRestorableDraft, type LocalDraft } from '@/lib/localDraft';
 import { OfflineStatusBanner } from '@/shared/components/OfflineStatusBanner';
 import { ElementConflictModal } from '@/shared/modals/ElementConflictModal';
-import { UnsavedChangesBar } from '@/shared/components/lucian';
+import { UnsavedChangesBar, LucianConfirmModal, TypeToConfirmModal } from '@/shared/components/lucian';
 import { useTranslation } from '@/lib/i18n';
 import { useConfirm } from '@/shared/context/ConfirmContext';
 import { ThumbnailDrawer } from '../components/script/thumbnail-studio/components/ThumbnailDrawer';
@@ -157,6 +157,12 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+
+  // Trạng thái xoá Phân cảnh & Chương (Lucian #269 Modals)
+  const [sceneToDelete, setSceneToDelete] = useState<SceneDto | null>(null);
+  const [isDeletingScene, setIsDeletingScene] = useState(false);
+  const [chapterToDelete, setChapterToDelete] = useState<ChapterDto | null>(null);
+  const [isDeletingChapter, setIsDeletingChapter] = useState(false);
 
   // Điều hướng phân cảnh (collapsible)
   const [isSceneNavOpen, setIsSceneNavOpen] = useState(true);
@@ -344,7 +350,8 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     ])
       .then(([chapRes, bibleRes, seriesRes]) => {
         if (!isMounted) return;
-        setChapters(chapRes.items);
+        const chapterList = Array.isArray(chapRes) ? chapRes : (chapRes?.items || []);
+        setChapters(chapterList);
 
         if (seriesRes) {
           setSeriesDetail(seriesRes);
@@ -359,8 +366,8 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           setCharacters(charList);
         }
 
-        if (chapRes.items.length > 0) {
-          const matched = chapRes.items.find((c) => c.id === chapterIdFromUrl);
+        if (chapterList.length > 0) {
+          const matched = chapterList.find((c) => c.id === chapterIdFromUrl);
           if (matched) {
             setCurrentChapter(matched);
             setOutlineInput(matched.outline || '');
@@ -623,6 +630,58 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   );
 
   // Tự sinh Stub Entity từ @-mention để không làm ngắt dòng cảm xúc của Writer
+  // Xử lý Xoá Phân Cảnh (Delete Scene - LucianConfirmModal)
+  const handleConfirmDeleteScene = async () => {
+    if (!sceneToDelete) return;
+    setIsDeletingScene(true);
+    try {
+      await scriptLineService.deleteScene(sceneToDelete.id);
+      notify(
+        'Đã xoá phân cảnh',
+        `Cảnh ${sceneToDelete.sceneNumber} (${sceneToDelete.heading || 'Không tên'}) đã được xoá an toàn.`
+      );
+      if (selectedScene?.id === sceneToDelete.id) {
+        setSelectedScene(null);
+      }
+      setSceneToDelete(null);
+      await loadScenes();
+    } catch (err: any) {
+      notify('Không thể xoá phân cảnh', err.message || 'Lỗi hệ thống');
+    } finally {
+      setIsDeletingScene(false);
+    }
+  };
+
+  // Xử lý Xoá Chương (Delete Chapter - Lucian #269 TypeToConfirmModal)
+  const handleConfirmDeleteChapter = async () => {
+    if (!chapterToDelete) return;
+    setIsDeletingChapter(true);
+    try {
+      await chapterService.deleteChapter(chapterToDelete.id);
+      notify(
+        'Đã xoá chương',
+        `Chương ${chapterToDelete.chapterNumber} đã được xoá an toàn khỏi chuỗi sản xuất.`
+      );
+      setChapterToDelete(null);
+      if (seriesId) {
+        const chapRes = await chapterService.getChaptersBySeries(seriesId, 1, 50);
+        const remainingChapters = Array.isArray(chapRes) ? chapRes : (chapRes?.items || []);
+        setChapters(remainingChapters);
+        if (remainingChapters.length > 0) {
+          handleSelectChapter(remainingChapters[0].id);
+        } else {
+          setCurrentChapter(null);
+          setScenes([]);
+          setSelectedScene(null);
+        }
+      }
+    } catch (err: any) {
+      notify('Không thể xoá chương', err.message || 'Lỗi hệ thống');
+    } finally {
+      setIsDeletingChapter(false);
+    }
+  };
+
   const handleCreateStubEntity = useCallback(
     async (name: string) => {
       if (!seriesId) return;
@@ -775,7 +834,16 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     if (!seriesId) return;
     const created = await chapterService.createChapter(seriesId, data);
     setChapters((prev) => [...prev, created]);
-    handleSelectChapter(created.id);
+    setFindings([]);
+    setConsistencyResult(null);
+    setCurrentChapter(created);
+    setOutlineInput(created.outline || '');
+    setSearchParams((prev) => {
+      const p = new URLSearchParams(prev);
+      p.set('chapterId', created.id);
+      p.delete('sceneId');
+      return p;
+    });
   };
 
   // --- STORY ARC (SERIES) & OUTLINE (CHAPTER) ---
@@ -1482,7 +1550,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         <h1 className='sr-only'>Biên Soạn Kịch Bản Phân Cảnh (Script Editor)</h1>
 
         {/* 1. Trái: Context Chương (Breadcrumb-style) + Trạng thái lưu */}
-        <div className='flex items-center gap-3 min-w-0'>
+        <div className='flex items-center gap-2.5 shrink-0 z-10'>
           {chapters.length > 0 && (
             <div className='flex items-center gap-2 bg-[#F3F0E9]/70 hover:bg-[#F3F0E9] px-3 py-1.5 rounded-xl border border-[#E5E0D8] transition-colors shadow-2xs shrink-0 group'>
               <BookOpen className='w-4 h-4 text-[#C2410C] shrink-0' />
@@ -1505,6 +1573,18 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                 ))}
                 <option value='__all__'>← Chọn chương khác...</option>
               </select>
+              {isProducer && currentChapter && !isChapterLocked && (
+                <button
+                  type='button'
+                  data-testid='delete-current-chapter-btn'
+                  onClick={() => setChapterToDelete(currentChapter)}
+                  className='p-1 text-[#78716C] hover:text-[#DC2626] hover:bg-[#FEE2E2] rounded-md transition-colors cursor-pointer shrink-0 ml-0.5'
+                  title={`Xoá Chương ${currentChapter.chapterNumber}`}
+                  aria-label={`Xoá Chương ${currentChapter.chapterNumber}`}
+                >
+                  <Trash2 className='w-3.5 h-3.5' />
+                </button>
+              )}
             </div>
           )}
 
@@ -1993,9 +2073,26 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                           >
                             Cảnh {s.sceneNumber}
                           </span>
-                          <span className='font-mono text-xs text-[#57534E] bg-[#F3F0E9] border border-[#D8D2C5] px-2 py-0.5 rounded-md'>
-                            {s.scriptLinesCount} dòng
-                          </span>
+                          <div className='flex items-center gap-1.5'>
+                            <span className='font-mono text-xs text-[#57534E] bg-[#F3F0E9] border border-[#D8D2C5] px-2 py-0.5 rounded-md'>
+                              {s.scriptLinesCount} dòng
+                            </span>
+                            {canEditScript && !isChapterLocked && (
+                              <button
+                                type='button'
+                                data-testid={`delete-scene-btn`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSceneToDelete(s);
+                                }}
+                                className='p-1 text-[#78716C] hover:text-[#DC2626] hover:bg-[#FEE2E2] rounded-md transition-colors cursor-pointer'
+                                title={`Xoá Cảnh ${s.sceneNumber}`}
+                                aria-label={`Xoá Cảnh ${s.sceneNumber}`}
+                              >
+                                <Trash2 className='w-3 h-3' />
+                              </button>
+                            )}
+                          </div>
                         </div>
                         <div className='text-xs text-[#1C1917] font-medium truncate'>
                           {s.heading || 'Chưa đặt tiêu đề'}
@@ -2713,6 +2810,33 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         }}
         onClose={() => setConflictModalOpen(false)}
       />
+
+      {/* Lucian #269 & #072: Modal Xoá Phân Cảnh (Delete Scene Confirmation) */}
+      <LucianConfirmModal
+        isOpen={Boolean(sceneToDelete)}
+        title={`Xoá Cảnh ${sceneToDelete?.sceneNumber}: ${sceneToDelete?.heading || 'Chưa đặt tiêu đề'}?`}
+        description='Toàn bộ các dòng kịch bản trong phân cảnh này sẽ bị xoá mềm. Các panel truyện gắn vào phân cảnh sẽ được gỡ liên kết an toàn.'
+        confirmText={isDeletingScene ? 'Đang xoá...' : 'Xác nhận xoá'}
+        cancelText='Huỷ bỏ'
+        variant='danger'
+        onConfirm={handleConfirmDeleteScene}
+        onCancel={() => setSceneToDelete(null)}
+      />
+
+      {/* Lucian #269: Type-to-Confirm Modal Xoá Chương (Destructive Chapter Delete) */}
+      {chapterToDelete && (
+        <TypeToConfirmModal
+          isOpen={Boolean(chapterToDelete)}
+          targetName={`Chương ${chapterToDelete.chapterNumber}`}
+          title={`Xoá vĩnh viễn Chương ${chapterToDelete.chapterNumber}?`}
+          description={`Cảnh báo: Hành động này sẽ xoá mềm toàn bộ phân cảnh và kịch bản của Chương ${chapterToDelete.chapterNumber}. Để xác nhận, vui lòng nhập chính xác:`}
+          confirmButtonText={isDeletingChapter ? 'Đang xoá...' : 'Xoá chương vĩnh viễn'}
+          cancelButtonText='Huỷ bỏ'
+          isDeleting={isDeletingChapter}
+          onConfirm={handleConfirmDeleteChapter}
+          onCancel={() => setChapterToDelete(null)}
+        />
+      )}
 
       {/* Chapter-Scoped Bible Gate Modal */}
       {bibleGateModalOpen && (

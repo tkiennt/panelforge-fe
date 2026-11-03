@@ -348,3 +348,4 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
     </div>
   );
 };
+
