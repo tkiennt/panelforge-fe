@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams } from 'react-router-dom';
 import {
@@ -62,7 +62,17 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
   const effectiveWorkspaceId =
     propWorkspaceId ||
     paramWorkspaceId ||
-    JSON.parse(localStorage.getItem('activeWorkspace') || '{}').id ||
+    (() => {
+      try {
+        const stored = localStorage.getItem('activeWorkspace');
+        if (stored && stored !== 'undefined' && stored !== 'null') {
+          return JSON.parse(stored)?.id || '';
+        }
+      } catch {
+        // Ignore parse error
+      }
+      return '';
+    })() ||
     '';
 
   const [chapters, setChapters] = useState<ChapterDto[]>([]);
@@ -96,7 +106,8 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
     setError(null);
     try {
       const res = await chapterService.getChaptersBySeries(seriesId, pageIndex, pageSize);
-      setChapters(res.items || []);
+      const itemsList = Array.isArray(res) ? res : res?.items || [];
+      setChapters(itemsList);
       setTotalCount(res.totalCount || 0);
 
       // Auto compute next chapter number

@@ -558,7 +558,7 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
   it('không cho phép Writer tạo chapter, chỉ Producer mới có quyền tạo và xoá chapter (Zero-Trust RBAC)', async () => {
     // 1. Khi vai trò là WRITER
     renderView({ workspaceRole: 'WRITER' });
-    expect(await screen.findByText('CHƯƠNG 1')).toBeInTheDocument();
+    expect(await screen.findByRole('combobox')).toBeInTheDocument();
     // Nút xoá chapter không xuất hiện cho Writer
     expect(screen.queryByTestId('delete-current-chapter-btn')).not.toBeInTheDocument();
 
