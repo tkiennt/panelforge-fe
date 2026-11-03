@@ -3,6 +3,27 @@ import { create } from 'zustand';
 import { ComicScriptAST } from '../types';
 import { parseComicScript, insertTransitionPageStub } from '../lib/comicScriptParser';
 
+export const DEFAULT_DEMO_SCRIPT = `EXT. SHIBUYA CROSSING - NIGHT (RAIN)
+
+# Page 1
+- Panel 1: Extreme Wide
+Tokyo mưa đêm ngập trong ánh đèn neon mờ ảo. Minh đứng im giữa dòng người qua lại.
+MINH: Đêm nay dường như đã chết...
+
+- Panel 2: Close-up
+Màn hình điện thoại vỡ nát dưới vũng nước mưa.
+* BZZZZ... BZZZZ... *
+
+- Panel 3: Low angle
+Ánh đèn pha xe tải rọi chói lòa từ xa.
+MINH/Shout: Hả?! Cái quái gì thế này?!
+* KÍTTTTTT! *
+
+# Page 2
+- Panel 1: Medium shot
+Tiếng còi xe inh ỏi khắp ngã tư.
+MINH (thì thầm): Không kịp rồi.`.trim();
+
 export interface ComicStudioState {
   rawScript: string;
   ast: ComicScriptAST;
@@ -23,18 +44,21 @@ export interface ComicStudioState {
   clearSketch: (panelId: string) => void;
 }
 
+const initialAst = parseComicScript(DEFAULT_DEMO_SCRIPT);
+
 export const useComicStudioStore = create<ComicStudioState>((set, get) => ({
-  rawScript: '',
-  ast: { scenes: [], pages: [] },
+  rawScript: DEFAULT_DEMO_SCRIPT,
+  ast: initialAst,
   isDrawerOpen: false,
-  activePanelId: null,
+  activePanelId: initialAst.pages[0]?.panels[0]?.id || null,
   activePageNumber: 1,
   activePanelNumber: 1,
   sketches: {},
 
   setRawScript: (text: string) => {
-    const ast = parseComicScript(text);
-    set({ rawScript: text, ast });
+    const scriptToParse = text?.trim() ? text : DEFAULT_DEMO_SCRIPT;
+    const ast = parseComicScript(scriptToParse);
+    set({ rawScript: scriptToParse, ast });
   },
 
   toggleDrawer: () => set((state) => ({ isDrawerOpen: !state.isDrawerOpen })),

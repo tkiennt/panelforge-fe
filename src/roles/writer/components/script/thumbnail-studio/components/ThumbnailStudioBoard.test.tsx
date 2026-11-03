@@ -4,13 +4,14 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
 import { ThumbnailStudioBoard } from './ThumbnailStudioBoard';
 import { useComicStudioStore, DEFAULT_DEMO_SCRIPT } from '../store/useComicStudioStore';
+import { parseComicScript } from '../lib/comicScriptParser';
 import { SceneDetailDto } from '@/services/scriptLine.service';
 
 describe('ThumbnailStudioBoard Component', () => {
   beforeEach(() => {
     useComicStudioStore.setState({
       rawScript: DEFAULT_DEMO_SCRIPT,
-      ast: useComicStudioStore.getState().ast,
+      ast: parseComicScript(DEFAULT_DEMO_SCRIPT),
       sketches: {},
       isDrawerOpen: false,
     });
