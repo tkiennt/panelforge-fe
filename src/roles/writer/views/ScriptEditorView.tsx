@@ -2264,7 +2264,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                   </div>
                 ) : editorMode === 'flow' ? (
                   /* TRANG GIẤY KỊCH BẢN (EDITORIAL SCRIPT PAPER) */
-                  <div className='max-w-4xl mx-auto'>
+                  <div className='max-w-6xl mx-auto w-full'>
                     <ScreenplayFlowEditor
                       key={selectedScene.id}
                       chapterId={currentChapter?.id}
@@ -2364,7 +2364,8 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                   />
                 </div>
               ) : (
-              <ScreenplayFlowEditor
+              <div className='max-w-6xl mx-auto w-full p-4 overflow-y-auto'>
+                <ScreenplayFlowEditor
                 chapterId={currentChapter?.id}
                 scenes={chapterScenesDetail.length > 0 ? chapterScenesDetail : []}
                 allBibleEntries={allBibleEntries}
@@ -2375,7 +2376,8 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                 onSaveLines={handleSaveFlowLines}
                 onCreateStub={handleCreateStubEntity}
                 onShowToast={onShowToast}
-              />
+                />
+              </div>
             )}
             </div>
           )}
