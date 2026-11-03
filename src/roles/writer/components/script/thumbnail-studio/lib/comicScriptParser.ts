@@ -182,11 +182,11 @@ export function parseComicScript(rawText: string): ComicScriptAST {
     }
 
     // 2. PAGE BREAK: # Page <number> hoặc # <number>
-    const pageMatch = line.match(/^#\s*(?:Page\s*)?(\d+(?:\.\d+)?)(.*)$/i);
+    const pageMatch = line.match(/^(?:#\s*(?:Page\s*)?(\d+(?:\.\d+)?)|(?:Trang|Page)\s+(\d+(?:\.\d+)?))(.*)$/i);
     if (pageMatch) {
       flushActionBuffer();
 
-      const parsedPageNum = parseFloat(pageMatch[1]) || (pages.length + 1);
+      const parsedPageNum = parseFloat(pageMatch[1] || pageMatch[2]) || (pages.length + 1);
       const pageId = `page-${parsedPageNum}-${lineIndex}`;
 
       // Sinh LexoRank tăng dần
@@ -207,7 +207,7 @@ export function parseComicScript(rawText: string): ComicScriptAST {
 
     // 3. PANEL BREAK: - Panel <number>[: optional shot/camera] hoặc - <number>
     // Regex: /^-\s*(?:Panel\s*)?(\d+)?(?:\s*:\s*(.*))?$/i
-    const panelMatch = line.match(/^-\s*(?:Panel\s*)?(\d+(?:\.\d+)?)?(?:\s*:\s*(.*))?$/i);
+    const panelMatch = line.match(/^(?:-\s*(?:Panel\s*)?(\d+(?:\.\d+)?)?|#panel\s+([0-9]+(?:\.[0-9]+)?))(?:\[Góc máy:\s*([^\]]+)\]|\s*:\s*(.*))?$/i);
     if (panelMatch) {
       flushActionBuffer();
 
@@ -224,10 +224,11 @@ export function parseComicScript(rawText: string): ComicScriptAST {
         pages.push(currentPage);
       }
 
-      const pNum = panelMatch[1]
-        ? parseInt(panelMatch[1], 10)
+      const pRaw = panelMatch[1] || panelMatch[2];
+      const pNum = pRaw
+        ? (pRaw.includes('.') ? parseInt(pRaw.split('.')[1], 10) : parseInt(pRaw, 10))
         : currentPage.panels.length + 1;
-      const cameraHint = panelMatch[2]?.trim() || undefined;
+      const cameraHint = (panelMatch[3] || panelMatch[4])?.trim() || undefined;
       const shotType = normalizeCameraShot(cameraHint);
 
       currentPanel = {
@@ -242,6 +243,16 @@ export function parseComicScript(rawText: string): ComicScriptAST {
       };
 
       currentPage.panels.push(currentPanel);
+      return;
+    }
+
+    // Nhận diện góc máy độc lập: [Góc máy: Cận cảnh] hoặc [Camera: Wide Shot]
+    const cameraMatch = line.match(/^\[(?:Góc máy|Camera):\s*([^\]]+)\]/i);
+    if (cameraMatch) {
+      if (currentPanel) {
+        currentPanel.cameraNote = cameraMatch[1].trim();
+        currentPanel.shotType = normalizeCameraShot(cameraMatch[1]);
+      }
       return;
     }
 
@@ -287,7 +298,7 @@ export function parseComicScript(rawText: string): ComicScriptAST {
 
     // 5. DIALOGUE: Line pattern <CHARACTER_NAME>(/<MODIFIER>)?:\s*<DIALOGUE_TEXT>
     // Hỗ trợ cả MINH/Shout: ... và MINH (thì thầm): ...
-    const dialogueMatch = line.match(/^([A-ZÀ-Ỹ0-9_\s]+)(?:[\/\(]([A-Za-zÀ-ỹ\s]+)[\)]?)?:\s*(.+)$/);
+    const dialogueMatch = line.match(/^(?:@)?([A-Za-zÀ-Ỹ0-9_\s]+)(?:[\/\(]([A-Za-zÀ-ỹ\s]+)[\)]?)?:\s*(.+)$/);
     if (dialogueMatch) {
       flushActionBuffer();
 
@@ -456,35 +467,60 @@ export function scenesToComicScriptText(
 ): string {
   const result: string[] = [];
 
+  let globalPage = 1;
+
   scenes.forEach((scene) => {
     result.push(`EXT. CẢNH ${scene.sceneNumber}: ${scene.heading || 'PHÂN ĐOẠN KHÔNG TÊN'}`);
     result.push('');
-
-    let currentPage = 1;
-    result.push(`# Page ${currentPage}`);
+    result.push(`Trang ${globalPage}`);
 
     const lines = scene.scriptLines || [];
     if (lines.length === 0) {
-      result.push(`- Panel 1: Toàn cảnh`);
+      result.push(`#panel ${globalPage}.1`);
+      result.push('[Góc máy: Toàn cảnh]');
       result.push(`Khởi đầu phân cảnh ${scene.sceneNumber}.`);
       result.push('');
+      globalPage++;
     } else {
+      // Gom nhóm 2-3 câu thoại thành 1 panel để bố cục khung tranh chuẩn Manga
+      let currentPanelNum = 1;
+      let panelLineCounter = 0;
+
       lines.forEach((l, idx) => {
-        const shotHint = l.narrationMode || 'Trung cảnh';
-        result.push(`- Panel ${idx + 1}: ${shotHint}`);
+        if (panelLineCounter === 0) {
+          const shotHint = l.narrationMode || (currentPanelNum === 1 ? 'Toàn cảnh' : 'Trung cảnh');
+          result.push(`#panel ${globalPage}.${currentPanelNum}`);
+          result.push(`[Góc máy: ${shotHint}]`);
+        }
 
         if (l.stageDirection) {
           result.push(l.stageDirection);
         }
 
         if (l.dialogueText) {
-          const speaker = (getSpeakerName ? getSpeakerName(l.speakerCharacterId) : null) || 'NHÂN VẬT';
-          result.push(`${speaker}: ${l.dialogueText}`);
+          const speaker = (getSpeakerName ? getSpeakerName(l.speakerCharacterId) : null) || 'Nhân vật';
+          result.push(`@${speaker}: ${l.dialogueText}`);
         }
-        result.push('');
+
+        panelLineCounter++;
+
+        // Cứ mỗi 2 câu thoại hoặc gặp dòng chuyển cảnh, kết thúc panel
+        if (panelLineCounter >= 2 || idx === lines.length - 1) {
+          result.push('');
+          panelLineCounter = 0;
+          currentPanelNum++;
+
+          // Nếu trang đã đủ 4 panel, ngắt sang trang mới
+          if (currentPanelNum > 4 && idx < lines.length - 1) {
+            globalPage++;
+            result.push(`Trang ${globalPage}`);
+            currentPanelNum = 1;
+          }
+        }
       });
+      globalPage++;
     }
   });
 
-  return result.join('\n');
+  return result.join('\n').trim();
 }
