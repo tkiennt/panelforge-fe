@@ -174,6 +174,37 @@ describe('AddEntityModal UX/UI improvements', () => {
     );
   });
 
+  it('hiển thị gợi ý các mã tạm từ kịch bản và tự điền mã + tên khi chọn', () => {
+    localStorage.setItem(
+      'panelforge_temp_bible_codes',
+      JSON.stringify([
+        {
+          code: 'CHR-LAM-DU',
+          name: 'Lâm Du',
+          category: 'Character',
+          count: 3,
+          chapterNumber: 1,
+          lastUsedAt: Date.now(),
+        },
+      ])
+    );
+
+    render(<AddEntityModal {...defaultProps} />);
+
+    expect(screen.getByTestId('temp-bible-code-suggestions')).toBeInTheDocument();
+    expect(screen.getByText(/@CHR-LAM-DU/i)).toBeInTheDocument();
+    expect(screen.getByText(/\(3x Ch\.1\)/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText(/@CHR-LAM-DU/i));
+
+    const codeInput = screen.getByLabelText(/Mã định danh/i) as HTMLInputElement;
+    expect(codeInput.value).toBe('CHR-LAM-DU');
+    const nameInput = screen.getByLabelText(/Tên mục/i) as HTMLInputElement;
+    expect(nameInput.value).toBe('Lâm Du');
+
+    localStorage.removeItem('panelforge_temp_bible_codes');
+  });
+
   it('renders artist role separation banner and hides image upload when isArtist is false', async () => {
     render(<AddEntityModal {...defaultProps} isArtist={false} />);
 

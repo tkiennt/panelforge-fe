@@ -14,6 +14,11 @@ import {
 import { ProvenanceLogItem } from '@/types';
 import { workspaceService } from '@/services/workspace.service';
 import { adminService } from '@/services/admin.service';
+import {
+  formatActionLabel,
+  formatEntityLabel,
+  getAuditStatusBadgeClass,
+} from '@/shared/utils/auditLogUtils';
 
 export interface AuditLogModalProps {
   isOpen: boolean;
@@ -120,18 +125,8 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({
     if (apiLogs.length > 0) {
       return apiLogs.map((item: any, idx: number) => {
         const actionStr = String(item.action || 'UPDATE').toUpperCase();
-        let statusTagColor = 'bg-stone-100 text-stone-700';
-        if (actionStr.includes('CREATE')) {
-          statusTagColor = 'bg-emerald-50 text-emerald-700 border border-emerald-200';
-        } else if (actionStr.includes('DELETE') || actionStr.includes('REJECT')) {
-          statusTagColor = 'bg-rose-50 text-rose-700 border border-rose-200';
-        } else if (actionStr.includes('APPROVE') || actionStr.includes('RESOLVE')) {
-          statusTagColor = 'bg-teal-50 text-teal-700 border border-teal-200';
-        } else if (actionStr.includes('PUBLISH') || actionStr.includes('EXPORT')) {
-          statusTagColor = 'bg-purple-50 text-purple-700 border border-purple-200';
-        } else if (actionStr.includes('SUBMIT')) {
-          statusTagColor = 'bg-amber-50 text-amber-700 border border-amber-200';
-        }
+        const statusTagColor = getAuditStatusBadgeClass(actionStr);
+        const actionLabel = formatActionLabel(actionStr);
 
         const dateStr = item.timestampUtc || item.createdAtUtc || item.createdAt;
         const formattedDate = dateStr
@@ -152,9 +147,9 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({
           entityId: item.entityId,
           details:
             item.details ||
-            `${actionStr} trên ${item.entityName || 'thực thể'} ${item.entityId ? `#${String(item.entityId).slice(0, 8)}` : ''}`,
+            `${actionLabel} trên ${formatEntityLabel(item.entityName)} ${item.entityId ? `#${String(item.entityId).slice(0, 8)}` : ''}`,
           timestamp: formattedDate,
-          statusTag: actionStr,
+          statusTag: actionLabel,
           statusTagColor,
           hash: item.changesJson ? `JSON: ${item.changesJson.slice(0, 16)}...` : undefined,
         };
@@ -169,7 +164,7 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({
       entityName: 'Chapter',
       details: log.details,
       timestamp: log.timeAgo,
-      statusTag: log.statusTag,
+      statusTag: formatActionLabel(log.statusTag) || log.statusTag,
       statusTagColor: log.statusTagColor || 'bg-stone-100 text-stone-700',
       hash: log.hash,
     }));
@@ -183,11 +178,19 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({
         log.actor.toLowerCase().includes(searchQuery.toLowerCase()) ||
         log.details.toLowerCase().includes(searchQuery.toLowerCase()) ||
         log.entityName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (log.statusTag && log.statusTag.toLowerCase().includes(searchQuery.toLowerCase())) ||
         log.action.toLowerCase().includes(searchQuery.toLowerCase());
 
       const matchAction =
         filterAction === 'ALL' ||
-        log.action.toUpperCase().includes(filterAction.toUpperCase());
+        (filterAction === 'SECURITY'
+          ? log.entityName.toLowerCase() === 'session' ||
+            log.entityName.toLowerCase() === 'user' ||
+            log.action.includes('SESSION') ||
+            log.action === 'LOGIN' ||
+            log.action === 'LOGOUT'
+          : log.action.toUpperCase().includes(filterAction.toUpperCase()) ||
+            (log.statusTag && log.statusTag.toUpperCase().includes(filterAction.toUpperCase())));
 
       return matchSearch && matchAction;
     });
@@ -278,11 +281,15 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({
                 className='px-2 py-1.5 bg-[#FCFBF8] border border-[#D8D2C5] rounded-lg text-xs text-[#57534E] focus:outline-none focus:border-[#C2410C] font-mono'
               >
                 <option value='ALL'>Tất cả hành động</option>
-                <option value='CREATE'>CREATE</option>
-                <option value='UPDATE'>UPDATE</option>
-                <option value='DELETE'>DELETE</option>
-                <option value='SUBMIT'>SUBMIT</option>
-                <option value='APPROVE'>APPROVE</option>
+                <option value='SECURITY'>Bảo mật &amp; Phiên (Session + User)</option>
+                <option value='LOGIN'>Đăng nhập (LOGIN)</option>
+                <option value='LOGOUT'>Đăng xuất (LOGOUT)</option>
+                <option value='SESSIONS_REVOKED'>Thu hồi phiên (REVOKED)</option>
+                <option value='CREATE'>Tạo mới (CREATE)</option>
+                <option value='UPDATE'>Chỉnh sửa (UPDATE)</option>
+                <option value='DELETE'>Xóa (DELETE)</option>
+                <option value='SUBMIT'>Nộp bài (SUBMIT)</option>
+                <option value='APPROVE'>Phê duyệt (APPROVE)</option>
               </select>
             </div>
           </div>
@@ -353,7 +360,7 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({
                         {log.actor}
                       </span>
                       <span className='text-[11px] font-mono text-[#78716C]'>
-                        ({log.entityName}
+                        ({formatEntityLabel(log.entityName)}
                         {log.entityId ? ` #${String(log.entityId).slice(0, 8)}` : ''})
                       </span>
                     </div>
@@ -376,7 +383,10 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({
                       <span className='text-[#A8A29E] text-[10px]'>AUDIT-RECORD-VERIFIED</span>
                     )}
                     {log.statusTag && (
-                      <span className={`font-semibold px-2 py-0.5 rounded text-[10px] ${log.statusTagColor}`}>
+                      <span
+                        title={log.action}
+                        className={`font-semibold px-2 py-0.5 rounded text-[10px] ${log.statusTagColor}`}
+                      >
                         {log.statusTag}
                       </span>
                     )}

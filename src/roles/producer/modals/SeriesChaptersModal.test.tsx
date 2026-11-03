@@ -104,6 +104,50 @@ describe('SeriesChaptersModal Component', () => {
     });
   });
 
+  it('renders frozen script badge and hash when chapter is frozen', async () => {
+    vi.mocked(chapterService.getChaptersBySeries).mockResolvedValue({
+      items: [
+        {
+          id: 'chap-frozen',
+          seriesId: 'series-1',
+          chapterNumber: 3,
+          title: 'Chương Đã Khóa',
+          targetReleaseDate: '2026-12-05',
+          versionVector: 3,
+          createdAt: '2026-10-01T00:00:00Z',
+          scenesCount: 2,
+          pagesCount: 8,
+          status: 'InProduction',
+          isScriptFrozen: true,
+          scriptContentHash: 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210',
+        },
+      ],
+      totalCount: 1,
+      pageIndex: 1,
+      pageSize: 10,
+      totalPages: 1,
+    });
+
+    render(
+      <MemoryRouter>
+        <ConfirmProvider>
+          <SeriesChaptersModal
+            isOpen={true}
+            seriesId='series-1'
+            seriesTitle='Test Series'
+            onClose={vi.fn()}
+          />
+        </ConfirmProvider>
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Chương Đã Khóa')).toBeInTheDocument();
+      expect(screen.getByText('Kịch bản đóng băng')).toBeInTheDocument();
+      expect(screen.getByText('#fedcba98')).toBeInTheDocument();
+    });
+  });
+
   it('renders empty state gracefully when there are no chapters', async () => {
     vi.mocked(chapterService.getChaptersBySeries).mockResolvedValue({
       items: [],

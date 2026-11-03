@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import {
   FileText,
   Plus,
@@ -50,6 +50,10 @@ import {
   NarrationMode,
 } from '@/services/scriptLine.service';
 import { chapterService, ChapterDto, ChapterBibleGateResultDto, CreateChapterRequest } from '@/services/chapter.service';
+import { pageService, PageDto } from '@/services/page.service';
+import { panelService } from '@/services/panel.service';
+import { PanelDto } from '@/types/pipeline';
+import { generateTempCode, saveTempBibleCode } from '../components/script/flow/tempBibleCodes';
 import { ChapterSelectionView } from '../components/script/chapter-selection';
 import { bibleService, BibleEntryDto } from '@/services/bible.service';
 import { seriesService, SeriesDetailDto } from '@/services/series.service';
@@ -131,6 +135,9 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   const { t } = useTranslation('production');
   const confirm = useConfirm();
   const { workspaceId, seriesId } = useParams<{ workspaceId?: string; seriesId?: string }>();
+  const navigate = useNavigate();
+  const [chapterPages, setChapterPages] = useState<PageDto[]>([]);
+  const [chapterPanels, setChapterPanels] = useState<PanelDto[]>([]);
   const [searchParams, setSearchParams] = useSearchParams();
   const chapterIdFromUrl = searchParams.get('chapterId');
   const sceneIdFromUrl = searchParams.get('sceneId');
@@ -723,6 +730,81 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         }
       }
 
+      // 5.5 Đồng bộ Trang (Page) và Khung (Panel) với Bàn vẽ
+      if (currentChapter?.id) {
+        try {
+          const extractedPageNumbers = Array.from(
+            new Set(
+              extractedLines
+                .map((l) => l.pageNumber)
+                .filter((p): p is number => typeof p === 'number' && p > 0)
+            )
+          ).sort((a, b) => a - b);
+
+          const currentPages = [...chapterPages];
+          for (const pageNum of extractedPageNumbers) {
+            const pageExists = currentPages.some((p) => p.pageNumber === pageNum);
+            if (!pageExists) {
+              try {
+                const createdPage = await pageService.createPage(currentChapter.id, { pageNumber: pageNum });
+                currentPages.push(createdPage);
+              } catch (pErr) {
+                console.warn('Lỗi tạo Page từ kịch bản:', pErr);
+              }
+            }
+          }
+
+          const currentPanels = [...chapterPanels];
+          for (const page of currentPages) {
+            const pageLines = extractedLines.filter((l) => l.pageNumber === page.pageNumber);
+            const distinctPanelNumbers = Array.from(
+              new Set(
+                pageLines
+                  .map((l) => l.panelNumber)
+                  .filter((p): p is number => typeof p === 'number' && p > 0)
+              )
+            );
+
+            for (const pNum of distinctPanelNumbers) {
+              let panel = currentPanels.find(
+                (p) => (p as any).pageNumber === page.pageNumber && p.panelNumber === pNum
+              );
+              if (!panel) {
+                try {
+                  const createdPanel = await panelService.createPanel(page.id, {
+                    panelNumber: pNum,
+                    boundingBox: JSON.stringify({ x: 0, y: 0, width: 400, height: 300, unit: 'px' }),
+                  });
+                  (createdPanel as any).pageNumber = page.pageNumber;
+                  currentPanels.push(createdPanel);
+                  panel = createdPanel;
+                } catch (panErr) {
+                  console.warn('Lỗi tạo Panel từ kịch bản:', panErr);
+                }
+              }
+
+              if (panel) {
+                const linesForThisPanel = pageLines
+                  .filter((l) => l.panelNumber === pNum)
+                  .map((l) => createdLineIdMap.get(l.scriptLineId) || l.scriptLineId);
+
+                if (linesForThisPanel.length > 0) {
+                  try {
+                    await panelService.assignPanelScriptLines(panel.id, linesForThisPanel);
+                  } catch (assignErr) {
+                    console.warn('Lỗi gán dòng cho panel:', assignErr);
+                  }
+                }
+              }
+            }
+          }
+
+          await loadPagesAndPanels(currentChapter.id);
+        } catch (syncErr) {
+          console.warn('Lỗi đồng bộ Trang/Panel:', syncErr);
+        }
+      }
+
       // 6. Cập nhật version mới nhất vào React state
       setCurrentChapter((prev) => (prev ? { ...prev, versionVector: currentVersion } : null));
 
@@ -807,6 +889,50 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     },
     [seriesId, notify],
   );
+
+  const loadPagesAndPanels = useCallback(async (chapId: string) => {
+    try {
+      const pages = await pageService.getPagesByChapter(chapId);
+      setChapterPages(pages || []);
+      if (pages && pages.length > 0) {
+        const panelPromises = pages.map((page) =>
+          panelService.getPanelsByPage(page.id).catch(() => [])
+        );
+        const panelsByPages = await Promise.all(panelPromises);
+        const allPanels: PanelDto[] = [];
+        panelsByPages.forEach((list, idx) => {
+          list.forEach((p) => {
+            (p as any).pageNumber = pages[idx].pageNumber;
+            allPanels.push(p);
+          });
+        });
+        setChapterPanels(allPanels);
+      } else {
+        setChapterPanels([]);
+      }
+    } catch {
+      setChapterPages([]);
+      setChapterPanels([]);
+    }
+  }, []);
+
+  const handleOpenInBible = useCallback((codeOrId: string) => {
+    if (workspaceId && seriesId) {
+      navigate(`/workspaces/${workspaceId}/series/${seriesId}/bible?search=${encodeURIComponent(codeOrId)}`);
+    }
+  }, [workspaceId, seriesId, navigate]);
+
+  const handleOpenInArtistDesk = useCallback((pageNumber?: number) => {
+    if (workspaceId && seriesId && currentChapter?.id) {
+      navigate(`/workspaces/${workspaceId}/series/${seriesId}/artist?chapterId=${currentChapter.id}${pageNumber ? `&page=${pageNumber}` : ''}`);
+    }
+  }, [workspaceId, seriesId, currentChapter, navigate]);
+
+  const handleCreateInBible = useCallback((tempCode: string) => {
+    if (workspaceId && seriesId) {
+      navigate(`/workspaces/${workspaceId}/series/${seriesId}/bible?search=${encodeURIComponent(tempCode)}`);
+    }
+  }, [workspaceId, seriesId, navigate]);
 
   const loadScenes = useCallback(async () => {
     if (!currentChapter?.id) {
@@ -1559,12 +1685,12 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
     setFreezingScript(true);
     try {
-      await chapterService.freezeScript(currentChapter.id);
+      const updatedChapter = await chapterService.freezeScript(currentChapter.id);
       notify(
         'Đã duyệt kịch bản',
         `Kịch bản Chương ${currentChapter.chapterNumber} đã đóng băng và chuyển giao sang khâu sản xuất hình ảnh thành công.`,
       );
-      setCurrentChapter((prev) => (prev ? { ...prev, isScriptFrozen: true } : prev));
+      setCurrentChapter((prev) => (prev ? { ...prev, isScriptFrozen: true, scriptContentHash: updatedChapter?.scriptContentHash ?? prev.scriptContentHash } : prev));
       await refreshChapterDetail(currentChapter.id);
       void checkChapterBibleGate(currentChapter.id);
     } catch (err: any) {
@@ -1593,7 +1719,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         'Đã mở lại kịch bản',
         `Kịch bản Chương ${currentChapter.chapterNumber} đã được mở lại cho Writer chỉnh sửa.`,
       );
-      setCurrentChapter((prev) => (prev ? { ...prev, isScriptFrozen: false } : prev));
+      setCurrentChapter((prev) => (prev ? { ...prev, isScriptFrozen: false, scriptContentHash: null } : prev));
       await refreshChapterDetail(currentChapter.id);
       void checkChapterBibleGate(currentChapter.id);
     } catch (err: any) {
@@ -1655,7 +1781,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   // Nếu chưa chọn Chapter (hoặc vừa vào trang chưa có query chapterId): Hiển thị màn hình Chọn Chương
   if (!currentChapter) {
     return (
-      <div className='flex-1 flex flex-col bg-[#F3F0E9] h-[calc(100vh-64px)] overflow-hidden text-[#1C1917]'>
+      <div className='w-full flex-1 flex flex-col min-h-0 overflow-y-auto bg-[#FAF8F5] text-[#1C1917] custom-scrollbar'>
         <ChapterSelectionView
           chapters={chapters}
           seriesDetail={seriesDetail}
@@ -2045,8 +2171,17 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                 </div>
                 <div>
                   <div className='flex items-center gap-2'>
-                    <span className='font-bold text-xs uppercase tracking-wider bg-indigo-200 text-indigo-900 px-2 py-0.5 rounded'>
-                      🔒 Kịch bản đã đóng băng (Frozen / Read-only)
+                    <span className='font-bold text-xs uppercase tracking-wider bg-indigo-200 text-indigo-900 px-2 py-0.5 rounded inline-flex items-center gap-1.5'>
+                      <span>🔒 Kịch bản đã đóng băng (Frozen / Read-only)</span>
+                      {currentChapter?.scriptContentHash && (
+                        <span
+                          className='font-mono font-semibold text-[10px] text-indigo-900 bg-indigo-100 px-1.5 py-0.5 rounded border border-indigo-300'
+                          title={`SHA-256: ${currentChapter.scriptContentHash}`}
+                          data-testid='frozen-script-hash-badge'
+                        >
+                          #{currentChapter.scriptContentHash.slice(0, 8)}
+                        </span>
+                      )}
                     </span>
                     <span className='text-[11px] text-indigo-700 font-medium'>
                       Đã chuyển giao cho Artist dựng Thumbnail &amp; Layout
@@ -2054,7 +2189,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                   </div>
                   <p className='text-[11px] text-indigo-800/80 mt-0.5'>
                     Writer không thể sửa trực tiếp kịch bản để tránh xung đột khung tranh của hoạ
-                    sĩ.
+                    sĩ. Thẻ xem nhanh vẫn dùng được qua hover hoặc Ctrl+.
                   </p>
                 </div>
               </div>
@@ -2082,7 +2217,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                 <ShieldAlert className='w-4 h-4 text-amber-600 shrink-0' />
                 <span className='text-xs font-medium'>
                   Chương này đã ở trạng thái <strong>{currentChapter?.status}</strong> — Kịch bản ở
-                  chế độ chỉ đọc để bảo vệ tính toàn vẹn sản xuất.
+                  chế độ chỉ đọc để bảo vệ tính toàn vẹn sản xuất. Thẻ xem nhanh vẫn dùng được qua hover hoặc Ctrl+.
                 </span>
               </div>
               <span className='text-xs font-bold uppercase tracking-wider bg-amber-200/90 text-amber-900 px-2.5 py-0.5 rounded-full shrink-0'>
@@ -2430,11 +2565,13 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                     <ScreenplayFlowEditor
                       key={selectedScene?.id || 'flow-editor'}
                       chapterId={currentChapter?.id}
+                      chapterNumber={currentChapter?.chapterNumber}
                       scenes={selectedScene ? [selectedScene] : (chapterScenesDetail.length > 0 ? chapterScenesDetail : [])}
                       allBibleEntries={allBibleEntries}
                       consistencyFindings={findings}
                       canEditScript={canEditScript}
                       isChapterLocked={isChapterLocked}
+                      scriptContentHash={currentChapter?.scriptContentHash}
                       getSpeakerName={getSpeakerName}
                       onSaveLines={handleSaveFlowLines}
                       onCreateStub={handleCreateStubEntity}
@@ -2544,11 +2681,13 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               <div className='max-w-6xl mx-auto w-full p-4 overflow-y-auto'>
                 <ScreenplayFlowEditor
                 chapterId={currentChapter?.id}
+                chapterNumber={currentChapter?.chapterNumber}
                 scenes={chapterScenesDetail.length > 0 ? chapterScenesDetail : []}
                 allBibleEntries={allBibleEntries}
                 consistencyFindings={findings}
                 canEditScript={canEditScript}
                 isChapterLocked={isChapterLocked}
+                scriptContentHash={currentChapter?.scriptContentHash}
                 getSpeakerName={getSpeakerName}
                 onSaveLines={handleSaveFlowLines}
                 onCreateStub={handleCreateStubEntity}

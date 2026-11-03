@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   TEXT_PRESETS,
   clampFontSize,
+  classifyScriptLine,
   patchTextStyle,
   resolveTextStyle,
   textStyleCss,
@@ -51,5 +52,59 @@ describe('kiểu chữ Letterer', () => {
     expect(
       textStyleCss({ fontFamily: 'Mali', fontSize: 26, strokeWidth: 0 }).WebkitTextStroke,
     ).toBeUndefined();
+  });
+
+  describe('classifyScriptLine', () => {
+    it('dòng chỉ có stageDirection -> kind: DIRECTION, không kéo được và không phải chữ Letterer', () => {
+      const res = classifyScriptLine({
+        dialogueText: '',
+        stageDirection: 'Lâm Dư cẩn thận tìm kiếm thảo dược...',
+      });
+      expect(res.kind).toBe('DIRECTION');
+      expect(res.isLetterable).toBe(false);
+      expect(res.label).toBe('Chỉ dẫn');
+      expect(res.cleanText).toBe('');
+      expect(res.suggestedElementType).toBe('');
+    });
+
+    it('dòng có dialogueText và không có người nói -> kind: NARRATION, loại NARRATION_BOX', () => {
+      const res = classifyScriptLine({
+        dialogueText: 'Đêm đó trời đổ mưa lớn...',
+        speakerCharacterId: null,
+      });
+      expect(res.kind).toBe('NARRATION');
+      expect(res.isLetterable).toBe(true);
+      expect(res.label).toBe('Dẫn truyện');
+      expect(res.suggestedElementType).toBe('NARRATION_BOX');
+      expect(res.cleanText).toBe('Đêm đó trời đổ mưa lớn...');
+    });
+
+    it('dòng có dialogueText và có người nói -> kind: SPEECH, nhãn Thoại', () => {
+      const res = classifyScriptLine({
+        dialogueText: 'Cậu phát hiện ra điều gì rồi?',
+        speakerCharacterId: 'char-1',
+      });
+      expect(res.kind).toBe('SPEECH');
+      expect(res.isLetterable).toBe(true);
+      expect(res.label).toBe('Thoại');
+      expect(res.suggestedElementType).toBe('SPEECH_BALLOON');
+      expect(res.cleanText).toBe('Cậu phát hiện ra điều gì rồi?');
+    });
+
+    it('dòng SFX bắt đầu bằng "SFX:" -> loại SFX, bỏ tiền tố khi đặt chữ', () => {
+      const res = classifyScriptLine({
+        dialogueText: 'SFX: BÙM!',
+      });
+      expect(res.kind).toBe('SFX');
+      expect(res.isLetterable).toBe(true);
+      expect(res.label).toBe('SFX');
+      expect(res.suggestedElementType).toBe('SOUND_EFFECT');
+      expect(res.cleanText).toBe('BÙM!');
+
+      const resLower = classifyScriptLine({
+        dialogueText: 'sfx:  Rắc...  ',
+      });
+      expect(resLower.cleanText).toBe('Rắc...');
+    });
   });
 });

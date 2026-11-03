@@ -50,7 +50,10 @@ import { pageService } from '@/services/page.service';
 import { chapterService } from '@/services/chapter.service';
 import { panelService } from '@/services/panel.service';
 import { bibleService } from '@/services/bible.service';
-import { artworkService, resolveArtworkUrl } from '@/services/artwork.service';
+import { artworkService, resolveArtworkUrl, toThumbnailUrl } from '@/services/artwork.service';
+import { pipelineService, type PipelineStageDto } from '@/services/pipeline.service';
+import { pickPageArtwork, pickPanelArtwork } from '@/shared/utils/stageArtworks';
+import type { AssetReferenceDto } from '@/types';
 import { buildPageComposite } from '@/shared/utils/compositePageRenderer';
 import { parseBoundingBox } from '@/shared/utils/panelBoundingBox';
 import type { PanelDto } from '@/types/pipeline';
@@ -101,7 +104,14 @@ import {
   type Rect,
   type PanelTextDensity,
 } from '../lib/lettererView';
-import { canvasFont, resolveTextStyle, textStyleCss } from '../lib/textStyle';
+import {
+  canvasFont,
+  resolveTextStyle,
+  textStyleCss,
+  classifyScriptLine,
+  type ScriptLineClassification,
+  type ScriptLineKind,
+} from '../lib/textStyle';
 import { TextFormatToolbar } from '../components/TextFormatToolbar';
 import { BalloonAppearancePanel } from '../components/BalloonAppearancePanel';
 import {
@@ -245,10 +255,9 @@ function checkIsNetworkError(err: any): boolean {
   return !err.response || err.code === 'ERR_NETWORK';
 }
 
-/** Dòng "Người dẫn truyện" = dòng kịch bản không có người nói. */
+/** Dòng "Người dẫn truyện" = dòng kịch bản không có người nói (phân loại NARRATION). */
 function isNarratorLine(line: SceneScriptLineSummaryDto): boolean {
-  const speakerName = (line as { speakerName?: string | null }).speakerName;
-  return !line.speakerCharacterId && !speakerName;
+  return classifyScriptLine(line).kind === 'NARRATION';
 }
 
 function panelPolygon(panel: PanelDto, pageW: number, pageH: number): string {
@@ -539,6 +548,12 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
   // ── Hiển thị ──
   const [backdropUrl, setBackdropUrl] = useState<string | null>(null);
   const [panels, setPanels] = useState<PanelDto[]>([]);
+  const [pageArtworks, setPageArtworks] = useState<AssetReferenceDto[]>([]);
+  const [panelArtworkUrls, setPanelArtworkUrls] = useState<Record<string, string>>({});
+  const [stages, setStages] = useState<PipelineStageDto[]>([]);
+  const [selectedPanelId, setSelectedPanelId] = useState<string | null>(null);
+  const [showDirections, setShowDirections] = useState(false);
+  const [quickFilter, setQuickFilter] = useState<'all' | 'unplaced' | 'current_panel'>('all');
   // Làm mờ bóng thoại để nhìn xuyên xuống ảnh khi cần canh vị trí (chỉ hiển thị, không lưu).
   const [seeThrough, setSeeThrough] = useState(false);
   // Tạm ẩn toàn bộ lớp chữ để xem tranh gốc (chỉ hiển thị, không lưu).
@@ -636,11 +651,31 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
     }
   }, [activePageId]);
 
+  // Nạp stages của pipeline để biết thứ tự và chọn đúng artwork hoàn thiện (CF2 / BR-08)
+  useEffect(() => {
+    if (!activeSeriesId) return;
+    let alive = true;
+    pipelineService
+      .getSeriesPipeline(activeSeriesId)
+      .then((p) => {
+        const stageList = Array.isArray(p) ? p : (p?.stages ?? []);
+        if (alive) setStages(stageList);
+      })
+      .catch(() => {
+        if (alive) setStages([]);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [activeSeriesId]);
+
   // Ảnh nền của trang (ghép từ artwork của Artist) để Letterer thấy chỗ cần đặt bóng thoại.
   // Không vẽ element lên ảnh nền: bóng thoại vẫn là lớp tương tác riêng phía trên.
   useEffect(() => {
     setBackdropUrl(null);
     setPanels([]);
+    setPageArtworks([]);
+    setPanelArtworkUrls({});
     if (!activePageId || !activeChapterId) return;
     let cancelled = false;
     (async () => {
@@ -649,35 +684,49 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
           panelService.getPanelsByPage(activePageId),
           artworkService.getArtworks(activeChapterId, activePageId),
         ]);
-        if (!cancelled) setPanels(Array.isArray(panelList) ? panelList : []);
-        if (!artworks || artworks.length === 0) {
-          if (!cancelled) setBackdropUrl(null);
+        if (cancelled) return;
+        const validPanels = Array.isArray(panelList) ? panelList : [];
+        const validArts = Array.isArray(artworks) ? artworks : [];
+        setPanels(validPanels);
+        setPageArtworks(validArts);
+
+        if (validArts.length === 0) {
+          setBackdropUrl(null);
           return;
         }
-        // versionNumber chỉ tính trong từng stage (Pencil/Ink/Color đều có v1), nên chọn bản mới nhất
-        // theo thời điểm upload cho mỗi khung: đó là kết quả của stage gần nhất mà Artist đã nộp.
-        const newest = new Map<string, (typeof artworks)[number]>();
-        for (const art of artworks) {
-          const key = art.panelId ?? '__page__';
-          const cur = newest.get(key);
-          if (!cur || art.createdAt >= cur.createdAt) newest.set(key, art);
+
+        // Tải link truy cập cho từng artwork
+        const urls: Record<string, string> = {};
+        await Promise.all(
+          validArts.map(async (art) => {
+            try {
+              const link = await artworkService.getArtworkAccessLink(activeChapterId, art.id);
+              if (link?.url) {
+                urls[art.id] = resolveArtworkUrl(link.url);
+              }
+            } catch {
+              // ignore
+            }
+          }),
+        );
+        if (cancelled) return;
+        setPanelArtworkUrls(urls);
+
+        // Giữ buildPageComposite để tương thích ngược khi test mock
+        try {
+          const compResult = await buildPageComposite({
+            panels: validPanels,
+            artworks: validArts,
+            width: pageDim.width,
+            height: pageDim.height,
+            getAccessUrl: async (assetReferenceId) => urls[assetReferenceId] || '',
+          });
+          if (!cancelled && compResult?.dataUrl) {
+            setBackdropUrl(compResult.dataUrl);
+          }
+        } catch {
+          // ignore
         }
-        const hasPanelArt = [...newest.keys()].some((k) => k !== '__page__');
-        const latestArtworks = [...newest.values()].filter((a) => !hasPanelArt || a.panelId);
-        const { dataUrl } = await buildPageComposite({
-          panels: panelList,
-          artworks: latestArtworks,
-          width: pageDim.width,
-          height: pageDim.height,
-          getAccessUrl: async (assetReferenceId) => {
-            const link = await artworkService.getArtworkAccessLink(
-              activeChapterId,
-              assetReferenceId,
-            );
-            return resolveArtworkUrl(link.url);
-          },
-        });
-        if (!cancelled) setBackdropUrl(dataUrl || null);
       } catch (err) {
         console.warn('Không nạp được ảnh nền của trang:', err);
       }
@@ -986,7 +1035,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
     const { elemType, x, y, width, height, line } = opts;
 
     const content = line
-      ? line.dialogueText || line.stageDirection || 'Nhập lời thoại...'
+      ? classifyScriptLine(line).cleanText || 'Nhập lời thoại...'
       : 'Lời thoại mới...';
 
     const clientElementId =
@@ -1070,7 +1119,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
     line: SceneScriptLineSummaryDto | null,
   ) => {
     const base = DEFAULT_SIZE[elemType] ?? DEFAULT_SIZE.SPEECH_BALLOON;
-    const text = line ? line.dialogueText || line.stageDirection || '' : '';
+    const text = line ? classifyScriptLine(line).cleanText : '';
     const width = Math.min(base.w, pageDim.width);
     const height = Math.min(estimateBoxHeight(text, width, base.h), pageDim.height);
     return {
@@ -1850,7 +1899,9 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
 
   // ── Kéo dòng kịch bản vào trang: xem trước đúng toạ độ, rồi xác nhận mới gửi lên ──
   const suggestedTypeFor = (line: SceneScriptLineSummaryDto): string => {
-    if (isNarratorLine(line)) return 'NARRATION_BOX'; // Người dẫn truyện → hộp dẫn truyện
+    const cl = classifyScriptLine(line, toolMode);
+    if (cl.kind === 'SFX') return 'SOUND_EFFECT';
+    if (cl.kind === 'NARRATION') return 'NARRATION_BOX';
     return toolMode === 'thought' ? 'THOUGHT_BALLOON' : 'SPEECH_BALLOON';
   };
 
@@ -2274,6 +2325,103 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
     return hasBackendWarning || hasClientOverflow;
   }, [selectedElementId, pageSnapshot?.warnings, overflowInfo, selectedTextConstraints]);
 
+  // ── Tính toán ảnh nền & Nhóm kịch bản theo Khung (Req 1, 2, 3, 4) ──
+  const wholePageArt = useMemo(
+    () => pickPageArtwork(pageArtworks, stages),
+    [pageArtworks, stages],
+  );
+  const wholePageArtUrl = wholePageArt ? panelArtworkUrls[wholePageArt.id] : null;
+
+  const hasAnyPanelArt = useMemo(() => {
+    return panels.some((p) => {
+      const art = pickPanelArtwork(pageArtworks, p.id, stages);
+      return art && panelArtworkUrls[art.id];
+    });
+  }, [panels, pageArtworks, stages, panelArtworkUrls]);
+
+  const hasBackdrop = Boolean(wholePageArtUrl || backdropUrl || hasAnyPanelArt);
+
+  const letterableLines = useMemo(
+    () => sceneLines.filter((l) => classifyScriptLine(l).isLetterable),
+    [sceneLines],
+  );
+
+  const placedLineIds = useMemo(
+    () => new Set(elements.map((e) => e.scriptLineId).filter(Boolean) as string[]),
+    [elements],
+  );
+
+  const placedCount = useMemo(
+    () => letterableLines.filter((l) => placedLineIds.has(l.id)).length,
+    [letterableLines, placedLineIds],
+  );
+
+  const totalLetterable = letterableLines.length;
+
+  const visibleLines = useMemo(() => {
+    return sceneLines.filter((line) => {
+      const cl = classifyScriptLine(line);
+      if (cl.kind === 'DIRECTION' && !showDirections) {
+        return false;
+      }
+      const isPlaced = placedLineIds.has(line.id);
+      if (quickFilter === 'unplaced' && isPlaced) {
+        return false;
+      }
+      if (quickFilter === 'current_panel') {
+        if (!selectedPanelId) return false;
+        if (line.panelId !== selectedPanelId) return false;
+      }
+      return true;
+    });
+  }, [sceneLines, showDirections, placedLineIds, quickFilter, selectedPanelId]);
+
+  const panelGroups = useMemo(() => {
+    const groups: {
+      key: string;
+      panelId: string | null;
+      title: string;
+      lines: SceneScriptLineSummaryDto[];
+    }[] = [];
+
+    const panelIdSet = new Set(panels.map((p) => p.id));
+    const sortedPanels = [...panels].sort((a, b) => a.panelNumber - b.panelNumber);
+
+    for (const p of sortedPanels) {
+      const lines = visibleLines.filter((l) => l.panelId === p.id);
+      if (lines.length > 0 || quickFilter !== 'unplaced' || selectedPanelId === p.id) {
+        groups.push({
+          key: p.id,
+          panelId: p.id,
+          title: `Khung ${p.panelNumber}`,
+          lines,
+        });
+      }
+    }
+
+    const unassigned = visibleLines.filter((l) => !l.panelId || !panelIdSet.has(l.panelId));
+    if (unassigned.length > 0 || (groups.length === 0 && quickFilter === 'all')) {
+      groups.push({
+        key: 'unassigned',
+        panelId: null,
+        title: 'Chưa gán khung',
+        lines: unassigned,
+      });
+    }
+
+    return groups;
+  }, [panels, visibleLines, quickFilter, selectedPanelId]);
+
+  // Cuộn tới nhóm của khung khi chọn khung trên canvas
+  useEffect(() => {
+    if (selectedPanelId) {
+      const el = document.getElementById(`panel-group-${selectedPanelId}`);
+      if (el && typeof el.scrollIntoView === 'function') {
+        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
+  }, [selectedPanelId]);
+
   const startSideResize = (side: 'left' | 'right') => (e: React.PointerEvent<HTMLDivElement>) => {
     e.preventDefault();
     const startX = e.clientX;
@@ -2476,13 +2624,31 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
               className='shrink-0 bg-[#FCFBF8] border-r border-[#D8D2C5] flex flex-col overflow-hidden'
               data-testid='left-panel'
             >
-              <div className='p-3 border-b border-[#D8D2C5] bg-[#F8F6F0] space-y-2'>
+              <div className='p-3 border-b border-[#D8D2C5] bg-[#F8F6F0] space-y-2.5'>
                 <div className='flex items-center justify-between'>
                   <span className='text-xs font-serif font-bold text-[#1C1917] flex items-center gap-1.5'>
                     <BookOpen className='w-4 h-4 text-[#C2410C]' />
                     <span>Kịch Bản Chương</span>
                   </span>
-                  <span className='text-xs font-mono text-[#57534E]'>{sceneLines.length} dòng</span>
+                  <span
+                    data-testid='placed-counter'
+                    className='text-xs font-mono font-semibold text-[#57534E]'
+                  >
+                    {placedCount}/{totalLetterable} đã đặt
+                  </span>
+                </div>
+
+                {/* Slim progress bar */}
+                <div
+                  data-testid='letterer-progress-bar'
+                  className='w-full h-1.5 bg-stone-200 rounded-full overflow-hidden'
+                >
+                  <div
+                    className='h-full bg-amber-500 rounded-full transition-all duration-300'
+                    style={{
+                      width: `${totalLetterable > 0 ? Math.round((placedCount / totalLetterable) * 100) : 0}%`,
+                    }}
+                  />
                 </div>
 
                 {/* Scene Selector */}
@@ -2497,161 +2663,314 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                     </option>
                   ))}
                 </select>
+
+                {/* Quick Filters */}
+                <div className='flex items-center gap-1 bg-[#EBE7DF] p-1 rounded-xl text-[11px] font-semibold'>
+                  <button
+                    type='button'
+                    data-testid='filter-all'
+                    onClick={() => setQuickFilter('all')}
+                    className={`flex-1 py-1 rounded-lg transition-colors text-center cursor-pointer ${
+                      quickFilter === 'all'
+                        ? 'bg-white text-[#C2410C] shadow-2xs font-bold'
+                        : 'text-[#78716C] hover:text-[#1C1917]'
+                    }`}
+                  >
+                    Tất cả
+                  </button>
+                  <button
+                    type='button'
+                    data-testid='filter-unplaced'
+                    onClick={() => setQuickFilter('unplaced')}
+                    className={`flex-1 py-1 rounded-lg transition-colors text-center cursor-pointer ${
+                      quickFilter === 'unplaced'
+                        ? 'bg-white text-[#C2410C] shadow-2xs font-bold'
+                        : 'text-[#78716C] hover:text-[#1C1917]'
+                    }`}
+                  >
+                    Chưa đặt
+                  </button>
+                  <button
+                    type='button'
+                    data-testid='filter-current-panel'
+                    onClick={() => setQuickFilter('current_panel')}
+                    className={`flex-1 py-1 rounded-lg transition-colors text-center cursor-pointer ${
+                      quickFilter === 'current_panel'
+                        ? 'bg-white text-[#C2410C] shadow-2xs font-bold'
+                        : 'text-[#78716C] hover:text-[#1C1917]'
+                    }`}
+                  >
+                    Khung đang chọn
+                  </button>
+                </div>
+
+                {/* Toggle Hiện chỉ dẫn */}
+                <div className='flex items-center justify-between pt-0.5'>
+                  <label
+                    data-testid='toggle-show-directions-label'
+                    className='flex items-center gap-1.5 text-[11px] text-[#78716C] cursor-pointer select-none hover:text-[#1C1917]'
+                  >
+                    <input
+                      type='checkbox'
+                      data-testid='toggle-show-directions'
+                      checked={showDirections}
+                      onChange={(e) => setShowDirections(e.target.checked)}
+                      className='rounded text-[#F97316] focus:ring-[#F97316] w-3.5 h-3.5 cursor-pointer accent-[#F97316]'
+                    />
+                    <span>Hiện chỉ dẫn</span>
+                  </label>
+                  {selectedPanelId && (
+                    <button
+                      type='button'
+                      onClick={() => setSelectedPanelId(null)}
+                      className='text-[10px] text-stone-400 hover:text-stone-600 underline cursor-pointer'
+                    >
+                      Bỏ chọn khung
+                    </button>
+                  )}
+                </div>
               </div>
 
-              <div className='flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar'>
+              <div className='flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar'>
                 {sceneLines.length === 0 ? (
                   <div className='p-6 text-center text-xs text-[#57534E]'>
                     Chưa có dòng kịch bản nào trong phân cảnh này.
                   </div>
+                ) : visibleLines.length === 0 ? (
+                  <div className='p-6 text-center text-xs text-[#57534E]'>
+                    Không có dòng nào phù hợp với bộ lọc.
+                  </div>
                 ) : (
-                  sceneLines.map((line) => {
-                    const isSelected = selectedScriptLine?.id === line.id;
-                    const isPlaced = elements.some((e) => e.scriptLineId === line.id);
-                    const narrator = isNarratorLine(line);
-                    const speaker =
-                      (line as { speakerName?: string | null }).speakerName ||
-                      (line.speakerCharacterId
-                        ? (speakerNames[line.speakerCharacterId] ?? 'Nhân vật')
-                        : null);
-                    const canDrag = !isReadOnly && !isPlaced;
-
-                    const narrationMode = (line as any).narrationMode || 'Present';
-                    const lineText = line.dialogueText || line.stageDirection || '';
-                    const lineWordCount = countWords(lineText);
-                    const isTooLong = lineWordCount > MAX_WORDS_PER_BALLOON;
-                    const isFlashback = narrationMode === 'Flashback';
-                    const isDream = narrationMode === 'Dream';
-                    const isImagination = narrationMode === 'Imagination';
-                    const isMissingTime = isFlashback && !hasTimeMarker(lineText);
-
+                  panelGroups.map((group) => {
+                    const isGroupActive = Boolean(group.panelId && selectedPanelId === group.panelId);
                     return (
                       <div
-                        key={line.id}
-                        draggable={canDrag}
-                        data-testid={`script-line-${line.id}`}
-                        onDragStart={(e) => {
-                          if (!canDrag) return;
-                          e.dataTransfer.setData('text/plain', line.id);
-                          e.dataTransfer.effectAllowed = 'copy';
-                          setDraggingLine(line);
-                          setSelectedScriptLine(line);
-                        }}
-                        onDragEnd={() => {
-                          setDraggingLine(null);
-                          setPending((prev) => (prev && !prev.dropped ? null : prev));
-                        }}
-                        onClick={() => handleSelectScriptLine(line)}
-                        tabIndex={0}
-                        role='button'
-                        aria-label={`Dòng ${line.lineOrder}${canDrag ? ', nhấn Enter để đặt lên trang' : ''}`}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && canDrag && !pending) {
-                            e.preventDefault();
-                            startKeyboardPlacement(line);
-                          } else if (e.key === ' ') {
-                            e.preventDefault();
-                            handleSelectScriptLine(line);
-                          }
-                        }}
-                        className={`p-2.5 rounded-xl border transition-all text-xs space-y-1.5 ${
-                          canDrag ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'
-                        } ${
-                          isSelected
-                            ? 'border-[#F97316] bg-[#FFF2E6] ring-2 ring-[#F97316]/20 shadow-xs'
-                            : isPlaced
-                              ? 'border-emerald-300 bg-emerald-50/40 text-emerald-900'
-                              : isFlashback
-                                ? 'border-[#57534E] bg-[#1C1917]/5'
-                                : 'border-[#D8D2C5] bg-[#FCFBF8] hover:bg-white hover:border-[#F97316]/60'
+                        key={group.key}
+                        id={`panel-group-${group.key}`}
+                        data-testid={`panel-group-${group.key}`}
+                        className={`rounded-xl border transition-all p-2.5 space-y-2 ${
+                          isGroupActive
+                            ? 'border-amber-400 bg-amber-50/70 ring-1 ring-amber-300 shadow-2xs'
+                            : 'border-[#E7E2D8] bg-[#FDFCFA]'
                         }`}
                       >
-                        <div className='flex items-center justify-between gap-1.5 flex-wrap'>
-                          <span className='font-mono font-bold text-xs text-[#57534E] flex items-center gap-1 min-w-0'>
-                            {canDrag && <GripVertical className='w-3 h-3 text-[#57534E]/60 shrink-0' />}
-                            <span className='truncate'>
-                              #{line.lineOrder} • {speaker || 'Người dẫn truyện'}
-                            </span>
-                          </span>
-
-                          <div className='flex items-center gap-1 shrink-0'>
-                            {isFlashback && (
-                              <span
-                                data-testid={`badge-mode-${line.id}`}
-                                className='text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#1C1917] text-white shrink-0 shadow-2xs'
-                              >
-                                HỒI TƯỞNG
-                              </span>
-                            )}
-                            {isDream && (
-                              <span
-                                data-testid={`badge-mode-${line.id}`}
-                                className='text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 border border-sky-300 shrink-0'
-                              >
-                                GIẤC MƠ
-                              </span>
-                            )}
-                            {isImagination && (
-                              <span
-                                data-testid={`badge-mode-${line.id}`}
-                                className='text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 border border-purple-300 shrink-0'
-                              >
-                                TƯỞNG TƯỢNG
-                              </span>
-                            )}
-
-                            {isPlaced ? (
-                              <span className='text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full flex items-center gap-0.5 shrink-0'>
-                                <CheckCircle2 className='w-3 h-3' /> Đã đặt
-                              </span>
+                        {/* Tiêu đề nhóm khung */}
+                        <div
+                          data-testid={`panel-group-header-${group.key}`}
+                          role='button'
+                          tabIndex={0}
+                          onClick={() => {
+                            if (group.panelId) setSelectedPanelId(group.panelId);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              if (group.panelId) setSelectedPanelId(group.panelId);
+                            }
+                          }}
+                          className='flex items-center justify-between cursor-pointer px-1 py-0.5 select-none hover:opacity-90'
+                        >
+                          <span
+                            className={`text-xs font-bold flex items-center gap-1.5 ${
+                              isGroupActive ? 'text-[#C2410C]' : 'text-[#1C1917]'
+                            }`}
+                          >
+                            {group.panelId ? (
+                              <Layers className='w-3.5 h-3.5 text-amber-600' />
                             ) : (
-                              <span
-                                className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${
-                                  narrator
-                                    ? 'bg-[#FFF2E6] text-[#C2410C] border border-[#FDBA74]'
-                                    : 'bg-[#F3F0E9] text-[#57534E]'
-                                }`}
-                              >
-                                {narrator ? 'Dẫn truyện' : 'Thoại'}
-                              </span>
+                              <FileText className='w-3.5 h-3.5 text-stone-400' />
                             )}
-                          </div>
+                            <span>{group.title}</span>
+                          </span>
+                          <span className='text-[10px] font-mono font-semibold text-[#57534E] bg-stone-100 px-1.5 py-0.5 rounded border border-stone-200'>
+                            {group.lines.length} dòng
+                          </span>
                         </div>
 
-                        <p
-                          className={`font-medium text-[#1C1917] line-clamp-2 ${isFlashback ? 'italic' : ''}`}
-                        >
-                          {lineText}
-                        </p>
+                        {/* Danh sách dòng kịch bản trong nhóm */}
+                        <div className='space-y-1.5'>
+                          {group.lines.length === 0 ? (
+                            <div className='text-[11px] text-[#A8A29E] italic px-2 py-1'>
+                              Chưa có dòng nào
+                            </div>
+                          ) : (
+                            group.lines.map((line) => {
+                              const isSelected = selectedScriptLine?.id === line.id;
+                              const isPlaced = elements.some((e) => e.scriptLineId === line.id);
+                              const classification = classifyScriptLine(line, toolMode);
+                              const isDirection = classification.kind === 'DIRECTION';
+                              const narrator = classification.kind === 'NARRATION';
+                              const speaker =
+                                (line as { speakerName?: string | null }).speakerName ||
+                                (line.speakerCharacterId
+                                  ? (speakerNames[line.speakerCharacterId] ?? 'Nhân vật')
+                                  : null);
+                              const canDrag = !isReadOnly && !isPlaced && classification.isLetterable;
 
-                        {/* Badges cảnh báo độ dài và mốc thời gian */}
-                        {(isTooLong || isMissingTime) && (
-                          <div className='flex items-center gap-1.5 flex-wrap pt-0.5'>
-                            {isTooLong && (
-                              <span
-                                data-testid={`badge-toolong-${line.id}`}
-                                className='text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-700 border border-red-300 flex items-center gap-0.5'
-                              >
-                                <AlertTriangle className='w-3 h-3' /> Quá dài ({lineWordCount} từ)
-                              </span>
-                            )}
-                            {isMissingTime && (
-                              <span
-                                data-testid={`badge-missing-time-${line.id}`}
-                                className='text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300 flex items-center gap-0.5'
-                              >
-                                <Compass className='w-3 h-3' /> Thiếu mốc thời gian
-                              </span>
-                            )}
-                          </div>
-                        )}
+                              const narrationMode = (line as any).narrationMode || 'Present';
+                              const lineText = isDirection ? (line.stageDirection || '') : classification.cleanText;
+                              const lineWordCount = countWords(line.dialogueText || '');
+                              const isTooLong = lineWordCount > MAX_WORDS_PER_BALLOON;
+                              const isFlashback = narrationMode === 'Flashback';
+                              const isDream = narrationMode === 'Dream';
+                              const isImagination = narrationMode === 'Imagination';
+                              const isMissingTime = isFlashback && !hasTimeMarker(line.dialogueText || '');
 
-                        {isSelected && (
-                          <div className='text-xs font-semibold text-[#C2410C] flex items-center gap-1 pt-1 border-t border-[#FDBA74]'>
-                            <Plus className='w-3.5 h-3.5' /> Bấm hoặc kéo thả lên trang để đặt dòng
-                            này
-                          </div>
-                        )}
+                              return (
+                                <div
+                                  key={line.id}
+                                  draggable={canDrag}
+                                  data-testid={
+                                    isDirection
+                                      ? `direction-line-${line.id}`
+                                      : `script-line-${line.id}`
+                                  }
+                                  onDragStart={(e) => {
+                                    if (!canDrag) return;
+                                    e.dataTransfer.setData('text/plain', line.id);
+                                    e.dataTransfer.effectAllowed = 'copy';
+                                    setDraggingLine(line);
+                                    setSelectedScriptLine(line);
+                                  }}
+                                  onDragEnd={() => {
+                                    setDraggingLine(null);
+                                    setPending((prev) => (prev && !prev.dropped ? null : prev));
+                                  }}
+                                  onClick={() => handleSelectScriptLine(line)}
+                                  tabIndex={0}
+                                  role='button'
+                                  aria-label={`Dòng ${line.lineOrder}${canDrag ? ', nhấn Enter để đặt lên trang' : ''}`}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && canDrag && !pending) {
+                                      e.preventDefault();
+                                      startKeyboardPlacement(line);
+                                    } else if (e.key === ' ') {
+                                      e.preventDefault();
+                                      handleSelectScriptLine(line);
+                                    }
+                                  }}
+                                  className={`p-2.5 rounded-xl border transition-all text-xs space-y-1.5 ${
+                                    canDrag ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'
+                                  } ${
+                                    isDirection
+                                      ? 'border-dashed border-stone-300 bg-stone-50/70 opacity-75'
+                                      : isSelected
+                                        ? 'border-[#F97316] bg-[#FFF2E6] ring-2 ring-[#F97316]/20 shadow-xs'
+                                        : isPlaced
+                                          ? 'border-emerald-300 bg-emerald-50/40 text-emerald-900'
+                                          : isFlashback
+                                            ? 'border-[#57534E] bg-[#1C1917]/5'
+                                            : 'border-[#D8D2C5] bg-[#FCFBF8] hover:bg-white hover:border-[#F97316]/60'
+                                  }`}
+                                >
+                                  <div className='flex items-center justify-between gap-1.5 flex-wrap'>
+                                    <span className='font-mono font-bold text-xs text-[#57534E] flex items-center gap-1 min-w-0'>
+                                      {canDrag && (
+                                        <GripVertical className='w-3 h-3 text-[#57534E]/60 shrink-0' />
+                                      )}
+                                      <span className='truncate'>
+                                        #{line.lineOrder} • {speaker || (isDirection ? 'Chỉ dẫn' : 'Người dẫn truyện')}
+                                      </span>
+                                    </span>
+
+                                    <div className='flex items-center gap-1 shrink-0'>
+                                      {isFlashback && (
+                                        <span
+                                          data-testid={`badge-mode-${line.id}`}
+                                          className='text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#1C1917] text-white shrink-0 shadow-2xs'
+                                        >
+                                          HỒI TƯỞNG
+                                        </span>
+                                      )}
+                                      {isDream && (
+                                        <span
+                                          data-testid={`badge-mode-${line.id}`}
+                                          className='text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 border border-sky-300 shrink-0'
+                                        >
+                                          GIẤC MƠ
+                                        </span>
+                                      )}
+                                      {isImagination && (
+                                        <span
+                                          data-testid={`badge-mode-${line.id}`}
+                                          className='text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 border border-purple-300 shrink-0'
+                                        >
+                                          TƯỞNG TƯỢNG
+                                        </span>
+                                      )}
+
+                                      {isPlaced ? (
+                                        <span className='text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full flex items-center gap-0.5 shrink-0'>
+                                          <CheckCircle2 className='w-3 h-3' /> Đã đặt
+                                        </span>
+                                      ) : isDirection ? (
+                                        <span
+                                          data-testid={`badge-direction-${line.id}`}
+                                          className='text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 bg-stone-100 text-stone-500 border border-stone-200'
+                                        >
+                                          Chỉ dẫn
+                                        </span>
+                                      ) : classification.kind === 'SFX' ? (
+                                        <span
+                                          data-testid={`badge-sfx-${line.id}`}
+                                          className='text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 bg-red-50 text-red-600 border border-red-200'
+                                        >
+                                          SFX
+                                        </span>
+                                      ) : (
+                                        <span
+                                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${
+                                            narrator
+                                              ? 'bg-[#FFF2E6] text-[#C2410C] border border-[#FDBA74]'
+                                              : 'bg-[#F3F0E9] text-[#57534E]'
+                                          }`}
+                                        >
+                                          {narrator ? 'Dẫn truyện' : 'Thoại'}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  <p
+                                    className={`font-medium text-[#1C1917] line-clamp-2 ${
+                                      isFlashback || isDirection ? 'italic' : ''
+                                    } ${isDirection ? 'text-[#78716C]' : ''}`}
+                                  >
+                                    {lineText}
+                                  </p>
+
+                                  {/* Badges cảnh báo độ dài và mốc thời gian */}
+                                  {!isDirection && (isTooLong || isMissingTime) && (
+                                    <div className='flex items-center gap-1.5 flex-wrap pt-0.5'>
+                                      {isTooLong && (
+                                        <span
+                                          data-testid={`badge-toolong-${line.id}`}
+                                          className='text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-700 border border-red-300 flex items-center gap-0.5'
+                                        >
+                                          <AlertTriangle className='w-3 h-3' /> Quá dài ({lineWordCount} từ)
+                                        </span>
+                                      )}
+                                      {isMissingTime && (
+                                        <span
+                                          data-testid={`badge-missing-time-${line.id}`}
+                                          className='text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300 flex items-center gap-0.5'
+                                        >
+                                          <Compass className='w-3 h-3' /> Thiếu mốc thời gian
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+
+                                  {isSelected && canDrag && (
+                                    <div className='text-xs font-semibold text-[#C2410C] flex items-center gap-1 pt-1 border-t border-[#FDBA74]'>
+                                      <Plus className='w-3.5 h-3.5' /> Bấm hoặc kéo thả lên trang để đặt dòng
+                                      này
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })
+                          )}
+                        </div>
                       </div>
                     );
                   })
@@ -2854,15 +3173,113 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                 } as React.CSSProperties
               }
             >
-              {backdropUrl && (
+              {/* Priority 1 / 2 / 3 background artwork */}
+              {(wholePageArtUrl || backdropUrl) ? (
                 <img
-                  src={backdropUrl}
+                  src={wholePageArtUrl || backdropUrl}
                   alt='Ảnh nền trang truyện'
                   data-testid='letterer-page-backdrop'
                   className='absolute inset-0 w-full h-full object-fill pointer-events-none select-none'
+                  style={{ opacity: bgOpacity / 100 }}
                   draggable={false}
                 />
+              ) : hasAnyPanelArt ? (
+                <div
+                  data-testid='letterer-panels-backdrop-layer'
+                  className='absolute inset-0 pointer-events-none select-none'
+                  style={{ opacity: bgOpacity / 100 }}
+                >
+                  {panels.map((p) => {
+                    const art = pickPanelArtwork(pageArtworks, p.id, stages);
+                    const pUrl = art ? panelArtworkUrls[art.id] : undefined;
+                    const pBox = parseBoundingBox(p.boundingBox, pageDim.width, pageDim.height);
+                    if (pUrl) {
+                      return (
+                        <img
+                          key={p.id}
+                          src={pUrl}
+                          alt={`Khung #${p.panelNumber}`}
+                          data-testid={`letterer-panel-backdrop-${p.id}`}
+                          className='absolute object-cover'
+                          style={{
+                            left: pBox.pixelX,
+                            top: pBox.pixelY,
+                            width: pBox.pixelW,
+                            height: pBox.pixelH,
+                          }}
+                          draggable={false}
+                        />
+                      );
+                    }
+                    return (
+                      <div
+                        key={p.id}
+                        data-testid={`letterer-panel-backdrop-placeholder-${p.id}`}
+                        className='absolute flex items-center justify-center bg-zinc-100 text-zinc-400 text-xs border border-dashed border-zinc-300'
+                        style={{
+                          left: pBox.pixelX,
+                          top: pBox.pixelY,
+                          width: pBox.pixelW,
+                          height: pBox.pixelH,
+                        }}
+                      >
+                        Chưa có ảnh
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div
+                  data-testid='letterer-no-art-notice'
+                  className='absolute inset-0 flex items-center justify-center pointer-events-none select-none'
+                  style={{ opacity: bgOpacity / 100 }}
+                >
+                  <span className='text-zinc-400 text-sm font-medium bg-white/80 px-4 py-2 rounded shadow-xs border border-zinc-200'>
+                    Chưa có ảnh
+                  </span>
+                </div>
               )}
+
+              {/* Khung tương tác trên Canvas (đồng bộ với nhóm kịch bản) */}
+              {panels.map((p) => {
+                const pBox = parseBoundingBox(p.boundingBox, pageDim.width, pageDim.height);
+                const isSelected = selectedPanelId === p.id;
+                return (
+                  <div
+                    key={`canvas-panel-${p.id}`}
+                    data-testid={`canvas-panel-${p.id}`}
+                    data-canvas-panel-id={p.id}
+                    onClick={(e) => {
+                      if (isPanIntent(e.button)) return;
+                      setSelectedPanelId((prev) => (prev === p.id ? null : p.id));
+                      if (toolMode === 'select') {
+                        e.stopPropagation();
+                        setSelectedElementId(null);
+                      }
+                    }}
+                    className={`absolute transition-colors pointer-events-auto cursor-pointer ${
+                      isSelected
+                        ? 'ring-2 ring-amber-500 bg-amber-500/10 z-10'
+                        : 'hover:ring-1 hover:ring-amber-400/50 z-0'
+                    }`}
+                    style={{
+                      left: pBox.pixelX,
+                      top: pBox.pixelY,
+                      width: pBox.pixelW,
+                      height: pBox.pixelH,
+                    }}
+                    title={`Khung #${p.panelNumber}`}
+                  >
+                    <span
+                      className={`absolute top-1 left-1 text-[10px] font-bold px-1.5 py-0.5 rounded select-none shadow-xs ${
+                        isSelected ? 'bg-amber-500 text-white' : 'bg-black/50 text-white/90'
+                      }`}
+                    >
+                      #{p.panelNumber}
+                    </span>
+                  </div>
+                );
+              })}
 
               {/* Đường căn chỉnh: ranh giới khung, lề an toàn, tâm trang */}
               {showGuides && (
@@ -3347,6 +3764,47 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                       </span>
                     )}
 
+                    {/* Cảnh báo nội dung là chỉ dẫn (không phải thoại) */}
+                    {(() => {
+                      const linked = b.scriptLineId
+                        ? sceneLines.find((l) => l.id === b.scriptLineId)
+                        : null;
+                      const isDirectionWarning = Boolean(
+                        b.content?.trim() &&
+                          ((linked?.stageDirection &&
+                            b.content.trim() === linked.stageDirection.trim()) ||
+                            (linked && !linked.dialogueText && linked.stageDirection) ||
+                            sceneLines.some(
+                              (l) =>
+                                l.stageDirection &&
+                                !l.dialogueText &&
+                                l.stageDirection.trim() === b.content?.trim(),
+                            )),
+                      );
+                      if (!isDirectionWarning || hideBadges) return null;
+                      return (
+                        <span
+                          data-testid={`stage-direction-warning-${b.elementId}`}
+                          className='absolute bg-amber-600 text-white font-bold rounded shadow-2xs flex items-center gap-1 z-30'
+                          style={{
+                            top: 'calc(var(--inv) * -24px)',
+                            left: 0,
+                            fontSize: 'calc(var(--inv) * 10px)',
+                            padding: 'calc(var(--inv) * 2px) calc(var(--inv) * 6px)',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          <AlertTriangle
+                            style={{
+                              width: 'calc(var(--inv) * 10px)',
+                              height: 'calc(var(--inv) * 10px)',
+                            }}
+                          />{' '}
+                          Nội dung là chỉ dẫn, không phải thoại
+                        </span>
+                      );
+                    })()}
+
                     {/* Nội dung: hiển thị thuần (không có ô nhập). Bấm đúp để sửa tại chỗ. */}
                     {editing ? (
                       <CommitTextarea
@@ -3431,7 +3889,7 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                         overflowWrap: 'anywhere',
                       }}
                     >
-                      {pending.line.dialogueText || pending.line.stageDirection}
+                      {pending.line ? classifyScriptLine(pending.line).cleanText : ''}
                     </span>
                   </div>
                 </div>

@@ -188,7 +188,9 @@ export const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
 
         let loadedStages: PipelineStageDto[] = [];
         if (pipelineData?.stages && pipelineData.stages.length > 0) {
-          loadedStages = pipelineData.stages.filter((s) => s.isEnabled !== false);
+          loadedStages = pipelineData.stages.filter(
+            (s) => s.isEnabled !== false && !s.isTerminal,
+          );
         } else {
           loadedStages = [];
         }

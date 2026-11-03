@@ -398,6 +398,99 @@ describe('CreateAssignmentModal', () => {
     expect(stageSelect).not.toHaveTextContent('Color Stage');
   });
 
+  it('ẩn các công đoạn kết thúc (isTerminal === true, ví dụ Approved) khỏi dropdown chọn stage và chế độ kế hoạch', async () => {
+    vi.mocked(pipelineService.getSeriesPipeline).mockResolvedValueOnce({
+      id: 'pipe-1',
+      seriesId: 'series-1',
+      name: 'Default Pipeline',
+      stages: [
+        {
+          id: 'stage-script',
+          name: 'Script',
+          slug: 'script',
+          stageOrder: 1,
+          allowedRole: 'Writer',
+          isApprovalGate: false,
+          isInitial: true,
+          isTerminal: false,
+          isEnabled: true,
+        },
+        {
+          id: 'stage-approved',
+          name: 'Approved',
+          slug: 'approved',
+          stageOrder: 2,
+          allowedRole: 'Editor',
+          isApprovalGate: false,
+          isInitial: false,
+          isTerminal: true,
+          isEnabled: true,
+        },
+      ],
+      transitions: [],
+    } as any);
+
+    render(
+      <CreateAssignmentModal
+        isOpen={true}
+        workspaceId='ws-1'
+        seriesId='series-1'
+        chapterId='chap-1'
+        chapterNumber={1}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/Công đoạn Pipeline/i)).toBeInTheDocument();
+    });
+
+    const stageSelect = screen.getByLabelText(/Công đoạn Pipeline/i) as HTMLSelectElement;
+    expect(stageSelect).toHaveTextContent('Script');
+    expect(stageSelect).not.toHaveTextContent('Approved');
+
+    // Chuyển sang chế độ Kế hoạch toàn chương, kiểm tra không có card cho stage Approved
+    fireEvent.click(screen.getByRole('button', { name: /Kế hoạch toàn chương/i }));
+    await waitFor(() => {
+      expect(screen.getByText(/Các công đoạn phân công/i)).toBeInTheDocument();
+    });
+    expect(screen.getByText(/1\. Script/i)).toBeInTheDocument();
+    expect(screen.queryByText(/2\. Approved/i)).not.toBeInTheDocument();
+  });
+
+  it('hiển thị thông báo lỗi thân thiện khi Backend trả HTTP 400 chặn giao việc vào công đoạn kết thúc', async () => {
+    const errorMsg =
+      "Công đoạn 'Approved' là công đoạn kết thúc, không giao việc được. Hãy giao ở công đoạn duyệt trước đó.";
+    vi.mocked(assignmentService.createAssignment).mockRejectedValueOnce(
+      new Error(errorMsg),
+    );
+
+    render(
+      <CreateAssignmentModal
+        isOpen={true}
+        workspaceId='ws-1'
+        seriesId='series-1'
+        chapterId='chap-1'
+        chapterNumber={1}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/Yêu cầu công việc/i)).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByLabelText(/Yêu cầu công việc/i), {
+      target: { value: 'Nhiệm vụ kiểm tra kết thúc' },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /Tạo & Giao Việc/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(errorMsg)).toBeInTheDocument();
+    });
+  });
+
   it('lọc danh sách người nhận theo vai trò trong Workspace (studioRole) và chỉ lấy thành viên Active', async () => {
     vi.mocked(seriesService.getSeriesMembers).mockResolvedValueOnce([
       {

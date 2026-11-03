@@ -14,6 +14,11 @@ import {
 import { BibleEntity, BibleCategory } from '@/types';
 import { bibleService } from '@/services/bible.service';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
+import {
+  getTempBibleCodes,
+  removeTempBibleCode,
+  TempBibleCodeItem,
+} from '@/roles/writer/components/script/flow/tempBibleCodes';
 
 export type NewBibleEntityPayload = BibleEntity & {
   stageName?: string;
@@ -65,6 +70,13 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
   const [uploadingGallery, setUploadingGallery] = useState(false);
   const [galleryLabel, setGalleryLabel] = useState('Chính diện (Front)');
   const galleryInputRef = useRef<HTMLInputElement>(null);
+
+  const [tempCodes, setTempCodes] = useState<TempBibleCodeItem[]>([]);
+  useEffect(() => {
+    if (isOpen) {
+      setTempCodes(getTempBibleCodes());
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -219,6 +231,7 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
     };
 
     onAdd(newEntity);
+    removeTempBibleCode(generatedCode);
     setName('');
     setCode('');
     setSubtitle('');
@@ -307,6 +320,40 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
                 onChange={(e) => setCode(e.target.value)}
                 className='w-full px-3 py-2 bg-[#FAF8F5] focus:bg-white rounded-lg border border-[#E7E7E7] font-mono text-xs text-zinc-900 placeholder-zinc-400 uppercase focus:outline-none focus:border-[#F97316] transition-colors'
               />
+              {tempCodes.length > 0 && (
+                <div className='mt-1.5' data-testid='temp-bible-code-suggestions'>
+                  <span className='text-[10px] text-zinc-500 font-medium block mb-1'>
+                    Gợi ý mã tạm từ kịch bản:
+                  </span>
+                  <div className='flex flex-wrap gap-1'>
+                    {tempCodes.map((item) => (
+                      <button
+                        key={item.code}
+                        type='button'
+                        onClick={() => {
+                          setCode(item.code);
+                          if (!name.trim()) setName(item.name);
+                          const cat = item.category?.toLowerCase() || '';
+                          if (cat.includes('loc') || cat.includes('địa danh')) {
+                            setCategory('locations');
+                          } else if (cat.includes('prop') || cat.includes('term') || cat.includes('thuật ngữ')) {
+                            setCategory('terminology');
+                          } else {
+                            setCategory('characters');
+                          }
+                        }}
+                        className='inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-amber-50 hover:bg-amber-100 text-amber-900 border border-dashed border-amber-300 transition-colors cursor-pointer'
+                        title={`Dùng ${item.count} lần${item.chapterNumber ? ` ở Chương ${item.chapterNumber}` : ''}`}
+                      >
+                        <span>@{item.code}</span>
+                        <span className='text-[9px] text-amber-700 font-normal'>
+                          ({item.count}x{item.chapterNumber ? ` Ch.${item.chapterNumber}` : ''})
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

@@ -10,6 +10,10 @@ export interface SceneDto {
   sceneNumber: number;
   heading?: string | null;
   summary?: string | null;
+  sceneName?: string | null;
+  slugline?: string | null;
+  location?: string | null;
+  timeOfDay?: string | null;
   createdAt: string;
   updatedAt?: string | null;
   createdBy?: string | null;
@@ -37,6 +41,10 @@ export interface SceneDetailDto {
   sceneNumber: number;
   heading?: string | null;
   summary?: string | null;
+  sceneName?: string | null;
+  slugline?: string | null;
+  location?: string | null;
+  timeOfDay?: string | null;
   createdAt: string;
   updatedAt?: string | null;
   createdBy?: string | null;

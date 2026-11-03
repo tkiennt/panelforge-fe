@@ -27,6 +27,7 @@ const mockChapters: ChapterDto[] = [
     outline: 'Gặp gỡ người đưa tin bí ẩn.',
     status: 'Approved',
     isScriptFrozen: true,
+    scriptContentHash: 'a1b2c3d4e5f67890123456789abcdef0123456789abcdef0123456789abcdef0',
     versionVector: 2,
     createdAt: '2026-11-03T00:00:00Z',
     scenesCount: 3,
@@ -48,6 +49,7 @@ describe('ChapterSelectionView Component', () => {
     expect(screen.getByText(/Khởi Đầu Mới/i)).toBeInTheDocument();
     expect(screen.getByText(/Đêm Tại Shibuya/i)).toBeInTheDocument();
     expect(screen.getByText(/Kịch bản đã khóa/i)).toBeInTheDocument();
+    expect(screen.getByText('#a1b2c3d4')).toBeInTheDocument();
   });
 
   it('calls onSelectChapter when clicking a chapter card', () => {
@@ -125,5 +127,69 @@ describe('ChapterSelectionView Component', () => {
     expect(
       screen.getByText(/Producer phụ trách dự án sẽ khởi tạo chương và giao việc/i)
     ).toBeInTheDocument();
+  });
+
+  it('filters chapters based on search query', () => {
+    render(
+      <ChapterSelectionView
+        chapters={mockChapters}
+        onSelectChapter={vi.fn()}
+      />
+    );
+
+    const searchInput = screen.getByPlaceholderText(/Tìm nhanh theo tên chương/i);
+    fireEvent.change(searchInput, { target: { value: 'Shibuya' } });
+
+    expect(screen.queryByText(/Khởi Đầu Mới/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/Đêm Tại Shibuya/i)).toBeInTheDocument();
+  });
+
+  it('filters chapters when clicking status filter pills', () => {
+    render(
+      <ChapterSelectionView
+        chapters={mockChapters}
+        onSelectChapter={vi.fn()}
+      />
+    );
+
+    const frozenPill = screen.getByRole('button', { name: /Đã khóa \(Frozen\)/i });
+    fireEvent.click(frozenPill);
+
+    expect(screen.queryByText(/Khởi Đầu Mới/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/Đêm Tại Shibuya/i)).toBeInTheDocument();
+  });
+
+  it('switches between Grid View and Table View seamlessly', () => {
+    render(
+      <ChapterSelectionView
+        chapters={mockChapters}
+        onSelectChapter={vi.fn()}
+      />
+    );
+
+    const tableViewBtn = screen.getByTitle('Dạng bảng (Table/List View)');
+    fireEvent.click(tableViewBtn);
+
+    expect(screen.getByRole('table')).toBeInTheDocument();
+    expect(screen.getByText('Tiêu đề chương')).toBeInTheDocument();
+    expect(screen.getByText('Đề cương tóm tắt')).toBeInTheDocument();
+
+    const gridViewBtn = screen.getByTitle('Dạng thẻ (Grid View)');
+    fireEvent.click(gridViewBtn);
+
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+  });
+
+  it('renders quick stats correctly in header', () => {
+    render(
+      <ChapterSelectionView
+        chapters={mockChapters}
+        onSelectChapter={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText('Tổng số chương')).toBeInTheDocument();
+    expect(screen.getByText('Đang viết')).toBeInTheDocument();
+    expect(screen.getByText('Đã khóa')).toBeInTheDocument();
   });
 });

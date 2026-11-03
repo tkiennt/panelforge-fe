@@ -26,6 +26,7 @@ export interface ChapterDto {
   scriptReopenReason?: string | null;
   scriptReopenRequestedById?: string | null;
   scriptReopenRequestedAt?: string | null;
+  scriptContentHash?: string | null;
 }
 
 export interface PagedResult<T> {
@@ -364,7 +365,7 @@ export const chapterService = {
   /**
    * Producer duyệt kịch bản và bắt đầu sản xuất hình ảnh (Freeze Script & Unlock Thumbnail)
    */
-  freezeScript: async (chapterId: string): Promise<any> => {
+  freezeScript: async (chapterId: string): Promise<ChapterDto> => {
     try {
       const response = await axiosClient.post(`/chapters/${chapterId}/freeze-script`);
       return response.data;
@@ -376,7 +377,7 @@ export const chapterService = {
   /**
    * Producer mở lại kịch bản (Unfreeze Script)
    */
-  unfreezeScript: async (chapterId: string, reason?: string): Promise<any> => {
+  unfreezeScript: async (chapterId: string, reason?: string): Promise<ChapterDto> => {
     try {
       const response = await axiosClient.post(`/chapters/${chapterId}/unfreeze-script`, { reason });
       return response.data;

@@ -1366,4 +1366,432 @@ describe('ArtistDeskView', () => {
       expect(screen.queryByText('Hoàn Thành công việc kịch bản cho chương 1 đi')).not.toBeInTheDocument();
     });
   });
+
+  describe('Thiết kế lại cột Kịch bản trong Artist Desk', () => {
+    const mockPanels = [
+      {
+        id: 'panel-1',
+        pageId: 'page-1',
+        panelNumber: 1,
+        boundingBox: '{"x": 10, "y": 10, "width": 80, "height": 35}',
+        readingOrder: 1,
+        createdAt: '2026-10-08T00:00:00Z',
+      },
+      {
+        id: 'panel-2',
+        pageId: 'page-1',
+        panelNumber: 2,
+        boundingBox: '{"x": 10, "y": 50, "width": 80, "height": 35}',
+        readingOrder: 2,
+        createdAt: '2026-10-08T00:00:00Z',
+      },
+    ];
+
+    const mockSceneLines = [
+      {
+        id: 'line-1',
+        sceneId: 'scene-1',
+        lineOrder: 1,
+        dialogueText: null,
+        stageDirection: 'Gió thổi qua cổng thành hoang vắng',
+        speakerCharacterId: null,
+        panelId: 'panel-1',
+      },
+      {
+        id: 'line-2',
+        sceneId: 'scene-1',
+        lineOrder: 2,
+        dialogueText: 'Có ai ở đó không?',
+        stageDirection: null,
+        speakerCharacterId: 'bible-char-1',
+        panelId: null, // Chưa gán
+      },
+      {
+        id: 'line-3',
+        sceneId: 'scene-1',
+        lineOrder: 3,
+        dialogueText: 'Lâm Dư đã tới rồi',
+        stageDirection: null,
+        speakerCharacterId: 'bible-char-1',
+        panelId: 'panel-2',
+      },
+    ];
+
+    beforeEach(() => {
+      vi.mocked(panelService.getPanelsByPage).mockResolvedValue(mockPanels);
+      vi.mocked(panelService.getPanelById).mockImplementation(async (id) => {
+        const found = mockPanels.find((p) => p.id === id);
+        return {
+          id: found?.id ?? id,
+          pageId: 'page-1',
+          panelNumber: found?.panelNumber ?? 1,
+          boundingBox: '{"x": 10, "y": 10, "width": 80, "height": 35}',
+          readingOrder: found?.panelNumber ?? 1,
+          createdAt: '2026-10-08T00:00:00Z',
+          sceneId: null,
+          scriptLineIds: [],
+        };
+      });
+
+      vi.mocked(scriptLineService.getSceneById).mockResolvedValue({
+        id: 'scene-1',
+        chapterId: 'chap-1',
+        sceneNumber: 1,
+        heading: 'Cổng thành',
+        summary: 'Nhân vật xuất hiện',
+        createdAt: '2026-10-08T00:00:00Z',
+        scriptLinesCount: 3,
+        pagesCount: 1,
+        scriptLines: mockSceneLines as any,
+      } as any);
+    });
+
+    it('bộ lọc segmented (Tất cả, Chưa gán, Khung này) lọc chính xác các dòng kịch bản', async () => {
+      renderComponent();
+
+      await screen.findByTestId('panel-canvas');
+      fireEvent.click(screen.getByTestId('left-tab-script'));
+
+      // Đợi nạp danh sách dòng
+      await waitFor(() => {
+        expect(screen.getByTestId('script-line-item-line-1')).toBeInTheDocument();
+        expect(screen.getByTestId('script-line-item-line-2')).toBeInTheDocument();
+        expect(screen.getByTestId('script-line-item-line-3')).toBeInTheDocument();
+      });
+
+      // Mặc định filter là 'all' -> hiện đủ 3 dòng; Khung 1 đang được chọn mặc định
+      const filterAll = screen.getByTestId('filter-btn-all');
+      const filterUnassigned = screen.getByTestId('filter-btn-unassigned');
+      const filterCurrentPanel = screen.getByTestId('filter-btn-current-panel');
+
+      expect(filterAll).toHaveTextContent('Tất cả (3)');
+      expect(filterUnassigned).toHaveTextContent('Chưa gán (1)');
+      expect(filterCurrentPanel).toHaveTextContent('Khung này (1)');
+      expect(filterCurrentPanel).not.toBeDisabled();
+
+      // Bấm "Chưa gán" -> chỉ hiển thị line-2
+      fireEvent.click(filterUnassigned);
+      expect(screen.queryByTestId('script-line-item-line-1')).not.toBeInTheDocument();
+      expect(screen.getByTestId('script-line-item-line-2')).toBeInTheDocument();
+      expect(screen.queryByTestId('script-line-item-line-3')).not.toBeInTheDocument();
+
+      // Bấm "Khung này" -> chỉ hiển thị line-1 (thuộc panel-1 đang chọn)
+      fireEvent.click(filterCurrentPanel);
+      expect(screen.getByTestId('script-line-item-line-1')).toBeInTheDocument();
+      expect(screen.queryByTestId('script-line-item-line-2')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('script-line-item-line-3')).not.toBeInTheDocument();
+
+      // Chọn Khung 2 trên canvas -> Khung này cập nhật và chỉ hiển thị line-3
+      const panel2Box = screen.getByTestId('panel-box-panel-2');
+      fireEvent.click(panel2Box);
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('script-line-item-line-1')).not.toBeInTheDocument();
+        expect(screen.getByTestId('script-line-item-line-3')).toBeInTheDocument();
+      });
+
+      // Quay lại "Tất cả" -> hiển thị lại đủ 3 dòng
+      fireEvent.click(filterAll);
+      expect(screen.getByTestId('script-line-item-line-1')).toBeInTheDocument();
+      expect(screen.getByTestId('script-line-item-line-2')).toBeInTheDocument();
+      expect(screen.getByTestId('script-line-item-line-3')).toBeInTheDocument();
+    });
+
+    it('dòng kịch bản thuộc khung đang chọn được viền cam nổi bật và hiển thị breadcrumb', async () => {
+      renderComponent();
+
+      await screen.findByTestId('panel-canvas');
+      fireEvent.click(screen.getByTestId('left-tab-script'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('script-line-item-line-1')).toBeInTheDocument();
+      });
+
+      // Ban đầu Khung 1 được chọn: breadcrumb hiển thị Trang 1 › Khung 1
+      expect(screen.getByText(/Trang 1 › Khung 1/)).toBeInTheDocument();
+      expect(screen.getByText('1 dòng trong khung này')).toBeInTheDocument();
+
+      // Kiểm tra class viền cam nổi bật và nền cam nhạt trên line-1
+      const line1Item = screen.getByTestId('script-line-item-line-1');
+      expect(line1Item.className).toContain('border-l-[#C2410C]');
+      expect(line1Item.className).toContain('bg-[#FFF7ED]');
+
+      // line-2 (chưa gán) và line-3 (thuộc khung 2) không có viền cam nổi bật này
+      const line2Item = screen.getByTestId('script-line-item-line-2');
+      expect(line2Item.className).not.toContain('border-l-[#C2410C]');
+      expect(line2Item.className).toContain('bg-[#FCFBF8]');
+
+      // Chọn khung 2 trên canvas -> breadcrumb chuyển sang Khung 2 và line-3 được viền cam
+      const panel2Box = screen.getByTestId('panel-box-panel-2');
+      fireEvent.click(panel2Box);
+
+      await waitFor(() => {
+        expect(screen.getByText(/Trang 1 › Khung 2/)).toBeInTheDocument();
+      });
+
+      const line3Item = screen.getByTestId('script-line-item-line-3');
+      expect(line3Item.className).toContain('border-l-[#C2410C]');
+      expect(line3Item.className).toContain('bg-[#FFF7ED]');
+
+      // line-1 không còn viền cam
+      expect(line1Item.className).not.toContain('border-l-[#C2410C]');
+    });
+
+    it('bấm tag K* của dòng kịch bản sẽ chọn khung tương ứng trên canvas', async () => {
+      renderComponent();
+
+      await screen.findByTestId('panel-canvas');
+      fireEvent.click(screen.getByTestId('left-tab-script'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('script-line-item-line-3')).toBeInTheDocument();
+      });
+
+      // Tag line-1 hiển thị "K1", line-2 hiển thị "—", line-3 hiển thị "K2"
+      const tagLine1 = screen.getByTestId('panel-tag-line-1');
+      const tagLine2 = screen.getByTestId('panel-tag-line-2');
+      const tagLine3 = screen.getByTestId('panel-tag-line-3');
+
+      expect(tagLine1).toHaveTextContent('K1');
+      expect(tagLine2).toHaveTextContent('—');
+      expect(tagLine3).toHaveTextContent('K2');
+
+      // Click vào tag K2 của line-3 -> chọn panel-2
+      fireEvent.click(tagLine3);
+
+      await waitFor(() => {
+        expect(screen.getByText(/Trang 1 › Khung 2/)).toBeInTheDocument();
+      });
+
+      // Giờ line-3 là khung đang chọn -> line-3 có viền cam
+      const line3Item = screen.getByTestId('script-line-item-line-3');
+      expect(line3Item.className).toContain('border-l-[#C2410C]');
+    });
+
+    it('thanh resizer cho phép kéo đổi độ rộng cột bên trái và lưu vào localStorage', async () => {
+      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem');
+
+      renderComponent();
+
+      await screen.findByTestId('panel-canvas');
+      const resizer = screen.getByTestId('artist-left-col-resizer');
+      expect(resizer).toBeInTheDocument();
+
+      // Bắt đầu kéo
+      fireEvent.mouseDown(resizer, { clientX: 280 });
+      fireEvent.mouseMove(window, { clientX: 350 });
+      fireEvent.mouseUp(window);
+
+      expect(setItemSpy).toHaveBeenCalledWith('artist_desk_left_col_width', expect.any(String));
+      setItemSpy.mockRestore();
+    });
+
+    it('render Card Phân Cảnh, hiển thị Slugline Badge bối cảnh ánh sáng và mở dropdown chọn phân cảnh', async () => {
+      vi.mocked(scriptLineService.getScenesByChapter).mockResolvedValue([
+        {
+          id: 'scene-1',
+          chapterId: 'chap-1',
+          sceneNumber: 1,
+          heading: 'Cổng thành',
+          slugline: '🌤️ NGOẠI · CỔNG THÀNH · SÁNG',
+          summary: 'Khu vực ngoài cổng thành',
+          createdAt: '2026-10-08T00:00:00Z',
+          scriptLinesCount: 2,
+          pagesCount: 1,
+        },
+        {
+          id: 'scene-2',
+          chapterId: 'chap-1',
+          sceneNumber: 2,
+          heading: 'Tàng Mạch Các',
+          slugline: '🌙 NỘI · TÀNG MẠCH CÁC · TỐI',
+          summary: 'Căn phòng bí mật đầy sách cổ',
+          createdAt: '2026-10-08T00:00:00Z',
+          scriptLinesCount: 1,
+          pagesCount: 1,
+        },
+      ]);
+
+      renderComponent();
+
+      await screen.findByTestId('panel-canvas');
+      fireEvent.click(screen.getByTestId('left-tab-script'));
+
+      // Kiểm tra nút Selector và Slugline Badge
+      const sceneBtn = await screen.findByTestId('scene-selector-btn');
+      expect(sceneBtn).toHaveTextContent('Phân cảnh #1: Cổng thành');
+
+      const sluglineBadge = await screen.findByTestId('scene-slugline-badge');
+      expect(sluglineBadge).toBeInTheDocument();
+      expect(sluglineBadge).toHaveTextContent(/NGOẠI · CỔNG THÀNH · SÁNG/);
+
+      // Tiến độ phân cảnh
+      expect(screen.getByTestId('scene-progress-container')).toBeInTheDocument();
+      expect(screen.getByTestId('scene-progress-container')).toHaveTextContent(/dòng ·.*đã gán ·.*chưa gán/);
+
+      // Bấm nút selector -> mở dropdown menu
+      fireEvent.click(sceneBtn);
+      const dropdownMenu = await screen.findByTestId('scene-dropdown-menu');
+      expect(dropdownMenu).toBeInTheDocument();
+
+      // Dropdown menu hiển thị danh sách các phân cảnh kèm phạm vi trang và tiến độ
+      const itemScene2 = screen.getByTestId('scene-dropdown-item-scene-2');
+      expect(itemScene2).toHaveTextContent('Phân cảnh #2: Tàng Mạch Các');
+
+      // Click chọn scene-2 -> dropdown đóng và selector cập nhật
+      fireEvent.click(itemScene2);
+      await waitFor(() => {
+        expect(sceneBtn).toHaveTextContent('Phân cảnh #2: Tàng Mạch Các');
+        expect(screen.queryByTestId('scene-dropdown-menu')).not.toBeInTheDocument();
+      });
+
+      // Slugline badge chuyển sang bối cảnh NỘI · TÀNG MẠCH CÁC · TỐI
+      expect(screen.getByTestId('scene-slugline-badge')).toHaveTextContent(/NỘI · TÀNG MẠCH CÁC · TỐI/);
+    });
+
+    it('click chọn khung trên Canvas tự động chuyển phân cảnh, viền active cam và cuộn sidebar tới dòng kịch bản', async () => {
+      const scrollIntoViewMock = vi.fn();
+      window.HTMLElement.prototype.scrollIntoView = scrollIntoViewMock;
+
+      vi.mocked(scriptLineService.getScenesByChapter).mockResolvedValue([
+        {
+          id: 'scene-1',
+          chapterId: 'chap-1',
+          sceneNumber: 1,
+          heading: 'Cổng thành',
+          slugline: '🌤️ NGOẠI · CỔNG THÀNH · SÁNG',
+          createdAt: '2026-10-08T00:00:00Z',
+          scriptLinesCount: 1,
+          pagesCount: 1,
+        },
+        {
+          id: 'scene-2',
+          chapterId: 'chap-1',
+          sceneNumber: 2,
+          heading: 'Tàng Mạch Các',
+          slugline: '🌙 NỘI · TÀNG MẠCH CÁC · TỐI',
+          createdAt: '2026-10-08T00:00:00Z',
+          scriptLinesCount: 1,
+          pagesCount: 1,
+        },
+      ]);
+
+      const panelsWithScene = [
+        {
+          id: 'panel-1',
+          pageId: 'page-1',
+          panelNumber: 1,
+          boundingBox: '{"x": 10, "y": 10, "width": 80, "height": 35}',
+          readingOrder: 1,
+          createdAt: '2026-10-08T00:00:00Z',
+          sceneId: 'scene-1',
+        },
+        {
+          id: 'panel-2',
+          pageId: 'page-1',
+          panelNumber: 2,
+          boundingBox: '{"x": 10, "y": 50, "width": 80, "height": 35}',
+          readingOrder: 2,
+          createdAt: '2026-10-08T00:00:00Z',
+          sceneId: 'scene-2',
+        },
+      ];
+
+      vi.mocked(panelService.getPanelsByPage).mockResolvedValue(panelsWithScene);
+      vi.mocked(panelService.getPanelById).mockImplementation(async (id) => {
+        const found = panelsWithScene.find((p) => p.id === id);
+        return {
+          id: found?.id ?? id,
+          pageId: 'page-1',
+          panelNumber: found?.panelNumber ?? 1,
+          boundingBox: '{"x": 10, "y": 10, "width": 80, "height": 35}',
+          readingOrder: found?.panelNumber ?? 1,
+          createdAt: '2026-10-08T00:00:00Z',
+          sceneId: found?.sceneId ?? null,
+          scriptLineIds: id === 'panel-2' ? ['line-3'] : ['line-1'],
+        };
+      });
+
+      vi.mocked(scriptLineService.getSceneById).mockImplementation(async (sceneId) => {
+        if (sceneId === 'scene-2') {
+          return {
+            id: 'scene-2',
+            chapterId: 'chap-1',
+            sceneNumber: 2,
+            heading: 'Tàng Mạch Các',
+            slugline: '🌙 NỘI · TÀNG MẠCH CÁC · TỐI',
+            createdAt: '2026-10-08T00:00:00Z',
+            scriptLinesCount: 1,
+            pagesCount: 1,
+            scriptLines: [
+              {
+                id: 'line-3',
+                sceneId: 'scene-2',
+                lineOrder: 1,
+                dialogueText: 'Lâm Dư đã tới rồi',
+                stageDirection: null,
+                speakerCharacterId: 'bible-char-1',
+                panelId: 'panel-2',
+              },
+            ] as any,
+          } as any;
+        }
+        return {
+          id: 'scene-1',
+          chapterId: 'chap-1',
+          sceneNumber: 1,
+          heading: 'Cổng thành',
+          slugline: '🌤️ NGOẠI · CỔNG THÀNH · SÁNG',
+          createdAt: '2026-10-08T00:00:00Z',
+          scriptLinesCount: 1,
+          pagesCount: 1,
+          scriptLines: [
+            {
+              id: 'line-1',
+              sceneId: 'scene-1',
+              lineOrder: 1,
+              dialogueText: null,
+              stageDirection: 'Gió thổi qua',
+              speakerCharacterId: null,
+              panelId: 'panel-1',
+            },
+          ] as any,
+        } as any;
+      });
+
+      renderComponent();
+
+      await screen.findByTestId('panel-canvas');
+      fireEvent.click(screen.getByTestId('left-tab-script'));
+
+      // Khung 1 ban đầu active
+      const panel1Box = screen.getByTestId('panel-box-panel-1');
+      const badge1 = screen.getByTestId('panel-number-badge-panel-1');
+      expect(panel1Box.className).toContain('ring-amber-500');
+      expect(badge1.className).toContain('bg-amber-500');
+
+      // Click chọn Khung 2 (thuộc scene-2) trên canvas
+      const panel2Box = screen.getByTestId('panel-box-panel-2');
+      fireEvent.click(panel2Box);
+
+      // Khung 2 nhận viền active cam và badge cam
+      const badge2 = screen.getByTestId('panel-number-badge-panel-2');
+      expect(panel2Box.className).toContain('ring-amber-500');
+      expect(badge2.className).toContain('bg-amber-500');
+
+      // Tự động chuyển scene selector sang Phân cảnh #2
+      await waitFor(() => {
+        expect(screen.getByTestId('scene-selector-btn')).toHaveTextContent('Phân cảnh #2: Tàng Mạch Các');
+        expect(screen.getByTestId('script-line-item-line-3')).toBeInTheDocument();
+      });
+
+      // Breadcrumb hiển thị Khung 2
+      expect(screen.getByText(/Trang 1 › Khung 2/)).toBeInTheDocument();
+
+      // Cuộn tới dòng kịch bản line-3
+      await waitFor(() => {
+        expect(scrollIntoViewMock).toHaveBeenCalled();
+      });
+    });
+  });
 });

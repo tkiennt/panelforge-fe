@@ -171,9 +171,11 @@ export type AdminTone = keyof typeof TONES;
 export const AdminBadge: React.FC<{
   tone?: AdminTone;
   className?: string;
+  title?: string;
   children: React.ReactNode;
-}> = ({ tone = 'neutral', className, children }) => (
+}> = ({ tone = 'neutral', className, title, children }) => (
   <span
+    title={title}
     className={cn(
       'inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-xs font-medium whitespace-nowrap',
       TONES[tone],

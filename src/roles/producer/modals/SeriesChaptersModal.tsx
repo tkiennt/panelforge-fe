@@ -24,6 +24,7 @@ import {
   GitBranch,
   Camera,
   Upload,
+  Lock,
 } from 'lucide-react';
 import {
   chapterService,
@@ -821,7 +822,28 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                         </td>
 
                         <td className='py-3 px-3 whitespace-nowrap'>
-                          {renderChapterStatus(chap.status, chap.publishedAt)}
+                          <div className='flex flex-col gap-1 items-start'>
+                            {renderChapterStatus(chap.status, chap.publishedAt)}
+                            {chap.isScriptFrozen && (
+                              <span
+                                className='px-1.5 py-0.5 rounded text-[9px] font-mono font-medium bg-indigo-50 text-indigo-700 border border-indigo-200 inline-flex items-center gap-1'
+                                title={
+                                  chap.scriptContentHash
+                                    ? `Kịch bản đã đóng băng (SHA-256: ${chap.scriptContentHash})`
+                                    : 'Kịch bản đã đóng băng'
+                                }
+                                data-testid={`chapter-frozen-badge-${chap.chapterNumber}`}
+                              >
+                                <Lock className='w-2.5 h-2.5 text-indigo-600' />
+                                <span>Kịch bản đóng băng</span>
+                                {chap.scriptContentHash && (
+                                  <span className='font-bold opacity-80'>
+                                    #{chap.scriptContentHash.slice(0, 8)}
+                                  </span>
+                                )}
+                              </span>
+                            )}
+                          </div>
                         </td>
 
                         <td className='py-3 px-3 whitespace-nowrap'>

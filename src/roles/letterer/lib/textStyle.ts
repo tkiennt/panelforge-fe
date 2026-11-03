@@ -139,3 +139,79 @@ export function textStyleCss(style: TextStyleDto): CSSProperties {
 export function canvasFont(style: TextStyleDto, sizePx = style.fontSize): string {
   return `${style.italic ? 'italic ' : ''}${style.bold ? '700 ' : '400 '}${sizePx}px '${style.fontFamily}', sans-serif`;
 }
+
+export type ScriptLineKind = 'SPEECH' | 'NARRATION' | 'SFX' | 'DIRECTION';
+
+export interface ScriptLineClassification {
+  kind: ScriptLineKind;
+  isLetterable: boolean;
+  suggestedElementType: string;
+  label: string;
+  cleanText: string;
+}
+
+/**
+ * Phân loại dòng kịch bản cho Letterer Desk:
+ * 1. dialogueText bắt đầu bằng 'SFX:' (không phân biệt hoa/thường) -> SFX (SOUND_EFFECT), bỏ tiền tố khi đặt chữ
+ * 2. dialogueText rỗng (chỉ có stageDirection) -> Chỉ dẫn (DIRECTION): không phải chữ của Letterer, không kéo thả
+ * 3. dialogueText có nội dung, có người nói -> Bóng thoại (SPEECH / SPEECH_BALLOON hoặc THOUGHT_BALLOON)
+ * 4. dialogueText có nội dung, không có người nói -> Hộp dẫn truyện (NARRATION / NARRATION_BOX)
+ */
+export function classifyScriptLine(
+  line: {
+    dialogueText?: string | null;
+    stageDirection?: string | null;
+    speakerCharacterId?: string | null;
+    speakerName?: string | null;
+    narrationMode?: string | null;
+  },
+  toolMode: string = 'bubble',
+): ScriptLineClassification {
+  const rawDialogue = (line.dialogueText ?? '').trim();
+  const speakerName = (line as { speakerName?: string | null }).speakerName;
+  const hasSpeaker = Boolean(line.speakerCharacterId || speakerName);
+
+  // SFX: dialogueText bắt đầu bằng 'SFX:' (case-insensitive)
+  if (/^sfx\s*:/i.test(rawDialogue)) {
+    const cleanText = rawDialogue.replace(/^sfx\s*:\s*/i, '').trim();
+    return {
+      kind: 'SFX',
+      isLetterable: true,
+      suggestedElementType: 'SOUND_EFFECT',
+      label: 'SFX',
+      cleanText: cleanText || rawDialogue,
+    };
+  }
+
+  // dialogueText rỗng (chỉ có stageDirection) -> Chỉ dẫn
+  if (!rawDialogue) {
+    return {
+      kind: 'DIRECTION',
+      isLetterable: false,
+      suggestedElementType: '',
+      label: 'Chỉ dẫn',
+      cleanText: '',
+    };
+  }
+
+  // dialogueText có nội dung, có người nói -> Bóng thoại
+  if (hasSpeaker) {
+    const isThought = toolMode === 'thought' || line.narrationMode === 'Thought';
+    return {
+      kind: 'SPEECH',
+      isLetterable: true,
+      suggestedElementType: isThought ? 'THOUGHT_BALLOON' : 'SPEECH_BALLOON',
+      label: 'Thoại',
+      cleanText: rawDialogue,
+    };
+  }
+
+  // dialogueText có nội dung, không có người nói -> Hộp dẫn truyện
+  return {
+    kind: 'NARRATION',
+    isLetterable: true,
+    suggestedElementType: 'NARRATION_BOX',
+    label: 'Dẫn truyện',
+    cleanText: rawDialogue,
+  };
+}

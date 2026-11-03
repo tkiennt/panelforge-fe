@@ -21,6 +21,13 @@ export const BibleMention = Mention.extend({
           'data-label': attributes.label,
         }),
       },
+      code: {
+        default: null,
+        parseHTML: (element) => element.getAttribute('data-code'),
+        renderHTML: (attributes) => ({
+          'data-code': attributes.code,
+        }),
+      },
       category: {
         default: 'Character',
         parseHTML: (element) => element.getAttribute('data-category') || 'Character',
@@ -42,28 +49,63 @@ export const BibleMention = Mention.extend({
           'data-is-stub': attributes.isStub ? 'true' : 'false',
         }),
       },
+      panelId: {
+        default: null,
+        parseHTML: (element) => element.getAttribute('data-panel-id'),
+        renderHTML: (attributes) => ({
+          'data-panel-id': attributes.panelId,
+        }),
+      },
+      pageNumber: {
+        default: null,
+        parseHTML: (element) => (element.getAttribute('data-page-number') ? parseInt(element.getAttribute('data-page-number')!, 10) : null),
+        renderHTML: (attributes) => ({
+          'data-page-number': attributes.pageNumber,
+        }),
+      },
+      panelNumber: {
+        default: null,
+        parseHTML: (element) => (element.getAttribute('data-panel-number') ? parseInt(element.getAttribute('data-panel-number')!, 10) : null),
+        renderHTML: (attributes) => ({
+          'data-panel-number': attributes.panelNumber,
+        }),
+      },
     };
   },
 
   renderHTML({ HTMLAttributes }) {
     const isStub = HTMLAttributes['data-is-stub'] === 'true';
-    const isLocked = HTMLAttributes['data-is-locked'] !== 'false';
-    const borderStyle = isStub
-      ? 'border-amber-500 border-dashed bg-amber-50 text-amber-800'
-      : isLocked
-        ? 'border-[#FF6F61]/40 bg-[#FFF1F0] text-[#FF6F61]'
-        : 'border-amber-400 border-dashed bg-[#FFF1F0] text-[#FF6F61]';
+    const category = (HTMLAttributes['data-category'] || '').toLowerCase();
+    const code = HTMLAttributes['data-code'] || HTMLAttributes['data-label'] || HTMLAttributes.label || '';
+
+    let colorStyle = 'border-amber-300 bg-amber-50 text-amber-800'; // Default: Character
+    if (category.includes('panel')) {
+      colorStyle = 'border-purple-300 bg-purple-50 text-purple-800';
+    } else if (category.includes('loc') || category.includes('địa danh')) {
+      colorStyle = 'border-emerald-300 bg-emerald-50 text-emerald-800';
+    } else if (category.includes('prop') || category.includes('đạo cụ')) {
+      colorStyle = 'border-cyan-300 bg-cyan-50 text-cyan-800';
+    } else if (category.includes('term') || category.includes('thuật ngữ')) {
+      colorStyle = 'border-indigo-300 bg-indigo-50 text-indigo-800';
+    }
+
+    if (isStub) {
+      colorStyle = 'border-amber-500 border-dashed bg-amber-50/90 text-amber-900';
+    }
+
+    const displayText = `@${code}${isStub ? ' (Chưa có trong Bible)' : ''}`;
 
     return [
       'span',
       mergeAttributes(
         {
-          class: `mention inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-xs font-semibold tracking-wide border ${borderStyle} shadow-2xs select-none mx-0.5 cursor-pointer`,
+          class: `mention inline-flex items-center gap-1 whitespace-nowrap align-baseline px-1 py-0 rounded text-[11px] font-semibold font-mono tracking-tight border ${colorStyle} shadow-2xs select-none mx-0.5 cursor-pointer transition-all hover:scale-[1.02]`,
+          'data-mention-chip': 'true',
+          'aria-haspopup': 'dialog',
         },
         HTMLAttributes
       ),
-      `@${HTMLAttributes['data-label'] || HTMLAttributes.label || ''}${isStub ? ' (Stub)' : ''}`,
+      displayText,
     ];
   },
 });
-

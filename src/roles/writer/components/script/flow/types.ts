@@ -19,17 +19,25 @@ export interface ScriptLineBlockAttrs {
   speakerName: string | null;
   narrationMode: NarrationMode;
   lineOrder: number;
-  panelId: string | null; // Luôn null ở tầng tự sự kịch bản
+  panelId: string | null;
+  pageNumber?: number;
+  panelNumber?: number;
+  hasThumbnail?: boolean;
 }
 
 export interface MentionSuggestionItem {
   id: string;
   name: string;
   subtitle?: string | null;
-  category: BibleCategory;
+  category: BibleCategory | 'Panel' | string;
   code: string;
   isLocked: boolean;
   avatarUrl?: string | null;
   stageName?: string | null;
   isStub?: boolean;
+  description?: string | null;
+  pageNumber?: number;
+  panelNumber?: number;
+  panelId?: string;
+  hasThumbnail?: boolean;
 }

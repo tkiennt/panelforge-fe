@@ -19,6 +19,7 @@ import { chapterService } from '@/services/chapter.service';
 import { aiAgentsService } from '@/services/aiAgents.service';
 import { panelService } from '@/services/panel.service';
 import { artworkService } from '@/services/artwork.service';
+import { pipelineService } from '@/services/pipeline.service';
 import { buildPageComposite } from '@/shared/utils/compositePageRenderer';
 import { fitBoxHeight } from '../lib/balloonRender';
 import { resolveTextStyle } from '../lib/textStyle';
@@ -56,7 +57,21 @@ vi.mock('@/services/aiAgents.service', () => ({
   },
 }));
 vi.mock('@/services/panel.service');
-vi.mock('@/services/artwork.service');
+vi.mock('@/services/artwork.service', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/services/artwork.service')>();
+  return {
+    ...actual,
+    artworkService: {
+      getArtworks: vi.fn(),
+      getArtworkAccessLink: vi.fn(),
+    },
+  };
+});
+vi.mock('@/services/pipeline.service', () => ({
+  pipelineService: {
+    getSeriesPipeline: vi.fn(),
+  },
+}));
 vi.mock('@/shared/utils/compositePageRenderer', () => ({
   buildPageComposite: vi.fn(),
 }));
@@ -81,6 +96,7 @@ describe('LetteringWorkspace', () => {
 
     vi.mocked(panelService.getPanelsByPage).mockResolvedValue([]);
     vi.mocked(artworkService.getArtworks).mockResolvedValue([]);
+    vi.mocked(pipelineService.getSeriesPipeline).mockResolvedValue({ stages: [] } as any);
     vi.mocked(artworkService.getArtworkAccessLink).mockResolvedValue({
       url: 'https://example.com/art.png',
       expiresAtUtc: '2026-10-14T12:00:00Z',
@@ -165,7 +181,7 @@ describe('LetteringWorkspace', () => {
   const renderComponent = (props = {}) =>
     render(
       <MemoryRouter>
-        <LetteringWorkspace pageId='page-101' chapterId='chap-1' {...props} />
+        <LetteringWorkspace pageId='page-101' chapterId='chap-1' seriesId='series-1' {...props} />
       </MemoryRouter>,
     );
 
@@ -1290,6 +1306,338 @@ describe('LetteringWorkspace', () => {
       expect(
         vi.mocked(elementService.updateElementStyle).mock.calls[0][2].expectedElementVersion,
       ).toBe(1);
+    });
+  });
+
+  describe('Cải tiến Letterer Desk: phân loại dòng, nhóm khung, cảnh báo chỉ dẫn & ảnh nền', () => {
+    it('dòng chỉ có stageDirection bị ẩn mặc định; bật toggle Hiện chỉ dẫn thì hiển thị dạng chỉ đọc', async () => {
+      vi.mocked(scriptLineService.getSceneById).mockResolvedValueOnce({
+        id: 'scene-1',
+        chapterId: 'chap-1',
+        sceneNumber: 1,
+        createdAt: '2026-10-08T00:00:00Z',
+        scriptLines: [
+          {
+            id: 'line-dir-1',
+            lineOrder: 1,
+            stageDirection: 'Lâm Dư cẩn thận tìm kiếm thảo dược...',
+            dialogueText: '',
+          },
+          {
+            id: 'line-speech-1',
+            lineOrder: 2,
+            dialogueText: 'Tìm thấy rồi!',
+            speakerCharacterId: 'char-1',
+          },
+        ],
+      });
+
+      renderComponent();
+
+      await waitFor(() => {
+        expect(screen.getByText('Tìm thấy rồi!')).toBeInTheDocument();
+      });
+
+      // Mặc định ẩn dòng chỉ dẫn
+      expect(screen.queryByText('Lâm Dư cẩn thận tìm kiếm thảo dược...')).toBeNull();
+
+      // Bật công tắc "Hiện chỉ dẫn"
+      const toggleBtn = screen.getByTestId('toggle-show-directions');
+      fireEvent.click(toggleBtn);
+
+      await waitFor(() => {
+        expect(screen.getByText('Lâm Dư cẩn thận tìm kiếm thảo dược...')).toBeInTheDocument();
+      });
+      const dirItem = screen.getByTestId('direction-line-line-dir-1');
+      expect(dirItem).toBeInTheDocument();
+      expect(within(dirItem).getByText('Chỉ dẫn')).toBeInTheDocument();
+    });
+
+    it('phân loại đúng Dẫn truyện, Thoại và SFX (strip SFX: khi tạo phần tử)', async () => {
+      vi.mocked(scriptLineService.getSceneById).mockResolvedValueOnce({
+        id: 'scene-1',
+        chapterId: 'chap-1',
+        sceneNumber: 1,
+        createdAt: '2026-10-08T00:00:00Z',
+        scriptLines: [
+          {
+            id: 'line-nar-1',
+            lineOrder: 1,
+            dialogueText: 'Gió lạnh thổi qua cánh rừng...',
+            panelId: 'panel-1',
+          },
+          {
+            id: 'line-spk-1',
+            lineOrder: 2,
+            dialogueText: 'Ai đó?!',
+            speakerCharacterId: 'char-1',
+            panelId: 'panel-1',
+          },
+          {
+            id: 'line-sfx-1',
+            lineOrder: 3,
+            dialogueText: 'SFX: RẦM!',
+            panelId: 'panel-1',
+          },
+        ],
+      });
+
+      vi.mocked(panelService.getPanelsByPage).mockResolvedValueOnce([
+        {
+          id: 'panel-1',
+          pageId: 'page-101',
+          panelNumber: 1,
+          readingOrder: 1,
+          boundingBox: JSON.stringify({ x: 0, y: 0, width: 600, height: 800 }),
+          createdAt: '2026-10-14T10:00:00Z',
+        },
+      ]);
+
+      renderComponent();
+
+      await waitFor(() => {
+        expect(screen.getByText('Gió lạnh thổi qua cánh rừng...')).toBeInTheDocument();
+      });
+
+      const narLine = screen.getByTestId('script-line-line-nar-1');
+      expect(within(narLine).getByText('Dẫn truyện')).toBeInTheDocument();
+      const spkLine = screen.getByTestId('script-line-line-spk-1');
+      expect(within(spkLine).getByText('Thoại')).toBeInTheDocument();
+      const sfxLine = screen.getByTestId('script-line-line-sfx-1');
+      expect(within(sfxLine).getByText('SFX')).toBeInTheDocument();
+    });
+
+    it('phần tử chữ tạo từ dòng không bao giờ lấy nội dung từ stageDirection', async () => {
+      vi.mocked(scriptLineService.getSceneById).mockResolvedValueOnce({
+        id: 'scene-1',
+        chapterId: 'chap-1',
+        sceneNumber: 1,
+        createdAt: '2026-10-08T00:00:00Z',
+        scriptLines: [
+          {
+            id: 'line-dir-only',
+            lineOrder: 1,
+            stageDirection: 'Chỉ dẫn bí mật của đạo diễn',
+            dialogueText: '',
+          },
+        ],
+      });
+
+      vi.mocked(elementService.addElement).mockResolvedValueOnce({
+        elementId: 'elem-from-blank',
+        pageId: 'page-101',
+        elementType: 'SPEECH_BALLOON',
+      });
+
+      const { container } = renderComponent();
+
+      await waitFor(() => {
+        expect(screen.getByTestId('letterer-stage')).toBeInTheDocument();
+      });
+
+      // Click vào viewport canvas để thêm element mới
+      const canvas = container.querySelector('.cursor-crosshair');
+      expect(canvas).not.toBeNull();
+      fireEvent.click(canvas!);
+
+      await waitFor(() => {
+        expect(elementService.addElement).toHaveBeenCalledWith(
+          'page-101',
+          expect.objectContaining({
+            content: expect.not.stringContaining('Chỉ dẫn bí mật của đạo diễn'),
+          }),
+        );
+      });
+    });
+
+    it('nhóm dòng theo khung đúng thứ tự, có nhóm Chưa gán khung và bộ đếm x/y đã đặt', async () => {
+      vi.mocked(panelService.getPanelsByPage).mockResolvedValueOnce([
+        {
+          id: 'panel-1',
+          pageId: 'page-101',
+          panelNumber: 1,
+          readingOrder: 1,
+          boundingBox: JSON.stringify({ x: 0, y: 0, width: 300, height: 400 }),
+          createdAt: '2026-10-14T10:00:00Z',
+        },
+        {
+          id: 'panel-2',
+          pageId: 'page-101',
+          panelNumber: 2,
+          readingOrder: 2,
+          boundingBox: JSON.stringify({ x: 300, y: 0, width: 300, height: 400 }),
+          createdAt: '2026-10-14T10:00:00Z',
+        },
+      ]);
+
+      vi.mocked(scriptLineService.getSceneById).mockResolvedValueOnce({
+        id: 'scene-1',
+        chapterId: 'chap-1',
+        sceneNumber: 1,
+        createdAt: '2026-10-08T00:00:00Z',
+        scriptLines: [
+          {
+            id: 'line-1',
+            lineOrder: 1,
+            dialogueText: 'Thoại khung 1 đã đặt',
+            panelId: 'panel-1',
+          },
+          {
+            id: 'line-2',
+            lineOrder: 2,
+            dialogueText: 'Thoại khung 2 chưa đặt',
+            panelId: 'panel-2',
+          },
+          {
+            id: 'line-3',
+            lineOrder: 3,
+            dialogueText: 'Thoại chưa gán khung',
+            panelId: null,
+          },
+          {
+            id: 'line-4-dir',
+            lineOrder: 4,
+            stageDirection: 'Chỉ dẫn không tính vào bộ đếm',
+            dialogueText: '',
+          },
+        ],
+      });
+
+      renderComponent();
+
+      await waitFor(() => {
+        expect(screen.getByTestId('panel-group-panel-1')).toBeInTheDocument();
+        expect(screen.getByTestId('panel-group-panel-2')).toBeInTheDocument();
+        expect(screen.getByTestId('panel-group-unassigned')).toBeInTheDocument();
+      });
+
+      // Kiểm tra bộ đếm tiến độ: 3 dòng letterable (line-1, line-2, line-3), trong đó line-1 đã đặt (từ mock snapshot element)
+      expect(screen.getByTestId('placed-counter')).toHaveTextContent('1/3 đã đặt');
+
+      // Kiểm tra lọc nhanh Chưa đặt
+      const filterUnplacedBtn = screen.getByTestId('filter-unplaced');
+      fireEvent.click(filterUnplacedBtn);
+      expect(screen.queryByText('Thoại khung 1 đã đặt')).toBeNull();
+      expect(screen.getByText('Thoại khung 2 chưa đặt')).toBeInTheDocument();
+    });
+
+    it('hiển thị cảnh báo stage-direction-warning khi element có nội dung là chỉ dẫn', async () => {
+      vi.mocked(elementService.getPageSnapshot).mockResolvedValueOnce({
+        pageId: 'page-101',
+        version: 1,
+        pageNumber: 1,
+        elements: [
+          {
+            elementId: 'elem-warn-1',
+            elementType: 'SPEECH_BALLOON',
+            zIndex: 1,
+            x: 20,
+            y: 20,
+            width: 30,
+            height: 20,
+            content: 'Lâm Dư nhìn quanh quất một hồi',
+            isRemoved: false,
+            version: 1,
+            scriptLineId: 'line-dir-linked',
+            readingOrder: 1,
+          },
+        ],
+      });
+
+      vi.mocked(scriptLineService.getSceneById).mockResolvedValueOnce({
+        id: 'scene-1',
+        chapterId: 'chap-1',
+        sceneNumber: 1,
+        createdAt: '2026-10-08T00:00:00Z',
+        scriptLines: [
+          {
+            id: 'line-dir-linked',
+            lineOrder: 1,
+            stageDirection: 'Lâm Dư nhìn quanh quất một hồi',
+            dialogueText: '',
+          },
+        ],
+      });
+
+      renderComponent();
+
+      await waitFor(() => {
+        expect(screen.getByTestId('stage-direction-warning-elem-warn-1')).toBeInTheDocument();
+        expect(screen.getByTestId('stage-direction-warning-elem-warn-1')).toHaveTextContent(
+          'Nội dung là chỉ dẫn, không phải thoại',
+        );
+      });
+    });
+
+    it('hiển thị ảnh panel khi có panel artwork (Priority 2) và thông báo Chưa có ảnh khi trống (Priority 3)', async () => {
+      vi.mocked(buildPageComposite).mockResolvedValue({
+        dataUrl: '',
+        failedImages: 0,
+        mode: 'empty',
+      });
+      vi.mocked(panelService.getPanelsByPage).mockResolvedValue([
+        {
+          id: 'p-1',
+          pageId: 'page-101',
+          panelNumber: 1,
+          readingOrder: 1,
+          boundingBox: JSON.stringify({ x: 0, y: 0, width: 300, height: 400 }),
+          createdAt: '2026-10-14T10:00:00Z',
+        },
+      ]);
+      vi.mocked(pipelineService.getSeriesPipeline).mockResolvedValue({
+        id: 'pipe-1',
+        seriesId: 'series-1',
+        name: 'Default',
+        stages: [
+          { id: 'stage-color', name: 'Color', stageOrder: 3, isEnabled: true } as any,
+        ],
+        transitions: [],
+      });
+      vi.mocked(artworkService.getArtworks).mockResolvedValue([
+        {
+          id: 'art-panel-1',
+          chapterId: 'chap-1',
+          pageId: 'page-101',
+          panelId: 'p-1',
+          pipelineStageId: 'stage-color',
+          versionNumber: 1,
+          fileName: 'panel1.png',
+          assetId: 'asset-1',
+        } as any,
+      ]);
+      vi.mocked(artworkService.getArtworkAccessLink).mockResolvedValue({
+        url: 'https://storage.example.com/panel1.png',
+        expiresAtUtc: '2026-10-14T12:00:00Z',
+      });
+
+      renderComponent();
+
+      await waitFor(() => {
+        expect(screen.getByTestId('letterer-panels-backdrop-layer')).toBeInTheDocument();
+        expect(screen.getByTestId('letterer-panel-backdrop-p-1')).toHaveAttribute(
+          'src',
+          'https://storage.example.com/panel1.png',
+        );
+      });
+
+      // Canvas panel overlay tương tác
+      const canvasPanel = screen.getByTestId('canvas-panel-p-1');
+      expect(canvasPanel).toBeInTheDocument();
+      fireEvent.click(canvasPanel);
+      expect(canvasPanel.className).toContain('ring-amber-500');
+    });
+
+    it('hiển thị thông báo Chưa có ảnh khi không có artwork nào (Priority 3)', async () => {
+      vi.mocked(panelService.getPanelsByPage).mockResolvedValueOnce([]);
+      vi.mocked(artworkService.getArtworks).mockResolvedValueOnce([]);
+
+      renderComponent();
+
+      await waitFor(() => {
+        expect(screen.getByTestId('letterer-no-art-notice')).toBeInTheDocument();
+        expect(screen.getByTestId('letterer-no-art-notice')).toHaveTextContent('Chưa có ảnh');
+      });
     });
   });
 });
