@@ -213,7 +213,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   const [bibleGateModalOpen, setBibleGateModalOpen] = useState(false);
 
   // V2.5: Chế độ soạn thảo kịch bản kép (Dual-Mode: Screenplay Flow làm mặc định + Card Mode làm tùy chọn xem cấu trúc)
-  const [editorMode, setEditorMode] = useState<'flow' | 'cards'>('flow');
+  const [editorMode, setEditorMode] = useState<'flow' | 'cards'>('cards');
 
   const notify = useCallback(
     (title: string, desc: string) => {
@@ -436,7 +436,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               line.scriptLineId,
               req
             );
-            setCurrentChapter((prev) => (prev ? { ...prev, versionVector: res.chapterVersion } : null));
+            setCurrentChapter((prev) => (prev && res?.chapterVersion ? { ...prev, versionVector: res.chapterVersion } : prev));
           }
         } else {
           hasChanges = true;
@@ -454,7 +454,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             line.sceneId || selectedScene.id,
             req
           );
-          setCurrentChapter((prev) => (prev ? { ...prev, versionVector: res.chapterVersion } : null));
+          setCurrentChapter((prev) => (prev && res?.chapterVersion ? { ...prev, versionVector: res.chapterVersion } : prev));
         }
       }
 
