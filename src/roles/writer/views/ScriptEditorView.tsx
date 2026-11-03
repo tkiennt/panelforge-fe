@@ -33,6 +33,8 @@ import {
   PanelLeft,
   Check,
   Lock,
+  LayoutTemplate,
+  Film,
 } from 'lucide-react';
 import {
   scriptLineService,
@@ -60,6 +62,7 @@ import { ScriptLineItem } from '../components/script/ScriptLineItem';
 import { NarrativeContextDrawer } from '../components/script/NarrativeContextDrawer';
 import { ConsistencyFindingsDrawer } from '../components/script/ConsistencyFindingsDrawer';
 import { ScreenplayFlowEditor } from '../components/script/flow/ScreenplayFlowEditor';
+import { ScriptThumbnailStoryboardView } from '../components/script/storyboard';
 import { ExtractedScriptLinePayload } from '../components/script/flow/scriptFlowAdapter';
 import { BibleCharactersDrawer } from '../components/script/BibleCharactersDrawer';
 import { offlineQueueService } from '@/services/offlineQueue.service';
@@ -69,6 +72,10 @@ import { ElementConflictModal } from '@/shared/modals/ElementConflictModal';
 import { UnsavedChangesBar } from '@/shared/components/lucian';
 import { useTranslation } from '@/lib/i18n';
 import { useConfirm } from '@/shared/context/ConfirmContext';
+import { ThumbnailDrawer } from '../components/script/thumbnail-studio/components/ThumbnailDrawer';
+import { FloatingThumbnailPill } from '../components/script/thumbnail-studio/components/FloatingThumbnailPill';
+import { useComicStudioStore } from '../components/script/thumbnail-studio/store/useComicStudioStore';
+import { scenesToComicScriptText } from '../components/script/thumbnail-studio/lib/comicScriptParser';
 
 interface ScriptEditorViewProps {
   onShowToast?: (title: string, desc: string) => void;
@@ -81,13 +88,23 @@ interface ScriptEditorViewProps {
 // eslint-disable-next-line react-refresh/only-export-components
 export const formatChapterOption = (chapterNumber: number, title?: string | null): string => {
   if (!title || !title.trim()) return `Chương ${chapterNumber}`;
-  const trimmed = title.trim();
-  const prefixRegex = new RegExp(`^chương\\s+${chapterNumber}\\s*[:\\-–—]?\\s*`, 'i');
-  if (prefixRegex.test(trimmed)) {
-    const clean = trimmed.replace(prefixRegex, '').trim();
-    return clean ? `Chương ${chapterNumber}: ${clean}` : `Chương ${chapterNumber}`;
+  let clean = title.trim();
+
+  // Xóa mọi tiền tố lặp như: "Chương 1:", "Chuong 1:", "Chapter 1 -", "Chap 1:"
+  const prefixRegex = new RegExp(
+    `^(?:chương|chuong|chapter|chap|c)\\s*#?${chapterNumber}\\s*[:\\-–—.]?\\s*`,
+    'i'
+  );
+  if (prefixRegex.test(clean)) {
+    clean = clean.replace(prefixRegex, '').trim();
+  } else {
+    const genericPrefix = /^(?:chương|chuong|chapter|chap)\\s*[:\\-–—.]\\s*/i;
+    if (genericPrefix.test(clean)) {
+      clean = clean.replace(genericPrefix, '').trim();
+    }
   }
-  return `Chương ${chapterNumber}: ${trimmed}`;
+
+  return clean ? `Chương ${chapterNumber}: ${clean}` : `Chương ${chapterNumber}`;
 };
 
 /**
@@ -219,7 +236,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   const [bibleGateModalOpen, setBibleGateModalOpen] = useState(false);
 
   // V2.5: Chế độ soạn thảo kịch bản kép (Dual-Mode: Screenplay Flow làm mặc định + Card Mode làm tùy chọn xem cấu trúc)
-  const [editorMode, setEditorMode] = useState<'flow' | 'cards'>(
+  const [editorMode, setEditorMode] = useState<'flow' | 'cards' | 'storyboard'>(
     isTestEnvironment ? 'cards' : 'flow',
   );
 
@@ -372,6 +389,18 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       isMounted = false;
     };
   }, [seriesId, chapterIdFromUrl]);
+
+  // Đảm bảo lấy đúng chương khi URL query chapterId thay đổi
+  useEffect(() => {
+    if (!chapters || chapters.length === 0 || !chapterIdFromUrl) return;
+    if (currentChapter?.id !== chapterIdFromUrl) {
+      const found = chapters.find((c) => c.id === chapterIdFromUrl);
+      if (found) {
+        setCurrentChapter(found);
+        setOutlineInput(found.outline || '');
+      }
+    }
+  }, [chapterIdFromUrl, chapters, currentChapter?.id]);
 
   // Đồng bộ Outline và nạp findings nhất quán khi currentChapter thay đổi
   useEffect(() => {
@@ -1328,59 +1357,18 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         }}
         isSaving={savingStoryArc || savingOutline}
       />
-      {/* 1. Gọn gàng Header Toolbar */}
-      <header className='shrink-0 bg-[#FCFBF8] border-b border-[#D8D2C5] px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 shadow-2xs z-30'>
-        {/* Left: Tên trang, Chương, Trạng thái & Phiên bản */}
-        <div className='flex items-center gap-3 flex-wrap'>
-          <div className='flex items-center gap-2'>
-            <div className='w-8 h-8 rounded-lg bg-[#FFF2E6] text-[#C2410C] flex items-center justify-center font-bold shrink-0 border border-[#F97316]/20'>
-              <FileText className='w-4 h-4' />
-            </div>
-            <div>
-              <div className='flex items-center gap-1.5'>
-                <span className='px-2 py-0.5 rounded-full bg-[#FFF2E6] text-[#C2410C] border border-[#F97316]/30 font-mono text-xs font-bold uppercase tracking-wider'>
-                  Kịch bản
-                </span>
-                {currentChapter && (
-                  <span
-                    className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border ${
-                      currentChapter.status === 'Approved'
-                        ? 'badge-status-approved'
-                        : currentChapter.status === 'Published'
-                          ? 'badge-status-published'
-                          : currentChapter.status === 'Locked'
-                            ? 'badge-status-locked'
-                            : 'badge-status-inproduction'
-                    }`}
-                  >
-                    {currentChapter.status === 'Approved'
-                      ? 'Đã duyệt'
-                      : currentChapter.status === 'Published'
-                        ? 'Đã phát hành'
-                        : currentChapter.status === 'Locked'
-                          ? 'Đã khóa'
-                          : 'Đang sản xuất'}
-                  </span>
-                )}
-                {currentChapter && (
-                  <span className='text-xs font-mono font-semibold text-[#57534E] bg-[#F3F0E9] border border-[#D8D2C5] px-2 py-0.5 rounded-md'>
-                    v{currentChapter.versionVector}
-                  </span>
-                )}
-              </div>
-              <h1 className='text-sm md:text-base font-bold font-serif tracking-tight text-[#1C1917]'>
-                Biên Soạn Kịch Bản Phân Cảnh (Script Editor)
-              </h1>
-            </div>
-          </div>
+      {/* LUCIAN UX/UI x CHECKLIST DESIGN: MINIMALIST EDITORIAL HEADER (44px) */}
+      <header className='shrink-0 bg-[#FCFBF8] border-b border-[#EBE7DF] px-4 md:px-6 py-2 flex items-center justify-between gap-3 shadow-2xs z-30 min-h-[44px]'>
+        <h1 className='sr-only'>Biên Soạn Kịch Bản Phân Cảnh (Script Editor)</h1>
 
-          {/* Bộ chọn chương không lặp "Chương 1: Chương 1" */}
+        {/* 1. Trái: Context Chương (Breadcrumb-style) + Trạng thái lưu */}
+        <div className='flex items-center gap-3 min-w-0'>
           {chapters.length > 0 && (
-            <div className='flex items-center gap-1.5 bg-[#F8F6F0] px-3 py-1.5 rounded-xl border border-[#D8D2C5] shadow-2xs'>
+            <div className='flex items-center gap-2 bg-[#F3F0E9]/70 hover:bg-[#F3F0E9] px-3 py-1.5 rounded-xl border border-[#E5E0D8] transition-colors shadow-2xs shrink-0 group'>
               <BookOpen className='w-4 h-4 text-[#C2410C] shrink-0' />
               <label
                 htmlFor='script-chapter-select'
-                className='text-xs font-semibold text-[#57534E]'
+                className='text-[11px] font-bold uppercase tracking-wider text-[#78716C]'
               >
                 Chương:
               </label>
@@ -1388,7 +1376,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                 id='script-chapter-select'
                 value={currentChapter?.id || ''}
                 onChange={(e) => handleSelectChapter(e.target.value)}
-                className='bg-transparent text-xs font-bold text-[#1C1917] outline-none cursor-pointer max-w-[260px] truncate pr-1'
+                className='bg-transparent text-xs font-bold text-[#1C1917] outline-none cursor-pointer max-w-[280px] truncate pr-1'
               >
                 {chapters.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -1399,106 +1387,166 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             </div>
           )}
 
-          {/* Trạng thái lưu dữ liệu */}
-          <div className='hidden lg:flex items-center text-xs'>
+          {/* Trạng thái lưu tinh gọn */}
+          <div className='flex items-center text-xs font-mono'>
             {savingStoryArc || savingOutline || submitting ? (
-              <span className='flex items-center gap-1.5 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg'>
-                <RefreshCw className='w-3.5 h-3.5 animate-spin' />
-                <span>Đang lưu...</span>
+              <span className='flex items-center gap-1.5 text-[11px] font-medium text-amber-700 bg-amber-50 border border-amber-200/60 px-2 py-0.5 rounded-md'>
+                <RefreshCw className='w-3 h-3 animate-spin text-amber-600' />
+                <span className='hidden sm:inline'>Đang lưu...</span>
               </span>
             ) : hasUnsavedChanges ? (
-              <span className='flex items-center gap-1.5 text-xs font-semibold text-amber-800 bg-amber-50 border border-amber-300 px-2.5 py-1 rounded-lg'>
-                <span className='w-2 h-2 rounded-full bg-amber-500 animate-pulse' />
-                <span>Chưa lưu thay đổi</span>
+              <span className='flex items-center gap-1.5 text-[11px] font-semibold text-amber-800 bg-amber-50/80 border border-amber-300/60 px-2 py-0.5 rounded-md'>
+                <span className='w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse' />
+                <span className='hidden sm:inline'>Chưa lưu</span>
               </span>
             ) : (
-              <span className='flex items-center gap-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg'>
-                <Check className='w-3.5 h-3.5 text-emerald-600' />
-                <span>Đã lưu</span>
+              <span className='flex items-center gap-1 text-[11px] font-medium text-emerald-700 bg-emerald-50/70 border border-emerald-200/60 px-2 py-0.5 rounded-md'>
+                <Check className='w-3 h-3 text-emerald-600' />
+                <span className='hidden sm:inline'>Đã lưu</span>
               </span>
             )}
           </div>
         </div>
 
-        {/* Right: Hành động chính & Mở panel phụ */}
-        <div className='flex items-center gap-2 flex-wrap'>
-          {/* Nút Đề cương & Bối cảnh (mở drawer) */}
+        {/* 2. Giữa: Lucian #039 Sliding Pill Tabs (Segmented Control Chế độ xem) */}
+        <div className='flex items-center bg-[#F3F0E9] p-0.5 rounded-xl border border-[#E5E0D8] shadow-2xs'>
+          <button
+            type='button'
+            onClick={() => setEditorMode('flow')}
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              editorMode === 'flow'
+                ? 'bg-white text-[#1C1917] shadow-2xs'
+                : 'text-[#78716C] hover:text-[#1C1917]'
+            }`}
+            title='Soạn thảo kịch bản liên tục dạng văn bản'
+          >
+            <FileText className='w-3.5 h-3.5' />
+            <span className='hidden sm:inline'>Trang giấy</span>
+          </button>
+          <button
+            type='button'
+            onClick={() => setEditorMode('cards')}
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              editorMode === 'cards'
+                ? 'bg-white text-[#1C1917] shadow-2xs'
+                : 'text-[#78716C] hover:text-[#1C1917]'
+            }`}
+            title='Xem cấu trúc theo thẻ phân cảnh'
+          >
+            <Layers className='w-3.5 h-3.5' />
+            <span className='hidden sm:inline'>Thẻ cảnh</span>
+          </button>
+          <button
+            type='button'
+            onClick={() => setEditorMode('storyboard')}
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              editorMode === 'storyboard'
+                ? 'bg-white text-[#1C1917] shadow-2xs'
+                : 'text-[#78716C] hover:text-[#1C1917]'
+            }`}
+            title='Dàn khung & Chèn thumbnail vào từng panel'
+          >
+            <LayoutTemplate className='w-3.5 h-3.5' />
+            <span className='hidden sm:inline'>Dàn khung</span>
+          </button>
+        </div>
+
+        {/* 3. Phải: Nhóm công cụ phụ trợ tối giản (Checklist: High Proximity, Low Visual Noise) */}
+        <div className='flex items-center gap-1.5'>
+          {/* Đề cương & Bối cảnh */}
           <button
             type='button'
             data-testid='toggle-narrative-context-btn'
             onClick={() =>
               setActiveSideDrawer((prev) => (prev === 'narrative' ? null : 'narrative'))
             }
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer shadow-2xs ${
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${
               activeSideDrawer === 'narrative'
-                ? 'bg-[#FFF2E6] text-[#1C1917] border-[#C2410C] font-bold'
-                : 'bg-[#FCFBF8] text-[#57534E] hover:bg-[#F3F0E9] border-[#D8D2C5]'
+                ? 'bg-[#FFF2E6] text-[#C2410C] border-[#F97316] font-bold shadow-2xs'
+                : 'bg-white/80 text-[#57534E] hover:bg-[#F3F0E9] border-[#E5E0D8]'
             }`}
-            title='Định hướng cốt truyện & đề cương phân cảnh'
+            title='Đề cương & Bối cảnh phân cảnh'
           >
             <Compass className='w-3.5 h-3.5 text-[#C2410C]' />
-            <span className='hidden sm:inline'>Đề cương & Bối cảnh</span>
-            <span className='sm:hidden'>Đề cương</span>
+            <span className='hidden lg:inline'>Đề cương</span>
             {outlineWordCount > 0 && (
-              <span className='text-xs font-mono font-bold bg-[#F8F6F0] px-2 py-0.5 rounded-md border border-[#D8D2C5] text-[#1C1917]'>
-                {outlineWordCount} từ
+              <span className='text-[10px] font-mono font-bold bg-[#F8F6F0] px-1 rounded text-[#1C1917]'>
+                {outlineWordCount}
               </span>
-            )}
-            {hasUnsavedChanges && (
-              <span className='w-2 h-2 rounded-full bg-amber-500 animate-pulse' />
             )}
           </button>
 
-          {/* Nút Kiểm tra nhất quán (thống nhất số lượng đếm) */}
+          {/* Kiểm tra nhất quán */}
           <button
             type='button'
             data-testid='run-consistency-check-btn'
             onClick={handleRunConsistencyCheck}
             disabled={loadingConsistency || !currentChapter?.id}
-            className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-full border transition-all cursor-pointer shadow-soft-sm disabled:opacity-50 ${
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer disabled:opacity-50 ${
               activeSideDrawer === 'consistency'
-                ? 'bg-[#7c3aed] text-white border-transparent shadow-glow-violet font-bold'
-                : 'text-violet-900 bg-violet-50 hover:bg-violet-100 border-violet-200'
+                ? 'bg-violet-700 text-white border-transparent shadow-2xs font-bold'
+                : 'bg-white/80 text-violet-900 hover:bg-violet-50 border-[#E5E0D8]'
             }`}
-            title={`Kiểm tra nhất quán (${openFindingsCount} cần xử lý / ${totalFindingsCount} tổng số)`}
+            title={`Kiểm tra nhất quán (${openFindingsCount} cần xử lý)`}
           >
             <ShieldCheck
               className={`w-3.5 h-3.5 ${activeSideDrawer === 'consistency' ? 'text-white' : 'text-violet-600'} ${loadingConsistency ? 'animate-spin' : ''}`}
             />
-            <span className='hidden sm:inline'>
-              {loadingConsistency ? 'Đang kiểm tra...' : 'Kiểm tra nhất quán'}
-            </span>
-            <span className='sm:hidden'>Nhất quán</span>
-            {openFindingsCount > 0 ? (
-              <span className='px-2 py-0.5 rounded-full bg-rose-500 text-white text-xs font-mono font-bold shadow-xs'>
+            <span className='hidden lg:inline'>Nhất quán</span>
+            {openFindingsCount > 0 && (
+              <span className='px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[10px] font-mono font-bold'>
                 {openFindingsCount}
               </span>
-            ) : totalFindingsCount > 0 ? (
-              <span className='px-2 py-0.5 rounded-full bg-[#F3F0E9] border border-[#D8D2C5] text-[#57534E] text-xs font-mono font-bold'>
-                {totalFindingsCount}
-              </span>
-            ) : null}
+            )}
           </button>
 
-          {/* Nút mở danh mục Nhân vật Series Bible */}
+          {/* Nhân vật Series Bible */}
           <button
             type='button'
+            aria-label='Nhân vật Bible'
             onClick={() =>
               setActiveSideDrawer((prev) => (prev === 'characters' ? null : 'characters'))
             }
-            className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-full border transition-all cursor-pointer shadow-soft-sm ${
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${
               activeSideDrawer === 'characters'
-                ? 'bg-purple-700 text-white border-transparent font-bold'
-                : 'bg-purple-50 text-purple-900 hover:bg-purple-100 border-purple-200'
+                ? 'bg-purple-700 text-white border-transparent shadow-2xs font-bold'
+                : 'bg-white/80 text-purple-900 hover:bg-purple-50 border-[#E5E0D8]'
             }`}
             title='Xem danh sách nhân vật Canon từ Series Bible'
           >
             <User
               className={`w-3.5 h-3.5 ${activeSideDrawer === 'characters' ? 'text-white' : 'text-purple-600'}`}
             />
-            <span className='hidden sm:inline'>Nhân vật Bible ({characters.length})</span>
-            <span className='sm:hidden'>Bible</span>
+            <span className='hidden lg:inline'>Nhân vật Bible ({characters.length})</span>
           </button>
+
+          {/* Chapter-Scoped Bible Gate */}
+          {currentChapter && (
+            <button
+              type='button'
+              onClick={() => setBibleGateModalOpen(true)}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${
+                bibleGateResult?.isPassed
+                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
+                  : bibleGateResult && !bibleGateResult.isPassed
+                    ? 'bg-rose-50 text-rose-800 border-rose-200 hover:bg-rose-100'
+                    : 'bg-white/80 text-[#57534E] border-[#E5E0D8] hover:bg-[#F3F0E9]'
+              }`}
+              title='Rào chắn Bible theo Chương (Bible Gate)'
+              data-testid='chapter-bible-gate-btn'
+            >
+              <ShieldCheck
+                className={`w-3.5 h-3.5 ${
+                  bibleGateResult?.isPassed
+                    ? 'text-emerald-600'
+                    : bibleGateResult && !bibleGateResult.isPassed
+                      ? 'text-rose-600'
+                      : 'text-gray-500'
+                }`}
+              />
+              <span className='hidden xl:inline'>Bible Gate</span>
+            </button>
+          )}
 
           {/* Nút Làm mới */}
           <button
@@ -1511,71 +1559,26 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               }
             }}
             disabled={loadingScenes || loadingDetail}
-            className='inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#57534E] bg-[#FCFBF8] hover:bg-[#F3F0E9] border border-[#D8D2C5] rounded-xl transition-all cursor-pointer shadow-2xs'
+            className='p-1.5 text-[#78716C] hover:text-[#1C1917] hover:bg-[#F3F0E9] border border-[#E5E0D8] rounded-xl transition-all cursor-pointer bg-white/80'
             title='Làm mới kịch bản'
           >
             <RefreshCw
               className={`w-3.5 h-3.5 ${loadingScenes || loadingDetail ? 'animate-spin' : ''}`}
             />
-            <span className='hidden sm:inline'>Làm mới</span>
           </button>
 
-          {/* Chapter-Scoped Bible Gate Button */}
-          {currentChapter && (
-            <button
-              type='button'
-              onClick={() => setBibleGateModalOpen(true)}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer shadow-2xs ${
-                bibleGateResult?.isPassed
-                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
-                  : bibleGateResult && !bibleGateResult.isPassed
-                    ? 'bg-rose-50 text-rose-800 border-rose-300 hover:bg-rose-100'
-                    : 'bg-[#FCFBF8] text-[#57534E] border-[#D8D2C5] hover:bg-[#F3F0E9]'
-              }`}
-              title='Rào chắn Series Bible theo Chương (Chapter-Scoped Bible Gate)'
-              data-testid='chapter-bible-gate-btn'
-            >
-              <ShieldCheck
-                className={`w-3.5 h-3.5 ${
-                  bibleGateResult?.isPassed
-                    ? 'text-emerald-600'
-                    : bibleGateResult && !bibleGateResult.isPassed
-                      ? 'text-rose-600'
-                      : 'text-[#78716C]'
-                }`}
-              />
-              <span className='hidden sm:inline'>
-                {loadingBibleGate
-                  ? 'Kiểm tra Gate...'
-                  : bibleGateResult?.isPassed
-                    ? `Bible Gate Đạt (${bibleGateResult.lockedCount}/${bibleGateResult.totalReferencedEntries})`
-                    : bibleGateResult && !bibleGateResult.isPassed
-                      ? `Bible Gate: Còn ${bibleGateResult.pendingCount} mục chưa khóa`
-                      : 'Bible Gate'}
-              </span>
-              <span className='sm:hidden'>Gate</span>
-            </button>
-          )}
-
-          {/* Producer Duyệt Kịch Bản & Đưa Vào Sản Xuất (Freeze Script) */}
+          {/* Producer Freeze Script Button */}
           {normRole === 'PRODUCER' && !isScriptFrozen && currentChapter && (
             <button
               type='button'
               disabled={freezingScript || (bibleGateResult !== null && !bibleGateResult.isPassed)}
               onClick={() => void handleFreezeScript()}
-              className='inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-[#F97316] hover:bg-[#EA580C] disabled:bg-zinc-300 disabled:text-zinc-500 rounded-xl transition-all cursor-pointer shadow-sm active:scale-95'
-              title={
-                bibleGateResult !== null && !bibleGateResult.isPassed
-                  ? 'Cần khóa toàn bộ Series Bible được tham chiếu trong chương trước khi duyệt đưa vào sản xuất'
-                  : 'Duyệt kịch bản, đóng băng chỉ đọc và mở khóa công đoạn Thumbnail Layout cho Artist'
-              }
+              className='inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-[#F97316] hover:bg-[#EA580C] disabled:bg-zinc-300 disabled:text-zinc-500 rounded-xl transition-all cursor-pointer shadow-2xs ml-1'
+              title='Duyệt kịch bản và bắt đầu sản xuất hình ảnh'
               data-testid='freeze-script-btn'
             >
               <Sparkles className='w-3.5 h-3.5' />
-              <span className='hidden sm:inline'>
-                {freezingScript ? 'Đang duyệt...' : 'Duyệt Kịch Bản & Bắt Đầu Sản Xuất'}
-              </span>
-              <span className='sm:hidden'>Duyệt kịch bản</span>
+              <span className='hidden sm:inline'>Duyệt kịch bản</span>
             </button>
           )}
         </div>
@@ -1901,8 +1904,8 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           {scenes.length > 0 && (
             <div className='shrink-0 bg-[#FCFBF8] border-b border-[#D8D2C5] px-4 md:px-6 pt-2 pb-0 flex items-center justify-between gap-3 overflow-x-auto shadow-2xs'>
               <div className='flex items-center gap-1.5 overflow-x-auto py-0.5 custom-scrollbar'>
-                {scenes.map((s) => {
-                  const isSelected = selectedScene?.id === s.id;
+                {scenes.filter((s): s is SceneDto => Boolean(s && s.id)).map((s) => {
+                  const isSelected = selectedScene?.id === s?.id;
                   return (
                     <button
                       key={s.id}
@@ -1943,35 +1946,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                 )}
               </div>
 
-              {/* Chuyển đổi Trang giấy (TipTap) / Thẻ phân cảnh */}
-              <div className='flex items-center gap-1 bg-[#EBE7DF]/80 p-0.5 rounded-xl border border-[#D8D2C5] shrink-0 mb-1.5'>
-                <button
-                  type='button'
-                  onClick={() => setEditorMode('flow')}
-                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    editorMode === 'flow'
-                      ? 'bg-[#C2410C] text-white shadow-2xs'
-                      : 'text-[#57534E] hover:text-[#1C1917]'
-                  }`}
-                  title='Soạn thảo dạng trang giấy kịch bản liên tục'
-                >
-                  <FileText className='w-3.5 h-3.5' />
-                  <span>Trang giấy</span>
-                </button>
-                <button
-                  type='button'
-                  onClick={() => setEditorMode('cards')}
-                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    editorMode === 'cards'
-                      ? 'bg-[#C2410C] text-white shadow-2xs'
-                      : 'text-[#57534E] hover:text-[#1C1917]'
-                  }`}
-                  title='Xem cấu trúc theo thẻ phân cảnh'
-                >
-                  <Layers className='w-3.5 h-3.5' />
-                  <span>Thẻ cảnh</span>
-                </button>
-              </div>
+              
             </div>
           )}
 
@@ -2033,6 +2008,17 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
                   <button
                     type='button'
+                    data-testid='toggle-thumbnail-drawer-btn'
+                    onClick={() => useComicStudioStore.getState().toggleDrawer()}
+                    className='inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-[#C2410C] bg-[#FFF2E6] hover:bg-[#FFE5D0] border border-[#F97316]/40 rounded-full transition-all cursor-pointer shadow-xs'
+                    title='Xem Storyboard & Thẻ phân cảnh Thumbnail (Phím tắt: Ctrl+B)'
+                  >
+                    <Film className='w-3.5 h-3.5 text-[#C2410C]' />
+                    <span>🎞️ Storyboard / Thumbnails</span>
+                  </button>
+
+                  <button
+                    type='button'
                     data-testid='open-script-history-btn'
                     onClick={() => setHistoryOpen(true)}
                     className='inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-[#57534E] bg-[#FCFBF8] hover:bg-[#F3F0E9] border border-[#D8D2C5] rounded-full transition-all cursor-pointer shadow-soft-sm'
@@ -2073,6 +2059,16 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                   <div className='flex items-center justify-center py-20 text-[#57534E] text-xs'>
                     <RefreshCw className='w-5 h-5 animate-spin mr-2 text-[#C2410C]' />
                     <span>Đang nạp chi tiết phân cảnh...</span>
+                  </div>
+                ) : editorMode === 'storyboard' ? (
+                  /* DÀN TRANG & THUMBNAIL (STORYBOARD BREAKDOWN) */
+                  <div className='max-w-6xl mx-auto'>
+                    <ScriptThumbnailStoryboardView
+                      scenes={chapterScenesDetail.length > 0 ? chapterScenesDetail : (selectedScene ? [selectedScene] : [])}
+                      canEdit={canEditScript && !isChapterLocked}
+                      getSpeakerName={getSpeakerName}
+                      onShowToast={onShowToast}
+                    />
                   </div>
                 ) : editorMode === 'flow' ? (
                   /* TRANG GIẤY KỊCH BẢN (EDITORIAL SCRIPT PAPER) */
@@ -2165,6 +2161,16 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           ) : (
             // Mở thẳng trình soạn thảo Screenplay Flow, loại bỏ hoàn toàn màn hình trung gian chọn phân cảnh
             <div className='flex-1 flex flex-col overflow-hidden'>
+              {editorMode === 'storyboard' ? (
+                <div className='max-w-6xl mx-auto p-4 md:p-6 w-full'>
+                  <ScriptThumbnailStoryboardView
+                    scenes={chapterScenesDetail.length > 0 ? chapterScenesDetail : []}
+                    canEdit={canEditScript && !isChapterLocked}
+                    getSpeakerName={getSpeakerName}
+                    onShowToast={onShowToast}
+                  />
+                </div>
+              ) : (
               <ScreenplayFlowEditor
                 scenes={chapterScenesDetail.length > 0 ? chapterScenesDetail : []}
                 allBibleEntries={allBibleEntries}
@@ -2176,6 +2182,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                 onCreateStub={handleCreateStubEntity}
                 onShowToast={onShowToast}
               />
+            )}
             </div>
           )}
         </div>
@@ -2748,6 +2755,12 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           </div>
         </div>
       )}
+
+      {/* Slide-over Thumbnail Drawer (On-demand Reactive Storyboard) */}
+      <ThumbnailDrawer />
+
+      {/* Persistent Floating Shortcut Pill (Page X | Panel Y) */}
+      <FloatingThumbnailPill />
     </div>
   );
 };
