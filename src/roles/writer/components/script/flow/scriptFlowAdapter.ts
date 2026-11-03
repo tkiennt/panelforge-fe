@@ -45,7 +45,21 @@ export function scenesToTipTapDoc(
     });
 
     // 2. Thêm từng ScriptLine trong Scene
-    scene.scriptLines.forEach((line, index) => {
+    if (!scene.scriptLines || scene.scriptLines.length === 0) {
+      content.push({
+        type: 'scriptLineBlock',
+        attrs: {
+          scriptLineId: generateGuid(),
+          sceneId: scene.id,
+          blockType: 'stage_direction' as MangaBlockType,
+          narrationMode: 'Present',
+          lineOrder: 1,
+          panelId: null,
+        },
+        content: [],
+      });
+    } else {
+      scene.scriptLines.forEach((line, index) => {
       // Nếu có chỉ dẫn sân khấu (Stage Direction) mà không có thoại
       if (line.stageDirection && !line.dialogueText) {
         content.push({
@@ -114,7 +128,8 @@ export function scenesToTipTapDoc(
           });
         }
       }
-    });
+      });
+    }
   });
 
   if (content.length === 0) {

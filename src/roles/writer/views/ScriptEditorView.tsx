@@ -1897,58 +1897,113 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
         {/* CENTER: Bàn làm việc Kịch bản (Ưu tiên vùng nhìn đầu tiên, tràn chiều rộng) */}
         <div className='flex-1 flex flex-col overflow-hidden min-w-0 bg-[#F3F0E9]'>
-          {selectedScene || editorMode === 'flow' ? (
+          {/* THANH TAB PHÂN CẢNH (SCENE TABS BAR) */}
+          {scenes.length > 0 && (
+            <div className='shrink-0 bg-[#FCFBF8] border-b border-[#D8D2C5] px-4 md:px-6 pt-2 pb-0 flex items-center justify-between gap-3 overflow-x-auto shadow-2xs'>
+              <div className='flex items-center gap-1.5 overflow-x-auto py-0.5 custom-scrollbar'>
+                {scenes.map((s) => {
+                  const isSelected = selectedScene?.id === s.id;
+                  return (
+                    <button
+                      key={s.id}
+                      type='button'
+                      data-testid={`scene-tab-${s.sceneNumber}`}
+                      onClick={() => handleSelectScene(s)}
+                      className={`group flex items-center gap-2 px-3.5 py-2 text-xs rounded-t-xl border transition-all cursor-pointer whitespace-nowrap ${
+                        isSelected
+                          ? 'bg-[#F3F0E9] text-[#1C1917] border-[#D8D2C5] border-b-transparent border-t-2 border-t-[#C2410C] font-bold shadow-xs'
+                          : 'bg-[#FCFBF8] text-[#57534E] border-transparent hover:bg-[#F3F0E9]/70 hover:text-[#1C1917]'
+                      }`}
+                    >
+                      <span
+                        className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold transition-colors ${
+                          isSelected ? 'bg-[#C2410C] text-white' : 'bg-[#EBE7DF] text-[#57534E] group-hover:bg-[#D8D2C5]'
+                        }`}
+                      >
+                        CẢNH {s.sceneNumber}
+                      </span>
+                      <span className='truncate max-w-[120px] md:max-w-[180px]'>
+                        {s.heading || 'Chưa đặt tiêu đề'}
+                      </span>
+                    </button>
+                  );
+                })}
+
+                {/* Nút thêm phân cảnh mới ngay trên thanh tab */}
+                {canEditScript && !isChapterLocked && (
+                  <button
+                    type='button'
+                    onClick={handleOpenCreateScene}
+                    className='flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-[#C2410C] hover:bg-[#FFF2E6] rounded-lg transition-colors cursor-pointer whitespace-nowrap ml-1'
+                    title='Thêm phân cảnh mới'
+                  >
+                    <Plus className='w-3.5 h-3.5' />
+                    <span>+ Thêm cảnh</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Chuyển đổi Trang giấy (TipTap) / Thẻ phân cảnh */}
+              <div className='flex items-center gap-1 bg-[#EBE7DF]/80 p-0.5 rounded-xl border border-[#D8D2C5] shrink-0 mb-1.5'>
+                <button
+                  type='button'
+                  onClick={() => setEditorMode('flow')}
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    editorMode === 'flow'
+                      ? 'bg-[#C2410C] text-white shadow-2xs'
+                      : 'text-[#57534E] hover:text-[#1C1917]'
+                  }`}
+                  title='Soạn thảo dạng trang giấy kịch bản liên tục'
+                >
+                  <FileText className='w-3.5 h-3.5' />
+                  <span>Trang giấy</span>
+                </button>
+                <button
+                  type='button'
+                  onClick={() => setEditorMode('cards')}
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    editorMode === 'cards'
+                      ? 'bg-[#C2410C] text-white shadow-2xs'
+                      : 'text-[#57534E] hover:text-[#1C1917]'
+                  }`}
+                  title='Xem cấu trúc theo thẻ phân cảnh'
+                >
+                  <Layers className='w-3.5 h-3.5' />
+                  <span>Thẻ cảnh</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {selectedScene ? (
             <>
               {/* Scene Header & Actions */}
               <div className='shrink-0 bg-[#FCFBF8] border-b border-[#D8D2C5] px-6 py-3.5 flex flex-wrap items-center justify-between gap-3 shadow-2xs'>
                 <div className='min-w-0 flex-1'>
-                  {editorMode === 'flow' ? (
-                    <div>
-                      <div className='flex items-center gap-2 flex-wrap'>
-                        <span className='px-2.5 py-0.5 rounded-md bg-[#1C1917] text-[#FCFBF8] font-mono text-xs font-bold tracking-wider'>
-                          BẢN THẢO KỊCH BẢN (MANUSCRIPT)
-                        </span>
-                        {currentChapter && (
-                          <span className='text-xs font-mono font-semibold text-[#57534E]'>
-                            {formatChapterOption(currentChapter.chapterNumber, currentChapter.title)}
+                  <div>
+                    <div className='flex items-center gap-2 flex-wrap'>
+                      <span className='px-2.5 py-0.5 rounded-md bg-[#1C1917] text-[#FCFBF8] font-mono text-xs font-bold tracking-wider'>
+                        CẢNH {selectedScene.sceneNumber}
+                      </span>
+                      <span className='text-xs font-mono text-[#57534E]'>
+                        ID: {selectedScene.id ? `${selectedScene.id.substring(0, 8)}...` : 'N/A'}
+                      </span>
+                      {selectedScene.defaultNarrationMode &&
+                        selectedScene.defaultNarrationMode !== 'Present' && (
+                          <span className='text-xs font-medium text-purple-700 bg-purple-50 border border-purple-200 px-2.5 py-0.5 rounded-full'>
+                            Mặc định: {selectedScene.defaultNarrationMode}
                           </span>
                         )}
-                        <span className='text-xs font-mono text-[#57534E]'>
-                          · {scenes.length} phân cảnh
-                        </span>
-                      </div>
-                      <h3 className='text-base md:text-lg font-bold font-serif text-[#1C1917] mt-1 truncate'>
-                        {currentChapter
-                          ? formatChapterOption(currentChapter.chapterNumber, currentChapter.title)
-                          : 'Bản Thảo Kịch Bản Liền Mạch'}
-                      </h3>
                     </div>
-                  ) : (
-                    <div>
-                      <div className='flex items-center gap-2 flex-wrap'>
-                        <span className='px-2.5 py-0.5 rounded-md bg-[#1C1917] text-[#FCFBF8] font-mono text-xs font-bold tracking-wider'>
-                          CẢNH {selectedScene?.sceneNumber || 1}
-                        </span>
-                        <span className='text-xs font-mono text-[#57534E]'>
-                          ID: {selectedScene?.id ? `${selectedScene.id.substring(0, 8)}...` : 'N/A'}
-                        </span>
-                        {selectedScene?.defaultNarrationMode &&
-                          selectedScene.defaultNarrationMode !== 'Present' && (
-                            <span className='text-xs font-medium text-purple-700 bg-purple-50 border border-purple-200 px-2.5 py-0.5 rounded-full'>
-                              Mặc định: {selectedScene.defaultNarrationMode}
-                            </span>
-                          )}
-                      </div>
-                      <h3 className='text-base md:text-lg font-bold font-serif text-[#1C1917] mt-1 truncate'>
-                        {selectedScene?.heading || 'Phân cảnh chưa đặt tiêu đề'}
-                      </h3>
-                      {selectedScene?.summary && (
-                        <p className='text-xs text-[#57534E] italic mt-0.5 truncate'>
-                          &ldquo;{selectedScene.summary}&rdquo;
-                        </p>
-                      )}
-                    </div>
-                  )}
+                    <h3 className='text-base md:text-lg font-bold font-serif text-[#1C1917] mt-1 truncate'>
+                      {selectedScene.heading || 'Phân cảnh chưa đặt tiêu đề'}
+                    </h3>
+                    {selectedScene.summary && (
+                      <p className='text-xs text-[#57534E] italic mt-0.5 truncate'>
+                        &ldquo;{selectedScene.summary}&rdquo;
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 {/* Toolbar cho phân cảnh */}
@@ -1974,33 +2029,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                     </div>
                   )}
 
-                  {/* V2.5 Dual-Mode Tab Switcher (Screenplay Flow vs Beat Board Cards) */}
-                  <div className='flex items-center gap-1 bg-[#EBE7DF]/80 p-0.5 rounded-xl border border-[#D8D2C5] mr-2'>
-                    <button
-                      type='button'
-                      onClick={() => setEditorMode('flow')}
-                      className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                        editorMode === 'flow'
-                          ? 'bg-[#C2410C] text-white shadow-2xs'
-                          : 'text-[#57534E] hover:text-[#1C1917]'
-                      }`}
-                    >
-                      <FileText className='w-3.5 h-3.5' />
-                      <span>Dòng chảy (TipTap)</span>
-                    </button>
-                    <button
-                      type='button'
-                      onClick={() => setEditorMode('cards')}
-                      className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                        editorMode === 'cards'
-                          ? 'bg-[#C2410C] text-white shadow-2xs'
-                          : 'text-[#57534E] hover:text-[#1C1917]'
-                      }`}
-                    >
-                      <Layers className='w-3.5 h-3.5' />
-                      <span>Thẻ phân cảnh</span>
-                    </button>
-                  </div>
+
 
                   <button
                     type='button'
@@ -2046,17 +2075,21 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                     <span>Đang nạp chi tiết phân cảnh...</span>
                   </div>
                 ) : editorMode === 'flow' ? (
-                  <ScreenplayFlowEditor
-                    scenes={chapterScenesDetail.length > 0 ? chapterScenesDetail : (selectedScene ? [selectedScene] : [])}
-                    allBibleEntries={allBibleEntries}
-                    consistencyFindings={findings}
-                    canEditScript={canEditScript}
-                    isChapterLocked={isChapterLocked}
-                    getSpeakerName={getSpeakerName}
-                    onSaveLines={handleSaveFlowLines}
-                    onCreateStub={handleCreateStubEntity}
-                    onShowToast={onShowToast}
-                  />
+                  /* TRANG GIẤY KỊCH BẢN (EDITORIAL SCRIPT PAPER) */
+                  <div className='max-w-4xl mx-auto'>
+                    <ScreenplayFlowEditor
+                      key={selectedScene.id}
+                      scenes={[selectedScene]}
+                      allBibleEntries={allBibleEntries}
+                      consistencyFindings={findings}
+                      canEditScript={canEditScript}
+                      isChapterLocked={isChapterLocked}
+                      getSpeakerName={getSpeakerName}
+                      onSaveLines={handleSaveFlowLines}
+                      onCreateStub={handleCreateStubEntity}
+                      onShowToast={onShowToast}
+                    />
+                  </div>
                 ) : !selectedScene.scriptLines || selectedScene.scriptLines.length === 0 ? (
                   <div className='text-center py-16 border border-dashed border-[#D8D2C5] rounded-2xl text-[#57534E] text-xs bg-[#FCFBF8]'>
                     <MessageSquare className='w-8 h-8 text-[#57534E]/50 mx-auto mb-2' />
