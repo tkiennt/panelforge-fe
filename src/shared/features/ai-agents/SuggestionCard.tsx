@@ -9,6 +9,9 @@ import {
   Lock,
   MessageSquareWarning,
   Scissors,
+  BookOpen,
+  Palette,
+  Sparkles,
   X,
 } from 'lucide-react';
 import {
@@ -19,9 +22,14 @@ import {
   LetteringSuggestionSet,
   ScriptDraft,
   StoryboardLayout,
+  LineRewriteSuggestion,
+  SeriesMetadataSuggestion,
+  ThumbnailSuggestion,
 } from '@/services/aiAgents.service';
 import { ArtistPromptsView, LetteringDiffView } from './AgentOutputViews';
+import { LayoutPreview } from './LayoutPreview';
 import { KIND_META } from './aiViewUtils';
+import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 
 const STATUS_STYLE: Record<AiSuggestionStatus, string> = {
   Pending: 'border-amber-300 bg-amber-50 text-amber-700',
@@ -40,14 +48,19 @@ const KIND_ICON: Record<AiSuggestionKind, React.ElementType> = {
   Layout: LayoutTemplate,
   ImagePrompt: ImageIcon,
   Lettering: Scissors,
+  LineRewrite: Sparkles,
+  SeriesMetadata: BookOpen,
+  Thumbnail: Palette,
 };
 
 interface Props {
   suggestion: AiSuggestionDto;
+  seriesId?: string;
   /** Trạng thái đề xuất cha (Script) — chỉ có nghĩa khi suggestion.parentSuggestionId có giá trị. */
   parentStatus?: AiSuggestionStatus;
   busy: boolean;
   nameById?: Record<string, string>;
+  hasPanels?: boolean;
   onDecide: (decision: 'accept' | 'reject' | 'request-changes', reason?: string) => void;
 }
 
@@ -59,6 +72,24 @@ function detailOf(s: AiSuggestionDto): string {
     case 'Layout': {
       const l = s.payload as StoryboardLayout | undefined;
       return `${l?.pages?.length ?? 0} trang · ${l?.pages?.reduce((n, p) => n + p.panels.length, 0) ?? 0} panel`;
+    }
+    case 'LineRewrite': {
+      const lr = s.payload as LineRewriteSuggestion | undefined;
+      return lr?.task === 'letterer.shorten'
+        ? `Rút gọn thoại (${lr.maxChars ? `tối đa ${lr.maxChars} ký tự` : 'theo khung'})`
+        : 'Viết lại thoại theo giọng nhân vật';
+    }
+    case 'SeriesMetadata': {
+      const sm = s.payload as SeriesMetadataSuggestion | undefined;
+      return sm?.metadata
+        ? `Độ tuổi: ${sm.metadata.ageRating} · Thể loại: ${sm.metadata.genre}`
+        : 'Gợi ý thông tin phát hành Series';
+    }
+    case 'Thumbnail': {
+      const tn = s.payload as ThumbnailSuggestion | undefined;
+      return tn?.provider
+        ? `Model: ${tn.model} (${tn.provider})`
+        : 'Ảnh thumbnail AI cho panel';
     }
     case 'ImagePrompt':
       return `${(s.payload as ArtistPromptSet | undefined)?.panels?.length ?? 0} prompt ảnh cho panel`;
@@ -73,9 +104,11 @@ function detailOf(s: AiSuggestionDto): string {
  */
 export const SuggestionCard: React.FC<Props> = ({
   suggestion: s,
+  seriesId,
   parentStatus,
   busy,
   nameById = {},
+  hasPanels,
   onDecide,
 }) => {
   const [form, setForm] = useState<'reject' | 'request-changes' | null>(null);
@@ -95,8 +128,16 @@ export const SuggestionCard: React.FC<Props> = ({
       ? 'Còn finding chặn từ Continuity — chỉ được Reject hoặc Yêu cầu sửa'
       : blockedByScript
         ? 'Cần Accept đề xuất Script trước'
+        : hasPanels && s.kind === 'Layout'
+          ? 'Scene đã có Panel; không thể áp dụng layout AI. Hãy dùng Tự động phân bổ trên Bàn vẽ.'
         : '';
-  const canPreview = s.kind === 'ImagePrompt' || s.kind === 'Lettering';
+  const canPreview =
+    s.kind === 'ImagePrompt' ||
+    s.kind === 'Lettering' ||
+    s.kind === 'LineRewrite' ||
+    s.kind === 'SeriesMetadata' ||
+    s.kind === 'Thumbnail' ||
+    s.kind === 'Layout';
 
   const submit = () => {
     if (!form) return;
@@ -135,7 +176,73 @@ export const SuggestionCard: React.FC<Props> = ({
           </button>
           {showContent && (
             <div className='mt-2'>
-              {s.kind === 'Lettering' ? (
+              {s.kind === 'SeriesMetadata' ? (
+                <div className='space-y-1.5 rounded border border-[#E7E7E7] bg-[#FAF8F5] p-3 text-xs'>
+                  <div>
+                    <span className='font-bold text-[#171717]'>Logline: </span>
+                    <span className='text-[#404040]'>
+                      {(s.payload as SeriesMetadataSuggestion)?.metadata?.logline}
+                    </span>
+                  </div>
+                  <div>
+                    <span className='font-bold text-[#171717]'>Tóm tắt: </span>
+                    <span className='text-[#404040]'>
+                      {(s.payload as SeriesMetadataSuggestion)?.metadata?.synopsis}
+                    </span>
+                  </div>
+                  <div className='flex gap-4 text-[11px] text-[#525252]'>
+                    <span>
+                      Thể loại: <b>{(s.payload as SeriesMetadataSuggestion)?.metadata?.genre}</b>
+                    </span>
+                    <span>
+                      Độ tuổi: <b>{(s.payload as SeriesMetadataSuggestion)?.metadata?.ageRating}</b>
+                    </span>
+                  </div>
+                  {(s.payload as SeriesMetadataSuggestion)?.reason && (
+                    <div className='text-[11px] italic text-[#737373]'>
+                      Lý do: {(s.payload as SeriesMetadataSuggestion)?.reason}
+                    </div>
+                  )}
+                </div>
+              ) : s.kind === 'Thumbnail' ? (
+                <div className='rounded border border-[#E7E7E7] bg-[#FAF8F5] p-3 text-xs space-y-2'>
+                  {(s.payload as ThumbnailSuggestion)?.sha256 && (
+                    <div className='w-full max-w-xs h-40 bg-stone-900 rounded-lg overflow-hidden border border-stone-200 flex items-center justify-center mx-auto'>
+                      <AuthenticatedImage
+                        src={seriesId ? `/api/series/${seriesId}/bible/assets/${(s.payload as ThumbnailSuggestion).sha256}` : ''}
+                        alt='Thumbnail Preview'
+                        className='max-w-full max-h-full object-contain'
+                      />
+                    </div>
+                  )}
+                  <div className='font-medium text-[#171717]'>
+                    Prompt: {(s.payload as ThumbnailSuggestion)?.prompt}
+                  </div>
+                  <div className='mt-1 text-[11px] text-[#737373]'>
+                    Provider: {(s.payload as ThumbnailSuggestion)?.provider} · Model: {(s.payload as ThumbnailSuggestion)?.model} · SHA-256: {(s.payload as ThumbnailSuggestion)?.sha256?.slice(0, 12)}...
+                  </div>
+                </div>
+              ) : s.kind === 'LineRewrite' ? (
+                <div className='rounded border border-[#E7E7E7] bg-[#FAF8F5] p-3 text-xs'>
+                  <div className='text-[11px] text-[#737373] line-through'>
+                    {(s.payload as LineRewriteSuggestion)?.originalText}
+                  </div>
+                  <div className='mt-1 font-medium text-emerald-800'>
+                    {(s.payload as LineRewriteSuggestion)?.suggestedText}
+                  </div>
+                  {(s.payload as LineRewriteSuggestion)?.reason && (
+                    <div className='mt-2 text-[11px] italic text-[#525252]'>
+                      Lý do: {(s.payload as LineRewriteSuggestion)?.reason}
+                    </div>
+                  )}
+                </div>
+              ) : s.kind === 'Layout' ? (
+                <LayoutPreview
+                  layout={s.payload as StoryboardLayout}
+                  lines={{}}
+                  nameById={nameById}
+                />
+              ) : s.kind === 'Lettering' ? (
                 <LetteringDiffView set={s.payload as LetteringSuggestionSet} />
               ) : (
                 <ArtistPromptsView set={s.payload as ArtistPromptSet} nameById={nameById} />

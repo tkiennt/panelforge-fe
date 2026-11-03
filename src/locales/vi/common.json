@@ -57,6 +57,8 @@
     "today": "Hôm nay",
     "yesterday": "Hôm qua",
     "daysAgo": "{count} ngày trước",
+    "daysAgo_one": "{count} ngày trước",
+    "daysAgo_other": "{count} ngày trước",
     "dueDate": "Hạn chót: {date}",
     "noDueDate": "Không có hạn chót"
   },

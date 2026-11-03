@@ -29,6 +29,8 @@ export interface CurrentUserDto {
   fullName?: string;
   role: string;
   canCreateStudio: boolean;
+  avatar?: string | null;
+  avatarUrl?: string | null;
 }
 
 export interface LandingWorkspaceDto {

@@ -66,6 +66,7 @@ import { OfflineStatusBanner } from '@/shared/components/OfflineStatusBanner';
 import { ElementConflictModal } from '@/shared/modals/ElementConflictModal';
 import {
   LETTERING_FONT_PX,
+  LETTERING_CHAR_WIDTH_EM,
   LETTERING_LINE_HEIGHT_EM,
   LETTERING_PADDING_PX,
   MIN_LETTERING_FONT_PX,
@@ -1667,75 +1668,86 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
     }
   };
 
-  // ── AI Letterer Agent (CF2 2.4): Rút gọn thoại cho vừa balloon ──
+  // ── AI Letterer Copilot: Rút gọn thoại cho vừa balloon (sync theo từng bubble) ──
   const handleRunLettererAgent = async () => {
     if (!activeSeriesId) {
-      showToast('Thiếu Series ID', 'Không tìm thấy mã Series để chạy Letterer Agent.');
+      showToast('Thiếu Series ID', 'Không tìm thấy mã Series để chạy Letterer Copilot.');
       return;
     }
     if (!activeChapterId) {
-      showToast('Thiếu Chapter ID', 'Vui lòng chọn chương trước khi chạy Letterer Agent.');
+      showToast('Thiếu Chapter ID', 'Vui lòng chọn chương trước khi chạy Letterer Copilot.');
+      return;
+    }
+
+    const targetElement =
+      (selectedElement && selectedElement.scriptLineId ? selectedElement : null) ||
+      elements.find((e) => Boolean(e.scriptLineId));
+
+    if (!targetElement || !targetElement.scriptLineId) {
+      showToast(
+        'Chọn bóng thoại',
+        'Vui lòng chọn một bóng thoại có gắn dòng kịch bản để rút gọn bằng AI Copilot.',
+      );
       return;
     }
 
     setAiLoading(true);
     try {
-      let currentVersion = chapterVersionVector;
       try {
         const ch = await chapterService.getChapterById(activeChapterId);
         if (ch && ch.versionVector) {
-          currentVersion = ch.versionVector;
           setChapterVersionVector(ch.versionVector);
         }
       } catch (err) {
         console.warn('Lỗi lấy version chương:', err);
       }
 
-      const runRes = await aiAgentsService.runWorkflow(activeSeriesId, {
-        chapterId: activeChapterId,
-        sceneId: selectedSceneId || undefined,
-        brief: 'Rút gọn thoại cho vừa bóng thoại',
-        readingDirection: 'RightToLeft',
-        chapterVersion: currentVersion,
-        workflowType: 'Letterer',
+      const box = getNormalizedElementBox(targetElement);
+      const boxW = box?.pxW || 280;
+      const boxH = box?.pxH || 160;
+      const perLine = Math.max(
+        1,
+        Math.floor(
+          (boxW - 2 * LETTERING_PADDING_PX) / (LETTERING_FONT_PX * LETTERING_CHAR_WIDTH_EM),
+        ),
+      );
+      const maxLines = Math.max(
+        1,
+        Math.floor(
+          (boxH - 2 * LETTERING_PADDING_PX) / (LETTERING_FONT_PX * LETTERING_LINE_HEIGHT_EM),
+        ),
+      );
+      const maxChars = Math.max(10, Math.min(500, Math.floor(perLine * maxLines * 0.95)));
+
+      const sugRes = await aiAgentsService.runCopilot(activeSeriesId, {
+        task: 'letterer.shorten',
+        lineId: targetElement.scriptLineId,
+        maxChars,
       });
 
-      // Poll run status nếu đang Queued/Running
-      let run = await aiAgentsService.getRun(activeSeriesId, runRes.runId);
-      let attempts = 0;
-      while ((run.status === 'Queued' || run.status === 'Running') && attempts < 10) {
-        await new Promise((r) => setTimeout(r, 1000));
-        run = await aiAgentsService.getRun(activeSeriesId, runRes.runId);
-        attempts++;
-      }
+      const payload = sugRes.payload as any;
+      const suggestedText = payload?.suggestedText || '';
+      const originalText = payload?.originalText || targetElement.content || '';
+      const reason = payload?.reason || 'Rút gọn vừa balloon';
 
-      const suggestions = await aiAgentsService.getSuggestions(activeSeriesId, {
-        runId: runRes.runId,
-        status: 'Pending',
-      });
+      const item: LetteringSuggestion = {
+        sourceScriptLineId: payload?.sourceScriptLineId || targetElement.scriptLineId,
+        targetElementId: targetElement.elementId,
+        originalText,
+        suggestedText,
+        reason,
+        maxChars,
+        limitSource: 'element-estimate',
+        withinEstimatedLimit: suggestedText.length <= maxChars,
+      };
 
-      const letteringSugs = suggestions.filter((s) => s.kind === 'Lettering');
-      if (letteringSugs.length === 0) {
-        showToast('Thông báo', 'Không có đề xuất rút gọn thoại mới nào từ Letterer Agent.');
-        return;
-      }
-
-      const latestSug = letteringSugs[0];
-      const payload: any = latestSug.payload;
-      const list: LetteringSuggestion[] = payload?.suggestions || [];
-
-      if (list.length === 0) {
-        showToast('Thông báo', 'Letterer Agent không tìm thấy thoại nào cần rút gọn.');
-        return;
-      }
-
-      setCurrentAiSuggestionId(latestSug.id);
-      setAiSuggestions(list);
+      setCurrentAiSuggestionId(sugRes.id);
+      setAiSuggestions([item]);
       setAiModalOpen(true);
-      showToast('Thành công', `Letterer Agent đã tạo ${list.length} gợi ý rút gọn thoại.`);
+      showToast('Thành công', 'AI Copilot đã tạo đề xuất rút gọn thoại cho bóng thoại này.');
     } catch (err: any) {
-      console.error('Lỗi chạy Letterer Agent:', err);
-      showToast('Lỗi Letterer Agent', err.message || 'Không thể chạy quy trình rút gọn thoại.');
+      console.error('Lỗi chạy Letterer Copilot:', err);
+      showToast('Lỗi Letterer Copilot', err.message || 'Không thể chạy rút gọn thoại.');
     } finally {
       setAiLoading(false);
     }

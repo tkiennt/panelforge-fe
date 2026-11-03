@@ -161,6 +161,22 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
       const apiUser = await userService.getMyProfile();
       if (apiUser) {
         loadedUser = apiUser;
+        try {
+          const storedStr = localStorage.getItem('user');
+          const stored = storedStr ? JSON.parse(storedStr) : {};
+          stored.fullName = apiUser.username;
+          stored.username = apiUser.username;
+          stored.avatarUrl = apiUser.avatar;
+          stored.avatar = apiUser.avatar;
+          localStorage.setItem('user', JSON.stringify(stored));
+          window.dispatchEvent(
+            new CustomEvent('user-profile-updated', {
+              detail: { avatarUrl: apiUser.avatar, name: apiUser.username },
+            }),
+          );
+        } catch {
+          // ignore
+        }
       }
     } catch {
       try {
@@ -374,8 +390,14 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
           stored.fullName = updated.username;
           stored.username = updated.username;
           stored.avatarUrl = updated.avatar;
+          stored.avatar = updated.avatar;
           stored.phoneNumber = updated.phoneNumber;
           localStorage.setItem('user', JSON.stringify(stored));
+          window.dispatchEvent(
+            new CustomEvent('user-profile-updated', {
+              detail: { avatarUrl: updated.avatar, name: updated.username },
+            }),
+          );
         } catch {
           // ignore
         }

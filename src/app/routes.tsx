@@ -149,6 +149,7 @@ export interface AppRoutesProps {
     role: SystemRole;
     canCreateStudio?: boolean;
     isTwoFactorEnabled?: boolean;
+    avatarUrl?: string | null;
   } | null;
   firebaseUser: User | null;
   currentRole: SystemRole;
@@ -175,6 +176,21 @@ export interface AppRoutesProps {
   onApiLoginSuccess?: (authResponse: any) => void;
   onRegisterSuccess?: (authResponse: any) => void;
 }
+
+const resolveUserAvatar = (
+  currentUserInfo?: { avatarUrl?: string | null } | null,
+  firebaseUser?: User | null,
+): string | null => {
+  if (currentUserInfo?.avatarUrl) return currentUserInfo.avatarUrl;
+  try {
+    const u = JSON.parse(localStorage.getItem('user') || '{}');
+    if (u.avatarUrl) return u.avatarUrl;
+    if (u.avatar) return u.avatar;
+  } catch {
+    // ignore
+  }
+  return firebaseUser?.photoURL || null;
+};
 
 export const AppRoutes: React.FC<AppRoutesProps> = ({
   isAuthenticated,
@@ -287,7 +303,7 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                       'User',
                     email: currentUserInfo?.email || firebaseUser?.email || '',
                     role: currentRole,
-                    avatarUrl: firebaseUser?.photoURL,
+                    avatarUrl: resolveUserAvatar(currentUserInfo, firebaseUser),
                     canCreateStudio: currentUserInfo?.canCreateStudio,
                   }}
                   onLogout={handleLogout}
@@ -312,6 +328,7 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                   role: currentRole,
                   workspaceRole: currentWorkspaceRole,
                   activeRoles: activeProjectRoles,
+                  avatarUrl: resolveUserAvatar(currentUserInfo, firebaseUser),
                   avatarInitials: (
                     currentUserInfo?.name ||
                     firebaseUser?.displayName ||
@@ -438,6 +455,7 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                   path='script'
                   element={
                     <ScriptEditorView
+                      currentUserId={currentUserInfo?.id}
                       onShowToast={showToast}
                       workspaceRole={currentWorkspaceRole}
                     />

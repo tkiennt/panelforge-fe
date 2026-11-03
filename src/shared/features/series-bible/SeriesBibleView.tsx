@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   BookOpen,
+  FileText,
   Search,
   Plus,
   ChevronDown,
@@ -42,12 +43,20 @@ import {
 import { seriesService } from '@/services/series.service';
 import { chapterService, ChapterDto } from '@/services/chapter.service';
 import { AddEntityModal } from './AddEntityModal';
-import { BibleEntityDetailModal, groupRevisionsIntoStages, type CharacterEraStage } from './BibleEntityDetailModal';
+import {
+  BibleEntityDetailModal,
+  groupRevisionsIntoStages,
+  type CharacterEraStage,
+} from './BibleEntityDetailModal';
 import { PageContainer } from '@/shared/components/PageContainer';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { createPortal } from 'react-dom';
 import { useTranslation } from '@/lib/i18n';
-import { EmptyFolderState, LucianConfirmModal, LucianInlineAlert } from '@/shared/components/lucian';
+import {
+  EmptyFolderState,
+  LucianConfirmModal,
+  LucianInlineAlert,
+} from '@/shared/components/lucian';
 import { useConfirm } from '@/shared/context/ConfirmContext';
 
 interface SeriesBibleViewProps {
@@ -163,10 +172,14 @@ const getCategoryIcon = (category: string, className = 'w-4 h-4') => {
 
 const mapEntryToBibleEntity = (entry: BibleEntryDto): BibleEntity => {
   let gallery: Array<{ url: string; label?: string; sha256?: string }> = [];
+  let attributes: Record<string, any> = {};
   try {
     const details = JSON.parse(entry.detailsJson || '{}');
     if (Array.isArray(details.turnaroundGallery)) {
       gallery = details.turnaroundGallery;
+    }
+    if (details.attributes && typeof details.attributes === 'object') {
+      attributes = details.attributes;
     }
   } catch {
     // ignore
@@ -185,6 +198,7 @@ const mapEntryToBibleEntity = (entry: BibleEntryDto): BibleEntity => {
     isLocked: entry.effectiveRevision?.isLocked ?? false,
     lockedAt: entry.effectiveRevision?.lockedAt ?? null,
     gallery,
+    attributes,
   };
 };
 
@@ -239,8 +253,22 @@ interface AddRevisionModalProps {
     effectiveFromChapterNumber: number;
     effectiveToChapterNumber?: number;
     summary: string;
+    detailsJson?: string;
+    attributes?: Record<string, any>;
   }) => Promise<void>;
-  onConfirmArtistSubmit?: () => void;
+  onConfirmArtistSubmit?: (content: {
+    expectedVersionNumber?: number;
+    name: string;
+    subtitle: string;
+    description: string;
+    referenceImageUrl?: string;
+    stageName?: string;
+    effectiveFromChapterNumber: number;
+    effectiveToChapterNumber?: number;
+    summary: string;
+    detailsJson?: string;
+    attributes?: Record<string, any>;
+  }) => void;
 }
 
 const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
@@ -280,14 +308,39 @@ const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
     const [selectedExistingStageKey, setSelectedExistingStageKey] = useState<string>('');
     const [stageName, setStageName] = useState(initialStageName);
     const [effectiveChapter, setEffectiveChapter] = useState(initialEffectiveChapter);
-    const [effectiveToChapter, setEffectiveToChapter] = useState<number | ''>(initialEffectiveToChapter);
+    const [effectiveToChapter, setEffectiveToChapter] = useState<number | ''>(
+      initialEffectiveToChapter,
+    );
     const [name, setName] = useState(initialName);
     const [subtitle, setSubtitle] = useState(initialSubtitle);
     const [summary, setSummary] = useState(initialSummary);
     const [description, setDescription] = useState(initialDescription);
     const [referenceImageUrl, setReferenceImageUrl] = useState(initialReferenceImageUrl);
+    const [revAttr1, setRevAttr1] = useState('');
+    const [revAttr2, setRevAttr2] = useState('');
+    const [isSpecsExpanded, setIsSpecsExpanded] = useState(!isArtistConceptSubmit);
+    const [isDragging, setIsDragging] = useState(false);
     const revFileInputRef = useRef<HTMLInputElement>(null);
     const isInitRef = useRef(false);
+
+    // Global Clipboard Paste listener (Ctrl+V) for instant image submission
+    useEffect(() => {
+      if (!isOpen || !isArtist) return;
+      const handlePaste = (e: ClipboardEvent) => {
+        if (e.clipboardData?.files && e.clipboardData.files.length > 0) {
+          const file = e.clipboardData.files[0];
+          if (file.type.startsWith('image/')) {
+            e.preventDefault();
+            void (async () => {
+              const uploadedUrl = await onUploadImage(file);
+              if (uploadedUrl) setReferenceImageUrl(uploadedUrl);
+            })();
+          }
+        }
+      };
+      window.addEventListener('paste', handlePaste);
+      return () => window.removeEventListener('paste', handlePaste);
+    }, [isOpen, isArtist, onUploadImage]);
 
     useEffect(() => {
       if (!isOpen) {
@@ -296,19 +349,66 @@ const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
       }
       if (!isInitRef.current) {
         isInitRef.current = true;
-        const mode = isNewEraInitial || !existingStages || existingStages.length === 0 ? 'new' : 'existing';
+        const mode =
+          isNewEraInitial || !existingStages || existingStages.length === 0 ? 'new' : 'existing';
         setEraMode(mode);
         setName(initialName);
         setSubtitle(initialSubtitle);
         setSummary(initialSummary);
         setDescription(initialDescription);
         setReferenceImageUrl(initialReferenceImageUrl);
+        setIsSpecsExpanded(!isArtistConceptSubmit);
+
+        let initialAttrs: Record<string, any> = revisionTarget?.attributes || {};
+        if (supersedeTarget?.snapshotJson) {
+          try {
+            const snap = JSON.parse(supersedeTarget.snapshotJson);
+            const snapAttrs = snap.Attributes || snap.attributes;
+            if (snapAttrs && typeof snapAttrs === 'object') {
+              initialAttrs = { ...initialAttrs, ...snapAttrs };
+            } else if (snap.DetailsJson || snap.detailsJson) {
+              const inner = JSON.parse(snap.DetailsJson || snap.detailsJson);
+              if (inner.attributes) initialAttrs = { ...initialAttrs, ...inner.attributes };
+            }
+          } catch {
+            // ignore
+          }
+        }
+        if (revisionTarget) {
+          const isCatChar =
+            revisionTarget.category === 'characters' || revisionTarget.category === 'character';
+          const isCatLoc =
+            revisionTarget.category === 'locations' || revisionTarget.category === 'location';
+          const isCatProp = revisionTarget.category === 'prop';
+          const isCatTerm = revisionTarget.category === 'terminology';
+          const isCatStyle =
+            revisionTarget.category === 'style' || revisionTarget.category === 'rule';
+
+          if (isCatChar) {
+            setRevAttr1(initialAttrs.age || '');
+            setRevAttr2(initialAttrs.height || '');
+          } else if (isCatLoc) {
+            setRevAttr1(initialAttrs.environmentType || '');
+            setRevAttr2(initialAttrs.scale || initialAttrs.atmosphere || '');
+          } else if (isCatProp) {
+            setRevAttr1(initialAttrs.sizeWeight || '');
+            setRevAttr2(initialAttrs.material || '');
+          } else if (isCatTerm) {
+            setRevAttr1(initialAttrs.termType || '');
+            setRevAttr2(initialAttrs.origin || '');
+          } else if (isCatStyle) {
+            setRevAttr1(initialAttrs.colorPalette || '');
+            setRevAttr2(initialAttrs.lineArtRules || '');
+          }
+        }
 
         if (mode === 'existing' && existingStages && existingStages.length > 0) {
-          const matching = existingStages.find(
-            (s) => s.effectiveFromChapterNumber === initialEffectiveChapter ||
-                   (initialStageName && s.stageName.toLowerCase() === initialStageName.toLowerCase())
-          ) || existingStages[0];
+          const matching =
+            existingStages.find(
+              (s) =>
+                s.effectiveFromChapterNumber === initialEffectiveChapter ||
+                (initialStageName && s.stageName.toLowerCase() === initialStageName.toLowerCase()),
+            ) || existingStages[0];
           setSelectedExistingStageKey(matching.stageKey);
           setStageName(matching.stageName);
           setEffectiveChapter(matching.effectiveFromChapterNumber);
@@ -331,31 +431,72 @@ const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
       initialSummary,
       initialDescription,
       initialReferenceImageUrl,
+      revisionTarget,
+      supersedeTarget,
+      isArtistConceptSubmit,
     ]);
 
     if (!isOpen || !revisionTarget) return null;
 
     const handleSubmit = () => {
+      const isCatChar =
+        revisionTarget.category === 'characters' || revisionTarget.category === 'character';
+      const isCatLoc =
+        revisionTarget.category === 'locations' || revisionTarget.category === 'location';
+      const isCatProp = revisionTarget.category === 'prop';
+      const isCatTerm = revisionTarget.category === 'terminology';
+      const isCatStyle = revisionTarget.category === 'style' || revisionTarget.category === 'rule';
+
+      const updatedAttrs: Record<string, any> = { ...(revisionTarget.attributes || {}) };
+      if (isCatChar) {
+        if (revAttr1.trim()) updatedAttrs.age = revAttr1.trim();
+        else delete updatedAttrs.age;
+        if (revAttr2.trim()) updatedAttrs.height = revAttr2.trim();
+        else delete updatedAttrs.height;
+      } else if (isCatLoc) {
+        if (revAttr1.trim()) updatedAttrs.environmentType = revAttr1.trim();
+        if (revAttr2.trim()) updatedAttrs.scale = revAttr2.trim();
+      } else if (isCatProp) {
+        if (revAttr1.trim()) updatedAttrs.sizeWeight = revAttr1.trim();
+        if (revAttr2.trim()) updatedAttrs.material = revAttr2.trim();
+      } else if (isCatTerm) {
+        if (revAttr1.trim()) updatedAttrs.termType = revAttr1.trim();
+        if (revAttr2.trim()) updatedAttrs.origin = revAttr2.trim();
+      } else if (isCatStyle) {
+        if (revAttr1.trim()) updatedAttrs.colorPalette = revAttr1.trim();
+        if (revAttr2.trim()) updatedAttrs.lineArtRules = revAttr2.trim();
+      }
+
+      const detailsPayload = JSON.stringify({
+        turnaroundGallery: revisionTarget.gallery || [],
+        attributes: updatedAttrs,
+      });
+
+      const submissionPayload = {
+        expectedVersionNumber: expectedVersionNumber ?? undefined,
+        name: name.trim() || revisionTarget.name,
+        subtitle: subtitle.trim() || revisionTarget.subtitle || '',
+        description: description.trim() || revisionTarget.description || '',
+        referenceImageUrl: referenceImageUrl || undefined,
+        stageName: stageName.trim() || undefined,
+        effectiveFromChapterNumber: effectiveChapter,
+        effectiveToChapterNumber:
+          effectiveToChapter !== '' ? Number(effectiveToChapter) : undefined,
+        summary: summary.trim(),
+        detailsJson: detailsPayload,
+        attributes: updatedAttrs,
+      };
+
       if (isArtistConceptSubmit && isArtist && onConfirmArtistSubmit) {
-        onConfirmArtistSubmit();
+        onConfirmArtistSubmit(submissionPayload);
       } else {
-        void onSubmit({
-          expectedVersionNumber: expectedVersionNumber ?? undefined,
-          name: name.trim() || revisionTarget.name,
-          subtitle: subtitle.trim() || revisionTarget.subtitle || '',
-          description: description.trim() || revisionTarget.description || '',
-          referenceImageUrl: referenceImageUrl || undefined,
-          stageName: stageName.trim() || undefined,
-          effectiveFromChapterNumber: effectiveChapter,
-          effectiveToChapterNumber: effectiveToChapter !== '' ? Number(effectiveToChapter) : undefined,
-          summary: summary.trim(),
-        });
+        void onSubmit(submissionPayload);
       }
     };
 
     return createPortal(
       <div
-        className='fixed inset-0 bg-black/60 backdrop-blur-xs z-[1050] flex items-center justify-center p-4'
+        className='fixed inset-0 bg-black/60 backdrop-blur-xs z-[1050] flex items-center justify-center p-3 sm:p-4'
         role='dialog'
         aria-modal='true'
         data-child-modal='true'
@@ -366,93 +507,244 @@ const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
         }}
       >
         <div
-          className='bg-white border border-[#E7E7E7] rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-5 sm:p-6 space-y-4 shadow-2xl animate-in fade-in zoom-in-95 duration-150 custom-scrollbar'
+          className='bg-white border border-stone-200 rounded-3xl max-w-xl w-full max-h-[90vh] flex flex-col shadow-2xl animate-in fade-in zoom-in-95 duration-150 overflow-hidden'
           onClick={(e) => e.stopPropagation()}
         >
-          <div className='flex items-center justify-between border-b border-[#E7E7E7] pb-3'>
-            <div className='flex items-center gap-2'>
-              <GitCommit className='w-4 h-4 text-[#059669]' />
-              <div className='flex items-center gap-2 flex-wrap'>
-                <h3 className='text-sm font-bold font-sans text-zinc-900'>
-                  {supersedeTarget
-                    ? `Thay thế bản khoá v${supersedeTarget.versionNumber}: ${revisionTarget.name}`
-                    : eraMode === 'new'
-                      ? `Tạo Thời kỳ (Era) mới: ${revisionTarget.name}`
-                      : isArtistResubmit
-                        ? `Nộp lại bản vẽ Concept Art: ${revisionTarget.name}`
-                        : isArtistConceptSubmit && isArtist
-                          ? `Nộp bản vẽ Concept Art: ${revisionTarget.name}`
-                          : isProducer
-                            ? `Tạo phiên bản mới: ${revisionTarget.name}`
-                            : `Tạo bản nháp mới: ${revisionTarget.name}`}
-                </h3>
-                {eraMode === 'new' && (
-                  <span className='px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300'>
-                    ✨ Thời kỳ mới (Era)
-                  </span>
-                )}
+          {/* ================= MODAL HEADER ================= */}
+          <div className='flex items-center justify-between border-b border-stone-200/80 px-5 sm:px-6 py-4 bg-stone-50/80 shrink-0'>
+            <div className='flex items-center gap-3 min-w-0'>
+              {isArtistConceptSubmit ? (
+                <div className='w-9 h-9 rounded-2xl bg-orange-100 border border-orange-200 flex items-center justify-center text-[#EA580C] shrink-0 shadow-2xs'>
+                  <Palette className='w-4.5 h-4.5' />
+                </div>
+              ) : (
+                <div className='w-9 h-9 rounded-2xl bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-700 shrink-0 shadow-2xs'>
+                  <GitCommit className='w-4.5 h-4.5' />
+                </div>
+              )}
+              <div className='min-w-0'>
+                <div className='flex items-center gap-2 flex-wrap'>
+                  <h3 className='text-sm sm:text-base font-bold text-stone-900 truncate'>
+                    {supersedeTarget
+                      ? `Thay thế bản khoá v${supersedeTarget.versionNumber}: ${revisionTarget.name}`
+                      : eraMode === 'new'
+                        ? `Tạo Thời kỳ (Era) mới: ${revisionTarget.name}`
+                        : isArtistResubmit
+                          ? `Nộp lại bản vẽ Concept Art: ${revisionTarget.name}`
+                          : isArtistConceptSubmit && isArtist
+                            ? `Nộp bản vẽ Concept Art: ${revisionTarget.name}`
+                            : isProducer
+                              ? `Tạo phiên bản mới: ${revisionTarget.name}`
+                              : `Tạo bản nháp mới: ${revisionTarget.name}`}
+                  </h3>
+                  {isArtistConceptSubmit && isArtist && (
+                    <span className='px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 text-orange-800 border border-orange-300'>
+                      Họa sĩ (Artist)
+                    </span>
+                  )}
+                  {eraMode === 'new' && (
+                    <span className='px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300'>
+                      Thời kỳ mới
+                    </span>
+                  )}
+                </div>
+                <p className='text-xs text-stone-500 truncate'>
+                  {isArtistConceptSubmit
+                    ? 'Tải lên thiết kế nhân vật (Model Sheet / Turnaround) để thẩm định'
+                    : `Thời kỳ: ${stageName || 'Giai đoạn chuẩn'} • Có hiệu lực từ Ch.${effectiveChapter}+`}
+                </p>
               </div>
             </div>
             <button
               type='button'
               onClick={onClose}
               aria-label='Đóng'
-              className='w-6 h-6 rounded flex items-center justify-center text-zinc-400 hover:text-zinc-700'
+              className='w-8 h-8 rounded-xl hover:bg-stone-200/60 flex items-center justify-center text-stone-400 hover:text-stone-700 transition cursor-pointer shrink-0'
             >
-              <X className='w-4 h-4' />
+              <X className='w-4.5 h-4.5' />
             </button>
           </div>
 
-          {/* Context Alert */}
-          {revisionReworkFeedback ? (
-            <LucianInlineAlert
-              type='warning'
-              title='Yêu cầu chỉnh sửa từ Writer / Editor'
-              description={`"${revisionReworkFeedback}"`}
-              details='Vui lòng điều chỉnh thiết kế theo nhận xét trên và tải lên bản vẽ Concept Art mới.'
-              dismissible={false}
-            />
-          ) : isArtistResubmit ? (
-            <LucianInlineAlert
-              type='info'
-              title='Nộp lại bản vẽ Concept Art (Sửa nộp nhầm)'
-              description='Bạn đang tạo bản vẽ thay thế cho bản đang chờ duyệt. Bản mới sẽ thay thế bản cũ mà không làm mất lịch sử phiên bản.'
-              dismissible={false}
-            />
-          ) : !supersedeTarget && lockedChapterNumbers.includes(effectiveChapter) ? (
-            <LucianInlineAlert
-              type='warning'
-              title='Chương đã có phiên bản khoá tham chiếu'
-              description={`Chương ${effectiveChapter} đã có bản khoá Canon.`}
-              details='Vui lòng chọn số chương khác cho thời kỳ mới, hoặc dùng chức năng Thay thế bản khoá.'
-              dismissible={false}
-            />
-          ) : null}
+          {/* ================= MODAL BODY (SCROLLABLE) ================= */}
+          <div className='p-5 sm:p-6 overflow-y-auto custom-scrollbar flex-1 space-y-4'>
+            {/* Context Alert for Rework or Resubmit */}
+            {revisionReworkFeedback ? (
+              <LucianInlineAlert
+                type='warning'
+                title='Yêu cầu chỉnh sửa từ Biên kịch / Biên tập viên'
+                description={`"${revisionReworkFeedback}"`}
+                details='Vui lòng điều chỉnh thiết kế theo góp ý trên và tải lên bản vẽ mới.'
+                dismissible={false}
+              />
+            ) : isArtistResubmit ? (
+              <LucianInlineAlert
+                type='info'
+                title='Nộp lại bản vẽ Concept Art (Sửa nộp nhầm)'
+                description='Bản vẽ mới sẽ thay thế bản vẽ đang chờ duyệt mà không làm mất lịch sử phiên bản.'
+                dismissible={false}
+              />
+            ) : !supersedeTarget && lockedChapterNumbers.includes(effectiveChapter) ? (
+              <LucianInlineAlert
+                type='warning'
+                title='Chương đã có phiên bản khoá tham chiếu'
+                description={`Chương ${effectiveChapter} đã có bản khoá Canon.`}
+                details='Vui lòng chọn số chương khác cho thời kỳ mới, hoặc dùng chức năng Thay thế bản khoá.'
+                dismissible={false}
+              />
+            ) : null}
 
-          <div className='space-y-3'>
-            {/* THỜI KỲ (ERA) & TIẾN TRÌNH CỐT TRUYỆN */}
-            <div className='bg-[#FAF8F5] border border-[#E7E5E4] rounded-xl p-3.5 space-y-3' data-testid='era-config-block'>
+            {/* ================= HERO CONCEPT ART UPLOAD (FOR ARTISTS) ================= */}
+            {isArtistConceptSubmit && (
+              <div className='bg-orange-50/40 border border-orange-200/80 rounded-2xl p-4 sm:p-5 space-y-3 shadow-2xs'>
+                <div className='flex items-center justify-between'>
+                  <div className='flex items-center gap-2'>
+                    <Palette className='w-4 h-4 text-[#EA580C]' />
+                    <label className='text-xs sm:text-sm font-bold text-stone-900'>
+                      Bản vẽ Concept Art / Model Sheet
+                    </label>
+                    <span className='px-2 py-0.5 rounded text-[10px] font-bold bg-[#EA580C] text-white shadow-2xs'>
+                      Trọng tâm nộp bài
+                    </span>
+                  </div>
+                  <span className='text-[11px] text-stone-500 font-medium'>
+                    PNG, JPG, WebP ≤ 10MB
+                  </span>
+                </div>
+
+                <input
+                  type='file'
+                  ref={revFileInputRef}
+                  accept='image/png,image/jpeg,image/webp'
+                  className='hidden'
+                  onChange={async (e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      const uploadedUrl = await onUploadImage(e.target.files[0]);
+                      if (uploadedUrl) setReferenceImageUrl(uploadedUrl);
+                    }
+                  }}
+                />
+
+                {referenceImageUrl ? (
+                  <div className='bg-white border border-stone-200 rounded-2xl p-3 flex items-center gap-4 shadow-2xs'>
+                    <div className='w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden border border-stone-200 bg-stone-950 shrink-0 relative group'>
+                      <AuthenticatedImage
+                        src={referenceImageUrl}
+                        alt={name || 'Concept Art'}
+                        className='w-full h-full object-cover'
+                      />
+                    </div>
+                    <div className='min-w-0 flex-1 space-y-1.5'>
+                      <div className='flex items-center gap-1.5 text-xs font-bold text-emerald-700'>
+                        <CheckCircle2 className='w-4 h-4 shrink-0' />
+                        <span>Đã tải lên bản vẽ thành công</span>
+                      </div>
+                      <p className='text-[11px] text-stone-500 font-mono truncate'>
+                        {referenceImageUrl}
+                      </p>
+                      <div className='flex items-center gap-2 pt-1'>
+                        <button
+                          type='button'
+                          onClick={() => revFileInputRef.current?.click()}
+                          disabled={uploadingRevImage}
+                          className='px-2.5 py-1 text-xs font-semibold rounded-lg bg-stone-100 hover:bg-stone-200/80 text-stone-700 transition cursor-pointer'
+                        >
+                          Đổi ảnh khác
+                        </button>
+                        <button
+                          type='button'
+                          onClick={() => setReferenceImageUrl('')}
+                          className='px-2.5 py-1 text-xs font-semibold rounded-lg text-rose-600 hover:bg-rose-50 transition cursor-pointer flex items-center gap-1'
+                        >
+                          <Trash2 className='w-3.5 h-3.5' />
+                          <span>Gỡ ảnh</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setIsDragging(true);
+                    }}
+                    onDragLeave={() => setIsDragging(false)}
+                    onDrop={async (e) => {
+                      e.preventDefault();
+                      setIsDragging(false);
+                      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                        const uploadedUrl = await onUploadImage(e.dataTransfer.files[0]);
+                        if (uploadedUrl) setReferenceImageUrl(uploadedUrl);
+                      }
+                    }}
+                    onClick={() => revFileInputRef.current?.click()}
+                    className={`border-2 border-dashed rounded-2xl p-6 sm:p-7 text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-2 ${
+                      isDragging
+                        ? 'border-[#EA580C] bg-orange-100/60 scale-[1.01]'
+                        : 'border-orange-300/80 bg-white hover:border-[#EA580C] hover:bg-orange-50/40'
+                    }`}
+                  >
+                    {uploadingRevImage ? (
+                      <>
+                        <Loader2 className='w-8 h-8 animate-spin text-[#EA580C]' />
+                        <span className='text-xs font-semibold text-stone-700'>
+                          Đang tải ảnh lên máy chủ...
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <div className='w-12 h-12 rounded-2xl bg-orange-100 text-[#EA580C] flex items-center justify-center mb-0.5 shadow-2xs'>
+                          <Upload className='w-6 h-6' />
+                        </div>
+                        <p className='text-xs sm:text-sm font-semibold text-stone-800'>
+                          Kéo thả ảnh bản vẽ vào đây, hoặc{' '}
+                          <span className='text-[#EA580C] underline font-bold'>
+                            chọn tệp từ máy
+                          </span>
+                        </p>
+                        <p className='text-[11px] text-stone-400'>
+                          Hỗ trợ PNG, JPG, WebP tối đa 10MB • Hỗ trợ dán trực tiếp từ Clipboard
+                          (Ctrl + V)
+                        </p>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ================= ERA (THỜI KỲ & TIẾN TRÌNH CỐT TRUYỆN) ================= */}
+            <div
+              className='bg-[#FAF8F5] border border-[#E7E5E4] rounded-2xl p-4 space-y-3'
+              data-testid='era-config-block'
+            >
               <div className='flex items-center justify-between gap-2 flex-wrap'>
                 <div className='flex items-center gap-2'>
                   <Clock className='w-4 h-4 text-[#EA580C]' />
-                  <span className='text-xs font-bold text-zinc-900'>Thời kỳ & Tiến trình cốt truyện (Era)</span>
+                  <span className='text-xs font-bold text-zinc-900'>
+                    Thời kỳ & Tiến trình cốt truyện (Era)
+                  </span>
                 </div>
                 {!supersedeTarget && existingStages && existingStages.length > 0 && (
-                  <div className='inline-flex rounded-lg bg-stone-200/70 p-0.5 text-xs font-medium' role='tablist'>
+                  <div
+                    className='inline-flex rounded-xl bg-stone-200/70 p-0.5 text-xs font-medium'
+                    role='tablist'
+                  >
                     <button
                       type='button'
                       role='tab'
                       aria-selected={eraMode === 'existing'}
                       onClick={() => {
                         setEraMode('existing');
-                        const stg = existingStages.find((s) => s.stageKey === selectedExistingStageKey) || existingStages[0];
+                        const stg =
+                          existingStages.find((s) => s.stageKey === selectedExistingStageKey) ||
+                          existingStages[0];
                         if (stg) {
                           setStageName(stg.stageName);
                           setEffectiveChapter(stg.effectiveFromChapterNumber);
                           setEffectiveToChapter(stg.effectiveToChapterNumber ?? '');
                         }
                       }}
-                      className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer ${
+                      className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                         eraMode === 'existing'
                           ? 'bg-white text-zinc-900 shadow-2xs'
                           : 'text-zinc-600 hover:text-zinc-900'
@@ -468,11 +760,13 @@ const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                       onClick={() => {
                         setEraMode('new');
                         setStageName('');
-                        const maxCh = Math.max(...existingStages.map((s) => s.effectiveFromChapterNumber || 1));
+                        const maxCh = Math.max(
+                          ...existingStages.map((s) => s.effectiveFromChapterNumber || 1),
+                        );
                         setEffectiveChapter(maxCh + 1);
                         setEffectiveToChapter('');
                       }}
-                      className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1 ${
+                      className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1 ${
                         eraMode === 'new'
                           ? 'bg-[#EA580C] text-white shadow-2xs'
                           : 'text-zinc-600 hover:text-zinc-900'
@@ -486,10 +780,15 @@ const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                 )}
               </div>
 
-              {eraMode === 'existing' && existingStages && existingStages.length > 0 && !supersedeTarget ? (
+              {eraMode === 'existing' &&
+              existingStages &&
+              existingStages.length > 0 &&
+              !supersedeTarget ? (
                 <div className='space-y-2 pt-1'>
                   <label className='block text-xs font-semibold text-zinc-700'>
-                    Chọn thời kỳ của nhân vật để thêm phiên bản *
+                    {isArtistConceptSubmit
+                      ? 'Chọn thời kỳ áp dụng bản vẽ Concept Art *'
+                      : 'Chọn thời kỳ của nhân vật để thêm phiên bản *'}
                   </label>
                   <select
                     value={selectedExistingStageKey}
@@ -508,12 +807,17 @@ const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                   >
                     {existingStages.map((stg) => (
                       <option key={stg.stageKey} value={stg.stageKey}>
-                        {stg.stageName} (Chương {stg.effectiveFromChapterNumber}{stg.effectiveToChapterNumber ? `–${stg.effectiveToChapterNumber}` : '+'})
+                        {stg.stageName} (Chương {stg.effectiveFromChapterNumber}
+                        {stg.effectiveToChapterNumber ? `–${stg.effectiveToChapterNumber}` : '+'})
                       </option>
                     ))}
                   </select>
                   <p className='text-[11px] text-zinc-500'>
-                    Phiên bản mới sẽ bổ sung vào thời kỳ <strong>{stageName || 'Giai đoạn chuẩn'}</strong> (từ Chương {effectiveChapter}{effectiveToChapter ? ` đến Chương ${effectiveToChapter}` : '+'}).
+                    {isArtistConceptSubmit
+                      ? `Bản vẽ sẽ được thẩm định và liên kết với thời kỳ `
+                      : `Phiên bản mới sẽ bổ sung vào thời kỳ `}
+                    <strong>{stageName || 'Giai đoạn chuẩn'}</strong> (từ Chương {effectiveChapter}
+                    {effectiveToChapter ? ` đến Chương ${effectiveToChapter}` : '+'}).
                   </p>
                 </div>
               ) : (
@@ -524,7 +828,9 @@ const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                         <span>Tên Thời kỳ mới (Era Name)</span>
                         <span className='text-red-500'>*</span>
                       </label>
-                      <span className='text-[10.5px] text-zinc-400'>VD: Lúc nhỏ, Siêu Saiyan, Trưởng thành...</span>
+                      <span className='text-[10.5px] text-zinc-400'>
+                        VD: Lúc nhỏ, Siêu Saiyan, Trưởng thành...
+                      </span>
                     </div>
                     <input
                       type='text'
@@ -538,12 +844,18 @@ const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                     {/* Quick Preset Pills */}
                     <div className='flex items-center gap-1.5 mt-2 flex-wrap'>
                       <span className='text-[11px] text-zinc-400'>Gợi ý nhanh:</span>
-                      {['Lúc nhỏ', 'Thiếu niên', 'Trưởng thành', 'Biến hình / Hóa thú', 'Arc mới'].map((preset) => (
+                      {[
+                        'Lúc nhỏ',
+                        'Thiếu niên',
+                        'Trưởng thành',
+                        'Biến hình / Hóa thần',
+                        'Arc mới',
+                      ].map((preset) => (
                         <button
                           key={preset}
                           type='button'
                           onClick={() => setStageName(preset)}
-                          className='px-2 py-0.5 rounded-md bg-stone-100 hover:bg-orange-50 hover:text-[#EA580C] hover:border-orange-200 border border-stone-200 text-[11px] text-zinc-600 transition-colors cursor-pointer'
+                          className='px-2.5 py-0.5 rounded-lg bg-stone-100 hover:bg-orange-50 hover:text-[#EA580C] hover:border-orange-200 border border-stone-200 text-xs text-zinc-600 transition-colors cursor-pointer'
                         >
                           +{preset}
                         </button>
@@ -600,191 +912,408 @@ const AddRevisionModal: React.FC<AddRevisionModalProps> = React.memo(
                         }`}
                         data-testid='revision-effective-to-input'
                       />
-                      {effectiveToChapter !== '' && Number(effectiveToChapter) < effectiveChapter && (
-                        <p className='text-[11px] text-red-600 mt-1 font-medium'>
-                          Chương kết thúc phải ≥ chương bắt đầu ({effectiveChapter}).
-                        </p>
-                      )}
+                      {effectiveToChapter !== '' &&
+                        Number(effectiveToChapter) < effectiveChapter && (
+                          <p className='text-[11px] text-red-600 mt-1 font-medium'>
+                            Chương kết thúc phải ≥ chương bắt đầu ({effectiveChapter}).
+                          </p>
+                        )}
                     </div>
                   </div>
                 </div>
               )}
             </div>
 
+            {/* ================= SUMMARY / REVISION NOTE ================= */}
             <div>
               <label className='block text-xs font-semibold text-zinc-800 mb-1'>
-                Tên mục *
-              </label>
-              <input
-                type='text'
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg text-xs text-zinc-900 focus:outline-none focus:border-[#F97316]'
-              />
-            </div>
-
-            <div>
-              <label className='block text-xs font-semibold text-zinc-800 mb-1'>
-                Phụ đề / Vai trò
-              </label>
-              <input
-                type='text'
-                value={subtitle}
-                onChange={(e) => setSubtitle(e.target.value)}
-                className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg text-xs text-zinc-900 focus:outline-none focus:border-[#F97316]'
-              />
-            </div>
-
-            <div>
-              <label className='block text-xs font-semibold text-zinc-800 mb-1'>
-                {supersedeTarget ? 'Lý do thay thế bản đã khoá *' : 'Tóm tắt thay đổi *'}
+                {supersedeTarget
+                  ? 'Lý do thay thế bản đã khoá *'
+                  : isArtistConceptSubmit
+                    ? 'Ghi chú nộp bài / Lời nhắn gửi Biên kịch & Biên tập viên *'
+                    : 'Tóm tắt thay đổi *'}
               </label>
               <input
                 type='text'
                 maxLength={supersedeTarget ? 400 : undefined}
-                placeholder='Ví dụ: Cập nhật trang phục chiến đấu mới...'
+                placeholder={
+                  isArtistConceptSubmit
+                    ? 'Ví dụ: Hoàn thiện turnaround 3 góc, cập nhật trang phục và chuôi kiếm theo kịch bản...'
+                    : 'Ví dụ: Cập nhật trang phục chiến đấu mới...'
+                }
                 value={summary}
                 onChange={(e) => setSummary(e.target.value)}
                 data-testid='revision-summary-input'
-                className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg text-xs text-zinc-900 focus:outline-none focus:border-[#F97316]'
+                className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl text-xs text-zinc-900 focus:outline-none focus:border-[#F97316]'
               />
             </div>
 
-            <div>
-              <label className='block text-xs font-semibold text-zinc-800 mb-1'>
-                Mô tả chi tiết (Tùy chọn)
-              </label>
-              <textarea
-                rows={2}
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg text-xs text-zinc-900 focus:outline-none focus:border-[#F97316] resize-none'
-              />
-            </div>
-
-            {/* Upload reference sheet image */}
-            <div>
-              <div className='flex items-center justify-between mb-1'>
-                <label className='text-xs font-semibold text-zinc-800'>
-                  Ảnh Model Sheet / Concept (Tùy chọn)
-                </label>
-                <span className='text-[10px] text-zinc-400 font-normal'>
-                  {isArtist ? 'Dành cho Artist' : 'Chỉ Artist được tải'}
-                </span>
-              </div>
-              <input
-                type='file'
-                ref={revFileInputRef}
-                accept='image/png,image/jpeg,image/webp'
-                className='hidden'
-                onChange={async (e) => {
-                  if (e.target.files && e.target.files[0]) {
-                    const uploadedUrl = await onUploadImage(e.target.files[0]);
-                    if (uploadedUrl) setReferenceImageUrl(uploadedUrl);
-                  }
-                }}
-              />
-              {referenceImageUrl ? (
-                <div className='p-2.5 bg-[#FAF8F4] border border-[#E7E7E7] rounded-xl flex items-center justify-between gap-3'>
+            {/* ================= COLLAPSIBLE / WRITER SPECS SECTION ================= */}
+            {isArtistConceptSubmit ? (
+              <div className='border border-stone-200 rounded-2xl bg-stone-50/50 overflow-hidden transition-all'>
+                <button
+                  type='button'
+                  onClick={() => setIsSpecsExpanded((prev) => !prev)}
+                  className='w-full px-4 py-3 flex items-center justify-between text-left hover:bg-stone-100/60 transition cursor-pointer'
+                >
                   <div className='flex items-center gap-2.5 min-w-0'>
-                    <div className='w-12 h-12 rounded-lg overflow-hidden border border-zinc-200 bg-zinc-900 shrink-0 relative'>
-                      <AuthenticatedImage
-                        src={referenceImageUrl}
-                        alt={name || 'Reference Sheet'}
-                        className='w-full h-full object-cover'
-                      />
-                    </div>
+                    <FileText className='w-4 h-4 text-stone-500 shrink-0' />
                     <div className='min-w-0'>
-                      <span className='text-[10px] text-zinc-500 font-mono truncate block max-w-[200px]'>
-                        {referenceImageUrl}
+                      <span className='text-xs font-bold text-stone-800 block'>
+                        Thông số & Đặc tả kịch bản (Tùy chọn)
+                      </span>
+                      <span className='text-[11px] text-stone-500 truncate block'>
+                        {isSpecsExpanded
+                          ? 'Mặc định giữ nguyên theo kịch bản của Writer. Nhấp để thu gọn.'
+                          : `${name} • ${revAttr1 || 'Chưa thiết lập'} • ${revAttr2 || 'Chưa thiết lập'}`}
                       </span>
                     </div>
                   </div>
-                  {isArtist && (
-                    <div className='flex items-center gap-1 shrink-0'>
-                      <button
-                        type='button'
-                        onClick={() => revFileInputRef.current?.click()}
-                        className='px-2 py-1 text-[11px] font-semibold rounded bg-white border border-[#E7E7E7] hover:bg-zinc-50 text-zinc-700'
-                      >
-                        Đổi ảnh
-                      </button>
-                      <button
-                        type='button'
-                        onClick={() => setReferenceImageUrl('')}
-                        className='p-1 text-red-600 hover:bg-red-50 rounded'
-                        title='Gỡ ảnh'
-                      >
-                        <Trash2 className='w-3.5 h-3.5' />
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ) : !isArtist ? (
-                <div className='p-3 rounded-xl border border-dashed border-zinc-200 bg-zinc-50 text-center text-xs text-zinc-500 flex items-center justify-center gap-2'>
-                  <Lock className='w-3.5 h-3.5 text-zinc-400' />
-                  <span>Chỉ Họa sĩ (Artist) mới có quyền tải ảnh Model Sheet mới.</span>
-                </div>
-              ) : (
-                <button
-                  type='button'
-                  onClick={() => revFileInputRef.current?.click()}
-                  disabled={uploadingRevImage}
-                  className='w-full p-3 rounded-xl border border-dashed border-zinc-300 hover:border-[#F97316] bg-[#FAF8F5] text-center text-xs text-zinc-600 hover:text-zinc-900 flex items-center justify-center gap-2 cursor-pointer transition-colors'
-                >
-                  {uploadingRevImage ? (
-                    <>
-                      <Loader2 className='w-3.5 h-3.5 animate-spin text-[#F97316]' />
-                      <span>Đang tải ảnh lên...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Upload className='w-3.5 h-3.5 text-[#F97316]' />
-                      <span>+ Tải ảnh Model Sheet / Concept (PNG, JPEG, WebP ≤ 10MB)</span>
-                    </>
-                  )}
+                  <ChevronDown
+                    className={`w-4 h-4 text-stone-400 transition-transform duration-200 shrink-0 ${
+                      isSpecsExpanded ? 'rotate-180' : ''
+                    }`}
+                  />
                 </button>
-              )}
-            </div>
+
+                {isSpecsExpanded && (
+                  <div className='p-4 pt-2 border-t border-stone-200/70 space-y-3 bg-white'>
+                    <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
+                      <div>
+                        <label className='block text-xs font-semibold text-zinc-800 mb-1'>
+                          Tên mục *
+                        </label>
+                        <input
+                          type='text'
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl text-xs text-zinc-900 focus:outline-none focus:border-[#F97316]'
+                        />
+                      </div>
+                      <div>
+                        <label className='block text-xs font-semibold text-zinc-800 mb-1'>
+                          Phụ đề / Vai trò
+                        </label>
+                        <input
+                          type='text'
+                          value={subtitle}
+                          onChange={(e) => setSubtitle(e.target.value)}
+                          className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl text-xs text-zinc-900 focus:outline-none focus:border-[#F97316]'
+                        />
+                      </div>
+                    </div>
+
+                    <div className='p-3 bg-[#FAF8F5] border border-[#E7E5E4] rounded-xl space-y-2'>
+                      <span className='text-xs font-bold text-zinc-800 block'>
+                        Thông số nhân vật (Độ tuổi & Vóc dáng)
+                      </span>
+                      <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
+                        <div>
+                          <label className='block text-xs font-medium text-zinc-700 mb-1'>
+                            Độ tuổi
+                          </label>
+                          <input
+                            type='text'
+                            placeholder='Ví dụ: 17 tuổi, 25 tuổi...'
+                            value={revAttr1}
+                            onChange={(e) => setRevAttr1(e.target.value)}
+                            className='w-full px-3 py-1.5 bg-white border border-[#D8D2C5] rounded-lg text-xs text-zinc-900 focus:outline-none focus:border-[#F97316]'
+                          />
+                        </div>
+                        <div>
+                          <label className='block text-xs font-medium text-zinc-700 mb-1'>
+                            Chiều cao / Vóc dáng
+                          </label>
+                          <input
+                            type='text'
+                            placeholder='Ví dụ: 178 cm, Cao gầy...'
+                            value={revAttr2}
+                            onChange={(e) => setRevAttr2(e.target.value)}
+                            className='w-full px-3 py-1.5 bg-white border border-[#D8D2C5] rounded-lg text-xs text-zinc-900 focus:outline-none focus:border-[#F97316]'
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className='block text-xs font-semibold text-zinc-800 mb-1'>
+                        Mô tả chi tiết (Tùy chọn)
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        placeholder='Mô tả chi tiết ngoại hình, phục trang, tính cách...'
+                        className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl text-xs text-zinc-900 focus:outline-none focus:border-[#F97316] resize-y custom-scrollbar leading-relaxed'
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <>
+                <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
+                  <div>
+                    <label className='block text-xs font-semibold text-zinc-800 mb-1'>
+                      Tên mục *
+                    </label>
+                    <input
+                      type='text'
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl text-xs text-zinc-900 focus:outline-none focus:border-[#F97316]'
+                    />
+                  </div>
+                  <div>
+                    <label className='block text-xs font-semibold text-zinc-800 mb-1'>
+                      Phụ đề / Vai trò
+                    </label>
+                    <input
+                      type='text'
+                      value={subtitle}
+                      onChange={(e) => setSubtitle(e.target.value)}
+                      className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl text-xs text-zinc-900 focus:outline-none focus:border-[#F97316]'
+                    />
+                  </div>
+                </div>
+
+                {/* Contextual Attributes (Specs) */}
+                <div className='p-3 bg-[#FAF8F5] border border-[#E7E5E4] rounded-xl space-y-2'>
+                  <span className='text-xs font-bold text-zinc-800 block'>
+                    {revisionTarget.category === 'characters' ||
+                    revisionTarget.category === 'character'
+                      ? 'Thông số nhân vật (Độ tuổi & Vóc dáng)'
+                      : revisionTarget.category === 'locations' ||
+                          revisionTarget.category === 'location'
+                        ? 'Thông số không gian & Bối cảnh'
+                        : revisionTarget.category === 'prop'
+                          ? 'Thông số đạo cụ & Vật phẩm'
+                          : revisionTarget.category === 'terminology'
+                            ? 'Đặc tả thuật ngữ / Cốt truyện'
+                            : 'Quy chuẩn mỹ thuật'}
+                  </span>
+                  <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
+                    <div>
+                      <label className='block text-xs font-medium text-zinc-700 mb-1'>
+                        {revisionTarget.category === 'characters' ||
+                        revisionTarget.category === 'character'
+                          ? 'Độ tuổi'
+                          : revisionTarget.category === 'locations' ||
+                              revisionTarget.category === 'location'
+                            ? 'Loại địa hình / Phân khu'
+                            : revisionTarget.category === 'prop'
+                              ? 'Kích thước & Trọng lượng'
+                              : revisionTarget.category === 'terminology'
+                                ? 'Phân loại lĩnh vực'
+                                : 'Bảng màu chủ đạo'}
+                      </label>
+                      <input
+                        type='text'
+                        placeholder={
+                          revisionTarget.category === 'characters' ||
+                          revisionTarget.category === 'character'
+                            ? 'Ví dụ: 17 tuổi, 25 tuổi...'
+                            : 'Ví dụ: Hang động, Rừng lớn...'
+                        }
+                        value={revAttr1}
+                        onChange={(e) => setRevAttr1(e.target.value)}
+                        className='w-full px-3 py-1.5 bg-white border border-[#D8D2C5] rounded-lg text-xs text-zinc-900 focus:outline-none focus:border-[#F97316]'
+                      />
+                    </div>
+                    <div>
+                      <label className='block text-xs font-medium text-zinc-700 mb-1'>
+                        {revisionTarget.category === 'characters' ||
+                        revisionTarget.category === 'character'
+                          ? 'Chiều cao / Vóc dáng'
+                          : revisionTarget.category === 'locations' ||
+                              revisionTarget.category === 'location'
+                            ? 'Quy mô / Khí hậu'
+                            : revisionTarget.category === 'prop'
+                              ? 'Chất liệu cấu tạo'
+                              : revisionTarget.category === 'terminology'
+                                ? 'Nguồn gốc / Khởi nguyên'
+                                : 'Quy chuẩn nét vẽ'}
+                      </label>
+                      <input
+                        type='text'
+                        placeholder={
+                          revisionTarget.category === 'characters' ||
+                          revisionTarget.category === 'character'
+                            ? 'Ví dụ: 178 cm, Cao gầy...'
+                            : 'Ví dụ: U tối, Đầy sương...'
+                        }
+                        value={revAttr2}
+                        onChange={(e) => setRevAttr2(e.target.value)}
+                        className='w-full px-3 py-1.5 bg-white border border-[#D8D2C5] rounded-lg text-xs text-zinc-900 focus:outline-none focus:border-[#F97316]'
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className='block text-xs font-semibold text-zinc-800 mb-1'>
+                    Mô tả chi tiết (Tùy chọn)
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder='Mô tả chi tiết ngoại hình, tính cách hoặc lưu ý cho họa sĩ...'
+                    className='w-full px-3 py-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl text-xs text-zinc-900 focus:outline-none focus:border-[#F97316] resize-y custom-scrollbar leading-relaxed'
+                  />
+                </div>
+
+                {/* Upload reference sheet image for Producer/Writer */}
+                <div>
+                  <div className='flex items-center justify-between mb-1'>
+                    <label className='text-xs font-semibold text-zinc-800'>
+                      Ảnh tham chiếu / Moodboard (Tùy chọn)
+                    </label>
+                    <span className='text-[10px] text-zinc-400 font-normal'>
+                      {isArtist ? 'Dành cho Artist' : 'Chỉ Artist được tải'}
+                    </span>
+                  </div>
+                  <input
+                    type='file'
+                    ref={revFileInputRef}
+                    accept='image/png,image/jpeg,image/webp'
+                    className='hidden'
+                    onChange={async (e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        const uploadedUrl = await onUploadImage(e.target.files[0]);
+                        if (uploadedUrl) setReferenceImageUrl(uploadedUrl);
+                      }
+                    }}
+                  />
+                  {referenceImageUrl ? (
+                    <div className='p-2.5 bg-[#FAF8F4] border border-[#E7E7E7] rounded-xl flex items-center justify-between gap-3'>
+                      <div className='flex items-center gap-2.5 min-w-0'>
+                        <div className='w-12 h-12 rounded-lg overflow-hidden border border-zinc-200 bg-zinc-900 shrink-0 relative'>
+                          <AuthenticatedImage
+                            src={referenceImageUrl}
+                            alt={name || 'Reference Sheet'}
+                            className='w-full h-full object-cover'
+                          />
+                        </div>
+                        <div className='min-w-0'>
+                          <span className='text-[10px] text-zinc-500 font-mono truncate block max-w-[200px]'>
+                            {referenceImageUrl}
+                          </span>
+                        </div>
+                      </div>
+                      <div className='flex items-center gap-1 shrink-0'>
+                        <button
+                          type='button'
+                          onClick={() => revFileInputRef.current?.click()}
+                          className='px-2 py-1 text-[11px] font-semibold rounded bg-white border border-[#E7E7E7] hover:bg-zinc-50 text-zinc-700'
+                        >
+                          Đổi ảnh
+                        </button>
+                        <button
+                          type='button'
+                          onClick={() => setReferenceImageUrl('')}
+                          className='p-1 text-red-600 hover:bg-red-50 rounded'
+                          title='Gỡ ảnh'
+                        >
+                          <Trash2 className='w-3.5 h-3.5' />
+                        </button>
+                      </div>
+                    </div>
+                  ) : !isArtist ? (
+                    <div className='p-3 rounded-xl border border-dashed border-zinc-200 bg-zinc-50 text-center text-xs text-zinc-500 flex items-center justify-center gap-2'>
+                      <Lock className='w-3.5 h-3.5 text-zinc-400' />
+                      <span>Chỉ Họa sĩ (Artist) mới có quyền tải ảnh Model Sheet mới.</span>
+                    </div>
+                  ) : (
+                    <button
+                      type='button'
+                      onClick={() => revFileInputRef.current?.click()}
+                      disabled={uploadingRevImage}
+                      className='w-full p-3 rounded-xl border border-dashed border-zinc-300 hover:border-[#F97316] bg-[#FAF8F5] text-center text-xs text-zinc-600 hover:text-zinc-900 flex items-center justify-center gap-2 cursor-pointer transition-colors'
+                    >
+                      {uploadingRevImage ? (
+                        <>
+                          <Loader2 className='w-3.5 h-3.5 animate-spin text-[#F97316]' />
+                          <span>Đang tải ảnh lên...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Upload className='w-3.5 h-3.5 text-[#F97316]' />
+                          <span>+ Tải ảnh Model Sheet / Concept (PNG, JPEG, WebP ≤ 10MB)</span>
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
           </div>
 
-          <div className='pt-3 border-t border-[#E7E7E7] flex items-center justify-end gap-2'>
-            <button
-              type='button'
-              onClick={onClose}
-              className='px-3.5 py-1.5 border border-[#E7E7E7] rounded-lg text-xs font-semibold text-zinc-600 hover:bg-zinc-50'
-            >
-              Hủy
-            </button>
-            <button
-              type='button'
-              disabled={
-                !summary.trim() ||
-                savingRevision ||
-                (!supersedeTarget && lockedChapterNumbers.includes(effectiveChapter)) ||
-                (effectiveToChapter !== '' && Number(effectiveToChapter) < effectiveChapter)
-              }
-              onClick={handleSubmit}
-              className='px-4 py-1.5 bg-[#059669] hover:bg-[#047857] text-white rounded-lg text-xs font-semibold disabled:opacity-50 flex items-center gap-1.5 shadow-2xs cursor-pointer'
-              data-testid='save-revision-submit-btn'
-            >
-              <CheckCircle2 className='w-3.5 h-3.5' />
-              <span>
-                {savingRevision
-                  ? 'Đang lưu...'
-                  : supersedeTarget
-                    ? 'Khoá & Thay thế'
-                    : isArtistConceptSubmit && isArtist
-                      ? isArtistResubmit
-                        ? '🔄 Nộp lại Concept Art'
-                        : '🎨 Nộp Concept Art'
-                      : eraMode === 'new'
-                        ? (isProducer ? '✨ Tạo thời kỳ & Lưu phiên bản' : '✨ Tạo thời kỳ & Gửi bản nháp')
-                        : isProducer
-                          ? 'Lưu phiên bản'
-                          : 'Gửi bản nháp'}
-              </span>
-            </button>
+          {/* ================= MODAL FOOTER ================= */}
+          <div className='px-5 sm:px-6 py-3.5 border-t border-stone-200/80 bg-stone-50/70 flex items-center justify-between shrink-0 gap-3'>
+            <div className='text-xs'>
+              {isArtistConceptSubmit &&
+                (referenceImageUrl ? (
+                  <span className='text-emerald-700 font-semibold flex items-center gap-1.5'>
+                    <CheckCircle2 className='w-4 h-4' />
+                    Đã đính kèm ảnh bản vẽ
+                  </span>
+                ) : (
+                  <span className='text-amber-700 font-medium flex items-center gap-1.5'>
+                    <AlertCircle className='w-4 h-4' />
+                    Chưa chọn ảnh bản vẽ
+                  </span>
+                ))}
+            </div>
+
+            <div className='flex items-center gap-2'>
+              <button
+                type='button'
+                onClick={onClose}
+                className='px-4 py-2 border border-stone-300 rounded-xl text-xs font-semibold text-stone-700 hover:bg-stone-100 transition cursor-pointer'
+              >
+                Hủy
+              </button>
+              <button
+                type='button'
+                disabled={
+                  !summary.trim() ||
+                  savingRevision ||
+                  (!supersedeTarget && lockedChapterNumbers.includes(effectiveChapter)) ||
+                  (effectiveToChapter !== '' && Number(effectiveToChapter) < effectiveChapter)
+                }
+                onClick={handleSubmit}
+                className={`px-5 py-2 rounded-xl text-xs font-bold text-white transition-all flex items-center gap-2 shadow-sm cursor-pointer disabled:opacity-50 ${
+                  isArtistConceptSubmit
+                    ? 'bg-[#EA580C] hover:bg-[#C2410C] active:scale-[0.98]'
+                    : 'bg-[#059669] hover:bg-[#047857] active:scale-[0.98]'
+                }`}
+                data-testid='save-revision-submit-btn'
+              >
+                {isArtistConceptSubmit ? (
+                  <Palette className='w-4 h-4' />
+                ) : (
+                  <CheckCircle2 className='w-4 h-4' />
+                )}
+                <span>
+                  {savingRevision
+                    ? 'Đang lưu...'
+                    : supersedeTarget
+                      ? 'Khoá & Thay thế'
+                      : isArtistConceptSubmit && isArtist
+                        ? isArtistResubmit
+                          ? 'Nộp lại Concept Art'
+                          : 'Nộp Concept Art'
+                        : eraMode === 'new'
+                          ? isProducer
+                            ? 'Tạo thời kỳ & Lưu'
+                            : 'Tạo thời kỳ & Gửi'
+                          : isProducer
+                            ? 'Lưu phiên bản'
+                            : 'Gửi bản nháp'}
+                </span>
+              </button>
+            </div>
           </div>
         </div>
       </div>,
@@ -868,7 +1397,8 @@ const ReworkModal: React.FC<ReworkModalProps> = React.memo(
               className='w-full px-3 py-2 bg-[#FAF8F5] border border-zinc-300 rounded-lg text-xs text-zinc-900 focus:outline-none focus:border-rose-500 resize-none'
             />
             <p className='text-[10px] text-zinc-500 mt-1'>
-              Ghi chú này sẽ được chuyển ngay đến hàng đợi vẽ của Artist để vẽ bản cập nhật tiếp theo.
+              Ghi chú này sẽ được chuyển ngay đến hàng đợi vẽ của Artist để vẽ bản cập nhật tiếp
+              theo.
             </p>
           </div>
 
@@ -1250,6 +1780,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
   const [revisionReworkFeedback, setRevisionReworkFeedback] = useState<string | null>(null);
   const [isArtistResubmit, setIsArtistResubmit] = useState(false);
   const [confirmSubmitModalOpen, setConfirmSubmitModalOpen] = useState(false);
+  const [pendingSubmissionContent, setPendingSubmissionContent] = useState<any>(null);
   const [uploadingRevImage, setUploadingRevImage] = useState(false);
   const revFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -1313,7 +1844,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
     setRevisionSubtitle(snapshot.Subtitle ?? entity.subtitle ?? '');
     setRevisionDescription(snapshot.Description ?? entity.description ?? '');
     setRevisionReferenceImageUrl(snapshot.ReferenceImageUrl ?? entity.imageUrl ?? '');
-    setRevisionStageName(isNewEra ? '' : (supersede?.stageName || ''));
+    setRevisionStageName(isNewEra ? '' : supersede?.stageName || '');
     setRevisionEffectiveChapter(
       supersede
         ? supersede.effectiveFromChapterNumber
@@ -1351,7 +1882,9 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
           }
 
           // Tự động đồng bộ lại thực thể được chọn nếu đang xem trong Workbench
-          setSelectedEntity((current) => (current && current.id === entity.id ? { ...current, ...entity } : current));
+          setSelectedEntity((current) =>
+            current && current.id === entity.id ? { ...current, ...entity } : current,
+          );
         }
       } catch (err) {
         console.warn('Cannot fetch history for version tracking:', err);
@@ -1372,6 +1905,8 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
     effectiveFromChapterNumber: number;
     effectiveToChapterNumber?: number;
     summary: string;
+    detailsJson?: string;
+    attributes?: Record<string, any>;
   }) => {
     if (!revisionTarget) return;
     setSavingRevision(true);
@@ -1384,41 +1919,41 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
           description: revisionDescription.trim() || revisionTarget.description,
           referenceImageUrl: revisionReferenceImageUrl || undefined,
           stageName: revisionStageName.trim() || undefined,
+          detailsJson: submittedContent?.detailsJson,
           effectiveToChapterNumber:
-            revisionEffectiveToChapter !== ''
-              ? Number(revisionEffectiveToChapter)
-              : undefined,
+            revisionEffectiveToChapter !== '' ? Number(revisionEffectiveToChapter) : undefined,
         };
         const summaryText = submittedContent ? submittedContent.summary : revisionSummary.trim();
-        const effectiveFromCh = submittedContent ? submittedContent.effectiveFromChapterNumber : revisionEffectiveChapter;
+        const effectiveFromCh = submittedContent
+          ? submittedContent.effectiveFromChapterNumber
+          : revisionEffectiveChapter;
 
         if (supersedeTarget) {
           await bibleService.supersedeRevision(
             effectiveSeries.id,
             revisionTarget.id,
             supersedeTarget.id,
-            { ...content, reason: summaryText },
+            { ...content, reason: summaryText, detailsJson: submittedContent?.detailsJson },
           );
         } else if (isArtistConceptSubmit && isArtist) {
-          await bibleService.submitConceptArt(
-            effectiveSeries.id,
-            revisionTarget.id,
-            {
-              ...content,
-              summary: summaryText,
-              effectiveToChapterNumber: content.effectiveToChapterNumber,
-            },
-          );
+          await bibleService.submitConceptArt(effectiveSeries.id, revisionTarget.id, {
+            ...content,
+            summary: summaryText,
+            effectiveToChapterNumber: content.effectiveToChapterNumber,
+            detailsJson: submittedContent?.detailsJson,
+          });
         } else {
           await bibleService.addRevision(effectiveSeries.id, revisionTarget.id, {
             ...content,
             summary: summaryText,
             effectiveFromChapterNumber: effectiveFromCh,
+            detailsJson: submittedContent?.detailsJson,
           });
         }
       }
       const displayName = submittedContent?.name || revisionName || revisionTarget.name;
-      const displayEffectiveCh = submittedContent?.effectiveFromChapterNumber || revisionEffectiveChapter;
+      const displayEffectiveCh =
+        submittedContent?.effectiveFromChapterNumber || revisionEffectiveChapter;
 
       onShowToast(
         supersedeTarget
@@ -1446,16 +1981,36 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
         setSelectedEntity({
           ...revisionTarget,
           name: submittedContent?.name || revisionName.trim() || revisionTarget.name,
-          subtitle: submittedContent?.subtitle || revisionSubtitle.trim() || revisionTarget.subtitle,
-          description: submittedContent?.description || revisionDescription.trim() || revisionTarget.description,
-          imageUrl: submittedContent?.referenceImageUrl || revisionReferenceImageUrl || revisionTarget.imageUrl,
+          subtitle:
+            submittedContent?.subtitle || revisionSubtitle.trim() || revisionTarget.subtitle,
+          description:
+            submittedContent?.description ||
+            revisionDescription.trim() ||
+            revisionTarget.description,
+          imageUrl:
+            submittedContent?.referenceImageUrl ||
+            revisionReferenceImageUrl ||
+            revisionTarget.imageUrl,
+          attributes: submittedContent?.attributes || revisionTarget.attributes,
         });
       }
     } catch (err: any) {
       if (err.code === 'CONFLICT' || err.status === 409) {
+        const isLockedConflict =
+          typeof err.message === 'string' &&
+          (err.message.toLowerCase().includes('khoá') ||
+            err.message.toLowerCase().includes('khoa') ||
+            err.message.toLowerCase().includes('locked') ||
+            err.message.toLowerCase().includes('canon') ||
+            err.message.toLowerCase().includes('supersede') ||
+            err.message.toLowerCase().includes('thay thế'));
+
         onShowToast(
-          'Xung đột phiên bản (409 CONFLICT)',
-          'Đã có người khác sửa đổi mục này hoặc mốc chương bị trùng! Đang mở Lịch sử để bạn đối chiếu.',
+          isLockedConflict ? 'Phiên bản đã khoá Canon (409)' : 'Xung đột phiên bản (409 CONFLICT)',
+          isLockedConflict
+            ? err.message ||
+                'Phiên bản hiện tại đã khoá Canon. Cần Producer sử dụng thao tác Thay thế (Supersede) để cập nhật.'
+            : 'Đã có người khác sửa đổi mục này hoặc mốc chương bị trùng! Đang mở Lịch sử để bạn đối chiếu.',
         );
         setAddRevModalOpen(false);
         setConfirmSubmitModalOpen(false);
@@ -1567,6 +2122,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
 
       const detailsPayload = JSON.stringify({
         turnaroundGallery: newEntity.gallery || [],
+        attributes: newEntity.attributes || {},
       });
 
       const created = await bibleService.createBibleEntry(effectiveSeries.id, {
@@ -1616,6 +2172,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
       onShowToast('Thành công', `Đã xóa phiên bản v${rev.versionNumber} của ${entity.name}.`);
       setRefreshTrigger((prev) => prev + 1);
     } catch (err: any) {
+      onShowToast('Lỗi xóa phiên bản', err.message || 'Không thể xóa phiên bản này.');
       throw err;
     }
   };
@@ -1629,9 +2186,13 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
         stage.effectiveFromChapterNumber,
         stage.stageName,
       );
-      onShowToast('Thành công', `Đã xóa thời kỳ "${stage.stageName}" (Chương ${stage.effectiveFromChapterNumber}) của ${entity.name}.`);
+      onShowToast(
+        'Thành công',
+        `Đã xóa thời kỳ "${stage.stageName}" (Chương ${stage.effectiveFromChapterNumber}) của ${entity.name}.`,
+      );
       setRefreshTrigger((prev) => prev + 1);
     } catch (err: any) {
+      onShowToast('Lỗi xóa thời kỳ', err.message || 'Không thể xóa thời kỳ này.');
       throw err;
     }
   };
@@ -1847,11 +2408,17 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                       </span>
                     </div>
                     <div className='flex items-center gap-1 mt-1'>
-                      {item.reviewStatus === 'ReworkRequired' || (item as any).status === 'ReworkRequired' || item.reviewStatus === 3 || (item as any).status === 3 ? (
+                      {item.reviewStatus === 'ReworkRequired' ||
+                      (item as any).status === 'ReworkRequired' ||
+                      item.reviewStatus === 3 ||
+                      (item as any).status === 3 ? (
                         <span className='px-1.5 py-0.2 rounded bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-semibold'>
                           ⚠️ Yêu cầu vẽ lại
                         </span>
-                      ) : item.reviewStatus === 'ConceptSubmitted' || (item as any).status === 'ConceptSubmitted' || item.reviewStatus === 2 || (item as any).status === 2 ? (
+                      ) : item.reviewStatus === 'ConceptSubmitted' ||
+                        (item as any).status === 'ConceptSubmitted' ||
+                        item.reviewStatus === 2 ||
+                        (item as any).status === 2 ? (
                         <span className='px-1.5 py-0.2 rounded bg-indigo-50 text-indigo-700 border border-indigo-200 text-[10px] font-semibold'>
                           🎨 Đã nộp (Chờ duyệt)
                         </span>
@@ -1872,7 +2439,10 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                   </div>
 
                   {isArtist ? (
-                    item.reviewStatus === 'ConceptSubmitted' || (item as any).status === 'ConceptSubmitted' || item.reviewStatus === 2 || (item as any).status === 2 ? (
+                    item.reviewStatus === 'ConceptSubmitted' ||
+                    (item as any).status === 'ConceptSubmitted' ||
+                    item.reviewStatus === 2 ||
+                    (item as any).status === 2 ? (
                       <button
                         type='button'
                         onClick={() => {
@@ -1894,7 +2464,10 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                         <RotateCcw className='w-3 h-3' />
                         <span>Nộp lại</span>
                       </button>
-                    ) : item.reviewStatus === 'ReworkRequired' || (item as any).status === 'ReworkRequired' || item.reviewStatus === 3 || (item as any).status === 3 ? (
+                    ) : item.reviewStatus === 'ReworkRequired' ||
+                      (item as any).status === 'ReworkRequired' ||
+                      item.reviewStatus === 3 ||
+                      (item as any).status === 3 ? (
                       <button
                         type='button'
                         onClick={() => {
@@ -2379,58 +2952,62 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                     </button>
 
                     {/* Quick review actions for Writer/Editor when concept is submitted */}
-                    {canReview && !entity.isLocked && effRev?.reviewStatus === 'ConceptSubmitted' && (
-                      <div className='flex items-center gap-1'>
-                        <button
-                          type='button'
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            void handleEndorseRevision(effRev, entity);
-                          }}
-                          className='px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
-                          title='Writer/Editor duyệt concept art này'
-                        >
-                          <Check className='w-3 h-3' />
-                          <span>Duyệt</span>
-                        </button>
-                        <button
-                          type='button'
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleOpenReworkModal(effRev, entity);
-                          }}
-                          className='px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
-                          title='Yêu cầu Artist vẽ lại concept'
-                        >
-                          <MessageSquare className='w-3 h-3' />
-                          <span>Sửa lại</span>
-                        </button>
-                      </div>
-                    )}
+                    {canReview &&
+                      !entity.isLocked &&
+                      effRev?.reviewStatus === 'ConceptSubmitted' && (
+                        <div className='flex items-center gap-1'>
+                          <button
+                            type='button'
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void handleEndorseRevision(effRev, entity);
+                            }}
+                            className='px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
+                            title='Writer/Editor duyệt concept art này'
+                          >
+                            <Check className='w-3 h-3' />
+                            <span>Duyệt</span>
+                          </button>
+                          <button
+                            type='button'
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenReworkModal(effRev, entity);
+                            }}
+                            className='px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
+                            title='Yêu cầu Artist vẽ lại concept'
+                          >
+                            <MessageSquare className='w-3 h-3' />
+                            <span>Sửa lại</span>
+                          </button>
+                        </div>
+                      )}
 
                     {/* Artist actions: Resubmit if mistakenly submitted, or rework */}
-                    {isArtist && !entity.isLocked && effRev?.reviewStatus === 'ConceptSubmitted' && (
-                      <button
-                        type='button'
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          void handleOpenAddRevision(
-                            entity,
-                            null,
-                            true,
-                            effRev.effectiveFromChapterNumber,
-                            undefined,
-                            true,
-                          );
-                        }}
-                        className='px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
-                        title='Nộp lại bản vẽ thay thế nếu nộp nhầm file'
-                        data-testid={`artist-resubmit-btn-${entity.id}`}
-                      >
-                        <RotateCcw className='w-3 h-3 text-amber-600' />
-                        <span>Nộp lại</span>
-                      </button>
-                    )}
+                    {isArtist &&
+                      !entity.isLocked &&
+                      effRev?.reviewStatus === 'ConceptSubmitted' && (
+                        <button
+                          type='button'
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void handleOpenAddRevision(
+                              entity,
+                              null,
+                              true,
+                              effRev.effectiveFromChapterNumber,
+                              undefined,
+                              true,
+                            );
+                          }}
+                          className='px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
+                          title='Nộp lại bản vẽ thay thế nếu nộp nhầm file'
+                          data-testid={`artist-resubmit-btn-${entity.id}`}
+                        >
+                          <RotateCcw className='w-3 h-3 text-amber-600' />
+                          <span>Nộp lại</span>
+                        </button>
+                      )}
                     {isArtist && !entity.isLocked && effRev?.reviewStatus === 'ReworkRequired' && (
                       <button
                         type='button'
@@ -2618,56 +3195,60 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                       <History className='w-3 h-3 text-[#78716C]' />
                     </button>
 
-                    {canReview && !entity.isLocked && effRev?.reviewStatus === 'ConceptSubmitted' && (
-                      <>
+                    {canReview &&
+                      !entity.isLocked &&
+                      effRev?.reviewStatus === 'ConceptSubmitted' && (
+                        <>
+                          <button
+                            type='button'
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void handleEndorseRevision(effRev, entity);
+                            }}
+                            className='px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
+                            title='Writer/Editor duyệt concept art này'
+                          >
+                            <Check className='w-3 h-3' />
+                            <span className='hidden sm:inline'>Duyệt</span>
+                          </button>
+                          <button
+                            type='button'
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenReworkModal(effRev, entity);
+                            }}
+                            className='px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
+                            title='Yêu cầu Artist vẽ lại concept'
+                          >
+                            <MessageSquare className='w-3 h-3' />
+                            <span className='hidden sm:inline'>Sửa lại</span>
+                          </button>
+                        </>
+                      )}
+                    {isArtist &&
+                      !entity.isLocked &&
+                      effRev?.reviewStatus === 'ConceptSubmitted' && (
                         <button
                           type='button'
                           onClick={(e) => {
                             e.stopPropagation();
-                            void handleEndorseRevision(effRev, entity);
+                            void handleOpenAddRevision(
+                              entity,
+                              null,
+                              true,
+                              effRev.effectiveFromChapterNumber,
+                              undefined,
+                              true,
+                            );
                           }}
-                          className='px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
-                          title='Writer/Editor duyệt concept art này'
+                          className='px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
+                          title='Nộp lại bản vẽ thay thế nếu nộp nhầm file'
+                          data-testid={`artist-resubmit-btn-${entity.id}`}
                         >
-                          <Check className='w-3 h-3' />
-                          <span className='hidden sm:inline'>Duyệt</span>
+                          <RotateCcw className='w-3 h-3 text-amber-600' />
+                          <span className='hidden sm:inline'>Nộp lại</span>
                         </button>
-                        <button
-                          type='button'
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleOpenReworkModal(effRev, entity);
-                          }}
-                          className='px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
-                          title='Yêu cầu Artist vẽ lại concept'
-                        >
-                          <MessageSquare className='w-3 h-3' />
-                          <span className='hidden sm:inline'>Sửa lại</span>
-                        </button>
-                      </>
-                    )}
-                    {isArtist && !entity.isLocked && effRev?.reviewStatus === 'ConceptSubmitted' && (
-                      <button
-                        type='button'
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          void handleOpenAddRevision(
-                            entity,
-                            null,
-                            true,
-                            effRev.effectiveFromChapterNumber,
-                            undefined,
-                            true,
-                          );
-                        }}
-                        className='px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer'
-                        title='Nộp lại bản vẽ thay thế nếu nộp nhầm file'
-                        data-testid={`artist-resubmit-btn-${entity.id}`}
-                      >
-                        <RotateCcw className='w-3 h-3 text-amber-600' />
-                        <span className='hidden sm:inline'>Nộp lại</span>
-                      </button>
-                    )}
+                      )}
                     {isArtist && !entity.isLocked && effRev?.reviewStatus === 'ReworkRequired' && (
                       <button
                         type='button'
@@ -2869,11 +3450,15 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                           const distinctEras = Array.from(eraMap.entries())
                             .sort(([a], [b]) => a - b)
                             .map(([ch, rList]) => {
-                              const sorted = [...rList].sort((a, b) => b.versionNumber - a.versionNumber);
+                              const sorted = [...rList].sort(
+                                (a, b) => b.versionNumber - a.versionNumber,
+                              );
                               const latest = sorted[0];
                               const isLocked = sorted.some((r) => r.isLocked);
                               const named = sorted.find((r) => r.stageName?.trim());
-                              const title = named?.stageName?.trim() || (ch === 1 ? 'Giai đoạn chuẩn' : `Chương ${ch}`);
+                              const title =
+                                named?.stageName?.trim() ||
+                                (ch === 1 ? 'Giai đoạn chuẩn' : `Chương ${ch}`);
                               const toStr = latest.effectiveToChapterNumber
                                 ? `Ch.${ch}–${latest.effectiveToChapterNumber}`
                                 : `Ch.${ch} → hết`;
@@ -2914,17 +3499,12 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                                   {rev.stageName ? rev.stageName : `VERSION ${rev.versionNumber}`}
                                   {rev.isInitialVersion ? ' (Khởi tạo)' : ''}
                                 </span>
-                                {rev.isLocked ? (
+                                {rev.isLocked || rev.reviewStatus === 'CanonLocked' ? (
                                   <span className='px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300 text-[10px] font-mono font-bold flex items-center gap-1 shadow-2xs'>
                                     <Lock className='w-2.5 h-2.5 text-amber-600' />
                                     ĐÃ KHOÁ CANON
                                   </span>
-                                ) : (
-                                  <span className='px-2 py-0.5 rounded bg-zinc-100 text-zinc-600 border border-zinc-200 text-[10px] font-medium'>
-                                    Bản nháp / Chưa khóa
-                                  </span>
-                                )}
-                                {rev.reviewStatus === 'WriterEndorsed' ? (
+                                ) : rev.reviewStatus === 'WriterEndorsed' ? (
                                   <span className='px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300 text-[10px] font-semibold'>
                                     ✓ Writer Endorsed
                                   </span>
@@ -2936,7 +3516,11 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                                   <span className='px-2 py-0.5 rounded bg-rose-100 text-rose-800 border border-rose-300 text-[10px] font-semibold'>
                                     ⚠️ Cần vẽ lại
                                   </span>
-                                ) : null}
+                                ) : (
+                                  <span className='px-2 py-0.5 rounded bg-zinc-100 text-zinc-600 border border-zinc-200 text-[10px] font-medium'>
+                                    Bản nháp
+                                  </span>
+                                )}
                               </div>
                               <span className='text-[10px] font-mono text-zinc-500 flex items-center gap-1'>
                                 <Clock className='w-3 h-3' />
@@ -2944,11 +3528,112 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                               </span>
                             </div>
 
-                            <div className='text-xs font-semibold text-zinc-900'>{rev.summary}</div>
+                            <div className='flex items-start gap-3'>
+                              {(rev.conceptImageUrl || rev.referenceImageUrl) && (
+                                <AuthenticatedImage
+                                  src={rev.conceptImageUrl || rev.referenceImageUrl!}
+                                  alt={rev.summary || `v${rev.versionNumber}`}
+                                  className='w-14 h-14 object-cover rounded-lg border border-zinc-200 shrink-0 shadow-2xs cursor-pointer hover:scale-105 transition'
+                                  onClick={() =>
+                                    setSelectedImageZoom({
+                                      url: rev.conceptImageUrl || rev.referenceImageUrl!,
+                                      title: rev.summary || `Phiên bản v${rev.versionNumber}`,
+                                    })
+                                  }
+                                />
+                              )}
+                              <div className='min-w-0 flex-1 space-y-1.5'>
+                                <div className='text-xs font-semibold text-zinc-900'>
+                                  {rev.summary}
+                                </div>
+                                {rev.reworkFeedback && (
+                                  <div className='p-2 bg-rose-50 border border-rose-200 rounded text-rose-900 text-xs'>
+                                    <strong>Nhận xét yêu cầu sửa:</strong> {rev.reworkFeedback}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
 
-                            {rev.reworkFeedback && (
-                              <div className='p-2 bg-rose-50 border border-rose-200 rounded text-rose-900 text-xs'>
-                                <strong>Nhận xét yêu cầu sửa:</strong> {rev.reworkFeedback}
+                            {/* Chronological Event Timeline for Revision */}
+                            {rev.events && rev.events.length > 0 && (
+                              <div className='mt-2 pt-2 border-t border-zinc-200/60 space-y-1.5'>
+                                <div className='text-[10px] font-bold text-zinc-500 uppercase tracking-wider flex items-center gap-1.5'>
+                                  <Clock className='w-3 h-3 text-[#F97316]' />
+                                  <span>Dòng thời gian sự kiện duyệt ({rev.events.length})</span>
+                                </div>
+                                <div className='space-y-1.5 pl-2 border-l-2 border-orange-200'>
+                                  {rev.events.map((evt) => {
+                                    let badgeColor = 'bg-stone-100 text-stone-700 border-stone-200';
+                                    let label: string = evt.type;
+                                    if (evt.type === 'Created') {
+                                      badgeColor = 'bg-zinc-100 text-zinc-800 border-zinc-200';
+                                      label = 'Khởi tạo';
+                                    } else if (evt.type === 'ConceptSubmitted') {
+                                      badgeColor = 'bg-blue-50 text-blue-800 border-blue-200';
+                                      label = 'Nộp Concept';
+                                    } else if (evt.type === 'ReworkRequested') {
+                                      badgeColor = 'bg-rose-50 text-rose-800 border-rose-200';
+                                      label = 'Yêu cầu sửa';
+                                    } else if (evt.type === 'Endorsed') {
+                                      badgeColor =
+                                        'bg-emerald-50 text-emerald-800 border-emerald-200';
+                                      label = 'Writer duyệt';
+                                    } else if (evt.type === 'Locked') {
+                                      badgeColor = 'bg-amber-50 text-amber-800 border-amber-300';
+                                      label = 'Khoá Canon';
+                                    } else if (evt.type === 'Superseded') {
+                                      badgeColor = 'bg-purple-50 text-purple-800 border-purple-200';
+                                      label = 'Bị thay thế';
+                                    }
+
+                                    return (
+                                      <div
+                                        key={evt.id}
+                                        className='text-xs space-y-1 bg-white/70 p-2 rounded-lg border border-zinc-100'
+                                      >
+                                        <div className='flex items-center gap-2 flex-wrap text-[11px]'>
+                                          <span
+                                            className={`px-1.5 py-0.5 rounded text-[10px] font-semibold border ${badgeColor}`}
+                                          >
+                                            {label}
+                                          </span>
+                                          <span className='text-[10px] text-zinc-400 font-mono'>
+                                            {new Date(evt.createdAt).toLocaleString('vi-VN')}
+                                          </span>
+                                          {evt.eventHash && (
+                                            <span
+                                              className='text-[9px] font-mono text-zinc-400'
+                                              title={evt.eventHash}
+                                            >
+                                              SHA-256: {evt.eventHash.substring(0, 8)}...
+                                            </span>
+                                          )}
+                                        </div>
+                                        {evt.comment && (
+                                          <p className='text-xs text-zinc-600 italic bg-zinc-50 p-1.5 rounded border border-zinc-200/60'>
+                                            "{evt.comment}"
+                                          </p>
+                                        )}
+                                        {evt.imageUrl && (
+                                          <div className='mt-1 flex items-center gap-2'>
+                                            <AuthenticatedImage
+                                              src={evt.imageUrl}
+                                              alt={label}
+                                              className='w-12 h-12 object-cover rounded border border-zinc-200 shadow-2xs hover:scale-105 transition cursor-pointer'
+                                              onClick={() =>
+                                                setSelectedImageZoom({
+                                                  url: evt.imageUrl!,
+                                                  title: `${label} - ${rev.summary || ''}`,
+                                                })
+                                              }
+                                              title='Nhấp để mở ảnh cỡ lớn'
+                                            />
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
                               </div>
                             )}
 
@@ -3121,14 +3806,20 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
             );
             return res.url;
           } catch (err: any) {
-            onShowToast('Lỗi tải ảnh tham chiếu', err.message || 'Không thể tải ảnh reference sheet.');
+            onShowToast(
+              'Lỗi tải ảnh tham chiếu',
+              err.message || 'Không thể tải ảnh reference sheet.',
+            );
           } finally {
             setUploadingRevImage(false);
           }
         }}
         onClose={() => setAddRevModalOpen(false)}
         onSubmit={executeSaveRevision}
-        onConfirmArtistSubmit={() => setConfirmSubmitModalOpen(true)}
+        onConfirmArtistSubmit={(content) => {
+          setPendingSubmissionContent(content);
+          setConfirmSubmitModalOpen(true);
+        }}
       />
 
       {/* REWORK MODAL PORTAL */}
@@ -3144,8 +3835,16 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
       {/* CONFIRM CONCEPT SUBMISSION MODAL (ARTIST) */}
       <LucianConfirmModal
         isOpen={confirmSubmitModalOpen}
-        onCancel={() => setConfirmSubmitModalOpen(false)}
-        onConfirm={() => void executeSaveRevision()}
+        onCancel={() => {
+          setConfirmSubmitModalOpen(false);
+          setPendingSubmissionContent(null);
+        }}
+        onConfirm={() => {
+          const contentToSubmit = pendingSubmissionContent;
+          setConfirmSubmitModalOpen(false);
+          setPendingSubmissionContent(null);
+          void executeSaveRevision(contentToSubmit);
+        }}
         title={
           isArtistResubmit
             ? 'Xác nhận nộp lại bản vẽ Concept Art'

@@ -24,6 +24,16 @@ import {
   ReturnWorkFromReviewRequest,
   TransferAssignmentScopeRequest,
   ResolveImpactReviewRequest,
+  CreateBulkAssignmentRequest,
+  BulkAssignmentItemDto,
+  BulkAssignmentResultDto,
+  AssigneeSuggestionDto,
+  AssignmentPlanStageRequest,
+  CreateAssignmentPlanRequest,
+  AssignmentPlanStageResultDto,
+  AssignmentPlanResultDto,
+  AssignmentPlanTemplateStageDto,
+  AssignmentPlanTemplateDto,
 } from '@/types';
 
 export type {
@@ -31,6 +41,16 @@ export type {
   WorkspaceAssignmentDto,
   CreateAssignmentRequest,
   UpdateAssignmentRequest,
+  CreateBulkAssignmentRequest,
+  BulkAssignmentItemDto,
+  BulkAssignmentResultDto,
+  AssigneeSuggestionDto,
+  AssignmentPlanStageRequest,
+  CreateAssignmentPlanRequest,
+  AssignmentPlanStageResultDto,
+  AssignmentPlanResultDto,
+  AssignmentPlanTemplateStageDto,
+  AssignmentPlanTemplateDto,
   StageProgressDto,
   AssignmentStatus,
   WorkflowEntityType,
@@ -194,6 +214,79 @@ export const assignmentService = {
       return response.data;
     } catch (error: any) {
       throw new Error(extractError(error, 'Không thể tạo phân công nhiệm vụ'));
+    }
+  },
+
+  /**
+   * Producer giao việc hàng loạt theo granularity của stage hoặc xem trước xung đột (dryRun)
+   * (POST /api/chapters/{chapterId}/assignments/bulk)
+   */
+  createBulkAssignments: async (
+    chapterId: string,
+    request: CreateBulkAssignmentRequest,
+  ): Promise<BulkAssignmentResultDto> => {
+    try {
+      const response = await axiosClient.post(`/chapters/${chapterId}/assignments/bulk`, request);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(extractError(error, 'Không thể giao việc hàng loạt'));
+    }
+  },
+
+  /**
+   * Ứng viên nhận việc đã xếp hạng theo stage cho Producer
+   * (GET /api/chapters/{chapterId}/assignments/assignee-suggestions?pipelineStageId=)
+   */
+  getAssigneeSuggestions: async (
+    chapterId: string,
+    pipelineStageId: string,
+  ): Promise<AssigneeSuggestionDto[]> => {
+    try {
+      const response = await axiosClient.get(
+        `/chapters/${chapterId}/assignments/assignee-suggestions`,
+        { params: { pipelineStageId } },
+      );
+      return response.data;
+    } catch (error: any) {
+      console.warn('Không thể nạp gợi ý người nhận việc:', error);
+      return [];
+    }
+  },
+
+  /**
+   * Producer giao nhiều stage/role một lần theo kế hoạch
+   * (POST /api/chapters/{chapterId}/assignments/plan)
+   */
+  createAssignmentPlan: async (
+    chapterId: string,
+    request: CreateAssignmentPlanRequest,
+  ): Promise<AssignmentPlanResultDto> => {
+    try {
+      const response = await axiosClient.post(
+        `/chapters/${chapterId}/assignments/plan`,
+        request,
+      );
+      return response.data;
+    } catch (error: any) {
+      throw new Error(extractError(error, 'Không thể tạo kế hoạch giao việc'));
+    }
+  },
+
+  /**
+   * Lấy mẫu "giao như chương trước" từ chương gần nhất đã có phân công việc
+   * (GET /api/chapters/{chapterId}/assignments/plan-template)
+   */
+  getAssignmentPlanTemplate: async (
+    chapterId: string,
+  ): Promise<AssignmentPlanTemplateDto> => {
+    try {
+      const response = await axiosClient.get(
+        `/chapters/${chapterId}/assignments/plan-template`,
+      );
+      return response.data;
+    } catch (error: any) {
+      console.warn('Không thể nạp mẫu kế hoạch giao việc:', error);
+      return { sourceChapterId: null, sourceChapterNumber: null, stages: [] };
     }
   },
 

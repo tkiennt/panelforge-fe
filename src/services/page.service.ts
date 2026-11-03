@@ -1,5 +1,6 @@
 // src/services/page.service.ts
 import axiosClient from '../api/axiosClient';
+import { PageVisualContinuityDto } from '../types/pipeline';
 
 export interface CreatePageRequestBody {
   pageNumber?: number;
@@ -29,6 +30,27 @@ export interface PageDto {
   elementsCount: number;
 }
 
+
+export interface ReorderPageRequest {
+  newPageNumber: number;
+}
+
+export interface AutoAssignScriptLinesRequest {
+  sceneId: string;
+  dryRun?: boolean;
+}
+
+export interface PanelLineGroup {
+  panelId: string;
+  scriptLineIds: string[];
+}
+
+export interface AutoAssignScriptLinesResult {
+  assignments: PanelLineGroup[];
+  unassignedLineIds: string[];
+  missingPanels: number;
+  applied: boolean;
+}
 export interface PageDetailDto {
   id: string;
   chapterId: string;
@@ -192,6 +214,50 @@ export const pageService = {
       return response.data;
     } catch (error) {
       throw await toPageError(error, 'Khôi phục phiên bản trang thất bại.');
+    }
+  },
+
+  /**
+   * Editor Visual Continuity (kế hoạch AI đa vai trò, Tuần 2):
+   * So sánh ảnh từng panel của trang với character sheet đã khoá (BR-15).
+   * POST /api/pages/{pageId}/visual-continuity
+   */
+  /**
+   * Tự động phân bổ kịch bản vào Panel của trang (BE 2026-11-03).
+   * POST /api/pages/{pageId}/script-lines/auto-assign
+   */
+  autoAssignScriptLines: async (
+    pageId: string,
+    body: AutoAssignScriptLinesRequest,
+  ): Promise<AutoAssignScriptLinesResult> => {
+    try {
+      const response = await axiosClient.post(
+        `/pages/${toValidPageGuid(pageId)}/script-lines/auto-assign`,
+        body,
+      );
+      return response.data;
+    } catch (error) {
+      throw await toPageError(error, 'Không thể tự động phân bổ kịch bản vào các khung.');
+    }
+  },
+  reorderPage: async (pageId: string, newPageNumber: number): Promise<PageDto> => {
+    const validPageId = toValidPageGuid(pageId);
+    try {
+      const response = await axiosClient.put(`/pages/${validPageId}/reorder`, {
+        newPageNumber,
+      });
+      return response.data;
+    } catch (error) {
+      throw await toPageError(error, 'Đổi thứ tự trang thất bại.');
+    }
+  },
+
+  checkVisualContinuity: async (pageId: string): Promise<PageVisualContinuityDto> => {
+    try {
+      const response = await axiosClient.post(`/pages/${pageId}/visual-continuity`);
+      return response.data;
+    } catch (error) {
+      throw await toPageError(error, 'Kiểm tra nhất quán hình ảnh trang thất bại.');
     }
   },
 };

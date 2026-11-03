@@ -6,6 +6,7 @@ import type { NotificationDto, NotificationListDto } from '@/types';
 import { notificationService } from '@/services/notification.service';
 import type { ComponentProps } from 'react';
 import { NotificationBell } from './NotificationBell';
+import { getNotificationBadge } from './notificationBadge';
 import { formatRelativeTime } from './collaborationRules';
 
 vi.mock('@/services/notification.service', () => ({
@@ -244,5 +245,55 @@ describe('formatRelativeTime', () => {
     ['2026-10-04T12:00:00Z', '2 ngày trước'],
   ])('%s → %s', (iso, expected) => {
     expect(formatRelativeTime(iso, now)).toBe(expected);
+  });
+});
+
+describe('getNotificationBadge', () => {
+  it('trả về Clock với tông cam cho thông báo Chờ duyệt', () => {
+    const badge = getNotificationBadge('AssignmentSubmitted');
+    expect(badge.bg).toBe('bg-orange-50');
+    expect(badge.text).toBe('text-orange-600');
+    expect(badge.border).toBe('border-orange-200');
+    expect(badge.containerClass).toContain('bg-orange-50 text-orange-600 border-orange-200');
+
+    const publication = getNotificationBadge('ChapterReadyForPublication');
+    expect(publication.containerClass).toContain('bg-orange-50 text-orange-600 border-orange-200');
+  });
+
+  it('trả về FileEdit với tông xanh dương cho thông báo Đã sửa xong', () => {
+    const badge = getNotificationBadge('ChangeRequestResolved');
+    expect(badge.bg).toBe('bg-blue-50');
+    expect(badge.text).toBe('text-blue-600');
+    expect(badge.border).toBe('border-blue-200');
+    expect(badge.containerClass).toContain('bg-blue-50 text-blue-600 border-blue-200');
+  });
+
+  it('trả về CheckCircle2 với tông xanh lá cho Đã duyệt và Chương đã xuất bản', () => {
+    const approved = getNotificationBadge('AssignmentApproved');
+    const published = getNotificationBadge('ChapterPublished');
+    expect(approved.bg).toBe('bg-emerald-50');
+    expect(approved.text).toBe('text-emerald-600');
+    expect(published.containerClass).toContain('bg-emerald-50 text-emerald-600 border-emerald-200');
+  });
+
+  it('trả về AlertCircle với tông đỏ cho thông báo từ chối / trả về / quá hạn', () => {
+    const rejected = getNotificationBadge('AssignmentChangesRequested');
+    const overdue = getNotificationBadge('AssignmentOverdue');
+    const reopened = getNotificationBadge('ChangeRequestReopened');
+    expect(rejected.containerClass).toContain('bg-rose-50 text-rose-600 border-rose-200');
+    expect(overdue.containerClass).toContain('bg-rose-50 text-rose-600 border-rose-200');
+    expect(reopened.containerClass).toContain('bg-rose-50 text-rose-600 border-rose-200');
+  });
+
+  it('trả về Clock với tông vàng hổ phách cho thông báo sắp đến hạn', () => {
+    const dueSoon = getNotificationBadge('AssignmentDueSoon');
+    expect(dueSoon.containerClass).toContain('bg-amber-50 text-amber-600 border-amber-200');
+  });
+
+  it('trả về Bell với tông indigo / stone cho việc mới và thông báo mặc định', () => {
+    const assigned = getNotificationBadge('AssignmentAssigned');
+    const fallback = getNotificationBadge('UnknownType');
+    expect(assigned.containerClass).toContain('bg-indigo-50 text-indigo-600 border-indigo-200');
+    expect(fallback.containerClass).toContain('bg-stone-100 text-stone-600 border-stone-200');
   });
 });

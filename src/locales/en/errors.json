@@ -1,0 +1,15 @@
+{
+  "ERR_UNAUTHORIZED": "Unauthorized or session has expired.",
+  "ERR_FORBIDDEN": "You do not have permission to perform this action.",
+  "ERR_NOT_FOUND": "The requested resource was not found.",
+  "ERR_SERIES_NOT_FOUND": "Series not found.",
+  "ERR_WORKSPACE_NOT_FOUND": "Workspace not found.",
+  "ERR_CHAPTER_READ_ONLY": "This chapter is approved or published, content is read-only.",
+  "ERR_CONFLICT": "Data conflict detected. Please refresh and try again.",
+  "ERR_VALIDATION_FAILED": "Validation failed or required information is missing.",
+  "ERR_AI_UNAVAILABLE": "AI service is currently unavailable or not responding.",
+  "ERR_AI_DISABLED": "AI features are disabled in this environment.",
+  "ERR_AI_QUOTA_EXCEEDED": "AI usage quota exceeded.",
+  "ERR_INTERNAL_SERVER_ERROR": "An internal server error occurred. Please try again later.",
+  "unknown": "An unexpected error occurred. Please try again later."
+}

@@ -1,0 +1,15 @@
+{
+  "ERR_UNAUTHORIZED": "Phiên đăng nhập không hợp lệ hoặc đã hết hạn.",
+  "ERR_FORBIDDEN": "Bạn không có quyền thực hiện thao tác này.",
+  "ERR_NOT_FOUND": "Tài nguyên yêu cầu không tồn tại.",
+  "ERR_SERIES_NOT_FOUND": "Bộ truyện không tồn tại.",
+  "ERR_WORKSPACE_NOT_FOUND": "Không gian làm việc không tồn tại.",
+  "ERR_CHAPTER_READ_ONLY": "Chương này đã hoàn tất hoặc xuất bản, nội dung chỉ đọc.",
+  "ERR_CONFLICT": "Dữ liệu đã bị thay đổi bởi người khác, vui lòng tải lại.",
+  "ERR_VALIDATION_FAILED": "Dữ liệu không hợp lệ hoặc thiếu thông tin bắt buộc.",
+  "ERR_AI_UNAVAILABLE": "Dịch vụ AI đang bảo trì hoặc tạm thời không phản hồi.",
+  "ERR_AI_DISABLED": "Tính năng AI đã bị tắt trong hệ thống.",
+  "ERR_AI_QUOTA_EXCEEDED": "Đã vượt quá hạn mức sử dụng AI cho phép.",
+  "ERR_INTERNAL_SERVER_ERROR": "Đã xảy ra lỗi hệ thống, vui lòng thử lại sau.",
+  "unknown": "Đã xảy ra lỗi không xác định. Vui lòng thử lại sau."
+}

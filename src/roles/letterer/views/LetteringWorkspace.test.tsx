@@ -49,6 +49,7 @@ vi.mock('@/services/chapter.service', () => ({
 vi.mock('@/services/aiAgents.service', () => ({
   aiAgentsService: {
     runWorkflow: vi.fn(),
+    runCopilot: vi.fn(),
     getRun: vi.fn(),
     getSuggestions: vi.fn(),
     review: vi.fn(),
@@ -412,7 +413,7 @@ describe('LetteringWorkspace', () => {
     expect(screen.queryByTestId('letterer-image-layer-elem-bg-1')).toBeNull();
   });
 
-  it('chạy Letterer Agent và hiển thị modal đề xuất rút gọn thoại (CF2 2.4)', async () => {
+  it('chạy Letterer Copilot và hiển thị modal đề xuất rút gọn thoại (sync theo từng bubble)', async () => {
     const onShowToast = vi.fn();
 
     vi.mocked(chapterService.getChapterById).mockResolvedValue({
@@ -420,40 +421,23 @@ describe('LetteringWorkspace', () => {
       versionVector: 2,
     } as any);
 
-    vi.mocked(aiAgentsService.runWorkflow).mockResolvedValue({
+    vi.mocked(aiAgentsService.runCopilot).mockResolvedValue({
+      id: 'sug-1',
       runId: 'run-ai-1',
-      status: 'Completed',
-      provider: 'Gemini',
-      model: 'gemini-1.5-pro',
-    });
-
-    vi.mocked(aiAgentsService.getRun).mockResolvedValue({
-      id: 'run-ai-1',
-      status: 'Completed',
-    } as any);
-
-    vi.mocked(aiAgentsService.getSuggestions).mockResolvedValue([
-      {
-        id: 'sug-1',
+      kind: 'LineRewrite',
+      status: 'Pending',
+      payload: {
+        schemaVersion: 1,
         runId: 'run-ai-1',
-        kind: 'Lettering',
-        status: 'Pending',
-        payload: {
-          suggestions: [
-            {
-              sourceScriptLineId: 'line-1',
-              targetElementId: 'elem-1',
-              originalText: 'Lời thoại ban đầu quá dài dòng và vượt kích thước',
-              suggestedText: 'Thoại gọn hơn',
-              reason: 'Rút ngắn vừa balloon',
-              maxChars: 20,
-              limitSource: 'element-estimate',
-              withinEstimatedLimit: true,
-            },
-          ],
-        },
-      } as any,
-    ]);
+        sceneId: 'scene-1',
+        task: 'letterer.shorten',
+        sourceScriptLineId: 'line-1',
+        originalText: 'Lời thoại ban đầu quá dài dòng và vượt kích thước',
+        suggestedText: 'Thoại gọn hơn',
+        reason: 'Rút ngắn vừa balloon',
+        maxChars: 20,
+      },
+    } as any);
 
     renderComponent({ seriesId: 'ser-1', onShowToast });
 
@@ -467,11 +451,11 @@ describe('LetteringWorkspace', () => {
 
     await waitFor(
       () => {
-        expect(aiAgentsService.runWorkflow).toHaveBeenCalledWith(
+        expect(aiAgentsService.runCopilot).toHaveBeenCalledWith(
           'ser-1',
           expect.objectContaining({
-            workflowType: 'Letterer',
-            chapterId: 'chap-1',
+            task: 'letterer.shorten',
+            lineId: 'line-1',
           }),
         );
         expect(screen.getByText(/Đề Xuất Rút Gọn Thoại/i)).toBeInTheDocument();

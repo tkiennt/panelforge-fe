@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import axiosClient from '../api/axiosClient';
-import { chapterService } from './chapter.service';
+import { chapterService, ChapterLockGateDto } from './chapter.service';
 import { catalogService, resolveCatalogImageUrl } from './catalog.service';
 
 vi.mock('../api/axiosClient', async (importOriginal) => {
@@ -26,6 +26,36 @@ describe('Chapter Publishing & Review Services', () => {
   });
 
   describe('chapterService - Review & Publish flow', () => {
+    it('gọi getChapterLockGate kiểm tra checklist điều kiện duyệt chương', async () => {
+      const mockGate: ChapterLockGateDto = {
+        chapterId: 'chap-100',
+        status: 'InProduction',
+        canApprove: false,
+        items: [
+          {
+            code: 'NO_PAGES',
+            blocking: true,
+            count: 0,
+            message: 'Chapter chưa có Page nào, chưa thể duyệt.',
+          },
+          {
+            code: 'PENDING_AI_SUGGESTIONS',
+            blocking: false,
+            count: 1,
+            message: 'Còn 1 đề xuất AI chờ quyết định.',
+          },
+        ],
+      };
+      get.mockResolvedValue({ data: mockGate });
+
+      const res = await chapterService.getChapterLockGate('chap-100');
+
+      expect(get).toHaveBeenCalledWith('/chapters/chap-100/lock-gate');
+      expect(res.canApprove).toBe(false);
+      expect(res.items).toHaveLength(2);
+      expect(res.items[0].code).toBe('NO_PAGES');
+    });
+
     it('gọi approveChapter thành công chuyển trạng thái sang Approved', async () => {
       const mockReview = {
         id: 'rev-1',
@@ -109,6 +139,30 @@ describe('Chapter Publishing & Review Services', () => {
       expect(res.scheduledAt).toBe(futureDate);
     });
 
+    it('tải lên ảnh bìa chương qua PUT /chapters/{id}/cover', async () => {
+      const put = vi.mocked(axiosClient.put);
+      put.mockResolvedValueOnce({ data: { value: '/api/chapters/chap-100/cover?v=abcdef123456' } });
+
+      const dummyFile = new File(['dummy content'], 'cover.png', { type: 'image/png' });
+      const coverUrl = await chapterService.uploadChapterCover('chap-100', dummyFile);
+
+      expect(put).toHaveBeenCalledWith(
+        '/chapters/chap-100/cover',
+        expect.any(FormData),
+        expect.objectContaining({ headers: { 'Content-Type': 'multipart/form-data' } }),
+      );
+      expect(coverUrl).toBe('/api/chapters/chap-100/cover?v=abcdef123456');
+    });
+
+    it('xoá ảnh bìa chương qua DELETE /chapters/{id}/cover', async () => {
+      const del = vi.mocked(axiosClient.delete);
+      del.mockResolvedValueOnce({ data: { value: null } });
+
+      await chapterService.deleteChapterCover('chap-100');
+
+      expect(del).toHaveBeenCalledWith('/chapters/chap-100/cover');
+    });
+
     it('gọi updateOutline qua PUT /chapters/{id}/outline', async () => {
       const put = vi.mocked(axiosClient.put);
       put.mockResolvedValueOnce({ data: { value: 'Đề cương chương 1' } });
@@ -180,6 +234,11 @@ describe('Chapter Publishing & Review Services', () => {
       expect(get).toHaveBeenCalledWith('/catalog/chapters/chap-100');
       expect(res.readingDirection).toBe('RightToLeft');
       expect(res.pages.length).toBe(2);
+    });
+
+    it('tạo URL tải ảnh bìa chương công khai qua getPublicChapterCoverUrl', () => {
+      const url = catalogService.getPublicChapterCoverUrl('chap-100', 'hash123');
+      expect(url).toBe('http://localhost:5044/api/catalog/chapters/chap-100/cover?v=hash123');
     });
 
     it('tạo URL tải ảnh trang chương truyện đúng định dạng', () => {

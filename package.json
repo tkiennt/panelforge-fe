@@ -11,6 +11,7 @@
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "format": "prettier --write \"{src,e2e}/**/*.{ts,tsx,css,json}\" \"*.ts\"",
     "typecheck": "tsc --noEmit",
+    "i18n:check": "node scripts/check-i18n-parity.mjs",
     "test": "vitest",
     "test:run": "vitest run --pool=threads --maxWorkers=2",
     "test:coverage": "vitest run --coverage",

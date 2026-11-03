@@ -63,7 +63,7 @@ describe('SeriesMembersModal - Phân quyền và gán nhân sự 2 cấp', () =>
       userId: 'user-artist',
       fullName: 'Tatsuki Fujimoto',
       email: 'tatsuki@studio.com',
-      role: 'Member',
+      role: 'Artist',
       isOwner: false,
       status: 'Active' as const,
       joinedAt: '2026-09-01T00:00:00Z',
@@ -213,8 +213,8 @@ describe('SeriesMembersModal - Phân quyền và gán nhân sự 2 cấp', () =>
       screen.getByTitle('Producer là thành viên quản trị mặc định (không thể sửa hoặc xóa)'),
     ).toBeInTheDocument();
 
-    // Chỉ có 1 nút "Đổi vai trò" và 1 nút "Xóa thành viên" (dành riêng cho Aka Akasaka, không có của Makoto Shinkai)
-    expect(screen.getAllByTitle(/Đổi vai trò/i)).toHaveLength(1);
+    // Không còn đổi vai trò trong Series (vai trò theo Workspace); chỉ Aka Akasaka có nút xoá
+    expect(screen.queryAllByTitle(/Đổi vai trò/i)).toHaveLength(0);
     expect(screen.getAllByTitle(/Xóa thành viên/i)).toHaveLength(1);
   });
 
@@ -247,5 +247,3 @@ describe('SeriesMembersModal - Phân quyền và gán nhân sự 2 cấp', () =>
     expect(screen.queryByText(/\{workspaceName\}/i)).not.toBeInTheDocument();
   });
 });
-
-

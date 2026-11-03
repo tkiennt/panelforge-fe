@@ -20,6 +20,7 @@ import {
 } from '@/services/artwork.service';
 import { assignmentService } from '@/services/assignment.service';
 import { pipelineService } from '@/services/pipeline.service';
+import { aiAgentsService } from '@/services/aiAgents.service';
 
 vi.mock('@/services/chapter.service');
 vi.mock('@/services/page.service');
@@ -45,6 +46,7 @@ vi.mock('@/services/element.service', async (importOriginal) => {
 vi.mock('@/services/bible.service');
 vi.mock('@/services/artwork.service');
 vi.mock('@/services/assignment.service');
+vi.mock('@/services/aiAgents.service');
 
 describe('ArtistDeskView', () => {
   beforeEach(() => {
@@ -96,6 +98,24 @@ describe('ArtistDeskView', () => {
     vi.mocked(artworkService.getArtworks).mockResolvedValue([]);
     vi.mocked(assignmentService.getMyAssignments).mockResolvedValue([]);
     vi.mocked(assignmentService.getAssignments).mockResolvedValue([]);
+    vi.mocked(aiAgentsService.getSuggestions).mockResolvedValue([]);
+    vi.mocked(aiAgentsService.getWorkflowAvailability).mockResolvedValue({
+      canRun: true,
+      missing: [],
+      workflows: [
+        {
+          workflowType: 'Artist',
+          canRun: true,
+          missing: [],
+        },
+      ],
+    } as any);
+    vi.mocked(aiAgentsService.getRun).mockResolvedValue({
+      id: 'run-1',
+      status: 'Succeeded',
+      steps: [],
+      suggestions: [],
+    } as any);
     vi.mocked(computeFileSha256).mockResolvedValue('sha-1');
     vi.mocked(resolveArtworkUrl).mockImplementation((u: string) => `http://localhost${u}`);
     vi.mocked(toThumbnailUrl).mockImplementation(
@@ -181,6 +201,48 @@ describe('ArtistDeskView', () => {
         pagesCount: 1,
       },
     ]);
+
+    vi.mocked(scriptLineService.getSceneById).mockResolvedValue({
+      id: 'scene-1',
+      chapterId: 'chap-1',
+      sceneNumber: 1,
+      heading: 'Cổng thành',
+      summary: 'Nhân vật xuất hiện',
+      createdAt: '2026-10-08T00:00:00Z',
+      scriptLinesCount: 1,
+      pagesCount: 1,
+      scriptLines: [
+        {
+          id: 'line-1',
+          sceneId: 'scene-1',
+          lineOrder: 1,
+          dialogueText: 'Có ai ở đó không?',
+          stageDirection: 'Gió thổi qua',
+          speakerCharacterId: 'bible-char-1',
+        } as any,
+      ],
+    } as any);
+
+    vi.mocked(pageService.createPage).mockImplementation(async (_chapId, body) => ({
+      id: `page-${body.pageNumber || 99}`,
+      chapterId: 'chap-1',
+      pageNumber: body.pageNumber || 1,
+      layoutFormat: body.layoutFormat || 'StandardPage',
+      widthPx: body.widthPx || 1200,
+      heightPx: body.heightPx || 1800,
+      dpi: body.dpi || 600,
+      elementsCount: 0,
+    }));
+    vi.mocked(pageService.reorderPage).mockImplementation(async (pageId, newPageNumber) => ({
+      id: pageId,
+      chapterId: 'chap-1',
+      pageNumber: newPageNumber,
+      layoutFormat: 'StandardPage',
+      widthPx: 1200,
+      heightPx: 1800,
+      dpi: 600,
+      elementsCount: 0,
+    }));
 
     vi.mocked(frameTemplateService.getFrameTemplates).mockResolvedValue([]);
     vi.mocked(pipelineService.getSeriesPipeline).mockResolvedValue({
@@ -970,6 +1032,338 @@ describe('ArtistDeskView', () => {
 
       const toggleLayoutBtn = screen.getByTestId('toggle-layout-edit');
       expect(toggleLayoutBtn).toBeDisabled();
+    });
+
+    it('hỗ trợ kéo thả đổi thứ tự trang trong danh sách bên trái và tải lại danh sách', async () => {
+      vi.mocked(pageService.getPagesByChapter).mockResolvedValue([
+        {
+          id: 'page-1',
+          chapterId: 'chap-1',
+          pageNumber: 1,
+          layoutFormat: 'StandardPage',
+          widthPx: 1200,
+          heightPx: 1800,
+          dpi: 600,
+          elementsCount: 0,
+        },
+        {
+          id: 'page-2',
+          chapterId: 'chap-1',
+          pageNumber: 2,
+          layoutFormat: 'StandardPage',
+          widthPx: 1200,
+          heightPx: 1800,
+          dpi: 600,
+          elementsCount: 0,
+        },
+      ]);
+
+      renderComponent();
+
+      const pageItem1 = await screen.findByTestId('page-item-1');
+      const pageItem2 = await screen.findByTestId('page-item-2');
+      expect(pageItem1).toBeInTheDocument();
+      expect(pageItem2).toBeInTheDocument();
+
+      fireEvent.dragStart(pageItem2, {
+        dataTransfer: {
+          setData: vi.fn(),
+          effectAllowed: 'move',
+        },
+      });
+      fireEvent.dragOver(pageItem1, {
+        preventDefault: vi.fn(),
+        dataTransfer: { dropEffect: 'move' },
+      });
+      fireEvent.drop(pageItem1, {
+        dataTransfer: {
+          getData: () => 'page-2',
+        },
+      });
+
+      await waitFor(() => {
+        expect(pageService.reorderPage).toHaveBeenCalledWith('page-2', 1);
+      });
+    });
+
+    it('bắt lỗi 409 Conflict khi đổi thứ tự trang vi phạm thứ tự cảnh', async () => {
+      vi.mocked(pageService.getPagesByChapter).mockResolvedValue([
+        {
+          id: 'page-1',
+          chapterId: 'chap-1',
+          pageNumber: 1,
+          layoutFormat: 'StandardPage',
+          widthPx: 1200,
+          heightPx: 1800,
+          dpi: 600,
+          elementsCount: 0,
+        },
+        {
+          id: 'page-2',
+          chapterId: 'chap-1',
+          pageNumber: 2,
+          layoutFormat: 'StandardPage',
+          widthPx: 1200,
+          heightPx: 1800,
+          dpi: 600,
+          elementsCount: 0,
+        },
+      ]);
+      const conflictError: any = new Error(
+        'Không thể sắp xếp như vậy: trang 2 chứa khung của Cảnh 2 nhưng lại đứng sau khung của Cảnh 1.',
+      );
+      conflictError.status = 409;
+      conflictError.code = 'CONFLICT';
+      vi.mocked(pageService.reorderPage).mockRejectedValueOnce(conflictError);
+
+      renderComponent();
+
+      const pageItem1 = await screen.findByTestId('page-item-1');
+      const pageItem2 = await screen.findByTestId('page-item-2');
+      expect(pageItem1).toBeInTheDocument();
+      expect(pageItem2).toBeInTheDocument();
+
+      fireEvent.drop(pageItem1, {
+        dataTransfer: {
+          getData: () => 'page-2',
+        },
+      });
+
+      await waitFor(() => {
+        expect(pageService.reorderPage).toHaveBeenCalledWith('page-2', 1);
+      });
+    });
+
+    it('chèn trang vào giữa các trang khi bấm nút insert "+"', async () => {
+      vi.mocked(pageService.getPagesByChapter).mockResolvedValueOnce([
+        {
+          id: 'page-1',
+          chapterId: 'chap-1',
+          pageNumber: 1,
+          layoutFormat: 'StandardPage',
+          widthPx: 1200,
+          heightPx: 1800,
+          dpi: 600,
+          elementsCount: 0,
+        },
+        {
+          id: 'page-2',
+          chapterId: 'chap-1',
+          pageNumber: 2,
+          layoutFormat: 'StandardPage',
+          widthPx: 1200,
+          heightPx: 1800,
+          dpi: 600,
+          elementsCount: 0,
+        },
+      ]);
+
+      renderComponent();
+
+      const insertBtn = await screen.findByTestId('insert-page-after-1');
+      expect(insertBtn).toBeInTheDocument();
+
+      fireEvent.click(insertBtn);
+
+      await waitFor(() => {
+        expect(pageService.createPage).toHaveBeenCalledWith(
+          'chap-1',
+          expect.objectContaining({ pageNumber: 2 }),
+        );
+      });
+    });
+  });
+
+  describe('Quy trình AI 2 bước (Mô tả vẽ & Sinh ảnh AI cho Panel)', () => {
+    it('thanh công cụ hiển thị nút "Tạo mô tả vẽ (cả cảnh)"', async () => {
+      renderComponent();
+
+      const aiBtn = await screen.findByTestId('desk-open-ai-assist-btn');
+      expect(aiBtn).toBeInTheDocument();
+      expect(aiBtn).toHaveTextContent('Tạo mô tả vẽ (cả cảnh)');
+    });
+
+    it('nút Tự động phân bổ kịch bản trong tab Kịch bản hiển thị đúng', async () => {
+      renderComponent();
+
+      await screen.findByTestId('panel-canvas');
+      fireEvent.click(screen.getByTestId('left-tab-script'));
+
+      const autoAssignBtn = await screen.findByTestId('auto-assign-script-btn');
+      expect(autoAssignBtn).toBeInTheDocument();
+      expect(autoAssignBtn).toHaveTextContent('Tự động phân bổ kịch bản');
+    });
+
+    it('khi panel chưa có mô tả: hiển thị nút "Tạo mô tả vẽ (bước 1)"', async () => {
+      vi.mocked(aiAgentsService.getSuggestions).mockResolvedValue([]);
+
+      renderComponent();
+
+      const panelBox = await screen.findByTestId('panel-box-panel-1');
+      fireEvent.click(panelBox);
+      await openDetails();
+
+      const step1Btn = await screen.findByTestId('desk-ai-thumbnail-btn-panel-1');
+      expect(step1Btn).toBeInTheDocument();
+      expect(step1Btn).toHaveTextContent('Tạo mô tả vẽ (bước 1)');
+      expect(step1Btn).not.toBeDisabled();
+    });
+
+    it('khi panel có mô tả đang chờ duyệt (Pending): hiển thị nút "Chờ duyệt mô tả (bước 1)" có thể bấm để mở xem', async () => {
+      vi.mocked(aiAgentsService.getSuggestions).mockResolvedValue([
+        {
+          id: 'sug-p1',
+          runId: 'run-1',
+          stepId: 'step-1',
+          sceneId: 'scene-1',
+          kind: 'ImagePrompt',
+          status: 'Pending',
+          summary: 'Prompt cho cảnh 1',
+          payload: {
+            schemaVersion: 1,
+            runId: 'run-1',
+            sceneId: 'scene-1',
+            layoutRevisionId: 'rev-1',
+            panels: [
+              {
+                panelId: 'panel-1',
+                pageNumber: 1,
+                panelNumber: 1,
+                prompt: 'Một hiệp sĩ đứng trước cổng thành hoàng hôn rực rỡ',
+                referenceIds: [],
+              },
+            ],
+          },
+          payloadHash: 'h1',
+          baseChapterVersion: 1,
+          bibleRevisionIds: [],
+          hasBlockingFindings: false,
+          createdAt: new Date().toISOString(),
+          decisions: [],
+        },
+      ]);
+
+      renderComponent();
+
+      const panelBox = await screen.findByTestId('panel-box-panel-1');
+      fireEvent.click(panelBox);
+      await openDetails();
+
+      const pendingBtn = await screen.findByTestId('desk-ai-thumbnail-btn-panel-1');
+      expect(pendingBtn).toBeInTheDocument();
+      expect(pendingBtn).toHaveTextContent('Chờ duyệt mô tả (bước 1)');
+      expect(pendingBtn).not.toBeDisabled();
+
+      fireEvent.click(pendingBtn);
+      const aiPanel = await screen.findByTestId('ai-assist-panel');
+      expect(aiPanel).toBeInTheDocument();
+    });
+
+    it('khi panel đã có prompt được Accept: hiển thị xem trước prompt và nút "Sinh ảnh AI"', async () => {
+      vi.mocked(aiAgentsService.getSuggestions).mockResolvedValue([
+        {
+          id: 'sug-p2',
+          runId: 'run-2',
+          stepId: 'step-2',
+          sceneId: 'scene-1',
+          kind: 'ImagePrompt',
+          status: 'Accepted',
+          summary: 'Prompt đã duyệt cho cảnh 1',
+          payload: {
+            schemaVersion: 1,
+            runId: 'run-2',
+            sceneId: 'scene-1',
+            layoutRevisionId: 'rev-2',
+            panels: [
+              {
+                panelId: 'panel-1',
+                pageNumber: 1,
+                panelNumber: 1,
+                prompt: 'Một hiệp sĩ đứng trước cổng thành hoàng hôn rực rỡ',
+                referenceIds: [],
+              },
+            ],
+          },
+          payloadHash: 'h2',
+          baseChapterVersion: 1,
+          bibleRevisionIds: [],
+          hasBlockingFindings: false,
+          createdAt: new Date().toISOString(),
+          decisions: [],
+        },
+      ]);
+
+      renderComponent();
+
+      const panelBox = await screen.findByTestId('panel-box-panel-1');
+      fireEvent.click(panelBox);
+      await openDetails();
+
+      const preview = await screen.findByTestId('desk-panel-prompt-preview-panel-1');
+      expect(preview).toBeInTheDocument();
+      expect(preview).toHaveTextContent('Một hiệp sĩ đứng trước cổng thành hoàng hôn rực rỡ');
+
+      const genBtn = await screen.findByTestId('desk-ai-thumbnail-btn-panel-1');
+      expect(genBtn).toBeInTheDocument();
+      expect(genBtn).toHaveTextContent('Sinh ảnh AI');
+      expect(genBtn).not.toBeDisabled();
+    });
+
+    it('chỉ hiển thị nhiệm vụ thuộc vai trò Artist trong Hàng Đợi Công Việc, loại bỏ các nhiệm vụ khác vai trò như Script/Writer', async () => {
+      vi.mocked(pipelineService.getSeriesPipeline).mockResolvedValue({
+        id: 'pipe-1',
+        seriesId: 'series-1',
+        stages: [
+          { id: 'stg-script', name: 'Script', stageOrder: 1, allowedRole: 'Writer', isEnabled: true },
+          { id: 'stg-thumb', name: 'Thumbnail', stageOrder: 2, allowedRole: 'Artist', isEnabled: true },
+        ],
+      } as any);
+
+      vi.mocked(assignmentService.getAssignments).mockResolvedValue([
+        {
+          id: 'asg-writer-1',
+          chapterId: 'chap-1',
+          entityType: 'Chapter',
+          targetEntityId: 'chap-1',
+          pipelineStageId: 'stg-script',
+          assignedRole: 'Writer',
+          brief: 'Hoàn Thành công việc kịch bản cho chương 1 đi',
+          status: 'InProgress',
+          dueDate: '2026-11-10T00:00:00Z',
+        } as any,
+        {
+          id: 'asg-artist-1',
+          chapterId: 'chap-1',
+          entityType: 'Chapter',
+          targetEntityId: 'chap-1',
+          pipelineStageId: 'stg-thumb',
+          assignedRole: 'Artist',
+          brief: 'Hãy vẽ Thumbnail đi',
+          status: 'InProgress',
+          dueDate: '2026-11-17T00:00:00Z',
+        } as any,
+      ]);
+
+      renderComponent();
+
+      // Nút mở hàng đợi chỉ đếm 1 nhiệm vụ của Artist (thay vì 2)
+      await waitFor(() => {
+        expect(screen.getByTestId('left-open-queue')).toHaveTextContent('Nhiệm vụ chương (1)');
+      });
+      const queueBtn = screen.getByTestId('left-open-queue');
+
+      // Mở Hàng Đợi Công Việc
+      fireEvent.click(queueBtn);
+
+      await waitFor(() => {
+        expect(screen.getByText('Hàng Đợi Công Việc')).toBeInTheDocument();
+      });
+
+      // Nhiệm vụ của Artist phải hiển thị
+      expect(screen.getByText('Hãy vẽ Thumbnail đi')).toBeInTheDocument();
+
+      // Nhiệm vụ của Writer (Script) phải bị lọc bỏ, không hiển thị
+      expect(screen.queryByText('Hoàn Thành công việc kịch bản cho chương 1 đi')).not.toBeInTheDocument();
     });
   });
 });
