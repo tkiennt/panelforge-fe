@@ -115,7 +115,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
     editorProps: {
       attributes: {
         class:
-          'focus:outline-none min-h-[600px] px-8 py-10 font-mono text-sm leading-relaxed text-gray-900 bg-[#FCFBF8] selection:bg-orange-100 selection:text-orange-900',
+          'focus:outline-none min-h-[600px] px-8 py-10 font-mono text-sm leading-relaxed text-gray-900 bg-[#FCFBF8] selection:bg-orange-100 selection:text-orange-900 caret-[#C2410C]',
       },
     },
     onSelectionUpdate: ({ editor }) => {
@@ -384,7 +384,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
 
     for (let i = Math.min(currentBlockIndex, content.length - 1); i >= 0; i--) {
       const block = content[i];
-      const text = (block.content?.[0]?.text || '').trim();
+      const text = ((block.content?.[0] as any)?.text || '').trim();
       const match = text.match(/^(?:#\s*Page|Trang)\s*(\d+(?:\.\d+)?)/i);
       if (block.attrs?.blockType === 'page_heading' || match) {
         if (match) {
@@ -399,7 +399,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
     if (pageBlockIndex === -1) {
       for (let i = 0; i < content.length; i++) {
         const block = content[i];
-        const text = (block.content?.[0]?.text || '').trim();
+        const text = ((block.content?.[0] as any)?.text || '').trim();
         const match = text.match(/^(?:#\s*Page|Trang)\s*(\d+(?:\.\d+)?)/i);
         if (block.attrs?.blockType === 'page_heading' || match) {
           if (match) {
@@ -416,7 +416,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
     const startIndex = pageBlockIndex >= 0 ? pageBlockIndex + 1 : 0;
     for (let i = startIndex; i < content.length; i++) {
       const block = content[i];
-      const text = (block.content?.[0]?.text || '').trim();
+      const text = ((block.content?.[0] as any)?.text || '').trim();
       // Nếu gặp trang tiếp theo sau vị trí con trỏ thì dừng
       if (i > currentBlockIndex && (block.attrs?.blockType === 'page_heading' || /^(?:#\s*Page|Trang)\s*\d+/i.test(text))) {
         break;
@@ -590,8 +590,41 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
           </div>
         )}
 
-        {/* VÙNG SOẠN THẢO TRANG GIẤY TIPTAP */}
-        <div className="relative">
+        {/* VÙNG SOẠN THẢO TRANG GIẤY TIPTAP KÈM CON TRỎ CHUỘT TƯƠNG PHẢN CAO */}
+        <div
+          data-testid="paper-editor-sheet"
+          className="relative paper-editor-sheet transition-colors"
+          onClick={() => {
+            if (editor && !editor.isFocused) {
+              editor.commands.focus();
+            }
+          }}
+        >
+          <style>{`
+            /* Con trỏ chuột tương phản cao (High-contrast Screenplay I-Beam & Stylus Cursor) */
+            .paper-editor-sheet,
+            .paper-editor-sheet .tiptap,
+            .paper-editor-sheet .ProseMirror,
+            .paper-editor-sheet .script-block {
+              cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='26' viewBox='0 0 18 26' fill='none'%3E%3Cpath d='M3 3h12M9 3v20M3 23h12' stroke='%23000000' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M3 3h12M9 3v20M3 23h12' stroke='%23C2410C' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='9' cy='13' r='1.5' fill='%23FFFFFF' stroke='%23000000' stroke-width='0.5'/%3E%3C/svg%3E") 9 13, text !important;
+              caret-color: #C2410C !important;
+            }
+
+            /* Hiệu ứng di chuột trực quan trên từng dòng kịch bản (Ambient Line Hover) */
+            .paper-editor-sheet .script-block {
+              position: relative;
+              border-radius: 6px;
+              transition: background-color 0.12s ease;
+            }
+            .paper-editor-sheet .script-block:hover {
+              background-color: rgba(194, 65, 12, 0.04);
+            }
+            .paper-editor-sheet .ProseMirror-focused .script-block:focus,
+            .paper-editor-sheet .script-block.ProseMirror-selectednode {
+              outline: none;
+              background-color: rgba(194, 65, 12, 0.06);
+            }
+          `}</style>
           <EditorContent editor={editor} />
         </div>
 
