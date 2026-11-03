@@ -51,70 +51,70 @@ export function scenesToTipTapDoc(
         attrs: {
           scriptLineId: generateGuid(),
           sceneId: scene.id,
-          blockType: 'stage_direction' as MangaBlockType,
+          blockType: 'page_heading' as MangaBlockType,
           narrationMode: 'Present',
           lineOrder: 1,
           panelId: null,
         },
-        content: [],
+        content: [
+          {
+            type: 'text',
+            text: '# Page 1',
+          },
+        ],
+      });
+      content.push({
+        type: 'scriptLineBlock',
+        attrs: {
+          scriptLineId: generateGuid(),
+          sceneId: scene.id,
+          blockType: 'panel_heading' as MangaBlockType,
+          narrationMode: 'Present',
+          lineOrder: 2,
+          panelId: null,
+        },
+        content: [
+          {
+            type: 'text',
+            text: '- Panel 1: Toàn cảnh',
+          },
+        ],
+      });
+      content.push({
+        type: 'scriptLineBlock',
+        attrs: {
+          scriptLineId: generateGuid(),
+          sceneId: scene.id,
+          blockType: 'stage_direction' as MangaBlockType,
+          narrationMode: 'Present',
+          lineOrder: 3,
+          panelId: null,
+        },
+        content: [
+          {
+            type: 'text',
+            text: 'Mô tả bối cảnh và hành động của khung hình 1...',
+          },
+        ],
       });
     } else {
       scene.scriptLines.forEach((line, index) => {
-      // Nếu có chỉ dẫn sân khấu (Stage Direction) mà không có thoại
-      if (line.stageDirection && !line.dialogueText) {
-        content.push({
-          type: 'scriptLineBlock',
-          attrs: {
-            scriptLineId: line.id,
-            sceneId: scene.id,
-            blockType: 'stage_direction' as MangaBlockType,
-            narrationMode: line.narrationMode || 'Present',
-            lineOrder: index + 1,
-            panelId: line.panelId || null,
-          },
-          content: [
-            {
-              type: 'text',
-              text: line.stageDirection,
-            },
-          ],
-        });
-      } else {
-        const resolvedSpeaker =
-          (getSpeakerName ? getSpeakerName(line.speakerCharacterId) : null) || 'NHÂN VẬT';
+        // Nếu có chỉ dẫn sân khấu (Stage Direction) mà không có thoại
+        if (line.stageDirection && !line.dialogueText) {
+          const trimmed = line.stageDirection.trim();
+          let detectedType: MangaBlockType = 'stage_direction';
+          if (/^(?:#\s*(?:Page\s*)?\d+|(?:Trang|Page)\s+\d+)/i.test(trimmed)) {
+            detectedType = 'page_heading';
+          } else if (/^(?:-\s*(?:Panel\s*)?\d+|#panel\s+\d+)/i.test(trimmed)) {
+            detectedType = 'panel_heading';
+          }
 
-        // Có người nói hoặc thoại
-        if (line.speakerCharacterId) {
-          content.push({
-            type: 'scriptLineBlock',
-            attrs: {
-              scriptLineId: `${line.id}_speaker`,
-              sceneId: scene.id,
-              blockType: 'character' as MangaBlockType,
-              speakerCharacterId: line.speakerCharacterId || null,
-              speakerName: resolvedSpeaker,
-              lineOrder: index + 1,
-              panelId: null,
-            },
-            content: [
-              {
-                type: 'text',
-                text: resolvedSpeaker.toUpperCase(),
-              },
-            ],
-          });
-        }
-
-        // Dòng thoại chính
-        if (line.dialogueText) {
           content.push({
             type: 'scriptLineBlock',
             attrs: {
               scriptLineId: line.id,
               sceneId: scene.id,
-              blockType: 'dialogue' as MangaBlockType,
-              speakerCharacterId: line.speakerCharacterId || null,
-              speakerName: line.speakerCharacterId ? resolvedSpeaker : null,
+              blockType: detectedType,
               narrationMode: line.narrationMode || 'Present',
               lineOrder: index + 1,
               panelId: line.panelId || null,
@@ -122,12 +122,59 @@ export function scenesToTipTapDoc(
             content: [
               {
                 type: 'text',
-                text: line.dialogueText,
+                text: line.stageDirection,
               },
             ],
           });
+        } else {
+          const resolvedSpeaker =
+            (getSpeakerName ? getSpeakerName(line.speakerCharacterId) : null) || 'NHÂN VẬT';
+
+          // Có người nói hoặc thoại
+          if (line.speakerCharacterId) {
+            content.push({
+              type: 'scriptLineBlock',
+              attrs: {
+                scriptLineId: `${line.id}_speaker`,
+                sceneId: scene.id,
+                blockType: 'character' as MangaBlockType,
+                speakerCharacterId: line.speakerCharacterId || null,
+                speakerName: resolvedSpeaker,
+                lineOrder: index + 1,
+                panelId: null,
+              },
+              content: [
+                {
+                  type: 'text',
+                  text: resolvedSpeaker.toUpperCase(),
+                },
+              ],
+            });
+          }
+
+          // Dòng thoại chính
+          if (line.dialogueText) {
+            content.push({
+              type: 'scriptLineBlock',
+              attrs: {
+                scriptLineId: line.id,
+                sceneId: scene.id,
+                blockType: 'dialogue' as MangaBlockType,
+                speakerCharacterId: line.speakerCharacterId || null,
+                speakerName: line.speakerCharacterId ? resolvedSpeaker : null,
+                narrationMode: line.narrationMode || 'Present',
+                lineOrder: index + 1,
+                panelId: line.panelId || null,
+              },
+              content: [
+                {
+                  type: 'text',
+                  text: line.dialogueText,
+                },
+              ],
+            });
+          }
         }
-      }
       });
     }
   });
@@ -145,6 +192,34 @@ export function scenesToTipTapDoc(
         {
           type: 'text',
           text: 'CẢNH 1: MỞ ĐẦU',
+        },
+      ],
+    });
+    content.push({
+      type: 'scriptLineBlock',
+      attrs: {
+        scriptLineId: generateGuid(),
+        blockType: 'page_heading',
+        panelId: null,
+      },
+      content: [
+        {
+          type: 'text',
+          text: '# Page 1',
+        },
+      ],
+    });
+    content.push({
+      type: 'scriptLineBlock',
+      attrs: {
+        scriptLineId: generateGuid(),
+        blockType: 'panel_heading',
+        panelId: null,
+      },
+      content: [
+        {
+          type: 'text',
+          text: '- Panel 1: Toàn cảnh',
         },
       ],
     });
@@ -186,6 +261,22 @@ export function extractScriptLinesFromDoc(doc: any, defaultSceneId: string): Ext
 
     if (attrs.blockType === 'scene_heading') {
       if (attrs.sceneId) currentSceneId = attrs.sceneId;
+      continue;
+    }
+
+    if (attrs.blockType === 'page_heading' || attrs.blockType === 'panel_heading') {
+      const headingText = text.trim();
+      if (!headingText) continue;
+
+      results.push({
+        scriptLineId: attrs.scriptLineId || generateGuid(),
+        sceneId: attrs.sceneId || currentSceneId,
+        dialogueText: null,
+        stageDirection: headingText,
+        speakerCharacterId: null,
+        narrationMode: attrs.narrationMode || 'Present',
+        lineOrder: order++,
+      });
       continue;
     }
 

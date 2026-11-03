@@ -4,6 +4,8 @@ import { BibleCategory } from '@/services/bible.service';
 
 export type MangaBlockType =
   | 'scene_heading'
+  | 'page_heading'
+  | 'panel_heading'
   | 'stage_direction'
   | 'character'
   | 'dialogue'
