@@ -130,10 +130,13 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   const chapterIdFromUrl = searchParams.get('chapterId');
   const sceneIdFromUrl = searchParams.get('sceneId');
 
-  // Phân quyền: Producer và Writer được ghi kịch bản
+  // Phân quyền Zero-Trust RBAC:
+  // - Producer: Có toàn quyền quản lý chương (khởi tạo chương, xoá chương, đóng băng/mở lại) và viết kịch bản.
+  // - Writer: Soạn thảo kịch bản, chỉnh sửa outline/story arc, nhưng TUYỆT ĐỐI KHÔNG ĐƯỢC tạo chương mới hoặc xoá chương.
   const normRole = workspaceRole ? normalizeWorkspaceRole(workspaceRole) : null;
-  const canEditScript = !normRole || normRole === 'PRODUCER' || normRole === 'WRITER';
-  const isProducer = !normRole || normRole === 'PRODUCER';
+  const effectiveRole = normRole || (typeof window !== 'undefined' ? normalizeWorkspaceRole(localStorage.getItem('workspaceRole')) : null);
+  const canEditScript = !effectiveRole || effectiveRole === 'PRODUCER' || effectiveRole === 'WRITER';
+  const isProducer = effectiveRole === 'PRODUCER';
   const canCreateChapter = isProducer;
 
   // Dữ liệu kịch bản
@@ -829,9 +832,13 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     });
   };
 
-  // Producer tạo chương mới
+  // Producer tạo chương mới (Chỉ Producer mới có quyền tạo chương)
   const handleCreateNewChapter = async (data: CreateChapterRequest) => {
     if (!seriesId) return;
+    if (!canCreateChapter) {
+      notify('Quyền hạn bị từ chối', 'Chỉ có Producer mới có quyền khởi tạo chương mới cho series.');
+      return;
+    }
     const created = await chapterService.createChapter(seriesId, data);
     setChapters((prev) => [...prev, created]);
     setFindings([]);
@@ -1520,7 +1527,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           canCreateChapter={canCreateChapter}
           loadingChapters={loadingChapters}
           onSelectChapter={(chap) => handleSelectChapter(chap.id)}
-          onCreateChapter={handleCreateNewChapter}
+          onCreateChapter={canCreateChapter ? handleCreateNewChapter : undefined}
           onShowToast={notify}
         />
       </div>
