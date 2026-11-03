@@ -128,6 +128,73 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
     onUpdate: ({ editor }) => {
       setHasUnsavedChanges(true);
 
+      // Tự động nhận diện cú pháp phân đoạn khi người dùng gõ thủ công (Auto-detect Markdown/Screenplay Tokens)
+      try {
+        const { state } = editor;
+        const { selection } = state;
+        const currentBlock = selection.$from.parent;
+
+        if (currentBlock && currentBlock.type.name === 'scriptLineBlock') {
+          const rawText = currentBlock.textContent.trim();
+          const currentType: MangaBlockType = currentBlock.attrs.blockType || 'dialogue';
+          let detectedType: MangaBlockType | null = null;
+          let detectedSpeaker: string | null = null;
+
+          // 1. Nhận diện Trang: # Page 1, #Page 1, Trang 1, Page 1
+          if (/^(?:#\s*(?:Page\s*)?\d+(?:\.\d+)?|(?:Trang|Page)\s+\d+(?:\.\d+)?)/i.test(rawText)) {
+            detectedType = 'page_heading';
+          }
+          // 2. Nhận diện Panel: - Panel 1.1, Panel 1.1, Khung 1.1, #panel 1.1, - 1.1, - Panel 1
+          else if (/^(?:(?:-\s*)?(?:Panel|Khung)\s*\d+(?:\.\d+)?|-\s*\d+(?:\.\d+)?|#panel\s*\d+(?:\.\d+)?)/i.test(rawText)) {
+            detectedType = 'panel_heading';
+          }
+          // 3. Nhận diện Tiêu đề phân cảnh: CẢNH 1, INT., EXT., SCENE 1
+          else if (/^(?:CẢNH\s+\d+|INT\.|EXT\.|SCENE\s+\d+)/i.test(rawText)) {
+            detectedType = 'scene_heading';
+          }
+          // 4. Nhận diện Âm thanh / Chỉ dẫn: * BÙM!, SFX: TIẾNG NỔ, * SCREECH *
+          else if (/^(?:\*|SFX\s*:)/i.test(rawText)) {
+            detectedType = 'stage_direction';
+          }
+          // 5. Nhận diện Chuyển cảnh: CUT TO:, FADE OUT:, CHUYỂN CẢNH:
+          else if (/^(?:CUT TO:|FADE OUT:|CHUYỂN CẢNH:)/i.test(rawText)) {
+            detectedType = 'transition';
+          }
+          // 6. Nhận diện Thoại có tên nhân vật: MINH: Cậu đi đâu thế? hoặc LUFFY/Shout: Gear Second!
+          else if (/^([A-ZÀ-Ỹ0-9_\s]{2,30})(?:\/([a-zA-ZÀ-ỹ]+))?:\s*(.*)$/.test(rawText)) {
+            const match = rawText.match(/^([A-ZÀ-Ỹ0-9_\s]{2,30})(?:\/([a-zA-ZÀ-ỹ]+))?:\s*(.*)$/);
+            if (match) {
+              detectedType = 'dialogue';
+              detectedSpeaker = match[1].trim();
+            }
+          }
+          // 7. Nhận diện Tên nhân vật viết hoa đứng riêng một dòng: MINH, LUFFY, ZORO
+          else if (
+            rawText.length >= 2 &&
+            rawText.length <= 30 &&
+            rawText === rawText.toUpperCase() &&
+            !rawText.includes('.') &&
+            !rawText.includes(':') &&
+            !rawText.includes('-') &&
+            !/^\d+$/.test(rawText)
+          ) {
+            detectedType = 'character';
+            detectedSpeaker = rawText;
+          }
+
+          if (detectedType && detectedType !== currentType) {
+            const updates: Record<string, any> = { blockType: detectedType };
+            if (detectedSpeaker) {
+              updates.speakerName = detectedSpeaker;
+            }
+            editor.commands.updateAttributes('scriptLineBlock', updates);
+            setActiveBlockType(detectedType);
+          }
+        }
+      } catch {
+        // Bỏ qua nếu có lỗi xử lý chuỗi tạm thời
+      }
+
       if (localDraftTimerRef.current) {
         clearTimeout(localDraftTimerRef.current);
       }
@@ -286,7 +353,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
             scriptLineId: generateGuid(),
             blockType: 'panel_heading',
           },
-          content: [{ type: 'text', text: `- Panel 1: Toàn cảnh` }],
+          content: [{ type: 'text', text: `- Panel ${nextNum}.1: Toàn cảnh` }],
         },
         {
           type: 'scriptLineBlock',
@@ -294,23 +361,76 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
             scriptLineId: generateGuid(),
             blockType: 'stage_direction',
           },
-          content: [{ type: 'text', text: `Mô tả bối cảnh hoặc hành động của khung hình 1...` }],
+          content: [{ type: 'text', text: `Mô tả bối cảnh hoặc hành động của khung hình ${nextNum}.1...` }],
         },
       ])
       .run();
 
-    onShowToast?.('Đã chèn Trang', `Đã thêm # Page ${nextNum}`);
+    onShowToast?.('Đã chèn Trang', `Đã thêm # Page ${nextNum} (với Panel ${nextNum}.1)`);
   };
 
-  // Chèn nhanh Khung hình mới (- Panel Y: Cận cảnh)
+  // Chèn nhanh Khung hình mới (- Panel X.Y: Cận cảnh) theo số trang hiện tại
   const handleInsertPanel = (shotName: string = 'Cận cảnh') => {
     if (!editor || !canEditScript || isChapterLocked) return;
     const json = editor.getJSON();
-    const existingPanels = (json.content || []).filter((c: any) => {
-      const t = c.content?.[0]?.text || '';
-      return c.attrs?.blockType === 'panel_heading' || /^(?:-\s*Panel|#panel)/i.test(t);
-    }).length;
-    const nextNum = (existingPanels % 6) + 1;
+    const content = json.content || [];
+
+    // Xác định vị trí block hiện tại theo con trỏ soạn thảo
+    const currentBlockIndex = editor.state.selection.$from.index(0);
+
+    // Tìm số trang hiện tại (quét ngược từ vị trí con trỏ về đầu tài liệu)
+    let currentPageNum = 1;
+    let pageBlockIndex = -1;
+
+    for (let i = Math.min(currentBlockIndex, content.length - 1); i >= 0; i--) {
+      const block = content[i];
+      const text = (block.content?.[0]?.text || '').trim();
+      const match = text.match(/^(?:#\s*Page|Trang)\s*(\d+(?:\.\d+)?)/i);
+      if (block.attrs?.blockType === 'page_heading' || match) {
+        if (match) {
+          currentPageNum = parseFloat(match[1]) || 1;
+        }
+        pageBlockIndex = i;
+        break;
+      }
+    }
+
+    // Nếu không tìm thấy trang trước con trỏ, tìm trang đầu tiên trong tài liệu
+    if (pageBlockIndex === -1) {
+      for (let i = 0; i < content.length; i++) {
+        const block = content[i];
+        const text = (block.content?.[0]?.text || '').trim();
+        const match = text.match(/^(?:#\s*Page|Trang)\s*(\d+(?:\.\d+)?)/i);
+        if (block.attrs?.blockType === 'page_heading' || match) {
+          if (match) {
+            currentPageNum = parseFloat(match[1]) || 1;
+          }
+          pageBlockIndex = i;
+          break;
+        }
+      }
+    }
+
+    // Đếm số panel hiện có trong trang này để tính số thứ tự panel tiếp theo (ví dụ 1.1, 1.2, 1.3...)
+    let panelCountInPage = 0;
+    const startIndex = pageBlockIndex >= 0 ? pageBlockIndex + 1 : 0;
+    for (let i = startIndex; i < content.length; i++) {
+      const block = content[i];
+      const text = (block.content?.[0]?.text || '').trim();
+      // Nếu gặp trang tiếp theo sau vị trí con trỏ thì dừng
+      if (i > currentBlockIndex && (block.attrs?.blockType === 'page_heading' || /^(?:#\s*Page|Trang)\s*\d+/i.test(text))) {
+        break;
+      }
+      const isPanel =
+        block.attrs?.blockType === 'panel_heading' ||
+        /^(?:(?:-\s*)?(?:Panel|Khung)\s*\d+|-\s*\d+(?:\.\d+)?|#panel\s*\d+)/i.test(text);
+      if (isPanel) {
+        panelCountInPage++;
+      }
+    }
+
+    const nextPanelIndex = panelCountInPage + 1;
+    const panelLabel = `- Panel ${currentPageNum}.${nextPanelIndex}: ${shotName}`;
 
     editor
       .chain()
@@ -322,7 +442,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
             scriptLineId: generateGuid(),
             blockType: 'panel_heading',
           },
-          content: [{ type: 'text', text: `- Panel ${nextNum}: ${shotName}` }],
+          content: [{ type: 'text', text: panelLabel }],
         },
         {
           type: 'scriptLineBlock',
@@ -330,12 +450,12 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
             scriptLineId: generateGuid(),
             blockType: 'stage_direction',
           },
-          content: [{ type: 'text', text: `Mô tả hành động của khung hình ${nextNum}...` }],
+          content: [{ type: 'text', text: `Mô tả hành động của khung hình ${currentPageNum}.${nextPanelIndex}...` }],
         },
       ])
       .run();
 
-    onShowToast?.('Đã chèn Panel', `Đã thêm - Panel ${nextNum}: ${shotName}`);
+    onShowToast?.('Đã chèn Panel', `Đã thêm ${panelLabel}`);
   };
 
   // Chèn mẫu cấu trúc Manga/Webtoon hoàn chỉnh
@@ -353,7 +473,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
         {
           type: 'scriptLineBlock',
           attrs: { scriptLineId: generateGuid(), blockType: 'panel_heading' },
-          content: [{ type: 'text', text: '- Panel 1: Toàn cảnh' }],
+          content: [{ type: 'text', text: '- Panel 1.1: Toàn cảnh' }],
         },
         {
           type: 'scriptLineBlock',
@@ -363,7 +483,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
         {
           type: 'scriptLineBlock',
           attrs: { scriptLineId: generateGuid(), blockType: 'panel_heading' },
-          content: [{ type: 'text', text: '- Panel 2: Cận cảnh' }],
+          content: [{ type: 'text', text: '- Panel 1.2: Cận cảnh' }],
         },
         {
           type: 'scriptLineBlock',
@@ -378,7 +498,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
       ])
       .run();
 
-    onShowToast?.('Đã chèn mẫu', 'Đã thêm mẫu cấu trúc Trang, Panel và Thoại.');
+    onShowToast?.('Đã chèn mẫu', 'Đã thêm mẫu cấu trúc Trang 1 (Panel 1.1, Panel 1.2) và Thoại.');
   };
 
   // Danh sách các nút định dạng khối rút gọn

@@ -131,7 +131,12 @@ export const ThumbnailStudioBoard: React.FC<ThumbnailStudioBoardProps> = ({
               (d) => d.character.toLowerCase().includes(q) || d.text.toLowerCase().includes(q)
             );
             const matchSfx = p.sfx.some((s) => s.text.toLowerCase().includes(q));
-            const matchNum = `ô ${p.panelNumber}`.includes(q) || `panel ${p.panelNumber}`.includes(q);
+            const matchNum =
+              `ô ${p.panelNumber}`.includes(q) ||
+              `panel ${p.panelNumber}`.includes(q) ||
+              `ô ${page.pageNumber}.${p.panelNumber}`.includes(q) ||
+              `panel ${page.pageNumber}.${p.panelNumber}`.includes(q) ||
+              `${page.pageNumber}.${p.panelNumber}`.includes(q);
             return matchDesc || matchCamera || matchDialogue || matchSfx || matchNum;
           }
           return true;
@@ -148,7 +153,7 @@ export const ThumbnailStudioBoard: React.FC<ThumbnailStudioBoardProps> = ({
   // Thêm trang mới ở cuối
   const handleAddNewPage = () => {
     const nextPageNum = ast.pages.length + 1;
-    const newStub = `\n\n# Page ${nextPageNum}\n- Panel 1: Wide\nMô tả cảnh mở đầu trang ${nextPageNum}...`;
+    const newStub = `\n\n# Page ${nextPageNum}\n- Panel ${nextPageNum}.1: Wide\nMô tả cảnh mở đầu trang ${nextPageNum}...`;
     const updated = rawScript.trim() + newStub;
     setRawScript(updated);
     setEditorText(updated);

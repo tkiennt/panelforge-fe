@@ -37,7 +37,9 @@ export const FloatingThumbnailPill: React.FC<FloatingThumbnailPillProps> = ({
       <div className="flex items-center gap-1.5 text-xs font-mono font-bold tracking-tight">
         <span>Trang {activePageNumber || 1}</span>
         <span className="opacity-50">|</span>
-        <span className="text-amber-300">Ô {activePanelNumber || 1}</span>
+        <span className="text-amber-300">
+          Ô {activePageNumber || 1}.{activePanelNumber || 1}
+        </span>
       </div>
 
       <ChevronRight className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />

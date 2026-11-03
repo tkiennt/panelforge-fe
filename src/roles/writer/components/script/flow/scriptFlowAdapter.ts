@@ -76,7 +76,7 @@ export function scenesToTipTapDoc(
         content: [
           {
             type: 'text',
-            text: '- Panel 1: Toàn cảnh',
+            text: '- Panel 1.1: Toàn cảnh',
           },
         ],
       });
@@ -93,7 +93,7 @@ export function scenesToTipTapDoc(
         content: [
           {
             type: 'text',
-            text: 'Mô tả bối cảnh và hành động của khung hình 1...',
+            text: 'Mô tả bối cảnh và hành động của khung hình 1.1...',
           },
         ],
       });
@@ -103,10 +103,12 @@ export function scenesToTipTapDoc(
         if (line.stageDirection && !line.dialogueText) {
           const trimmed = line.stageDirection.trim();
           let detectedType: MangaBlockType = 'stage_direction';
-          if (/^(?:#\s*(?:Page\s*)?\d+|(?:Trang|Page)\s+\d+)/i.test(trimmed)) {
+          if (/^(?:#\s*(?:Page\s*)?\d+(?:\.\d+)?|(?:Trang|Page)\s+\d+(?:\.\d+)?)/i.test(trimmed)) {
             detectedType = 'page_heading';
-          } else if (/^(?:-\s*(?:Panel\s*)?\d+|#panel\s+\d+)/i.test(trimmed)) {
+          } else if (/^(?:(?:-\s*)?(?:Panel|Khung)\s*\d+(?:\.\d+)?|-\s*\d+(?:\.\d+)?|#panel\s*\d+(?:\.\d+)?)/i.test(trimmed)) {
             detectedType = 'panel_heading';
+          } else if (/^(?:CẢNH\s+\d+|INT\.|EXT\.|SCENE\s+\d+)/i.test(trimmed)) {
+            detectedType = 'scene_heading';
           }
 
           content.push({
@@ -219,7 +221,7 @@ export function scenesToTipTapDoc(
       content: [
         {
           type: 'text',
-          text: '- Panel 1: Toàn cảnh',
+          text: '- Panel 1.1: Toàn cảnh',
         },
       ],
     });
@@ -244,6 +246,7 @@ export interface ExtractedScriptLinePayload {
 /**
  * Phân tích TipTap Document JSON thành danh sách ScriptLine cập nhật cho backend.
  * Tự động bỏ qua các khối rỗng hoàn toàn để tuân thủ quy tắc toàn vẹn của ScriptLine Entity ở Backend.
+ * Tự động nhận diện cú pháp khi người dùng gõ tay mà chưa chọn loại khối từ bảng công cụ.
  */
 export function extractScriptLinesFromDoc(doc: any, defaultSceneId: string): ExtractedScriptLinePayload[] {
   if (!doc || !doc.content || !Array.isArray(doc.content)) return [];
@@ -258,21 +261,35 @@ export function extractScriptLinesFromDoc(doc: any, defaultSceneId: string): Ext
 
     const attrs = block.attrs || {};
     const text = block.content ? block.content.map((c: any) => c.text || '').join('') : '';
+    const textTrimmed = text.trim();
+    if (!textTrimmed) continue;
 
-    if (attrs.blockType === 'scene_heading') {
+    let effectiveBlockType: MangaBlockType = attrs.blockType || 'dialogue';
+
+    // Nhận diện tự động dự phòng nếu người dùng gõ thuần mà chưa đổi blockType
+    if (/^(?:#\s*(?:Page\s*)?\d+(?:\.\d+)?|(?:Trang|Page)\s+\d+(?:\.\d+)?)/i.test(textTrimmed)) {
+      effectiveBlockType = 'page_heading';
+    } else if (/^(?:(?:-\s*)?(?:Panel|Khung)\s*\d+(?:\.\d+)?|-\s*\d+(?:\.\d+)?|#panel\s*\d+(?:\.\d+)?)/i.test(textTrimmed)) {
+      effectiveBlockType = 'panel_heading';
+    } else if (/^(?:CẢNH\s+\d+|INT\.|EXT\.|SCENE\s+\d+)/i.test(textTrimmed)) {
+      effectiveBlockType = 'scene_heading';
+    } else if (/^(?:\*|SFX\s*:)/i.test(textTrimmed)) {
+      effectiveBlockType = 'stage_direction';
+    } else if (/^(?:CUT TO:|FADE OUT:|CHUYỂN CẢNH:)/i.test(textTrimmed)) {
+      effectiveBlockType = 'transition';
+    }
+
+    if (effectiveBlockType === 'scene_heading') {
       if (attrs.sceneId) currentSceneId = attrs.sceneId;
       continue;
     }
 
-    if (attrs.blockType === 'page_heading' || attrs.blockType === 'panel_heading') {
-      const headingText = text.trim();
-      if (!headingText) continue;
-
+    if (effectiveBlockType === 'page_heading' || effectiveBlockType === 'panel_heading') {
       results.push({
         scriptLineId: attrs.scriptLineId || generateGuid(),
         sceneId: attrs.sceneId || currentSceneId,
         dialogueText: null,
-        stageDirection: headingText,
+        stageDirection: textTrimmed,
         speakerCharacterId: null,
         narrationMode: attrs.narrationMode || 'Present',
         lineOrder: order++,
@@ -280,14 +297,10 @@ export function extractScriptLinesFromDoc(doc: any, defaultSceneId: string): Ext
       continue;
     }
 
-    if (attrs.blockType === 'character') {
-      currentSpeakerId = attrs.speakerCharacterId || null;
-      continue;
-    }
-
-    if (attrs.blockType === 'dialogue') {
-      const dialogueText = text.trim();
-      // Bỏ qua nếu dòng thoại rỗng để tránh lỗi ArgumentException ở Backend
+    // Nhận diện dòng có cú pháp "NHÂN VẬT: Thoại" hoặc "NHÂN VẬT/Shout: Thoại"
+    const dialogueWithSpeakerMatch = textTrimmed.match(/^([A-ZÀ-Ỹ0-9_\s]{2,30})(?:\/([a-zA-ZÀ-ỹ]+))?:\s*(.+)$/);
+    if (dialogueWithSpeakerMatch) {
+      const dialogueText = dialogueWithSpeakerMatch[3].trim();
       if (!dialogueText) continue;
 
       results.push({
@@ -299,17 +312,32 @@ export function extractScriptLinesFromDoc(doc: any, defaultSceneId: string): Ext
         narrationMode: attrs.narrationMode || 'Present',
         lineOrder: order++,
       });
-      currentSpeakerId = null; // Reset speaker sau thoại
-    } else if (attrs.blockType === 'stage_direction') {
-      const stageDirection = text.trim();
-      // Bỏ qua nếu chỉ dẫn sân khấu rỗng
-      if (!stageDirection) continue;
+      currentSpeakerId = null;
+      continue;
+    }
 
+    if (effectiveBlockType === 'character') {
+      currentSpeakerId = attrs.speakerCharacterId || null;
+      continue;
+    }
+
+    if (effectiveBlockType === 'dialogue') {
+      results.push({
+        scriptLineId: attrs.scriptLineId || generateGuid(),
+        sceneId: attrs.sceneId || currentSceneId,
+        dialogueText: textTrimmed,
+        stageDirection: null,
+        speakerCharacterId: attrs.speakerCharacterId || currentSpeakerId,
+        narrationMode: attrs.narrationMode || 'Present',
+        lineOrder: order++,
+      });
+      currentSpeakerId = null; // Reset speaker sau thoại
+    } else if (effectiveBlockType === 'stage_direction' || effectiveBlockType === 'transition') {
       results.push({
         scriptLineId: attrs.scriptLineId || generateGuid(),
         sceneId: attrs.sceneId || currentSceneId,
         dialogueText: null,
-        stageDirection,
+        stageDirection: textTrimmed,
         speakerCharacterId: null,
         narrationMode: attrs.narrationMode || 'Present',
         lineOrder: order++,

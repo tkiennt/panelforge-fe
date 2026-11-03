@@ -205,9 +205,11 @@ export function parseComicScript(rawText: string): ComicScriptAST {
       return;
     }
 
-    // 3. PANEL BREAK: - Panel <number>[: optional shot/camera] hoặc - <number>
-    // Regex: /^-\s*(?:Panel\s*)?(\d+)?(?:\s*:\s*(.*))?$/i
-    const panelMatch = line.match(/^(?:-\s*(?:Panel\s*)?(\d+(?:\.\d+)?)?|#panel\s+([0-9]+(?:\.[0-9]+)?))(?:\[Góc máy:\s*([^\]]+)\]|\s*:\s*(.*))?$/i);
+    // 3. PANEL BREAK: - Panel <number>[: optional shot/camera], Panel <number>, Khung <number>, - <number>
+    // Hỗ trợ cả cú pháp theo trang: - Panel 1.1, Panel 1.2, Khung 1.1, - 1.1, #panel 1.1
+    const panelMatch = line.match(
+      /^(?:(?:-\s*)?(?:Panel|Khung)\s*(\d+(?:\.\d+)?)|-\s*(\d+(?:\.\d+)?)|#panel\s*(\d+(?:\.\d+)?))(?:\s*\[Góc máy:\s*([^\]]+)\]|\s*:\s*(.*))?$/i
+    );
     if (panelMatch) {
       flushActionBuffer();
 
@@ -224,11 +226,28 @@ export function parseComicScript(rawText: string): ComicScriptAST {
         pages.push(currentPage);
       }
 
-      const pRaw = panelMatch[1] || panelMatch[2];
-      const pNum = pRaw
-        ? (pRaw.includes('.') ? parseInt(pRaw.split('.')[1], 10) : parseInt(pRaw, 10))
-        : currentPage.panels.length + 1;
-      const cameraHint = (panelMatch[3] || panelMatch[4])?.trim() || undefined;
+      const pRaw = panelMatch[1] || panelMatch[2] || panelMatch[3];
+      let pNum: number;
+      if (pRaw) {
+        if (pRaw.includes('.')) {
+          const parts = pRaw.split('.');
+          const pageFromPanel = parseFloat(parts[0]);
+          const panelFromPanel = parseInt(parts[1], 10);
+          pNum = isNaN(panelFromPanel) ? (currentPage.panels.length + 1) : panelFromPanel;
+
+          // Nếu có số trang trong cú pháp 1.2, 2.1... mà trang hiện tại chưa có panel
+          if (!isNaN(pageFromPanel) && currentPage.pageNumber !== pageFromPanel && currentPage.panels.length === 0) {
+            currentPage.pageNumber = pageFromPanel;
+          }
+        } else {
+          pNum = parseInt(pRaw, 10);
+          if (isNaN(pNum)) pNum = currentPage.panels.length + 1;
+        }
+      } else {
+        pNum = currentPage.panels.length + 1;
+      }
+
+      const cameraHint = (panelMatch[4] || panelMatch[5])?.trim() || undefined;
       const shotType = normalizeCameraShot(cameraHint);
 
       currentPanel = {
@@ -404,7 +423,7 @@ export function insertTransitionPageStub(
 
   const newPageNumber = afterPageNumber + 0.5;
 
-  const stub = `\n\n# Page ${newPageNumber} [Transition]\n- Panel 1: Medium shot\nKhung cảnh chuyển tiếp nhịp điệu câu chuyện.\n`;
+  const stub = `\n\n# Page ${newPageNumber} [Transition]\n- Panel ${newPageNumber}.1: Medium shot\nKhung cảnh chuyển tiếp nhịp điệu câu chuyện.\n`;
 
   // Tìm vị trí của trang sau đó hoặc chèn vào cuối kịch bản
   const pageRegex = new RegExp(`^#\\s*(?:Page\\s*)?${afterPageNumber}(?:\\s|$)`, 'im');
