@@ -1904,55 +1904,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
         {/* CENTER: Bàn làm việc Kịch bản (Ưu tiên vùng nhìn đầu tiên, tràn chiều rộng) */}
         <div className='flex-1 flex flex-col overflow-hidden min-w-0 bg-[#F3F0E9]'>
-          {/* THANH TAB PHÂN CẢNH (SCENE TABS BAR) */}
-          {scenes.length > 0 && (
-            <div className='shrink-0 bg-[#FCFBF8] border-b border-[#D8D2C5] px-4 md:px-6 pt-2 pb-0 flex items-center justify-between gap-3 overflow-x-auto shadow-2xs'>
-              <div className='flex items-center gap-1.5 overflow-x-auto py-0.5 custom-scrollbar'>
-                {scenes.filter((s): s is SceneDto => Boolean(s && s.id)).map((s) => {
-                  const isSelected = selectedScene?.id === s?.id;
-                  return (
-                    <button
-                      key={s.id}
-                      type='button'
-                      data-testid={`scene-tab-${s.sceneNumber}`}
-                      onClick={() => handleSelectScene(s)}
-                      className={`group flex items-center gap-2 px-3.5 py-2 text-xs rounded-t-xl border transition-all cursor-pointer whitespace-nowrap ${
-                        isSelected
-                          ? 'bg-[#F3F0E9] text-[#1C1917] border-[#D8D2C5] border-b-transparent border-t-2 border-t-[#C2410C] font-bold shadow-xs'
-                          : 'bg-[#FCFBF8] text-[#57534E] border-transparent hover:bg-[#F3F0E9]/70 hover:text-[#1C1917]'
-                      }`}
-                    >
-                      <span
-                        className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold transition-colors ${
-                          isSelected ? 'bg-[#C2410C] text-white' : 'bg-[#EBE7DF] text-[#57534E] group-hover:bg-[#D8D2C5]'
-                        }`}
-                      >
-                        CẢNH {s.sceneNumber}
-                      </span>
-                      <span className='truncate max-w-[120px] md:max-w-[180px]'>
-                        {s.heading || 'Chưa đặt tiêu đề'}
-                      </span>
-                    </button>
-                  );
-                })}
 
-                {/* Nút thêm phân cảnh mới ngay trên thanh tab */}
-                {canEditScript && !isChapterLocked && (
-                  <button
-                    type='button'
-                    onClick={handleOpenCreateScene}
-                    className='flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-[#C2410C] hover:bg-[#FFF2E6] rounded-lg transition-colors cursor-pointer whitespace-nowrap ml-1'
-                    title='Thêm phân cảnh mới'
-                  >
-                    <Plus className='w-3.5 h-3.5' />
-                    <span>+ Thêm cảnh</span>
-                  </button>
-                )}
-              </div>
-
-              
-            </div>
-          )}
 
           {selectedScene ? (
             <>
