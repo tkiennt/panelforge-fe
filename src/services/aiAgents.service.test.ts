@@ -174,4 +174,167 @@ describe('helper hiển thị Trợ lý AI', () => {
 
     expect(map['L-1']).toEqual({ order: 2, text: 'Xin chào', speaker: 'An' });
   });
+
+  it('chạy Copilot: POST /series/{id}/ai/copilot đúng task và lineId', async () => {
+    post.mockResolvedValue({
+      data: {
+        id: 'sug-1',
+        runId: 'r-copilot',
+        stepId: 'step-1',
+        sceneId: 'sc1',
+        kind: 'LineRewrite',
+        status: 'Pending',
+        summary: 'Viết lại thoại',
+        payload: {
+          schemaVersion: 1,
+          runId: 'r-copilot',
+          sceneId: 'sc1',
+          task: 'writer.rewrite',
+          sourceScriptLineId: 'line-1',
+          originalText: 'Dòng cũ',
+          suggestedText: 'Dòng mới',
+          reason: 'Tự nhiên hơn',
+          maxChars: null,
+        },
+        payloadHash: 'hash',
+        baseChapterVersion: 1,
+        bibleRevisionIds: [],
+        hasBlockingFindings: false,
+        createdAt: '2026-11-01T10:00:00Z',
+        decisions: [],
+      },
+    });
+
+    const res = await aiAgentsService.runCopilot('s1', {
+      task: 'writer.rewrite',
+      lineId: 'line-1',
+      instruction: 'giọng thân mật',
+    });
+
+    expect(post).toHaveBeenCalledWith('/series/s1/ai/copilot', {
+      task: 'writer.rewrite',
+      lineId: 'line-1',
+      instruction: 'giọng thân mật',
+    });
+    expect(res.id).toBe('sug-1');
+    expect(res.kind).toBe('LineRewrite');
+  });
+
+  it('Copilot bị lỗi: ném AiApiError chứa status và code', async () => {
+    post.mockRejectedValue({
+      response: {
+        status: 429,
+        data: { code: 'AI_QUOTA_EXCEEDED', error: 'Vượt hạn mức' },
+      },
+    });
+
+    const err = await aiAgentsService
+      .runCopilot('s1', {
+        task: 'letterer.shorten',
+        lineId: 'line-1',
+        maxChars: 40,
+      })
+      .catch((e) => e);
+
+    expect(err).toBeInstanceOf(AiApiError);
+    expect(err.status).toBe(429);
+    expect(err.code).toBe('AI_QUOTA_EXCEEDED');
+    expect(err.message).toBe('Vượt hạn mức');
+  });
+
+  it('chạy Publisher Copilot: POST /series/{id}/ai/copilot/publisher-metadata trả SeriesMetadata suggestion', async () => {
+    post.mockResolvedValue({
+      data: {
+        id: 'sug-pm',
+        runId: 'r-pm',
+        stepId: 'step-pm',
+        sceneId: '00000000-0000-0000-0000-000000000000',
+        kind: 'SeriesMetadata',
+        status: 'Pending',
+        summary: 'Gợi ý metadata',
+        payload: {
+          schemaVersion: 1,
+          runId: 'r-pm',
+          seriesId: 's1',
+          originalGenre: 'Action',
+          metadata: {
+            logline: 'Một câu chuyện hay',
+            synopsis: 'Tóm tắt chi tiết',
+            genre: 'Action, Shonen',
+            teaser: 'Đón xem ngay',
+            ageRating: '16+',
+          },
+          reason: 'Hợp xu hướng',
+        },
+        payloadHash: 'hash-pm',
+        baseChapterVersion: 1,
+        bibleRevisionIds: [],
+        hasBlockingFindings: false,
+        createdAt: '2026-11-01T10:00:00Z',
+        decisions: [],
+      },
+    });
+
+    const res = await aiAgentsService.runPublisherMetadata('s1', {
+      chapterId: 'c1',
+      instruction: 'hấp dẫn hơn',
+    });
+
+    expect(post).toHaveBeenCalledWith('/series/s1/ai/copilot/publisher-metadata', {
+      chapterId: 'c1',
+      instruction: 'hấp dẫn hơn',
+    });
+    expect(res.id).toBe('sug-pm');
+    expect(res.kind).toBe('SeriesMetadata');
+  });
+
+  it('chạy Artist Thumbnail: POST /series/{id}/ai/thumbnail trả Thumbnail suggestion', async () => {
+    post.mockResolvedValue({
+      data: {
+        id: 'sug-tn',
+        runId: 'r-tn',
+        stepId: 'step-tn',
+        sceneId: 'sc1',
+        kind: 'Thumbnail',
+        status: 'Pending',
+        summary: 'Ảnh thumbnail',
+        payload: {
+          schemaVersion: 1,
+          runId: 'r-tn',
+          panelId: 'p1',
+          pageId: 'page1',
+          stageId: 'stage1',
+          assetId: 'asset1',
+          sha256: 'sha-tn',
+          imagePromptRevisionId: 'ip-rev-1',
+          prompt: 'A manga character',
+          provider: 'Gemini',
+          model: 'gemini-2.5-flash-image',
+          referenceEntryIds: [],
+        },
+        payloadHash: 'hash-tn',
+        baseChapterVersion: 1,
+        bibleRevisionIds: [],
+        hasBlockingFindings: false,
+        createdAt: '2026-11-01T10:00:00Z',
+        decisions: [],
+      },
+    });
+
+    const res = await aiAgentsService.runThumbnail('s1', {
+      panelId: 'p1',
+      instruction: 'góc cận',
+    });
+
+    expect(post).toHaveBeenCalledWith(
+      '/series/s1/ai/thumbnail',
+      {
+        panelId: 'p1',
+        instruction: 'góc cận',
+      },
+      expect.objectContaining({ timeout: 120000 }),
+    );
+    expect(res.id).toBe('sug-tn');
+    expect(res.kind).toBe('Thumbnail');
+  });
 });

@@ -11,8 +11,12 @@ describe('i18n core engine', () => {
   it('dịch chuỗi tiếng Việt mặc định chính xác', () => {
     expect(translate('common.actions.save', undefined, 'vi')).toBe('Lưu');
     expect(translate('common.actions.cancel', undefined, 'vi')).toBe('Hủy');
-    expect(translate('bible.canonLock.badge', undefined, 'vi')).toBe('Đã khoá chuẩn (Canon Locked)');
-    expect(translate('production.canvas.title', undefined, 'vi')).toBe('Bố Cục Khung Tranh (Panels)');
+    expect(translate('bible.canonLock.badge', undefined, 'vi')).toBe(
+      'Đã khoá chuẩn (Canon Locked)',
+    );
+    expect(translate('production.canvas.title', undefined, 'vi')).toBe(
+      'Bố Cục Khung Tranh (Panels)',
+    );
   });
 
   it('dịch chuỗi tiếng Anh chính xác', () => {
@@ -23,15 +27,53 @@ describe('i18n core engine', () => {
   });
 
   it('thay thế tham số nội suy (interpolation) chính xác', () => {
-    expect(translate('production.canvas.dropzonePrompt', { number: 3 }, 'vi')).toBe('Thả ảnh vào Khung #3');
-    expect(translate('production.canvas.dropzonePrompt', { number: 3 }, 'en')).toBe('Drop image into Panel #3');
+    expect(translate('production.canvas.dropzonePrompt', { number: 3 }, 'vi')).toBe(
+      'Thả ảnh vào Khung #3',
+    );
+    expect(translate('production.canvas.dropzonePrompt', { number: 3 }, 'en')).toBe(
+      'Drop image into Panel #3',
+    );
     expect(
       translate('production.canvas.pageInfo', { width: 1200, height: 1800, dpi: 600 }, 'vi'),
     ).toBe('Khổ: 1200 x 1800 px (600 DPI)');
   });
 
-  it('fallback về chính key nếu key không tồn tại', () => {
+  it('tra cứu namespace errors chính xác cho cả VI và EN', () => {
+    expect(translate('errors.ERR_NOT_FOUND', undefined, 'vi')).toBe(
+      'Tài nguyên yêu cầu không tồn tại.',
+    );
+    expect(translate('errors.ERR_NOT_FOUND', undefined, 'en')).toBe(
+      'The requested resource was not found.',
+    );
+    expect(translate('errors.ERR_SERIES_NOT_FOUND', undefined, 'vi')).toBe(
+      'Bộ truyện không tồn tại.',
+    );
+    expect(translate('errors.ERR_SERIES_NOT_FOUND', undefined, 'en')).toBe('Series not found.');
+    expect(translate('errors.ERR_CHAPTER_READ_ONLY', undefined, 'vi')).toBe(
+      'Chương này đã hoàn tất hoặc xuất bản, nội dung chỉ đọc.',
+    );
+  });
+
+  it('xử lý quy ước số nhiều nhẹ (Pluralization) với params.count', () => {
+    // Tiếng Anh: count = 1 ưu tiên _one, count > 1 hoặc 0 ưu tiên _other
+    expect(translate('common.time.daysAgo', { count: 1 }, 'en')).toBe('1 day ago');
+    expect(translate('common.time.daysAgo', { count: 3 }, 'en')).toBe('3 days ago');
+    expect(translate('common.time.daysAgo', { count: 0 }, 'en')).toBe('0 days ago');
+
+    // Tiếng Việt: cả _one và _other đều trả về "{count} ngày trước"
+    expect(translate('common.time.daysAgo', { count: 1 }, 'vi')).toBe('1 ngày trước');
+    expect(translate('common.time.daysAgo', { count: 5 }, 'vi')).toBe('5 ngày trước');
+
+    // Nếu key không có hậu tố phân nhánh _one/_other, tự động fallback về chính key gốc
+    expect(translate('common.actions.save', { count: 1 }, 'vi')).toBe('Lưu');
+  });
+
+  it('safe fallback về explicit fallback text và tham số khi key không tồn tại', () => {
     expect(translate('nonexistent.path.key', undefined, 'vi')).toBe('nonexistent.path.key');
+    expect(translate('nonexistent.path.key', 'Dự phòng', 'vi')).toBe('Dự phòng');
+    expect(
+      translate('nonexistent.path.key', { name: 'PanelForge' }, 'vi', 'Chào mừng {name}'),
+    ).toBe('Chào mừng PanelForge');
   });
 
   it('chuyển đổi ngôn ngữ qua useTranslation và lưu vào localStorage', () => {

@@ -26,6 +26,7 @@ import { SeriesMembersModal } from '@/roles/producer/modals/SeriesMembersModal';
 import { InviteMemberModal } from '@/roles/producer/modals/InviteMemberModal';
 import { systemImageToFile, type SystemImage } from '@/shared/utils/systemImages';
 import { getRoleDefaultPath } from '@/roles/roles';
+import { normalizeWorkspaceRole } from '@/types/auth';
 import { StudioGovernanceBar } from './studio-overview/StudioGovernanceBar';
 import { SeriesFilterBar } from './studio-overview/SeriesFilterBar';
 import { SeriesCardItem } from './studio-overview/SeriesCardItem';
@@ -35,10 +36,7 @@ import {
   CreateSeriesModal,
   EditSeriesModal,
 } from './studio-overview/SeriesModals';
-import {
-  WorkspaceAuditModal,
-  EditMemberAccessModal,
-} from './studio-overview/StudioModals';
+import { WorkspaceAuditModal, EditMemberAccessModal } from './studio-overview/StudioModals';
 import { useConfirm } from '@/shared/context/ConfirmContext';
 import { useToast } from '@/shared/context/ToastContext';
 import { formatReadingDirection } from './studio-overview/formatters';
@@ -58,9 +56,11 @@ export const StudioOverviewView: React.FC = () => {
   });
 
   const userRole = localStorage.getItem('userRole');
-  const wsRole = localStorage.getItem('workspaceRole') || activeWorkspace?.currentUserRole;
-  const isProducerOrAdmin =
-    userRole === 'ADMINISTRATOR' || wsRole === 'PRODUCER' || !!activeWorkspace?.isOwner;
+  const wsRole =
+    normalizeWorkspaceRole(activeWorkspace?.currentUserRole) ||
+    normalizeWorkspaceRole(localStorage.getItem('workspaceRole'));
+  const isProducer = wsRole === 'PRODUCER' || !!activeWorkspace?.isOwner;
+  const isProducerOrAdmin = userRole === 'ADMINISTRATOR' || isProducer;
 
   const [members, setMembers] = useState<WorkspaceMemberDto[]>([]);
   const [seriesList, setSeriesList] = useState<SeriesDto[]>([]);
@@ -234,63 +234,97 @@ export const StudioOverviewView: React.FC = () => {
     };
   }, [studioMembers]);
 
-  const loadData = React.useCallback(async () => {
-    setLoading(true);
-    setLoadError(null);
-    try {
-      const wsList = await workspaceService.getMyWorkspaces();
-      if (wsList && wsList.length > 0) {
-        setWorkspaces(wsList);
-        const cur = workspaceId
-          ? wsList.find((w) => w.id === workspaceId) ||
-            wsList.find((w) => w.id === activeWorkspace?.id) ||
-            wsList[0]
-          : wsList.find((w) => w.id === activeWorkspace?.id) || wsList[0];
-        setActiveWorkspace(cur);
-        try {
-          const memList = await workspaceService.getMembers(cur.id);
-          setMembers(memList);
-        } catch {
-          setMembers([]);
-        }
+  const activeWorkspaceIdRef = React.useRef<string | undefined>(activeWorkspace?.id);
+  const inFlightLoadRef = React.useRef<Promise<void> | null>(null);
+  const templatesLoadedRef = React.useRef(false);
 
-        // Load Workspace Resource Usage (GET /api/workspaces/{id}/usage)
-        try {
-          const usage = await workspaceService.getWorkspaceUsage(cur.id);
-          setWorkspaceUsage(usage);
-        } catch {
+  const loadData = React.useCallback(async () => {
+    if (inFlightLoadRef.current) return inFlightLoadRef.current;
+    const run = (async () => {
+      setLoading(true);
+      setLoadError(null);
+      try {
+        const wsList = await workspaceService.getMyWorkspaces();
+        if (wsList && wsList.length > 0) {
+          setWorkspaces(wsList);
+          const fallbackId = activeWorkspaceIdRef.current;
+          const cur = workspaceId
+            ? wsList.find((w) => w.id === workspaceId) ||
+              wsList.find((w) => w.id === fallbackId) ||
+              wsList[0]
+            : wsList.find((w) => w.id === fallbackId) || wsList[0];
+          activeWorkspaceIdRef.current = cur.id;
+          setActiveWorkspace(cur);
+
+          let memList: WorkspaceMemberDto[] = [];
+          try {
+            memList = await workspaceService.getMembers(cur.id);
+            setMembers(memList);
+          } catch {
+            setMembers([]);
+          }
+
+          const resolvedWsRole =
+            normalizeWorkspaceRole(cur.currentUserRole) ||
+            normalizeWorkspaceRole(
+              memList.find(
+                (m) =>
+                  (currentUser?.id && m.userId === currentUser.id) ||
+                  (currentUser?.email && m.email === currentUser.email),
+              )?.role,
+            ) ||
+            normalizeWorkspaceRole(localStorage.getItem('workspaceRole'));
+          const isCurrentProducer = !!cur.isOwner || resolvedWsRole === 'PRODUCER';
+
+          // Load Workspace Resource Usage (GET /api/workspaces/{id}/usage) — chỉ gọi khi role hiện tại là Producer
+          if (isCurrentProducer) {
+            try {
+              const usage = await workspaceService.getWorkspaceUsage(cur.id);
+              setWorkspaceUsage(usage);
+            } catch {
+              setWorkspaceUsage(null);
+            }
+          } else {
+            setWorkspaceUsage(null);
+          }
+
+          // Load Series in workspace (UC-03)
+          try {
+            const sList = await seriesService.getSeriesList(cur.id);
+            setSeriesList(sList);
+          } catch {
+            setSeriesList([]);
+          }
+        } else {
+          setWorkspaces([]);
+          setActiveWorkspace(null);
+          setMembers([]);
+          setSeriesList([]);
           setWorkspaceUsage(null);
         }
-
-        // Load Series in workspace (UC-03)
-        try {
-          const sList = await seriesService.getSeriesList(cur.id);
-          setSeriesList(sList);
-        } catch {
-          setSeriesList([]);
-        }
-      } else {
-        setWorkspaces([]);
-        setActiveWorkspace(null);
-        setMembers([]);
-        setSeriesList([]);
-        setWorkspaceUsage(null);
+      } catch (err: any) {
+        console.error(err);
+        setLoadError(err.message || 'Không thể kết nối máy chủ.');
+        showToast('Lỗi tải dữ liệu', err.message || 'Không thể kết nối máy chủ.');
+      } finally {
+        inFlightLoadRef.current = null;
+        setLoading(false);
       }
-    } catch (err: any) {
-      console.error(err);
-      setLoadError(err.message || 'Không thể kết nối máy chủ.');
-      showToast('Lỗi tải dữ liệu', err.message || 'Không thể kết nối máy chủ.');
-    } finally {
-      setLoading(false);
-    }
-  }, [activeWorkspace?.id, workspaceId]);
+    })();
+    inFlightLoadRef.current = run;
+    return run;
+    // Chỉ nạp lại khi đổi workspaceId trên URL; tránh phụ thuộc activeWorkspace?.id gây gọi lặp.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workspaceId]);
 
   useEffect(() => {
-    loadData();
+    void loadData();
   }, [loadData]);
 
   // Load Active Pipeline Templates from API (GET /api/pipeline-templates) (B1 / UC-03)
   useEffect(() => {
+    if (templatesLoadedRef.current) return;
+    templatesLoadedRef.current = true;
     const fetchTemplates = async () => {
       try {
         const templates = await pipelineService.getActivePipelineTemplates();
@@ -305,7 +339,7 @@ export const StudioOverviewView: React.FC = () => {
         console.warn('Lỗi tải danh sách template pipeline:', err);
       }
     };
-    fetchTemplates();
+    void fetchTemplates();
   }, []);
 
   const handleCreateSeries = async (e: React.FormEvent) => {
@@ -437,7 +471,10 @@ export const StudioOverviewView: React.FC = () => {
     try {
       await seriesService.deleteSeries(series.id);
       setSeriesList((prev) => prev.filter((s) => s.id !== series.id));
-      toast.success('Đã xóa Series thành công', `Bộ truyện "${series.title}" đã được xóa khỏi Workspace.`);
+      toast.success(
+        'Đã xóa Series thành công',
+        `Bộ truyện "${series.title}" đã được xóa khỏi Workspace.`,
+      );
     } catch (err: any) {
       toast.error('Lỗi xóa Series', err.message || 'Không thể xóa Series.');
     }
@@ -462,7 +499,10 @@ export const StudioOverviewView: React.FC = () => {
       setMembers((prev) => prev.filter((m) => m.userId !== member.id));
       toast.success('Đã xóa thành viên thành công', `Đã xóa ${member.email} khỏi Workspace.`);
     } catch (err: any) {
-      toast.error('Xóa thành viên thất bại', err.message || 'Không thể xóa thành viên khỏi Workspace.');
+      toast.error(
+        'Xóa thành viên thất bại',
+        err.message || 'Không thể xóa thành viên khỏi Workspace.',
+      );
     }
   };
 
@@ -481,6 +521,7 @@ export const StudioOverviewView: React.FC = () => {
     } finally {
       setAuditLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeWorkspace, auditFilterEntity]);
 
   useEffect(() => {
@@ -500,7 +541,6 @@ export const StudioOverviewView: React.FC = () => {
   };
 
   const handleOpenEditAccess = (member: any) => {
-
     setEditingMember(member);
     setEditRole(member.role);
     setEditTask(member.activeTask || 'Chapter 5 Production');
@@ -628,8 +668,6 @@ export const StudioOverviewView: React.FC = () => {
         onPickSystemCover={(img) => void handlePickSystemCover(img)}
       />
 
-
-
       {/* Header Banner: Studio Series Library Header */}
       <div className='bg-[#FCFBF8] p-6 rounded-xl border border-[#D8D2C5] shadow-2xs space-y-4'>
         <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'>
@@ -662,8 +700,8 @@ export const StudioOverviewView: React.FC = () => {
           )}
         </div>
 
-        {/* Studio Resource Governance (Compact & Collapsible) - Shown for Producer/Admin */}
-        {activeWorkspace && isProducerOrAdmin && (
+        {/* Studio Resource Governance (Compact & Collapsible) - Shown for Producer */}
+        {activeWorkspace && isProducer && (
           <StudioGovernanceBar
             activeWorkspace={activeWorkspace}
             workspaceUsage={workspaceUsage}
@@ -937,7 +975,6 @@ export const StudioOverviewView: React.FC = () => {
           workspaceName={activeWorkspace.name}
           onClose={() => setInviteModalOpen(false)}
           onInvited={async () => {
-
             const memList = await workspaceService.getMembers(activeWorkspace.id);
             setMembers(memList);
           }}

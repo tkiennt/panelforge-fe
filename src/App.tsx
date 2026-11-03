@@ -27,6 +27,7 @@ import {
 import { useToast, ToastProvider } from '@/shared/context/ToastContext';
 import { ConfirmProvider } from '@/shared/context/ConfirmContext';
 import { authService } from './services/auth.service';
+import { userService } from './services/user.service';
 import { refreshAccessToken } from './api/axiosClient';
 import { startSessionKeepAlive } from './api/sessionKeepAlive';
 import { seriesService } from './services/series.service';
@@ -114,8 +115,30 @@ function AppContent() {
     role: SystemRole;
     canCreateStudio?: boolean;
     isTwoFactorEnabled?: boolean;
+    avatarUrl?: string | null;
   } | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+
+  useEffect(() => {
+    const handleProfileUpdate = (event: Event) => {
+      const customEvt = event as CustomEvent<{ avatarUrl?: string; name?: string }>;
+      if (customEvt.detail) {
+        setCurrentUserInfo((prev) =>
+          prev
+            ? {
+                ...prev,
+                ...(customEvt.detail.avatarUrl !== undefined && { avatarUrl: customEvt.detail.avatarUrl }),
+                ...(customEvt.detail.name !== undefined && { name: customEvt.detail.name }),
+              }
+            : prev,
+        );
+      }
+    };
+    window.addEventListener('user-profile-updated', handleProfileUpdate);
+    return () => {
+      window.removeEventListener('user-profile-updated', handleProfileUpdate);
+    };
+  }, []);
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
 
   const navigateRoleDefaultView = (role: SystemRole) => {
@@ -173,6 +196,7 @@ function AppContent() {
               email: res.user.email || user.email || '',
               role,
               isTwoFactorEnabled: !!res.user.twoFactorEnabled,
+              avatarUrl: res.user.avatarUrl || (res.user as any).avatar || user.photoURL || null,
             });
             localStorage.setItem('user', JSON.stringify(res.user));
             navigateRoleDefaultView(role);
@@ -301,6 +325,7 @@ function AppContent() {
           role,
           canCreateStudio: !!u.canCreateStudio,
           isTwoFactorEnabled: !!u.isTwoFactorEnabled,
+          avatarUrl: u.avatarUrl || u.avatar || null,
         });
         setCurrentRole(role);
         if (role === 'ADMINISTRATOR') {
@@ -316,20 +341,48 @@ function AppContent() {
     let isMounted = true;
     authService
       .getMe()
-      .then((me) => {
+      .then(async (me) => {
         if (!isMounted) return;
         setIsAuthenticated(true);
         const role = normalizeSystemRole(me.role);
         setCurrentRole(role);
         localStorage.setItem('userRole', role);
+
+        let avatar = me.avatarUrl || me.avatar || null;
+        if (!avatar) {
+          try {
+            const profile = await userService.getMyProfile();
+            if (profile?.avatar) {
+              avatar = profile.avatar;
+            }
+          } catch {
+            // bỏ qua lỗi nếu không gọi được /Users/me
+          }
+        }
+        if (!isMounted) return;
+
         setCurrentUserInfo({
           id: me.id,
           name: me.fullName || me.email?.split('@')[0] || 'User',
           email: me.email,
           role,
           canCreateStudio: !!me.canCreateStudio,
+          avatarUrl: avatar,
         });
-        localStorage.setItem('user', JSON.stringify(me));
+        try {
+          const currentStored = JSON.parse(localStorage.getItem('user') || '{}');
+          localStorage.setItem(
+            'user',
+            JSON.stringify({
+              ...currentStored,
+              ...me,
+              avatar,
+              avatarUrl: avatar,
+            }),
+          );
+        } catch {
+          localStorage.setItem('user', JSON.stringify({ ...me, avatar, avatarUrl: avatar }));
+        }
         if (role === 'ADMINISTRATOR') {
           setActiveProjectRoles(['ADMINISTRATOR']);
           setCurrentWorkspaceRole(null);
@@ -632,6 +685,7 @@ function AppContent() {
     localStorage.removeItem('isDemoMode');
     const role = normalizeSystemRole(authResponse?.user?.role);
     setCurrentRole(role);
+    const apiAvatar = authResponse?.user?.avatarUrl || authResponse?.user?.avatar || null;
     setCurrentUserInfo({
       id: authResponse?.user?.id,
       name: authResponse?.user?.fullName || authResponse?.user?.email?.split('@')[0] || 'User',
@@ -639,6 +693,7 @@ function AppContent() {
       role,
       canCreateStudio: authResponse?.user?.canCreateStudio,
       isTwoFactorEnabled: authResponse?.user?.isTwoFactorEnabled,
+      avatarUrl: apiAvatar,
     });
     if (authResponse?.user) {
       localStorage.setItem('user', JSON.stringify(authResponse.user));
@@ -793,6 +848,7 @@ function AppContent() {
             localStorage.removeItem('isDemoMode');
             const role = normalizeSystemRole(res?.user?.role);
             setCurrentRole(role);
+            const googleAvatar = res?.user?.avatarUrl || res?.user?.avatar || res?.photoURL || null;
             setCurrentUserInfo({
               id: res?.user?.id,
               name:
@@ -802,6 +858,7 @@ function AppContent() {
                 'User',
               email: res?.user?.email || res?.email || '',
               role,
+              avatarUrl: googleAvatar,
             });
             if (res?.user) {
               localStorage.setItem('user', JSON.stringify(res.user));

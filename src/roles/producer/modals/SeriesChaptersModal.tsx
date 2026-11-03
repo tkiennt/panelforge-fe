@@ -22,6 +22,8 @@ import {
   RotateCcw,
   Share2,
   GitBranch,
+  Camera,
+  Upload,
 } from 'lucide-react';
 import {
   chapterService,
@@ -35,6 +37,7 @@ import { ChapterProvenanceModal } from '@/shared/features/provenance/ChapterProv
 import { PreviewLinksModal } from './PreviewLinksModal';
 import { TypeToConfirmModal } from '@/shared/components/lucian';
 import { useConfirm } from '@/shared/context/ConfirmContext';
+import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 
 interface SeriesChaptersModalProps {
   isOpen: boolean;
@@ -99,6 +102,10 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
   const [editTitle, setEditTitle] = useState('');
   const [editTargetReleaseDate, setEditTargetReleaseDate] = useState('');
   const [editOutline, setEditOutline] = useState('');
+
+  // Delete Chapter Confirmation State (Lucian #269)
+  const [deleteTargetChapter, setDeleteTargetChapter] = useState<ChapterDto | null>(null);
+  const [isDeletingChapter, setIsDeletingChapter] = useState(false);
 
   const fetchChapters = useCallback(async () => {
     if (!seriesId) return;
@@ -167,6 +174,44 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
     }
   };
 
+  const handleUploadCover = async (chap: ChapterDto, file: File) => {
+    if (file.size > 5 * 1024 * 1024) {
+      onShowToast?.('Lỗi tệp', 'Ảnh bìa không được vượt quá 5 MB.');
+      return;
+    }
+    setActionLoading(true);
+    try {
+      const newCoverUrl = await chapterService.uploadChapterCover(chap.id, file);
+      onShowToast?.('Thành công', `Đã cập nhật ảnh bìa cho Chương ${chap.chapterNumber}.`);
+      setChapters((prev) =>
+        prev.map((c) => (c.id === chap.id ? { ...c, coverUrl: newCoverUrl } : c)),
+      );
+      if (editingChapter && editingChapter.id === chap.id) {
+        setEditingChapter((prev) => (prev ? { ...prev, coverUrl: newCoverUrl } : null));
+      }
+    } catch (err: any) {
+      onShowToast?.('Lỗi tải bìa chương', err.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDeleteCover = async (chap: ChapterDto) => {
+    setActionLoading(true);
+    try {
+      await chapterService.deleteChapterCover(chap.id);
+      onShowToast?.('Thành công', `Đã xóa ảnh bìa của Chương ${chap.chapterNumber}.`);
+      setChapters((prev) => prev.map((c) => (c.id === chap.id ? { ...c, coverUrl: null } : c)));
+      if (editingChapter && editingChapter.id === chap.id) {
+        setEditingChapter((prev) => (prev ? { ...prev, coverUrl: null } : null));
+      }
+    } catch (err: any) {
+      onShowToast?.('Lỗi xóa bìa chương', err.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleStartEdit = (chap: ChapterDto) => {
     setEditingChapter(chap);
     setEditTitle(chap.title || '');
@@ -200,10 +245,6 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
     }
   };
 
-  // Delete Chapter Confirmation State (Lucian #269)
-  const [deleteTargetChapter, setDeleteTargetChapter] = useState<ChapterDto | null>(null);
-  const [isDeletingChapter, setIsDeletingChapter] = useState(false);
-
   const handleDeleteChapter = (chap: ChapterDto) => {
     setDeleteTargetChapter(chap);
   };
@@ -226,20 +267,36 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
   };
 
   const handleApproveChapter = async (chap: ChapterDto) => {
-    if (
-      !(await confirm({
-        title: `Phê duyệt hoàn tất Chương ${chap.chapterNumber}?`,
-        description: `Chương "${chap.title || 'Không tiêu đề'}" sẽ chuyển sang trạng thái Approved (Chờ xuất bản). Các phân công sẽ được đóng lại để Publisher duyệt xuất bản.`,
-        confirmText: 'Phê duyệt hoàn tất',
-        cancelText: 'Xem lại',
-        variant: 'info',
-      }))
-    ) {
-      return;
-    }
-
     setActionLoading(true);
     try {
+      try {
+        const gate = await chapterService.getChapterLockGate(chap.id);
+        if (!gate.canApprove) {
+          const blocking = gate.items.filter((i) => i.blocking);
+          const msg =
+            blocking.map((b) => b.message).join('; ') ||
+            'Chương chưa hoàn thành đủ các điều kiện phê duyệt.';
+          onShowToast?.('Chưa đủ điều kiện duyệt chương', msg);
+          setActionLoading(false);
+          return;
+        }
+      } catch (gateErr) {
+        console.warn('Lỗi kiểm tra lock-gate:', gateErr);
+      }
+
+      if (
+        !(await confirm({
+          title: `Phê duyệt hoàn tất Chương ${chap.chapterNumber}?`,
+          description: `Chương "${chap.title || 'Không tiêu đề'}" sẽ chuyển sang trạng thái Approved (Chờ xuất bản). Các phân công sẽ được đóng lại để Publisher duyệt xuất bản.`,
+          confirmText: 'Phê duyệt hoàn tất',
+          cancelText: 'Xem lại',
+          variant: 'info',
+        }))
+      ) {
+        setActionLoading(false);
+        return;
+      }
+
       await chapterService.approveChapter(chap.id);
       onShowToast?.(
         'Đã duyệt chương',
@@ -671,10 +728,69 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                   ) : (
                     chapters.map((chap) => (
                       <tr key={chap.id} className='hover:bg-[#FAF8F5] transition-colors'>
-                        <td className='py-3 px-3 font-mono font-bold text-[#171717]'>
-                          <span className='px-2 py-0.5 rounded bg-[#FAF8F5] border border-[#E7E7E7] text-[#F97316]'>
-                            #{chap.chapterNumber}
-                          </span>
+                        <td className='py-3 px-3'>
+                          <div className='flex items-center gap-2.5'>
+                            <div className='relative group/cover shrink-0'>
+                              {chap.coverUrl ? (
+                                <AuthenticatedImage
+                                  src={chap.coverUrl}
+                                  alt={`Bìa Chương ${chap.chapterNumber}`}
+                                  className='w-10 h-14 object-cover rounded-md border border-[#E7E7E7] shadow-2xs group-hover/cover:border-[#F97316] transition-colors bg-stone-100'
+                                  fallback={
+                                    <div className='w-10 h-14 rounded-md bg-[#FAF8F5] border border-[#E7E7E7] flex flex-col items-center justify-center text-center p-0.5 text-stone-500'>
+                                      <span className='text-[8px] font-mono uppercase tracking-wider text-stone-400'>
+                                        TẬP
+                                      </span>
+                                      <span className='text-xs font-mono font-bold text-[#F97316]'>
+                                        {chap.chapterNumber}
+                                      </span>
+                                    </div>
+                                  }
+                                />
+                              ) : (
+                                <div className='w-10 h-14 rounded-md bg-[#FAF8F5] border border-[#E7E7E7] flex flex-col items-center justify-center text-center p-0.5 shadow-2xs group-hover/cover:border-[#F97316] transition-colors'>
+                                  <span className='text-[8px] font-mono uppercase tracking-wider text-stone-400'>
+                                    TẬP
+                                  </span>
+                                  <span className='text-xs font-mono font-bold text-[#F97316]'>
+                                    {chap.chapterNumber}
+                                  </span>
+                                </div>
+                              )}
+                              <label
+                                className='absolute inset-0 bg-black/50 text-white rounded-md opacity-0 group-hover/cover:opacity-100 flex flex-col items-center justify-center cursor-pointer transition-opacity text-[8px] font-semibold text-center p-0.5'
+                                title='Tải lên hoặc đổi ảnh bìa chương'
+                              >
+                                <Camera className='w-3.5 h-3.5 mb-0.5' />
+                                <span>Đổi bìa</span>
+                                <input
+                                  type='file'
+                                  accept='image/png,image/jpeg,image/webp'
+                                  className='hidden'
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) handleUploadCover(chap, file);
+                                    e.target.value = '';
+                                  }}
+                                />
+                              </label>
+                            </div>
+                            <div>
+                              <span className='px-2 py-0.5 rounded bg-[#FAF8F5] border border-[#E7E7E7] font-mono font-bold text-[#F97316] text-xs'>
+                                #{chap.chapterNumber}
+                              </span>
+                              {chap.coverUrl && (
+                                <button
+                                  type='button'
+                                  onClick={() => handleDeleteCover(chap)}
+                                  className='block mt-1 text-[10px] text-stone-400 hover:text-red-500 transition-colors'
+                                  title='Xoá ảnh bìa chương'
+                                >
+                                  Xoá bìa
+                                </button>
+                              )}
+                            </div>
+                          </div>
                         </td>
 
                         <td className='py-3 px-3'>
@@ -853,7 +969,8 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
           {/* Footer */}
           <div className='p-4 bg-[#FAF8F5] border-t border-[#E7E7E7] rounded-b-2xl flex items-center justify-between text-xs'>
             <div className='text-[11px] text-[#737373]'>
-              * Ngày phát hành dự kiến hỗ trợ ban biên tập đối chiếu và điều phối tiến độ sản xuất kịp thời.
+              * Ngày phát hành dự kiến hỗ trợ ban biên tập đối chiếu và điều phối tiến độ sản xuất
+              kịp thời.
             </div>
             <button
               type='button'

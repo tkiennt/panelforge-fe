@@ -18,6 +18,7 @@ export interface ChapterDto {
   status?: ChapterStatus;
   publishedAt?: string | null;
   outline?: string | null;
+  coverUrl?: string | null;
   isScriptFrozen?: boolean;
   scriptFrozenAt?: string | null;
   scriptFrozenById?: string | null;
@@ -61,6 +62,31 @@ export interface ChapterReviewDto {
   scheduledAt?: string | null;
   chapterVersion: number;
   createdAt: string;
+}
+
+/** Điều kiện cổng kiểm soát Producer trước khi duyệt chương (tất định, không LLM). */
+export type ChapterLockGateCode =
+  | 'NOT_IN_PRODUCTION'
+  | 'NO_PAGES'
+  | 'ASSIGNMENTS_NOT_APPROVED'
+  | 'OPEN_CHANGE_REQUESTS'
+  | 'BLOCKING_FINDINGS'
+  | 'SCRIPT_NOT_FROZEN'
+  | 'PENDING_AI_SUGGESTIONS'
+  | string;
+
+export interface ChapterLockGateItem {
+  code: ChapterLockGateCode;
+  blocking: boolean;
+  count: number;
+  message: string;
+}
+
+export interface ChapterLockGateDto {
+  chapterId: string;
+  status: ChapterStatus;
+  canApprove: boolean;
+  items: ChapterLockGateItem[];
 }
 
 /** CF4 / 4.1: bản chụp bất biến của chương lúc Producer duyệt (append-only). */
@@ -181,6 +207,18 @@ export const chapterService = {
   },
 
   /**
+   * Producer kiểm tra checklist các điều kiện duyệt/khoá chương (GET /api/chapters/{chapterId}/lock-gate)
+   */
+  getChapterLockGate: async (chapterId: string): Promise<ChapterLockGateDto> => {
+    try {
+      const response = await axiosClient.get(`/chapters/${chapterId}/lock-gate`);
+      return response.data;
+    } catch (error) {
+      throw new Error(extractError(error, 'Không thể kiểm tra điều kiện duyệt chương.'));
+    }
+  },
+
+  /**
    * Producer duyệt chương hoàn tất sản xuất (POST /api/chapters/{chapterId}/approve)
    * Chuyển trạng thái từ InProduction -> Approved
    */
@@ -280,6 +318,40 @@ export const chapterService = {
   /**
    * Kiểm tra rào chắn Series Bible theo Chương (Chapter-Scoped Bible Gate)
    */
+  /**
+   * Tải ảnh bìa riêng cho chương (PUT /api/chapters/{chapterId}/cover)
+   * Multipart/form-data, field `file` (PNG/JPEG/WebP, <= 5 MB)
+   * Trả về URL bìa mới: coverUrl
+   */
+  uploadChapterCover: async (chapterId: string, file: File): Promise<string | null> => {
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const response = await axiosClient.put(`/chapters/${chapterId}/cover`, form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      return response.data?.value ?? null;
+    } catch (error) {
+      throw new Error(extractError(error, 'Không thể tải ảnh bìa chương.'));
+    }
+  },
+
+  /** Alias setChapterCover tương tự seriesService.setCover */
+  setChapterCover: async (chapterId: string, file: File): Promise<string | null> => {
+    return chapterService.uploadChapterCover(chapterId, file);
+  },
+
+  /**
+   * Xoá ảnh bìa riêng của chương (DELETE /api/chapters/{chapterId}/cover)
+   */
+  deleteChapterCover: async (chapterId: string): Promise<void> => {
+    try {
+      await axiosClient.delete(`/chapters/${chapterId}/cover`);
+    } catch (error) {
+      throw new Error(extractError(error, 'Không thể xóa ảnh bìa chương.'));
+    }
+  },
+
   checkBibleGate: async (chapterId: string): Promise<ChapterBibleGateResultDto> => {
     try {
       const response = await axiosClient.get(`/chapters/${chapterId}/bible-gate`);

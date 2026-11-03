@@ -36,6 +36,7 @@ import {
   Lock,
   LayoutTemplate,
   Film,
+  AlertCircle,
 } from 'lucide-react';
 import {
   scriptLineService,
@@ -54,9 +55,11 @@ import { bibleService, BibleEntryDto } from '@/services/bible.service';
 import { seriesService, SeriesDetailDto } from '@/services/series.service';
 import {
   assignmentService,
+  AssignmentDto,
   ConsistencyFindingDto,
   ConsistencyCheckResultDto,
 } from '@/services/assignment.service';
+import { workspaceService, type WorkspaceMemberDto } from '@/services/workspace.service';
 import { normalizeWorkspaceRole } from '@/types/auth';
 import { AiAssistPanel } from '@/shared/features/ai-agents/AiAssistPanel';
 import { ScriptHistoryModal } from '../components/script/ScriptHistoryModal';
@@ -83,6 +86,7 @@ import { scenesToComicScriptText } from '../components/script/thumbnail-studio/l
 interface ScriptEditorViewProps {
   onShowToast?: (title: string, desc: string) => void;
   workspaceRole?: string | null;
+  currentUserId?: string | null;
 }
 
 /**
@@ -122,10 +126,11 @@ export const getBibleEntryNameWithStage = (entry?: BibleEntryDto | null): string
 export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   onShowToast,
   workspaceRole,
+  currentUserId,
 }) => {
   const { t } = useTranslation('production');
   const confirm = useConfirm();
-  const { seriesId } = useParams<{ workspaceId?: string; seriesId?: string }>();
+  const { workspaceId, seriesId } = useParams<{ workspaceId?: string; seriesId?: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const chapterIdFromUrl = searchParams.get('chapterId');
   const sceneIdFromUrl = searchParams.get('sceneId');
@@ -135,9 +140,30 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   // - Writer: Soạn thảo kịch bản, chỉnh sửa outline/story arc, nhưng TUYỆT ĐỐI KHÔNG ĐƯỢC tạo chương mới hoặc xoá chương.
   const normRole = workspaceRole ? normalizeWorkspaceRole(workspaceRole) : null;
   const effectiveRole = normRole || (typeof window !== 'undefined' ? normalizeWorkspaceRole(localStorage.getItem('workspaceRole')) : null);
-  const canEditScript = !effectiveRole || effectiveRole === 'PRODUCER' || effectiveRole === 'WRITER';
   const isProducer = effectiveRole === 'PRODUCER';
   const canCreateChapter = isProducer;
+
+  // Xác định ID người dùng hiện tại (từ prop, localStorage hoặc JWT)
+  const [selfUserId, setSelfUserId] = useState<string | null>(() => {
+    if (currentUserId) return currentUserId;
+    try {
+      const savedUser = localStorage.getItem('user');
+      if (savedUser) {
+        const u = JSON.parse(savedUser);
+        if (u?.id) return u.id;
+        if (u?.userId) return u.userId;
+      }
+    } catch {
+      // ignore
+    }
+    return null;
+  });
+
+  useEffect(() => {
+    if (currentUserId) setSelfUserId(currentUserId);
+  }, [currentUserId]);
+
+  const effectiveUserId = currentUserId || selfUserId;
 
   // Dữ liệu kịch bản
   const [chapters, setChapters] = useState<ChapterDto[]>([]);
@@ -149,6 +175,59 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     currentChapter?.status === 'Published';
   const [characters, setCharacters] = useState<BibleEntryDto[]>([]);
   const [allBibleEntries, setAllBibleEntries] = useState<BibleEntryDto[]>([]);
+  const [chapterAssignments, setChapterAssignments] = useState<AssignmentDto[]>([]);
+  const [workspaceMembers, setWorkspaceMembers] = useState<WorkspaceMemberDto[]>([]);
+
+  // Phân quyền theo Assignment (Backend ScriptLineRules.cs):
+  // - Producer luôn có quyền sửa kịch bản.
+  // - Khi chương đã giao kịch bản cho Writer: chỉ người được giao mới sửa được; Writer khác nhận 403 / chỉ đọc.
+  // - Khi chương chưa giao cho ai: Writer vẫn sửa tự do như cũ.
+  // - Assignment đã huỷ (cancelReason != null) không tính.
+  // - Các vai trò khác (Artist, Editor, Viewer...): chỉ đọc.
+
+  const writerAssignments = useMemo(() => {
+    return chapterAssignments.filter((a) => {
+      const role = String(a.assignedRole || '').toUpperCase();
+      const isWriter = role === 'WRITER';
+      const isCancelled = !!(a as any).cancelReason;
+      return isWriter && !isCancelled;
+    });
+  }, [chapterAssignments]);
+
+  const hasWriterAssignment = writerAssignments.length > 0;
+
+  const isAssignedWriter = useMemo(() => {
+    if (!effectiveUserId || !hasWriterAssignment) return false;
+    return writerAssignments.some(
+      (a) => String(a.assigneeUserId).toLowerCase() === String(effectiveUserId).toLowerCase(),
+    );
+  }, [effectiveUserId, hasWriterAssignment, writerAssignments]);
+
+  const isWriterBlockedByOther = useMemo(() => {
+    if (effectiveRole !== 'WRITER') return false;
+    if (!hasWriterAssignment) return false;
+    return !isAssignedWriter;
+  }, [effectiveRole, hasWriterAssignment, isAssignedWriter]);
+
+  const assignedWriterNames = useMemo(() => {
+    if (!writerAssignments.length) return '';
+    const names = writerAssignments.map((a) => {
+      const member = workspaceMembers.find(
+        (m) => String(m.userId).toLowerCase() === String(a.assigneeUserId).toLowerCase(),
+      );
+      return member?.fullName || member?.email || 'Writer được giao';
+    });
+    return Array.from(new Set(names)).join(', ');
+  }, [writerAssignments, workspaceMembers]);
+
+  const canEditScript = useMemo(() => {
+    if (!effectiveRole) return !isWriterBlockedByOther;
+    if (effectiveRole === 'PRODUCER') return true;
+    if (effectiveRole === 'WRITER') {
+      return !hasWriterAssignment || isAssignedWriter;
+    }
+    return false;
+  }, [effectiveRole, hasWriterAssignment, isAssignedWriter, isWriterBlockedByOther]);
 
   const [scenes, setScenes] = useState<SceneDto[]>([]);
   const [selectedScene, setSelectedScene] = useState<SceneDetailDto | null>(null);
@@ -241,6 +320,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
   // Modals phụ trợ
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
+  const [storyboardPanelOpen, setStoryboardPanelOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
 
   // V2.5: Chapter-Scoped Bible Gate & Script Freeze Gate
@@ -416,11 +496,22 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     }
   }, [chapterIdFromUrl, chapters, currentChapter?.id]);
 
-  // Đồng bộ Outline và nạp findings nhất quán khi currentChapter thay đổi
+  // Tải danh sách thành viên workspace để hiển thị tên Writer được phân công (nếu có)
+  const effectiveWsId = workspaceId || seriesDetail?.workspaceId;
+  useEffect(() => {
+    if (!effectiveWsId) return;
+    workspaceService
+      .getMembers(effectiveWsId)
+      .then((mems) => setWorkspaceMembers(mems || []))
+      .catch(() => setWorkspaceMembers([]));
+  }, [effectiveWsId]);
+
+  // Đồng bộ Outline, findings nhất quán và danh sách Assignment khi currentChapter thay đổi
   useEffect(() => {
     if (!currentChapter?.id) {
       setOutlineInput('');
       setFindings([]);
+      setChapterAssignments([]);
       return;
     }
     // Xoá ngay findings cũ để tránh hiển thị kết quả của chương trước khi chuyển chương
@@ -436,14 +527,25 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         setFindings([]);
       });
 
+    assignmentService
+      .getAssignments(currentChapter.id)
+      .then((res) => {
+        setChapterAssignments(res || []);
+      })
+      .catch(() => {
+        setChapterAssignments([]);
+      });
+
     void checkChapterBibleGate(currentChapter.id);
   }, [currentChapter?.id, currentChapter?.outline, checkChapterBibleGate]);
 
-  // 2. Nạp chi tiết Chapter (cập nhật versionVector)
+  // 2. Nạp chi tiết Chapter (cập nhật versionVector) & cập nhật lại phân công
   const refreshChapterDetail = useCallback(async (chapId: string) => {
     try {
       const detail = await chapterService.getChapterById(chapId);
       setCurrentChapter((prev) => (prev ? { ...prev, ...detail } : detail));
+      const assignments = await assignmentService.getAssignments(chapId);
+      setChapterAssignments(assignments || []);
     } catch (err) {
       console.error('Lỗi refresh chi tiết chương:', err);
     }
@@ -1263,6 +1365,12 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         notify('Xung đột phiên bản (409 CONFLICT)', msg);
         await refreshChapterDetail(currentChapter.id);
         await loadSceneDetail(selectedScene.id);
+      } else if (err.status === 403 || err.code === 'FORBIDDEN') {
+        notify(
+          'Không có quyền sửa kịch bản (403)',
+          err.message ||
+            'Kịch bản chương này đã được giao cho Writer khác. Chỉ người được giao hoặc Producer mới sửa được.',
+        );
       } else {
         notify('Lỗi ghi kịch bản', err.message);
       }
@@ -1334,6 +1442,12 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         notify('Xung đột phiên bản', msg);
         await refreshChapterDetail(currentChapter.id);
         await loadSceneDetail(selectedScene.id);
+      } else if (err.status === 403 || err.code === 'FORBIDDEN') {
+        notify(
+          'Không có quyền xoá dòng (403)',
+          err.message ||
+            'Kịch bản chương này đã được giao cho Writer khác. Chỉ người được giao hoặc Producer mới sửa được.',
+        );
       } else {
         notify('Lỗi xoá dòng', err.message);
       }
@@ -1364,7 +1478,15 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       await refreshChapterDetail(currentChapter.id);
     } catch (err: any) {
       setSelectedScene((prev) => (prev ? { ...prev, scriptLines: previousLines } : null));
-      notify('Lỗi sắp xếp dòng', err.message || 'Không thể cập nhật thứ tự dòng kịch bản.');
+      if (err.status === 403 || err.code === 'FORBIDDEN') {
+        notify(
+          'Không có quyền sắp xếp dòng (403)',
+          err.message ||
+            'Kịch bản chương này đã được giao cho Writer khác. Chỉ người được giao hoặc Producer mới sửa được.',
+        );
+      } else {
+        notify('Lỗi sắp xếp dòng', err.message || 'Không thể cập nhật thứ tự dòng kịch bản.');
+      }
       await loadSceneDetail(selectedScene.id);
     } finally {
       setIsReorderingLines(false);
@@ -1489,8 +1611,21 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   const handleAiReload = async () => {
     if (!currentChapter?.id || !selectedScene?.id) return;
     await refreshChapterDetail(currentChapter.id);
+    await loadScenes();
     await loadSceneDetail(selectedScene.id);
   };
+
+  const currentSceneDto = useMemo(
+    () => scenes.find((s) => s.id === selectedScene?.id),
+    [scenes, selectedScene?.id]
+  );
+  const sceneHasPanels = useMemo(() => {
+    if (!selectedScene) return false;
+    return (
+      (selectedScene.scriptLines && selectedScene.scriptLines.some((l) => !!l.panelId)) ||
+      (currentSceneDto?.pagesCount ?? 0) > 0
+    );
+  }, [selectedScene, currentSceneDto]);
 
   const aiNameById = Object.fromEntries(
     allBibleEntries.map((e) => [e.id, getBibleEntryNameWithStage(e)]),
@@ -1956,7 +2091,23 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             </div>
           )}
 
-          {!canEditScript && !isChapterLocked && (
+          {isWriterBlockedByOther && !isChapterLocked ? (
+            <div
+              data-testid='writer-not-assigned-banner'
+              className='p-2.5 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between gap-2 text-amber-900'
+            >
+              <div className='flex items-center gap-2'>
+                <AlertCircle className='w-4 h-4 text-amber-600 shrink-0' />
+                <span className='text-xs font-medium'>
+                  Chế độ chỉ đọc: Kịch bản chương này đã được giao cho Writer khác
+                  {assignedWriterNames ? ` (${assignedWriterNames})` : ''}. Chỉ người được giao hoặc Producer mới có quyền chỉnh sửa.
+                </span>
+              </div>
+              <span className='text-xs font-bold uppercase tracking-wider bg-amber-200/90 text-amber-900 px-2.5 py-0.5 rounded-full shrink-0'>
+                Đã giao người khác
+              </span>
+            </div>
+          ) : !canEditScript && !isChapterLocked ? (
             <div
               data-testid='role-view-only-banner'
               className='p-2.5 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between gap-2 text-blue-900'
@@ -1965,7 +2116,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                 <Info className='w-4 h-4 text-blue-600 shrink-0' />
                 <span className='text-xs font-medium'>
                   Chế độ xem: Bạn đang xem kịch bản với quyền tham khảo. Chỉ vai trò{' '}
-                  <strong>Producer</strong> hoặc <strong>Writer</strong> mới có quyền tạo và chỉnh
+                  <strong>Producer</strong> hoặc <strong>Writer</strong> được phân công mới có quyền tạo và chỉnh
                   sửa kịch bản.
                 </span>
               </div>
@@ -1973,7 +2124,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                 Tham khảo
               </span>
             </div>
-          )}
+          ) : null}
         </div>
       )}
 
@@ -2231,6 +2382,32 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                     </button>
                   )}
 
+                  {canEditScript && (
+                    <button
+                      type='button'
+                      data-testid='open-ai-storyboard-btn'
+                      onClick={() => setStoryboardPanelOpen(true)}
+                      className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-full transition-all cursor-pointer shadow-soft-sm border ${
+                        sceneHasPanels
+                          ? 'text-amber-800 bg-amber-50 hover:bg-amber-100 border-amber-200'
+                          : 'text-indigo-800 bg-indigo-50 hover:bg-indigo-100 border-indigo-200'
+                      }`}
+                      title={
+                        sceneHasPanels
+                          ? 'Phân cảnh đã có khung tranh (khóa tự tạo; dùng Tự động phân bổ trên Bàn vẽ)'
+                          : 'Tự động tạo Trang, Khung và gán kịch bản bằng AI'
+                      }
+                    >
+                      <LayoutTemplate className={`w-3.5 h-3.5 ${sceneHasPanels ? 'text-amber-600' : 'text-indigo-600'}`} />
+                      <span className='hidden sm:inline'>Phân khung bằng AI</span>
+                      {sceneHasPanels && (
+                        <span className='ml-0.5 rounded bg-amber-200/80 px-1.5 py-0.5 text-[10px] font-medium text-amber-900'>
+                          Đã có khung
+                        </span>
+                      )}
+                    </button>
+                  )}
+
                   {canEditScript && !isChapterLocked && (editorMode === 'cards' || isTestEnvironment) && (
                     <button
                       type='button'
@@ -2439,6 +2616,28 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           chapterVersion={currentChapter.versionVector}
           nameById={aiNameById}
           onClose={() => setAiPanelOpen(false)}
+          onReload={handleAiReload}
+        />
+      )}
+
+      {/* Trợ lý AI Phân khung Storyboard */}
+      {storyboardPanelOpen && seriesId && currentChapter?.id && selectedScene?.id && (
+        <AiAssistPanel
+          key={`storyboard-${selectedScene.id}`}
+          seriesId={seriesId}
+          chapterId={currentChapter.id}
+          sceneId={selectedScene.id}
+          workflowType='Storyboard'
+          suggestionKind='Layout'
+          title='Trợ lý AI · Phân khung Storyboard'
+          briefLabel='Brief / Định hướng phân khung (tối đa 4000 ký tự)'
+          briefPlaceholder='Mô tả định hướng phân khung: số khung mong muốn, nhịp điệu (nhanh/chậm), khung cao trào...'
+          runLabel='Phân khung'
+          readingDirection={aiReadingDirection}
+          chapterVersion={currentChapter.versionVector}
+          nameById={aiNameById}
+          hasPanels={sceneHasPanels}
+          onClose={() => setStoryboardPanelOpen(false)}
           onReload={handleAiReload}
         />
       )}

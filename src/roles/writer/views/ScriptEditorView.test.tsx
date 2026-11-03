@@ -8,6 +8,7 @@ import { chapterService } from '@/services/chapter.service';
 import { bibleService } from '@/services/bible.service';
 import { seriesService } from '@/services/series.service';
 import { assignmentService } from '@/services/assignment.service';
+import { workspaceService } from '@/services/workspace.service';
 
 vi.mock('@/services/scriptLine.service', () => ({
   scriptLineService: {
@@ -49,6 +50,13 @@ vi.mock('@/services/assignment.service', () => ({
     runConsistencyCheck: vi.fn(),
     getConsistencyFindings: vi.fn(),
     triageConsistencyFinding: vi.fn(),
+    getAssignments: vi.fn(),
+  },
+}));
+
+vi.mock('@/services/workspace.service', () => ({
+  workspaceService: {
+    getMembers: vi.fn(),
   },
 }));
 
@@ -121,7 +129,7 @@ const mockBible = {
   ],
 };
 
-const renderView = (props: { workspaceRole?: string } = {}) =>
+const renderView = (props: { workspaceRole?: string; currentUserId?: string } = {}) =>
   render(
     <MemoryRouter
       initialEntries={['/workspaces/ws-1/series/se-1/script?chapterId=chap-1&sceneId=sc-1']}
@@ -168,6 +176,8 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
       value: 'Outline mới của chương 1.',
     });
     vi.mocked(assignmentService.getConsistencyFindings).mockResolvedValue([]);
+    vi.mocked(assignmentService.getAssignments).mockResolvedValue([]);
+    vi.mocked(workspaceService.getMembers).mockResolvedValue([]);
   });
 
   it('nạp và hiển thị danh sách Chapters, Scenes, ScriptLines và Characters', async () => {
@@ -289,6 +299,166 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
 
     expect(await screen.findByTestId('role-view-only-banner')).toBeInTheDocument();
     expect(screen.queryByTestId('open-add-line-btn')).not.toBeInTheDocument();
+  });
+
+  it('khóa quyền sửa kịch bản khi chương đã giao cho Writer khác, hiển thị banner đã giao người khác', async () => {
+    vi.mocked(assignmentService.getAssignments).mockResolvedValue([
+      {
+        id: 'as-1',
+        seriesId: 'se-1',
+        chapterId: 'chap-1',
+        entityType: 'Chapter' as any,
+        targetEntityId: 'chap-1',
+        pipelineStageId: 'stg-1',
+        assigneeUserId: 'other-writer-id',
+        assignedRole: 'Writer' as any,
+        brief: 'Viết kịch bản',
+        priority: 'Medium' as any,
+        status: 'Assigned' as any,
+        createdAt: '2026-10-01',
+      },
+    ]);
+    vi.mocked(workspaceService.getMembers).mockResolvedValue([
+      {
+        userId: 'other-writer-id',
+        fullName: 'Lê Biên Kịch',
+        email: 'writer@panelforge.com',
+        role: 'Writer',
+        isOwner: false,
+        joinedAt: '2026-10-01',
+      },
+    ]);
+
+    renderView({ workspaceRole: 'WRITER', currentUserId: 'my-writer-id' });
+
+    const banner = await screen.findByTestId('writer-not-assigned-banner');
+    expect(banner).toBeInTheDocument();
+    expect(banner.textContent).toContain('Lê Biên Kịch');
+    expect(banner.textContent).toContain('Đã giao người khác');
+    // Nút thêm dòng, viết nháp AI bị ẩn
+    expect(screen.queryByTestId('open-add-line-btn')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('open-ai-draft-btn')).not.toBeInTheDocument();
+  });
+
+  it('cho phép Writer được giao sửa kịch bản bình thường', async () => {
+    vi.mocked(assignmentService.getAssignments).mockResolvedValue([
+      {
+        id: 'as-1',
+        seriesId: 'se-1',
+        chapterId: 'chap-1',
+        entityType: 'Chapter' as any,
+        targetEntityId: 'chap-1',
+        pipelineStageId: 'stg-1',
+        assigneeUserId: 'my-writer-id',
+        assignedRole: 'Writer' as any,
+        brief: 'Viết kịch bản',
+        priority: 'Medium' as any,
+        status: 'InProgress' as any,
+        createdAt: '2026-10-01',
+      },
+    ]);
+
+    renderView({ workspaceRole: 'WRITER', currentUserId: 'my-writer-id' });
+
+    expect(await screen.findByTestId('open-add-line-btn')).toBeInTheDocument();
+    expect(screen.queryByTestId('writer-not-assigned-banner')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('role-view-only-banner')).not.toBeInTheDocument();
+  });
+
+  it('chương chưa giao cho ai thì Writer vẫn sửa tự do', async () => {
+    vi.mocked(assignmentService.getAssignments).mockResolvedValue([]);
+
+    renderView({ workspaceRole: 'WRITER', currentUserId: 'any-writer-id' });
+
+    expect(await screen.findByTestId('open-add-line-btn')).toBeInTheDocument();
+    expect(screen.queryByTestId('writer-not-assigned-banner')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('role-view-only-banner')).not.toBeInTheDocument();
+  });
+
+  it('Assignment bị huỷ (cancelReason != null) thì không khoá quyền sửa của Writer', async () => {
+    vi.mocked(assignmentService.getAssignments).mockResolvedValue([
+      {
+        id: 'as-cancelled',
+        seriesId: 'se-1',
+        chapterId: 'chap-1',
+        entityType: 'Chapter' as any,
+        targetEntityId: 'chap-1',
+        pipelineStageId: 'stg-1',
+        assigneeUserId: 'old-writer-id',
+        assignedRole: 'Writer' as any,
+        brief: 'Viết kịch bản cũ',
+        priority: 'Medium' as any,
+        status: 'Assigned' as any,
+        createdAt: '2026-10-01',
+        cancelReason: 'Đổi người viết',
+      } as any,
+    ]);
+
+    renderView({ workspaceRole: 'WRITER', currentUserId: 'new-writer-id' });
+
+    expect(await screen.findByTestId('open-add-line-btn')).toBeInTheDocument();
+    expect(screen.queryByTestId('writer-not-assigned-banner')).not.toBeInTheDocument();
+  });
+
+  it('Producer luôn có toàn quyền sửa kịch bản dù chương đã giao cho Writer khác', async () => {
+    vi.mocked(assignmentService.getAssignments).mockResolvedValue([
+      {
+        id: 'as-1',
+        seriesId: 'se-1',
+        chapterId: 'chap-1',
+        entityType: 'Chapter' as any,
+        targetEntityId: 'chap-1',
+        pipelineStageId: 'stg-1',
+        assigneeUserId: 'other-writer-id',
+        assignedRole: 'Writer' as any,
+        brief: 'Viết kịch bản',
+        priority: 'Medium' as any,
+        status: 'Assigned' as any,
+        createdAt: '2026-10-01',
+      },
+    ]);
+
+    renderView({ workspaceRole: 'PRODUCER', currentUserId: 'producer-id' });
+
+    expect(await screen.findByTestId('open-add-line-btn')).toBeInTheDocument();
+    expect(screen.queryByTestId('writer-not-assigned-banner')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('role-view-only-banner')).not.toBeInTheDocument();
+  });
+
+  it('bắt lỗi 403 Forbidden khi tạo dòng kịch bản và hiển thị thông báo lỗi', async () => {
+    const user = userEvent.setup();
+    const mockShowToast = vi.fn();
+    render(
+      <MemoryRouter initialEntries={['/workspaces/ws-1/series/se-1/script?chapterId=chap-1&sceneId=sc-1']}>
+        <Routes>
+          <Route
+            path='/workspaces/:workspaceId/series/:seriesId/script'
+            element={<ScriptEditorView workspaceRole='WRITER' currentUserId='my-writer-id' onShowToast={mockShowToast} />}
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    const openAddBtn = await screen.findByTestId('open-add-line-btn');
+    await user.click(openAddBtn);
+
+    vi.mocked(scriptLineService.createScriptLine).mockRejectedValueOnce({
+      status: 403,
+      message: 'Kịch bản chương này đã được giao cho Writer khác. Chỉ người được giao hoặc Producer mới sửa được.',
+    });
+
+    const dialogueInput = screen.getByPlaceholderText(/Nhập lời thoại của nhân vật/i);
+    await user.type(dialogueInput, 'Dòng thoại test 403');
+
+    const submitBtn = await screen.findByTestId('submit-line-btn');
+    await user.click(submitBtn);
+
+    await waitFor(() => {
+      expect(mockShowToast).toHaveBeenCalledWith(
+        'Không có quyền sửa kịch bản (403)',
+        'Kịch bản chương này đã được giao cho Writer khác. Chỉ người được giao hoặc Producer mới sửa được.',
+      );
+    });
   });
 
   it('hiển thị chip mục Series Bible liên kết trên dòng kịch bản (UC-06)', async () => {
@@ -513,6 +683,38 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
       renderView();
       await screen.findByTestId('toggle-narrative-context-btn');
       expect(screen.queryByTestId('draft-restore-storyArc')).toBeNull();
+    });
+
+    it('hiển thị nút Phân khung bằng AI (open-ai-storyboard-btn) và mở Storyboard panel khi bấm', async () => {
+      const user = userEvent.setup();
+      renderView();
+      const storyboardBtn = await screen.findByTestId('open-ai-storyboard-btn');
+      expect(storyboardBtn).toBeInTheDocument();
+      expect(storyboardBtn).toHaveTextContent('Phân khung bằng AI');
+
+      await user.click(storyboardBtn);
+      const panel = await screen.findByTestId('ai-assist-panel');
+      expect(panel).toBeInTheDocument();
+      expect(panel).toHaveAttribute('aria-label', 'Trợ lý AI · Phân khung Storyboard');
+    });
+
+    it('hiển thị chỉ báo "Đã có khung" khi phân cảnh đã có panel', async () => {
+      vi.mocked(scriptLineService.getSceneById).mockResolvedValueOnce({
+        ...mockSceneDetail,
+        scriptLines: [
+          {
+            ...mockSceneDetail.scriptLines[0],
+            panelId: 'panel-existing-1',
+          },
+        ],
+      });
+      renderView();
+      const storyboardBtn = await screen.findByTestId('open-ai-storyboard-btn');
+      expect(storyboardBtn).toHaveTextContent('Đã có khung');
+      expect(storyboardBtn).toHaveAttribute(
+        'title',
+        'Phân cảnh đã có khung tranh (khóa tự tạo; dùng Tự động phân bổ trên Bàn vẽ)',
+      );
     });
   });
 

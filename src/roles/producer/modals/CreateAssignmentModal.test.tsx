@@ -7,6 +7,7 @@ import { seriesService } from '@/services/series.service';
 import { pipelineService } from '@/services/pipeline.service';
 import { pageService } from '@/services/page.service';
 import { panelService } from '@/services/panel.service';
+import { workspaceService } from '@/services/workspace.service';
 
 vi.mock('@/services/assignment.service', async () => {
   const actual = await vi.importActual<any>('@/services/assignment.service');
@@ -18,6 +19,10 @@ vi.mock('@/services/assignment.service', async () => {
       transferAssignmentScope: vi.fn(),
       updateAssignment: vi.fn(),
       startAssignment: vi.fn(),
+      getAssigneeSuggestions: vi.fn(),
+      createBulkAssignments: vi.fn(),
+      createAssignmentPlan: vi.fn(),
+      getAssignmentPlanTemplate: vi.fn(),
     },
   };
 });
@@ -25,6 +30,7 @@ vi.mock('@/services/series.service');
 vi.mock('@/services/pipeline.service');
 vi.mock('@/services/page.service');
 vi.mock('@/services/panel.service');
+vi.mock('@/services/workspace.service');
 
 describe('CreateAssignmentModal', () => {
   const mockStages = [
@@ -119,9 +125,75 @@ describe('CreateAssignmentModal', () => {
     });
 
     vi.mocked(seriesService.getSeriesMembers).mockResolvedValue(mockMembers);
+    // Modal lấy người nhận từ thành viên Workspace; dữ liệu mẫu vẫn khai báo dạng thành viên Series nên chuyển đổi tại đây
+    vi.mocked(workspaceService.getMembers).mockImplementation(async () =>
+      (await seriesService.getSeriesMembers('', '')).map((m) => ({
+        userId: m.userId,
+        fullName: m.fullName,
+        email: m.email,
+        avatarUrl: m.avatarUrl,
+        role: m.studioRole ?? m.seriesRole,
+        isOwner: false,
+        joinedAt: m.joinedAt,
+        status: m.status,
+      })),
+    );
     vi.mocked(assignmentService.getAssignments).mockResolvedValue([]);
+    vi.mocked(assignmentService.getAssigneeSuggestions).mockResolvedValue([]);
+    vi.mocked(assignmentService.createBulkAssignments).mockResolvedValue({
+      batchId: 'batch-1',
+      dryRun: false,
+      granularity: 'Page',
+      createdCount: 2,
+      items: [],
+    });
     vi.mocked(pageService.getPagesByChapter).mockResolvedValue(mockPages);
     vi.mocked(panelService.getPanelsByPage).mockResolvedValue(mockPanels);
+    vi.mocked(assignmentService.getAssignmentPlanTemplate).mockResolvedValue({
+      sourceChapterId: 'chap-0',
+      sourceChapterNumber: 0,
+      stages: [
+        {
+          pipelineStageId: 'stage-script',
+          stageName: 'Script',
+          stageOrder: 1,
+          assigneeUserId: 'user-writer',
+          assigneeName: 'Nguyễn Văn Writer',
+          brief: 'Kịch bản theo phong cách hài hước',
+        },
+        {
+          pipelineStageId: 'stage-artist',
+          stageName: 'Pencil & Ink',
+          stageOrder: 2,
+          assigneeUserId: 'user-artist',
+          assigneeName: 'Trần Thị Artist',
+          brief: 'Vẽ nét thanh mảnh',
+        },
+      ],
+    });
+    vi.mocked(assignmentService.createAssignmentPlan).mockResolvedValue({
+      batchId: 'plan-batch-1',
+      dryRun: false,
+      createdCount: 2,
+      stages: [
+        {
+          pipelineStageId: 'stage-script',
+          stageName: 'Script',
+          assigneeUserId: 'user-writer',
+          granularity: 'Chapter',
+          skippedReason: null,
+          items: [],
+        },
+        {
+          pipelineStageId: 'stage-artist',
+          stageName: 'Pencil & Ink',
+          assigneeUserId: 'user-artist',
+          granularity: 'Page',
+          skippedReason: null,
+          items: [],
+        },
+      ],
+    });
   });
 
   it('lọc danh sách người nhận theo vai trò của stage và tự động khớp (Point b)', async () => {
@@ -646,5 +718,436 @@ describe('CreateAssignmentModal', () => {
       );
     });
     expect(assignmentService.createAssignment).not.toHaveBeenCalled();
+  });
+
+  it('nạp gợi ý ứng viên tối ưu từ Backend và hiển thị chip lý do đề xuất', async () => {
+    vi.mocked(assignmentService.getAssigneeSuggestions).mockResolvedValueOnce([
+      {
+        userId: 'user-w1',
+        fullName: 'Nguyễn Văn Writer',
+        avatarUrl: null,
+        role: 2 as any,
+        activeAssignmentCount: 0,
+        overdueCount: 0,
+        stageExperienceCount: 5,
+        isSeriesMember: true,
+        reasons: ['Không có việc đang mở', 'Nhiều kinh nghiệm viết kịch bản'],
+      },
+    ]);
+
+    render(
+      <CreateAssignmentModal
+        isOpen={true}
+        workspaceId='ws-1'
+        seriesId='series-1'
+        chapterId='chap-1'
+        chapterNumber={1}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/Giao Việc Mới – Chương 1/i)).toBeInTheDocument();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('assignee-reasons')).toBeInTheDocument();
+      expect(screen.getByText(/Không có việc đang mở/i)).toBeInTheDocument();
+      expect(screen.getByText(/Nhiều kinh nghiệm viết kịch bản/i)).toBeInTheDocument();
+    });
+  });
+
+  it('hỗ trợ chế độ giao việc hàng loạt (Bulk): chọn nhiều trang, kiểm tra xung đột dryRun và gửi bulk assignment', async () => {
+    const onShowToast = vi.fn();
+    const onSuccess = vi.fn();
+    const onClose = vi.fn();
+
+    render(
+      <CreateAssignmentModal
+        isOpen={true}
+        workspaceId='ws-1'
+        seriesId='series-1'
+        chapterId='chap-1'
+        chapterNumber={1}
+        initialPipelineStageId='stage-thumbnail'
+        initialEntityType='Page'
+        onClose={onClose}
+        onSuccess={onSuccess}
+        onShowToast={onShowToast}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/Giao hàng loạt \(Bulk\)/i)).toBeInTheDocument();
+    });
+
+    // Bật chế độ giao hàng loạt
+    const bulkCheckbox = screen.getByRole('checkbox', { name: /Giao hàng loạt \(Bulk\)/i });
+    fireEvent.click(bulkCheckbox);
+
+    expect(screen.getByTestId('bulk-page-section')).toBeInTheDocument();
+
+    // Nhập brief
+    const briefInput = screen.getByLabelText(/Yêu cầu công việc/i);
+    fireEvent.change(briefInput, { target: { value: 'Vẽ phác thảo thumbnail hàng loạt' } });
+
+    // Mock kết quả dryRun phát hiện trang 2 bị xung đột
+    vi.mocked(assignmentService.createBulkAssignments).mockResolvedValueOnce({
+      batchId: null,
+      dryRun: true,
+      granularity: 'Page',
+      createdCount: 0,
+      items: [
+        {
+          entityType: 'Page',
+          targetEntityId: 'page-guid-001',
+          pageNumber: 1,
+          conflictReason: null,
+          assignmentId: null,
+          dependsOnAssignmentIds: ['asg-script-1'],
+        },
+        {
+          entityType: 'Page',
+          targetEntityId: 'page-guid-002',
+          pageNumber: 2,
+          conflictReason: 'Trang 2 đã có việc ở stage này',
+          assignmentId: null,
+          dependsOnAssignmentIds: null,
+        },
+      ],
+    });
+
+    // Bấm kiểm tra xung đột (Dry Run)
+    const dryRunBtn = screen.getByRole('button', { name: /Kiểm tra xung đột trước/i });
+    fireEvent.click(dryRunBtn);
+
+    await waitFor(() => {
+      expect(assignmentService.createBulkAssignments).toHaveBeenCalledWith(
+        'chap-1',
+        expect.objectContaining({
+          dryRun: true,
+          pipelineStageId: 'stage-thumbnail',
+          brief: 'Vẽ phác thảo thumbnail hàng loạt',
+        }),
+      );
+      expect(screen.getByText(/Trang 2 đã có việc ở stage này/i)).toBeInTheDocument();
+      expect(screen.getByText(/Bỏ chọn các trang bị xung đột/i)).toBeInTheDocument();
+    });
+
+    // Bấm bỏ chọn các trang xung đột
+    fireEvent.click(screen.getByRole('button', { name: /Bỏ chọn các trang bị xung đột/i }));
+
+    // Mock kết quả gửi tạo thật
+    vi.mocked(assignmentService.createBulkAssignments).mockResolvedValueOnce({
+      batchId: 'batch-001',
+      dryRun: false,
+      granularity: 'Page',
+      createdCount: 1,
+      items: [
+        {
+          entityType: 'Page',
+          targetEntityId: 'page-guid-001',
+          pageNumber: 1,
+          conflictReason: null,
+          assignmentId: 'asg-bulk-1',
+          dependsOnAssignmentIds: ['asg-script-1'],
+        },
+      ],
+    });
+
+    // Bấm nút submit giao việc hàng loạt
+    const submitBtn = screen.getByRole('button', { name: /Giao việc hàng loạt/i });
+    fireEvent.click(submitBtn);
+
+    await waitFor(() => {
+      expect(assignmentService.createBulkAssignments).toHaveBeenCalledWith(
+        'chap-1',
+        expect.objectContaining({
+          dryRun: false,
+          pageIds: ['page-guid-001'],
+          brief: 'Vẽ phác thảo thumbnail hàng loạt',
+        }),
+      );
+      expect(onShowToast).toHaveBeenCalledWith(
+        'Giao việc hàng loạt thành công',
+        expect.stringContaining('Thumbnail'),
+      );
+      expect(onClose).toHaveBeenCalled();
+    });
+  });
+
+  it('chặn chọn ngày quá khứ cho hạn hoàn thành (Due Date) bằng thuộc tính min và validation', async () => {
+    render(
+      <CreateAssignmentModal
+        isOpen={true}
+        workspaceId='ws-1'
+        seriesId='series-1'
+        chapterId='chap-1'
+        chapterNumber={1}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/Yêu cầu công việc/i)).toBeInTheDocument();
+    });
+
+    const dueDateInput = screen.getByLabelText(/Hạn hoàn thành/i) as HTMLInputElement;
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+    // Kiểm tra thuộc tính min được gắn ngày hôm nay
+    expect(dueDateInput.min).toBe(todayStr);
+
+    // Điền brief
+    fireEvent.change(screen.getByLabelText(/Yêu cầu công việc/i), {
+      target: { value: 'Kịch bản thử nghiệm' },
+    });
+
+    // Thử cố tình nhập ngày hôm qua
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
+    fireEvent.change(dueDateInput, { target: { value: yesterdayStr } });
+
+    // Submit form
+    const form = document.getElementById('create-assignment-form')!;
+    fireEvent.submit(form);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Hạn hoàn thành không thể ở trong quá khứ/i)).toBeInTheDocument();
+    });
+    expect(assignmentService.createAssignment).not.toHaveBeenCalled();
+  });
+
+  it('hỗ trợ các nút gợi ý hạn nhanh (+3 ngày, +1 tuần, +2 tuần)', async () => {
+    render(
+      <CreateAssignmentModal
+        isOpen={true}
+        workspaceId='ws-1'
+        seriesId='series-1'
+        chapterId='chap-1'
+        chapterNumber={1}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/\+3 ngày/i)).toBeInTheDocument();
+    });
+
+    const dueDateInput = screen.getByLabelText(/Hạn hoàn thành/i) as HTMLInputElement;
+
+    // Bấm gợi ý +3 ngày
+    fireEvent.click(screen.getByRole('button', { name: /\+3 ngày/i }));
+    const d3 = new Date();
+    d3.setDate(d3.getDate() + 3);
+    const d3Str = `${d3.getFullYear()}-${String(d3.getMonth() + 1).padStart(2, '0')}-${String(d3.getDate()).padStart(2, '0')}`;
+    expect(dueDateInput.value).toBe(d3Str);
+
+    // Bấm Xóa hạn
+    expect(screen.getByRole('button', { name: /Xóa hạn/i })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Xóa hạn/i }));
+    expect(dueDateInput.value).toBe('');
+  });
+
+  it('áp dụng mẫu chương trước trong chế độ đơn bằng nút apply-stage-template-btn', async () => {
+    const onShowToast = vi.fn();
+    render(
+      <CreateAssignmentModal
+        isOpen={true}
+        workspaceId='ws-1'
+        seriesId='series-1'
+        chapterId='chap-1'
+        chapterNumber={1}
+        onClose={vi.fn()}
+        onShowToast={onShowToast}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('apply-stage-template-btn')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId('apply-stage-template-btn'));
+
+    await waitFor(() => {
+      expect(assignmentService.getAssignmentPlanTemplate).toHaveBeenCalledWith('chap-1');
+      expect(onShowToast).toHaveBeenCalledWith(
+        'Đã nạp mẫu',
+        expect.stringContaining('Chương 0'),
+      );
+    });
+
+    const briefInput = screen.getByLabelText(/Yêu cầu công việc/i) as HTMLTextAreaElement;
+    expect(briefInput.value).toBe('Kịch bản theo phong cách hài hước');
+  });
+
+  it('chuyển đổi giữa chế độ công đoạn và kế hoạch toàn chương', async () => {
+    render(
+      <CreateAssignmentModal
+        isOpen={true}
+        workspaceId='ws-1'
+        seriesId='series-1'
+        chapterId='chap-1'
+        chapterNumber={1}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('tab-mode-single')).toBeInTheDocument();
+      expect(screen.getByTestId('tab-mode-plan')).toBeInTheDocument();
+    });
+
+    // Chuyển sang Kế hoạch toàn chương
+    fireEvent.click(screen.getByTestId('tab-mode-plan'));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Giao việc toàn chương theo kế hoạch/i)).toBeInTheDocument();
+      expect(screen.getByTestId('load-plan-template-btn')).toBeInTheDocument();
+      expect(screen.getByTestId('submit-plan-btn')).toBeInTheDocument();
+    });
+
+    // Chuyển lại về chế độ công đoạn
+    fireEvent.click(screen.getByTestId('tab-mode-single'));
+    await waitFor(() => {
+      expect(screen.getByLabelText(/Công đoạn Pipeline/i)).toBeInTheDocument();
+    });
+  });
+
+  it('nạp mẫu kế hoạch toàn chương từ chương trước', async () => {
+    const onShowToast = vi.fn();
+    render(
+      <CreateAssignmentModal
+        isOpen={true}
+        workspaceId='ws-1'
+        seriesId='series-1'
+        chapterId='chap-1'
+        chapterNumber={1}
+        onClose={vi.fn()}
+        onShowToast={onShowToast}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('tab-mode-plan')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId('tab-mode-plan'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('load-plan-template-btn')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId('load-plan-template-btn'));
+
+    await waitFor(() => {
+      expect(assignmentService.getAssignmentPlanTemplate).toHaveBeenCalledWith('chap-1');
+      expect(onShowToast).toHaveBeenCalledWith(
+        'Đã nạp mẫu kế hoạch',
+        expect.stringContaining('Chương 0'),
+      );
+    });
+  });
+
+  it('hỗ trợ kiểm tra trước (Dry Run) kế hoạch toàn chương', async () => {
+    const onShowToast = vi.fn();
+    render(
+      <CreateAssignmentModal
+        isOpen={true}
+        workspaceId='ws-1'
+        seriesId='series-1'
+        chapterId='chap-1'
+        chapterNumber={1}
+        onClose={vi.fn()}
+        onShowToast={onShowToast}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('tab-mode-plan')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId('tab-mode-plan'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('dry-run-plan-btn')).toBeInTheDocument();
+    });
+
+    // Nhập brief chung
+    const generalBrief = screen.getByLabelText(/Yêu cầu chung toàn chương/i);
+    fireEvent.change(generalBrief, { target: { value: 'Brief tổng quan toàn chương 1' } });
+
+    // Bấm kiểm tra trước
+    fireEvent.click(screen.getByTestId('dry-run-plan-btn'));
+
+    await waitFor(() => {
+      expect(assignmentService.createAssignmentPlan).toHaveBeenCalledWith(
+        'chap-1',
+        expect.objectContaining({
+          dryRun: true,
+          brief: 'Brief tổng quan toàn chương 1',
+        }),
+      );
+      expect(onShowToast).toHaveBeenCalledWith(
+        'Kiểm tra kế hoạch',
+        expect.stringContaining('Dự kiến tạo 2 công việc'),
+      );
+    });
+
+    expect(screen.getByText(/Kiểm tra kế hoạch hoàn tất/i)).toBeInTheDocument();
+  });
+
+  it('giao kế hoạch toàn chương thành công qua createAssignmentPlan', async () => {
+    const onSuccess = vi.fn();
+    const onClose = vi.fn();
+    const onShowToast = vi.fn();
+
+    render(
+      <CreateAssignmentModal
+        isOpen={true}
+        workspaceId='ws-1'
+        seriesId='series-1'
+        chapterId='chap-1'
+        chapterNumber={1}
+        onClose={onClose}
+        onSuccess={onSuccess}
+        onShowToast={onShowToast}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('tab-mode-plan')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId('tab-mode-plan'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('submit-plan-btn')).toBeInTheDocument();
+    });
+
+    // Nhập brief chung
+    const generalBrief = screen.getByLabelText(/Yêu cầu chung toàn chương/i);
+    fireEvent.change(generalBrief, { target: { value: 'Giao trọn gói kịch bản và vẽ' } });
+
+    // Submit form
+    fireEvent.click(screen.getByTestId('submit-plan-btn'));
+
+    await waitFor(() => {
+      expect(assignmentService.createAssignmentPlan).toHaveBeenCalledWith(
+        'chap-1',
+        expect.objectContaining({
+          dryRun: false,
+          brief: 'Giao trọn gói kịch bản và vẽ',
+        }),
+      );
+      expect(onShowToast).toHaveBeenCalledWith(
+        'Giao kế hoạch thành công',
+        expect.stringContaining('Đã tạo 2 công việc'),
+      );
+      expect(onSuccess).toHaveBeenCalled();
+      expect(onClose).toHaveBeenCalled();
+    });
   });
 });

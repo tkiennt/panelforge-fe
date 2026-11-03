@@ -3,11 +3,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { BibleEntityDetailModal } from './BibleEntityDetailModal';
 import { BibleEntity } from '@/types';
-import { BibleEntryDto } from '@/services/bible.service';
+import { BibleEntryDto, BibleEntryRevisionDto, bibleService } from '@/services/bible.service';
 
 vi.mock('@/shared/components/AuthenticatedImage', () => ({
-  AuthenticatedImage: ({ alt, className }: any) => (
-    <img alt={alt} className={className} data-testid='auth-image' />
+  AuthenticatedImage: ({ alt, className, 'data-testid': testId, ...props }: any) => (
+    <img alt={alt} className={className} data-testid={testId || 'auth-image'} {...props} />
   ),
 }));
 
@@ -296,11 +296,7 @@ describe('BibleEntityDetailModal UX/UI', () => {
     };
 
     render(
-      <BibleEntityDetailModal
-        {...defaultProps}
-        rawEntry={rawWithEndorsed}
-        canReview={true}
-      />
+      <BibleEntityDetailModal {...defaultProps} rawEntry={rawWithEndorsed} canReview={true} />,
     );
 
     const reworkBtn = screen.getByTestId('detail-rework-btn');
@@ -312,10 +308,20 @@ describe('BibleEntityDetailModal UX/UI', () => {
   });
 
   it('renders correct category type badge in header for characters and locations (Bug 1)', () => {
-    const { rerender } = render(<BibleEntityDetailModal {...defaultProps} entity={{ ...mockEntityWithImage, category: 'characters' }} />);
+    const { rerender } = render(
+      <BibleEntityDetailModal
+        {...defaultProps}
+        entity={{ ...mockEntityWithImage, category: 'characters' }}
+      />,
+    );
     expect(screen.getByText('Nhân vật')).toBeInTheDocument();
 
-    rerender(<BibleEntityDetailModal {...defaultProps} entity={{ ...mockEntityWithImage, category: 'locations' }} />);
+    rerender(
+      <BibleEntityDetailModal
+        {...defaultProps}
+        entity={{ ...mockEntityWithImage, category: 'locations' }}
+      />,
+    );
     expect(screen.getByText('Bối cảnh & Địa điểm')).toBeInTheDocument();
   });
 
@@ -334,12 +340,7 @@ describe('BibleEntityDetailModal UX/UI', () => {
       referenceImageUrl: 'https://example.com/new.png',
     };
 
-    render(
-      <BibleEntityDetailModal
-        {...defaultProps}
-        latestSavedRevision={newRev}
-      />
-    );
+    render(<BibleEntityDetailModal {...defaultProps} latestSavedRevision={newRev} />);
 
     expect(screen.getByText('v3')).toBeInTheDocument();
     expect(screen.getByText('Under Review')).toBeInTheDocument();
@@ -355,5 +356,212 @@ describe('BibleEntityDetailModal UX/UI', () => {
 
     expect(defaultProps.onClose).not.toHaveBeenCalled();
     document.body.removeChild(childModal);
+  });
+
+  it('renders "Chưa thiết lập" when character age and height are unset, never defaulting to "17 tuổi" or "178 cm"', () => {
+    const characterWithoutAttributes: BibleEntity = {
+      id: 'ent-unset',
+      code: 'CHR-999',
+      name: 'Nhân vật mới',
+      category: 'characters',
+      description: 'Mô tả nhân vật',
+    };
+
+    render(
+      <BibleEntityDetailModal
+        {...defaultProps}
+        entity={characterWithoutAttributes}
+        rawEntry={undefined}
+      />,
+    );
+
+    // Verify age and height are "Chưa thiết lập"
+    const unsetLabels = screen.getAllByText('Chưa thiết lập');
+    expect(unsetLabels.length).toBeGreaterThanOrEqual(2);
+
+    // Absolutely must NOT contain mock strings 17 tuổi or 178 cm
+    expect(screen.queryByText('17 tuổi')).not.toBeInTheDocument();
+    expect(screen.queryByText('178 cm')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Robotic prosthetic arm/i)).not.toBeInTheDocument();
+  });
+
+  it('renders location specifications and concept art labels instead of character fields for locations', () => {
+    const locationEntity: BibleEntity = {
+      id: 'ent-loc',
+      code: 'LOC-002',
+      name: 'Hệ thống hang động ngầm',
+      category: 'locations',
+      subtitle: 'Hang động cổ xưa',
+      description: 'Cầu đá cổ bị gãy nhịp, vực sâu không đáy.',
+    };
+
+    render(
+      <BibleEntityDetailModal {...defaultProps} entity={locationEntity} rawEntry={undefined} />,
+    );
+
+    // Must render Location card title & fields
+    expect(screen.getByText(/Thông số không gian & Bối cảnh/i)).toBeInTheDocument();
+    expect(screen.getByText('Phân loại địa hình:')).toBeInTheDocument();
+    expect(screen.getByText('Chi tiết kiến trúc & Cảnh quan:')).toBeInTheDocument();
+    expect(screen.getByText('Cầu đá cổ bị gãy nhịp, vực sâu không đáy.')).toBeInTheDocument();
+
+    // Must NOT render Character fields
+    expect(screen.queryByText('Độ tuổi:')).not.toBeInTheDocument();
+    expect(screen.queryByText('Chiều cao:')).not.toBeInTheDocument();
+    expect(screen.queryByText('17 tuổi')).not.toBeInTheDocument();
+    expect(screen.queryByText('178 cm')).not.toBeInTheDocument();
+
+    // Card 2 must render Environment Concept Art labels
+    expect(screen.getByText('Bản vẽ Concept Bối cảnh')).toBeInTheDocument();
+    expect(screen.getByText('Toàn cảnh (Wide Shot)')).toBeInTheDocument();
+    expect(screen.getByText('Góc cận cảnh (Close-up)')).toBeInTheDocument();
+
+    // Location reference status instead of lock button
+    expect(screen.getByText('Tham chiếu Bối cảnh & Địa điểm')).toBeInTheDocument();
+    expect(screen.queryByTestId('detail-lock-btn')).not.toBeInTheDocument();
+  });
+
+  it('renders Visual Diff split comparison with AuthenticatedImage for before and after revisions', () => {
+    const rev1: BibleEntryRevisionDto = {
+      id: 'rev-v1',
+      bibleEntryId: mockEntityWithImage.id,
+      versionNumber: 1,
+      summary: 'Initial draft',
+      snapshotJson: '{}',
+      contentHash: 'hash1',
+      reviewStatus: 'Draft',
+      isLocked: false,
+      isInitialVersion: true,
+      referenceImageUrl: '/api/series/ser-1/bible/assets/hash-v1',
+      stageName: 'Giai đoạn chuẩn',
+      effectiveFromChapterNumber: 1,
+      createdAt: '2026-10-01T00:00:00Z',
+    };
+
+    const rev2: BibleEntryRevisionDto = {
+      id: 'rev-v2',
+      bibleEntryId: mockEntityWithImage.id,
+      versionNumber: 2,
+      summary: 'Concept submitted',
+      snapshotJson: '{}',
+      contentHash: 'hash2',
+      reviewStatus: 'ConceptSubmitted',
+      isLocked: false,
+      isInitialVersion: false,
+      referenceImageUrl: '/api/series/ser-1/bible/assets/hash-v2',
+      stageName: 'Giai đoạn chuẩn',
+      effectiveFromChapterNumber: 1,
+      createdAt: '2026-10-15T00:00:00Z',
+    };
+
+    vi.spyOn(bibleService, 'getEntryHistory').mockResolvedValue([rev1, rev2]);
+
+    const entryWithTwoRevisions: BibleEntryDto = {
+      id: mockEntityWithImage.id,
+      seriesBibleId: 'sb-1',
+      code: mockEntityWithImage.code,
+      name: mockEntityWithImage.name,
+      description: mockEntityWithImage.description,
+      detailsJson: '{}',
+      category: 'Character',
+      priority: 'Standard',
+      strictCheck: false,
+      isActive: true,
+      effectiveRevision: rev2,
+      createdAt: '2026-10-01T00:00:00Z',
+    };
+
+    render(
+      <BibleEntityDetailModal
+        {...defaultProps}
+        entity={mockEntityWithImage}
+        rawEntry={entryWithTwoRevisions}
+        latestSavedRevision={rev2}
+      />,
+    );
+
+    expect(screen.getByText('So sánh Visual Diff')).toBeInTheDocument();
+
+    const afterImg = screen.getByTestId('diff-image-after');
+    const beforeImg = screen.getByTestId('diff-image-before');
+
+    expect(afterImg).toBeInTheDocument();
+    expect(beforeImg).toBeInTheDocument();
+
+    // Verify slider input exists and defaults to 50
+    const slider = screen.getByLabelText(
+      'Thanh trượt so sánh bản vẽ Visual Diff',
+    ) as HTMLInputElement;
+    expect(slider).toBeInTheDocument();
+    expect(slider.value).toBe('50');
+
+    // Change slider value
+    fireEvent.change(slider, { target: { value: '75' } });
+    expect(slider.value).toBe('75');
+  });
+  it('renders conceptImageUrl and chronological events in the audit trail when available', () => {
+    const revWithEvents = {
+      id: 'rev-with-events-1',
+      bibleEntryId: mockEntityWithImage.id,
+      versionNumber: 2,
+      summary: 'Revision with events',
+      snapshotJson: '{}',
+      contentHash: 'hash-events-1234567890',
+      effectiveFromChapterNumber: 1,
+      isInitialVersion: false,
+      createdAt: '2026-11-02T10:00:00Z',
+      isLocked: false,
+      reviewStatus: 'ConceptSubmitted' as const,
+      conceptImageUrl: 'https://example.com/concept-special.png',
+      events: [
+        {
+          id: 'evt-1',
+          type: 'Created' as const,
+          actorId: null,
+          comment: null,
+          imageUrl: null,
+          eventHash: 'hash-created-event',
+          createdAt: '2026-11-02T09:00:00Z',
+        },
+        {
+          id: 'evt-2',
+          type: 'ConceptSubmitted' as const,
+          actorId: 'artist-1',
+          comment: 'Bản vẽ chi tiết phục trang',
+          imageUrl: 'https://example.com/concept-special.png',
+          eventHash: 'hash-concept-event',
+          createdAt: '2026-11-02T10:00:00Z',
+        },
+      ],
+    };
+
+    const entryWithEvents: BibleEntryDto = {
+      id: mockEntityWithImage.id,
+      seriesBibleId: 'sb-1',
+      code: mockEntityWithImage.code,
+      name: mockEntityWithImage.name,
+      description: mockEntityWithImage.description,
+      detailsJson: '{}',
+      category: 'Character',
+      priority: 'Standard',
+      strictCheck: false,
+      isActive: true,
+      effectiveRevision: revWithEvents,
+      createdAt: '2026-10-01T00:00:00Z',
+    };
+
+    render(
+      <BibleEntityDetailModal
+        {...defaultProps}
+        entity={mockEntityWithImage}
+        rawEntry={entryWithEvents}
+        latestSavedRevision={revWithEvents}
+      />,
+    );
+
+    // Verify Audit Trail has the real event items
+    expect(screen.getByText('Lịch sử thay đổi (Audit Trail)')).toBeInTheDocument();
+    expect(screen.getByText(/Đã nộp Concept Art/)).toBeInTheDocument();
+    expect(screen.getByText(/Bản vẽ chi tiết phục trang/)).toBeInTheDocument();
   });
 });

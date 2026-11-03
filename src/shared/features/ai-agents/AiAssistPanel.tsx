@@ -38,6 +38,8 @@ interface Props {
   chapterVersion: number;
   /** Bible entry / nhân vật id → tên, để hiển thị người nói và nguồn bằng chứng. */
   nameById: Record<string, string>;
+  hasPanels?: boolean;
+  panelIds?: string[] | null;
   onClose: () => void;
   /** Tải lại dữ liệu của màn làm việc (script của Scene + versionVector) sau Accept hoặc khi bị 409. */
   onReload: () => void | Promise<void>;
@@ -152,6 +154,8 @@ export const AiAssistPanel: React.FC<Props> = ({
   readingDirection,
   chapterVersion,
   nameById,
+  hasPanels,
+  panelIds,
   onClose,
   onReload,
 }) => {
@@ -280,6 +284,7 @@ export const AiAssistPanel: React.FC<Props> = ({
         readingDirection,
         chapterVersion,
         baseScriptRevisionId: latestScriptRevisionId(revisions),
+        panelIds: panelIds && panelIds.length > 0 ? panelIds : undefined,
       });
       storeRunId(storageKey, started.runId);
       setRun(await aiAgentsService.getRun(seriesId, started.runId));
@@ -323,6 +328,7 @@ export const AiAssistPanel: React.FC<Props> = ({
   const lines = useMemo(() => collectLines(steps, nameById), [steps, nameById]);
   const draftStep = latestStep(steps, 'Writer');
   const continuityStep = latestStep(steps, 'Continuity');
+  const storyboardStep = latestStep(steps, 'Storyboard');
   const suggestions = (run?.suggestions ?? []).filter((s) => s.kind === suggestionKind);
   const status = run ? statusText(run) : null;
 
@@ -367,7 +373,7 @@ export const AiAssistPanel: React.FC<Props> = ({
             className='flex items-start gap-2 rounded-lg border border-rose-300 bg-rose-50 p-2.5 text-xs text-rose-800'
           >
             <AlertTriangle className='mt-0.5 h-3.5 w-3.5 shrink-0' />
-            <span>{error.message}</span>
+            <span className='whitespace-pre-line'>{error.message}</span>
           </div>
         )}
 
@@ -384,6 +390,21 @@ export const AiAssistPanel: React.FC<Props> = ({
                 <li key={m.code}>{m.message}</li>
               ))}
             </ul>
+          </div>
+        )}
+
+        {workflowType === 'Storyboard' && hasPanels && (
+          <div
+            data-testid='ai-storyboard-has-panels-banner'
+            className='flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 p-2.5 text-xs text-amber-900'
+          >
+            <AlertTriangle className='mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600' />
+            <div>
+              <p className='font-semibold'>Phân cảnh này đã có khung tranh (panel)</p>
+              <p className='mt-0.5 text-[11px] text-amber-800 leading-relaxed'>
+                Đề xuất phân khung Storyboard chỉ có thể áp dụng cho phân cảnh chưa có khung tranh. Để chia lại dòng kịch bản cho các khung có sẵn, vui lòng mở màn <strong>Bàn vẽ & Khung trang</strong> (Artist Desk) và dùng tính năng <strong>Tự động phân bổ kịch bản</strong>.
+              </p>
+            </div>
           </div>
         )}
 
@@ -438,7 +459,7 @@ export const AiAssistPanel: React.FC<Props> = ({
             className={`flex items-center gap-2 rounded-lg border p-2.5 text-xs font-semibold ${TONE[status.tone]}`}
           >
             {running && <Loader2 className='h-3.5 w-3.5 animate-spin' />}
-            {status.text}
+            <span className='whitespace-pre-line'>{status.text}</span>
           </div>
         )}
 
@@ -465,6 +486,20 @@ export const AiAssistPanel: React.FC<Props> = ({
           </section>
         )}
 
+        {storyboardStep && (
+          <section data-testid='ai-storyboard'>
+            <h3 className='mb-1.5 text-[11px] font-bold uppercase tracking-wide text-[#737373]'>
+              Bố cục Storyboard (Phân khung)
+            </h3>
+            <StepOutputView
+              step={storyboardStep}
+              allSteps={steps}
+              nameById={nameById}
+              lines={lines}
+            />
+          </section>
+        )}
+
         {suggestions.length > 0 && (
           <section data-testid='ai-suggestions' className='space-y-2'>
             <h3 className='text-[11px] font-bold uppercase tracking-wide text-[#737373]'>
@@ -473,10 +508,12 @@ export const AiAssistPanel: React.FC<Props> = ({
             {suggestions.map((s) => (
               <SuggestionCard
                 key={s.id}
+                seriesId={seriesId}
                 // chỉ cho quyết định khi BE xác nhận canDecide = true
                 suggestion={{ ...s, canDecide: s.canDecide === true }}
                 busy={deciding}
                 nameById={nameById}
+                hasPanels={hasPanels}
                 onDecide={(decision, reason) => handleDecide(s, decision, reason)}
               />
             ))}

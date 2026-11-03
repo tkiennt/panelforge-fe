@@ -16,11 +16,11 @@ export function useMyWorkspaces() {
   });
 }
 
-export function useWorkspaceUsage(workspaceId?: string | null) {
+export function useWorkspaceUsage(workspaceId?: string | null, isProducer = true) {
   return useQuery({
     queryKey: WORKSPACE_QUERY_KEYS.usage(workspaceId || ''),
     queryFn: () => workspaceService.getWorkspaceUsage(workspaceId!),
-    enabled: !!workspaceId,
+    enabled: !!workspaceId && isProducer,
   });
 }
 

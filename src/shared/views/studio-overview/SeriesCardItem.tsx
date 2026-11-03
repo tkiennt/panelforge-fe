@@ -49,6 +49,8 @@ export const SeriesCardItem: React.FC<SeriesCardItemProps> = ({
   onEditSeries,
   onDeleteSeries,
 }) => {
+  const displayCoverUrl = s.coverUrl || s.avatarUrl;
+
   return (
     <article className='group relative flex flex-col justify-between rounded-2xl bg-[#FCFBF8] border border-stone-200/80 hover:border-orange-400/80 hover:shadow-soft-md shadow-soft-xs transition-all duration-200 p-4 sm:p-5'>
       {/* Top Section: Left Thumbnail + Right Metadata */}
@@ -60,9 +62,9 @@ export const SeriesCardItem: React.FC<SeriesCardItemProps> = ({
             className='w-20 sm:w-24 shrink-0 aspect-[3/4] rounded-xl overflow-hidden relative border border-stone-200/70 bg-gradient-to-br from-stone-100 via-stone-50 to-stone-200/80 flex flex-col justify-between p-2 shadow-2xs group-hover:border-orange-200 transition-colors cursor-pointer'
             title={`Mở ${s.title}`}
           >
-            {s.coverUrl && (
+            {displayCoverUrl && (
               <AuthenticatedImage
-                src={s.coverUrl}
+                src={displayCoverUrl}
                 alt={`Bìa ${s.title}`}
                 className='absolute inset-0 w-full h-full object-cover'
                 fallback={null}
@@ -75,7 +77,7 @@ export const SeriesCardItem: React.FC<SeriesCardItemProps> = ({
 
             {/* Center: Serif Initial */}
             <div className='flex-1 flex items-center justify-center'>
-              {!s.coverUrl && (
+              {!displayCoverUrl && (
                 <span className='text-3xl sm:text-4xl font-serif font-bold text-stone-400/60 group-hover:text-orange-500/70 transition-colors select-none'>
                   {s.title.trim().charAt(0).toUpperCase()}
                 </span>

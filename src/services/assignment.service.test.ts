@@ -88,6 +88,67 @@ describe('assignmentService', () => {
     expect(result).toEqual(mockCreated);
   });
 
+  it('createBulkAssignments gọi POST /bulk và trả về kết quả hoặc xem trước dryRun', async () => {
+    const bulkReq = {
+      pipelineStageId: 'stage-pencil',
+      assigneeUserId: 'user-artist',
+      brief: 'Vẽ chì hàng loạt',
+      pageIds: ['page-1', 'page-2'],
+      dryRun: true,
+    };
+    const mockBulkResult = {
+      batchId: null,
+      dryRun: true,
+      granularity: 'Page' as const,
+      createdCount: 0,
+      items: [
+        {
+          entityType: 'Page' as const,
+          targetEntityId: 'page-1',
+          pageNumber: 1,
+          conflictReason: null,
+          assignmentId: null,
+          dependsOnAssignmentIds: ['asg-thumbnail-1'],
+        },
+      ],
+    };
+    vi.mocked(axiosClient.post).mockResolvedValueOnce({ data: mockBulkResult });
+
+    const result = await assignmentService.createBulkAssignments('chap-1', bulkReq);
+    expect(axiosClient.post).toHaveBeenCalledWith('/chapters/chap-1/assignments/bulk', bulkReq);
+    expect(result).toEqual(mockBulkResult);
+  });
+
+  it('getAssigneeSuggestions gọi GET /assignee-suggestions với pipelineStageId', async () => {
+    const mockSuggestions = [
+      {
+        userId: 'user-artist-1',
+        fullName: 'Artist Một',
+        avatarUrl: null,
+        role: 3, // WorkspaceRole.Artist
+        activeAssignmentCount: 0,
+        overdueCount: 0,
+        stageExperienceCount: 4,
+        isSeriesMember: true,
+        reasons: ['Không có việc đang mở', 'Đã từng làm 4 việc ở stage này'],
+      },
+    ];
+    vi.mocked(axiosClient.get).mockResolvedValueOnce({ data: mockSuggestions });
+
+    const result = await assignmentService.getAssigneeSuggestions('chap-1', 'stage-pencil');
+    expect(axiosClient.get).toHaveBeenCalledWith(
+      '/chapters/chap-1/assignments/assignee-suggestions',
+      { params: { pipelineStageId: 'stage-pencil' } },
+    );
+    expect(result).toEqual(mockSuggestions);
+  });
+
+  it('getAssigneeSuggestions trả về mảng rỗng khi API bị lỗi', async () => {
+    vi.mocked(axiosClient.get).mockRejectedValueOnce(new Error('Lỗi máy chủ'));
+    const result = await assignmentService.getAssigneeSuggestions('chap-1', 'stage-pencil');
+    expect(result).toEqual([]);
+  });
+
   it('updateAssignment gọi PUT và trả về assignment đã cập nhật', async () => {
     const req = {
       brief: 'Cập nhật ghi chú chì',
@@ -319,5 +380,55 @@ describe('assignmentService', () => {
     };
     const msg = extractError(err, 'Lỗi thao tác');
     expect(msg).toContain('Vui lòng tải lại trang');
+  });
+
+  it('createAssignmentPlan gọi POST /chapters/{id}/assignments/plan với payload kế hoạch', async () => {
+    const mockPlanResult = {
+      batchId: 'batch-123',
+      dryRun: false,
+      createdCount: 3,
+      stages: [
+        {
+          pipelineStageId: 'stage-1',
+          stageName: 'Script',
+          assigneeUserId: 'user-w',
+          granularity: 'Chapter',
+          items: [],
+        },
+      ],
+    };
+    vi.mocked(axiosClient.post).mockResolvedValueOnce({ data: mockPlanResult });
+
+    const request = {
+      stages: [{ pipelineStageId: 'stage-1', assigneeUserId: 'user-w', brief: 'Viết kịch bản' }],
+      brief: 'Kế hoạch chương 1',
+      dryRun: false,
+    };
+
+    const result = await assignmentService.createAssignmentPlan('chap-1', request as any);
+    expect(axiosClient.post).toHaveBeenCalledWith('/chapters/chap-1/assignments/plan', request);
+    expect(result).toEqual(mockPlanResult);
+  });
+
+  it('getAssignmentPlanTemplate gọi GET /chapters/{id}/assignments/plan-template thành công', async () => {
+    const mockTemplate = {
+      sourceChapterId: 'chap-0',
+      sourceChapterNumber: 1,
+      stages: [
+        {
+          pipelineStageId: 'stage-script',
+          stageName: 'Kịch bản',
+          stageOrder: 1,
+          assigneeUserId: 'user-writer',
+          assigneeName: 'Alex Writer',
+          brief: 'Kịch bản mẫu',
+        },
+      ],
+    };
+    vi.mocked(axiosClient.get).mockResolvedValueOnce({ data: mockTemplate });
+
+    const result = await assignmentService.getAssignmentPlanTemplate('chap-2');
+    expect(axiosClient.get).toHaveBeenCalledWith('/chapters/chap-2/assignments/plan-template');
+    expect(result).toEqual(mockTemplate);
   });
 });

@@ -221,4 +221,48 @@ describe('StudioOverviewView Library UX/UI', () => {
       expect(screen.getByText('Thử lại')).toBeInTheDocument();
     });
   });
+
+  it('does not call getWorkspaceUsage when current role in workspace is not Producer', async () => {
+    const artistWorkspace = {
+      ...mockWorkspace,
+      isOwner: false,
+      currentUserRole: 'Artist',
+    };
+    localStorage.setItem('activeWorkspace', JSON.stringify(artistWorkspace));
+    localStorage.setItem('workspaceRole', 'ARTIST');
+    vi.spyOn(workspaceService, 'getMyWorkspaces').mockResolvedValue([artistWorkspace as any]);
+    const usageSpy = vi.spyOn(workspaceService, 'getWorkspaceUsage');
+
+    renderWithRouter();
+
+    await waitFor(() => {
+      expect(screen.getByText('Hành Trình Bất Tận')).toBeInTheDocument();
+    });
+
+    expect(usageSpy).not.toHaveBeenCalled();
+    expect(screen.queryByText(/Tài nguyên Studio/i)).not.toBeInTheDocument();
+  });
+
+  it('calls getWorkspaceUsage only once for Producer even under StrictMode and when activeWorkspace updates', async () => {
+    localStorage.removeItem('activeWorkspace');
+    const usageSpy = vi.spyOn(workspaceService, 'getWorkspaceUsage');
+
+    render(
+      <React.StrictMode>
+        <MemoryRouter initialEntries={['/workspaces/ws-test/series']}>
+          <Routes>
+            <Route path='/workspaces/:workspaceId/series' element={<StudioOverviewView />} />
+          </Routes>
+        </MemoryRouter>
+      </React.StrictMode>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Hành Trình Bất Tận')).toBeInTheDocument();
+      expect(screen.getByText(/Tài nguyên Studio/i)).toBeInTheDocument();
+    });
+
+    expect(usageSpy).toHaveBeenCalledTimes(1);
+    expect(usageSpy).toHaveBeenCalledWith('ws-test');
+  });
 });

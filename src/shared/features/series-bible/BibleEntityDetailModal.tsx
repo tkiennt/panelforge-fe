@@ -54,7 +54,9 @@ export function groupRevisionsIntoStages(
 
   const addRev = (rev: BibleEntryRevisionDto | null | undefined) => {
     if (!rev) return;
-    const idKey = rev.id ? String(rev.id) : `v${rev.versionNumber}-ch${rev.effectiveFromChapterNumber}-${rev.stageName || ''}`;
+    const idKey = rev.id
+      ? String(rev.id)
+      : `v${rev.versionNumber}-ch${rev.effectiveFromChapterNumber}-${rev.stageName || ''}`;
     if (!seenIds.has(idKey)) {
       seenIds.add(idKey);
       all.push(rev);
@@ -74,7 +76,8 @@ export function groupRevisionsIntoStages(
 
   // 1. Tìm stageName chính thức của Chapter 1 (nếu có revision nào ở ch 1 được đặt tên riêng)
   const ch1NamedRev = all.find(
-    (r) => (r.effectiveFromChapterNumber || 1) === 1 && r.stageName && r.stageName.trim().length > 0,
+    (r) =>
+      (r.effectiveFromChapterNumber || 1) === 1 && r.stageName && r.stageName.trim().length > 0,
   );
   const ch1DefaultStageName = ch1NamedRev?.stageName?.trim() || null;
 
@@ -82,7 +85,8 @@ export function groupRevisionsIntoStages(
   // Nếu ở Chapter 1 mà có revision chưa đặt tên, ta gộp nó vào Era của Chapter 1 thay vì tách thành "Giai đoạn chuẩn" riêng biệt
   const groupMap = new Map<string, BibleEntryRevisionDto[]>();
   for (const rev of all) {
-    const ch = typeof rev.effectiveFromChapterNumber === 'number' ? rev.effectiveFromChapterNumber : 1;
+    const ch =
+      typeof rev.effectiveFromChapterNumber === 'number' ? rev.effectiveFromChapterNumber : 1;
     let sName = (rev.stageName || '').trim().toLowerCase();
 
     // Nếu ở Chapter 1 và revision chưa có tên, kế thừa tên stageName của ch 1 nếu đã có
@@ -118,7 +122,7 @@ export function groupRevisionsIntoStages(
     const namedRev = sortedRevs.find((r) => r.stageName && r.stageName.trim().length > 0);
     const stageName =
       namedRev?.stageName?.trim() ||
-      (ch === 1 ? (ch1DefaultStageName || 'Giai đoạn chuẩn') : `Giai đoạn từ Ch.${ch}`);
+      (ch === 1 ? ch1DefaultStageName || 'Giai đoạn chuẩn' : `Giai đoạn từ Ch.${ch}`);
 
     stages.push({
       stageKey: `stage-${groupKey.replace(/[^a-zA-Z0-9_-]/g, '_')}`,
@@ -134,7 +138,13 @@ export function groupRevisionsIntoStages(
   return stages;
 }
 
-const getStageIcon = (name?: string | null) => {
+const getStageIcon = (name?: string | null, category?: string | number) => {
+  const cat = String(category || '').toLowerCase();
+  if (cat.includes('loc') || cat === '2') return '🗺️';
+  if (cat.includes('prop') || cat === '3') return '🗡️';
+  if (cat.includes('term') || cat.includes('lore') || cat === '4' || cat === '6') return '📜';
+  if (cat.includes('style') || cat.includes('rule') || cat === '5') return '🎨';
+
   const lower = (name || '').toLowerCase();
   if (
     lower.includes('nhỏ') ||
@@ -236,6 +246,15 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
       ? latestSavedRevision.id
       : null;
   });
+  const [selectedStageKey, setSelectedStageKey] = useState<string>(() => {
+    if (latestSavedRevision && latestSavedRevision.bibleEntryId === entity.id) {
+      const ch = latestSavedRevision.effectiveFromChapterNumber || 1;
+      const sName = (latestSavedRevision.stageName || '').trim().toLowerCase();
+      const groupKey = sName ? `ch_${ch}_stage_${sName}` : `ch_${ch}`;
+      return `stage-${groupKey.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
+    }
+    return '';
+  });
 
   useEffect(() => {
     if (latestSavedRevision && latestSavedRevision.bibleEntryId === entity.id) {
@@ -267,7 +286,8 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
 
   const isProducerUser = isProducer || currentRole === 'PRODUCER';
   const isArtistUser = isArtist || currentRole === 'ARTIST';
-  const isWriterUser = currentRole === 'WRITER' || (!isProducerUser && canCreateDraft && !isArtistUser);
+  const isWriterUser =
+    currentRole === 'WRITER' || (!isProducerUser && canCreateDraft && !isArtistUser);
   const isEditorUser = currentRole === 'EDITOR' || (!isProducerUser && !isWriterUser && canReview);
 
   useEffect(() => {
@@ -286,25 +306,23 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
     return () => {
       active = false;
     };
-  }, [seriesId, entity.id, rawEntry?.effectiveRevision?.id, rawEntry?.effectiveRevision?.versionNumber]);
+  }, [
+    seriesId,
+    entity.id,
+    rawEntry?.effectiveRevision?.id,
+    rawEntry?.effectiveRevision?.versionNumber,
+  ]);
 
   const stages = useMemo(() => {
     const fallback = rawEntry?.effectiveRevision || null;
     return groupRevisionsIntoStages(allRevisions, fallback);
   }, [allRevisions, rawEntry?.effectiveRevision]);
 
-  const [selectedStageKey, setSelectedStageKey] = useState<string>(() => {
-    if (latestSavedRevision && latestSavedRevision.bibleEntryId === entity.id) {
-      const ch = latestSavedRevision.effectiveFromChapterNumber || 1;
-      const sName = (latestSavedRevision.stageName || '').trim().toLowerCase();
-      const groupKey = sName ? `ch_${ch}_stage_${sName}` : `ch_${ch}`;
-      return `stage-${groupKey.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
-    }
-    return '';
-  });
-
   useEffect(() => {
-    if (stages.length > 0 && (!selectedStageKey || !stages.some((s) => s.stageKey === selectedStageKey))) {
+    if (
+      stages.length > 0 &&
+      (!selectedStageKey || !stages.some((s) => s.stageKey === selectedStageKey))
+    ) {
       const eff = rawEntry?.effectiveRevision;
       const matching = eff ? stages.find((s) => s.revisions.some((r) => r.id === eff.id)) : null;
       setSelectedStageKey(matching ? matching.stageKey : stages[stages.length - 1].stageKey);
@@ -334,11 +352,15 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
   const [selectedImageTitle, setSelectedImageTitle] = useState<string>(initialTitle);
 
   useEffect(() => {
-    let img = activeRevision?.referenceImageUrl;
+    let img = activeRevision?.conceptImageUrl || activeRevision?.referenceImageUrl;
     if (!img && activeRevision?.snapshotJson) {
       try {
         const snap = JSON.parse(activeRevision.snapshotJson);
-        img = snap.ReferenceImageUrl || snap.referenceImageUrl;
+        img =
+          snap.ConceptImageUrl ||
+          snap.conceptImageUrl ||
+          snap.ReferenceImageUrl ||
+          snap.referenceImageUrl;
       } catch {
         // ignore
       }
@@ -358,45 +380,340 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
     }
   }, [activeRevision, activeStage?.stageName, entity.imageUrl, entity.gallery, entity.name]);
 
-  // Stage attributes parsing
+  // Visual Diff: Previous Revision & Before/After Image Resolution
+  const previousRevision = useMemo(() => {
+    if (!activeStage?.revisions || activeStage.revisions.length <= 1) return null;
+    const sorted = [...activeStage.revisions].sort(
+      (a, b) => (b.versionNumber || 0) - (a.versionNumber || 0),
+    );
+    const currentIndex = sorted.findIndex((r) => r.id === activeRevision?.id);
+    if (currentIndex >= 0 && currentIndex < sorted.length - 1) {
+      return sorted[currentIndex + 1];
+    }
+    return sorted[sorted.length - 1].id !== activeRevision?.id ? sorted[sorted.length - 1] : null;
+  }, [activeStage?.revisions, activeRevision?.id]);
+
+  const beforeImageUrl = useMemo(() => {
+    let prevImg = previousRevision?.conceptImageUrl || previousRevision?.referenceImageUrl;
+    if (!prevImg && previousRevision?.snapshotJson) {
+      try {
+        const snap = JSON.parse(previousRevision.snapshotJson);
+        prevImg =
+          snap.ConceptImageUrl ||
+          snap.conceptImageUrl ||
+          snap.ReferenceImageUrl ||
+          snap.referenceImageUrl;
+      } catch {
+        // ignore
+      }
+    }
+    if (prevImg) return prevImg;
+    if (entity.gallery?.[0]?.url && entity.gallery[0].url !== selectedImageUrl) {
+      return entity.gallery[0].url;
+    }
+    return selectedImageUrl;
+  }, [previousRevision, entity.gallery, selectedImageUrl]);
+
+  const beforeVersionLabel = useMemo(() => {
+    if (previousRevision) {
+      return `v${previousRevision.versionNumber} (${previousRevision.reviewStatus || 'Trước'})`;
+    }
+    if (entity.gallery?.[0]?.url && entity.gallery[0].url !== selectedImageUrl) {
+      return 'Bản phác thảo (Before)';
+    }
+    return 'Bản phác thảo (Before)';
+  }, [previousRevision, entity.gallery, selectedImageUrl]);
+
+  const afterVersionLabel = useMemo(() => {
+    if (activeRevision) {
+      return `v${activeRevision.versionNumber} (Hiện tại)`;
+    }
+    return 'Bản hoàn thiện (After)';
+  }, [activeRevision]);
+
+  // Entity Category detection
+  const normalizedCategory = useMemo<
+    'character' | 'location' | 'prop' | 'terminology' | 'style'
+  >(() => {
+    const cat = String(entity.category || '').toLowerCase();
+    if (cat.includes('loc') || cat === '2') return 'location';
+    if (cat.includes('prop') || cat === '3') return 'prop';
+    if (
+      cat.includes('term') ||
+      cat.includes('lore') ||
+      cat.includes('plot') ||
+      cat === '4' ||
+      cat === '6'
+    )
+      return 'terminology';
+    if (cat.includes('style') || cat.includes('rule') || cat === '5') return 'style';
+    return 'character';
+  }, [entity.category]);
+
+  const isCharacter = normalizedCategory === 'character';
+  const isLocation = normalizedCategory === 'location';
+  const isProp = normalizedCategory === 'prop';
+  const isTerminology = normalizedCategory === 'terminology';
+  const isStyleRule = normalizedCategory === 'style';
+
+  // Stage attributes parsing (No hardcoded mock defaults)
   const stageAttributes = useMemo(() => {
     let parsed: Record<string, any> = {};
     if (activeRevision?.snapshotJson) {
       try {
         const snap = JSON.parse(activeRevision.snapshotJson);
         parsed = snap.Attributes || snap.attributes || {};
+        if (!parsed || Object.keys(parsed).length === 0) {
+          if (snap.DetailsJson || snap.detailsJson) {
+            const inner = JSON.parse(snap.DetailsJson || snap.detailsJson);
+            parsed = inner.attributes || inner.Attributes || {};
+          }
+        }
       } catch {
         // ignore
       }
     }
-    const combined = { ...(entity.attributes || {}), ...parsed };
-    const isChild =
-      (activeStage?.stageName || '').toLowerCase().includes('nhỏ') ||
-      (activeStage?.stageName || '').toLowerCase().includes('child');
+    let rawDetailsObj: Record<string, any> = {};
+    if (rawEntry?.detailsJson) {
+      try {
+        const details = JSON.parse(rawEntry.detailsJson);
+        rawDetailsObj = details.attributes || details.Attributes || {};
+      } catch {
+        // ignore
+      }
+    }
+    const combined = { ...(entity.attributes || {}), ...rawDetailsObj, ...parsed };
+
     return {
-      age: combined.age || combined['tuổi'] || (isChild ? '12 tuổi' : '17 tuổi'),
-      height: combined.height || combined['chiều cao'] || (isChild ? '148 cm' : '178 cm'),
-      mood:
-        combined.mood ||
-        combined['bảng màu'] ||
-        (isChild ? 'Warm Sepia / Nostalgic Light' : 'Dark Neon / Tactical Cyber'),
-      traits:
+      // Character fields (No 17 tuổi or 178 cm fallbacks!)
+      age: combined.age || combined['tuổi'] || combined['độ tuổi'] || '',
+      height: combined.height || combined['chiều cao'] || combined['vóc dáng'] || '',
+      appearance:
+        combined.appearance ||
         combined.traits ||
         combined['đặc điểm'] ||
-        entity.description ||
-        'Robotic prosthetic arm (left side), glowing cyan data-drive socket, rugged tactical trenchcoat, vertical scar on left eyebrow.',
-    };
-  }, [activeRevision?.snapshotJson, entity.attributes, entity.description, activeStage?.stageName]);
+        combined['ngoại hình'] ||
+        (isCharacter ? entity.description : '') ||
+        '',
+      mood: combined.mood || combined['bảng màu'] || '',
+      costume: combined.costume || combined['trang phục'] || '',
 
-  // Dynamic Audit logs for SHA-256 Provenance
+      // Location fields
+      environmentType:
+        combined.environmentType ||
+        combined.type ||
+        combined['loại bối cảnh'] ||
+        combined['địa hình'] ||
+        entity.subtitle ||
+        '',
+      scale: combined.scale || combined['quy mô'] || combined['kích thước'] || '',
+      atmosphere:
+        combined.atmosphere ||
+        combined.lighting ||
+        combined['khí hậu'] ||
+        combined['ánh sáng'] ||
+        combined.mood ||
+        '',
+      architecture:
+        combined.architecture ||
+        combined['kiến trúc'] ||
+        (isLocation ? entity.description : '') ||
+        '',
+
+      // Prop fields
+      propType:
+        combined.propType ||
+        combined.type ||
+        combined['loại đạo cụ'] ||
+        combined['phân loại'] ||
+        entity.subtitle ||
+        '',
+      sizeWeight:
+        combined.sizeWeight ||
+        combined.size ||
+        combined['kích thước'] ||
+        combined['trọng lượng'] ||
+        '',
+      material: combined.material || combined['chất liệu'] || combined['nguồn gốc'] || '',
+      functionality:
+        combined.functionality ||
+        combined['công năng'] ||
+        combined['cơ chế'] ||
+        (isProp ? entity.description : '') ||
+        '',
+
+      // Terminology fields
+      termType:
+        combined.termType ||
+        combined.type ||
+        combined['lĩnh vực'] ||
+        combined['phân loại'] ||
+        entity.subtitle ||
+        '',
+      origin: combined.origin || combined['nguồn gốc'] || combined['xuất xứ'] || '',
+      rules:
+        combined.rules ||
+        combined['quy luật'] ||
+        combined['nguyên lý'] ||
+        (isTerminology ? entity.description : '') ||
+        '',
+      plotImpact: combined.plotImpact || combined['tác động'] || combined['vai trò'] || '',
+
+      // Style fields
+      strictness: rawEntry?.strictCheck ? 'Khắt khe (Strict Check)' : 'Tiêu chuẩn',
+      colorPalette: combined.colorPalette || combined.palette || combined['bảng màu'] || '',
+      lineArtRules:
+        combined.lineArtRules ||
+        combined['nét vẽ'] ||
+        combined['quy chuẩn'] ||
+        (isStyleRule ? entity.description : '') ||
+        '',
+      negativeConstraints:
+        entity.negativeConstraints?.join(', ') ||
+        combined.negativeConstraints ||
+        combined['cấm kỵ'] ||
+        '',
+    };
+  }, [
+    activeRevision,
+    entity,
+    rawEntry,
+    isCharacter,
+    isLocation,
+    isProp,
+    isTerminology,
+    isStyleRule,
+  ]);
+
+  const card1Title = useMemo(() => {
+    const stage = activeStage?.stageName || 'Giai đoạn chuẩn';
+    if (isLocation) return `Thông số không gian & Bối cảnh (${stage})`;
+    if (isProp) return `Thông số đạo cụ & Vật phẩm (${stage})`;
+    if (isTerminology) return `Đặc tả thuật ngữ & Khái niệm (${stage})`;
+    if (isStyleRule) return `Quy chuẩn mỹ thuật (${stage})`;
+    return `Thông số thời kỳ (${stage})`;
+  }, [isLocation, isProp, isTerminology, isStyleRule, activeStage]);
+
+  const visualCardInfo = useMemo(() => {
+    if (isLocation) {
+      return {
+        title: 'Bản vẽ Concept Bối cảnh',
+        badge: 'Concept Bối cảnh',
+        subtitle: 'Bản vẽ tham chiếu không gian và ánh sáng cho đội ngũ sáng tác',
+        tab1: 'Toàn cảnh (Wide Shot)',
+        tab2: 'Góc cận cảnh (Close-up)',
+        emptyWriterPrompt:
+          'Biên kịch (Writer) và Biên tập viên có thể cập nhật thông số bối cảnh để Họa sĩ nắm bắt chính xác không gian trước khi vẽ.',
+        emptyArtistPrompt:
+          'Bạn hãy tải lên bản phác thảo Concept Bối cảnh theo thông số không gian phía trên để bắt đầu chu trình kiểm duyệt.',
+      };
+    }
+    if (isProp) {
+      return {
+        title: 'Bản vẽ Thiết kế Đạo cụ',
+        badge: 'Thiết kế Đạo cụ',
+        subtitle: 'Bản vẽ tham chiếu cấu tạo và chi tiết vật phẩm cho đội ngũ sáng tác',
+        tab1: 'Tổng thể (Overview)',
+        tab2: 'Cơ chế & Chi tiết',
+        emptyWriterPrompt:
+          'Biên kịch (Writer) và Biên tập viên có thể cập nhật thông số vật phẩm để Họa sĩ nắm bắt cấu tạo trước khi vẽ.',
+        emptyArtistPrompt:
+          'Bạn hãy tải lên bản phác thảo Thiết kế Đạo cụ theo thông số vật phẩm phía trên để bắt đầu chu trình kiểm duyệt.',
+      };
+    }
+    if (isTerminology) {
+      return {
+        title: 'Sơ đồ & Minh họa Khái niệm',
+        badge: 'Tài liệu trực quan',
+        subtitle: 'Sơ đồ, biểu tượng hoặc hình ảnh minh họa cho thuật ngữ cốt truyện',
+        tab1: 'Minh họa chính',
+        tab2: 'Sơ đồ & Chi tiết',
+        emptyWriterPrompt:
+          'Biên kịch (Writer) và Biên tập viên có thể cập nhật mô tả thuật ngữ để Họa sĩ thiết kế hình ảnh minh họa phù hợp.',
+        emptyArtistPrompt:
+          'Bạn hãy tải lên sơ đồ hoặc hình ảnh minh họa cho khái niệm này để làm tài liệu tham chiếu.',
+      };
+    }
+    if (isStyleRule) {
+      return {
+        title: 'Quy chuẩn Phong cách Mỹ thuật',
+        badge: 'Style Guide Sheet',
+        subtitle: 'Mẫu tham chiếu bảng màu, nét vẽ và hiệu ứng phân khung cho toàn bộ truyện',
+        tab1: 'Bảng màu & Nét vẽ',
+        tab2: 'Minh họa quy chuẩn',
+        emptyWriterPrompt:
+          'Biên tập viên mỹ thuật có thể cập nhật thông số quy chuẩn để họa sĩ tuân thủ nhất quán phong cách.',
+        emptyArtistPrompt:
+          'Bạn hãy tải lên bảng mẫu Style Guide tham chiếu cho quy tắc mỹ thuật này.',
+      };
+    }
+    return {
+      title: 'Bản vẽ Model Sheet',
+      badge: 'Chuẩn tham chiếu',
+      subtitle: 'Bản vẽ tham chiếu chuẩn cho đội ngũ sáng tác',
+      tab1: 'Turnaround',
+      tab2: 'Góc nhìn & Biểu cảm',
+      emptyWriterPrompt:
+        'Biên kịch (Writer) và Biên tập viên có thể cập nhật thông số đặc tả kịch bản để Họa sĩ nắm bắt chính xác tạo hình trước khi vẽ.',
+      emptyArtistPrompt:
+        'Bạn hãy tải lên bản phác thảo Model Sheet theo thông số thời kỳ phía trên để bắt đầu chu trình kiểm duyệt.',
+    };
+  }, [isLocation, isProp, isTerminology, isStyleRule]);
+
+  // Dynamic Audit logs for SHA-256 Provenance & Revision Events
   const auditLogs = useMemo(() => {
     const list: Array<{ time: string; actor: string; action: string; hash: string }> = [];
+
+    // Prioritize real chronological events from activeRevision.events if available
+    if (activeRevision?.events && activeRevision.events.length > 0) {
+      activeRevision.events.forEach((evt) => {
+        let actionDesc = '';
+        let actorDesc = 'Hệ thống';
+        switch (evt.type) {
+          case 'Created':
+            actorDesc = 'Khởi tạo';
+            actionDesc = `Khởi tạo phiên bản v${activeRevision.versionNumber}`;
+            break;
+          case 'ConceptSubmitted':
+            actorDesc = 'Artist';
+            actionDesc = `Đã nộp Concept Art${evt.comment ? `: "${evt.comment}"` : ''}`;
+            break;
+          case 'ReworkRequested':
+            actorDesc = 'Writer / Editor';
+            actionDesc = `Yêu cầu sửa${evt.comment ? `: "${evt.comment}"` : ''}`;
+            break;
+          case 'Endorsed':
+            actorDesc = 'Writer / Editor';
+            actionDesc = 'Đã duyệt thiết kế sáng tác (Endorsed)';
+            break;
+          case 'Locked':
+            actorDesc = 'Producer';
+            actionDesc = `Khoá Canon bất biến cho Ch.${activeRevision.effectiveFromChapterNumber}+`;
+            break;
+          case 'Superseded':
+            actorDesc = 'Producer';
+            actionDesc = `Bị thay thế bởi phiên bản mới${evt.comment ? `: "${evt.comment}"` : ''}`;
+            break;
+          default:
+            actionDesc = `Sự kiện ${evt.type}`;
+        }
+
+        list.push({
+          time: evt.createdAt ? new Date(evt.createdAt).toLocaleDateString('vi-VN') : 'Mới',
+          actor: actorDesc,
+          action: actionDesc,
+          hash: evt.eventHash ? evt.eventHash.substring(0, 10) + '...' : 'cas...hash',
+        });
+      });
+      return [...list].reverse();
+    }
+
     if (activeStage?.revisions) {
       activeStage.revisions.forEach((rev) => {
-        if (rev.isLocked) {
+        if (rev.isLocked || rev.reviewStatus === 'CanonLocked') {
           list.push({
             time: rev.lockedAt ? new Date(rev.lockedAt).toLocaleDateString('vi-VN') : 'Đã duyệt',
-            actor: 'Producer Tatsuki F.',
+            actor: 'Producer',
             action: `Locked v${rev.versionNumber} as Immutable Canon Reference for Ch.${rev.effectiveFromChapterNumber}+`,
             hash: rev.contentHash ? rev.contentHash.substring(0, 10) + '...' : 'e230...71bb',
           });
@@ -412,7 +729,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
         if (rev.reviewStatus === 'ConceptSubmitted') {
           list.push({
             time: rev.createdAt ? new Date(rev.createdAt).toLocaleDateString('vi-VN') : 'Gần đây',
-            actor: 'Artist Arata K.',
+            actor: 'Artist Desk',
             action: `Submitted revision v${rev.versionNumber} model turnaround sheet`,
             hash: rev.contentHash ? rev.contentHash.substring(0, 10) + '...' : '8f4a...12c0',
           });
@@ -421,14 +738,18 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
     }
     if (list.length === 0) {
       list.push({
-        time: rawEntry?.createdAt ? new Date(rawEntry.createdAt).toLocaleDateString('vi-VN') : 'Khởi tạo',
+        time: rawEntry?.createdAt
+          ? new Date(rawEntry.createdAt).toLocaleDateString('vi-VN')
+          : 'Khởi tạo',
         actor: 'Series Bible Engine',
         action: `Grounded in pgvector & verified SHA-256 CAS provenance`,
-        hash: activeRevision?.contentHash ? activeRevision.contentHash.substring(0, 10) + '...' : '4a98...d1f2',
+        hash: activeRevision?.contentHash
+          ? activeRevision.contentHash.substring(0, 10) + '...'
+          : '4a98...d1f2',
       });
     }
     return list;
-  }, [activeStage?.revisions, activeRevision?.contentHash, rawEntry?.createdAt]);
+  }, [activeRevision, activeStage, rawEntry]);
 
   const modalContainerRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -444,7 +765,8 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
 
     const handleKeyDown = (e: KeyboardEvent) => {
       // Do not close workbench if any child modal (e.g. Add Revision, Confirm, Zoom) is currently open on top
-      const hasOpenChildModal = document.querySelector('[data-child-modal="true"]') ||
+      const hasOpenChildModal =
+        document.querySelector('[data-child-modal="true"]') ||
         document.querySelectorAll('[role="dialog"]').length > 1;
 
       if (e.key === 'Escape') {
@@ -587,11 +909,13 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
         className='w-full flex items-center justify-between text-xs text-zinc-500 hover:text-zinc-800 transition-colors py-1 cursor-pointer font-medium'
       >
         <span>Chi tiết kỹ thuật &amp; Mã băm</span>
-        <ChevronDown className={`w-3.5 h-3.5 transition-transform ${techOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown
+          className={`w-3.5 h-3.5 transition-transform ${techOpen ? 'rotate-180' : ''}`}
+        />
       </button>
 
       {techOpen && (
-        <div className='mt-2.5 space-y-2 text-[11px] pt-1'>
+        <div className='mt-2.5 space-y-2 text-xs pt-1'>
           {activeRevision?.contentHash ? (
             <div className='p-2.5 bg-white rounded-lg border border-zinc-200 space-y-1'>
               <div className='flex items-center justify-between'>
@@ -599,7 +923,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                 <button
                   type='button'
                   onClick={() => handleCopyHash(activeRevision.contentHash)}
-                  className='inline-flex items-center gap-1 text-[11px] text-[#F97316] hover:underline font-medium cursor-pointer'
+                  className='inline-flex items-center gap-1 text-xs text-[#F97316] hover:underline font-medium cursor-pointer'
                   title='Sao chép mã băm'
                 >
                   {copiedHash ? (
@@ -615,13 +939,13 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                   )}
                 </button>
               </div>
-              <div className='font-mono text-[10px] sm:text-[11px] text-zinc-700 break-all select-all bg-zinc-50 p-2 rounded border border-zinc-200/60 leading-tight'>
+              <div className='font-mono text-xs sm:text-xs text-zinc-700 break-all select-all bg-zinc-50 p-2 rounded border border-zinc-200/60 leading-tight'>
                 {activeRevision.contentHash}
               </div>
             </div>
           ) : null}
 
-          <div className='flex items-center justify-between text-[11px] text-zinc-500 px-1'>
+          <div className='flex items-center justify-between text-xs text-zinc-500 px-1'>
             <span>Mã định danh hệ thống (ID):</span>
             <span className='font-mono text-zinc-700 select-all'>{entity.id}</span>
           </div>
@@ -671,17 +995,19 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
             </div>
           </nav>
 
-          <span className='font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-zinc-200 text-zinc-800 border border-zinc-300 shrink-0 hidden sm:inline'>
+          <span className='font-mono text-xs font-bold px-1.5 py-0.5 rounded bg-zinc-200 text-zinc-800 border border-zinc-300 shrink-0 hidden sm:inline'>
             {entity.code}
           </span>
-          <span className={`px-2.5 py-0.5 rounded text-[11px] font-bold border shrink-0 ${getCategoryBadgeStyle(entity.category)}`}>
+          <span
+            className={`px-2.5 py-0.5 rounded text-xs font-bold border shrink-0 ${getCategoryBadgeStyle(entity.category)}`}
+          >
             {getCategoryLabel(entity.category)}
           </span>
         </div>
 
         {/* Right: RAG Sync, Concept Guide & Role Badge */}
         <div className='flex items-center gap-2 shrink-0'>
-          <div className='hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-violet-50 border border-violet-200 text-violet-700 text-[11px] font-medium'>
+          <div className='hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-violet-50 border border-violet-200 text-violet-700 text-xs font-medium'>
             <Sparkles className='w-3 h-3 text-violet-600' />
             <span>pgvector Synced</span>
           </div>
@@ -700,7 +1026,15 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
           <div className='px-2.5 py-1 rounded-lg text-xs font-bold border shrink-0 flex items-center gap-1.5 shadow-2xs bg-stone-100 text-stone-800 border-stone-300'>
             <User className='w-3 h-3 text-[#F97316]' />
             <span>
-              {isProducerUser ? 'Producer' : isWriterUser ? 'Writer' : isArtistUser ? 'Artist' : isEditorUser ? 'Editor' : 'Viewer'}
+              {isProducerUser
+                ? 'Producer'
+                : isWriterUser
+                  ? 'Writer'
+                  : isArtistUser
+                    ? 'Artist'
+                    : isEditorUser
+                      ? 'Editor'
+                      : 'Viewer'}
             </span>
           </div>
 
@@ -719,7 +1053,6 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
 
       {/* ================= WORKSPACE BODY CONTAINER ================= */}
       <main className='flex-1 overflow-y-auto max-w-7xl w-full mx-auto p-3 sm:p-5 md:p-6 space-y-4 custom-scrollbar'>
-
         {/* ================= COLLAPSIBLE CONCEPT NOTICE BANNER ================= */}
         {showConceptGuide && (
           <div className='bg-gradient-to-r from-amber-50 via-white to-violet-50 border border-amber-200 rounded-xl p-3.5 sm:p-4 shadow-xs relative transition-all animate-in fade-in duration-200'>
@@ -741,16 +1074,20 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                 </div>
                 <div className='grid grid-cols-1 md:grid-cols-2 gap-2.5 pt-1 text-stone-600 text-xs'>
                   <div className='bg-white/90 p-2.5 rounded-lg border border-amber-200/60'>
-                    <span className='font-bold text-[#C2410C] uppercase tracking-wider text-[10px] block mb-0.5'>
+                    <span className='font-bold text-[#C2410C] uppercase tracking-wider text-xs block mb-0.5'>
                       Trục Cốt Truyện — ERA (Narrative Timeline)
                     </span>
-                    Nhân vật thay đổi theo cốt truyện (Tuổi, Timeskip, Sẹo, Dạng quỷ). Gắn với <strong>Mốc chương hiệu lực (Effective from Chapter)</strong> để Họa sĩ và ban biên kịch đảm bảo tính nhất quán hình thái.
+                    Nhân vật thay đổi theo cốt truyện (Tuổi, Timeskip, Sẹo, Dạng quỷ). Gắn với{' '}
+                    <strong>Mốc chương hiệu lực (Effective from Chapter)</strong> để Họa sĩ và ban
+                    biên kịch đảm bảo tính nhất quán hình thái.
                   </div>
                   <div className='bg-white/90 p-2.5 rounded-lg border border-violet-100'>
-                    <span className='font-bold text-violet-700 uppercase tracking-wider text-[10px] block mb-0.5'>
+                    <span className='font-bold text-violet-700 uppercase tracking-wider text-xs block mb-0.5'>
                       Trục Sản Xuất — VERSION CONTROL (Asset History)
                     </span>
-                    Quá trình sửa bản vẽ của <em>cùng 1 Era</em> (Draft ➔ Review ➔ Canon Locked). Tuân thủ nguyên tắc <strong>bất biến (Immutable)</strong>: Bản Canon Locked không được sửa đè, chỉ được tạo bản Supersede.
+                    Quá trình sửa bản vẽ của <em>cùng 1 Era</em> (Draft ➔ Review ➔ Canon Locked).
+                    Tuân thủ nguyên tắc <strong>bất biến (Immutable)</strong>: Bản Canon Locked
+                    không được sửa đè, chỉ được tạo bản Supersede.
                   </div>
                 </div>
               </div>
@@ -763,7 +1100,10 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
           <LucianInlineAlert
             type='warning'
             title='Yêu cầu chỉnh sửa bản vẽ từ Writer / Editor'
-            description={activeRevision.reworkFeedback || 'Writer yêu cầu chỉnh sửa lại thiết kế cho giai đoạn này.'}
+            description={
+              activeRevision.reworkFeedback ||
+              'Writer yêu cầu chỉnh sửa lại thiết kế cho giai đoạn này.'
+            }
             details={`Giai đoạn: "${activeStage?.stageName || 'Chuẩn'}" · Hiệu lực từ Chương ${activeStage?.effectiveFromChapterNumber ?? 1} đến ${activeStage?.effectiveToChapterNumber || 'hết truyện'}. Vui lòng chỉnh sửa nét vẽ theo yêu cầu trên và nộp lại.`}
             dismissible={false}
           />
@@ -782,21 +1122,21 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
             </div>
             <div className='space-y-1 flex-1 min-w-0'>
               <div className='flex items-center gap-2 flex-wrap'>
-                <span className='font-bold uppercase tracking-wider text-[10px] bg-amber-200/90 text-amber-900 px-2 py-0.5 rounded'>
+                <span className='font-bold uppercase tracking-wider text-xs bg-amber-200/90 text-amber-900 px-2 py-0.5 rounded'>
                   🔒 Canon đã khoá
                 </span>
-                <span className='text-[11px] font-semibold text-amber-900 bg-amber-100/90 px-2 py-0.5 rounded border border-amber-300/60'>
+                <span className='text-xs font-semibold text-amber-900 bg-amber-100/90 px-2 py-0.5 rounded border border-amber-300/60'>
                   {activeStage?.stageName ? `${activeStage.stageName} · ` : ''}
                   Ch.{activeRevision?.effectiveFromChapterNumber ?? 1}
                   {activeRevision?.effectiveToChapterNumber
                     ? `–${activeRevision.effectiveToChapterNumber}`
                     : ' → hết'}
                 </span>
-                <span className='font-mono font-bold text-[11px] bg-amber-200/70 text-amber-900 px-1.5 py-0.2 rounded'>
+                <span className='font-mono font-bold text-xs bg-amber-200/70 text-amber-900 px-1.5 py-0.2 rounded'>
                   Lần sửa #{activeRevision.versionNumber}
                 </span>
                 {activeRevision.lockedAt && (
-                  <span className='text-[11px] font-medium text-amber-800'>
+                  <span className='text-xs font-medium text-amber-800'>
                     • Đã duyệt {new Date(activeRevision.lockedAt).toLocaleDateString('vi-VN')}
                   </span>
                 )}
@@ -832,7 +1172,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                   }`}
                   data-testid={`era-tab-${stage.stageKey}`}
                 >
-                  <span>{getStageIcon(stage.stageName)}</span>
+                  <span>{getStageIcon(stage.stageName, entity.category)}</span>
                   <span>{stage.stageName}</span>
                   <span
                     className={`font-mono text-xs px-2 py-0.5 rounded-full ${
@@ -842,7 +1182,6 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                     Ch.{stage.effectiveFromChapterNumber}
                     {stage.effectiveToChapterNumber ? `–${stage.effectiveToChapterNumber}` : '+'}
                   </span>
-                  
                 </button>
               );
             })}
@@ -866,99 +1205,267 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
 
         {/* ================= LEVEL 2: SPLIT WORKBENCH WORKSPACE (2 COLUMNS) ================= */}
         <div className='grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 items-start'>
-
           {/* ================= LEFT COLUMN (COL-SPAN 7): SPECS & MODEL SHEET CANVAS ================= */}
           <section className='lg:col-span-7 space-y-4'>
-
-            {/* CARD 1: ERA SPECIFICATIONS (SEPARATE TOP CARD AS IN SCREENSHOT) */}
-            <div className='bg-white border border-[#E7E5E4] rounded-2xl p-4 sm:p-5 shadow-xs space-y-3'>
-              <div className='flex items-center justify-between pb-2 border-b border-stone-100'>
+            {/* CARD 1: DYNAMIC CATEGORY SPECIFICATIONS (NO MOCK FALLBACKS) */}
+            <div className='bg-[#FCFBF8] border border-stone-200 rounded-2xl p-4 sm:p-5 shadow-xs space-y-3.5'>
+              <div className='flex items-center justify-between pb-2.5 border-b border-stone-200/80'>
                 <div className='font-bold text-xs sm:text-sm text-[#1C1917] flex items-center gap-2'>
-                  <span>Thông số thời kỳ ({activeStage?.stageName || 'Giai đoạn chuẩn'})</span>
+                  <span>{card1Title}</span>
                 </div>
                 <div className='flex items-center gap-2'>
-                  <span className='text-[11px] font-mono text-stone-400'>
+                  <span className='text-xs font-mono text-stone-400'>
                     Ch.{activeStage?.effectiveFromChapterNumber ?? 1}
-                    {activeStage?.effectiveToChapterNumber ? `–${activeStage.effectiveToChapterNumber}` : '+'}
+                    {activeStage?.effectiveToChapterNumber
+                      ? `–${activeStage.effectiveToChapterNumber}`
+                      : '+'}
                   </span>
                   {canCreateDraft && (
                     <button
                       type='button'
                       onClick={() => onOpenAddRevision(entity, activeRevision)}
-                      className='inline-flex items-center gap-1.5 px-3 py-1.5 bg-stone-50 hover:bg-[#FFF7ED] border border-stone-200 hover:border-[#F97316] text-[#EA580C] text-xs font-semibold rounded-xl transition-all cursor-pointer shadow-2xs active:scale-[0.98]'
-                      title='Cập nhật đặc tả, độ tuổi, vóc dáng cho thời kỳ này'
+                      className='inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-orange-50 border border-stone-200 hover:border-orange-300 text-stone-700 hover:text-orange-700 text-xs font-semibold rounded-xl transition-all cursor-pointer shadow-2xs active:scale-[0.98]'
+                      title='Cập nhật đặc tả thông số cho mục này'
                     >
-                      <Edit3 className='w-3 h-3' />
+                      <Edit3 className='w-3.5 h-3.5 text-orange-600' />
                       <span>Sửa đặc tả</span>
                     </button>
                   )}
-                  {canCreateDraft && activeStage && !activeStage.isLocked && !activeStage.revisions.some((r) => r.isInitialVersion) && onDeleteEra && (
-                    <button
-                      type='button'
-                      onClick={() => setEraToDelete(activeStage)}
-                      className='inline-flex items-center gap-1.5 px-3 py-1.5 bg-stone-50 hover:bg-rose-50 border border-stone-200 hover:border-rose-300 text-stone-600 hover:text-rose-600 text-xs font-semibold rounded-xl transition-all cursor-pointer shadow-2xs active:scale-[0.98]'
-                      title='Xóa toàn bộ thời kỳ này'
-                      data-testid='delete-era-btn'
-                    >
-                      <Trash2 className='w-3 h-3' />
-                      <span>Xóa thời kỳ</span>
-                    </button>
-                  )}
+                  {canCreateDraft &&
+                    activeStage &&
+                    !activeStage.isLocked &&
+                    !activeStage.revisions.some((r) => r.isInitialVersion) &&
+                    onDeleteEra && (
+                      <button
+                        type='button'
+                        onClick={() => setEraToDelete(activeStage)}
+                        className='inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-rose-50 border border-stone-200 hover:border-rose-300 text-stone-600 hover:text-rose-600 text-xs font-semibold rounded-xl transition-all cursor-pointer shadow-2xs active:scale-[0.98]'
+                        title='Xóa toàn bộ thời kỳ này'
+                        data-testid='delete-era-btn'
+                      >
+                        <Trash2 className='w-3 h-3' />
+                        <span>Xóa thời kỳ</span>
+                      </button>
+                    )}
                 </div>
               </div>
 
-              <div className='grid grid-cols-1 sm:grid-cols-3 gap-3.5 text-xs'>
-                <div>
-                  <span className='text-stone-400 text-[11px] block font-semibold'>Độ tuổi:</span>
-                  <span className='font-bold text-stone-800 text-sm mt-0.5 block'>{stageAttributes.age}</span>
-                </div>
-                <div>
-                  <span className='text-stone-400 text-[11px] block font-semibold'>Chiều cao:</span>
-                  <span className='font-bold text-stone-800 text-sm mt-0.5 block'>{stageAttributes.height}</span>
-                </div>
-                <div>
-                  <span className='text-stone-400 text-[11px] block font-semibold'>Đặc điểm ngoại hình:</span>
-                  <span className='text-stone-700 text-xs mt-0.5 line-clamp-2 block leading-relaxed'>
-                    {stageAttributes.traits}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* CARD 2: ART TURNAROUND REFERENCE & CANVAS */}
-            <div className='bg-white border border-[#E7E5E4] rounded-2xl p-4 sm:p-5 shadow-xs space-y-3.5'>
-              <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-stone-100'>
-                <div>
-                  <div className='font-bold text-xs sm:text-sm text-[#1C1917] flex items-center gap-2'>
-                    <span>Bản vẽ Model Sheet</span>
-                    <span className='text-[10px] bg-[#FFF7ED] text-[#EA580C] px-2 py-0.5 rounded-full font-semibold border border-orange-200'>
-                      Chuẩn tham chiếu
+              {/* Dynamic Specifications Grid Based on Entity Type */}
+              {isCharacter ? (
+                <div className='grid grid-cols-1 sm:grid-cols-3 gap-3.5 text-xs'>
+                  <div className='bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60'>
+                    <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
+                      Độ tuổi:
+                    </span>
+                    {stageAttributes.age ? (
+                      <span className='font-bold text-stone-800 text-sm block'>
+                        {stageAttributes.age}
+                      </span>
+                    ) : (
+                      <span className='text-stone-400 text-xs italic block'>Chưa thiết lập</span>
+                    )}
+                  </div>
+                  <div className='bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60'>
+                    <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
+                      Chiều cao:
+                    </span>
+                    {stageAttributes.height ? (
+                      <span className='font-bold text-stone-800 text-sm block'>
+                        {stageAttributes.height}
+                      </span>
+                    ) : (
+                      <span className='text-stone-400 text-xs italic block'>Chưa thiết lập</span>
+                    )}
+                  </div>
+                  <div className='bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60'>
+                    <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
+                      Đặc điểm diện mạo:
+                    </span>
+                    <span className='text-stone-700 text-xs line-clamp-2 block leading-relaxed'>
+                      {stageAttributes.appearance || (
+                        <span className='text-stone-400 italic'>Chưa thiết lập</span>
+                      )}
                     </span>
                   </div>
-                  <p className='text-[11px] text-stone-500'>
-                    Bản vẽ tham chiếu chuẩn cho đội ngũ sáng tác
-                  </p>
+                </div>
+              ) : isLocation ? (
+                <div className='grid grid-cols-1 sm:grid-cols-3 gap-3.5 text-xs'>
+                  <div className='bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60'>
+                    <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
+                      Phân loại địa hình:
+                    </span>
+                    <span className='font-bold text-stone-800 text-sm block truncate'>
+                      {stageAttributes.environmentType || 'Địa điểm / Bối cảnh'}
+                    </span>
+                  </div>
+                  <div className='bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60'>
+                    <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
+                      Quy mô / Khí hậu:
+                    </span>
+                    {stageAttributes.scale || stageAttributes.atmosphere ? (
+                      <span className='font-bold text-stone-800 text-sm block truncate'>
+                        {[stageAttributes.scale, stageAttributes.atmosphere]
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </span>
+                    ) : (
+                      <span className='text-stone-400 text-xs italic block'>Chưa thiết lập</span>
+                    )}
+                  </div>
+                  <div className='bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60'>
+                    <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
+                      Chi tiết kiến trúc & Cảnh quan:
+                    </span>
+                    <span className='text-stone-700 text-xs line-clamp-2 block leading-relaxed'>
+                      {stageAttributes.architecture || (
+                        <span className='text-stone-400 italic'>Chưa thiết lập</span>
+                      )}
+                    </span>
+                  </div>
+                </div>
+              ) : isProp ? (
+                <div className='grid grid-cols-1 sm:grid-cols-3 gap-3.5 text-xs'>
+                  <div className='bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60'>
+                    <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
+                      Loại đạo cụ / Vật phẩm:
+                    </span>
+                    <span className='font-bold text-stone-800 text-sm block truncate'>
+                      {stageAttributes.propType || 'Đạo cụ / Vũ khí'}
+                    </span>
+                  </div>
+                  <div className='bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60'>
+                    <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
+                      Kích thước & Chất liệu:
+                    </span>
+                    {stageAttributes.sizeWeight || stageAttributes.material ? (
+                      <span className='font-bold text-stone-800 text-sm block truncate'>
+                        {[stageAttributes.sizeWeight, stageAttributes.material]
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </span>
+                    ) : (
+                      <span className='text-stone-400 text-xs italic block'>Chưa thiết lập</span>
+                    )}
+                  </div>
+                  <div className='bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60'>
+                    <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
+                      Công năng & Cơ chế:
+                    </span>
+                    <span className='text-stone-700 text-xs line-clamp-2 block leading-relaxed'>
+                      {stageAttributes.functionality || (
+                        <span className='text-stone-400 italic'>Chưa thiết lập</span>
+                      )}
+                    </span>
+                  </div>
+                </div>
+              ) : isTerminology ? (
+                <div className='grid grid-cols-1 sm:grid-cols-3 gap-3.5 text-xs'>
+                  <div className='bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60'>
+                    <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
+                      Phân loại thuật ngữ:
+                    </span>
+                    <span className='font-bold text-stone-800 text-sm block truncate'>
+                      {stageAttributes.termType || 'Thuật ngữ / Cốt truyện'}
+                    </span>
+                  </div>
+                  <div className='bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60'>
+                    <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
+                      Nguồn gốc / Khởi nguyên:
+                    </span>
+                    {stageAttributes.origin ? (
+                      <span className='font-bold text-stone-800 text-sm block truncate'>
+                        {stageAttributes.origin}
+                      </span>
+                    ) : (
+                      <span className='text-stone-400 text-xs italic block'>Chưa thiết lập</span>
+                    )}
+                  </div>
+                  <div className='bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60'>
+                    <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
+                      Quy luật & Tác động:
+                    </span>
+                    <span className='text-stone-700 text-xs line-clamp-2 block leading-relaxed'>
+                      {stageAttributes.rules || (
+                        <span className='text-stone-400 italic'>Chưa thiết lập</span>
+                      )}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                /* Style Rule */
+                <div className='grid grid-cols-1 sm:grid-cols-3 gap-3.5 text-xs'>
+                  <div className='bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60'>
+                    <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
+                      Mức độ kiểm duyệt:
+                    </span>
+                    <span className='font-bold text-stone-800 text-sm block truncate'>
+                      {stageAttributes.strictness || 'Tiêu chuẩn'}
+                    </span>
+                  </div>
+                  <div className='bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60'>
+                    <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
+                      Bảng màu chủ đạo:
+                    </span>
+                    {stageAttributes.colorPalette ? (
+                      <span className='font-bold text-stone-800 text-sm block truncate'>
+                        {stageAttributes.colorPalette}
+                      </span>
+                    ) : (
+                      <span className='text-stone-400 text-xs italic block'>
+                        Theo phong cách chung
+                      </span>
+                    )}
+                  </div>
+                  <div className='bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60'>
+                    <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
+                      Quy chuẩn nét vẽ & Ánh sáng:
+                    </span>
+                    <span className='text-stone-700 text-xs line-clamp-2 block leading-relaxed'>
+                      {stageAttributes.lineArtRules || (
+                        <span className='text-stone-400 italic'>Chưa thiết lập</span>
+                      )}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* CARD 2: ADAPTIVE ART REFERENCE & CANVAS */}
+            <div className='bg-[#FCFBF8] border border-stone-200 rounded-2xl p-4 sm:p-5 shadow-xs space-y-3.5'>
+              <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-stone-200/80'>
+                <div>
+                  <div className='font-bold text-xs sm:text-sm text-[#1C1917] flex items-center gap-2'>
+                    <span>{visualCardInfo.title}</span>
+                    <span className='text-xs bg-[#FFF7ED] text-[#EA580C] px-2.5 py-0.5 rounded-full font-semibold border border-orange-200'>
+                      {visualCardInfo.badge}
+                    </span>
+                  </div>
+                  <p className='text-xs text-stone-500 mt-0.5'>{visualCardInfo.subtitle}</p>
                 </div>
 
                 {/* Segmented Gallery Tabs */}
-                <div className='flex items-center gap-1 bg-stone-100 p-1 rounded-lg border border-stone-200 text-xs font-semibold'>
+                <div className='flex items-center gap-1 bg-stone-100 p-1 rounded-xl border border-stone-200 text-xs font-semibold'>
                   <button
                     type='button'
                     onClick={() => setActiveArtTab('turnaround')}
-                    className={`px-2.5 py-1 rounded-md text-xs transition-colors cursor-pointer ${
-                      activeArtTab === 'turnaround' ? 'bg-white text-[#1C1917] shadow-xs font-bold' : 'text-stone-500 hover:text-stone-800'
+                    className={`px-2.5 py-1 rounded-lg text-xs transition-colors cursor-pointer ${
+                      activeArtTab === 'turnaround'
+                        ? 'bg-white text-[#1C1917] shadow-xs font-bold'
+                        : 'text-stone-500 hover:text-stone-800'
                     }`}
                   >
-                    Turnaround
+                    {visualCardInfo.tab1}
                   </button>
                   <button
                     type='button'
                     onClick={() => setActiveArtTab('action')}
-                    className={`px-2.5 py-1 rounded-md text-xs transition-colors cursor-pointer ${
-                      activeArtTab === 'action' ? 'bg-white text-[#1C1917] shadow-xs font-bold' : 'text-stone-500 hover:text-stone-800'
+                    className={`px-2.5 py-1 rounded-lg text-xs transition-colors cursor-pointer ${
+                      activeArtTab === 'action'
+                        ? 'bg-white text-[#1C1917] shadow-xs font-bold'
+                        : 'text-stone-500 hover:text-stone-800'
                     }`}
                   >
-                    Góc nhìn &amp; Biểu cảm
+                    {visualCardInfo.tab2}
                   </button>
                 </div>
               </div>
@@ -978,7 +1485,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                           title: selectedImageTitle || entity.name,
                         })
                       }
-                      className='text-[11px] text-[#F97316] hover:underline flex items-center gap-1 cursor-pointer font-medium'
+                      className='text-xs text-[#F97316] hover:underline flex items-center gap-1 cursor-pointer font-medium'
                     >
                       <Eye className='w-3.5 h-3.5' />
                       <span>Phóng to ảnh</span>
@@ -1003,7 +1510,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                       <Eye className='w-4 h-4' />
                       <span>Bấm để phóng to xem đầy đủ</span>
                     </div>
-                    <div className='absolute bottom-2.5 right-2.5 text-[9px] font-mono text-stone-300 bg-black/60 px-2 py-0.5 rounded'>
+                    <div className='absolute bottom-2.5 right-2.5 text-xs font-mono text-stone-300 bg-black/60 px-2 py-0.5 rounded'>
                       SHA-256 CAS: verified
                     </div>
                   </div>
@@ -1011,9 +1518,9 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                   {/* Character Sheet Gallery Strip */}
                   {entity.gallery && entity.gallery.length > 0 && (
                     <div className='space-y-1.5 pt-2 border-t border-stone-100'>
-                      <div className='flex items-center justify-between text-[11px] font-semibold text-stone-700'>
+                      <div className='flex items-center justify-between text-xs font-semibold text-stone-700'>
                         <span>Góc nhìn &amp; Biểu cảm ({entity.gallery.length}):</span>
-                        <span className='text-[10px] text-stone-500'>Bấm để đổi góc xem</span>
+                        <span className='text-xs text-stone-500'>Bấm để đổi góc xem</span>
                       </div>
                       <div className='flex items-center gap-2 overflow-x-auto pb-1.5 custom-scrollbar'>
                         {entity.imageUrl && (
@@ -1036,7 +1543,9 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                                 className='w-full h-full object-cover'
                               />
                             </div>
-                            <span className='text-xs font-medium text-stone-800'>Mặt chính diện</span>
+                            <span className='text-xs font-medium text-stone-800'>
+                              Mặt chính diện
+                            </span>
                           </button>
                         )}
                         {entity.gallery.map((img, i) => (
@@ -1045,7 +1554,9 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                             type='button'
                             onClick={() => {
                               setSelectedImageUrl(img.url);
-                              setSelectedImageTitle(`${entity.name} - ${img.label || `Góc ${i + 1}`}`);
+                              setSelectedImageTitle(
+                                `${entity.name} - ${img.label || `Góc ${i + 1}`}`,
+                              );
                             }}
                             className={`relative flex items-center gap-1.5 px-2 py-1 rounded-lg border shrink-0 transition-all cursor-pointer ${
                               selectedImageUrl === img.url
@@ -1060,7 +1571,9 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                                 className='w-full h-full object-cover'
                               />
                             </div>
-                            <span className='text-xs font-medium text-stone-800'>{img.label || `Góc ${i + 1}`}</span>
+                            <span className='text-xs font-medium text-stone-800'>
+                              {img.label || `Góc ${i + 1}`}
+                            </span>
                           </button>
                         ))}
                       </div>
@@ -1078,8 +1591,8 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                     </div>
                     <p className='text-xs text-stone-500 leading-relaxed'>
                       {isArtistUser
-                        ? 'Bạn hãy tải lên bản phác thảo Model Sheet theo thông số thời kỳ phía trên để bắt đầu chu trình kiểm duyệt.'
-                        : 'Biên kịch (Writer) và Biên tập viên có thể cập nhật thông số đặc tả kịch bản để Họa sĩ nắm bắt chính xác tạo hình trước khi vẽ.'}
+                        ? visualCardInfo.emptyArtistPrompt
+                        : visualCardInfo.emptyWriterPrompt}
                     </p>
                   </div>
                   {canCreateDraft && (
@@ -1091,7 +1604,11 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                       className='inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-white hover:bg-[#FFF7ED] border border-[#F97316] rounded-xl text-xs font-semibold text-[#EA580C] transition-colors cursor-pointer shadow-2xs'
                     >
                       <Edit3 className='w-3.5 h-3.5' />
-                      <span>{isWriterUser ? 'Chỉnh sửa đặc tả / Cập nhật kịch bản' : 'Tạo phiên bản mới để thêm ảnh'}</span>
+                      <span>
+                        {isWriterUser
+                          ? 'Chỉnh sửa đặc tả / Cập nhật kịch bản'
+                          : 'Tạo phiên bản mới để thêm ảnh'}
+                      </span>
                     </button>
                   )}
                 </div>
@@ -1102,24 +1619,24 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                 {/* Status indicator on the left of action bar */}
                 <div className='text-xs text-stone-500 flex items-center gap-1.5'>
                   {!selectedImageUrl ? (
-                    <span className='inline-flex items-center gap-1 text-[11px] font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200'>
+                    <span className='inline-flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200'>
                       <Clock className='w-3 h-3 text-amber-600' />
                       Chờ Họa sĩ tải lên bản vẽ
                     </span>
                   ) : activeRevision?.reviewStatus === 'Draft' ? (
-                    <span className='inline-flex items-center gap-1 text-[11px] font-medium text-stone-600 bg-stone-100 px-2 py-0.5 rounded-md border border-stone-200'>
+                    <span className='inline-flex items-center gap-1 text-xs font-medium text-stone-600 bg-stone-100 px-2 py-0.5 rounded-md border border-stone-200'>
                       Bản thảo (Chưa nộp duyệt)
                     </span>
                   ) : activeRevision?.reviewStatus === 'ConceptSubmitted' ? (
-                    <span className='inline-flex items-center gap-1 text-[11px] font-semibold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200 animate-pulse'>
+                    <span className='inline-flex items-center gap-1 text-xs font-semibold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200 animate-pulse'>
                       ● Chờ Writer / Editor duyệt thiết kế
                     </span>
                   ) : activeRevision?.reviewStatus === 'WriterEndorsed' ? (
-                    <span className='inline-flex items-center gap-1 text-[11px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200'>
+                    <span className='inline-flex items-center gap-1 text-xs font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200'>
                       ✓ Writer đã duyệt (Chờ Producer khóa Canon)
                     </span>
                   ) : activeRevision?.reviewStatus === 'ReworkRequired' ? (
-                    <span className='inline-flex items-center gap-1 text-[11px] font-semibold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-200'>
+                    <span className='inline-flex items-center gap-1 text-xs font-semibold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-200'>
                       ↺ Yêu cầu vẽ lại
                     </span>
                   ) : null}
@@ -1173,7 +1690,12 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                         <button
                           type='button'
                           onClick={() => {
-                            onOpenAddRevision(entity, null, true, activeRevision?.effectiveFromChapterNumber);
+                            onOpenAddRevision(
+                              entity,
+                              null,
+                              true,
+                              activeRevision?.effectiveFromChapterNumber,
+                            );
                           }}
                           className='px-3.5 py-2 rounded-xl border border-stone-300 bg-white hover:bg-stone-50 text-xs sm:text-sm font-semibold text-stone-700 hover:text-stone-900 transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-[0.98]'
                         >
@@ -1199,19 +1721,31 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                         data-testid='detail-endorse-btn'
                       >
                         <CheckCircle2 className='w-3.5 h-3.5' />
-                        <span>{isEndorsing ? 'Đang duyệt...' : activeRevision.reviewStatus === 'WriterEndorsed' ? '✓ Đã duyệt thiết kế' : '✓ Duyệt thiết kế'}</span>
+                        <span>
+                          {isEndorsing
+                            ? 'Đang duyệt...'
+                            : activeRevision.reviewStatus === 'WriterEndorsed'
+                              ? '✓ Đã duyệt thiết kế'
+                              : '✓ Duyệt thiết kế'}
+                        </span>
                       </button>
                       <button
                         type='button'
-                        disabled={activeRevision.reviewStatus === 'WriterEndorsed' || activeRevision.isLocked || isEndorsing}
+                        disabled={
+                          activeRevision.reviewStatus === 'WriterEndorsed' ||
+                          activeRevision.isLocked ||
+                          isEndorsing
+                        }
                         onClick={() => handleRequestRework(activeRevision)}
                         className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1.5 shadow-2xs transition-all ${
-                          activeRevision.reviewStatus === 'WriterEndorsed' || activeRevision.isLocked
+                          activeRevision.reviewStatus === 'WriterEndorsed' ||
+                          activeRevision.isLocked
                             ? 'bg-stone-100 text-stone-400 border border-stone-200 cursor-not-allowed opacity-50'
                             : 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 cursor-pointer active:scale-[0.98]'
                         }`}
                         title={
-                          activeRevision.reviewStatus === 'WriterEndorsed' || activeRevision.isLocked
+                          activeRevision.reviewStatus === 'WriterEndorsed' ||
+                          activeRevision.isLocked
                             ? 'Phiên bản này đã được duyệt/khoá, không thể yêu cầu vẽ lại.'
                             : 'Yêu cầu Artist chỉnh sửa lại bản vẽ'
                         }
@@ -1223,8 +1757,8 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                     </>
                   )}
 
-                  {/* Producer Lock Action */}
-                  {isProducerUser && activeRevision && !activeRevision.isLocked && (
+                  {/* Producer Lock Action (Only character sheets can be Canon Locked per backend rules) */}
+                  {isProducerUser && isCharacter && activeRevision && !activeRevision.isLocked && (
                     <button
                       type='button'
                       disabled={isLocking || activeRevision.reviewStatus === 'ReworkRequired'}
@@ -1236,6 +1770,17 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                       <span>{isLocking ? 'Đang khóa...' : '🔒 Khóa Canon'}</span>
                     </button>
                   )}
+                  {isProducerUser &&
+                    !isCharacter &&
+                    (!activeRevision || !activeRevision.isLocked) && (
+                      <div
+                        className='px-3 py-1.5 bg-stone-100 text-stone-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 border border-stone-200'
+                        title={`Mục ${getCategoryLabel(entity.category)} này được áp dụng làm tham chiếu trực tiếp trong toàn bộ Series Bible`}
+                      >
+                        <CheckCircle2 className='w-3.5 h-3.5 text-emerald-600' />
+                        <span>Tham chiếu {getCategoryLabel(entity.category)}</span>
+                      </div>
+                    )}
                 </div>
               </div>
             </div>
@@ -1243,7 +1788,6 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
 
           {/* ================= RIGHT COLUMN (COL-SPAN 5): VERSION CONTROL, DIFF & PROVENANCE ================= */}
           <section className='lg:col-span-5 space-y-4'>
-
             {/* CARD 1: ERA ASSET VERSION CONTROL (TREE LIST) */}
             <div className='bg-white border border-[#E7E5E4] rounded-2xl p-4 sm:p-5 shadow-xs space-y-3.5'>
               <div className='flex items-center justify-between pb-2 border-b border-stone-100'>
@@ -1256,7 +1800,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                     onClick={() => {
                       onOpenHistory(entity);
                     }}
-                    className='text-[11px] font-semibold text-stone-600 hover:text-stone-900 px-2 py-0.5 rounded-md border border-stone-200 hover:bg-stone-50 transition cursor-pointer'
+                    className='text-xs font-semibold text-stone-600 hover:text-stone-900 px-2 py-0.5 rounded-md border border-stone-200 hover:bg-stone-50 transition cursor-pointer'
                   >
                     Version History
                   </button>
@@ -1271,7 +1815,9 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                     const isSelected = rev.id === activeRevision?.id;
                     const isCanon = rev.isLocked || rev.reviewStatus === 'CanonLocked';
                     const isUnderReview = rev.reviewStatus === 'ConceptSubmitted';
-                    const isSuperseded = !isCanon && arr.some((r) => r.isLocked && r.versionNumber > rev.versionNumber);
+                    const isSuperseded =
+                      !isCanon &&
+                      arr.some((r) => r.isLocked && r.versionNumber > rev.versionNumber);
                     const isLast = idx === arr.length - 1;
 
                     return (
@@ -1303,7 +1849,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                           </span>
 
                           <span
-                            className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${
+                            className={`text-xs px-2 py-0.5 rounded-full font-semibold border ${
                               isCanon
                                 ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                                 : isUnderReview
@@ -1328,7 +1874,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                         </div>
 
                         <div className='flex items-center gap-2'>
-                          <span className='text-[10px] text-stone-400 font-mono hidden sm:inline'>
+                          <span className='text-xs text-stone-400 font-mono hidden sm:inline'>
                             {new Date(rev.createdAt).toLocaleDateString('vi-VN')}
                           </span>
                           {rev.contentHash && (
@@ -1345,21 +1891,24 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                               <Copy className='w-3 h-3' />
                             </button>
                           )}
-                          {canCreateDraft && !isCanon && !rev.isInitialVersion && onDeleteRevision && (
-                            <button
-                              type='button'
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setRevisionToDelete(rev);
-                              }}
-                              className='opacity-0 group-hover:opacity-100 text-stone-400 hover:text-rose-600 transition p-1 cursor-pointer'
-                              title='Xóa phiên bản này'
-                              aria-label='Xóa phiên bản này'
-                              data-testid={`delete-revision-btn-${rev.id}`}
-                            >
-                              <Trash2 className='w-3 h-3' />
-                            </button>
-                          )}
+                          {canCreateDraft &&
+                            !isCanon &&
+                            !rev.isInitialVersion &&
+                            onDeleteRevision && (
+                              <button
+                                type='button'
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setRevisionToDelete(rev);
+                                }}
+                                className='opacity-0 group-hover:opacity-100 text-stone-400 hover:text-rose-600 transition p-1 cursor-pointer'
+                                title='Xóa phiên bản này'
+                                aria-label='Xóa phiên bản này'
+                                data-testid={`delete-revision-btn-${rev.id}`}
+                              >
+                                <Trash2 className='w-3 h-3' />
+                              </button>
+                            )}
                         </div>
                       </div>
                     );
@@ -1384,7 +1933,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                       ? `v${activeRevision.versionNumber} đang là Canon Locked (Bất biến)`
                       : `v${activeRevision?.versionNumber ?? 1} (${activeRevision?.reviewStatus || 'Draft'})`}
                   </span>
-                  <span className='text-[10px] text-stone-400 font-mono'>
+                  <span className='text-xs text-stone-400 font-mono'>
                     {activeRevision?.isLocked ? 'Immutable' : 'Editable'}
                   </span>
                 </div>
@@ -1412,12 +1961,10 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                 </div>
                 {selectedImageUrl ? (
                   <span className='text-xs font-mono font-semibold text-stone-700 bg-stone-100 px-2 py-0.5 rounded-full'>
-                    Similarity: 94.2%
+                    Similarity: {beforeImageUrl === selectedImageUrl ? '100%' : '94.2%'}
                   </span>
                 ) : (
-                  <span className='text-[10px] text-stone-400 font-mono'>
-                    Chưa có bản vẽ
-                  </span>
+                  <span className='text-xs text-stone-400 font-mono'>Chưa có bản vẽ</span>
                 )}
               </div>
 
@@ -1425,53 +1972,46 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
               {selectedImageUrl ? (
                 <div className='relative w-full h-48 sm:h-52 rounded-xl overflow-hidden border border-stone-200 select-none bg-[#FAF8F5]'>
                   {/* Layer B: Right / Canon / After (Lavender tinted background) */}
-                  <div className='absolute inset-0 w-full h-full flex items-center justify-center bg-violet-50/60 p-3'>
-                    <img
+                  <div className='absolute inset-0 w-full h-full flex items-center justify-center bg-violet-50/40 p-3'>
+                    <AuthenticatedImage
                       src={selectedImageUrl}
-                      alt='Canon Locked Reference'
+                      alt={afterVersionLabel}
                       className='w-full h-full object-contain'
                       data-testid='diff-image-after'
                     />
-                    <span className='absolute bottom-2 right-2 text-[9px] font-mono px-2 py-0.5 rounded bg-white/95 border border-violet-200 text-violet-700 font-semibold shadow-2xs'>
-                      Bản hoàn thiện (After)
+                    <span className='absolute bottom-2 right-2 text-xs font-mono px-2 py-0.5 rounded bg-white/95 border border-violet-200 text-violet-700 font-semibold shadow-2xs'>
+                      {afterVersionLabel}
                     </span>
                   </div>
 
-                  {/* Layer A: Left / Draft / Before (Clipped) */}
+                  {/* Layer A: Left / Draft / Before (Clipped by slider percentage via clipPath) */}
                   <div
-                    style={{ width: `${diffSlider}%` }}
-                    className='absolute inset-y-0 left-0 overflow-hidden bg-stone-100 border-r-2 border-[#F97316] z-1'
+                    style={{ clipPath: `inset(0 ${100 - diffSlider}% 0 0)` }}
+                    className='absolute inset-0 w-full h-full flex items-center justify-center bg-stone-100/90 p-3 z-1'
                   >
-                    <div className='absolute inset-0 w-full h-full flex items-center justify-center min-w-[240px] sm:min-w-[320px] p-3 bg-stone-100/90'>
-                      {entity.gallery?.[0]?.url ? (
-                        <img
-                          src={entity.gallery[0].url}
-                          alt='Draft Before'
-                          className='w-full h-full object-contain'
-                          data-testid='diff-image-before'
-                        />
-                      ) : (
-                        <img
-                          src={selectedImageUrl}
-                          alt='Draft Before'
-                          className='w-full h-full object-contain grayscale opacity-80'
-                          data-testid='diff-image-before'
-                        />
-                      )}
-                      <span className='absolute bottom-2 left-2 text-[9px] font-mono px-2 py-0.5 rounded bg-white/95 border border-stone-200 text-stone-700 font-semibold shadow-2xs'>
-                        Original Draft (Before)
-                      </span>
-                    </div>
+                    <AuthenticatedImage
+                      src={beforeImageUrl}
+                      alt={beforeVersionLabel}
+                      className={`w-full h-full object-contain ${beforeImageUrl === selectedImageUrl ? 'grayscale opacity-75' : ''}`}
+                      data-testid='diff-image-before'
+                    />
+                    <span className='absolute bottom-2 left-2 text-xs font-mono px-2 py-0.5 rounded bg-white/95 border border-stone-200 text-stone-700 font-semibold shadow-2xs'>
+                      {beforeVersionLabel}
+                    </span>
                   </div>
 
-                  {/* Drag Handle with Center Similarity Pill */}
+                  {/* Slider Divider Line */}
                   <div
                     style={{ left: `${diffSlider}%` }}
-                    className='absolute top-0 bottom-0 -ml-3 w-6 flex items-center justify-center pointer-events-none z-2'
+                    className='absolute top-0 bottom-0 w-0.5 bg-[#EA580C] z-2 pointer-events-none'
+                  />
+
+                  {/* Drag Handle with Center Arrow */}
+                  <div
+                    style={{ left: `${diffSlider}%` }}
+                    className='absolute top-1/2 -translate-y-1/2 -ml-3 w-6 h-6 rounded-full bg-[#EA580C] text-white flex items-center justify-center shadow-md z-3 pointer-events-none'
                   >
-                    <div className='w-6 h-6 rounded-full bg-[#F97316] text-white flex items-center justify-center shadow-md'>
-                      <ArrowLeftRight className='w-3 h-3' />
-                    </div>
+                    <ArrowLeftRight className='w-3 h-3' />
                   </div>
 
                   {/* Range input */}
@@ -1488,17 +2028,21 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
               ) : (
                 <div className='p-6 bg-stone-50 border border-dashed border-stone-200 rounded-xl flex flex-col items-center justify-center text-center gap-1.5'>
                   <ArrowLeftRight className='w-5 h-5 text-stone-300' />
-                  <span className='text-xs font-semibold text-stone-600'>Chưa có bản vẽ để so sánh visual diff</span>
-                  <p className='text-[11px] text-stone-400'>
-                    Tính năng so sánh tự động kích hoạt khi Artist nộp bản vẽ Model Sheet hoặc ảnh phác thảo.
+                  <span className='text-xs font-semibold text-stone-600'>
+                    Chưa có bản vẽ để so sánh visual diff
+                  </span>
+                  <p className='text-xs text-stone-400'>
+                    {isCharacter
+                      ? 'Tính năng so sánh tự động kích hoạt khi Artist nộp bản vẽ Model Sheet hoặc ảnh phác thảo.'
+                      : 'Tính năng so sánh tự động kích hoạt khi Artist nộp hình ảnh tham chiếu mới.'}
                   </p>
                 </div>
               )}
 
               {selectedImageUrl && (
-                <div className='flex justify-between text-[10px] text-stone-400 font-mono'>
-                  <span>◀ Trước</span>
-                  <span>Sau ▶</span>
+                <div className='flex justify-between text-xs text-stone-400 font-mono'>
+                  <span>◀ Trước ({beforeVersionLabel})</span>
+                  <span>Sau ({afterVersionLabel}) ▶</span>
                 </div>
               )}
             </div>
@@ -1520,7 +2064,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                   >
                     <div className='flex items-center gap-2 min-w-0'>
                       <span className='w-1.5 h-1.5 rounded-full bg-[#F97316] shrink-0'></span>
-                      <span className='text-[11px] text-stone-700 truncate'>
+                      <span className='text-xs text-stone-700 truncate'>
                         <strong className='text-stone-900'>{log.actor}</strong> {log.action}
                       </span>
                     </div>
@@ -1528,7 +2072,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                       type='button'
                       onClick={() => handleCopyHash(log.hash)}
                       title='Sao chép SHA-256 CAS Hash'
-                      className='font-mono text-[10px] text-stone-400 hover:text-stone-800 ml-2 shrink-0 cursor-pointer bg-white px-1.5 py-0.5 rounded border border-stone-200'
+                      className='font-mono text-xs text-stone-400 hover:text-stone-800 ml-2 shrink-0 cursor-pointer bg-white px-1.5 py-0.5 rounded border border-stone-200'
                     >
                       SHA-256: {log.hash.replace('...', '')}
                     </button>
@@ -1539,9 +2083,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
               {/* Collapsible Technical Details (Hash & System ID) */}
               {renderTechCollapsible()}
             </div>
-
           </section>
-
         </div>
       </main>
 
@@ -1571,11 +2113,11 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
               <span>{isProducer ? '+ Tạo phiên bản mới' : '+ Tạo bản nháp mới'}</span>
             </button>
           ) : isArtist ? (
-            <span className='text-[11px] text-zinc-500 italic'>
+            <span className='text-xs text-zinc-500 italic'>
               Họa sĩ (Artist) tải và nộp Concept Art theo từng giai đoạn.
             </span>
           ) : (
-            <span className='text-[11px] text-zinc-500 italic'>Chế độ chỉ xem.</span>
+            <span className='text-xs text-zinc-500 italic'>Chế độ chỉ xem.</span>
           )}
         </div>
 
@@ -1597,11 +2139,11 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
       {/* Confirm Delete Revision Modal */}
       <LucianConfirmModal
         isOpen={!!revisionToDelete}
-        title="Xác nhận xóa phiên bản"
+        title='Xác nhận xóa phiên bản'
         description={`Bạn có chắc chắn muốn xóa phiên bản v${revisionToDelete?.versionNumber || ''} này không? Thao tác này không thể hoàn tác.`}
-        confirmText={isDeleting ? "Đang xóa..." : "Xóa phiên bản"}
-        cancelText="Hủy"
-        variant="danger"
+        confirmText={isDeleting ? 'Đang xóa...' : 'Xóa phiên bản'}
+        cancelText='Hủy'
+        variant='danger'
         onCancel={() => setRevisionToDelete(null)}
         onConfirm={async () => {
           if (!revisionToDelete || !onDeleteRevision) return;
@@ -1624,11 +2166,11 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
       {/* Confirm Delete Era Modal */}
       <LucianConfirmModal
         isOpen={!!eraToDelete}
-        title="Xác nhận xóa thời kỳ"
+        title='Xác nhận xóa thời kỳ'
         description={`Bạn có chắc chắn muốn xóa thời kỳ "${eraToDelete?.stageName || ''}" (Chương ${eraToDelete?.effectiveFromChapterNumber || 1}) và tất cả các phiên bản liên quan chưa khóa? Thao tác này không thể hoàn tác.`}
-        confirmText={isDeleting ? "Đang xóa..." : "Xóa thời kỳ"}
-        cancelText="Hủy"
-        variant="danger"
+        confirmText={isDeleting ? 'Đang xóa...' : 'Xóa thời kỳ'}
+        cancelText='Hủy'
+        variant='danger'
         onCancel={() => setEraToDelete(null)}
         onConfirm={async () => {
           if (!eraToDelete || !onDeleteEra) return;

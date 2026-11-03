@@ -20,7 +20,9 @@ export const AGENTS: WorkerAgentName[] = [
 ];
 
 /** Tập agent của từng nhiệm vụ — khớp WorkflowRules.AgentsOf của Backend (dùng để hiển thị run đã lưu, không để cấp quyền). */
-export const WORKFLOW_AGENTS: Record<AiWorkflowType, WorkerAgentName[]> = {
+export type BatchWorkflowType = Exclude<AiWorkflowType, 'Copilot' | 'Thumbnail'>;
+
+export const WORKFLOW_AGENTS: Record<BatchWorkflowType, WorkerAgentName[]> = {
   FullScene: ['Writer', 'Continuity', 'Storyboard', 'Editor'],
   Script: ['Writer', 'Continuity'],
   Storyboard: ['Continuity', 'Storyboard', 'Editor'],
@@ -28,6 +30,7 @@ export const WORKFLOW_AGENTS: Record<AiWorkflowType, WorkerAgentName[]> = {
   Letterer: ['Letterer'],
   Editor: ['Continuity', 'Editor'],
   Producer: ['Producer'],
+
 };
 
 export const WORKFLOW_META: Record<
@@ -45,17 +48,16 @@ export const WORKFLOW_META: Record<
   Letterer: { title: 'Rút gọn thoại cho bubble', short: 'Thoại', result: 'suggestion' },
   Editor: { title: 'Review biên tập', short: 'Review', result: 'report' },
   Producer: { title: 'Báo cáo tiến độ', short: 'Tiến độ', result: 'report' },
+  Copilot: { title: 'AI Copilot (sync)', short: 'Copilot', result: 'suggestion' },
+  Thumbnail: { title: 'Sinh ảnh Thumbnail AI', short: 'Thumbnail', result: 'suggestion' },
 };
 
-/** Thứ tự hiển thị trong form chọn nhiệm vụ. */
+/** Thứ tự hiển thị trong form chọn nhiệm vụ (khớp GET availability mặc định: Script, Storyboard, Artist, Editor). */
 export const WORKFLOW_ORDER: AiWorkflowType[] = [
-  'FullScene',
   'Script',
   'Storyboard',
   'Artist',
-  'Letterer',
   'Editor',
-  'Producer',
 ];
 
 /** Nhiệm vụ có Writer trong chuỗi: chỉ ở đây "ép Writer không sửa lỗi / Supervisor leo thang" (Mock) mới có nghĩa. */
@@ -85,6 +87,22 @@ export const KIND_META: Record<
     applyLabel: 'Accept (áp dụng rút gọn thoại)',
     applyNote:
       'Tạo revision script mới với thoại rút gọn; thoại gốc còn trong revision cũ. Bubble trên canvas không bị đổi.',
+  },
+  LineRewrite: {
+    title: 'Viết lại / Rút gọn thoại',
+    applyLabel: 'Accept (cập nhật dòng thoại)',
+    applyNote:
+      'Tạo revision Script mới (append-only) và cập nhật dòng thoại đã chọn.',
+  },
+  SeriesMetadata: {
+    title: 'Metadata phát hành',
+    applyLabel: 'Accept (cập nhật Series)',
+    applyNote: 'Cập nhật tóm tắt (synopsis) và thể loại (genre) của Series cho Public Catalog.',
+  },
+  Thumbnail: {
+    title: 'Thumbnail AI',
+    applyLabel: 'Accept (tạo Artwork mới)',
+    applyNote: 'Tạo bản vẽ AssetReference phiên bản mới cho panel; ảnh cũ giữ nguyên.',
   },
 };
 

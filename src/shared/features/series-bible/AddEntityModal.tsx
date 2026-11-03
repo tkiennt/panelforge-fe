@@ -49,6 +49,9 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
   const [effectiveToChapter, setEffectiveToChapter] = useState<number | ''>('');
   const [imageUrl, setImageUrl] = useState('');
   const [description, setDescription] = useState('');
+  // Contextual attributes per category
+  const [attrField1, setAttrField1] = useState('');
+  const [attrField2, setAttrField2] = useState('');
 
   const [uploadingImage, setUploadingImage] = useState(false);
   const [isDragActive, setIsDragActive] = useState(false);
@@ -179,6 +182,24 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
     const generatedCode =
       code.trim().toUpperCase() || `ENT-${Math.floor(1000 + Math.random() * 9000)}`;
 
+    const attributes: Record<string, any> = {};
+    if (category === 'characters' || category === 'character') {
+      if (attrField1.trim()) attributes.age = attrField1.trim();
+      if (attrField2.trim()) attributes.height = attrField2.trim();
+    } else if (category === 'locations' || category === 'location') {
+      if (attrField1.trim()) attributes.environmentType = attrField1.trim();
+      if (attrField2.trim()) attributes.scale = attrField2.trim();
+    } else if (category === 'prop') {
+      if (attrField1.trim()) attributes.sizeWeight = attrField1.trim();
+      if (attrField2.trim()) attributes.material = attrField2.trim();
+    } else if (category === 'terminology') {
+      if (attrField1.trim()) attributes.termType = attrField1.trim();
+      if (attrField2.trim()) attributes.origin = attrField2.trim();
+    } else if (category === 'style' || category === 'rule') {
+      if (attrField1.trim()) attributes.colorPalette = attrField1.trim();
+      if (attrField2.trim()) attributes.lineArtRules = attrField2.trim();
+    }
+
     const newEntity: NewBibleEntityPayload = {
       id: `entity-${Date.now()}`,
       code: generatedCode,
@@ -194,6 +215,7 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
       effectiveToChapterNumber:
         typeof effectiveToChapter === 'number' ? effectiveToChapter : undefined,
       gallery: gallery.length > 0 ? gallery : undefined,
+      attributes: Object.keys(attributes).length > 0 ? attributes : undefined,
     };
 
     onAdd(newEntity);
@@ -206,6 +228,8 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
     setDescription('');
     setImageUrl('');
     setGallery([]);
+    setAttrField1('');
+    setAttrField2('');
     onClose();
   };
 
@@ -298,7 +322,11 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
               <select
                 id='bible-entity-category'
                 value={category}
-                onChange={(e) => setCategory(e.target.value as BibleCategory)}
+                onChange={(e) => {
+                  setCategory(e.target.value as BibleCategory);
+                  setAttrField1('');
+                  setAttrField2('');
+                }}
                 className='w-full px-3 py-2 bg-[#FAF8F5] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-zinc-900 font-medium focus:outline-none focus:border-[#F97316] cursor-pointer'
               >
                 <option value='characters'>Nhân vật (Character)</option>
@@ -323,6 +351,74 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
                 onChange={(e) => setSubtitle(e.target.value)}
                 className='w-full px-3 py-2 bg-[#FAF8F5] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-zinc-900 placeholder-zinc-400 focus:outline-none focus:border-[#F97316] transition-colors'
               />
+            </div>
+          </div>
+
+          {/* Contextual Attributes Inputs per Category */}
+          <div className='p-3 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl space-y-2.5'>
+            <span className='text-xs font-bold text-zinc-800 block'>
+              {category === 'characters'
+                ? 'Thông số nhân vật (Tùy chọn)'
+                : category === 'locations'
+                  ? 'Thông số không gian & Bối cảnh (Tùy chọn)'
+                  : category === 'terminology'
+                    ? 'Đặc tả thuật ngữ / Đạo cụ (Tùy chọn)'
+                    : 'Quy chuẩn mỹ thuật (Tùy chọn)'}
+            </span>
+            <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
+              <div>
+                <label className='block text-xs font-medium text-zinc-700 mb-1'>
+                  {category === 'characters'
+                    ? 'Độ tuổi'
+                    : category === 'locations'
+                      ? 'Loại địa hình / Phân khu'
+                      : category === 'terminology'
+                        ? 'Phân loại lĩnh vực'
+                        : 'Bảng màu chủ đạo'}
+                </label>
+                <input
+                  type='text'
+                  placeholder={
+                    category === 'characters'
+                      ? 'Ví dụ: 17 tuổi, 25 tuổi...'
+                      : category === 'locations'
+                        ? 'Ví dụ: Hang động ngầm, Đô thị...'
+                        : category === 'terminology'
+                          ? 'Ví dụ: Bí thuật, Cấp bậc tu vi...'
+                          : 'Ví dụ: Warm Sepia, Cam đất...'
+                  }
+                  value={attrField1}
+                  onChange={(e) => setAttrField1(e.target.value)}
+                  className='w-full px-3 py-1.5 bg-white rounded-lg border border-[#E7E7E7] text-xs text-zinc-900 placeholder-zinc-400 focus:outline-none focus:border-[#F97316]'
+                />
+              </div>
+
+              <div>
+                <label className='block text-xs font-medium text-zinc-700 mb-1'>
+                  {category === 'characters'
+                    ? 'Chiều cao / Vóc dáng'
+                    : category === 'locations'
+                      ? 'Quy mô / Khí hậu'
+                      : category === 'terminology'
+                        ? 'Nguồn gốc / Khởi nguyên'
+                        : 'Quy chuẩn nét vẽ'}
+                </label>
+                <input
+                  type='text'
+                  placeholder={
+                    category === 'characters'
+                      ? 'Ví dụ: 178 cm, Cao gầy...'
+                      : category === 'locations'
+                        ? 'Ví dụ: Rộng lớn, U tối ẩm ướt...'
+                        : category === 'terminology'
+                          ? 'Ví dụ: Thời Thượng Cổ, Dị giới...'
+                          : 'Ví dụ: Nét line thanh đậm rõ ràng...'
+                  }
+                  value={attrField2}
+                  onChange={(e) => setAttrField2(e.target.value)}
+                  className='w-full px-3 py-1.5 bg-white rounded-lg border border-[#E7E7E7] text-xs text-zinc-900 placeholder-zinc-400 focus:outline-none focus:border-[#F97316]'
+                />
+              </div>
             </div>
           </div>
 
@@ -422,233 +518,239 @@ export const AddEntityModal: React.FC<AddEntityModalProps> = ({
                 Phân vai chuyên trách: Chỉ Họa sĩ (Artist) mới tải ảnh lên
               </p>
               <p className='text-[11px] text-[#78716C] max-w-md mx-auto leading-relaxed'>
-                Biên kịch và Nhà sản xuất thiết lập thông tin kịch bản và quy chuẩn thiết kế bằng văn bản. Sau khi lưu, mục này sẽ tự động chuyển vào <b>Hàng đợi thiết kế (Bible Design Queue)</b> để Họa sĩ vẽ và tải Model Sheet / Concept Art lên.
+                Biên kịch và Nhà sản xuất thiết lập thông tin kịch bản và quy chuẩn thiết kế bằng
+                văn bản. Sau khi lưu, mục này sẽ tự động chuyển vào{' '}
+                <b>Hàng đợi thiết kế (Bible Design Queue)</b> để Họa sĩ vẽ và tải Model Sheet /
+                Concept Art lên.
               </p>
             </div>
           ) : (
             <>
               {/* Reference Sheet Image Upload Dropzone */}
-          <div>
-            <div className='flex items-center justify-between mb-1'>
-              <label className='text-xs font-semibold text-zinc-800 flex items-center gap-1.5'>
-                <span>Ảnh Reference Sheet / Model Sheet</span>
-                <span className='text-[10px] text-zinc-400 font-normal'>(Khuyên dùng)</span>
-              </label>
-              <button
-                type='button'
-                onClick={() => setShowUrlInput((v) => !v)}
-                className='text-[11px] text-[#F97316] hover:underline font-medium flex items-center gap-1 cursor-pointer'
-              >
-                <LinkIcon className='w-3 h-3' />
-                <span>{showUrlInput ? 'Ẩn nhập URL' : 'Dán URL trực tiếp'}</span>
-              </button>
-            </div>
+              <div>
+                <div className='flex items-center justify-between mb-1'>
+                  <label className='text-xs font-semibold text-zinc-800 flex items-center gap-1.5'>
+                    <span>Ảnh Reference Sheet / Model Sheet</span>
+                    <span className='text-[10px] text-zinc-400 font-normal'>(Khuyên dùng)</span>
+                  </label>
+                  <button
+                    type='button'
+                    onClick={() => setShowUrlInput((v) => !v)}
+                    className='text-[11px] text-[#F97316] hover:underline font-medium flex items-center gap-1 cursor-pointer'
+                  >
+                    <LinkIcon className='w-3 h-3' />
+                    <span>{showUrlInput ? 'Ẩn nhập URL' : 'Dán URL trực tiếp'}</span>
+                  </button>
+                </div>
 
-            <input
-              type='file'
-              ref={fileInputRef}
-              accept='image/png,image/jpeg,image/webp'
-              className='hidden'
-              onChange={(e) => {
-                if (e.target.files && e.target.files[0]) {
-                  void handleFileUpload(e.target.files[0]);
-                }
-              }}
-            />
+                <input
+                  type='file'
+                  ref={fileInputRef}
+                  accept='image/png,image/jpeg,image/webp'
+                  className='hidden'
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      void handleFileUpload(e.target.files[0]);
+                    }
+                  }}
+                />
 
-            {imageUrl ? (
-              <div className='p-3 bg-zinc-50 border border-zinc-200 rounded-xl flex items-center justify-between gap-3'>
-                <div className='flex items-center gap-3 min-w-0'>
-                  <div className='w-14 h-14 rounded-lg overflow-hidden border border-zinc-200 bg-zinc-900 shrink-0 relative'>
-                    <AuthenticatedImage
-                      src={imageUrl}
-                      alt={name || 'Reference Sheet Preview'}
-                      className='w-full h-full object-cover'
+                {imageUrl ? (
+                  <div className='p-3 bg-zinc-50 border border-zinc-200 rounded-xl flex items-center justify-between gap-3'>
+                    <div className='flex items-center gap-3 min-w-0'>
+                      <div className='w-14 h-14 rounded-lg overflow-hidden border border-zinc-200 bg-zinc-900 shrink-0 relative'>
+                        <AuthenticatedImage
+                          src={imageUrl}
+                          alt={name || 'Reference Sheet Preview'}
+                          className='w-full h-full object-cover'
+                        />
+                      </div>
+                      <div className='min-w-0'>
+                        <span className='inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200'>
+                          <CheckCircle2 className='w-3 h-3' />
+                          Đã nạp ảnh hợp lệ
+                        </span>
+                        <p
+                          className='text-[10px] text-zinc-500 truncate font-mono mt-0.5 max-w-[220px]'
+                          title={imageUrl}
+                        >
+                          {imageUrl}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className='flex items-center gap-1.5 shrink-0'>
+                      <button
+                        type='button'
+                        onClick={() => fileInputRef.current?.click()}
+                        className='px-2.5 py-1 text-xs font-semibold rounded-lg bg-white border border-[#E7E7E7] hover:bg-zinc-50 text-zinc-700 transition-colors'
+                      >
+                        Đổi ảnh
+                      </button>
+                      <button
+                        type='button'
+                        onClick={() => setImageUrl('')}
+                        className='p-1.5 text-xs rounded-lg text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200 transition-colors'
+                        title='Xóa ảnh này'
+                      >
+                        <Trash2 className='w-3.5 h-3.5' />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setIsDragActive(true);
+                    }}
+                    onDragLeave={() => setIsDragActive(false)}
+                    onDrop={handleDrop}
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`p-5 rounded-xl border-2 border-dashed transition-all text-center cursor-pointer flex flex-col items-center justify-center gap-1.5 ${
+                      isDragActive
+                        ? 'border-[#F97316] bg-[#FFF7ED]'
+                        : 'border-zinc-300 hover:border-[#F97316] bg-[#FAF8F5] hover:bg-[#FFFDF9]'
+                    }`}
+                  >
+                    {uploadingImage ? (
+                      <div className='flex items-center gap-2 text-xs font-semibold text-[#F97316] py-2'>
+                        <Loader2 className='w-4 h-4 animate-spin' />
+                        <span>Đang tải ảnh lên kho an toàn...</span>
+                      </div>
+                    ) : (
+                      <>
+                        <div className='w-9 h-9 rounded-full bg-white border border-zinc-200 flex items-center justify-center text-[#F97316] shadow-2xs mb-0.5'>
+                          <Upload className='w-4 h-4' />
+                        </div>
+                        <p className='text-xs font-semibold text-zinc-800'>
+                          Kéo thả ảnh reference sheet vào đây, hoặc{' '}
+                          <span className='text-[#F97316] underline'>chọn file</span>
+                        </p>
+                        <p className='text-[10px] text-zinc-500'>
+                          Định dạng PNG, JPEG, WebP dung lượng tối đa 10 MB
+                        </p>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {showUrlInput && (
+                  <div className='mt-2'>
+                    <input
+                      type='url'
+                      placeholder='Hoặc dán URL ảnh trực tiếp (https://...)'
+                      value={imageUrl}
+                      onChange={(e) => setImageUrl(e.target.value)}
+                      className='w-full px-3 py-1.5 bg-[#FAF8F5] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-zinc-900 focus:outline-none focus:border-[#F97316]'
                     />
                   </div>
-                  <div className='min-w-0'>
-                    <span className='inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200'>
-                      <CheckCircle2 className='w-3 h-3' />
-                      Đã nạp ảnh hợp lệ
+                )}
+              </div>
+
+              {/* Step 3: Turnaround / Expression Sketch Gallery */}
+              <div className='space-y-2.5 pt-3 border-t border-[#E7E7E7]'>
+                <div className='flex items-center justify-between'>
+                  <label className='font-semibold text-[#171717] flex items-center gap-1.5'>
+                    <span>
+                      Bộ Sưu Tập Phác Thảo Góc Nhìn &amp; Biểu Cảm (Character Sheet Gallery)
                     </span>
-                    <p
-                      className='text-[10px] text-zinc-500 truncate font-mono mt-0.5 max-w-[220px]'
-                      title={imageUrl}
-                    >
-                      {imageUrl}
-                    </p>
-                  </div>
+                  </label>
+                  <span className='text-[10px] font-mono text-zinc-500 bg-zinc-100 px-2 py-0.5 rounded'>
+                    {gallery.length} góc phác thảo
+                  </span>
                 </div>
+                <p className='text-[11px] text-[#737373]'>
+                  Tải lên nhiều góc nhìn (Turnaround 360°, Góc 3/4, Biểu cảm, Trang phục) để hoạ sĩ
+                  đối chiếu đa chiều.
+                </p>
 
-                <div className='flex items-center gap-1.5 shrink-0'>
+                {/* Upload controls */}
+                <div className='flex items-center gap-2'>
+                  <select
+                    value={galleryLabel}
+                    onChange={(e) => setGalleryLabel(e.target.value)}
+                    className='h-8 px-2.5 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg text-xs font-semibold text-zinc-800 cursor-pointer focus:outline-none focus:border-[#F97316]'
+                  >
+                    <option value='Chính diện (Front)'>Chính diện (Front)</option>
+                    <option value='Góc nghiêng 3/4'>Góc nghiêng 3/4</option>
+                    <option value='Góc nghiêng (Profile / Side)'>
+                      Góc nghiêng (Profile / Side)
+                    </option>
+                    <option value='Phía sau (Back)'>Phía sau (Back)</option>
+                    <option value='Biểu cảm (Expressions)'>Biểu cảm (Expressions)</option>
+                    <option value='Trang phục (Costume)'>Trang phục (Costume)</option>
+                  </select>
+
+                  <input
+                    type='file'
+                    ref={galleryInputRef}
+                    accept='image/png,image/jpeg,image/webp'
+                    className='hidden'
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        void handleGalleryUpload(e.target.files[0]);
+                        e.target.value = '';
+                      }
+                    }}
+                  />
+
                   <button
                     type='button'
-                    onClick={() => fileInputRef.current?.click()}
-                    className='px-2.5 py-1 text-xs font-semibold rounded-lg bg-white border border-[#E7E7E7] hover:bg-zinc-50 text-zinc-700 transition-colors'
+                    onClick={() => galleryInputRef.current?.click()}
+                    disabled={uploadingGallery}
+                    className='h-8 px-3 rounded-lg bg-[#FAF8F5] hover:bg-[#F3F1EB] border border-[#E7E7E7] text-zinc-800 font-semibold text-xs inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50 transition-colors'
                   >
-                    Đổi ảnh
-                  </button>
-                  <button
-                    type='button'
-                    onClick={() => setImageUrl('')}
-                    className='p-1.5 text-xs rounded-lg text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200 transition-colors'
-                    title='Xóa ảnh này'
-                  >
-                    <Trash2 className='w-3.5 h-3.5' />
+                    {uploadingGallery ? (
+                      <>
+                        <Loader2 className='w-3.5 h-3.5 animate-spin text-[#F97316]' />
+                        <span>Đang tải...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Plus className='w-3.5 h-3.5 text-[#F97316]' />
+                        <span>Thêm góc vẽ này</span>
+                      </>
+                    )}
                   </button>
                 </div>
-              </div>
-            ) : (
-              <div
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  setIsDragActive(true);
-                }}
-                onDragLeave={() => setIsDragActive(false)}
-                onDrop={handleDrop}
-                onClick={() => fileInputRef.current?.click()}
-                className={`p-5 rounded-xl border-2 border-dashed transition-all text-center cursor-pointer flex flex-col items-center justify-center gap-1.5 ${
-                  isDragActive
-                    ? 'border-[#F97316] bg-[#FFF7ED]'
-                    : 'border-zinc-300 hover:border-[#F97316] bg-[#FAF8F5] hover:bg-[#FFFDF9]'
-                }`}
-              >
-                {uploadingImage ? (
-                  <div className='flex items-center gap-2 text-xs font-semibold text-[#F97316] py-2'>
-                    <Loader2 className='w-4 h-4 animate-spin' />
-                    <span>Đang tải ảnh lên kho an toàn...</span>
-                  </div>
-                ) : (
-                  <>
-                    <div className='w-9 h-9 rounded-full bg-white border border-zinc-200 flex items-center justify-center text-[#F97316] shadow-2xs mb-0.5'>
-                      <Upload className='w-4 h-4' />
-                    </div>
-                    <p className='text-xs font-semibold text-zinc-800'>
-                      Kéo thả ảnh reference sheet vào đây, hoặc{' '}
-                      <span className='text-[#F97316] underline'>chọn file</span>
-                    </p>
-                    <p className='text-[10px] text-zinc-500'>
-                      Định dạng PNG, JPEG, WebP dung lượng tối đa 10 MB
-                    </p>
-                  </>
-                )}
-              </div>
-            )}
 
-            {showUrlInput && (
-              <div className='mt-2'>
-                <input
-                  type='url'
-                  placeholder='Hoặc dán URL ảnh trực tiếp (https://...)'
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  className='w-full px-3 py-1.5 bg-[#FAF8F5] focus:bg-white rounded-lg border border-[#E7E7E7] text-xs text-zinc-900 focus:outline-none focus:border-[#F97316]'
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Step 3: Turnaround / Expression Sketch Gallery */}
-          <div className='space-y-2.5 pt-3 border-t border-[#E7E7E7]'>
-            <div className='flex items-center justify-between'>
-              <label className='font-semibold text-[#171717] flex items-center gap-1.5'>
-                <span>Bộ Sưu Tập Phác Thảo Góc Nhìn &amp; Biểu Cảm (Character Sheet Gallery)</span>
-              </label>
-              <span className='text-[10px] font-mono text-zinc-500 bg-zinc-100 px-2 py-0.5 rounded'>
-                {gallery.length} góc phác thảo
-              </span>
-            </div>
-            <p className='text-[11px] text-[#737373]'>
-              Tải lên nhiều góc nhìn (Turnaround 360°, Góc 3/4, Biểu cảm, Trang phục) để hoạ sĩ đối
-              chiếu đa chiều.
-            </p>
-
-            {/* Upload controls */}
-            <div className='flex items-center gap-2'>
-              <select
-                value={galleryLabel}
-                onChange={(e) => setGalleryLabel(e.target.value)}
-                className='h-8 px-2.5 bg-[#FAF8F5] border border-[#E7E7E7] rounded-lg text-xs font-semibold text-zinc-800 cursor-pointer focus:outline-none focus:border-[#F97316]'
-              >
-                <option value='Chính diện (Front)'>Chính diện (Front)</option>
-                <option value='Góc nghiêng 3/4'>Góc nghiêng 3/4</option>
-                <option value='Góc nghiêng (Profile / Side)'>Góc nghiêng (Profile / Side)</option>
-                <option value='Phía sau (Back)'>Phía sau (Back)</option>
-                <option value='Biểu cảm (Expressions)'>Biểu cảm (Expressions)</option>
-                <option value='Trang phục (Costume)'>Trang phục (Costume)</option>
-              </select>
-
-              <input
-                type='file'
-                ref={galleryInputRef}
-                accept='image/png,image/jpeg,image/webp'
-                className='hidden'
-                onChange={(e) => {
-                  if (e.target.files && e.target.files[0]) {
-                    void handleGalleryUpload(e.target.files[0]);
-                    e.target.value = '';
-                  }
-                }}
-              />
-
-              <button
-                type='button'
-                onClick={() => galleryInputRef.current?.click()}
-                disabled={uploadingGallery}
-                className='h-8 px-3 rounded-lg bg-[#FAF8F5] hover:bg-[#F3F1EB] border border-[#E7E7E7] text-zinc-800 font-semibold text-xs inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50 transition-colors'
-              >
-                {uploadingGallery ? (
-                  <>
-                    <Loader2 className='w-3.5 h-3.5 animate-spin text-[#F97316]' />
-                    <span>Đang tải...</span>
-                  </>
-                ) : (
-                  <>
-                    <Plus className='w-3.5 h-3.5 text-[#F97316]' />
-                    <span>Thêm góc vẽ này</span>
-                  </>
-                )}
-              </button>
-            </div>
-
-            {/* Thumbnails grid */}
-            {gallery.length > 0 && (
-              <div className='grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1'>
-                {gallery.map((item, idx) => (
-                  <div
-                    key={idx}
-                    className='p-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl flex items-center gap-2 relative group hover:border-[#F97316]/50 transition-colors'
-                  >
-                    <div className='w-11 h-11 rounded-lg overflow-hidden bg-zinc-900 shrink-0 border border-zinc-200'>
-                      <AuthenticatedImage
-                        src={item.url}
-                        alt={item.label}
-                        className='w-full h-full object-cover'
-                      />
-                    </div>
-                    <div className='min-w-0 flex-1'>
+                {/* Thumbnails grid */}
+                {gallery.length > 0 && (
+                  <div className='grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1'>
+                    {gallery.map((item, idx) => (
                       <div
-                        className='text-[11px] font-bold text-zinc-900 truncate'
-                        title={item.label}
+                        key={idx}
+                        className='p-2 bg-[#FAF8F5] border border-[#E7E7E7] rounded-xl flex items-center gap-2 relative group hover:border-[#F97316]/50 transition-colors'
                       >
-                        {item.label}
+                        <div className='w-11 h-11 rounded-lg overflow-hidden bg-zinc-900 shrink-0 border border-zinc-200'>
+                          <AuthenticatedImage
+                            src={item.url}
+                            alt={item.label}
+                            className='w-full h-full object-cover'
+                          />
+                        </div>
+                        <div className='min-w-0 flex-1'>
+                          <div
+                            className='text-[11px] font-bold text-zinc-900 truncate'
+                            title={item.label}
+                          >
+                            {item.label}
+                          </div>
+                          <div className='text-[9px] text-[#737373] font-mono'>Góc #{idx + 1}</div>
+                        </div>
+                        <button
+                          type='button'
+                          onClick={() => setGallery((prev) => prev.filter((_, i) => i !== idx))}
+                          className='p-1 rounded-md text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-colors'
+                          title='Xóa góc này'
+                        >
+                          <Trash2 className='w-3 h-3' />
+                        </button>
                       </div>
-                      <div className='text-[9px] text-[#737373] font-mono'>Góc #{idx + 1}</div>
-                    </div>
-                    <button
-                      type='button'
-                      onClick={() => setGallery((prev) => prev.filter((_, i) => i !== idx))}
-                      className='p-1 rounded-md text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-colors'
-                      title='Xóa góc này'
-                    >
-                      <Trash2 className='w-3 h-3' />
-                    </button>
+                    ))}
                   </div>
-                ))}
+                )}
               </div>
-            )}
-          </div>
-
             </>
           )}
 

@@ -648,3 +648,104 @@ describe('AiAssistPanel · mở lại panel thấy lại lượt chạy / đề 
     expect(screen.queryByTestId('ai-error')).not.toBeInTheDocument();
   });
 });
+
+
+describe('AiAssistPanel (Storyboard & Layout)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    sessionStorage.clear();
+    vi.spyOn(aiAgentsService, 'getWorkflowAvailability').mockResolvedValue({
+      chapterId: 'c1',
+      yourRole: 'Writer',
+      workflows: [
+        {
+          workflowType: 'Storyboard',
+          title: 'Storyboard từ script có sẵn',
+          description: 'Phân khung script',
+          agents: ['Storyboard', 'Editor'],
+          requiredRoles: ['Producer', 'Writer', 'Artist'],
+          resultKinds: ['Layout'],
+          canRun: true,
+          missing: [],
+        },
+      ],
+    });
+    vi.spyOn(aiAgentsService, 'getSuggestions').mockResolvedValue([]);
+  });
+
+  it('hiển thị cảnh báo và khoá Accept khi hasPanels = true trong workflow Storyboard', async () => {
+    const layoutPayload = {
+      schemaVersion: 1,
+      runId: 'r-storyboard-1',
+      sceneId: 'sc1',
+      readingDirection: 'RightToLeft' as const,
+      pages: [
+        {
+          pageNumber: 1,
+          panels: [
+            {
+              panelNumber: 1,
+              readingOrder: 1,
+              bbox: { x: 0.05, y: 0.05, w: 0.9, h: 0.3, coordinateSpace: 'PageNormalized' as const },
+              sourceScriptLineIds: ['line-1'],
+            },
+          ],
+        },
+      ],
+    };
+
+    const layoutSuggestion = suggestion({
+      id: 'sug-layout-1',
+      kind: 'Layout',
+      summary: '1 trang · 1 panel',
+      payload: layoutPayload,
+      canDecide: true,
+    });
+
+    vi.spyOn(aiAgentsService, 'getSuggestions').mockResolvedValue([layoutSuggestion]);
+    vi.spyOn(aiAgentsService, 'getRun').mockResolvedValue(
+      run({
+        id: 'r-storyboard-1',
+        workflowType: 'Storyboard',
+        brief: 'Phân khung cảnh 1',
+        steps: [
+          step({
+            stepIndex: 1,
+            agent: 'Storyboard',
+            output: layoutPayload,
+          }),
+        ],
+        suggestions: [layoutSuggestion],
+      }),
+    );
+
+    render(
+      <AiAssistPanel
+        seriesId='s1'
+        chapterId='c1'
+        sceneId='sc1'
+        workflowType='Storyboard'
+        suggestionKind='Layout'
+        title='Trợ lý AI · Phân khung Storyboard'
+        briefLabel='Brief'
+        briefPlaceholder='Nhập brief'
+        runLabel='Phân khung'
+        readingDirection='RightToLeft'
+        chapterVersion={3}
+        nameById={{ an: 'An' }}
+        hasPanels={true}
+        onClose={onClose}
+        onReload={onReload}
+      />,
+    );
+
+    expect(await screen.findByTestId('ai-storyboard-has-panels-banner')).toBeInTheDocument();
+    expect(screen.getByText('Phân cảnh này đã có khung tranh (panel)')).toBeInTheDocument();
+
+    const acceptBtn = screen.getByRole('button', { name: /Accept \(tạo Page\/Panel\)/ });
+    expect(acceptBtn).toBeDisabled();
+    expect(screen.getByText(/Scene đã có Panel; không thể áp dụng layout AI/)).toBeInTheDocument();
+
+    expect(screen.getByTestId('ai-storyboard')).toBeInTheDocument();
+  });
+});

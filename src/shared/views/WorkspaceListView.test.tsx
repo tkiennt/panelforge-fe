@@ -235,4 +235,48 @@ describe('WorkspaceListView Component', () => {
     expect(await screen.findByText('R2 upload failed')).toBeInTheDocument();
     expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
+
+  it('renders avatar image in header when currentUser has avatarUrl', async () => {
+    vi.spyOn(workspaceService, 'getMyWorkspaces').mockResolvedValue([]);
+    renderView({
+      currentUser: {
+        name: 'Alex Producer',
+        email: 'producer@panelforge.com',
+        role: 'USER',
+        avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100',
+        canCreateStudio: true,
+      },
+    });
+
+    await waitFor(() => {
+      const avatarImg = document.querySelector('header img');
+      expect(avatarImg).toBeInTheDocument();
+      expect(avatarImg).toHaveAttribute(
+        'src',
+        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100',
+      );
+    });
+  });
+
+  it('falls back to initials when avatarUrl fails to load in header', async () => {
+    vi.spyOn(workspaceService, 'getMyWorkspaces').mockResolvedValue([]);
+    renderView({
+      currentUser: {
+        name: 'Alex Producer',
+        email: 'producer@panelforge.com',
+        role: 'USER',
+        avatarUrl: 'https://invalid-avatar-url.jpg',
+        canCreateStudio: true,
+      },
+    });
+
+    await waitFor(() => {
+      const avatarImg = document.querySelector('header img');
+      expect(avatarImg).toBeInTheDocument();
+      fireEvent.error(avatarImg!);
+    });
+
+    expect(screen.getByText('A')).toBeInTheDocument();
+    expect(document.querySelector('header img')).not.toBeInTheDocument();
+  });
 });
