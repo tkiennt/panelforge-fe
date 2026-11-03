@@ -33,6 +33,7 @@ interface ScreenplayFlowEditorProps {
   isChapterLocked: boolean;
   getSpeakerName?: (id?: string | null) => string | null;
   onSaveLines: (lines: ExtractedScriptLinePayload[]) => Promise<void>;
+  onCreateStub?: (name: string) => Promise<void> | void;
   onShowToast?: (title: string, desc: string) => void;
 }
 
@@ -44,6 +45,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   isChapterLocked,
   getSpeakerName,
   onSaveLines,
+  onCreateStub,
   onShowToast,
 }) => {
   const [isSaving, setIsSaving] = useState(false);
@@ -78,7 +80,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
       }),
       ScriptLineBlockNode,
       BibleMention.configure({
-        suggestion: createMentionSuggestion(() => bibleEntriesRef.current),
+        suggestion: createMentionSuggestion(() => bibleEntriesRef.current, onCreateStub),
       }),
       ConsistencyLinterExtension.configure({
         getFindings: () => findingsRef.current,

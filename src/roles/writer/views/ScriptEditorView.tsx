@@ -502,6 +502,28 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     [currentChapter, selectedScene, scenes, canEditScript, isChapterLocked, loadSceneDetail]
   );
 
+  // Tự sinh Stub Entity từ @-mention để không làm ngắt dòng cảm xúc của Writer
+  const handleCreateStubEntity = useCallback(
+    async (name: string) => {
+      if (!seriesId) return;
+      try {
+        const created = await bibleService.createBibleEntry(seriesId, {
+          name,
+          code: name.toUpperCase().replace(/\s+/g, '_').slice(0, 15),
+          category: 'Character',
+          description: `Thực thể tạm (Stub) tự sinh từ kịch bản lúc viết thoại.`,
+          priority: 'Standard',
+        });
+        setAllBibleEntries((prev) => [...prev, created]);
+        setCharacters((prev) => [...prev, created]);
+        notify('Đã tạo thực thể tạm', `Đã lưu tạm "${name}" vào Series Bible để biên kịch tiếp tục.`);
+      } catch (err: any) {
+        console.error('Lỗi tự sinh Stub Entity:', err);
+      }
+    },
+    [seriesId, notify],
+  );
+
   const loadScenes = useCallback(async () => {
     if (!currentChapter?.id) {
       setScenes([]);
@@ -1968,6 +1990,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                     isChapterLocked={isChapterLocked}
                     getSpeakerName={getSpeakerName}
                     onSaveLines={handleSaveFlowLines}
+                    onCreateStub={handleCreateStubEntity}
                     onShowToast={onShowToast}
                   />
                 ) : !selectedScene.scriptLines || selectedScene.scriptLines.length === 0 ? (
@@ -2053,6 +2076,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                 isChapterLocked={isChapterLocked}
                 getSpeakerName={getSpeakerName}
                 onSaveLines={handleSaveFlowLines}
+                onCreateStub={handleCreateStubEntity}
                 onShowToast={onShowToast}
               />
             </div>

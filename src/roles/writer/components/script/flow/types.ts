@@ -27,4 +27,7 @@ export interface MentionSuggestionItem {
   category: BibleCategory;
   code: string;
   isLocked: boolean;
+  avatarUrl?: string | null;
+  stageName?: string | null;
+  isStub?: boolean;
 }
