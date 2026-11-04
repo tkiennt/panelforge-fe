@@ -151,6 +151,53 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
         return false;
       },
       handleTextInput: (view, from, to, text) => {
+        // A. Nhấn Space sau ký tự "#" hoặc "-" để chuyển đổi tức thì thành Trang hoặc Panel
+        if (text === ' ') {
+          const { state } = view;
+          const { $from } = state.selection;
+          const currentBlock = $from.parent;
+
+          if (currentBlock.type.name === 'scriptLineBlock') {
+            const textBefore = currentBlock.textBetween(0, $from.parentOffset).trim();
+
+            // "# " -> Biến thành Page Block
+            if (textBefore === '#' || /^#\s*(?:Page\s*\d*)?$/i.test(textBefore)) {
+              const numMatch = textBefore.match(/\d+/);
+              const pageNum = numMatch ? numMatch[0].padStart(2, '0') : '01';
+              const defaultText = `TRANG ${pageNum} `;
+
+              const blockStart = $from.start();
+              const blockEnd = $from.end();
+              const tr = state.tr.replaceWith(blockStart, blockEnd, state.schema.text(defaultText));
+              tr.setNodeMarkup($from.before(), undefined, {
+                ...currentBlock.attrs,
+                blockType: 'page_heading',
+              });
+              tr.setSelection(TextSelection.create(tr.doc, blockStart + defaultText.length));
+              view.dispatch(tr);
+              return true;
+            }
+
+            // "- " -> Biến thành Panel Block
+            if (textBefore === '-' || /^-\s*(?:Panel\s*[\d.]*)?$/i.test(textBefore)) {
+              const panelMatch = textBefore.match(/[\d.]+/);
+              const panelNum = panelMatch ? panelMatch[0] : '1.1';
+              const defaultText = `Panel ${panelNum}: [Toàn cảnh] `;
+
+              const blockStart = $from.start();
+              const blockEnd = $from.end();
+              const tr = state.tr.replaceWith(blockStart, blockEnd, state.schema.text(defaultText));
+              tr.setNodeMarkup($from.before(), undefined, {
+                ...currentBlock.attrs,
+                blockType: 'panel_heading',
+              });
+              tr.setSelection(TextSelection.create(tr.doc, blockStart + defaultText.length));
+              view.dispatch(tr);
+              return true;
+            }
+          }
+        }
+
         if (text === ':') {
           const { state } = view;
           const { $from } = state.selection;
@@ -208,12 +255,12 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
           let detectedType: MangaBlockType | null = null;
           let detectedSpeaker: string | null = null;
 
-          // 1. Nhận diện Trang: # Page 1, #Page 1, Trang 1, Page 1
-          if (/^(?:#\s*(?:Page\s*)?\d+(?:\.\d+)?|(?:Trang|Page)\s+\d+(?:\.\d+)?)/i.test(rawText)) {
+          // 1. Nhận diện Trang: #, # Page 1, # Trang 1, Trang 1, Page 1
+          if (/^(?:#\s*.*|(?:Trang|Page)\s*.*)/i.test(rawText) && (rawText.startsWith('#') || /^(?:Trang|Page)\s*\d*/i.test(rawText))) {
             detectedType = 'page_heading';
           }
-          // 2. Nhận diện Panel: - Panel 1.1, Panel 1.1, Khung 1.1, #panel 1.1, - 1.1, - Panel 1
-          else if (/^(?:(?:-\s*)?(?:Panel|Khung)\s*\d+(?:\.\d+)?|-\s*\d+(?:\.\d+)?|#panel\s*\d+(?:\.\d+)?)/i.test(rawText)) {
+          // 2. Nhận diện Panel: -, - Panel 1.1, Khung 1.1, #panel 1.1, - 1.1
+          else if (/^(?:-\s*.*|(?:Panel|Khung)\s*.*|#panel\s*.*)/i.test(rawText) && (rawText.startsWith('-') || /^(?:Panel|Khung|#panel)/i.test(rawText))) {
             detectedType = 'panel_heading';
           }
           // 3. Nhận diện Tiêu đề phân cảnh: CẢNH 1, INT., EXT., SCENE 1

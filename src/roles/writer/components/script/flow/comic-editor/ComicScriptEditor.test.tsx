@@ -39,6 +39,33 @@ function createTestEditor(initialContent: any = '<p></p>') {
 }
 
 describe('ComicScriptEditor - Tiptap Keyboard-First Engine', () => {
+  // 0. Space Triggers (# + Space, - + Space)
+  it('biến đổi dòng chứa "#" thành pageBlock khi nhấn Space', () => {
+    const editor = createTestEditor('<p>#</p>');
+    editor.commands.setTextSelection(2);
+
+    const handled = editor.commands.keyboardShortcut('Space');
+    expect(handled).toBe(true);
+
+    const json = editor.getJSON();
+    const firstNode = (json.content?.[0] as any);
+    expect(firstNode?.type).toBe('pageBlock');
+    expect(firstNode?.attrs?.pageNumber).toBe('01');
+  });
+
+  it('biến đổi dòng chứa "-" thành panelBlock khi nhấn Space', () => {
+    const editor = createTestEditor('<p>-</p>');
+    editor.commands.setTextSelection(2);
+
+    const handled = editor.commands.keyboardShortcut('Space');
+    expect(handled).toBe(true);
+
+    const json = editor.getJSON();
+    const firstNode = (json.content?.[0] as any);
+    expect(firstNode?.type).toBe('panelBlock');
+    expect(firstNode?.attrs?.panelNumber).toBe('1.1');
+  });
+
   // 1. Page Trigger (# + Tab)
   it('biến đổi dòng chứa "#" thành pageBlock khi nhấn Tab', () => {
     const editor = createTestEditor('<p>#</p>');
@@ -49,10 +76,10 @@ describe('ComicScriptEditor - Tiptap Keyboard-First Engine', () => {
     expect(handled).toBe(true);
 
     const json = editor.getJSON();
-    const firstNode = json.content?.[0];
+    const firstNode = (json.content?.[0] as any);
     expect(firstNode?.type).toBe('pageBlock');
     expect(firstNode?.attrs?.pageNumber).toBe('01');
-    expect(firstNode?.content?.[0]?.text).toContain('TRANG 01');
+    expect((firstNode?.content?.[0] as any)?.text).toContain('TRANG 01');
   });
 
   it('biến đổi dòng chứa "# Page 2" thành pageBlock TRANG 02 khi nhấn Tab', () => {
@@ -63,7 +90,7 @@ describe('ComicScriptEditor - Tiptap Keyboard-First Engine', () => {
     expect(handled).toBe(true);
 
     const json = editor.getJSON();
-    const firstNode = json.content?.[0];
+    const firstNode = (json.content?.[0] as any);
     expect(firstNode?.type).toBe('pageBlock');
     expect(firstNode?.attrs?.pageNumber).toBe('02');
   });
@@ -77,10 +104,10 @@ describe('ComicScriptEditor - Tiptap Keyboard-First Engine', () => {
     expect(handled).toBe(true);
 
     const json = editor.getJSON();
-    const firstNode = json.content?.[0];
+    const firstNode = (json.content?.[0] as any);
     expect(firstNode?.type).toBe('panelBlock');
     expect(firstNode?.attrs?.panelNumber).toBe('1.1');
-    expect(firstNode?.content?.[0]?.text).toContain('Panel 1.1:');
+    expect((firstNode?.content?.[0] as any)?.text).toContain('Panel 1.1:');
   });
 
   it('biến đổi dòng chứa "- Panel 2.3" thành panelBlock 2.3 khi nhấn Tab', () => {
@@ -91,7 +118,7 @@ describe('ComicScriptEditor - Tiptap Keyboard-First Engine', () => {
     expect(handled).toBe(true);
 
     const json = editor.getJSON();
-    const firstNode = json.content?.[0];
+    const firstNode = (json.content?.[0] as any);
     expect(firstNode?.type).toBe('panelBlock');
     expect(firstNode?.attrs?.panelNumber).toBe('2.3');
   });
@@ -105,10 +132,10 @@ describe('ComicScriptEditor - Tiptap Keyboard-First Engine', () => {
     expect(handled).toBe(true);
 
     const json = editor.getJSON();
-    const dialogueNode = json.content?.[0];
+    const dialogueNode = (json.content?.[0] as any);
     expect(dialogueNode?.type).toBe('dialogueBlock');
     expect(dialogueNode?.attrs?.character).toBe('Minh');
-    expect(dialogueNode?.content?.[0]?.text).toBe('Cẩn thận đấy!');
+    expect((dialogueNode?.content?.[0] as any)?.text).toBe('Cẩn thận đấy!');
 
     // Tự động tạo dòng trống tiếp theo để gõ tiếp
     expect(json.content?.[1]?.type).toBe('paragraph');
@@ -122,9 +149,9 @@ describe('ComicScriptEditor - Tiptap Keyboard-First Engine', () => {
     expect(handled).toBe(true);
 
     const json = editor.getJSON();
-    const sfxNode = json.content?.[0];
+    const sfxNode = (json.content?.[0] as any);
     expect(sfxNode?.type).toBe('sfxBlock');
-    expect(sfxNode?.content?.[0]?.text).toBe('BÙM');
+    expect((sfxNode?.content?.[0] as any)?.text).toBe('BÙM');
     expect(json.content?.[1]?.type).toBe('paragraph');
   });
 
@@ -136,9 +163,9 @@ describe('ComicScriptEditor - Tiptap Keyboard-First Engine', () => {
     expect(handled).toBe(true);
 
     const json = editor.getJSON();
-    const sfxNode = json.content?.[0];
+    const sfxNode = (json.content?.[0] as any);
     expect(sfxNode?.type).toBe('sfxBlock');
-    expect(sfxNode?.content?.[0]?.text).toBe('TIẾNG NỔ LỚN');
+    expect((sfxNode?.content?.[0] as any)?.text).toBe('TIẾNG NỔ LỚN');
   });
 
   it('tự động biến đổi dòng Caption: Lời dẫn thành captionBlock khi nhấn Enter', () => {
@@ -149,9 +176,9 @@ describe('ComicScriptEditor - Tiptap Keyboard-First Engine', () => {
     expect(handled).toBe(true);
 
     const json = editor.getJSON();
-    const captionNode = json.content?.[0];
+    const captionNode = (json.content?.[0] as any);
     expect(captionNode?.type).toBe('captionBlock');
-    expect(captionNode?.content?.[0]?.text).toBe('Đêm đã về khuya trên thành phố.');
+    expect((captionNode?.content?.[0] as any)?.text).toBe('Đêm đã về khuya trên thành phố.');
     expect(json.content?.[1]?.type).toBe('paragraph');
   });
 
@@ -175,9 +202,9 @@ describe('ComicScriptEditor - Tiptap Keyboard-First Engine', () => {
     expect(handled).toBe(true);
 
     const json = editor.getJSON();
-    const firstNode = json.content?.[0];
+    const firstNode = (json.content?.[0] as any);
     expect(firstNode?.type).toBe('paragraph');
-    expect(firstNode?.content?.[0]?.text).toContain('# TRANG 01 - Mở đầu');
+    expect((firstNode?.content?.[0] as any)?.text).toContain('# TRANG 01 - Mở đầu');
   });
 
   it('hoàn nguyên panelBlock về paragraph dạng "- [text]" khi nhấn Backspace ở đầu khối', () => {
@@ -198,9 +225,9 @@ describe('ComicScriptEditor - Tiptap Keyboard-First Engine', () => {
     expect(handled).toBe(true);
 
     const json = editor.getJSON();
-    const firstNode = json.content?.[0];
+    const firstNode = (json.content?.[0] as any);
     expect(firstNode?.type).toBe('paragraph');
-    expect(firstNode?.content?.[0]?.text).toContain('- Panel 1.1: Cận cảnh');
+    expect((firstNode?.content?.[0] as any)?.text).toContain('- Panel 1.1: Cận cảnh');
   });
 
   // 5. Render Editor Component

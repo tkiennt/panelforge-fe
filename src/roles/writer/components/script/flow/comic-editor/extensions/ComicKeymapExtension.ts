@@ -17,6 +17,64 @@ export const ComicKeymapExtension = Extension.create<ComicKeymapOptions>({
 
   addKeyboardShortcuts() {
     return {
+      // 0. SPACE TRIGGER: # + Space -> Trang, - + Space -> Panel
+      Space: ({ editor }) => {
+        const { state, dispatch } = editor.view;
+        const { selection } = state;
+        const { $from, empty } = selection;
+
+        if (!empty) return false;
+
+        const parentNode = $from.parent;
+        const depth = $from.depth;
+        const from = $from.before(depth);
+        const to = $from.after(depth);
+
+        const textBefore = parentNode.textBetween(0, $from.parentOffset, '\n', '\0').trim();
+
+        // 0.1 # + Space -> pageBlock
+        if (textBefore === '#' || /^#\s*(Page\s*\d*)?$/i.test(textBefore)) {
+          const numMatch = textBefore.match(/\d+/);
+          const pageNum = numMatch ? numMatch[0].padStart(2, '0') : '01';
+          const defaultLabel = `TRANG ${pageNum}`;
+
+          const pageNode = state.schema.nodes.pageBlock.create(
+            { pageNumber: pageNum, label: defaultLabel },
+            state.schema.text(`${defaultLabel} `)
+          );
+
+          const tr = state.tr.replaceWith(from, to, pageNode);
+          const textPos = from + 1 + defaultLabel.length + 1;
+          tr.setSelection(TextSelection.create(tr.doc, textPos));
+          dispatch(tr);
+
+          this.options.onBlockTransformed?.('pageBlock', defaultLabel);
+          return true;
+        }
+
+        // 0.2 - + Space -> panelBlock
+        if (textBefore === '-' || /^-\s*(Panel\s*[\d.]*)?$/i.test(textBefore)) {
+          const panelMatch = textBefore.match(/[\d.]+/);
+          const panelNum = panelMatch ? panelMatch[0] : '1.1';
+          const defaultText = `Panel ${panelNum}: `;
+
+          const panelNode = state.schema.nodes.panelBlock.create(
+            { panelNumber: panelNum, cameraAngle: 'Toàn cảnh' },
+            state.schema.text(defaultText)
+          );
+
+          const tr = state.tr.replaceWith(from, to, panelNode);
+          const textPos = from + 1 + defaultText.length;
+          tr.setSelection(TextSelection.create(tr.doc, textPos));
+          dispatch(tr);
+
+          this.options.onBlockTransformed?.('panelBlock', panelNum);
+          return true;
+        }
+
+        return false;
+      },
+
       // 1. PAGE TRIGGER (# + Tab) & PANEL TRIGGER (- + Tab)
       Tab: ({ editor }) => {
         const { state, dispatch } = editor.view;
