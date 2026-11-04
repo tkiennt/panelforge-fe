@@ -247,4 +247,120 @@ describe('ComicScriptEditor - Tiptap Keyboard-First Engine', () => {
     expect(screen.getByText(/2\. Tạo Panel:/)).toBeInTheDocument();
     expect(screen.getByText(/3\. Thoại Nhân vật:/)).toBeInTheDocument();
   });
+
+  // 6. Quy chuẩn Tăng Tự Động & Enter-Key Propagation Rules
+  describe('Auto-Increment & Enter-Key Propagation Rules', () => {
+    it('tăng số trang tuần tự Page 1 -> Page 2 -> Page 3 khi gõ "#" rồi nhấn Tab hoặc Space', () => {
+      const editor = createTestEditor('<p></p>');
+
+      // Tạo Page 1
+      editor.commands.setContent('<p>#</p>');
+      editor.commands.setTextSelection(2);
+      editor.commands.keyboardShortcut('Space');
+
+      // Nhấn Enter tạo paragraph rỗng, gõ "#" rồi nhấn Space
+      editor.commands.keyboardShortcut('Enter');
+      editor.commands.setTextSelection(editor.state.doc.content.size - 1);
+      editor.commands.insertContent('#');
+      editor.commands.keyboardShortcut('Space');
+
+      // Nhấn Enter tạo paragraph rỗng, gõ "#" rồi nhấn Tab
+      editor.commands.keyboardShortcut('Enter');
+      editor.commands.setTextSelection(editor.state.doc.content.size - 1);
+      editor.commands.insertContent('#');
+      editor.commands.keyboardShortcut('Tab');
+
+      const pages = (editor.getJSON().content || []).filter((n: any) => n.type === 'pageBlock');
+      expect(pages.length).toBe(3);
+      expect(pages[0]?.attrs?.pageNumber).toBe('01');
+      expect(pages[1]?.attrs?.pageNumber).toBe('02');
+      expect(pages[2]?.attrs?.pageNumber).toBe('03');
+    });
+
+    it('tăng số khung hình Panel 1.1 -> Panel 1.2 -> Panel 1.3 và tự động reset về Panel 2.1 khi qua Trang 2', () => {
+      const editor = createTestEditor('<p>#</p>');
+      editor.commands.setTextSelection(2);
+      editor.commands.keyboardShortcut('Space'); // Page 01
+
+      // Panel 1.1
+      editor.commands.keyboardShortcut('Enter');
+      editor.commands.setTextSelection(editor.state.doc.content.size - 1);
+      editor.commands.insertContent('-');
+      editor.commands.keyboardShortcut('Space');
+
+      // Panel 1.2
+      editor.commands.keyboardShortcut('Enter');
+      editor.commands.setTextSelection(editor.state.doc.content.size - 1);
+      editor.commands.insertContent('-');
+      editor.commands.keyboardShortcut('Tab');
+
+      // Panel 1.3
+      editor.commands.keyboardShortcut('Enter');
+      editor.commands.setTextSelection(editor.state.doc.content.size - 1);
+      editor.commands.insertContent('-');
+      editor.commands.keyboardShortcut('Space');
+
+      // Page 02
+      editor.commands.keyboardShortcut('Enter');
+      editor.commands.setTextSelection(editor.state.doc.content.size - 1);
+      editor.commands.insertContent('#');
+      editor.commands.keyboardShortcut('Space');
+
+      // Panel 2.1 (reset về 1)
+      editor.commands.keyboardShortcut('Enter');
+      editor.commands.setTextSelection(editor.state.doc.content.size - 1);
+      editor.commands.insertContent('-');
+      editor.commands.keyboardShortcut('Space');
+
+      const pages = (editor.getJSON().content || []).filter((n: any) => n.type === 'pageBlock');
+      expect(pages[0]?.attrs?.pageNumber).toBe('01');
+      expect(pages[1]?.attrs?.pageNumber).toBe('02');
+
+      const panels = (editor.getJSON().content || []).filter((n: any) => n.type === 'panelBlock');
+      expect(panels.length).toBe(4);
+      expect(panels[0]?.attrs?.panelNumber).toBe('1.1');
+      expect(panels[1]?.attrs?.panelNumber).toBe('1.2');
+      expect(panels[2]?.attrs?.panelNumber).toBe('1.3');
+      expect(panels[3]?.attrs?.panelNumber).toBe('2.1');
+    });
+
+    it('nhấn Enter sau một Panel tạo một paragraph rỗng, TUYỆT ĐỐI KHÔNG tự biến thành dialogue', () => {
+      const editor = createTestEditor('<div data-type="panel-block">Panel 1.1: [Cận cảnh]</div>');
+
+      // Đặt con trỏ bên trong panelBlock
+      editor.commands.setTextSelection(2);
+      const handled = editor.commands.keyboardShortcut('Enter');
+      expect(handled).toBe(true);
+
+      const json = editor.getJSON();
+      expect(json.content?.[0]?.type).toBe('panelBlock');
+      // Node tiếp theo phải là paragraph thông thường
+      expect(json.content?.[1]?.type).toBe('paragraph');
+      expect(json.content?.[1]?.attrs?.blockType).toBeUndefined();
+    });
+
+    it('chuyển @Minh: "Hello" thành dialogue, nhưng giữ nguyên @Minh walks away dạng paragraph', () => {
+      const editor = createTestEditor('<p>@Minh: "Hello"</p>');
+      editor.commands.setTextSelection(editor.state.doc.content.size - 1);
+      const handled1 = editor.commands.keyboardShortcut('Enter');
+      expect(handled1).toBe(true);
+
+      const json1 = editor.getJSON();
+      expect(json1.content?.[0]?.type).toBe('dialogueBlock');
+      expect(json1.content?.[0]?.attrs?.character).toBe('Minh');
+      expect((json1.content?.[0] as any)?.content?.[0]?.text).toBe('Hello');
+      // Dòng tiếp theo được chèn sẵn là paragraph rỗng
+      expect(json1.content?.[1]?.type).toBe('paragraph');
+
+      // Kiểm tra dòng không có dấu ngoặc kép: @Minh walks away
+      const editor2 = createTestEditor('<p>@Minh walks away</p>');
+      editor2.commands.setTextSelection(editor2.state.doc.content.size - 1);
+      editor2.commands.keyboardShortcut('Enter');
+
+      const json2 = editor2.getJSON();
+      expect(json2.content?.[0]?.type).toBe('paragraph');
+      expect(json2.content?.[0]?.type).not.toBe('dialogueBlock');
+      expect((json2.content?.[0] as any)?.attrs?.character).toBeUndefined();
+    });
+  });
 });

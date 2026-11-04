@@ -39,6 +39,7 @@ import {
   generateGuid,
 } from './scriptFlowAdapter';
 import { MangaBlockType } from './types';
+import { getNextPageNumber, getNextPanelNumber } from './comic-editor/comicCounting';
 
 interface ScreenplayFlowEditorProps {
   chapterId?: string;
@@ -163,8 +164,10 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
             // "# " -> Biến thành Page Block
             if (textBefore === '#' || /^#\s*(?:Page\s*\d*)?$/i.test(textBefore)) {
               const numMatch = textBefore.match(/\d+/);
-              const pageNum = numMatch ? numMatch[0].padStart(2, '0') : '01';
-              const defaultText = `TRANG ${pageNum} `;
+              const explicitNum = numMatch ? parseInt(numMatch[0], 10) : undefined;
+              const pageNum = getNextPageNumber(state.doc, $from.pos, explicitNum);
+              const formattedPage = String(pageNum).padStart(2, '0');
+              const defaultText = `TRANG ${formattedPage} `;
 
               const blockStart = $from.start();
               const blockEnd = $from.end();
@@ -180,9 +183,12 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
 
             // "- " -> Biến thành Panel Block
             if (textBefore === '-' || /^-\s*(?:Panel\s*[\d.]*)?$/i.test(textBefore)) {
-              const panelMatch = textBefore.match(/[\d.]+/);
-              const panelNum = panelMatch ? panelMatch[0] : '1.1';
-              const defaultText = `Panel ${panelNum}: [Toàn cảnh] `;
+              const panelMatch = textBefore.match(/(\d+)\.(\d+)/);
+              const explicit = panelMatch
+                ? { pageNum: parseInt(panelMatch[1], 10), panelNum: parseInt(panelMatch[2], 10) }
+                : undefined;
+              const { pageNum, panelNum } = getNextPanelNumber(state.doc, $from.pos, explicit);
+              const defaultText = `Panel ${pageNum}.${panelNum}: [Toàn cảnh] `;
 
               const blockStart = $from.start();
               const blockEnd = $from.end();
@@ -456,12 +462,8 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   // Chèn nhanh Trang mới (# Page X)
   const handleInsertPage = () => {
     if (!editor || !canEditScript || isChapterLocked) return;
-    const json = editor.getJSON();
-    const existingPageCount = (json.content || []).filter((c: any) => {
-      const t = c.content?.[0]?.text || '';
-      return c.attrs?.blockType === 'page_heading' || /^(?:#\s*Page|Trang)/i.test(t);
-    }).length;
-    const nextNum = existingPageCount + 1;
+    const nextNum = getNextPageNumber(editor.state.doc);
+    const formattedPage = String(nextNum).padStart(2, '0');
 
     editor
       .chain()
@@ -473,7 +475,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
             scriptLineId: generateGuid(),
             blockType: 'page_heading',
           },
-          content: [{ type: 'text', text: `# Page ${nextNum}` }],
+          content: [{ type: 'text', text: `TRANG ${formattedPage}` }],
         },
         {
           type: 'scriptLineBlock',
@@ -481,7 +483,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
             scriptLineId: generateGuid(),
             blockType: 'panel_heading',
           },
-          content: [{ type: 'text', text: `- Panel ${nextNum}.1: Toàn cảnh` }],
+          content: [{ type: 'text', text: `Panel ${nextNum}.1: [Toàn cảnh]` }],
         },
         {
           type: 'scriptLineBlock',
@@ -494,71 +496,14 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
       ])
       .run();
 
-    onShowToast?.('Đã chèn Trang', `Đã thêm # Page ${nextNum} (với Panel ${nextNum}.1)`);
+    onShowToast?.('Đã chèn Trang', `Đã thêm TRANG ${formattedPage} (với Panel ${nextNum}.1)`);
   };
 
   // Chèn nhanh Khung hình mới (- Panel X.Y: Cận cảnh) theo số trang hiện tại
   const handleInsertPanel = (shotName: string = 'Cận cảnh') => {
     if (!editor || !canEditScript || isChapterLocked) return;
-    const json = editor.getJSON();
-    const content = json.content || [];
-
-    // Xác định vị trí block hiện tại theo con trỏ soạn thảo
-    const currentBlockIndex = editor.state.selection.$from.index(0);
-
-    // Tìm số trang hiện tại (quét ngược từ vị trí con trỏ về đầu tài liệu)
-    let currentPageNum = 1;
-    let pageBlockIndex = -1;
-
-    for (let i = Math.min(currentBlockIndex, content.length - 1); i >= 0; i--) {
-      const block = content[i];
-      const text = ((block.content?.[0] as any)?.text || '').trim();
-      const match = text.match(/^(?:#\s*Page|Trang)\s*(\d+(?:\.\d+)?)/i);
-      if (block.attrs?.blockType === 'page_heading' || match) {
-        if (match) {
-          currentPageNum = parseFloat(match[1]) || 1;
-        }
-        pageBlockIndex = i;
-        break;
-      }
-    }
-
-    // Nếu không tìm thấy trang trước con trỏ, tìm trang đầu tiên trong tài liệu
-    if (pageBlockIndex === -1) {
-      for (let i = 0; i < content.length; i++) {
-        const block = content[i];
-        const text = ((block.content?.[0] as any)?.text || '').trim();
-        const match = text.match(/^(?:#\s*Page|Trang)\s*(\d+(?:\.\d+)?)/i);
-        if (block.attrs?.blockType === 'page_heading' || match) {
-          if (match) {
-            currentPageNum = parseFloat(match[1]) || 1;
-          }
-          pageBlockIndex = i;
-          break;
-        }
-      }
-    }
-
-    // Đếm số panel hiện có trong trang này để tính số thứ tự panel tiếp theo (ví dụ 1.1, 1.2, 1.3...)
-    let panelCountInPage = 0;
-    const startIndex = pageBlockIndex >= 0 ? pageBlockIndex + 1 : 0;
-    for (let i = startIndex; i < content.length; i++) {
-      const block = content[i];
-      const text = ((block.content?.[0] as any)?.text || '').trim();
-      // Nếu gặp trang tiếp theo sau vị trí con trỏ thì dừng
-      if (i > currentBlockIndex && (block.attrs?.blockType === 'page_heading' || /^(?:#\s*Page|Trang)\s*\d+/i.test(text))) {
-        break;
-      }
-      const isPanel =
-        block.attrs?.blockType === 'panel_heading' ||
-        /^(?:(?:-\s*)?(?:Panel|Khung)\s*\d+|-\s*\d+(?:\.\d+)?|#panel\s*\d+)/i.test(text);
-      if (isPanel) {
-        panelCountInPage++;
-      }
-    }
-
-    const nextPanelIndex = panelCountInPage + 1;
-    const panelLabel = `- Panel ${currentPageNum}.${nextPanelIndex}: ${shotName}`;
+    const { pageNum, panelNum } = getNextPanelNumber(editor.state.doc, editor.state.selection.$from.pos);
+    const panelLabel = `Panel ${pageNum}.${panelNum}: [${shotName}]`;
 
     editor
       .chain()
@@ -578,7 +523,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
             scriptLineId: generateGuid(),
             blockType: 'stage_direction',
           },
-          content: [{ type: 'text', text: `Mô tả hành động của khung hình ${currentPageNum}.${nextPanelIndex}...` }],
+          content: [{ type: 'text', text: `Mô tả hành động của khung hình ${pageNum}.${panelNum}...` }],
         },
       ])
       .run();
