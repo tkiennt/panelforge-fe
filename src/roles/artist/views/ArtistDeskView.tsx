@@ -144,7 +144,8 @@ import {
 import { splitPanelWithRollback } from '../utils/splitPanel';
 import { PageArtworkWorkflow } from '../components/PageArtworkWorkflow';
 import { PageArtCrop } from '@/shared/features/collaboration/ArtworkPanel';
-import { seriesService } from '@/services/series.service';
+import { seriesService, type SeriesDetailDto } from '@/services/series.service';
+import { ChapterSelectionView } from '@/roles/writer/components/script/chapter-selection';
 import { pipelineService, type PipelineStageDto } from '@/services/pipeline.service';
 import { pickPanelArtwork, pickPageArtwork } from '@/shared/utils/stageArtworks';
 import { ElementConflictModal } from '@/shared/modals/ElementConflictModal';
@@ -275,6 +276,20 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
   const [chapters, setChapters] = useState<ChapterDto[]>([]);
   const [currentChapterId, setCurrentChapterId] = useState<string | null>(chapterIdFromUrl || null);
   const [loadingChapters, setLoadingChapters] = useState(false);
+  const [seriesDetail, setSeriesDetail] = useState<SeriesDetailDto | null>(null);
+
+  const handleSelectChapter = useCallback(
+    (chapId: string) => {
+      setCurrentChapterId(chapId);
+      setActiveTab('script');
+      setSearchParams((prev) => {
+        const p = new URLSearchParams(prev);
+        p.set('chapterId', chapId);
+        return p;
+      });
+    },
+    [setSearchParams],
+  );
 
   // Quyền ghi Page (Breaking 152): Chỉ Producer và Artist được ghi (tạo/sửa canvas/xoá)
   const normRole = workspaceRole ? normalizeWorkspaceRole(workspaceRole) : null;
@@ -1487,8 +1502,10 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
     seriesService
       .getSeriesById(seriesId)
       .then((s) => {
-        if (alive)
+        if (alive) {
+          setSeriesDetail(s);
           setSeriesRightToLeft(s.readingDirection === 1 || s.readingDirection === 'RightToLeft');
+        }
       })
       .catch(() => undefined);
     return () => {
@@ -1555,7 +1572,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
         setChapters(res.items);
         if (res.items.length > 0) {
           const matched = res.items.find((c) => c.id === chapterIdFromUrl);
-          const chosenId = matched ? matched.id : res.items[0].id;
+          const chosenId = matched ? matched.id : null;
           setCurrentChapterId(chosenId);
         }
       })
@@ -1570,6 +1587,25 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
       isMounted = false;
     };
   }, [seriesId, chapterIdFromUrl]);
+
+  // Đồng bộ chapterId từ URL query param khi thay đổi
+  useEffect(() => {
+    if (!chapters || chapters.length === 0) return;
+    if (!chapterIdFromUrl) {
+      if (currentChapterId !== null) {
+        setCurrentChapterId(null);
+      }
+      return;
+    }
+    if (currentChapterId !== chapterIdFromUrl) {
+      const found = chapters.find((c) => c.id === chapterIdFromUrl);
+      if (found) {
+        setCurrentChapterId(found.id);
+      } else {
+        setCurrentChapterId(null);
+      }
+    }
+  }, [chapterIdFromUrl, chapters, currentChapterId]);
 
   // Nạp danh sách Scenes của Chapter (V1.2 / CF2)
   useEffect(() => {
@@ -3088,6 +3124,40 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
   const menuItem =
     'w-full px-3 py-2 text-left text-xs flex items-center gap-2 hover:bg-[#F3F0E9] cursor-pointer focus-visible:outline-2 focus-visible:outline-[#F97316] disabled:text-stone-400 disabled:cursor-not-allowed disabled:hover:bg-transparent';
 
+  // Nếu chưa chọn Chapter (hoặc vừa vào trang chưa có query chapterId): Hiển thị màn hình Chọn Chương
+  if (!currentChapterId) {
+    return (
+      <div
+        className='w-full flex-1 flex flex-col min-h-0 overflow-y-auto bg-[#FAF8F5] text-[#1C1917] custom-scrollbar'
+        data-testid='artist-chapter-selection-wrapper'
+      >
+        {toast && (
+          <div className='fixed top-6 right-6 z-50 bg-[#1C1917] text-[#FCFBF8] px-4 py-3 rounded-xl shadow-2xl border border-[#D8D2C5]/30 flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-200'>
+            <CheckCircle2 className='w-4 h-4 text-emerald-400 shrink-0' />
+            <div>
+              <div className='text-xs font-bold'>{toast.title}</div>
+              <div className='text-xs text-[#57534E]'>{toast.desc}</div>
+            </div>
+            <button
+              onClick={() => setToast(null)}
+              className='ml-2 text-[#57534E] hover:text-white cursor-pointer'
+            >
+              <X className='w-3.5 h-3.5' />
+            </button>
+          </div>
+        )}
+        <ChapterSelectionView
+          chapters={chapters}
+          seriesDetail={seriesDetail}
+          canCreateChapter={normRole === 'PRODUCER'}
+          loadingChapters={loadingChapters}
+          onSelectChapter={(chap) => handleSelectChapter(chap.id)}
+          onShowToast={(title, desc) => showToast(title, desc)}
+        />
+      </div>
+    );
+  }
+
   return (
     <div
       className='flex-1 basis-0 min-h-0 w-full flex flex-col bg-[#F3F0E9] p-2 gap-2 overflow-hidden'
@@ -3137,6 +3207,25 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
           )}
         </button>
 
+        <button
+          type='button'
+          onClick={() => {
+            setCurrentChapterId(null);
+            setSearchParams((prev) => {
+              const p = new URLSearchParams(prev);
+              p.delete('chapterId');
+              return p;
+            });
+          }}
+          data-testid='switch-chapter-btn'
+          title='Quay lại danh sách chọn chương'
+          aria-label='Đổi chương'
+          className={`${toolbarBtn} ${toolbarIdle} px-2`}
+        >
+          <BookOpen className='w-3.5 h-3.5 text-[#C2410C]' />
+          <span className='hidden sm:inline font-semibold'>Đổi chương</span>
+        </button>
+
         <div className='flex items-center gap-1 min-w-0 text-xs text-[#57534E]'>
           {chapters.length > 0 ? (
             <>
@@ -3148,15 +3237,20 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                 value={currentChapterId || ''}
                 onChange={(e) => {
                   const newId = e.target.value;
-                  setCurrentChapterId(newId);
-                  setSearchParams((prev) => {
-                    const p = new URLSearchParams(prev);
-                    p.set('chapterId', newId);
-                    return p;
-                  });
+                  if (newId === '__all__') {
+                    setCurrentChapterId(null);
+                    setSearchParams((prev) => {
+                      const p = new URLSearchParams(prev);
+                      p.delete('chapterId');
+                      return p;
+                    });
+                    return;
+                  }
+                  handleSelectChapter(newId);
                 }}
                 className='h-8 max-w-[5.5rem] bg-transparent font-semibold text-[#1C1917] rounded-lg px-1 cursor-pointer hover:bg-[#F3F0E9] focus-visible:outline-2 focus-visible:outline-[#F97316] truncate'
               >
+                <option value='__all__'>📋 Tất cả chương…</option>
                 {chapters.map((c) => (
                   <option key={c.id} value={c.id}>
                     Chương {c.chapterNumber}
@@ -3247,6 +3341,20 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                 <Grid2x2 className='w-3.5 h-3.5' />
                 <span className='hidden lg:inline'>Sửa bố cục</span>
                 <span className='sr-only lg:hidden'>Sửa bố cục</span>
+              </button>
+            )}
+
+            {canEditPages && (
+              <button
+                type='button'
+                onClick={() => setFrameTemplateModalOpen(true)}
+                data-testid='toolbar-frame-template-btn'
+                title='Áp dụng mẫu khung tranh dựng sẵn vào trang'
+                className={`${toolbarBtn} ${toolbarIdle}`}
+              >
+                <LayoutTemplate className='w-3.5 h-3.5 text-[#C2410C]' />
+                <span className='hidden lg:inline'>Mẫu Khung</span>
+                <span className='sr-only lg:hidden'>Mẫu Khung</span>
               </button>
             )}
 
@@ -3938,6 +4046,25 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
 
             {activeTab === 'script' && (
               <div className='flex-1 flex flex-col gap-2 min-h-0'>
+                {/* 0. Banner Chỉ đọc kịch bản */}
+                <div
+                  data-testid='artist-script-readonly-banner'
+                  className='px-2.5 py-1.5 bg-amber-500/10 border border-amber-500/30 rounded-xl text-xs font-semibold text-amber-900 flex items-center justify-between shrink-0 shadow-2xs'
+                >
+                  <span className='flex items-center gap-1.5'>
+                    <Lock className='w-3.5 h-3.5 text-amber-700' />
+                    <span>Kịch bản chương (Chỉ đọc)</span>
+                  </span>
+                  <span className='text-[10px] text-amber-700 font-normal'>Tham chiếu vẽ tranh</span>
+                </div>
+
+                {/* Tóm tắt chương nếu có */}
+                {currentChapter?.outline && (
+                  <div className='p-2 bg-[#F8F6F0] rounded-xl border border-[#D8D2C5] text-xs shrink-0' data-testid='chapter-outline-card'>
+                    <div className='text-[10px] font-bold text-[#78716C] uppercase tracking-wider mb-0.5'>Tóm tắt nội dung chương</div>
+                    <div className='text-stone-700 text-[11px] line-clamp-3'>{currentChapter.outline}</div>
+                  </div>
+                )}
                 {/* 1. Header Phân cảnh & Tiến độ gán */}
                 <div className='p-2.5 bg-[#F8F6F0] rounded-xl border border-[#D8D2C5] space-y-2 shrink-0'>
                   <div className='flex items-center justify-between text-xs font-bold text-[#1C1917]'>
@@ -4482,6 +4609,53 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                         transformOrigin: 'center center',
                       }}
                     >
+                      {/* Empty Page Canvas: Hỗ trợ chọn nhanh Mẫu Khung hoặc Tải ảnh */}
+                      {panels.length === 0 && canEditPages && (
+                        <div
+                          data-testid='canvas-empty-panels-overlay'
+                          className='absolute inset-6 flex flex-col items-center justify-center p-6 text-center bg-stone-50/95 backdrop-blur-xs rounded-2xl border-2 border-dashed border-[#D8D2C5] z-10 space-y-3'
+                        >
+                          <div className='w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center text-orange-600'>
+                            <LayoutTemplate className='w-6 h-6' />
+                          </div>
+                          <div>
+                            <h4 className='font-bold text-sm text-[#1C1917]'>Trang chưa có khung tranh nào</h4>
+                            <p className='text-xs text-[#57534E] max-w-xs mt-1'>
+                              Chọn một mẫu khung tranh dựng sẵn hoặc tải ảnh lên để bắt đầu vẽ.
+                            </p>
+                          </div>
+                          <div className='flex flex-wrap items-center justify-center gap-2 pt-1'>
+                            <button
+                              type='button'
+                              onClick={() => setFrameTemplateModalOpen(true)}
+                              data-testid='canvas-empty-template-btn'
+                              className='px-3 py-1.5 text-xs font-semibold rounded-lg bg-[#F97316] text-white hover:bg-[#EA580C] flex items-center gap-1.5 cursor-pointer shadow-2xs'
+                            >
+                              <LayoutTemplate className='w-3.5 h-3.5' />
+                              <span>Kho Mẫu Khung</span>
+                            </button>
+                            <button
+                              type='button'
+                              onClick={handleCreatePanel}
+                              data-testid='canvas-empty-create-panel-btn'
+                              className='px-3 py-1.5 text-xs font-semibold rounded-lg bg-white border border-[#D8D2C5] text-[#1C1917] hover:bg-[#F3F0E9] flex items-center gap-1.5 cursor-pointer shadow-2xs'
+                            >
+                              <Square className='w-3.5 h-3.5 text-stone-600' />
+                              <span>1 Khung Toàn Trang</span>
+                            </button>
+                            <button
+                              type='button'
+                              onClick={handleTriggerUploadPage}
+                              data-testid='canvas-empty-upload-btn'
+                              className='px-3 py-1.5 text-xs font-semibold rounded-lg bg-white border border-[#D8D2C5] text-[#1C1917] hover:bg-[#F3F0E9] flex items-center gap-1.5 cursor-pointer shadow-2xs'
+                            >
+                              <Upload className='w-3.5 h-3.5 text-stone-600' />
+                              <span>Tải Ảnh Cả Trang</span>
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
                       {/* Safe Margin Guides */}
                       {layoutEdit && (
                         <div className='absolute inset-3 border border-blue-200/60 pointer-events-none'></div>
