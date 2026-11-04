@@ -22,8 +22,8 @@ export const PageBlockNode = Node.create({
         }),
       },
       label: {
-        default: 'TRANG 01',
-        parseHTML: (element) => element.getAttribute('data-label') || 'TRANG 01',
+        default: 'Trang 01',
+        parseHTML: (element) => element.getAttribute('data-label') || 'Trang 01',
         renderHTML: (attributes) => ({
           'data-label': attributes.label,
         }),
@@ -41,7 +41,7 @@ export const PageBlockNode = Node.create({
 
   renderHTML({ HTMLAttributes }) {
     const pageNum = HTMLAttributes['data-page-number'] || '01';
-    const displayLabel = HTMLAttributes['data-label'] || `TRANG ${pageNum}`;
+    const displayLabel = HTMLAttributes['data-label'] || `Trang ${pageNum}`;
 
     return [
       'div',
@@ -52,10 +52,10 @@ export const PageBlockNode = Node.create({
       [
         'div',
         {
-          class: 'text-xs font-bold text-[#C2410C] uppercase tracking-wider mb-2 flex items-center gap-2 select-none pointer-events-none',
+          class: 'text-xs font-bold text-[#C2410C] uppercase tracking-wider mb-2 flex items-center gap-1.5 select-none pointer-events-none',
           contenteditable: 'false',
         },
-        ['span', { class: 'text-sm' }, '📄'],
+        ['span', { class: 'inline-flex items-center justify-center w-4 h-4 rounded-full bg-[#C2410C] text-white text-[11px] font-black mr-1' }, '!'],
         ['span', { class: 'page-badge tracking-widest' }, displayLabel],
       ],
       [

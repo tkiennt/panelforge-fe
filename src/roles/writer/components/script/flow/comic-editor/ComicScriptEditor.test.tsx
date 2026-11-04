@@ -1,7 +1,6 @@
 // src/roles/writer/components/script/flow/comic-editor/ComicScriptEditor.test.tsx
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
 import { Editor } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
@@ -39,8 +38,8 @@ function createTestEditor(initialContent: any = '<p></p>') {
 }
 
 describe('ComicScriptEditor - Tiptap Keyboard-First Engine', () => {
-  // 0. Space Triggers (# + Space, - + Space)
-  it('biến đổi dòng chứa "#" thành pageBlock khi nhấn Space', () => {
+  // 0. Space Triggers (# + Space, - + Space, ! + Space, " + Space)
+  it('biến đổi dòng chứa "#" hoặc "!" thành pageBlock khi nhấn Space', () => {
     const editor = createTestEditor('<p>#</p>');
     editor.commands.setTextSelection(2);
 
@@ -53,7 +52,7 @@ describe('ComicScriptEditor - Tiptap Keyboard-First Engine', () => {
     expect(firstNode?.attrs?.pageNumber).toBe('01');
   });
 
-  it('biến đổi dòng chứa "-" thành panelBlock khi nhấn Space', () => {
+  it('biến đổi dòng chứa "-" hoặc \'"\' thành panelBlock khi nhấn Space', () => {
     const editor = createTestEditor('<p>-</p>');
     editor.commands.setTextSelection(2);
 
@@ -69,9 +68,8 @@ describe('ComicScriptEditor - Tiptap Keyboard-First Engine', () => {
   // 1. Page Trigger (# + Tab)
   it('biến đổi dòng chứa "#" thành pageBlock khi nhấn Tab', () => {
     const editor = createTestEditor('<p>#</p>');
-    editor.commands.setTextSelection(2); // Đặt con trỏ sau ký tự '#'
+    editor.commands.setTextSelection(2);
 
-    // Giả lập phím Tab
     const handled = editor.commands.keyboardShortcut('Tab');
     expect(handled).toBe(true);
 
@@ -79,10 +77,10 @@ describe('ComicScriptEditor - Tiptap Keyboard-First Engine', () => {
     const firstNode = (json.content?.[0] as any);
     expect(firstNode?.type).toBe('pageBlock');
     expect(firstNode?.attrs?.pageNumber).toBe('01');
-    expect((firstNode?.content?.[0] as any)?.text).toContain('TRANG 01');
+    expect((firstNode?.content?.[0] as any)?.text).toContain('Trang 01');
   });
 
-  it('biến đổi dòng chứa "# Page 2" thành pageBlock TRANG 02 khi nhấn Tab', () => {
+  it('biến đổi dòng chứa "# Page 2" thành pageBlock Trang 02 khi nhấn Tab', () => {
     const editor = createTestEditor('<p># Page 2</p>');
     editor.commands.setTextSelection(9);
 
@@ -183,19 +181,18 @@ describe('ComicScriptEditor - Tiptap Keyboard-First Engine', () => {
   });
 
   // 4. Graceful Backspace (Undo Formatting Without Content Loss)
-  it('hoàn nguyên pageBlock về paragraph dạng "# [text]" khi nhấn Backspace ở đầu khối', () => {
+  it('hoàn nguyên pageBlock về paragraph dạng "! [text]" khi nhấn Backspace ở đầu khối', () => {
     const editor = createTestEditor({
       type: 'doc',
       content: [
         {
           type: 'pageBlock',
-          attrs: { pageNumber: '01', label: 'TRANG 01' },
-          content: [{ type: 'text', text: 'TRANG 01 - Mở đầu' }],
+          attrs: { pageNumber: '01', label: 'Trang 01' },
+          content: [{ type: 'text', text: 'Trang 01 - Mở đầu' }],
         },
       ],
     });
 
-    // Đặt con trỏ ở vị trí 0 (đầu khối)
     editor.commands.setTextSelection(1);
 
     const handled = editor.commands.keyboardShortcut('Backspace');
@@ -204,10 +201,10 @@ describe('ComicScriptEditor - Tiptap Keyboard-First Engine', () => {
     const json = editor.getJSON();
     const firstNode = (json.content?.[0] as any);
     expect(firstNode?.type).toBe('paragraph');
-    expect((firstNode?.content?.[0] as any)?.text).toContain('# TRANG 01 - Mở đầu');
+    expect((firstNode?.content?.[0] as any)?.text).toContain('! Trang 01 - Mở đầu');
   });
 
-  it('hoàn nguyên panelBlock về paragraph dạng "- [text]" khi nhấn Backspace ở đầu khối', () => {
+  it('hoàn nguyên panelBlock về paragraph dạng \'" [text]\' khi nhấn Backspace ở đầu khối', () => {
     const editor = createTestEditor({
       type: 'doc',
       content: [
@@ -227,7 +224,7 @@ describe('ComicScriptEditor - Tiptap Keyboard-First Engine', () => {
     const json = editor.getJSON();
     const firstNode = (json.content?.[0] as any);
     expect(firstNode?.type).toBe('paragraph');
-    expect((firstNode?.content?.[0] as any)?.text).toContain('- Panel 1.1: Cận cảnh');
+    expect((firstNode?.content?.[0] as any)?.text).toContain('" Panel 1.1: Cận cảnh');
   });
 
   // 5. Render Editor Component
@@ -349,7 +346,7 @@ describe('ComicScriptEditor - Tiptap Keyboard-First Engine', () => {
       expect(json1.content?.[0]?.type).toBe('dialogueBlock');
       expect(json1.content?.[0]?.attrs?.character).toBe('Minh');
       expect((json1.content?.[0] as any)?.content?.[0]?.text).toBe('Hello');
-      // Dòng tiếp theo được chèn sẵn là paragraph rỗng
+      // Dòng tiếp theo được chèn sẵn là paragraph rỗng cho phép viết tự do
       expect(json1.content?.[1]?.type).toBe('paragraph');
 
       // Kiểm tra dòng không có dấu ngoặc kép: @Minh walks away

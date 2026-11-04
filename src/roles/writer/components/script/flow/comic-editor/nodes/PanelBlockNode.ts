@@ -53,9 +53,9 @@ export const PanelBlockNode = Node.create({
         [
           'span',
           {
-            class: 'inline-block px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-700',
+            class: 'inline-block px-2 py-0.5 rounded text-xs font-semibold bg-indigo-100 text-indigo-700',
           },
-          `🎬 PANEL ${panelNum}`,
+          `" Panel ${panelNum}`,
         ],
         [
           'span',

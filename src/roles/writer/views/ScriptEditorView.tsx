@@ -515,11 +515,49 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       let currentVersion = currentChapter.versionVector || 1;
       let hasChanges = false;
 
+      // 1b. Cập nhật tiêu đề phân cảnh nếu được chỉnh sửa trực tiếp trên giấy (Paper -> Modal & Backend)
+      const headingBlocks = extractedLines.filter((l) => l.blockType === 'scene_heading');
+      for (const hb of headingBlocks) {
+        const rawHeadingText = hb.stageDirection?.trim() || '';
+        // Phân tích cú pháp "CẢNH 1: TIÊU ĐỀ" hoặc "SCENE 1: TIÊU ĐỀ" hoặc văn bản thuần
+        const headingMatch = rawHeadingText.match(/^(?:CẢNH|SCENE)\s*\d+\s*:\s*(.*)$/i);
+        const parsedHeading = headingMatch ? headingMatch[1].trim() : rawHeadingText;
+
+        const targetScene = scenes.find((s) => s.id === hb.sceneId) || activeScene;
+        if (targetScene && parsedHeading && parsedHeading !== targetScene.heading) {
+          try {
+            const updatedScene = await scriptLineService.updateScene(targetScene.id, {
+              heading: parsedHeading,
+              summary: targetScene.summary || null,
+              defaultNarrationMode: targetScene.defaultNarrationMode || 'Present',
+              expectedVersion: targetScene.version,
+            });
+            setScenes((prev) => prev.map((s) => (s.id === updatedScene.id ? updatedScene : s)));
+            setSelectedScene((prev) =>
+              prev && prev.id === updatedScene.id ? { ...prev, ...updatedScene } : prev
+            );
+            setChapterScenesDetail((prev) =>
+              prev.map((s) =>
+                s.id === updatedScene.id
+                  ? { ...s, heading: updatedScene.heading, version: updatedScene.version }
+                  : s
+              )
+            );
+            hasChanges = true;
+          } catch (sceneErr: any) {
+            console.error('Lỗi cập nhật tiêu đề phân cảnh từ giấy:', sceneErr);
+          }
+        }
+      }
+
+      // Lọc bỏ khối tiêu đề cảnh ra khỏi danh sách script lines để tránh lưu nhầm vào bảng ScriptLine
+      const scriptLinesToProcess = extractedLines.filter((l) => l.blockType !== 'scene_heading');
+
       const currentLines = activeScene.scriptLines || [];
       const currentMap = new Map(currentLines.map((l) => [l.id, l]));
 
       // 3. Xoá dòng đã bị lược bỏ trong TipTap (Phantom Lines Deletion)
-      const extractedIds = new Set(extractedLines.map((l) => l.scriptLineId));
+      const extractedIds = new Set(scriptLinesToProcess.map((l) => l.scriptLineId));
       const linesToDelete = currentLines.filter((l) => !extractedIds.has(l.id));
 
       for (const line of linesToDelete) {
@@ -541,7 +579,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       // 4. Cập nhật hoặc thêm mới các dòng
       const createdLineIdMap = new Map<string, string>();
 
-      for (const line of extractedLines) {
+      for (const line of scriptLinesToProcess) {
         // Domain Invariant: Dòng kịch bản phải có thoại hoặc chỉ dẫn sân khấu
         const hasValidText = Boolean(line.dialogueText?.trim() || line.stageDirection?.trim());
         if (!hasValidText) continue;
@@ -607,7 +645,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
       // 5. Cập nhật thứ tự các dòng (Reorder)
       const targetSceneId = activeScene.id;
-      const sceneExtractedLines = extractedLines.filter(
+      const sceneExtractedLines = scriptLinesToProcess.filter(
         (l) => !l.sceneId || l.sceneId === targetSceneId
       );
       if (sceneExtractedLines.length > 1) {
@@ -640,28 +678,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     [currentChapter, chapterScenesDetail, selectedScene, scenes, canEditScript, isChapterLocked, loadSceneDetail]
   );
 
-  // Tự sinh Stub Entity từ @-mention để không làm ngắt dòng cảm xúc của Writer
-  // Xử lý Xoá Phân Cảnh (Delete Scene - LucianConfirmModal)
-  const handleConfirmDeleteScene = async () => {
-    if (!sceneToDelete) return;
-    setIsDeletingScene(true);
-    try {
-      await scriptLineService.deleteScene(sceneToDelete.id);
-      notify(
-        'Đã xoá phân cảnh',
-        `Cảnh ${sceneToDelete.sceneNumber} (${sceneToDelete.heading || 'Không tên'}) đã được xoá an toàn.`
-      );
-      if (selectedScene?.id === sceneToDelete.id) {
-        setSelectedScene(null);
-      }
-      setSceneToDelete(null);
-      await loadScenes();
-    } catch (err: any) {
-      notify('Không thể xoá phân cảnh', err.message || 'Lỗi hệ thống');
-    } finally {
-      setIsDeletingScene(false);
-    }
-  };
+
 
   // Xử lý Xoá Chương (Delete Chapter - Lucian #269 TypeToConfirmModal)
   const handleConfirmDeleteChapter = async () => {
@@ -1028,6 +1045,13 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         notify('Thành công', `Đã cập nhật Phân cảnh ${updated.sceneNumber}`);
         setScenes((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
         setSelectedScene((prev) => (prev ? { ...prev, ...updated } : null));
+        setChapterScenesDetail((prev) =>
+          prev.map((s) =>
+            s.id === updated.id
+              ? { ...s, heading: updated.heading, summary: updated.summary, version: updated.version }
+              : s
+          )
+        );
       } else {
         const req: CreateSceneRequest = {
           sceneNumber: sceneNumberInput,
@@ -1063,35 +1087,11 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     }
   };
 
-  const handleDeleteScene = async () => {
-    if (!selectedScene) return;
-    if (
-      !(await confirm({
-        title: `Xoá Phân cảnh ${selectedScene.sceneNumber}?`,
-        description: 'Tất cả các dòng kịch bản trong phân cảnh này sẽ bị xoá.',
-        confirmText: 'Xoá phân cảnh',
-        cancelText: 'Hủy',
-        variant: 'danger',
-      }))
-    )
-      return;
-    try {
-      await scriptLineService.deleteScene(selectedScene.id);
-      notify('Đã xoá phân cảnh', `Phân cảnh ${selectedScene.sceneNumber} đã được xoá.`);
-      const remaining = scenes.filter((s) => s.id !== selectedScene.id);
-      setScenes(remaining);
-      if (remaining.length > 0) {
-        handleSelectScene(remaining[0]);
-      } else {
-        setSelectedScene(null);
-      }
-    } catch (err: any) {
-      if (err?.status === 403) {
-        notify('Không có quyền xoá phân cảnh (403)', err.message);
-      } else {
-        notify('Lỗi xoá phân cảnh', err.message);
-      }
-    }
+  const handleDeleteScene = () => {
+    notify(
+      'Không thể xoá phân cảnh',
+      'Hệ thống không cho phép xoá phân cảnh để đảm bảo tính liên tục của mạch truyện. Bạn chỉ có thể sửa tiêu đề phân cảnh.'
+    );
   };
 
   // --- CRUD SCRIPT LINE (UC-06) ---
@@ -2092,21 +2092,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                             <span className='font-mono text-xs text-[#57534E] bg-[#F3F0E9] border border-[#D8D2C5] px-2 py-0.5 rounded-md'>
                               {s.scriptLinesCount} dòng
                             </span>
-                            {canEditScript && !isChapterLocked && (
-                              <button
-                                type='button'
-                                data-testid={`delete-scene-btn`}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSceneToDelete(s);
-                                }}
-                                className='p-1 text-[#78716C] hover:text-[#DC2626] hover:bg-[#FEE2E2] rounded-md transition-colors cursor-pointer'
-                                title={`Xoá Cảnh ${s.sceneNumber}`}
-                                aria-label={`Xoá Cảnh ${s.sceneNumber}`}
-                              >
-                                <Trash2 className='w-3 h-3' />
-                              </button>
-                            )}
                           </div>
                         </div>
                         <div className='text-xs text-[#1C1917] font-medium truncate'>
@@ -2183,23 +2168,17 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
                 {/* Toolbar cho phân cảnh */}
                 <div className='flex items-center gap-2 flex-wrap shrink-0'>
-                  {canEditScript && !isChapterLocked && editorMode === 'cards' && selectedScene && (
+                  {canEditScript && !isChapterLocked && selectedScene && (
                     <div className='flex items-center gap-1 border-r border-[#D8D2C5] pr-2 mr-1'>
                       <button
                         type='button'
+                        data-testid='edit-scene-heading-btn'
                         onClick={handleOpenEditScene}
-                        className='p-1.5 text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9] rounded-lg cursor-pointer transition-colors'
-                        title='Sửa tiêu đề & tóm tắt phân cảnh'
+                        className='inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#1C1917] bg-[#F3F0E9] hover:bg-[#EAE5D9] border border-[#D8D2C5] rounded-lg cursor-pointer transition-colors shadow-2xs'
+                        title='Sửa tiêu đề phân cảnh (Đồng bộ trực tiếp trên giấy và trong modal)'
                       >
-                        <Edit2 className='w-4 h-4' />
-                      </button>
-                      <button
-                        type='button'
-                        onClick={handleDeleteScene}
-                        className='p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg cursor-pointer transition-colors'
-                        title='Xoá phân cảnh'
-                      >
-                        <Trash2 className='w-4 h-4' />
+                        <Edit2 className='w-3.5 h-3.5 text-[#57534E]' />
+                        <span>Sửa tiêu đề cảnh</span>
                       </button>
                     </div>
                   )}
@@ -2828,17 +2807,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         onClose={() => setConflictModalOpen(false)}
       />
 
-      {/* Lucian #269 & #072: Modal Xoá Phân Cảnh (Delete Scene Confirmation) */}
-      <LucianConfirmModal
-        isOpen={Boolean(sceneToDelete)}
-        title={`Xoá Cảnh ${sceneToDelete?.sceneNumber}: ${sceneToDelete?.heading || 'Chưa đặt tiêu đề'}?`}
-        description='Toàn bộ các dòng kịch bản trong phân cảnh này sẽ bị xoá mềm. Các panel truyện gắn vào phân cảnh sẽ được gỡ liên kết an toàn.'
-        confirmText={isDeletingScene ? 'Đang xoá...' : 'Xác nhận xoá'}
-        cancelText='Huỷ bỏ'
-        variant='danger'
-        onConfirm={handleConfirmDeleteScene}
-        onCancel={() => setSceneToDelete(null)}
-      />
 
       {/* Lucian #269: Type-to-Confirm Modal Xoá Chương (Destructive Chapter Delete) */}
       {chapterToDelete && (

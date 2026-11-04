@@ -4,8 +4,8 @@ export const INITIAL_COMIC_SCRIPT_DOC = {
   content: [
     {
       type: 'pageBlock',
-      attrs: { pageNumber: '01', label: 'TRANG 01' },
-      content: [{ type: 'text', text: 'TRANG 01 - Khởi đầu trong màn đêm' }],
+      attrs: { pageNumber: '01', label: 'Trang 01' },
+      content: [{ type: 'text', text: 'Trang 01 - Khởi đầu trong màn đêm' }],
     },
     {
       type: 'panelBlock',

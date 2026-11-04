@@ -152,7 +152,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
         return false;
       },
       handleTextInput: (view, from, to, text) => {
-        // A. Nhấn Space sau ký tự "#" hoặc "-" để chuyển đổi tức thì thành Trang hoặc Panel
+        // A. Nhấn Space sau ký tự "#" / "!" hoặc "-" / '"' để chuyển đổi tức thì thành Trang hoặc Panel
         if (text === ' ') {
           const { state } = view;
           const { $from } = state.selection;
@@ -161,13 +161,18 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
           if (currentBlock.type.name === 'scriptLineBlock') {
             const textBefore = currentBlock.textBetween(0, $from.parentOffset).trim();
 
-            // "# " -> Biến thành Page Block
-            if (textBefore === '#' || /^#\s*(?:Page\s*\d*)?$/i.test(textBefore)) {
+            // "# " hoặc "! " -> Biến thành Page Block
+            const isPageSpace =
+              textBefore === '#' ||
+              textBefore === '!' ||
+              /^(?:#|!)\s*(?:Trang|Page\s*\d*)?$/i.test(textBefore);
+
+            if (isPageSpace) {
               const numMatch = textBefore.match(/\d+/);
               const explicitNum = numMatch ? parseInt(numMatch[0], 10) : undefined;
               const pageNum = getNextPageNumber(state.doc, $from.pos, explicitNum);
               const formattedPage = String(pageNum).padStart(2, '0');
-              const defaultText = `TRANG ${formattedPage} `;
+              const defaultText = `Trang ${formattedPage} `;
 
               const blockStart = $from.start();
               const blockEnd = $from.end();
@@ -181,14 +186,20 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
               return true;
             }
 
-            // "- " -> Biến thành Panel Block
-            if (textBefore === '-' || /^-\s*(?:Panel\s*[\d.]*)?$/i.test(textBefore)) {
+            // "- " hoặc '" ' -> Biến thành Panel Block
+            const isPanelSpace =
+              textBefore === '-' ||
+              textBefore === '"' ||
+              textBefore === '”' ||
+              /^[-"”]\s*(?:Panel\s*[\d.]*)?$/i.test(textBefore);
+
+            if (isPanelSpace) {
               const panelMatch = textBefore.match(/(\d+)\.(\d+)/);
               const explicit = panelMatch
                 ? { pageNum: parseInt(panelMatch[1], 10), panelNum: parseInt(panelMatch[2], 10) }
                 : undefined;
               const { pageNum, panelNum } = getNextPanelNumber(state.doc, $from.pos, explicit);
-              const defaultText = `Panel ${pageNum}.${panelNum}: [Toàn cảnh] `;
+              const defaultText = `" Panel ${pageNum}.${panelNum}: [Toàn cảnh] `;
 
               const blockStart = $from.start();
               const blockEnd = $from.end();
@@ -219,9 +230,9 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
             from - spaceLen > 0 &&
             $from.doc.resolve(from - spaceLen).nodeBefore?.type.name === 'bibleMention';
 
-          // 2. Hoặc người dùng gõ text thủ công bắt đầu dòng bằng @Tên hoặc TÊN_IN_HOA
+          // 2. Hoặc người dùng gõ text thủ công BẮT BUỘC bắt đầu bằng @Tên nhân vật (không khớp số hay từ thường)
           const textBefore = currentBlock.textBetween(0, $from.parentOffset);
-          const isManualCharacterName = /^@?[a-zA-ZÀ-Ỹ0-9_]{2,30}\s*$/.test(textBefore);
+          const isManualCharacterName = /^@[\w\p{L}_-]{1,30}\s*$/u.test(textBefore);
 
           if (isDirectlyAfterMention || isAfterSpaceMention || isManualCharacterName) {
             const endsWithSpace = textBefore.endsWith(' ') || (nodeBefore?.isText && nodeBefore.text?.endsWith(' '));
@@ -230,7 +241,6 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
             const tr = state.tr.insertText(insertStr, from, to);
             // Đặt con trỏ vào chính giữa 2 dấu ngoặc kép "" (vị trí trước dấu ngoặc đóng)
             const targetPos = from + insertStr.length - 1;
-            const targetResolved = tr.doc.resolve(targetPos);
             tr.setSelection(TextSelection.create(tr.doc, targetPos));
             view.dispatch(tr);
             return true;
@@ -242,7 +252,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
     onSelectionUpdate: ({ editor }) => {
       const currentBlock = editor.state.selection.$from.parent;
       if (currentBlock && currentBlock.type.name === 'scriptLineBlock') {
-        setActiveBlockType(currentBlock.attrs.blockType || 'dialogue');
+        setActiveBlockType(currentBlock.attrs.blockType || 'stage_direction');
         setActiveNarrationMode(currentBlock.attrs.narrationMode || 'Present');
       }
     },
@@ -257,16 +267,16 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
 
         if (currentBlock && currentBlock.type.name === 'scriptLineBlock') {
           const rawText = currentBlock.textContent.trim();
-          const currentType: MangaBlockType = currentBlock.attrs.blockType || 'dialogue';
+          const currentType: MangaBlockType = currentBlock.attrs.blockType || 'stage_direction';
           let detectedType: MangaBlockType | null = null;
           let detectedSpeaker: string | null = null;
 
-          // 1. Nhận diện Trang: #, # Page 1, # Trang 1, Trang 1, Page 1
-          if (/^(?:#\s*.*|(?:Trang|Page)\s*.*)/i.test(rawText) && (rawText.startsWith('#') || /^(?:Trang|Page)\s*\d*/i.test(rawText))) {
+          // 1. Nhận diện Trang: #, !, # Page 1, # Trang 1, ! Trang 1, Trang 1
+          if (/^(?:[#!]\s*.*|(?:Trang|Page)\s*.*)/i.test(rawText) && (rawText.startsWith('#') || rawText.startsWith('!') || /^(?:Trang|Page)\s*\d*/i.test(rawText))) {
             detectedType = 'page_heading';
           }
-          // 2. Nhận diện Panel: -, - Panel 1.1, Khung 1.1, #panel 1.1, - 1.1
-          else if (/^(?:-\s*.*|(?:Panel|Khung)\s*.*|#panel\s*.*)/i.test(rawText) && (rawText.startsWith('-') || /^(?:Panel|Khung|#panel)/i.test(rawText))) {
+          // 2. Nhận diện Panel: -, ", - Panel 1.1, " Panel 1.1, Khung 1.1, #panel 1.1, - 1.1, " 1.1
+          else if (/^(?:[-"”]\s*.*|(?:Panel|Khung)\s*.*|#panel\s*.*)/i.test(rawText) && (rawText.startsWith('-') || rawText.startsWith('"') || rawText.startsWith('”') || /^(?:Panel|Khung|#panel)/i.test(rawText))) {
             detectedType = 'panel_heading';
           }
           // 3. Nhận diện Tiêu đề phân cảnh: CẢNH 1, INT., EXT., SCENE 1
@@ -285,29 +295,20 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
           else if (/^(?:Lời dẫn truyện|Lời dẫn|Caption|Dẫn chuyện)\s*:\s*([^"“].*)$/i.test(rawText)) {
             detectedType = 'caption';
           }
-          // 6. Nhận diện Thoại có cú pháp @SeriesBible : "LỜI THOẠI" hoặc NHÂN VẬT : "LỜI THOẠI" (Bắt buộc có ngoặc kép)
-          else if (/^@?([a-zA-ZÀ-Ỹ0-9_\s]{2,30})\s*:\s*["“](.*?)["”]?$/.test(rawText)) {
-            const match = rawText.match(/^@?([a-zA-ZÀ-Ỹ0-9_\s]{2,30})\s*:\s*["“](.*?)["”]?$/);
+          // 6. Nhận diện Thoại có cú pháp @SeriesBible : "LỜI THOẠI" (Bắt buộc có @ VÀ đóng mở ngoặc kép đầy đủ)
+          else if (/^@([\w\p{L}_-]+)\s*:\s*["“]([^"”]+)["”]$/u.test(rawText)) {
+            const match = rawText.match(/^@([\w\p{L}_-]+)\s*:\s*["“]([^"”]+)["”]$/u);
             if (match) {
               detectedType = 'dialogue';
               detectedSpeaker = match[1].trim();
             }
           }
-          // 6b. Nhận diện Lời dẫn chuyện có tên người dẫn/nhân vật (không có ngoặc kép)
-          else if (/^@?([a-zA-ZÀ-Ỹ0-9_\s]{2,30})\s*:\s*([^"“\s].*)$/.test(rawText)) {
+          // 6b. Nhận diện Lời dẫn chuyện có tên người dẫn/nhân vật: @NgườiDẫn : Lời dẫn không có ngoặc kép
+          else if (/^@([\w\p{L}_-]+)\s*:\s*([^"“\s].*)$/u.test(rawText)) {
             detectedType = 'stage_direction';
           }
-          // 7. Nhận diện Tên nhân vật: @MINH hoặc TÊN VIẾT HOA đứng riêng một dòng
-          else if (
-            /^@([a-zA-ZÀ-Ỹ0-9_\s]{2,30})$/.test(rawText) ||
-            (rawText.length >= 2 &&
-            rawText.length <= 30 &&
-            rawText === rawText.toUpperCase() &&
-            !rawText.includes('.') &&
-            !rawText.includes(':') &&
-            !rawText.includes('-') &&
-            !/^\d+$/.test(rawText))
-          ) {
+          // 7. Nhận diện Tên nhân vật: @MINH đứng riêng một dòng
+          else if (/^@([a-zA-ZÀ-Ỹ0-9_\s]{2,30})$/.test(rawText)) {
             detectedType = 'character';
             detectedSpeaker = rawText.replace(/^@/, '');
           }
@@ -393,6 +394,39 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
     }
   }, [editor, scenes, getSpeakerName, hasUnsavedChanges, pendingDraft]);
 
+  // Đồng bộ tiêu đề phân cảnh khi được sửa từ Modal (Modal -> Giấy)
+  useEffect(() => {
+    if (!editor || editor.isDestroyed || !scenes || scenes.length === 0) return;
+
+    try {
+      let tr = editor.state.tr;
+      let hasUpdate = false;
+
+      editor.state.doc.descendants((node, pos) => {
+        if (node.type.name === 'scriptLineBlock' && node.attrs.blockType === 'scene_heading') {
+          const targetSceneId = node.attrs.sceneId;
+          const matchingScene = scenes.find((s) => s.id === targetSceneId) || scenes[0];
+          if (matchingScene && matchingScene.heading) {
+            const expectedHeadingText = `CẢNH ${matchingScene.sceneNumber}: ${matchingScene.heading}`.toUpperCase();
+            const currentText = node.textContent.trim().toUpperCase();
+            if (currentText !== expectedHeadingText) {
+              const from = pos + 1;
+              const to = pos + node.nodeSize - 1;
+              tr = tr.replaceWith(from, to, editor.schema.text(expectedHeadingText));
+              hasUpdate = true;
+            }
+          }
+        }
+      });
+
+      if (hasUpdate) {
+        editor.view.dispatch(tr);
+      }
+    } catch (syncErr) {
+      console.error('Lỗi đồng bộ tiêu đề phân cảnh vào trình soạn thảo:', syncErr);
+    }
+  }, [editor, scenes]);
+
   // Xử lý Lưu Kịch Bản thủ công (Chỉ gọi Backend khi bấm Lưu hoặc Ctrl+S)
   const handleManualSave = useCallback(async () => {
     if (!editor || !hasUnsavedChanges || isSaving || !canEditScript || isChapterLocked) return;
@@ -459,7 +493,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
     setActiveBlockType(type);
   };
 
-  // Chèn nhanh Trang mới (# Page X)
+  // Chèn nhanh Trang mới (! Trang X)
   const handleInsertPage = () => {
     if (!editor || !canEditScript || isChapterLocked) return;
     const nextNum = getNextPageNumber(editor.state.doc);
@@ -475,7 +509,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
             scriptLineId: generateGuid(),
             blockType: 'page_heading',
           },
-          content: [{ type: 'text', text: `TRANG ${formattedPage}` }],
+          content: [{ type: 'text', text: `Trang ${formattedPage}` }],
         },
         {
           type: 'scriptLineBlock',
@@ -483,7 +517,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
             scriptLineId: generateGuid(),
             blockType: 'panel_heading',
           },
-          content: [{ type: 'text', text: `Panel ${nextNum}.1: [Toàn cảnh]` }],
+          content: [{ type: 'text', text: `" Panel ${nextNum}.1: [Toàn cảnh]` }],
         },
         {
           type: 'scriptLineBlock',
@@ -496,14 +530,14 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
       ])
       .run();
 
-    onShowToast?.('Đã chèn Trang', `Đã thêm TRANG ${formattedPage} (với Panel ${nextNum}.1)`);
+    onShowToast?.('Đã chèn Trang', `Đã thêm Trang ${formattedPage} (với " Panel ${nextNum}.1)`);
   };
 
-  // Chèn nhanh Khung hình mới (- Panel X.Y: Cận cảnh) theo số trang hiện tại
+  // Chèn nhanh Khung hình mới (" Panel X.Y: Cận cảnh) theo số trang hiện tại
   const handleInsertPanel = (shotName: string = 'Cận cảnh') => {
     if (!editor || !canEditScript || isChapterLocked) return;
     const { pageNum, panelNum } = getNextPanelNumber(editor.state.doc, editor.state.selection.$from.pos);
-    const panelLabel = `Panel ${pageNum}.${panelNum}: [${shotName}]`;
+    const panelLabel = `" Panel ${pageNum}.${panelNum}: [${shotName}]`;
 
     editor
       .chain()
@@ -541,12 +575,12 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
         {
           type: 'scriptLineBlock',
           attrs: { scriptLineId: generateGuid(), blockType: 'page_heading' },
-          content: [{ type: 'text', text: '# Page 1' }],
+          content: [{ type: 'text', text: 'Trang 01' }],
         },
         {
           type: 'scriptLineBlock',
           attrs: { scriptLineId: generateGuid(), blockType: 'panel_heading' },
-          content: [{ type: 'text', text: '- Panel 1.1: Toàn cảnh' }],
+          content: [{ type: 'text', text: '" Panel 1.1: [Toàn cảnh]' }],
         },
         {
           type: 'scriptLineBlock',
@@ -556,7 +590,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
         {
           type: 'scriptLineBlock',
           attrs: { scriptLineId: generateGuid(), blockType: 'panel_heading' },
-          content: [{ type: 'text', text: '- Panel 1.2: Cận cảnh' }],
+          content: [{ type: 'text', text: '" Panel 1.2: [Cận cảnh]' }],
         },
         {
           type: 'scriptLineBlock',
@@ -706,9 +740,16 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
               caret-color: #C2410C !important;
             }
 
-            /* CSS Pseudo-elements cho Page, SFX và Character */
+            /* CSS Pseudo-elements cho Page, Panel, SFX và Character */
             .paper-editor-sheet .script-block[data-block-type="page_heading"] .page-heading-content::before {
-              content: "📄 ";
+              content: "! ";
+              font-weight: 900;
+              margin-right: 4px;
+            }
+            .paper-editor-sheet .script-block[data-block-type="panel_heading"]::before {
+              content: '" ';
+              font-weight: 800;
+              color: #4F46E5;
               margin-right: 4px;
             }
             .paper-editor-sheet .script-block[data-block-type="character"]::before {

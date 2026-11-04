@@ -1,7 +1,12 @@
 // src/roles/writer/components/script/flow/nodes/ScriptLineBlockNode.ts
 import { Node, mergeAttributes } from '@tiptap/core';
 import { TextSelection } from '@tiptap/pm/state';
-import { getNextPageNumber, getNextPanelNumber } from '../comic-editor/comicCounting';
+import {
+  getNextPageNumber,
+  getNextPanelNumber,
+  extractPageNumber,
+  extractPanelNumber,
+} from '../comic-editor/comicCounting';
 import { MangaBlockType } from '../types';
 import { generateGuid } from '../scriptFlowAdapter';
 
@@ -28,8 +33,8 @@ export const ScriptLineBlockNode = Node.create({
         }),
       },
       blockType: {
-        default: 'dialogue' as MangaBlockType,
-        parseHTML: (element) => (element.getAttribute('data-block-type') as MangaBlockType) || 'dialogue',
+        default: 'stage_direction' as MangaBlockType,
+        parseHTML: (element) => (element.getAttribute('data-block-type') as MangaBlockType) || 'stage_direction',
         renderHTML: (attributes) => ({
           'data-block-type': attributes.blockType,
         }),
@@ -83,8 +88,8 @@ export const ScriptLineBlockNode = Node.create({
     ];
   },
 
-      renderHTML({ HTMLAttributes }) {
-    const blockType = (HTMLAttributes['data-block-type'] || 'dialogue') as MangaBlockType;
+  renderHTML({ HTMLAttributes }) {
+    const blockType = (HTMLAttributes['data-block-type'] || 'stage_direction') as MangaBlockType;
 
     let classNames = 'script-block font-mono my-1.5 transition-all duration-150 outline-none ';
 
@@ -129,7 +134,7 @@ export const ScriptLineBlockNode = Node.create({
         return ['div', mergeAttributes(HTMLAttributes, { class: classNames, 'data-block-type': blockType }), 0];
 
       case 'stage_direction':
-        // F. CHỈ DẪN BỐI CẢNH / HÀNH ĐỘNG: In nghiêng, màu #64748B, font Monospace kỹ thuật
+        // G. CHỈ DẪN BỐI CẢNH / HÀNH ĐỘNG / VIẾT TỰ DO: In nghiêng, màu #64748B, font Monospace kỹ thuật
         classNames += 'font-mono italic text-[#64748B] text-xs sm:text-sm ml-4 pl-2 my-1 leading-normal';
         return ['div', mergeAttributes(HTMLAttributes, { class: classNames, 'data-block-type': blockType }), 0];
 
@@ -145,7 +150,7 @@ export const ScriptLineBlockNode = Node.create({
 
   addKeyboardShortcuts() {
     return {
-      // 1. Space Trigger: # + Space -> Trang, - + Space -> Panel (Look-behind Counting)
+      // 1. Space Trigger: # / ! + Space -> Trang, - / " + Space -> Panel (Look-behind Counting)
       Space: ({ editor }) => {
         const { state, view } = editor;
         const { selection } = state;
@@ -158,15 +163,19 @@ export const ScriptLineBlockNode = Node.create({
 
         const textBefore = currentBlock.textBetween(0, $from.parentOffset, '\n', '\0').trim();
 
-        // 1.1 Gõ "# " -> Biến thành Tiêu đề trang với số tăng tự động
-        if (textBefore === '#' || /^#\s*(?:Page\s*\d*)?$/i.test(textBefore)) {
-          const numMatch = textBefore.match(/\d+/);
-          const explicitNum = numMatch ? parseInt(numMatch[0], 10) : undefined;
+        // 1.1 Gõ "# " hoặc "! " -> Biến thành Tiêu đề trang với số tăng tự động
+        const isPageSpace =
+          textBefore === '#' ||
+          textBefore === '!' ||
+          /^(?:#|!)\s*(?:Trang|Page\s*\d*)?$/i.test(textBefore);
+
+        if (isPageSpace) {
+          const explicitNum = extractPageNumber(textBefore) ?? undefined;
           const from = $from.before();
           const to = $from.after();
           const nextPage = getNextPageNumber(state.doc, from, explicitNum);
           const pageNum = String(nextPage).padStart(2, '0');
-          const defaultText = `TRANG ${pageNum} `;
+          const defaultText = `Trang ${pageNum} `;
 
           const newBlock = state.schema.nodes.scriptLineBlock.create(
             {
@@ -184,20 +193,19 @@ export const ScriptLineBlockNode = Node.create({
           return true;
         }
 
-        // 1.2 Gõ "- " -> Biến thành Tiêu đề panel với số tăng tự động theo trang
-        if (textBefore === '-' || /^-\s*(?:Panel\s*[\d.]*)?$/i.test(textBefore)) {
-          const panelMatch = textBefore.match(/(?:Panel\s*)?(\d+)?(?:\.(\d+))?/i);
-          let explicit: { pageNum?: number; panelNum?: number } | undefined = undefined;
-          if (panelMatch && panelMatch[1] && panelMatch[2]) {
-            explicit = { pageNum: parseInt(panelMatch[1], 10), panelNum: parseInt(panelMatch[2], 10) };
-          } else if (panelMatch && panelMatch[1]) {
-            explicit = { panelNum: parseInt(panelMatch[1], 10) };
-          }
+        // 1.2 Gõ "- " hoặc '" ' -> Biến thành Tiêu đề panel với số tăng tự động theo trang
+        const isPanelSpace =
+          textBefore === '-' ||
+          textBefore === '"' ||
+          textBefore === '”' ||
+          /^[-"”]\s*(?:Panel\s*[\d.]*)?$/i.test(textBefore);
 
+        if (isPanelSpace) {
+          const explicit = extractPanelNumber(textBefore) ?? undefined;
           const from = $from.before();
           const to = $from.after();
           const { pageNum, panelNum } = getNextPanelNumber(state.doc, from, explicit);
-          const defaultText = `Panel ${pageNum}.${panelNum}: [Toàn cảnh] `;
+          const defaultText = `" Panel ${pageNum}.${panelNum}: [Toàn cảnh] `;
 
           const newBlock = state.schema.nodes.scriptLineBlock.create(
             {
@@ -218,7 +226,7 @@ export const ScriptLineBlockNode = Node.create({
         return false;
       },
 
-      // 2. Tab Trigger: # + Tab -> Trang, - + Tab -> Panel
+      // 2. Tab Trigger: # / ! + Tab -> Trang, - / " + Tab -> Panel
       Tab: ({ editor }) => {
         const { state, view } = editor;
         const { selection } = state;
@@ -232,21 +240,22 @@ export const ScriptLineBlockNode = Node.create({
         const textBefore = currentBlock.textBetween(0, $from.parentOffset, '\n', '\0').trim();
         const fullLineText = currentBlock.textContent.trim();
 
-        // 2.1 Kiểm tra Page Trigger (# + Tab)
+        // 2.1 Kiểm tra Page Trigger (# / ! + Tab)
         const isPageTrigger =
           textBefore === '#' ||
+          textBefore === '!' ||
           fullLineText === '#' ||
-          /^#\s*(?:Page\s*\d*)?$/i.test(textBefore) ||
-          /^#\s*(?:Page\s*\d*)?$/i.test(fullLineText);
+          fullLineText === '!' ||
+          /^(?:#|!)\s*(?:Trang|Page\s*\d*)?$/i.test(textBefore) ||
+          /^(?:#|!)\s*(?:Trang|Page\s*\d*)?$/i.test(fullLineText);
 
         if (isPageTrigger) {
-          const numMatch = (fullLineText || textBefore).match(/\d+/);
-          const explicitNum = numMatch ? parseInt(numMatch[0], 10) : undefined;
+          const explicitNum = extractPageNumber(fullLineText || textBefore) ?? undefined;
           const from = $from.before();
           const to = $from.after();
           const nextPage = getNextPageNumber(state.doc, from, explicitNum);
           const pageNum = String(nextPage).padStart(2, '0');
-          const defaultText = `TRANG ${pageNum}`;
+          const defaultText = `Trang ${pageNum}`;
 
           const newBlock = state.schema.nodes.scriptLineBlock.create(
             {
@@ -264,26 +273,23 @@ export const ScriptLineBlockNode = Node.create({
           return true;
         }
 
-        // 2.2 Kiểm tra Panel Trigger (- + Tab)
+        // 2.2 Kiểm tra Panel Trigger (- / " + Tab)
         const isPanelTrigger =
           textBefore === '-' ||
+          textBefore === '"' ||
+          textBefore === '”' ||
           fullLineText === '-' ||
-          /^-\s*(?:Panel\s*[\d.]*)?$/i.test(textBefore) ||
-          /^-\s*(?:Panel\s*[\d.]*)?$/i.test(fullLineText);
+          fullLineText === '"' ||
+          fullLineText === '”' ||
+          /^[-"”]\s*(?:Panel\s*[\d.]*)?$/i.test(textBefore) ||
+          /^[-"”]\s*(?:Panel\s*[\d.]*)?$/i.test(fullLineText);
 
         if (isPanelTrigger) {
-          const panelMatch = (fullLineText || textBefore).match(/(?:Panel\s*)?(\d+)?(?:\.(\d+))?/i);
-          let explicit: { pageNum?: number; panelNum?: number } | undefined = undefined;
-          if (panelMatch && panelMatch[1] && panelMatch[2]) {
-            explicit = { pageNum: parseInt(panelMatch[1], 10), panelNum: parseInt(panelMatch[2], 10) };
-          } else if (panelMatch && panelMatch[1]) {
-            explicit = { panelNum: parseInt(panelMatch[1], 10) };
-          }
-
+          const explicit = extractPanelNumber(fullLineText || textBefore) ?? undefined;
           const from = $from.before();
           const to = $from.after();
           const { pageNum, panelNum } = getNextPanelNumber(state.doc, from, explicit);
-          const defaultText = `Panel ${pageNum}.${panelNum}: [Toàn cảnh] `;
+          const defaultText = `" Panel ${pageNum}.${panelNum}: [Toàn cảnh] `;
 
           const newBlock = state.schema.nodes.scriptLineBlock.create(
             {
@@ -301,13 +307,7 @@ export const ScriptLineBlockNode = Node.create({
           return true;
         }
 
-        // 2.3 Fallback: Chuyển đổi linh hoạt giữa Stage Direction và Character
-        if (currentBlock.type.name === this.name) {
-          const currentType: MangaBlockType = currentBlock.attrs.blockType || 'dialogue';
-          const newType: MangaBlockType = currentType === 'character' ? 'stage_direction' : 'character';
-          return editor.commands.updateAttributes(this.name, { blockType: newType });
-        }
-
+        // 2.3 Cho phép viết tự do: Không ép Tab chuyển sang character/dialogue
         return false;
       },
 
@@ -320,16 +320,16 @@ export const ScriptLineBlockNode = Node.create({
         if (empty && $from.parentOffset === 0) {
           const currentBlock = $from.parent;
           if (currentBlock.type.name === this.name) {
-            const currentType = currentBlock.attrs.blockType || 'dialogue';
+            const currentType = currentBlock.attrs.blockType || 'stage_direction';
             const textContent = currentBlock.textContent.trim();
 
-            // 3.1 Hoàn nguyên Page Heading về "# "
+            // 3.1 Hoàn nguyên Page Heading về "! "
             if (currentType === 'page_heading') {
-              const fallback = textContent.startsWith('#') ? textContent : `# ${textContent}`;
+              const fallback = textContent.startsWith('!') ? textContent : `! ${textContent}`;
               const from = $from.before();
               const to = $from.after();
               const newBlock = state.schema.nodes.scriptLineBlock.create(
-                { ...currentBlock.attrs, blockType: 'dialogue' },
+                { ...currentBlock.attrs, blockType: 'stage_direction' },
                 fallback ? state.schema.text(fallback) : []
               );
               const tr = state.tr.replaceWith(from, to, newBlock);
@@ -338,13 +338,13 @@ export const ScriptLineBlockNode = Node.create({
               return true;
             }
 
-            // 3.2 Hoàn nguyên Panel Heading về "- "
+            // 3.2 Hoàn nguyên Panel Heading về '" '
             if (currentType === 'panel_heading') {
-              const fallback = textContent.startsWith('-') ? textContent : `- ${textContent}`;
+              const fallback = textContent.startsWith('"') ? textContent : `" ${textContent}`;
               const from = $from.before();
               const to = $from.after();
               const newBlock = state.schema.nodes.scriptLineBlock.create(
-                { ...currentBlock.attrs, blockType: 'dialogue' },
+                { ...currentBlock.attrs, blockType: 'stage_direction' },
                 fallback ? state.schema.text(fallback) : []
               );
               const tr = state.tr.replaceWith(from, to, newBlock);
@@ -353,9 +353,9 @@ export const ScriptLineBlockNode = Node.create({
               return true;
             }
 
-            // 3.3 Hoàn nguyên SFX / Caption về dialogue thông thường
-            if (currentType === 'sfx' || currentType === 'caption') {
-              return editor.commands.updateAttributes(this.name, { blockType: 'dialogue' });
+            // 3.3 Hoàn nguyên SFX / Caption về stage_direction viết tự do
+            if (currentType === 'sfx' || currentType === 'caption' || currentType === 'dialogue') {
+              return editor.commands.updateAttributes(this.name, { blockType: 'stage_direction' });
             }
           }
         }
@@ -374,10 +374,10 @@ export const ScriptLineBlockNode = Node.create({
         }
 
         const rawText = currentBlock.textContent.trim();
-        const currentType = currentBlock.attrs?.blockType || 'dialogue';
+        const currentType = currentBlock.attrs?.blockType || 'stage_direction';
 
         // 4.1 QUY TẮC BẮT BUỘC: Khi nhấn Enter trên Panel hoặc Page:
-        // CHÈN 1 PARAGRAPH MẶC ĐỊNH RỖNG TRỰC TIẾP BÊN DƯỚI.
+        // CHÈN 1 scriptLineBlock MẶC ĐỊNH RỖNG (STAGE_DIRECTION) TRỰC TIẾP BÊN DƯỚI.
         // TUYỆT ĐỐI KHÔNG TỰ ĐỘNG CHUYỂN THÀNH DIALOGUE / NHÂN VẬT!
         if (
           currentType === 'page_heading' ||
@@ -385,17 +385,15 @@ export const ScriptLineBlockNode = Node.create({
           currentBlock.type.name === 'pageBlock' ||
           currentBlock.type.name === 'panelBlock'
         ) {
-          const emptyParagraph = state.schema.nodes.paragraph
-            ? state.schema.nodes.paragraph.create()
-            : state.schema.nodes.scriptLineBlock.create({
-                scriptLineId: generateGuid(),
-                sceneId: currentBlock.attrs?.sceneId || null,
-                blockType: 'dialogue',
-                narrationMode: 'Present',
-              });
+          const emptyActionBlock = state.schema.nodes.scriptLineBlock.create({
+            scriptLineId: generateGuid(),
+            sceneId: currentBlock.attrs?.sceneId || null,
+            blockType: 'stage_direction',
+            narrationMode: 'Present',
+          });
 
           const insertPos = $from.after();
-          const tr = state.tr.insert(insertPos, emptyParagraph);
+          const tr = state.tr.insert(insertPos, emptyActionBlock);
           tr.setSelection(TextSelection.create(tr.doc, insertPos + 1));
           view.dispatch(tr);
           return true;
@@ -403,7 +401,7 @@ export const ScriptLineBlockNode = Node.create({
 
         // 4.2 Cú pháp thoại NGHIÊM NGẶT CÓ DẤU NGOẶC KÉP:
         // Chỉ chuyển thành thoại nếu có CẢ @Character: VÀ "Lời thoại"!
-        // Nếu không có dấu ngoặc kép (như "@Minh walks away"), coi là đoạn văn mô tả bình thường!
+        // Nếu không có dấu ngoặc kép (như "@Minh walks away" hoặc viết tự do), coi là hành động bình thường!
         const strictDialogueMatch = rawText.match(/^@([\w\p{L}_-]+)\s*:\s*["“]([^"”]*?)["”]$/u);
         if (strictDialogueMatch) {
           const speakerName = strictDialogueMatch[1].trim();
@@ -422,11 +420,11 @@ export const ScriptLineBlockNode = Node.create({
             state.schema.text(displayText)
           );
 
-          // Tạo một scriptLineBlock mặc định rỗng bên dưới cho hành động tiếp theo
+          // Tạo một scriptLineBlock mặc định rỗng (stage_direction) bên dưới cho phép viết tự do
           const nextBlock = state.schema.nodes.scriptLineBlock.create({
             scriptLineId: generateGuid(),
             sceneId: currentBlock.attrs?.sceneId || null,
-            blockType: 'dialogue',
+            blockType: 'stage_direction',
             narrationMode: 'Present',
           });
 
@@ -454,10 +452,11 @@ export const ScriptLineBlockNode = Node.create({
             state.schema.text(displayText)
           );
 
+          // Dòng tiếp theo là stage_direction cho phép viết tự do
           const nextBlock = state.schema.nodes.scriptLineBlock.create({
             scriptLineId: generateGuid(),
             sceneId: currentBlock.attrs?.sceneId || null,
-            blockType: 'dialogue',
+            blockType: 'stage_direction',
             narrationMode: 'Present',
           });
 
@@ -485,10 +484,11 @@ export const ScriptLineBlockNode = Node.create({
             state.schema.text(displayText)
           );
 
+          // Dòng tiếp theo là stage_direction cho phép viết tự do
           const nextBlock = state.schema.nodes.scriptLineBlock.create({
             scriptLineId: generateGuid(),
             sceneId: currentBlock.attrs?.sceneId || null,
-            blockType: 'dialogue',
+            blockType: 'stage_direction',
             narrationMode: 'Present',
           });
 
@@ -499,12 +499,20 @@ export const ScriptLineBlockNode = Node.create({
           return true;
         }
 
-        // 4.5 Nếu không khớp cú pháp nào (ví dụ: "@Minh walks away" hay hành động),
-        // trả về false để ProseMirror xử lý splitBlock tiêu chuẩn
-        return false;
+        // 4.5 Nếu không khớp cú pháp nào (ví dụ: viết số, mô tả bối cảnh tự do),
+        // tạo khối stage_direction tiếp theo
+        const emptyBlock = state.schema.nodes.scriptLineBlock.create({
+          scriptLineId: generateGuid(),
+          sceneId: currentBlock.attrs?.sceneId || null,
+          blockType: 'stage_direction',
+          narrationMode: 'Present',
+        });
 
-        // 4.6 Standard splitBlock cho đoạn văn bình thường
-        return editor.commands.splitBlock();
+        const insertPos = $from.after();
+        const tr = state.tr.insert(insertPos, emptyBlock);
+        tr.setSelection(TextSelection.create(tr.doc, insertPos + 1));
+        view.dispatch(tr);
+        return true;
       },
     };
   },

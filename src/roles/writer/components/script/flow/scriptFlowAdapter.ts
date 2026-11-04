@@ -59,7 +59,7 @@ export function scenesToTipTapDoc(
         content: [
           {
             type: 'text',
-            text: '# Page 1',
+            text: 'Trang 01',
           },
         ],
       });
@@ -76,7 +76,7 @@ export function scenesToTipTapDoc(
         content: [
           {
             type: 'text',
-            text: '- Panel 1.1: Toàn cảnh',
+            text: '" Panel 1.1: [Toàn cảnh]',
           },
         ],
       });
@@ -103,9 +103,9 @@ export function scenesToTipTapDoc(
         if (line.stageDirection) {
           const trimmed = line.stageDirection.trim();
           let detectedType: MangaBlockType = 'stage_direction';
-          if (/^(?:#\s*(?:Page\s*)?\d+(?:\.\d+)?|(?:Trang|Page)\s+\d+(?:\.\d+)?)/i.test(trimmed)) {
+          if (/^(?:[#!]\s*(?:Trang|Page)?\s*\d+(?:\.\d+)?|(?:Trang|Page)\s+\d+(?:\.\d+)?)/i.test(trimmed)) {
             detectedType = 'page_heading';
-          } else if (/^(?:(?:-\s*)?(?:Panel|Khung)\s*\d+(?:\.\d+)?|-\s*\d+(?:\.\d+)?|#panel\s*\d+(?:\.\d+)?)/i.test(trimmed)) {
+          } else if (/^(?:(?:[-"”]\s*)?(?:Panel|Khung)\s*\d+(?:\.\d+)?|[-"”]\s*\d+(?:\.\d+)?|#panel\s*\d+(?:\.\d+)?)/i.test(trimmed)) {
             detectedType = 'panel_heading';
           } else if (/^(?:CẢNH\s+\d+|INT\.|EXT\.|SCENE\s+\d+)/i.test(trimmed)) {
             detectedType = 'scene_heading';
@@ -220,7 +220,7 @@ export function scenesToTipTapDoc(
       content: [
         {
           type: 'text',
-          text: '# Page 1',
+          text: 'Trang 01',
         },
       ],
     });
@@ -234,7 +234,7 @@ export function scenesToTipTapDoc(
       content: [
         {
           type: 'text',
-          text: '- Panel 1.1: Toàn cảnh',
+          text: '" Panel 1.1: [Toàn cảnh]',
         },
       ],
     });
@@ -254,6 +254,7 @@ export interface ExtractedScriptLinePayload {
   speakerCharacterId?: string | null;
   narrationMode: NarrationMode;
   lineOrder: number;
+  blockType?: MangaBlockType;
 }
 
 /**
@@ -279,12 +280,12 @@ export function extractScriptLinesFromDoc(doc: any, defaultSceneId: string): Ext
     const textTrimmed = text.trim();
     if (!textTrimmed) continue;
 
-    let effectiveBlockType: MangaBlockType = attrs.blockType || 'dialogue';
+    let effectiveBlockType: MangaBlockType = attrs.blockType || 'stage_direction';
 
     // Nhận diện tự động dự phòng nếu người dùng gõ thuần mà chưa đổi blockType
-    if (/^(?:#\s*(?:Page\s*)?\d+(?:\.\d+)?|(?:Trang|Page)\s+\d+(?:\.\d+)?)/i.test(textTrimmed)) {
+    if (/^(?:[#!]\s*(?:Trang|Page)?\s*\d+(?:\.\d+)?|(?:Trang|Page)\s+\d+(?:\.\d+)?)/i.test(textTrimmed)) {
       effectiveBlockType = 'page_heading';
-    } else if (/^(?:(?:-\s*)?(?:Panel|Khung)\s*\d+(?:\.\d+)?|-\s*\d+(?:\.\d+)?|#panel\s*\d+(?:\.\d+)?)/i.test(textTrimmed)) {
+    } else if (/^(?:(?:[-"”]\s*)?(?:Panel|Khung)\s*\d+(?:\.\d+)?|[-"”]\s*\d+(?:\.\d+)?|#panel\s*\d+(?:\.\d+)?)/i.test(textTrimmed)) {
       effectiveBlockType = 'panel_heading';
     } else if (/^(?:CẢNH\s+\d+|INT\.|EXT\.|SCENE\s+\d+)/i.test(textTrimmed)) {
       effectiveBlockType = 'scene_heading';
@@ -296,6 +297,16 @@ export function extractScriptLinesFromDoc(doc: any, defaultSceneId: string): Ext
 
     if (effectiveBlockType === 'scene_heading') {
       if (attrs.sceneId) currentSceneId = attrs.sceneId;
+      results.push({
+        scriptLineId: attrs.scriptLineId || `scene_heading_${currentSceneId}`,
+        sceneId: attrs.sceneId || currentSceneId,
+        dialogueText: null,
+        stageDirection: textTrimmed,
+        speakerCharacterId: null,
+        narrationMode: 'Present',
+        lineOrder: 0,
+        blockType: 'scene_heading',
+      });
       continue;
     }
 
@@ -326,8 +337,8 @@ export function extractScriptLinesFromDoc(doc: any, defaultSceneId: string): Ext
       continue;
     }
 
-    // 1. Nhận diện Thoại có cú pháp @SeriesBible : "LỜI THOẠI" hoặc TÊN : "LỜI THOẠI" (Bắt buộc có dấu ngoặc kép)
-    const quotedDialogueMatch = textTrimmed.match(/^@?([a-zA-ZÀ-Ỹ0-9_\s]{2,30})\s*:\s*["“](.*?)["”]?$/);
+    // 1. Nhận diện Thoại có cú pháp @SeriesBible : "LỜI THOẠI" (Bắt buộc có @ VÀ đóng mở ngoặc kép)
+    const quotedDialogueMatch = textTrimmed.match(/^@([\w\p{L}_-]+)\s*:\s*["“](.*?)["”]$/u);
     if (quotedDialogueMatch) {
       results.push({
         scriptLineId: attrs.scriptLineId || generateGuid(),
@@ -343,7 +354,7 @@ export function extractScriptLinesFromDoc(doc: any, defaultSceneId: string): Ext
     }
 
     // 2. Nhận diện Lời dẫn chuyện / Kể chuyện có tên người dẫn: @NgườiDẫn : Lời dẫn không có ngoặc kép
-    const unquotedNarrationMatch = textTrimmed.match(/^@?([a-zA-ZÀ-Ỹ0-9_\s]{2,30})\s*:\s*([^"“\s].*)$/);
+    const unquotedNarrationMatch = textTrimmed.match(/^@([\w\p{L}_-]+)\s*:\s*([^"“\s].*)$/u);
     if (unquotedNarrationMatch) {
       results.push({
         scriptLineId: attrs.scriptLineId || generateGuid(),

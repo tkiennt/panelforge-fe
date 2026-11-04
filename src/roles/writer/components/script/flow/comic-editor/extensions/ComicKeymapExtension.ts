@@ -1,6 +1,7 @@
+// src/roles/writer/components/script/flow/comic-editor/extensions/ComicKeymapExtension.ts
 import { Extension } from '@tiptap/core';
 import { TextSelection } from '@tiptap/pm/state';
-import { getNextPageNumber, getNextPanelNumber } from '../comicCounting';
+import { getNextPageNumber, getNextPanelNumber, extractPageNumber, extractPanelNumber } from '../comicCounting';
 
 export interface ComicKeymapOptions {
   onBlockTransformed?: (type: string, detail?: string) => void;
@@ -18,7 +19,7 @@ export const ComicKeymapExtension = Extension.create<ComicKeymapOptions>({
 
   addKeyboardShortcuts() {
     return {
-      // 0. SPACE TRIGGER: # + Space -> Trang, - + Space -> Panel
+      // 0. SPACE TRIGGER: # / ! + Space -> Trang, - / " + Space -> Panel
       Space: ({ editor }) => {
         const { state } = editor.view;
         const { selection } = state;
@@ -33,13 +34,17 @@ export const ComicKeymapExtension = Extension.create<ComicKeymapOptions>({
 
         const textBefore = parentNode.textBetween(0, $from.parentOffset, '\n', '\0').trim();
 
-        // 0.1 # + Space -> pageBlock (Look-behind counting)
-        if (textBefore === '#' || /^#\s*(?:Page\s*\d*)?$/i.test(textBefore)) {
-          const numMatch = textBefore.match(/\d+/);
-          const explicitNum = numMatch ? parseInt(numMatch[0], 10) : undefined;
+        // 0.1 # / ! + Space -> pageBlock (Look-behind counting)
+        const isPageSpace =
+          textBefore === '#' ||
+          textBefore === '!' ||
+          /^(?:#|!)\s*(?:Trang|Page\s*\d*)?$/i.test(textBefore);
+
+        if (isPageSpace) {
+          const explicitNum = extractPageNumber(textBefore) ?? undefined;
           const nextPage = getNextPageNumber(state.doc, from, explicitNum);
           const pageNum = String(nextPage).padStart(2, '0');
-          const defaultLabel = `TRANG ${pageNum}`;
+          const defaultLabel = `Trang ${pageNum}`;
 
           const pageNode = state.schema.nodes.pageBlock.create(
             { pageNumber: pageNum, label: defaultLabel },
@@ -55,18 +60,17 @@ export const ComicKeymapExtension = Extension.create<ComicKeymapOptions>({
           return true;
         }
 
-        // 0.2 - + Space -> panelBlock (Look-behind counting per page)
-        if (textBefore === '-' || /^-\s*(?:Panel\s*[\d.]*)?$/i.test(textBefore)) {
-          const panelMatch = textBefore.match(/(\d+)(?:\.(\d+))?/);
-          let explicit: { pageNum?: number; panelNum?: number } | undefined = undefined;
-          if (panelMatch && panelMatch[1] && panelMatch[2]) {
-            explicit = { pageNum: parseInt(panelMatch[1], 10), panelNum: parseInt(panelMatch[2], 10) };
-          } else if (panelMatch && panelMatch[1]) {
-            explicit = { panelNum: parseInt(panelMatch[1], 10) };
-          }
+        // 0.2 - / " + Space -> panelBlock (Look-behind counting per page)
+        const isPanelSpace =
+          textBefore === '-' ||
+          textBefore === '"' ||
+          textBefore === '”' ||
+          /^[-"”]\s*(?:Panel\s*[\d.]*)?$/i.test(textBefore);
 
+        if (isPanelSpace) {
+          const explicit = extractPanelNumber(textBefore) ?? undefined;
           const { pageNum, panelNum } = getNextPanelNumber(state.doc, from, explicit);
-          const defaultText = `Panel ${pageNum}.${panelNum}: `;
+          const defaultText = `" Panel ${pageNum}.${panelNum}: `;
 
           const panelNode = state.schema.nodes.panelBlock.create(
             { panelNumber: `${pageNum}.${panelNum}`, cameraAngle: 'Toàn cảnh' },
@@ -85,7 +89,7 @@ export const ComicKeymapExtension = Extension.create<ComicKeymapOptions>({
         return false;
       },
 
-      // 1. PAGE TRIGGER (# + Tab) & PANEL TRIGGER (- + Tab)
+      // 1. PAGE TRIGGER (# / ! + Tab) & PANEL TRIGGER (- / " + Tab)
       Tab: ({ editor }) => {
         const { state } = editor.view;
         const { selection } = state;
@@ -99,19 +103,20 @@ export const ComicKeymapExtension = Extension.create<ComicKeymapOptions>({
         const textBefore = parentNode.textBetween(0, $from.parentOffset, '\n', '\0').trim();
         const fullLineText = parentNode.textContent.trim();
 
-        // 1.1 Kiểm tra Page Trigger (# + Tab)
+        // 1.1 Kiểm tra Page Trigger (# / ! + Tab)
         const isPageTrigger =
           textBefore === '#' ||
+          textBefore === '!' ||
           fullLineText === '#' ||
-          /^#\s*(?:Page\s*\d*)?$/i.test(textBefore) ||
-          /^#\s*(?:Page\s*\d*)?$/i.test(fullLineText);
+          fullLineText === '!' ||
+          /^(?:#|!)\s*(?:Trang|Page\s*\d*)?$/i.test(textBefore) ||
+          /^(?:#|!)\s*(?:Trang|Page\s*\d*)?$/i.test(fullLineText);
 
         if (isPageTrigger) {
-          const numMatch = (fullLineText || textBefore).match(/\d+/);
-          const explicitNum = numMatch ? parseInt(numMatch[0], 10) : undefined;
+          const explicitNum = extractPageNumber(fullLineText || textBefore) ?? undefined;
           const nextPage = getNextPageNumber(state.doc, from, explicitNum);
           const pageNum = String(nextPage).padStart(2, '0');
-          const defaultLabel = `TRANG ${pageNum}`;
+          const defaultLabel = `Trang ${pageNum}`;
 
           const pageNode = state.schema.nodes.pageBlock.create(
             { pageNumber: pageNum, label: defaultLabel },
@@ -127,24 +132,21 @@ export const ComicKeymapExtension = Extension.create<ComicKeymapOptions>({
           return true;
         }
 
-        // 1.2 Kiểm tra Panel Trigger (- + Tab)
+        // 1.2 Kiểm tra Panel Trigger (- / " + Tab)
         const isPanelTrigger =
           textBefore === '-' ||
+          textBefore === '"' ||
+          textBefore === '”' ||
           fullLineText === '-' ||
-          /^-\s*(?:Panel\s*[\d.]*)?$/i.test(textBefore) ||
-          /^-\s*(?:Panel\s*[\d.]*)?$/i.test(fullLineText);
+          fullLineText === '"' ||
+          fullLineText === '”' ||
+          /^[-"”]\s*(?:Panel\s*[\d.]*)?$/i.test(textBefore) ||
+          /^[-"”]\s*(?:Panel\s*[\d.]*)?$/i.test(fullLineText);
 
         if (isPanelTrigger) {
-          const panelMatch = (fullLineText || textBefore).match(/(\d+)(?:\.(\d+))?/);
-          let explicit: { pageNum?: number; panelNum?: number } | undefined = undefined;
-          if (panelMatch && panelMatch[1] && panelMatch[2]) {
-            explicit = { pageNum: parseInt(panelMatch[1], 10), panelNum: parseInt(panelMatch[2], 10) };
-          } else if (panelMatch && panelMatch[1]) {
-            explicit = { panelNum: parseInt(panelMatch[1], 10) };
-          }
-
+          const explicit = extractPanelNumber(fullLineText || textBefore) ?? undefined;
           const { pageNum, panelNum } = getNextPanelNumber(state.doc, from, explicit);
-          const defaultText = `Panel ${pageNum}.${panelNum}: `;
+          const defaultText = `" Panel ${pageNum}.${panelNum}: `;
 
           const panelNode = state.schema.nodes.panelBlock.create(
             { panelNumber: `${pageNum}.${panelNum}`, cameraAngle: 'Toàn cảnh' },
@@ -187,7 +189,7 @@ export const ComicKeymapExtension = Extension.create<ComicKeymapOptions>({
               { character },
               dialogueText ? state.schema.text(dialogueText) : undefined
             );
-            // Sau khi tạo dialogueBlock, chèn một paragraph bình thường bên dưới
+            // Sau khi tạo dialogueBlock, chèn một paragraph bình thường bên dưới cho phép viết tự do
             const emptyParagraph = state.schema.nodes.paragraph.create();
 
             const tr = state.tr.replaceWith(from, to, [dialogueNode, emptyParagraph]);
@@ -240,7 +242,7 @@ export const ComicKeymapExtension = Extension.create<ComicKeymapOptions>({
             return true;
           }
 
-          // Nếu không khớp cú pháp nào (ví dụ: "@Minh walks away" hay hành động), để Tiptap xử lý splitBlock tiêu chuẩn
+          // Nếu không khớp cú pháp nào (ví dụ: "@Minh walks away" hay gõ số tự do), để Tiptap xử lý splitBlock tiêu chuẩn
           return false;
         }
 
@@ -280,76 +282,76 @@ export const ComicKeymapExtension = Extension.create<ComicKeymapOptions>({
         const depth = $from.depth;
         const from = $from.before(depth);
         const to = $from.after(depth);
-        const textContent = parentNode.textContent;
+        const currentContent = parentNode.textContent;
 
+        // 3.1 pageBlock -> paragraph với tiền tố "! "
         if (parentNode.type.name === 'pageBlock') {
-          const fallback = textContent.startsWith('#')
-            ? textContent
-            : `# ${textContent}`.trim();
-
-          const paragraphNode = state.schema.nodes.paragraph.create(
+          const restoredText = currentContent.startsWith('!') ? currentContent : `! ${currentContent}`;
+          const newParagraph = state.schema.nodes.paragraph.create(
             {},
-            fallback ? state.schema.text(fallback) : undefined
+            restoredText ? state.schema.text(restoredText) : undefined
           );
 
-          const tr = state.tr.replaceWith(from, to, paragraphNode);
+          const tr = state.tr.replaceWith(from, to, newParagraph);
           tr.setSelection(TextSelection.create(tr.doc, from + 1));
           editor.view.dispatch(tr);
           return true;
         }
 
+        // 3.2 panelBlock -> paragraph với tiền tố '" '
         if (parentNode.type.name === 'panelBlock') {
-          const fallback = textContent.startsWith('-')
-            ? textContent
-            : `- ${textContent}`.trim();
-
-          const paragraphNode = state.schema.nodes.paragraph.create(
+          const restoredText = currentContent.startsWith('"') ? currentContent : `" ${currentContent}`;
+          const newParagraph = state.schema.nodes.paragraph.create(
             {},
-            fallback ? state.schema.text(fallback) : undefined
+            restoredText ? state.schema.text(restoredText) : undefined
           );
 
-          const tr = state.tr.replaceWith(from, to, paragraphNode);
+          const tr = state.tr.replaceWith(from, to, newParagraph);
           tr.setSelection(TextSelection.create(tr.doc, from + 1));
           editor.view.dispatch(tr);
           return true;
         }
 
+        // 3.3 dialogueBlock -> paragraph với "@Character: \"...\""
         if (parentNode.type.name === 'dialogueBlock') {
-          const character = parentNode.attrs.character || 'Nhân vật';
-          const raw = `@${character}: "${textContent}"`;
-
-          const paragraphNode = state.schema.nodes.paragraph.create(
+          const character = parentNode.attrs.character || 'Character';
+          const restoredText = currentContent
+            ? `@${character}: "${currentContent}"`
+            : `@${character}: ""`;
+          const newParagraph = state.schema.nodes.paragraph.create(
             {},
-            state.schema.text(raw)
+            state.schema.text(restoredText)
           );
 
-          const tr = state.tr.replaceWith(from, to, paragraphNode);
+          const tr = state.tr.replaceWith(from, to, newParagraph);
           tr.setSelection(TextSelection.create(tr.doc, from + 1));
           editor.view.dispatch(tr);
           return true;
         }
 
+        // 3.4 sfxBlock -> paragraph với "* Tiếng động *"
         if (parentNode.type.name === 'sfxBlock') {
-          const raw = `SFX: ${textContent}`;
-          const paragraphNode = state.schema.nodes.paragraph.create(
+          const restoredText = `* ${currentContent || 'SFX'} *`;
+          const newParagraph = state.schema.nodes.paragraph.create(
             {},
-            state.schema.text(raw)
+            state.schema.text(restoredText)
           );
 
-          const tr = state.tr.replaceWith(from, to, paragraphNode);
+          const tr = state.tr.replaceWith(from, to, newParagraph);
           tr.setSelection(TextSelection.create(tr.doc, from + 1));
           editor.view.dispatch(tr);
           return true;
         }
 
+        // 3.5 captionBlock -> paragraph với "Caption: ..."
         if (parentNode.type.name === 'captionBlock') {
-          const raw = `Caption: ${textContent}`;
-          const paragraphNode = state.schema.nodes.paragraph.create(
+          const restoredText = `Caption: ${currentContent}`;
+          const newParagraph = state.schema.nodes.paragraph.create(
             {},
-            state.schema.text(raw)
+            state.schema.text(restoredText)
           );
 
-          const tr = state.tr.replaceWith(from, to, paragraphNode);
+          const tr = state.tr.replaceWith(from, to, newParagraph);
           tr.setSelection(TextSelection.create(tr.doc, from + 1));
           editor.view.dispatch(tr);
           return true;

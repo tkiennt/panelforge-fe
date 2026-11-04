@@ -1,6 +1,6 @@
 // src/roles/writer/components/script/flow/comic-editor/comicCounting.test.ts
 import { describe, it, expect } from 'vitest';
-import { getNextPageNumber, getNextPanelNumber } from './comicCounting';
+import { getNextPageNumber, getNextPanelNumber, extractPageNumber, extractPanelNumber } from './comicCounting';
 
 describe('comicCounting - Look-behind Page & Panel Calculation', () => {
   it('trả về Page 1 nếu tài liệu chưa có trang nào', () => {
@@ -17,10 +17,28 @@ describe('comicCounting - Look-behind Page & Panel Calculation', () => {
     expect(getNextPageNumber(mockDoc, 10, 5)).toBe(5);
   });
 
+  it('trích xuất chính xác số trang từ nhiều định dạng khác nhau', () => {
+    expect(extractPageNumber('! Trang 1')).toBe(1);
+    expect(extractPageNumber('! Trang 05')).toBe(5);
+    expect(extractPageNumber('# Page 2')).toBe(2);
+    expect(extractPageNumber('# Trang 3')).toBe(3);
+    expect(extractPageNumber('Trang 4')).toBe(4);
+    expect(extractPageNumber('TRANG 10')).toBe(10);
+    expect(extractPageNumber('! 7')).toBe(7);
+  });
+
+  it('trích xuất chính xác số panel từ nhiều định dạng khác nhau', () => {
+    expect(extractPanelNumber('Panel 1.1')).toEqual({ pageNum: 1, panelNum: 1 });
+    expect(extractPanelNumber('- Panel 1.2: Toàn cảnh')).toEqual({ pageNum: 1, panelNum: 2 });
+    expect(extractPanelNumber('" Panel 1.3: Cận cảnh')).toEqual({ pageNum: 1, panelNum: 3 });
+    expect(extractPanelNumber('" 2.1')).toEqual({ pageNum: 2, panelNum: 1 });
+    expect(extractPanelNumber('Panel 4')).toEqual({ panelNum: 4 });
+  });
+
   it('tính toán số trang tuần tự Page 1 -> Page 2 -> Page 3', () => {
     const nodes = [
-      { type: { name: 'pageBlock' }, attrs: { pageNumber: '01' }, textContent: 'TRANG 01' },
-      { type: { name: 'pageBlock' }, attrs: { pageNumber: '02' }, textContent: 'TRANG 02' },
+      { type: { name: 'pageBlock' }, attrs: { pageNumber: '01' }, textContent: 'Trang 01' },
+      { type: { name: 'pageBlock' }, attrs: { pageNumber: '02' }, textContent: 'Trang 02' },
     ];
 
     const mockDoc = {
@@ -34,9 +52,9 @@ describe('comicCounting - Look-behind Page & Panel Calculation', () => {
 
   it('tính toán số khung hình Panel 1.1 -> Panel 1.2 -> Panel 1.3 và reset về Panel 2.1 khi qua Trang 2', () => {
     const nodes = [
-      { type: { name: 'pageBlock' }, attrs: { pageNumber: '1' }, textContent: 'TRANG 01' },
-      { type: { name: 'panelBlock' }, attrs: { panelNumber: '1.1' }, textContent: 'Panel 1.1' },
-      { type: { name: 'panelBlock' }, attrs: { panelNumber: '1.2' }, textContent: 'Panel 1.2' },
+      { type: { name: 'pageBlock' }, attrs: { pageNumber: '1' }, textContent: 'Trang 01' },
+      { type: { name: 'panelBlock' }, attrs: { panelNumber: '1.1' }, textContent: '" Panel 1.1' },
+      { type: { name: 'panelBlock' }, attrs: { panelNumber: '1.2' }, textContent: '" Panel 1.2' },
     ];
 
     const mockDocPage1 = {
@@ -51,7 +69,7 @@ describe('comicCounting - Look-behind Page & Panel Calculation', () => {
     // Khi đã có Trang 2 trong tài liệu
     const nodesWithPage2 = [
       ...nodes,
-      { type: { name: 'pageBlock' }, attrs: { pageNumber: '2' }, textContent: 'TRANG 02' },
+      { type: { name: 'pageBlock' }, attrs: { pageNumber: '2' }, textContent: 'Trang 02' },
     ];
 
     const mockDocPage2 = {
