@@ -259,7 +259,7 @@ describe('ArtistDeskView', () => {
 
   const renderComponent = () =>
     render(
-      <MemoryRouter initialEntries={['/workspaces/ws-1/series/series-1/artist']}>
+      <MemoryRouter initialEntries={['/workspaces/ws-1/series/series-1/artist?chapterId=chap-1']}>
         <Routes>
           <Route
             path='/workspaces/:workspaceId/series/:seriesId/artist'
@@ -1791,6 +1791,70 @@ describe('ArtistDeskView', () => {
       // Cuộn tới dòng kịch bản line-3
       await waitFor(() => {
         expect(scrollIntoViewMock).toHaveBeenCalled();
+      });
+    });
+  });
+
+  describe('Tái sử dụng màn hình chọn Chapter & Kịch bản chỉ đọc cho Artist', () => {
+    it('hiển thị ChapterSelectionView khi chưa có chapterId trên URL', async () => {
+      render(
+        <MemoryRouter initialEntries={['/workspaces/ws-1/series/series-1/artist']}>
+          <Routes>
+            <Route
+              path='/workspaces/:workspaceId/series/:seriesId/artist'
+              element={<ArtistDeskView workspaceRole='ARTIST' />}
+            />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('artist-chapter-selection-wrapper')).toBeInTheDocument();
+      });
+      expect(screen.getByTestId('chapter-card-1')).toBeInTheDocument();
+    });
+
+    it('bấm vào Chapter trong ChapterSelectionView sẽ chuyển vào bàn vẽ với tab Kịch bản chỉ đọc', async () => {
+      render(
+        <MemoryRouter initialEntries={['/workspaces/ws-1/series/series-1/artist']}>
+          <Routes>
+            <Route
+              path='/workspaces/:workspaceId/series/:seriesId/artist'
+              element={<ArtistDeskView workspaceRole='ARTIST' />}
+            />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+      const chapterCard = await screen.findByTestId('chapter-card-1');
+      fireEvent.click(chapterCard);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('artist-main-toolbar')).toBeInTheDocument();
+        expect(screen.getByTestId('left-tab-script')).toHaveAttribute('aria-selected', 'true');
+        expect(screen.getByTestId('artist-script-readonly-banner')).toBeInTheDocument();
+      });
+    });
+
+    it('nút Đổi chương cho phép quay lại màn hình chọn chương', async () => {
+      renderComponent();
+
+      const switchBtn = await screen.findByTestId('switch-chapter-btn');
+      fireEvent.click(switchBtn);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('artist-chapter-selection-wrapper')).toBeInTheDocument();
+      });
+    });
+
+    it('nút Mẫu Khung trên toolbar chính mở FrameTemplateModal', async () => {
+      renderComponent();
+
+      const templateBtn = await screen.findByTestId('toolbar-frame-template-btn');
+      fireEvent.click(templateBtn);
+
+      await waitFor(() => {
+        expect(frameTemplateService.getFrameTemplates).toHaveBeenCalledWith('ws-1');
       });
     });
   });
