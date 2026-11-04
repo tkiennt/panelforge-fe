@@ -180,8 +180,8 @@ describe('ComicScriptEditor - Tiptap Keyboard-First Engine', () => {
     expect(json.content?.[1]?.type).toBe('paragraph');
   });
 
-  // 4. Graceful Backspace (Undo Formatting Without Content Loss)
-  it('hoàn nguyên pageBlock về paragraph dạng "! [text]" khi nhấn Backspace ở đầu khối', () => {
+  // 4. Backspace: Cho phép xóa Panel và Page, không thể xóa tiêu đề trang
+  it('không thể xóa pageBlock đầu tiên (tiêu đề trang) khi nhấn Backspace ở đầu khối', () => {
     const editor = createTestEditor({
       type: 'doc',
       content: [
@@ -200,11 +200,39 @@ describe('ComicScriptEditor - Tiptap Keyboard-First Engine', () => {
 
     const json = editor.getJSON();
     const firstNode = (json.content?.[0] as any);
-    expect(firstNode?.type).toBe('paragraph');
-    expect((firstNode?.content?.[0] as any)?.text).toContain('! Trang 01 - Mở đầu');
+    expect(firstNode?.type).toBe('pageBlock');
   });
 
-  it('hoàn nguyên panelBlock về paragraph dạng \'" [text]\' khi nhấn Backspace ở đầu khối', () => {
+  it('cho phép xóa pageBlock thứ hai khi nhấn Backspace ở đầu khối', () => {
+    const editor = createTestEditor({
+      type: 'doc',
+      content: [
+        {
+          type: 'pageBlock',
+          attrs: { pageNumber: '01', label: 'Trang 01' },
+          content: [{ type: 'text', text: 'Trang 01' }],
+        },
+        {
+          type: 'pageBlock',
+          attrs: { pageNumber: '02', label: 'Trang 02' },
+          content: [{ type: 'text', text: 'Trang 02' }],
+        },
+      ],
+    });
+
+    // Vị trí đầu khối pageBlock thứ 2
+    const secondPagePos = editor.state.doc.resolve(editor.state.doc.content.size - 2).before();
+    editor.commands.setTextSelection(secondPagePos + 1);
+
+    const handled = editor.commands.keyboardShortcut('Backspace');
+    expect(handled).toBe(true);
+
+    const json = editor.getJSON();
+    expect(json.content?.length).toBe(1);
+    expect((json.content?.[0] as any)?.type).toBe('pageBlock');
+  });
+
+  it('cho phép xóa panelBlock khi nhấn Backspace ở đầu khối', () => {
     const editor = createTestEditor({
       type: 'doc',
       content: [
@@ -222,9 +250,7 @@ describe('ComicScriptEditor - Tiptap Keyboard-First Engine', () => {
     expect(handled).toBe(true);
 
     const json = editor.getJSON();
-    const firstNode = (json.content?.[0] as any);
-    expect(firstNode?.type).toBe('paragraph');
-    expect((firstNode?.content?.[0] as any)?.text).toContain('" Panel 1.1: Cận cảnh');
+    expect(json.content?.length).toBe(0);
   });
 
   // 5. Render Editor Component

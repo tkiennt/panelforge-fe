@@ -49,6 +49,7 @@ import { AiScriptConvertModal, convertScriptTextToScreenplayBlocks } from './con
 interface ScreenplayFlowEditorProps {
   chapterId?: string;
   chapterNumber?: number;
+  chapterVersion?: number;
   scenes: SceneDetailDto[];
   pages?: PageDto[];
   panels?: PanelDto[];
@@ -74,6 +75,7 @@ interface LocalScriptDraft {
 export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   chapterId,
   chapterNumber,
+  chapterVersion,
   scenes,
   pages,
   panels,
@@ -667,7 +669,11 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
         const code = node.attrs.code || node.attrs.label;
         if (!code) return;
         const entry = allBibleEntries.find(
-          (e) => e.code?.toLowerCase() === code.toLowerCase()
+          (e) =>
+            e.code?.toLowerCase() === code.toLowerCase() ||
+            e.id === node.attrs.id ||
+            e.name.toLowerCase() === code.toLowerCase() ||
+            (node.attrs.label && e.name.toLowerCase() === String(node.attrs.label).toLowerCase())
         );
         if (entry) {
           const isStubCurrent = Boolean(node.attrs.isStub);
@@ -769,7 +775,10 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
       } catch {}
       setPendingDraft(null);
       setLastSavedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-      onShowToast?.('Đã lưu kịch bản', 'Toàn bộ nội dung kịch bản dòng chảy đã được cập nhật lên máy chủ.');
+      onShowToast?.(
+        'Đã lưu kịch bản',
+        `Nội dung kịch bản đã được lưu thành công vào bản thảo hiện tại (v${chapterVersion ?? 0}).`
+      );
     } catch (err: any) {
       onShowToast?.('Lỗi lưu kịch bản', err.message || 'Không thể đồng bộ thay đổi về máy chủ.');
     } finally {
@@ -849,15 +858,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
             scriptLineId: generateGuid(),
             blockType: 'panel_heading',
           },
-          content: [{ type: 'text', text: `" Panel ${nextNum}.1: [Toàn cảnh]` }],
-        },
-        {
-          type: 'scriptLineBlock',
-          attrs: {
-            scriptLineId: generateGuid(),
-            blockType: 'stage_direction',
-          },
-          content: [{ type: 'text', text: 'Mô tả bối cảnh hoặc hành động...' }],
+          content: [{ type: 'text', text: `" Panel ${nextNum}.1: [Toàn cảnh] ` }],
         },
       ])
       .run();
@@ -870,7 +871,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   const handleInsertPanel = (shotName: string = 'Cận cảnh') => {
     if (!editor || !canEditScript || isChapterLocked) return;
     const { pageNum, panelNum } = getNextPanelNumber(editor.state.doc, editor.state.selection.$from.pos);
-    const panelLabel = `" Panel ${pageNum}.${panelNum}: [${shotName}]`;
+    const panelLabel = `" Panel ${pageNum}.${panelNum}: [${shotName}] `;
 
     editor
       .chain()
@@ -883,14 +884,6 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
             blockType: 'panel_heading',
           },
           content: [{ type: 'text', text: panelLabel }],
-        },
-        {
-          type: 'scriptLineBlock',
-          attrs: {
-            scriptLineId: generateGuid(),
-            blockType: 'stage_direction',
-          },
-          content: [{ type: 'text', text: `Mô tả hành động của khung hình ${pageNum}.${panelNum}...` }],
         },
       ])
       .run();
@@ -983,13 +976,10 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   const compactBlockButtons: { type: MangaBlockType; label: string; icon: any }[] = [
     { type: 'page_heading', label: 'Trang', icon: Layers },
     { type: 'panel_heading', label: 'Panel', icon: LayoutGrid },
-    { type: 'scene_heading', label: 'Cảnh', icon: Clapperboard },
-    { type: 'caption', label: 'Lời dẫn', icon: FileText },
-    { type: 'sfx', label: '⚡ SFX', icon: Zap },
-    { type: 'stage_direction', label: 'Chỉ dẫn', icon: Film },
+    { type: 'caption', label: 'Lời dẫn truyện', icon: FileText },
     { type: 'character', label: 'Nhân vật', icon: User },
     { type: 'dialogue', label: 'Thoại', icon: MessageSquare },
-    { type: 'transition', label: 'Chuyển cảnh', icon: Type },
+    { type: 'sfx', label: '⚡ SFX', icon: Zap },
   ];
 
   const isReadOnly = !canEditScript || isChapterLocked;
@@ -1229,7 +1219,19 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
             <span>Gõ # tạo Trang · Gõ - tạo Panel · Gõ @ gợi ý Bible/Panel</span>
           </div>
           <div>
-            Khối: <strong className="text-amber-700 uppercase">{activeBlockType}</strong>
+            Khối: <strong className="text-amber-700">
+              {activeBlockType === 'page_heading'
+                ? 'TRANG'
+                : activeBlockType === 'panel_heading'
+                ? 'PANEL'
+                : activeBlockType === 'dialogue'
+                ? 'THOẠI'
+                : activeBlockType === 'character'
+                ? 'NHÂN VẬT'
+                : activeBlockType === 'sfx'
+                ? 'SFX'
+                : 'LỜI DẪN TRUYỆN'}
+            </strong>
           </div>
         </div>
       </div>
@@ -1357,6 +1359,19 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
             ) : (
               <span className="text-gray-400">Ctrl + S để lưu</span>
             )}
+          </div>
+
+          {/* Thông tin phiên bản & cơ chế lưu Working Draft */}
+          <div className="pt-2 border-t border-[#EBE7DF] text-[10px] text-gray-500 text-center leading-tight">
+            <div className="font-semibold text-gray-700 flex items-center justify-center gap-1">
+              <span>Bản thảo:</span>
+              <span className="font-mono font-bold text-amber-800 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200">
+                v{chapterVersion ?? 0}
+              </span>
+            </div>
+            <p className="text-[9px] text-gray-400 mt-1">
+              Writer lưu không tăng version. Chỉ tăng khi gửi Editor duyệt và Editor yêu cầu viết lại.
+            </p>
           </div>
 
           <button

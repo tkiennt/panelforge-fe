@@ -80,7 +80,8 @@ export const BibleMention = Mention.extend({
     const label = HTMLAttributes['data-label'] || HTMLAttributes.label || code;
 
     let colorStyle = 'border-amber-300 bg-amber-50 text-amber-800'; // Default: Character
-    if (category.includes('panel')) {
+    const isPanel = category.includes('panel');
+    if (isPanel) {
       colorStyle = 'border-purple-300 bg-purple-50 text-purple-800';
     } else if (category.includes('loc') || category.includes('địa danh') || category.includes('location')) {
       colorStyle = 'border-emerald-300 bg-emerald-50 text-emerald-800';
@@ -94,7 +95,12 @@ export const BibleMention = Mention.extend({
       colorStyle = 'border-amber-500 border-dashed bg-amber-50/90 text-amber-900';
     }
 
-    const displayText = `@${code || label}${isStub ? ' (Chưa có trong Bible)' : ''}`;
+    // Hiển thị tên thực thể Series Bible (ưu tiên label/tên trước mã code, panel thì giữ mã khung hình)
+    const primaryText = isPanel ? (code || label) : (label || code);
+    const displayText = `@${primaryText}${isStub ? ' (Chưa có trong Bible)' : ''}`;
+    const tooltipText = isPanel
+      ? `@${code || label} (Khung tranh)`
+      : `@${label || code}${code && code !== label ? ` [${code}]` : ''} (${category}) - Bấm để xem thông tin Bible`;
 
     return [
       'span',
@@ -103,10 +109,11 @@ export const BibleMention = Mention.extend({
           class: `mention inline-flex items-center gap-1 whitespace-nowrap align-baseline px-1.5 py-0.5 rounded text-[11px] font-semibold font-mono tracking-tight border ${colorStyle} shadow-2xs select-none mx-0.5 cursor-pointer transition-all hover:scale-[1.02]`,
           'data-id': HTMLAttributes['data-id'],
           'data-label': label,
+          'data-code': code,
           'data-category': category,
           'data-mention-chip': 'true',
           'aria-haspopup': 'dialog',
-          title: `@${label} (${category}) - Bấm để xem thông tin Bible`,
+          title: tooltipText,
           contenteditable: 'false',
         },
         HTMLAttributes

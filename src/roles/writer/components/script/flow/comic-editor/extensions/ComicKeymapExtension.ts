@@ -284,30 +284,34 @@ export const ComicKeymapExtension = Extension.create<ComicKeymapOptions>({
         const to = $from.after(depth);
         const currentContent = parentNode.textContent;
 
-        // 3.1 pageBlock -> paragraph với tiền tố "! "
+        // 3.1 pageBlock -> Không thể xóa tiêu đề trang đầu tiên, cho phép xóa Page 2, 3...
         if (parentNode.type.name === 'pageBlock') {
-          const restoredText = currentContent.startsWith('!') ? currentContent : `! ${currentContent}`;
-          const newParagraph = state.schema.nodes.paragraph.create(
-            {},
-            restoredText ? state.schema.text(restoredText) : undefined
-          );
+          let isFirstPage = true;
+          state.doc.descendants((node, pos) => {
+            if (node.type.name === 'pageBlock') {
+              if (pos < from) {
+                isFirstPage = false;
+                return false;
+              }
+            }
+          });
 
-          const tr = state.tr.replaceWith(from, to, newParagraph);
-          tr.setSelection(TextSelection.create(tr.doc, from + 1));
+          if (isFirstPage) {
+            return true; // Không thể xóa tiêu đề trang bằng backspace
+          }
+
+          const tr = state.tr.delete(from, to);
+          const prevPos = Math.max(0, from - 1);
+          tr.setSelection(TextSelection.create(tr.doc, Math.min(prevPos, tr.doc.content.size)));
           editor.view.dispatch(tr);
           return true;
         }
 
-        // 3.2 panelBlock -> paragraph với tiền tố '" '
+        // 3.2 panelBlock -> Cho phép xóa Panel bằng Backspace
         if (parentNode.type.name === 'panelBlock') {
-          const restoredText = currentContent.startsWith('"') ? currentContent : `" ${currentContent}`;
-          const newParagraph = state.schema.nodes.paragraph.create(
-            {},
-            restoredText ? state.schema.text(restoredText) : undefined
-          );
-
-          const tr = state.tr.replaceWith(from, to, newParagraph);
-          tr.setSelection(TextSelection.create(tr.doc, from + 1));
+          const tr = state.tr.delete(from, to);
+          const prevPos = Math.max(0, from - 1);
+          tr.setSelection(TextSelection.create(tr.doc, Math.min(prevPos, tr.doc.content.size)));
           editor.view.dispatch(tr);
           return true;
         }

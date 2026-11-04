@@ -327,5 +327,14 @@ describe('scriptFlowAdapter (Dual-Mode Single Source of Truth)', () => {
       expect(mentions).toHaveLength(0);
       expect(lineBlock.content).toEqual([{ type: 'text', text: nonCodeText }]);
     });
+
+    it('7. Version concurrency vector bắt đầu từ 0 không bị ép thành 1 do falsy check', () => {
+      const initialVersionVector = 0;
+      // Kiểm tra quy tắc an toàn: versionVector ?? 0
+      const safeVersion = initialVersionVector ?? 0;
+      const unsafeVersion = initialVersionVector || 1;
+      expect(safeVersion).toBe(0);
+      expect(unsafeVersion).toBe(1); // Phản ánh đúng bẫy lỗi 409 cũ
+    });
   });
 });

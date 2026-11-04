@@ -37,6 +37,7 @@ import {
   LayoutTemplate,
   Film,
   AlertCircle,
+  Send,
 } from 'lucide-react';
 import {
   scriptLineService,
@@ -225,6 +226,19 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     });
     return Array.from(new Set(names)).join(', ');
   }, [writerAssignments, workspaceMembers]);
+
+  const myWriterAssignment = useMemo(() => {
+    if (!writerAssignments.length) return null;
+    if (effectiveUserId) {
+      const match = writerAssignments.find(
+        (a) => String(a.assigneeUserId).toLowerCase() === String(effectiveUserId).toLowerCase(),
+      );
+      if (match) return match;
+    }
+    return writerAssignments[0] || null;
+  }, [writerAssignments, effectiveUserId]);
+
+  const [submittingToEditor, setSubmittingToEditor] = useState(false);
 
   const canEditScript = useMemo(() => {
     if (!effectiveRole) return !isWriterBlockedByOther;
@@ -620,7 +634,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       if (!activeScene) return;
 
       // 2. Theo dõi version tuần tự (Sequential Concurrency Tracker) để tránh bẫy 409 Conflict
-      let currentVersion = currentChapter.versionVector || 1;
+      let currentVersion = currentChapter.versionVector ?? 0;
       let hasChanges = false;
 
       // 1b. Cập nhật tiêu đề phân cảnh nếu được chỉnh sửa trực tiếp trên giấy (Paper -> Modal & Backend)
@@ -700,7 +714,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               summary: 'Lưu kịch bản từ trình soạn thảo',
             }
           );
-          if (res?.chapterVersion) {
+          if (res?.chapterVersion !== undefined && res?.chapterVersion !== null) {
             currentVersion = res.chapterVersion;
             hasChanges = true;
           }
@@ -714,6 +728,14 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           }
         } catch (batchErr: any) {
           console.error(`Lỗi lưu hàng loạt kịch bản cho Scene ${targetSceneId}:`, batchErr);
+          if (
+            batchErr?.status === 409 ||
+            batchErr?.code === 'CONFLICT' ||
+            batchErr?.message?.includes('Chapter đã đổi') ||
+            batchErr?.message?.includes('version hiện tại')
+          ) {
+            await refreshChapterDetail(currentChapter.id);
+          }
           throw batchErr;
         }
       }
@@ -731,7 +753,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                 summary: 'Xoá toàn bộ dòng của phân cảnh',
               }
             );
-            if (res?.chapterVersion) {
+            if (res?.chapterVersion !== undefined && res?.chapterVersion !== null) {
               currentVersion = res.chapterVersion;
               hasChanges = true;
             }
@@ -1639,7 +1661,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   // Helper tìm tên nhân vật từ ID có kèm giai đoạn
   const getSpeakerName = (speakerId?: string | null) => {
     if (!speakerId) return null;
-    const found = characters.find((c) => c.id === speakerId);
+    const found = characters.find((c) => c.id === speakerId) || allBibleEntries.find((c) => c.id === speakerId);
     return found ? getBibleEntryNameWithStage(found) : 'Nhân vật (Chưa rõ)';
   };
 
@@ -1699,6 +1721,41 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       notify('Không thể mở lại kịch bản', err.message);
     } finally {
       setFreezingScript(false);
+    }
+  };
+
+  const handleSubmitScriptToEditor = async () => {
+    if (!currentChapter?.id) return;
+    if (!myWriterAssignment) {
+      notify('Chưa có phân công việc', 'Chương này chưa có phân công kịch bản Writer trên Kanban để nộp duyệt.');
+      return;
+    }
+
+    const confirmed = await confirm({
+      title: `Gửi kịch bản Chương ${currentChapter.chapterNumber} cho Editor duyệt?`,
+      description: `Kịch bản (Bản v${currentChapter.versionVector ?? 0}) sẽ được chuyển sang hàng đợi thẩm định của Editor. Nếu Editor yêu cầu chỉnh sửa lại, hệ thống sẽ tự động tăng số version của bản thảo.`,
+      confirmText: 'Gửi duyệt kịch bản',
+      cancelText: 'Hủy',
+      variant: 'info',
+    });
+    if (!confirmed) return;
+
+    setSubmittingToEditor(true);
+    try {
+      if (myWriterAssignment.status === 'Assigned') {
+        await assignmentService.startAssignment(currentChapter.id, myWriterAssignment.id);
+      }
+      await assignmentService.submitAssignment(currentChapter.id, myWriterAssignment.id);
+      notify(
+        'Đã gửi kịch bản cho Editor duyệt',
+        `Kịch bản Chương ${currentChapter.chapterNumber} (Bản v${currentChapter.versionVector ?? 0}) đã được chuyển cho Editor thẩm định thành công.`,
+      );
+      await refreshChapterDetail(currentChapter.id);
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || 'Lỗi khi gửi duyệt kịch bản';
+      notify('Không thể gửi duyệt', msg);
+    } finally {
+      setSubmittingToEditor(false);
     }
   };
 
@@ -1841,8 +1898,16 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             <span className='hidden sm:inline'>Đổi chương</span>
           </button>
 
-          {/* Trạng thái lưu tinh gọn */}
-          <div className='flex items-center text-xs font-mono'>
+          {/* Trạng thái lưu & Phiên bản chương (Working Draft Concurrency Vector) */}
+          <div className='flex items-center gap-1.5 text-xs font-mono'>
+            {currentChapter && (
+              <span
+                className='text-[11px] font-bold px-2 py-0.5 rounded-md bg-[#F3F0E9] text-[#57534E] border border-[#E5E0D8]'
+                title='Phiên bản kiểm soát đồng thời (Concurrency Vector) của chương này. Lưu nhiều lần trong phiên sẽ ghi nhận vào bản hiện tại.'
+              >
+                v{currentChapter.versionVector ?? 0}
+              </span>
+            )}
             {savingStoryArc || savingOutline || submitting ? (
               <span className='flex items-center gap-1.5 text-[11px] font-medium text-amber-700 bg-amber-50 border border-amber-200/60 px-2 py-0.5 rounded-md'>
                 <RefreshCw className='w-3 h-3 animate-spin text-amber-600' />
@@ -2023,6 +2088,43 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               className={`w-3.5 h-3.5 ${loadingScenes || loadingDetail ? 'animate-spin' : ''}`}
             />
           </button>
+
+          {/* Writer Submit to Editor Button */}
+          {(normRole === 'WRITER' || effectiveRole === 'WRITER') && !isScriptFrozen && currentChapter && (
+            <button
+              type='button'
+              disabled={
+                submittingToEditor ||
+                !myWriterAssignment ||
+                myWriterAssignment.status === 'Submitted' ||
+                myWriterAssignment.status === 'UnderReview' ||
+                myWriterAssignment.status === 'Approved'
+              }
+              onClick={() => void handleSubmitScriptToEditor()}
+              className='inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-[#0284C7] hover:bg-[#0369A1] disabled:bg-zinc-200 disabled:text-zinc-400 rounded-xl transition-all cursor-pointer shadow-2xs ml-1'
+              title={
+                !myWriterAssignment
+                  ? 'Chưa có phân công việc Writer trên Kanban để nộp duyệt'
+                  : myWriterAssignment.status === 'Submitted' || myWriterAssignment.status === 'UnderReview'
+                    ? 'Kịch bản đang được Editor thẩm định'
+                    : myWriterAssignment.status === 'Approved'
+                      ? 'Kịch bản đã được duyệt'
+                      : 'Gửi kịch bản hoàn thiện cho Editor thẩm định'
+              }
+              data-testid='submit-to-editor-btn'
+            >
+              <Send className={`w-3.5 h-3.5 ${submittingToEditor ? 'animate-spin' : ''}`} />
+              <span className='hidden sm:inline'>
+                {submittingToEditor
+                  ? 'Đang gửi...'
+                  : myWriterAssignment?.status === 'Submitted' || myWriterAssignment?.status === 'UnderReview'
+                    ? 'Đang chờ duyệt'
+                    : myWriterAssignment?.status === 'Approved'
+                      ? 'Đã duyệt'
+                      : 'Gửi Editor duyệt'}
+              </span>
+            </button>
+          )}
 
           {/* Producer Freeze Script Button */}
           {normRole === 'PRODUCER' && !isScriptFrozen && currentChapter && (
@@ -2518,6 +2620,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                       key={currentChapter?.id || 'flow-editor'}
                       chapterId={currentChapter?.id}
                       chapterNumber={currentChapter?.chapterNumber}
+                      chapterVersion={currentChapter?.versionVector ?? 0}
                       scenes={selectedScene ? [selectedScene] : (chapterScenesDetail.length > 0 ? chapterScenesDetail : [])}
                       allBibleEntries={allBibleEntries}
                       consistencyFindings={findings}
@@ -2634,6 +2737,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                 <ScreenplayFlowEditor
                 chapterId={currentChapter?.id}
                 chapterNumber={currentChapter?.chapterNumber}
+                chapterVersion={currentChapter?.versionVector ?? 0}
                 scenes={chapterScenesDetail.length > 0 ? chapterScenesDetail : []}
                 allBibleEntries={allBibleEntries}
                 consistencyFindings={findings}

@@ -149,17 +149,33 @@ export function createMentionSuggestion(
             leftContainer.appendChild(placeholder);
           }
 
-          // Mã định danh
-          const codeText = document.createElement('span');
-          codeText.className = 'font-mono font-bold text-[11px] shrink-0 text-zinc-900';
-          codeText.textContent = `@${item.code}`;
-          leftContainer.appendChild(codeText);
+          const isPanelItem = item.category === 'Panel';
 
-          // Tên thực thể
-          const nameText = document.createElement('span');
-          nameText.textContent = item.name;
-          nameText.className = 'truncate text-[11px] text-zinc-600';
-          leftContainer.appendChild(nameText);
+          if (isPanelItem) {
+            // Đối với Panel: Mã khung hình là chính (@P1.1), tên/số khung là phụ
+            const codeText = document.createElement('span');
+            codeText.className = 'font-mono font-bold text-[11px] shrink-0 text-purple-900';
+            codeText.textContent = `@${item.code}`;
+            leftContainer.appendChild(codeText);
+
+            const nameText = document.createElement('span');
+            nameText.textContent = item.name;
+            nameText.className = 'truncate text-[11px] text-zinc-600';
+            leftContainer.appendChild(nameText);
+          } else {
+            // Đối với Series Bible: Tên thực thể là chính (@Minh), mã định danh là phụ ([CHR-001])
+            const nameText = document.createElement('span');
+            nameText.textContent = `@${item.name || item.code}`;
+            nameText.className = 'font-bold text-xs truncate text-zinc-900';
+            leftContainer.appendChild(nameText);
+
+            if (item.code && item.code !== item.name) {
+              const codeBadge = document.createElement('span');
+              codeBadge.className = 'font-mono text-[10px] text-zinc-500 bg-zinc-100 px-1 py-0.2 rounded border border-zinc-200 shrink-0';
+              codeBadge.textContent = item.code;
+              leftContainer.appendChild(codeBadge);
+            }
+          }
 
           // Huy hiệu loại
           const catBadge = document.createElement('span');
@@ -241,10 +257,11 @@ export function createMentionSuggestion(
           // Tiêu đề & Loại
           const header = document.createElement('div');
           header.className = 'flex items-center justify-between';
+          const isPanel = selectedItem.category === 'Panel';
           header.innerHTML = `
-            <span class="font-mono font-bold text-zinc-900">@${selectedItem.code}</span>
+            <span class="font-bold text-zinc-900">${isPanel ? `@${selectedItem.code}` : `@${selectedItem.name || selectedItem.code}`}</span>
             <span class="text-[10px] px-1.5 py-0.5 rounded uppercase font-bold ${
-              selectedItem.category === 'Panel'
+              isPanel
                 ? 'bg-purple-100 text-purple-800'
                 : 'bg-amber-100 text-amber-800'
             }">${selectedItem.category}</span>
@@ -294,7 +311,7 @@ export function createMentionSuggestion(
       const selectItem = (item: MentionSuggestionItem) => {
         currentProps.command({
           id: item.id,
-          label: item.code,
+          label: item.category === 'Panel' ? item.code : (item.name || item.code),
           code: item.code,
           category: String(item.category),
           isLocked: item.isLocked,
@@ -313,7 +330,7 @@ export function createMentionSuggestion(
         });
         currentProps.command({
           id: `stub_${Date.now()}`,
-          label: tempCode,
+          label: name || tempCode,
           code: tempCode,
           category: 'Character',
           isLocked: false,

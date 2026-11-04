@@ -262,25 +262,7 @@ export function scenesToTipTapDoc(
         content: [
           {
             type: 'text',
-            text: '" Panel 1.1: [Toàn cảnh]',
-          },
-        ],
-      });
-      content.push({
-        type: 'scriptLineBlock',
-        attrs: {
-          scriptLineId: generateGuid(),
-          sceneId: scene.id,
-          blockType: 'stage_direction' as MangaBlockType,
-          narrationMode: 'Present',
-          lineOrder: 3,
-          panelId: null,
-          inPanel: true,
-        },
-        content: [
-          {
-            type: 'text',
-            text: 'Mô tả bối cảnh và hành động của khung hình 1.1...',
+            text: '" Panel 1.1: [Toàn cảnh] ',
           },
         ],
       });
@@ -292,7 +274,7 @@ export function scenesToTipTapDoc(
         // 1. Chỉ dẫn sân khấu / Tiêu đề trang / Panel / Tên nhân vật đứng riêng
         if (line.stageDirection) {
           const trimmed = line.stageDirection.trim();
-          let detectedType: MangaBlockType = 'stage_direction';
+          let detectedType: MangaBlockType = 'caption';
           if (/^(?:[#!]\s*(?:Trang|Page)?\s*\d+(?:\.\d+)?|(?:Trang|Page)\s+\d+(?:\.\d+)?)/i.test(trimmed)) {
             detectedType = 'page_heading';
           } else if (/^(?:(?:[-"”]\s*)?(?:Panel|Khung)\s*\d+(?:\.\d+)?|[-"”]\s*\d+(?:\.\d+)?|#panel\s*\d+(?:\.\d+)?)/i.test(trimmed)) {

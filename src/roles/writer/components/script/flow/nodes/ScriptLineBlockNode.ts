@@ -117,13 +117,13 @@ export const ScriptLineBlockNode = Node.create({
   },
 
   renderHTML({ HTMLAttributes }) {
-    const blockType = (HTMLAttributes['data-block-type'] || 'stage_direction') as MangaBlockType;
+    const blockType = (HTMLAttributes['data-block-type'] || 'caption') as MangaBlockType;
     const inPanel = HTMLAttributes['data-in-panel'] === 'true';
 
     const panelIndent = inPanel && blockType !== 'page_heading' && blockType !== 'panel_heading' && blockType !== 'scene_heading'
-      ? 'border-l-2 border-indigo-300/80 pl-4 ml-2 '
+      ? 'pl-3 ml-1 '
       : '';
-    let classNames = `script-block font-mono my-1.5 transition-all duration-150 outline-none ${panelIndent}`;
+    let classNames = `script-block font-mono my-1 transition-all duration-150 outline-none ${panelIndent}`;
 
     switch (blockType) {
       case 'scene_heading':
@@ -161,8 +161,9 @@ export const ScriptLineBlockNode = Node.create({
       }
 
       case 'caption':
-        // C. LỜI DẪN TRUYỆN (CAPTION): Chữ thường đứng, màu #334155, 14px, đường kẻ dọc mảnh màu xám ở đầu dòng
-        classNames += 'font-sans text-[14px] text-[#334155] border-l-2 border-slate-300 pl-3.5 py-0.5 my-2 leading-relaxed not-italic';
+      case 'stage_direction':
+        // C. LỜI DẪN TRUYỆN: Chữ thường đứng, màu #334155, 14px, gõ tự do bình thường
+        classNames += 'font-sans text-[14px] text-[#334155] py-0.5 my-1 leading-relaxed not-italic outline-none';
         return ['div', mergeAttributes(HTMLAttributes, { class: classNames, 'data-block-type': blockType }), 0];
 
       case 'character':
@@ -178,10 +179,6 @@ export const ScriptLineBlockNode = Node.create({
       case 'sfx':
         // F. HIỆU ỨNG ÂM THANH (SFX): Huy hiệu vàng hổ phách, tia chớp ⚡, font Monospace kỹ thuật nổi bật
         classNames += 'font-mono text-xs sm:text-sm my-1.5 px-3 py-1.5 rounded-lg border border-amber-300 bg-[#FFFBEB] text-amber-950 flex items-center gap-2.5 shadow-2xs not-italic';
-        return ['div', mergeAttributes(HTMLAttributes, { class: classNames, 'data-block-type': blockType }), 0];
-      case 'stage_direction':
-        // G. CHỈ DẪN BỐI CẢNH / HÀNH ĐỘNG / VIẾT TỰ DO: In nghiêng, màu #64748B, font Monospace kỹ thuật
-        classNames += 'font-mono italic text-[#64748B] text-xs sm:text-sm ml-4 pl-2 my-1 leading-normal';
         return ['div', mergeAttributes(HTMLAttributes, { class: classNames, 'data-block-type': blockType }), 0];
 
       case 'transition':
@@ -357,54 +354,77 @@ export const ScriptLineBlockNode = Node.create({
         return false;
       },
 
-      // 3. Backspace: Hoàn nguyên an toàn khi con trỏ ở đầu khối (offset 0)
+      // 3. Backspace: Cho phép xóa Panel và Page, bảo vệ không xóa tiêu đề trang đầu tiên
       Backspace: ({ editor }) => {
         const { state, view } = editor;
         const { selection } = state;
         const { $from, empty } = selection;
 
-        if (empty && $from.parentOffset === 0) {
-          const currentBlock = $from.parent;
-          if (currentBlock.type.name === this.name) {
-            const currentType = currentBlock.attrs.blockType || 'stage_direction';
-            const textContent = currentBlock.textContent.trim();
+        const currentBlock = $from.parent;
+        const from = $from.before();
+        const to = $from.after();
 
-            // 3.1 Hoàn nguyên Page Heading về "! "
-            if (currentType === 'page_heading') {
-              const fallback = textContent.startsWith('!') ? textContent : `! ${textContent}`;
-              const from = $from.before();
-              const to = $from.after();
-              const newBlock = state.schema.nodes.scriptLineBlock.create(
-                { ...currentBlock.attrs, blockType: 'stage_direction' },
-                fallback ? state.schema.text(fallback) : []
-              );
-              const tr = state.tr.replaceWith(from, to, newBlock);
-              tr.setSelection(TextSelection.create(tr.doc, from + 1));
+        if (currentBlock.type.name === this.name) {
+          const currentType = currentBlock.attrs.blockType || 'stage_direction';
+
+          // 3.1 Tiêu đề trang (page_heading): Không thể xóa tiêu đề trang đầu tiên bằng backspace
+          if (currentType === 'page_heading') {
+            let isFirstPage = true;
+            state.doc.descendants((node, pos) => {
+              if (node.type.name === this.name && node.attrs?.blockType === 'page_heading') {
+                if (pos < from) {
+                  isFirstPage = false;
+                  return false;
+                }
+              }
+            });
+
+            if (isFirstPage) {
+              // Tiêu đề trang đầu tiên: KHÔNG THỂ XÓA BẰNG BACKSPACE
+              return true;
+            } else {
+              // Các trang tiếp theo (Page 2, 3...): Cho phép xóa Page bằng Backspace
+              const tr = state.tr.delete(from, to);
+              const prevPos = Math.max(0, from - 1);
+              tr.setSelection(TextSelection.create(tr.doc, Math.min(prevPos, tr.doc.content.size)));
               view.dispatch(tr);
               return true;
             }
+          }
 
-            // 3.2 Hoàn nguyên Panel Heading về '" '
-            if (currentType === 'panel_heading') {
-              const fallback = textContent.startsWith('"') ? textContent : `" ${textContent}`;
-              const from = $from.before();
-              const to = $from.after();
-              const newBlock = state.schema.nodes.scriptLineBlock.create(
-                { ...currentBlock.attrs, blockType: 'stage_direction' },
-                fallback ? state.schema.text(fallback) : []
-              );
-              const tr = state.tr.replaceWith(from, to, newBlock);
-              tr.setSelection(TextSelection.create(tr.doc, from + 1));
-              view.dispatch(tr);
-              return true;
-            }
+          // 3.2 Cho phép xóa Panel bằng Backspace
+          if (currentType === 'panel_heading') {
+            const tr = state.tr.delete(from, to);
+            const prevPos = Math.max(0, from - 1);
+            tr.setSelection(TextSelection.create(tr.doc, Math.min(prevPos, tr.doc.content.size)));
+            view.dispatch(tr);
+            return true;
+          }
 
-            // 3.3 Hoàn nguyên SFX / Caption về stage_direction viết tự do
-            if (currentType === 'sfx' || currentType === 'caption' || currentType === 'dialogue') {
-              return editor.commands.updateAttributes(this.name, { blockType: 'stage_direction' });
+          // 3.3 Hoàn nguyên SFX / Dialogue về Lời dẫn truyện (caption)
+          if (empty && $from.parentOffset === 0) {
+            if (currentType === 'sfx' || currentType === 'dialogue') {
+              return editor.commands.updateAttributes(this.name, { blockType: 'caption' });
             }
           }
         }
+
+        // Chặn joinBackward làm hỏng page_heading khi nhấn Backspace ở đầu khối kế tiếp
+        if (empty && $from.parentOffset === 0) {
+          const $beforePos = state.doc.resolve(from);
+          const prevNode = $beforePos.nodeBefore;
+          if (prevNode && prevNode.type.name === this.name && prevNode.attrs?.blockType === 'page_heading') {
+            if (currentBlock.textContent.trim() === '') {
+              const tr = state.tr.delete(from, to);
+              const prevPos = Math.max(0, from - 1);
+              tr.setSelection(TextSelection.create(tr.doc, Math.min(prevPos, tr.doc.content.size)));
+              view.dispatch(tr);
+              return true;
+            }
+            return true;
+          }
+        }
+
         return false;
       },
 
@@ -420,21 +440,24 @@ export const ScriptLineBlockNode = Node.create({
         }
 
         const rawText = currentBlock.textContent.trim();
-        const currentType = currentBlock.attrs?.blockType || 'stage_direction';
+        const currentType = currentBlock.attrs?.blockType || 'caption';
 
-        // 4.1 QUY TẮC BẮT BUỘC: Khi nhấn Enter trên Panel hoặc Page:
-        // CHÈN 1 scriptLineBlock MẶC ĐỊNH RỖNG (STAGE_DIRECTION) TRỰC TIẾP BÊN DƯỚI.
+        // 4.1 QUY TẮC BẮT BUỘC: Khi nhấn Enter trên Panel, Page hoặc Lời dẫn:
+        // CHÈN 1 scriptLineBlock MẶC ĐỊNH RỖNG (CAPTION - LỜI DẪN TRUYỆN BÌNH THƯỜNG) TRỰC TIẾP BÊN DƯỚI.
         // TUYỆT ĐỐI KHÔNG TỰ ĐỘNG CHUYỂN THÀNH DIALOGUE / NHÂN VẬT!
         if (
           currentType === 'page_heading' ||
           currentType === 'panel_heading' ||
+          currentType === 'caption' ||
+          currentType === 'stage_direction' ||
           currentBlock.type.name === 'pageBlock' ||
-          currentBlock.type.name === 'panelBlock'
+          currentBlock.type.name === 'panelBlock' ||
+          currentBlock.type.name === 'captionBlock'
         ) {
           const emptyActionBlock = state.schema.nodes.scriptLineBlock.create({
             scriptLineId: generateGuid(),
             sceneId: currentBlock.attrs?.sceneId || null,
-            blockType: 'stage_direction',
+            blockType: 'caption',
             narrationMode: 'Present',
           });
 
@@ -447,7 +470,7 @@ export const ScriptLineBlockNode = Node.create({
 
         // 4.2 Cú pháp thoại NGHIÊM NGẶT CÓ DẤU NGOẶC KÉP:
         // Chỉ chuyển thành thoại nếu có CẢ @Character: VÀ "Lời thoại"!
-        // Nếu không có dấu ngoặc kép (như "@Minh walks away" hoặc viết tự do), coi là hành động bình thường!
+        // Nếu không có dấu ngoặc kép (như "@Minh walks away" hoặc viết tự do), coi là lời dẫn bình thường!
         const strictDialogueMatch = rawText.match(/^@([\w\p{L}_-]+)\s*:\s*["“]([^"”]*?)["”]$/u);
         if (strictDialogueMatch) {
           const speakerName = strictDialogueMatch[1].trim();
@@ -466,11 +489,11 @@ export const ScriptLineBlockNode = Node.create({
             state.schema.text(displayText)
           );
 
-          // Tạo một scriptLineBlock mặc định rỗng (stage_direction) bên dưới cho phép viết tự do
+          // Tạo một scriptLineBlock mặc định rỗng (caption) bên dưới cho phép viết tự do
           const nextBlock = state.schema.nodes.scriptLineBlock.create({
             scriptLineId: generateGuid(),
             sceneId: currentBlock.attrs?.sceneId || null,
-            blockType: 'stage_direction',
+            blockType: 'caption',
             narrationMode: 'Present',
           });
 
@@ -498,11 +521,11 @@ export const ScriptLineBlockNode = Node.create({
             state.schema.text(displayText)
           );
 
-          // Dòng tiếp theo là stage_direction cho phép viết tự do
+          // Dòng tiếp theo là caption cho phép viết tự do
           const nextBlock = state.schema.nodes.scriptLineBlock.create({
             scriptLineId: generateGuid(),
             sceneId: currentBlock.attrs?.sceneId || null,
-            blockType: 'stage_direction',
+            blockType: 'caption',
             narrationMode: 'Present',
           });
 
@@ -517,7 +540,7 @@ export const ScriptLineBlockNode = Node.create({
         const captionMatch = rawText.match(/^(?:Lời dẫn truyện|Lời dẫn|Caption|Dẫn chuyện):\s*(.*)/i);
         if (captionMatch) {
           const captionBody = captionMatch[1].trim();
-          const displayText = `Caption: ${captionBody}`;
+          const displayText = captionBody;
 
           const from = $from.before();
           const to = $from.after();
@@ -530,11 +553,11 @@ export const ScriptLineBlockNode = Node.create({
             state.schema.text(displayText)
           );
 
-          // Dòng tiếp theo là stage_direction cho phép viết tự do
+          // Dòng tiếp theo là caption cho phép viết tự do
           const nextBlock = state.schema.nodes.scriptLineBlock.create({
             scriptLineId: generateGuid(),
             sceneId: currentBlock.attrs?.sceneId || null,
-            blockType: 'stage_direction',
+            blockType: 'caption',
             narrationMode: 'Present',
           });
 
@@ -545,12 +568,11 @@ export const ScriptLineBlockNode = Node.create({
           return true;
         }
 
-        // 4.5 Nếu không khớp cú pháp nào (ví dụ: viết số, mô tả bối cảnh tự do),
-        // tạo khối stage_direction tiếp theo
+        // 4.5 Mặc định tạo khối Lời dẫn truyện (caption) tiếp theo, gõ tự do
         const emptyBlock = state.schema.nodes.scriptLineBlock.create({
           scriptLineId: generateGuid(),
           sceneId: currentBlock.attrs?.sceneId || null,
-          blockType: 'stage_direction',
+          blockType: 'caption',
           narrationMode: 'Present',
         });
 
