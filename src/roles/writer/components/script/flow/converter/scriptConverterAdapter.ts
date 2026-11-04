@@ -289,3 +289,83 @@ export function convertScriptTextToScreenplayBlocks(
   return nodes;
 }
 
+/**
+ * Đếm số trang và số panel trong chuỗi kịch bản thuần
+ */
+export function countPagesAndPanels(scriptText: string): { pagesCount: number; panelsCount: number } {
+  const blocks = parseScriptTextToBlocks(scriptText);
+  const pagesCount = blocks.filter((b) => b.type === 'page').length || (blocks.length > 0 ? 1 : 0);
+  const panelsCount = blocks.filter((b) => b.type === 'panel').length;
+  return { pagesCount, panelsCount };
+}
+
+/**
+ * Lọc nội dung kịch bản thuần theo dải trang (từ fromPage đến toPage)
+ * Hỗ trợ phân đoạn kịch bản lớn trước khi hydrate vào TipTap Editor để tối ưu hiệu năng
+ */
+export function filterScriptTextByPageRange(
+  scriptText: string,
+  fromPage: number,
+  toPage: number
+): { filteredText: string; pagesCount: number; panelsCount: number } {
+  const lines = scriptText.split('\n');
+  const selectedLines: string[] = [];
+
+  let currentPageNum = 1;
+  let isInTargetRange = false;
+  let hasEncounteredAnyPage = false;
+  let panelsCount = 0;
+  let pagesCount = 0;
+
+  for (const rawLine of lines) {
+    const trimmed = rawLine.trim();
+
+    const pageMatch =
+      trimmed.match(/^(?:[!#📄]?\s*(?:Trang|Page)?\s*(\d+))/i) ||
+      trimmed.match(/^(?:Trang|Page)\s+(\d+)/i);
+
+    const isPageLine =
+      trimmed.startsWith('!') ||
+      trimmed.startsWith('#') ||
+      /^Trang\s+\d+/i.test(trimmed) ||
+      /^Page\s+\d+/i.test(trimmed);
+
+    if (isPageLine && pageMatch) {
+      hasEncounteredAnyPage = true;
+      currentPageNum = parseInt(pageMatch[1], 10);
+      isInTargetRange = currentPageNum >= fromPage && currentPageNum <= toPage;
+      if (isInTargetRange) {
+        pagesCount++;
+        selectedLines.push(rawLine);
+      }
+      continue;
+    }
+
+    // Nếu chưa gặp dòng trang nào mà fromPage <= 1 thì tính là thuộc trang 1
+    if (!hasEncounteredAnyPage) {
+      isInTargetRange = fromPage <= 1;
+    }
+
+    if (isInTargetRange) {
+      const isPanelLine =
+        trimmed.startsWith('"') ||
+        trimmed.startsWith('”') ||
+        trimmed.startsWith('-') ||
+        /^Panel\s*[\d.]+/i.test(trimmed) ||
+        /^Khung\s*[\d.]+/i.test(trimmed);
+
+      if (isPanelLine) {
+        panelsCount++;
+      }
+
+      selectedLines.push(rawLine);
+    }
+  }
+
+  return {
+    filteredText: selectedLines.join('\n').trim(),
+    pagesCount: Math.max(pagesCount, hasEncounteredAnyPage ? 0 : (selectedLines.length > 0 ? 1 : 0)),
+    panelsCount,
+  };
+}
+

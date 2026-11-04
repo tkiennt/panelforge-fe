@@ -1,5 +1,5 @@
 // src/roles/writer/components/script/flow/converter/AiScriptConvertModal.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Sparkles,
   Zap,
@@ -15,10 +15,18 @@ import {
   Copy,
   Cpu,
   Bookmark,
+  Upload,
+  Code2,
+  SlidersHorizontal,
+  Info,
 } from 'lucide-react';
 import { SeriesBibleContext } from './types';
 import { convertToComicScript } from './aiScriptService';
-import { parseScriptTextToBlocks } from './scriptConverterAdapter';
+import {
+  parseScriptTextToBlocks,
+  countPagesAndPanels,
+  filterScriptTextByPageRange,
+} from './scriptConverterAdapter';
 
 export interface AiScriptConvertModalProps {
   isOpen: boolean;
@@ -62,14 +70,64 @@ export const AiScriptConvertModal: React.FC<AiScriptConvertModalProps> = ({
   const [resultSource, setResultSource] = useState<'gemini' | 'heuristic'>('heuristic');
   const [confirmReplace, setConfirmReplace] = useState<boolean>(false);
 
+  // Staged Ingestion & Performance Guard States
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importedFileName, setImportedFileName] = useState<string | null>(null);
+  const [previewMode, setPreviewMode] = useState<'visual' | 'raw_editor'>('visual');
+  const [ingestionScope, setIngestionScope] = useState<'all' | 'range'>('all');
+  const [rangeFromPage, setRangeFromPage] = useState<number>(initialStartingPageNumber);
+  const [rangeToPage, setRangeToPage] = useState<number>(initialStartingPageNumber);
+
   useEffect(() => {
     if (isOpen) {
       setStartingPage(initialStartingPageNumber);
+      setRangeFromPage(initialStartingPageNumber);
+      setRangeToPage(initialStartingPageNumber);
       setConfirmReplace(false);
+      setIngestionScope('all');
     }
   }, [isOpen, initialStartingPageNumber]);
 
   if (!isOpen) return null;
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result as string;
+      if (text) {
+        setInputContent(text);
+        setImportedFileName(file.name);
+        setConvertedResult(null);
+        onShowToast?.(
+          'Đã nạp tệp kịch bản thô',
+          `Đã tải "${file.name}" (${(file.size / 1024).toFixed(1)} KB) thành công.`
+        );
+      }
+    };
+    reader.onerror = () => {
+      onShowToast?.('Lỗi tải tệp tin', 'Không thể đọc nội dung tệp tin đã chọn.');
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
+  const handleInsertTag = (tagPrefix: string) => {
+    setInputContent((prev) => {
+      const trimmed = prev.trimEnd();
+      return trimmed ? `${trimmed}\n\n${tagPrefix}` : tagPrefix;
+    });
+  };
+
+  const handleRawScriptChange = (newText: string) => {
+    setConvertedResult(newText);
+    const stats = countPagesAndPanels(newText);
+    setPagesCount(stats.pagesCount);
+    setPanelsCount(stats.panelsCount);
+    setRangeToPage(Math.max(rangeFromPage, rangeFromPage + stats.pagesCount - 1));
+  };
 
   const handleConvert = async () => {
     if (!inputContent.trim()) {
@@ -91,9 +149,12 @@ export const AiScriptConvertModal: React.FC<AiScriptConvertModalProps> = ({
       setPagesCount(response.pagesCount);
       setPanelsCount(response.panelsCount);
       setResultSource(response.source);
+      setRangeFromPage(startingPage);
+      setRangeToPage(Math.max(startingPage, startingPage + response.pagesCount - 1));
+
       onShowToast?.(
-        'Chuyển đổi thành công',
-        `Đã tạo ${response.pagesCount} trang kịch bản (${response.panelsCount} panel) sẵn sàng đưa vào Tiptap.`
+        'Phân đoạn thành công',
+        `Đã tạo ${response.pagesCount} trang kịch bản (${response.panelsCount} panel) sẵn sàng nạp có kiểm soát.`
       );
     } catch (err: any) {
       onShowToast?.('Lỗi xử lý', err.message || 'Không thể chuyển đổi văn bản.');
@@ -108,7 +169,22 @@ export const AiScriptConvertModal: React.FC<AiScriptConvertModalProps> = ({
       setConfirmReplace(true);
       return;
     }
-    onApplyScript(convertedResult, mode);
+
+    let scriptToApply = convertedResult;
+    if (ingestionScope === 'range' && pagesCount > 1) {
+      const filtered = filterScriptTextByPageRange(convertedResult, rangeFromPage, rangeToPage);
+      if (!filtered.filteredText) {
+        onShowToast?.('Dải trang trống', `Không tìm thấy nội dung từ Trang ${rangeFromPage} đến ${rangeToPage}.`);
+        return;
+      }
+      scriptToApply = filtered.filteredText;
+      onShowToast?.(
+        'Đã nạp phân đoạn',
+        `Chỉ nạp ${filtered.pagesCount} trang (${filtered.panelsCount} panel) vào Editor để giữ mượt hiệu năng.`
+      );
+    }
+
+    onApplyScript(scriptToApply, mode);
     onClose();
   };
 
@@ -198,19 +274,60 @@ export const AiScriptConvertModal: React.FC<AiScriptConvertModalProps> = ({
                   {activeTab === 'convert_raw_text' ? 'Nội dung văn xuôi thô:' : 'Ý tưởng kịch bản cần phát triển:'}
                 </span>
 
-                {activeTab === 'convert_raw_text' ? (
+                <div className="flex items-center gap-2">
+                  {activeTab === 'convert_raw_text' && (
+                    <>
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleFileUpload}
+                        accept=".txt,.md,.text"
+                        className="hidden"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="text-[11px] font-semibold text-stone-600 bg-white hover:bg-stone-100 border border-stone-200 px-2.5 py-1 rounded-lg cursor-pointer flex items-center gap-1 transition-all"
+                        title="Tải file kịch bản thô (.txt, .md) từ máy tính"
+                      >
+                        <Upload className="w-3 h-3 text-stone-500" />
+                        Tải tệp thô (.txt/.md)
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setInputContent(SAMPLE_NOVEL_PROSE);
+                          setImportedFileName(null);
+                        }}
+                        className="text-[11px] font-semibold text-[#C2410C] hover:underline cursor-pointer flex items-center gap-1"
+                      >
+                        <RotateCcw className="w-3 h-3" />
+                        Đoạn mẫu
+                      </button>
+                    </>
+                  )}
+                  {activeTab === 'generate_from_prompt' && (
+                    <span className="text-[11px] text-stone-400">Chọn gợi ý bên dưới hoặc tự gõ</span>
+                  )}
+                </div>
+              </div>
+
+              {importedFileName && (
+                <div className="flex items-center justify-between px-2.5 py-1 bg-amber-50 border border-amber-200 rounded-lg text-[11px] text-amber-900 font-mono">
+                  <span>📄 Đang sử dụng tệp: <strong>{importedFileName}</strong></span>
                   <button
                     type="button"
-                    onClick={() => setInputContent(SAMPLE_NOVEL_PROSE)}
-                    className="text-[11px] font-semibold text-[#C2410C] hover:underline cursor-pointer flex items-center gap-1"
+                    onClick={() => {
+                      setInputContent('');
+                      setImportedFileName(null);
+                    }}
+                    className="text-stone-400 hover:text-stone-700 ml-2"
                   >
-                    <RotateCcw className="w-3 h-3" />
-                    Dán đoạn văn mẫu
+                    <X className="w-3 h-3" />
                   </button>
-                ) : (
-                  <span className="text-[11px] text-stone-400">Chọn gợi ý bên dưới hoặc tự gõ</span>
-                )}
-              </div>
+                </div>
+              )}
 
               {/* Textarea */}
               <div className="relative flex-1 min-h-[220px]">
@@ -219,11 +336,37 @@ export const AiScriptConvertModal: React.FC<AiScriptConvertModalProps> = ({
                   onChange={(e) => setInputContent(e.target.value)}
                   placeholder={
                     activeTab === 'convert_raw_text'
-                      ? 'Dán đoạn văn tiểu thuyết, bản thảo Word, hoặc ghi chú phân cảnh thô vào đây...'
+                      ? 'Dán đoạn văn tiểu thuyết, bản thảo Word, hoặc tải tệp .txt/.md vào đây...'
                       : 'Mô tả ngắn gọn bối cảnh, hành động và mục tiêu của phân cảnh (Ví dụ: Minh và Lan rượt đuổi sát thủ dưới mưa rào...)'
                   }
                   className="w-full h-full min-h-[220px] p-3.5 bg-white border border-[#D5CEC2] rounded-xl text-xs text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#C2410C]/30 focus:border-[#C2410C] leading-relaxed resize-y font-sans shadow-2xs"
                 />
+              </div>
+
+              {/* Quick Tags Toolbar for manual splitting */}
+              <div className="flex items-center gap-1.5 text-[11px] text-stone-500 flex-wrap">
+                <span className="font-mono text-[10px] uppercase font-bold text-stone-400">Thẻ phân đoạn nhanh:</span>
+                <button
+                  type="button"
+                  onClick={() => handleInsertTag(`! Trang ${startingPage}`)}
+                  className="px-2 py-0.5 rounded bg-stone-100 hover:bg-amber-100 text-stone-700 hover:text-amber-900 border border-stone-200 text-[10px] font-bold cursor-pointer transition-colors"
+                >
+                  + Ngắt Trang (!)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleInsertTag(`" Panel 1.1: [Toàn cảnh]`)}
+                  className="px-2 py-0.5 rounded bg-stone-100 hover:bg-indigo-100 text-stone-700 hover:text-indigo-900 border border-stone-200 text-[10px] font-bold cursor-pointer transition-colors"
+                >
+                  + Khung Panel (")
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleInsertTag(`@Minh: ""`)}
+                  className="px-2 py-0.5 rounded bg-stone-100 hover:bg-emerald-100 text-stone-700 hover:text-emerald-900 border border-stone-200 text-[10px] font-bold cursor-pointer transition-colors"
+                >
+                  + Thoại (@)
+                </button>
               </div>
 
               {/* Prompt Suggestions (khi ở Tab 2) */}
@@ -327,15 +470,39 @@ export const AiScriptConvertModal: React.FC<AiScriptConvertModalProps> = ({
               </button>
             </div>
 
-            {/* CỘT PHẢI: LIVE VISUAL PREVIEW TRỰC QUAN */}
+            {/* CỘT PHẢI: LIVE VISUAL PREVIEW & RAW EDIT */}
             <div className="flex flex-col bg-white border border-[#D5CEC2] rounded-xl overflow-hidden shadow-2xs">
               
               {/* Preview Header */}
-              <div className="flex items-center justify-between px-3.5 py-2.5 bg-[#F9F7F3] border-b border-[#E8E2D6] text-xs">
-                <span className="font-bold text-stone-700 flex items-center gap-1.5">
-                  <Layers className="w-3.5 h-3.5 text-indigo-600" />
-                  Xem trước kịch bản trực quan:
-                </span>
+              <div className="flex flex-wrap items-center justify-between gap-2 px-3.5 py-2.5 bg-[#F9F7F3] border-b border-[#E8E2D6] text-xs">
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center bg-stone-200/80 p-0.5 rounded-lg border border-stone-300">
+                    <button
+                      type="button"
+                      onClick={() => setPreviewMode('visual')}
+                      className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer ${
+                        previewMode === 'visual'
+                          ? 'bg-white text-stone-900 shadow-2xs'
+                          : 'text-stone-600 hover:text-stone-900'
+                      }`}
+                    >
+                      <Layers className="w-3 h-3 text-indigo-600" />
+                      Visual Blocks
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPreviewMode('raw_editor')}
+                      className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer ${
+                        previewMode === 'raw_editor'
+                          ? 'bg-white text-stone-900 shadow-2xs'
+                          : 'text-stone-600 hover:text-stone-900'
+                      }`}
+                    >
+                      <Code2 className="w-3 h-3 text-[#C2410C]" />
+                      Mã thô (Editable)
+                    </button>
+                  </div>
+                </div>
 
                 {convertedResult && (
                   <div className="flex items-center gap-2 text-[10px] font-mono">
@@ -345,7 +512,7 @@ export const AiScriptConvertModal: React.FC<AiScriptConvertModalProps> = ({
                     <span className="bg-indigo-100 text-indigo-900 px-2 py-0.5 rounded font-bold">
                       {panelsCount} Panel
                     </span>
-                    <span className="text-gray-400">
+                    <span className="text-gray-400 hidden sm:inline">
                       ({resultSource === 'gemini' ? 'Gemini AI' : 'Smart Heuristic'})
                     </span>
                   </div>
@@ -361,6 +528,32 @@ export const AiScriptConvertModal: React.FC<AiScriptConvertModalProps> = ({
                     <p className="text-[11px] text-stone-400 max-w-xs">
                       Nhập nội dung ở cột bên trái và bấm nút "Phân tích & Tạo kịch bản" để xem kết quả tại đây.
                     </p>
+                  </div>
+                ) : previewMode === 'raw_editor' ? (
+                  <div className="flex flex-col h-full min-h-[300px] space-y-2 font-sans">
+                    <div className="flex items-center justify-between text-[11px] text-stone-500">
+                      <span className="flex items-center gap-1 font-semibold text-stone-700">
+                        <Info className="w-3.5 h-3.5 text-amber-600" />
+                        Chỉnh sửa điểm ngắt trang (!) và panel (") trước khi nạp vào Editor:
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(convertedResult);
+                          onShowToast?.('Đã sao chép', 'Đã copy toàn bộ kịch bản thô vào Clipboard.');
+                        }}
+                        className="flex items-center gap-1 text-[11px] font-medium text-indigo-600 hover:underline cursor-pointer font-sans"
+                      >
+                        <Copy className="w-3 h-3" />
+                        Sao chép mã
+                      </button>
+                    </div>
+                    <textarea
+                      value={convertedResult}
+                      onChange={(e) => handleRawScriptChange(e.target.value)}
+                      className="w-full h-full min-h-[290px] p-3 bg-stone-900 text-amber-200 border border-stone-800 rounded-lg font-mono text-xs leading-relaxed focus:outline-none focus:ring-1 focus:ring-amber-500 resize-y"
+                      placeholder="! Trang 01&#10;&quot; Panel 1.1: [Toàn cảnh]&#10;@Minh: &quot;Lời thoại...&quot;"
+                    />
                   </div>
                 ) : (
                   previewBlocks.map((b, idx) => {
@@ -438,63 +631,123 @@ export const AiScriptConvertModal: React.FC<AiScriptConvertModalProps> = ({
         </div>
 
         {/* FOOTER ACTIONS */}
-        <footer className="flex flex-wrap items-center justify-between gap-3 px-6 py-3.5 bg-[#F2EDE4] border-t border-[#E2DBD0] shrink-0">
-          <div className="text-xs text-stone-500 font-medium">
-            {convertedResult ? (
-              <span className="text-emerald-700 font-semibold flex items-center gap-1">
-                <Check className="w-4 h-4 text-emerald-600" />
-                Đã sẵn sàng chèn vào Editor ({pagesCount} Trang, {panelsCount} Panel)
-              </span>
-            ) : (
-              <span>Vui lòng chuyển đổi trước khi áp dụng vào trình soạn thảo</span>
-            )}
-          </div>
+        <footer className="flex flex-col gap-3 px-6 py-3.5 bg-[#F2EDE4] border-t border-[#E2DBD0] shrink-0">
+          
+          {/* Staged Ingestion Guard: Phân đoạn nạp kịch bản lớn */}
+          {convertedResult && pagesCount > 1 && (
+            <div className="flex flex-wrap items-center justify-between gap-2.5 p-2.5 bg-white/90 border border-stone-200 rounded-xl text-xs">
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="font-bold text-stone-700 flex items-center gap-1.5">
+                  <SlidersHorizontal className="w-3.5 h-3.5 text-[#C2410C]" />
+                  Kiểm soát nạp (Tránh nghẽn DOM):
+                </span>
+                <label className="flex items-center gap-1.5 text-stone-700 cursor-pointer text-xs">
+                  <input
+                    type="radio"
+                    name="ingestionScope"
+                    checked={ingestionScope === 'all'}
+                    onChange={() => setIngestionScope('all')}
+                    className="accent-[#C2410C]"
+                  />
+                  <span>Tất cả ({pagesCount} trang)</span>
+                </label>
+                <label className="flex items-center gap-1.5 text-stone-700 cursor-pointer text-xs">
+                  <input
+                    type="radio"
+                    name="ingestionScope"
+                    checked={ingestionScope === 'range'}
+                    onChange={() => setIngestionScope('range')}
+                    className="accent-[#C2410C]"
+                  />
+                  <span>Phân đoạn: Từ trang</span>
+                  <input
+                    type="number"
+                    min={startingPage}
+                    max={rangeToPage}
+                    value={rangeFromPage}
+                    disabled={ingestionScope !== 'range'}
+                    onChange={(e) => setRangeFromPage(Math.max(startingPage, parseInt(e.target.value) || startingPage))}
+                    className="w-12 px-1.5 py-0.5 bg-white border border-stone-300 rounded text-center font-bold text-[#C2410C] text-xs disabled:opacity-40"
+                  />
+                  <span>đến</span>
+                  <input
+                    type="number"
+                    min={rangeFromPage}
+                    max={startingPage + pagesCount - 1}
+                    value={rangeToPage}
+                    disabled={ingestionScope !== 'range'}
+                    onChange={(e) => setRangeToPage(Math.min(startingPage + pagesCount - 1, parseInt(e.target.value) || startingPage))}
+                    className="w-12 px-1.5 py-0.5 bg-white border border-stone-300 rounded text-center font-bold text-[#C2410C] text-xs disabled:opacity-40"
+                  />
+                </label>
+              </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-3.5 py-2 rounded-xl text-xs font-semibold text-stone-600 bg-white hover:bg-stone-100 border border-stone-300 transition-all cursor-pointer"
-            >
-              Đóng
-            </button>
+              {ingestionScope === 'range' && (
+                <div className="text-[11px] font-mono text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                  ⚡ Đã chọn: {Math.max(0, rangeToPage - rangeFromPage + 1)} trang (Giữ Editor mượt mà 60 FPS)
+                </div>
+              )}
+            </div>
+          )}
 
-            {/* Chèn vào cuối kịch bản */}
-            <button
-              type="button"
-              disabled={!convertedResult}
-              onClick={() => handleApply('append')}
-              className="px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-indigo-700 hover:bg-indigo-800 shadow-2xs transition-all disabled:opacity-40 cursor-pointer"
-              title="Thêm các trang kịch bản mới này vào cuối tài liệu hiện tại"
-            >
-              + Chèn vào cuối
-            </button>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="text-xs text-stone-500 font-medium">
+              {convertedResult ? (
+                <span className="text-emerald-700 font-semibold flex items-center gap-1">
+                  <Check className="w-4 h-4 text-emerald-600" />
+                  Đã sẵn sàng chèn vào Editor ({pagesCount} Trang, {panelsCount} Panel)
+                </span>
+              ) : (
+                <span>Vui lòng chuyển đổi trước khi áp dụng vào trình soạn thảo</span>
+              )}
+            </div>
 
-            {/* Chèn tại vị trí con trỏ */}
-            <button
-              type="button"
-              disabled={!convertedResult}
-              onClick={() => handleApply('insert')}
-              className="px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-[#C2410C] hover:bg-[#9A3412] shadow-2xs transition-all disabled:opacity-40 cursor-pointer"
-              title="Chèn ngay tại vị trí con trỏ hiện tại của kịch bản"
-            >
-              ↳ Chèn tại con trỏ
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-3.5 py-2 rounded-xl text-xs font-semibold text-stone-600 bg-white hover:bg-stone-100 border border-stone-300 transition-all cursor-pointer"
+              >
+                Đóng
+              </button>
 
-            {/* Ghi đè toàn bộ kịch bản */}
-            <button
-              type="button"
-              disabled={!convertedResult}
-              onClick={() => handleApply('replace')}
-              className={`px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                confirmReplace
-                  ? 'bg-rose-600 text-white animate-pulse'
-                  : 'bg-white text-rose-700 hover:bg-rose-50 border border-rose-300'
-              } disabled:opacity-40`}
-              title="Thay thế toàn bộ văn bản kịch bản hiện tại"
-            >
-              {confirmReplace ? 'Xác nhận Ghi đè toàn bộ?' : 'Ghi đè tất cả'}
-            </button>
+              {/* Chèn vào cuối kịch bản */}
+              <button
+                type="button"
+                disabled={!convertedResult}
+                onClick={() => handleApply('append')}
+                className="px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-indigo-700 hover:bg-indigo-800 shadow-2xs transition-all disabled:opacity-40 cursor-pointer"
+                title="Thêm các trang kịch bản mới này vào cuối tài liệu hiện tại"
+              >
+                + Chèn vào cuối
+              </button>
+
+              {/* Chèn tại vị trí con trỏ */}
+              <button
+                type="button"
+                disabled={!convertedResult}
+                onClick={() => handleApply('insert')}
+                className="px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-[#C2410C] hover:bg-[#9A3412] shadow-2xs transition-all disabled:opacity-40 cursor-pointer"
+                title="Chèn ngay tại vị trí con trỏ hiện tại của kịch bản"
+              >
+                ↳ Chèn tại con trỏ
+              </button>
+
+              {/* Ghi đè toàn bộ kịch bản */}
+              <button
+                type="button"
+                disabled={!convertedResult}
+                onClick={() => handleApply('replace')}
+                className={`px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  confirmReplace
+                    ? 'bg-rose-600 text-white animate-pulse'
+                    : 'bg-white text-rose-700 hover:bg-rose-50 border border-rose-300'
+                } disabled:opacity-40`}
+                title="Thay thế toàn bộ văn bản kịch bản hiện tại"
+              >
+                {confirmReplace ? 'Xác nhận Ghi đè toàn bộ?' : 'Ghi đè tất cả'}
+              </button>
+            </div>
           </div>
         </footer>
       </div>

@@ -4,6 +4,8 @@ import {
   parseScriptTextToBlocks,
   convertScriptTextToComicBlocks,
   convertScriptTextToScreenplayBlocks,
+  countPagesAndPanels,
+  filterScriptTextByPageRange,
 } from './scriptConverterAdapter';
 import { convertRawTextHeuristically } from './regexScriptParser';
 
@@ -106,5 +108,62 @@ Thành phố ngập trong ánh đèn neon.
     expect(dialogueLine?.attrs?.speakerName).toBe('Lan');
     expect(dialogueLine?.content?.[0]?.text).toContain('@Lan : "Mọi thứ đã sẵn sàng."');
   });
+
+  it('đếm chính xác số trang và số panel trong kịch bản thuần', () => {
+    const multiPageScript = `
+! Trang 01
+" Panel 1.1: [Toàn cảnh]
+Mưa rơi.
+" Panel 1.2: [Cận cảnh]
+Minh nhìn quanh.
+! Trang 02
+" Panel 2.1: [Trung cảnh]
+Chiếc xe dừng lại.
+! Trang 03
+" Panel 3.1: [Toàn cảnh]
+Đoàn người xuất hiện.
+" Panel 3.2: [Cận cảnh]
+" Panel 3.3: [Đặc tả]
+    `.trim();
+
+    const stats = countPagesAndPanels(multiPageScript);
+    expect(stats.pagesCount).toBe(3);
+    expect(stats.panelsCount).toBe(6);
+  });
+
+  it('lọc kịch bản theo dải trang (Staged Pagination Range)', () => {
+    const multiPageScript = `
+! Trang 01
+" Panel 1.1: [Toàn cảnh]
+Mưa rơi.
+" Panel 1.2: [Cận cảnh]
+Minh nhìn quanh.
+! Trang 02
+" Panel 2.1: [Trung cảnh]
+Chiếc xe dừng lại.
+! Trang 03
+" Panel 3.1: [Toàn cảnh]
+Đoàn người xuất hiện.
+" Panel 3.2: [Cận cảnh]
+    `.trim();
+
+    // Lọc chỉ lấy Trang 02
+    const page2Only = filterScriptTextByPageRange(multiPageScript, 2, 2);
+    expect(page2Only.pagesCount).toBe(1);
+    expect(page2Only.panelsCount).toBe(1);
+    expect(page2Only.filteredText).toContain('! Trang 02');
+    expect(page2Only.filteredText).toContain('" Panel 2.1: [Trung cảnh]');
+    expect(page2Only.filteredText).not.toContain('! Trang 01');
+    expect(page2Only.filteredText).not.toContain('! Trang 03');
+
+    // Lọc lấy Trang 02 đến Trang 03
+    const page2To3 = filterScriptTextByPageRange(multiPageScript, 2, 3);
+    expect(page2To3.pagesCount).toBe(2);
+    expect(page2To3.panelsCount).toBe(3);
+    expect(page2To3.filteredText).toContain('! Trang 02');
+    expect(page2To3.filteredText).toContain('! Trang 03');
+    expect(page2To3.filteredText).not.toContain('! Trang 01');
+  });
 });
+
 
