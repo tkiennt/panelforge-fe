@@ -18,6 +18,7 @@ export interface PublicChapterDto {
   chapterNumber: number;
   title?: string | null;
   publishedAt?: string | null;
+  coverUrl?: string | null;
 }
 
 export interface PublicSeriesDetailDto {
@@ -46,6 +47,7 @@ export interface PublicChapterReadDto {
   title?: string | null;
   publishedAt?: string | null;
   pages: PublicPageReadDto[];
+  coverUrl?: string | null;
 }
 
 export interface PublicCatalogPagedResult {
@@ -109,6 +111,15 @@ export const catalogService = {
    * Đọc nội dung chương truyện công khai (AllowAnonymous)
    * GET /api/catalog/chapters/{chapterId}
    */
+  /**
+   * Lấy URL ảnh bìa chương công khai (AllowAnonymous)
+   * GET /api/catalog/chapters/{chapterId}/cover
+   */
+  getPublicChapterCoverUrl: (chapterId: string, versionHash?: string | null): string => {
+    const vParam = versionHash ? `?v=${encodeURIComponent(versionHash)}` : '';
+    return resolveCatalogImageUrl(`/api/catalog/chapters/${chapterId}/cover${vParam}`);
+  },
+
   getPublicChapter: async (chapterId: string): Promise<PublicChapterReadDto> => {
     try {
       const response = await axiosClient.get(`/catalog/chapters/${chapterId}`);

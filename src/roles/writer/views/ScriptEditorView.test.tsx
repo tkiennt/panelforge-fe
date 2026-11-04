@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, within, cleanup } from '@testing-library/react';
+import { render, screen, waitFor, within, cleanup, fireEvent, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ScriptEditorView } from './ScriptEditorView';
@@ -8,6 +8,24 @@ import { chapterService } from '@/services/chapter.service';
 import { bibleService } from '@/services/bible.service';
 import { seriesService } from '@/services/series.service';
 import { assignmentService } from '@/services/assignment.service';
+import { workspaceService } from '@/services/workspace.service';
+import { pageService } from '@/services/page.service';
+import { panelService } from '@/services/panel.service';
+
+vi.mock('@/services/page.service', () => ({
+  pageService: {
+    getPagesByChapter: vi.fn(),
+    createPage: vi.fn(),
+  },
+}));
+
+vi.mock('@/services/panel.service', () => ({
+  panelService: {
+    getPanelsByPage: vi.fn(),
+    createPanel: vi.fn(),
+    assignPanelScriptLines: vi.fn(),
+  },
+}));
 
 vi.mock('@/services/scriptLine.service', () => ({
   scriptLineService: {
@@ -49,6 +67,13 @@ vi.mock('@/services/assignment.service', () => ({
     runConsistencyCheck: vi.fn(),
     getConsistencyFindings: vi.fn(),
     triageConsistencyFinding: vi.fn(),
+    getAssignments: vi.fn(),
+  },
+}));
+
+vi.mock('@/services/workspace.service', () => ({
+  workspaceService: {
+    getMembers: vi.fn(),
   },
 }));
 
@@ -121,7 +146,7 @@ const mockBible = {
   ],
 };
 
-const renderView = (props: { workspaceRole?: string } = {}) =>
+const renderView = (props: { workspaceRole?: string; currentUserId?: string } = {}) =>
   render(
     <MemoryRouter
       initialEntries={['/workspaces/ws-1/series/se-1/script?chapterId=chap-1&sceneId=sc-1']}
@@ -146,6 +171,28 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
       totalPages: 1,
     });
     vi.mocked(chapterService.getChapterById).mockResolvedValue(mockChapters[0]);
+    vi.mocked(pageService.getPagesByChapter).mockResolvedValue([
+      {
+        id: 'page-1',
+        chapterId: 'chap-1',
+        pageNumber: 1,
+        layoutFormat: 'Default',
+        widthPx: 800,
+        heightPx: 1200,
+        dpi: 300,
+        elementsCount: 1,
+      },
+    ]);
+    vi.mocked(panelService.getPanelsByPage).mockResolvedValue([
+      {
+        id: 'panel-1',
+        pageId: 'page-1',
+        panelNumber: 1,
+        boundingBox: '{}',
+        readingOrder: 1,
+        createdAt: '2026-10-01',
+      },
+    ]);
     vi.mocked(bibleService.getSeriesBible).mockResolvedValue(mockBible as any);
     vi.mocked(scriptLineService.getScenesByChapter).mockResolvedValue(mockScenes);
     vi.mocked(scriptLineService.getSceneById).mockResolvedValue(mockSceneDetail);
@@ -168,6 +215,8 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
       value: 'Outline mới của chương 1.',
     });
     vi.mocked(assignmentService.getConsistencyFindings).mockResolvedValue([]);
+    vi.mocked(assignmentService.getAssignments).mockResolvedValue([]);
+    vi.mocked(workspaceService.getMembers).mockResolvedValue([]);
   });
 
   it('nạp và hiển thị danh sách Chapters, Scenes, ScriptLines và Characters', async () => {
@@ -289,6 +338,166 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
 
     expect(await screen.findByTestId('role-view-only-banner')).toBeInTheDocument();
     expect(screen.queryByTestId('open-add-line-btn')).not.toBeInTheDocument();
+  });
+
+  it('khóa quyền sửa kịch bản khi chương đã giao cho Writer khác, hiển thị banner đã giao người khác', async () => {
+    vi.mocked(assignmentService.getAssignments).mockResolvedValue([
+      {
+        id: 'as-1',
+        seriesId: 'se-1',
+        chapterId: 'chap-1',
+        entityType: 'Chapter' as any,
+        targetEntityId: 'chap-1',
+        pipelineStageId: 'stg-1',
+        assigneeUserId: 'other-writer-id',
+        assignedRole: 'Writer' as any,
+        brief: 'Viết kịch bản',
+        priority: 'Medium' as any,
+        status: 'Assigned' as any,
+        createdAt: '2026-10-01',
+      },
+    ]);
+    vi.mocked(workspaceService.getMembers).mockResolvedValue([
+      {
+        userId: 'other-writer-id',
+        fullName: 'Lê Biên Kịch',
+        email: 'writer@panelforge.com',
+        role: 'Writer',
+        isOwner: false,
+        joinedAt: '2026-10-01',
+      },
+    ]);
+
+    renderView({ workspaceRole: 'WRITER', currentUserId: 'my-writer-id' });
+
+    const banner = await screen.findByTestId('writer-not-assigned-banner');
+    expect(banner).toBeInTheDocument();
+    expect(banner.textContent).toContain('Lê Biên Kịch');
+    expect(banner.textContent).toContain('Đã giao người khác');
+    // Nút thêm dòng, viết nháp AI bị ẩn
+    expect(screen.queryByTestId('open-add-line-btn')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('open-ai-draft-btn')).not.toBeInTheDocument();
+  });
+
+  it('cho phép Writer được giao sửa kịch bản bình thường', async () => {
+    vi.mocked(assignmentService.getAssignments).mockResolvedValue([
+      {
+        id: 'as-1',
+        seriesId: 'se-1',
+        chapterId: 'chap-1',
+        entityType: 'Chapter' as any,
+        targetEntityId: 'chap-1',
+        pipelineStageId: 'stg-1',
+        assigneeUserId: 'my-writer-id',
+        assignedRole: 'Writer' as any,
+        brief: 'Viết kịch bản',
+        priority: 'Medium' as any,
+        status: 'InProgress' as any,
+        createdAt: '2026-10-01',
+      },
+    ]);
+
+    renderView({ workspaceRole: 'WRITER', currentUserId: 'my-writer-id' });
+
+    expect(await screen.findByTestId('open-add-line-btn')).toBeInTheDocument();
+    expect(screen.queryByTestId('writer-not-assigned-banner')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('role-view-only-banner')).not.toBeInTheDocument();
+  });
+
+  it('chương chưa giao cho ai thì Writer vẫn sửa tự do', async () => {
+    vi.mocked(assignmentService.getAssignments).mockResolvedValue([]);
+
+    renderView({ workspaceRole: 'WRITER', currentUserId: 'any-writer-id' });
+
+    expect(await screen.findByTestId('open-add-line-btn')).toBeInTheDocument();
+    expect(screen.queryByTestId('writer-not-assigned-banner')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('role-view-only-banner')).not.toBeInTheDocument();
+  });
+
+  it('Assignment bị huỷ (cancelReason != null) thì không khoá quyền sửa của Writer', async () => {
+    vi.mocked(assignmentService.getAssignments).mockResolvedValue([
+      {
+        id: 'as-cancelled',
+        seriesId: 'se-1',
+        chapterId: 'chap-1',
+        entityType: 'Chapter' as any,
+        targetEntityId: 'chap-1',
+        pipelineStageId: 'stg-1',
+        assigneeUserId: 'old-writer-id',
+        assignedRole: 'Writer' as any,
+        brief: 'Viết kịch bản cũ',
+        priority: 'Medium' as any,
+        status: 'Assigned' as any,
+        createdAt: '2026-10-01',
+        cancelReason: 'Đổi người viết',
+      } as any,
+    ]);
+
+    renderView({ workspaceRole: 'WRITER', currentUserId: 'new-writer-id' });
+
+    expect(await screen.findByTestId('open-add-line-btn')).toBeInTheDocument();
+    expect(screen.queryByTestId('writer-not-assigned-banner')).not.toBeInTheDocument();
+  });
+
+  it('Producer luôn có toàn quyền sửa kịch bản dù chương đã giao cho Writer khác', async () => {
+    vi.mocked(assignmentService.getAssignments).mockResolvedValue([
+      {
+        id: 'as-1',
+        seriesId: 'se-1',
+        chapterId: 'chap-1',
+        entityType: 'Chapter' as any,
+        targetEntityId: 'chap-1',
+        pipelineStageId: 'stg-1',
+        assigneeUserId: 'other-writer-id',
+        assignedRole: 'Writer' as any,
+        brief: 'Viết kịch bản',
+        priority: 'Medium' as any,
+        status: 'Assigned' as any,
+        createdAt: '2026-10-01',
+      },
+    ]);
+
+    renderView({ workspaceRole: 'PRODUCER', currentUserId: 'producer-id' });
+
+    expect(await screen.findByTestId('open-add-line-btn')).toBeInTheDocument();
+    expect(screen.queryByTestId('writer-not-assigned-banner')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('role-view-only-banner')).not.toBeInTheDocument();
+  });
+
+  it('bắt lỗi 403 Forbidden khi tạo dòng kịch bản và hiển thị thông báo lỗi', async () => {
+    const user = userEvent.setup();
+    const mockShowToast = vi.fn();
+    render(
+      <MemoryRouter initialEntries={['/workspaces/ws-1/series/se-1/script?chapterId=chap-1&sceneId=sc-1']}>
+        <Routes>
+          <Route
+            path='/workspaces/:workspaceId/series/:seriesId/script'
+            element={<ScriptEditorView workspaceRole='WRITER' currentUserId='my-writer-id' onShowToast={mockShowToast} />}
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    const openAddBtn = await screen.findByTestId('open-add-line-btn');
+    await user.click(openAddBtn);
+
+    vi.mocked(scriptLineService.createScriptLine).mockRejectedValueOnce({
+      status: 403,
+      message: 'Kịch bản chương này đã được giao cho Writer khác. Chỉ người được giao hoặc Producer mới sửa được.',
+    });
+
+    const dialogueInput = screen.getByPlaceholderText(/Nhập lời thoại của nhân vật/i);
+    await user.type(dialogueInput, 'Dòng thoại test 403');
+
+    const submitBtn = await screen.findByTestId('submit-line-btn');
+    await user.click(submitBtn);
+
+    await waitFor(() => {
+      expect(mockShowToast).toHaveBeenCalledWith(
+        'Không có quyền sửa kịch bản (403)',
+        'Kịch bản chương này đã được giao cho Writer khác. Chỉ người được giao hoặc Producer mới sửa được.',
+      );
+    });
   });
 
   it('hiển thị chip mục Series Bible liên kết trên dòng kịch bản (UC-06)', async () => {
@@ -514,6 +723,38 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
       await screen.findByTestId('toggle-narrative-context-btn');
       expect(screen.queryByTestId('draft-restore-storyArc')).toBeNull();
     });
+
+    it('hiển thị nút Phân khung bằng AI (open-ai-storyboard-btn) và mở Storyboard panel khi bấm', async () => {
+      const user = userEvent.setup();
+      renderView();
+      const storyboardBtn = await screen.findByTestId('open-ai-storyboard-btn');
+      expect(storyboardBtn).toBeInTheDocument();
+      expect(storyboardBtn).toHaveTextContent('Phân khung bằng AI');
+
+      await user.click(storyboardBtn);
+      const panel = await screen.findByTestId('ai-assist-panel');
+      expect(panel).toBeInTheDocument();
+      expect(panel).toHaveAttribute('aria-label', 'Trợ lý AI · Phân khung Storyboard');
+    });
+
+    it('hiển thị chỉ báo "Đã có khung" khi phân cảnh đã có panel', async () => {
+      vi.mocked(scriptLineService.getSceneById).mockResolvedValueOnce({
+        ...mockSceneDetail,
+        scriptLines: [
+          {
+            ...mockSceneDetail.scriptLines[0],
+            panelId: 'panel-existing-1',
+          },
+        ],
+      });
+      renderView();
+      const storyboardBtn = await screen.findByTestId('open-ai-storyboard-btn');
+      expect(storyboardBtn).toHaveTextContent('Đã có khung');
+      expect(storyboardBtn).toHaveAttribute(
+        'title',
+        'Phân cảnh đã có khung tranh (khóa tự tạo; dùng Tự động phân bổ trên Bàn vẽ)',
+      );
+    });
   });
 
   it('bỏ phần chọn phân cảnh và tự động khởi tạo cảnh đầu tiên khi chương chưa có phân cảnh nào', async () => {
@@ -558,6 +799,7 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
   it('không cho phép Writer tạo chapter, chỉ Producer mới có quyền tạo và xoá chapter (Zero-Trust RBAC)', async () => {
     // 1. Khi vai trò là WRITER
     renderView({ workspaceRole: 'WRITER' });
+    await screen.findByText(/Khởi đầu/i);
     expect(await screen.findByRole('combobox')).toBeInTheDocument();
     // Nút xoá chapter không xuất hiện cho Writer
     expect(screen.queryByTestId('delete-current-chapter-btn')).not.toBeInTheDocument();
@@ -566,5 +808,320 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
     cleanup();
     renderView({ workspaceRole: 'PRODUCER' });
     expect(await screen.findByTestId('delete-current-chapter-btn')).toBeInTheDocument();
+  });
+
+  it('hiển thị badge SHA-256 hash khi kịch bản đã đóng băng', async () => {
+    vi.mocked(chapterService.getChaptersBySeries).mockResolvedValueOnce({
+      items: [
+        {
+          ...mockChapters[0],
+          isScriptFrozen: true,
+          scriptContentHash: '9876543210abcdef9876543210abcdef9876543210abcdef9876543210abcdef',
+        },
+      ],
+      totalCount: 1,
+      pageIndex: 1,
+      pageSize: 50,
+      totalPages: 1,
+    });
+    vi.mocked(chapterService.getChapterById).mockResolvedValueOnce({
+      ...mockChapters[0],
+      isScriptFrozen: true,
+      scriptContentHash: '9876543210abcdef9876543210abcdef9876543210abcdef9876543210abcdef',
+    });
+
+    renderView({ workspaceRole: 'PRODUCER' });
+    expect(await screen.findByText(/Kịch bản đã đóng băng/i)).toBeInTheDocument();
+    expect(await screen.findByTestId('frozen-script-hash-badge')).toHaveTextContent('#98765432');
+  });
+  it('hỗ trợ chèn Trang, Panel và tự động đánh lại số trang khung', async () => {
+    renderView({ workspaceRole: 'WRITER' });
+    await screen.findByText(/Khởi đầu/i);
+
+    fireEvent.click(await screen.findByTestId('tab-flow'));
+    const sheet = await screen.findByTestId('paper-editor-sheet');
+    expect(sheet).toBeInTheDocument();
+
+    const insertPageBtn = screen.getByRole('button', { name: /\+ Trang/i });
+    const insertPanelBtn = screen.getByRole('button', { name: /\+ Panel/i });
+    expect(insertPageBtn).toBeInTheDocument();
+    expect(insertPanelBtn).toBeInTheDocument();
+
+    fireEvent.click(insertPageBtn);
+    const pages = await screen.findAllByText(/TRANG 1/i);
+    expect(pages.length).toBeGreaterThan(0);
+
+    fireEvent.click(insertPanelBtn);
+    const panels = await screen.findAllByText(/PANEL 1.1/i);
+    expect(panels.length).toBeGreaterThan(0);
+  });
+
+  it('hỗ trợ tạo mã tạm và lưu vào tempBibleCodes', async () => {
+    const { getTempBibleCodes, saveTempBibleCode } = await import('../components/script/flow/tempBibleCodes');
+    renderView({ workspaceRole: 'WRITER' });
+    await screen.findByText(/Khởi đầu/i);
+
+    saveTempBibleCode({
+      code: 'CHR-LAM-DU',
+      name: 'Lâm Du',
+      category: 'Character',
+      chapterNumber: 1,
+    });
+
+    const codes = getTempBibleCodes();
+    expect(codes.some((c) => c.code === 'CHR-LAM-DU')).toBe(true);
+  });
+
+  it('thẻ xem nhanh mở sau trễ 300ms và đóng sau trễ 150ms khi hover', async () => {
+    renderView({ workspaceRole: 'WRITER' });
+    await screen.findByText(/Khởi đầu/i);
+
+    fireEvent.click(await screen.findByTestId('tab-flow'));
+    const sheet = await screen.findByTestId('paper-editor-sheet');
+    expect(sheet).toBeInTheDocument();
+
+    try {
+      vi.useFakeTimers();
+      const mockBadge = document.createElement('div');
+      mockBadge.setAttribute('data-panel-badge', 'true');
+      mockBadge.setAttribute('data-page-number', '1');
+      mockBadge.setAttribute('data-panel-number', '1');
+      sheet.appendChild(mockBadge);
+
+      fireEvent.mouseOver(mockBadge);
+      expect(screen.queryByTestId('quick-view-card')).not.toBeInTheDocument();
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(300);
+      });
+      expect(screen.getByTestId('quick-view-card')).toBeInTheDocument();
+      expect(screen.getByText(/Trang 1 · Khung #1/i)).toBeInTheDocument();
+
+      fireEvent.mouseOut(mockBadge);
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(50);
+      });
+      expect(screen.getByTestId('quick-view-card')).toBeInTheDocument();
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(100);
+      });
+      expect(screen.queryByTestId('quick-view-card')).not.toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('thẻ xem nhanh Panel chưa có ảnh hiển thị ô trống Chưa có phác thảo', async () => {
+    renderView({ workspaceRole: 'WRITER' });
+    await screen.findByText(/Khởi đầu/i);
+
+    fireEvent.click(await screen.findByTestId('tab-flow'));
+    const sheet = await screen.findByTestId('paper-editor-sheet');
+    expect(sheet).toBeInTheDocument();
+
+    try {
+      vi.useFakeTimers();
+      const mockBadge = document.createElement('div');
+      mockBadge.setAttribute('data-panel-badge', 'true');
+      mockBadge.setAttribute('data-page-number', '2');
+      mockBadge.setAttribute('data-panel-number', '1');
+      mockBadge.setAttribute('data-has-thumbnail', 'false');
+      sheet.appendChild(mockBadge);
+
+      fireEvent.mouseOver(mockBadge);
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(300);
+      });
+
+      expect(screen.getByTestId('quick-view-card')).toBeInTheDocument();
+      expect(screen.getByTestId('panel-no-sketch-placeholder')).toBeInTheDocument();
+      expect(screen.getByText('Chưa có phác thảo')).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('chế độ frozen: chip vẫn render với data-mention-chip', async () => {
+    vi.mocked(chapterService.getChaptersBySeries).mockResolvedValueOnce({
+      items: [
+        {
+          ...mockChapters[0],
+          isScriptFrozen: true,
+          scriptContentHash: 'abc123hash',
+        },
+      ],
+      totalCount: 1,
+      pageIndex: 1,
+      pageSize: 50,
+      totalPages: 1,
+    });
+    vi.mocked(chapterService.getChapterById).mockResolvedValueOnce({
+      ...mockChapters[0],
+      isScriptFrozen: true,
+      scriptContentHash: 'abc123hash',
+    });
+    vi.mocked(scriptLineService.getSceneById).mockResolvedValueOnce({
+      ...mockSceneDetail,
+      scriptLines: [
+        {
+          id: 'line-frozen-1',
+          lineOrder: 1,
+          dialogueText: null,
+          stageDirection: '... suối cạn trơ đáy (LOC-VAN-KHE).',
+          speakerCharacterId: null,
+          panelId: null,
+        },
+      ],
+    });
+    vi.mocked(bibleService.getSeriesBible).mockResolvedValueOnce({
+      ...mockBible,
+      entries: [
+        ...mockBible.entries,
+        {
+          id: 'loc-1',
+          seriesBibleId: 'b-1',
+          category: 1,
+          code: 'LOC-VAN-KHE',
+          name: 'Vân Khê',
+          description: 'Thung lũng hoang sơ',
+          detailsJson: '{}',
+          priority: 1,
+          strictCheck: true,
+          isActive: true,
+          createdAt: '2026-10-01',
+        },
+      ],
+    } as any);
+
+    renderView({ workspaceRole: 'WRITER' });
+    await screen.findByText(/Khởi đầu/i);
+
+    expect(await screen.findByTestId('script-frozen-banner')).toBeInTheDocument();
+
+    fireEvent.click(await screen.findByTestId('tab-flow'));
+    const sheet = await screen.findByTestId('paper-editor-sheet');
+    expect(sheet).toBeInTheDocument();
+
+    const chip = await screen.findByText(/@LOC-VAN-KHE/);
+    expect(chip).toBeInTheDocument();
+    expect(chip.getAttribute('data-mention-chip')).toBe('true');
+  });
+
+  it('Lỗi 1: Tải kịch bản tự động nhận diện mã Bible thành chip và hover mở thẻ xem nhanh', async () => {
+    vi.mocked(chapterService.getChapterById).mockResolvedValueOnce(mockChapters[0]);
+    vi.mocked(scriptLineService.getSceneById).mockResolvedValueOnce({
+      ...mockSceneDetail,
+      scriptLines: [
+        {
+          id: 'line-bible-1',
+          lineOrder: 1,
+          dialogueText: null,
+          stageDirection: 'Gió rít dữ dội qua (LOC-VAN-KHE) và đốt cháy (TRM-VO-TAN-HOA). Chú ý (CHR-LAM-DU)!',
+          speakerCharacterId: null,
+          panelId: null,
+        },
+      ],
+    });
+    vi.mocked(bibleService.getSeriesBible).mockResolvedValueOnce({
+      ...mockBible,
+      entries: [
+        ...mockBible.entries,
+        {
+          id: 'loc-1',
+          seriesBibleId: 'b-1',
+          category: 1, // Location
+          code: 'LOC-VAN-KHE',
+          name: 'Vân Khê',
+          description: 'Thung lũng hoang sơ trơ đáy',
+          detailsJson: '{}',
+          priority: 1,
+          strictCheck: true,
+          isActive: true,
+          createdAt: '2026-10-01',
+        },
+        {
+          id: 'trm-1',
+          seriesBibleId: 'b-1',
+          category: 3, // Terminology
+          code: 'TRM-VO-TAN-HOA',
+          name: 'Vô Tận Hỏa',
+          description: 'Ngọn lửa vĩnh cửu không bao giờ tắt',
+          detailsJson: '{}',
+          priority: 1,
+          strictCheck: true,
+          isActive: true,
+          createdAt: '2026-10-01',
+        },
+      ],
+    } as any);
+
+    renderView({ workspaceRole: 'WRITER' });
+    await screen.findByText(/Khởi đầu/i);
+
+    fireEvent.click(await screen.findByTestId('tab-flow'));
+    const sheet = await screen.findByTestId('paper-editor-sheet');
+    expect(sheet).toBeInTheDocument();
+
+    const locChip = await screen.findByText(/@LOC-VAN-KHE/);
+    expect(locChip).toBeInTheDocument();
+    expect(locChip.getAttribute('data-mention-chip')).toBe('true');
+
+    const trmChip = await screen.findByText(/@TRM-VO-TAN-HOA/);
+    expect(trmChip).toBeInTheDocument();
+    expect(trmChip.getAttribute('data-mention-chip')).toBe('true');
+
+    const stubChip = await screen.findByText(/@CHR-LAM-DU \(Chưa có trong Bible\)/);
+    expect(stubChip).toBeInTheDocument();
+    expect(stubChip.getAttribute('data-is-stub')).toBe('true');
+
+    try {
+      vi.useFakeTimers();
+      fireEvent.mouseOver(locChip);
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(300);
+      });
+
+      const card = screen.getByTestId('quick-view-card');
+      expect(card).toBeInTheDocument();
+      expect(within(card).getByText('Vân Khê')).toBeInTheDocument();
+      expect(within(card).getByText('Thung lũng hoang sơ trơ đáy')).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('Gộp banner: khi kịch bản đóng băng chỉ hiển thị 1 dải thông báo script-frozen-banner duy nhất', async () => {
+    vi.mocked(chapterService.getChaptersBySeries).mockResolvedValueOnce({
+      items: [
+        {
+          ...mockChapters[0],
+          isScriptFrozen: true,
+          scriptContentHash: 'abc123hash',
+        },
+      ],
+      totalCount: 1,
+      pageIndex: 1,
+      pageSize: 50,
+      totalPages: 1,
+    });
+    vi.mocked(chapterService.getChapterById).mockResolvedValueOnce({
+      ...mockChapters[0],
+      isScriptFrozen: true,
+      scriptContentHash: 'abc123hash',
+    });
+
+    renderView({ workspaceRole: 'WRITER' });
+    await screen.findByText(/Khởi đầu/i);
+
+    const topBanner = await screen.findByTestId('script-frozen-banner');
+    expect(topBanner).toBeInTheDocument();
+    expect(topBanner).toHaveTextContent('Thẻ xem nhanh vẫn dùng được qua hover hoặc Ctrl+.');
+
+    fireEvent.click(await screen.findByTestId('tab-flow'));
+    const sheet = await screen.findByTestId('paper-editor-sheet');
+    expect(sheet).toBeInTheDocument();
+
+    expect(screen.queryByTestId('flow-script-content-hash')).not.toBeInTheDocument();
   });
 });

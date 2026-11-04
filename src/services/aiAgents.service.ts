@@ -14,16 +14,32 @@ export type AiAgentName =
   | 'Artist'
   | 'Letterer'
   | 'Editor'
-  | 'Producer';
+  | 'Producer'
+  | 'Publisher';
 export type WorkerAgentName = Exclude<AiAgentName, 'Supervisor'>;
 export type AiSuggestionStatus = 'Pending' | 'Accepted' | 'Rejected' | 'ChangesRequested';
 /** Chỉ các loại KẾT QUẢ ÁP DỤNG ĐƯỢC mới là suggestion; báo cáo Editor/Producer nằm trong output của step. */
-export type AiSuggestionKind = 'Script' | 'Layout' | 'ImagePrompt' | 'Lettering';
+export type AiSuggestionKind =
+  | 'Script'
+  | 'Layout'
+  | 'ImagePrompt'
+  | 'Lettering'
+  | 'LineRewrite'
+  | 'SeriesMetadata'
+  | 'Thumbnail';
 export type ContentRevisionKind = 'Script' | 'Layout' | 'ImagePrompt';
 export type ReadingDirection = 'LeftToRight' | 'RightToLeft';
 /** Nhiệm vụ = loại workflow. Run tạo trước khi có loại workflow được BE trả là FullScene. */
 export type AiWorkflowType =
-  'FullScene' | 'Script' | 'Storyboard' | 'Artist' | 'Letterer' | 'Editor' | 'Producer';
+  | 'FullScene'
+  | 'Script'
+  | 'Storyboard'
+  | 'Artist'
+  | 'Letterer'
+  | 'Editor'
+  | 'Producer'
+  | 'Copilot'
+  | 'Thumbnail';
 export type WorkspaceRoleName = 'Producer' | 'Writer' | 'Artist' | 'Letterer' | 'Editor';
 
 // ── Payload của từng agent (output của step) ─────────────────────────────────
@@ -132,7 +148,7 @@ export interface LetteringSuggestion {
   suggestedText: string;
   reason: string;
   maxChars: number;
-  limitSource: 'element-estimate' | 'panel-estimate' | string;
+  limitSource?: 'element-estimate' | 'panel-estimate' | string;
   withinEstimatedLimit: boolean;
 }
 export interface LetteringSuggestionSet {
@@ -160,6 +176,69 @@ export interface ProductionReport {
   }[];
   dataGaps: string[];
   facts: ProgressFact[];
+}
+/** Payload của AiSuggestion kind LineRewrite (Writer viết lại / Letterer rút gọn một dòng thoại). */
+export interface LineRewriteSuggestion {
+  schemaVersion: number;
+  runId: string;
+  sceneId: string;
+  task: 'writer.rewrite' | 'letterer.shorten' | string;
+  sourceScriptLineId: string;
+  originalText: string;
+  suggestedText: string;
+  reason: string;
+  maxChars?: number | null;
+}
+export interface ReleaseMetadata {
+  logline: string;
+  synopsis: string;
+  genre: string;
+  teaser: string;
+  ageRating: 'All' | '13+' | '16+' | '18+' | string;
+}
+
+/** Payload của AiSuggestion kind SeriesMetadata (Publisher Copilot). */
+export interface SeriesMetadataSuggestion {
+  schemaVersion: number;
+  runId: string;
+  seriesId: string;
+  originalSynopsis?: string | null;
+  originalGenre: string;
+  metadata: ReleaseMetadata;
+  reason: string;
+}
+
+export interface RunPublisherMetadataRequest {
+  chapterId: string;
+  instruction?: string | null;
+}
+
+/** Payload của AiSuggestion kind Thumbnail (Artist Thumbnail AI). */
+export interface ThumbnailSuggestion {
+  schemaVersion: number;
+  runId: string;
+  panelId: string;
+  pageId: string;
+  stageId: string;
+  assetId: string;
+  sha256: string;
+  imagePromptRevisionId: string;
+  prompt: string;
+  provider: 'Gemini' | 'Cloudflare' | 'Mock' | string;
+  model: string;
+  referenceEntryIds: string[];
+}
+
+export interface RunThumbnailRequest {
+  panelId: string;
+  instruction?: string | null;
+}
+
+export interface RunCopilotRequest {
+  task: 'writer.rewrite' | 'letterer.shorten';
+  lineId: string;
+  instruction?: string | null;
+  maxChars?: number | null;
 }
 
 // ── DTO của BE ────────────────────────────────────────────────────────────────
@@ -273,6 +352,8 @@ export interface RunWorkflowRequest {
   baseScriptRevisionId?: string | null;
   /** Không gửi = FullScene. Quyền do Backend tự xác định; FE không gửi role hay danh sách agent. */
   workflowType?: AiWorkflowType;
+  /** Chỉ dùng cho workflow Artist: danh sách ID panel cần tạo mô tả vẽ; null/rỗng = mọi panel của layout đã duyệt */
+  panelIds?: string[] | null;
 }
 export interface RunWorkflowResponse {
   runId: string;
@@ -478,6 +559,45 @@ export const aiAgentsService = {
       return res.data;
     } catch (e) {
       throw toError(e, 'Không thể chạy workflow AI.');
+    }
+  },
+
+  /** Chạy Copilot sync trên một dòng thoại (writer.rewrite hoặc letterer.shorten). Trả về AiSuggestionDto (Pending, kind: LineRewrite). */
+  async runCopilot(seriesId: string, body: RunCopilotRequest): Promise<AiSuggestionDto> {
+    try {
+      const res = await axiosClient.post(`/series/${seriesId}/ai/copilot`, body);
+      return res.data;
+    } catch (e) {
+      throw toError(e, 'Không thể chạy AI Copilot.');
+    }
+  },
+
+  /** Publisher Copilot: Gợi ý metadata phát hành (logline, synopsis, thể loại, teaser, age rating). */
+  async runPublisherMetadata(
+    seriesId: string,
+    body: RunPublisherMetadataRequest,
+  ): Promise<AiSuggestionDto> {
+    try {
+      const res = await axiosClient.post(`/series/${seriesId}/ai/copilot/publisher-metadata`, body);
+      return res.data;
+    } catch (e) {
+      throw toError(e, 'Không thể gợi ý metadata phát hành.');
+    }
+  },
+
+  /** Artist Thumbnail: Sinh ảnh thumbnail AI cho panel từ revision prompt ảnh đã duyệt. Timeout client khuyến nghị ≥ 120s. */
+  async runThumbnail(
+    seriesId: string,
+    body: RunThumbnailRequest,
+    timeoutMs = 120000,
+  ): Promise<AiSuggestionDto> {
+    try {
+      const res = await axiosClient.post(`/series/${seriesId}/ai/thumbnail`, body, {
+        timeout: timeoutMs,
+      });
+      return res.data;
+    } catch (e) {
+      throw toError(e, 'Không thể sinh ảnh thumbnail cho panel.');
     }
   },
 

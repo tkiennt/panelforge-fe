@@ -228,4 +228,72 @@ describe('bibleService', () => {
       expect(result[1].isLocked).toBe(false);
     });
   });
+  describe('submitConceptArt (Series Bible: tách phiên bản khỏi trạng thái duyệt)', () => {
+    it('gọi POST /series/{seriesId}/bible/entries/{entryId}/concept và trả về revision kèm conceptImageUrl và events', async () => {
+      const payload = {
+        referenceImageUrl: 'https://example.com/concept-v1.png',
+        summary: 'Nộp bản vẽ turnaround',
+      };
+      const mockResult = {
+        id: 'rev-1',
+        bibleEntryId: entryId,
+        versionNumber: 1,
+        reviewStatus: 'ConceptSubmitted',
+        conceptImageUrl: 'https://example.com/concept-v1.png',
+        events: [
+          {
+            id: 'evt-1',
+            type: 'Created',
+            actorId: null,
+            comment: null,
+            imageUrl: null,
+            eventHash: 'hash-create',
+            createdAt: '2026-11-02T10:00:00Z',
+          },
+          {
+            id: 'evt-2',
+            type: 'ConceptSubmitted',
+            actorId: 'artist-id',
+            comment: 'Nộp bản vẽ turnaround',
+            imageUrl: 'https://example.com/concept-v1.png',
+            eventHash: 'hash-submit',
+            createdAt: '2026-11-02T10:30:00Z',
+          },
+        ],
+      };
+      post.mockResolvedValueOnce({ data: mockResult });
+
+      const result = await bibleService.submitConceptArt(seriesId, entryId, payload);
+
+      expect(post).toHaveBeenCalledWith(
+        `/series/${seriesId}/bible/entries/${entryId}/concept`,
+        payload,
+      );
+      expect(result.reviewStatus).toBe('ConceptSubmitted');
+      expect(result.conceptImageUrl).toBe('https://example.com/concept-v1.png');
+      expect(result.events).toHaveLength(2);
+      expect(result.events![1].type).toBe('ConceptSubmitted');
+    });
+
+    it('bắt và ném lỗi 409 khi nộp Concept vào phiên bản đã khoá Canon', async () => {
+      post.mockRejectedValueOnce({
+        response: {
+          status: 409,
+          data: {
+            code: 'CONFLICT',
+            message:
+              'Phiên bản hiện tại đã khoá Canon. Cần Producer sử dụng thao tác Thay thế (Supersede) để cập nhật.',
+          },
+        },
+      });
+
+      await expect(
+        bibleService.submitConceptArt(seriesId, entryId, {
+          referenceImageUrl: 'https://example.com/art.png',
+        }),
+      ).rejects.toThrow(
+        'Phiên bản hiện tại đã khoá Canon. Cần Producer sử dụng thao tác Thay thế (Supersede) để cập nhật.',
+      );
+    });
+  });
 });

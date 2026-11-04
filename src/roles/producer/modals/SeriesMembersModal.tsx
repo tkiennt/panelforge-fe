@@ -5,7 +5,6 @@ import {
   Users,
   UserPlus,
   Trash2,
-  Edit3,
   Shield,
   Mail,
   Loader2,
@@ -19,15 +18,8 @@ import {
   AlertTriangle,
   Info,
 } from 'lucide-react';
-import {
-  seriesService,
-  SeriesMemberDto,
-  SeriesCandidateDto,
-} from '@/services/series.service';
-import {
-  workspaceService,
-  WorkspaceMemberDto,
-} from '@/services/workspace.service';
+import { seriesService, SeriesMemberDto, SeriesCandidateDto } from '@/services/series.service';
+import { workspaceService, WorkspaceMemberDto } from '@/services/workspace.service';
 import { useConfirm } from '@/shared/context/ConfirmContext';
 import { useToast } from '@/shared/context/ToastContext';
 import { useTranslation } from '@/lib/i18n';
@@ -137,7 +129,6 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
   const [workspaceMembers, setWorkspaceMembers] = useState<WorkspaceMemberDto[]>([]);
 
   // Vai trò chuẩn bị trước cho từng ứng viên trong Talent Pool
-  const [candidateRoles, setCandidateRoles] = useState<Record<string, string>>({});
 
   // Tìm kiếm ứng viên Workspace
   const [candidateSearchQuery, setCandidateSearchQuery] = useState('');
@@ -147,8 +138,6 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
   const [filterRole, setFilterRole] = useState<string>('ALL');
 
   // Đổi vai trò inline cho thành viên Series
-  const [editingUserId, setEditingUserId] = useState<string | null>(null);
-  const [editingRole, setEditingRole] = useState('');
 
   // Thông báo Alert trực tiếp bên trong Modal (thành công / lỗi / cảnh báo)
   const [statusAlert, setStatusAlert] = useState<{
@@ -193,7 +182,6 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
       setCandidateSearchQuery('');
       setSeriesSearchQuery('');
       setFilterRole('ALL');
-      setEditingUserId(null);
       setStatusAlert(null);
     }
   }, [isOpen, seriesId, workspaceId]);
@@ -283,13 +271,10 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
   }, [seriesMembers, seriesSearchQuery, filterRole, workspaceMembers]);
 
   // Chọn vai trò cho 1 ứng viên trước khi bấm Thêm
-  const handleSelectCandidateRole = (userId: string, role: string) => {
-    setCandidateRoles((prev) => ({ ...prev, [userId]: role }));
-  };
-
-  // Thêm nhân sự vào Series
+  // Thêm nhân sự vào Series. Vai trò luôn theo vai trò Studio (Workspace) — BE bỏ qua seriesRole, gửi để tương thích.
   const handleAddCandidateToSeries = async (candidateUserId: string) => {
-    const roleToAdd = candidateRoles[candidateUserId] || 'Artist';
+    const roleToAdd =
+      availableWorkspaceMembers.find((m) => m.userId === candidateUserId)?.role || 'Artist';
     setActionLoadingId(candidateUserId);
     try {
       await seriesService.addSeriesMember(workspaceId, seriesId, {
@@ -321,50 +306,6 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
         message: errorMsg,
       });
       toast.error('Thêm thất bại', errorMsg);
-    } finally {
-      setActionLoadingId(null);
-    }
-  };
-
-  // Đổi vai trò thành viên Series
-  const handleUpdateRole = async (userId: string, newRole: string) => {
-    const targetMember = seriesMembers.find((m) => m.userId === userId);
-    if (targetMember && isProducerMember(targetMember, workspaceMembers)) {
-      setStatusAlert({
-        type: 'warning',
-        title: 'Không thể đổi vai trò',
-        message: 'Producer là thành viên quản trị mặc định (không thể sửa vai trò).',
-      });
-      toast.warning(
-        'Không thể đổi vai trò',
-        'Producer là thành viên quản trị mặc định (không thể sửa vai trò).',
-      );
-      setEditingUserId(null);
-      return;
-    }
-
-    setActionLoadingId(userId);
-    try {
-      await seriesService.updateSeriesMember(workspaceId, seriesId, userId, {
-        seriesRole: newRole,
-      });
-      setStatusAlert({
-        type: 'success',
-        title: 'Cập nhật vai trò thành công',
-        message: `Đã đổi vai trò thành viên thành ${newRole}.`,
-      });
-      toast.success('Cập nhật vai trò thành công', `Đã đổi vai trò thành viên thành ${newRole}`);
-      setEditingUserId(null);
-      await loadData();
-      onMembersChanged?.();
-    } catch (err: any) {
-      const errorMsg = err.message || 'Không thể đổi vai trò';
-      setStatusAlert({
-        type: 'danger',
-        title: 'Cập nhật thất bại',
-        message: errorMsg,
-      });
-      toast.error('Cập nhật thất bại', errorMsg);
     } finally {
       setActionLoadingId(null);
     }
@@ -453,9 +394,7 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                 >
                   {t('members.modal.title', 'Đội ngũ sản xuất Series')}
                 </h3>
-                <span className='u285-ct text-xs'>
-                  {seriesMembers.length} thành viên
-                </span>
+                <span className='u285-ct text-xs'>{seriesMembers.length} thành viên</span>
               </div>
               <p
                 id='series-members-modal-desc'
@@ -484,10 +423,10 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                 statusAlert.type === 'success'
                   ? 'bg-emerald-50/70 border-emerald-200/90 text-emerald-950'
                   : statusAlert.type === 'danger'
-                  ? 'bg-rose-50/70 border-rose-200/90 text-rose-950'
-                  : statusAlert.type === 'warning'
-                  ? 'bg-amber-50/70 border-amber-200/90 text-amber-950'
-                  : 'bg-[#F9F7F3] border-[#E5E0D8] text-stone-900'
+                    ? 'bg-rose-50/70 border-rose-200/90 text-rose-950'
+                    : statusAlert.type === 'warning'
+                      ? 'bg-amber-50/70 border-amber-200/90 text-amber-950'
+                      : 'bg-[#F9F7F3] border-[#E5E0D8] text-stone-900'
               }`}
               role='status'
             >
@@ -497,10 +436,10 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                     statusAlert.type === 'success'
                       ? 'bg-emerald-100 text-emerald-700'
                       : statusAlert.type === 'danger'
-                      ? 'bg-rose-100 text-rose-700'
-                      : statusAlert.type === 'warning'
-                      ? 'bg-amber-100 text-amber-700'
-                      : 'bg-stone-200/80 text-stone-700'
+                        ? 'bg-rose-100 text-rose-700'
+                        : statusAlert.type === 'warning'
+                          ? 'bg-amber-100 text-amber-700'
+                          : 'bg-stone-200/80 text-stone-700'
                   }`}
                 >
                   {statusAlert.type === 'success' && <CheckCircle2 className='w-3.5 h-3.5' />}
@@ -543,7 +482,10 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                         {t('members.candidatePool.title', 'Thành viên Workspace')}
                       </h4>
                       <p className='text-[11px] text-[#737373]'>
-                        {t('members.candidatePool.subtitle', 'Chọn vai trò và thêm trực tiếp vào Series')}
+                        {t(
+                          'members.candidatePool.subtitle',
+                          'Chọn vai trò và thêm trực tiếp vào Series',
+                        )}
                       </p>
                     </div>
                   </div>
@@ -586,7 +528,10 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                     <CheckCircle2 className='w-9 h-9 text-emerald-600 mx-auto' />
                     <p className='text-xs font-semibold text-[#171717]'>
                       {candidateSearchQuery
-                        ? t('members.candidatePool.emptySearch', 'Không tìm thấy thành viên phù hợp')
+                        ? t(
+                            'members.candidatePool.emptySearch',
+                            'Không tìm thấy thành viên phù hợp',
+                          )
                         : t(
                             'members.candidatePool.emptyAllAssigned',
                             { workspaceName: displayWsName },
@@ -595,7 +540,10 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                     </p>
                     <p className='text-[11px] text-[#737373] max-w-xs mx-auto leading-relaxed'>
                       {candidateSearchQuery
-                        ? t('members.candidatePool.emptySearchDesc', 'Hãy thử tìm với từ khóa hoặc email khác.')
+                        ? t(
+                            'members.candidatePool.emptySearchDesc',
+                            'Hãy thử tìm với từ khóa hoặc email khác.',
+                          )
                         : t(
                             'members.candidatePool.emptyAllAssignedDesc',
                             { workspaceName: displayWsName },
@@ -619,11 +567,8 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                   filteredCandidates.map((candidate, idx) => {
                     const avatarColor = PALETTE[idx % PALETTE.length];
                     const displayName =
-                      candidate.fullName?.trim() ||
-                      candidate.email?.split('@')[0] ||
-                      'Thành viên';
+                      candidate.fullName?.trim() || candidate.email?.split('@')[0] || 'Thành viên';
                     const initialLetter = displayName.charAt(0).toUpperCase();
-                    const currentRole = candidateRoles[candidate.userId] || 'Artist';
                     const isAdding = actionLoadingId === candidate.userId;
 
                     return (
@@ -666,21 +611,6 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
 
                         {/* Thao tác chọn vai trò và nút Thêm trực tiếp */}
                         <div className='flex items-center gap-2 shrink-0 self-end sm:self-center'>
-                          <select
-                            value={currentRole}
-                            onChange={(e) =>
-                              handleSelectCandidateRole(candidate.userId, e.target.value)
-                            }
-                            className='h-8 px-2.5 text-xs font-semibold rounded-lg border border-[#D4D4D4] bg-white text-[#171717] focus:outline-none focus:border-orange-500 cursor-pointer shadow-2xs w-32'
-                            aria-label={`Chọn vai trò cho ${displayName}`}
-                          >
-                            {SERIES_ROLES.map((r) => (
-                              <option key={r.value} value={r.value}>
-                                {r.label}
-                              </option>
-                            ))}
-                          </select>
-
                           <button
                             type='button'
                             disabled={isAdding}
@@ -719,7 +649,10 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                         {t('members.seriesRoster.title', 'Thành viên bộ truyện')}
                       </h4>
                       <p className='text-[11px] text-[#737373]'>
-                        {t('members.seriesRoster.subtitle', 'Đang tham gia sản xuất và phân quyền trong Series')}
+                        {t(
+                          'members.seriesRoster.subtitle',
+                          'Đang tham gia sản xuất và phân quyền trong Series',
+                        )}
                       </p>
                     </div>
                   </div>
@@ -755,7 +688,9 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                     onChange={(e) => setFilterRole(e.target.value)}
                     className='h-8 px-2.5 text-xs font-semibold rounded-lg border border-[#E7E7E7] bg-white text-[#171717] focus:outline-none focus:border-orange-500 shrink-0 w-32 cursor-pointer'
                   >
-                    <option value='ALL'>{t('members.seriesRoster.allRoles', 'Tất cả vai trò')}</option>
+                    <option value='ALL'>
+                      {t('members.seriesRoster.allRoles', 'Tất cả vai trò')}
+                    </option>
                     <option value='Producer'>Producer</option>
                     {SERIES_ROLES.map((r) => (
                       <option key={r.value} value={r.value}>
@@ -783,18 +718,27 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                     </p>
                     <p className='text-[11px] text-[#737373] max-w-xs mx-auto leading-relaxed'>
                       {seriesSearchQuery || filterRole !== 'ALL'
-                        ? t('members.seriesRoster.emptySearchDesc', 'Hãy thử điều chỉnh bộ lọc tìm kiếm.')
-                        : t('members.seriesRoster.emptyRosterDesc', 'Chọn vai trò và bấm "+ Thêm thành viên" từ danh sách bên trái.')}
+                        ? t(
+                            'members.seriesRoster.emptySearchDesc',
+                            'Hãy thử điều chỉnh bộ lọc tìm kiếm.',
+                          )
+                        : t(
+                            'members.seriesRoster.emptyRosterDesc',
+                            'Chọn vai trò và bấm "+ Thêm thành viên" từ danh sách bên trái.',
+                          )}
                     </p>
                   </div>
                 ) : (
                   filteredSeriesMembers.map((m, idx) => {
                     const isProducer = isProducerMember(m, workspaceMembers);
 
-                    const rawRole = (m as any).seriesRole ?? (m as any).role ?? (m as any).studioRole ?? 'Artist';
+                    const rawRole =
+                      (m as any).seriesRole ?? (m as any).role ?? (m as any).studioRole ?? 'Artist';
                     const memberRole =
                       typeof rawRole === 'number'
-                        ? ['Producer', 'Writer', 'Artist', 'Letterer', 'Editor', 'Publisher'][rawRole] || 'Artist'
+                        ? ['Producer', 'Writer', 'Artist', 'Letterer', 'Editor', 'Publisher'][
+                            rawRole
+                          ] || 'Artist'
                         : String(rawRole || 'Artist');
                     const normalizedRole = memberRole.toLowerCase();
 
@@ -806,21 +750,21 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                       ? { value: 'Producer', label: 'Producer (Sản xuất)', slug: 'producer' }
                       : matched || {
                           value: memberRole,
-                          label: memberRole.toLowerCase() === 'artist' ? 'Artist (Họa sĩ)' : memberRole,
+                          label:
+                            memberRole.toLowerCase() === 'artist' ? 'Artist (Họa sĩ)' : memberRole,
                           slug: normalizedRole.includes('writer')
                             ? 'writer'
                             : normalizedRole.includes('artist')
-                            ? 'artist'
-                            : normalizedRole.includes('letter')
-                            ? 'letterer'
-                            : normalizedRole.includes('edit')
-                            ? 'editor'
-                            : normalizedRole.includes('publish')
-                            ? 'publisher'
-                            : 'artist',
+                              ? 'artist'
+                              : normalizedRole.includes('letter')
+                                ? 'letterer'
+                                : normalizedRole.includes('edit')
+                                  ? 'editor'
+                                  : normalizedRole.includes('publish')
+                                    ? 'publisher'
+                                    : 'artist',
                         };
 
-                    const isEditingThis = editingUserId === m.userId && !isProducer;
                     const avatarColor = isProducer ? '#F59E0B' : PALETTE[idx % PALETTE.length];
                     const displayName =
                       m.fullName?.trim() || m.email?.split('@')[0] || 'Thành viên';
@@ -861,7 +805,9 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
                               {isProducer && (
                                 <span className='text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200 flex items-center gap-1 shrink-0'>
                                   <Crown className='w-2.5 h-2.5 text-amber-600' />
-                                  <span>{t('members.seriesRoster.producerAdminTag', 'Quản trị')}</span>
+                                  <span>
+                                    {t('members.seriesRoster.producerAdminTag', 'Quản trị')}
+                                  </span>
                                 </span>
                               )}
                               {m.joinedAt && (
@@ -878,87 +824,46 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
 
                         {/* Vai trò & Hành động */}
                         <div className='flex items-center gap-2 justify-end shrink-0 self-end sm:self-center'>
-                          {isEditingThis ? (
-                            <div className='flex items-center gap-1.5 bg-[#FAF8F4] p-1 rounded-lg border border-[#E7E7E7]'>
-                              <select
-                                value={editingRole}
-                                onChange={(e) => setEditingRole(e.target.value)}
-                                className='h-7 px-2 text-[11px] font-semibold rounded border border-[#E7E7E7] bg-white text-[#171717]'
-                              >
-                                {SERIES_ROLES.map((r) => (
-                                  <option key={r.value} value={r.value}>
-                                    {r.value}
-                                  </option>
-                                ))}
-                              </select>
-                              <button
-                                type='button'
-                                disabled={isRowActionLoading}
-                                onClick={() => handleUpdateRole(m.userId, editingRole)}
-                                className='h-7 px-2.5 bg-[#047857] hover:bg-[#065F46] text-white rounded text-xs font-bold cursor-pointer'
-                              >
-                                {t('members.seriesRoster.saveRole', 'Lưu')}
-                              </button>
-                              <button
-                                type='button'
-                                onClick={() => setEditingUserId(null)}
-                                className='h-7 px-2 bg-white text-[#525252] rounded text-xs font-semibold border border-[#E7E7E7] cursor-pointer'
-                              >
-                                {t('members.seriesRoster.cancelRole', 'Hủy')}
-                              </button>
-                            </div>
-                          ) : (
-                            <>
-                              <span
-                                className={`u285-role-badge ${roleConfig.slug}`}
-                                title={roleConfig.label}
-                              >
-                                {isProducer ? (
-                                  <Crown className='w-3 h-3 text-amber-600' />
-                                ) : (
-                                  <Sparkles className='w-2.5 h-2.5 opacity-70' />
-                                )}
-                                <span>{roleConfig.label}</span>
-                              </span>
+                          <span
+                            className={`u285-role-badge ${roleConfig.slug}`}
+                            title={roleConfig.label}
+                          >
+                            {isProducer ? (
+                              <Crown className='w-3 h-3 text-amber-600' />
+                            ) : (
+                              <Sparkles className='w-2.5 h-2.5 opacity-70' />
+                            )}
+                            <span>{roleConfig.label}</span>
+                          </span>
 
-                              <div className='flex items-center gap-1'>
-                                {isProducer ? (
-                                  <span
-                                    className='w-7 h-7 rounded-lg flex items-center justify-center text-amber-600'
-                                    title={t(
-                                      'members.seriesRoster.producerLockTooltip',
-                                      'Producer là thành viên quản trị mặc định (không thể sửa hoặc xóa)',
-                                    )}
-                                  >
-                                    <Lock className='w-3.5 h-3.5 opacity-60' />
-                                  </span>
-                                ) : (
-                                  <>
-                                    <button
-                                      type='button'
-                                      onClick={() => {
-                                        setEditingUserId(m.userId);
-                                        setEditingRole(memberRole);
-                                      }}
-                                      className='w-7 h-7 rounded-lg text-[#737373] hover:text-[#171717] hover:bg-white border border-transparent hover:border-[#E7E7E7] flex items-center justify-center transition-all cursor-pointer'
-                                      title={t('members.seriesRoster.changeRoleTooltip', 'Đổi vai trò')}
-                                    >
-                                      <Edit3 className='w-3.5 h-3.5' />
-                                    </button>
-                                    <button
-                                      type='button'
-                                      disabled={isRowActionLoading}
-                                      onClick={() => handleRemoveMember(m)}
-                                      className='w-7 h-7 rounded-lg text-[#737373] hover:text-[#DC2626] hover:bg-[#FEE2E2]/60 border border-transparent hover:border-[#FECACA] flex items-center justify-center transition-all cursor-pointer'
-                                      title={t('members.seriesRoster.removeMemberTooltip', 'Xóa thành viên')}
-                                    >
-                                      <Trash2 className='w-3.5 h-3.5' />
-                                    </button>
-                                  </>
+                          <div className='flex items-center gap-1'>
+                            {isProducer ? (
+                              <span
+                                className='w-7 h-7 rounded-lg flex items-center justify-center text-amber-600'
+                                title={t(
+                                  'members.seriesRoster.producerLockTooltip',
+                                  'Producer là thành viên quản trị mặc định (không thể sửa hoặc xóa)',
                                 )}
-                              </div>
-                            </>
-                          )}
+                              >
+                                <Lock className='w-3.5 h-3.5 opacity-60' />
+                              </span>
+                            ) : (
+                              <>
+                                <button
+                                  type='button'
+                                  disabled={isRowActionLoading}
+                                  onClick={() => handleRemoveMember(m)}
+                                  className='w-7 h-7 rounded-lg text-[#737373] hover:text-[#DC2626] hover:bg-[#FEE2E2]/60 border border-transparent hover:border-[#FECACA] flex items-center justify-center transition-all cursor-pointer'
+                                  title={t(
+                                    'members.seriesRoster.removeMemberTooltip',
+                                    'Xóa thành viên',
+                                  )}
+                                >
+                                  <Trash2 className='w-3.5 h-3.5' />
+                                </button>
+                              </>
+                            )}
+                          </div>
                         </div>
                       </div>
                     );
@@ -974,7 +879,14 @@ export const SeriesMembersModal: React.FC<SeriesMembersModalProps> = ({
           <div className='flex items-center gap-2 text-xs text-[#737373]'>
             <span className='w-2 h-2 rounded-full bg-emerald-500 shrink-0 inline-block' />
             <span className='font-mono'>
-              {t('members.footer.status', { seriesCount: seriesMembers.length, availableCount: availableWorkspaceMembers.length }, `Đang tham gia: ${seriesMembers.length}`)}
+              {t(
+                'members.footer.status',
+                {
+                  seriesCount: seriesMembers.length,
+                  availableCount: availableWorkspaceMembers.length,
+                },
+                `Đang tham gia: ${seriesMembers.length}`,
+              )}
             </span>
           </div>
           <button

@@ -12,7 +12,12 @@ import {
   RefreshCw,
   ExternalLink,
 } from 'lucide-react';
-import { catalogService, PublicSeriesDto, PublicSeriesDetailDto } from '@/services/catalog.service';
+import {
+  catalogService,
+  PublicSeriesDto,
+  PublicSeriesDetailDto,
+  resolveCatalogImageUrl,
+} from '@/services/catalog.service';
 import { ChapterReaderModal } from '@/shared/modals/ChapterReaderModal';
 
 interface PublicCatalogViewProps {
@@ -337,13 +342,34 @@ export const PublicCatalogView: React.FC<PublicCatalogViewProps> = ({
                       className='p-2.5 bg-[#FCFBF8] rounded-lg border border-[#D8D2C5] flex items-center justify-between text-xs hover:border-[#F97316] transition-all cursor-pointer group hover:bg-[#FFF2E6]/30'
                       title='Bấm để đọc trực tuyến'
                     >
-                      <div className='flex items-center gap-2'>
-                        <span className='font-mono font-bold text-[#F97316]'>
-                          Chương {chap.chapterNumber}:
-                        </span>
-                        <span className='font-semibold text-[#1C1917] group-hover:text-[#F97316] transition-colors'>
-                          {chap.title || 'Không tiêu đề'}
-                        </span>
+                      <div className='flex items-center gap-2.5 min-w-0'>
+                        {chap.coverUrl ? (
+                          <img
+                            src={resolveCatalogImageUrl(chap.coverUrl)}
+                            alt={`Bìa chương ${chap.chapterNumber}`}
+                            className='w-8 h-11 object-cover rounded border border-[#D8D2C5] shadow-2xs shrink-0 bg-stone-100'
+                            loading='lazy'
+                          />
+                        ) : (
+                          <div className='w-8 h-11 rounded bg-[#F0EDE6] border border-[#D8D2C5] flex flex-col items-center justify-center shrink-0 text-center font-mono shadow-2xs'>
+                            <span className='text-[7px] text-stone-400 font-bold uppercase leading-none'>
+                              TẬP
+                            </span>
+                            <span className='text-[11px] font-bold text-[#F97316] leading-none mt-0.5'>
+                              {chap.chapterNumber}
+                            </span>
+                          </div>
+                        )}
+                        <div className='min-w-0'>
+                          <div className='flex items-center gap-1.5 flex-wrap'>
+                            <span className='font-mono font-bold text-[#F97316] shrink-0'>
+                              Chương {chap.chapterNumber}:
+                            </span>
+                            <span className='font-semibold text-[#1C1917] group-hover:text-[#F97316] transition-colors truncate'>
+                              {chap.title || 'Không tiêu đề'}
+                            </span>
+                          </div>
+                        </div>
                       </div>
                       <div className='flex items-center gap-2'>
                         {chap.publishedAt && (

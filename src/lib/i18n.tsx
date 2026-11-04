@@ -30,6 +30,8 @@ import viLanding from '@/locales/vi/landing.json';
 import enLanding from '@/locales/en/landing.json';
 import viMembers from '@/locales/vi/members.json';
 import enMembers from '@/locales/en/members.json';
+import viErrors from '@/locales/vi/errors.json';
+import enErrors from '@/locales/en/errors.json';
 
 export type SupportedLanguage = 'vi' | 'en';
 
@@ -49,6 +51,7 @@ export const DICTIONARIES = {
     admin: viAdmin,
     landing: viLanding,
     members: viMembers,
+    errors: viErrors,
   },
   en: {
     common: enCommon,
@@ -65,6 +68,7 @@ export const DICTIONARIES = {
     admin: enAdmin,
     landing: enLanding,
     members: enMembers,
+    errors: enErrors,
   },
 } as const;
 
@@ -86,6 +90,8 @@ export function getInitialLanguage(): SupportedLanguage {
 /**
  * Hàm biên dịch chuỗi theo key và ngôn ngữ chỉ định.
  * Key có cú pháp: "namespace.path.to.key", ví dụ: "common.actions.save" hay "production.canvas.title"
+ * Hỗ trợ tham số nội suy {param}, quy ước số nhiều nhẹ qua params.count (_one, _other),
+ * và safe fallback qua thứ tự: Current Lang -> EN -> VI -> explicitFallback -> key.
  */
 export function translate(
   key: string,
@@ -100,7 +106,7 @@ export function translate(
       : undefined;
   const fallback = isStringParam ? paramsOrFallback : explicitFallback;
 
-  const lang = targetLang || getInitialLanguage();
+  const currentLang = targetLang || getInitialLanguage();
   const parts = key.split('.');
   if (parts.length < 2) return fallback || key;
 
@@ -116,23 +122,55 @@ export function translate(
         return undefined;
       }
     }
-    return typeof curr === 'string' ? curr : undefined;
+    return typeof curr === 'string' && curr.trim() !== '' ? curr : undefined;
   };
 
-  // Tra cứu theo ngôn ngữ yêu cầu
-  let result = getNested((DICTIONARIES[lang] as any)?.[namespace], path);
+  // Thứ tự tra cứu ngôn ngữ an toàn: Current Lang -> EN -> VI
+  const lookupOrder: SupportedLanguage[] = [currentLang];
+  if (currentLang !== 'en') lookupOrder.push('en');
+  if (currentLang !== 'vi') lookupOrder.push('vi');
 
-  // Fallback sang tiếng Việt nếu tiếng Anh chưa có key này
-  if (!result && lang !== 'vi') {
-    result = getNested((DICTIONARIES.vi as any)?.[namespace], path);
+  // Xác định danh sách path ứng viên (ưu tiên số nhiều nếu params có count là số)
+  const candidatePaths: string[][] = [];
+  if (params && typeof params.count === 'number') {
+    const pluralSuffix = params.count === 1 ? '_one' : '_other';
+    const lastPart = path[path.length - 1];
+    candidatePaths.push([...path.slice(0, -1), `${lastPart}${pluralSuffix}`]);
+  }
+  candidatePaths.push(path);
+
+  let result: string | undefined;
+
+  // Tra cứu theo thứ tự ngôn ngữ và path ứng viên
+  for (const lang of lookupOrder) {
+    const nsDict = (DICTIONARIES[lang] as any)?.[namespace];
+    if (!nsDict) continue;
+
+    for (const candPath of candidatePaths) {
+      const found = getNested(nsDict, candPath);
+      if (typeof found === 'string') {
+        result = found;
+        break;
+      }
+    }
+    if (result) break;
   }
 
-  if (!result) return fallback || key;
+  // Safe fallback nếu không tìm thấy ở bất kỳ ngôn ngữ nào
+  if (!result || typeof result !== 'string' || result.trim() === '') {
+    let finalFallback = fallback || key;
+    if (params && finalFallback !== key) {
+      Object.entries(params).forEach(([pKey, pVal]) => {
+        finalFallback = finalFallback.replace(new RegExp(`\\{${pKey}\\}`, 'g'), String(pVal ?? ''));
+      });
+    }
+    return finalFallback;
+  }
 
   // Thay thế tham số {param}
   if (params) {
     Object.entries(params).forEach(([pKey, pVal]) => {
-      result = (result as string).replace(new RegExp(`\\{${pKey}\\}`, 'g'), String(pVal));
+      result = (result as string).replace(new RegExp(`\\{${pKey}\\}`, 'g'), String(pVal ?? ''));
     });
   }
 

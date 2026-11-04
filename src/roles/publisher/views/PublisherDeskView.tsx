@@ -22,6 +22,7 @@ import { RejectChapterModal } from '../modals/RejectChapterModal';
 import { ChapterReviewsModal } from '@/shared/modals/ChapterReviewsModal';
 import { ChapterProvenanceModal } from '@/shared/features/provenance/ChapterProvenanceModal';
 import { ChapterReaderModal } from '@/shared/modals/ChapterReaderModal';
+import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 
 interface PublisherDeskViewProps {
   onShowToast?: (title: string, desc: string) => void;
@@ -260,70 +261,94 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
                   className='p-5 hover:bg-[#F8F6F0] transition-colors flex flex-col md:flex-row md:items-center justify-between gap-4'
                 >
                   {/* Left: Info */}
-                  <div className='space-y-1.5'>
-                    <div className='flex items-center gap-2.5 flex-wrap'>
-                      <span className='px-2.5 py-0.5 rounded-lg bg-[#1C1917] text-[#FCFBF8] font-mono font-bold text-xs'>
-                        Chương #{chap.chapterNumber}
-                      </span>
-                      <h3 className='font-bold text-sm text-[#1C1917]'>
-                        {chap.title || 'Chưa đặt tiêu đề'}
-                      </h3>
-                      {chap.status === 'Approved' && (
-                        <span className='px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-[#FFF2E6] text-[#C2410C] border border-[#FDBA74] flex items-center gap-1'>
-                          <Clock className='w-3 h-3 text-[#C2410C]' />
-                          <span>CHỜ DUYỆT XUẤT BẢN</span>
+                  <div className='flex items-start sm:items-center gap-3.5 min-w-0'>
+                    {chap.coverUrl ? (
+                      <AuthenticatedImage
+                        src={chap.coverUrl}
+                        alt={`Bìa chương ${chap.chapterNumber}`}
+                        className='w-11 h-15 object-cover rounded-lg border border-[#D8D2C5] shadow-2xs shrink-0 bg-stone-100'
+                        fallback={
+                          <div className='w-11 h-15 rounded-lg bg-[#FAF8F5] border border-[#D8D2C5] flex flex-col items-center justify-center text-center font-mono shrink-0 shadow-2xs'>
+                            <span className='text-[8px] text-stone-400 font-bold'>TẬP</span>
+                            <span className='text-xs font-bold text-[#F97316]'>
+                              {chap.chapterNumber}
+                            </span>
+                          </div>
+                        }
+                      />
+                    ) : (
+                      <div className='w-11 h-15 rounded-lg bg-[#FAF8F5] border border-[#D8D2C5] flex flex-col items-center justify-center text-center font-mono shrink-0 shadow-2xs'>
+                        <span className='text-[8px] text-stone-400 font-bold'>TẬP</span>
+                        <span className='text-xs font-bold text-[#F97316]'>
+                          {chap.chapterNumber}
                         </span>
-                      )}
-                      {chap.status === 'Published' && (
-                        <span
-                          className={`px-2 py-0.5 rounded-full text-xs font-mono font-bold border flex items-center gap-1 ${
-                            isScheduled
-                              ? 'bg-purple-50 text-purple-700 border-purple-200'
-                              : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                          }`}
-                        >
-                          {isScheduled ? (
-                            <Calendar className='w-3 h-3 text-purple-600' />
-                          ) : (
-                            <Sparkles className='w-3 h-3 text-emerald-600' />
-                          )}
-                          <span>
-                            {isScheduled ? 'ĐÃ LÊN LỊCH PHÁT HÀNH' : 'ĐÃ XUẤT BẢN CÔNG KHAI'}
-                          </span>
-                        </span>
-                      )}
-                      {chap.status === 'InProduction' && (
-                        <span className='px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-blue-50 text-blue-700 border border-blue-200'>
-                          ĐANG SẢN XUẤT
-                        </span>
-                      )}
-                    </div>
-
-                    <div className='flex items-center gap-4 text-xs text-[#57534E] font-mono flex-wrap'>
-                      <span>
-                        Quy mô: <strong>{chap.scenesCount || 0}</strong> cảnh •{' '}
-                        <strong>{chap.pagesCount || 0}</strong> trang
-                      </span>
-                      <span>Version: v.{chap.versionVector}</span>
-                      {chap.targetReleaseDate && (
-                        <span className='flex items-center gap-1 text-[#57534E]'>
-                          <Calendar className='w-3 h-3' />
-                          Hạn mục tiêu: {chap.targetReleaseDate}
-                        </span>
-                      )}
-                      {chap.publishedAt && (
-                        <span className='flex items-center gap-1 text-[#C2410C] font-semibold'>
-                          <Clock className='w-3 h-3' />
-                          Thời điểm phát hành: {formatDate(chap.publishedAt)}
-                        </span>
-                      )}
-                    </div>
-
-                    {chap.outline && (
-                      <p className='text-xs text-[#57534E] italic line-clamp-1'>
-                        Đề cương: {chap.outline}
-                      </p>
+                      </div>
                     )}
+                    <div className='space-y-1.5 min-w-0'>
+                      <div className='flex items-center gap-2.5 flex-wrap'>
+                        <span className='px-2.5 py-0.5 rounded-lg bg-[#1C1917] text-[#FCFBF8] font-mono font-bold text-xs'>
+                          Chương #{chap.chapterNumber}
+                        </span>
+                        <h3 className='font-bold text-sm text-[#1C1917]'>
+                          {chap.title || 'Chưa đặt tiêu đề'}
+                        </h3>
+                        {chap.status === 'Approved' && (
+                          <span className='px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-[#FFF2E6] text-[#C2410C] border border-[#FDBA74] flex items-center gap-1'>
+                            <Clock className='w-3 h-3 text-[#C2410C]' />
+                            <span>CHỜ DUYỆT XUẤT BẢN</span>
+                          </span>
+                        )}
+                        {chap.status === 'Published' && (
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-xs font-mono font-bold border flex items-center gap-1 ${
+                              isScheduled
+                                ? 'bg-purple-50 text-purple-700 border-purple-200'
+                                : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            }`}
+                          >
+                            {isScheduled ? (
+                              <Calendar className='w-3 h-3 text-purple-600' />
+                            ) : (
+                              <Sparkles className='w-3 h-3 text-emerald-600' />
+                            )}
+                            <span>
+                              {isScheduled ? 'ĐÃ LÊN LỊCH PHÁT HÀNH' : 'ĐÃ XUẤT BẢN CÔNG KHAI'}
+                            </span>
+                          </span>
+                        )}
+                        {chap.status === 'InProduction' && (
+                          <span className='px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-blue-50 text-blue-700 border border-blue-200'>
+                            ĐANG SẢN XUẤT
+                          </span>
+                        )}
+                      </div>
+
+                      <div className='flex items-center gap-4 text-xs text-[#57534E] font-mono flex-wrap'>
+                        <span>
+                          Quy mô: <strong>{chap.scenesCount || 0}</strong> cảnh •{' '}
+                          <strong>{chap.pagesCount || 0}</strong> trang
+                        </span>
+                        <span>Version: v.{chap.versionVector}</span>
+                        {chap.targetReleaseDate && (
+                          <span className='flex items-center gap-1 text-[#57534E]'>
+                            <Calendar className='w-3 h-3' />
+                            Hạn mục tiêu: {chap.targetReleaseDate}
+                          </span>
+                        )}
+                        {chap.publishedAt && (
+                          <span className='flex items-center gap-1 text-[#C2410C] font-semibold'>
+                            <Clock className='w-3 h-3' />
+                            Thời điểm phát hành: {formatDate(chap.publishedAt)}
+                          </span>
+                        )}
+                      </div>
+
+                      {chap.outline && (
+                        <p className='text-xs text-[#57534E] italic line-clamp-1'>
+                          Đề cương: {chap.outline}
+                        </p>
+                      )}
+                    </div>
                   </div>
 
                   {/* Right: Actions */}

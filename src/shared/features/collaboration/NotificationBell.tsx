@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { notificationService } from '@/services/notification.service';
 import type { NotificationDto } from '@/types';
 import { formatRelativeTime } from './collaborationRules';
+import { getNotificationBadge } from './notificationBadge';
 import '@/styles/modules/lucian/lucian-074.css';
 
 interface NotificationBellProps {
@@ -29,34 +30,7 @@ const TYPE_LABEL: Record<string, string> = {
   AssignmentOverdue: 'Đã quá hạn',
   ChangeRequestDueSoon: 'Sửa sắp đến hạn',
   ChangeRequestOverdue: 'Sửa đã quá hạn',
-};
-
-interface NotificationBadgeStyle {
-  icon: string;
-  bg: string;
-  border: string;
-  color: string;
-}
-
-const getNotificationBadgeStyle = (type: string): NotificationBadgeStyle => {
-  switch (type) {
-    case 'AssignmentApproved':
-    case 'ChapterPublished':
-      return { icon: '✅', bg: '#ECFDF5', border: '#A7F3D0', color: '#047857' };
-    case 'AssignmentChangesRequested':
-    case 'ChangeRequestReopened':
-      return { icon: '✏️', bg: '#FFFBEB', border: '#FDE68A', color: '#B45309' };
-    case 'AssignmentOverdue':
-    case 'ChangeRequestOverdue':
-      return { icon: '🚨', bg: '#FEF2F2', border: '#FECACA', color: '#B91C1C' };
-    case 'ChapterReadyForPublication':
-      return { icon: '🚀', bg: '#F5F3FF', border: '#DDD6FE', color: '#6D28D9' };
-    case 'AssignmentAssigned':
-    case 'AssignmentUpdated':
-      return { icon: '📋', bg: '#FFF2E6', border: '#FDBA74', color: '#C2410C' };
-    default:
-      return { icon: '💬', bg: '#F3F0E9', border: '#D8D2C5', color: '#57534E' };
-  }
+  AssignmentReady: 'Đến lượt bạn',
 };
 
 /**
@@ -259,7 +233,8 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
             </li>
           ) : (
             filteredItems.map((n) => {
-              const badgeStyle = getNotificationBadgeStyle(n.type);
+              const badge = getNotificationBadge(n.type);
+              const BadgeIcon = badge.icon;
               const isOverdue = n.type === 'AssignmentOverdue' || n.type === 'ChangeRequestOverdue';
               const isDueSoon = n.type === 'AssignmentDueSoon' || n.type === 'ChangeRequestDueSoon';
 
@@ -270,22 +245,17 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
                       type='button'
                       onClick={() => void handleItemClick(n)}
                       data-testid={`notification-${n.id}`}
-                      className={`u074-row ${n.readAt ? 'read' : ''}`}
+                      className={`u074-row ${n.readAt ? 'read' : ''} flex items-start`}
                       style={{
                         padding: '10px 14px',
                         background: n.readAt ? 'transparent' : 'rgba(249, 115, 22, 0.05)',
                       }}
                     >
                       <span
-                        className='u074-av'
-                        style={{
-                          background: badgeStyle.bg,
-                          border: `1px solid ${badgeStyle.border}`,
-                          color: badgeStyle.color,
-                        }}
+                        className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 border ${badge.containerClass} shadow-xs mt-0.5 transition-colors`}
                         aria-hidden='true'
                       >
-                        <span style={{ fontSize: '15px' }}>{badgeStyle.icon}</span>
+                        <BadgeIcon className='w-4.5 h-4.5' />
                       </span>
 
                       <div className='u074-tx' style={{ flex: 1 }}>
@@ -298,7 +268,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
                                   ? 'text-amber-600 font-bold flex items-center gap-1'
                                   : n.readAt
                                     ? 'text-[#888888]'
-                                    : 'text-[#F97316] font-bold'
+                                    : `${badge.text} font-bold flex items-center gap-1`
                             }
                           >
                             {isOverdue && (

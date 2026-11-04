@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Search, Download, RefreshCw, AlertCircle } from 'lucide-react';
 import {
   adminService,
@@ -7,6 +7,11 @@ import {
   downloadBlob,
 } from '@/services/admin.service';
 import { cn } from '@/lib/utils';
+import {
+  formatActionLabel,
+  formatEntityLabel,
+  getActionTone,
+} from '@/shared/utils/auditLogUtils';
 import {
   AdminBadge,
   AdminButton,
@@ -20,31 +25,29 @@ import {
 } from './components/AdminUi';
 import { adminFieldClass, adminTable, useAdminToast } from './components/adminUiStyles';
 
-const ENTITY_OPTIONS = [
-  { value: '', label: 'Tất cả' },
-  { value: 'Series', label: 'Series' },
+export const ENTITY_OPTIONS = [
+  { value: '', label: 'Tất cả đối tượng' },
+  { value: 'Session', label: 'Phiên đăng nhập (Session)' },
+  { value: 'User', label: 'Người dùng (User)' },
+  { value: 'Series', label: 'Bộ truyện (Series)' },
   { value: 'BibleEntry', label: 'Series Bible' },
   { value: 'PipelineStage', label: 'Công đoạn sản xuất' },
   { value: 'Workspace', label: 'Studio' },
-  { value: 'User', label: 'Người dùng' },
 ];
 
-const ACTION_OPTIONS = [
-  { value: '', label: 'Tất cả' },
-  { value: 'CREATE', label: 'Tạo mới' },
-  { value: 'UPDATE', label: 'Chỉnh sửa' },
-  { value: 'DELETE', label: 'Xóa' },
+export const ACTION_OPTIONS = [
+  { value: '', label: 'Tất cả hành động' },
+  { value: 'LOGIN', label: 'Đăng nhập (LOGIN)' },
+  { value: 'LOGOUT', label: 'Đăng xuất (LOGOUT)' },
+  { value: 'SESSIONS_REVOKED', label: 'Thu hồi phiên hàng loạt (SESSIONS_REVOKED)' },
+  { value: 'REVOKE_SESSION', label: 'Thu hồi phiên (REVOKE_SESSION)' },
+  { value: 'CREATE', label: 'Tạo mới (CREATE)' },
+  { value: 'UPDATE', label: 'Chỉnh sửa (UPDATE)' },
+  { value: 'DELETE', label: 'Xóa (DELETE)' },
   { value: 'ASSIGN_PRODUCER', label: 'Cấp quyền tạo Studio' },
 ];
 
-const actionTone = (act: string): AdminTone => {
-  const upper = (act || '').toUpperCase();
-  if (upper.includes('CREATE') || upper.includes('ADD')) return 'success';
-  if (upper.includes('DELETE') || upper.includes('REMOVE')) return 'danger';
-  if (upper.includes('UPDATE') || upper.includes('EDIT')) return 'info';
-  if (upper.includes('ASSIGN')) return 'accent';
-  return 'neutral';
-};
+export const actionTone = (act: string): AdminTone => getActionTone(act);
 
 const logTime = (i: AuditLogDto) => new Date(i.timestampUtc || i.createdAt || '');
 
@@ -71,6 +74,7 @@ export const AdminAuditLogView: React.FC = () => {
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [dateError, setDateError] = useState<string | null>(null);
+  const [hideSystemLogs, setHideSystemLogs] = useState(false);
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
@@ -136,6 +140,7 @@ export const AdminAuditLogView: React.FC = () => {
     setAction('');
     setFromDate('');
     setToDate('');
+    setHideSystemLogs(false);
     setDateError(null);
     setPage(1);
   };
@@ -146,8 +151,14 @@ export const AdminAuditLogView: React.FC = () => {
     entityId.trim() ||
     action ||
     fromDate ||
-    toDate
+    toDate ||
+    hideSystemLogs
   );
+
+  const displayedLogs = useMemo(() => {
+    if (!hideSystemLogs) return logs;
+    return logs.filter((item) => Boolean(item.userEmail || item.userId));
+  }, [logs, hideSystemLogs]);
 
   const handleExportCsv = async () => {
     const params = buildFilterParams();
@@ -288,13 +299,29 @@ export const AdminAuditLogView: React.FC = () => {
             />
           </AdminField>
         </div>
-        <div className='flex flex-wrap justify-end gap-2 pt-1'>
-          <AdminButton variant='ghost' onClick={handleResetFilter} disabled={!isFiltered}>
-            Xóa bộ lọc
-          </AdminButton>
-          <AdminButton type='submit' variant='primary'>
-            Áp dụng
-          </AdminButton>
+        <div className='flex flex-wrap items-center justify-between gap-3 pt-1'>
+          <label
+            htmlFor='audit-hide-system'
+            className='inline-flex items-center gap-2 cursor-pointer text-xs font-medium text-admin-muted hover:text-admin-ink select-none'
+            title='Ẩn các bản ghi tự động của hệ thống (chỉ hiển thị thao tác do người dùng thực hiện)'
+          >
+            <input
+              id='audit-hide-system'
+              type='checkbox'
+              checked={hideSystemLogs}
+              onChange={(e) => setHideSystemLogs(e.target.checked)}
+              className='w-4 h-4 rounded border-admin-line text-amber-600 focus:ring-amber-500'
+            />
+            <span>Ẩn hoạt động hệ thống</span>
+          </label>
+          <div className='flex flex-wrap justify-end gap-2'>
+            <AdminButton variant='ghost' onClick={handleResetFilter} disabled={!isFiltered}>
+              Xóa bộ lọc
+            </AdminButton>
+            <AdminButton type='submit' variant='primary'>
+              Áp dụng
+            </AdminButton>
+          </div>
         </div>
       </form>
 
@@ -345,7 +372,7 @@ export const AdminAuditLogView: React.FC = () => {
                     </AdminButton>
                   }
                 />
-              ) : logs.length === 0 ? (
+              ) : displayedLogs.length === 0 ? (
                 isFiltered ? (
                   <AdminTableState
                     colSpan={COLS}
@@ -361,7 +388,7 @@ export const AdminAuditLogView: React.FC = () => {
                   <AdminTableState colSpan={COLS} kind='empty' message='Chưa có bản ghi nào.' />
                 )
               ) : (
-                logs.map((item) => (
+                displayedLogs.map((item) => (
                   <tr key={item.id} className={adminTable.tr}>
                     <td className={`${adminTable.td} whitespace-nowrap tabular-nums`}>
                       <div className='font-medium text-admin-ink-strong'>
@@ -380,10 +407,12 @@ export const AdminAuditLogView: React.FC = () => {
                       )}
                     </td>
                     <td className={adminTable.td}>
-                      <AdminBadge tone={actionTone(item.action)}>{item.action}</AdminBadge>
+                      <AdminBadge tone={actionTone(item.action)} title={item.action}>
+                        {formatActionLabel(item.action)}
+                      </AdminBadge>
                     </td>
                     <td className={adminTable.td}>
-                      <div className='font-medium'>{item.entityName}</div>
+                      <div className='font-medium'>{formatEntityLabel(item.entityName)}</div>
                       <div
                         className='text-xs text-admin-muted font-mono truncate max-w-[180px]'
                         title={item.entityId}
@@ -410,7 +439,7 @@ export const AdminAuditLogView: React.FC = () => {
         <AdminPagination
           page={page}
           totalPages={totalPages}
-          shown={logs.length}
+          shown={displayedLogs.length}
           total={totalCount}
           unit='bản ghi'
           disabled={loading}
@@ -422,7 +451,7 @@ export const AdminAuditLogView: React.FC = () => {
         <AdminModal
           size='lg'
           title='Chi tiết bản ghi'
-          description={`${inspectLog.action} · ${inspectLog.entityName}`}
+          description={`${formatActionLabel(inspectLog.action)} (${inspectLog.action}) · ${formatEntityLabel(inspectLog.entityName)}`}
           onClose={() => setInspectLog(null)}
           footer={<AdminButton onClick={() => setInspectLog(null)}>Đóng</AdminButton>}
         >
@@ -430,7 +459,8 @@ export const AdminAuditLogView: React.FC = () => {
             {[
               ['Thời gian', logTime(inspectLog).toLocaleString('vi-VN')],
               ['Người thực hiện', inspectLog.userEmail || inspectLog.userId || 'Hệ thống'],
-              ['Đối tượng', inspectLog.entityName],
+              ['Hành động', `${formatActionLabel(inspectLog.action)} (${inspectLog.action})`],
+              ['Đối tượng', `${formatEntityLabel(inspectLog.entityName)} (${inspectLog.entityName})`],
               ['Mã đối tượng', inspectLog.entityId],
               ['Studio', inspectLog.workspaceName || '—'],
               ['Địa chỉ IP', inspectLog.ipAddress || '—'],

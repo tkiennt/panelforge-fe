@@ -57,6 +57,8 @@
     "today": "Today",
     "yesterday": "Yesterday",
     "daysAgo": "{count} days ago",
+    "daysAgo_one": "{count} day ago",
+    "daysAgo_other": "{count} days ago",
     "dueDate": "Due: {date}",
     "noDueDate": "No due date"
   },

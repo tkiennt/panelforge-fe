@@ -359,4 +359,45 @@ describe('AppShell Component', () => {
     expect(screen.getByText('Bàn vẽ & Khung trang')).toBeInTheDocument();
     expect(screen.getByText('Tìm kiếm khung tranh, thoại, tư liệu...')).toBeInTheDocument();
   });
+
+  it('hiển thị thẻ img với avatarUrl khi có ảnh đại diện của user', () => {
+    const userWithAvatar: CurrentUser = {
+      name: 'Alex Producer',
+      role: 'USER',
+      workspaceRole: 'PRODUCER' as any,
+      activeRoles: ['PRODUCER'],
+      avatarInitials: 'AP',
+      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100',
+    };
+
+    renderInRouter(userWithAvatar, '/workspaces/ws-1/dashboard');
+
+    const avatarImg = screen.getByRole('img', { name: 'Alex Producer' });
+    expect(avatarImg).toBeInTheDocument();
+    expect(avatarImg).toHaveAttribute('src', userWithAvatar.avatarUrl);
+    expect(screen.queryByText('AP')).not.toBeInTheDocument();
+  });
+
+  it('fallback về avatarInitials khi avatarUrl bị lỗi tải', () => {
+    const userWithFailingAvatar: CurrentUser = {
+      name: 'Alex Producer',
+      role: 'USER',
+      workspaceRole: 'PRODUCER' as any,
+      activeRoles: ['PRODUCER'],
+      avatarInitials: 'AP',
+      avatarUrl: 'https://invalid-avatar-url.jpg',
+    };
+
+    renderInRouter(userWithFailingAvatar, '/workspaces/ws-1/dashboard');
+
+    const avatarImg = screen.getByRole('img', { name: 'Alex Producer' });
+    expect(avatarImg).toBeInTheDocument();
+
+    // Giả lập lỗi tải ảnh (onError)
+    fireEvent.error(avatarImg);
+
+    // Sau khi ảnh lỗi, component fallback hiển thị initials
+    expect(screen.getByText('AP')).toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: 'Alex Producer' })).not.toBeInTheDocument();
+  });
 });

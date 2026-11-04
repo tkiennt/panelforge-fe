@@ -3,6 +3,7 @@ import axiosClient from '../api/axiosClient';
 import { workspaceService } from './workspace.service';
 import { pageService, MOCK_PAGES, DEFAULT_CHAPTER_ID } from './page.service';
 import { elementService, MOCK_ELEMENTS } from './element.service';
+import { PageVisualContinuityDto } from '../types/pipeline';
 
 const DEFAULT_PAGE_ID = '813ad7b2-3570-4def-8321-c6603a11c450';
 
@@ -97,6 +98,89 @@ describe('Workspaces, Pages, and Elements Services', () => {
         expect.stringContaining(`/pages/${DEFAULT_PAGE_ID}/canvas-settings`),
         expect.objectContaining({ widthPx: 1400 }),
       );
+    });
+
+    it('checkVisualContinuity gọi POST /api/pages/{pageId}/visual-continuity và trả về kết quả từng panel', async () => {
+      const mockResult: PageVisualContinuityDto = {
+        pageId: DEFAULT_PAGE_ID,
+        passed: 1,
+        warnings: 1,
+        skipped: 1,
+        failed: 0,
+        panels: [
+          {
+            panelId: 'p-1',
+            panelNumber: 1,
+            status: 'Passed',
+            result: {
+              panelId: 'p-1',
+              score: 0.85,
+              threshold: 0.75,
+              passed: true,
+              deviations: [],
+              skipped: false,
+            },
+          },
+          {
+            panelId: 'p-2',
+            panelNumber: 2,
+            status: 'Warning',
+            result: {
+              panelId: 'p-2',
+              score: 0.6,
+              threshold: 0.75,
+              passed: false,
+              deviations: [{ aspect: 'Hair', description: 'Tóc khác màu' }],
+              skipped: false,
+            },
+          },
+          {
+            panelId: 'p-3',
+            panelNumber: 3,
+            status: 'Skipped',
+            result: {
+              panelId: 'p-3',
+              score: 0,
+              threshold: 0.75,
+              passed: false,
+              summaryReason: 'Panel chưa có artwork.',
+              deviations: [],
+              skipped: true,
+            },
+          },
+        ],
+      };
+      post.mockResolvedValue({ data: mockResult });
+
+      const res = await pageService.checkVisualContinuity(DEFAULT_PAGE_ID);
+
+      expect(post).toHaveBeenCalledWith(`/pages/${DEFAULT_PAGE_ID}/visual-continuity`);
+      expect(res.passed).toBe(1);
+      expect(res.warnings).toBe(1);
+      expect(res.skipped).toBe(1);
+      expect(res.panels).toHaveLength(3);
+    });
+
+    it('reorderPage gọi PUT /api/pages/{pageId}/reorder với newPageNumber', async () => {
+      const mockUpdatedPage = {
+        id: DEFAULT_PAGE_ID,
+        chapterId: DEFAULT_CHAPTER_ID,
+        pageNumber: 3,
+        layoutFormat: 'StandardPage',
+        widthPx: 1200,
+        heightPx: 1800,
+        dpi: 600,
+        elementsCount: 0,
+      };
+      put.mockResolvedValue({ data: mockUpdatedPage });
+
+      const res = await pageService.reorderPage(DEFAULT_PAGE_ID, 3);
+
+      expect(put).toHaveBeenCalledWith(
+        expect.stringContaining(`/pages/${DEFAULT_PAGE_ID}/reorder`),
+        { newPageNumber: 3 },
+      );
+      expect(res.pageNumber).toBe(3);
     });
   });
 

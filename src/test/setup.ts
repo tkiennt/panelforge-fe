@@ -43,6 +43,44 @@ globalThis.IntersectionObserver = class IntersectionObserver {
 
 window.scrollTo = () => {};
 
+if (typeof window !== 'undefined') {
+  if (typeof Range !== 'undefined') {
+    Range.prototype.getClientRects = Range.prototype.getClientRects || (() => [] as any);
+    Range.prototype.getBoundingClientRect =
+      Range.prototype.getBoundingClientRect ||
+      (() =>
+        ({
+          x: 0,
+          y: 0,
+          top: 0,
+          bottom: 0,
+          left: 0,
+          right: 0,
+          width: 0,
+          height: 0,
+          toJSON: () => {},
+        }) as any);
+  }
+  if (typeof Element !== 'undefined') {
+    Element.prototype.getClientRects = Element.prototype.getClientRects || (() => [] as any);
+  }
+  if (typeof Node !== 'undefined' && !(Node.prototype as any).getClientRects) {
+    (Node.prototype as any).getClientRects = () => [] as any;
+    (Node.prototype as any).getBoundingClientRect = () =>
+      ({
+        x: 0,
+        y: 0,
+        top: 0,
+        bottom: 0,
+        left: 0,
+        right: 0,
+        width: 0,
+        height: 0,
+        toJSON: () => {},
+      }) as any;
+  }
+}
+
 import axiosClient from '../api/axiosClient';
 
 axiosClient.defaults.adapter = async (config) => {

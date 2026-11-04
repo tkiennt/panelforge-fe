@@ -6,6 +6,19 @@ export type BibleCategory =
 
 export type BiblePriority = 'Low' | 'Standard' | 'StrictCheck' | 'High' | 'CanonCritical' | number;
 
+export type BibleRevisionEventType =
+  'Created' | 'ConceptSubmitted' | 'ReworkRequested' | 'Endorsed' | 'Locked' | 'Superseded';
+
+export interface BibleRevisionEventDto {
+  id: string;
+  type: BibleRevisionEventType;
+  actorId: string | null;
+  comment: string | null;
+  imageUrl: string | null;
+  eventHash: string;
+  createdAt: string;
+}
+
 export type BibleReviewStatus =
   'Draft' | 'ConceptSubmitted' | 'ReworkRequired' | 'WriterEndorsed' | 'CanonLocked' | number;
 
@@ -30,6 +43,8 @@ export interface BibleEntryRevisionDto {
   stageName?: string | null;
   effectiveToChapterNumber?: number | null;
   referenceImageUrl?: string | null;
+  conceptImageUrl?: string | null;
+  events?: BibleRevisionEventDto[] | null;
 }
 
 export interface BibleEntryDto {
@@ -124,17 +139,26 @@ export const bibleService = {
 
   async deleteRevision(seriesId: string, entryId: string, revisionId: string): Promise<void> {
     try {
-      await axiosClient.delete(`/series/${seriesId}/bible/entries/${entryId}/revisions/${revisionId}`);
+      await axiosClient.delete(
+        `/series/${seriesId}/bible/entries/${entryId}/revisions/${revisionId}`,
+      );
     } catch (error) {
       throw extractError(error, 'Không thể xóa phiên bản.');
     }
   },
 
-  async deleteEra(seriesId: string, entryId: string, chapterNumber: number, stageName?: string | null): Promise<void> {
+  async deleteEra(
+    seriesId: string,
+    entryId: string,
+    chapterNumber: number,
+    stageName?: string | null,
+  ): Promise<void> {
     try {
       const query = new URLSearchParams({ chapterNumber: chapterNumber.toString() });
       if (stageName) query.append('stageName', stageName);
-      await axiosClient.delete(`/series/${seriesId}/bible/entries/${entryId}/eras?${query.toString()}`);
+      await axiosClient.delete(
+        `/series/${seriesId}/bible/entries/${entryId}/eras?${query.toString()}`,
+      );
     } catch (error) {
       throw extractError(error, 'Không thể xóa thời kỳ.');
     }

@@ -21,6 +21,13 @@ export const BibleMention = Mention.extend({
           'data-label': attributes.label,
         }),
       },
+      code: {
+        default: null,
+        parseHTML: (element) => element.getAttribute('data-code'),
+        renderHTML: (attributes) => ({
+          'data-code': attributes.code,
+        }),
+      },
       category: {
         default: 'Character',
         parseHTML: (element) => element.getAttribute('data-category') || 'Character',
@@ -42,38 +49,69 @@ export const BibleMention = Mention.extend({
           'data-is-stub': attributes.isStub ? 'true' : 'false',
         }),
       },
+      panelId: {
+        default: null,
+        parseHTML: (element) => element.getAttribute('data-panel-id'),
+        renderHTML: (attributes) => ({
+          'data-panel-id': attributes.panelId,
+        }),
+      },
+      pageNumber: {
+        default: null,
+        parseHTML: (element) => (element.getAttribute('data-page-number') ? parseInt(element.getAttribute('data-page-number')!, 10) : null),
+        renderHTML: (attributes) => ({
+          'data-page-number': attributes.pageNumber,
+        }),
+      },
+      panelNumber: {
+        default: null,
+        parseHTML: (element) => (element.getAttribute('data-panel-number') ? parseInt(element.getAttribute('data-panel-number')!, 10) : null),
+        renderHTML: (attributes) => ({
+          'data-panel-number': attributes.panelNumber,
+        }),
+      },
     };
   },
 
-    renderHTML({ HTMLAttributes }) {
+  renderHTML({ HTMLAttributes }) {
     const isStub = HTMLAttributes['data-is-stub'] === 'true';
-    const isLocked = HTMLAttributes['data-is-locked'] !== 'false';
-    const label = HTMLAttributes['data-label'] || HTMLAttributes.label || '';
-    const category = HTMLAttributes['data-category'] || HTMLAttributes.category || 'Character';
+    const category = (HTMLAttributes['data-category'] || HTMLAttributes.category || 'Character').toLowerCase();
+    const code = HTMLAttributes['data-code'] || HTMLAttributes['data-label'] || HTMLAttributes.label || '';
+    const label = HTMLAttributes['data-label'] || HTMLAttributes.label || code;
 
-    // D. TÊN NHÂN VẬT: Thẻ chip bo tròn, nền màu tím nhạt, chữ tím đậm #4338CA, có chấm màu đại diện
-    const dotColor = category === 'Location'
-      ? 'bg-emerald-500'
-      : category === 'Prop'
-        ? 'bg-amber-500'
-        : 'bg-[#4F46E5]';
+    let colorStyle = 'border-amber-300 bg-amber-50 text-amber-800'; // Default: Character
+    if (category.includes('panel')) {
+      colorStyle = 'border-purple-300 bg-purple-50 text-purple-800';
+    } else if (category.includes('loc') || category.includes('địa danh') || category.includes('location')) {
+      colorStyle = 'border-emerald-300 bg-emerald-50 text-emerald-800';
+    } else if (category.includes('prop') || category.includes('đạo cụ')) {
+      colorStyle = 'border-cyan-300 bg-cyan-50 text-cyan-800';
+    } else if (category.includes('term') || category.includes('thuật ngữ')) {
+      colorStyle = 'border-indigo-300 bg-indigo-50 text-indigo-800';
+    }
+
+    if (isStub) {
+      colorStyle = 'border-amber-500 border-dashed bg-amber-50/90 text-amber-900';
+    }
+
+    const displayText = `@${code || label}${isStub ? ' (Chưa có trong Bible)' : ''}`;
 
     return [
       'span',
       mergeAttributes(
         {
-          class: `mention inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide border border-indigo-200 bg-indigo-50 text-[#4338CA] shadow-2xs mx-1 cursor-pointer transition-colors hover:bg-indigo-100 hover:border-indigo-300`,
+          class: `mention inline-flex items-center gap-1 whitespace-nowrap align-baseline px-1.5 py-0.5 rounded text-[11px] font-semibold font-mono tracking-tight border ${colorStyle} shadow-2xs select-none mx-0.5 cursor-pointer transition-all hover:scale-[1.02]`,
           'data-id': HTMLAttributes['data-id'],
           'data-label': label,
           'data-category': category,
-          title: `@${label} (${category}) - Rê chuột để xem thông tin`,
+          'data-mention-chip': 'true',
+          'aria-haspopup': 'dialog',
+          title: `@${label} (${category}) - Bấm để xem thông tin Bible`,
           contenteditable: 'false',
         },
         HTMLAttributes
       ),
-      ['span', { class: `w-2 h-2 rounded-full shrink-0 ${dotColor}`, contenteditable: 'false' }],
-      `@${label}${isStub ? ' (Stub)' : ''}`,
+      displayText,
     ];
   },
 });
-

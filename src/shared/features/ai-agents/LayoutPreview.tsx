@@ -76,7 +76,7 @@ export const LayoutPreview: React.FC<{
                   {p.readingOrder}
                 </text>
                 <text x={x + 8} y={y + 20} fontSize={15} fill='#525252'>
-                  {p.camera.length > 22 ? `${p.camera.slice(0, 21)}…` : p.camera}
+                  {p.camera ? (p.camera.length > 22 ? `${p.camera.slice(0, 21)}…` : p.camera) : null}
                 </text>
               </g>
             );
@@ -116,7 +116,7 @@ export const LayoutPreview: React.FC<{
               </div>
               <p className='mt-1 text-[#404040]'>{p.description}</p>
               <div className='mt-1 flex flex-wrap gap-1'>
-                {p.sourceScriptLineIds.map((id) => (
+                {(p.sourceScriptLineIds || []).map((id) => (
                   <span
                     key={id}
                     title={lines[id]?.text}
@@ -125,7 +125,7 @@ export const LayoutPreview: React.FC<{
                     dòng {lines[id]?.order ?? '?'}
                   </span>
                 ))}
-                {p.characterIds.map((id) => (
+                {(p.characterIds || []).map((id) => (
                   <span
                     key={id}
                     className='rounded border border-[#DDD6FE] bg-[#F5F3FF] px-1 text-[10px] text-[#6D28D9]'

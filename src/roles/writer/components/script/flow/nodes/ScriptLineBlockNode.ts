@@ -71,7 +71,35 @@ export const ScriptLineBlockNode = Node.create({
         default: null,
         parseHTML: (element) => element.getAttribute('data-panel-id'),
         renderHTML: (attributes) => ({
-          'data-panel-id': attributes.panelId, // Luôn null ở tầng kịch bản
+          'data-panel-id': attributes.panelId,
+        }),
+      },
+      pageNumber: {
+        default: null,
+        parseHTML: (element) => (element.getAttribute('data-page-number') ? parseInt(element.getAttribute('data-page-number')!, 10) : null),
+        renderHTML: (attributes) => ({
+          'data-page-number': attributes.pageNumber,
+        }),
+      },
+      panelNumber: {
+        default: null,
+        parseHTML: (element) => (element.getAttribute('data-panel-number') ? parseInt(element.getAttribute('data-panel-number')!, 10) : null),
+        renderHTML: (attributes) => ({
+          'data-panel-number': attributes.panelNumber,
+        }),
+      },
+      hasThumbnail: {
+        default: false,
+        parseHTML: (element) => element.getAttribute('data-has-thumbnail') === 'true',
+        renderHTML: (attributes) => ({
+          'data-has-thumbnail': attributes.hasThumbnail ? 'true' : 'false',
+        }),
+      },
+      inPanel: {
+        default: false,
+        parseHTML: (element) => element.getAttribute('data-in-panel') === 'true',
+        renderHTML: (attributes) => ({
+          'data-in-panel': attributes.inPanel ? 'true' : 'false',
         }),
       },
     };
@@ -90,8 +118,12 @@ export const ScriptLineBlockNode = Node.create({
 
   renderHTML({ HTMLAttributes }) {
     const blockType = (HTMLAttributes['data-block-type'] || 'stage_direction') as MangaBlockType;
+    const inPanel = HTMLAttributes['data-in-panel'] === 'true';
 
-    let classNames = 'script-block font-mono my-1.5 transition-all duration-150 outline-none ';
+    const panelIndent = inPanel && blockType !== 'page_heading' && blockType !== 'panel_heading' && blockType !== 'scene_heading'
+      ? 'border-l-2 border-indigo-300/80 pl-4 ml-2 '
+      : '';
+    let classNames = `script-block font-mono my-1.5 transition-all duration-150 outline-none ${panelIndent}`;
 
     switch (blockType) {
       case 'scene_heading':
@@ -108,10 +140,25 @@ export const ScriptLineBlockNode = Node.create({
           ['button', { type: 'button', class: 'page-toggle-btn ml-auto cursor-pointer select-none text-[11px] font-semibold text-[#C2410C] bg-white/70 hover:bg-white border border-[#C2410C]/30 px-2.5 py-0.5 rounded-md transition-all shadow-2xs', contenteditable: 'false' }, '▼ Thu gọn'],
         ];
 
-      case 'panel_heading':
+      case 'panel_heading': {
         // B. KHỐI TIÊU ĐỀ KHUNG (PANEL_HEADING): Viền trái tím #4F46E5 4px, nền xám nhạt #F8FAFC
+        const hasThumb = HTMLAttributes['data-has-thumbnail'] === 'true';
+        const dotColor = hasThumb ? 'bg-emerald-500 ring-2 ring-emerald-200' : 'bg-gray-400 ring-2 ring-gray-200';
         classNames += 'font-bold text-xs uppercase tracking-wide text-slate-800 bg-[#F8FAFC] border-l-4 border-[#4F46E5] px-3.5 py-2 mt-4 mb-2 rounded-r-lg shadow-2xs flex items-center gap-2';
-        return ['div', mergeAttributes(HTMLAttributes, { class: classNames, 'data-block-type': blockType }), 0];
+        return [
+          'div',
+          mergeAttributes(HTMLAttributes, { class: classNames, 'data-block-type': blockType }),
+          [
+            'span',
+            {
+              class: `w-2 h-2 rounded-full ${dotColor} shrink-0 inline-block`,
+              'data-status-dot': hasThumb ? 'has-sketch' : 'no-sketch',
+              title: hasThumb ? 'Khung đã có phác thảo' : 'Khung chưa có phác thảo',
+            },
+          ],
+          ['span', { class: 'panel-heading-text flex-1' }, 0],
+        ];
+      }
 
       case 'caption':
         // C. LỜI DẪN TRUYỆN (CAPTION): Chữ thường đứng, màu #334155, 14px, đường kẻ dọc mảnh màu xám ở đầu dòng
@@ -132,7 +179,6 @@ export const ScriptLineBlockNode = Node.create({
         // F. HIỆU ỨNG ÂM THANH (SFX): Huy hiệu vàng hổ phách, tia chớp ⚡, font Monospace kỹ thuật nổi bật
         classNames += 'font-mono text-xs sm:text-sm my-1.5 px-3 py-1.5 rounded-lg border border-amber-300 bg-[#FFFBEB] text-amber-950 flex items-center gap-2.5 shadow-2xs not-italic';
         return ['div', mergeAttributes(HTMLAttributes, { class: classNames, 'data-block-type': blockType }), 0];
-
       case 'stage_direction':
         // G. CHỈ DẪN BỐI CẢNH / HÀNH ĐỘNG / VIẾT TỰ DO: In nghiêng, màu #64748B, font Monospace kỹ thuật
         classNames += 'font-mono italic text-[#64748B] text-xs sm:text-sm ml-4 pl-2 my-1 leading-normal';

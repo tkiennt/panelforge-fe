@@ -154,23 +154,32 @@ export const ChapterReaderModal: React.FC<ChapterReaderModalProps> = ({
           >
             <X className='w-5 h-5' />
           </button>
-          <div className='min-w-0'>
-            <div className='flex items-center gap-2'>
-              <h2 className='text-sm font-bold text-white truncate'>
-                {data?.seriesTitle || 'Đang tải tác phẩm...'}
-              </h2>
-              <span className='shrink-0 px-1.5 py-0.5 rounded bg-orange-950/60 text-orange-400 border border-orange-800 text-[10px] font-mono'>
-                {data?.readingDirection === 'RightToLeft'
-                  ? 'Manga (RTL)'
-                  : data?.readingDirection === 'Vertical'
-                    ? 'Webtoon'
-                    : 'Comic (LTR)'}
-              </span>
+          <div className='min-w-0 flex items-center gap-2.5'>
+            {data?.coverUrl && (
+              <img
+                src={resolveCatalogImageUrl(data.coverUrl)}
+                alt={`Bìa ${data.title || data.chapterNumber}`}
+                className='w-7 h-10 object-cover rounded border border-neutral-700 shadow-2xs shrink-0'
+              />
+            )}
+            <div className='min-w-0'>
+              <div className='flex items-center gap-2'>
+                <h2 className='text-sm font-bold text-white truncate'>
+                  {data?.seriesTitle || 'Đang tải tác phẩm...'}
+                </h2>
+                <span className='shrink-0 px-1.5 py-0.5 rounded bg-orange-950/60 text-orange-400 border border-orange-800 text-[10px] font-mono'>
+                  {data?.readingDirection === 'RightToLeft'
+                    ? 'Manga (RTL)'
+                    : data?.readingDirection === 'Vertical'
+                      ? 'Webtoon'
+                      : 'Comic (LTR)'}
+                </span>
+              </div>
+              <p className='text-[11px] text-neutral-400 font-mono truncate'>
+                Chương {data ? data.chapterNumber : chapterNumber}
+                {(data?.title || chapterTitle) && ` · ${data?.title || chapterTitle}`}
+              </p>
             </div>
-            <p className='text-[11px] text-neutral-400 font-mono truncate'>
-              Chương {data ? data.chapterNumber : chapterNumber}
-              {(data?.title || chapterTitle) && ` · ${data?.title || chapterTitle}`}
-            </p>
           </div>
         </div>
 

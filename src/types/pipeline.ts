@@ -157,6 +157,104 @@ export interface CreateAssignmentRequest {
   dependsOnAssignmentIds?: string[];
 }
 
+/** Giao hàng loạt theo AssignmentGranularity của stage. PageIds null/rỗng = mọi trang của chương. DryRun = true: xem trước */
+export interface CreateBulkAssignmentRequest {
+  pipelineStageId: string;
+  assigneeUserId: string;
+  brief: string;
+  pageIds?: string[] | null;
+  referenceNotes?: string | null;
+  dueDate?: string | null;
+  priority?: AssignmentPriority;
+  dryRun?: boolean;
+}
+
+/** Một việc trong đợt giao hàng loạt */
+export interface BulkAssignmentItemDto {
+  entityType: WorkflowEntityType;
+  targetEntityId: string;
+  pageNumber?: number | null;
+  conflictReason?: string | null;
+  assignmentId?: string | null;
+  dependsOnAssignmentIds?: string[] | null;
+}
+
+/** Kết quả giao việc hàng loạt (hoặc bản xem trước khi dryRun = true) */
+export interface BulkAssignmentResultDto {
+  batchId?: string | null;
+  dryRun: boolean;
+  granularity: WorkflowEntityType;
+  createdCount: number;
+  items: BulkAssignmentItemDto[];
+}
+
+/** Ứng viên nhận việc đã xếp hạng cho stage */
+export interface AssigneeSuggestionDto {
+  userId: string;
+  fullName: string;
+  avatarUrl?: string | null;
+  role: WorkspaceRole;
+  activeAssignmentCount: number;
+  overdueCount: number;
+  stageExperienceCount: number;
+  isSeriesMember: boolean;
+  reasons: string[];
+}
+
+/** Một dòng của kế hoạch giao việc: stage + người nhận */
+export interface AssignmentPlanStageRequest {
+  pipelineStageId: string;
+  assigneeUserId: string;
+  brief?: string | null;
+  pageIds?: string[] | null;
+  dueDate?: string | null;
+}
+
+/** Giao nhiều stage một lần theo kế hoạch */
+export interface CreateAssignmentPlanRequest {
+  stages: AssignmentPlanStageRequest[];
+  brief: string;
+  referenceNotes?: string | null;
+  dueDate?: string | null;
+  priority?: AssignmentPriority;
+  dryRun?: boolean;
+}
+
+/** Kết quả từng stage trong kế hoạch giao việc */
+export interface AssignmentPlanStageResultDto {
+  pipelineStageId: string;
+  stageName: string;
+  assigneeUserId: string;
+  granularity?: WorkflowEntityType | null;
+  skippedReason?: string | null;
+  items: BulkAssignmentItemDto[];
+}
+
+/** Kết quả giao việc theo kế hoạch (hoặc xem trước khi dryRun = true) */
+export interface AssignmentPlanResultDto {
+  batchId?: string | null;
+  dryRun: boolean;
+  createdCount: number;
+  stages: AssignmentPlanStageResultDto[];
+}
+
+/** Mẫu phân công từng stage từ chương trước */
+export interface AssignmentPlanTemplateStageDto {
+  pipelineStageId: string;
+  stageName: string;
+  stageOrder: number;
+  assigneeUserId: string;
+  assigneeName: string;
+  brief?: string | null;
+}
+
+/** Mẫu giao việc lấy từ chương gần nhất của Series đã có việc */
+export interface AssignmentPlanTemplateDto {
+  sourceChapterId?: string | null;
+  sourceChapterNumber?: number | null;
+  stages: AssignmentPlanTemplateStageDto[];
+}
+
 export interface UpdateAssignmentRequest {
   brief: string;
   referenceNotes?: string | null;
@@ -324,6 +422,7 @@ export type NotificationType =
   | 'AssignmentOverdue'
   | 'ChangeRequestDueSoon'
   | 'ChangeRequestOverdue'
+  | 'AssignmentReady'
   | string;
 
 export interface NotificationDto {
@@ -491,6 +590,8 @@ export interface ImageConsistencyResultDto {
   assetReferenceId?: string | null;
   artworkUrl?: string | null;
   characterSheetUrl?: string | null;
+  /** true = KHÔNG gọi AI (panel chưa có ảnh, không gắn nhân vật, hoặc nhân vật chưa có character sheet). */
+  skipped?: boolean;
 }
 
 export interface VisualConsistencyReportDto {
@@ -505,4 +606,24 @@ export interface VisualConsistencyReportDto {
   openDeviationCount: number;
   blockingDeviationCount: number;
   deviations: VisualDeviationDto[];
+}
+
+export type PanelVisualContinuityStatus =
+  'Passed' | 'Warning' | 'Skipped' | 'Failed' | 'NotChecked';
+
+export interface PanelVisualContinuityDto {
+  panelId: string;
+  panelNumber: number;
+  status: PanelVisualContinuityStatus;
+  result?: ImageConsistencyResultDto | null;
+  error?: string | null;
+}
+
+export interface PageVisualContinuityDto {
+  pageId: string;
+  passed: number;
+  warnings: number;
+  skipped: number;
+  failed: number;
+  panels: PanelVisualContinuityDto[];
 }

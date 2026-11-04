@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import {
   FileText,
   Plus,
@@ -36,6 +36,7 @@ import {
   Lock,
   LayoutTemplate,
   Film,
+  AlertCircle,
 } from 'lucide-react';
 import {
   scriptLineService,
@@ -49,14 +50,20 @@ import {
   NarrationMode,
 } from '@/services/scriptLine.service';
 import { chapterService, ChapterDto, ChapterBibleGateResultDto, CreateChapterRequest } from '@/services/chapter.service';
+import { pageService, PageDto } from '@/services/page.service';
+import { panelService } from '@/services/panel.service';
+import { PanelDto } from '@/types/pipeline';
+import { generateTempCode, saveTempBibleCode } from '../components/script/flow/tempBibleCodes';
 import { ChapterSelectionView } from '../components/script/chapter-selection';
 import { bibleService, BibleEntryDto } from '@/services/bible.service';
 import { seriesService, SeriesDetailDto } from '@/services/series.service';
 import {
   assignmentService,
+  AssignmentDto,
   ConsistencyFindingDto,
   ConsistencyCheckResultDto,
 } from '@/services/assignment.service';
+import { workspaceService, type WorkspaceMemberDto } from '@/services/workspace.service';
 import { normalizeWorkspaceRole } from '@/types/auth';
 import { AiAssistPanel } from '@/shared/features/ai-agents/AiAssistPanel';
 import { ScriptHistoryModal } from '../components/script/ScriptHistoryModal';
@@ -82,6 +89,7 @@ import { scenesToComicScriptText } from '../components/script/thumbnail-studio/l
 interface ScriptEditorViewProps {
   onShowToast?: (title: string, desc: string) => void;
   workspaceRole?: string | null;
+  currentUserId?: string | null;
 }
 
 /**
@@ -121,10 +129,14 @@ export const getBibleEntryNameWithStage = (entry?: BibleEntryDto | null): string
 export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   onShowToast,
   workspaceRole,
+  currentUserId,
 }) => {
   const { t } = useTranslation('production');
   const confirm = useConfirm();
-  const { seriesId } = useParams<{ workspaceId?: string; seriesId?: string }>();
+  const { workspaceId, seriesId } = useParams<{ workspaceId?: string; seriesId?: string }>();
+  const navigate = useNavigate();
+  const [chapterPages, setChapterPages] = useState<PageDto[]>([]);
+  const [chapterPanels, setChapterPanels] = useState<PanelDto[]>([]);
   const [searchParams, setSearchParams] = useSearchParams();
   const chapterIdFromUrl = searchParams.get('chapterId');
   const sceneIdFromUrl = searchParams.get('sceneId');
@@ -134,9 +146,30 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   // - Writer: Soạn thảo kịch bản, chỉnh sửa outline/story arc, nhưng TUYỆT ĐỐI KHÔNG ĐƯỢC tạo chương mới hoặc xoá chương.
   const normRole = workspaceRole ? normalizeWorkspaceRole(workspaceRole) : null;
   const effectiveRole = normRole || (typeof window !== 'undefined' ? normalizeWorkspaceRole(localStorage.getItem('workspaceRole')) : null);
-  const canEditScript = !effectiveRole || effectiveRole === 'PRODUCER' || effectiveRole === 'WRITER';
   const isProducer = effectiveRole === 'PRODUCER';
   const canCreateChapter = isProducer;
+
+  // Xác định ID người dùng hiện tại (từ prop, localStorage hoặc JWT)
+  const [selfUserId, setSelfUserId] = useState<string | null>(() => {
+    if (currentUserId) return currentUserId;
+    try {
+      const savedUser = localStorage.getItem('user');
+      if (savedUser) {
+        const u = JSON.parse(savedUser);
+        if (u?.id) return u.id;
+        if (u?.userId) return u.userId;
+      }
+    } catch {
+      // ignore
+    }
+    return null;
+  });
+
+  useEffect(() => {
+    if (currentUserId) setSelfUserId(currentUserId);
+  }, [currentUserId]);
+
+  const effectiveUserId = currentUserId || selfUserId;
 
   // Dữ liệu kịch bản
   const [chapters, setChapters] = useState<ChapterDto[]>([]);
@@ -148,6 +181,59 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     currentChapter?.status === 'Published';
   const [characters, setCharacters] = useState<BibleEntryDto[]>([]);
   const [allBibleEntries, setAllBibleEntries] = useState<BibleEntryDto[]>([]);
+  const [chapterAssignments, setChapterAssignments] = useState<AssignmentDto[]>([]);
+  const [workspaceMembers, setWorkspaceMembers] = useState<WorkspaceMemberDto[]>([]);
+
+  // Phân quyền theo Assignment (Backend ScriptLineRules.cs):
+  // - Producer luôn có quyền sửa kịch bản.
+  // - Khi chương đã giao kịch bản cho Writer: chỉ người được giao mới sửa được; Writer khác nhận 403 / chỉ đọc.
+  // - Khi chương chưa giao cho ai: Writer vẫn sửa tự do như cũ.
+  // - Assignment đã huỷ (cancelReason != null) không tính.
+  // - Các vai trò khác (Artist, Editor, Viewer...): chỉ đọc.
+
+  const writerAssignments = useMemo(() => {
+    return chapterAssignments.filter((a) => {
+      const role = String(a.assignedRole || '').toUpperCase();
+      const isWriter = role === 'WRITER';
+      const isCancelled = !!(a as any).cancelReason;
+      return isWriter && !isCancelled;
+    });
+  }, [chapterAssignments]);
+
+  const hasWriterAssignment = writerAssignments.length > 0;
+
+  const isAssignedWriter = useMemo(() => {
+    if (!effectiveUserId || !hasWriterAssignment) return false;
+    return writerAssignments.some(
+      (a) => String(a.assigneeUserId).toLowerCase() === String(effectiveUserId).toLowerCase(),
+    );
+  }, [effectiveUserId, hasWriterAssignment, writerAssignments]);
+
+  const isWriterBlockedByOther = useMemo(() => {
+    if (effectiveRole !== 'WRITER') return false;
+    if (!hasWriterAssignment) return false;
+    return !isAssignedWriter;
+  }, [effectiveRole, hasWriterAssignment, isAssignedWriter]);
+
+  const assignedWriterNames = useMemo(() => {
+    if (!writerAssignments.length) return '';
+    const names = writerAssignments.map((a) => {
+      const member = workspaceMembers.find(
+        (m) => String(m.userId).toLowerCase() === String(a.assigneeUserId).toLowerCase(),
+      );
+      return member?.fullName || member?.email || 'Writer được giao';
+    });
+    return Array.from(new Set(names)).join(', ');
+  }, [writerAssignments, workspaceMembers]);
+
+  const canEditScript = useMemo(() => {
+    if (!effectiveRole) return !isWriterBlockedByOther;
+    if (effectiveRole === 'PRODUCER') return true;
+    if (effectiveRole === 'WRITER') {
+      return !hasWriterAssignment || isAssignedWriter;
+    }
+    return false;
+  }, [effectiveRole, hasWriterAssignment, isAssignedWriter, isWriterBlockedByOther]);
 
   const [scenes, setScenes] = useState<SceneDto[]>([]);
   const [selectedScene, setSelectedScene] = useState<SceneDetailDto | null>(null);
@@ -240,6 +326,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
   // Modals phụ trợ
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
+  const [storyboardPanelOpen, setStoryboardPanelOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
 
   // V2.5: Chapter-Scoped Bible Gate & Script Freeze Gate
@@ -415,11 +502,22 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     }
   }, [chapterIdFromUrl, chapters, currentChapter?.id]);
 
-  // Đồng bộ Outline và nạp findings nhất quán khi currentChapter thay đổi
+  // Tải danh sách thành viên workspace để hiển thị tên Writer được phân công (nếu có)
+  const effectiveWsId = workspaceId || seriesDetail?.workspaceId;
+  useEffect(() => {
+    if (!effectiveWsId) return;
+    workspaceService
+      .getMembers(effectiveWsId)
+      .then((mems) => setWorkspaceMembers(mems || []))
+      .catch(() => setWorkspaceMembers([]));
+  }, [effectiveWsId]);
+
+  // Đồng bộ Outline, findings nhất quán và danh sách Assignment khi currentChapter thay đổi
   useEffect(() => {
     if (!currentChapter?.id) {
       setOutlineInput('');
       setFindings([]);
+      setChapterAssignments([]);
       return;
     }
     // Xoá ngay findings cũ để tránh hiển thị kết quả của chương trước khi chuyển chương
@@ -435,14 +533,25 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         setFindings([]);
       });
 
+    assignmentService
+      .getAssignments(currentChapter.id)
+      .then((res) => {
+        setChapterAssignments(res || []);
+      })
+      .catch(() => {
+        setChapterAssignments([]);
+      });
+
     void checkChapterBibleGate(currentChapter.id);
   }, [currentChapter?.id, currentChapter?.outline, checkChapterBibleGate]);
 
-  // 2. Nạp chi tiết Chapter (cập nhật versionVector)
+  // 2. Nạp chi tiết Chapter (cập nhật versionVector) & cập nhật lại phân công
   const refreshChapterDetail = useCallback(async (chapId: string) => {
     try {
       const detail = await chapterService.getChapterById(chapId);
       setCurrentChapter((prev) => (prev ? { ...prev, ...detail } : detail));
+      const assignments = await assignmentService.getAssignments(chapId);
+      setChapterAssignments(assignments || []);
     } catch (err) {
       console.error('Lỗi refresh chi tiết chương:', err);
     }
@@ -567,6 +676,8 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       const isValidGuid = (id?: string | null) =>
         Boolean(id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id));
 
+      const createdLineIdMap = new Map<string, string>();
+
       // 4. Lưu đồng bộ hàng loạt (Batch Save) nguyên tử từng phân cảnh (Atomic 1-HTTP Roundtrip)
       for (const [targetSceneId, sceneLines] of linesByScene.entries()) {
         const batchPayload = sceneLines.map((line, idx) => ({
@@ -592,6 +703,14 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           if (res?.chapterVersion) {
             currentVersion = res.chapterVersion;
             hasChanges = true;
+          }
+          if (res?.lines) {
+            sceneLines.forEach((srcLine, idx) => {
+              const savedLine = res.lines[idx];
+              if (savedLine) {
+                createdLineIdMap.set(srcLine.scriptLineId, savedLine.id);
+              }
+            });
           }
         } catch (batchErr: any) {
           console.error(`Lỗi lưu hàng loạt kịch bản cho Scene ${targetSceneId}:`, batchErr);
@@ -619,6 +738,81 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           } catch (cleanErr) {
             console.error(`Lỗi dọn sạch dòng kịch bản phân cảnh ${sc.id}:`, cleanErr);
           }
+        }
+      }
+
+      // 5.5 Đồng bộ Trang (Page) và Khung (Panel) với Bàn vẽ
+      if (currentChapter?.id) {
+        try {
+          const extractedPageNumbers = Array.from(
+            new Set(
+              extractedLines
+                .map((l) => l.pageNumber)
+                .filter((p): p is number => typeof p === 'number' && p > 0)
+            )
+          ).sort((a, b) => a - b);
+
+          const currentPages = [...chapterPages];
+          for (const pageNum of extractedPageNumbers) {
+            const pageExists = currentPages.some((p) => p.pageNumber === pageNum);
+            if (!pageExists) {
+              try {
+                const createdPage = await pageService.createPage(currentChapter.id, { pageNumber: pageNum });
+                currentPages.push(createdPage);
+              } catch (pErr) {
+                console.warn('Lỗi tạo Page từ kịch bản:', pErr);
+              }
+            }
+          }
+
+          const currentPanels = [...chapterPanels];
+          for (const page of currentPages) {
+            const pageLines = extractedLines.filter((l) => l.pageNumber === page.pageNumber);
+            const distinctPanelNumbers = Array.from(
+              new Set(
+                pageLines
+                  .map((l) => l.panelNumber)
+                  .filter((p): p is number => typeof p === 'number' && p > 0)
+              )
+            );
+
+            for (const pNum of distinctPanelNumbers) {
+              let panel = currentPanels.find(
+                (p) => (p as any).pageNumber === page.pageNumber && p.panelNumber === pNum
+              );
+              if (!panel) {
+                try {
+                  const createdPanel = await panelService.createPanel(page.id, {
+                    panelNumber: pNum,
+                    boundingBox: JSON.stringify({ x: 0, y: 0, width: 400, height: 300, unit: 'px' }),
+                  });
+                  (createdPanel as any).pageNumber = page.pageNumber;
+                  currentPanels.push(createdPanel);
+                  panel = createdPanel;
+                } catch (panErr) {
+                  console.warn('Lỗi tạo Panel từ kịch bản:', panErr);
+                }
+              }
+
+              if (panel) {
+                const linesForThisPanel = pageLines
+                  .filter((l) => l.panelNumber === pNum)
+                  .map((l) => createdLineIdMap.get(l.scriptLineId) || l.scriptLineId);
+
+                if (linesForThisPanel.length > 0) {
+                  try {
+                    await panelService.assignPanelScriptLines(panel.id, linesForThisPanel);
+                  } catch (assignErr) {
+                    console.warn('Lỗi gán dòng cho panel:', assignErr);
+                  }
+                }
+              }
+            }
+          }
+
+          await loadPagesAndPanels(currentChapter.id);
+        } catch (syncErr) {
+          console.warn('Lỗi đồng bộ Trang/Panel:', syncErr);
         }
       }
 
@@ -685,6 +879,50 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     },
     [seriesId, notify],
   );
+
+  const loadPagesAndPanels = useCallback(async (chapId: string) => {
+    try {
+      const pages = await pageService.getPagesByChapter(chapId);
+      setChapterPages(pages || []);
+      if (pages && pages.length > 0) {
+        const panelPromises = pages.map((page) =>
+          panelService.getPanelsByPage(page.id).catch(() => [])
+        );
+        const panelsByPages = await Promise.all(panelPromises);
+        const allPanels: PanelDto[] = [];
+        panelsByPages.forEach((list, idx) => {
+          list.forEach((p) => {
+            (p as any).pageNumber = pages[idx].pageNumber;
+            allPanels.push(p);
+          });
+        });
+        setChapterPanels(allPanels);
+      } else {
+        setChapterPanels([]);
+      }
+    } catch {
+      setChapterPages([]);
+      setChapterPanels([]);
+    }
+  }, []);
+
+  const handleOpenInBible = useCallback((codeOrId: string) => {
+    if (workspaceId && seriesId) {
+      navigate(`/workspaces/${workspaceId}/series/${seriesId}/bible?search=${encodeURIComponent(codeOrId)}`);
+    }
+  }, [workspaceId, seriesId, navigate]);
+
+  const handleOpenInArtistDesk = useCallback((pageNumber?: number) => {
+    if (workspaceId && seriesId && currentChapter?.id) {
+      navigate(`/workspaces/${workspaceId}/series/${seriesId}/artist?chapterId=${currentChapter.id}${pageNumber ? `&page=${pageNumber}` : ''}`);
+    }
+  }, [workspaceId, seriesId, currentChapter, navigate]);
+
+  const handleCreateInBible = useCallback((tempCode: string) => {
+    if (workspaceId && seriesId) {
+      navigate(`/workspaces/${workspaceId}/series/${seriesId}/bible?search=${encodeURIComponent(tempCode)}`);
+    }
+  }, [workspaceId, seriesId, navigate]);
 
   const loadScenes = useCallback(async () => {
     if (!currentChapter?.id) {
@@ -1226,6 +1464,12 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         notify('Xung đột phiên bản (409 CONFLICT)', msg);
         await refreshChapterDetail(currentChapter.id);
         await loadSceneDetail(selectedScene.id);
+      } else if (err.status === 403 || err.code === 'FORBIDDEN') {
+        notify(
+          'Không có quyền sửa kịch bản (403)',
+          err.message ||
+            'Kịch bản chương này đã được giao cho Writer khác. Chỉ người được giao hoặc Producer mới sửa được.',
+        );
       } else {
         notify('Lỗi ghi kịch bản', err.message);
       }
@@ -1297,6 +1541,12 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         notify('Xung đột phiên bản', msg);
         await refreshChapterDetail(currentChapter.id);
         await loadSceneDetail(selectedScene.id);
+      } else if (err.status === 403 || err.code === 'FORBIDDEN') {
+        notify(
+          'Không có quyền xoá dòng (403)',
+          err.message ||
+            'Kịch bản chương này đã được giao cho Writer khác. Chỉ người được giao hoặc Producer mới sửa được.',
+        );
       } else {
         notify('Lỗi xoá dòng', err.message);
       }
@@ -1327,7 +1577,15 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       await refreshChapterDetail(currentChapter.id);
     } catch (err: any) {
       setSelectedScene((prev) => (prev ? { ...prev, scriptLines: previousLines } : null));
-      notify('Lỗi sắp xếp dòng', err.message || 'Không thể cập nhật thứ tự dòng kịch bản.');
+      if (err.status === 403 || err.code === 'FORBIDDEN') {
+        notify(
+          'Không có quyền sắp xếp dòng (403)',
+          err.message ||
+            'Kịch bản chương này đã được giao cho Writer khác. Chỉ người được giao hoặc Producer mới sửa được.',
+        );
+      } else {
+        notify('Lỗi sắp xếp dòng', err.message || 'Không thể cập nhật thứ tự dòng kịch bản.');
+      }
       await loadSceneDetail(selectedScene.id);
     } finally {
       setIsReorderingLines(false);
@@ -1400,12 +1658,12 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
     setFreezingScript(true);
     try {
-      await chapterService.freezeScript(currentChapter.id);
+      const updatedChapter = await chapterService.freezeScript(currentChapter.id);
       notify(
         'Đã duyệt kịch bản',
         `Kịch bản Chương ${currentChapter.chapterNumber} đã đóng băng và chuyển giao sang khâu sản xuất hình ảnh thành công.`,
       );
-      setCurrentChapter((prev) => (prev ? { ...prev, isScriptFrozen: true } : prev));
+      setCurrentChapter((prev) => (prev ? { ...prev, isScriptFrozen: true, scriptContentHash: updatedChapter?.scriptContentHash ?? prev.scriptContentHash } : prev));
       await refreshChapterDetail(currentChapter.id);
       void checkChapterBibleGate(currentChapter.id);
     } catch (err: any) {
@@ -1434,7 +1692,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         'Đã mở lại kịch bản',
         `Kịch bản Chương ${currentChapter.chapterNumber} đã được mở lại cho Writer chỉnh sửa.`,
       );
-      setCurrentChapter((prev) => (prev ? { ...prev, isScriptFrozen: false } : prev));
+      setCurrentChapter((prev) => (prev ? { ...prev, isScriptFrozen: false, scriptContentHash: null } : prev));
       await refreshChapterDetail(currentChapter.id);
       void checkChapterBibleGate(currentChapter.id);
     } catch (err: any) {
@@ -1452,8 +1710,21 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   const handleAiReload = async () => {
     if (!currentChapter?.id || !selectedScene?.id) return;
     await refreshChapterDetail(currentChapter.id);
+    await loadScenes();
     await loadSceneDetail(selectedScene.id);
   };
+
+  const currentSceneDto = useMemo(
+    () => scenes.find((s) => s.id === selectedScene?.id),
+    [scenes, selectedScene?.id]
+  );
+  const sceneHasPanels = useMemo(() => {
+    if (!selectedScene) return false;
+    return (
+      (selectedScene.scriptLines && selectedScene.scriptLines.some((l) => !!l.panelId)) ||
+      (currentSceneDto?.pagesCount ?? 0) > 0
+    );
+  }, [selectedScene, currentSceneDto]);
 
   const aiNameById = Object.fromEntries(
     allBibleEntries.map((e) => [e.id, getBibleEntryNameWithStage(e)]),
@@ -1483,7 +1754,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   // Nếu chưa chọn Chapter (hoặc vừa vào trang chưa có query chapterId): Hiển thị màn hình Chọn Chương
   if (!currentChapter) {
     return (
-      <div className='flex-1 flex flex-col bg-[#F3F0E9] h-[calc(100vh-64px)] overflow-hidden text-[#1C1917]'>
+      <div className='w-full flex-1 flex flex-col min-h-0 overflow-y-auto bg-[#FAF8F5] text-[#1C1917] custom-scrollbar'>
         <ChapterSelectionView
           chapters={chapters}
           seriesDetail={seriesDetail}
@@ -1873,8 +2144,17 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                 </div>
                 <div>
                   <div className='flex items-center gap-2'>
-                    <span className='font-bold text-xs uppercase tracking-wider bg-indigo-200 text-indigo-900 px-2 py-0.5 rounded'>
-                      🔒 Kịch bản đã đóng băng (Frozen / Read-only)
+                    <span className='font-bold text-xs uppercase tracking-wider bg-indigo-200 text-indigo-900 px-2 py-0.5 rounded inline-flex items-center gap-1.5'>
+                      <span>🔒 Kịch bản đã đóng băng (Frozen / Read-only)</span>
+                      {currentChapter?.scriptContentHash && (
+                        <span
+                          className='font-mono font-semibold text-[10px] text-indigo-900 bg-indigo-100 px-1.5 py-0.5 rounded border border-indigo-300'
+                          title={`SHA-256: ${currentChapter.scriptContentHash}`}
+                          data-testid='frozen-script-hash-badge'
+                        >
+                          #{currentChapter.scriptContentHash.slice(0, 8)}
+                        </span>
+                      )}
                     </span>
                     <span className='text-[11px] text-indigo-700 font-medium'>
                       Đã chuyển giao cho Artist dựng Thumbnail &amp; Layout
@@ -1882,7 +2162,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                   </div>
                   <p className='text-[11px] text-indigo-800/80 mt-0.5'>
                     Writer không thể sửa trực tiếp kịch bản để tránh xung đột khung tranh của hoạ
-                    sĩ.
+                    sĩ. Thẻ xem nhanh vẫn dùng được qua hover hoặc Ctrl+.
                   </p>
                 </div>
               </div>
@@ -1910,7 +2190,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                 <ShieldAlert className='w-4 h-4 text-amber-600 shrink-0' />
                 <span className='text-xs font-medium'>
                   Chương này đã ở trạng thái <strong>{currentChapter?.status}</strong> — Kịch bản ở
-                  chế độ chỉ đọc để bảo vệ tính toàn vẹn sản xuất.
+                  chế độ chỉ đọc để bảo vệ tính toàn vẹn sản xuất. Thẻ xem nhanh vẫn dùng được qua hover hoặc Ctrl+.
                 </span>
               </div>
               <span className='text-xs font-bold uppercase tracking-wider bg-amber-200/90 text-amber-900 px-2.5 py-0.5 rounded-full shrink-0'>
@@ -1919,7 +2199,23 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             </div>
           )}
 
-          {!canEditScript && !isChapterLocked && (
+          {isWriterBlockedByOther && !isChapterLocked ? (
+            <div
+              data-testid='writer-not-assigned-banner'
+              className='p-2.5 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between gap-2 text-amber-900'
+            >
+              <div className='flex items-center gap-2'>
+                <AlertCircle className='w-4 h-4 text-amber-600 shrink-0' />
+                <span className='text-xs font-medium'>
+                  Chế độ chỉ đọc: Kịch bản chương này đã được giao cho Writer khác
+                  {assignedWriterNames ? ` (${assignedWriterNames})` : ''}. Chỉ người được giao hoặc Producer mới có quyền chỉnh sửa.
+                </span>
+              </div>
+              <span className='text-xs font-bold uppercase tracking-wider bg-amber-200/90 text-amber-900 px-2.5 py-0.5 rounded-full shrink-0'>
+                Đã giao người khác
+              </span>
+            </div>
+          ) : !canEditScript && !isChapterLocked ? (
             <div
               data-testid='role-view-only-banner'
               className='p-2.5 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between gap-2 text-blue-900'
@@ -1928,7 +2224,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                 <Info className='w-4 h-4 text-blue-600 shrink-0' />
                 <span className='text-xs font-medium'>
                   Chế độ xem: Bạn đang xem kịch bản với quyền tham khảo. Chỉ vai trò{' '}
-                  <strong>Producer</strong> hoặc <strong>Writer</strong> mới có quyền tạo và chỉnh
+                  <strong>Producer</strong> hoặc <strong>Writer</strong> được phân công mới có quyền tạo và chỉnh
                   sửa kịch bản.
                 </span>
               </div>
@@ -1936,7 +2232,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                 Tham khảo
               </span>
             </div>
-          )}
+          ) : null}
         </div>
       )}
 
@@ -2173,6 +2469,32 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                     </button>
                   )}
 
+                  {canEditScript && (
+                    <button
+                      type='button'
+                      data-testid='open-ai-storyboard-btn'
+                      onClick={() => setStoryboardPanelOpen(true)}
+                      className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-full transition-all cursor-pointer shadow-soft-sm border ${
+                        sceneHasPanels
+                          ? 'text-amber-800 bg-amber-50 hover:bg-amber-100 border-amber-200'
+                          : 'text-indigo-800 bg-indigo-50 hover:bg-indigo-100 border-indigo-200'
+                      }`}
+                      title={
+                        sceneHasPanels
+                          ? 'Phân cảnh đã có khung tranh (khóa tự tạo; dùng Tự động phân bổ trên Bàn vẽ)'
+                          : 'Tự động tạo Trang, Khung và gán kịch bản bằng AI'
+                      }
+                    >
+                      <LayoutTemplate className={`w-3.5 h-3.5 ${sceneHasPanels ? 'text-amber-600' : 'text-indigo-600'}`} />
+                      <span className='hidden sm:inline'>Phân khung bằng AI</span>
+                      {sceneHasPanels && (
+                        <span className='ml-0.5 rounded bg-amber-200/80 px-1.5 py-0.5 text-[10px] font-medium text-amber-900'>
+                          Đã có khung
+                        </span>
+                      )}
+                    </button>
+                  )}
+
                   {canEditScript && !isChapterLocked && (editorMode === 'cards' || isTestEnvironment) && (
                     <button
                       type='button'
@@ -2195,11 +2517,13 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                     <ScreenplayFlowEditor
                       key={currentChapter?.id || 'flow-editor'}
                       chapterId={currentChapter?.id}
+                      chapterNumber={currentChapter?.chapterNumber}
                       scenes={selectedScene ? [selectedScene] : (chapterScenesDetail.length > 0 ? chapterScenesDetail : [])}
                       allBibleEntries={allBibleEntries}
                       consistencyFindings={findings}
                       canEditScript={canEditScript}
                       isChapterLocked={isChapterLocked}
+                      scriptContentHash={currentChapter?.scriptContentHash}
                       getSpeakerName={getSpeakerName}
                       onSaveLines={handleSaveFlowLines}
                       onCreateStub={handleCreateStubEntity}
@@ -2309,11 +2633,13 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               <div className='max-w-6xl mx-auto w-full p-4 overflow-y-auto'>
                 <ScreenplayFlowEditor
                 chapterId={currentChapter?.id}
+                chapterNumber={currentChapter?.chapterNumber}
                 scenes={chapterScenesDetail.length > 0 ? chapterScenesDetail : []}
                 allBibleEntries={allBibleEntries}
                 consistencyFindings={findings}
                 canEditScript={canEditScript}
                 isChapterLocked={isChapterLocked}
+                scriptContentHash={currentChapter?.scriptContentHash}
                 getSpeakerName={getSpeakerName}
                 onSaveLines={handleSaveFlowLines}
                 onCreateStub={handleCreateStubEntity}
@@ -2381,6 +2707,28 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           chapterVersion={currentChapter.versionVector}
           nameById={aiNameById}
           onClose={() => setAiPanelOpen(false)}
+          onReload={handleAiReload}
+        />
+      )}
+
+      {/* Trợ lý AI Phân khung Storyboard */}
+      {storyboardPanelOpen && seriesId && currentChapter?.id && selectedScene?.id && (
+        <AiAssistPanel
+          key={`storyboard-${selectedScene.id}`}
+          seriesId={seriesId}
+          chapterId={currentChapter.id}
+          sceneId={selectedScene.id}
+          workflowType='Storyboard'
+          suggestionKind='Layout'
+          title='Trợ lý AI · Phân khung Storyboard'
+          briefLabel='Brief / Định hướng phân khung (tối đa 4000 ký tự)'
+          briefPlaceholder='Mô tả định hướng phân khung: số khung mong muốn, nhịp điệu (nhanh/chậm), khung cao trào...'
+          runLabel='Phân khung'
+          readingDirection={aiReadingDirection}
+          chapterVersion={currentChapter.versionVector}
+          nameById={aiNameById}
+          hasPanels={sceneHasPanels}
+          onClose={() => setStoryboardPanelOpen(false)}
           onReload={handleAiReload}
         />
       )}
