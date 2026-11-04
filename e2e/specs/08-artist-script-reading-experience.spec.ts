@@ -402,9 +402,13 @@ test.describe('E2E: Bàn Vẽ Artist & Trải Nghiệm Đọc Kịch Bản (Arti
     page,
   }) => {
     // Đảm bảo thư mục lưu ảnh tồn tại
-    const screenshotsDir = path.resolve('playwright-report', 'screenshots');
+    const screenshotsDir = 'D:/FPT-STUDY/10_FALL-2026/SEP490/Github/panelforge-fe/e2e/screenshots';
+    const brainScreenshotsDir = 'C:/Users/ASUS/.gemini/antigravity/brain/ce620260-d9f4-4391-bf3a-2030e2a6001c';
     if (!fs.existsSync(screenshotsDir)) {
       fs.mkdirSync(screenshotsDir, { recursive: true });
+    }
+    if (!fs.existsSync(brainScreenshotsDir)) {
+      fs.mkdirSync(brainScreenshotsDir, { recursive: true });
     }
 
     await page.addInitScript(() => {
@@ -439,6 +443,10 @@ test.describe('E2E: Bàn Vẽ Artist & Trải Nghiệm Đọc Kịch Bản (Arti
       path: path.join(screenshotsDir, '01-artist-chapter-selection.png'),
       fullPage: true,
     });
+    await page.screenshot({
+      path: path.join(brainScreenshotsDir, '01-artist-chapter-selection.png'),
+      fullPage: true,
+    });
 
     // 2. Bấm chọn Chương 1
     const chapterCard = page.getByTestId('chapter-card-1');
@@ -463,6 +471,10 @@ test.describe('E2E: Bàn Vẽ Artist & Trải Nghiệm Đọc Kịch Bản (Arti
       path: path.join(screenshotsDir, '02-artist-desk-script-view.png'),
       fullPage: true,
     });
+    await page.screenshot({
+      path: path.join(brainScreenshotsDir, '02-artist-desk-script-view.png'),
+      fullPage: true,
+    });
 
     // 4. Kiểm tra trên Canvas ở giữa có hiển thị các Panel
     await expect(page.getByTestId('panel-box-panel-01')).toBeVisible();
@@ -471,5 +483,41 @@ test.describe('E2E: Bàn Vẽ Artist & Trải Nghiệm Đọc Kịch Bản (Arti
     // 5. Kiểm tra nút Mẫu Khung và nút Đổi chương trên toolbar
     await expect(page.getByTestId('toolbar-frame-template-btn')).toBeVisible();
     await expect(page.getByTestId('switch-chapter-btn')).toBeVisible();
+
+    // 6. Kiểm tra các tính năng nâng cao trải nghiệm đọc kịch bản
+    // 6.1. Kiểm tra Tìm kiếm dòng kịch bản
+    const searchInput = page.getByTestId('script-search-input');
+    await expect(searchInput).toBeVisible();
+    await searchInput.fill('Minh');
+    await expect(page.getByTestId('script-line-item-line-02')).toBeVisible();
+    await expect(page.getByTestId('script-line-item-line-01')).not.toBeVisible();
+
+    // Xóa tìm kiếm để hiển thị lại đầy đủ
+    const clearSearchBtn = page.getByTestId('script-search-clear-btn');
+    await expect(clearSearchBtn).toBeVisible();
+    await clearSearchBtn.click();
+    await expect(page.getByTestId('script-line-item-line-01')).toBeVisible();
+    await expect(page.getByTestId('script-line-item-line-02')).toBeVisible();
+
+    // 6.2. Kiểm tra bộ chỉnh cỡ chữ
+    await expect(page.getByTestId('script-font-sm-btn')).toBeVisible();
+    await expect(page.getByTestId('script-font-base-btn')).toBeVisible();
+    await expect(page.getByTestId('script-font-lg-btn')).toBeVisible();
+    await page.getByTestId('script-font-lg-btn').click();
+
+    // 6.3. Mở rộng cột kịch bản để đọc thoải mái hơn
+    const toggleWidthBtn = page.getByTestId('script-col-width-toggle-btn');
+    await expect(toggleWidthBtn).toBeVisible();
+    await toggleWidthBtn.click();
+
+    // Chụp lại ảnh màn hình Bàn vẽ Artist với Kịch bản mở rộng và hiển thị chi tiết Thoại / Chỉ dẫn
+    await page.screenshot({
+      path: path.join(screenshotsDir, '03-artist-desk-expanded-script.png'),
+      fullPage: true,
+    });
+    await page.screenshot({
+      path: path.join(brainScreenshotsDir, '03-artist-desk-expanded-script.png'),
+      fullPage: true,
+    });
   });
 });

@@ -60,6 +60,10 @@ import {
   History,
   Lock,
   SlidersHorizontal,
+  Search,
+  Type,
+  AlignLeft,
+  Minimize2,
 } from 'lucide-react';
 import { pageService, PageDto, PageDetailDto } from '@/services/page.service';
 import { chapterService, ChapterDto } from '@/services/chapter.service';
@@ -729,6 +733,44 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
   const [thumbnailModalOpen, setThumbnailModalOpen] = useState(false);
   const [autoAssignModalOpen, setAutoAssignModalOpen] = useState(false);
   const [selectedTabSceneId, setSelectedTabSceneId] = useState<string>('');
+  // Script Reading UX State
+  const [scriptSearchQuery, setScriptSearchQuery] = useState('');
+  const [scriptFontSize, setScriptFontSize] = useState<'sm' | 'base' | 'lg'>('base');
+  const [scriptExpandedMode, setScriptExpandedMode] = useState<boolean>(true);
+
+  const getCharacterColor = (nameOrId: string) => {
+    const colors = [
+      'bg-amber-100 text-amber-800 border-amber-300',
+      'bg-sky-100 text-sky-800 border-sky-300',
+      'bg-emerald-100 text-emerald-800 border-emerald-300',
+      'bg-rose-100 text-rose-800 border-rose-300',
+      'bg-indigo-100 text-indigo-800 border-indigo-300',
+      'bg-purple-100 text-purple-800 border-purple-300',
+    ];
+    let hash = 0;
+    for (let i = 0; i < nameOrId.length; i++) {
+      hash = nameOrId.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const index = Math.abs(hash) % colors.length;
+    return colors[index];
+  };
+
+  const bibleNameById = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const b of bibleEntries) {
+      map[b.id] = b.name;
+    }
+    return map;
+  }, [bibleEntries]);
+
+  const bibleEntryById = useMemo(() => {
+    const map: Record<string, BibleEntryDto> = {};
+    for (const b of bibleEntries) {
+      map[b.id] = b;
+    }
+    return map;
+  }, [bibleEntries]);
+
   const [scriptLineFilter, setScriptLineFilter] = useState<'all' | 'unassigned' | 'current_panel'>('all');
   const [sceneDropdownOpen, setSceneDropdownOpen] = useState(false);
   const sceneDropdownRef = useRef<HTMLDivElement>(null);
@@ -769,19 +811,33 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
   }, [sceneLines, selectedPanelDetail]);
 
   const filteredSceneLines = useMemo(() => {
+    let lines = sceneLines;
     if (scriptLineFilter === 'unassigned') {
-      return sceneLines.filter((l) => !l.panelId);
-    }
-    if (scriptLineFilter === 'current_panel') {
+      lines = lines.filter((l) => !l.panelId);
+    } else if (scriptLineFilter === 'current_panel') {
       if (!selectedPanelDetail) return [];
-      return sceneLines.filter(
+      lines = lines.filter(
         (l) =>
           l.panelId === selectedPanelDetail.id ||
           selectedPanelDetail.scriptLineIds?.includes(l.id)
       );
     }
-    return sceneLines;
-  }, [sceneLines, scriptLineFilter, selectedPanelDetail]);
+
+    if (scriptSearchQuery.trim()) {
+      const q = scriptSearchQuery.toLowerCase().trim();
+      lines = lines.filter((l) => {
+        const charName = (l.speakerCharacterId ? bibleNameById[l.speakerCharacterId] : '') || '';
+        return (
+          (l.dialogueText && l.dialogueText.toLowerCase().includes(q)) ||
+          (l.stageDirection && l.stageDirection.toLowerCase().includes(q)) ||
+          charName.toLowerCase().includes(q) ||
+          String(l.lineOrder).includes(q)
+        );
+      });
+    }
+
+    return lines;
+  }, [sceneLines, scriptLineFilter, selectedPanelDetail, scriptSearchQuery, bibleNameById]);
 
   const currentScene = useMemo(() => {
     return scenes.find((s) => s.id === selectedTabSceneId) || scenes[0] || null;
@@ -960,14 +1016,6 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
     },
     [aiSuggestions],
   );
-
-  const bibleNameById = useMemo(() => {
-    const map: Record<string, string> = {};
-    for (const b of bibleEntries) {
-      map[b.id] = b.name;
-    }
-    return map;
-  }, [bibleEntries]);
 
   const effectiveSceneId = selectedPanelDetail?.sceneId || scenes[0]?.id || null;
   const [createLayerModalOpen, setCreateLayerModalOpen] = useState(false);
@@ -4270,8 +4318,113 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                   )}
                 </div>
 
-                {/* 3. Danh sách dòng kịch bản & Bộ lọc segmented */}
+                {/* 3. Danh sách dòng kịch bản & Bộ lọc & Công cụ đọc */}
                 <div className='p-2 bg-[#F8F6F0] rounded-xl border border-[#D8D2C5] flex-1 flex flex-col min-h-0 space-y-2'>
+                  {/* Thanh công cụ Đọc kịch bản dành riêng cho Họa sĩ */}
+                  <div className='flex items-center gap-1.5 shrink-0'>
+                    {/* Search Input */}
+                    <div className='relative flex-1 min-w-0'>
+                      <Search className='w-3.5 h-3.5 text-stone-400 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none' />
+                      <input
+                        type='text'
+                        value={scriptSearchQuery}
+                        onChange={(e) => setScriptSearchQuery(e.target.value)}
+                        placeholder='Tìm thoại, chỉ dẫn...'
+                        data-testid='script-search-input'
+                        className='w-full pl-6 pr-5 py-1 text-[11px] bg-white border border-[#D8D2C5] rounded-lg focus:outline-none focus:border-[#C2410C] focus:ring-1 focus:ring-[#C2410C] placeholder:text-stone-400 text-stone-800 transition-colors'
+                      />
+                      {scriptSearchQuery && (
+                        <button
+                          type='button'
+                          onClick={() => setScriptSearchQuery('')}
+                          data-testid='script-search-clear-btn'
+                          className='absolute right-1.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 cursor-pointer'
+                          title='Xóa tìm kiếm'
+                        >
+                          <X className='w-3 h-3' />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Font Size Selector */}
+                    <div
+                      className='flex items-center bg-[#EBE7DF] p-0.5 rounded-lg text-[10px] font-bold text-stone-600 shrink-0'
+                      title='Cỡ chữ kịch bản'
+                    >
+                      <button
+                        type='button'
+                        data-testid='script-font-sm-btn'
+                        onClick={() => setScriptFontSize('sm')}
+                        className={`px-1.5 py-0.5 rounded transition-colors cursor-pointer ${
+                          scriptFontSize === 'sm'
+                            ? 'bg-white text-[#C2410C] shadow-2xs font-bold'
+                            : 'hover:text-stone-900'
+                        }`}
+                        title='Cỡ chữ nhỏ (11px)'
+                      >
+                        A-
+                      </button>
+                      <button
+                        type='button'
+                        data-testid='script-font-base-btn'
+                        onClick={() => setScriptFontSize('base')}
+                        className={`px-1.5 py-0.5 rounded transition-colors cursor-pointer ${
+                          scriptFontSize === 'base'
+                            ? 'bg-white text-[#C2410C] shadow-2xs font-bold'
+                            : 'hover:text-stone-900'
+                        }`}
+                        title='Cỡ chữ vừa (13px)'
+                      >
+                        A
+                      </button>
+                      <button
+                        type='button'
+                        data-testid='script-font-lg-btn'
+                        onClick={() => setScriptFontSize('lg')}
+                        className={`px-1.5 py-0.5 rounded transition-colors cursor-pointer ${
+                          scriptFontSize === 'lg'
+                            ? 'bg-white text-[#C2410C] shadow-2xs font-bold'
+                            : 'hover:text-stone-900'
+                        }`}
+                        title='Cỡ chữ lớn (15px)'
+                      >
+                        A+
+                      </button>
+                    </div>
+
+                    {/* Toggle Expanded Mode */}
+                    <button
+                      type='button'
+                      data-testid='script-expand-toggle-btn'
+                      onClick={() => setScriptExpandedMode((prev) => !prev)}
+                      title={scriptExpandedMode ? 'Thu gọn dòng kịch bản' : 'Hiển thị toàn bộ kịch bản'}
+                      className={`p-1.5 rounded-lg border transition-colors cursor-pointer shrink-0 ${
+                        scriptExpandedMode
+                          ? 'bg-[#FFF2E6] border-[#FDBA74] text-[#C2410C]'
+                          : 'bg-white border-[#D8D2C5] text-stone-600 hover:text-stone-900'
+                      }`}
+                    >
+                      <AlignLeft className='w-3.5 h-3.5' />
+                    </button>
+
+                    {/* Quick Column Width Toggle */}
+                    <button
+                      type='button'
+                      data-testid='script-col-width-toggle-btn'
+                      onClick={() => {
+                        const newWidth = leftColumnWidth > 300 ? LEFT_COL_DEFAULT_WIDTH : 380;
+                        setLeftColumnWidth(newWidth);
+                        try {
+                          localStorage.setItem('artist_desk_left_col_width', String(newWidth));
+                        } catch {}
+                      }}
+                      title={leftColumnWidth > 300 ? 'Thu hẹp cột kịch bản (240px)' : 'Mở rộng cột kịch bản (380px)'}
+                      className='p-1.5 bg-white border border-[#D8D2C5] rounded-lg text-stone-600 hover:text-[#C2410C] hover:border-[#FDBA74] transition-colors cursor-pointer shrink-0'
+                    >
+                      {leftColumnWidth > 300 ? <Minimize2 className='w-3.5 h-3.5' /> : <Maximize2 className='w-3.5 h-3.5' />}
+                    </button>
+                  </div>
+
                   {/* Segmented Filter */}
                   <div
                     className='flex bg-[#EBE7DF] p-0.5 rounded-lg text-[10px] sm:text-[11px] font-medium shrink-0'
@@ -4346,10 +4499,12 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                             (line.panelId === selectedPanelDetail.id ||
                               selectedPanelDetail.scriptLineIds?.includes(line.id))
                         );
-                        const isDialogue = Boolean(line.speakerCharacterId || line.dialogueText?.trim());
-                        const characterName = line.speakerCharacterId
-                          ? bibleNameById[line.speakerCharacterId] || 'Nhân vật'
-                          : 'Lời thoại';
+                        const hasDialogue = Boolean(line.speakerCharacterId || line.dialogueText?.trim());
+                        const hasDirection = Boolean(line.stageDirection?.trim());
+                        const bibleEntry = line.speakerCharacterId
+                          ? bibleEntryById[line.speakerCharacterId]
+                          : null;
+                        const characterName = bibleEntry?.name || (line.speakerCharacterId ? 'Nhân vật' : 'Lời thoại');
                         const assignedPanel = line.panelId
                           ? (panels.find((p) => p.id === line.panelId) ??
                             otherPagePanels.find((p) => p.id === line.panelId) ??
@@ -4362,9 +4517,15 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                         const panelTagLabel = assignedPanel
                           ? `${assignedPageNumber ? `T${assignedPageNumber}·` : ''}K${assignedPanel.panelNumber}`
                           : '';
-                        const lineFullText = isDialogue
-                          ? `${characterName}: "${line.dialogueText || ''}"`
-                          : line.stageDirection || '(Chỉ dẫn diễn xuất)';
+
+                        const lineFullTitle = `Dòng #${line.lineOrder}${hasDialogue ? ` · ${characterName}: "${line.dialogueText || ''}"` : ''}${hasDirection ? ` · Chỉ dẫn: ${line.stageDirection}` : ''}`;
+
+                        const textSizeClass =
+                          scriptFontSize === 'sm'
+                            ? 'text-[11px]'
+                            : scriptFontSize === 'lg'
+                              ? 'text-sm'
+                              : 'text-xs';
 
                         return (
                           <div
@@ -4390,8 +4551,8 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                               handleToggleScriptLine(line.id);
                             }}
                             data-testid={`script-line-item-${line.id}`}
-                            title={lineFullText}
-                            className={`p-2 rounded-xl border text-left flex items-start gap-1.5 transition-all ${
+                            title={lineFullTitle}
+                            className={`p-2.5 rounded-xl border text-left flex items-start gap-2 transition-all ${
                               isAnchoredToSelected
                                 ? 'bg-[#FFF7ED] border-[#FDBA74] border-l-4 border-l-[#C2410C] shadow-2xs'
                                 : 'bg-[#FCFBF8] border-[#D8D2C5] hover:border-[#F97316]/50'
@@ -4399,7 +4560,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                           >
                             {/* Tay nắm kéo thả */}
                             <div
-                              className={`p-0.5 text-stone-400 shrink-0 ${
+                              className={`p-0.5 text-stone-400 shrink-0 mt-0.5 ${
                                 canDragScriptLines
                                   ? 'cursor-grab active:cursor-grabbing hover:text-[#C2410C]'
                                   : 'cursor-not-allowed opacity-30'
@@ -4415,59 +4576,131 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                               <GripVertical className='w-3.5 h-3.5' />
                             </div>
 
-                            {/* Nội dung dòng kịch bản */}
-                            <div className='flex-1 min-w-0'>
-                              <div className='flex items-center gap-1 text-[10px] font-mono text-[#78716C] mb-0.5'>
-                                <span>#{line.lineOrder}</span>
-                                {isDialogue ? (
-                                  <span className='inline-flex items-center gap-0.5 text-sky-700 font-semibold' title='Thoại'>
-                                    <MessageSquare className='w-2.5 h-2.5 text-sky-600' />
+                            {/* Nội dung dòng kịch bản: Phân tách rõ ràng Chỉ dẫn & Thoại */}
+                            <div className='flex-1 min-w-0 space-y-1.5'>
+                              {/* Header dòng: Thứ tự dòng & Tag gán khung */}
+                              <div className='flex items-center justify-between gap-1'>
+                                <div className='flex items-center gap-1.5 text-[10px] font-mono text-[#78716C]'>
+                                  <span className='font-bold bg-stone-200/80 px-1.5 py-0.2 rounded text-stone-700'>
+                                    #{line.lineOrder}
                                   </span>
-                                ) : (
-                                  <span className='inline-flex items-center gap-0.5 text-amber-700 font-semibold' title='Chỉ dẫn'>
-                                    <Film className='w-2.5 h-2.5 text-amber-600' />
-                                  </span>
-                                )}
-                              </div>
-                              <p className='text-xs line-clamp-2 leading-snug font-medium text-[#1C1917]'>
-                                {isDialogue ? (
-                                  <>
-                                    <span className='font-bold text-[#1C1917]'>{characterName}:</span>{' '}
-                                    <span>&ldquo;{line.dialogueText || ''}&rdquo;</span>
-                                  </>
-                                ) : (
-                                  <span>{line.stageDirection || '(Chỉ dẫn diễn xuất)'}</span>
-                                )}
-                              </p>
-                            </div>
+                                  {hasDirection && (
+                                    <span
+                                      className='inline-flex items-center gap-0.5 text-amber-700 font-semibold bg-amber-100/60 px-1 py-0.2 rounded'
+                                      title='Chỉ dẫn diễn xuất & góc máy'
+                                    >
+                                      <Film className='w-2.5 h-2.5 text-amber-600' />
+                                      <span>Chỉ dẫn</span>
+                                    </span>
+                                  )}
+                                  {hasDialogue && (
+                                    <span
+                                      className='inline-flex items-center gap-0.5 text-sky-700 font-semibold bg-sky-100/60 px-1 py-0.2 rounded'
+                                      title='Lời thoại nhân vật'
+                                    >
+                                      <MessageSquare className='w-2.5 h-2.5 text-sky-600' />
+                                      <span>Thoại</span>
+                                    </span>
+                                  )}
+                                </div>
 
-                            {/* Tag gán khung K* */}
-                            <div className='shrink-0 pt-0.5'>
-                              {assignedPanel ? (
-                                <button
-                                  type='button'
-                                  data-testid={`panel-tag-${line.id}`}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleSelectAndScrollToPanel(assignedPanel);
-                                  }}
-                                  title={`${assignedPageNumber ? `Trang ${assignedPageNumber} · ` : ''}Khung #${assignedPanel.panelNumber} · Bấm để cuộn và chọn trên canvas`}
-                                  className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold cursor-pointer transition-colors whitespace-nowrap ${
-                                    assignedPageNumber
-                                      ? 'bg-stone-100 text-stone-700 hover:bg-stone-200'
-                                      : 'bg-amber-100 text-amber-900 hover:bg-amber-200'
+                                {/* Tag gán khung K* */}
+                                <div className='shrink-0'>
+                                  {assignedPanel ? (
+                                    <button
+                                      type='button'
+                                      data-testid={`panel-tag-${line.id}`}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleSelectAndScrollToPanel(assignedPanel);
+                                      }}
+                                      title={`${assignedPageNumber ? `Trang ${assignedPageNumber} · ` : ''}Khung #${assignedPanel.panelNumber} · Bấm để cuộn và chọn trên canvas`}
+                                      className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold cursor-pointer transition-colors whitespace-nowrap ${
+                                        assignedPageNumber
+                                          ? 'bg-stone-100 text-stone-700 hover:bg-stone-200'
+                                          : 'bg-amber-100 text-amber-900 hover:bg-amber-200'
+                                      }`}
+                                    >
+                                      {panelTagLabel}
+                                    </button>
+                                  ) : (
+                                    <span
+                                      data-testid={`panel-tag-${line.id}`}
+                                      title='Chưa gán'
+                                      className='text-stone-400 font-mono text-xs px-1 select-none whitespace-nowrap'
+                                    >
+                                      —
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* 1. Khối Chỉ dẫn diễn xuất & Bối cảnh / Góc máy */}
+                              {hasDirection && (
+                                <div
+                                  className={`p-2 rounded-lg bg-[#F5F2EB]/90 border border-[#E7E2D8] text-stone-700 ${textSizeClass} leading-relaxed ${
+                                    !scriptExpandedMode ? 'line-clamp-2' : ''
                                   }`}
                                 >
-                                  {panelTagLabel}
-                                </button>
-                              ) : (
-                                <span
-                                  data-testid={`panel-tag-${line.id}`}
-                                  title='Chưa gán'
-                                  className='text-stone-400 font-mono text-xs px-1 select-none whitespace-nowrap'
-                                >
-                                  —
-                                </span>
+                                  <div className='flex items-start gap-1.5'>
+                                    <Film className='w-3 h-3 text-amber-700 shrink-0 mt-0.5' />
+                                    <span className='italic font-serif'>{line.stageDirection}</span>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* 2. Khối Lời thoại nhân vật với Avatar & Tên nhân vật Bible */}
+                              {hasDialogue && (
+                                <div className='space-y-1'>
+                                  {/* Header Nhân vật */}
+                                  <div className='flex items-center gap-1.5'>
+                                    {/* Avatar nhân vật */}
+                                    {bibleEntry?.referenceImageUrl ? (
+                                      <img
+                                        src={bibleEntry.referenceImageUrl}
+                                        alt={characterName}
+                                        className='w-5 h-5 rounded-full object-cover border border-amber-300 shrink-0'
+                                      />
+                                    ) : (
+                                      <div
+                                        className={`w-5 h-5 rounded-full border text-[10px] font-bold flex items-center justify-center shrink-0 ${getCharacterColor(
+                                          characterName
+                                        )}`}
+                                      >
+                                        {characterName.charAt(0).toUpperCase()}
+                                      </div>
+                                    )}
+                                    <span
+                                      className='font-bold text-[#1C1917] text-xs truncate'
+                                      title={
+                                        bibleEntry?.description
+                                          ? `${characterName} (${bibleEntry.subtitle || 'Nhân vật'}): ${bibleEntry.description}`
+                                          : characterName
+                                      }
+                                    >
+                                      {characterName}
+                                    </span>
+                                    {bibleEntry?.subtitle && (
+                                      <span className='text-[10px] text-stone-500 font-normal truncate max-w-[100px]'>
+                                        ({bibleEntry.subtitle})
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  {/* Bong bóng lời thoại */}
+                                  <div
+                                    className={`p-2 bg-[#FFFDF9] border border-amber-200/90 rounded-lg text-stone-900 shadow-2xs font-medium ${textSizeClass} leading-relaxed ${
+                                      !scriptExpandedMode ? 'line-clamp-2' : ''
+                                    }`}
+                                  >
+                                    &ldquo;{line.dialogueText || ''}&rdquo;
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Trường hợp cả 2 đều trống */}
+                              {!hasDirection && !hasDialogue && (
+                                <p className='text-xs italic text-stone-400'>(Dòng trống)</p>
                               )}
                             </div>
                           </div>
