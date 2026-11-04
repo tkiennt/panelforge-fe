@@ -166,6 +166,10 @@ export function scenesToTipTapDoc(
 
         // 3. Dòng thoại chính
         if (line.dialogueText) {
+          let formattedDialogue = line.dialogueText;
+          if (resolvedSpeaker && !formattedDialogue.includes(':') && !formattedDialogue.startsWith('@')) {
+            formattedDialogue = `@${resolvedSpeaker} : "${formattedDialogue}"`;
+          }
           content.push({
             type: 'scriptLineBlock',
             attrs: {
@@ -181,7 +185,7 @@ export function scenesToTipTapDoc(
             content: [
               {
                 type: 'text',
-                text: line.dialogueText,
+                text: formattedDialogue || line.dialogueText,
               },
             ],
           });
@@ -308,7 +312,39 @@ export function extractScriptLinesFromDoc(doc: any, defaultSceneId: string): Ext
       continue;
     }
 
-    // Nhận diện dòng có cú pháp "NHÂN VẬT: Thoại" hoặc "NHÂN VẬT/Shout: Thoại"
+    // 1. Nhận diện Thoại có cú pháp @SeriesBible : "LỜI THOẠI" hoặc TÊN : "LỜI THOẠI" (Bắt buộc có dấu ngoặc kép)
+    const quotedDialogueMatch = textTrimmed.match(/^@?([a-zA-ZÀ-Ỹ0-9_\s]{2,30})\s*:\s*["“](.*?)["”]?$/);
+    if (quotedDialogueMatch) {
+      results.push({
+        scriptLineId: attrs.scriptLineId || generateGuid(),
+        sceneId: attrs.sceneId || currentSceneId,
+        dialogueText: textTrimmed,
+        stageDirection: null,
+        speakerCharacterId: attrs.speakerCharacterId || currentSpeakerId,
+        narrationMode: attrs.narrationMode || 'Present',
+        lineOrder: order++,
+      });
+      currentSpeakerId = null;
+      continue;
+    }
+
+    // 2. Nhận diện Lời dẫn chuyện / Kể chuyện có tên người dẫn: @NgườiDẫn : Lời dẫn không có ngoặc kép
+    const unquotedNarrationMatch = textTrimmed.match(/^@?([a-zA-ZÀ-Ỹ0-9_\s]{2,30})\s*:\s*([^"“\s].*)$/);
+    if (unquotedNarrationMatch) {
+      results.push({
+        scriptLineId: attrs.scriptLineId || generateGuid(),
+        sceneId: attrs.sceneId || currentSceneId,
+        dialogueText: null,
+        stageDirection: textTrimmed,
+        speakerCharacterId: attrs.speakerCharacterId || currentSpeakerId,
+        narrationMode: 'Voiceover',
+        lineOrder: order++,
+      });
+      currentSpeakerId = null;
+      continue;
+    }
+
+    // 3. Cú pháp cũ dự phòng: NHÂN VẬT: Thoại
     const dialogueWithSpeakerMatch = textTrimmed.match(/^([A-ZÀ-Ỹ0-9_\s]{2,30})(?:\/([a-zA-ZÀ-ỹ]+))?:\s*(.+)$/);
     if (dialogueWithSpeakerMatch) {
       results.push({
@@ -324,7 +360,8 @@ export function extractScriptLinesFromDoc(doc: any, defaultSceneId: string): Ext
       continue;
     }
 
-    if (effectiveBlockType === 'character') {
+    const singleSpeakerMatch = textTrimmed.match(/^@([a-zA-ZÀ-Ỹ0-9_\s]{2,30})$/);
+    if (singleSpeakerMatch || effectiveBlockType === 'character') {
       results.push({
         scriptLineId: attrs.scriptLineId || generateGuid(),
         sceneId: attrs.sceneId || currentSceneId,

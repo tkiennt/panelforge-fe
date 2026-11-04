@@ -160,26 +160,31 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
           else if (/^(?:CUT TO:|FADE OUT:|CHUYỂN CẢNH:)/i.test(rawText)) {
             detectedType = 'transition';
           }
-          // 6. Nhận diện Thoại có tên nhân vật: MINH: Cậu đi đâu thế? hoặc LUFFY/Shout: Gear Second!
-          else if (/^([A-ZÀ-Ỹ0-9_\s]{2,30})(?:\/([a-zA-ZÀ-ỹ]+))?:\s*(.*)$/.test(rawText)) {
-            const match = rawText.match(/^([A-ZÀ-Ỹ0-9_\s]{2,30})(?:\/([a-zA-ZÀ-ỹ]+))?:\s*(.*)$/);
+          // 6. Nhận diện Thoại có cú pháp @SeriesBible : "LỜI THOẠI" hoặc NHÂN VẬT : "LỜI THOẠI" (Bắt buộc có ngoặc kép)
+          else if (/^@?([a-zA-ZÀ-Ỹ0-9_\s]{2,30})\s*:\s*["“](.*?)["”]?$/.test(rawText)) {
+            const match = rawText.match(/^@?([a-zA-ZÀ-Ỹ0-9_\s]{2,30})\s*:\s*["“](.*?)["”]?$/);
             if (match) {
               detectedType = 'dialogue';
               detectedSpeaker = match[1].trim();
             }
           }
-          // 7. Nhận diện Tên nhân vật viết hoa đứng riêng một dòng: MINH, LUFFY, ZORO
+          // 6b. Nhận diện Lời dẫn chuyện có tên người dẫn/nhân vật (không có ngoặc kép)
+          else if (/^@?([a-zA-ZÀ-Ỹ0-9_\s]{2,30})\s*:\s*([^"“\s].*)$/.test(rawText)) {
+            detectedType = 'stage_direction';
+          }
+          // 7. Nhận diện Tên nhân vật: @MINH hoặc TÊN VIẾT HOA đứng riêng một dòng
           else if (
-            rawText.length >= 2 &&
+            /^@([a-zA-ZÀ-Ỹ0-9_\s]{2,30})$/.test(rawText) ||
+            (rawText.length >= 2 &&
             rawText.length <= 30 &&
             rawText === rawText.toUpperCase() &&
             !rawText.includes('.') &&
             !rawText.includes(':') &&
             !rawText.includes('-') &&
-            !/^\d+$/.test(rawText)
+            !/^\d+$/.test(rawText))
           ) {
             detectedType = 'character';
-            detectedSpeaker = rawText;
+            detectedSpeaker = rawText.replace(/^@/, '');
           }
 
           if (detectedType && detectedType !== currentType) {
@@ -487,13 +492,8 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
         },
         {
           type: 'scriptLineBlock',
-          attrs: { scriptLineId: generateGuid(), blockType: 'character', speakerName: 'MINH' },
-          content: [{ type: 'text', text: 'MINH' }],
-        },
-        {
-          type: 'scriptLineBlock',
-          attrs: { scriptLineId: generateGuid(), blockType: 'dialogue' },
-          content: [{ type: 'text', text: 'Chúng ta không còn nhiều thời gian nữa...' }],
+          attrs: { scriptLineId: generateGuid(), blockType: 'dialogue', speakerName: 'Minh' },
+          content: [{ type: 'text', text: '@Minh : "Chúng ta không còn nhiều thời gian nữa..."' }],
         },
       ])
       .run();
