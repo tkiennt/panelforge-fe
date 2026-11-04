@@ -124,6 +124,16 @@ export const ScriptLineBlockNode = Node.create({
         classNames += 'font-sans italic text-[#0F172A] text-[15px] ml-6 sm:ml-12 pl-3.5 border-l-2 border-indigo-200 my-1.5 leading-relaxed';
         return ['div', mergeAttributes(HTMLAttributes, { class: classNames, 'data-block-type': blockType }), 0];
 
+      case 'sfx':
+        // F. HIỆU ỨNG ÂM THANH (SFX): Huy hiệu vàng hổ phách, tia chớp ⚡, font Monospace kỹ thuật nổi bật
+        classNames += 'font-mono text-xs sm:text-sm my-1.5 px-3 py-1.5 rounded-lg border border-amber-300 bg-[#FFFBEB] text-amber-950 flex items-center gap-2.5 shadow-2xs not-italic';
+        return [
+          'div',
+          mergeAttributes(HTMLAttributes, { class: classNames, 'data-block-type': blockType }),
+          ['span', { class: 'inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-[#F59E0B] text-white text-[10px] font-black uppercase tracking-wider select-none shrink-0 shadow-2xs' }, '⚡ SFX'],
+          ['span', { class: 'flex-1 italic font-semibold text-amber-900 tracking-wide' }, 0],
+        ];
+
       case 'stage_direction':
         // F. CHỈ DẪN ÂM THANH / BỐI CẢNH (SFX): In nghiêng, màu #64748B, font Monospace kỹ thuật
         classNames += 'font-mono italic text-[#64748B] text-xs sm:text-sm ml-4 pl-2 my-1 leading-normal';

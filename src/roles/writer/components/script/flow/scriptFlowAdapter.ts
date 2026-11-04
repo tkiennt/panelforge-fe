@@ -289,7 +289,7 @@ export function extractScriptLinesFromDoc(doc: any, defaultSceneId: string): Ext
     } else if (/^(?:CẢNH\s+\d+|INT\.|EXT\.|SCENE\s+\d+)/i.test(textTrimmed)) {
       effectiveBlockType = 'scene_heading';
     } else if (/^(?:\*|SFX\s*:)/i.test(textTrimmed)) {
-      effectiveBlockType = 'stage_direction';
+      effectiveBlockType = 'sfx';
     } else if (/^(?:CUT TO:|FADE OUT:|CHUYỂN CẢNH:)/i.test(textTrimmed)) {
       effectiveBlockType = 'transition';
     }
@@ -400,7 +400,7 @@ export function extractScriptLinesFromDoc(doc: any, defaultSceneId: string): Ext
         lineOrder: order++,
       });
       currentSpeakerId = null;
-    } else if (effectiveBlockType === 'stage_direction' || effectiveBlockType === 'transition') {
+    } else if (effectiveBlockType === 'sfx' || effectiveBlockType === 'stage_direction' || effectiveBlockType === 'transition') {
       results.push({
         scriptLineId: attrs.scriptLineId || generateGuid(),
         sceneId: attrs.sceneId || currentSceneId,

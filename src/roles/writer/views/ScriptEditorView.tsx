@@ -574,20 +574,28 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           }
         } else {
           hasChanges = true;
+          const isValidGuid = (id?: string | null) =>
+            id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+
           const req: CreateScriptLineRequest = {
             dialogueText: line.dialogueText || null,
             stageDirection: line.stageDirection || null,
-            speakerCharacterId: line.speakerCharacterId || null,
+            speakerCharacterId: isValidGuid(line.speakerCharacterId) ? line.speakerCharacterId : null,
             lineOrder: line.lineOrder,
             expectedChapterVersion: currentVersion,
-            clientLineId: line.scriptLineId,
+            clientLineId: isValidGuid(line.scriptLineId) ? line.scriptLineId : undefined,
             narrationMode: line.narrationMode,
           };
-          const res = await scriptLineService.createScriptLine(
-            currentChapter.id,
-            line.sceneId || activeScene.id,
-            req
-          );
+          let res: any = null;
+          try {
+            res = await scriptLineService.createScriptLine(
+              currentChapter.id,
+              line.sceneId || activeScene.id,
+              req
+            );
+          } catch (createErr: any) {
+            console.error('Lỗi tạo dòng kịch bản:', createErr);
+          }
           if (res?.chapterVersion) {
             currentVersion = res.chapterVersion;
           }
@@ -2251,7 +2259,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                   /* TRANG GIẤY KỊCH BẢN (EDITORIAL SCRIPT PAPER) - Giữ editor luôn ổn định, không bị unmount khi lưu */
                   <div className='max-w-6xl mx-auto w-full'>
                     <ScreenplayFlowEditor
-                      key={selectedScene?.id || 'flow-editor'}
+                      key={currentChapter?.id || 'flow-editor'}
                       chapterId={currentChapter?.id}
                       scenes={selectedScene ? [selectedScene] : (chapterScenesDetail.length > 0 ? chapterScenesDetail : [])}
                       allBibleEntries={allBibleEntries}

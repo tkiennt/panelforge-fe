@@ -17,6 +17,7 @@ import {
   Trash2,
   Plus,
   Layers,
+  Zap,
   FileText,
   LayoutGrid,
   HelpCircle,
@@ -70,6 +71,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   onShowToast,
 }) => {
   const [isSaving, setIsSaving] = useState(false);
+  const justSavedRef = useRef(false);
   const [lastSavedTime, setLastSavedTime] = useState<string | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [hoveredMention, setHoveredMention] = useState<{
@@ -218,9 +220,9 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
           else if (/^(?:CẢNH\s+\d+|INT\.|EXT\.|SCENE\s+\d+)/i.test(rawText)) {
             detectedType = 'scene_heading';
           }
-          // 4. Nhận diện Âm thanh / Chỉ dẫn: * BÙM!, SFX: TIẾNG NỔ, * SCREECH *
+          // 4. Nhận diện Âm thanh / Chỉ dẫn SFX: * BÙM!, SFX: TIẾNG NỔ, * SCREECH *
           else if (/^(?:\*|SFX\s*:)/i.test(rawText)) {
-            detectedType = 'stage_direction';
+            detectedType = 'sfx';
           }
           // 5. Nhận diện Chuyển cảnh: CUT TO:, FADE OUT:, CHUYỂN CẢNH:
           else if (/^(?:CUT TO:|FADE OUT:|CHUYỂN CẢNH:)/i.test(rawText)) {
@@ -325,6 +327,10 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
 
   // Đồng bộ nội dung TipTap khi danh sách phân cảnh được nạp từ máy chủ
   useEffect(() => {
+    if (justSavedRef.current) {
+      justSavedRef.current = false;
+      return;
+    }
     if (editor && !editor.isDestroyed && !hasUnsavedChanges && !pendingDraft) {
       const newDoc = scenesToTipTapDoc(scenes, getSpeakerName);
       const currentDoc = editor.getJSON();
@@ -348,7 +354,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
       const extracted = extractScriptLinesFromDoc(editor.getJSON(), defaultSceneId);
 
       await onSaveLines(extracted);
-
+      justSavedRef.current = true;
       setHasUnsavedChanges(false);
       try {
         localStorage.removeItem(draftStorageKey);
@@ -577,6 +583,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
     { type: 'panel_heading', label: 'Panel', icon: LayoutGrid },
     { type: 'scene_heading', label: 'Cảnh', icon: Clapperboard },
     { type: 'caption', label: 'Lời dẫn', icon: FileText },
+    { type: 'sfx', label: '⚡ SFX', icon: Zap },
     { type: 'stage_direction', label: 'Chỉ dẫn', icon: Film },
     { type: 'character', label: 'Nhân vật', icon: User },
     { type: 'dialogue', label: 'Thoại', icon: MessageSquare },
