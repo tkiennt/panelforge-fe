@@ -45,7 +45,7 @@ export const BibleMention = Mention.extend({
     };
   },
 
-  renderHTML({ HTMLAttributes }) {
+    renderHTML({ HTMLAttributes }) {
     const isStub = HTMLAttributes['data-is-stub'] === 'true';
     const isLocked = HTMLAttributes['data-is-locked'] !== 'false';
     const label = HTMLAttributes['data-label'] || HTMLAttributes.label || '';
@@ -62,15 +62,16 @@ export const BibleMention = Mention.extend({
       'span',
       mergeAttributes(
         {
-          class: `mention inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide border border-indigo-200 bg-indigo-50 text-[#4338CA] shadow-2xs select-none mx-1 cursor-pointer transition-colors hover:bg-indigo-100 hover:border-indigo-300`,
+          class: `mention inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide border border-indigo-200 bg-indigo-50 text-[#4338CA] shadow-2xs mx-1 cursor-pointer transition-colors hover:bg-indigo-100 hover:border-indigo-300`,
           'data-id': HTMLAttributes['data-id'],
           'data-label': label,
           'data-category': category,
           title: `@${label} (${category}) - Rê chuột để xem thông tin`,
+          contenteditable: 'false',
         },
         HTMLAttributes
       ),
-      ['span', { class: `w-2 h-2 rounded-full shrink-0 ${dotColor}` }],
+      ['span', { class: `w-2 h-2 rounded-full shrink-0 ${dotColor}`, contenteditable: 'false' }],
       `@${label}${isStub ? ' (Stub)' : ''}`,
     ];
   },

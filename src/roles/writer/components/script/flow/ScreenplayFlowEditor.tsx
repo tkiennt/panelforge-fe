@@ -714,6 +714,41 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
               caret-color: #C2410C !important;
             }
 
+            /* CSS Pseudo-elements cho Page, SFX và Character */
+            .paper-editor-sheet .script-block[data-block-type="page_heading"] .page-heading-content::before {
+              content: "📄 ";
+              margin-right: 4px;
+            }
+            .paper-editor-sheet .script-block[data-block-type="character"]::before {
+              content: "";
+              display: inline-block;
+              width: 8px;
+              height: 8px;
+              border-radius: 9999px;
+              background-color: #4F46E5;
+              margin-right: 8px;
+              vertical-align: middle;
+            }
+            .paper-editor-sheet .script-block[data-block-type="sfx"]::before {
+              content: "⚡ SFX";
+              display: inline-flex;
+              align-items: center;
+              font-family: inherit;
+              font-size: 10px;
+              font-weight: 900;
+              letter-spacing: 0.05em;
+              background-color: #F59E0B;
+              color: white;
+              padding: 1px 6px;
+              border-radius: 4px;
+              margin-right: 8px;
+              user-select: none;
+              vertical-align: middle;
+            }
+            .paper-editor-sheet .mention {
+              user-select: text !important;
+            }
+
             /* Hiệu ứng di chuột trực quan trên từng dòng kịch bản (Ambient Line Hover) */
             .paper-editor-sheet .script-block {
               position: relative;

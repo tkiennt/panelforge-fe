@@ -78,7 +78,7 @@ export const ScriptLineBlockNode = Node.create({
     ];
   },
 
-    renderHTML({ HTMLAttributes }) {
+      renderHTML({ HTMLAttributes }) {
     const blockType = (HTMLAttributes['data-block-type'] || 'dialogue') as MangaBlockType;
 
     let classNames = 'script-block font-mono my-1.5 transition-all duration-150 outline-none ';
@@ -89,14 +89,13 @@ export const ScriptLineBlockNode = Node.create({
         return ['div', mergeAttributes(HTMLAttributes, { class: classNames, 'data-block-type': blockType }), 0];
 
       case 'page_heading':
-        // A. KHỐI TIÊU ĐỀ TRANG (PAGE_HEADING): Viền cam #C2410C 2px, nền #FFF2E6, bo góc 12px, icon trang giấy và nút thu gọn/mở rộng
+        // A. KHỐI TIÊU ĐỀ TRANG (PAGE_HEADING): Viền cam #C2410C 2px, nền #FFF2E6, bo góc 12px
         classNames += 'font-bold uppercase tracking-wider text-xs sm:text-sm text-[#C2410C] bg-[#FFF2E6] border-2 border-[#C2410C] px-4 py-2.5 mt-6 mb-3 rounded-[12px] shadow-sm flex items-center justify-between gap-2.5 select-text';
         return [
           'div',
           mergeAttributes(HTMLAttributes, { class: classNames, 'data-block-type': blockType }),
-          ['span', { class: 'inline-flex items-center gap-2 select-none pointer-events-none' }, '📄 '],
-          ['span', { class: 'flex-1' }, 0],
-          ['button', { type: 'button', class: 'page-toggle-btn ml-auto cursor-pointer select-none text-[11px] font-semibold text-[#C2410C] bg-white/70 hover:bg-white border border-[#C2410C]/30 px-2.5 py-0.5 rounded-md transition-all shadow-2xs' }, '▼ Thu gọn'],
+          ['span', { class: 'page-heading-content flex-1' }, 0],
+          ['button', { type: 'button', class: 'page-toggle-btn ml-auto cursor-pointer select-none text-[11px] font-semibold text-[#C2410C] bg-white/70 hover:bg-white border border-[#C2410C]/30 px-2.5 py-0.5 rounded-md transition-all shadow-2xs', contenteditable: 'false' }, '▼ Thu gọn'],
         ];
 
       case 'panel_heading':
@@ -112,12 +111,7 @@ export const ScriptLineBlockNode = Node.create({
       case 'character':
         // D. TÊN NHÂN VẬT: Thẻ chip bo tròn, nền tím nhạt, chữ tím đậm #4338CA, có chấm màu đại diện
         classNames += 'font-sans font-bold text-xs uppercase tracking-wide text-[#4338CA] bg-indigo-50 border border-indigo-200 px-3 py-1 rounded-full shadow-2xs inline-flex items-center gap-1.5 ml-6 sm:ml-12 mt-3 mb-1';
-        return [
-          'div',
-          mergeAttributes(HTMLAttributes, { class: classNames, 'data-block-type': blockType }),
-          ['span', { class: 'w-2 h-2 rounded-full bg-[#4F46E5] shrink-0' }],
-          ['span', {}, 0],
-        ];
+        return ['div', mergeAttributes(HTMLAttributes, { class: classNames, 'data-block-type': blockType }), 0];
 
       case 'dialogue':
         // E. LỜI THOẠI: In nghiêng, màu #0F172A, 15px, thụt lề nhẹ vào trong giống bong bóng thoại
@@ -127,15 +121,10 @@ export const ScriptLineBlockNode = Node.create({
       case 'sfx':
         // F. HIỆU ỨNG ÂM THANH (SFX): Huy hiệu vàng hổ phách, tia chớp ⚡, font Monospace kỹ thuật nổi bật
         classNames += 'font-mono text-xs sm:text-sm my-1.5 px-3 py-1.5 rounded-lg border border-amber-300 bg-[#FFFBEB] text-amber-950 flex items-center gap-2.5 shadow-2xs not-italic';
-        return [
-          'div',
-          mergeAttributes(HTMLAttributes, { class: classNames, 'data-block-type': blockType }),
-          ['span', { class: 'inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-[#F59E0B] text-white text-[10px] font-black uppercase tracking-wider select-none shrink-0 shadow-2xs' }, '⚡ SFX'],
-          ['span', { class: 'flex-1 italic font-semibold text-amber-900 tracking-wide' }, 0],
-        ];
+        return ['div', mergeAttributes(HTMLAttributes, { class: classNames, 'data-block-type': blockType }), 0];
 
       case 'stage_direction':
-        // F. CHỈ DẪN ÂM THANH / BỐI CẢNH (SFX): In nghiêng, màu #64748B, font Monospace kỹ thuật
+        // F. CHỈ DẪN BỐI CẢNH / HÀNH ĐỘNG: In nghiêng, màu #64748B, font Monospace kỹ thuật
         classNames += 'font-mono italic text-[#64748B] text-xs sm:text-sm ml-4 pl-2 my-1 leading-normal';
         return ['div', mergeAttributes(HTMLAttributes, { class: classNames, 'data-block-type': blockType }), 0];
 
@@ -151,6 +140,25 @@ export const ScriptLineBlockNode = Node.create({
 
   addKeyboardShortcuts() {
     return {
+      // Backspace: Xóa an toàn không làm kẹt khối
+      Backspace: ({ editor }) => {
+        const { state } = editor;
+        const { selection } = state;
+        const { $from, empty } = selection;
+
+        if (empty && $from.parentOffset === 0) {
+          const currentBlock = $from.parent;
+          if (currentBlock.type.name === this.name) {
+            if (currentBlock.textContent.trim() === '') {
+              const currentType = currentBlock.attrs.blockType || 'dialogue';
+              if (currentType !== 'dialogue') {
+                return editor.commands.updateAttributes(this.name, { blockType: 'dialogue' });
+              }
+            }
+          }
+        }
+        return false;
+      },
       // Enter: Grainery Block Cycling logic
       Enter: ({ editor }) => {
         const { state } = editor;
