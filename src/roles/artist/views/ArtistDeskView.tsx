@@ -81,6 +81,7 @@ import { bibleService, BibleEntryDto } from '@/services/bible.service';
 import { FrameTemplateModal } from '@/roles/artist/modals/FrameTemplateModal';
 import { ThumbnailGenerationModal } from '@/roles/artist/modals/ThumbnailGenerationModal';
 import { AutoAssignScriptLinesModal } from '@/roles/artist/modals/AutoAssignScriptLinesModal';
+import { ScriptFocusModeModal } from '@/roles/artist/modals/ScriptFocusModeModal';
 import {
   aiAgentsService,
   type AiSuggestionDto,
@@ -737,6 +738,46 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
   const [scriptSearchQuery, setScriptSearchQuery] = useState('');
   const [scriptFontSize, setScriptFontSize] = useState<'sm' | 'base' | 'lg'>('base');
   const [scriptExpandedMode, setScriptExpandedMode] = useState<boolean>(true);
+  const [scriptFocusModalOpen, setScriptFocusModalOpen] = useState(false);
+  const lastSyncedPageIdRef = useRef<string | null>(null);
+
+  // Tự động đồng bộ phân cảnh và cuộn kịch bản tới dòng đầu tiên khi lật trang canvas
+  useEffect(() => {
+    if (!selectedPage || panels.length === 0) return;
+    // Đảm bảo panels hiện tại thuộc về trang đang chọn
+    const panelsOnCurrentPage = panels.filter((p) => p && p.pageId === selectedPage.id);
+    if (panelsOnCurrentPage.length === 0) return;
+
+    if (lastSyncedPageIdRef.current === selectedPage.id) return;
+    lastSyncedPageIdRef.current = selectedPage.id;
+
+    const sortedPanels = [...panelsOnCurrentPage].sort((a, b) => a.panelNumber - b.panelNumber);
+    const firstPanel = sortedPanels[0];
+    if (!firstPanel) return;
+
+    if (firstPanel.sceneId && firstPanel.sceneId !== selectedTabSceneId) {
+      setSelectedTabSceneId(firstPanel.sceneId);
+    }
+
+    const timer = setTimeout(() => {
+      const panelIdsOnPage = new Set(panelsOnCurrentPage.map((p) => p.id));
+      const targetLine =
+        sceneLines.find(
+          (l) =>
+            (l.panelId && panelIdsOnPage.has(l.panelId)) ||
+            (firstPanel.scriptLineIds && firstPanel.scriptLineIds.includes(l.id))
+        ) || sceneLines[0];
+
+      if (targetLine) {
+        const lineEl = document.querySelector(`[data-testid="script-line-item-${targetLine.id}"]`);
+        if (lineEl && typeof lineEl.scrollIntoView === 'function') {
+          lineEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }
+    }, 200);
+
+    return () => clearTimeout(timer);
+  }, [selectedPage?.id, panels, selectedTabSceneId, sceneLines]);
 
   const getCharacterColor = (nameOrId: string) => {
     const colors = [
@@ -790,7 +831,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
   }, [sceneDropdownOpen]);
 
   const currentChapter = useMemo(
-    () => chapters.find((c) => c.id === currentChapterId),
+    () => chapters?.find?.((c) => c.id === currentChapterId),
     [chapters, currentChapterId]
   );
   const isChapterScriptFrozen = Boolean(currentChapter?.isScriptFrozen);
@@ -1617,8 +1658,9 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
       .getChaptersBySeries(seriesId, 1, 50)
       .then((res) => {
         if (!isMounted) return;
-        setChapters(res.items);
-        if (res.items.length > 0) {
+        const safeItems = Array.isArray(res?.items) ? res.items : Array.isArray(res) ? res : [];
+        setChapters(safeItems);
+        if (safeItems.length > 0) {
           const matched = res.items.find((c) => c.id === chapterIdFromUrl);
           const chosenId = matched ? matched.id : null;
           setCurrentChapterId(chosenId);
@@ -4407,6 +4449,17 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                       <AlignLeft className='w-3.5 h-3.5' />
                     </button>
 
+                    {/* Focus Mode (Đọc Toàn Văn Kịch Bản) */}
+                    <button
+                      type='button'
+                      data-testid='open-script-focus-mode-btn'
+                      onClick={() => setScriptFocusModalOpen(true)}
+                      title='Chế độ đọc toàn văn kịch bản chương (Focus Mode)'
+                      className='p-1.5 bg-[#FFF2E6] hover:bg-[#FDBA74]/40 text-[#C2410C] border border-[#FDBA74] rounded-lg transition-colors cursor-pointer shrink-0 shadow-2xs'
+                    >
+                      <BookOpen className='w-3.5 h-3.5' />
+                    </button>
+
                     {/* Quick Column Width Toggle */}
                     <button
                       type='button'
@@ -4424,6 +4477,22 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                       {leftColumnWidth > 300 ? <Minimize2 className='w-3.5 h-3.5' /> : <Maximize2 className='w-3.5 h-3.5' />}
                     </button>
                   </div>
+
+                  {/* Page Sync Indicator */}
+                  {selectedPage && (
+                    <div
+                      data-testid='page-sync-indicator'
+                      className='flex items-center justify-between text-[10px] text-stone-600 bg-[#EFECE6]/90 px-2 py-0.5 rounded-md border border-[#D8D2C5]'
+                    >
+                      <span className='flex items-center gap-1 font-medium'>
+                        <span className='w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse' />
+                        <span>Đồng bộ: Trang {selectedPage.pageNumber}</span>
+                      </span>
+                      <span className='font-mono text-stone-400'>
+                        {panels.length} khung
+                      </span>
+                    </div>
+                  )}
 
                   {/* Segmented Filter */}
                   <div
@@ -7043,6 +7112,23 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
           onShowToast={showToast}
         />
       )}
+
+{/* Modal Đọc Toàn Văn Kịch Bản Chương (Focus Mode) */}
+      <ScriptFocusModeModal
+        isOpen={scriptFocusModalOpen}
+        onClose={() => setScriptFocusModalOpen(false)}
+        chapterTitle={currentChapter?.title}
+        chapterNumber={currentChapter?.chapterNumber}
+        chapterOutline={currentChapter?.outline}
+        scenes={scenes}
+        bibleEntries={bibleEntries}
+        pages={pages}
+        allPanels={[...panels, ...otherPagePanels]}
+        onSelectPanelAndPage={(panel, page) => {
+          handleSelectPage(page);
+          handleSelectAndScrollToPanel(panel);
+        }}
+      />
 
       {/* Trợ lý AI Họa sĩ: ImagePrompt theo phân cảnh */}
       {aiPanelOpen && seriesId && currentChapterId && effectiveSceneId && (

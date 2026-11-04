@@ -7,6 +7,7 @@ test.describe('E2E: Bàn Vẽ Artist & Trải Nghiệm Đọc Kịch Bản (Arti
   const seriesId = 'series-tokyo-cyberpunk';
   const chapterId = 'c1111111-1111-1111-1111-111111111111';
   const pageId = 'p1111111-1111-1111-1111-111111111111';
+  const page2Id = 'p2222222-2222-2222-2222-222222222222';
   const scene1Id = 'scene-01';
   const scene2Id = 'scene-02';
 
@@ -32,7 +33,7 @@ test.describe('E2E: Bàn Vẽ Artist & Trải Nghiệm Đọc Kịch Bản (Arti
       versionVector: 1,
       createdAt: '2026-10-01T00:00:00Z',
       scenesCount: 2,
-      pagesCount: 1,
+      pagesCount: 2,
       status: 'InProduction',
       isScriptFrozen: false,
       outline:
@@ -139,7 +140,7 @@ test.describe('E2E: Bàn Vẽ Artist & Trải Nghiệm Đọc Kịch Bản (Arti
         id: 'line-04',
         sceneId: scene2Id,
         lineOrder: 1,
-        panelId: null,
+        panelId: 'panel-03',
         speakerCharacterId: 'chr-hacker',
         dialogueText: 'Anh đến muộn ba phút đấy, Minh.',
         stageDirection: 'Kayla gõ nhẹ ngón tay lên bàn kim loại mạ crom, không ngẩng đầu lên.',
@@ -148,7 +149,7 @@ test.describe('E2E: Bàn Vẽ Artist & Trải Nghiệm Đọc Kịch Bản (Arti
         id: 'line-05',
         sceneId: scene2Id,
         lineOrder: 2,
-        panelId: null,
+        panelId: 'panel-04',
         speakerCharacterId: 'chr-minh',
         dialogueText: 'Có đuôi bám theo từ khu phố 4. Nhưng đã cắt được rồi.',
         stageDirection: 'Minh kéo ghế ngồi xuống đối diện, hơi thở lạnh tỏa ra khói mờ.',
@@ -167,14 +168,29 @@ test.describe('E2E: Bàn Vẽ Artist & Trải Nghiệm Đọc Kịch Bản (Arti
       dpi: 600,
       elementsCount: 0,
     },
+    {
+      id: page2Id,
+      chapterId: chapterId,
+      pageNumber: 2,
+      layoutFormat: 'StandardPage',
+      widthPx: 1200,
+      heightPx: 1800,
+      dpi: 600,
+      elementsCount: 0,
+    },
   ];
 
-  const mockPageDetail = {
+  const mockPage1Detail = {
     ...mockPages[0],
     panelsCount: 2,
   };
 
-  const mockPanels = [
+  const mockPage2Detail = {
+    ...mockPages[1],
+    panelsCount: 2,
+  };
+
+  const mockPanelsPage1 = [
     {
       id: 'panel-01',
       pageId: pageId,
@@ -197,6 +213,29 @@ test.describe('E2E: Bàn Vẽ Artist & Trải Nghiệm Đọc Kịch Bản (Arti
     },
   ];
 
+  const mockPanelsPage2 = [
+    {
+      id: 'panel-03',
+      pageId: page2Id,
+      panelNumber: 1,
+      readingOrder: 1,
+      boundingBox: '0.05,0.05,0.9,0.45',
+      borderless: false,
+      sceneId: scene2Id,
+      scriptLineIds: ['line-04'],
+    },
+    {
+      id: 'panel-04',
+      pageId: page2Id,
+      panelNumber: 2,
+      readingOrder: 2,
+      boundingBox: '0.05,0.55,0.9,0.4',
+      borderless: false,
+      sceneId: scene2Id,
+      scriptLineIds: ['line-05'],
+    },
+  ];
+
   const setupMocks = async (page: any) => {
     // Current user auth
     await page.route(/\/api\/auth\/me/i, async (route: any) => {
@@ -213,7 +252,7 @@ test.describe('E2E: Bàn Vẽ Artist & Trải Nghiệm Đọc Kịch Bản (Arti
     });
 
     // Workspaces
-    await page.route(/\/api\/workspaces$/i, async (route: any) => {
+    await page.route(/\/api\/workspaces/i, async (route: any) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -221,41 +260,14 @@ test.describe('E2E: Bàn Vẽ Artist & Trải Nghiệm Đọc Kịch Bản (Arti
           {
             id: workspaceId,
             name: 'Studio Manga Alpha',
-            slug: 'studio-alpha',
-            isOwner: false,
-            currentUserRole: 'ARTIST',
-            memberCount: 4,
-            createdAt: '2026-10-01T00:00:00Z',
+            role: 'Artist',
           },
         ]),
       });
     });
 
-    await page.route(new RegExp(`/api/workspaces/${workspaceId}$`, 'i'), async (route: any) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          id: workspaceId,
-          name: 'Studio Manga Alpha',
-          slug: 'studio-alpha',
-          isOwner: false,
-          currentUserRole: 'ARTIST',
-          memberCount: 4,
-        }),
-      });
-    });
-
-    await page.route(new RegExp(`/api/workspaces/${workspaceId}/members`, 'i'), async (route: any) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify([]),
-      });
-    });
-
     // Series
-    await page.route(new RegExp(`/api/series/${seriesId}$`, 'i'), async (route: any) => {
+    await page.route(/\/api\/series/i, async (route: any) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -263,55 +275,30 @@ test.describe('E2E: Bàn Vẽ Artist & Trải Nghiệm Đọc Kịch Bản (Arti
       });
     });
 
-    await page.route(new RegExp(`/api/series/${seriesId}/pipeline`, 'i'), async (route: any) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          id: 'pipe-01',
-          seriesId: seriesId,
-          stages: [
-            { id: 'stg-thumb', name: 'Thumbnail', stageOrder: 1, isEnabled: true },
-            { id: 'stg-pencil', name: 'Pencil', stageOrder: 2, isEnabled: true },
-            { id: 'stg-ink', name: 'Ink', stageOrder: 3, isEnabled: true },
-          ],
-        }),
-      });
-    });
-
-    // Bible
-    await page.route(new RegExp(`/api/series/${seriesId}/bible`, 'i'), async (route: any) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify(mockBible),
-      });
-    });
-
-    // Frame Templates
-    await page.route(/\/api\/workspaces\/.*\/frame-templates/i, async (route: any) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify([]),
-      });
-    });
-
     // Chapters
+    await page.route(/\/api\/chapters\/?(\?.*)?$/i, async (route: any) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(mockChapters),
+      });
+    });
+
+    // Chapters by series
     await page.route(new RegExp(`/api/series/${seriesId}/chapters`, 'i'), async (route: any) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
           items: mockChapters,
-          totalCount: 1,
+          totalCount: mockChapters.length,
           pageIndex: 1,
           pageSize: 50,
-          totalPages: 1,
         }),
       });
     });
 
+    // Chapter Detail
     await page.route(new RegExp(`/api/chapters/${chapterId}$`, 'i'), async (route: any) => {
       await route.fulfill({
         status: 200,
@@ -320,8 +307,17 @@ test.describe('E2E: Bàn Vẽ Artist & Trải Nghiệm Đọc Kịch Bản (Arti
       });
     });
 
-    // Scenes
-    await page.route(new RegExp(`/api/chapters/${chapterId}/scenes`, 'i'), async (route: any) => {
+    // Series Bible
+    await page.route(/\/api\/series\/.*\/bible/i, async (route: any) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(mockBible),
+      });
+    });
+
+    // Scenes list
+    await page.route(/\/api\/chapters\/.*\/scenes/i, async (route: any) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -329,6 +325,7 @@ test.describe('E2E: Bàn Vẽ Artist & Trải Nghiệm Đọc Kịch Bản (Arti
       });
     });
 
+    // Scene Detail 1
     await page.route(new RegExp(`/api/scenes/${scene1Id}$`, 'i'), async (route: any) => {
       await route.fulfill({
         status: 200,
@@ -337,6 +334,7 @@ test.describe('E2E: Bàn Vẽ Artist & Trải Nghiệm Đọc Kịch Bản (Arti
       });
     });
 
+    // Scene Detail 2
     await page.route(new RegExp(`/api/scenes/${scene2Id}$`, 'i'), async (route: any) => {
       await route.fulfill({
         status: 200,
@@ -355,11 +353,14 @@ test.describe('E2E: Bàn Vẽ Artist & Trải Nghiệm Đọc Kịch Bản (Arti
     });
 
     // Panels
-    await page.route(new RegExp(`/api/pages/[^/]+/panels`, 'i'), async (route: any) => {
+    await page.route(new RegExp(`/api/pages/([^/]+)/panels`, 'i'), async (route: any) => {
+      const match = route.request().url().match(/\/api\/pages\/([^/]+)\/panels/i);
+      const targetPageId = match ? match[1] : '';
+      const data = targetPageId === page2Id ? mockPanelsPage2 : mockPanelsPage1;
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify(mockPanels),
+        body: JSON.stringify(data),
       });
     });
 
@@ -372,11 +373,14 @@ test.describe('E2E: Bàn Vẽ Artist & Trải Nghiệm Đọc Kịch Bản (Arti
       });
     });
 
-    await page.route(new RegExp(`/api/pages/[^/]+$`, 'i'), async (route: any) => {
+    await page.route(new RegExp(`/api/pages/([^/]+)$`, 'i'), async (route: any) => {
+      const match = route.request().url().match(/\/api\/pages\/([^/]+)$/i);
+      const targetPageId = match ? match[1] : '';
+      const data = targetPageId === page2Id ? mockPage2Detail : mockPage1Detail;
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify(mockPageDetail),
+        body: JSON.stringify(data),
       });
     });
 
@@ -398,7 +402,7 @@ test.describe('E2E: Bàn Vẽ Artist & Trải Nghiệm Đọc Kịch Bản (Arti
     });
   };
 
-  test('Mở bàn vẽ Artist, kiểm tra màn hình Chọn Chương và vào Bàn vẽ với Kịch bản rõ ràng', async ({
+  test('Mở bàn vẽ Artist, kiểm tra màn hình Chọn Chương, Kịch bản rõ ràng, Đồng bộ trang và Focus Mode', async ({
     page,
   }) => {
     // Đảm bảo thư mục lưu ảnh tồn tại
@@ -519,5 +523,54 @@ test.describe('E2E: Bàn Vẽ Artist & Trải Nghiệm Đọc Kịch Bản (Arti
       path: path.join(brainScreenshotsDir, '03-artist-desk-expanded-script.png'),
       fullPage: true,
     });
+
+    // 7. Kiểm tra tính năng Đồng bộ Kịch bản theo Trang khi lật trang (Trang 1 -> Trang 2)
+    // Chuyển sang tab Trang
+    await page.getByTestId('left-tab-pages').click();
+    const page2Item = page.getByTestId('page-item-2');
+    await expect(page2Item).toBeVisible();
+    await page2Item.getByRole('button').click();
+
+    // Chuyển lại tab Kịch bản
+    await page.getByTestId('left-tab-script').click();
+    // Đã tự động đồng bộ sang Trang 2
+    await expect(page.getByTestId('page-sync-indicator')).toContainText('Trang 2');
+    // Dòng kịch bản của Trang 2 (Phân cảnh 2) xuất hiện
+    await expect(page.getByTestId('script-line-item-line-04')).toBeVisible();
+
+    // Chụp ảnh màn hình Đồng bộ kịch bản theo Trang
+    await page.screenshot({
+      path: path.join(screenshotsDir, '04-artist-desk-page-sync.png'),
+      fullPage: true,
+    });
+    await page.screenshot({
+      path: path.join(brainScreenshotsDir, '04-artist-desk-page-sync.png'),
+      fullPage: true,
+    });
+
+    // 8. Kiểm tra Chế độ Đọc Toàn Văn Kịch Bản Chương (Focus Mode)
+    const openFocusBtn = page.getByTestId('open-script-focus-mode-btn');
+    await expect(openFocusBtn).toBeVisible();
+    await openFocusBtn.click();
+
+    // Modal Focus Mode phải hiển thị toàn màn hình
+    const focusModal = page.getByTestId('script-focus-mode-modal');
+    await expect(focusModal).toBeVisible();
+    await expect(page.getByTestId(`focus-scene-block-${scene1Id}`)).toBeVisible();
+    await expect(page.getByTestId(`focus-scene-block-${scene2Id}`)).toBeVisible();
+
+    // Chụp ảnh màn hình Chế độ Focus Mode
+    await page.screenshot({
+      path: path.join(screenshotsDir, '05-artist-desk-focus-mode.png'),
+      fullPage: true,
+    });
+    await page.screenshot({
+      path: path.join(brainScreenshotsDir, '05-artist-desk-focus-mode.png'),
+      fullPage: true,
+    });
+
+    // Đóng Focus Mode
+    await page.getByTestId('script-focus-modal-close-btn').click();
+    await expect(focusModal).not.toBeVisible();
   });
 });
