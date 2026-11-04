@@ -119,4 +119,35 @@ MINH (thì thầm): Không kịp rồi.
     expect(normalizeCameraShot('Góc nhìn POV')).toBe('pov');
     expect(normalizeCameraShot('Góc quay lạ')).toBe('unknown');
   });
+
+  it('phân tích chính xác cú pháp "! Trang" và \'" Panel\' từ ScreenplayFlowEditor', () => {
+    const screenplayScript = `
+! Trang 01
+" Panel 1.1: [Toàn cảnh]
+Mưa đêm xối xả trên ngã tư.
+@Minh: "Cẩn thận đấy!"
+
+" Panel 1.2: [Cận cảnh]
+Ánh mắt ngỡ ngàng nhìn về phía trước.
+
+! Trang 02
+" Panel 2.1: [Trung cảnh]
+Chiếc xe dừng bánh đột ngột.
+    `.trim();
+
+    const ast = parseComicScript(screenplayScript);
+    expect(ast.pages.length).toBe(2);
+    expect(ast.pages[0].pageNumber).toBe(1);
+    expect(ast.pages[0].panels.length).toBe(2);
+    expect(ast.pages[0].panels[0].panelNumber).toBe(1);
+    expect(ast.pages[0].panels[0].shotType).toBe('wide');
+    expect(ast.pages[0].panels[0].dialogues.length).toBe(1);
+    expect(ast.pages[0].panels[0].dialogues[0].character).toBe('Minh');
+    expect(ast.pages[0].panels[0].dialogues[0].text).toBe('Cẩn thận đấy!');
+
+    expect(ast.pages[1].pageNumber).toBe(2);
+    expect(ast.pages[1].panels.length).toBe(1);
+    expect(ast.pages[1].panels[0].panelNumber).toBe(1);
+    expect(ast.pages[1].panels[0].shotType).toBe('medium');
+  });
 });

@@ -46,6 +46,30 @@ export interface ComicStudioState {
 
 const initialAst = parseComicScript(DEFAULT_DEMO_SCRIPT);
 
+const LOCAL_STORAGE_KEY = 'panelforge_thumbnail_sketches';
+
+const loadStoredSketches = (): Record<string, string> => {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const data = localStorage.getItem(LOCAL_STORAGE_KEY);
+      return data ? JSON.parse(data) : {};
+    }
+  } catch {
+    // fallback
+  }
+  return {};
+};
+
+const persistSketches = (sketches: Record<string, string>) => {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(sketches));
+    }
+  } catch {
+    // storage quota or SSR safe
+  }
+};
+
 export const useComicStudioStore = create<ComicStudioState>((set, get) => ({
   rawScript: DEFAULT_DEMO_SCRIPT,
   ast: initialAst,
@@ -53,7 +77,7 @@ export const useComicStudioStore = create<ComicStudioState>((set, get) => ({
   activePanelId: initialAst.pages[0]?.panels[0]?.id || null,
   activePageNumber: 1,
   activePanelNumber: 1,
-  sketches: {},
+  sketches: loadStoredSketches(),
 
   setRawScript: (text: string) => {
     const scriptToParse = text?.trim() ? text : DEFAULT_DEMO_SCRIPT;
@@ -96,17 +120,20 @@ export const useComicStudioStore = create<ComicStudioState>((set, get) => ({
   },
 
   saveSketch: (panelId: string, dataUrl: string) =>
-    set((state) => ({
-      sketches: {
+    set((state) => {
+      const updated = {
         ...state.sketches,
         [panelId]: dataUrl,
-      },
-    })),
+      };
+      persistSketches(updated);
+      return { sketches: updated };
+    }),
 
   clearSketch: (panelId: string) =>
     set((state) => {
       const copy = { ...state.sketches };
       delete copy[panelId];
+      persistSketches(copy);
       return { sketches: copy };
     }),
 }));

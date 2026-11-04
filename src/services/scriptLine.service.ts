@@ -106,6 +106,29 @@ export interface DeleteScriptLineResult {
   revisionId: string;
 }
 
+export interface BatchScriptLineItem {
+  id?: string | null;
+  lineOrder: number;
+  dialogueText?: string | null;
+  stageDirection?: string | null;
+  speakerCharacterId?: string | null;
+  bibleEntryIds?: string[] | null;
+  narrationMode?: NarrationMode | null;
+  clientLineId?: string | null;
+}
+
+export interface BatchSaveScriptLinesRequest {
+  lines: BatchScriptLineItem[];
+  expectedChapterVersion?: number | null;
+  summary?: string | null;
+}
+
+export interface BatchSaveScriptLinesResult {
+  chapterVersion: number;
+  revisionId: string;
+  lines: ScriptLineDto[];
+}
+
 /** Một dòng trong nội dung revision script (GET .../script-revisions/{revisionId}), đã sắp theo lineOrder. */
 export interface ScriptRevisionLineDto {
   lineId: string;
@@ -300,6 +323,25 @@ export const scriptLineService = {
       return response.data;
     } catch (error) {
       throw extractError(error, 'Không thể sắp xếp lại dòng kịch bản.');
+    }
+  },
+
+  /**
+   * Lưu đồng bộ hàng loạt các dòng kịch bản trong 1 giao dịch duy nhất (POST /api/chapters/{chapterId}/scenes/{sceneId}/script-lines/batch)
+   */
+  async batchSaveScriptLines(
+    chapterId: string,
+    sceneId: string,
+    data: BatchSaveScriptLinesRequest,
+  ): Promise<BatchSaveScriptLinesResult> {
+    try {
+      const response = await axiosClient.post(
+        `/chapters/${chapterId}/scenes/${sceneId}/script-lines/batch`,
+        data,
+      );
+      return response.data;
+    } catch (error) {
+      throw extractError(error, 'Không thể lưu đồng bộ dòng kịch bản.');
     }
   },
 

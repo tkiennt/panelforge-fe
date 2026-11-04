@@ -181,9 +181,9 @@ export function parseComicScript(rawText: string): ComicScriptAST {
       return;
     }
 
-    // 2. PAGE BREAK: # Page <number> hoặc # <number>
-    const pageMatch = line.match(/^(?:#\s*(?:Page\s*)?(\d+(?:\.\d+)?)|(?:Trang|Page)\s+(\d+(?:\.\d+)?))(.*)$/i);
-    if (pageMatch) {
+    // 2. PAGE BREAK: ! Trang N, # Page N, Trang N, ! N, # N
+    const pageMatch = line.match(/^(?:[!#📄]?\s*(?:Trang|Page)?\s*(\d+(?:\.\d+)?)|(?:Trang|Page)\s+(\d+(?:\.\d+)?))(.*)$/i);
+    if (pageMatch && (line.startsWith('!') || line.startsWith('#') || /^Trang\s+\d+/i.test(line) || /^Page\s+\d+/i.test(line))) {
       flushActionBuffer();
 
       const parsedPageNum = parseFloat(pageMatch[1] || pageMatch[2]) || (pages.length + 1);
@@ -205,10 +205,9 @@ export function parseComicScript(rawText: string): ComicScriptAST {
       return;
     }
 
-    // 3. PANEL BREAK: - Panel <number>[: optional shot/camera], Panel <number>, Khung <number>, - <number>
-    // Hỗ trợ cả cú pháp theo trang: - Panel 1.1, Panel 1.2, Khung 1.1, - 1.1, #panel 1.1
+    // 3. PANEL BREAK: " Panel N.M, - Panel N.M, Panel N.M, Khung N.M, " N.M, - N.M, #panel N.M
     const panelMatch = line.match(
-      /^(?:(?:-\s*)?(?:Panel|Khung)\s*(\d+(?:\.\d+)?)|-\s*(\d+(?:\.\d+)?)|#panel\s*(\d+(?:\.\d+)?))(?:\s*\[Góc máy:\s*([^\]]+)\]|\s*:\s*(.*))?$/i
+      /^(?:(?:[-"”]\s*)?(?:Panel|Khung)\s*(\d+(?:\.\d+)?)|[-"”]\s*(\d+(?:\.\d+)?)|#panel\s*(\d+(?:\.\d+)?))(?:\s*\[(?:Góc máy:\s*)?([^\]]+)\]|\s*:\s*\[?(.*?)\]?)?$/i
     );
     if (panelMatch) {
       flushActionBuffer();
@@ -323,7 +322,13 @@ export function parseComicScript(rawText: string): ComicScriptAST {
 
       const charName = dialogueMatch[1].trim();
       const rawModifier = dialogueMatch[2]?.trim();
-      const dialogueText = dialogueMatch[3].trim();
+      let dialogueText = dialogueMatch[3].trim();
+      if (
+        (dialogueText.startsWith('"') && dialogueText.endsWith('"')) ||
+        (dialogueText.startsWith('“') && dialogueText.endsWith('”'))
+      ) {
+        dialogueText = dialogueText.slice(1, -1).trim();
+      }
       const modifier = parseDialogueModifier(rawModifier);
 
       const dialogueItem: DialogueItem = {

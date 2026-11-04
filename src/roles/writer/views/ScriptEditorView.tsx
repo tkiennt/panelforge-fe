@@ -64,7 +64,6 @@ import { ScriptLineItem } from '../components/script/ScriptLineItem';
 import { NarrativeContextDrawer } from '../components/script/NarrativeContextDrawer';
 import { ConsistencyFindingsDrawer } from '../components/script/ConsistencyFindingsDrawer';
 import { ScreenplayFlowEditor } from '../components/script/flow/ScreenplayFlowEditor';
-import { ScriptThumbnailStoryboardView } from '../components/script/storyboard';
 import { ExtractedScriptLinePayload } from '../components/script/flow/scriptFlowAdapter';
 import { BibleCharactersDrawer } from '../components/script/BibleCharactersDrawer';
 import { offlineQueueService } from '@/services/offlineQueue.service';
@@ -553,117 +552,73 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       // Lọc bỏ khối tiêu đề cảnh ra khỏi danh sách script lines để tránh lưu nhầm vào bảng ScriptLine
       const scriptLinesToProcess = extractedLines.filter((l) => l.blockType !== 'scene_heading');
 
-      const currentLines = activeScene.scriptLines || [];
-      const currentMap = new Map(currentLines.map((l) => [l.id, l]));
+      // 3. Phân nhóm các dòng kịch bản theo Phân cảnh (Multi-Scene Persistence trên 1 trang giấy)
+      const linesByScene = new Map<string, ExtractedScriptLinePayload[]>();
+      for (const line of scriptLinesToProcess) {
+        const hasValidText = Boolean(line.dialogueText?.trim() || line.stageDirection?.trim());
+        if (!hasValidText) continue;
+        const targetSceneId = line.sceneId || activeScene.id;
+        if (!linesByScene.has(targetSceneId)) {
+          linesByScene.set(targetSceneId, []);
+        }
+        linesByScene.get(targetSceneId)!.push(line);
+      }
 
-      // 3. Xoá dòng đã bị lược bỏ trong TipTap (Phantom Lines Deletion)
-      const extractedIds = new Set(scriptLinesToProcess.map((l) => l.scriptLineId));
-      const linesToDelete = currentLines.filter((l) => !extractedIds.has(l.id));
+      const isValidGuid = (id?: string | null) =>
+        Boolean(id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id));
 
-      for (const line of linesToDelete) {
-        hasChanges = true;
+      // 4. Lưu đồng bộ hàng loạt (Batch Save) nguyên tử từng phân cảnh (Atomic 1-HTTP Roundtrip)
+      for (const [targetSceneId, sceneLines] of linesByScene.entries()) {
+        const batchPayload = sceneLines.map((line, idx) => ({
+          id: isValidGuid(line.scriptLineId) ? line.scriptLineId : null,
+          lineOrder: idx + 1,
+          dialogueText: line.dialogueText || null,
+          stageDirection: line.stageDirection || null,
+          speakerCharacterId: isValidGuid(line.speakerCharacterId) ? line.speakerCharacterId : null,
+          narrationMode: line.narrationMode,
+          clientLineId: isValidGuid(line.scriptLineId) ? line.scriptLineId : null,
+        }));
+
         try {
-          const res = await scriptLineService.deleteScriptLine(
+          const res = await scriptLineService.batchSaveScriptLines(
             currentChapter.id,
-            line.id,
-            currentVersion
+            targetSceneId,
+            {
+              lines: batchPayload,
+              expectedChapterVersion: currentVersion,
+              summary: 'Lưu kịch bản từ trình soạn thảo',
+            }
           );
           if (res?.chapterVersion) {
             currentVersion = res.chapterVersion;
+            hasChanges = true;
           }
-        } catch (delErr: any) {
-          console.error(`Lỗi xoá dòng kịch bản ${line.id}:`, delErr);
+        } catch (batchErr: any) {
+          console.error(`Lỗi lưu hàng loạt kịch bản cho Scene ${targetSceneId}:`, batchErr);
+          throw batchErr;
         }
       }
 
-      // 4. Cập nhật hoặc thêm mới các dòng
-      const createdLineIdMap = new Map<string, string>();
-
-      for (const line of scriptLinesToProcess) {
-        // Domain Invariant: Dòng kịch bản phải có thoại hoặc chỉ dẫn sân khấu
-        const hasValidText = Boolean(line.dialogueText?.trim() || line.stageDirection?.trim());
-        if (!hasValidText) continue;
-
-        const existing = currentMap.get(line.scriptLineId);
-        if (existing) {
-          const isChanged =
-            existing.dialogueText !== line.dialogueText ||
-            existing.stageDirection !== line.stageDirection ||
-            existing.speakerCharacterId !== line.speakerCharacterId ||
-            existing.narrationMode !== line.narrationMode;
-
-          if (isChanged) {
-            hasChanges = true;
-            const req: UpdateScriptLineRequest = {
-              dialogueText: line.dialogueText || null,
-              stageDirection: line.stageDirection || null,
-              speakerCharacterId: line.speakerCharacterId || null,
-              expectedChapterVersion: currentVersion,
-              narrationMode: line.narrationMode,
-            };
-            const res = await scriptLineService.updateScriptLine(
+      // 5. Xoá trắng các phân cảnh nếu người dùng xoá sạch toàn bộ dòng của phân cảnh đó trên giấy
+      for (const sc of allScenes) {
+        if (!linesByScene.has(sc.id) && sc.scriptLines && sc.scriptLines.length > 0) {
+          try {
+            const res = await scriptLineService.batchSaveScriptLines(
               currentChapter.id,
-              line.scriptLineId,
-              req
+              sc.id,
+              {
+                lines: [],
+                expectedChapterVersion: currentVersion,
+                summary: 'Xoá toàn bộ dòng của phân cảnh',
+              }
             );
             if (res?.chapterVersion) {
               currentVersion = res.chapterVersion;
+              hasChanges = true;
             }
+          } catch (cleanErr) {
+            console.error(`Lỗi dọn sạch dòng kịch bản phân cảnh ${sc.id}:`, cleanErr);
           }
-        } else {
-          hasChanges = true;
-          const isValidGuid = (id?: string | null) =>
-            id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-
-          const req: CreateScriptLineRequest = {
-            dialogueText: line.dialogueText || null,
-            stageDirection: line.stageDirection || null,
-            speakerCharacterId: isValidGuid(line.speakerCharacterId) ? line.speakerCharacterId : null,
-            lineOrder: line.lineOrder,
-            expectedChapterVersion: currentVersion,
-            clientLineId: isValidGuid(line.scriptLineId) ? line.scriptLineId : undefined,
-            narrationMode: line.narrationMode,
-          };
-          let res: any = null;
-          try {
-            res = await scriptLineService.createScriptLine(
-              currentChapter.id,
-              line.sceneId || activeScene.id,
-              req
-            );
-          } catch (createErr: any) {
-            console.error('Lỗi tạo dòng kịch bản:', createErr);
-          }
-          if (res?.chapterVersion) {
-            currentVersion = res.chapterVersion;
-          }
-          if (res?.id) {
-            createdLineIdMap.set(line.scriptLineId, res.id);
-          }
-        }
-      }
-
-      // 5. Cập nhật thứ tự các dòng (Reorder)
-      const targetSceneId = activeScene.id;
-      const sceneExtractedLines = scriptLinesToProcess.filter(
-        (l) => !l.sceneId || l.sceneId === targetSceneId
-      );
-      if (sceneExtractedLines.length > 1) {
-        const reorderPayload = sceneExtractedLines.map((l, idx) => ({
-          lineId: createdLineIdMap.get(l.scriptLineId) || l.scriptLineId,
-          newOrder: idx + 1,
-        }));
-        try {
-          await scriptLineService.reorderScriptLines(
-            currentChapter.id,
-            targetSceneId,
-            reorderPayload,
-            currentVersion
-          );
-          currentVersion += 1;
-          hasChanges = true;
-        } catch {
-          // Bỏ qua lỗi reorder nếu backend đã tự sắp xếp theo lineOrder
         }
       }
 

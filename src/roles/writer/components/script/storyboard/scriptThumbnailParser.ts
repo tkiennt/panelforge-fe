@@ -68,10 +68,10 @@ export function parseScriptToStoryboard(rawText: string): StoryboardPage[] {
     const trimmed = rawLine.trim();
     if (!trimmed) continue;
 
-    // 1. Nhận diện Trang: "Trang 1", "Trang 2", "Page 1", "PAGE 2"
-    const pageMatch = trimmed.match(/^(?:Trang|Page)\s+(\d+)/i);
+    // 1. Nhận diện Trang: "! Trang 1", "# Page 1", "Trang 1", "Page 1", "PAGE 2"
+    const pageMatch = trimmed.match(/^(?:[!#📄]?\s*(?:Trang|Page)\s*(\d+)|(?:Trang|Page)\s+(\d+))/i);
     if (pageMatch) {
-      const pageNum = parseInt(pageMatch[1], 10);
+      const pageNum = parseInt(pageMatch[1] || pageMatch[2], 10);
       currentPage = {
         id: generateId(),
         pageNumber: pageNum,
@@ -83,8 +83,8 @@ export function parseScriptToStoryboard(rawText: string): StoryboardPage[] {
       continue;
     }
 
-    // 2. Nhận diện Panel: "#panel 1.1", "#panel 1.2", "#panel 1", "#Panel 2"
-    const panelMatch = trimmed.match(/^#panel\s+([0-9]+(?:\.[0-9]+)?)/i);
+    // 2. Nhận diện Panel: '" Panel 1.1', '- Panel 1.1', '#panel 1.1', 'Panel 1.1'
+    const panelMatch = trimmed.match(/^(?:(?:[-"”]\s*)?(?:Panel|Khung)\s*([0-9]+(?:\.[0-9]+)?)|[-"”]\s*([0-9]+(?:\.[0-9]+)?)|#panel\s*([0-9]+(?:\.[0-9]+)?))/i);
     if (panelMatch) {
       if (!currentPage) {
         // Tự động khởi tạo Trang 1 nếu chưa có dòng Trang
@@ -97,7 +97,7 @@ export function parseScriptToStoryboard(rawText: string): StoryboardPage[] {
         panelOrderCounter = 1;
       }
 
-      const panelKey = panelMatch[1];
+      const panelKey = panelMatch[1] || panelMatch[2] || panelMatch[3];
       const panelNum = parseInt(panelKey.includes('.') ? panelKey.split('.')[1] : panelKey, 10) || panelOrderCounter;
 
       currentPanel = {
