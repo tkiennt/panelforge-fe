@@ -312,6 +312,20 @@ export function extractScriptLinesFromDoc(doc: any, defaultSceneId: string): Ext
       continue;
     }
 
+    // C. Nhận diện Lời dẫn truyện (Caption): "Lời dẫn truyện: ...", "Caption: ..."
+    if (/^(?:Lời dẫn truyện|Lời dẫn|Caption|Dẫn chuyện)\s*:\s*([^"“].*)$/i.test(textTrimmed)) {
+      results.push({
+        scriptLineId: attrs.scriptLineId || generateGuid(),
+        sceneId: attrs.sceneId || currentSceneId,
+        dialogueText: null,
+        stageDirection: textTrimmed,
+        speakerCharacterId: null,
+        narrationMode: 'Voiceover',
+        lineOrder: order++,
+      });
+      continue;
+    }
+
     // 1. Nhận diện Thoại có cú pháp @SeriesBible : "LỜI THOẠI" hoặc TÊN : "LỜI THOẠI" (Bắt buộc có dấu ngoặc kép)
     const quotedDialogueMatch = textTrimmed.match(/^@?([a-zA-ZÀ-Ỹ0-9_\s]{2,30})\s*:\s*["“](.*?)["”]?$/);
     if (quotedDialogueMatch) {

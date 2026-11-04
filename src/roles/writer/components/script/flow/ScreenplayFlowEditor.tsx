@@ -16,6 +16,7 @@ import {
   Trash2,
   Plus,
   Layers,
+  FileText,
   LayoutGrid,
   HelpCircle,
   Sparkles,
@@ -70,6 +71,11 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [lastSavedTime, setLastSavedTime] = useState<string | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [hoveredMention, setHoveredMention] = useState<{
+    x: number;
+    y: number;
+    entry: BibleEntryDto;
+  } | null>(null);
   const [activeBlockType, setActiveBlockType] = useState<MangaBlockType>('dialogue');
   const [activeNarrationMode, setActiveNarrationMode] = useState<NarrationMode>('Present');
   const [pendingDraft, setPendingDraft] = useState<LocalScriptDraft | null>(null);
@@ -117,6 +123,30 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
         class:
           'focus:outline-none min-h-[600px] px-8 py-10 font-mono text-sm leading-relaxed text-gray-900 bg-[#FCFBF8] selection:bg-orange-100 selection:text-orange-900 caret-[#C2410C]',
       },
+      handleClick: (_view, _pos, event) => {
+        const target = event.target as HTMLElement;
+        const toggleBtn = target.closest('.page-toggle-btn');
+        if (toggleBtn) {
+          const pageHeader = toggleBtn.closest('[data-block-type="page_heading"]');
+          if (pageHeader) {
+            let sibling = pageHeader.nextElementSibling as HTMLElement | null;
+            const isCurrentlyCollapsed = toggleBtn.getAttribute('data-collapsed') === 'true';
+            const willCollapse = !isCurrentlyCollapsed;
+            toggleBtn.setAttribute('data-collapsed', willCollapse ? 'true' : 'false');
+            toggleBtn.textContent = willCollapse ? '▶ Mở rộng' : '▼ Thu gọn';
+
+            while (sibling) {
+              if (sibling.getAttribute('data-block-type') === 'page_heading') {
+                break;
+              }
+              sibling.style.display = willCollapse ? 'none' : '';
+              sibling = sibling.nextElementSibling as HTMLElement | null;
+            }
+            return true;
+          }
+        }
+        return false;
+      },
     },
     onSelectionUpdate: ({ editor }) => {
       const currentBlock = editor.state.selection.$from.parent;
@@ -159,6 +189,10 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
           // 5. Nhận diện Chuyển cảnh: CUT TO:, FADE OUT:, CHUYỂN CẢNH:
           else if (/^(?:CUT TO:|FADE OUT:|CHUYỂN CẢNH:)/i.test(rawText)) {
             detectedType = 'transition';
+          }
+          // 2b. Nhận diện Lời dẫn truyện (Caption): "Lời dẫn truyện: ...", "Lời dẫn: ...", "Caption: ..."
+          else if (/^(?:Lời dẫn truyện|Lời dẫn|Caption|Dẫn chuyện)\s*:\s*([^"“].*)$/i.test(rawText)) {
+            detectedType = 'caption';
           }
           // 6. Nhận diện Thoại có cú pháp @SeriesBible : "LỜI THOẠI" hoặc NHÂN VẬT : "LỜI THOẠI" (Bắt buộc có ngoặc kép)
           else if (/^@?([a-zA-ZÀ-Ỹ0-9_\s]{2,30})\s*:\s*["“](.*?)["”]?$/.test(rawText)) {
@@ -506,6 +540,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
     { type: 'page_heading', label: 'Trang', icon: Layers },
     { type: 'panel_heading', label: 'Panel', icon: LayoutGrid },
     { type: 'scene_heading', label: 'Cảnh', icon: Clapperboard },
+    { type: 'caption', label: 'Lời dẫn', icon: FileText },
     { type: 'stage_direction', label: 'Chỉ dẫn', icon: Film },
     { type: 'character', label: 'Nhân vật', icon: User },
     { type: 'dialogue', label: 'Thoại', icon: MessageSquare },
@@ -515,7 +550,33 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   return (
     <div className="flex flex-col lg:flex-row items-start gap-4 w-full">
       {/* 1. KHUNG TRANG GIẤY SOẠN THẢO CHÍNH (CENTER PAPER SHEET) */}
-      <div className="flex-1 w-full bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl shadow-xs overflow-hidden flex flex-col min-w-0">
+      <div 
+        className="flex-1 w-full bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl shadow-xs overflow-hidden flex flex-col min-w-0"
+        onMouseOver={(e) => {
+          const target = e.target as HTMLElement;
+          const mentionEl = target.closest('.mention') as HTMLElement | null;
+          if (mentionEl) {
+            const label = mentionEl.getAttribute('data-label') || '';
+            const id = mentionEl.getAttribute('data-id') || '';
+            const entry = allBibleEntries.find((b) => b.id === id || b.name.toLowerCase() === label.toLowerCase());
+            if (entry) {
+              const rect = mentionEl.getBoundingClientRect();
+              setHoveredMention({
+                x: rect.left,
+                y: rect.bottom + 8,
+                entry,
+              });
+              return;
+            }
+          }
+        }}
+        onMouseOut={(e) => {
+          const target = e.target as HTMLElement;
+          if (target.closest('.mention')) {
+            setHoveredMention(null);
+          }
+        }}
+      >
         {/* Banner Khôi phục Bản Nháp Cục Bộ (Local Draft Recovery Banner) */}
         {pendingDraft && (
           <div className="flex items-center justify-between gap-3 px-5 py-2.5 bg-amber-50 border-b border-amber-200 text-amber-900 text-xs">
@@ -626,6 +687,44 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
             }
           `}</style>
           <EditorContent editor={editor} />
+
+          {/* D. Hovercard hiển thị chân dung & tóm tắt tiểu sử nhân vật */}
+          {hoveredMention && (
+            <div
+              style={{ top: hoveredMention.y, left: hoveredMention.x }}
+              className="fixed z-50 bg-white rounded-xl shadow-2xl border border-indigo-100 p-3 w-72 pointer-events-none animate-in fade-in zoom-in-95 duration-100"
+            >
+              <div className="flex items-center gap-2.5">
+                {hoveredMention.entry.referenceImageUrl || hoveredMention.entry.effectiveRevision?.referenceImageUrl ? (
+                  <img
+                    src={hoveredMention.entry.referenceImageUrl || hoveredMention.entry.effectiveRevision?.referenceImageUrl || ''}
+                    alt={hoveredMention.entry.name}
+                    className="w-10 h-10 rounded-full object-cover border border-indigo-200 shrink-0"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-indigo-100 text-[#4338CA] font-bold text-sm flex items-center justify-center shrink-0">
+                    {hoveredMention.entry.name.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-bold text-xs text-gray-900 truncate">{hoveredMention.entry.name}</span>
+                    <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-indigo-50 text-[#4338CA] border border-indigo-200 shrink-0">
+                      {hoveredMention.entry.category === 'Location' ? '📍 Địa danh' : hoveredMention.entry.category === 'Prop' ? '📦 Đạo cụ' : '👤 Nhân vật'}
+                    </span>
+                  </div>
+                  {hoveredMention.entry.subtitle && (
+                    <p className="text-[10px] text-gray-500 truncate">{hoveredMention.entry.subtitle}</p>
+                  )}
+                </div>
+              </div>
+              {(hoveredMention.entry.description || hoveredMention.entry.effectiveRevision?.summary) && (
+                <p className="mt-2 text-[11px] text-gray-600 line-clamp-2 leading-relaxed border-t border-gray-100 pt-1.5">
+                  {hoveredMention.entry.description || hoveredMention.entry.effectiveRevision?.summary}
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Footer thông tin rút gọn */}

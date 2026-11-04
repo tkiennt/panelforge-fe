@@ -9,7 +9,8 @@ export type MangaBlockType =
   | 'stage_direction'
   | 'character'
   | 'dialogue'
-  | 'transition';
+  | 'transition'
+  | 'caption';
 
 export interface ScriptLineBlockAttrs {
   scriptLineId: string;

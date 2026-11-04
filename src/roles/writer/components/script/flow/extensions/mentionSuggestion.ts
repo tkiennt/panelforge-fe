@@ -111,9 +111,18 @@ export function createMentionSuggestion(
           }
 
           const catBadge = document.createElement('span');
-          catBadge.className =
-            'text-[10px] px-1 py-0.5 rounded bg-gray-100 text-gray-500 uppercase tracking-tighter shrink-0 ml-1';
-          catBadge.textContent = String(item.category);
+          const catStr = String(item.category);
+          let catBg = 'bg-indigo-100 text-indigo-700';
+          let catLabel = '👤 Nhân vật';
+          if (catStr === 'Location') {
+            catBg = 'bg-emerald-100 text-emerald-700';
+            catLabel = '📍 Địa danh';
+          } else if (catStr === 'Prop') {
+            catBg = 'bg-amber-100 text-amber-700';
+            catLabel = '📦 Đạo cụ';
+          }
+          catBadge.className = `text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ml-1.5 ${catBg}`;
+          catBadge.textContent = catLabel;
 
           btn.appendChild(leftContainer);
           btn.appendChild(catBadge);
@@ -126,6 +135,16 @@ export function createMentionSuggestion(
               isLocked: item.isLocked,
               isStub: false,
             });
+            if (currentProps.editor) {
+              setTimeout(() => {
+                currentProps.editor
+                  .chain()
+                  .focus()
+                  .insertContent(' : ""')
+                  .setTextSelection(currentProps.editor.state.selection.to - 1)
+                  .run();
+              }, 10);
+            }
           });
 
           popup.appendChild(btn);
@@ -245,6 +264,16 @@ export function createMentionSuggestion(
                 isLocked: item.isLocked,
                 isStub: false,
               });
+              if (currentProps.editor) {
+                setTimeout(() => {
+                  currentProps.editor
+                    .chain()
+                    .focus()
+                    .insertContent(' : ""')
+                    .setTextSelection(currentProps.editor.state.selection.to - 1)
+                    .run();
+                }, 10);
+              }
               return true;
             }
           }

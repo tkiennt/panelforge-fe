@@ -48,21 +48,30 @@ export const BibleMention = Mention.extend({
   renderHTML({ HTMLAttributes }) {
     const isStub = HTMLAttributes['data-is-stub'] === 'true';
     const isLocked = HTMLAttributes['data-is-locked'] !== 'false';
-    const borderStyle = isStub
-      ? 'border-amber-500 border-dashed bg-amber-50 text-amber-800'
-      : isLocked
-        ? 'border-[#FF6F61]/40 bg-[#FFF1F0] text-[#FF6F61]'
-        : 'border-amber-400 border-dashed bg-[#FFF1F0] text-[#FF6F61]';
+    const label = HTMLAttributes['data-label'] || HTMLAttributes.label || '';
+    const category = HTMLAttributes['data-category'] || HTMLAttributes.category || 'Character';
+
+    // D. TÊN NHÂN VẬT: Thẻ chip bo tròn, nền màu tím nhạt, chữ tím đậm #4338CA, có chấm màu đại diện
+    const dotColor = category === 'Location'
+      ? 'bg-emerald-500'
+      : category === 'Prop'
+        ? 'bg-amber-500'
+        : 'bg-[#4F46E5]';
 
     return [
       'span',
       mergeAttributes(
         {
-          class: `mention inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-xs font-semibold tracking-wide border ${borderStyle} shadow-2xs select-none mx-0.5 cursor-pointer`,
+          class: `mention inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide border border-indigo-200 bg-indigo-50 text-[#4338CA] shadow-2xs select-none mx-1 cursor-pointer transition-colors hover:bg-indigo-100 hover:border-indigo-300`,
+          'data-id': HTMLAttributes['data-id'],
+          'data-label': label,
+          'data-category': category,
+          title: `@${label} (${category}) - Rê chuột để xem thông tin`,
         },
         HTMLAttributes
       ),
-      `@${HTMLAttributes['data-label'] || HTMLAttributes.label || ''}${isStub ? ' (Stub)' : ''}`,
+      ['span', { class: `w-2 h-2 rounded-full shrink-0 ${dotColor}` }],
+      `@${label}${isStub ? ' (Stub)' : ''}`,
     ];
   },
 });
