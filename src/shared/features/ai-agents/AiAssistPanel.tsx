@@ -17,6 +17,7 @@ import type { AiWorkflowType } from '@/services/aiAgents.service';
 import { StepOutputView } from './StepOutputView';
 import { SuggestionCard } from './SuggestionCard';
 import { collectLines, formatMs } from './aiViewUtils';
+import { aiStreamService } from '@/services/aiStream.service';
 
 export const BRIEF_MAX_LENGTH = 4000;
 export const POLL_INTERVAL_MS = 2000;
@@ -166,6 +167,7 @@ export const AiAssistPanel: React.FC<Props> = ({
   const [starting, setStarting] = useState(false);
   const [deciding, setDeciding] = useState(false);
   const [pollFailed, setPollFailed] = useState(false);
+  const [streamDelta, setStreamDelta] = useState<{ agent: string; text: string } | null>(null);
   const [error, setError] = useState<UiError | null>(null);
   const [aiLocked, setAiLocked] = useState(false);
   const [showTech, setShowTech] = useState(false);
@@ -238,7 +240,58 @@ export const AiAssistPanel: React.FC<Props> = ({
     };
   }, [seriesId, chapterId, sceneId, workflowType]);
 
-  // (c) polling mỗi 2 giây tới khi run không còn Queued/Running
+  // (c1) Token Streaming & Realtime Step updates qua SignalR Hub
+  useEffect(() => {
+    if (!run || !isActiveRun(run.status)) {
+      setStreamDelta(null);
+      return;
+    }
+
+    const currentRunId = run.id;
+    aiStreamService.joinRun(currentRunId);
+
+    const unsubToken = aiStreamService.onTokenChunk((e) => {
+      if (e.runId.toLowerCase() === currentRunId.toLowerCase()) {
+        setStreamDelta((prev) => ({
+          agent: e.agent,
+          text: (prev && prev.agent === e.agent ? prev.text : '') + e.deltaText,
+        }));
+      }
+    });
+
+    const unsubStep = aiStreamService.onStepRecorded(async (e) => {
+      if (e.runId.toLowerCase() === currentRunId.toLowerCase()) {
+        setStreamDelta(null);
+        try {
+          const next = await aiAgentsService.getRun(seriesId, currentRunId);
+          setRun(next);
+        } catch {
+          // ignore error, will be picked up by polling
+        }
+      }
+    });
+
+    const unsubStatus = aiStreamService.onRunStatusChanged(async (e) => {
+      if (e.runId.toLowerCase() === currentRunId.toLowerCase()) {
+        setStreamDelta(null);
+        try {
+          const next = await aiAgentsService.getRun(seriesId, currentRunId);
+          setRun(next);
+        } catch {
+          // ignore
+        }
+      }
+    });
+
+    return () => {
+      aiStreamService.leaveRun(currentRunId);
+      unsubToken();
+      unsubStep();
+      unsubStatus();
+    };
+  }, [run?.id, run?.status, seriesId]);
+
+  // (c) polling mỗi 2 giây tới khi run không còn Queued/Running (Safety-net fallback)
   useEffect(() => {
     if (!run || pollFailed || !isActiveRun(run.status)) return;
     const timer = setTimeout(async () => {
@@ -460,6 +513,22 @@ export const AiAssistPanel: React.FC<Props> = ({
           >
             {running && <Loader2 className='h-3.5 w-3.5 animate-spin' />}
             <span className='whitespace-pre-line'>{status.text}</span>
+          </div>
+        )}
+
+        {streamDelta && running && (
+          <div
+            data-testid='ai-live-stream'
+            className='rounded-lg border border-indigo-200 bg-indigo-50/70 p-3 text-xs text-indigo-950 shadow-xs'
+          >
+            <div className='flex items-center gap-1.5 font-bold uppercase tracking-wider text-[11px] text-indigo-600 mb-1.5'>
+              <Sparkles className='h-3.5 w-3.5 animate-pulse text-indigo-500' />
+              <span>{streamDelta.agent} đang soạn thảo trực tiếp...</span>
+            </div>
+            <div className='whitespace-pre-wrap font-mono text-xs leading-relaxed text-slate-800 bg-white/80 p-2.5 rounded border border-indigo-100 max-h-48 overflow-y-auto'>
+              {streamDelta.text}
+              <span className='inline-block w-1.5 h-3.5 ml-0.5 bg-indigo-600 animate-pulse align-middle' />
+            </div>
           </div>
         )}
 
