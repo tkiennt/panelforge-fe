@@ -355,7 +355,7 @@ test.describe('E2E: Bàn Vẽ Artist & Trải Nghiệm Đọc Kịch Bản (Arti
     });
 
     // Panels
-    await page.route(/\/api\/pages\/.*\/panels/i, async (route: any) => {
+    await page.route(new RegExp(`/api/pages/[^/]+/panels`, 'i'), async (route: any) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -364,7 +364,7 @@ test.describe('E2E: Bàn Vẽ Artist & Trải Nghiệm Đọc Kịch Bản (Arti
     });
 
     // Snapshot & Artworks
-    await page.route(/\/api\/pages\/.*\/snapshot/i, async (route: any) => {
+    await page.route(new RegExp(`/api/pages/[^/]+/snapshot`, 'i'), async (route: any) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -372,7 +372,7 @@ test.describe('E2E: Bàn Vẽ Artist & Trải Nghiệm Đọc Kịch Bản (Arti
       });
     });
 
-    await page.route(/\/api\/pages\/.*/i, async (route: any) => {
+    await page.route(new RegExp(`/api/pages/[^/]+$`, 'i'), async (route: any) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
