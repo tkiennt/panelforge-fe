@@ -135,16 +135,6 @@ export function createMentionSuggestion(
               isLocked: item.isLocked,
               isStub: false,
             });
-            if (currentProps.editor) {
-              setTimeout(() => {
-                currentProps.editor
-                  .chain()
-                  .focus()
-                  .insertContent(' : ""')
-                  .setTextSelection(currentProps.editor.state.selection.to - 1)
-                  .run();
-              }, 10);
-            }
           });
 
           popup.appendChild(btn);
@@ -264,16 +254,6 @@ export function createMentionSuggestion(
                 isLocked: item.isLocked,
                 isStub: false,
               });
-              if (currentProps.editor) {
-                setTimeout(() => {
-                  currentProps.editor
-                    .chain()
-                    .focus()
-                    .insertContent(' : ""')
-                    .setTextSelection(currentProps.editor.state.selection.to - 1)
-                    .run();
-                }, 10);
-              }
               return true;
             }
           }

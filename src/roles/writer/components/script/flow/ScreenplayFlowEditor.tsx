@@ -147,6 +147,41 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
         }
         return false;
       },
+      handleTextInput: (view, from, to, text) => {
+        if (text === ':') {
+          const { state } = view;
+          const { $from } = state.selection;
+          const currentBlock = $from.parent;
+
+          // 1. Phía trước con trỏ là node bibleMention (hoặc có khoảng trắng sau mention)
+          const nodeBefore = $from.nodeBefore;
+          const isDirectlyAfterMention = nodeBefore?.type.name === 'bibleMention';
+          const spaceLen = nodeBefore?.isText ? nodeBefore.text?.length || 0 : 0;
+          const isAfterSpaceMention =
+            nodeBefore?.isText &&
+            nodeBefore.text?.trim() === '' &&
+            from - spaceLen > 0 &&
+            $from.doc.resolve(from - spaceLen).nodeBefore?.type.name === 'bibleMention';
+
+          // 2. Hoặc người dùng gõ text thủ công bắt đầu dòng bằng @Tên hoặc TÊN_IN_HOA
+          const textBefore = currentBlock.textBetween(0, $from.parentOffset);
+          const isManualCharacterName = /^@?[a-zA-ZÀ-Ỹ0-9_]{2,30}\s*$/.test(textBefore);
+
+          if (isDirectlyAfterMention || isAfterSpaceMention || isManualCharacterName) {
+            const endsWithSpace = textBefore.endsWith(' ') || (nodeBefore?.isText && nodeBefore.text?.endsWith(' '));
+            const insertStr = endsWithSpace ? ': ""' : ' : ""';
+
+            const tr = state.tr.insertText(insertStr, from, to);
+            // Đặt con trỏ vào chính giữa 2 dấu ngoặc kép "" (vị trí trước dấu ngoặc đóng)
+            const targetPos = from + insertStr.length - 1;
+            const targetResolved = tr.doc.resolve(targetPos);
+            tr.setSelection(state.selection.constructor.near(targetResolved));
+            view.dispatch(tr);
+            return true;
+          }
+        }
+        return false;
+      },
     },
     onSelectionUpdate: ({ editor }) => {
       const currentBlock = editor.state.selection.$from.parent;
