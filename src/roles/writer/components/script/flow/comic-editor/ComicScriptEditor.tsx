@@ -32,6 +32,8 @@ import {
   SeriesBibleMentionNode,
   createComicMentionSuggestion,
 } from './extensions';
+import { getNextPageNumber } from './comicCounting';
+import { AiScriptConvertModal, convertScriptTextToComicBlocks } from '../converter';
 import { INITIAL_COMIC_SCRIPT_DOC } from './sampleScript';
 
 export interface ComicScriptEditorProps {
@@ -49,6 +51,7 @@ export const ComicScriptEditor: React.FC<ComicScriptEditorProps> = ({
 }) => {
   const [copied, setCopied] = useState(false);
   const [showCheatsheet, setShowCheatsheet] = useState(false);
+  const [showConvertModal, setShowConvertModal] = useState(false);
   const [lastAction, setLastAction] = useState<string | null>(null);
 
   // Thống kê tài liệu theo thời gian thực
@@ -212,6 +215,38 @@ export const ComicScriptEditor: React.FC<ComicScriptEditorProps> = ({
     notify('Đã khôi phục', 'Đã nạp lại kịch bản mẫu Comic Script.');
   };
 
+  const handleApplyConvertedScript = (scriptText: string, mode: 'append' | 'insert' | 'replace') => {
+    if (!editor) return;
+
+    if (mode === 'replace') {
+      const blocks = convertScriptTextToComicBlocks(scriptText, { startingPageNumber: 1 });
+      editor.commands.setContent({ type: 'doc', content: blocks });
+      updateDocumentStats(editor);
+      notify('Đã ghi đè kịch bản', 'Toàn bộ nội dung đã được thay thế bằng kịch bản mới.');
+      return;
+    }
+
+    if (mode === 'append') {
+      const nextNum = getNextPageNumber(editor.state.doc);
+      const blocks = convertScriptTextToComicBlocks(scriptText, { startingPageNumber: nextNum });
+      const endPos = editor.state.doc.content.size;
+      editor.chain().focus().insertContentAt(endPos, blocks).run();
+      updateDocumentStats(editor);
+      notify('Đã chèn kịch bản', `Đã thêm các trang mới (từ Trang ${nextNum}) vào cuối kịch bản.`);
+      return;
+    }
+
+    if (mode === 'insert') {
+      const currentPos = editor.state.selection.$from.pos;
+      const currentNum = getNextPageNumber(editor.state.doc, currentPos);
+      const blocks = convertScriptTextToComicBlocks(scriptText, { startingPageNumber: currentNum });
+      editor.chain().focus().insertContent(blocks).run();
+      updateDocumentStats(editor);
+      notify('Đã chèn kịch bản', 'Đã chèn nội dung kịch bản mới tại vị trí con trỏ.');
+      return;
+    }
+  };
+
   return (
     <div
       className={`flex flex-col bg-[#F3F0E9] rounded-2xl border border-[#D8D2C5] shadow-lg overflow-hidden text-[#1C1917] ${className}`}
@@ -280,6 +315,17 @@ export const ComicScriptEditor: React.FC<ComicScriptEditorProps> = ({
             >
               <Scroll className="w-3.5 h-3.5 text-slate-500" />
               <span className="hidden md:inline">Lời dẫn</span>
+            </button>
+
+            {/* Nút Smart Convert / Gen AI */}
+            <button
+              type="button"
+              onClick={() => setShowConvertModal(true)}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-white bg-gradient-to-r from-[#C2410C] to-indigo-700 hover:from-[#9A3412] hover:to-indigo-800 rounded-lg transition-all cursor-pointer shadow-2xs group ml-1"
+              title="Chuyển đổi văn bản thô hoặc AI viết phân cảnh kịch bản"
+            >
+              <Sparkles className="w-3.5 h-3.5 animate-pulse" />
+              <span>⚡ Chuyển đổi / Gen AI</span>
             </button>
           </div>
 
@@ -443,6 +489,23 @@ export const ComicScriptEditor: React.FC<ComicScriptEditorProps> = ({
           <span>Tiptap ProseMirror 60 FPS Engine · Keyboard-First</span>
         </div>
       </footer>
+
+      {/* 5. MODAL SMART CONVERT & AI BIÊN KỊCH */}
+      <AiScriptConvertModal
+        isOpen={showConvertModal}
+        onClose={() => setShowConvertModal(false)}
+        onApplyScript={handleApplyConvertedScript}
+        initialStartingPageNumber={editor ? getNextPageNumber(editor.state.doc) : 1}
+        seriesBibleContext={{
+          characters: [
+            { name: 'Minh', role: 'Nam chính' },
+            { name: 'Lan', role: 'Nữ chính' },
+            { name: 'Người lạ mặt', role: 'Phản diện bí ẩn' },
+          ],
+          locations: ['Ngã tư Shibuya', 'Hẻm tối Shinjuku', 'Tòa nhà bỏ hoang'],
+        }}
+        onShowToast={notify}
+      />
     </div>
   );
 };

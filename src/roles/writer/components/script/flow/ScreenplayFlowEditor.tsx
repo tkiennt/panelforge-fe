@@ -40,6 +40,7 @@ import {
 } from './scriptFlowAdapter';
 import { MangaBlockType } from './types';
 import { getNextPageNumber, getNextPanelNumber } from './comic-editor/comicCounting';
+import { AiScriptConvertModal, convertScriptTextToScreenplayBlocks } from './converter';
 
 interface ScreenplayFlowEditorProps {
   chapterId?: string;
@@ -84,6 +85,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   const [activeNarrationMode, setActiveNarrationMode] = useState<NarrationMode>('Present');
   const [pendingDraft, setPendingDraft] = useState<LocalScriptDraft | null>(null);
   const [showCheatSheet, setShowCheatSheet] = useState(false);
+  const [showAiConvertModal, setShowAiConvertModal] = useState(false);
 
   const localDraftTimerRef = useRef<NodeJS.Timeout | null>(null);
   const draftStorageKey = useMemo(
@@ -603,6 +605,49 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
     onShowToast?.('Đã chèn mẫu', 'Đã thêm mẫu cấu trúc Trang 1 (Panel 1.1, Panel 1.2) và Thoại.');
   };
 
+  // Áp dụng kịch bản sau khi chuyển đổi bằng Smart Heuristic / AI
+  const handleApplyConvertedScript = (scriptText: string, mode: 'append' | 'insert' | 'replace') => {
+    if (!editor) return;
+    const defaultSceneId = scenes[0]?.id || '';
+
+    if (mode === 'replace') {
+      const blocks = convertScriptTextToScreenplayBlocks(scriptText, {
+        startingPageNumber: 1,
+        sceneId: defaultSceneId,
+      });
+      editor.commands.setContent({ type: 'doc', content: blocks });
+      setHasUnsavedChanges(true);
+      onShowToast?.('Đã ghi đè kịch bản', 'Toàn bộ nội dung đã được thay thế bằng kịch bản chuyển đổi mới.');
+      return;
+    }
+
+    if (mode === 'append') {
+      const nextNum = getNextPageNumber(editor.state.doc);
+      const blocks = convertScriptTextToScreenplayBlocks(scriptText, {
+        startingPageNumber: nextNum,
+        sceneId: defaultSceneId,
+      });
+      const endPos = editor.state.doc.content.size;
+      editor.chain().focus().insertContentAt(endPos, blocks).run();
+      setHasUnsavedChanges(true);
+      onShowToast?.('Đã chèn kịch bản', `Đã thêm các trang mới (từ Trang ${nextNum}) vào cuối kịch bản.`);
+      return;
+    }
+
+    if (mode === 'insert') {
+      const currentPos = editor.state.selection.$from.pos;
+      const currentNum = getNextPageNumber(editor.state.doc, currentPos);
+      const blocks = convertScriptTextToScreenplayBlocks(scriptText, {
+        startingPageNumber: currentNum,
+        sceneId: defaultSceneId,
+      });
+      editor.chain().focus().insertContent(blocks).run();
+      setHasUnsavedChanges(true);
+      onShowToast?.('Đã chèn kịch bản', 'Đã chèn nội dung kịch bản mới tại vị trí con trỏ.');
+      return;
+    }
+  };
+
   // Danh sách các nút định dạng khối rút gọn
   const compactBlockButtons: { type: MangaBlockType; label: string; icon: any }[] = [
     { type: 'page_heading', label: 'Trang', icon: Layers },
@@ -892,6 +937,17 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
             <Sparkles className="w-3.5 h-3.5 text-amber-600" />
             <span>Mẫu truyện</span>
           </button>
+
+          <button
+            type="button"
+            disabled={!canEditScript || isChapterLocked}
+            onClick={() => setShowAiConvertModal(true)}
+            className="flex items-center justify-center gap-1.5 w-full py-1.5 px-3 rounded-lg text-xs font-bold text-white bg-gradient-to-r from-[#C2410C] to-indigo-700 hover:from-[#9A3412] hover:to-indigo-800 shadow-2xs transition-all disabled:opacity-40 cursor-pointer"
+            title="Chuyển đổi văn bản thô hoặc AI tạo kịch bản"
+          >
+            <Zap className="w-3.5 h-3.5 text-amber-300" />
+            <span>⚡ AI Chuyển đổi</span>
+          </button>
         </div>
 
         {/* Nhóm 2: Định Dạng Khối (Blocks) */}
@@ -966,6 +1022,21 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
           </button>
         </div>
       </aside>
+
+      {/* 4. MODAL SMART CONVERT & AI BIÊN KỊCH */}
+      <AiScriptConvertModal
+        isOpen={showAiConvertModal}
+        onClose={() => setShowAiConvertModal(false)}
+        onApplyScript={handleApplyConvertedScript}
+        initialStartingPageNumber={editor ? getNextPageNumber(editor.state.doc) : 1}
+        seriesBibleContext={{
+          characters: allBibleEntries
+            .filter((e) => e.category === 'Character')
+            .map((e) => ({ name: e.name, role: e.subtitle || undefined })),
+          locations: allBibleEntries.filter((e) => e.category === 'Location').map((e) => e.name),
+        }}
+        onShowToast={onShowToast}
+      />
     </div>
   );
 };

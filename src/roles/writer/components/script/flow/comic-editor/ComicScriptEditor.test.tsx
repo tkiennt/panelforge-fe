@@ -235,8 +235,17 @@ describe('ComicScriptEditor - Tiptap Keyboard-First Engine', () => {
     expect(screen.getByText('+ Trang')).toBeInTheDocument();
     expect(screen.getByText('+ Panel')).toBeInTheDocument();
     expect(screen.getByText('@ Nhân vật')).toBeInTheDocument();
+    expect(screen.getByText('⚡ Chuyển đổi / Gen AI')).toBeInTheDocument();
     expect(screen.getByText('Phím tắt')).toBeInTheDocument();
     expect(screen.getByText('Sao chép')).toBeInTheDocument();
+
+    // Mở Modal Smart Convert & AI
+    fireEvent.click(screen.getByText('⚡ Chuyển đổi / Gen AI'));
+    expect(screen.getByText('Smart Convert & AI Biên Kịch')).toBeInTheDocument();
+    expect(screen.getByText('1. Chuyển đổi văn bản thô (Paste & Convert)')).toBeInTheDocument();
+
+    // Đóng modal
+    fireEvent.click(screen.getByText('Đóng'));
 
     // Mở bảng Cheat Sheet phím tắt
     fireEvent.click(screen.getByText('Phím tắt'));
