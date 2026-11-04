@@ -320,7 +320,7 @@ export function extractScriptLinesFromDoc(doc: any, defaultSceneId: string): Ext
         dialogueText: null,
         stageDirection: textTrimmed,
         speakerCharacterId: null,
-        narrationMode: 'Voiceover',
+        narrationMode: 'Present',
         lineOrder: order++,
       });
       continue;
@@ -351,7 +351,7 @@ export function extractScriptLinesFromDoc(doc: any, defaultSceneId: string): Ext
         dialogueText: null,
         stageDirection: textTrimmed,
         speakerCharacterId: attrs.speakerCharacterId || currentSpeakerId,
-        narrationMode: 'Voiceover',
+        narrationMode: 'Present',
         lineOrder: order++,
       });
       currentSpeakerId = null;

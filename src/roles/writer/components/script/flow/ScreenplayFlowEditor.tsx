@@ -1,6 +1,7 @@
 // src/roles/writer/components/script/flow/ScreenplayFlowEditor.tsx
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
+import { TextSelection } from '@tiptap/pm/state';
 import StarterKit from '@tiptap/starter-kit';
 import {
   Lock,
@@ -175,7 +176,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
             // Đặt con trỏ vào chính giữa 2 dấu ngoặc kép "" (vị trí trước dấu ngoặc đóng)
             const targetPos = from + insertStr.length - 1;
             const targetResolved = tr.doc.resolve(targetPos);
-            tr.setSelection(state.selection.constructor.near(targetResolved));
+            tr.setSelection(TextSelection.create(tr.doc, targetPos));
             view.dispatch(tr);
             return true;
           }
