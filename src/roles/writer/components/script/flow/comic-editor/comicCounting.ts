@@ -128,13 +128,25 @@ export function getNextPanelNumber(
 
   if (doc && typeof doc.descendants === 'function') {
     doc.descendants((node: any, pos: number) => {
-      if (typeof currentPos === 'number' && pos >= currentPos) {
-        return false;
-      }
-
       const isPage =
         node.type.name === 'pageBlock' ||
         (node.type.name === 'scriptLineBlock' && node.attrs?.blockType === 'page_heading');
+
+      if (typeof currentPos === 'number') {
+        if (isPage) {
+          // Với tiêu đề trang: Nếu trang này nằm hoàn toàn sau con trỏ (pos > currentPos), dừng đếm.
+          // Nhưng nếu con trỏ đang nằm tại hoặc trong chính khối trang này (pos <= currentPos),
+          // ta VẪN nhận diện đây là trang hiện tại để số panel tiếp theo thuộc trang này!
+          if (pos > currentPos) {
+            return false;
+          }
+        } else {
+          // Với các khối khác (panel, caption...), nếu bắt đầu tại hoặc sau con trỏ -> bỏ qua
+          if (pos >= currentPos) {
+            return false;
+          }
+        }
+      }
 
       if (isPage) {
         let pNum = 1;

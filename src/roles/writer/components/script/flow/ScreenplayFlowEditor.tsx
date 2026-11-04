@@ -533,7 +533,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
             timestamp: Date.now(),
           };
           localStorage.setItem(draftStorageKey, JSON.stringify(draftData));
-        } catch {}
+        } catch { }
       }, 1000);
     },
   });
@@ -560,7 +560,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
               setQuickViewPos(resolved.pos);
             }
           }
-        } catch {}
+        } catch { }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -633,7 +633,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
           }
         }
       }
-    } catch {}
+    } catch { }
   }, [draftStorageKey]);
 
   // Cảnh báo người dùng khi cố đóng tab / tải lại trang mà chưa bấm Lưu
@@ -772,7 +772,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
       setHasUnsavedChanges(false);
       try {
         localStorage.removeItem(draftStorageKey);
-      } catch {}
+      } catch { }
       setPendingDraft(null);
       setLastSavedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
       onShowToast?.(
@@ -823,7 +823,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   const handleDiscardDraft = () => {
     try {
       localStorage.removeItem(draftStorageKey);
-    } catch {}
+    } catch { }
     setPendingDraft(null);
   };
 
@@ -837,59 +837,66 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   // Chèn nhanh Trang mới (! Trang X)
   const handleInsertPage = () => {
     if (!editor || !canEditScript || isChapterLocked) return;
-    const nextNum = getNextPageNumber(editor.state.doc);
+    const { state, view } = editor;
+    const { selection } = state;
+    const { $from } = selection;
+
+    const nextNum = getNextPageNumber(state.doc);
     const formattedPage = String(nextNum).padStart(2, '0');
+    const pageText = `Trang ${formattedPage}`;
 
-    editor
-      .chain()
-      .focus()
-      .insertContent([
-        {
-          type: 'scriptLineBlock',
-          attrs: {
-            scriptLineId: generateGuid(),
-            blockType: 'page_heading',
-          },
-          content: [{ type: 'text', text: `Trang ${formattedPage}` }],
-        },
-        {
-          type: 'scriptLineBlock',
-          attrs: {
-            scriptLineId: generateGuid(),
-            blockType: 'panel_heading',
-          },
-          content: [{ type: 'text', text: `" Panel ${nextNum}.1: [Toàn cảnh] ` }],
-        },
-      ])
-      .run();
+    // Chèn sau khối hiện tại nếu đang trong một khối, hoặc tại vị trí con trỏ
+    const insertPos = $from.parent.type.name === 'doc' ? selection.from : $from.after();
+    const newBlock = state.schema.nodes.scriptLineBlock.create(
+      {
+        scriptLineId: generateGuid(),
+        blockType: 'page_heading',
+        pageNumber: nextNum,
+      },
+      state.schema.text(pageText)
+    );
 
-    renumberEditorState(editor);
+    const tr = state.tr.insert(insertPos, newBlock);
+    const targetPos = insertPos + 1 + pageText.length;
+    tr.setSelection(TextSelection.create(tr.doc, targetPos));
+    view.dispatch(tr);
+    editor.commands.focus();
+
+    renumberEditorState(editor, targetPos);
     onShowToast?.('Đã chèn Trang', `Đã thêm Trang ${formattedPage} (với " Panel ${nextNum}.1)`);
   };
 
   // Chèn nhanh Khung hình mới (" Panel X.Y: Cận cảnh) theo số trang hiện tại
   const handleInsertPanel = (shotName: string = 'Cận cảnh') => {
     if (!editor || !canEditScript || isChapterLocked) return;
-    const { pageNum, panelNum } = getNextPanelNumber(editor.state.doc, editor.state.selection.$from.pos);
-    const panelLabel = `" Panel ${pageNum}.${panelNum}: [${shotName}] `;
+    const { state, view } = editor;
+    const { selection } = state;
+    const { $from } = selection;
 
-    editor
-      .chain()
-      .focus()
-      .insertContent([
-        {
-          type: 'scriptLineBlock',
-          attrs: {
-            scriptLineId: generateGuid(),
-            blockType: 'panel_heading',
-          },
-          content: [{ type: 'text', text: panelLabel }],
-        },
-      ])
-      .run();
+    // Lấy số trang và số panel tiếp theo dựa trên khối hiện tại con trỏ đang đứng
+    const { pageNum, panelNum } = getNextPanelNumber(state.doc, $from.pos);
+    const panelLabel = `" Panel ${pageNum}.${panelNum}: [${shotName}]`;
 
-    renumberEditorState(editor);
-    onShowToast?.('Đã chèn Panel', `Đã thêm khối Panel (${shotName})`);
+    // Chèn ngay sau khối hiện tại
+    const insertPos = $from.parent.type.name === 'doc' ? selection.from : $from.after();
+    const newBlock = state.schema.nodes.scriptLineBlock.create(
+      {
+        scriptLineId: generateGuid(),
+        blockType: 'panel_heading',
+        pageNumber: pageNum,
+        panelNumber: panelNum,
+      },
+      state.schema.text(panelLabel)
+    );
+
+    const tr = state.tr.insert(insertPos, newBlock);
+    const targetPos = insertPos + 1 + panelLabel.length;
+    tr.setSelection(TextSelection.create(tr.doc, targetPos));
+    view.dispatch(tr);
+    editor.commands.focus();
+
+    renumberEditorState(editor, targetPos);
+    onShowToast?.('Đã chèn Panel', `Đã thêm khối Panel ${pageNum}.${panelNum} (${shotName})`);
   };
 
   // Chèn mẫu cấu trúc Manga/Webtoon hoàn chỉnh
@@ -976,10 +983,13 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   const compactBlockButtons: { type: MangaBlockType; label: string; icon: any }[] = [
     { type: 'page_heading', label: 'Trang', icon: Layers },
     { type: 'panel_heading', label: 'Panel', icon: LayoutGrid },
-    { type: 'caption', label: 'Lời dẫn truyện', icon: FileText },
+    { type: 'scene_heading', label: 'Cảnh', icon: Clapperboard },
+    { type: 'caption', label: 'Lời dẫn', icon: FileText },
+    { type: 'sfx', label: '⚡ SFX', icon: Zap },
+    { type: 'stage_direction', label: 'Chỉ dẫn', icon: Film },
     { type: 'character', label: 'Nhân vật', icon: User },
     { type: 'dialogue', label: 'Thoại', icon: MessageSquare },
-    { type: 'sfx', label: '⚡ SFX', icon: Zap },
+    { type: 'transition', label: 'Chuyển cảnh', icon: Type },
   ];
 
   const isReadOnly = !canEditScript || isChapterLocked;
@@ -1219,19 +1229,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
             <span>Gõ # tạo Trang · Gõ - tạo Panel · Gõ @ gợi ý Bible/Panel</span>
           </div>
           <div>
-            Khối: <strong className="text-amber-700">
-              {activeBlockType === 'page_heading'
-                ? 'TRANG'
-                : activeBlockType === 'panel_heading'
-                ? 'PANEL'
-                : activeBlockType === 'dialogue'
-                ? 'THOẠI'
-                : activeBlockType === 'character'
-                ? 'NHÂN VẬT'
-                : activeBlockType === 'sfx'
-                ? 'SFX'
-                : 'LỜI DẪN TRUYỆN'}
-            </strong>
+            Khối: <strong className="text-amber-700 uppercase">{activeBlockType}</strong>
           </div>
         </div>
       </div>
@@ -1251,145 +1249,143 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
           </button>
         </aside>
       ) : (
-      <aside className="w-full lg:w-48 shrink-0 lg:sticky lg:top-4 space-y-2.5 font-sans">
-        {/* Nhóm 1: Tạo Nhanh Trang & Panel */}
-        <div className="bg-white border border-[#D8D2C5] rounded-xl p-3 shadow-xs space-y-2">
-          <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-1">
-            Cấu trúc phân đoạn
-          </div>
-
-          <button
-            type="button"
-            disabled={!canEditScript || isChapterLocked}
-            onClick={handleInsertPage}
-            className="flex items-center justify-center gap-1.5 w-full py-2 px-3 rounded-lg text-xs font-bold text-white bg-[#EA580C] hover:bg-[#C2410C] shadow-2xs transition-all disabled:opacity-40 cursor-pointer"
-            title="Chèn Trang mới: # Trang N"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <Layers className="w-3.5 h-3.5" />
-            <span>+ Trang (cam)</span>
-          </button>
-
-          <button
-            type="button"
-            disabled={!canEditScript || isChapterLocked}
-            onClick={() => handleInsertPanel('Cận cảnh')}
-            className="flex items-center justify-center gap-1.5 w-full py-2 px-3 rounded-lg text-xs font-bold text-purple-950 bg-purple-100 hover:bg-purple-200 border border-purple-300 shadow-2xs transition-all disabled:opacity-40 cursor-pointer"
-            title="Chèn Khung hình mới: - Panel X.Y"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <LayoutGrid className="w-3.5 h-3.5" />
-            <span>+ Panel (tím)</span>
-          </button>
-
-          <button
-            type="button"
-            disabled={!canEditScript || isChapterLocked}
-            onClick={handleInsertComicTemplate}
-            className="flex items-center justify-center gap-1.5 w-full py-1.5 px-3 rounded-lg text-xs font-semibold text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-200 transition-all disabled:opacity-40 cursor-pointer"
-            title="Chèn mẫu cấu trúc Trang & Panel"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-            <span>Mẫu truyện</span>
-          </button>
-
-          <button
-            type="button"
-            disabled={!canEditScript || isChapterLocked}
-            onClick={() => setShowAiConvertModal(true)}
-            className="flex items-center justify-center gap-1.5 w-full py-1.5 px-3 rounded-lg text-xs font-bold text-white bg-gradient-to-r from-[#C2410C] to-indigo-700 hover:from-[#9A3412] hover:to-indigo-800 shadow-2xs transition-all disabled:opacity-40 cursor-pointer"
-            title="Chuyển đổi văn bản thô hoặc AI tạo kịch bản"
-          >
-            <Zap className="w-3.5 h-3.5 text-amber-300" />
-            <span>⚡ AI Chuyển đổi</span>
-          </button>
-        </div>
-
-        {/* Nhóm 2: Định Dạng Khối (Blocks) */}
-        <div className="bg-white border border-[#D8D2C5] rounded-xl p-3 shadow-xs space-y-1.5">
-          <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-1">
-            Khối kịch bản
-          </div>
-
-          <div className="grid grid-cols-1 gap-1">
-            {compactBlockButtons.map(({ type, label, icon: Icon }) => (
-              <button
-                key={type}
-                type="button"
-                disabled={!canEditScript || isChapterLocked}
-                onClick={() => setBlockType(type)}
-                className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 w-full text-left ${
-                  activeBlockType === type
-                    ? 'bg-amber-600 text-white shadow-2xs font-bold'
-                    : 'bg-white text-gray-700 border border-gray-200/80 hover:border-amber-400 hover:text-amber-700'
-                } disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer`}
-              >
-                <Icon className="w-3.5 h-3.5 shrink-0" />
-                <span className="truncate">{label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Nhóm 3: Lưu & Cú Pháp */}
-        <div className="bg-white border border-[#D8D2C5] rounded-xl p-3 shadow-xs space-y-2">
-          <button
-            type="button"
-            disabled={!hasUnsavedChanges || isSaving || !canEditScript || isChapterLocked}
-            onClick={handleManualSave}
-            title="Lưu kịch bản lên máy chủ (Ctrl + S)"
-            className="flex items-center justify-center gap-1.5 w-full py-2 px-3 rounded-lg text-xs font-bold bg-[#EA580C] text-white hover:bg-[#C2410C] shadow-2xs transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-          >
-            <Save className="w-3.5 h-3.5" />
-            <span>{isSaving ? 'Đang lưu...' : 'Lưu kịch bản'}</span>
-          </button>
-
-          {/* Trạng thái lưu gọn */}
-          <div className="text-[11px] text-center font-mono py-0.5">
-            {isSaving ? (
-              <span className="text-amber-600 font-medium">Đang lưu...</span>
-            ) : hasUnsavedChanges ? (
-              <span className="text-amber-700 font-medium flex items-center justify-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" /> Chưa lưu (Ctrl+S)
-              </span>
-            ) : lastSavedTime ? (
-              <span className="text-emerald-600 flex items-center justify-center gap-1">
-                <CheckCircle2 className="w-3 h-3 text-emerald-500" /> Đã lưu {lastSavedTime}
-              </span>
-            ) : (
-              <span className="text-gray-400">Ctrl + S để lưu</span>
-            )}
-          </div>
-
-          {/* Thông tin phiên bản & cơ chế lưu Working Draft */}
-          <div className="pt-2 border-t border-[#EBE7DF] text-[10px] text-gray-500 text-center leading-tight">
-            <div className="font-semibold text-gray-700 flex items-center justify-center gap-1">
-              <span>Bản thảo:</span>
-              <span className="font-mono font-bold text-amber-800 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200">
-                v{chapterVersion ?? 0}
-              </span>
+        <aside className="w-full lg:w-48 shrink-0 lg:sticky lg:top-4 space-y-2.5 font-sans">
+          {/* Nhóm 1: Tạo Nhanh Trang & Panel */}
+          <div className="bg-white border border-[#D8D2C5] rounded-xl p-3 shadow-xs space-y-2">
+            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-1">
+              Cấu trúc phân đoạn
             </div>
-            <p className="text-[9px] text-gray-400 mt-1">
-              Writer lưu không tăng version. Chỉ tăng khi gửi Editor duyệt và Editor yêu cầu viết lại.
-            </p>
+
+            <button
+              type="button"
+              disabled={!canEditScript || isChapterLocked}
+              onClick={handleInsertPage}
+              className="flex items-center justify-center gap-1.5 w-full py-2 px-3 rounded-lg text-xs font-bold text-white bg-[#EA580C] hover:bg-[#C2410C] shadow-2xs transition-all disabled:opacity-40 cursor-pointer"
+              title="Chèn Trang mới: # Trang N"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <Layers className="w-3.5 h-3.5" />
+              <span>+ Trang (cam)</span>
+            </button>
+
+            <button
+              type="button"
+              disabled={!canEditScript || isChapterLocked}
+              onClick={() => handleInsertPanel('Cận cảnh')}
+              className="flex items-center justify-center gap-1.5 w-full py-2 px-3 rounded-lg text-xs font-bold text-purple-950 bg-purple-100 hover:bg-purple-200 border border-purple-300 shadow-2xs transition-all disabled:opacity-40 cursor-pointer"
+              title="Chèn Khung hình mới: - Panel X.Y"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <LayoutGrid className="w-3.5 h-3.5" />
+              <span>+ Panel (tím)</span>
+            </button>
+
+            <button
+              type="button"
+              disabled={!canEditScript || isChapterLocked}
+              onClick={handleInsertComicTemplate}
+              className="flex items-center justify-center gap-1.5 w-full py-1.5 px-3 rounded-lg text-xs font-semibold text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-200 transition-all disabled:opacity-40 cursor-pointer"
+              title="Chèn mẫu cấu trúc Trang & Panel"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+              <span>Mẫu truyện</span>
+            </button>
+
+            <button
+              type="button"
+              disabled={!canEditScript || isChapterLocked}
+              onClick={() => setShowAiConvertModal(true)}
+              className="flex items-center justify-center gap-1.5 w-full py-1.5 px-3 rounded-lg text-xs font-bold text-white bg-gradient-to-r from-[#C2410C] to-indigo-700 hover:from-[#9A3412] hover:to-indigo-800 shadow-2xs transition-all disabled:opacity-40 cursor-pointer"
+              title="Chuyển đổi văn bản thô hoặc AI tạo kịch bản"
+            >
+              <Zap className="w-3.5 h-3.5 text-amber-300" />
+              <span>⚡ AI Chuyển đổi</span>
+            </button>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setShowCheatSheet((prev) => !prev)}
-            className={`flex items-center justify-center gap-1 w-full py-1.5 px-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer border ${
-              showCheatSheet
-                ? 'bg-[#FFF2E6] text-[#C2410C] border-[#FDBA74]'
-                : 'bg-white text-stone-600 border-gray-200 hover:text-stone-900'
-            }`}
-            title="Xem bảng hướng dẫn cú pháp gõ Trang & Khung hình"
-          >
-            <HelpCircle className="w-3.5 h-3.5 text-[#C2410C]" />
-            <span>Cú pháp Screenplay</span>
-            {showCheatSheet ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-          </button>
-        </div>
-      </aside>
+          {/* Nhóm 2: Định Dạng Khối (Blocks) */}
+          <div className="bg-white border border-[#D8D2C5] rounded-xl p-3 shadow-xs space-y-1.5">
+            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-1">
+              Khối kịch bản
+            </div>
+
+            <div className="grid grid-cols-1 gap-1">
+              {compactBlockButtons.map(({ type, label, icon: Icon }) => (
+                <button
+                  key={type}
+                  type="button"
+                  disabled={!canEditScript || isChapterLocked}
+                  onClick={() => setBlockType(type)}
+                  className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 w-full text-left ${activeBlockType === type
+                      ? 'bg-amber-600 text-white shadow-2xs font-bold'
+                      : 'bg-white text-gray-700 border border-gray-200/80 hover:border-amber-400 hover:text-amber-700'
+                    } disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer`}
+                >
+                  <Icon className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">{label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Nhóm 3: Lưu & Cú Pháp */}
+          <div className="bg-white border border-[#D8D2C5] rounded-xl p-3 shadow-xs space-y-2">
+            <button
+              type="button"
+              disabled={!hasUnsavedChanges || isSaving || !canEditScript || isChapterLocked}
+              onClick={handleManualSave}
+              title="Lưu kịch bản lên máy chủ (Ctrl + S)"
+              className="flex items-center justify-center gap-1.5 w-full py-2 px-3 rounded-lg text-xs font-bold bg-[#EA580C] text-white hover:bg-[#C2410C] shadow-2xs transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+            >
+              <Save className="w-3.5 h-3.5" />
+              <span>{isSaving ? 'Đang lưu...' : 'Lưu kịch bản'}</span>
+            </button>
+
+            {/* Trạng thái lưu gọn */}
+            <div className="text-[11px] text-center font-mono py-0.5">
+              {isSaving ? (
+                <span className="text-amber-600 font-medium">Đang lưu...</span>
+              ) : hasUnsavedChanges ? (
+                <span className="text-amber-700 font-medium flex items-center justify-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" /> Chưa lưu (Ctrl+S)
+                </span>
+              ) : lastSavedTime ? (
+                <span className="text-emerald-600 flex items-center justify-center gap-1">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-500" /> Đã lưu {lastSavedTime}
+                </span>
+              ) : (
+                <span className="text-gray-400">Ctrl + S để lưu</span>
+              )}
+            </div>
+
+            {/* Thông tin phiên bản & cơ chế lưu Working Draft */}
+            <div className="pt-2 border-t border-[#EBE7DF] text-[10px] text-gray-500 text-center leading-tight">
+              <div className="font-semibold text-gray-700 flex items-center justify-center gap-1">
+                <span>Bản thảo:</span>
+                <span className="font-mono font-bold text-amber-800 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200">
+                  v{chapterVersion ?? 0}
+                </span>
+              </div>
+              <p className="text-[9px] text-gray-400 mt-1">
+                Writer lưu không tăng version. Chỉ tăng khi gửi Editor duyệt và Editor yêu cầu viết lại.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowCheatSheet((prev) => !prev)}
+              className={`flex items-center justify-center gap-1 w-full py-1.5 px-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer border ${showCheatSheet
+                  ? 'bg-[#FFF2E6] text-[#C2410C] border-[#FDBA74]'
+                  : 'bg-white text-stone-600 border-gray-200 hover:text-stone-900'
+                }`}
+              title="Xem bảng hướng dẫn cú pháp gõ Trang & Khung hình"
+            >
+              <HelpCircle className="w-3.5 h-3.5 text-[#C2410C]" />
+              <span>Cú pháp Screenplay</span>
+              {showCheatSheet ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+            </button>
+          </div>
+        </aside>
       )}
 
       {/* 4. MODAL SMART CONVERT & AI BIÊN KỊCH */}

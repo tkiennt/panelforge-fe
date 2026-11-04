@@ -74,3 +74,5 @@ blob-report/
 
 # Local third-party agent skill (14MB SVG library)
 .agents/skills/logo-design/
+
+e2e/screenshots/

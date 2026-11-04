@@ -364,7 +364,7 @@ test.describe('E2E: Kịch Bản Phân Cảnh & Trải Nghiệm Soạn Thảo (S
 
     // 6. Chụp ảnh màn hình bằng chứng trải nghiệm soạn kịch bản mượt mà
     await page.screenshot({
-      path: 'playwright-report/script-editor-typing-experience.png',
+      path: 'C:/Users/ASUS/.gemini/antigravity/brain/2daf86cc-4914-4b16-9509-f37be441782b/script-editor-typing-experience.png',
       fullPage: true,
     });
   });

@@ -1,4 +1,5 @@
 // src/roles/writer/components/script/flow/scriptFlowAdapter.ts
+import { Selection } from '@tiptap/pm/state';
 import { SceneDetailDto, NarrationMode } from '@/services/scriptLine.service';
 import { PageDto } from '@/services/page.service';
 import { PanelDto } from '@/types/pipeline';
@@ -46,7 +47,7 @@ export function renumberTipTapDoc(doc: any): any {
         existingText = block.content.map((c: any) => c.text || '').join('').trim();
       }
       // Giữ lại phần ghi chú sau dấu : hoặc - nếu có
-      const noteMatch = existingText.match(/^(?:#\s*)?(?:Page|Trang)?\s*\d*(?:\.\d+)?(?:\s*[:\-]\s*(.*))?$/i);
+      const noteMatch = existingText.match(/^(?:[!#\s]*)?(?:Page|Trang)?\s*\d*(?:\.\d+)?(?:\s*[:\-]\s*(.*))?$/i);
       const note = noteMatch && noteMatch[1] ? `: ${noteMatch[1].trim()}` : '';
       block.content = [{ type: 'text', text: `TRANG ${pageCounter}${note}` }];
     } else if (bType === 'panel_heading') {
@@ -59,7 +60,7 @@ export function renumberTipTapDoc(doc: any): any {
       if (block.content && Array.isArray(block.content)) {
         existingText = block.content.map((c: any) => c.text || '').join('').trim();
       }
-      const noteMatch = existingText.match(/^(?:-\s*)?(?:Panel|Khung)?\s*\d*(?:\.\d+)?(?:\s*[:\-]\s*(.*))?$/i);
+      const noteMatch = existingText.match(/^(?:[-"”#\s]*)?(?:Panel|Khung)?\s*\d*(?:\.\d+)?(?:\s*[:\-]\s*(.*))?$/i);
       const note = noteMatch && noteMatch[1] ? `: ${noteMatch[1].trim()}` : '';
       block.content = [{ type: 'text', text: `PANEL ${pNum}.${panelCounter}${note}` }];
     } else if (bType !== 'scene_heading') {
@@ -75,21 +76,25 @@ export function renumberTipTapDoc(doc: any): any {
 /**
  * Đánh số lại trực tiếp trên Editor mà không làm phát sinh sự kiện lặp vòng
  */
-export function renumberEditorState(editor: any): boolean {
+export function renumberEditorState(editor: any, preferredPos?: number): boolean {
   if (!editor || !editor.state || !editor.commands) return false;
   const currentJson = editor.getJSON();
   const renumberedJson = renumberTipTapDoc(currentJson);
   if (JSON.stringify(currentJson) !== JSON.stringify(renumberedJson)) {
     const sel = editor.state.selection;
-    const from = sel?.from ?? 0;
-    const to = sel?.to ?? 0;
+    const from = typeof preferredPos === 'number' ? preferredPos : (sel?.from ?? 1);
+    const to = typeof preferredPos === 'number' ? preferredPos : (sel?.to ?? 1);
     editor.commands.setContent(renumberedJson, { emitUpdate: false });
     try {
       const maxPos = editor.state.doc.content.size;
-      editor.commands.setTextSelection({
-        from: Math.min(from, maxPos),
-        to: Math.min(to, maxPos),
-      });
+      if (maxPos > 2) {
+        const safeFrom = Math.max(1, Math.min(from, maxPos - 1));
+        const safeTo = Math.max(1, Math.min(to, maxPos - 1));
+        editor.commands.setTextSelection({ from: safeFrom, to: safeTo });
+      }
+    } catch {}
+    try {
+      editor.commands.focus();
     } catch {}
     return true;
   }
@@ -274,7 +279,7 @@ export function scenesToTipTapDoc(
         // 1. Chỉ dẫn sân khấu / Tiêu đề trang / Panel / Tên nhân vật đứng riêng
         if (line.stageDirection) {
           const trimmed = line.stageDirection.trim();
-          let detectedType: MangaBlockType = 'caption';
+          let detectedType: MangaBlockType = 'stage_direction';
           if (/^(?:[#!]\s*(?:Trang|Page)?\s*\d+(?:\.\d+)?|(?:Trang|Page)\s+\d+(?:\.\d+)?)/i.test(trimmed)) {
             detectedType = 'page_heading';
           } else if (/^(?:(?:[-"”]\s*)?(?:Panel|Khung)\s*\d+(?:\.\d+)?|[-"”]\s*\d+(?:\.\d+)?|#panel\s*\d+(?:\.\d+)?)/i.test(trimmed)) {
@@ -643,7 +648,12 @@ export function extractScriptLinesFromDoc(doc: any, defaultSceneId: string): Ext
         panelNumber: currentPanelNumber,
       });
       currentSpeakerId = null;
-    } else if (effectiveBlockType === 'sfx' || effectiveBlockType === 'stage_direction' || effectiveBlockType === 'transition') {
+    } else if (
+      effectiveBlockType === 'sfx' ||
+      effectiveBlockType === 'stage_direction' ||
+      effectiveBlockType === 'transition' ||
+      effectiveBlockType === 'caption'
+    ) {
       results.push({
         scriptLineId: attrs.scriptLineId || generateGuid(),
         sceneId: attrs.sceneId || currentSceneId,

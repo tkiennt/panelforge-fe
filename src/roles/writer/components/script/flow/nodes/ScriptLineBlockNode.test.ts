@@ -130,28 +130,32 @@ describe('ScriptLineBlockNode - Keyboard Triggers (Tab & Space)', () => {
       '<div data-block-type="page_heading">Trang 01</div><div data-block-type="page_heading">Trang 02</div>'
     );
     // Đặt con trỏ vào đầu khối Trang 02 (sau Trang 01)
-    const jsonBefore = editor.getJSON();
-    const posTrang2 = (jsonBefore.content?.[0] as any)?.content?.[0]?.text?.length + 3; // vị trí đầu trang 2
+    const posTrang2 = editor.state.doc.child(0).nodeSize + 1;
     editor.commands.setTextSelection(posTrang2);
 
     const handled = editor.commands.keyboardShortcut('Backspace');
     expect(handled).toBe(true);
 
     const json = editor.getJSON();
-    expect(json.content?.length).toBe(1);
-    expect(json.content?.[0]?.attrs?.blockType).toBe('page_heading');
-    expect((json.content?.[0] as any)?.content?.[0]?.text).toContain('Trang 01');
+    const scriptBlocks = json.content?.filter((n) => n.type === 'scriptLineBlock') || [];
+    expect(scriptBlocks.length).toBe(1);
+    expect(scriptBlocks[0]?.attrs?.blockType).toBe('page_heading');
+    expect((scriptBlocks[0] as any)?.content?.[0]?.text).toContain('Trang 01');
+    expect(json.content?.some((n) => (n as any)?.content?.[0]?.text?.includes('Trang 02'))).toBe(false);
   });
 
   it('cho phép xóa panel_heading khi nhấn Backspace ở đầu khối', () => {
-    const editor = createTestFlowEditor('<div data-block-type="panel_heading">Panel 1.1</div>');
-    editor.commands.setTextSelection(1);
+    const editor = createTestFlowEditor(
+      '<div data-block-type="page_heading">Trang 01</div><div data-block-type="panel_heading">Panel 1.1</div>'
+    );
+    const posPanel = editor.state.doc.child(0).nodeSize + 1;
+    editor.commands.setTextSelection(posPanel);
 
     const handled = editor.commands.keyboardShortcut('Backspace');
     expect(handled).toBe(true);
 
     const json = editor.getJSON();
-    expect(json.content?.length).toBe(0);
+    expect(json.content?.some((n) => n.attrs?.blockType === 'panel_heading')).toBe(false);
   });
 
   describe('Auto-Increment & Enter Rules in ScriptLineBlockNode', () => {

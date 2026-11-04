@@ -80,5 +80,17 @@ describe('comicCounting - Look-behind Page & Panel Calculation', () => {
 
     // Ngay sau Trang 2, panel phải reset về Panel 2.1
     expect(getNextPanelNumber(mockDocPage2, 200)).toEqual({ pageNum: 2, panelNum: 1 });
+
+    // Khi con trỏ đang nằm NGAY TẠI tiêu đề Trang 3 (pos = 30), panel tiếp theo phải là Panel 3.1 (không bị lùi về Trang 2)
+    const nodesWithPage3 = [
+      ...nodesWithPage2,
+      { type: { name: 'scriptLineBlock' }, attrs: { blockType: 'page_heading', pageNumber: '3' }, textContent: 'Trang 03' },
+    ];
+    const mockDocPage3 = {
+      descendants: (cb: any) => {
+        nodesWithPage3.forEach((n, idx) => cb(n, idx * 10)); // Trang 3 nằm tại pos = 40
+      },
+    };
+    expect(getNextPanelNumber(mockDocPage3, 40)).toEqual({ pageNum: 3, panelNum: 1 });
   });
 });
