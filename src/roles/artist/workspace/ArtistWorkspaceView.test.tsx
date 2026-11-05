@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
+import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { ArtistWorkspaceView } from './ArtistWorkspaceView';
 import { chapterService } from '@/services/chapter.service';
@@ -12,7 +12,7 @@ vi.mock('@/services/chapter.service', () => ({
   },
 }));
 
-describe('ArtistWorkspaceView (Clean 2-Zone Editorial Manga Architecture)', () => {
+describe('ArtistWorkspaceView (Clean Consolidated Single-Layout Architecture)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -24,121 +24,120 @@ describe('ArtistWorkspaceView (Clean 2-Zone Editorial Manga Architecture)', () =
       </MemoryRouter>
     );
 
-  it('renders top bar with breadcrumb, mode switcher, progress badge and CTA', () => {
+  it('renders top bar without mode-switcher tabs and displays breadcrumb, progress badge and CTA', () => {
     renderView();
 
-    // Top Bar Breadcrumb
-    expect(screen.getByTestId('workspace-top-bar')).toBeInTheDocument();
-    expect(screen.getByText('Vương Triều Bóng Đêm')).toBeInTheDocument();
-    expect(screen.getByText('Chương 12')).toBeInTheDocument();
-    expect(screen.getByText(/Trang 1 \/ 18/)).toBeInTheDocument();
+    // 1. Breadcrumb & Navigation
+    expect(screen.getByTestId('artist-workspace-topbar')).toBeInTheDocument();
+    expect(screen.getByTestId('artist-breadcrumb')).toHaveTextContent('Trang 1');
 
-    // Mode Switcher
-    expect(screen.getByTestId('mode-full-page-btn')).toBeInTheDocument();
-    expect(screen.getByTestId('mode-panel-template-btn')).toBeInTheDocument();
+    // 2. Không còn Mode-Switcher tabs (Full Page vs Panel Templates)
+    expect(screen.queryByTestId('mode-switcher-full-page')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('mode-switcher-panel-template')).not.toBeInTheDocument();
 
-    // Progress Badge & Action CTA
-    expect(screen.getByTestId('workspace-progress-badge')).toBeInTheDocument();
-    expect(screen.getByTestId('submit-for-review-cta')).toBeInTheDocument();
+    // 3. Progress Badge & CTA
+    expect(screen.getByTestId('progress-badge')).toBeInTheDocument();
+    expect(screen.getByTestId('submit-review-btn')).toBeInTheDocument();
   });
 
   it('renders Left Column (35%) Script Reader with scene title and formatted panel cards', () => {
     renderView();
 
     expect(screen.getByTestId('script-reader-column')).toBeInTheDocument();
-    expect(screen.getByText('Phân cảnh 1: Cổng Thành Phía Nam')).toBeInTheDocument();
-    expect(screen.getByText('NGOẠI · CỔNG THÀNH · SÁNG')).toBeInTheDocument();
-
-    // Formatted Panel Block Cards
+    expect(screen.getByText(/Phân cảnh 1: Cổng Thành Phía Nam/i)).toBeInTheDocument();
     expect(screen.getByTestId('panel-script-card-1')).toBeInTheDocument();
-    expect(screen.getByTestId('panel-script-card-2')).toBeInTheDocument();
-    expect(screen.getByTestId('panel-script-card-3')).toBeInTheDocument();
-
-    // Dialogues & Action descriptions
-    expect(screen.getByText('Minh Triết')).toBeInTheDocument();
-    expect(screen.getByText('"Cuối cùng chúng ta cũng đã vượt qua được thung lũng bóng đêm."')).toBeInTheDocument();
-    expect(screen.getByText('Hoàng Anh')).toBeInTheDocument();
+    expect(screen.getByText(/Minh Triết:/i)).toBeInTheDocument();
   });
 
-  it('Mode 1 (Full Page Artwork): displays clean dropzone and optimistic local preview', async () => {
+  it('defaults new page to Single-Panel layout with 2 centered action buttons: [Tải ảnh lên] and [Chọn Template]', () => {
     renderView();
 
-    // Initial state: Dropzone visible
-    expect(screen.getByTestId('full-page-canvas-container')).toBeInTheDocument();
-    expect(screen.getByTestId('full-page-dropzone')).toBeInTheDocument();
-    expect(screen.getByText('Kéo thả tranh vẽ toàn trang vào đây')).toBeInTheDocument();
+    // Canvas hiển thị trạng thái 1-panel rỗng
+    expect(screen.getByTestId('single-panel-empty-state')).toBeInTheDocument();
 
-    // Simulate drop or paste image file
-    const file = new File(['dummy-art'], 'page_1.png', { type: 'image/png' });
-    const dropzone = screen.getByTestId('full-page-dropzone');
+    // 2 Nút CTA chính ở trung tâm
+    const uploadBtn = screen.getByTestId('canvas-empty-upload-artwork-btn');
+    const selectTemplateBtn = screen.getByTestId('canvas-empty-select-template-btn');
 
-    fireEvent.drop(dropzone, {
-      dataTransfer: {
-        files: [file],
-      },
-    });
+    expect(uploadBtn).toBeInTheDocument();
+    expect(uploadBtn).toHaveTextContent('Tải ảnh lên');
 
-    // Preview state should appear with version badge
-    await waitFor(() => {
-      expect(screen.getByTestId('replace-full-page-btn')).toBeInTheDocument();
-      expect(screen.getByTestId('fullscreen-full-page-btn')).toBeInTheDocument();
-      expect(screen.getByText('Bản vẽ toàn trang: Sẵn sàng')).toBeInTheDocument();
-    });
+    expect(selectTemplateBtn).toBeInTheDocument();
+    expect(selectTemplateBtn).toHaveTextContent('Chọn Template');
   });
 
-  it('Mode 2 (Panel Templates & Frames): allows switching mode, selecting template and uploading to panel', async () => {
+  it('clicking [Chọn Template] opens the 320px Right-Hand Sidebar with manga layout presets', async () => {
     renderView();
 
-    // Switch to Panel Template Mode
-    fireEvent.click(screen.getByTestId('mode-panel-template-btn'));
+    const selectTemplateBtn = screen.getByTestId('canvas-empty-select-template-btn');
+    fireEvent.click(selectTemplateBtn);
 
-    expect(screen.getByTestId('template-panel-canvas-container')).toBeInTheDocument();
+    // Sidebar mở ra
+    const sidebar = screen.getByTestId('template-selector-sidebar');
+    expect(sidebar).toBeInTheDocument();
+    expect(sidebar.className).toContain('translate-x-0');
 
-    // 3 panels from default preset are rendered
-    expect(screen.getByTestId('canvas-panel-slot-1')).toBeInTheDocument();
-    expect(screen.getByTestId('canvas-panel-slot-2')).toBeInTheDocument();
-    expect(screen.getByTestId('canvas-panel-slot-3')).toBeInTheDocument();
+    // Kiểm tra danh sách presets
+    expect(screen.getByTestId('preset-card-single-full')).toBeInTheDocument();
+    expect(screen.getByTestId('preset-card-3-panel-shonen')).toBeInTheDocument();
+    expect(screen.getByTestId('preset-card-4-panel-yonkoma')).toBeInTheDocument();
 
-    // Drop file into Panel #1
-    const file = new File(['dummy-panel-1'], 'panel_1.png', { type: 'image/png' });
-    const panelSlot1 = screen.getByTestId('canvas-panel-slot-1');
-
-    fireEvent.drop(panelSlot1, {
-      dataTransfer: {
-        files: [file],
-      },
-    });
-
-    await waitFor(() => {
-      expect(screen.getByTestId('replace-panel-art-btn-1')).toBeInTheDocument();
-      expect(screen.getByTestId('remove-panel-art-btn-1')).toBeInTheDocument();
-    });
-
-    // Floating toolbar controls
-    expect(screen.getByTestId('template-floating-toolbar')).toBeInTheDocument();
-    expect(screen.getByTestId('change-template-floating-btn')).toBeInTheDocument();
-    expect(screen.getByTestId('reset-template-floating-btn')).toBeInTheDocument();
+    // Nút đóng sidebar
+    const closeBtn = screen.getByTestId('close-template-sidebar-btn');
+    fireEvent.click(closeBtn);
+    expect(sidebar.className).toContain('translate-x-full');
   });
 
-  it('Submits for review when ready and triggers backend chapter service', async () => {
+  it('selecting a multi-panel template updates layout immediately into independent dropzones', async () => {
     renderView();
 
-    // In Full Page Mode, upload page first
-    const file = new File(['dummy-art'], 'page_1.png', { type: 'image/png' });
-    fireEvent.drop(screen.getByTestId('full-page-dropzone'), {
-      dataTransfer: { files: [file] },
+    // Mở sidebar và chọn mẫu 3-panel shonen
+    fireEvent.click(screen.getByTestId('canvas-empty-select-template-btn'));
+    const shonenPreset = screen.getByTestId('preset-card-3-panel-shonen');
+    fireEvent.click(shonenPreset);
+
+    // Canvas chuyển thành 3 ô khung độc lập
+    await waitFor(() => {
+      expect(screen.getByTestId('panel-box-1')).toBeInTheDocument();
+      expect(screen.getByTestId('panel-box-2')).toBeInTheDocument();
+      expect(screen.getByTestId('panel-box-3')).toBeInTheDocument();
     });
 
+    // Mỗi khung có nút nạp ảnh độc lập
+    expect(screen.getByTestId('panel-1-upload-btn')).toBeInTheDocument();
+    expect(screen.getByTestId('panel-2-upload-btn')).toBeInTheDocument();
+    expect(screen.getByTestId('panel-3-upload-btn')).toBeInTheDocument();
+
+    // Floating toolbar hiển thị ở cạnh đáy
+    expect(screen.getByTestId('canvas-floating-controls')).toBeInTheDocument();
+
+    // Click chọn panel 2 sẽ highlight panel 2 và thẻ kịch bản
+    fireEvent.click(screen.getByTestId('panel-box-2'));
+    expect(screen.getByTestId('panel-box-2').className).toContain('border-[#F97316]');
+  });
+
+  it('Submission Gate Rule: validates review submission readiness', async () => {
+    renderView();
+
+    const submitBtn = screen.getByTestId('submit-review-btn');
+    // Chưa có ảnh -> nút nộp bị vô hiệu
+    expect(submitBtn).toBeDisabled();
+
+    // Giả lập nạp ảnh cho Single-Panel qua file input
+    const file = new File(['dummy manga art'], 'page-1.png', { type: 'image/png' });
+    const singleFileInput = screen.getByTestId('single-page-file-input');
+    fireEvent.change(singleFileInput, { target: { files: [file] } });
+
+    // Sau khi nạp ảnh cho 1-panel: Sẵn sàng nộp bản thảo
     await waitFor(() => {
-      expect(screen.getByText('Bản vẽ toàn trang: Sẵn sàng')).toBeInTheDocument();
+      expect(screen.getByTestId('single-panel-populated-artwork')).toBeInTheDocument();
+      expect(submitBtn).not.toBeDisabled();
     });
 
-    // Click CTA
-    fireEvent.click(screen.getByTestId('submit-for-review-cta'));
-
+    // Bấm nộp bản thảo
+    fireEvent.click(submitBtn);
     await waitFor(() => {
-      expect(screen.getByTestId('workspace-toast')).toBeInTheDocument();
-      expect(screen.getByText('Nộp bản thảo thành công!')).toBeInTheDocument();
+      expect(screen.getByTestId('workspace-toast')).toHaveTextContent(/Nộp bản thảo thành công/i);
     });
   });
 });

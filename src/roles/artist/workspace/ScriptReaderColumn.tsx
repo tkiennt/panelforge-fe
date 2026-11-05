@@ -52,7 +52,8 @@ export const ScriptReaderColumn: React.FC<ScriptReaderColumnProps> = ({
         ) : (
           panels.map((panel) => {
             const isSelected = selectedPanelNumber === panel.panelNumber;
-            const hasArtwork = Boolean(panel.artwork?.previewUrl);
+            const artworkUrl = panel.artwork?.imageUrl || panel.artwork?.thumbnailUrl;
+            const hasArtwork = Boolean(artworkUrl);
 
             return (
               <div
@@ -71,7 +72,7 @@ export const ScriptReaderColumn: React.FC<ScriptReaderColumnProps> = ({
                   <div className='w-[60px] h-[60px] rounded-lg overflow-hidden shrink-0 border border-stone-200 bg-stone-50 flex items-center justify-center relative'>
                     {hasArtwork ? (
                       <img
-                        src={panel.artwork!.previewUrl!}
+                        src={artworkUrl!}
                         alt={`Khung #${panel.panelNumber}`}
                         className='w-full h-full object-cover'
                       />
@@ -96,60 +97,57 @@ export const ScriptReaderColumn: React.FC<ScriptReaderColumnProps> = ({
                           isSelected ? 'text-[#F97316]' : 'text-[#171717]'
                         }`}
                       >
-                        Khung #{panel.panelNumber}
+                        KHUNG #{panel.panelNumber}
                       </span>
-                      <span className='text-[10px] font-mono text-stone-400'>
-                        Thứ tự #{panel.readingOrder}
+                      <span
+                        className={`px-1.5 py-0.5 rounded text-[10px] font-medium border ${
+                          hasArtwork
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200/60'
+                            : 'bg-stone-50 text-stone-400 border-stone-200/60'
+                        }`}
+                      >
+                        {hasArtwork ? 'Đã có tranh' : 'Chờ vẽ'}
                       </span>
                     </div>
 
-                    <div className='mt-1 flex items-center gap-1 text-[11px] text-stone-500'>
-                      {hasArtwork ? (
-                        <span className='inline-flex items-center gap-1 text-emerald-600 font-medium'>
-                          <span className='w-1.5 h-1.5 rounded-full bg-emerald-500' />
-                          Đã có tranh
-                        </span>
-                      ) : (
-                        <span className='text-stone-400 italic'>Chưa nạp tranh</span>
-                      )}
-                    </div>
+                    <p className='text-[11px] text-stone-400 mt-0.5 font-mono'>
+                      Thứ tự đọc: {panel.readingOrder || panel.panelNumber}
+                    </p>
                   </div>
                 </div>
 
-                {/* Nội dung kịch bản của khung */}
-                <div className='space-y-2'>
+                {/* Body thẻ: Chỉ dẫn hành động (Action) & Thoại nhân vật (Dialogue) */}
+                <div className='space-y-2 text-xs leading-relaxed'>
                   {panel.scriptLines.length === 0 ? (
-                    <p className='text-xs text-stone-400 italic font-serif'>
-                      (Chưa có chỉ dẫn cụ thể cho khung này)
+                    <p className='text-stone-400 italic text-[11px]'>
+                      Chưa có chỉ dẫn hay lời thoại cho khung này.
                     </p>
                   ) : (
                     panel.scriptLines.map((line) => (
                       <div key={line.id} className='space-y-1'>
-                        {/* 1. Chỉ dẫn hành động / Bối cảnh */}
+                        {/* Chỉ dẫn hành động (Action/Direction) - Font thẳng, sắc nét */}
                         {line.stageDirection && (
-                          <p className='text-xs text-stone-700 italic font-serif leading-relaxed'>
+                          <div className='text-stone-700 font-sans text-xs bg-stone-50/70 p-2 rounded-lg border border-stone-200/50'>
+                            <span className='font-semibold text-stone-500 text-[10px] uppercase tracking-wide block mb-0.5'>
+                              Hành động:
+                            </span>
                             {line.stageDirection}
-                          </p>
+                          </div>
                         )}
 
-                        {/* 2. Lời thoại nhân vật */}
+                        {/* Lời thoại nhân vật (Dialogue) */}
                         {line.dialogueText && (
-                          <div className='pl-2.5 border-l-2 border-stone-200 py-0.5 mt-1'>
-                            {line.characterName && (
-                              <div className='flex items-center gap-1.5 mb-0.5'>
-                                <span
-                                  className='w-2 h-2 rounded-full shrink-0'
-                                  style={{
-                                    backgroundColor: line.characterColor || '#F97316',
-                                  }}
-                                />
-                                <span className='text-[11px] font-bold text-[#171717] tracking-wide'>
-                                  {line.characterName}
-                                </span>
-                              </div>
-                            )}
-                            <p className='text-xs text-[#171717] font-sans leading-relaxed'>
-                              "{line.dialogueText}"
+                          <div className='pl-2 border-l-2 border-[#F97316] py-0.5 space-y-0.5'>
+                            <div className='flex items-center gap-1.5'>
+                              <span
+                                className='font-bold text-xs'
+                                style={{ color: line.characterColor || '#171717' }}
+                              >
+                                {line.characterName || 'Nhân vật'}:
+                              </span>
+                            </div>
+                            <p className='text-stone-800 text-xs italic font-serif'>
+                              &ldquo;{line.dialogueText}&rdquo;
                             </p>
                           </div>
                         )}

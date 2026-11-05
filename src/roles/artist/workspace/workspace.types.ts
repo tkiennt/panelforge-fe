@@ -1,5 +1,3 @@
-export type WorkspaceMode = 'full-page' | 'panel-template';
-
 export interface ScriptLineData {
   id: string;
   lineOrder: number;
@@ -10,13 +8,20 @@ export interface ScriptLineData {
   stageDirection?: string;
 }
 
-export interface PanelArtworkData {
-  panelNumber: number;
-  file?: File | null;
+export interface PanelArtwork {
+  panelId: string;
+  panelIndex: number;
+  imageUrl?: string;
+  thumbnailUrl?: string;
   previewUrl?: string | null;
   version?: string;
+  file?: File | null;
   updatedAt?: string;
+  isUploaded?: boolean;
 }
+
+// Alias tương thích ngược cho FullPageCanvas cũ
+export type PageArtworkState = PanelArtwork;
 
 export interface PanelBlockData {
   id: string;
@@ -27,23 +32,26 @@ export interface PanelBlockData {
   y: number;
   width: number;
   height: number;
-  artwork?: PanelArtworkData;
+  artwork?: PanelArtwork;
   scriptLines: ScriptLineData[];
 }
 
-export interface PageArtworkState {
-  file?: File | null;
-  previewUrl?: string | null;
-  version?: string;
-  isUploaded?: boolean;
+export interface PageLayoutState {
+  pageId: string;
+  pageNumber: number;
+  templateId: string; // 'single-full' by default
+  isFullPageUpload: boolean;
+  panels: PanelArtwork[];
 }
 
 export interface FramePresetTemplate {
   id: string;
   name: string;
+  category?: 'Kinh điển' | 'Hành động' | 'Đại cảnh' | 'Truyền thống';
   description: string;
   panelCount: number;
-  previewGrid: string; // SVG path or CSS grid representation
+  badge?: string;
+  previewGrid?: string;
   panels: Array<{
     panelNumber: number;
     x: number;
