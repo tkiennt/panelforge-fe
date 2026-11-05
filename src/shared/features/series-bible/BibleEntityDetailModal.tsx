@@ -1169,454 +1169,128 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
           </div>
         ) : null}
 
-        {/* ================= LEVEL 1: NARRATIVE ERA SELECTOR (TOP HORIZONTAL BAR) ================= */}
-        <section
-          className='bg-white/80 backdrop-blur-xs border border-[#E7E5E4] rounded-2xl p-3 shadow-2xs flex flex-wrap items-center justify-between gap-3'
-          data-testid='era-stages-selector'
-        >
-          <div className='flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 custom-scrollbar'>
-            {stages.map((stage) => {
-              const isActive = selectedStageKey === stage.stageKey;
-              return (
-                <button
-                  key={stage.stageKey}
-                  type='button'
-                  onClick={() => {
-                    setSelectedStageKey(stage.stageKey);
-                    setSelectedVersionId(null);
-                  }}
-                  className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
-                    isActive
-                      ? 'bg-[#FFF7ED] text-[#EA580C] border-2 border-[#F97316] shadow-xs'
-                      : 'bg-white text-stone-600 border border-stone-200 hover:border-stone-400 hover:text-stone-900'
-                  }`}
-                  data-testid={`era-tab-${stage.stageKey}`}
-                >
-                  <span>{getStageIcon(stage.stageName, entity.category)}</span>
-                  <span>{stage.stageName}</span>
-                  <span
-                    className={`font-mono text-xs px-2 py-0.5 rounded-full ${
-                      isActive ? 'bg-[#FFEDD5] text-[#C2410C]' : 'bg-stone-100 text-stone-500'
-                    }`}
-                  >
-                    Ch.{stage.effectiveFromChapterNumber}
-                    {stage.effectiveToChapterNumber ? `–${stage.effectiveToChapterNumber}` : '+'}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-          {canCreateDraft && (
-            <button
-              type='button'
-              onClick={() => {
-                onOpenAddRevision(entity, null, false, undefined, undefined, false, true);
-              }}
-              data-testid='add-new-era-btn'
-              className='inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white text-xs sm:text-sm font-bold rounded-xl transition-all cursor-pointer shadow-sm hover:shadow active:scale-[0.98] ml-auto shrink-0'
-              title='Tạo thời kỳ hoặc hình thái cốt truyện mới'
-            >
-              <Plus className='w-3.5 h-3.5' />
-              <span>+ Thêm Thời Kỳ Mới</span>
-            </button>
-          )}
-        </section>
-
-        {/* ================= LEVEL 2: SPLIT WORKBENCH WORKSPACE (2 COLUMNS) ================= */}
-        <div className='grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 items-start'>
-          {/* ================= LEFT COLUMN (COL-SPAN 7): SPECS & MODEL SHEET CANVAS ================= */}
-          <section className='lg:col-span-7 space-y-4'>
-            {/* CARD 1: DYNAMIC CATEGORY SPECIFICATIONS (NO MOCK FALLBACKS) */}
-            <div className='bg-[#FCFBF8] border border-stone-200 rounded-2xl p-4 sm:p-5 shadow-xs space-y-3.5'>
+        {/* ================= 3-COLUMN WORKBENCH: THỜI KỲ (3) - ARTWORK (6) - THÔNG TIN (3) ================= */}
+        <div className='grid grid-cols-1 lg:grid-cols-12 gap-4 items-start'>
+          {/* ================= COLUMN 1: THỜI KỲ & GIAI ĐOẠN (COL-SPAN 3) ================= */}
+          <section className='lg:col-span-3 space-y-3' data-testid='era-stages-selector'>
+            <div className='bg-[#FCFBF8] border border-stone-200 rounded-2xl p-3.5 sm:p-4 shadow-xs space-y-3'>
               <div className='flex items-center justify-between pb-2.5 border-b border-stone-200/80'>
                 <div className='font-bold text-xs sm:text-sm text-[#1C1917] flex items-center gap-2'>
-                  <span>{card1Title}</span>
+                  <Layers className='w-4 h-4 text-[#F97316]' />
+                  <span>Thời kỳ &amp; Giai đoạn</span>
                 </div>
-                <div className='flex items-center gap-2'>
-                  <span className='text-xs font-mono text-stone-400'>
-                    Ch.{activeStage?.effectiveFromChapterNumber ?? 1}
-                    {activeStage?.effectiveToChapterNumber
-                      ? `–${activeStage.effectiveToChapterNumber}`
-                      : '+'}
+                <span className='text-[11px] font-mono font-semibold px-2 py-0.5 rounded-full bg-stone-100 text-stone-600'>
+                  {stages.length} thời kỳ
+                </span>
+              </div>
+
+              {canCreateDraft && (
+                <button
+                  type='button'
+                  onClick={() => {
+                    onOpenAddRevision(entity, null, false, undefined, undefined, false, true);
+                  }}
+                  data-testid='add-new-era-btn'
+                  className='w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-xs active:scale-[0.98]'
+                  title='Tạo thời kỳ hoặc hình thái cốt truyện mới'
+                >
+                  <Plus className='w-3.5 h-3.5' />
+                  <span>+ Thêm Thời Kỳ Mới</span>
+                </button>
+              )}
+
+              {/* Vertical list of era stages */}
+              <div className='space-y-2 max-h-[calc(100vh-320px)] overflow-y-auto custom-scrollbar pr-0.5'>
+                {stages.map((stage) => {
+                  const isActive = selectedStageKey === stage.stageKey;
+                  return (
+                    <div
+                      key={stage.stageKey}
+                      onClick={() => {
+                        setSelectedStageKey(stage.stageKey);
+                        setSelectedVersionId(null);
+                      }}
+                      data-testid={`era-tab-${stage.stageKey}`}
+                      className={`p-3 rounded-xl border transition-all cursor-pointer space-y-1.5 ${
+                        isActive
+                          ? 'bg-[#FFF7ED] text-[#EA580C] border-2 border-[#F97316] shadow-xs'
+                          : 'bg-white text-stone-700 border-stone-200 hover:border-stone-400 hover:bg-stone-50/60'
+                      }`}
+                    >
+                      <div className='flex items-center justify-between gap-1.5'>
+                        <div className='flex items-center gap-1.5 min-w-0 font-semibold text-xs sm:text-sm'>
+                          <span>{getStageIcon(stage.stageName, entity.category)}</span>
+                          <span className='truncate'>{stage.stageName}</span>
+                        </div>
+                        {stage.isLocked ? (
+                          <span className='text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-200 shrink-0'>
+                            🔒 Canon
+                          </span>
+                        ) : (
+                          <span className='text-[10px] font-medium px-1.5 py-0.5 rounded bg-stone-100 text-stone-600 shrink-0'>
+                            Bản nháp
+                          </span>
+                        )}
+                      </div>
+
+                      <div className='flex items-center justify-between text-xs text-stone-500'>
+                        <span className='font-mono font-medium text-[11px] bg-stone-100 px-2 py-0.5 rounded-full'>
+                          Ch.{stage.effectiveFromChapterNumber}
+                          {stage.effectiveToChapterNumber ? `–${stage.effectiveToChapterNumber}` : '+'}
+                        </span>
+                        <span className='text-[11px] text-stone-400'>
+                          {stage.revisions.length} phiên bản
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+
+          {/* ================= COLUMN 2: HERO ARTWORK & MODEL SHEET (COL-SPAN 6) ================= */}
+          <section className='lg:col-span-6 space-y-3.5'>
+            <div className='bg-[#FCFBF8] border border-stone-200 rounded-2xl p-4 sm:p-5 shadow-xs space-y-3'>
+              {/* Artwork Header: Tab Turnaround vs Action / Expressions + Zoom button */}
+              <div className='flex items-center justify-between pb-2 border-b border-stone-200/80'>
+                <div className='flex items-center gap-2 min-w-0'>
+                  <Palette className='w-4 h-4 text-[#F97316] shrink-0' />
+                  <span className='font-bold text-xs sm:text-sm text-[#1C1917] truncate'>
+                    {visualCardInfo.title}
                   </span>
-                  {canCreateDraft && (
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${visualCardInfo.badgeStyle}`}>
+                    {visualCardInfo.badge}
+                  </span>
+                </div>
+
+                <div className='flex items-center gap-2 shrink-0'>
+                  <div className='flex bg-stone-100 p-0.5 rounded-xl border border-stone-200'>
                     <button
                       type='button'
-                      onClick={() => onOpenAddRevision(entity, activeRevision)}
-                      className='inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-orange-50 border border-stone-200 hover:border-orange-300 text-stone-700 hover:text-orange-700 text-xs font-semibold rounded-xl transition-all cursor-pointer shadow-2xs active:scale-[0.98]'
-                      title='Cập nhật đặc tả thông số cho mục này'
+                      onClick={() => setActiveArtTab('turnaround')}
+                      className={`px-2.5 py-1 rounded-lg text-xs transition-colors cursor-pointer ${
+                        activeArtTab === 'turnaround'
+                          ? 'bg-white text-[#1C1917] shadow-xs font-bold'
+                          : 'text-stone-500 hover:text-stone-800'
+                      }`}
                     >
-                      <Edit3 className='w-3.5 h-3.5 text-orange-600' />
-                      <span>Sửa đặc tả</span>
+                      {visualCardInfo.tab1}
                     </button>
-                  )}
-                  {canCreateDraft &&
-                    activeStage &&
-                    !activeStage.isLocked &&
-                    !activeStage.revisions.some((r) => r.isInitialVersion) &&
-                    onDeleteEra && (
-                      <button
-                        type='button'
-                        onClick={() => setEraToDelete(activeStage)}
-                        className='inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-rose-50 border border-stone-200 hover:border-rose-300 text-stone-600 hover:text-rose-600 text-xs font-semibold rounded-xl transition-all cursor-pointer shadow-2xs active:scale-[0.98]'
-                        title='Xóa toàn bộ thời kỳ này'
-                        data-testid='delete-era-btn'
-                      >
-                        <Trash2 className='w-3 h-3' />
-                        <span>Xóa thời kỳ</span>
-                      </button>
-                    )}
-                </div>
-              </div>
+                    <button
+                      type='button'
+                      onClick={() => setActiveArtTab('action')}
+                      className={`px-2.5 py-1 rounded-lg text-xs transition-colors cursor-pointer ${
+                        activeArtTab === 'action'
+                          ? 'bg-white text-[#1C1917] shadow-xs font-bold'
+                          : 'text-stone-500 hover:text-stone-800'
+                      }`}
+                    >
+                      {visualCardInfo.tab2}
+                    </button>
+                  </div>
 
-              {/* Dynamic Specifications Grid Based on Entity Type */}
-              {isCharacter ? (
-                <div className='grid grid-cols-1 sm:grid-cols-3 gap-3.5 text-xs'>
-                  <div
-                    onClick={() => canCreateDraft && onOpenAddRevision(entity, activeRevision)}
-                    className={`bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60 relative ${
-                      canCreateDraft
-                        ? 'cursor-pointer hover:border-orange-300 hover:bg-orange-50/40 transition group'
-                        : ''
-                    }`}
-                    title={canCreateDraft ? 'Bấm để chỉnh sửa nhanh thông số' : undefined}
-                  >
-                    <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
-                      Độ tuổi:
-                    </span>
-                    {stageAttributes.age ? (
-                      <span className='font-bold text-stone-800 text-sm block'>
-                        {stageAttributes.age}
-                      </span>
-                    ) : (
-                      <span className='text-stone-400 text-xs italic block'>Chưa thiết lập</span>
-                    )}
-                  </div>
-                  <div
-                    onClick={() => canCreateDraft && onOpenAddRevision(entity, activeRevision)}
-                    className={`bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60 relative ${
-                      canCreateDraft
-                        ? 'cursor-pointer hover:border-orange-300 hover:bg-orange-50/40 transition group'
-                        : ''
-                    }`}
-                    title={canCreateDraft ? 'Bấm để chỉnh sửa nhanh thông số' : undefined}
-                  >
-                    <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
-                      Chiều cao:
-                    </span>
-                    {stageAttributes.height ? (
-                      <span className='font-bold text-stone-800 text-sm block'>
-                        {stageAttributes.height}
-                      </span>
-                    ) : (
-                      <span className='text-stone-400 text-xs italic block'>Chưa thiết lập</span>
-                    )}
-                  </div>
-                  <div
-                    onClick={() => canCreateDraft && onOpenAddRevision(entity, activeRevision)}
-                    className={`bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60 relative ${
-                      canCreateDraft
-                        ? 'cursor-pointer hover:border-orange-300 hover:bg-orange-50/40 transition group'
-                        : ''
-                    }`}
-                    title={canCreateDraft ? 'Bấm để chỉnh sửa nhanh thông số' : undefined}
-                  >
-                    <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
-                      Đặc điểm diện mạo:
-                    </span>
-                    <span className='text-stone-700 text-xs line-clamp-2 block leading-relaxed'>
-                      {stageAttributes.appearance || (
-                        <span className='text-stone-400 italic'>Chưa thiết lập</span>
-                      )}
-                    </span>
-                  </div>
-                </div>
-              ) : isLocation ? (
-                <div className='grid grid-cols-1 sm:grid-cols-3 gap-3.5 text-xs'>
-                  <div
-                    onClick={() => canCreateDraft && onOpenAddRevision(entity, activeRevision)}
-                    className={`bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60 relative ${
-                      canCreateDraft
-                        ? 'cursor-pointer hover:border-orange-300 hover:bg-orange-50/40 transition group'
-                        : ''
-                    }`}
-                    title={canCreateDraft ? 'Bấm để chỉnh sửa nhanh thông số' : undefined}
-                  >
-                    <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
-                      Phân loại địa hình:
-                    </span>
-                    <span className='font-bold text-stone-800 text-sm block truncate'>
-                      {stageAttributes.environmentType || 'Địa điểm / Bối cảnh'}
-                    </span>
-                  </div>
-                  <div
-                    onClick={() => canCreateDraft && onOpenAddRevision(entity, activeRevision)}
-                    className={`bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60 relative ${
-                      canCreateDraft
-                        ? 'cursor-pointer hover:border-orange-300 hover:bg-orange-50/40 transition group'
-                        : ''
-                    }`}
-                    title={canCreateDraft ? 'Bấm để chỉnh sửa nhanh thông số' : undefined}
-                  >
-                    <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
-                      Quy mô / Khí hậu:
-                    </span>
-                    {stageAttributes.scale || stageAttributes.atmosphere ? (
-                      <span className='font-bold text-stone-800 text-sm block truncate'>
-                        {[stageAttributes.scale, stageAttributes.atmosphere]
-                          .filter(Boolean)
-                          .join(' · ')}
-                      </span>
-                    ) : (
-                      <span className='text-stone-400 text-xs italic block'>Chưa thiết lập</span>
-                    )}
-                  </div>
-                  <div
-                    onClick={() => canCreateDraft && onOpenAddRevision(entity, activeRevision)}
-                    className={`bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60 relative ${
-                      canCreateDraft
-                        ? 'cursor-pointer hover:border-orange-300 hover:bg-orange-50/40 transition group'
-                        : ''
-                    }`}
-                    title={canCreateDraft ? 'Bấm để chỉnh sửa nhanh thông số' : undefined}
-                  >
-                    <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
-                      Chi tiết kiến trúc & Cảnh quan:
-                    </span>
-                    <span className='text-stone-700 text-xs line-clamp-2 block leading-relaxed'>
-                      {stageAttributes.architecture || (
-                        <span className='text-stone-400 italic'>Chưa thiết lập</span>
-                      )}
-                    </span>
-                  </div>
-                </div>
-              ) : isProp ? (
-                <div className='grid grid-cols-1 sm:grid-cols-3 gap-3.5 text-xs'>
-                  <div
-                    onClick={() => canCreateDraft && onOpenAddRevision(entity, activeRevision)}
-                    className={`bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60 relative ${
-                      canCreateDraft
-                        ? 'cursor-pointer hover:border-orange-300 hover:bg-orange-50/40 transition group'
-                        : ''
-                    }`}
-                    title={canCreateDraft ? 'Bấm để chỉnh sửa nhanh thông số' : undefined}
-                  >
-                    <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
-                      Loại đạo cụ / Vật phẩm:
-                    </span>
-                    <span className='font-bold text-stone-800 text-sm block truncate'>
-                      {stageAttributes.propType || 'Đạo cụ / Vũ khí'}
-                    </span>
-                  </div>
-                  <div
-                    onClick={() => canCreateDraft && onOpenAddRevision(entity, activeRevision)}
-                    className={`bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60 relative ${
-                      canCreateDraft
-                        ? 'cursor-pointer hover:border-orange-300 hover:bg-orange-50/40 transition group'
-                        : ''
-                    }`}
-                    title={canCreateDraft ? 'Bấm để chỉnh sửa nhanh thông số' : undefined}
-                  >
-                    <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
-                      Kích thước & Chất liệu:
-                    </span>
-                    {stageAttributes.sizeWeight || stageAttributes.material ? (
-                      <span className='font-bold text-stone-800 text-sm block truncate'>
-                        {[stageAttributes.sizeWeight, stageAttributes.material]
-                          .filter(Boolean)
-                          .join(' · ')}
-                      </span>
-                    ) : (
-                      <span className='text-stone-400 text-xs italic block'>Chưa thiết lập</span>
-                    )}
-                  </div>
-                  <div
-                    onClick={() => canCreateDraft && onOpenAddRevision(entity, activeRevision)}
-                    className={`bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60 relative ${
-                      canCreateDraft
-                        ? 'cursor-pointer hover:border-orange-300 hover:bg-orange-50/40 transition group'
-                        : ''
-                    }`}
-                    title={canCreateDraft ? 'Bấm để chỉnh sửa nhanh thông số' : undefined}
-                  >
-                    <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
-                      Công năng & Cơ chế:
-                    </span>
-                    <span className='text-stone-700 text-xs line-clamp-2 block leading-relaxed'>
-                      {stageAttributes.functionality || (
-                        <span className='text-stone-400 italic'>Chưa thiết lập</span>
-                      )}
-                    </span>
-                  </div>
-                </div>
-              ) : isTerminology ? (
-                <div className='grid grid-cols-1 sm:grid-cols-3 gap-3.5 text-xs'>
-                  <div
-                    onClick={() => canCreateDraft && onOpenAddRevision(entity, activeRevision)}
-                    className={`bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60 relative ${
-                      canCreateDraft
-                        ? 'cursor-pointer hover:border-orange-300 hover:bg-orange-50/40 transition group'
-                        : ''
-                    }`}
-                    title={canCreateDraft ? 'Bấm để chỉnh sửa nhanh thông số' : undefined}
-                  >
-                    <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
-                      Phân loại thuật ngữ:
-                    </span>
-                    <span className='font-bold text-stone-800 text-sm block truncate'>
-                      {stageAttributes.termType || 'Thuật ngữ / Cốt truyện'}
-                    </span>
-                  </div>
-                  <div
-                    onClick={() => canCreateDraft && onOpenAddRevision(entity, activeRevision)}
-                    className={`bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60 relative ${
-                      canCreateDraft
-                        ? 'cursor-pointer hover:border-orange-300 hover:bg-orange-50/40 transition group'
-                        : ''
-                    }`}
-                    title={canCreateDraft ? 'Bấm để chỉnh sửa nhanh thông số' : undefined}
-                  >
-                    <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
-                      Nguồn gốc / Khởi nguyên:
-                    </span>
-                    {stageAttributes.origin ? (
-                      <span className='font-bold text-stone-800 text-sm block truncate'>
-                        {stageAttributes.origin}
-                      </span>
-                    ) : (
-                      <span className='text-stone-400 text-xs italic block'>Chưa thiết lập</span>
-                    )}
-                  </div>
-                  <div
-                    onClick={() => canCreateDraft && onOpenAddRevision(entity, activeRevision)}
-                    className={`bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60 relative ${
-                      canCreateDraft
-                        ? 'cursor-pointer hover:border-orange-300 hover:bg-orange-50/40 transition group'
-                        : ''
-                    }`}
-                    title={canCreateDraft ? 'Bấm để chỉnh sửa nhanh thông số' : undefined}
-                  >
-                    <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
-                      Quy luật & Tác động:
-                    </span>
-                    <span className='text-stone-700 text-xs line-clamp-2 block leading-relaxed'>
-                      {stageAttributes.rules || (
-                        <span className='text-stone-400 italic'>Chưa thiết lập</span>
-                      )}
-                    </span>
-                  </div>
-                </div>
-              ) : (
-                /* Style Rule */
-                <div className='grid grid-cols-1 sm:grid-cols-3 gap-3.5 text-xs'>
-                  <div
-                    onClick={() => canCreateDraft && onOpenAddRevision(entity, activeRevision)}
-                    className={`bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60 relative ${
-                      canCreateDraft
-                        ? 'cursor-pointer hover:border-orange-300 hover:bg-orange-50/40 transition group'
-                        : ''
-                    }`}
-                    title={canCreateDraft ? 'Bấm để chỉnh sửa nhanh thông số' : undefined}
-                  >
-                    <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
-                      Mức độ kiểm duyệt:
-                    </span>
-                    <span className='font-bold text-stone-800 text-sm block truncate'>
-                      {stageAttributes.strictness || 'Tiêu chuẩn'}
-                    </span>
-                  </div>
-                  <div
-                    onClick={() => canCreateDraft && onOpenAddRevision(entity, activeRevision)}
-                    className={`bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60 relative ${
-                      canCreateDraft
-                        ? 'cursor-pointer hover:border-orange-300 hover:bg-orange-50/40 transition group'
-                        : ''
-                    }`}
-                    title={canCreateDraft ? 'Bấm để chỉnh sửa nhanh thông số' : undefined}
-                  >
-                    <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
-                      Bảng màu chủ đạo:
-                    </span>
-                    {stageAttributes.colorPalette ? (
-                      <span className='font-bold text-stone-800 text-sm block truncate'>
-                        {stageAttributes.colorPalette}
-                      </span>
-                    ) : (
-                      <span className='text-stone-400 text-xs italic block'>
-                        Theo phong cách chung
-                      </span>
-                    )}
-                  </div>
-                  <div
-                    onClick={() => canCreateDraft && onOpenAddRevision(entity, activeRevision)}
-                    className={`bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60 relative ${
-                      canCreateDraft
-                        ? 'cursor-pointer hover:border-orange-300 hover:bg-orange-50/40 transition group'
-                        : ''
-                    }`}
-                    title={canCreateDraft ? 'Bấm để chỉnh sửa nhanh thông số' : undefined}
-                  >
-                    <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
-                      Quy chuẩn nét vẽ & Ánh sáng:
-                    </span>
-                    <span className='text-stone-700 text-xs line-clamp-2 block leading-relaxed'>
-                      {stageAttributes.lineArtRules || (
-                        <span className='text-stone-400 italic'>Chưa thiết lập</span>
-                      )}
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* CARD 2: ADAPTIVE ART REFERENCE & CANVAS */}
-            <div className='bg-[#FCFBF8] border border-stone-200 rounded-2xl p-4 sm:p-5 shadow-xs space-y-3.5'>
-              <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-stone-200/80'>
-                <div>
-                  <div className='font-bold text-xs sm:text-sm text-[#1C1917] flex items-center gap-2'>
-                    <span>{visualCardInfo.title}</span>
-                    <span className='text-xs bg-[#FFF7ED] text-[#EA580C] px-2.5 py-0.5 rounded-full font-semibold border border-orange-200'>
-                      {visualCardInfo.badge}
-                    </span>
-                  </div>
-                  <p className='text-xs text-stone-500 mt-0.5'>{visualCardInfo.subtitle}</p>
-                </div>
-
-                {/* Segmented Gallery Tabs */}
-                <div className='flex items-center gap-1 bg-stone-100 p-1 rounded-xl border border-stone-200 text-xs font-semibold'>
-                  <button
-                    type='button'
-                    onClick={() => setActiveArtTab('turnaround')}
-                    className={`px-2.5 py-1 rounded-lg text-xs transition-colors cursor-pointer ${
-                      activeArtTab === 'turnaround'
-                        ? 'bg-white text-[#1C1917] shadow-xs font-bold'
-                        : 'text-stone-500 hover:text-stone-800'
-                    }`}
-                  >
-                    {visualCardInfo.tab1}
-                  </button>
-                  <button
-                    type='button'
-                    onClick={() => setActiveArtTab('action')}
-                    className={`px-2.5 py-1 rounded-lg text-xs transition-colors cursor-pointer ${
-                      activeArtTab === 'action'
-                        ? 'bg-white text-[#1C1917] shadow-xs font-bold'
-                        : 'text-stone-500 hover:text-stone-800'
-                    }`}
-                  >
-                    {visualCardInfo.tab2}
-                  </button>
-                </div>
-              </div>
-
-              {/* Art Canvas Frame */}
-              {selectedImageUrl ? (
-                <div className='space-y-2.5'>
-                  <div className='flex items-center justify-between text-xs font-semibold text-stone-700'>
-                    <span className='truncate max-w-[240px] text-xs font-bold text-[#1C1917]'>
-                      {selectedImageTitle || `${entity.name} - Model Sheet`}
-                    </span>
+                  {selectedImageUrl && (
                     <button
                       type='button'
                       onClick={() =>
@@ -1625,15 +1299,26 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                           title: selectedImageTitle || entity.name,
                         })
                       }
-                      className='text-xs text-[#F97316] hover:underline flex items-center gap-1 cursor-pointer font-medium'
+                      className='p-1.5 rounded-lg border border-stone-200 hover:bg-white text-stone-600 hover:text-orange-600 transition shadow-2xs cursor-pointer'
+                      title='Phóng to ảnh'
                     >
-                      <Eye className='w-3.5 h-3.5' />
-                      <span>Phóng to ảnh</span>
+                      <Eye className='w-4 h-4' />
                     </button>
-                  </div>
+                  )}
+                </div>
+              </div>
 
+              {/* Hero Canvas Viewport (To, Rõ Ràng, Nổi Bật) */}
+              {selectedImageUrl ? (
+                <div className='space-y-3'>
+                  <div className='flex items-center justify-between text-xs font-semibold text-stone-700'>
+                    <span className='truncate max-w-[280px] text-xs font-bold text-[#1C1917]'>
+                      {selectedImageTitle || `${entity.name} - Model Sheet`}
+                    </span>
+                    <span className='text-[11px] text-stone-400 font-mono'>Turnaround / Model Sheet Canvas</span>
+                  </div>
                   <div
-                    className='relative w-full h-72 sm:h-80 md:h-96 bg-[#171717] rounded-xl overflow-hidden border border-stone-200 cursor-pointer group flex items-center justify-center p-3'
+                    className='relative w-full h-[480px] sm:h-[520px] md:h-[560px] bg-[#121214] rounded-2xl overflow-hidden border border-stone-800 cursor-pointer group flex items-center justify-center p-3 shadow-inner'
                     onClick={() =>
                       onZoomImage({
                         url: selectedImageUrl,
@@ -1644,25 +1329,25 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                     <AuthenticatedImage
                       src={selectedImageUrl}
                       alt={selectedImageTitle || entity.name}
-                      className='w-full h-full object-contain'
+                      className='w-full h-full object-contain drop-shadow-md'
                     />
-                    <div className='absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold gap-1.5'>
+                    <div className='absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold gap-1.5 backdrop-blur-[1px]'>
                       <Eye className='w-4 h-4' />
                       <span>Bấm để phóng to xem đầy đủ</span>
                     </div>
-                    <div className='absolute bottom-2.5 right-2.5 text-xs font-mono text-stone-300 bg-black/60 px-2 py-0.5 rounded'>
+                    <div className='absolute bottom-3 right-3 text-[11px] font-mono text-stone-300 bg-black/70 border border-stone-700 px-2 py-0.5 rounded-md'>
                       SHA-256 CAS: verified
                     </div>
                   </div>
 
                   {/* Character Sheet Gallery Strip */}
                   {entity.gallery && entity.gallery.length > 0 && (
-                    <div className='space-y-1.5 pt-2 border-t border-stone-100'>
+                    <div className='space-y-1.5 pt-2 border-t border-stone-200/80'>
                       <div className='flex items-center justify-between text-xs font-semibold text-stone-700'>
                         <span>Góc nhìn &amp; Biểu cảm ({entity.gallery.length}):</span>
                         <span className='text-xs text-stone-500'>Bấm để đổi góc xem</span>
                       </div>
-                      <div className='flex items-center gap-2 overflow-x-auto pb-1.5 custom-scrollbar'>
+                      <div className='flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar'>
                         {entity.imageUrl && (
                           <button
                             type='button'
@@ -1734,17 +1419,17 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                       onOpenAddRevision(entity, activeRevision);
                     }
                   }}
-                  className={`p-6 sm:p-8 rounded-2xl border-2 border-dashed transition-all flex flex-col items-center justify-center gap-3.5 text-center min-h-[240px] group ${
+                  className={`p-8 sm:p-12 rounded-2xl border-2 border-dashed transition-all flex flex-col items-center justify-center gap-3.5 text-center min-h-[460px] group ${
                     isDraggingOver
                       ? 'border-[#F97316] bg-orange-50/70 shadow-inner ring-4 ring-[#F97316]/10'
                       : 'border-stone-300 hover:border-[#F97316] bg-stone-50/60 hover:bg-orange-50/30'
                   }`}
                 >
-                  <div className='w-12 h-12 rounded-2xl bg-orange-100/80 border border-orange-200 flex items-center justify-center text-[#EA580C] group-hover:scale-105 group-hover:bg-[#F97316] group-hover:text-white transition-all shadow-2xs'>
-                    <Upload className='w-6 h-6' />
+                  <div className='w-14 h-14 rounded-2xl bg-orange-100/80 border border-orange-200 flex items-center justify-center text-[#EA580C] group-hover:scale-105 group-hover:bg-[#F97316] group-hover:text-white transition-all shadow-2xs'>
+                    <Upload className='w-7 h-7' />
                   </div>
-                  <div className='max-w-md space-y-1'>
-                    <div className='text-xs sm:text-sm font-bold text-stone-900'>
+                  <div className='max-w-md space-y-1.5'>
+                    <div className='text-sm sm:text-base font-bold text-stone-900'>
                       Chưa có ảnh Reference Sheet cho mục này
                     </div>
                     <p className='text-xs text-stone-500 leading-relaxed'>
@@ -1754,13 +1439,13 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                     </p>
                   </div>
                   {canCreateDraft && (
-                    <div className='flex flex-col items-center gap-2 pt-1'>
+                    <div className='flex flex-col items-center gap-2 pt-2'>
                       <button
                         type='button'
                         onClick={() => {
                           onOpenAddRevision(entity, activeRevision);
                         }}
-                        className='inline-flex items-center gap-2 px-5 py-2.5 bg-[#F97316] hover:bg-[#EA580C] text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm active:scale-[0.98]'
+                        className='inline-flex items-center gap-2 px-6 py-2.5 bg-[#F97316] hover:bg-[#EA580C] text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm active:scale-[0.98]'
                         title='Tải lên bản vẽ tham chiếu Model Sheet mới'
                       >
                         <Upload className='w-4 h-4' />
@@ -1837,11 +1522,11 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                               true,
                             );
                           }}
-                          className='px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 shadow-sm hover:shadow transition-all cursor-pointer active:scale-[0.98]'
+                          className='px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm hover:shadow transition-all cursor-pointer active:scale-[0.98]'
                           data-testid='detail-artist-resubmit-btn'
                         >
                           <RotateCcw className='w-3.5 h-3.5' />
-                          <span>🔄 Nộp lại bản vẽ (Sửa nộp nhầm)</span>
+                          <span>🔄 Nộp lại bản vẽ</span>
                         </button>
                       )}
                       {activeRevision?.reviewStatus === 'ReworkRequired' && (
@@ -1857,44 +1542,34 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                               false,
                             );
                           }}
-                          className='px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 shadow-sm hover:shadow transition-all cursor-pointer active:scale-[0.98]'
+                          className='px-3.5 py-1.5 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm hover:shadow transition-all cursor-pointer active:scale-[0.98]'
                           data-testid='detail-artist-rework-btn'
                         >
-                          <Palette className='w-3.5 h-3.5' />
-                          <span>🎨 Nộp bản vẽ sửa lại</span>
-                        </button>
-                      )}
-                      {!activeRevision?.isLocked && (
-                        <button
-                          type='button'
-                          onClick={() => {
-                            onOpenAddRevision(
-                              entity,
-                              null,
-                              true,
-                              activeRevision?.effectiveFromChapterNumber,
-                            );
-                          }}
-                          className='px-3.5 py-2 rounded-xl border border-stone-300 bg-white hover:bg-stone-50 text-xs sm:text-sm font-semibold text-stone-700 hover:text-stone-900 transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-[0.98]'
-                        >
-                          <Upload className='w-3.5 h-3.5 text-[#F97316]' />
-                          <span>+ Tải lên Sketch mới</span>
+                          <RotateCcw className='w-3.5 h-3.5' />
+                          <span>Nộp bản vẽ sửa đổi</span>
                         </button>
                       )}
                     </>
                   )}
 
-                  {/* Writer & Editor Review Actions: Only visible when artwork exists and has been submitted */}
-                  {canReview && activeRevision && !activeRevision.isLocked && selectedImageUrl && (
-                    <>
+                  {/* Review Actions (Writer/Editor Endorse & Request Rework) */}
+                  {canReview && activeRevision && (
+                    <div className='flex items-center gap-2'>
                       <button
                         type='button'
                         disabled={isEndorsing || activeRevision.reviewStatus === 'WriterEndorsed'}
-                        onClick={() => void handleEndorse(activeRevision)}
-                        className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 shadow-sm transition-all ${
+                        onClick={async () => {
+                          setIsEndorsing(true);
+                          try {
+                            await onEndorseRevision?.(entity, activeRevision);
+                          } finally {
+                            setIsEndorsing(false);
+                          }
+                        }}
+                        className={`px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 shadow-xs transition-all ${
                           activeRevision.reviewStatus === 'WriterEndorsed'
                             ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 cursor-default'
-                            : 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer active:scale-[0.98] hover:shadow'
+                            : 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer active:scale-[0.98]'
                         } disabled:opacity-60`}
                         data-testid='detail-endorse-btn'
                       >
@@ -1914,204 +1589,361 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                           activeRevision.isLocked ||
                           isEndorsing
                         }
-                        onClick={() => handleRequestRework(activeRevision)}
-                        className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1.5 shadow-2xs transition-all ${
-                          activeRevision.reviewStatus === 'WriterEndorsed' ||
-                          activeRevision.isLocked
+                        onClick={() => onRequestRework?.(entity, activeRevision)}
+                        className={`px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1.5 shadow-2xs transition-all ${
+                          activeRevision.reviewStatus === 'WriterEndorsed' || activeRevision.isLocked
                             ? 'bg-stone-100 text-stone-400 border border-stone-200 cursor-not-allowed opacity-50'
                             : 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 cursor-pointer active:scale-[0.98]'
                         }`}
                         title={
-                          activeRevision.reviewStatus === 'WriterEndorsed' ||
-                          activeRevision.isLocked
+                          activeRevision.reviewStatus === 'WriterEndorsed' || activeRevision.isLocked
                             ? 'Phiên bản này đã được duyệt/khoá, không thể yêu cầu vẽ lại.'
                             : 'Yêu cầu Artist chỉnh sửa lại bản vẽ'
                         }
                         data-testid='detail-rework-btn'
                       >
                         <MessageSquare className='w-3.5 h-3.5' />
-                        <span>↺ Yêu cầu vẽ lại</span>
+                        <span>Yêu cầu sửa</span>
                       </button>
-                    </>
+                    </div>
                   )}
 
-                  {/* Producer Lock Action (Only character sheets can be Canon Locked per backend rules) */}
-                  {isProducerUser && isCharacter && activeRevision && !activeRevision.isLocked && (
-                    <button
-                      type='button'
-                      disabled={isLocking || activeRevision.reviewStatus === 'ReworkRequired'}
-                      onClick={() => void handleLock(activeRevision)}
-                      className='px-4 py-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 shadow-sm hover:shadow transition-all cursor-pointer disabled:opacity-50 active:scale-[0.98]'
-                      data-testid='detail-lock-btn'
-                    >
-                      <Lock className='w-3.5 h-3.5' />
-                      <span>{isLocking ? 'Đang khóa...' : '🔒 Khóa Canon'}</span>
-                    </button>
-                  )}
+                  {/* Producer Canon Lock Action */}
                   {isProducerUser &&
-                    !isCharacter &&
-                    (!activeRevision || !activeRevision.isLocked) && (
-                      <div
-                        className='px-3 py-1.5 bg-stone-100 text-stone-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 border border-stone-200'
-                        title={`Mục ${getCategoryLabel(entity.category)} này được áp dụng làm tham chiếu trực tiếp trong toàn bộ Series Bible`}
+                    activeRevision &&
+                    !activeRevision.isLocked &&
+                    activeRevision.reviewStatus !== 'CanonLocked' && (
+                      <button
+                        type='button'
+                        disabled={isLocking}
+                        onClick={async () => {
+                          setIsLocking(true);
+                          try {
+                            await onLockRevision?.(activeRevision);
+                          } finally {
+                            setIsLocking(false);
+                          }
+                        }}
+                        className='px-3.5 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs hover:shadow transition-all cursor-pointer disabled:opacity-50'
+                        data-testid='detail-lock-btn'
+                        title='Khóa phiên bản này làm quy chuẩn chính thức cho toàn bộ dự án'
                       >
-                        <CheckCircle2 className='w-3.5 h-3.5 text-emerald-600' />
-                        <span>Tham chiếu {getCategoryLabel(entity.category)}</span>
-                      </div>
+                        <Lock className='w-3.5 h-3.5' />
+                        <span>{isLocking ? 'Đang khóa...' : 'Khóa Canon chính thức'}</span>
+                      </button>
                     )}
+
+                  {/* Canon locked status badge */}
+                  {(activeRevision?.isLocked || activeRevision?.reviewStatus === 'CanonLocked' || !isCharacter) && (
+                    <div className='px-3 py-1 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-medium flex items-center gap-1.5'>
+                      <CheckCircle2 className='w-3.5 h-3.5 text-emerald-600' />
+                      <span>Tham chiếu {getCategoryLabel(entity.category)}</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
           </section>
 
-          {/* ================= RIGHT COLUMN (COL-SPAN 5): VERSION CONTROL, DIFF & PROVENANCE ================= */}
-          <section className='lg:col-span-5 space-y-4'>
-            {/* CARD 1: ERA ASSET VERSION CONTROL (TREE LIST) */}
-            <div className='bg-white border border-[#E7E5E4] rounded-2xl p-4 sm:p-5 shadow-xs space-y-3.5'>
-              <div className='flex items-center justify-between pb-2 border-b border-stone-100'>
-                <div className='font-bold text-xs sm:text-sm text-[#1C1917] flex items-center gap-2'>
-                  <span>Phiên bản & Giai đoạn</span>
+          {/* ================= COLUMN 3: THÔNG TIN & PHIÊN BẢN (COL-SPAN 3) ================= */}
+          <section className='lg:col-span-3 space-y-3.5'>
+            {/* CARD 1: THÔNG TIN ĐẶC TẢ THU GỌN (METADATA SPECS) */}
+            <div className='bg-[#FCFBF8] border border-stone-200 rounded-2xl p-3.5 sm:p-4 shadow-xs space-y-3'>
+              <div className='flex items-center justify-between pb-2 border-b border-stone-200/80'>
+                <div className='font-bold text-xs sm:text-sm text-[#1C1917] flex items-center gap-1.5'>
+                  <FileText className='w-4 h-4 text-[#F97316]' />
+                  <span>{card1Title}</span>
                 </div>
                 <div className='flex items-center gap-1.5'>
-                  <button
-                    type='button'
-                    onClick={() => {
-                      onOpenHistory(entity);
-                    }}
-                    className='text-xs font-semibold text-stone-600 hover:text-stone-900 px-2 py-0.5 rounded-md border border-stone-200 hover:bg-stone-50 transition cursor-pointer'
-                  >
-                    Version History
-                  </button>
-                  <span className='text-stone-400 text-xs px-1 cursor-default'>•••</span>
+                  {canCreateDraft && (
+                    <button
+                      type='button'
+                      onClick={() => onOpenAddRevision(entity, activeRevision)}
+                      className='inline-flex items-center gap-1 px-2.5 py-1 bg-white hover:bg-orange-50 border border-stone-200 hover:border-orange-300 text-stone-700 hover:text-orange-700 text-xs font-semibold rounded-lg transition-all cursor-pointer shadow-2xs'
+                      title='Cập nhật đặc tả thông số cho mục này'
+                    >
+                      <Edit3 className='w-3 h-3 text-orange-600' />
+                      <span>Sửa</span>
+                    </button>
+                  )}
+                  {canCreateDraft &&
+                    activeStage &&
+                    !activeStage.isLocked &&
+                    !activeStage.revisions.some((r) => r.isInitialVersion) &&
+                    onDeleteEra && (
+                      <button
+                        type='button'
+                        onClick={() => setEraToDelete(activeStage)}
+                        className='p-1 bg-white hover:bg-rose-50 border border-stone-200 hover:border-rose-300 text-stone-600 hover:text-rose-600 rounded-lg transition-all cursor-pointer shadow-2xs'
+                        title='Xóa toàn bộ thời kỳ này'
+                        data-testid='delete-era-btn'
+                      >
+                        <Trash2 className='w-3 h-3' />
+                      </button>
+                    )}
                 </div>
               </div>
 
-              {/* Version Tree List */}
-              <div className='space-y-2 max-h-52 overflow-y-auto custom-scrollbar pr-1'>
+              {/* Dynamic Compact Specifications Grid */}
+              {isCharacter ? (
+                <div className='space-y-2 text-xs'>
+                  <div
+                    onClick={() => canCreateDraft && onOpenAddRevision(entity, activeRevision)}
+                    className={`bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60 relative ${
+                      canCreateDraft
+                        ? 'cursor-pointer hover:border-orange-300 hover:bg-orange-50/40 transition group'
+                        : ''
+                    }`}
+                    title={canCreateDraft ? 'Bấm để chỉnh sửa nhanh độ tuổi' : undefined}
+                  >
+                    <div className='flex items-center justify-between mb-0.5'>
+                      <span className='text-stone-500 text-xs font-semibold'>Độ tuổi:</span>
+                      {canCreateDraft && (
+                        <Edit3 className='w-3 h-3 text-stone-400 group-hover:text-orange-600 transition' />
+                      )}
+                    </div>
+                    {stageAttributes.age ? (
+                      <span className='font-bold text-stone-800 text-sm block'>
+                        {stageAttributes.age}
+                      </span>
+                    ) : (
+                      <span className='text-stone-400 group-hover:text-orange-600 text-xs italic block'>
+                        Chưa thiết lập
+                      </span>
+                    )}
+                  </div>
+                  <div
+                    onClick={() => canCreateDraft && onOpenAddRevision(entity, activeRevision)}
+                    className={`bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60 relative ${
+                      canCreateDraft
+                        ? 'cursor-pointer hover:border-orange-300 hover:bg-orange-50/40 transition group'
+                        : ''
+                    }`}
+                    title={canCreateDraft ? 'Bấm để chỉnh sửa nhanh chiều cao' : undefined}
+                  >
+                    <div className='flex items-center justify-between mb-0.5'>
+                      <span className='text-stone-500 text-xs font-semibold'>Chiều cao:</span>
+                      {canCreateDraft && (
+                        <Edit3 className='w-3 h-3 text-stone-400 group-hover:text-orange-600 transition' />
+                      )}
+                    </div>
+                    {stageAttributes.height ? (
+                      <span className='font-bold text-stone-800 text-sm block'>
+                        {stageAttributes.height}
+                      </span>
+                    ) : (
+                      <span className='text-stone-400 group-hover:text-orange-600 text-xs italic block'>
+                        Chưa thiết lập
+                      </span>
+                    )}
+                  </div>
+                  <div
+                    onClick={() => canCreateDraft && onOpenAddRevision(entity, activeRevision)}
+                    className={`bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60 relative ${
+                      canCreateDraft
+                        ? 'cursor-pointer hover:border-orange-300 hover:bg-orange-50/40 transition group'
+                        : ''
+                    }`}
+                    title={canCreateDraft ? 'Bấm để chỉnh sửa nhanh diện mạo' : undefined}
+                  >
+                    <div className='flex items-center justify-between mb-0.5'>
+                      <span className='text-stone-500 text-xs font-semibold'>Đặc điểm diện mạo:</span>
+                      {canCreateDraft && (
+                        <Edit3 className='w-3 h-3 text-stone-400 group-hover:text-orange-600 transition' />
+                      )}
+                    </div>
+                    <span className='text-stone-700 text-xs line-clamp-2 block leading-relaxed'>
+                      {stageAttributes.appearance || (
+                        <span className='text-stone-400 group-hover:text-orange-600 italic'>
+                          Chưa thiết lập
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                </div>
+              ) : isLocation ? (
+                <div className='space-y-2 text-xs'>
+                  <div
+                    onClick={() => canCreateDraft && onOpenAddRevision(entity, activeRevision)}
+                    className={`bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60 relative ${
+                      canCreateDraft
+                        ? 'cursor-pointer hover:border-orange-300 hover:bg-orange-50/40 transition group'
+                        : ''
+                    }`}
+                  >
+                    <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
+                      Phân loại địa hình:
+                    </span>
+                    <span className='font-bold text-stone-800 text-sm block truncate'>
+                      {stageAttributes.environmentType || 'Địa điểm / Bối cảnh'}
+                    </span>
+                  </div>
+                  <div
+                    onClick={() => canCreateDraft && onOpenAddRevision(entity, activeRevision)}
+                    className={`bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60 relative ${
+                      canCreateDraft
+                        ? 'cursor-pointer hover:border-orange-300 hover:bg-orange-50/40 transition group'
+                        : ''
+                    }`}
+                  >
+                    <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
+                      Quy mô / Khí hậu:
+                    </span>
+                    <span className='font-bold text-stone-800 text-sm block truncate'>
+                      {[stageAttributes.scale, stageAttributes.atmosphere].filter(Boolean).join(' · ') || 'Chưa thiết lập'}
+                    </span>
+                  </div>
+                  <div
+                    onClick={() => canCreateDraft && onOpenAddRevision(entity, activeRevision)}
+                    className={`bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60 relative ${
+                      canCreateDraft
+                        ? 'cursor-pointer hover:border-orange-300 hover:bg-orange-50/40 transition group'
+                        : ''
+                    }`}
+                  >
+                    <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
+                      Chi tiết kiến trúc & Cảnh quan:
+                    </span>
+                    <span className='text-stone-700 text-xs line-clamp-2 block leading-relaxed'>
+                      {stageAttributes.architecture || 'Chưa thiết lập'}
+                    </span>
+                  </div>
+                </div>
+              ) : isProp ? (
+                <div className='space-y-2 text-xs'>
+                  <div
+                    onClick={() => canCreateDraft && onOpenAddRevision(entity, activeRevision)}
+                    className={`bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60 relative ${
+                      canCreateDraft
+                        ? 'cursor-pointer hover:border-orange-300 hover:bg-orange-50/40 transition group'
+                        : ''
+                    }`}
+                  >
+                    <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
+                      Loại đạo cụ:
+                    </span>
+                    <span className='font-bold text-stone-800 text-sm block truncate'>
+                      {stageAttributes.propType || 'Đạo cụ / Vũ khí'}
+                    </span>
+                  </div>
+                  <div
+                    onClick={() => canCreateDraft && onOpenAddRevision(entity, activeRevision)}
+                    className={`bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60 relative ${
+                      canCreateDraft
+                        ? 'cursor-pointer hover:border-orange-300 hover:bg-orange-50/40 transition group'
+                        : ''
+                    }`}
+                  >
+                    <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
+                      Kích thước &amp; Chất liệu:
+                    </span>
+                    <span className='font-bold text-stone-800 text-sm block truncate'>
+                      {[stageAttributes.sizeWeight, stageAttributes.material].filter(Boolean).join(' · ') || 'Chưa thiết lập'}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className='space-y-2 text-xs'>
+                  <div
+                    onClick={() => canCreateDraft && onOpenAddRevision(entity, activeRevision)}
+                    className={`bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60 relative ${
+                      canCreateDraft
+                        ? 'cursor-pointer hover:border-orange-300 hover:bg-orange-50/40 transition group'
+                        : ''
+                    }`}
+                  >
+                    <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
+                      Quy chuẩn &amp; Phân loại:
+                    </span>
+                    <span className='font-bold text-stone-800 text-sm block truncate'>
+                      {stageAttributes.termType || stageAttributes.strictness || 'Tiêu chuẩn'}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* CARD 2: PHIÊN BẢN & NHẬT KÝ SỬA ĐỔI (VERSION & AUDIT TRAIL GỘP CHUNG) */}
+            <div className='bg-[#FCFBF8] border border-stone-200 rounded-2xl p-3.5 sm:p-4 shadow-xs space-y-3'>
+              <div className='flex items-center justify-between pb-2 border-b border-stone-200/80'>
+                <div className='font-bold text-xs sm:text-sm text-[#1C1917] flex items-center gap-1.5'>
+                  <History className='w-4 h-4 text-[#F97316]' />
+                  <span>Phiên bản &amp; Nhật ký</span>
+                </div>
+                <button
+                  type='button'
+                  onClick={() => onOpenHistory(entity)}
+                  className='text-xs font-semibold text-stone-600 hover:text-stone-900 px-2 py-0.5 rounded-md border border-stone-200 hover:bg-stone-50 transition cursor-pointer'
+                >
+                  Lịch sử
+                </button>
+              </div>
+
+              {/* Version list */}
+              <div className='space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar pr-0.5'>
                 {activeStage?.revisions && activeStage.revisions.length > 0 ? (
-                  activeStage.revisions.map((rev, idx, arr) => {
+                  activeStage.revisions.map((rev) => {
                     const isSelected = rev.id === activeRevision?.id;
                     const isCanon = rev.isLocked || rev.reviewStatus === 'CanonLocked';
-                    const isUnderReview = rev.reviewStatus === 'ConceptSubmitted';
-                    const isSuperseded =
-                      !isCanon &&
-                      arr.some((r) => r.isLocked && r.versionNumber > rev.versionNumber);
-                    const isLast = idx === arr.length - 1;
-
                     return (
                       <div
                         key={rev.id}
                         onClick={() => setSelectedVersionId(rev.id)}
-                        className={`group relative pl-6 py-2 px-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
+                        className={`p-2 rounded-xl border transition-all cursor-pointer flex items-center justify-between text-xs ${
                           isSelected
-                            ? 'bg-[#FFF7ED] border-[#F97316]/60 shadow-2xs'
+                            ? 'bg-[#FFF7ED] border-[#F97316]/70 shadow-2xs font-semibold'
                             : 'bg-white border-stone-200 hover:border-stone-300'
                         }`}
                       >
-                        {/* Tree connector branch */}
-                        <div className='absolute left-2.5 top-1/2 -translate-y-1/2 flex items-center text-stone-300 pointer-events-none select-none font-mono text-xs'>
-                          {isLast ? '└' : '├'}
-                        </div>
-
-                        <div className='flex items-center gap-2.5 min-w-0'>
-                          {isUnderReview ? (
-                            <span className='w-2 h-2 rounded-full bg-amber-500 shrink-0'></span>
-                          ) : isCanon ? (
-                            <FileText className='w-3.5 h-3.5 text-emerald-600 shrink-0' />
-                          ) : (
-                            <FileText className='w-3.5 h-3.5 text-stone-400 shrink-0' />
-                          )}
-
-                          <span className='font-mono text-xs font-bold text-stone-800'>
-                            v{rev.versionNumber}
-                          </span>
-
+                        <div className='flex items-center gap-2 min-w-0'>
+                          <span className='font-mono font-bold text-stone-800'>v{rev.versionNumber}</span>
                           <span
-                            className={`text-xs px-2 py-0.5 rounded-full font-semibold border ${
+                            className={`text-[10px] px-1.5 py-0.5 rounded-full border ${
                               isCanon
-                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                : isUnderReview
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 font-bold'
+                                : rev.reviewStatus === 'ConceptSubmitted'
                                   ? 'bg-amber-50 text-amber-700 border-amber-200'
-                                  : isSuperseded
-                                    ? 'bg-stone-100 text-stone-600 border-stone-200'
-                                    : rev.reviewStatus === 'WriterEndorsed'
-                                      ? 'bg-blue-50 text-blue-700 border-blue-200'
-                                      : rev.reviewStatus === 'ReworkRequired'
-                                        ? 'bg-rose-50 text-rose-700 border-rose-200'
-                                        : 'bg-stone-50 text-stone-600 border-stone-200'
+                                  : rev.reviewStatus === 'WriterEndorsed'
+                                    ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                    : rev.reviewStatus === 'ReworkRequired'
+                                      ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                      : 'bg-stone-100 text-stone-600 border-stone-200'
                             }`}
                           >
                             {isCanon
                               ? 'Canon Locked 🔒'
-                              : isUnderReview
+                              : rev.reviewStatus === 'ConceptSubmitted'
                                 ? 'Under Review'
-                                : isSuperseded
-                                  ? 'Superseded'
-                                  : rev.reviewStatus}
+                                : rev.reviewStatus === 'WriterEndorsed'
+                                  ? 'Writer Endorsed'
+                                  : rev.reviewStatus === 'ReworkRequired'
+                                    ? 'Rework Required'
+                                    : rev.reviewStatus || 'Draft'}
                           </span>
                         </div>
-
-                        <div className='flex items-center gap-2'>
-                          <span className='text-xs text-stone-400 font-mono hidden sm:inline'>
-                            {new Date(rev.createdAt).toLocaleDateString('vi-VN')}
-                          </span>
-                          {rev.contentHash && (
-                            <button
-                              type='button'
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleCopyHash(rev.contentHash);
-                              }}
-                              className='opacity-0 group-hover:opacity-100 text-stone-400 hover:text-stone-700 transition p-1'
-                              title='Copy hash'
-                              aria-label='Copy hash'
-                            >
-                              <Copy className='w-3 h-3' />
-                            </button>
-                          )}
-                          {canCreateDraft &&
-                            !isCanon &&
-                            !rev.isInitialVersion &&
-                            onDeleteRevision && (
-                              <button
-                                type='button'
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setRevisionToDelete(rev);
-                                }}
-                                className='opacity-0 group-hover:opacity-100 text-stone-400 hover:text-rose-600 transition p-1 cursor-pointer'
-                                title='Xóa phiên bản này'
-                                aria-label='Xóa phiên bản này'
-                                data-testid={`delete-revision-btn-${rev.id}`}
-                              >
-                                <Trash2 className='w-3 h-3' />
-                              </button>
-                            )}
-                        </div>
+                        <span className='text-[10px] text-stone-400 font-mono'>
+                          {new Date(rev.createdAt).toLocaleDateString('vi-VN')}
+                        </span>
                       </div>
                     );
                   })
                 ) : (
-                  <div className='p-3 bg-stone-50 rounded-lg text-xs text-stone-500 text-center italic'>
-                    Chưa có bản ghi phiên bản cho giai đoạn này.
-                  </div>
+                  <div className='p-2 text-center text-xs text-stone-400 italic'>Chưa có phiên bản</div>
                 )}
               </div>
 
-              {/* Immutability Status Box */}
-              <div className='p-3 bg-stone-50/80 rounded-xl border border-stone-200 space-y-2'>
+              {/* Active Version Immutability & Action */}
+              <div className='p-2.5 bg-stone-50/80 rounded-xl border border-stone-200/80 space-y-1.5 text-xs'>
                 <div className='flex items-center justify-between'>
-                  <span className='text-xs font-bold text-stone-800 flex items-center gap-1.5'>
+                  <span className='font-bold text-stone-800 flex items-center gap-1.5'>
                     <span
                       className={`w-2 h-2 rounded-full ${
                         activeRevision?.isLocked ? 'bg-emerald-500' : 'bg-amber-500'
                       }`}
-                    ></span>
-                    {activeRevision?.isLocked
-                      ? `v${activeRevision.versionNumber} đang là Canon Locked (Bất biến)`
-                      : `v${activeRevision?.versionNumber ?? 1} (${activeRevision?.reviewStatus || 'Draft'})`}
+                    />
+                    v{activeRevision?.versionNumber ?? 1} ({activeRevision?.reviewStatus || 'Draft'})
                   </span>
-                  <span className='text-xs text-stone-400 font-mono'>
+                  <span className='text-[10px] text-stone-400 font-mono'>
                     {activeRevision?.isLocked ? 'Immutable' : 'Editable'}
                   </span>
                 </div>
@@ -2119,151 +1951,51 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                 {activeRevision?.isLocked && canCreateDraft && (
                   <button
                     type='button'
-                    onClick={() => {
-                      onOpenAddRevision(entity, activeRevision);
-                    }}
-                    className='w-full py-2 px-3 bg-[#F97316] hover:bg-[#EA580C] text-white font-semibold text-xs rounded-xl transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer'
+                    onClick={() => onOpenAddRevision(entity, activeRevision)}
+                    className='w-full py-1.5 px-2 bg-[#F97316] hover:bg-[#EA580C] text-white font-semibold text-xs rounded-lg transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer mt-1'
                   >
-                    <Plus className='w-3.5 h-3.5' />
+                    <Plus className='w-3 h-3' />
                     <span>+ Tạo bản vẽ thay thế</span>
                   </button>
                 )}
               </div>
-            </div>
 
-            {/* CARD 2: VISUAL DIFF COMPARISON PREVIEW */}
-            <div className='bg-white border border-[#E7E5E4] rounded-2xl p-4 sm:p-5 shadow-xs space-y-2.5'>
-              <div className='flex items-center justify-between pb-2 border-b border-stone-100'>
-                <div className='font-bold text-xs sm:text-sm text-[#1C1917] flex items-center gap-1.5'>
-                  <span>So sánh Visual Diff</span>
+              {/* AUDIT TRAIL GỘP TRỰC TIẾP VÀO VERSION CARD */}
+              <div className='space-y-2 pt-2 border-t border-stone-200/80'>
+                <div className='font-bold text-xs uppercase tracking-wider text-stone-700 flex items-center justify-between'>
+                  <span>Lịch sử thay đổi (Audit Trail)</span>
+                  <span className='text-[10px] font-normal text-stone-400'>{auditLogs.length} sự kiện</span>
                 </div>
-                {selectedImageUrl ? (
-                  <span className='text-xs font-mono font-semibold text-stone-700 bg-stone-100 px-2 py-0.5 rounded-full'>
-                    Similarity: {beforeImageUrl === selectedImageUrl ? '100%' : '94.2%'}
-                  </span>
-                ) : (
-                  <span className='text-xs text-stone-400 font-mono'>Chưa có bản vẽ</span>
-                )}
-              </div>
 
-              {/* Split Interactive Slider Viewport */}
-              {selectedImageUrl ? (
-                <div className='relative w-full h-48 sm:h-52 rounded-xl overflow-hidden border border-stone-200 select-none bg-[#FAF8F5]'>
-                  {/* Layer B: Right / Canon / After (Lavender tinted background) */}
-                  <div className='absolute inset-0 w-full h-full flex items-center justify-center bg-violet-50/40 p-3'>
-                    <AuthenticatedImage
-                      src={selectedImageUrl}
-                      alt={afterVersionLabel}
-                      className='w-full h-full object-contain'
-                      data-testid='diff-image-after'
-                    />
-                    <span className='absolute bottom-2 right-2 text-xs font-mono px-2 py-0.5 rounded bg-white/95 border border-violet-200 text-violet-700 font-semibold shadow-2xs'>
-                      {afterVersionLabel}
-                    </span>
-                  </div>
-
-                  {/* Layer A: Left / Draft / Before (Clipped by slider percentage via clipPath) */}
-                  <div
-                    style={{ clipPath: `inset(0 ${100 - diffSlider}% 0 0)` }}
-                    className='absolute inset-0 w-full h-full flex items-center justify-center bg-stone-100/90 p-3 z-1'
-                  >
-                    <AuthenticatedImage
-                      src={beforeImageUrl}
-                      alt={beforeVersionLabel}
-                      className={`w-full h-full object-contain ${beforeImageUrl === selectedImageUrl ? 'grayscale opacity-75' : ''}`}
-                      data-testid='diff-image-before'
-                    />
-                    <span className='absolute bottom-2 left-2 text-xs font-mono px-2 py-0.5 rounded bg-white/95 border border-stone-200 text-stone-700 font-semibold shadow-2xs'>
-                      {beforeVersionLabel}
-                    </span>
-                  </div>
-
-                  {/* Slider Divider Line */}
-                  <div
-                    style={{ left: `${diffSlider}%` }}
-                    className='absolute top-0 bottom-0 w-0.5 bg-[#EA580C] z-2 pointer-events-none'
-                  />
-
-                  {/* Drag Handle with Center Arrow */}
-                  <div
-                    style={{ left: `${diffSlider}%` }}
-                    className='absolute top-1/2 -translate-y-1/2 -ml-3 w-6 h-6 rounded-full bg-[#EA580C] text-white flex items-center justify-center shadow-md z-3 pointer-events-none'
-                  >
-                    <ArrowLeftRight className='w-3 h-3' />
-                  </div>
-
-                  {/* Range input */}
-                  <input
-                    type='range'
-                    min={0}
-                    max={100}
-                    value={diffSlider}
-                    onChange={(e) => setDiffSlider(Number(e.target.value))}
-                    className='absolute inset-0 opacity-0 cursor-ew-resize w-full h-full z-10'
-                    aria-label='Thanh trượt so sánh bản vẽ Visual Diff'
-                  />
-                </div>
-              ) : (
-                <div className='p-3 bg-stone-50 border border-dashed border-stone-200 rounded-xl flex items-center justify-between text-stone-500'>
-                  <div className='flex items-center gap-2'>
-                    <ArrowLeftRight className='w-4 h-4 text-stone-400' />
-                    <span className='text-xs font-medium'>
-                      Chưa có bản vẽ để so sánh visual diff
-                    </span>
-                  </div>
-                  <span className='text-[10px] text-stone-400 font-medium'>
-                    Cần tối thiểu 2 phiên bản
-                  </span>
-                </div>
-              )}
-
-              {selectedImageUrl && (
-                <div className='flex justify-between text-xs text-stone-400 font-mono'>
-                  <span>◀ Trước ({beforeVersionLabel})</span>
-                  <span>Sau ({afterVersionLabel}) ▶</span>
-                </div>
-              )}
-            </div>
-
-            {/* CARD 3: AUDIT TRAIL & HISTORICAL PROVENANCE */}
-            <div className='bg-white border border-[#E7E5E4] rounded-2xl p-4 sm:p-5 shadow-xs space-y-2.5'>
-              <div className='flex items-center justify-between pb-2 border-b border-stone-100'>
-                <div className='font-bold text-xs uppercase tracking-wider text-stone-700'>
-                  Lịch sử thay đổi (Audit Trail)
-                </div>
-                <span className='text-stone-400 text-xs px-1 cursor-default'>•••</span>
-              </div>
-
-              <div className='space-y-2 text-xs max-h-40 overflow-y-auto custom-scrollbar pr-1'>
-                {auditLogs.map((log, i) => (
-                  <div
-                    key={i}
-                    className='flex items-center justify-between p-2 rounded-xl bg-stone-50/70 border border-stone-100 hover:bg-stone-100/60 transition'
-                  >
-                    <div className='flex items-center gap-2 min-w-0'>
-                      <span className='w-1.5 h-1.5 rounded-full bg-[#F97316] shrink-0'></span>
-                      <span className='text-xs text-stone-700 truncate'>
-                        <strong className='text-stone-900'>{log.actor}</strong> {log.action}
-                      </span>
-                    </div>
-                    <button
-                      type='button'
-                      onClick={() => handleCopyHash(log.hash)}
-                      title='Sao chép SHA-256 CAS Hash'
-                      className='font-mono text-xs text-stone-400 hover:text-stone-800 ml-2 shrink-0 cursor-pointer bg-white px-1.5 py-0.5 rounded border border-stone-200'
+                <div className='space-y-1.5 max-h-36 overflow-y-auto custom-scrollbar pr-0.5 text-xs'>
+                  {auditLogs.map((log, i) => (
+                    <div
+                      key={i}
+                      className='p-1.5 rounded-lg bg-stone-50 border border-stone-100 flex items-center justify-between gap-1 text-[11px]'
                     >
-                      SHA-256: {log.hash.replace('...', '')}
-                    </button>
-                  </div>
-                ))}
-              </div>
+                      <div className='truncate min-w-0'>
+                        <strong className='text-stone-900'>{log.actor}</strong>{' '}
+                        <span className='text-stone-600'>{log.action}</span>
+                      </div>
+                      <button
+                        type='button'
+                        onClick={() => handleCopyHash(log.hash)}
+                        title='Sao chép SHA-256 CAS Hash'
+                        className='font-mono text-[9px] text-stone-400 hover:text-stone-800 shrink-0 bg-white px-1 py-0.5 rounded border border-stone-200 cursor-pointer'
+                      >
+                        {log.hash.slice(0, 8)}...
+                      </button>
+                    </div>
+                  ))}
+                </div>
 
-              {/* Collapsible Technical Details (Hash & System ID) */}
-              {renderTechCollapsible()}
+                {/* Collapsible Tech Details (SHA-256 & System ID) */}
+                {renderTechCollapsible()}
+              </div>
             </div>
           </section>
         </div>
-      </main>
+</main>
 
       {/* ================= WORKBENCH BOTTOM FOOTER ================= */}
       <footer className='h-14 bg-[#FCFBF8] border-t border-[#D8D2C5] px-4 sm:px-6 flex items-center justify-between shrink-0 shadow-2xs'>

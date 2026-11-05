@@ -421,7 +421,7 @@ describe('BibleEntityDetailModal UX/UI', () => {
     expect(screen.queryByTestId('detail-lock-btn')).not.toBeInTheDocument();
   });
 
-  it('renders Visual Diff split comparison with AuthenticatedImage for before and after revisions', () => {
+  it('renders 3-column layout with Era Stages, Hero Artwork Canvas, and merged Version & Audit Trail', () => {
     const rev1: BibleEntryRevisionDto = {
       id: 'rev-v1',
       bibleEntryId: mockEntityWithImage.id,
@@ -480,25 +480,18 @@ describe('BibleEntityDetailModal UX/UI', () => {
       />,
     );
 
-    expect(screen.getByText('So sánh Visual Diff')).toBeInTheDocument();
+    // Column 1: Era stages selector
+    expect(screen.getByTestId('era-stages-selector')).toBeInTheDocument();
+    expect(screen.getByText('Thời kỳ & Giai đoạn')).toBeInTheDocument();
 
-    const afterImg = screen.getByTestId('diff-image-after');
-    const beforeImg = screen.getByTestId('diff-image-before');
+    // Column 2: Hero Artwork Canvas
+    expect(screen.getByTestId('auth-image')).toBeInTheDocument();
 
-    expect(afterImg).toBeInTheDocument();
-    expect(beforeImg).toBeInTheDocument();
-
-    // Verify slider input exists and defaults to 50
-    const slider = screen.getByLabelText(
-      'Thanh trượt so sánh bản vẽ Visual Diff',
-    ) as HTMLInputElement;
-    expect(slider).toBeInTheDocument();
-    expect(slider.value).toBe('50');
-
-    // Change slider value
-    fireEvent.change(slider, { target: { value: '75' } });
-    expect(slider.value).toBe('75');
+    // Column 3: Merged Version and Audit Trail
+    expect(screen.getByText('Phiên bản & Nhật ký')).toBeInTheDocument();
+    expect(screen.getByText('Lịch sử thay đổi (Audit Trail)')).toBeInTheDocument();
   });
+
   it('renders conceptImageUrl and chronological events in the audit trail when available', () => {
     const revWithEvents = {
       id: 'rev-with-events-1',
