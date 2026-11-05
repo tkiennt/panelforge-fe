@@ -1587,6 +1587,92 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
     }
   };
 
+  const [submittingStageHandoff, setSubmittingStageHandoff] = useState<boolean>(false);
+
+  const sortedStages = useMemo(() => {
+    return [...stages].filter((s) => s.isEnabled !== false).sort((a, b) => a.stageOrder - b.stageOrder);
+  }, [stages]);
+
+  const currentActiveStage = useMemo(() => {
+    if (viewStageId !== 'AUTO') {
+      return sortedStages.find((s) => s.id === viewStageId) || sortedStages[0] || null;
+    }
+    if (myStageOnPage) {
+      return sortedStages.find((s) => s.id === myStageOnPage) || sortedStages[0] || null;
+    }
+    const activeTask = [...myInProgress, ...myAssigned].find((a) => a.chapterId === currentChapterId);
+    if (activeTask) {
+      return sortedStages.find((s) => s.id === activeTask.pipelineStageId) || sortedStages[0] || null;
+    }
+    return sortedStages[0] || null;
+  }, [viewStageId, myStageOnPage, sortedStages, myInProgress, myAssigned, currentChapterId]);
+
+  const handleStageHandoff = async (stage: PipelineStageDto) => {
+    if (!currentChapterId) return;
+    const slug = (stage.slug || stage.name || '').toLowerCase();
+    const isPencil = slug.includes('pencil') || slug.includes('chì');
+    const isInk = slug.includes('ink') || slug.includes('nét');
+
+    const nextStage = sortedStages.find((s) => s.stageOrder > stage.stageOrder);
+    const nextStageName = nextStage?.name ?? 'giai đoạn tiếp theo';
+
+    const title = isPencil
+      ? 'Internal Handoff: Bàn giao tự động Pencil ➔ Ink'
+      : isInk
+        ? 'Chuyển giao sang Lettering (Ink ➔ Lettering)'
+        : `Nộp hoàn tất công đoạn ${stage.name}`;
+
+    const description = isPencil
+      ? 'Không bắt Editor duyệt nét chì. Khi nộp, hệ thống sẽ tự động hoàn tất và mở việc Ink để bạn tiếp tục hoàn thiện liên tục không bị gián đoạn. Xác nhận bàn giao?'
+      : isInk
+        ? `Ngay khi bản vẽ Ink hoàn thành, hệ thống sẽ tự động mở task cho Letterer ráp bóng thoại và hiệu ứng âm thanh (SFX) dựa trên kịch bản đã khóa. Xác nhận chuyển giao sang ${nextStageName}?`
+        : `Xác nhận hoàn thành ${stage.name} và cho phép chuyển sang ${nextStageName}?`;
+
+    const confirmed = await confirm({
+      title,
+      description,
+      confirmText: isPencil ? 'Bàn giao sang Ink ➔' : isInk ? 'Chuyển giao Lettering ➔' : 'Xác nhận nộp ➔',
+      cancelText: 'Quay lại',
+      variant: 'info',
+    });
+    if (!confirmed) return;
+
+    setSubmittingStageHandoff(true);
+    try {
+      await chapterService.submitManuscript(currentChapterId, stage.id);
+
+      if (isPencil) {
+        showToast(
+          'Bàn giao Pencil ➔ Ink thành công!',
+          'Hệ thống đã tự động duyệt nét chì và mở việc Ink. Bạn có thể tiếp tục hoàn thiện liên tục ngay bây giờ.',
+          'success',
+        );
+      } else if (isInk) {
+        showToast(
+          'Chuyển giao Lettering thành công!',
+          'Bản vẽ Ink hoàn thành. Hệ thống đã tự động mở task cho Letterer ráp bóng thoại & SFX dựa trên kịch bản khóa.',
+          'success',
+        );
+      } else {
+        showToast(
+          `Hoàn thành ${stage.name}`,
+          `Đã chuyển giao thành công sang ${nextStageName}.`,
+          'success',
+        );
+      }
+
+      if (nextStage) {
+        setViewStageId(nextStage.id);
+      }
+
+      await refreshAssignments();
+    } catch (err: any) {
+      showMutationError('Lỗi chuyển giao công đoạn', err);
+    } finally {
+      setSubmittingStageHandoff(false);
+    }
+  };
+
   const uploadArtworkFileForPanel = async (panelId: string, file: File) => {
     if (!currentChapterId || !selectedPage) return;
     if (isCurrentPageCarvedOut) {
@@ -4069,6 +4155,183 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
           </div>
         </div>
       </div>
+
+      {/* -------------------------------------------------------------
+          THANH ĐIỀU HƯỚNG GIAI ĐOẠN ARTIST (STAGE TABS & INTERNAL HANDOFF BAR)
+          Cung cấp tab chuyển công đoạn: Thumbnail ➔ Pencil ➔ Ink ➔ Color...
+          Bàn giao tự động Pencil ➔ Ink (không bắt Editor duyệt).
+          Chuyển giao sang Lettering (Ink ➔ Lettering).
+         ------------------------------------------------------------- */}
+      {currentChapterId && sortedStages.length > 0 && (
+        <div
+          data-testid='artist-stage-tabs-bar'
+          className='h-11 bg-[#FDFBF7] border-b border-[#D8D2C5]/80 px-4 flex items-center justify-between gap-3 shrink-0 overflow-x-auto select-none z-20 shadow-2xs'
+        >
+          {/* Cụm Tab Các Giai Đoạn */}
+          <div className='flex items-center gap-1.5 shrink-0 overflow-x-auto scrollbar-none' data-testid='artist-stage-tabs'>
+            {/* Tab Tự Động (AUTO) */}
+            <button
+              type='button'
+              onClick={() => setViewStageId('AUTO')}
+              data-testid='stage-tab-auto'
+              title='Tự động chọn ảnh theo công đoạn bạn đang làm hoặc cao nhất'
+              className={`h-7 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                viewStageId === 'AUTO'
+                  ? 'bg-[#1C1917] text-white shadow-2xs'
+                  : 'bg-white/80 text-stone-600 hover:bg-stone-100 border border-[#E7E2D7]'
+              }`}
+            >
+              <Zap className='w-3 h-3 text-amber-500' />
+              <span>Tự động</span>
+              {myStageOnPage && (
+                <span className='text-[10px] opacity-75 font-normal hidden sm:inline'>({stageLabel(myStageOnPage)})</span>
+              )}
+            </button>
+
+            {sortedStages.map((stage, idx) => {
+              const isSelected = viewStageId === stage.id || (viewStageId === 'AUTO' && currentActiveStage?.id === stage.id);
+              const slug = (stage.slug || stage.name || '').toLowerCase();
+              const isPencil = slug.includes('pencil') || slug.includes('chì');
+              const isInk = slug.includes('ink') || slug.includes('nét');
+              const isLetterer = slug.includes('letter') || stage.allowedRole === 'Letterer';
+              const isReview = slug.includes('review') || stage.allowedRole === 'Editor';
+
+              const stageTask = [...myInProgress, ...myAssigned, ...myChangesRequested].find(
+                (a) => a.chapterId === currentChapterId && a.pipelineStageId === stage.id
+              );
+              const isDone = stage.stageOrder < (currentActiveStage?.stageOrder ?? 0) || stageTask?.status === 'Approved';
+              const isInProgress = stageTask?.status === 'InProgress' || (isSelected && !isDone);
+
+              return (
+                <button
+                  key={stage.id}
+                  type='button'
+                  onClick={() => setViewStageId(stage.id)}
+                  data-testid={`stage-tab-${stage.slug || stage.id}`}
+                  title={`Chuyển xem và vẽ ở công đoạn ${stage.name}`}
+                  className={`h-7 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shrink-0 ${
+                    isSelected
+                      ? 'bg-[#F97316] text-white shadow-xs'
+                      : isDone
+                        ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100'
+                        : 'bg-white/80 text-stone-700 hover:bg-stone-100 border border-[#E7E2D7]'
+                  }`}
+                >
+                  {isDone ? (
+                    <CheckCircle2 className={`w-3 h-3 ${isSelected ? 'text-white' : 'text-emerald-600'}`} />
+                  ) : isPencil ? (
+                    <Edit3 className={`w-3 h-3 ${isSelected ? 'text-white' : 'text-amber-600'}`} />
+                  ) : isInk ? (
+                    <Palette className={`w-3 h-3 ${isSelected ? 'text-white' : 'text-indigo-600'}`} />
+                  ) : isLetterer ? (
+                    <Type className={`w-3 h-3 ${isSelected ? 'text-white' : 'text-sky-600'}`} />
+                  ) : isReview ? (
+                    <CheckSquare className={`w-3 h-3 ${isSelected ? 'text-white' : 'text-rose-600'}`} />
+                  ) : (
+                    <span className={`w-3.5 h-3.5 rounded-full text-[10px] font-bold flex items-center justify-center ${
+                      isSelected ? 'bg-white/20 text-white' : 'bg-stone-200 text-stone-700'
+                    }`}>
+                      {idx + 1}
+                    </span>
+                  )}
+
+                  <span>{stage.name}</span>
+
+                  {isDone && (
+                    <span className={`text-[9px] px-1 py-0.2 rounded font-bold uppercase ${
+                      isSelected ? 'bg-white/25 text-white' : 'bg-emerald-100 text-emerald-800'
+                    }`}>
+                      Xong
+                    </span>
+                  )}
+                  {isInProgress && !isDone && (
+                    <span className={`text-[9px] px-1 py-0.2 rounded font-bold uppercase ${
+                      isSelected ? 'bg-white/25 text-white' : 'bg-amber-100 text-amber-800'
+                    }`}>
+                      Đang làm
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Cụm Nút Hành Động Bàn Giao Tự Động (Internal Handoff) */}
+          {canEditPages && currentActiveStage && (
+            <div className='flex items-center gap-2 shrink-0 ml-auto'>
+              {(() => {
+                const slug = (currentActiveStage.slug || currentActiveStage.name || '').toLowerCase();
+                const isPencil = slug.includes('pencil') || slug.includes('chì');
+                const isInk = slug.includes('ink') || slug.includes('nét');
+
+                if (isPencil) {
+                  return (
+                    <button
+                      type='button'
+                      onClick={() => handleStageHandoff(currentActiveStage)}
+                      disabled={submittingStageHandoff}
+                      data-testid='btn-handoff-pencil-ink'
+                      title='Bàn giao tự động Pencil ➔ Ink: Không bắt Editor duyệt nét chì, hệ thống tự động gán mở việc Ink'
+                      className='h-7 px-3 inline-flex items-center gap-1.5 rounded-lg text-xs font-bold bg-[#F97316] hover:bg-orange-600 text-white shadow-xs cursor-pointer active:scale-95 transition-all'
+                    >
+                      {submittingStageHandoff ? (
+                        <Loader2 className='w-3 h-3 animate-spin' />
+                      ) : (
+                        <ArrowRight className='w-3.5 h-3.5' />
+                      )}
+                      <span>Bàn giao Pencil ➔ Ink</span>
+                      <span className='hidden md:inline-block text-[10px] font-normal opacity-90 border-l border-white/30 pl-1.5'>
+                        Mở việc Ink ngay
+                      </span>
+                    </button>
+                  );
+                }
+
+                if (isInk) {
+                  return (
+                    <button
+                      type='button'
+                      onClick={() => handleStageHandoff(currentActiveStage)}
+                      disabled={submittingStageHandoff}
+                      data-testid='btn-handoff-ink-lettering'
+                      title='Chuyển giao sang Lettering (Ink ➔ Lettering): Hoàn thành Ink, hệ thống tự động mở task cho Letterer ráp bóng thoại & SFX'
+                      className='h-7 px-3 inline-flex items-center gap-1.5 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs cursor-pointer active:scale-95 transition-all'
+                    >
+                      {submittingStageHandoff ? (
+                        <Loader2 className='w-3 h-3 animate-spin' />
+                      ) : (
+                        <Sparkles className='w-3.5 h-3.5' />
+                      )}
+                      <span>Chuyển giao ➔ Lettering</span>
+                      <span className='hidden md:inline-block text-[10px] font-normal opacity-90 border-l border-white/30 pl-1.5'>
+                        Mở task Letterer ráp thoại/SFX
+                      </span>
+                    </button>
+                  );
+                }
+
+                return (
+                  <button
+                    type='button'
+                    onClick={() => handleStageHandoff(currentActiveStage)}
+                    disabled={submittingStageHandoff}
+                    data-testid={`btn-handoff-${currentActiveStage.slug || currentActiveStage.id}`}
+                    title={`Hoàn thành ${currentActiveStage.name} và chuyển sang giai đoạn tiếp theo`}
+                    className='h-7 px-2.5 inline-flex items-center gap-1.5 rounded-lg text-xs font-semibold bg-white hover:bg-stone-50 text-stone-800 border border-[#D8D2C5] shadow-2xs cursor-pointer transition-all'
+                  >
+                    {submittingStageHandoff ? (
+                      <Loader2 className='w-3 h-3 animate-spin' />
+                    ) : (
+                      <ArrowRight className='w-3 h-3' />
+                    )}
+                    <span>Hoàn thành {currentActiveStage.name} ➔</span>
+                  </button>
+                );
+              })()}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Toolbar phụ khi bật "Sửa bố cục" */}
       {selectedPage && canEditPages && !isCurrentPageCarvedOut && layoutEdit && (

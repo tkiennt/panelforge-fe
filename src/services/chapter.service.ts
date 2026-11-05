@@ -227,9 +227,12 @@ export const chapterService = {
    * Nộp toàn bộ bản thảo chương sang hàng đợi thẩm định của Editor/Producer (POST /api/chapters/{chapterId}/submit-manuscript)
    * Độc lập, không bắt buộc phải có phân công việc (Assign) trước đó.
    */
-  submitManuscript: async (chapterId: string): Promise<any> => {
+  submitManuscript: async (chapterId: string, stageId?: string): Promise<any> => {
     try {
-      const response = await axiosClient.post(`/chapters/${chapterId}/submit-manuscript`);
+      const url = stageId
+        ? `/chapters/${chapterId}/submit-manuscript?stageId=${encodeURIComponent(stageId)}`
+        : `/chapters/${chapterId}/submit-manuscript`;
+      const response = await axiosClient.post(url);
       return response.data;
     } catch (error) {
       throw new Error(extractError(error, 'Không thể nộp bản thảo chương.'));

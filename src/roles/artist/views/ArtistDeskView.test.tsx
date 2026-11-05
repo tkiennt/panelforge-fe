@@ -1858,4 +1858,58 @@ describe('ArtistDeskView', () => {
       });
     });
   });
+  describe('Tab Giai đoạn cho Artist & Internal Handoff (Pencil ➔ Ink ➔ Lettering)', () => {
+    beforeEach(() => {
+      vi.spyOn(window, 'confirm').mockReturnValue(true);
+      vi.mocked(chapterService.submitManuscript).mockResolvedValue({ id: 'ass-handoff' } as any);
+    });
+
+    it('hiển thị thanh tab giai đoạn cho Artist với các công đoạn Thumbnail, Pencil, Ink', async () => {
+      renderComponent();
+
+      await waitFor(() => {
+        expect(screen.getByTestId('artist-stage-tabs-bar')).toBeInTheDocument();
+        expect(screen.getByTestId('stage-tab-auto')).toBeInTheDocument();
+        expect(screen.getByTestId('stage-tab-stg-1')).toBeInTheDocument();
+        expect(screen.getByTestId('stage-tab-stg-2')).toBeInTheDocument();
+        expect(screen.getByTestId('stage-tab-stg-3')).toBeInTheDocument();
+      });
+    });
+
+    it('bấm chuyển tab giai đoạn sang Pencil và cho phép nộp bàn giao tự động Pencil ➔ Ink', async () => {
+      renderComponent();
+
+      const pencilTab = await screen.findByTestId('stage-tab-stg-2');
+      fireEvent.click(pencilTab);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('btn-handoff-pencil-ink')).toBeInTheDocument();
+      });
+
+      const handoffBtn = screen.getByTestId('btn-handoff-pencil-ink');
+      fireEvent.click(handoffBtn);
+
+      await waitFor(() => {
+        expect(chapterService.submitManuscript).toHaveBeenCalledWith('chap-1', 'stg-2');
+      });
+    });
+
+    it('bấm chuyển tab giai đoạn sang Ink và cho phép chuyển giao sang Lettering', async () => {
+      renderComponent();
+
+      const inkTab = await screen.findByTestId('stage-tab-stg-3');
+      fireEvent.click(inkTab);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('btn-handoff-ink-lettering')).toBeInTheDocument();
+      });
+
+      const handoffInkBtn = screen.getByTestId('btn-handoff-ink-lettering');
+      fireEvent.click(handoffInkBtn);
+
+      await waitFor(() => {
+        expect(chapterService.submitManuscript).toHaveBeenCalledWith('chap-1', 'stg-3');
+      });
+    });
+  });
 });
