@@ -67,6 +67,7 @@ import { aiAgentsService, LetteringSuggestion, AiSuggestionDto } from '@/service
 import { offlineQueueService } from '@/services/offlineQueue.service';
 import { OfflineStatusBanner } from '@/shared/components/OfflineStatusBanner';
 import { ElementConflictModal } from '@/shared/modals/ElementConflictModal';
+import { AutoAssignScriptLinesModal } from '@/roles/artist/modals/AutoAssignScriptLinesModal';
 import {
   LETTERING_FONT_PX,
   LETTERING_CHAR_WIDTH_EM,
@@ -436,6 +437,8 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
   // AI Letterer Agent (CF2 2.4: rút gọn thoại vừa balloon)
   const [aiLoading, setAiLoading] = useState(false);
   const [aiModalOpen, setAiModalOpen] = useState(false);
+  const [autoAssignModalOpen, setAutoAssignModalOpen] = useState(false);
+  const [currentPageInfo, setCurrentPageInfo] = useState<{ pageNumber: number } | null>(null);
   const [aiSuggestions, setAiSuggestions] = useState<LetteringSuggestion[]>([]);
   const [currentAiSuggestionId, setCurrentAiSuggestionId] = useState<string | null>(null);
   const [chapterVersionVector, setChapterVersionVector] = useState<number>(1);
@@ -638,8 +641,13 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
       if (res && typeof res.then === 'function') {
         res
           .then((p) => {
-            if (p && p.widthPx && p.heightPx) {
-              setPageDim({ width: p.widthPx, height: p.heightPx });
+            if (p) {
+              if (p.widthPx && p.heightPx) {
+                setPageDim({ width: p.widthPx, height: p.heightPx });
+              }
+              if (p.pageNumber) {
+                setCurrentPageInfo({ pageNumber: p.pageNumber });
+              }
             }
           })
           .catch((err) => {
@@ -2663,6 +2671,18 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
                     </option>
                   ))}
                 </select>
+
+                {/* AI Tách Thoại (Auto-Assign Script Lines into Panels) */}
+                <button
+                  type='button'
+                  data-testid='auto-assign-script-btn'
+                  onClick={() => setAutoAssignModalOpen(true)}
+                  title='AI Tách Thoại: Tự động phân bổ các câu thoại kịch bản vào các khung của trang'
+                  className='w-full flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-xs font-bold shadow-2xs cursor-pointer transition-all active:scale-95'
+                >
+                  <Sparkles className='w-3.5 h-3.5' />
+                  <span>AI Tách thoại vào khung</span>
+                </button>
 
                 {/* Quick Filters */}
                 <div className='flex items-center gap-1 bg-[#EBE7DF] p-1 rounded-xl text-[11px] font-semibold'>
@@ -4709,6 +4729,27 @@ export const LetteringWorkspace: React.FC<LetteringWorkspaceProps> = ({
         onReload={loadElements}
         onClose={() => setConflictModalOpen(false)}
       />
+
+      {/* AI Tách Thoại Modal trong Stage Lettering */}
+      {activePageId && (
+        <AutoAssignScriptLinesModal
+          isOpen={autoAssignModalOpen}
+          onClose={() => setAutoAssignModalOpen(false)}
+          pageId={activePageId}
+          pageNumber={currentPageInfo?.pageNumber || 1}
+          sceneId={selectedSceneId || ''}
+          sceneHeading={scenes.find((s) => s.id === selectedSceneId)?.heading}
+          panels={panels}
+          lines={sceneLines}
+          onSuccess={async () => {
+            if (selectedSceneId) {
+              const sDetail = await scriptLineService.getSceneById(selectedSceneId);
+              setSceneLines(sDetail.scriptLines || []);
+            }
+          }}
+          onShowToast={onShowToast}
+        />
+      )}
     </div>
   );
 
