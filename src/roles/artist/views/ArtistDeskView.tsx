@@ -353,10 +353,20 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
     } else {
       setTasks([]);
     }
-    return () => {
+
+  return () => {
       alive = false;
     };
   }, [currentChapterId, workspaceId]);
+
+  const handleBackToChapterSelection = () => {
+    setCurrentChapterId(null);
+    setSearchParams((prev) => {
+      const p = new URLSearchParams(prev);
+      p.delete('chapterId');
+      return p;
+    });
+  };
 
   const [pages, setPages] = useState<PageDto[]>([]);
   const [selectedPage, setSelectedPage] = useState<PageDto | null>(null);
@@ -3727,6 +3737,10 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
               ? (selectedPage.pageNumber / pages.length) * 100
               : 0
           }
+          onHandoffStage={handleStageHandoff}
+          isSubmittingHandoff={submittingStageHandoff}
+          canEdit={canEditPages}
+          onBackToChapters={handleBackToChapterSelection}
         />
       )}
 
@@ -4282,23 +4296,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
         </div>
       </div>
 
-      {/* -------------------------------------------------------------
-          THANH ĐIỀU HƯỚNG GIAI ĐOẠN ARTIST (LUCIAN UX/UI #039 & #042)
-          Chỉ hiển thị 3 giai đoạn: Pencil ➔ Ink ➔ Letterer
-          Tự động handoff Pencil ➔ Ink và Ink ➔ Lettering
-         ------------------------------------------------------------- */}
-      {currentChapterId && (
-        <LucianArtistStageTabs
-          stages={sortedStages}
-          activeStageId={currentActiveStage?.id || sortedStages[0]?.id || null}
-          onSelectStage={setViewStageId}
-          onHandoffStage={handleStageHandoff}
-          isSubmitting={submittingStageHandoff}
-          canEdit={canEditPages}
-          pencilArtworkAvailable={Boolean(pencilImgUrl)}
-          inkArtworkAvailable={Boolean(pageArtUrl)}
-        />
-      )}
+{/* Stage Tabs & Handoff đã tích hợp trực tiếp vào Unified Global Header */}
 
       {/* CONTEXT-DRIVEN EXCLUSIVE WORKSPACE BARS (PHẦN 3: GIAO DIỆN RIÊNG TỪNG GIAI ĐOẠN) */}
       {currentChapterId && (

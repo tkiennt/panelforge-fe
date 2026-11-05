@@ -1,14 +1,18 @@
+/* Lucian UX/UI Prompt #039 & #042 · MIT License (c) 2026 Seokwoooo · https://lucianlabs.dev/uxui-prompt/ */
 import React from 'react';
 import {
   ChevronLeft,
   ChevronRight,
   BookOpen,
-  Layers,
   FileImage,
+  ArrowRight,
   Sparkles,
+  Send,
+  Loader2,
+  Edit3,
+  PenTool,
+  Type,
   CheckCircle2,
-  Clock,
-  AlertCircle,
 } from 'lucide-react';
 import { PageDto } from '@/services/page.service';
 import { ChapterDto } from '@/services/chapter.service';
@@ -25,6 +29,10 @@ interface Props {
   onSelectStageFilter: (stageId: string) => void;
   stages: PipelineStageDto[];
   pageProgressPercent?: number;
+  onHandoffStage?: (stage: PipelineStageDto) => void;
+  isSubmittingHandoff?: boolean;
+  canEdit?: boolean;
+  onBackToChapters?: () => void;
 }
 
 export const GlobalPipelineHeader: React.FC<Props> = ({
@@ -38,6 +46,10 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
   onSelectStageFilter,
   stages,
   pageProgressPercent = 0,
+  onHandoffStage,
+  isSubmittingHandoff = false,
+  canEdit = true,
+  onBackToChapters,
 }) => {
   const currentIndex = selectedPage ? pages.findIndex((p) => p.id === selectedPage.id) : -1;
   const hasPrev = currentIndex > 0;
@@ -72,119 +84,195 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
         ? 'bg-sky-100 text-sky-900 border-sky-300'
         : 'bg-stone-100 text-stone-800 border-stone-300';
 
+  const stageList = stages.slice(0, 3);
+  const activeIndex = stageList.findIndex((s) => s.id === (currentActiveStage?.id || selectedStageFilter));
+  const activeStage = activeIndex >= 0 ? stageList[activeIndex] : stageList[0];
+
   return (
     <header
       data-testid='global-pipeline-header'
-      className='bg-[#FCFBF8] border-b border-[#D8D2C5] px-4 py-2 flex flex-wrap items-center justify-between gap-3 shrink-0 shadow-soft-sm select-none'
+      className='bg-[#FCFBF8] border-b border-[#D8D2C5] px-3 py-1.5 flex items-center justify-between gap-2 shrink-0 select-none shadow-2xs'
     >
-      {/* 1. Breadcrumb & Project Name */}
-      <div className='flex items-center gap-2 text-xs'>
-        <span className='font-serif font-black tracking-tight text-[#1C1917] text-sm'>
-          {seriesTitle}
-        </span>
-        <span className='text-stone-300'>/</span>
-        <div className='flex items-center gap-1.5 text-stone-700 font-semibold'>
-          <BookOpen className='w-3.5 h-3.5 text-orange-600' />
-          <span>
-            {chapter ? `Chương ${chapter.chapterNumber}${chapter.title ? `: ${chapter.title}` : ''}` : 'Chương'}
+      {/* 1. KHỐI TRÁI: ĐIỀU HƯỚNG CHƯƠNG & TRANG */}
+      <div className='flex items-center gap-2 text-xs shrink-0'>
+        {onBackToChapters && (
+          <button
+            type='button'
+            onClick={onBackToChapters}
+            data-testid='header-switch-chapter-btn'
+            title='Quay lại màn hình danh sách chọn chương'
+            aria-label='Đổi chương'
+            className='h-7 px-2 inline-flex items-center gap-1 rounded-lg border border-[#D8D2C5] bg-[#FAF8F5] hover:bg-[#F3F0E9] text-stone-700 hover:text-stone-900 transition-colors cursor-pointer text-xs font-semibold shrink-0'
+          >
+            <ChevronLeft className='w-3.5 h-3.5 text-stone-600' />
+            <span className='hidden sm:inline'>Đổi chương</span>
+          </button>
+        )}
+
+        {/* Tên truyện & Tên chương */}
+        <div className='flex items-center gap-1.5 font-semibold text-stone-800'>
+          <span className='font-bold text-[#1C1917] hidden md:inline truncate max-w-[120px]'>
+            {seriesTitle}
           </span>
+          <span className='text-stone-300 hidden md:inline'>/</span>
+          <div className='flex items-center gap-1 text-[#C2410C] font-bold'>
+            <BookOpen className='w-3.5 h-3.5' />
+            <span className='truncate max-w-[140px]'>
+              {chapter ? `Chương ${chapter.chapterNumber}` : 'Chương'}
+            </span>
+          </div>
         </div>
-        <span className='text-stone-300'>/</span>
+
+        {/* Bộ chọn trang: Prev [ Trang 01/12 ] Next */}
+        <div className='flex items-center gap-1 bg-[#F3F0E9] p-0.5 rounded-lg border border-[#D8D2C5]'>
+          <button
+            type='button'
+            data-testid='btn-prev-page'
+            onClick={handlePrev}
+            disabled={!hasPrev}
+            title='Trang trước'
+            className='p-1 rounded text-stone-700 hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors'
+          >
+            <ChevronLeft className='w-3.5 h-3.5' />
+          </button>
+
+          <span
+            data-testid='current-page-indicator'
+            className='font-bold px-1.5 text-stone-800 text-[11px] whitespace-nowrap'
+          >
+            Trang {selectedPage ? String(selectedPage.pageNumber).padStart(2, '0') : '--'}/
+            {String(pages.length).padStart(2, '0')}
+          </span>
+
+          <button
+            type='button'
+            data-testid='btn-next-page'
+            onClick={handleNext}
+            disabled={!hasNext}
+            title='Trang sau'
+            className='p-1 rounded text-stone-700 hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors'
+          >
+            <ChevronRight className='w-3.5 h-3.5' />
+          </button>
+        </div>
 
         {/* Stage Tag */}
         <span
           data-testid='global-stage-tag'
-          className={`font-mono text-[11px] font-black px-2 py-0.5 rounded border ${stageTagColor}`}
+          className={`font-mono text-[10px] font-black px-1.5 py-0.5 rounded border hidden xl:inline-block ${stageTagColor}`}
         >
           {stageTagLabel}
         </span>
       </div>
 
-      {/* 2. Page Selector & Prev/Next Navigation */}
-      <div className='flex items-center gap-2'>
-        <button
-          type='button'
-          data-testid='btn-prev-page'
-          onClick={handlePrev}
-          disabled={!hasPrev}
-          title='Trang trước (Phím tắt: [ hoặc ◄)'
-          className='p-1.5 rounded-lg border border-[#D8D2C5] bg-white text-stone-700 hover:bg-stone-50 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors shadow-2xs'
-        >
-          <ChevronLeft className='w-4 h-4' />
-        </button>
+      {/* 2. KHỐI GIỮA: LUCIAN SLIDING 3-STAGE PILL TABS (#039 & #042) */}
+      <div
+        data-testid='artist-stage-tabs-bar'
+        className='flex items-center gap-1 p-0.5 bg-[#F1EDE4] rounded-xl border border-[#DFD9CD] shadow-inner shrink-0'
+      >
+        {stageList.map((stage, idx) => {
+          const isSelected = stage.id === activeStage?.id;
+          const slug = (stage.slug || stage.name || '').toLowerCase();
+          const isPencilTab = slug.includes('pencil') || slug.includes('chì') || idx === 0;
+          const isInkTab = slug.includes('ink') || slug.includes('nét') || slug.includes('mực') || idx === 1;
 
-        <div className='flex items-center gap-2 bg-[#F3F0E9] px-3 py-1 rounded-xl border border-[#D8D2C5] text-xs font-semibold'>
-          <FileImage className='w-3.5 h-3.5 text-stone-600' />
-          <span data-testid='current-page-indicator'>
-            Trang {selectedPage ? String(selectedPage.pageNumber).padStart(2, '0') : '--'}/
-            {String(pages.length).padStart(2, '0')}
-          </span>
-          {selectedPage && (
-            <span className='text-[10px] font-mono text-stone-500'>
-              ({selectedPage.widthPx || 1200}×{selectedPage.heightPx || 1800}px)
-            </span>
-          )}
-        </div>
+          const key = isPencilTab ? 'pencil' : isInkTab ? 'ink' : 'lettering';
+          const label = isPencilTab ? 'Pencil' : isInkTab ? 'Ink' : 'Lettering';
+          const IconComp = isPencilTab ? Edit3 : isInkTab ? PenTool : Type;
 
-        <button
-          type='button'
-          data-testid='btn-next-page'
-          onClick={handleNext}
-          disabled={!hasNext}
-          title='Trang sau (Phím tắt: ] hoặc ►)'
-          className='p-1.5 rounded-lg border border-[#D8D2C5] bg-white text-stone-700 hover:bg-stone-50 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors shadow-2xs'
-        >
-          <ChevronRight className='w-4 h-4' />
-        </button>
+          return (
+            <button
+              key={stage.id}
+              type='button'
+              onClick={() => onSelectStageFilter(stage.id)}
+              data-testid={`stage-tab-${stage.slug || stage.id || key}`}
+              data-stage-key={key}
+              aria-selected={isSelected}
+              role='tab'
+              title={`Chuyển sang ${stage.name}`}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                isSelected
+                  ? 'bg-white text-stone-900 shadow-2xs font-bold'
+                  : 'text-stone-600 hover:text-stone-900 hover:bg-white/40'
+              }`}
+            >
+              <span className='font-mono text-[10px] text-stone-400'>{idx + 1}.</span>
+              <IconComp className={`w-3 h-3 ${isSelected ? 'text-stone-900' : 'text-stone-500'}`} />
+              <span>{label}</span>
+            </button>
+          );
+        })}
       </div>
 
-      {/* 3. Stage Selector Pills & Progress Indicator */}
-      <div className='flex items-center gap-3'>
-        {/* Progress Bar của Trang */}
-        <div className='hidden md:flex items-center gap-2 text-xs'>
-          <span className='text-[11px] text-stone-500 font-medium'>Tiến độ trang:</span>
-          <div className='w-24 h-2 bg-stone-200 rounded-full overflow-hidden'>
-            <div
-              className='h-full bg-orange-500 transition-all duration-300'
-              style={{ width: `${Math.min(100, Math.max(0, pageProgressPercent))}%` }}
-            />
-          </div>
-          <span className='font-mono font-bold text-[10px] text-stone-600'>
-            {Math.round(pageProgressPercent)}%
-          </span>
-        </div>
+      {/* 3. KHỐI PHẢI: NÚT ACTION BÀN GIAO / HANDOFF THEO NGỮ CẢNH */}
+      {canEdit && onHandoffStage && activeStage && (
+        <div className='flex items-center gap-2 shrink-0'>
+          {(() => {
+            const currentIdx = stageList.findIndex((s) => s.id === activeStage.id);
 
-        {/* 3-Stage Lucian Indicators (Pencil ➔ Ink ➔ Lettering) */}
-        <div className='flex items-center gap-1 bg-[#F1EDE4] p-0.5 rounded-xl border border-[#DFD9CD] text-xs font-semibold'>
-          {stages.slice(0, 3).map((s, idx) => {
-            const isSelected = selectedStageFilter === s.id || (selectedStageFilter === 'AUTO' && currentActiveStage?.id === s.id);
-            const slug = (s.slug || s.name || '').toLowerCase();
-            const label = slug.includes('pencil') || slug.includes('chì')
-              ? 'Pencil'
-              : slug.includes('ink') || slug.includes('nét')
-                ? 'Ink'
-                : 'Lettering';
+            // BƯỚC 1: PENCIL ➔ INK
+            if (currentIdx === 0) {
+              return (
+                <button
+                  type='button'
+                  onClick={() => onHandoffStage(activeStage)}
+                  disabled={isSubmittingHandoff}
+                  data-testid='btn-handoff-pencil-ink'
+                  title='Bàn giao nét chì sang Ink: Tự động mở việc Ink'
+                  className='h-7 px-3 inline-flex items-center gap-1.5 rounded-lg text-xs font-bold bg-[#F97316] hover:bg-orange-600 active:scale-95 text-white shadow-2xs cursor-pointer transition-all disabled:opacity-50'
+                >
+                  {isSubmittingHandoff ? (
+                    <Loader2 className='w-3 h-3 animate-spin' />
+                  ) : (
+                    <ArrowRight className='w-3 h-3' />
+                  )}
+                  <span>Bàn giao Pencil ➔ Ink</span>
+                </button>
+              );
+            }
 
+            // BƯỚC 2: INK ➔ LETTERING
+            if (currentIdx === 1) {
+              return (
+                <button
+                  type='button'
+                  onClick={() => onHandoffStage(activeStage)}
+                  disabled={isSubmittingHandoff}
+                  data-testid='btn-handoff-ink-lettering'
+                  title='Chuyển giao nét vẽ sang Lettering: Tự động mở việc ráp thoại cho Letterer'
+                  className='h-7 px-3 inline-flex items-center gap-1.5 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white shadow-2xs cursor-pointer transition-all disabled:opacity-50'
+                >
+                  {isSubmittingHandoff ? (
+                    <Loader2 className='w-3 h-3 animate-spin' />
+                  ) : (
+                    <Sparkles className='w-3 h-3' />
+                  )}
+                  <span>Chuyển giao ➔ Lettering</span>
+                </button>
+              );
+            }
+
+            // BƯỚC 3: LETTERING ➔ DUYỆT GATE 2
             return (
               <button
-                key={s.id}
                 type='button'
-                data-testid={`header-stage-${s.slug || s.id}`}
-                onClick={() => onSelectStageFilter(s.id)}
-                title={`Chuyển sang ${s.name}`}
-                className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer flex items-center gap-1 ${
-                  isSelected
-                    ? 'bg-white text-stone-900 shadow-2xs font-bold'
-                    : 'text-stone-600 hover:text-stone-900'
-                }`}
+                onClick={() => onHandoffStage(activeStage)}
+                disabled={isSubmittingHandoff}
+                data-testid='btn-handoff-lettering-gate2'
+                title='Nộp bản thảo hoàn chỉnh cho Editor thẩm định ở Gate 2'
+                className='h-7 px-3 inline-flex items-center gap-1.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white shadow-2xs cursor-pointer transition-all disabled:opacity-50'
               >
-                <span className='font-mono text-[10px] text-stone-400'>{idx + 1}.</span>
-                <span>{label}</span>
+                {isSubmittingHandoff ? (
+                  <Loader2 className='w-3 h-3 animate-spin' />
+                ) : (
+                  <Send className='w-3 h-3' />
+                )}
+                <span>Nộp duyệt Gate 2</span>
               </button>
             );
-          })}
+          })()}
         </div>
-      </div>
+      )}
     </header>
   );
 };

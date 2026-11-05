@@ -1988,6 +1988,8 @@ describe('ArtistDeskView', () => {
     it('giai đoạn LETTERING: hiển thị Locked Script Checklist, AI Tách Thoại, Balloon Toolset, Reading Flow', async () => {
       renderComponent();
 
+      await screen.findByTestId('panel-canvas');
+
       // Chuyển sang stage Lettering
       const letteringTab = await screen.findByTestId('stage-tab-lettering');
       fireEvent.click(letteringTab);
