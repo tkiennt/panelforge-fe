@@ -3517,119 +3517,125 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
       {/* NFR-09 Offline Status Indicator */}
       <OfflineStatusBanner />
 
-      {/* Toolbar chính: Ngữ cảnh · Ảnh hiển thị → Sửa bố cục → Tải ảnh → CTA → Chi tiết → Trang ⋯ → Zoom */}
+      {/* Toolbar chính: 1 Hàng duy nhất (No Wrap), Tinh gọn, Không trùng lặp chức năng của Canvas */}
       <div
-        className='shrink-0 relative z-30 bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl px-1.5 py-1 flex flex-wrap items-center gap-1 min-w-0'
+        className='shrink-0 relative z-30 bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl px-2 py-1.5 flex items-center justify-between gap-2 min-w-0 overflow-x-auto no-scrollbar shadow-2xs'
         role='toolbar'
         aria-label='Thanh công cụ bàn vẽ'
         data-testid='artist-main-toolbar'
       >
-        <button
-          type='button'
-          onClick={() => setIsLeftCollapsed((v) => !v)}
-          aria-expanded={!isLeftCollapsed}
-          aria-controls='artist-left-column'
-          aria-label={isLeftCollapsed ? 'Mở cột Trang / Kịch bản' : 'Thu gọn cột Trang / Kịch bản'}
-          title={isLeftCollapsed ? 'Mở cột Trang / Kịch bản' : 'Thu gọn cột Trang / Kịch bản'}
-          data-testid='toggle-left-column'
-          className={`${toolbarBtn} ${toolbarIdle} w-8 px-0 justify-center`}
-        >
-          {isLeftCollapsed ? (
-            <PanelLeftOpen className='w-4 h-4' />
-          ) : (
-            <PanelLeftClose className='w-4 h-4' />
-          )}
-        </button>
+        {/* CỤM 1 (BÊN TRÁI): ĐIỀU HƯỚNG & NGỮ CẢNH TRANG */}
+        <div className='flex items-center gap-1.5 shrink-0 min-w-0'>
+          <button
+            type='button'
+            onClick={() => setIsLeftCollapsed((v) => !v)}
+            aria-expanded={!isLeftCollapsed}
+            aria-controls='artist-left-column'
+            aria-label={isLeftCollapsed ? 'Mở cột Trang / Kịch bản' : 'Thu gọn cột Trang / Kịch bản'}
+            title={isLeftCollapsed ? 'Mở cột Trang / Kịch bản' : 'Thu gọn cột Trang / Kịch bản'}
+            data-testid='toggle-left-column'
+            className={`${toolbarBtn} ${toolbarIdle} w-8 px-0 justify-center`}
+          >
+            {isLeftCollapsed ? (
+              <PanelLeftOpen className='w-4 h-4' />
+            ) : (
+              <PanelLeftClose className='w-4 h-4' />
+            )}
+          </button>
 
-        <button
-          type='button'
-          onClick={() => {
-            setCurrentChapterId(null);
-            setSearchParams((prev) => {
-              const p = new URLSearchParams(prev);
-              p.delete('chapterId');
-              return p;
-            });
-          }}
-          data-testid='switch-chapter-btn'
-          title='Quay lại danh sách chọn chương'
-          aria-label='Đổi chương'
-          className={`${toolbarBtn} ${toolbarIdle} px-2`}
-        >
-          <BookOpen className='w-3.5 h-3.5 text-[#C2410C]' />
-          <span className='hidden sm:inline font-semibold'>Đổi chương</span>
-        </button>
+          <button
+            type='button'
+            onClick={() => {
+              setCurrentChapterId(null);
+              setSearchParams((prev) => {
+                const p = new URLSearchParams(prev);
+                p.delete('chapterId');
+                return p;
+              });
+            }}
+            data-testid='switch-chapter-btn'
+            title='Quay lại danh sách chọn chương'
+            aria-label='Đổi chương'
+            className={`${toolbarBtn} ${toolbarIdle} px-2`}
+          >
+            <BookOpen className='w-3.5 h-3.5 text-[#C2410C]' />
+            <span className='hidden sm:inline font-semibold'>Đổi chương</span>
+          </button>
 
-        <div className='flex items-center gap-1 min-w-0 text-xs text-[#57534E]'>
-          {chapters.length > 0 ? (
-            <>
-              <label htmlFor='artist-chapter-select' className='sr-only'>
-                Chương
-              </label>
-              <select
-                id='artist-chapter-select'
-                value={currentChapterId || ''}
-                onChange={(e) => {
-                  const newId = e.target.value;
-                  if (newId === '__all__') {
-                    setCurrentChapterId(null);
-                    setSearchParams((prev) => {
-                      const p = new URLSearchParams(prev);
-                      p.delete('chapterId');
-                      return p;
-                    });
-                    return;
-                  }
-                  handleSelectChapter(newId);
-                }}
-                className='h-8 max-w-[5.5rem] bg-transparent font-semibold text-[#1C1917] rounded-lg px-1 cursor-pointer hover:bg-[#F3F0E9] focus-visible:outline-2 focus-visible:outline-[#F97316] truncate'
-              >
-                <option value='__all__'>📋 Tất cả chương…</option>
-                {chapters.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    Chương {c.chapterNumber}
-                    {c.title ? `: ${c.title}` : ''}
-                  </option>
-                ))}
-              </select>
-            </>
-          ) : (
-            <span>{loadingChapters ? 'Đang tải…' : 'Chưa có chương'}</span>
-          )}
-          {selectedPage && (
-            <>
-              <span aria-hidden='true'>/</span>
+          <div className='flex items-center gap-1 min-w-0 text-xs text-[#57534E]'>
+            {chapters.length > 0 ? (
+              <>
+                <label htmlFor='artist-chapter-select' className='sr-only'>
+                  Chương
+                </label>
+                <select
+                  id='artist-chapter-select'
+                  value={currentChapterId || ''}
+                  onChange={(e) => {
+                    const newId = e.target.value;
+                    if (newId === '__all__') {
+                      setCurrentChapterId(null);
+                      setSearchParams((prev) => {
+                        const p = new URLSearchParams(prev);
+                        p.delete('chapterId');
+                        return p;
+                      });
+                      return;
+                    }
+                    handleSelectChapter(newId);
+                  }}
+                  className='h-8 max-w-[5.5rem] bg-transparent font-semibold text-[#1C1917] rounded-lg px-1 cursor-pointer hover:bg-[#F3F0E9] focus-visible:outline-2 focus-visible:outline-[#F97316] truncate'
+                >
+                  <option value='__all__'>📋 Tất cả chương…</option>
+                  {chapters.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      Chương {c.chapterNumber}
+                      {c.title ? `: ${c.title}` : ''}
+                    </option>
+                  ))}
+                </select>
+              </>
+            ) : (
+              <span>{loadingChapters ? 'Đang tải…' : 'Chưa có chương'}</span>
+            )}
+            {selectedPage && (
+              <>
+                <span aria-hidden='true'>/</span>
+                <span
+                  className='font-semibold text-[#1C1917] whitespace-nowrap'
+                  data-testid='toolbar-page-context'
+                >
+                  Trang {selectedPage.pageNumber}
+                </span>
+              </>
+            )}
+            {workBadge && (
               <span
-                className='font-semibold text-[#1C1917] whitespace-nowrap'
-                data-testid='toolbar-page-context'
+                className={`ml-1 px-2 py-0.5 rounded-full border text-[11px] font-semibold whitespace-nowrap inline-flex items-center ${workBadge.tone}`}
+                data-testid='artist-work-status'
+                title={`${workStageName ? `Công đoạn công việc: ${workStageName} — ` : ''}${workBadge.label}`}
               >
-                Trang {selectedPage.pageNumber}
+                <span className='hidden 2xl:inline'>
+                  {workStageName ? `${workStageName} · ` : ''}
+                </span>
+                {workBadge.label.split(' · ')[0]}
+                {workBadge.label.includes('Chỉ xem') && (
+                  <>
+                    <Lock className='inline w-3 h-3 ml-1 -mt-px' aria-hidden='true' />
+                    <span className='sr-only'> · Chỉ xem</span>
+                  </>
+                )}
               </span>
-            </>
-          )}
-          {workBadge && (
-            <span
-              className={`ml-1 px-2 py-0.5 rounded-full border text-[11px] font-semibold whitespace-nowrap inline-flex items-center ${workBadge.tone}`}
-              data-testid='artist-work-status'
-              title={`${workStageName ? `Công đoạn công việc: ${workStageName} — ` : ''}${workBadge.label}`}
-            >
-              <span className='hidden 2xl:inline'>
-                {workStageName ? `${workStageName} · ` : ''}
-              </span>
-              {workBadge.label.split(' · ')[0]}
-              {workBadge.label.includes('Chỉ xem') && (
-                <>
-                  <Lock className='inline w-3 h-3 ml-1 -mt-px' aria-hidden='true' />
-                  <span className='sr-only'> · Chỉ xem</span>
-                </>
-              )}
-            </span>
-          )}
+            )}
+          </div>
         </div>
 
+        {/* CỤM 2 (Ở GIỮA): CHẾ ĐỘ HIỂN THỊ & CÔNG CỤ VẼ TRANG (ĐÃ LỌC BỎ CÁC NÚT TRÙNG VỚI CANVAS) */}
         {selectedPage && (
-          <>
+          <div className='flex items-center gap-1.5 shrink-0'>
             <span className='w-px h-5 bg-[#D8D2C5] shrink-0' aria-hidden='true' />
+
+            {/* Chọn Layer Ảnh hiển thị */}
             <label className='flex items-center gap-1 text-xs text-[#57534E] shrink-0'>
               <Eye className='w-3.5 h-3.5 text-[#C2410C]' aria-hidden='true' />
               <span className='hidden 2xl:inline whitespace-nowrap'>Ảnh hiển thị</span>
@@ -3653,104 +3659,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
               </select>
             </label>
 
-            {canEditPages && (
-              <button
-                type='button'
-                aria-pressed={layoutEdit}
-                disabled={isCurrentPageCarvedOut || Boolean(pageArtUrl)}
-                onClick={() => {
-                  if (pageArtUrl) {
-                    showToast('Không thể sửa bố cục', 'Trang này đã tải lên bản vẽ hoàn chỉnh. Hãy xoá tranh nếu muốn chia lại khung.', 'error');
-                    return;
-                  }
-                  if (layoutEdit) setMultiIds([]);
-                  setLayoutEdit((v) => !v);
-                }}
-                data-testid='toggle-layout-edit'
-                title={
-                  pageArtUrl
-                    ? 'Trang đã có bản vẽ hoàn thiện, không thể sửa bố cục khung'
-                    : isCurrentPageCarvedOut
-                      ? 'Trang này đã được tách việc cho người khác, không thể sửa bố cục'
-                      : layoutEdit
-                        ? 'Tắt chế độ sửa bố cục'
-                        : 'Bật chế độ sửa bố cục khung'
-                }
-                className={`${toolbarBtn} ${layoutEdit ? toolbarOn : toolbarIdle} ${pageArtUrl ? 'opacity-40 cursor-not-allowed' : ''}`}
-              >
-                <Grid2x2 className='w-3.5 h-3.5' />
-                <span className='hidden lg:inline'>Sửa bố cục</span>
-                <span className='sr-only lg:hidden'>Sửa bố cục</span>
-              </button>
-            )}
-
-            {canEditPages && (
-              <button
-                type='button'
-                disabled={Boolean(pageArtUrl)}
-                onClick={() => {
-                  if (pageArtUrl) {
-                    showToast('Không thể chỉnh mẫu khung', 'Trang này đã tải lên bản vẽ hoàn chỉnh. Không thể áp dụng mẫu khung đè lên tranh.', 'error');
-                    return;
-                  }
-                  setFrameTemplateModalOpen(true);
-                }}
-                data-testid='toolbar-frame-template-btn'
-                title={
-                  pageArtUrl
-                    ? 'Trang đã tải lên bản vẽ hoàn chỉnh, không thể chỉnh mẫu khung'
-                    : 'Áp dụng mẫu khung tranh dựng sẵn vào trang'
-                }
-                className={`${toolbarBtn} ${toolbarIdle} ${pageArtUrl ? 'opacity-40 cursor-not-allowed' : ''}`}
-              >
-                <LayoutTemplate className='w-3.5 h-3.5 text-[#C2410C]' />
-                <span className='hidden lg:inline'>Mẫu Khung</span>
-                <span className='sr-only lg:hidden'>Mẫu Khung</span>
-              </button>
-            )}
-
-            {canEditPages && panels.length > 0 && (!pageArtUrl) && (
-              <button
-                type='button'
-                onClick={() => setShowPanelsOverlay((v) => !v)}
-                data-testid='toggle-show-panels'
-                title={
-                  showPanelsOverlay
-                    ? 'Ẩn các khung panel để xem trọn vẹn tranh vẽ toàn trang'
-                    : 'Hiện lại các khung panel'
-                }
-                className={`${toolbarBtn} ${!showPanelsOverlay ? toolbarOn : toolbarIdle}`}
-              >
-                {!showPanelsOverlay ? (
-                  <EyeOff className='w-3.5 h-3.5 text-orange-600' />
-                ) : (
-                  <Eye className='w-3.5 h-3.5 text-stone-600' />
-                )}
-                <span className='hidden lg:inline'>
-                  {!showPanelsOverlay ? 'Đã ẩn khung' : 'Khung panel'}
-                </span>
-                <span className='sr-only lg:hidden'>
-                  {!showPanelsOverlay ? 'Đã ẩn khung' : 'Khung panel'}
-                </span>
-              </button>
-            )}
-
-            {canEditPages && currentChapterId && (
-              <button
-                type='button'
-                onClick={() => {
-                  setUploadModalDefaultTab('single');
-                  setUploadModalOpen(true);
-                }}
-                className={`${toolbarBtn} bg-orange-500/10 text-orange-700 hover:bg-orange-500/20 border-orange-300 font-bold shrink-0 hidden sm:flex items-center gap-1.5`}
-                title='Tải ảnh 1 trang hoặc hàng loạt trang'
-                data-testid='toolbar-upload-btn'
-              >
-                <Upload className='w-3.5 h-3.5 text-orange-600' />
-                <span>Tải ảnh</span>
-              </button>
-            )}
-
+            {/* Chế độ vẽ: Vẽ cả trang / Vẽ từng khung (Rành mạch, không trùng lặp nút Tải ảnh) */}
             {canEditPages && (
               <div className='relative shrink-0' data-menu-root>
                 <button
@@ -3759,12 +3668,15 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                   aria-expanded={openMenu === 'upload'}
                   onClick={() => setOpenMenu((m) => (m === 'upload' ? null : 'upload'))}
                   data-testid='upload-menu-btn'
-                  aria-label={`Tải ảnh — chế độ ${uploadMode === 'page' ? 'cả trang' : 'từng khung'}`}
-                  className={`${toolbarBtn} ${toolbarIdle}`}
+                  aria-label={`Chế độ vẽ: ${uploadMode === 'page' ? 'cả trang' : 'từng khung'}`}
+                  title='Chọn chế độ vẽ: Vẽ cả trang liền mạch hoặc vẽ từng khung riêng biệt'
+                  className={`${toolbarBtn} ${toolbarIdle} flex items-center gap-1`}
                 >
-                  <Upload className='w-3.5 h-3.5' />
-                  <span className='hidden lg:inline'>Tải ảnh</span>
-                  <ChevronDown className='w-3 h-3' />
+                  <Layers className='w-3.5 h-3.5 text-[#C2410C]' />
+                  <span className='hidden md:inline font-medium text-xs'>
+                    {uploadMode === 'page' ? 'Cả trang' : 'Từng khung'}
+                  </span>
+                  <ChevronDown className='w-3 h-3 text-[#57534E]' />
                 </button>
                 {openMenu === 'upload' && (
                   <div
@@ -3818,6 +3730,60 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                 )}
               </div>
             )}
+
+            {/* Nút Mẫu Khung (vô hiệu hoá khi đã có tranh hoàn thiện) */}
+            {canEditPages && (
+              <button
+                type='button'
+                disabled={Boolean(pageArtUrl)}
+                onClick={() => {
+                  if (pageArtUrl) {
+                    showToast('Không thể chỉnh mẫu khung', 'Trang này đã tải lên bản vẽ hoàn chỉnh. Không thể áp dụng mẫu khung đè lên tranh.', 'error');
+                    return;
+                  }
+                  setFrameTemplateModalOpen(true);
+                }}
+                data-testid='toolbar-frame-template-btn'
+                title={
+                  pageArtUrl
+                    ? 'Trang đã tải lên bản vẽ hoàn chỉnh, không thể chỉnh mẫu khung'
+                    : 'Áp dụng mẫu khung tranh dựng sẵn vào trang'
+                }
+                className={`${toolbarBtn} ${toolbarIdle} ${pageArtUrl ? 'opacity-40 cursor-not-allowed' : ''}`}
+              >
+                <LayoutTemplate className='w-3.5 h-3.5 text-[#C2410C]' />
+                <span className='hidden lg:inline'>Mẫu Khung</span>
+                <span className='sr-only lg:hidden'>Mẫu Khung</span>
+              </button>
+            )}
+
+            {/* Nút Sửa bố cục (Chỉ hiện khi trang đã có panel và chưa có tranh toàn trang) */}
+            {canEditPages && !pageArtUrl && panels.length > 0 && (
+              <button
+                type='button'
+                aria-pressed={layoutEdit}
+                disabled={isCurrentPageCarvedOut}
+                onClick={() => {
+                  if (layoutEdit) setMultiIds([]);
+                  setLayoutEdit((v) => !v);
+                }}
+                data-testid='toggle-layout-edit'
+                title={
+                  isCurrentPageCarvedOut
+                    ? 'Trang này đã được tách việc cho người khác, không thể sửa bố cục'
+                    : layoutEdit
+                      ? 'Tắt chế độ sửa bố cục'
+                      : 'Bật chế độ sửa bố cục khung'
+                }
+                className={`${toolbarBtn} ${layoutEdit ? toolbarOn : toolbarIdle}`}
+              >
+                <Grid2x2 className='w-3.5 h-3.5' />
+                <span className='hidden lg:inline'>Sửa bố cục</span>
+                <span className='sr-only lg:hidden'>Sửa bố cục</span>
+              </button>
+            )}
+
+            {/* Nút AI Sinh Mô Tả Vẽ Cả Cảnh */}
             {canEditPages && (
               <button
                 type='button'
@@ -3834,15 +3800,19 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                 }}
                 data-testid='desk-open-ai-assist-btn'
                 title='Tạo mô tả vẽ cho tất cả khung trong phân cảnh (Bước 1)'
-                className={`${toolbarBtn} text-violet-800 bg-violet-50 hover:bg-violet-100 border border-violet-200 font-semibold`}
+                className={`${toolbarBtn} text-violet-800 bg-violet-50 hover:bg-violet-100 border border-violet-200 font-semibold px-2`}
               >
                 <Sparkles className='w-3.5 h-3.5 text-violet-600' />
-                <span className='hidden lg:inline'>Tạo mô tả vẽ (cả cảnh)</span>
+                <span className='hidden xl:inline'>Tạo mô tả vẽ (cả cảnh)</span>
+                <span className='xl:hidden hidden sm:inline'>AI Mô tả</span>
+                <span className='sr-only'>Tạo mô tả vẽ (cả cảnh)</span>
               </button>
             )}
-          </>
+          </div>
         )}
-        <div className='ml-auto flex flex-wrap items-center justify-end gap-1.5 min-w-0'>
+
+        {/* CỤM 3 (BÊN PHẢI): TIẾN ĐỘ NỘP BẢN THẢO, CTA CHÍNH, ZOOM & INSPECTOR */}
+        <div className='flex items-center gap-1.5 shrink-0 ml-auto'>
           {/* Nút Nộp Bản Thảo Chương */}
           {currentChapterId && canEditPages && (
             <button
@@ -3859,14 +3829,16 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                       ? 'Có phản hồi yêu cầu sửa — Bấm để nộp lại bản thảo sau khi hoàn thiện'
                       : 'Nộp toàn bộ bản thảo của chương này cho Editor/Producer thẩm định'
               }
-              className={`${toolbarBtn} font-bold shrink-0 flex items-center gap-1.5 transition-all shadow-xs ${
-                manuscriptStatus === 'Approved'
-                  ? 'bg-emerald-50 text-emerald-700 border-emerald-300 opacity-80 cursor-default'
-                  : manuscriptStatus === 'Submitted' || manuscriptStatus === 'UnderReview'
-                    ? 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100 cursor-pointer'
-                    : manuscriptStatus === 'ReworkRequired'
-                      ? 'bg-amber-600 hover:bg-amber-700 text-white border-amber-600 animate-pulse cursor-pointer'
-                      : 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600 cursor-pointer'
+              className={`${toolbarBtn} font-semibold transition-all shadow-2xs ${
+                submittingManuscript
+                  ? 'bg-stone-100 text-stone-400 border-stone-200 cursor-wait'
+                  : manuscriptStatus === 'Approved'
+                    ? 'bg-emerald-50 text-emerald-800 border-emerald-300 cursor-default'
+                    : manuscriptStatus === 'Submitted' || manuscriptStatus === 'UnderReview'
+                      ? 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100 cursor-pointer'
+                      : manuscriptStatus === 'ReworkRequired'
+                        ? 'bg-amber-600 hover:bg-amber-700 text-white border-amber-600 animate-pulse cursor-pointer'
+                        : 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600 cursor-pointer'
               }`}
             >
               {submittingManuscript ? (
@@ -3892,6 +3864,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
             </button>
           )}
 
+          {/* Primary CTA (Assignment Gateway: Bắt đầu vẽ / Tải tranh) */}
           {primaryCta && (
             <>
               <button
@@ -3922,6 +3895,60 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
             </>
           )}
 
+          {/* Thu Phóng Canvas Gọn Gàng */}
+          {selectedPage && (
+            <div
+              className='inline-flex items-center h-8 bg-[#F3F0E9] p-0.5 rounded-lg border border-[#D8D2C5] shrink-0'
+              role='group'
+              aria-label='Thu phóng'
+            >
+              <button
+                type='button'
+                onClick={handleZoomOut}
+                disabled={zoomScale <= 0.3}
+                className='p-1 text-[#57534E] hover:text-[#1C1917] hover:bg-[#FCFBF8] rounded-md cursor-pointer disabled:opacity-30 focus-visible:outline-2 focus-visible:outline-[#F97316]'
+                title='Thu nhỏ'
+                aria-label='Thu nhỏ'
+              >
+                <ZoomOut className='w-3.5 h-3.5' />
+              </button>
+              <button
+                type='button'
+                onClick={handleResetZoom}
+                className='hidden 2xl:block px-1 text-[11px] font-mono font-bold text-[#1C1917] rounded hover:bg-[#FCFBF8] cursor-pointer min-w-[2.75rem] focus-visible:outline-2 focus-visible:outline-[#F97316]'
+                title='Đặt lại 100%'
+                aria-label={`Thu phóng ${Math.round(zoomScale * 100)}%, bấm để đặt lại 100%`}
+              >
+                {Math.round(zoomScale * 100)}%
+              </button>
+              <button
+                type='button'
+                onClick={handleZoomIn}
+                disabled={zoomScale >= 2.5}
+                className='p-1 text-[#57534E] hover:text-[#1C1917] hover:bg-[#FCFBF8] rounded-md cursor-pointer disabled:opacity-30 focus-visible:outline-2 focus-visible:outline-[#F97316]'
+                title='Phóng to'
+                aria-label='Phóng to'
+              >
+                <ZoomIn className='w-3.5 h-3.5' />
+              </button>
+              <button
+                type='button'
+                onClick={handleFitToScreen}
+                data-testid='zoom-fit-btn'
+                aria-pressed={isFitMode}
+                className={`px-1.5 py-0.5 text-[11px] font-semibold rounded cursor-pointer whitespace-nowrap focus-visible:outline-2 focus-visible:outline-[#F97316] ${
+                  isFitMode
+                    ? 'bg-white text-[#C2410C] shadow-2xs'
+                    : 'text-[#57534E] hover:text-[#1C1917] hover:bg-[#FCFBF8]'
+                }`}
+                title='Vừa khung: nhìn trọn trang'
+              >
+                Vừa khung
+              </button>
+            </div>
+          )}
+
+          {/* Nút Chi tiết (Inspector) */}
           {selectedPage && (
             <button
               type='button'
@@ -3943,6 +3970,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
             </button>
           )}
 
+          {/* Menu thao tác phụ Trang */}
           <div className='relative shrink-0' data-menu-root>
             <button
               type='button'
@@ -4038,58 +4066,6 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
               </div>
             )}
           </div>
-
-          {selectedPage && (
-            <div
-              className='inline-flex items-center h-8 bg-[#F3F0E9] p-0.5 rounded-lg border border-[#D8D2C5] shrink-0'
-              role='group'
-              aria-label='Thu phóng'
-            >
-              <button
-                type='button'
-                onClick={handleZoomOut}
-                disabled={zoomScale <= 0.3}
-                className='p-1 text-[#57534E] hover:text-[#1C1917] hover:bg-[#FCFBF8] rounded-md cursor-pointer disabled:opacity-30 focus-visible:outline-2 focus-visible:outline-[#F97316]'
-                title='Thu nhỏ'
-                aria-label='Thu nhỏ'
-              >
-                <ZoomOut className='w-3.5 h-3.5' />
-              </button>
-              <button
-                type='button'
-                onClick={handleResetZoom}
-                className='hidden 2xl:block px-1 text-[11px] font-mono font-bold text-[#1C1917] rounded hover:bg-[#FCFBF8] cursor-pointer min-w-[2.75rem] focus-visible:outline-2 focus-visible:outline-[#F97316]'
-                title='Đặt lại 100%'
-                aria-label={`Thu phóng ${Math.round(zoomScale * 100)}%, bấm để đặt lại 100%`}
-              >
-                {Math.round(zoomScale * 100)}%
-              </button>
-              <button
-                type='button'
-                onClick={handleZoomIn}
-                disabled={zoomScale >= 2.5}
-                className='p-1 text-[#57534E] hover:text-[#1C1917] hover:bg-[#FCFBF8] rounded-md cursor-pointer disabled:opacity-30 focus-visible:outline-2 focus-visible:outline-[#F97316]'
-                title='Phóng to'
-                aria-label='Phóng to'
-              >
-                <ZoomIn className='w-3.5 h-3.5' />
-              </button>
-              <button
-                type='button'
-                onClick={handleFitToScreen}
-                data-testid='zoom-fit-btn'
-                aria-pressed={isFitMode}
-                className={`px-1.5 py-0.5 text-[11px] font-semibold rounded cursor-pointer whitespace-nowrap focus-visible:outline-2 focus-visible:outline-[#F97316] ${
-                  isFitMode
-                    ? 'bg-white text-[#C2410C] shadow-2xs'
-                    : 'text-[#57534E] hover:text-[#1C1917] hover:bg-[#FCFBF8]'
-                }`}
-                title='Vừa khung: nhìn trọn trang'
-              >
-                Vừa khung
-              </button>
-            </div>
-          )}
         </div>
       </div>
 
