@@ -181,41 +181,17 @@ describe('BibleEntityDetailModal UX/UI', () => {
     expect(defaultProps.onOpenAddRevision).toHaveBeenCalledWith(mockEntityNoImage);
   });
 
-  it('collapses technical details by default, expands on click, and copies hash', async () => {
-    Object.assign(navigator, {
-      clipboard: {
-        writeText: vi.fn().mockResolvedValue(undefined),
-      },
-    });
-
+  it('does not display raw technical hashes or developer IDs to maintain clean creative UI', () => {
     render(<BibleEntityDetailModal {...defaultProps} />);
 
-    const toggleTechBtn = screen.getByRole('button', {
-      name: /Chi tiết kỹ thuật & Mã băm/i,
-    });
-    expect(toggleTechBtn).toBeInTheDocument();
-
-    // Hash not visible yet
+    // Technical jargon like raw hash and system id are hidden from artists/creators
+    expect(screen.queryByText(/Chi tiết kỹ thuật & Mã băm/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Mã băm nội dung/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Mã định danh hệ thống/i)).not.toBeInTheDocument();
     expect(
       screen.queryByText('e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'),
     ).not.toBeInTheDocument();
-
-    // Expand
-    fireEvent.click(toggleTechBtn);
-
-    expect(
-      screen.getByText('e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'),
-    ).toBeInTheDocument();
-
-    const copyBtn = screen.getByRole('button', { name: /Sao chép/i });
-    fireEvent.click(copyBtn);
-
-    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-      'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
-    );
-    await waitFor(() => {
-      expect(screen.getByText('Đã chép!')).toBeInTheDocument();
-    });
+    expect(screen.queryByText('mock-char-1')).not.toBeInTheDocument();
   });
 
   it('closes on Escape key press and on close button click', () => {
@@ -343,7 +319,7 @@ describe('BibleEntityDetailModal UX/UI', () => {
     render(<BibleEntityDetailModal {...defaultProps} latestSavedRevision={newRev} />);
 
     expect(screen.getByText('v3')).toBeInTheDocument();
-    expect(screen.getByText('Under Review')).toBeInTheDocument();
+    expect(screen.getByText('Chờ thẩm định')).toBeInTheDocument();
   });
 
   it('does not close workbench when Escape is pressed while a child modal is open (Bug 2)', () => {
@@ -489,7 +465,7 @@ describe('BibleEntityDetailModal UX/UI', () => {
 
     // Column 3: Merged Version and Audit Trail
     expect(screen.getByText('Phiên bản & Nhật ký')).toBeInTheDocument();
-    expect(screen.getByText('Lịch sử thay đổi (Audit Trail)')).toBeInTheDocument();
+    expect(screen.getByText('Lịch sử thay đổi')).toBeInTheDocument();
   });
 
   it('renders conceptImageUrl and chronological events in the audit trail when available', () => {
@@ -553,7 +529,7 @@ describe('BibleEntityDetailModal UX/UI', () => {
     );
 
     // Verify Audit Trail has the real event items
-    expect(screen.getByText('Lịch sử thay đổi (Audit Trail)')).toBeInTheDocument();
+    expect(screen.getByText('Lịch sử thay đổi')).toBeInTheDocument();
     expect(screen.getByText(/Đã nộp Concept Art/)).toBeInTheDocument();
     expect(screen.getByText(/Bản vẽ chi tiết phục trang/)).toBeInTheDocument();
   });

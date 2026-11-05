@@ -7,9 +7,6 @@ import {
   GitCommit,
   Eye,
   Image as ImageIcon,
-  Copy,
-  Check,
-  ChevronDown,
   Layers,
   Palette,
   CheckCircle2,
@@ -20,8 +17,6 @@ import {
   Upload,
   HelpCircle,
   Clock,
-  Sparkles,
-  ArrowLeftRight,
   ArrowLeft,
   User,
   Info,
@@ -227,10 +222,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
   onDeleteRevision,
   onDeleteEra,
 }) => {
-  const [copiedHash, setCopiedHash] = useState(false);
-  const [techOpen, setTechOpen] = useState(false);
   const [showConceptGuide, setShowConceptGuide] = useState(false);
-  const [diffSlider, setDiffSlider] = useState(50);
   const [activeArtTab, setActiveArtTab] = useState<'turnaround' | 'action'>('turnaround');
   const [isDraggingOver, setIsDraggingOver] = useState(false);
 
@@ -676,24 +668,24 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
             actionDesc = `Khởi tạo phiên bản v${activeRevision.versionNumber}`;
             break;
           case 'ConceptSubmitted':
-            actorDesc = 'Artist';
+            actorDesc = 'Họa sĩ';
             actionDesc = `Đã nộp Concept Art${evt.comment ? `: "${evt.comment}"` : ''}`;
             break;
           case 'ReworkRequested':
-            actorDesc = 'Writer / Editor';
+            actorDesc = 'Biên kịch / Biên tập';
             actionDesc = `Yêu cầu sửa${evt.comment ? `: "${evt.comment}"` : ''}`;
             break;
           case 'Endorsed':
-            actorDesc = 'Writer / Editor';
-            actionDesc = 'Đã duyệt thiết kế sáng tác (Endorsed)';
+            actorDesc = 'Biên kịch / Biên tập';
+            actionDesc = 'Đã duyệt thiết kế sáng tác';
             break;
           case 'Locked':
-            actorDesc = 'Producer';
-            actionDesc = `Khoá Canon bất biến cho Ch.${activeRevision.effectiveFromChapterNumber}+`;
+            actorDesc = 'Nhà sản xuất';
+            actionDesc = `Ban hành quy chuẩn chính thức cho Ch.${activeRevision.effectiveFromChapterNumber}+`;
             break;
           case 'Superseded':
-            actorDesc = 'Producer';
-            actionDesc = `Bị thay thế bởi phiên bản mới${evt.comment ? `: "${evt.comment}"` : ''}`;
+            actorDesc = 'Nhà sản xuất';
+            actionDesc = `Thay thế bởi phiên bản mới${evt.comment ? `: "${evt.comment}"` : ''}`;
             break;
           default:
             actionDesc = `Sự kiện ${evt.type}`;
@@ -703,7 +695,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
           time: evt.createdAt ? new Date(evt.createdAt).toLocaleDateString('vi-VN') : 'Mới',
           actor: actorDesc,
           action: actionDesc,
-          hash: evt.eventHash ? evt.eventHash.substring(0, 10) + '...' : 'cas...hash',
+          hash: '',
         });
       });
       return [...list].reverse();
@@ -714,25 +706,25 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
         if (rev.isLocked || rev.reviewStatus === 'CanonLocked') {
           list.push({
             time: rev.lockedAt ? new Date(rev.lockedAt).toLocaleDateString('vi-VN') : 'Đã duyệt',
-            actor: 'Producer',
-            action: `Locked v${rev.versionNumber} as Immutable Canon Reference for Ch.${rev.effectiveFromChapterNumber}+`,
-            hash: rev.contentHash ? rev.contentHash.substring(0, 10) + '...' : 'e230...71bb',
+            actor: 'Nhà sản xuất',
+            action: `Ban hành quy chuẩn chính thức cho Ch.${rev.effectiveFromChapterNumber}+ (v${rev.versionNumber})`,
+            hash: '',
           });
         }
         if (rev.reviewStatus === 'WriterEndorsed') {
           list.push({
             time: rev.createdAt ? new Date(rev.createdAt).toLocaleDateString('vi-VN') : 'Gần đây',
-            actor: 'Writer / Editor Desk',
-            action: `Endorsed creative intent and visual specs for v${rev.versionNumber}`,
-            hash: rev.contentHash ? rev.contentHash.substring(0, 10) + '...' : 'e56b...789a',
+            actor: 'Biên kịch',
+            action: `Đã duyệt thiết kế sáng tác cho phiên bản v${rev.versionNumber}`,
+            hash: '',
           });
         }
         if (rev.reviewStatus === 'ConceptSubmitted') {
           list.push({
             time: rev.createdAt ? new Date(rev.createdAt).toLocaleDateString('vi-VN') : 'Gần đây',
-            actor: 'Artist Desk',
-            action: `Submitted revision v${rev.versionNumber} model turnaround sheet`,
-            hash: rev.contentHash ? rev.contentHash.substring(0, 10) + '...' : '8f4a...12c0',
+            actor: 'Họa sĩ',
+            action: `Đã nộp bản vẽ thiết kế cho phiên bản v${rev.versionNumber}`,
+            hash: '',
           });
         }
       });
@@ -742,11 +734,9 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
         time: rawEntry?.createdAt
           ? new Date(rawEntry.createdAt).toLocaleDateString('vi-VN')
           : 'Khởi tạo',
-        actor: 'Series Bible Engine',
-        action: `Grounded in pgvector & verified SHA-256 CAS provenance`,
-        hash: activeRevision?.contentHash
-          ? activeRevision.contentHash.substring(0, 10) + '...'
-          : '4a98...d1f2',
+        actor: 'Hệ thống',
+        action: 'Khởi tạo hồ sơ lưu trữ thiết kế sáng tác',
+        hash: '',
       });
     }
     return list;
@@ -829,17 +819,6 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
     return () => window.removeEventListener('paste', handlePaste);
   }, [canCreateDraft, entity, activeRevision, onOpenAddRevision, onShowToast]);
 
-  const handleCopyHash = async (hash: string) => {
-    try {
-      await navigator.clipboard.writeText(hash);
-      setCopiedHash(true);
-      onShowToast('Đã sao chép', 'Mã băm nội dung đã được lưu vào bộ nhớ tạm.');
-      setTimeout(() => setCopiedHash(false), 2000);
-    } catch {
-      onShowToast('Không thể sao chép', 'Trình duyệt không cho phép truy cập clipboard.');
-    }
-  };
-
   const handleEndorse = async (rev: BibleEntryRevisionDto) => {
     if (!onEndorseRevision) return;
     setIsEndorsing(true);
@@ -920,60 +899,6 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
     return 'bg-stone-50 text-stone-700 border-stone-200';
   };
 
-  // Helper for technical hash detail collapsible section
-  const renderTechCollapsible = () => (
-    <div className='pt-2 border-t border-zinc-200/70'>
-      <button
-        type='button'
-        onClick={() => setTechOpen((v) => !v)}
-        className='w-full flex items-center justify-between text-xs text-zinc-500 hover:text-zinc-800 transition-colors py-1 cursor-pointer font-medium'
-      >
-        <span>Chi tiết kỹ thuật &amp; Mã băm</span>
-        <ChevronDown
-          className={`w-3.5 h-3.5 transition-transform ${techOpen ? 'rotate-180' : ''}`}
-        />
-      </button>
-
-      {techOpen && (
-        <div className='mt-2.5 space-y-2 text-xs pt-1'>
-          {activeRevision?.contentHash ? (
-            <div className='p-2.5 bg-white rounded-lg border border-zinc-200 space-y-1'>
-              <div className='flex items-center justify-between'>
-                <span className='text-zinc-600 font-medium'>Mã băm nội dung (Hash):</span>
-                <button
-                  type='button'
-                  onClick={() => handleCopyHash(activeRevision.contentHash)}
-                  className='inline-flex items-center gap-1 text-xs text-[#F97316] hover:underline font-medium cursor-pointer'
-                  title='Sao chép mã băm'
-                >
-                  {copiedHash ? (
-                    <>
-                      <Check className='w-3 h-3 text-emerald-600' />
-                      <span className='text-emerald-600 font-semibold'>Đã chép!</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className='w-3 h-3' />
-                      <span>Sao chép</span>
-                    </>
-                  )}
-                </button>
-              </div>
-              <div className='font-mono text-xs sm:text-xs text-zinc-700 break-all select-all bg-zinc-50 p-2 rounded border border-zinc-200/60 leading-tight'>
-                {activeRevision.contentHash}
-              </div>
-            </div>
-          ) : null}
-
-          <div className='flex items-center justify-between text-xs text-zinc-500 px-1'>
-            <span>Mã định danh hệ thống (ID):</span>
-            <span className='font-mono text-zinc-700 select-all'>{entity.id}</span>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-
   const modalContent = (
     <div
       ref={modalContainerRef}
@@ -1025,18 +950,13 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
           </span>
         </div>
 
-        {/* Right: RAG Sync, Concept Guide & Role Badge */}
+        {/* Right: Concept Guide & Role Badge */}
         <div className='flex items-center gap-2 shrink-0'>
-          <div className='hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-violet-50 border border-violet-200 text-violet-700 text-xs font-medium'>
-            <Sparkles className='w-3 h-3 text-violet-600' />
-            <span>AI Ready</span>
-          </div>
-
           <button
             type='button'
             onClick={() => setShowConceptGuide((v) => !v)}
             className='text-xs font-semibold px-2.5 py-1 rounded-lg border border-[#D8D2C5] hover:bg-[#FAF8F5] text-[#57534E] hover:text-[#1C1917] transition flex items-center gap-1.5 cursor-pointer shadow-2xs'
-            title='Xem hướng dẫn phân biệt Giai đoạn thời kỳ (Era) và Phiên bản (Version)'
+            title='Xem hướng dẫn phân biệt Giai đoạn cốt truyện và Phiên bản mỹ thuật'
           >
             <HelpCircle className='w-3.5 h-3.5 text-[#F97316]' />
             <span className='hidden sm:inline'>Quy ước Giai đoạn</span>
@@ -1047,14 +967,14 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
             <User className='w-3 h-3 text-[#F97316]' />
             <span>
               {isProducerUser
-                ? 'Producer'
+                ? 'Nhà sản xuất'
                 : isWriterUser
-                  ? 'Writer'
+                  ? 'Biên kịch'
                   : isArtistUser
-                    ? 'Artist'
+                    ? 'Họa sĩ'
                     : isEditorUser
-                      ? 'Editor'
-                      : 'Viewer'}
+                      ? 'Biên tập viên'
+                      : 'Người xem'}
             </span>
           </div>
 
@@ -1179,30 +1099,32 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                   <Layers className='w-4 h-4 text-[#F97316]' />
                   <span>Thời kỳ &amp; Giai đoạn</span>
                 </div>
-                <span className='text-[11px] font-mono font-semibold px-2 py-0.5 rounded-full bg-stone-100 text-stone-600'>
-                  {stages.length} thời kỳ
-                </span>
+                {canCreateDraft && (
+                  <button
+                    type='button'
+                    onClick={() => {
+                      onOpenAddRevision(entity, null, false, undefined, undefined, false, true);
+                    }}
+                    data-testid='add-new-era-btn'
+                    className='inline-flex items-center gap-1 px-2.5 py-1 bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-bold rounded-lg transition-all cursor-pointer shadow-xs active:scale-[0.98]'
+                    title='Tạo giai đoạn cốt truyện mới'
+                  >
+                    <Plus className='w-3.5 h-3.5' />
+                    <span>+ Tạo giai đoạn</span>
+                  </button>
+                )}
               </div>
-
-              {canCreateDraft && (
-                <button
-                  type='button'
-                  onClick={() => {
-                    onOpenAddRevision(entity, null, false, undefined, undefined, false, true);
-                  }}
-                  data-testid='add-new-era-btn'
-                  className='w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-xs active:scale-[0.98]'
-                  title='Tạo thời kỳ hoặc hình thái cốt truyện mới'
-                >
-                  <Plus className='w-3.5 h-3.5' />
-                  <span>+ Thêm Thời Kỳ Mới</span>
-                </button>
-              )}
 
               {/* Vertical list of era stages */}
               <div className='space-y-2 max-h-[calc(100vh-320px)] overflow-y-auto custom-scrollbar pr-0.5'>
                 {stages.map((stage) => {
                   const isActive = selectedStageKey === stage.stageKey;
+                  const isStandardStage =
+                    stage.stageName === 'Giai đoạn chuẩn' ||
+                    stage.stageName.toLowerCase().includes('chuẩn');
+                  const stageIcon = isStandardStage
+                    ? null
+                    : getStageIcon(stage.stageName, entity.category);
                   return (
                     <div
                       key={stage.stageKey}
@@ -1219,12 +1141,12 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                     >
                       <div className='flex items-center justify-between gap-1.5'>
                         <div className='flex items-center gap-1.5 min-w-0 font-semibold text-xs sm:text-sm'>
-                          <span>{getStageIcon(stage.stageName, entity.category)}</span>
+                          {stageIcon && <span>{stageIcon}</span>}
                           <span className='truncate'>{stage.stageName}</span>
                         </div>
                         {stage.isLocked ? (
                           <span className='text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-200 shrink-0'>
-                            🔒 Canon
+                            🔒 Chính thức
                           </span>
                         ) : (
                           <span className='text-[10px] font-medium px-1.5 py-0.5 rounded bg-stone-100 text-stone-600 shrink-0'>
@@ -1334,9 +1256,6 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                     <div className='absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold gap-1.5 backdrop-blur-[1px]'>
                       <Eye className='w-4 h-4' />
                       <span>Bấm để phóng to xem đầy đủ</span>
-                    </div>
-                    <div className='absolute bottom-3 right-3 text-[11px] font-mono text-stone-300 bg-black/70 border border-stone-700 px-2 py-0.5 rounded-md'>
-                      SHA-256 CAS: verified
                     </div>
                   </div>
 
@@ -1911,14 +1830,14 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                             }`}
                           >
                             {isCanon
-                              ? 'Canon Locked 🔒'
+                              ? 'Chính thức 🔒'
                               : rev.reviewStatus === 'ConceptSubmitted'
-                                ? 'Under Review'
+                                ? 'Chờ thẩm định'
                                 : rev.reviewStatus === 'WriterEndorsed'
-                                  ? 'Writer Endorsed'
+                                  ? 'Biên kịch đã duyệt'
                                   : rev.reviewStatus === 'ReworkRequired'
-                                    ? 'Rework Required'
-                                    : rev.reviewStatus || 'Draft'}
+                                    ? 'Yêu cầu sửa'
+                                    : 'Bản nháp'}
                           </span>
                         </div>
                         <span className='text-[10px] text-stone-400 font-mono'>
@@ -1941,10 +1860,20 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                         activeRevision?.isLocked ? 'bg-emerald-500' : 'bg-amber-500'
                       }`}
                     />
-                    v{activeRevision?.versionNumber ?? 1} ({activeRevision?.reviewStatus || 'Draft'})
+                    v{activeRevision?.versionNumber ?? 1} (
+                    {activeRevision?.isLocked
+                      ? 'Chính thức'
+                      : activeRevision?.reviewStatus === 'ConceptSubmitted'
+                        ? 'Chờ thẩm định'
+                        : activeRevision?.reviewStatus === 'WriterEndorsed'
+                          ? 'Biên kịch đã duyệt'
+                          : activeRevision?.reviewStatus === 'ReworkRequired'
+                            ? 'Yêu cầu sửa'
+                            : 'Bản nháp'}
+                    )
                   </span>
-                  <span className='text-[10px] text-stone-400 font-mono'>
-                    {activeRevision?.isLocked ? 'Immutable' : 'Editable'}
+                  <span className='text-[10px] text-stone-500 font-medium'>
+                    {activeRevision?.isLocked ? 'Bất biến' : 'Có thể chỉnh sửa'}
                   </span>
                 </div>
 
@@ -1963,7 +1892,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
               {/* AUDIT TRAIL GỘP TRỰC TIẾP VÀO VERSION CARD */}
               <div className='space-y-2 pt-2 border-t border-stone-200/80'>
                 <div className='font-bold text-xs uppercase tracking-wider text-stone-700 flex items-center justify-between'>
-                  <span>Lịch sử thay đổi (Audit Trail)</span>
+                  <span>Lịch sử thay đổi</span>
                   <span className='text-[10px] font-normal text-stone-400'>{auditLogs.length} sự kiện</span>
                 </div>
 
@@ -1977,20 +1906,12 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                         <strong className='text-stone-900'>{log.actor}</strong>{' '}
                         <span className='text-stone-600'>{log.action}</span>
                       </div>
-                      <button
-                        type='button'
-                        onClick={() => handleCopyHash(log.hash)}
-                        title='Sao chép SHA-256 CAS Hash'
-                        className='font-mono text-[9px] text-stone-400 hover:text-stone-800 shrink-0 bg-white px-1 py-0.5 rounded border border-stone-200 cursor-pointer'
-                      >
-                        {log.hash.slice(0, 8)}...
-                      </button>
+                      <span className='text-[10px] text-stone-400 shrink-0 font-medium'>
+                        {log.time}
+                      </span>
                     </div>
                   ))}
                 </div>
-
-                {/* Collapsible Tech Details (SHA-256 & System ID) */}
-                {renderTechCollapsible()}
               </div>
             </div>
           </section>
