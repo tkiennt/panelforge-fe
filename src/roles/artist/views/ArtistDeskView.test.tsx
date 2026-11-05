@@ -253,6 +253,7 @@ describe('ArtistDeskView', () => {
         { id: 'stg-2', name: 'Pencil', stageOrder: 3, isEnabled: true },
         { id: 'stg-3', name: 'Ink', stageOrder: 4, isEnabled: true },
         { id: 'stg-4', name: 'Color', stageOrder: 5, isEnabled: false },
+        { id: 'stg-5', name: 'Lettering', slug: 'lettering', stageOrder: 6, isEnabled: true, allowedRole: 'Letterer' },
       ] as any,
     } as any);
   });
@@ -1183,11 +1184,18 @@ describe('ArtistDeskView', () => {
       expect(aiBtn).toHaveTextContent('Tạo mô tả vẽ (cả cảnh)');
     });
 
-    it('nút Tự động phân bổ kịch bản trong tab Kịch bản hiển thị đúng', async () => {
+    it('nút Tự động phân bổ kịch bản trong tab Kịch bản chỉ hiển thị ở stage Lettering, ẩn ở Pencil/Ink', async () => {
       renderComponent();
 
       await screen.findByTestId('panel-canvas');
       fireEvent.click(screen.getByTestId('left-tab-script'));
+
+      // Ở stage Thumbnail / Pencil / Ink: Nút AI tách thoại bị ẩn để giữ không gian Zero-Clutter
+      expect(screen.queryByTestId('auto-assign-script-btn')).not.toBeInTheDocument();
+
+      // Khi chuyển sang stage Lettering:
+      const letteringTab = await screen.findByTestId('stage-tab-lettering');
+      fireEvent.click(letteringTab);
 
       const autoAssignBtn = await screen.findByTestId('auto-assign-script-btn');
       expect(autoAssignBtn).toBeInTheDocument();
@@ -1910,6 +1918,97 @@ describe('ArtistDeskView', () => {
       await waitFor(() => {
         expect(chapterService.submitManuscript).toHaveBeenCalledWith('chap-1', 'stg-3');
       });
+    });
+  });
+
+  describe('Context-Driven Stage Redesign & Zero-Clutter Architecture (PHẦN 1-5)', () => {
+    it('hiển thị Persistent Global Pipeline Header với Stage Tag và thông tin trang xuyên suốt', async () => {
+      renderComponent();
+
+      const globalHeader = await screen.findByTestId('global-pipeline-header');
+      expect(globalHeader).toBeInTheDocument();
+
+      const stageTag = await screen.findByTestId('global-stage-tag');
+      expect(stageTag).toBeInTheDocument();
+
+      const pageIndicator = await screen.findByTestId('current-page-indicator');
+      expect(pageIndicator).toHaveTextContent('Trang 01/01');
+    });
+
+    it('giai đoạn PENCIL: hiển thị Two-Tone Sketch Palette, Storyboard Overlay, Model Sheet và nút Bàn giao Inking', async () => {
+      renderComponent();
+
+      // Chuyển sang stage Pencil
+      const pencilTab = await screen.findByTestId('stage-tab-stg-2');
+      fireEvent.click(pencilTab);
+
+      // Pencil Workspace Bar xuất hiện
+      const pencilBar = await screen.findByTestId('pencil-stage-workspace-bar');
+      expect(pencilBar).toBeInTheDocument();
+      expect(screen.getByTestId('btn-pencil-blue')).toBeInTheDocument();
+      expect(screen.getByTestId('btn-pencil-graphite')).toBeInTheDocument();
+      expect(screen.getByTestId('btn-toggle-storyboard-overlay')).toBeInTheDocument();
+      expect(screen.getByTestId('btn-model-sheet-picker')).toBeInTheDocument();
+      expect(screen.getByTestId('btn-handoff-pencil-ink-direct')).toBeInTheDocument();
+
+      // Zero-Clutter check: Các component của Ink và Lettering tuyệt đối không xuất hiện
+      expect(screen.queryByTestId('ink-stage-workspace-bar')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('lettering-stage-workspace-bar')).not.toBeInTheDocument();
+    });
+
+    it('giai đoạn INK: hiển thị Inking Toolset, Screen-Tone, Lớp Chì Nền, Safe-Zone và nút Hoàn tất Lettering', async () => {
+      renderComponent();
+
+      // Chuyển sang stage Ink
+      const inkTab = await screen.findByTestId('stage-tab-stg-3');
+      fireEvent.click(inkTab);
+
+      // Ink Workspace Bar xuất hiện
+      const inkBar = await screen.findByTestId('ink-stage-workspace-bar');
+      expect(inkBar).toBeInTheDocument();
+      expect(screen.getByTestId('btn-nib-gpen')).toBeInTheDocument();
+      expect(screen.getByTestId('btn-nib-maru')).toBeInTheDocument();
+      expect(screen.getByTestId('btn-nib-turnip')).toBeInTheDocument();
+      expect(screen.getByTestId('btn-nib-bucket')).toBeInTheDocument();
+      expect(screen.getByTestId('btn-screentone-toggle')).toBeInTheDocument();
+      expect(screen.getByTestId('btn-toggle-pencil-underlay')).toBeInTheDocument();
+      expect(screen.getByTestId('btn-toggle-safe-zone')).toBeInTheDocument();
+      expect(screen.getByTestId('btn-handoff-ink-lettering-direct')).toBeInTheDocument();
+
+      // Bật Safe-Zone
+      fireEvent.click(screen.getByTestId('btn-toggle-safe-zone'));
+      expect(screen.getByTestId('safe-zone-overlay')).toBeInTheDocument();
+
+      // Zero-Clutter check: Không có công cụ chì thô và không có lettering
+      expect(screen.queryByTestId('pencil-stage-workspace-bar')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('lettering-stage-workspace-bar')).not.toBeInTheDocument();
+    });
+
+    it('giai đoạn LETTERING: hiển thị Locked Script Checklist, AI Tách Thoại, Balloon Toolset, Reading Flow', async () => {
+      renderComponent();
+
+      // Chuyển sang stage Lettering
+      const letteringTab = await screen.findByTestId('stage-tab-lettering');
+      fireEvent.click(letteringTab);
+
+      // Lettering Workspace Bar xuất hiện
+      const letteringBar = await screen.findByTestId('lettering-stage-workspace-bar');
+      expect(letteringBar).toBeInTheDocument();
+      expect(screen.getByTestId('btn-toggle-locked-script-drawer')).toBeInTheDocument();
+      expect(screen.getByTestId('lettering-bar-auto-assign-btn')).toBeInTheDocument();
+      expect(screen.getByTestId('btn-tool-balloon')).toBeInTheDocument();
+      expect(screen.getByTestId('btn-tool-thought')).toBeInTheDocument();
+      expect(screen.getByTestId('btn-tool-tail-edit')).toBeInTheDocument();
+      expect(screen.getByTestId('btn-tool-sfx')).toBeInTheDocument();
+      expect(screen.getByTestId('btn-toggle-reading-flow')).toBeInTheDocument();
+      expect(screen.getByTestId('btn-submit-gate2')).toBeInTheDocument();
+
+      // Bật Reading Flow
+      fireEvent.click(screen.getByTestId('btn-toggle-reading-flow'));
+
+      // Zero-Clutter check: Không có cọ vẽ tự do của Pencil/Ink
+      expect(screen.queryByTestId('pencil-stage-workspace-bar')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('ink-stage-workspace-bar')).not.toBeInTheDocument();
     });
   });
 });

@@ -160,6 +160,14 @@ import { pipelineService, type PipelineStageDto } from '@/services/pipeline.serv
 import { pickPanelArtwork, pickPageArtwork } from '@/shared/utils/stageArtworks';
 import { ElementConflictModal } from '@/shared/modals/ElementConflictModal';
 import { CanvasMinimap, LayerStackingOrder } from '@/shared/components/lucian';
+import { GlobalPipelineHeader } from '../components/GlobalPipelineHeader';
+import { PencilStageWorkspaceBar } from '../components/PencilStageWorkspaceBar';
+import { InkStageWorkspaceBar, type InkingNib, type ScreenToneLpi } from '../components/InkStageWorkspaceBar';
+import { LetteringStageWorkspaceBar } from '../components/LetteringStageWorkspaceBar';
+import { SafeZoneOverlay } from '../components/SafeZoneOverlay';
+import { ReadingFlowOverlay } from '../components/ReadingFlowOverlay';
+
+const LETTERING_ELEMENT_TYPES = ['SPEECH_BALLOON', 'THOUGHT_BALLOON', 'NARRATION_BOX', 'SOUND_EFFECT'];
 import { useConfirm } from '@/shared/context/ConfirmContext';
 
 /** Chỉ lỗi mạng (không có status HTTP) mới xếp hàng chờ ngoại tuyến; 4xx/409 của BE phải hiện cho người dùng. */
@@ -623,6 +631,26 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
 
   // Concurrency Conflict Modal (BR-11 / NFR-09)
   const [conflictModalOpen, setConflictModalOpen] = useState(false);
+
+  // --- Stage-Specific Workspace Exclusive States (Zero-Clutter Context-Driven) ---
+  // 1. Pencil Stage States
+  const [storyboardOpacity, setStoryboardOpacity] = useState<number>(40);
+  const [showStoryboardOverlay, setShowStoryboardOverlay] = useState<boolean>(true);
+  const [selectedModelSheetId, setSelectedModelSheetId] = useState<string | null>(null);
+  const [sketchColor, setSketchColor] = useState<'blue' | 'graphite'>('blue');
+
+  // 2. Ink Stage States
+  const [pencilUnderlayVisible, setPencilUnderlayVisible] = useState<boolean>(true);
+  const [pencilUnderlayOpacity, setPencilUnderlayOpacity] = useState<number>(30);
+  const [selectedNib, setSelectedNib] = useState<InkingNib>('g-pen');
+  const [screenToneEnabled, setScreenToneEnabled] = useState<boolean>(false);
+  const [selectedLpi, setSelectedLpi] = useState<ScreenToneLpi>(60);
+  const [toneDensity, setToneDensity] = useState<number>(30);
+  const [safeZoneVisible, setSafeZoneVisible] = useState<boolean>(false);
+
+  // 3. Lettering Stage States
+  const [readingFlowVisible, setReadingFlowVisible] = useState<boolean>(false);
+  const [letteringActiveTool, setLetteringActiveTool] = useState<'balloon' | 'thought' | 'caption' | 'sfx' | 'tail-edit'>('balloon');
   const [conflictErrorMsg, setConflictErrorMsg] = useState<string | undefined>(undefined);
   const [conflictPanelId, setConflictPanelId] = useState<string | undefined>(undefined);
 
@@ -863,7 +891,6 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
     [chapters, currentChapterId]
   );
   const isChapterScriptFrozen = Boolean(currentChapter?.isScriptFrozen);
-  const canDragScriptLines = canEditPages && !isChapterScriptFrozen;
 
     // Ánh xạ mỗi dòng kịch bản trong scene về đúng số trang đối chiếu
   const { linePageMap, hasPageMarkers } = useMemo(() => {
@@ -1606,6 +1633,33 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
     }
     return sortedStages[0] || null;
   }, [viewStageId, myStageOnPage, sortedStages, myInProgress, myAssigned, currentChapterId]);
+
+  const currentStageSlug = (currentActiveStage?.slug || currentActiveStage?.name || '').toLowerCase();
+  const isPencilStage = currentStageSlug.includes('pencil') || currentStageSlug.includes('chì');
+  const isInkStage = currentStageSlug.includes('ink') || currentStageSlug.includes('nét');
+  const isLetteringStage = currentStageSlug.includes('letter') || currentActiveStage?.allowedRole === 'Letterer';
+  const isPencilOrInkStage = isPencilStage || isInkStage;
+  const canDragScriptLines = canEditPages && !isChapterScriptFrozen && isLetteringStage;
+
+  const storyboardArtwork = useMemo(() => {
+    const thumbStage = stages.find((s) => {
+      const sl = (s.slug || s.name || '').toLowerCase();
+      return sl.includes('thumb') || sl.includes('storyboard');
+    });
+    if (!thumbStage) return null;
+    return pickPageArtwork(pageArtworks, stages, thumbStage.id);
+  }, [pageArtworks, stages]);
+  const storyboardImgUrl = storyboardArtwork ? panelArtworkUrls[storyboardArtwork.id] : null;
+
+  const pencilArtwork = useMemo(() => {
+    const pStage = stages.find((s) => {
+      const sl = (s.slug || s.name || '').toLowerCase();
+      return sl.includes('pencil') || sl.includes('chì');
+    });
+    if (!pStage) return null;
+    return pickPageArtwork(pageArtworks, stages, pStage.id);
+  }, [pageArtworks, stages]);
+  const pencilImgUrl = pencilArtwork ? panelArtworkUrls[pencilArtwork.id] : null;
 
   const handleStageHandoff = async (stage: PipelineStageDto) => {
     if (!currentChapterId) return;
@@ -3604,6 +3658,26 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
       {/* NFR-09 Offline Status Indicator */}
       <OfflineStatusBanner />
 
+      {/* [1] TOP WORKSPACE HEADER (PERSISTENT GLOBAL COMPONENT) */}
+      {currentChapterId && (
+        <GlobalPipelineHeader
+          seriesTitle={seriesDetail?.title || 'PanelForge Studio'}
+          chapter={currentChapter}
+          pages={pages}
+          selectedPage={selectedPage}
+          onSelectPage={setSelectedPage}
+          currentActiveStage={currentActiveStage}
+          selectedStageFilter={viewStageId}
+          onSelectStageFilter={setViewStageId}
+          stages={sortedStages}
+          pageProgressPercent={
+            pages.length > 0 && selectedPage
+              ? (selectedPage.pageNumber / pages.length) * 100
+              : 0
+          }
+        />
+      )}
+
       {/* Toolbar chính: 1 Hàng duy nhất (No Wrap), Tinh gọn, Không trùng lặp chức năng của Canvas */}
       <div
         className='shrink-0 relative z-30 bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl px-2 py-1.5 flex items-center justify-between gap-2 min-w-0 overflow-x-auto no-scrollbar shadow-2xs'
@@ -4333,6 +4407,66 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
         </div>
       )}
 
+      {/* CONTEXT-DRIVEN EXCLUSIVE WORKSPACE BARS (PHẦN 3: GIAO DIỆN RIÊNG TỪNG GIAI ĐOẠN) */}
+      {currentChapterId && (
+        <>
+          {isPencilStage && (
+            <PencilStageWorkspaceBar
+              storyboardOpacity={storyboardOpacity}
+              onStoryboardOpacityChange={setStoryboardOpacity}
+              showStoryboardOverlay={showStoryboardOverlay}
+              onToggleStoryboardOverlay={() => setShowStoryboardOverlay((v) => !v)}
+              hasStoryboard={Boolean(storyboardImgUrl)}
+              bibleEntries={bibleEntries}
+              selectedBibleEntryId={selectedModelSheetId}
+              onSelectBibleEntry={setSelectedModelSheetId}
+              sketchColor={sketchColor}
+              onSketchColorChange={setSketchColor}
+              onHandoffToInk={() => currentActiveStage && handleStageHandoff(currentActiveStage)}
+              isSubmitting={submittingStageHandoff}
+            />
+          )}
+
+          {isInkStage && (
+            <InkStageWorkspaceBar
+              pencilUnderlayVisible={pencilUnderlayVisible}
+              onTogglePencilUnderlay={() => setPencilUnderlayVisible((v) => !v)}
+              pencilUnderlayOpacity={pencilUnderlayOpacity}
+              onPencilUnderlayOpacityChange={setPencilUnderlayOpacity}
+              hasPencilArt={Boolean(pencilImgUrl)}
+              selectedNib={selectedNib}
+              onSelectNib={setSelectedNib}
+              screenToneEnabled={screenToneEnabled}
+              onToggleScreenTone={() => setScreenToneEnabled((v) => !v)}
+              selectedLpi={selectedLpi}
+              onSelectLpi={setSelectedLpi}
+              toneDensity={toneDensity}
+              onToneDensityChange={setToneDensity}
+              safeZoneVisible={safeZoneVisible}
+              onToggleSafeZone={() => setSafeZoneVisible((v) => !v)}
+              onHandoffToLettering={() => currentActiveStage && handleStageHandoff(currentActiveStage)}
+              isSubmitting={submittingStageHandoff}
+            />
+          )}
+
+          {isLetteringStage && (
+            <LetteringStageWorkspaceBar
+              readingFlowVisible={readingFlowVisible}
+              onToggleReadingFlow={() => setReadingFlowVisible((v) => !v)}
+              onOpenAutoAssignModal={() => setAutoAssignModalOpen(true)}
+              scriptDrawerOpen={activeTab === 'script'}
+              onToggleScriptDrawer={() => setActiveTab(activeTab === 'script' ? 'pages' : 'script')}
+              unplacedCount={sceneLines.filter((l) => !l.panelId).length}
+              totalLetterableCount={sceneLines.length}
+              activeTool={letteringActiveTool}
+              onSelectTool={setLetteringActiveTool}
+              onSubmitToGate2={() => currentActiveStage && handleStageHandoff(currentActiveStage)}
+              isSubmitting={submittingStageHandoff}
+            />
+          )}
+        </>
+      )}
+
       {/* Toolbar phụ khi bật "Sửa bố cục" */}
       {selectedPage && canEditPages && !isCurrentPageCarvedOut && layoutEdit && (
         <div className='shrink-0 relative z-20' data-testid='layout-edit-bar'>
@@ -5053,13 +5187,15 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                       }}
                     />
                   )}
-                  <button
-                    type='button'
-                    data-testid='auto-assign-script-btn'
-                    onClick={() => setAutoAssignModalOpen(true)}
-                  >
-                    Tự động phân bổ kịch bản
-                  </button>
+                  {isLetteringStage && (
+                    <button
+                      type='button'
+                      data-testid='auto-assign-script-btn'
+                      onClick={() => setAutoAssignModalOpen(true)}
+                    >
+                      Tự động phân bổ kịch bản
+                    </button>
+                  )}
                 </div>
 
                 {/* 3. THÂN TRANG BẢN THẢO KỊCH BẢN: Liền mạch như 1 trang giấy từ trên xuống dưới */}
@@ -5826,9 +5962,60 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                         <LayoutGuidesOverlay guides={dragGuides.guides} gaps={dragGuides.gaps} />
                       )}
 
+                      {/* 1. Pencil: Storyboard Overlay Ghost */}
+                      {isPencilStage && showStoryboardOverlay && storyboardImgUrl && (
+                        <div
+                          data-testid='storyboard-overlay-ghost'
+                          className='absolute inset-0 pointer-events-none z-10 transition-opacity select-none'
+                          style={{ opacity: storyboardOpacity / 100 }}
+                        >
+                          <img
+                            src={storyboardImgUrl}
+                            alt='Storyboard Ghost'
+                            className='w-full h-full object-contain'
+                          />
+                        </div>
+                      )}
+
+                      {/* 2. Ink: Pencil Underlay Ghost & Safe Zone */}
+                      {isInkStage && pencilUnderlayVisible && pencilImgUrl && (
+                        <div
+                          data-testid='pencil-underlay-ghost'
+                          className='absolute inset-0 pointer-events-none z-10 transition-opacity select-none'
+                          style={{
+                            opacity: pencilUnderlayOpacity / 100,
+                            filter: 'invert(35%) sepia(100%) saturate(300%) hue-rotate(160deg) brightness(95%) contrast(90%)',
+                          }}
+                        >
+                          <img
+                            src={pencilImgUrl}
+                            alt='Pencil Underlay'
+                            className='w-full h-full object-contain'
+                          />
+                        </div>
+                      )}
+                      {isInkStage && safeZoneVisible && selectedPage && (
+                        <SafeZoneOverlay
+                          widthPx={selectedPage.widthPx || 1200}
+                          heightPx={selectedPage.heightPx || 1800}
+                          visible={safeZoneVisible}
+                        />
+                      )}
+
+                      {/* 3. Lettering: Reading Flow Virtual Guide */}
+                      {isLetteringStage && readingFlowVisible && selectedPage && (
+                        <ReadingFlowOverlay
+                          elements={pageElements}
+                          visible={readingFlowVisible}
+                          pageWidth={selectedPage.widthPx || 1200}
+                          pageHeight={selectedPage.heightPx || 1800}
+                        />
+                      )}
+
                       {/* Layers / Image Elements on Canvas (CF2) */}
                       {pageElements
                         .filter((el) => !el.isRemoved)
+                        .filter((el) => !isPencilOrInkStage || !LETTERING_ELEMENT_TYPES.includes(el.elementType))
                         .map((el) => {
                           const isSelected = selectedElementId === el.elementId;
                           const bibleEntry = el.bibleEntryId
