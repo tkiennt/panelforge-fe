@@ -73,6 +73,58 @@ describe('scriptFlowAdapter (Dual-Mode Single Source of Truth)', () => {
     expect(sfxLine?.dialogueText).toBeNull();
   });
 
+  it('tự động bóc tách và phân nhóm các cảnh trong văn bản liền mạch (Continuous Multi-Scene Extraction)', () => {
+    const multiSceneDoc = {
+      type: 'doc',
+      content: [
+        {
+          type: 'scriptLineBlock',
+          attrs: { blockType: 'scene_heading', sceneId: 'scene-001' },
+          content: [{ type: 'text', text: 'CẢNH 1: KHỞI ĐẦU' }],
+        },
+        {
+          type: 'scriptLineBlock',
+          attrs: { blockType: 'dialogue' },
+          content: [{ type: 'text', text: 'Lời thoại cảnh 1' }],
+        },
+        {
+          type: 'scriptLineBlock',
+          attrs: { blockType: 'scene_heading' }, // Writer gõ tay cảnh 2, chưa có sceneId backend
+          content: [{ type: 'text', text: 'CẢNH 2: CUỘC GẶP GỠ BẤT NGỜ' }],
+        },
+        {
+          type: 'scriptLineBlock',
+          attrs: { blockType: 'dialogue' },
+          content: [{ type: 'text', text: 'Lời thoại cảnh 2' }],
+        },
+        {
+          type: 'scriptLineBlock',
+          attrs: { blockType: 'stage_direction' },
+          content: [{ type: 'text', text: 'Chỉ dẫn cảnh 2' }],
+        },
+      ],
+    };
+
+    const extracted = extractScriptLinesFromDoc(multiSceneDoc, 'scene-001');
+
+    const sceneHeadings = extracted.filter((l) => l.blockType === 'scene_heading');
+    expect(sceneHeadings).toHaveLength(2);
+    expect(sceneHeadings[0].sceneId).toBe('scene-001');
+    expect(sceneHeadings[1].sceneId).toBe('scene_num_2');
+
+    const line1 = extracted.find((l) => l.dialogueText === 'Lời thoại cảnh 1');
+    expect(line1).toBeDefined();
+    expect(line1?.sceneId).toBe('scene-001');
+
+    const line2 = extracted.find((l) => l.dialogueText === 'Lời thoại cảnh 2');
+    expect(line2).toBeDefined();
+    expect(line2?.sceneId).toBe('scene_num_2');
+
+    const action2 = extracted.find((l) => l.stageDirection === 'Chỉ dẫn cảnh 2');
+    expect(action2).toBeDefined();
+    expect(action2?.sceneId).toBe('scene_num_2');
+  });
+
   it('đánh số lại chính xác Trang và Panel (renumberTipTapDoc)', () => {
     const testDoc = {
       type: 'doc',

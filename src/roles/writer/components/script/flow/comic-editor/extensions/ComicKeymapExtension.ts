@@ -1,6 +1,6 @@
 // src/roles/writer/components/script/flow/comic-editor/extensions/ComicKeymapExtension.ts
 import { Extension } from '@tiptap/core';
-import { TextSelection } from '@tiptap/pm/state';
+import { Selection, TextSelection } from '@tiptap/pm/state';
 import { getNextPageNumber, getNextPanelNumber, extractPageNumber, extractPanelNumber } from '../comicCounting';
 
 export interface ComicKeymapOptions {
@@ -301,8 +301,12 @@ export const ComicKeymapExtension = Extension.create<ComicKeymapOptions>({
           }
 
           const tr = state.tr.delete(from, to);
-          const prevPos = Math.max(0, from - 1);
-          tr.setSelection(TextSelection.create(tr.doc, Math.min(prevPos, tr.doc.content.size)));
+          if (tr.doc.content.size > 0) {
+            const prevPos = Math.max(0, Math.min(from - 1, tr.doc.content.size));
+            try {
+              tr.setSelection(Selection.near(tr.doc.resolve(prevPos)));
+            } catch {}
+          }
           editor.view.dispatch(tr);
           return true;
         }
@@ -310,8 +314,12 @@ export const ComicKeymapExtension = Extension.create<ComicKeymapOptions>({
         // 3.2 panelBlock -> Cho phép xóa Panel bằng Backspace
         if (parentNode.type.name === 'panelBlock') {
           const tr = state.tr.delete(from, to);
-          const prevPos = Math.max(0, from - 1);
-          tr.setSelection(TextSelection.create(tr.doc, Math.min(prevPos, tr.doc.content.size)));
+          if (tr.doc.content.size > 0) {
+            const prevPos = Math.max(0, Math.min(from - 1, tr.doc.content.size));
+            try {
+              tr.setSelection(Selection.near(tr.doc.resolve(prevPos)));
+            } catch {}
+          }
           editor.view.dispatch(tr);
           return true;
         }

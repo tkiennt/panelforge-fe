@@ -637,37 +637,70 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       let currentVersion = currentChapter.versionVector ?? 0;
       let hasChanges = false;
 
-      // 1b. Cập nhật tiêu đề phân cảnh nếu được chỉnh sửa trực tiếp trên giấy (Paper -> Modal & Backend)
+      // 1b. Nhận diện, cập nhật hoặc tự động tạo mới các Phân cảnh (Auto-Extract Multi-Scenes from Continuous Doc)
       const headingBlocks = extractedLines.filter((l) => l.blockType === 'scene_heading');
-      for (const hb of headingBlocks) {
-        const rawHeadingText = hb.stageDirection?.trim() || '';
-        // Phân tích cú pháp "CẢNH 1: TIÊU ĐỀ" hoặc "SCENE 1: TIÊU ĐỀ" hoặc văn bản thuần
-        const headingMatch = rawHeadingText.match(/^(?:CẢNH|SCENE)\s*\d+\s*:\s*(.*)$/i);
-        const parsedHeading = headingMatch ? headingMatch[1].trim() : rawHeadingText;
+      const sceneIdMap = new Map<string, string>(); // Ánh xạ từ ID tạm (scene_num_X) sang Backend GUID
+      let currentScenesList = [...scenes];
 
-        const targetScene = scenes.find((s) => s.id === hb.sceneId) || activeScene;
-        if (targetScene && parsedHeading && parsedHeading !== targetScene.heading) {
+      // Nếu không có khối scene_heading nào nhưng có activeScene, map mặc định
+      if (headingBlocks.length === 0 && activeScene) {
+        sceneIdMap.set(activeScene.id, activeScene.id);
+      }
+
+      for (let i = 0; i < headingBlocks.length; i++) {
+        const hb = headingBlocks[i];
+        const rawHeadingText = hb.stageDirection?.trim() || '';
+
+        // Phân tích số cảnh: "CẢNH 2: TIÊU ĐỀ", "SCENE 2: TIÊU ĐỀ", "#cảnh 2", v.v.
+        const numMatch = rawHeadingText.match(/(?:CẢNH|SCENE)\s*(\d+)/i);
+        const parsedSceneNum = numMatch ? parseInt(numMatch[1], 10) : i + 1;
+
+        // Phân tích tiêu đề cảnh
+        const headingMatch = rawHeadingText.match(/^(?:CẢNH|SCENE)\s*\d+\s*[:\-–—]\s*(.*)$/i);
+        const parsedHeading = headingMatch
+          ? headingMatch[1].trim()
+          : rawHeadingText.replace(/^(?:CẢNH|SCENE)\s*\d+\s*/i, '').trim() || `Cảnh ${parsedSceneNum}`;
+
+        // Tìm cảnh hiện có theo sceneNumber hoặc theo id
+        let targetScene =
+          currentScenesList.find((s) => s.sceneNumber === parsedSceneNum) ||
+          currentScenesList.find((s) => s.id === hb.sceneId);
+
+        if (targetScene) {
+          sceneIdMap.set(hb.sceneId, targetScene.id);
+          if (hb.sceneId !== targetScene.id) {
+            sceneIdMap.set(`scene_num_${parsedSceneNum}`, targetScene.id);
+          }
+          // Cập nhật tiêu đề phân cảnh nếu có thay đổi
+          if (parsedHeading && parsedHeading !== targetScene.heading) {
+            try {
+              const updated = await scriptLineService.updateScene(targetScene.id, {
+                heading: parsedHeading,
+                summary: targetScene.summary || null,
+                defaultNarrationMode: targetScene.defaultNarrationMode || 'Present',
+                expectedVersion: targetScene.version,
+              });
+              currentScenesList = currentScenesList.map((s) => (s.id === updated.id ? updated : s));
+              hasChanges = true;
+            } catch (sceneErr) {
+              console.error('Lỗi cập nhật tiêu đề phân cảnh:', sceneErr);
+            }
+          }
+        } else {
+          // Tự động tạo phân cảnh mới trên máy chủ nếu Writer gõ cảnh mới trong văn bản
           try {
-            const updatedScene = await scriptLineService.updateScene(targetScene.id, {
+            const created = await scriptLineService.createScene(currentChapter.id, {
+              sceneNumber: parsedSceneNum,
               heading: parsedHeading,
-              summary: targetScene.summary || null,
-              defaultNarrationMode: targetScene.defaultNarrationMode || 'Present',
-              expectedVersion: targetScene.version,
+              summary: null,
+              defaultNarrationMode: 'Present',
             });
-            setScenes((prev) => prev.map((s) => (s.id === updatedScene.id ? updatedScene : s)));
-            setSelectedScene((prev) =>
-              prev && prev.id === updatedScene.id ? { ...prev, ...updatedScene } : prev
-            );
-            setChapterScenesDetail((prev) =>
-              prev.map((s) =>
-                s.id === updatedScene.id
-                  ? { ...s, heading: updatedScene.heading, version: updatedScene.version }
-                  : s
-              )
-            );
+            sceneIdMap.set(hb.sceneId, created.id);
+            sceneIdMap.set(`scene_num_${parsedSceneNum}`, created.id);
+            currentScenesList.push(created);
             hasChanges = true;
-          } catch (sceneErr: any) {
-            console.error('Lỗi cập nhật tiêu đề phân cảnh từ giấy:', sceneErr);
+          } catch (createSceneErr) {
+            console.error('Lỗi tự động tạo phân cảnh từ kịch bản:', createSceneErr);
           }
         }
       }
@@ -675,22 +708,24 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       // Lọc bỏ khối tiêu đề cảnh ra khỏi danh sách script lines để tránh lưu nhầm vào bảng ScriptLine
       const scriptLinesToProcess = extractedLines.filter((l) => l.blockType !== 'scene_heading');
 
+      const isValidGuid = (id?: string | null) =>
+        Boolean(id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id));
+
+      const createdLineIdMap = new Map<string, string>();
+
       // 3. Phân nhóm các dòng kịch bản theo Phân cảnh (Multi-Scene Persistence trên 1 trang giấy)
       const linesByScene = new Map<string, ExtractedScriptLinePayload[]>();
       for (const line of scriptLinesToProcess) {
         const hasValidText = Boolean(line.dialogueText?.trim() || line.stageDirection?.trim());
         if (!hasValidText) continue;
-        const targetSceneId = line.sceneId || activeScene.id;
-        if (!linesByScene.has(targetSceneId)) {
-          linesByScene.set(targetSceneId, []);
+        const resolvedSceneId =
+          sceneIdMap.get(line.sceneId) ||
+          (isValidGuid(line.sceneId) ? line.sceneId : activeScene.id);
+        if (!linesByScene.has(resolvedSceneId)) {
+          linesByScene.set(resolvedSceneId, []);
         }
-        linesByScene.get(targetSceneId)!.push(line);
+        linesByScene.get(resolvedSceneId)!.push(line);
       }
-
-      const isValidGuid = (id?: string | null) =>
-        Boolean(id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id));
-
-      const createdLineIdMap = new Map<string, string>();
 
       // 3b. Tạo chuỗi văn bản kịch bản phân cảnh hoàn chỉnh (Screenplay Manuscript RawText)
       const continuousScriptRawText = extractedLines
@@ -855,12 +890,32 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       // 6. Cập nhật version mới nhất vào React state
       setCurrentChapter((prev) => (prev ? { ...prev, versionVector: currentVersion } : null));
 
-      // 7. Đồng bộ lại chi tiết phân cảnh
-      if (hasChanges && activeScene) {
-        await loadSceneDetail(activeScene.id);
+      // 7. Tự động đồng bộ và nạp lại danh sách phân cảnh cho Left Bar, giữ nguyên cảnh đang chọn
+      try {
+        const freshScenes = await scriptLineService.getScenesByChapter(currentChapter.id);
+        freshScenes.sort((a, b) => a.sceneNumber - b.sceneNumber);
+        setScenes(freshScenes);
+
+        const allDetails = await Promise.all(
+          freshScenes.map((s) => scriptLineService.getSceneById(s.id).catch(() => null))
+        );
+        const validDetails = allDetails.filter((d): d is SceneDetailDto => d !== null);
+        validDetails.sort((a, b) => a.sceneNumber - b.sceneNumber);
+        setChapterScenesDetail(validDetails);
+
+        // Giữ nguyên activeScene hiện tại, tuyệt đối không nhảy sang cảnh khác
+        const currentActiveId = activeScene.id;
+        const stillActive = validDetails.find((s) => s.id === currentActiveId);
+        if (stillActive) {
+          setSelectedScene(stillActive);
+        } else if (validDetails.length > 0) {
+          setSelectedScene(validDetails[0]);
+        }
+      } catch (refreshErr) {
+        console.error('Lỗi làm mới danh sách phân cảnh sau khi lưu:', refreshErr);
       }
     },
-    [currentChapter, chapterScenesDetail, selectedScene, scenes, canEditScript, isChapterLocked, loadSceneDetail]
+    [currentChapter, chapterScenesDetail, selectedScene, scenes, canEditScript, isChapterLocked]
   );
 
 
@@ -970,6 +1025,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     setLoadingScenes(true);
     try {
       const list = await scriptLineService.getScenesByChapter(currentChapter.id);
+      list.sort((a, b) => a.sceneNumber - b.sceneNumber);
       setScenes(list);
 
       if (list.length > 0) {
@@ -978,10 +1034,16 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           list.map((s) => scriptLineService.getSceneById(s.id).catch(() => null))
         );
         const validDetails = allDetails.filter((d): d is SceneDetailDto => d !== null);
+        validDetails.sort((a, b) => a.sceneNumber - b.sceneNumber);
         setChapterScenesDetail(validDetails);
-        const matched = validDetails.find((s) => s.id === sceneIdFromUrl);
-        const targetScene = matched || validDetails[0] || null;
-        setSelectedScene(targetScene);
+
+        setSelectedScene((prev) => {
+          if (prev && validDetails.some((s) => s.id === prev.id)) {
+            return validDetails.find((s) => s.id === prev.id) || prev;
+          }
+          const matched = sceneIdFromUrl ? validDetails.find((s) => s.id === sceneIdFromUrl) : null;
+          return matched || validDetails[0] || null;
+        });
       } else if (canEditScript && !isChapterLocked) {
         // Tự động khởi tạo phân cảnh đầu tiên để Writer vào thẳng trình soạn thảo, bỏ qua bước chọn / tạo phân cảnh thủ công
         try {
@@ -1012,7 +1074,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     } finally {
       setLoadingScenes(false);
     }
-  }, [currentChapter, sceneIdFromUrl, notify, canEditScript, isChapterLocked]);
+  }, [currentChapter?.id, sceneIdFromUrl, notify, canEditScript, isChapterLocked]);
 
   useEffect(() => {
     loadScenes();
@@ -1025,7 +1087,31 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       p.set('sceneId', scene.id);
       return p;
     });
-    loadSceneDetail(scene.id);
+
+    const detail = chapterScenesDetail.find((s) => s.id === scene.id);
+    if (detail) {
+      setSelectedScene(detail);
+    } else {
+      loadSceneDetail(scene.id);
+    }
+
+    if (editorMode === 'flow') {
+      setTimeout(() => {
+        const sceneHeadings = Array.from(
+          document.querySelectorAll('.script-block[data-block-type="scene_heading"]')
+        );
+        const targetEl =
+          sceneHeadings.find((el) => el.getAttribute('data-scene-id') === scene.id) ||
+          sceneHeadings.find(
+            (el) =>
+              el.textContent?.includes(`CẢNH ${scene.sceneNumber}`) ||
+              el.textContent?.includes(`SCENE ${scene.sceneNumber}`)
+          );
+        if (targetEl) {
+          targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 50);
+    }
   };
 
   // Chọn Chapter từ dropdown hoặc danh sách chọn chương (bảo vệ thay đổi chưa lưu)
@@ -2635,7 +2721,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                       chapterId={currentChapter?.id}
                       chapterNumber={currentChapter?.chapterNumber}
                       chapterVersion={currentChapter?.versionVector ?? 0}
-                      scenes={selectedScene ? [selectedScene] : (chapterScenesDetail.length > 0 ? chapterScenesDetail : [])}
+                      scenes={chapterScenesDetail.length > 0 ? chapterScenesDetail : (selectedScene ? [selectedScene] : [])}
                       allBibleEntries={allBibleEntries}
                       consistencyFindings={findings}
                       canEditScript={canEditScript}

@@ -1003,7 +1003,7 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
     const sheet = await screen.findByTestId('paper-editor-sheet');
     expect(sheet).toBeInTheDocument();
 
-    const chip = await screen.findByText(/@LOC-VAN-KHE/);
+    const chip = await screen.findByText(/Vân Khê|LOC-VAN-KHE/);
     expect(chip).toBeInTheDocument();
     expect(chip.getAttribute('data-mention-chip')).toBe('true');
   });
@@ -1063,11 +1063,11 @@ describe('ScriptEditorView (UC-06 Writer Script)', () => {
     const sheet = await screen.findByTestId('paper-editor-sheet');
     expect(sheet).toBeInTheDocument();
 
-    const locChip = await screen.findByText(/@LOC-VAN-KHE/);
+    const locChip = await screen.findByText(/Vân Khê|LOC-VAN-KHE/);
     expect(locChip).toBeInTheDocument();
     expect(locChip.getAttribute('data-mention-chip')).toBe('true');
 
-    const trmChip = await screen.findByText(/@TRM-VO-TAN-HOA/);
+    const trmChip = await screen.findByText(/Vô Tận Hỏa|TRM-VO-TAN-HOA/);
     expect(trmChip).toBeInTheDocument();
     expect(trmChip.getAttribute('data-mention-chip')).toBe('true');
 

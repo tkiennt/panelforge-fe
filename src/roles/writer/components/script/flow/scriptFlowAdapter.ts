@@ -219,6 +219,7 @@ export function scenesToTipTapDoc(
       attrs: {
         scriptLineId: `scene_heading_${scene.id}`,
         sceneId: scene.id,
+        sceneNumber: scene.sceneNumber,
         blockType: 'scene_heading' as MangaBlockType,
         lineOrder: 0,
         panelId: null,
@@ -491,7 +492,7 @@ export function extractScriptLinesFromDoc(doc: any, defaultSceneId: string): Ext
       effectiveBlockType = 'page_heading';
     } else if (/^(?:(?:[-"”]\s*)?(?:Panel|Khung)\s*\d+(?:\.\d+)?|[-"”]\s*\d+(?:\.\d+)?|#panel\s*\d+(?:\.\d+)?|^[-"”]\s*$)/i.test(textTrimmed)) {
       effectiveBlockType = 'panel_heading';
-    } else if (/^(?:CẢNH\s+\d+|INT\.|EXT\.|SCENE\s+\d+)/i.test(textTrimmed)) {
+    } else if (/^(?:[#!]\s*(?:CẢNH|SCENE)\s*\d+|CẢNH\s+\d+|INT\.|EXT\.|SCENE\s+\d+)/i.test(textTrimmed)) {
       effectiveBlockType = 'scene_heading';
     } else if (/^(?:\*|SFX\s*:)/i.test(textTrimmed)) {
       effectiveBlockType = 'sfx';
@@ -500,10 +501,21 @@ export function extractScriptLinesFromDoc(doc: any, defaultSceneId: string): Ext
     }
 
     if (effectiveBlockType === 'scene_heading') {
-      if (attrs.sceneId) currentSceneId = attrs.sceneId;
+      const sceneMatch = textTrimmed.match(/(?:CẢNH|SCENE)\s*(\d+)/i);
+      const parsedSceneNum = sceneMatch ? parseInt(sceneMatch[1], 10) : null;
+      if (parsedSceneNum !== null && attrs.sceneNumber && attrs.sceneNumber !== parsedSceneNum) {
+        currentSceneId = `scene_num_${parsedSceneNum}`;
+      } else if (attrs.sceneId) {
+        currentSceneId = attrs.sceneId;
+      } else if (parsedSceneNum !== null) {
+        currentSceneId = `scene_num_${parsedSceneNum}`;
+      } else {
+        currentSceneId = generateGuid();
+      }
+
       results.push({
         scriptLineId: attrs.scriptLineId || `scene_heading_${currentSceneId}`,
-        sceneId: attrs.sceneId || currentSceneId,
+        sceneId: currentSceneId,
         dialogueText: null,
         stageDirection: textTrimmed,
         speakerCharacterId: null,
@@ -520,7 +532,7 @@ export function extractScriptLinesFromDoc(doc: any, defaultSceneId: string): Ext
       currentPanelId = null;
       results.push({
         scriptLineId: attrs.scriptLineId || generateGuid(),
-        sceneId: attrs.sceneId || currentSceneId,
+        sceneId: currentSceneId,
         dialogueText: null,
         stageDirection: textTrimmed,
         speakerCharacterId: null,
@@ -538,7 +550,7 @@ export function extractScriptLinesFromDoc(doc: any, defaultSceneId: string): Ext
       currentPanelId = attrs.panelId || null;
       results.push({
         scriptLineId: attrs.scriptLineId || generateGuid(),
-        sceneId: attrs.sceneId || currentSceneId,
+        sceneId: currentSceneId,
         dialogueText: null,
         stageDirection: textTrimmed,
         speakerCharacterId: null,
@@ -555,7 +567,7 @@ export function extractScriptLinesFromDoc(doc: any, defaultSceneId: string): Ext
     if (/^(?:Lời dẫn truyện|Lời dẫn|Caption|Dẫn chuyện)\s*:\s*([^"“].*)$/i.test(textTrimmed)) {
       results.push({
         scriptLineId: attrs.scriptLineId || generateGuid(),
-        sceneId: attrs.sceneId || currentSceneId,
+        sceneId: currentSceneId,
         dialogueText: null,
         stageDirection: textTrimmed,
         speakerCharacterId: null,
@@ -570,7 +582,7 @@ export function extractScriptLinesFromDoc(doc: any, defaultSceneId: string): Ext
     if (quotedDialogueMatch) {
       results.push({
         scriptLineId: attrs.scriptLineId || generateGuid(),
-        sceneId: attrs.sceneId || currentSceneId,
+        sceneId: currentSceneId,
         dialogueText: textTrimmed,
         stageDirection: null,
         speakerCharacterId: attrs.speakerCharacterId || currentSpeakerId,
@@ -586,7 +598,7 @@ export function extractScriptLinesFromDoc(doc: any, defaultSceneId: string): Ext
     if (unquotedNarrationMatch) {
       results.push({
         scriptLineId: attrs.scriptLineId || generateGuid(),
-        sceneId: attrs.sceneId || currentSceneId,
+        sceneId: currentSceneId,
         dialogueText: null,
         stageDirection: textTrimmed,
         speakerCharacterId: attrs.speakerCharacterId || currentSpeakerId,
@@ -602,7 +614,7 @@ export function extractScriptLinesFromDoc(doc: any, defaultSceneId: string): Ext
     if (dialogueWithSpeakerMatch) {
       results.push({
         scriptLineId: attrs.scriptLineId || generateGuid(),
-        sceneId: attrs.sceneId || currentSceneId,
+        sceneId: currentSceneId,
         dialogueText: textTrimmed,
         stageDirection: null,
         speakerCharacterId: attrs.speakerCharacterId || currentSpeakerId,
@@ -620,7 +632,7 @@ export function extractScriptLinesFromDoc(doc: any, defaultSceneId: string): Ext
     if (singleSpeakerMatch || effectiveBlockType === 'character') {
       results.push({
         scriptLineId: attrs.scriptLineId || generateGuid(),
-        sceneId: attrs.sceneId || currentSceneId,
+        sceneId: currentSceneId,
         dialogueText: null,
         stageDirection: textTrimmed,
         speakerCharacterId: attrs.speakerCharacterId || null,
@@ -637,7 +649,7 @@ export function extractScriptLinesFromDoc(doc: any, defaultSceneId: string): Ext
     if (effectiveBlockType === 'dialogue') {
       results.push({
         scriptLineId: attrs.scriptLineId || generateGuid(),
-        sceneId: attrs.sceneId || currentSceneId,
+        sceneId: currentSceneId,
         dialogueText: textTrimmed,
         stageDirection: null,
         speakerCharacterId: attrs.speakerCharacterId || currentSpeakerId,
@@ -656,7 +668,7 @@ export function extractScriptLinesFromDoc(doc: any, defaultSceneId: string): Ext
     ) {
       results.push({
         scriptLineId: attrs.scriptLineId || generateGuid(),
-        sceneId: attrs.sceneId || currentSceneId,
+        sceneId: currentSceneId,
         dialogueText: null,
         stageDirection: textTrimmed,
         speakerCharacterId: null,

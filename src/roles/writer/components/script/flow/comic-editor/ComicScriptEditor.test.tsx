@@ -228,8 +228,9 @@ describe('ComicScriptEditor - Tiptap Keyboard-First Engine', () => {
     expect(handled).toBe(true);
 
     const json = editor.getJSON();
-    expect(json.content?.length).toBe(1);
-    expect((json.content?.[0] as any)?.type).toBe('pageBlock');
+    const pageBlocks = json.content?.filter((n: any) => n.type === 'pageBlock');
+    expect(pageBlocks?.length).toBe(1);
+    expect((pageBlocks?.[0] as any)?.attrs?.pageNumber).toBe('01');
   });
 
   it('cho phép xóa panelBlock khi nhấn Backspace ở đầu khối', () => {
@@ -250,7 +251,8 @@ describe('ComicScriptEditor - Tiptap Keyboard-First Engine', () => {
     expect(handled).toBe(true);
 
     const json = editor.getJSON();
-    expect(json.content?.length).toBe(0);
+    const panelBlocks = json.content?.filter((n: any) => n.type === 'panelBlock');
+    expect(panelBlocks?.length).toBe(0);
   });
 
   // 5. Render Editor Component

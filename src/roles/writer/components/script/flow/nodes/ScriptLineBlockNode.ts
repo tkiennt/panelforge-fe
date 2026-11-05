@@ -32,6 +32,17 @@ export const ScriptLineBlockNode = Node.create({
           'data-scene-id': attributes.sceneId,
         }),
       },
+      sceneNumber: {
+        default: null,
+        parseHTML: (element) => {
+          const val = element.getAttribute('data-scene-number');
+          return val ? parseInt(val, 10) : null;
+        },
+        renderHTML: (attributes) =>
+          attributes.sceneNumber
+            ? { 'data-scene-number': attributes.sceneNumber }
+            : {},
+      },
       blockType: {
         default: 'stage_direction' as MangaBlockType,
         parseHTML: (element) => (element.getAttribute('data-block-type') as MangaBlockType) || 'stage_direction',

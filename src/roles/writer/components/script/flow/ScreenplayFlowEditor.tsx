@@ -654,10 +654,15 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
       editor.state.doc.descendants((node, pos) => {
         if (node.type.name === 'scriptLineBlock' && node.attrs.blockType === 'scene_heading') {
           const targetSceneId = node.attrs.sceneId;
-          const matchingScene = scenes.find((s) => s.id === targetSceneId) || scenes[0];
+          const currentText = node.textContent.trim().toUpperCase();
+          const matchNum = currentText.match(/(?:CẢNH|SCENE)\s*(\d+)/i);
+          const parsedNum = matchNum ? parseInt(matchNum[1], 10) : null;
+
+          const matchingScene = scenes.find(
+            (s) => s.id === targetSceneId || (parsedNum !== null && s.sceneNumber === parsedNum)
+          );
           if (matchingScene && matchingScene.heading) {
             const expectedHeadingText = `CẢNH ${matchingScene.sceneNumber}: ${matchingScene.heading}`.toUpperCase();
-            const currentText = node.textContent.trim().toUpperCase();
             if (currentText !== expectedHeadingText) {
               const from = pos + 1;
               const to = pos + node.nodeSize - 1;
