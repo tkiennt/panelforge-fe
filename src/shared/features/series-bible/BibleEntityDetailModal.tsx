@@ -1023,11 +1023,10 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                   </div>
                   <div className='bg-white/90 p-2.5 rounded-lg border border-violet-100'>
                     <span className='font-bold text-violet-700 uppercase tracking-wider text-xs block mb-0.5'>
-                      Trục Sản Xuất — VERSION CONTROL (Asset History)
+                      Tiến trình phiên bản thiết kế
                     </span>
-                    Quá trình sửa bản vẽ của <em>cùng 1 Era</em> (Draft ➔ Review ➔ Canon Locked).
-                    Tuân thủ nguyên tắc <strong>bất biến (Immutable)</strong>: Bản Canon Locked
-                    không được sửa đè, chỉ được tạo bản Supersede.
+                    Vòng đời phê duyệt: Bản thảo ➔ Kiểm duyệt ➔ Đã khóa chuẩn (Canon Locked).
+                    Theo quy tắc bảo toàn nguồn gốc: Bản đã khóa chuẩn không thể sửa đè, chỉ có thể tạo bản kế thừa tiếp theo (Supersede).
                   </div>
                 </div>
               </div>
@@ -1062,8 +1061,8 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
             </div>
             <div className='space-y-1 flex-1 min-w-0'>
               <div className='flex items-center gap-2 flex-wrap'>
-                <span className='font-bold uppercase tracking-wider text-xs bg-amber-200/90 text-amber-900 px-2 py-0.5 rounded'>
-                  🔒 Canon đã khoá
+                <span className='font-bold uppercase tracking-wider text-xs bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 rounded'>
+                  🔒 Đã khóa chuẩn (Canon Locked)
                 </span>
                 <span className='text-xs font-semibold text-amber-900 bg-amber-100/90 px-2 py-0.5 rounded border border-amber-300/60'>
                   {activeStage?.stageName ? `${activeStage.stageName} · ` : ''}
@@ -1901,10 +1900,11 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                   <button
                     type='button'
                     onClick={() => onOpenAddRevision(entity, activeRevision)}
-                    className='w-full py-1.5 px-2 bg-[#F97316] hover:bg-[#EA580C] text-white font-semibold text-xs rounded-lg transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer mt-1'
+                    className='w-full py-1.5 px-2 bg-stone-100 hover:bg-stone-200 text-stone-800 border border-stone-300 font-semibold text-xs rounded-lg transition-all shadow-2xs flex items-center justify-center gap-1.5 cursor-pointer mt-1'
+                    title='Tạo phiên bản kế thừa tiếp theo mà không ghi đè bản gốc đã khóa chuẩn'
                   >
                     <Plus className='w-3 h-3' />
-                    <span>+ Tạo bản vẽ thay thế</span>
+                    <span>Thay thế bản khóa (Supersede)</span>
                   </button>
                 )}
               </div>
