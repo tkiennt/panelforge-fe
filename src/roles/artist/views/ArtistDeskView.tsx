@@ -167,6 +167,15 @@ import { LetteringStageWorkspaceBar } from '../components/LetteringStageWorkspac
 import { SafeZoneOverlay } from '../components/SafeZoneOverlay';
 import { ReadingFlowOverlay } from '../components/ReadingFlowOverlay';
 
+export const DEFAULT_MANGA_STAGES: PipelineStageDto[] = [
+  { id: 'stage-thumb', name: 'Thumbnail', slug: 'thumbnail', stageOrder: 1, isEnabled: true },
+  { id: 'stage-pencil', name: 'Pencil', slug: 'pencil', stageOrder: 2, isEnabled: true },
+  { id: 'stage-ink', name: 'Ink', slug: 'ink', stageOrder: 3, isEnabled: true },
+  { id: 'stage-color', name: 'Color', slug: 'color', stageOrder: 4, isEnabled: true },
+  { id: 'stage-lettering', name: 'Lettering', slug: 'lettering', stageOrder: 5, isEnabled: true, allowedRole: 'Letterer' },
+  { id: 'stage-review', name: 'Review', slug: 'review', stageOrder: 6, isEnabled: true, allowedRole: 'Editor' },
+];
+
 const LETTERING_ELEMENT_TYPES = ['SPEECH_BALLOON', 'THOUGHT_BALLOON', 'NARRATION_BOX', 'SOUND_EFFECT'];
 import { useConfirm } from '@/shared/context/ConfirmContext';
 
@@ -1617,7 +1626,8 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
   const [submittingStageHandoff, setSubmittingStageHandoff] = useState<boolean>(false);
 
   const sortedStages = useMemo(() => {
-    return [...stages].filter((s) => s.isEnabled !== false).sort((a, b) => a.stageOrder - b.stageOrder);
+    const list = [...stages].filter((s) => s.isEnabled !== false).sort((a, b) => a.stageOrder - b.stageOrder);
+    return list.length > 0 ? list : DEFAULT_MANGA_STAGES;
   }, [stages]);
 
   const currentActiveStage = useMemo(() => {
@@ -1693,7 +1703,10 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
 
     setSubmittingStageHandoff(true);
     try {
-      await chapterService.submitManuscript(currentChapterId, stage.id);
+      const isGuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(stage.id);
+      if (isGuid) {
+        await chapterService.submitManuscript(currentChapterId, stage.id);
+      }
 
       if (isPencil) {
         showToast(
