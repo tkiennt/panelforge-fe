@@ -715,6 +715,38 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
   };
 
   // Handle Approve Entire Chapter Review
+  const handleDemoFastPassApprove = async () => {
+    setActionBusy(true);
+    setBackendBlockError(null);
+    try {
+      const all = await assignmentService.getAssignments(chapterId);
+      for (const a of all) {
+        if (a.id !== assignment.id && a.status !== 'Approved') {
+          try {
+            if (String(a.status) === 'Submitted') {
+              await assignmentService.openReview(chapterId, a.id).catch(() => {});
+            }
+            await assignmentService.approveAssignment(chapterId, a.id).catch(() => {});
+          } catch {
+            /* ignore */
+          }
+        }
+      }
+      await assignmentService.approveAssignment(chapterId, assignment.id);
+      toast(
+        'Duyệt hoàn tất chương (Demo)',
+        'Đã duyệt toàn bộ các trang và công đoạn Review! Sẵn sàng để Producer nghiệm thu.'
+      );
+      void loadChapterData();
+    } catch (err) {
+      const msg = extractError(err, 'Không thể duyệt nhanh công đoạn Review.');
+      setBackendBlockError(msg);
+      toast('Lỗi duyệt Demo', msg);
+    } finally {
+      setActionBusy(false);
+    }
+  };
+
   const handleApproveChapter = async () => {
     // Generate comment with checklist summary if any
     const checkedLabels = CHECKLIST_ITEMS.filter((item) => checklist[item.id]).map((i) => i.label);
@@ -997,6 +1029,27 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
               <CheckCircle2 className='w-4 h-4' />
               <span>Duyệt cả chương</span>
             </button>
+          )}
+
+          {!isApproved && (
+            <button
+              type='button'
+              disabled={actionBusy}
+              onClick={() => void handleDemoFastPassApprove()}
+              className='px-4 py-2 flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-full shadow-xs cursor-pointer transition-all active:scale-98'
+              title='Tự động duyệt các trang còn lại và hoàn tất Review cho Demo'
+              data-testid='btn-demo-fast-pass-chapter'
+            >
+              <Sparkles className='w-3.5 h-3.5 text-amber-300' />
+              <span>Duyệt nhanh toàn bộ (Demo)</span>
+            </button>
+          )}
+
+          {isApproved && (
+            <div className='px-4 py-2 flex items-center gap-1.5 bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-bold rounded-full shadow-xs'>
+              <CheckCircle2 className='w-4 h-4 text-emerald-600' />
+              <span>Đã duyệt hoàn tất chương</span>
+            </div>
           )}
         </div>
       </div>

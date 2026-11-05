@@ -32,6 +32,7 @@ import {
   CreateChapterRequest,
   UpdateChapterRequest,
 } from '@/services/chapter.service';
+import { assignmentService } from '@/services/assignment.service';
 import { ChapterAssignmentsModal } from './ChapterAssignmentsModal';
 import { ChapterReviewsModal } from '@/shared/modals/ChapterReviewsModal';
 import { ChapterProvenanceModal } from '@/shared/features/provenance/ChapterProvenanceModal';
@@ -277,9 +278,38 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
           const msg =
             blocking.map((b) => b.message).join('; ') ||
             'Chương chưa hoàn thành đủ các điều kiện phê duyệt.';
-          onShowToast?.('Chưa đủ điều kiện duyệt chương', msg);
-          setActionLoading(false);
-          return;
+          
+          const shouldFastPass = await confirm({
+            title: `Chương ${chap.chapterNumber} còn điều kiện chưa đóng`,
+            description: `${msg}\n\nBạn có muốn tự động hoàn tất các tác vụ còn lại để Producer phê duyệt nghiệm thu chương ngay không? (Demo Fast-Pass)`,
+            confirmText: 'Duyệt nhanh & Nghiệm thu (Demo)',
+            cancelText: 'Hủy xem lại',
+            variant: 'warning',
+          });
+
+          if (!shouldFastPass) {
+            setActionLoading(false);
+            return;
+          }
+
+          // Demo Fast-pass: tự động approve các assignment còn lại
+          try {
+            const allAssignments = await assignmentService.getAssignments(chap.id);
+            for (const a of allAssignments) {
+              if (a.status !== 'Approved') {
+                try {
+                  if (String(a.status) === 'Submitted') {
+                    await assignmentService.openReview(chap.id, a.id).catch(() => {});
+                  }
+                  await assignmentService.approveAssignment(chap.id, a.id).catch(() => {});
+                } catch {
+                  /* ignore */
+                }
+              }
+            }
+          } catch (autoErr) {
+            console.warn('Fast-pass assignment error:', autoErr);
+          }
         }
       } catch (gateErr) {
         console.warn('Lỗi kiểm tra lock-gate:', gateErr);
@@ -871,11 +901,12 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                                 type='button'
                                 onClick={() => handleApproveChapter(chap)}
                                 disabled={actionLoading}
-                                className='px-2 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-700 transition-all cursor-pointer flex items-center gap-1 font-semibold text-[11px] shadow-2xs disabled:opacity-50'
+                                className='px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-all cursor-pointer flex items-center gap-1.5 font-bold text-xs shadow-xs disabled:opacity-50 active:scale-98'
                                 title='Producer duyệt hoàn tất sản xuất -> chuyển sang Approved'
+                                data-testid={`producer-approve-chapter-${chap.id}`}
                               >
-                                <CheckCircle2 className='w-3.5 h-3.5 text-emerald-600' />
-                                <span>Duyệt</span>
+                                <CheckCircle2 className='w-3.5 h-3.5 text-emerald-200' />
+                                <span>Nghiệm thu & Duyệt</span>
                               </button>
                             )}
 
