@@ -304,6 +304,15 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
     [setSearchParams],
   );
 
+  const handleBackToChapterSelection = useCallback(() => {
+    setCurrentChapterId('');
+    setSearchParams((prev) => {
+      const p = new URLSearchParams(prev);
+      p.delete('chapterId');
+      return p;
+    });
+  }, [setSearchParams]);
+
   // Quyền ghi Page (Breaking 152): Chỉ Producer và Artist được ghi (tạo/sửa canvas/xoá)
   const normRole = workspaceRole ? normalizeWorkspaceRole(workspaceRole) : null;
   const canEditPages = !normRole || normRole === 'PRODUCER' || normRole === 'ARTIST';
@@ -2061,7 +2070,8 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
 
   // Lưới an toàn cắt xén B5 Manga / Bleed lines (Nhóm 3 Header Bar)
   const [showSafeMargins, setShowSafeMargins] = useState<boolean>(false);
-  // Dropdown chọn trang nhanh
+  // Dropdown chọn chương & chọn trang nhanh
+  const [chapterSwitcherOpen, setChapterSwitcherOpen] = useState<boolean>(false);
   const [pageSwitcherOpen, setPageSwitcherOpen] = useState<boolean>(false);
 
   // Phím tắt lật trang nhanh [ (trang trước) và ] (trang sau)
@@ -3588,24 +3598,85 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
             NHÓM 1: ĐIỀU HƯỚNG & NGỮ CẢNH PHÂN TRANG (BÊN TRÁI)
            ------------------------------------------------------------- */}
         <div className='flex items-center gap-1.5 shrink-0 min-w-0'>
-          {/* Nút quay lại (← Quay lại Pipeline điều phối Kanban) */}
+          {/* Nút quay lại màn hình chọn chương [← Đổi chương] */}
           <button
             type='button'
-            onClick={() => {
-              setCurrentChapterId(null);
-              setSearchParams((prev) => {
-                const p = new URLSearchParams(prev);
-                p.delete('chapterId');
-                return p;
-              });
-            }}
+            onClick={handleBackToChapterSelection}
             data-testid='switch-chapter-btn'
-            title='Quay lại Pipeline điều phối chương'
+            title='Quay lại màn hình danh sách chọn chương'
             aria-label='Đổi chương'
-            className='h-8 w-8 inline-flex items-center justify-center rounded-lg border border-[#D8D2C5] bg-[#FAF8F5] hover:bg-[#F3F0E9] text-stone-700 hover:text-stone-900 transition-colors cursor-pointer shadow-2xs'
+            className='h-8 px-2.5 inline-flex items-center gap-1.5 rounded-lg border border-[#D8D2C5] bg-[#FAF8F5] hover:bg-[#F3F0E9] text-stone-700 hover:text-stone-900 transition-colors cursor-pointer shadow-2xs text-xs font-semibold shrink-0'
           >
-            <ArrowLeft className='w-4 h-4 text-stone-700' />
+            <ArrowLeft className='w-3.5 h-3.5 text-stone-700' />
+            <span className='hidden sm:inline'>Đổi chương</span>
           </button>
+
+          {/* Bộ chọn chương nhanh (Quick Chapter Dropdown) */}
+          <div className='relative shrink-0' data-menu-root>
+            <button
+              type='button'
+              onClick={() => {
+                setChapterSwitcherOpen((v) => !v);
+                setPageSwitcherOpen(false);
+              }}
+              data-testid='toolbar-chapter-dropdown'
+              className='h-8 px-2.5 inline-flex items-center gap-1.5 rounded-lg border border-[#D8D2C5] bg-[#FAF8F5] hover:bg-[#F3F0E9] text-[#1C1917] text-xs font-semibold cursor-pointer transition-colors shadow-2xs'
+              title='Chọn hoặc đổi chương'
+            >
+              <BookOpen className='w-3.5 h-3.5 text-[#C2410C]' />
+              <span>{currentChapter ? `Chương ${currentChapter.chapterNumber}` : 'Chọn chương'}</span>
+              <ChevronDown className='w-3 h-3 text-stone-500' />
+            </button>
+
+            {chapterSwitcherOpen && (
+              <div
+                role='menu'
+                aria-label='Danh sách chọn chương'
+                className='absolute left-0 top-full mt-1.5 w-64 bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl shadow-xl py-1 z-50 max-h-72 overflow-y-auto custom-scrollbar'
+              >
+                <div className='px-3 py-1.5 text-[10px] font-bold text-stone-400 uppercase tracking-wider border-b border-[#E5E0D8] flex items-center justify-between'>
+                  <span>Danh sách chương</span>
+                  <button
+                    type='button'
+                    onClick={() => {
+                      setChapterSwitcherOpen(false);
+                      handleBackToChapterSelection();
+                    }}
+                    className='text-[#C2410C] hover:underline cursor-pointer lowercase text-[10px]'
+                  >
+                    Xem tất cả ↗
+                  </button>
+                </div>
+                {chapters.map((c) => {
+                  const isSel = c.id === currentChapterId;
+                  return (
+                    <button
+                      key={c.id}
+                      type='button'
+                      role='menuitem'
+                      onClick={() => {
+                        handleSelectChapter(c.id);
+                        setChapterSwitcherOpen(false);
+                      }}
+                      className={`w-full px-3 py-2 flex items-center justify-between text-xs transition-colors cursor-pointer ${
+                        isSel ? 'bg-orange-50 font-bold text-orange-950' : 'hover:bg-stone-100 text-stone-700'
+                      }`}
+                    >
+                      <div className='flex items-center gap-2 truncate'>
+                        <BookOpen className={`w-3.5 h-3.5 shrink-0 ${isSel ? 'text-[#C2410C]' : 'text-stone-400'}`} />
+                        <span className='truncate'>Chương {c.chapterNumber}{c.title ? `: ${c.title}` : ''}</span>
+                      </div>
+                      {c.isScriptFrozen && (
+                        <span className='text-[10px] text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded font-mono shrink-0'>
+                          🔒 Khóa
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
 
           {/* Bộ chuyển trang nhanh (Page Switcher Dropdown & ‹ › Quick Flip) */}
           <div className='flex items-center gap-0.5 bg-[#F5F2EB] p-0.5 rounded-lg border border-[#E5E0D8] text-xs font-semibold text-stone-800'>
@@ -3628,12 +3699,15 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
             <div className='relative' data-menu-root>
               <button
                 type='button'
-                onClick={() => setPageSwitcherOpen((v) => !v)}
+                onClick={() => {
+                  setPageSwitcherOpen((v) => !v);
+                  setChapterSwitcherOpen(false);
+                }}
                 data-testid='toolbar-page-context'
                 className='h-6 px-1.5 inline-flex items-center gap-1 rounded hover:bg-white text-[#1C1917] cursor-pointer transition-colors whitespace-nowrap'
               >
                 <span>
-                  {currentChapter ? `Ch. ${currentChapter.chapterNumber}` : 'Chương'} / Trang {selectedPage?.pageNumber ?? 1}
+                  Trang {selectedPage?.pageNumber ?? 1}
                   {pages.length > 0 ? ` / ${pages.length}` : ''}
                 </span>
                 <ChevronDown className='w-3 h-3 text-stone-500' />
@@ -4772,8 +4846,8 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                         Không có dòng kịch bản nào cho Trang {selectedPage?.pageNumber ?? 1} phù hợp.
                       </p>
                     ) : (
-                      /* KỊCH BẢN TRANG GIẤY LIỀN MẠCH (Continuous Screenplay Manuscript Page) */
-                      <div className='bg-[#FFFEFC] rounded-xl border border-[#E8E2D6] p-5 shadow-2xs space-y-2 text-left font-serif'>
+                      /* KỊCH BẢN TRANG GIẤY BẢN THẢO LIỀN MẠCH (Continuous Screenplay Manuscript Page) */
+                      <div className='bg-[#FFFEFC] rounded-xl border border-[#E8E2D6] p-5 sm:p-6 shadow-2xs space-y-1 text-left font-serif'>
                         {filteredSceneLines.map((line) => {
                           const isAnchoredToSelected = Boolean(
                             selectedPanelDetail &&
@@ -4822,24 +4896,19 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                                 key={line.id}
                                 data-testid={`script-line-item-${line.id}`}
                                 title={lineFullTitle}
-                                className='pt-4 pb-2 border-b-2 border-stone-800 flex items-center justify-between select-none mb-3'
+                                className='pt-5 pb-2 border-b-2 border-stone-800 flex items-center justify-between select-none mb-3 mt-3'
                               >
-                                <div className='flex items-center gap-2'>
-                                  <span className='font-mono font-bold text-[10px] text-orange-600 bg-orange-100/80 px-1.5 py-0.5 rounded'>
-                                    #{line.lineOrder}
-                                  </span>
-                                  <h3 className='font-serif font-black text-sm uppercase tracking-widest text-stone-900'>
-                                    {line.stageDirection}
-                                  </h3>
-                                </div>
+                                <h3 className='font-serif font-black text-sm uppercase tracking-widest text-stone-900'>
+                                  {line.stageDirection}
+                                </h3>
                                 <span className='text-[10px] font-mono uppercase tracking-widest text-stone-400'>
-                                  Trang kịch bản
+                                  Bản thảo trang
                                 </span>
                               </div>
                             );
                           }
 
-                          // 2. Render Tiêu đề Khung (Panel Section Header)
+                          // 2. Render Tiêu đề Khung (Panel Heading)
                           if (isPanelHeading) {
                             return (
                               <div
@@ -4849,15 +4918,12 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                                 onClick={() => {
                                   if (assignedPanel) handleSelectAndScrollToPanel(assignedPanel);
                                 }}
-                                className={`mt-4 mb-2 pt-2.5 pb-1 border-t border-dashed border-stone-300 flex items-center justify-between cursor-pointer transition-colors ${
-                                  isAnchoredToSelected ? 'bg-[#FFF7ED] -mx-2 px-2 rounded-md' : 'hover:bg-stone-50'
+                                className={`mt-4 mb-2 pt-2.5 pb-1 border-t border-stone-200/80 flex items-center justify-between cursor-pointer transition-colors ${
+                                  isAnchoredToSelected ? 'bg-[#FFF7ED] -mx-2 px-2 rounded-md' : 'hover:bg-stone-50/80'
                                 }`}
                               >
                                 <div className='flex items-center gap-2'>
-                                  <span className='font-mono font-bold text-[10px] text-stone-400 select-none'>
-                                    #{line.lineOrder}
-                                  </span>
-                                  <span className='font-mono font-bold text-xs text-stone-900 px-2 py-0.5 bg-stone-100 rounded border border-stone-200 uppercase tracking-wide'>
+                                  <span className='font-mono font-bold text-xs text-stone-800 px-2 py-0.5 bg-stone-100 rounded border border-stone-300 uppercase tracking-wide'>
                                     {line.stageDirection}
                                   </span>
                                 </div>
@@ -4876,7 +4942,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                                 ) : (
                                   <span
                                     data-testid={`panel-tag-${line.id}`}
-                                    className='text-stone-300 font-mono text-[10px] px-1 select-none whitespace-nowrap'
+                                    className='text-stone-300 font-mono text-[10px] px-1 select-none whitespace-nowrap opacity-0'
                                   >
                                     —
                                   </span>
@@ -4901,7 +4967,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                                 if (line.panelId && line.panelId !== selectedPanelDetail.id) {
                                   const otherPanel = panels.find((p) => p.id === line.panelId);
                                   const ok = window.confirm(
-                                    `Dòng kịch bản #${line.lineOrder} đang được gán cho Khung #${
+                                    `Dòng kịch bản đang được gán cho Khung #${
                                       otherPanel?.panelNumber ?? 'khác'
                                     }. Bạn có muốn chuyển sang Khung #${selectedPanelDetail.panelNumber} không?`
                                   );
@@ -4911,33 +4977,25 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                               }}
                               data-testid={`script-line-item-${line.id}`}
                               title={lineFullTitle}
-                              className={`group py-2 px-3 rounded-lg text-left transition-all relative border-l-4 ${
+                              className={`py-1 px-2.5 rounded-lg text-left transition-all relative border-l-4 ${
                                 isAnchoredToSelected
                                   ? 'bg-[#FFF7ED] border-l-[#C2410C] border-orange-400 ring-2 ring-orange-400/20 shadow-2xs'
-                                  : 'bg-[#FCFBF8] border-l-transparent hover:bg-stone-50 hover:border-amber-300'
+                                  : 'bg-[#FCFBF8] border-l-transparent hover:bg-stone-50/70'
                               } ${canEditPages && !isChapterScriptFrozen ? 'cursor-pointer' : ''}`}
                             >
                               <div className='flex items-start justify-between gap-2'>
                                 <div className='flex-1 min-w-0'>
                                   {/* Chỉ dẫn hành động diễn hoạt (Action / Stage Direction) */}
                                   {hasDirection && (
-                                    <div className='text-[13px] text-stone-800 font-sans leading-relaxed'>
-                                      <span className='font-mono font-bold text-[10px] text-stone-400 mr-2 select-none'>
-                                        #{line.lineOrder}
-                                      </span>
+                                    <p className='text-[13px] text-stone-800 font-sans leading-relaxed my-0.5'>
                                       {line.stageDirection}
-                                    </div>
+                                    </p>
                                   )}
 
                                   {/* Lời thoại nhân vật (Character Dialogue) */}
                                   {hasDialogue && (
-                                    <div className={`pl-3 space-y-1 ${hasDirection ? 'mt-2 pt-1 border-t border-stone-100' : ''}`}>
+                                    <div className={`pl-4 py-1 space-y-0.5 ${hasDirection ? 'mt-1' : ''}`}>
                                       <div className='flex items-center gap-1.5'>
-                                        {!hasDirection && (
-                                          <span className='font-mono font-bold text-[10px] text-stone-400 mr-1 select-none'>
-                                            #{line.lineOrder}
-                                          </span>
-                                        )}
                                         <span
                                           className='text-xs font-bold font-sans tracking-wide uppercase'
                                           style={{ color: getCharacterColor(characterName) }}
@@ -4950,14 +5008,14 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                                           </span>
                                         )}
                                       </div>
-                                      <p className='text-[13px] text-stone-900 font-serif italic pl-2.5 border-l-2 border-orange-400 leading-relaxed'>
+                                      <p className='text-[13px] text-stone-900 font-serif italic pl-2 border-l-2 border-amber-400 leading-relaxed'>
                                         &ldquo;{line.dialogueText}&rdquo;
                                       </p>
                                     </div>
                                   )}
                                 </div>
 
-                                {/* Panel Tag góc phải */}
+                                {/* Panel Tag góc phải (chỉ hiện khi đã gán vào khung) */}
                                 {assignedPanel ? (
                                   <button
                                     type='button'
@@ -4974,7 +5032,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                                 ) : (
                                   <span
                                     data-testid={`panel-tag-${line.id}`}
-                                    className='shrink-0 ml-2 text-stone-300 font-mono text-[10px] px-1 select-none whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity'
+                                    className='shrink-0 ml-2 text-stone-300 font-mono text-[10px] px-1 select-none whitespace-nowrap opacity-0'
                                   >
                                     —
                                   </span>
