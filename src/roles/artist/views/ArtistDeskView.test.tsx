@@ -1811,7 +1811,7 @@ describe('ArtistDeskView', () => {
       await waitFor(() => {
         expect(screen.getByTestId('artist-chapter-selection-wrapper')).toBeInTheDocument();
       });
-      expect(screen.getByTestId('chapter-card-1')).toBeInTheDocument();
+      expect(await screen.findByTestId('chapter-card-1')).toBeInTheDocument();
     });
 
     it('bấm vào Chapter trong ChapterSelectionView sẽ chuyển vào bàn vẽ với tab Kịch bản chỉ đọc', async () => {
