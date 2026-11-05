@@ -1721,9 +1721,27 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                   )}
                 </div>
               ) : (
-                <div className='p-6 bg-stone-50/80 border border-dashed border-stone-300 rounded-xl flex flex-col items-center justify-center gap-3 text-center min-h-[220px]'>
-                  <div className='w-11 h-11 rounded-full bg-orange-50 border border-orange-200 flex items-center justify-center text-[#EA580C]'>
-                    <ImageIcon className='w-5 h-5' />
+                <div
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    if (canCreateDraft) setIsDraggingOver(true);
+                  }}
+                  onDragLeave={() => setIsDraggingOver(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setIsDraggingOver(false);
+                    if (canCreateDraft) {
+                      onOpenAddRevision(entity, activeRevision);
+                    }
+                  }}
+                  className={`p-6 sm:p-8 rounded-2xl border-2 border-dashed transition-all flex flex-col items-center justify-center gap-3.5 text-center min-h-[240px] group ${
+                    isDraggingOver
+                      ? 'border-[#F97316] bg-orange-50/70 shadow-inner ring-4 ring-[#F97316]/10'
+                      : 'border-stone-300 hover:border-[#F97316] bg-stone-50/60 hover:bg-orange-50/30'
+                  }`}
+                >
+                  <div className='w-12 h-12 rounded-2xl bg-orange-100/80 border border-orange-200 flex items-center justify-center text-[#EA580C] group-hover:scale-105 group-hover:bg-[#F97316] group-hover:text-white transition-all shadow-2xs'>
+                    <Upload className='w-6 h-6' />
                   </div>
                   <div className='max-w-md space-y-1'>
                     <div className='text-xs sm:text-sm font-bold text-stone-900'>
@@ -1736,20 +1754,40 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                     </p>
                   </div>
                   {canCreateDraft && (
-                    <button
-                      type='button'
-                      onClick={() => {
-                        onOpenAddRevision(entity);
-                      }}
-                      className='inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-white hover:bg-[#FFF7ED] border border-[#F97316] rounded-xl text-xs font-semibold text-[#EA580C] transition-colors cursor-pointer shadow-2xs'
-                    >
-                      <Edit3 className='w-3.5 h-3.5' />
-                      <span>
-                        {isWriterUser
-                          ? 'Chỉnh sửa đặc tả / Cập nhật kịch bản'
-                          : 'Tạo phiên bản mới để thêm ảnh'}
-                      </span>
-                    </button>
+                    <div className='flex flex-col items-center gap-2 pt-1'>
+                      <button
+                        type='button'
+                        onClick={() => {
+                          onOpenAddRevision(entity, activeRevision);
+                        }}
+                        className='inline-flex items-center gap-2 px-5 py-2.5 bg-[#F97316] hover:bg-[#EA580C] text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm active:scale-[0.98]'
+                        title='Tải lên bản vẽ tham chiếu Model Sheet mới'
+                      >
+                        <Upload className='w-4 h-4' />
+                        <span>+ Tải lên Model Sheet</span>
+                      </button>
+                      <div className='flex items-center gap-1.5 text-[11px] text-stone-400'>
+                        <span>Kéo thả file ảnh vào đây hoặc nhấn</span>
+                        <kbd className='px-1.5 py-0.5 bg-stone-200/80 border border-stone-300 rounded font-mono text-[10px] text-stone-700 font-semibold'>
+                          Ctrl + V
+                        </kbd>
+                        <span>để dán</span>
+                      </div>
+                      <button
+                        type='button'
+                        onClick={() => {
+                          onOpenAddRevision(entity);
+                        }}
+                        className='inline-flex items-center gap-1.5 px-3 py-1 bg-white hover:bg-stone-50 border border-stone-200 rounded-lg text-[11px] font-medium text-stone-600 transition-colors cursor-pointer mt-0.5'
+                      >
+                        <Edit3 className='w-3 h-3 text-stone-500' />
+                        <span>
+                          {isWriterUser
+                            ? 'Chỉnh sửa đặc tả / Cập nhật kịch bản'
+                            : 'Tạo phiên bản mới để thêm ảnh'}
+                        </span>
+                      </button>
+                    </div>
                   )}
                 </div>
               )}
@@ -2166,16 +2204,16 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                   />
                 </div>
               ) : (
-                <div className='p-6 bg-stone-50 border border-dashed border-stone-200 rounded-xl flex flex-col items-center justify-center text-center gap-1.5'>
-                  <ArrowLeftRight className='w-5 h-5 text-stone-300' />
-                  <span className='text-xs font-semibold text-stone-600'>
-                    Chưa có bản vẽ để so sánh visual diff
+                <div className='p-3 bg-stone-50 border border-dashed border-stone-200 rounded-xl flex items-center justify-between text-stone-500'>
+                  <div className='flex items-center gap-2'>
+                    <ArrowLeftRight className='w-4 h-4 text-stone-400' />
+                    <span className='text-xs font-medium'>
+                      Chưa có bản vẽ để so sánh visual diff
+                    </span>
+                  </div>
+                  <span className='text-[10px] text-stone-400 font-medium'>
+                    Cần tối thiểu 2 phiên bản
                   </span>
-                  <p className='text-xs text-stone-400'>
-                    {isCharacter
-                      ? 'Tính năng so sánh tự động kích hoạt khi Artist nộp bản vẽ Model Sheet hoặc ảnh phác thảo.'
-                      : 'Tính năng so sánh tự động kích hoạt khi Artist nộp hình ảnh tham chiếu mới.'}
-                  </p>
                 </div>
               )}
 
