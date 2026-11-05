@@ -1872,15 +1872,16 @@ describe('ArtistDeskView', () => {
       vi.mocked(chapterService.submitManuscript).mockResolvedValue({ id: 'ass-handoff' } as any);
     });
 
-    it('hiển thị thanh tab giai đoạn cho Artist với các công đoạn Thumbnail, Pencil, Ink', async () => {
+    it('hiển thị thanh tab giai đoạn Lucian cho Artist với 3 công đoạn Pencil, Ink, Lettering', async () => {
       renderComponent();
 
       await waitFor(() => {
         expect(screen.getByTestId('artist-stage-tabs-bar')).toBeInTheDocument();
-        expect(screen.getByTestId('stage-tab-auto')).toBeInTheDocument();
-        expect(screen.getByTestId('stage-tab-stg-1')).toBeInTheDocument();
         expect(screen.getByTestId('stage-tab-stg-2')).toBeInTheDocument();
         expect(screen.getByTestId('stage-tab-stg-3')).toBeInTheDocument();
+        expect(screen.getByTestId('stage-tab-lettering')).toBeInTheDocument();
+        // Thumbnail và các tab ngoài không xuất hiện trên UI Artist
+        expect(screen.queryByTestId('stage-tab-stg-1')).not.toBeInTheDocument();
       });
     });
 

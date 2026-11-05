@@ -161,6 +161,7 @@ import { pickPanelArtwork, pickPageArtwork } from '@/shared/utils/stageArtworks'
 import { ElementConflictModal } from '@/shared/modals/ElementConflictModal';
 import { CanvasMinimap, LayerStackingOrder } from '@/shared/components/lucian';
 import { GlobalPipelineHeader } from '../components/GlobalPipelineHeader';
+import { LucianArtistStageTabs } from '../components/LucianArtistStageTabs';
 import { PencilStageWorkspaceBar } from '../components/PencilStageWorkspaceBar';
 import { InkStageWorkspaceBar, type InkingNib, type ScreenToneLpi } from '../components/InkStageWorkspaceBar';
 import { LetteringStageWorkspaceBar } from '../components/LetteringStageWorkspaceBar';
@@ -168,12 +169,9 @@ import { SafeZoneOverlay } from '../components/SafeZoneOverlay';
 import { ReadingFlowOverlay } from '../components/ReadingFlowOverlay';
 
 export const DEFAULT_MANGA_STAGES: PipelineStageDto[] = [
-  { id: 'stage-thumb', name: 'Thumbnail', slug: 'thumbnail', stageOrder: 1, isEnabled: true, isApprovalGate: false, isInitial: true, isTerminal: false },
-  { id: 'stage-pencil', name: 'Pencil', slug: 'pencil', stageOrder: 2, isEnabled: true, isApprovalGate: false, isInitial: false, isTerminal: false },
-  { id: 'stage-ink', name: 'Ink', slug: 'ink', stageOrder: 3, isEnabled: true, isApprovalGate: false, isInitial: false, isTerminal: false },
-  { id: 'stage-color', name: 'Color', slug: 'color', stageOrder: 4, isEnabled: true, isApprovalGate: false, isInitial: false, isTerminal: false },
-  { id: 'stage-lettering', name: 'Lettering', slug: 'lettering', stageOrder: 5, isEnabled: true, allowedRole: 'Letterer', isApprovalGate: false, isInitial: false, isTerminal: false },
-  { id: 'stage-review', name: 'Review', slug: 'review', stageOrder: 6, isEnabled: true, allowedRole: 'Editor', isApprovalGate: true, isInitial: false, isTerminal: true },
+  { id: 'stage-pencil', name: 'Nét chì (Pencil)', slug: 'pencil', stageOrder: 1, isEnabled: true, isApprovalGate: false, isInitial: true, isTerminal: false, allowedRole: 'Artist' },
+  { id: 'stage-ink', name: 'Đi nét & Trame (Ink)', slug: 'ink', stageOrder: 2, isEnabled: true, isApprovalGate: false, isInitial: false, isTerminal: false, allowedRole: 'Artist' },
+  { id: 'stage-lettering', name: 'Ráp thoại (Lettering)', slug: 'lettering', stageOrder: 3, isEnabled: true, allowedRole: 'Letterer', isApprovalGate: true, isInitial: false, isTerminal: true },
 ];
 
 const LETTERING_ELEMENT_TYPES = ['SPEECH_BALLOON', 'THOUGHT_BALLOON', 'NARRATION_BOX', 'SOUND_EFFECT'];
@@ -1626,13 +1624,55 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
   const [submittingStageHandoff, setSubmittingStageHandoff] = useState<boolean>(false);
 
   const sortedStages = useMemo(() => {
-    const list = [...stages].filter((s) => s.isEnabled !== false).sort((a, b) => a.stageOrder - b.stageOrder);
-    return list.length > 0 ? list : DEFAULT_MANGA_STAGES;
+    // Chỉ giữ đúng 3 giai đoạn: Pencil ➔ Ink ➔ Letterer (Loại bỏ hoàn toàn Thumbnail, Color, Review)
+    const isArtistStage = (s: PipelineStageDto) => {
+      const sl = (s.slug || s.name || '').toLowerCase();
+      return (
+        sl.includes('pencil') || sl.includes('chì') ||
+        sl.includes('ink') || sl.includes('nét') || sl.includes('mực') ||
+        sl.includes('letter') || sl.includes('thoại') || s.allowedRole === 'Letterer'
+      );
+    };
+
+    const matched = stages
+      .filter((s) => s.isEnabled !== false && isArtistStage(s))
+      .sort((a, b) => a.stageOrder - b.stageOrder);
+
+    if (matched.length > 0) {
+      const pencil = matched.find((s) => {
+        const sl = (s.slug || s.name || '').toLowerCase();
+        return sl.includes('pencil') || sl.includes('chì');
+      }) || DEFAULT_MANGA_STAGES[0];
+
+      const ink = matched.find((s) => {
+        const sl = (s.slug || s.name || '').toLowerCase();
+        return sl.includes('ink') || sl.includes('nét') || sl.includes('mực');
+      }) || DEFAULT_MANGA_STAGES[1];
+
+      const lettering = matched.find((s) => {
+        const sl = (s.slug || s.name || '').toLowerCase();
+        return sl.includes('letter') || sl.includes('thoại') || s.allowedRole === 'Letterer';
+      }) || DEFAULT_MANGA_STAGES[2];
+
+      return [pencil, ink, lettering];
+    }
+    return DEFAULT_MANGA_STAGES;
   }, [stages]);
 
   const currentActiveStage = useMemo(() => {
     if (viewStageId !== 'AUTO') {
-      return sortedStages.find((s) => s.id === viewStageId) || sortedStages[0] || null;
+      const found = sortedStages.find((s) => {
+        if (s.id === viewStageId) return true;
+        const targetStr = viewStageId.toLowerCase();
+        const curSlug = (s.slug || '').toLowerCase();
+        const curName = (s.name || '').toLowerCase();
+        if (curSlug && curSlug === targetStr) return true;
+        if (targetStr.includes('pencil') && (curSlug.includes('pencil') || curName.includes('pencil') || curName.includes('chì'))) return true;
+        if (targetStr.includes('ink') && (curSlug.includes('ink') || curName.includes('ink') || curName.includes('nét') || curName.includes('mực'))) return true;
+        if (targetStr.includes('letter') && (curSlug.includes('letter') || curName.includes('letter') || s.allowedRole === 'Letterer')) return true;
+        return false;
+      });
+      return found || sortedStages[0] || null;
     }
     if (myStageOnPage) {
       return sortedStages.find((s) => s.id === myStageOnPage) || sortedStages[0] || null;
@@ -1703,8 +1743,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
 
     setSubmittingStageHandoff(true);
     try {
-      const isGuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(stage.id);
-      if (isGuid) {
+      if (stage.id) {
         await chapterService.submitManuscript(currentChapterId, stage.id);
       }
 
@@ -4244,180 +4283,21 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
       </div>
 
       {/* -------------------------------------------------------------
-          THANH ĐIỀU HƯỚNG GIAI ĐOẠN ARTIST (STAGE TABS & INTERNAL HANDOFF BAR)
-          Cung cấp tab chuyển công đoạn: Thumbnail ➔ Pencil ➔ Ink ➔ Color...
-          Bàn giao tự động Pencil ➔ Ink (không bắt Editor duyệt).
-          Chuyển giao sang Lettering (Ink ➔ Lettering).
+          THANH ĐIỀU HƯỚNG GIAI ĐOẠN ARTIST (LUCIAN UX/UI #039 & #042)
+          Chỉ hiển thị 3 giai đoạn: Pencil ➔ Ink ➔ Letterer
+          Tự động handoff Pencil ➔ Ink và Ink ➔ Lettering
          ------------------------------------------------------------- */}
-      {currentChapterId && sortedStages.length > 0 && (
-        <div
-          data-testid='artist-stage-tabs-bar'
-          className='h-11 bg-[#FDFBF7] border-b border-[#D8D2C5]/80 px-4 flex items-center justify-between gap-3 shrink-0 overflow-x-auto select-none z-20 shadow-2xs'
-        >
-          {/* Cụm Tab Các Giai Đoạn */}
-          <div className='flex items-center gap-1.5 shrink-0 overflow-x-auto scrollbar-none' data-testid='artist-stage-tabs'>
-            {/* Tab Tự Động (AUTO) */}
-            <button
-              type='button'
-              onClick={() => setViewStageId('AUTO')}
-              data-testid='stage-tab-auto'
-              title='Tự động chọn ảnh theo công đoạn bạn đang làm hoặc cao nhất'
-              className={`h-7 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
-                viewStageId === 'AUTO'
-                  ? 'bg-[#1C1917] text-white shadow-2xs'
-                  : 'bg-white/80 text-stone-600 hover:bg-stone-100 border border-[#E7E2D7]'
-              }`}
-            >
-              <Zap className='w-3 h-3 text-amber-500' />
-              <span>Tự động</span>
-              {myStageOnPage && (
-                <span className='text-[10px] opacity-75 font-normal hidden sm:inline'>({stageLabel(myStageOnPage)})</span>
-              )}
-            </button>
-
-            {sortedStages.map((stage, idx) => {
-              const isSelected = viewStageId === stage.id || (viewStageId === 'AUTO' && currentActiveStage?.id === stage.id);
-              const slug = (stage.slug || stage.name || '').toLowerCase();
-              const isPencil = slug.includes('pencil') || slug.includes('chì');
-              const isInk = slug.includes('ink') || slug.includes('nét');
-              const isLetterer = slug.includes('letter') || stage.allowedRole === 'Letterer';
-              const isReview = slug.includes('review') || stage.allowedRole === 'Editor';
-
-              const stageTask = [...myInProgress, ...myAssigned, ...myChangesRequested].find(
-                (a) => a.chapterId === currentChapterId && a.pipelineStageId === stage.id
-              );
-              const isDone = stage.stageOrder < (currentActiveStage?.stageOrder ?? 0) || stageTask?.status === 'Approved';
-              const isInProgress = stageTask?.status === 'InProgress' || (isSelected && !isDone);
-
-              return (
-                <button
-                  key={stage.id}
-                  type='button'
-                  onClick={() => setViewStageId(stage.id)}
-                  data-testid={`stage-tab-${stage.slug || stage.id}`}
-                  title={`Chuyển xem và vẽ ở công đoạn ${stage.name}`}
-                  className={`h-7 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shrink-0 ${
-                    isSelected
-                      ? 'bg-[#F97316] text-white shadow-xs'
-                      : isDone
-                        ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100'
-                        : 'bg-white/80 text-stone-700 hover:bg-stone-100 border border-[#E7E2D7]'
-                  }`}
-                >
-                  {isDone ? (
-                    <CheckCircle2 className={`w-3 h-3 ${isSelected ? 'text-white' : 'text-emerald-600'}`} />
-                  ) : isPencil ? (
-                    <Edit3 className={`w-3 h-3 ${isSelected ? 'text-white' : 'text-amber-600'}`} />
-                  ) : isInk ? (
-                    <Palette className={`w-3 h-3 ${isSelected ? 'text-white' : 'text-indigo-600'}`} />
-                  ) : isLetterer ? (
-                    <Type className={`w-3 h-3 ${isSelected ? 'text-white' : 'text-sky-600'}`} />
-                  ) : isReview ? (
-                    <CheckSquare className={`w-3 h-3 ${isSelected ? 'text-white' : 'text-rose-600'}`} />
-                  ) : (
-                    <span className={`w-3.5 h-3.5 rounded-full text-[10px] font-bold flex items-center justify-center ${
-                      isSelected ? 'bg-white/20 text-white' : 'bg-stone-200 text-stone-700'
-                    }`}>
-                      {idx + 1}
-                    </span>
-                  )}
-
-                  <span>{stage.name}</span>
-
-                  {isDone && (
-                    <span className={`text-[9px] px-1 py-0.2 rounded font-bold uppercase ${
-                      isSelected ? 'bg-white/25 text-white' : 'bg-emerald-100 text-emerald-800'
-                    }`}>
-                      Xong
-                    </span>
-                  )}
-                  {isInProgress && !isDone && (
-                    <span className={`text-[9px] px-1 py-0.2 rounded font-bold uppercase ${
-                      isSelected ? 'bg-white/25 text-white' : 'bg-amber-100 text-amber-800'
-                    }`}>
-                      Đang làm
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Cụm Nút Hành Động Bàn Giao Tự Động (Internal Handoff) */}
-          {canEditPages && currentActiveStage && (
-            <div className='flex items-center gap-2 shrink-0 ml-auto'>
-              {(() => {
-                const slug = (currentActiveStage.slug || currentActiveStage.name || '').toLowerCase();
-                const isPencil = slug.includes('pencil') || slug.includes('chì');
-                const isInk = slug.includes('ink') || slug.includes('nét');
-
-                if (isPencil) {
-                  return (
-                    <button
-                      type='button'
-                      onClick={() => handleStageHandoff(currentActiveStage)}
-                      disabled={submittingStageHandoff}
-                      data-testid='btn-handoff-pencil-ink'
-                      title='Bàn giao tự động Pencil ➔ Ink: Không bắt Editor duyệt nét chì, hệ thống tự động gán mở việc Ink'
-                      className='h-7 px-3 inline-flex items-center gap-1.5 rounded-lg text-xs font-bold bg-[#F97316] hover:bg-orange-600 text-white shadow-xs cursor-pointer active:scale-95 transition-all'
-                    >
-                      {submittingStageHandoff ? (
-                        <Loader2 className='w-3 h-3 animate-spin' />
-                      ) : (
-                        <ArrowRight className='w-3.5 h-3.5' />
-                      )}
-                      <span>Bàn giao Pencil ➔ Ink</span>
-                      <span className='hidden md:inline-block text-[10px] font-normal opacity-90 border-l border-white/30 pl-1.5'>
-                        Mở việc Ink ngay
-                      </span>
-                    </button>
-                  );
-                }
-
-                if (isInk) {
-                  return (
-                    <button
-                      type='button'
-                      onClick={() => handleStageHandoff(currentActiveStage)}
-                      disabled={submittingStageHandoff}
-                      data-testid='btn-handoff-ink-lettering'
-                      title='Chuyển giao sang Lettering (Ink ➔ Lettering): Hoàn thành Ink, hệ thống tự động mở task cho Letterer ráp bóng thoại & SFX'
-                      className='h-7 px-3 inline-flex items-center gap-1.5 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs cursor-pointer active:scale-95 transition-all'
-                    >
-                      {submittingStageHandoff ? (
-                        <Loader2 className='w-3 h-3 animate-spin' />
-                      ) : (
-                        <Sparkles className='w-3.5 h-3.5' />
-                      )}
-                      <span>Chuyển giao ➔ Lettering</span>
-                      <span className='hidden md:inline-block text-[10px] font-normal opacity-90 border-l border-white/30 pl-1.5'>
-                        Mở task Letterer ráp thoại/SFX
-                      </span>
-                    </button>
-                  );
-                }
-
-                return (
-                  <button
-                    type='button'
-                    onClick={() => handleStageHandoff(currentActiveStage)}
-                    disabled={submittingStageHandoff}
-                    data-testid={`btn-handoff-${currentActiveStage.slug || currentActiveStage.id}`}
-                    title={`Hoàn thành ${currentActiveStage.name} và chuyển sang giai đoạn tiếp theo`}
-                    className='h-7 px-2.5 inline-flex items-center gap-1.5 rounded-lg text-xs font-semibold bg-white hover:bg-stone-50 text-stone-800 border border-[#D8D2C5] shadow-2xs cursor-pointer transition-all'
-                  >
-                    {submittingStageHandoff ? (
-                      <Loader2 className='w-3 h-3 animate-spin' />
-                    ) : (
-                      <ArrowRight className='w-3 h-3' />
-                    )}
-                    <span>Hoàn thành {currentActiveStage.name} ➔</span>
-                  </button>
-                );
-              })()}
-            </div>
-          )}
-        </div>
+      {currentChapterId && (
+        <LucianArtistStageTabs
+          stages={sortedStages}
+          activeStageId={currentActiveStage?.id || sortedStages[0]?.id || null}
+          onSelectStage={setViewStageId}
+          onHandoffStage={handleStageHandoff}
+          isSubmitting={submittingStageHandoff}
+          canEdit={canEditPages}
+          pencilArtworkAvailable={Boolean(pencilImgUrl)}
+          inkArtworkAvailable={Boolean(pageArtUrl)}
+        />
       )}
 
       {/* CONTEXT-DRIVEN EXCLUSIVE WORKSPACE BARS (PHẦN 3: GIAO DIỆN RIÊNG TỪNG GIAI ĐOẠN) */}

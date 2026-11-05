@@ -154,35 +154,32 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
           </span>
         </div>
 
-        {/* Quick Stage Tabs Dropdown/Pills */}
-        <div className='flex items-center gap-1 bg-[#F3F0E9] p-0.5 rounded-lg border border-[#D8D2C5] text-xs font-semibold'>
-          <button
-            type='button'
-            data-testid='header-stage-auto'
-            onClick={() => onSelectStageFilter('AUTO')}
-            className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${
-              selectedStageFilter === 'AUTO'
-                ? 'bg-[#1C1917] text-white shadow-2xs font-bold'
-                : 'text-stone-600 hover:text-stone-900'
-            }`}
-          >
-            Tự động
-          </button>
-          {stages.slice(0, 4).map((s) => {
-            const isSelected = selectedStageFilter === s.id;
+        {/* 3-Stage Lucian Indicators (Pencil ➔ Ink ➔ Lettering) */}
+        <div className='flex items-center gap-1 bg-[#F1EDE4] p-0.5 rounded-xl border border-[#DFD9CD] text-xs font-semibold'>
+          {stages.slice(0, 3).map((s, idx) => {
+            const isSelected = selectedStageFilter === s.id || (selectedStageFilter === 'AUTO' && currentActiveStage?.id === s.id);
+            const slug = (s.slug || s.name || '').toLowerCase();
+            const label = slug.includes('pencil') || slug.includes('chì')
+              ? 'Pencil'
+              : slug.includes('ink') || slug.includes('nét')
+                ? 'Ink'
+                : 'Lettering';
+
             return (
               <button
                 key={s.id}
                 type='button'
                 data-testid={`header-stage-${s.slug || s.id}`}
                 onClick={() => onSelectStageFilter(s.id)}
-                className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+                title={`Chuyển sang ${s.name}`}
+                className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer flex items-center gap-1 ${
                   isSelected
-                    ? 'bg-[#F97316] text-white shadow-2xs font-bold'
+                    ? 'bg-white text-stone-900 shadow-2xs font-bold'
                     : 'text-stone-600 hover:text-stone-900'
                 }`}
               >
-                {s.name}
+                <span className='font-mono text-[10px] text-stone-400'>{idx + 1}.</span>
+                <span>{label}</span>
               </button>
             );
           })}
