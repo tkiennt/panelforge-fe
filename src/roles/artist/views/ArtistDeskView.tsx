@@ -442,6 +442,8 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
     return LEFT_COL_DEFAULT_WIDTH;
   });
 
+  const [isOutlineExpanded, setIsOutlineExpanded] = useState(false);
+
   const isResizingLeftRef = useRef(false);
 
   const handleLeftResizeStart = (e: React.MouseEvent) => {
@@ -4196,45 +4198,133 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
             {activeTab === 'pages' && (
               <>
                 {canEditPages && (
-                  <div className='flex items-center gap-1.5 pb-2 mb-1 border-b border-[#E7E2D7]'>
-                    <button
-                      type='button'
-                      onClick={() => {
-                        setUploadModalDefaultTab('single');
-                        setUploadModalOpen(true);
-                      }}
-                      disabled={!currentChapterId}
-                      className='flex-1 px-2 py-1.5 text-[11px] font-bold rounded-lg bg-orange-600 hover:bg-orange-700 text-white flex items-center justify-center gap-1 cursor-pointer shadow-2xs transition-all active:scale-95 disabled:opacity-40'
-                      title='Tải ảnh lên (1 trang hoặc tạo trang mới)'
-                      data-testid='left-upload-page-btn'
+                  <div className='pb-2 mb-2 border-b border-[#E7E2D7] space-y-2'>
+                    {/* Segmented Control chuyển đổi dứt khoát 2 chế độ làm việc */}
+                    <div
+                      className='p-0.5 bg-[#EBE7DF] rounded-xl flex items-center'
+                      data-testid='left-pages-mode-segmented'
                     >
-                      <Upload className='w-3 h-3' />
-                      <span>Tải ảnh</span>
-                    </button>
-                    <button
-                      type='button'
-                      onClick={() => {
-                        setUploadModalDefaultTab('bulk');
-                        setUploadModalOpen(true);
-                      }}
-                      disabled={!currentChapterId}
-                      className='px-2.5 py-1.5 text-[11px] font-semibold rounded-lg bg-stone-100 hover:bg-orange-50 text-stone-700 hover:text-orange-700 border border-stone-200 hover:border-orange-300 flex items-center gap-1 cursor-pointer transition-all active:scale-95 disabled:opacity-40'
-                      title='Tải hàng loạt trang vào chương'
-                      data-testid='left-bulk-upload-btn'
-                    >
-                      <Layers className='w-3 h-3 text-orange-600' />
-                      <span>Hàng loạt</span>
-                    </button>
-                    <button
-                      type='button'
-                      onClick={() => setCreateModalOpen(true)}
-                      disabled={!currentChapterId}
-                      className='p-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-200 cursor-pointer disabled:opacity-40'
-                      title='Tạo trang trống mới'
-                      data-testid='left-create-empty-page-btn'
-                    >
-                      <Plus className='w-3.5 h-3.5' />
-                    </button>
+                      <button
+                        type='button'
+                        onClick={() => setUploadMode('page')}
+                        data-testid='left-mode-page-btn'
+                        className={`flex-1 py-1.5 px-2 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer text-[11px] ${
+                          uploadMode === 'page'
+                            ? 'bg-white text-orange-600 font-bold shadow-2xs'
+                            : 'text-stone-600 hover:text-stone-900'
+                        }`}
+                        title='Chế độ 1: Tải một ảnh hoàn chỉnh cho cả trang (từ Clip Studio Paint, Photoshop)'
+                      >
+                        <FileImage className='w-3.5 h-3.5' />
+                        <span>Tải cả trang</span>
+                      </button>
+                      <button
+                        type='button'
+                        disabled={hasPanelOnlyAssignmentOnPage}
+                        onClick={() => setUploadMode('panel')}
+                        data-testid='left-mode-panel-btn'
+                        className={`flex-1 py-1.5 px-2 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer text-[11px] ${
+                          uploadMode === 'panel'
+                            ? 'bg-white text-orange-600 font-bold shadow-2xs'
+                            : 'text-stone-600 hover:text-stone-900'
+                        }`}
+                        title='Chế độ 2: Dựng mẫu khung truyện và tải tranh cho từng panel riêng lẻ'
+                      >
+                        <LayoutTemplate className='w-3.5 h-3.5' />
+                        <span>Dựng Template</span>
+                      </button>
+                    </div>
+
+                    {/* Thanh hành động tương ứng theo Chế độ đã chọn */}
+                    {uploadMode === 'page' ? (
+                      /* Chế độ 1: Tải cả trang (Full-page) - KHÔNG CÓ BẤT KỲ NÚT CHỌN TEMPLATE NÀO */
+                      <div className='space-y-1.5'>
+                        <div className='flex items-center gap-1.5'>
+                          <button
+                            type='button'
+                            onClick={() => {
+                              setUploadModalDefaultTab('single');
+                              setUploadModalOpen(true);
+                            }}
+                            disabled={!currentChapterId}
+                            className='flex-1 px-2.5 py-1.5 text-[11px] font-bold rounded-lg bg-orange-600 hover:bg-orange-700 text-white flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs transition-all active:scale-95 disabled:opacity-40'
+                            title='Tải ảnh vẽ hoàn thiện cho trang này'
+                            data-testid='left-upload-page-btn'
+                          >
+                            <Upload className='w-3.5 h-3.5' />
+                            <span>Tải ảnh trang này</span>
+                          </button>
+                          <button
+                            type='button'
+                            onClick={() => {
+                              setUploadModalDefaultTab('bulk');
+                              setUploadModalOpen(true);
+                            }}
+                            disabled={!currentChapterId}
+                            className='px-2.5 py-1.5 text-[11px] font-semibold rounded-lg bg-stone-100 hover:bg-orange-50 text-stone-700 hover:text-orange-700 border border-stone-200 hover:border-orange-300 flex items-center gap-1 cursor-pointer transition-all active:scale-95 disabled:opacity-40'
+                            title='Tải hàng loạt trang vào chương'
+                            data-testid='left-bulk-upload-btn'
+                          >
+                            <Layers className='w-3 h-3 text-orange-600' />
+                            <span>Hàng loạt</span>
+                          </button>
+                          <button
+                            type='button'
+                            onClick={() => setCreateModalOpen(true)}
+                            disabled={!currentChapterId}
+                            className='p-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-200 cursor-pointer disabled:opacity-40'
+                            title='Tạo trang trống mới'
+                            data-testid='left-create-empty-page-btn'
+                          >
+                            <Plus className='w-3.5 h-3.5' />
+                          </button>
+                        </div>
+                        <p className='text-[10px] text-stone-500 italic leading-snug'>
+                          Dành cho hoạ sĩ vẽ ngoài: tải 1 file ảnh hoàn thiện (PNG/JPG) cho toàn bộ trang.
+                        </p>
+                      </div>
+                    ) : (
+                      /* Chế độ 2: Dựng Template & Up từng Panel */
+                      <div className='space-y-1.5'>
+                        <div className='flex items-center gap-1.5'>
+                          <button
+                            type='button'
+                            onClick={() => setFrameTemplateModalOpen(true)}
+                            disabled={!currentChapterId}
+                            className='flex-1 px-2.5 py-1.5 text-[11px] font-bold rounded-lg bg-orange-600 hover:bg-orange-700 text-white flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs transition-all active:scale-95 disabled:opacity-40'
+                            title='Kho Mẫu Khung dựng sẵn'
+                            data-testid='left-frame-template-btn'
+                          >
+                            <LayoutTemplate className='w-3.5 h-3.5' />
+                            <span>Kho Mẫu Khung</span>
+                          </button>
+                          <button
+                            type='button'
+                            onClick={handleCreatePanel}
+                            disabled={!currentChapterId}
+                            className='px-2.5 py-1.5 text-[11px] font-semibold rounded-lg bg-stone-100 hover:bg-orange-50 text-stone-700 hover:text-orange-700 border border-stone-200 hover:border-orange-300 flex items-center gap-1 cursor-pointer transition-all active:scale-95 disabled:opacity-40'
+                            title='Thêm 1 ô khung panel'
+                            data-testid='left-add-panel-btn'
+                          >
+                            <Square className='w-3 h-3 text-orange-600' />
+                            <span>+ Khung</span>
+                          </button>
+                          <button
+                            type='button'
+                            onClick={() => setCreateModalOpen(true)}
+                            disabled={!currentChapterId}
+                            className='p-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-200 cursor-pointer disabled:opacity-40'
+                            title='Tạo trang trống mới'
+                            data-testid='left-create-empty-page-btn'
+                          >
+                            <Plus className='w-3.5 h-3.5' />
+                          </button>
+                        </div>
+                        <p className='text-[10px] text-stone-500 italic leading-snug'>
+                          Dựng bố cục khung truyện và tải tranh cho từng panel riêng biệt.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
                 {pages.length === 0 ? (
@@ -4333,14 +4423,14 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                                   if (window.innerWidth < 1024) setIsLeftCollapsed(true);
                                 }}
                                 aria-current={isSel ? 'page' : undefined}
-                                className={`flex-1 p-1.5 rounded-lg border flex items-center gap-2 text-left cursor-pointer focus-visible:outline-2 focus-visible:outline-[#F97316] ${
+                                className={`flex-1 p-2 rounded-xl border flex items-center gap-2.5 text-left cursor-pointer focus-visible:outline-2 focus-visible:outline-[#F97316] transition-all ${
                                   isSel
-                                    ? 'border-[#F97316]/60 bg-[#FFF2E6]'
-                                    : 'border-transparent hover:bg-[#F3F0E9]'
+                                    ? 'border-[#F97316]/80 bg-[#FFF7ED] shadow-2xs ring-1 ring-[#F97316]/20'
+                                    : 'border-stone-200/80 bg-white hover:border-stone-300 hover:bg-[#FAF8F5]'
                                 }`}
                               >
                                 <span
-                                  className='w-9 shrink-0 bg-white border border-[#D8D2C5] rounded overflow-hidden flex items-center justify-center'
+                                  className='w-10 h-14 shrink-0 bg-white border border-[#D8D2C5] rounded-lg overflow-hidden flex items-center justify-center relative shadow-2xs'
                                   style={{
                                     aspectRatio: `${p.widthPx || 1200} / ${p.heightPx || 1800}`,
                                   }}
@@ -4349,17 +4439,34 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                                     <img
                                       src={toThumbnailUrl(pageArtUrl)}
                                       alt=''
-                                      className='w-full h-full object-contain'
+                                      className='w-full h-full object-cover'
                                     />
                                   ) : (
-                                    <span className='text-[10px] font-mono text-[#57534E]'>
-                                      {p.pageNumber}
+                                    <span className='text-[10px] font-mono font-bold text-stone-400'>
+                                      #{p.pageNumber}
                                     </span>
                                   )}
                                 </span>
-                                <span className='min-w-0 flex-1'>
-                                  <span className='block font-semibold text-[#1C1917] flex items-center justify-between gap-1'>
-                                    <span>Trang {p.pageNumber}</span>
+                                <span className='min-w-0 flex-1 space-y-1'>
+                                  <span className='font-semibold text-[#1C1917] flex items-center justify-between gap-1'>
+                                    <span className='text-xs font-bold'>Trang {p.pageNumber}</span>
+                                    {/* Trạng thái tiến độ theo Chế độ */}
+                                    {uploadMode === 'page' ? (
+                                      (isSel ? pageArtUrl : p.isContentReady) ? (
+                                        <span className='px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200/60 inline-flex items-center gap-1'>
+                                          <span className='w-1.5 h-1.5 rounded-full bg-emerald-500' />
+                                          <span>Bản vẽ v1</span>
+                                        </span>
+                                      ) : (
+                                        <span className='px-1.5 py-0.2 rounded bg-stone-100 text-stone-500 text-[10px] font-medium border border-stone-200'>
+                                          Chưa có ảnh
+                                        </span>
+                                      )
+                                    ) : (
+                                      <span className='px-1.5 py-0.2 rounded bg-orange-50 text-orange-700 text-[10px] font-bold border border-orange-200/60'>
+                                        {isSel ? `${panels.length} khung` : `${(p as any).panelsCount ?? 0} khung`}
+                                      </span>
+                                    )}
                                     {isCarvedOut && (
                                       <span
                                         data-testid={`carved-out-badge-${p.id}`}
@@ -4370,11 +4477,16 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                                       </span>
                                     )}
                                   </span>
-                                  {pageStatus && !isCarvedOut && (
-                                    <span className='block truncate text-[11px] text-[#57534E]'>
-                                      {pageStatus.label.split(' · ')[0]}
+                                  <div className='flex items-center justify-between text-[10px] text-stone-500'>
+                                    <span className='font-mono'>
+                                      {p.widthPx || 1200}×{p.heightPx || 1800}px
                                     </span>
-                                  )}
+                                    {pageStatus && !isCarvedOut && (
+                                      <span className='truncate text-stone-600 font-medium'>
+                                        {pageStatus.label.split(' · ')[0]}
+                                      </span>
+                                    )}
+                                  </div>
                                 </span>
                               </button>
                             </div>
@@ -4538,11 +4650,29 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                     )}
                   </div>
 
-                  {/* Tóm tắt chương nếu có */}
+                  {/* Tóm tắt chương nếu có (Thu gọn được để không đẩy kịch bản xuống sâu) */}
                   {currentChapter?.outline && (
-                    <div className='p-1.5 bg-amber-50/50 rounded-lg border border-amber-200/50 text-xs shrink-0' data-testid='chapter-outline-card'>
-                      <div className='text-[10px] font-bold text-[#78716C] uppercase tracking-wider mb-0.5'>Tóm tắt nội dung chương</div>
-                      <div className='text-stone-700 text-[11px] line-clamp-2'>{currentChapter.outline}</div>
+                    <div className='p-1.5 bg-amber-50/60 rounded-lg border border-amber-200/60 text-xs shrink-0' data-testid='chapter-outline-card'>
+                      <button
+                        type='button'
+                        onClick={() => setIsOutlineExpanded((v) => !v)}
+                        className='w-full flex items-center justify-between text-left cursor-pointer hover:bg-amber-100/40 p-0.5 rounded transition-colors'
+                      >
+                        <span className='text-[10px] font-bold text-amber-900 uppercase tracking-wider flex items-center gap-1.5 truncate'>
+                          <span>Tóm tắt chương</span>
+                          {!isOutlineExpanded && (
+                            <span className='text-[11px] font-normal text-stone-600 truncate normal-case'>
+                              — {currentChapter.outline}
+                            </span>
+                          )}
+                        </span>
+                        <ChevronDown className={`w-3 h-3 text-amber-700 shrink-0 transition-transform ${isOutlineExpanded ? 'rotate-180' : ''}`} />
+                      </button>
+                      {isOutlineExpanded && (
+                        <div className='text-stone-700 text-[11px] mt-1 border-t border-amber-200/50 pt-1 line-clamp-4 leading-relaxed'>
+                          {currentChapter.outline}
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -4991,8 +5121,25 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                               : 'bg-[#FCFBF8] border-l-4 border-l-transparent border-[#E8E2D6] hover:border-amber-300 hover:shadow-2xs'
                           } ${canEditPages && !isChapterScriptFrozen ? 'cursor-pointer' : ''}`}
                         >
-                          {/* Thẻ gán khung neo góc phải */}
-                          <div className='absolute right-2.5 top-2.5 shrink-0'>
+                          {/* Thẻ gán khung neo góc phải & Thumbnail ảnh nếu có */}
+                          <div className='absolute right-2.5 top-2.5 shrink-0 flex items-center gap-1'>
+                            {(() => {
+                              const assignedArt = assignedPanel ? artFor(assignedPanel.id) : undefined;
+                              const assignedUrl = assignedArt ? panelArtworkUrls[assignedArt.id] : null;
+                              if (!assignedUrl || !assignedPanel) return null;
+                              return (
+                                <div
+                                  className='w-7 h-7 rounded border border-stone-300 overflow-hidden shrink-0 bg-stone-100 shadow-2xs'
+                                  title={`Ảnh đã nạp cho Khung #${assignedPanel.panelNumber}`}
+                                >
+                                  <img
+                                    src={toThumbnailUrl(assignedUrl)}
+                                    alt=''
+                                    className='w-full h-full object-cover'
+                                  />
+                                </div>
+                              );
+                            })()}
                             {assignedPanel ? (
                               <button
                                 type='button'
@@ -5021,17 +5168,20 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                             )}
                           </div>
 
-                          {/* Nội dung dòng kịch bản liền mạch chuẩn manga script */}
-                          <div className='pr-10 space-y-1.5 font-sans'>
-                            {/* 1. Chỉ dẫn diễn xuất & Bối cảnh / Góc máy */}
+                          {/* Nội dung dòng kịch bản phân tách rõ ràng: Hành động chữ thẳng + Thoại in đậm */}
+                          <div className='pr-12 space-y-1.5 font-sans'>
+                            {/* 1. Chỉ dẫn diễn xuất & Bối cảnh / Góc máy - Chữ thường thẳng */}
                             {hasDirection && (
-                              <div className='p-2 rounded-lg bg-stone-50 border-l-2 border-amber-400/70'>
+                              <div className='p-2 rounded-lg bg-stone-100/80 border border-stone-200/60'>
+                                <span className='text-[10px] font-bold text-amber-900 uppercase tracking-wider block mb-0.5'>
+                                  Chỉ dẫn hành động
+                                </span>
                                 <p
-                                  className={`text-stone-700 italic font-serif leading-relaxed ${textSizeClass} ${
+                                  className={`text-stone-800 font-sans leading-relaxed ${textSizeClass} ${
                                     !scriptExpandedMode ? 'line-clamp-2' : ''
                                   }`}
                                 >
-                                  <span className='not-italic font-mono font-bold text-[10px] text-amber-800/80 mr-1.5 select-none'>
+                                  <span className='not-italic font-mono font-bold text-[10px] text-stone-400 mr-1.5 select-none'>
                                     #{line.lineOrder}
                                   </span>
                                   {line.stageDirection}
@@ -5039,12 +5189,10 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                               </div>
                             )}
 
-                            {/* 2. Khối Lời thoại nhân vật với Avatar & Tên nhân vật Bible */}
+                            {/* 2. Khối Lời thoại nhân vật với Avatar & Tên nhân vật Bible in đậm */}
                             {hasDialogue && (
-                              <div className='space-y-1 pt-0.5 pl-1'>
-                                {/* Header Nhân vật */}
+                              <div className='p-2 rounded-lg bg-white border border-stone-200/80 shadow-2xs space-y-1 mt-1'>
                                 <div className='flex items-center gap-1.5'>
-                                  {/* Avatar nhân vật */}
                                   {(bibleEntry as any)?.avatarUrl ? (
                                     <img
                                       src={(bibleEntry as any).avatarUrl}
@@ -5060,11 +5208,10 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                                     </div>
                                   )}
 
-                                  <span className='text-[11px] font-bold text-stone-900 tracking-wide truncate'>
+                                  <span className='text-xs font-bold text-[#171717] tracking-wide truncate'>
                                     {characterName}
                                   </span>
 
-                                  {/* Narration Mode Badge */}
                                   {line.narrationMode && (
                                     <span className='text-[9px] px-1 py-0.2 rounded font-mono font-semibold bg-amber-100/70 text-amber-800 border border-amber-200/50'>
                                       {String(line.narrationMode)}
@@ -5072,9 +5219,8 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                                   )}
                                 </div>
 
-                                {/* Bong bóng/Đoạn thoại */}
                                 <p
-                                  className={`text-stone-900 font-sans leading-relaxed pl-2.5 border-l-2 border-stone-200 ${textSizeClass} ${
+                                  className={`text-[#171717] font-sans font-medium leading-relaxed pl-2 border-l-2 border-orange-400 ${textSizeClass} ${
                                     !scriptExpandedMode ? 'line-clamp-3' : ''
                                   }`}
                                 >
@@ -5233,52 +5379,65 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                             <Upload className='w-6 h-6' />
                           </div>
                           <div>
-                            <h4 className='font-bold text-sm text-[#1C1917]'>Trang chưa có bản thảo tranh vẽ</h4>
+                            <h4 className='font-bold text-sm text-[#1C1917]'>
+                              {uploadMode === 'page'
+                                ? 'Trang chưa có ảnh bản thảo hoàn chỉnh'
+                                : 'Trang chưa có khung tranh nào'}
+                            </h4>
                             <p className='text-xs text-[#57534E] max-w-sm mt-1 leading-relaxed'>
-                              Tải lên ảnh vẽ cả trang (Clip Studio Paint, Photoshop, SAI) hoặc kéo thả trực tiếp vào đây. Nếu vẽ hoặc chia khung trên hệ thống, bạn có thể chọn mẫu khung.
+                              {uploadMode === 'page'
+                                ? 'Kéo thả file ảnh vẽ trang truyện hoàn chỉnh (từ Clip Studio Paint, Photoshop, SAI...) vào đây hoặc bấm nút bên dưới.'
+                                : 'Chọn mẫu khung dựng sẵn để bắt đầu bố cục và tải ảnh cho từng ô khung tranh (Panel).'}
                             </p>
                           </div>
                           <div className='flex flex-wrap items-center justify-center gap-2 pt-1'>
-                            <button
-                              type='button'
-                              onClick={handleTriggerUploadPage}
-                              data-testid='canvas-empty-upload-btn'
-                              className='px-3.5 py-2 text-xs font-bold rounded-lg bg-[#F97316] text-white hover:bg-[#EA580C] flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors'
-                            >
-                              <Upload className='w-4 h-4' />
-                              <span>Tải Ảnh Trang Này</span>
-                            </button>
-                            <button
-                              type='button'
-                              onClick={() => {
-                                setUploadModalDefaultTab('bulk');
-                                setUploadModalOpen(true);
-                              }}
-                              data-testid='canvas-empty-bulk-upload-btn'
-                              className='px-3.5 py-2 text-xs font-semibold rounded-lg bg-white border border-[#D8D2C5] text-[#1C1917] hover:bg-[#F3F0E9] flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors'
-                            >
-                              <Layers className='w-4 h-4 text-stone-600' />
-                              <span>Tải Hàng Loạt Trang</span>
-                            </button>
-                            <button
-                              type='button'
-                              onClick={() => setFrameTemplateModalOpen(true)}
-                              data-testid='canvas-empty-template-btn'
-                              className='px-3 py-2 text-xs font-medium rounded-lg bg-stone-100/80 border border-stone-200 text-stone-600 hover:bg-stone-200 hover:text-stone-900 flex items-center gap-1.5 cursor-pointer transition-colors'
-                              title='Dành riêng cho hoạ sĩ muốn chia khung truyện trực tiếp trên phần mềm'
-                            >
-                              <LayoutTemplate className='w-3.5 h-3.5 text-stone-500' />
-                              <span>Kho Mẫu Khung (Dựng layout)</span>
-                            </button>
-                            <button
-                              type='button'
-                              onClick={handleCreatePanel}
-                              data-testid='canvas-empty-create-panel-btn'
-                              className='px-3 py-2 text-xs font-medium rounded-lg bg-stone-100/80 border border-stone-200 text-stone-600 hover:bg-stone-200 hover:text-stone-900 flex items-center gap-1.5 cursor-pointer transition-colors'
-                            >
-                              <Square className='w-3.5 h-3.5 text-stone-500' />
-                              <span>1 Khung Toàn Trang</span>
-                            </button>
+                            {uploadMode === 'page' ? (
+                              <>
+                                <button
+                                  type='button'
+                                  onClick={handleTriggerUploadPage}
+                                  data-testid='canvas-empty-upload-btn'
+                                  className='px-3.5 py-2 text-xs font-bold rounded-lg bg-[#F97316] text-white hover:bg-[#EA580C] flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors'
+                                >
+                                  <Upload className='w-4 h-4' />
+                                  <span>Tải Ảnh Trang Này</span>
+                                </button>
+                                <button
+                                  type='button'
+                                  onClick={() => {
+                                    setUploadModalDefaultTab('bulk');
+                                    setUploadModalOpen(true);
+                                  }}
+                                  data-testid='canvas-empty-bulk-upload-btn'
+                                  className='px-3.5 py-2 text-xs font-semibold rounded-lg bg-white border border-[#D8D2C5] text-[#1C1917] hover:bg-[#F3F0E9] flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors'
+                                >
+                                  <Layers className='w-4 h-4 text-stone-600' />
+                                  <span>Tải Hàng Loạt Trang</span>
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  type='button'
+                                  onClick={() => setFrameTemplateModalOpen(true)}
+                                  data-testid='canvas-empty-template-btn'
+                                  className='px-3.5 py-2 text-xs font-bold rounded-lg bg-[#F97316] text-white hover:bg-[#EA580C] flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors'
+                                  title='Dành riêng cho hoạ sĩ muốn chia khung truyện trực tiếp trên phần mềm'
+                                >
+                                  <LayoutTemplate className='w-4 h-4' />
+                                  <span>Kho Mẫu Khung</span>
+                                </button>
+                                <button
+                                  type='button'
+                                  onClick={handleCreatePanel}
+                                  data-testid='canvas-empty-create-panel-btn'
+                                  className='px-3.5 py-2 text-xs font-medium rounded-lg bg-white border border-[#D8D2C5] text-[#1C1917] hover:bg-[#F3F0E9] flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors'
+                                >
+                                  <Square className='w-3.5 h-3.5 text-stone-500' />
+                                  <span>+ 1 Khung Toàn Trang</span>
+                                </button>
+                              </>
+                            )}
                           </div>
                         </div>
                       )}

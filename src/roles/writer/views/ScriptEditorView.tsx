@@ -889,7 +889,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           name,
           code: name.toUpperCase().replace(/\s+/g, '_').slice(0, 15),
           category: 'Character',
-          description: `Thực thể tạm (Stub) tự sinh từ kịch bản lúc viết thoại.`,
+          description: `Tạo tự động từ kịch bản (Chờ cập nhật mô tả)`,
           priority: 'Standard',
         });
         setAllBibleEntries((prev) => [...prev, created]);

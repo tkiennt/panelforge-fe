@@ -232,6 +232,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
   const [showConceptGuide, setShowConceptGuide] = useState(false);
   const [diffSlider, setDiffSlider] = useState(50);
   const [activeArtTab, setActiveArtTab] = useState<'turnaround' | 'action'>('turnaround');
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
 
   // Revisions & Era Stages State
   const [allRevisions, setAllRevisions] = useState<BibleEntryRevisionDto[]>(() => {
@@ -809,6 +810,25 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
     };
   }, [onClose]);
 
+  // Clipboard paste listener for quick Model Sheet upload via Ctrl+V
+  useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      if (!canCreateDraft) return;
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf('image') !== -1) {
+          e.preventDefault();
+          onOpenAddRevision(entity, activeRevision);
+          onShowToast('Đã nhận diện ảnh dán', 'Đang mở giao diện nộp bản vẽ Model Sheet mới...');
+          break;
+        }
+      }
+    };
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+  }, [canCreateDraft, entity, activeRevision, onOpenAddRevision, onShowToast]);
+
   const handleCopyHash = async (hash: string) => {
     try {
       await navigator.clipboard.writeText(hash);
@@ -1009,17 +1029,17 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
         <div className='flex items-center gap-2 shrink-0'>
           <div className='hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-violet-50 border border-violet-200 text-violet-700 text-xs font-medium'>
             <Sparkles className='w-3 h-3 text-violet-600' />
-            <span>pgvector Synced</span>
+            <span>AI Ready</span>
           </div>
 
           <button
             type='button'
             onClick={() => setShowConceptGuide((v) => !v)}
             className='text-xs font-semibold px-2.5 py-1 rounded-lg border border-[#D8D2C5] hover:bg-[#FAF8F5] text-[#57534E] hover:text-[#1C1917] transition flex items-center gap-1.5 cursor-pointer shadow-2xs'
-            title='Xem hướng dẫn phân biệt Era và Version'
+            title='Xem hướng dẫn phân biệt Giai đoạn thời kỳ (Era) và Phiên bản (Version)'
           >
             <HelpCircle className='w-3.5 h-3.5 text-[#F97316]' />
-            <span className='hidden sm:inline'>Era vs Version</span>
+            <span className='hidden sm:inline'>Quy ước Giai đoạn</span>
           </button>
 
           {/* Role indicator badge */}
@@ -1253,7 +1273,15 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
               {/* Dynamic Specifications Grid Based on Entity Type */}
               {isCharacter ? (
                 <div className='grid grid-cols-1 sm:grid-cols-3 gap-3.5 text-xs'>
-                  <div className='bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60'>
+                  <div
+                    onClick={() => canCreateDraft && onOpenAddRevision(entity, activeRevision)}
+                    className={`bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60 relative ${
+                      canCreateDraft
+                        ? 'cursor-pointer hover:border-orange-300 hover:bg-orange-50/40 transition group'
+                        : ''
+                    }`}
+                    title={canCreateDraft ? 'Bấm để chỉnh sửa nhanh thông số' : undefined}
+                  >
                     <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
                       Độ tuổi:
                     </span>
@@ -1265,7 +1293,15 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                       <span className='text-stone-400 text-xs italic block'>Chưa thiết lập</span>
                     )}
                   </div>
-                  <div className='bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60'>
+                  <div
+                    onClick={() => canCreateDraft && onOpenAddRevision(entity, activeRevision)}
+                    className={`bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60 relative ${
+                      canCreateDraft
+                        ? 'cursor-pointer hover:border-orange-300 hover:bg-orange-50/40 transition group'
+                        : ''
+                    }`}
+                    title={canCreateDraft ? 'Bấm để chỉnh sửa nhanh thông số' : undefined}
+                  >
                     <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
                       Chiều cao:
                     </span>
@@ -1277,7 +1313,15 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                       <span className='text-stone-400 text-xs italic block'>Chưa thiết lập</span>
                     )}
                   </div>
-                  <div className='bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60'>
+                  <div
+                    onClick={() => canCreateDraft && onOpenAddRevision(entity, activeRevision)}
+                    className={`bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60 relative ${
+                      canCreateDraft
+                        ? 'cursor-pointer hover:border-orange-300 hover:bg-orange-50/40 transition group'
+                        : ''
+                    }`}
+                    title={canCreateDraft ? 'Bấm để chỉnh sửa nhanh thông số' : undefined}
+                  >
                     <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
                       Đặc điểm diện mạo:
                     </span>
@@ -1290,7 +1334,15 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                 </div>
               ) : isLocation ? (
                 <div className='grid grid-cols-1 sm:grid-cols-3 gap-3.5 text-xs'>
-                  <div className='bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60'>
+                  <div
+                    onClick={() => canCreateDraft && onOpenAddRevision(entity, activeRevision)}
+                    className={`bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60 relative ${
+                      canCreateDraft
+                        ? 'cursor-pointer hover:border-orange-300 hover:bg-orange-50/40 transition group'
+                        : ''
+                    }`}
+                    title={canCreateDraft ? 'Bấm để chỉnh sửa nhanh thông số' : undefined}
+                  >
                     <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
                       Phân loại địa hình:
                     </span>
@@ -1298,7 +1350,15 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                       {stageAttributes.environmentType || 'Địa điểm / Bối cảnh'}
                     </span>
                   </div>
-                  <div className='bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60'>
+                  <div
+                    onClick={() => canCreateDraft && onOpenAddRevision(entity, activeRevision)}
+                    className={`bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60 relative ${
+                      canCreateDraft
+                        ? 'cursor-pointer hover:border-orange-300 hover:bg-orange-50/40 transition group'
+                        : ''
+                    }`}
+                    title={canCreateDraft ? 'Bấm để chỉnh sửa nhanh thông số' : undefined}
+                  >
                     <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
                       Quy mô / Khí hậu:
                     </span>
@@ -1312,7 +1372,15 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                       <span className='text-stone-400 text-xs italic block'>Chưa thiết lập</span>
                     )}
                   </div>
-                  <div className='bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60'>
+                  <div
+                    onClick={() => canCreateDraft && onOpenAddRevision(entity, activeRevision)}
+                    className={`bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60 relative ${
+                      canCreateDraft
+                        ? 'cursor-pointer hover:border-orange-300 hover:bg-orange-50/40 transition group'
+                        : ''
+                    }`}
+                    title={canCreateDraft ? 'Bấm để chỉnh sửa nhanh thông số' : undefined}
+                  >
                     <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
                       Chi tiết kiến trúc & Cảnh quan:
                     </span>
@@ -1325,7 +1393,15 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                 </div>
               ) : isProp ? (
                 <div className='grid grid-cols-1 sm:grid-cols-3 gap-3.5 text-xs'>
-                  <div className='bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60'>
+                  <div
+                    onClick={() => canCreateDraft && onOpenAddRevision(entity, activeRevision)}
+                    className={`bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60 relative ${
+                      canCreateDraft
+                        ? 'cursor-pointer hover:border-orange-300 hover:bg-orange-50/40 transition group'
+                        : ''
+                    }`}
+                    title={canCreateDraft ? 'Bấm để chỉnh sửa nhanh thông số' : undefined}
+                  >
                     <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
                       Loại đạo cụ / Vật phẩm:
                     </span>
@@ -1333,7 +1409,15 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                       {stageAttributes.propType || 'Đạo cụ / Vũ khí'}
                     </span>
                   </div>
-                  <div className='bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60'>
+                  <div
+                    onClick={() => canCreateDraft && onOpenAddRevision(entity, activeRevision)}
+                    className={`bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60 relative ${
+                      canCreateDraft
+                        ? 'cursor-pointer hover:border-orange-300 hover:bg-orange-50/40 transition group'
+                        : ''
+                    }`}
+                    title={canCreateDraft ? 'Bấm để chỉnh sửa nhanh thông số' : undefined}
+                  >
                     <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
                       Kích thước & Chất liệu:
                     </span>
@@ -1347,7 +1431,15 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                       <span className='text-stone-400 text-xs italic block'>Chưa thiết lập</span>
                     )}
                   </div>
-                  <div className='bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60'>
+                  <div
+                    onClick={() => canCreateDraft && onOpenAddRevision(entity, activeRevision)}
+                    className={`bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60 relative ${
+                      canCreateDraft
+                        ? 'cursor-pointer hover:border-orange-300 hover:bg-orange-50/40 transition group'
+                        : ''
+                    }`}
+                    title={canCreateDraft ? 'Bấm để chỉnh sửa nhanh thông số' : undefined}
+                  >
                     <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
                       Công năng & Cơ chế:
                     </span>
@@ -1360,7 +1452,15 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                 </div>
               ) : isTerminology ? (
                 <div className='grid grid-cols-1 sm:grid-cols-3 gap-3.5 text-xs'>
-                  <div className='bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60'>
+                  <div
+                    onClick={() => canCreateDraft && onOpenAddRevision(entity, activeRevision)}
+                    className={`bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60 relative ${
+                      canCreateDraft
+                        ? 'cursor-pointer hover:border-orange-300 hover:bg-orange-50/40 transition group'
+                        : ''
+                    }`}
+                    title={canCreateDraft ? 'Bấm để chỉnh sửa nhanh thông số' : undefined}
+                  >
                     <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
                       Phân loại thuật ngữ:
                     </span>
@@ -1368,7 +1468,15 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                       {stageAttributes.termType || 'Thuật ngữ / Cốt truyện'}
                     </span>
                   </div>
-                  <div className='bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60'>
+                  <div
+                    onClick={() => canCreateDraft && onOpenAddRevision(entity, activeRevision)}
+                    className={`bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60 relative ${
+                      canCreateDraft
+                        ? 'cursor-pointer hover:border-orange-300 hover:bg-orange-50/40 transition group'
+                        : ''
+                    }`}
+                    title={canCreateDraft ? 'Bấm để chỉnh sửa nhanh thông số' : undefined}
+                  >
                     <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
                       Nguồn gốc / Khởi nguyên:
                     </span>
@@ -1380,7 +1488,15 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                       <span className='text-stone-400 text-xs italic block'>Chưa thiết lập</span>
                     )}
                   </div>
-                  <div className='bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60'>
+                  <div
+                    onClick={() => canCreateDraft && onOpenAddRevision(entity, activeRevision)}
+                    className={`bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60 relative ${
+                      canCreateDraft
+                        ? 'cursor-pointer hover:border-orange-300 hover:bg-orange-50/40 transition group'
+                        : ''
+                    }`}
+                    title={canCreateDraft ? 'Bấm để chỉnh sửa nhanh thông số' : undefined}
+                  >
                     <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
                       Quy luật & Tác động:
                     </span>
@@ -1394,7 +1510,15 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
               ) : (
                 /* Style Rule */
                 <div className='grid grid-cols-1 sm:grid-cols-3 gap-3.5 text-xs'>
-                  <div className='bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60'>
+                  <div
+                    onClick={() => canCreateDraft && onOpenAddRevision(entity, activeRevision)}
+                    className={`bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60 relative ${
+                      canCreateDraft
+                        ? 'cursor-pointer hover:border-orange-300 hover:bg-orange-50/40 transition group'
+                        : ''
+                    }`}
+                    title={canCreateDraft ? 'Bấm để chỉnh sửa nhanh thông số' : undefined}
+                  >
                     <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
                       Mức độ kiểm duyệt:
                     </span>
@@ -1402,7 +1526,15 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                       {stageAttributes.strictness || 'Tiêu chuẩn'}
                     </span>
                   </div>
-                  <div className='bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60'>
+                  <div
+                    onClick={() => canCreateDraft && onOpenAddRevision(entity, activeRevision)}
+                    className={`bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60 relative ${
+                      canCreateDraft
+                        ? 'cursor-pointer hover:border-orange-300 hover:bg-orange-50/40 transition group'
+                        : ''
+                    }`}
+                    title={canCreateDraft ? 'Bấm để chỉnh sửa nhanh thông số' : undefined}
+                  >
                     <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
                       Bảng màu chủ đạo:
                     </span>
@@ -1416,7 +1548,15 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                       </span>
                     )}
                   </div>
-                  <div className='bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60'>
+                  <div
+                    onClick={() => canCreateDraft && onOpenAddRevision(entity, activeRevision)}
+                    className={`bg-stone-50/80 p-2.5 rounded-xl border border-stone-200/60 relative ${
+                      canCreateDraft
+                        ? 'cursor-pointer hover:border-orange-300 hover:bg-orange-50/40 transition group'
+                        : ''
+                    }`}
+                    title={canCreateDraft ? 'Bấm để chỉnh sửa nhanh thông số' : undefined}
+                  >
                     <span className='text-stone-500 text-xs block font-semibold mb-0.5'>
                       Quy chuẩn nét vẽ & Ánh sáng:
                     </span>
@@ -1792,7 +1932,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
             <div className='bg-white border border-[#E7E5E4] rounded-2xl p-4 sm:p-5 shadow-xs space-y-3.5'>
               <div className='flex items-center justify-between pb-2 border-b border-stone-100'>
                 <div className='font-bold text-xs sm:text-sm text-[#1C1917] flex items-center gap-2'>
-                  <span>Era Asset Version Control</span>
+                  <span>Phiên bản & Giai đoạn</span>
                 </div>
                 <div className='flex items-center gap-1.5'>
                   <button
