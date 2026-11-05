@@ -30,6 +30,7 @@ export function renumberTipTapDoc(doc: any): any {
   if (!doc || !doc.content || !Array.isArray(doc.content)) return doc;
 
   const clonedDoc = JSON.parse(JSON.stringify(doc));
+  let sceneCounter = 0;
   let pageCounter = 0;
   let panelCounter = 0;
 
@@ -37,7 +38,19 @@ export function renumberTipTapDoc(doc: any): any {
     if (!block.attrs) block.attrs = {};
     const bType = block.attrs.blockType;
 
-    if (bType === 'page_heading') {
+    if (bType === 'scene_heading') {
+      sceneCounter++;
+      block.attrs.sceneNumber = sceneCounter;
+
+      let existingText = '';
+      if (block.content && Array.isArray(block.content)) {
+        existingText = block.content.map((c: any) => c.text || '').join('').trim();
+      }
+      // Giữ lại phần tiêu đề sau dấu : hoặc - nếu có
+      const noteMatch = existingText.match(/^(?:[!#\s]*)?(?:CẢNH|SCENE)?\s*\d*(?:\s*[:\-]\s*(.*))?$/i);
+      const note = noteMatch && noteMatch[1] ? `: ${noteMatch[1].trim()}` : '';
+      block.content = [{ type: 'text', text: `CẢNH ${sceneCounter}${note}`.toUpperCase() }];
+    } else if (bType === 'page_heading') {
       pageCounter++;
       panelCounter = 0;
       block.attrs.pageNumber = pageCounter;
@@ -82,8 +95,18 @@ export function renumberEditorState(editor: any, preferredPos?: number): boolean
   const renumberedJson = renumberTipTapDoc(currentJson);
   if (JSON.stringify(currentJson) !== JSON.stringify(renumberedJson)) {
     const sel = editor.state.selection;
+    const currentDocSize = editor.state.doc.content.size;
     const from = typeof preferredPos === 'number' ? preferredPos : (sel?.from ?? 1);
     const to = typeof preferredPos === 'number' ? preferredPos : (sel?.to ?? 1);
+
+    // Đảm bảo selection hiện tại không vượt quá kích thước tài liệu trước khi setContent
+    try {
+      if (sel && (sel.from >= currentDocSize || sel.to >= currentDocSize)) {
+        const clampPos = Math.max(1, currentDocSize - 1);
+        editor.commands.setTextSelection(clampPos);
+      }
+    } catch {}
+
     editor.commands.setContent(renumberedJson, { emitUpdate: false });
     try {
       const maxPos = editor.state.doc.content.size;

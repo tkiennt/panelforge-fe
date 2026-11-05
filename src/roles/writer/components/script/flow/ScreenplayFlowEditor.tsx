@@ -289,8 +289,10 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
         class:
           'focus:outline-none min-h-[700px] font-mono text-sm leading-relaxed text-gray-900 bg-transparent selection:bg-orange-100 selection:text-orange-900 caret-[#C2410C]',
       },
-      handleClick: (_view, _pos, event) => {
+      handleClick: (view, _pos, event) => {
         const target = event.target as HTMLElement;
+
+        // 1. Thu gọn / Mở rộng trang
         const toggleBtn = target.closest('.page-toggle-btn');
         if (toggleBtn) {
           const pageHeader = toggleBtn.closest('[data-block-type="page_heading"]');
@@ -311,6 +313,102 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
             return true;
           }
         }
+
+        // 2. Nút Xóa khung (Panel Delete Button)
+        const panelDeleteBtn = target.closest('.panel-delete-btn');
+        if (panelDeleteBtn) {
+          const panelBlockEl = panelDeleteBtn.closest('[data-block-type="panel_heading"]');
+          if (panelBlockEl) {
+            try {
+              const domPos = view.posAtDOM(panelBlockEl, 0);
+              const $pos = view.state.doc.resolve(domPos);
+              let d = $pos.depth;
+              while (d > 0 && $pos.node(d).type.name !== 'scriptLineBlock') d--;
+              if (d > 0) {
+                const from = $pos.before(d);
+                const to = $pos.after(d);
+                const tr = view.state.tr.delete(from, to);
+                view.dispatch(tr);
+                renumberEditorState(editor);
+                return true;
+              }
+            } catch (err) {
+              console.error('Lỗi khi xóa panel:', err);
+            }
+          }
+          return true;
+        }
+
+        // 3. Nút Xóa trang (Page Delete Button)
+        const pageDeleteBtn = target.closest('.page-delete-btn');
+        if (pageDeleteBtn) {
+          const pageBlockEl = pageDeleteBtn.closest('[data-block-type="page_heading"]');
+          if (pageBlockEl) {
+            let pageCount = 0;
+            view.state.doc.descendants((node) => {
+              if (node.type.name === 'scriptLineBlock' && node.attrs?.blockType === 'page_heading') {
+                pageCount++;
+              }
+            });
+            if (pageCount <= 1) {
+              return true;
+            }
+
+            try {
+              const domPos = view.posAtDOM(pageBlockEl, 0);
+              const $pos = view.state.doc.resolve(domPos);
+              let d = $pos.depth;
+              while (d > 0 && $pos.node(d).type.name !== 'scriptLineBlock') d--;
+              if (d > 0) {
+                const from = $pos.before(d);
+                const to = $pos.after(d);
+                const tr = view.state.tr.delete(from, to);
+                view.dispatch(tr);
+                renumberEditorState(editor);
+                return true;
+              }
+            } catch (err) {
+              console.error('Lỗi khi xóa trang:', err);
+            }
+          }
+          return true;
+        }
+
+        // 4. Nút Xóa cảnh (Scene Delete Button)
+        const sceneDeleteBtn = target.closest('.scene-delete-btn');
+        if (sceneDeleteBtn) {
+          const sceneBlockEl = sceneDeleteBtn.closest('[data-block-type="scene_heading"]');
+          if (sceneBlockEl) {
+            let sceneCount = 0;
+            view.state.doc.descendants((node) => {
+              if (node.type.name === 'scriptLineBlock' && node.attrs?.blockType === 'scene_heading') {
+                sceneCount++;
+              }
+            });
+            if (sceneCount <= 1) {
+              return true;
+            }
+
+            try {
+              const domPos = view.posAtDOM(sceneBlockEl, 0);
+              const $pos = view.state.doc.resolve(domPos);
+              let d = $pos.depth;
+              while (d > 0 && $pos.node(d).type.name !== 'scriptLineBlock') d--;
+              if (d > 0) {
+                const from = $pos.before(d);
+                const to = $pos.after(d);
+                const tr = view.state.tr.delete(from, to);
+                view.dispatch(tr);
+                renumberEditorState(editor);
+                return true;
+              }
+            } catch (err) {
+              console.error('Lỗi khi xóa cảnh:', err);
+            }
+          }
+          return true;
+        }
+
         return false;
       },
       handleTextInput: (view, from, to, text) => {

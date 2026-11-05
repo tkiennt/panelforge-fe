@@ -8,7 +8,7 @@ import {
   extractPanelNumber,
 } from '../comic-editor/comicCounting';
 import { MangaBlockType } from '../types';
-import { generateGuid } from '../scriptFlowAdapter';
+import { generateGuid, renumberEditorState } from '../scriptFlowAdapter';
 
 export const ScriptLineBlockNode = Node.create({
   name: 'scriptLineBlock',
@@ -138,26 +138,72 @@ export const ScriptLineBlockNode = Node.create({
 
     switch (blockType) {
       case 'scene_heading':
-        classNames += 'font-bold uppercase tracking-wider text-base text-gray-900 border-b border-gray-300 pb-1 mt-4 mb-2';
-        return ['div', mergeAttributes(HTMLAttributes, { class: classNames, 'data-block-type': blockType }), 0];
+        classNames += 'font-bold uppercase tracking-wider text-base text-gray-900 border-b border-gray-300 pb-1 mt-4 mb-2 flex items-center justify-between group';
+        return [
+          'div',
+          mergeAttributes(HTMLAttributes, { class: classNames, 'data-block-type': blockType }),
+          ['span', { class: 'scene-heading-content flex-1' }, 0],
+          [
+            'button',
+            {
+              type: 'button',
+              class:
+                'scene-delete-btn ml-auto cursor-pointer select-none text-[11px] font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 hover:text-rose-700 border border-rose-200 px-2 py-0.5 rounded-md transition-all shadow-2xs opacity-0 group-hover:opacity-100 focus:opacity-100',
+              contenteditable: 'false',
+              title: 'Xóa cảnh này',
+            },
+            '✕ Xóa cảnh',
+          ],
+        ];
 
       case 'page_heading':
         // A. KHỐI TIÊU ĐỀ TRANG (PAGE_HEADING): Viền cam #C2410C 2px, nền #FFF2E6, bo góc 12px
-        classNames += 'font-bold uppercase tracking-wider text-xs sm:text-sm text-[#C2410C] bg-[#FFF2E6] border-2 border-[#C2410C] px-4 py-2.5 mt-6 mb-3 rounded-[12px] shadow-sm flex items-center justify-between gap-2.5 select-text';
+        classNames += 'font-bold uppercase tracking-wider text-xs sm:text-sm text-[#C2410C] bg-[#FFF2E6] border-2 border-[#C2410C] px-4 py-2.5 mt-6 mb-3 rounded-[12px] shadow-sm flex items-center justify-between gap-2.5 select-text group';
         return [
           'div',
           mergeAttributes(HTMLAttributes, { class: classNames, 'data-block-type': blockType }),
           ['span', { class: 'page-heading-content flex-1' }, 0],
-          ['button', { type: 'button', class: 'page-toggle-btn ml-auto cursor-pointer select-none text-[11px] font-semibold text-[#C2410C] bg-white/70 hover:bg-white border border-[#C2410C]/30 px-2.5 py-0.5 rounded-md transition-all shadow-2xs', contenteditable: 'false' }, '▼ Thu gọn'],
+          [
+            'button',
+            {
+              type: 'button',
+              class:
+                'page-delete-btn ml-auto cursor-pointer select-none text-[11px] font-semibold text-rose-600 bg-white/70 hover:bg-rose-50 hover:text-rose-700 border border-rose-200 px-2 py-0.5 rounded-md transition-all shadow-2xs opacity-0 group-hover:opacity-100 focus:opacity-100',
+              contenteditable: 'false',
+              title: 'Xóa trang này',
+            },
+            '✕ Xóa trang',
+          ],
+          [
+            'button',
+            {
+              type: 'button',
+              class:
+                'page-toggle-btn cursor-pointer select-none text-[11px] font-semibold text-[#C2410C] bg-white/70 hover:bg-white border border-[#C2410C]/30 px-2.5 py-0.5 rounded-md transition-all shadow-2xs',
+              contenteditable: 'false',
+            },
+            '▼ Thu gọn',
+          ],
         ];
 
       case 'panel_heading': {
         // B. KHỐI TIÊU ĐỀ KHUNG (PANEL_HEADING): Viền trái tím #4F46E5 4px, nền xám nhạt #F8FAFC
-        classNames += 'font-bold text-xs uppercase tracking-wide text-slate-800 bg-[#F8FAFC] border-l-4 border-[#4F46E5] px-3.5 py-2 mt-4 mb-2 rounded-r-lg shadow-2xs flex items-center gap-2 select-text';
+        classNames += 'font-bold text-xs uppercase tracking-wide text-slate-800 bg-[#F8FAFC] border-l-4 border-[#4F46E5] px-3.5 py-2 mt-4 mb-2 rounded-r-lg shadow-2xs flex items-center gap-2 select-text group';
         return [
           'div',
           mergeAttributes(HTMLAttributes, { class: classNames, 'data-block-type': blockType }),
           ['span', { class: 'panel-heading-text flex-1' }, 0],
+          [
+            'button',
+            {
+              type: 'button',
+              class:
+                'panel-delete-btn ml-auto cursor-pointer select-none text-[11px] font-semibold text-rose-600 bg-white hover:bg-rose-50 hover:text-rose-700 border border-rose-200 px-2 py-0.5 rounded-md transition-all shadow-2xs opacity-0 group-hover:opacity-100 focus:opacity-100',
+              contenteditable: 'false',
+              title: 'Xóa khung này',
+            },
+            '✕ Xóa khung',
+          ],
         ];
       }
 
@@ -355,7 +401,7 @@ export const ScriptLineBlockNode = Node.create({
         return false;
       },
 
-      // 3. Backspace: Cho phép xóa Panel và Page, bảo vệ không xóa tiêu đề trang đầu tiên
+      // 3. Backspace: Cho phép xóa Scene, Page, Panel mượt mà kèm tự động đánh số lại
       Backspace: ({ editor }) => {
         const { state, view } = editor;
         const { selection } = state;
@@ -367,6 +413,40 @@ export const ScriptLineBlockNode = Node.create({
 
         if (currentBlock.type.name === this.name) {
           const currentType = currentBlock.attrs.blockType || 'stage_direction';
+
+          // 3.0 Tiêu đề cảnh (scene_heading): Cho phép xóa cảnh nếu không phải cảnh đầu tiên
+          if (currentType === 'scene_heading') {
+            const isAtStartOrEmpty = (empty && $from.parentOffset === 0) || currentBlock.textContent.trim() === '';
+            if (!isAtStartOrEmpty) {
+              return false;
+            }
+
+            let isFirstScene = true;
+            state.doc.descendants((node, pos) => {
+              if (node.type.name === this.name && node.attrs?.blockType === 'scene_heading') {
+                if (pos < from) {
+                  isFirstScene = false;
+                  return false;
+                }
+              }
+            });
+
+            if (isFirstScene) {
+              // Tiêu đề cảnh đầu tiên trong chương: Không xóa bằng Backspace để giữ cấu trúc kịch bản
+              return true;
+            } else {
+              const tr = state.tr.delete(from, to);
+              try {
+                const targetPos = Math.max(0, Math.min(from - 1, tr.doc.content.size));
+                tr.setSelection(Selection.near(tr.doc.resolve(targetPos), -1));
+              } catch {}
+              view.dispatch(tr);
+              if (typeof setTimeout === 'function') {
+                setTimeout(() => renumberEditorState(editor), 0);
+              }
+              return true;
+            }
+          }
 
           // 3.1 Tiêu đề trang (page_heading): Không thể xóa tiêu đề trang đầu tiên bằng backspace
           if (currentType === 'page_heading') {
@@ -396,6 +476,9 @@ export const ScriptLineBlockNode = Node.create({
                 tr.setSelection(Selection.near(tr.doc.resolve(targetPos), -1));
               } catch {}
               view.dispatch(tr);
+              if (typeof setTimeout === 'function') {
+                setTimeout(() => renumberEditorState(editor), 0);
+              }
               return true;
             }
           }
@@ -413,6 +496,9 @@ export const ScriptLineBlockNode = Node.create({
               tr.setSelection(Selection.near(tr.doc.resolve(targetPos), -1));
             } catch {}
             view.dispatch(tr);
+            if (typeof setTimeout === 'function') {
+                setTimeout(() => renumberEditorState(editor), 0);
+              }
             return true;
           }
 
@@ -424,30 +510,99 @@ export const ScriptLineBlockNode = Node.create({
           }
         }
 
-        // Chặn joinBackward làm hỏng page_heading khi nhấn Backspace ở đầu khối kế tiếp
+        // Chặn joinBackward làm hỏng heading khi nhấn Backspace ở đầu khối kế tiếp
         if (empty && $from.parentOffset === 0) {
           const $beforePos = state.doc.resolve(from);
           const prevNode = $beforePos.nodeBefore;
-          if (prevNode && prevNode.type.name === this.name && prevNode.attrs?.blockType === 'page_heading') {
-            if (currentBlock.textContent.trim() === '') {
-              const tr = state.tr.delete(from, to);
-              const prevPos = Math.max(0, from - 1);
-              tr.setSelection(TextSelection.create(tr.doc, Math.min(prevPos, tr.doc.content.size)));
-              view.dispatch(tr);
+          if (prevNode && prevNode.type.name === this.name) {
+            const prevType = prevNode.attrs?.blockType;
+            if (prevType === 'scene_heading' || prevType === 'page_heading' || prevType === 'panel_heading') {
+              if (currentBlock.textContent.trim() === '') {
+                const tr = state.tr.delete(from, to);
+                const prevPos = Math.max(0, from - 1);
+                tr.setSelection(TextSelection.create(tr.doc, Math.min(prevPos, tr.doc.content.size)));
+                view.dispatch(tr);
+                return true;
+              }
               return true;
             }
-            return true;
           }
+        }
 
-          if (prevNode && prevNode.type.name === this.name && prevNode.attrs?.blockType === 'panel_heading') {
-            if (currentBlock.textContent.trim() === '') {
+        return false;
+      },
+
+      // 3.5 Delete: Cho phép xóa xuôi các khối heading rỗng và chặn joinForward làm hỏng heading
+      Delete: ({ editor }) => {
+        const { state, view } = editor;
+        const { selection } = state;
+        const { $from, empty } = selection;
+        if (!empty) return false;
+
+        const currentBlock = $from.parent;
+        const from = $from.before();
+        const to = $from.after();
+
+        // Nếu khối hiện tại là heading rỗng, cho phép Delete xóa xuôi
+        if (currentBlock.type.name === this.name) {
+          const currentType = currentBlock.attrs?.blockType;
+          if (currentBlock.textContent.trim() === '') {
+            if (currentType === 'scene_heading') {
+              let isFirstScene = true;
+              state.doc.descendants((node, pos) => {
+                if (node.type.name === this.name && node.attrs?.blockType === 'scene_heading') {
+                  if (pos < from) {
+                    isFirstScene = false;
+                    return false;
+                  }
+                }
+              });
+              if (!isFirstScene) {
+                const tr = state.tr.delete(from, to);
+                view.dispatch(tr);
+                if (typeof setTimeout === 'function') {
+                setTimeout(() => renumberEditorState(editor), 0);
+              }
+                return true;
+              }
+            } else if (currentType === 'page_heading') {
+              let isFirstPage = true;
+              state.doc.descendants((node, pos) => {
+                if (node.type.name === this.name && node.attrs?.blockType === 'page_heading') {
+                  if (pos < from) {
+                    isFirstPage = false;
+                    return false;
+                  }
+                }
+              });
+              if (!isFirstPage) {
+                const tr = state.tr.delete(from, to);
+                view.dispatch(tr);
+                if (typeof setTimeout === 'function') {
+                setTimeout(() => renumberEditorState(editor), 0);
+              }
+                return true;
+              }
+            } else if (currentType === 'panel_heading') {
               const tr = state.tr.delete(from, to);
-              const prevPos = Math.max(0, from - 1);
-              tr.setSelection(TextSelection.create(tr.doc, Math.min(prevPos, tr.doc.content.size)));
               view.dispatch(tr);
+              if (typeof setTimeout === 'function') {
+                setTimeout(() => renumberEditorState(editor), 0);
+              }
               return true;
             }
-            return true;
+          }
+        }
+
+        // Chặn joinForward làm hỏng heading khi nhấn Delete ở cuối dòng trước
+        if ($from.parentOffset === currentBlock.content.size) {
+          const $afterPos = state.doc.resolve(to);
+          const nextNode = $afterPos.nodeAfter;
+          if (nextNode && nextNode.type.name === this.name) {
+            const nextType = nextNode.attrs?.blockType;
+            if (nextType === 'scene_heading' || nextType === 'page_heading' || nextType === 'panel_heading') {
+              return true;
+            }
           }
         }
 

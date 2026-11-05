@@ -185,6 +185,38 @@ describe('scriptFlowAdapter (Dual-Mode Single Source of Truth)', () => {
     expect(renumbered.content[5].attrs.panelNumber).toBe(1);
   });
 
+  it('đánh số lại chính xác Cảnh khi một cảnh bị xóa (Scene Renumbering)', () => {
+    // Giả lập kịch bản ban đầu có Cảnh 1, Cảnh 2, Cảnh 3. Cảnh 2 bị xóa.
+    const docWithDeletedScene = {
+      type: 'doc',
+      content: [
+        {
+          type: 'scriptLineBlock',
+          attrs: { blockType: 'scene_heading' },
+          content: [{ type: 'text', text: 'CẢNH 1: KHỞI HÀNH' }],
+        },
+        {
+          type: 'scriptLineBlock',
+          attrs: { blockType: 'page_heading' },
+          content: [{ type: 'text', text: 'Trang 1' }],
+        },
+        {
+          type: 'scriptLineBlock',
+          attrs: { blockType: 'scene_heading' },
+          content: [{ type: 'text', text: 'CẢNH 3: CHIẾN ĐẤU Ở VÂN KHÊ' }],
+        },
+      ],
+    };
+
+    const renumbered = renumberTipTapDoc(docWithDeletedScene);
+
+    expect(renumbered.content[0].content[0].text).toBe('CẢNH 1: KHỞI HÀNH');
+    expect(renumbered.content[0].attrs.sceneNumber).toBe(1);
+
+    expect(renumbered.content[2].content[0].text).toBe('CẢNH 2: CHIẾN ĐẤU Ở VÂN KHÊ');
+    expect(renumbered.content[2].attrs.sceneNumber).toBe(2);
+  });
+
   describe('Nhận diện mã định danh Bible thành chip (Bible Mention Auto-Parsing)', () => {
     const mockBibleEntries: any[] = [
       {

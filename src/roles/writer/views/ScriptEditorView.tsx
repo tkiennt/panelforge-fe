@@ -261,7 +261,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   const [loadError, setLoadError] = useState<string | null>(null);
 
   // Trạng thái xoá Phân cảnh & Chương (Lucian #269 Modals)
-  const [sceneToDelete, setSceneToDelete] = useState<SceneDto | null>(null);
+  const [sceneToDelete, setSceneToDelete] = useState<any>(null);
   const [isDeletingScene, setIsDeletingScene] = useState(false);
   const [chapterToDelete, setChapterToDelete] = useState<ChapterDto | null>(null);
   const [isDeletingChapter, setIsDeletingChapter] = useState(false);
@@ -789,9 +789,35 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         }
       }
 
-      // 5. Xoá trắng các phân cảnh nếu người dùng xoá sạch toàn bộ dòng của phân cảnh đó trên giấy
+      // 5. Xoá hoặc dọn sạch các phân cảnh nếu người dùng xoá cảnh đó trên giấy
       for (const sc of allScenes) {
-        if (!linesByScene.has(sc.id) && sc.scriptLines && sc.scriptLines.length > 0) {
+        const hasLinesInDoc = linesByScene.has(sc.id);
+        const headingInDoc = extractedLines.some(
+          (l) => l.blockType === 'scene_heading' && (l.sceneId === sc.id || l.sceneId === `scene_num_${sc.sceneNumber}`)
+        );
+        if (!hasLinesInDoc && !headingInDoc && allScenes.length > 1) {
+          try {
+            await scriptLineService.deleteScene(sc.id);
+            hasChanges = true;
+          } catch (delErr) {
+            console.warn(`Không thể xóa scene thừa ${sc.id}:`, delErr);
+            try {
+              const res = await scriptLineService.batchSaveScriptLines(
+                currentChapter.id,
+                sc.id,
+                {
+                  lines: [],
+                  expectedChapterVersion: currentVersion,
+                  summary: 'Xoá toàn bộ dòng của phân cảnh',
+                }
+              );
+              if (res?.chapterVersion !== undefined && res?.chapterVersion !== null) {
+                currentVersion = res.chapterVersion;
+                hasChanges = true;
+              }
+            } catch {}
+          }
+        } else if (!hasLinesInDoc && sc.scriptLines && sc.scriptLines.length > 0) {
           try {
             const res = await scriptLineService.batchSaveScriptLines(
               currentChapter.id,
@@ -823,7 +849,18 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             )
           ).sort((a, b) => a - b);
 
-          const currentPages = [...chapterPages];
+          // Tự động xóa các trang thừa không còn xuất hiện trong kịch bản
+          for (const p of chapterPages) {
+            if (!extractedPageNumbers.includes(p.pageNumber)) {
+              try {
+                await pageService.deletePage(p.id);
+              } catch (delPErr) {
+                console.warn(`Lỗi xóa trang thừa ${p.pageNumber}:`, delPErr);
+              }
+            }
+          }
+
+          const currentPages = [...chapterPages].filter((p) => extractedPageNumbers.includes(p.pageNumber));
           for (const pageNum of extractedPageNumbers) {
             const pageExists = currentPages.some((p) => p.pageNumber === pageNum);
             if (!pageExists) {
@@ -919,6 +956,25 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
   );
 
 
+
+  // Xử lý Xoá Phân Cảnh (Delete Scene - Lucian #269 TypeToConfirmModal)
+  const handleConfirmDeleteScene = async () => {
+    if (!sceneToDelete || !currentChapter) return;
+    setIsDeletingScene(true);
+    try {
+      await scriptLineService.deleteScene(sceneToDelete.id);
+      notify(
+        'Đã xoá phân cảnh',
+        `Cảnh ${sceneToDelete.sceneNumber} đã được xoá an toàn khỏi chuỗi sản xuất.`
+      );
+      setSceneToDelete(null);
+      await loadScenes();
+    } catch (err: any) {
+      notify('Không thể xoá phân cảnh', err?.message || 'Lỗi hệ thống');
+    } finally {
+      setIsDeletingScene(false);
+    }
+  };
 
   // Xử lý Xoá Chương (Delete Chapter - Lucian #269 TypeToConfirmModal)
   const handleConfirmDeleteChapter = async () => {
@@ -2529,7 +2585,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                       <div
                         key={s.id}
                         onClick={() => handleSelectScene(s)}
-                        className={`p-2.5 rounded-xl border transition-all cursor-pointer text-left ${
+                        className={`p-2.5 rounded-xl border transition-all cursor-pointer text-left group ${
                           isSelected
                             ? 'border-[#F97316] bg-[#FFF2E6] shadow-2xs border-l-4 border-l-[#C2410C]'
                             : 'border-[#D8D2C5] bg-[#FCFBF8] hover:bg-[#F8F6F0] hover:border-[#D8D2C5]'
@@ -2545,6 +2601,20 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                             <span className='font-mono text-xs text-[#57534E] bg-[#F3F0E9] border border-[#D8D2C5] px-2 py-0.5 rounded-md'>
                               {s.scriptLinesCount} dòng
                             </span>
+                            {canEditScript && !isChapterLocked && scenes.length > 1 && (
+                              <button
+                                type='button'
+                                data-testid={`delete-scene-${s.sceneNumber}-btn`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSceneToDelete(s);
+                                }}
+                                className='p-1 rounded-md text-[#78716C] hover:text-rose-600 hover:bg-rose-50 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100 cursor-pointer'
+                                title={`Xoá Cảnh ${s.sceneNumber}`}
+                              >
+                                <Trash2 className='w-3.5 h-3.5' />
+                              </button>
+                            )}
                           </div>
                         </div>
                         <div className='text-xs text-[#1C1917] font-medium truncate'>
@@ -2633,6 +2703,18 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                         <Edit2 className='w-3.5 h-3.5 text-[#57534E]' />
                         <span>Sửa tiêu đề cảnh</span>
                       </button>
+                      {scenes.length > 1 && (
+                        <button
+                          type='button'
+                          data-testid='toolbar-delete-scene-btn'
+                          onClick={() => setSceneToDelete(selectedScene)}
+                          className='inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg cursor-pointer transition-colors shadow-2xs'
+                          title='Xoá phân cảnh này'
+                        >
+                          <Trash2 className='w-3.5 h-3.5 text-rose-600' />
+                          <span>Xoá cảnh</span>
+                        </button>
+                      )}
                     </div>
                   )}
 
@@ -3327,6 +3409,21 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           isDeleting={isDeletingChapter}
           onConfirm={handleConfirmDeleteChapter}
           onCancel={() => setChapterToDelete(null)}
+        />
+      )}
+
+      {/* Lucian #269: Type-to-Confirm Modal Xoá Phân Cảnh (Destructive Scene Delete) */}
+      {sceneToDelete && (
+        <TypeToConfirmModal
+          isOpen={Boolean(sceneToDelete)}
+          targetName={`Cảnh ${sceneToDelete.sceneNumber}`}
+          title={`Xoá Cảnh ${sceneToDelete.sceneNumber}?`}
+          description={`Cảnh báo: Hành động này sẽ xoá Cảnh ${sceneToDelete.sceneNumber} (${sceneToDelete.heading || 'Chưa đặt tiêu đề'}) và toàn bộ dòng kịch bản thuộc phân cảnh này. Để xác nhận, vui lòng nhập chính xác:`}
+          confirmButtonText={isDeletingScene ? 'Đang xoá...' : 'Xoá phân cảnh vĩnh viễn'}
+          cancelButtonText='Huỷ bỏ'
+          isDeleting={isDeletingScene}
+          onConfirm={handleConfirmDeleteScene}
+          onCancel={() => setSceneToDelete(null)}
         />
       )}
 
