@@ -223,6 +223,19 @@ export const chapterService = {
    * Producer duyệt chương hoàn tất sản xuất (POST /api/chapters/{chapterId}/approve)
    * Chuyển trạng thái từ InProduction -> Approved
    */
+  /**
+   * Nộp toàn bộ bản thảo chương sang hàng đợi thẩm định của Editor/Producer (POST /api/chapters/{chapterId}/submit-manuscript)
+   * Độc lập, không bắt buộc phải có phân công việc (Assign) trước đó.
+   */
+  submitManuscript: async (chapterId: string): Promise<any> => {
+    try {
+      const response = await axiosClient.post(`/chapters/${chapterId}/submit-manuscript`);
+      return response.data;
+    } catch (error) {
+      throw new Error(extractError(error, 'Không thể nộp bản thảo chương.'));
+    }
+  },
+
   approveChapter: async (chapterId: string): Promise<ChapterReviewDto> => {
     try {
       const response = await axiosClient.post(`/chapters/${chapterId}/approve`);

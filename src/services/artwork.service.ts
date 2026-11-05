@@ -43,21 +43,24 @@ export function toThumbnailUrl(url: string): string {
 export const artworkService = {
   /**
    * Tải lên artwork cho Page (POST /api/chapters/{chapterId}/pages/{pageId}/artwork)
-   * Yêu cầu multipart/form-data: file, stageId, clientSha256, layerType tuỳ chọn
+   * Yêu cầu multipart/form-data: file, stageId tuỳ chọn, clientSha256 tuỳ chọn, layerType tuỳ chọn
    */
   uploadArtwork: async (
     chapterId: string,
     pageId: string,
     file: File,
-    stageId: string,
-    clientSha256: string,
+    stageId?: string,
+    clientSha256?: string,
     layerType?: string,
     panelId?: string,
   ): Promise<AssetReferenceDto> => {
+    const sha = clientSha256 || (await computeFileSha256(file));
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('stageId', stageId);
-    formData.append('clientSha256', clientSha256);
+    if (stageId) {
+      formData.append('stageId', stageId);
+    }
+    formData.append('clientSha256', sha);
     if (layerType) {
       formData.append('layerType', layerType);
     }
