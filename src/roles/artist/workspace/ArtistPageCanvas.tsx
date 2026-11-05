@@ -230,27 +230,20 @@ export const ArtistPageCanvas: React.FC<ArtistPageCanvasProps> = ({
                     data-testid='single-panel-replace-artwork-btn'
                     onClick={() => singlePageFileInputRef.current?.click()}
                     className='px-3.5 py-2 rounded-lg bg-white text-[#1C1917] hover:bg-stone-100 font-bold text-xs flex items-center gap-1.5 shadow-md cursor-pointer transition-transform active:scale-95'
+                    title='Tải đè bản vẽ mới cho trang'
                   >
                     <Upload className='w-3.5 h-3.5 text-[#F97316]' />
                     <span>Đổi tranh</span>
                   </button>
                   <button
                     type='button'
-                    data-testid='single-panel-change-template-btn'
-                    onClick={onOpenTemplateSidebar}
-                    className='px-3.5 py-2 rounded-lg bg-[#FAF8F5] text-[#1C1917] hover:bg-white font-semibold text-xs flex items-center gap-1.5 shadow-md cursor-pointer transition-transform active:scale-95'
-                  >
-                    <LayoutTemplate className='w-3.5 h-3.5 text-stone-600' />
-                    <span>Chia khung</span>
-                  </button>
-                  <button
-                    type='button'
                     data-testid='single-panel-remove-artwork-btn'
                     onClick={() => onRemovePanelArtwork(1)}
-                    className='p-2 rounded-lg bg-red-600 text-white hover:bg-red-700 shadow-md cursor-pointer transition-transform active:scale-95'
-                    title='Xoá tranh'
+                    className='px-3.5 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 font-semibold text-xs flex items-center gap-1.5 shadow-md cursor-pointer transition-transform active:scale-95'
+                    title='Xoá tranh khỏi trang này (để tải lại hoặc chia khung)'
                   >
                     <Trash2 className='w-3.5 h-3.5' />
+                    <span>Xoá tranh</span>
                   </button>
                 </div>
               </div>

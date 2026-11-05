@@ -208,7 +208,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
   latestSavedRevision,
   isProducer,
   isArtist = false,
-  canCreateDraft = isProducer,
+  canCreateDraft = true,
   canReview = isProducer,
   seriesId,
   onClose,
@@ -1094,26 +1094,31 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
           {/* ================= COLUMN 1: THỜI KỲ & GIAI ĐOẠN (COL-SPAN 3) ================= */}
           <section className='lg:col-span-3 space-y-3' data-testid='era-stages-selector'>
             <div className='bg-[#FCFBF8] border border-stone-200 rounded-2xl p-3.5 sm:p-4 shadow-xs space-y-3'>
-              <div className='flex items-center justify-between pb-2.5 border-b border-stone-200/80'>
+              <div className='flex items-center justify-between pb-2 border-b border-stone-200/80'>
                 <div className='font-bold text-xs sm:text-sm text-[#1C1917] flex items-center gap-2'>
                   <Layers className='w-4 h-4 text-[#F97316]' />
                   <span>Thời kỳ &amp; Giai đoạn</span>
                 </div>
-                {canCreateDraft && (
-                  <button
-                    type='button'
-                    onClick={() => {
-                      onOpenAddRevision(entity, null, false, undefined, undefined, false, true);
-                    }}
-                    data-testid='add-new-era-btn'
-                    className='inline-flex items-center gap-1 px-2.5 py-1 bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-bold rounded-lg transition-all cursor-pointer shadow-xs active:scale-[0.98]'
-                    title='Tạo giai đoạn cốt truyện mới'
-                  >
-                    <Plus className='w-3.5 h-3.5' />
-                    <span>+ Tạo giai đoạn</span>
-                  </button>
-                )}
+                <span className='text-[11px] font-mono font-semibold px-2 py-0.5 rounded-full bg-stone-100 text-stone-600'>
+                  {stages.length} giai đoạn
+                </span>
               </div>
+
+              {/* Prominent Primary Create Stage Button */}
+              {canCreateDraft && (
+                <button
+                  type='button'
+                  onClick={() => {
+                    onOpenAddRevision(entity, null, false, undefined, undefined, false, true);
+                  }}
+                  data-testid='add-new-era-btn'
+                  className='w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white text-xs sm:text-sm font-bold rounded-xl transition-all cursor-pointer shadow-sm hover:shadow active:scale-[0.98]'
+                  title='Tạo giai đoạn cốt truyện mới cho nhân vật'
+                >
+                  <Plus className='w-4 h-4' />
+                  <span>+ Tạo giai đoạn</span>
+                </button>
+              )}
 
               {/* Vertical list of era stages */}
               <div className='space-y-2 max-h-[calc(100vh-320px)] overflow-y-auto custom-scrollbar pr-0.5'>
@@ -1168,6 +1173,21 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                   );
                 })}
               </div>
+
+              {/* Bottom Quick Create Stage Action */}
+              {canCreateDraft && (
+                <button
+                  type='button'
+                  onClick={() => {
+                    onOpenAddRevision(entity, null, false, undefined, undefined, false, true);
+                  }}
+                  className='w-full py-2 border-2 border-dashed border-stone-300 hover:border-[#F97316] text-stone-600 hover:text-[#EA580C] hover:bg-orange-50/50 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer mt-1'
+                  title='Thêm giai đoạn cốt truyện mới'
+                >
+                  <Plus className='w-3.5 h-3.5' />
+                  <span>+ Tạo giai đoạn mới</span>
+                </button>
+              )}
             </div>
           </section>
 
@@ -1933,16 +1953,30 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
           </button>
 
           {canCreateDraft ? (
-            <button
-              type='button'
-              onClick={() => {
-                onOpenAddRevision(entity);
-              }}
-              className='px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl flex items-center gap-2 transition-all cursor-pointer shadow-sm hover:shadow active:scale-[0.98]'
-            >
-              <GitCommit className='w-3.5 h-3.5' />
-              <span>{isProducer ? '+ Tạo phiên bản mới' : '+ Tạo bản nháp mới'}</span>
-            </button>
+            <div className='flex items-center gap-2'>
+              <button
+                type='button'
+                onClick={() => {
+                  onOpenAddRevision(entity, null, false, undefined, undefined, false, true);
+                }}
+                className='px-3.5 py-2 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-sm active:scale-[0.98]'
+                title='Tạo giai đoạn cốt truyện mới'
+              >
+                <Plus className='w-3.5 h-3.5' />
+                <span>+ Tạo giai đoạn</span>
+              </button>
+
+              <button
+                type='button'
+                onClick={() => {
+                  onOpenAddRevision(entity);
+                }}
+                className='px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl flex items-center gap-2 transition-all cursor-pointer shadow-sm hover:shadow active:scale-[0.98]'
+              >
+                <GitCommit className='w-3.5 h-3.5' />
+                <span>{isProducer ? '+ Tạo phiên bản mới' : '+ Tạo bản nháp mới'}</span>
+              </button>
+            </div>
           ) : isArtist ? (
             <span className='text-xs text-zinc-500 italic'>
               Họa sĩ (Artist) tải và nộp Concept Art theo từng giai đoạn.

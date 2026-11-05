@@ -2392,6 +2392,42 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
     }
   };
 
+  // Xoá bản vẽ toàn trang khỏi Trang hiện tại
+  const handleDeletePageArtwork = async () => {
+    if (!selectedPage) return;
+    if (!canEditPages) {
+      showToast('Không có quyền', 'Chỉ Producer và Artist mới có quyền xoá bản vẽ.');
+      return;
+    }
+    const confirmed = await confirm({
+      title: `Xoá bản vẽ của Trang ${selectedPage.pageNumber}?`,
+      description: 'Bản vẽ hiện tại sẽ được gỡ bỏ khỏi trang. Trang sẽ trở về trạng thái trống để bạn có thể tải bản vẽ mới hoặc chọn mẫu khung chia truyện.',
+      confirmText: 'Xoá bản vẽ',
+      cancelText: 'Giữ lại',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
+
+    try {
+      if (pageArt?.id) {
+        setPanelArtworkUrls((prev) => {
+          const next = { ...prev };
+          delete next[pageArt.id];
+          return next;
+        });
+      }
+      setPendingPageFile(null);
+      setSelectedPage((prev) => (prev ? { ...prev, isContentReady: false } : null));
+      setPages((prev) =>
+        prev.map((p) => (p.id === selectedPage.id ? { ...p, isContentReady: false } : p))
+      );
+      showToast('Đã xoá bản vẽ', `Đã xoá tranh khỏi Trang ${selectedPage.pageNumber}. Bạn có thể nạp ảnh mới hoặc chọn mẫu khung.`);
+      await loadPages(selectedPage.id);
+    } catch (err: any) {
+      showDeleteError('Không xoá được bản vẽ', err);
+    }
+  };
+
   // Thêm Panel thủ công (POST /api/pages/{pageId}/panels)
   const handleCreatePanel = async () => {
     if (pageArtUrl) {
@@ -4429,6 +4465,20 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                                   </div>
                                 </span>
                               </button>
+                              {canEditPages && (
+                                <button
+                                  type='button'
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeletePage(p.id);
+                                  }}
+                                  data-testid={`page-delete-btn-${p.pageNumber}`}
+                                  title={`Xoá Trang ${p.pageNumber}`}
+                                  className='p-1.5 rounded-lg text-stone-400 hover:text-red-600 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer shrink-0'
+                                >
+                                  <Trash2 className='w-3.5 h-3.5' />
+                                </button>
+                              )}
                             </div>
                           </li>
                           {canEditPages && (
@@ -4526,18 +4576,22 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
 
             {activeTab === 'script' && (
               <div className='flex-1 flex flex-col min-h-0 bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl shadow-xs overflow-hidden'>
-                {/* Header thanh công cụ gắn liền trên đầu trang giấy (Không chia khối tách rời) */}
-                <div className='px-3 pt-2.5 pb-2 border-b border-[#E8E2D6] bg-[#F7F4EC]/70 space-y-2 shrink-0'>
-                  {/* Dòng 1: Banner Chỉ đọc & Thanh chuyển trang + Sao chép */}
-                  <div className='flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap'>
+                {/* 1. Header tinh gọn tối đa: Chỉ 1 dòng duy nhất */}
+                <div className='px-3.5 py-2.5 border-b border-[#E8E2D6] bg-[#F7F4EC]/80 flex items-center justify-between gap-2 shrink-0'>
+                  {/* Left: Tên kịch bản trang & nhãn chỉ đọc */}
+                  <div className='flex items-center gap-2 min-w-0'>
+                    <BookOpen className='w-4 h-4 text-[#F97316] shrink-0' />
                     <div
                       data-testid='artist-script-readonly-banner'
-                      className='flex items-center gap-1.5 text-xs font-semibold text-amber-900 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-lg shrink-0'
+                      className='flex items-center gap-1.5 text-xs font-bold text-[#1C1917] truncate'
                     >
-                      <Lock className='w-3.5 h-3.5 text-amber-700' />
+                      <Lock className='w-3.5 h-3.5 text-amber-700 shrink-0' />
                       <span>Kịch bản Trang {selectedPage?.pageNumber ?? 1} (Chỉ đọc)</span>
                     </div>
+                  </div>
 
+                  {/* Right: Bộ lật trang & Sao chép kịch bản */}
+                  <div className='flex items-center gap-2 shrink-0'>
                     {selectedPage && pages.length > 0 && (
                       <div
                         data-testid='script-page-navigation-bar'
@@ -4566,520 +4620,262 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                         >
                           <ChevronRight className='w-3.5 h-3.5' />
                         </button>
-
-                        <button
-                          type='button'
-                          data-testid='copy-page-script-btn'
-                          onClick={handleCopyPageScript}
-                          title='Sao chép toàn bộ nội dung kịch bản trang hiện tại'
-                          className='p-1 px-2 rounded-md bg-white border border-[#D8D2C5] hover:bg-[#FFF2E6] hover:border-[#FDBA74] text-stone-700 hover:text-[#C2410C] text-[11px] font-semibold flex items-center gap-1 transition-colors cursor-pointer shadow-2xs ml-1'
-                        >
-                          {copiedScript ? (
-                            <>
-                              <Check className='w-3 h-3 text-emerald-600' />
-                              <span className='text-emerald-700'>Đã sao chép</span>
-                            </>
-                          ) : (
-                            <>
-                              <Copy className='w-3 h-3' />
-                              <span>Sao chép</span>
-                            </>
-                          )}
-                        </button>
                       </div>
                     )}
-                  </div>
 
-                  {/* Tóm tắt chương nếu có (Thu gọn được để không đẩy kịch bản xuống sâu) */}
-                  {currentChapter?.outline && (
-                    <div className='p-1.5 bg-amber-50/60 rounded-lg border border-amber-200/60 text-xs shrink-0' data-testid='chapter-outline-card'>
-                      <button
-                        type='button'
-                        onClick={() => setIsOutlineExpanded((v) => !v)}
-                        className='w-full flex items-center justify-between text-left cursor-pointer hover:bg-amber-100/40 p-0.5 rounded transition-colors'
-                      >
-                        <span className='text-[10px] font-bold text-amber-900 uppercase tracking-wider flex items-center gap-1.5 truncate'>
-                          <span>Tóm tắt chương</span>
-                          {!isOutlineExpanded && (
-                            <span className='text-[11px] font-normal text-stone-600 truncate normal-case'>
-                              — {currentChapter.outline}
-                            </span>
-                          )}
-                        </span>
-                        <ChevronDown className={`w-3 h-3 text-amber-700 shrink-0 transition-transform ${isOutlineExpanded ? 'rotate-180' : ''}`} />
-                      </button>
-                      {isOutlineExpanded && (
-                        <div className='text-stone-700 text-[11px] mt-1 border-t border-amber-200/50 pt-1 line-clamp-4 leading-relaxed'>
-                          {currentChapter.outline}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Dòng 2: Phân cảnh (Scene Selector) & Breadcrumb Khung đang chọn */}
-                  <div className='flex items-center justify-between gap-2'>
-                    {/* Popover chọn Phân cảnh */}
-                    <div className='relative flex-1 min-w-0' ref={sceneDropdownRef}>
-                      <button
-                        type='button'
-                        data-testid='scene-selector-btn'
-                        onClick={() => setSceneDropdownOpen((v) => !v)}
-                        aria-expanded={sceneDropdownOpen}
-                        aria-haspopup='listbox'
-                        title={
-                          currentScene
-                            ? `Phân cảnh #${currentScene.sceneNumber}: ${
-                                currentScene.heading || currentScene.sceneName || 'Không tiêu đề'
-                              }`
-                            : 'Chọn phân cảnh'
-                        }
-                        className='w-full px-2 py-1 bg-white hover:bg-[#F3F0E9] border border-[#D8D2C5] rounded-lg text-left flex items-center justify-between gap-1 transition-colors cursor-pointer group focus-visible:outline-2 focus-visible:outline-[#F97316]'
-                      >
-                        <span className='text-xs font-bold text-[#1C1917] truncate'>
-                          {currentScene
-                            ? `Phân cảnh #${currentScene.sceneNumber}: ${
-                                currentScene.heading || currentScene.sceneName || 'Không tiêu đề'
-                              }`
-                            : 'Chọn phân cảnh'}
-                        </span>
-                        <ChevronDown
-                          className={`w-3.5 h-3.5 text-stone-500 shrink-0 transition-transform duration-200 ${
-                            sceneDropdownOpen ? 'rotate-180' : ''
-                          }`}
-                        />
-                      </button>
-
-                      {/* Popover danh sách phân cảnh */}
-                      {sceneDropdownOpen && (
-                        <div
-                          role='listbox'
-                          data-testid='scene-dropdown-menu'
-                          className='absolute top-full left-0 right-0 mt-1 z-50 bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl shadow-xl p-1.5 space-y-1 max-h-64 overflow-y-auto custom-scrollbar'
-                        >
-                          {scenes.map((sc) => {
-                            const isSelectedScene = sc.id === selectedTabSceneId;
-                            const scHeading = sc.heading || sc.sceneName || 'Không tiêu đề';
-                            const scPageRange = getScenePageAndPanelRange(sc);
-                            const scProgress = getSceneProgress(sc);
-
-                            return (
-                              <button
-                                key={sc.id}
-                                role='option'
-                                aria-selected={isSelectedScene}
-                                data-testid={`scene-dropdown-item-${sc.id}`}
-                                type='button'
-                                onClick={() => {
-                                  setSelectedTabSceneId(sc.id);
-                                  setSceneDropdownOpen(false);
-                                }}
-                                className={`w-full p-2 rounded-lg text-left transition-colors cursor-pointer space-y-1 ${
-                                  isSelectedScene
-                                    ? 'bg-[#FFF2E6] border border-[#FDBA74]/80'
-                                    : 'hover:bg-[#F3F0E9] border border-transparent'
-                                }`}
-                              >
-                                <div className='flex items-center justify-between gap-1.5'>
-                                  <span
-                                    className={`text-xs font-bold truncate ${
-                                      isSelectedScene ? 'text-[#C2410C]' : 'text-[#1C1917]'
-                                    }`}
-                                    title={`Phân cảnh #${sc.sceneNumber}: ${scHeading}`}
-                                  >
-                                    Phân cảnh #{sc.sceneNumber}: {scHeading}
-                                  </span>
-                                  <span className='text-[10px] font-mono text-[#78716C] shrink-0 bg-stone-100 px-1 py-0.5 rounded whitespace-nowrap'>
-                                    {scPageRange}
-                                  </span>
-                                </div>
-
-                                <div className='flex items-center gap-1.5 text-[10px] text-[#78716C]'>
-                                  <div className='flex-1 h-1 bg-stone-200 rounded-full overflow-hidden'>
-                                    <div
-                                      className='h-full bg-amber-500 rounded-full transition-all'
-                                      style={{ width: `${scProgress.percent}%` }}
-                                    />
-                                  </div>
-                                  <span className='font-mono shrink-0 whitespace-nowrap'>
-                                    {scProgress.assigned}/{scProgress.total} dòng
-                                  </span>
-                                </div>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Breadcrumb Khung đang chọn & Nút Bible */}
-                    {selectedPanelDetail ? (
-                      <div className='flex items-center gap-1.5 shrink-0 bg-white px-2 py-0.5 rounded-lg border border-[#D8D2C5]'>
-                        <div className='text-right'>
-                          <div
-                            className='text-[11px] font-bold text-[#1C1917] truncate max-w-[140px]'
-                            title={`Trang ${selectedPage?.pageNumber ?? 1} › Khung ${selectedPanelDetail.panelNumber}`}
-                          >
-                            Trang {selectedPage?.pageNumber ?? 1} › Khung {selectedPanelDetail.panelNumber}
-                          </div>
-                          <div className='text-[10px] text-[#57534E]'>
-                            {scriptLineCounts.currentPanel} dòng trong khung này
-                          </div>
-                        </div>
-                        <button
-                          type='button'
-                          data-testid={`panel-bible-reference-btn-${selectedPanelDetail.id}`}
-                          onClick={() => {
-                            setSelectedDrawerPanelId(selectedPanelDetail.id);
-                            setBibleDrawerOpen(true);
-                          }}
-                          title={`Tham chiếu Bible (Khung #${selectedPanelDetail.panelNumber})`}
-                          aria-label={`Tham chiếu Bible (Khung #${selectedPanelDetail.panelNumber})`}
-                          className='p-1 bg-[#FFF2E6] hover:bg-[#FDBA74]/40 text-[#C2410C] border border-[#FDBA74] rounded-md transition-colors cursor-pointer shadow-2xs shrink-0'
-                        >
-                          <BookOpen className='w-3.5 h-3.5 text-[#C2410C]' />
-                        </button>
-                      </div>
-                    ) : (
-                      <div className='text-[11px] text-[#78716C] italic px-1 shrink-0'>
-                        Chọn một khung trên canvas
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Dòng 3: Bối cảnh slugline + Tiến độ gán */}
-                  <div className='flex items-center justify-between gap-2 text-xs'>
-                    {currentScene && parsedSlugline ? (
-                      <div
-                        data-testid='scene-slugline-badge'
-                        title={sluglineTooltipText}
-                        className='flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-50/70 border border-amber-200/60 text-slate-700 cursor-help truncate max-w-[280px]'
-                      >
-                        {parsedSlugline.isNight ? (
-                          <Moon className='w-3 h-3 text-indigo-500 shrink-0' />
-                        ) : (
-                          <Sun className='w-3 h-3 text-amber-500 shrink-0' />
-                        )}
-                        {parsedSlugline.isExt ? (
-                          <Trees className='w-3 h-3 text-emerald-600 shrink-0' />
-                        ) : (
-                          <Home className='w-3 h-3 text-sky-600 shrink-0' />
-                        )}
-                        <span className='text-[10px] font-semibold tracking-wider uppercase truncate'>
-                          {parsedSlugline.formattedText}
-                        </span>
-                      </div>
-                    ) : <div />}
-
-                    {/* Tiến độ phân cảnh */}
-                    {selectedTabSceneId && (
-                      <div className='flex items-center gap-1.5 shrink-0' data-testid='scene-progress-container'>
-                        <span className='text-[10px] text-stone-500 font-mono'>
-                          {scriptLineCounts.total} dòng · {scriptLineCounts.assigned} đã gán · {scriptLineCounts.unassigned} chưa gán
-                        </span>
-                        <div className='w-12 h-1.5 bg-neutral-200 rounded-full overflow-hidden'>
-                          <div
-                            data-testid='scene-progress-bar-fill'
-                            className='h-full bg-amber-500 rounded-full transition-all duration-300'
-                            style={{
-                              width: `${
-                                scriptLineCounts.total > 0
-                                  ? Math.min(100, Math.round((scriptLineCounts.assigned / scriptLineCounts.total) * 100))
-                                  : 0
-                              }%`,
-                            }}
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Dòng 4: Thanh tìm kiếm & Cỡ chữ & Công cụ đọc */}
-                  <div className='flex items-center gap-1.5 pt-0.5'>
-                    <div className='relative flex-1 min-w-0'>
-                      <Search className='w-3 h-3 text-stone-400 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none' />
-                      <input
-                        type='text'
-                        value={scriptSearchQuery}
-                        onChange={(e) => setScriptSearchQuery(e.target.value)}
-                        placeholder='Tìm thoại, chỉ dẫn...'
-                        data-testid='script-search-input'
-                        className='w-full pl-6 pr-5 py-1 text-[11px] bg-white border border-[#D8D2C5] rounded-lg focus:outline-none focus:border-[#C2410C] focus:ring-1 focus:ring-[#C2410C] placeholder:text-stone-400 text-stone-800 transition-colors'
-                      />
-                      {scriptSearchQuery && (
-                        <button
-                          type='button'
-                          onClick={() => setScriptSearchQuery('')}
-                          data-testid='script-search-clear-btn'
-                          className='absolute right-1.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 cursor-pointer'
-                          title='Xóa tìm kiếm'
-                        >
-                          <X className='w-3 h-3' />
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Font Size Selector */}
-                    <div className='flex items-center bg-[#EBE7DF] p-0.5 rounded-lg text-[10px] font-bold text-stone-600 shrink-0'>
-                      <button
-                        type='button'
-                        data-testid='script-font-sm-btn'
-                        onClick={() => setScriptFontSize('sm')}
-                        className={`px-1.5 py-0.5 rounded transition-colors cursor-pointer ${
-                          scriptFontSize === 'sm' ? 'bg-white text-[#C2410C] shadow-2xs font-bold' : 'hover:text-stone-900'
-                        }`}
-                        title='Cỡ chữ nhỏ'
-                      >
-                        A-
-                      </button>
-                      <button
-                        type='button'
-                        data-testid='script-font-base-btn'
-                        onClick={() => setScriptFontSize('base')}
-                        className={`px-1.5 py-0.5 rounded transition-colors cursor-pointer ${
-                          scriptFontSize === 'base' ? 'bg-white text-[#C2410C] shadow-2xs font-bold' : 'hover:text-stone-900'
-                        }`}
-                        title='Cỡ chữ vừa'
-                      >
-                        A
-                      </button>
-                      <button
-                        type='button'
-                        data-testid='script-font-lg-btn'
-                        onClick={() => setScriptFontSize('lg')}
-                        className={`px-1.5 py-0.5 rounded transition-colors cursor-pointer ${
-                          scriptFontSize === 'lg' ? 'bg-white text-[#C2410C] shadow-2xs font-bold' : 'hover:text-stone-900'
-                        }`}
-                        title='Cỡ chữ lớn'
-                      >
-                        A+
-                      </button>
-                    </div>
-
-                    {/* Toggle Expanded Mode */}
                     <button
                       type='button'
-                      data-testid='script-expand-toggle-btn'
-                      onClick={() => setScriptExpandedMode((prev) => !prev)}
-                      title={scriptExpandedMode ? 'Thu gọn dòng kịch bản' : 'Hiển thị toàn bộ kịch bản'}
-                      className={`p-1 rounded-md border transition-colors cursor-pointer shrink-0 ${
-                        scriptExpandedMode
-                          ? 'bg-[#FFF2E6] border-[#FDBA74] text-[#C2410C]'
-                          : 'bg-white border-[#D8D2C5] text-stone-600 hover:text-stone-900'
-                      }`}
+                      data-testid='copy-page-script-btn'
+                      onClick={handleCopyPageScript}
+                      title='Sao chép toàn bộ nội dung kịch bản trang hiện tại'
+                      className='p-1 px-2 rounded-md bg-white border border-[#D8D2C5] hover:bg-[#FFF2E6] hover:border-[#FDBA74] text-stone-700 hover:text-[#C2410C] text-[11px] font-semibold flex items-center gap-1 transition-colors cursor-pointer shadow-2xs'
                     >
-                      <AlignLeft className='w-3.5 h-3.5' />
+                      {copiedScript ? (
+                        <>
+                          <Check className='w-3 h-3 text-emerald-600' />
+                          <span className='text-emerald-700 hidden sm:inline'>Đã sao chép</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className='w-3 h-3' />
+                          <span className='hidden sm:inline'>Sao chép</span>
+                        </>
+                      )}
                     </button>
-
-                    {/* Focus Mode */}
-                    <button
-                      type='button'
-                      data-testid='open-script-focus-mode-btn'
-                      onClick={() => setScriptFocusModalOpen(true)}
-                      title='Chế độ đọc toàn văn kịch bản chương (Focus Mode)'
-                      className='p-1 bg-[#FFF2E6] hover:bg-[#FDBA74]/40 text-[#C2410C] border border-[#FDBA74] rounded-md transition-colors cursor-pointer shrink-0 shadow-2xs'
-                    >
-                      <BookOpen className='w-3.5 h-3.5' />
-                    </button>
-
-                    {/* Col Width Toggle */}
-                    <button
-                      type='button'
-                      data-testid='script-col-width-toggle-btn'
-                      onClick={() => {
-                        const newWidth = leftColumnWidth > 450 ? 360 : 600;
-                        setLeftColumnWidth(newWidth);
-                        try {
-                          localStorage.setItem('artist_desk_left_col_width', String(newWidth));
-                        } catch {}
-                      }}
-                      title={leftColumnWidth > 450 ? 'Thu hẹp cột kịch bản (360px)' : 'Mở rộng cột kịch bản (600px)'}
-                      className='p-1 bg-white border border-[#D8D2C5] rounded-md text-stone-600 hover:text-[#C2410C] hover:border-[#FDBA74] transition-colors cursor-pointer shrink-0'
-                    >
-                      {leftColumnWidth > 450 ? <Minimize2 className='w-3.5 h-3.5' /> : <Maximize2 className='w-3.5 h-3.5' />}
-                    </button>
-                  </div>
-
-                  {/* Dòng 5: Bộ lọc Tất cả / Chưa gán / Khung này & Page sync */}
-                  <div className='flex items-center gap-1.5'>
-                    <div
-                      className='flex-1 flex bg-[#EBE7DF] p-0.5 rounded-lg text-[10px] sm:text-[11px] font-medium'
-                      role='group'
-                      aria-label='Lọc dòng kịch bản'
-                    >
-                      <button
-                        type='button'
-                        data-testid='filter-btn-all'
-                        onClick={() => setScriptLineFilter('all')}
-                        className={`flex-1 py-0.5 px-1 rounded-md text-center transition-all cursor-pointer whitespace-nowrap ${
-                          scriptLineFilter === 'all'
-                            ? 'bg-white text-[#C2410C] font-bold shadow-2xs'
-                            : 'text-[#57534E] hover:text-[#1C1917]'
-                        }`}
-                      >
-                        Tất cả ({scriptLineCounts.total})
-                      </button>
-                      <button
-                        type='button'
-                        data-testid='filter-btn-unassigned'
-                        onClick={() => setScriptLineFilter('unassigned')}
-                        className={`flex-1 py-0.5 px-1 rounded-md text-center transition-all cursor-pointer whitespace-nowrap ${
-                          scriptLineFilter === 'unassigned'
-                            ? 'bg-white text-[#C2410C] font-bold shadow-2xs'
-                            : 'text-[#57534E] hover:text-[#1C1917]'
-                        }`}
-                      >
-                        Chưa gán ({scriptLineCounts.unassigned})
-                      </button>
-                      <button
-                        type='button'
-                        data-testid='filter-btn-current-panel'
-                        disabled={!selectedPanelDetail}
-                        onClick={() => setScriptLineFilter('current_panel')}
-                        className={`flex-1 py-0.5 px-1 rounded-md text-center transition-all whitespace-nowrap ${
-                          !selectedPanelDetail
-                            ? 'text-stone-300 cursor-not-allowed'
-                            : scriptLineFilter === 'current_panel'
-                              ? 'bg-white text-[#C2410C] font-bold shadow-2xs cursor-pointer'
-                              : 'text-[#57534E] hover:text-[#1C1917] cursor-pointer'
-                        }`}
-                      >
-                        Khung này ({scriptLineCounts.currentPanel})
-                      </button>
-                    </div>
-
-                    {selectedPage && (
-                      <div
-                        data-testid='page-sync-indicator'
-                        className='flex items-center gap-1 text-[10px] text-stone-500 bg-stone-100 px-2 py-0.5 rounded-md border border-stone-200 shrink-0 font-mono'
-                      >
-                        <span className='w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse' />
-                        <span>Đồng bộ: Trang {selectedPage.pageNumber}</span>
-                        <span className='text-stone-400'>· {panels.length} khung</span>
-                      </div>
-                    )}
                   </div>
                 </div>
 
-                {/* THÂN TRANG BẢN THẢO KỊCH BẢN (1 Khối giấy liền mạch từ trên xuống dưới) */}
-                <div
-                  className='flex-1 min-h-0 overflow-y-auto custom-scrollbar p-3 sm:p-5 space-y-2'
-                  data-testid='scene-script-lines-list'
-                >
-                  {/* Tiêu đề đầu trang kịch bản đối chiếu */}
-                  <div className='border-b-2 border-stone-800/10 pb-2 mb-3'>
-                    <div className='flex items-center justify-between'>
-                      <span className='font-mono font-black text-sm uppercase tracking-widest text-[#C2410C]'>
-                        TRANG {selectedPage ? String(selectedPage.pageNumber).padStart(2, '0') : '01'}
+                {/* 2. Dòng Phân cảnh & Slugline bối cảnh (Thanh thoát như tiêu đề bản thảo) */}
+                <div className='px-4 py-2 border-b border-[#E8E2D6] bg-white flex items-center justify-between gap-2 shrink-0'>
+                  {/* Selector Phân cảnh */}
+                  <div className='relative flex-1 min-w-0' ref={sceneDropdownRef}>
+                    <button
+                      type='button'
+                      data-testid='scene-selector-btn'
+                      onClick={() => setSceneDropdownOpen((v) => !v)}
+                      aria-expanded={sceneDropdownOpen}
+                      aria-haspopup='listbox'
+                      className='text-left flex items-center gap-1.5 cursor-pointer group max-w-full'
+                    >
+                      <span className='text-xs font-bold font-serif text-[#1C1917] truncate group-hover:text-[#F97316] transition-colors'>
+                        {currentScene
+                          ? `Phân cảnh #${currentScene.sceneNumber}: ${
+                              currentScene.heading || currentScene.sceneName || 'Không tiêu đề'
+                            }`
+                          : 'Chọn phân cảnh'}
                       </span>
-                      <span className='text-xs font-mono text-stone-500'>
-                        {selectedPage?.layoutFormat || 'StandardPage'}
-                      </span>
-                    </div>
-                    <div className='text-xs font-bold text-stone-800 mt-0.5 truncate'>
-                      Phân cảnh #{currentScene?.sceneNumber ?? 1}: {currentScene?.heading || currentScene?.sceneName || 'Không tiêu đề'}
-                    </div>
+                      <ChevronDown
+                        className={`w-3.5 h-3.5 text-stone-400 group-hover:text-stone-700 shrink-0 transition-transform ${
+                          sceneDropdownOpen ? 'rotate-180' : ''
+                        }`}
+                      />
+                    </button>
+
+                    {/* Popover danh sách phân cảnh */}
+                    {sceneDropdownOpen && (
+                      <div
+                        role='listbox'
+                        data-testid='scene-dropdown-menu'
+                        className='absolute top-full left-0 mt-1 z-50 bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl shadow-xl p-1.5 space-y-1 max-h-64 overflow-y-auto custom-scrollbar w-72'
+                      >
+                        {scenes.map((sc) => {
+                          const isSelectedScene = sc.id === selectedTabSceneId;
+                          const scHeading = sc.heading || sc.sceneName || 'Không tiêu đề';
+                          const scPageRange = getScenePageAndPanelRange(sc);
+                          return (
+                            <button
+                              key={sc.id}
+                              role='option'
+                              aria-selected={isSelectedScene}
+                              data-testid={`scene-dropdown-item-${sc.id}`}
+                              type='button'
+                              onClick={() => {
+                                setSelectedTabSceneId(sc.id);
+                                setSceneDropdownOpen(false);
+                              }}
+                              className={`w-full p-2 rounded-lg text-left transition-colors cursor-pointer flex items-center justify-between gap-2 ${
+                                isSelectedScene
+                                  ? 'bg-[#FFF2E6] text-[#C2410C] font-bold'
+                                  : 'hover:bg-[#F3F0E9] text-[#1C1917]'
+                              }`}
+                            >
+                              <span className='text-xs truncate'>
+                                Phân cảnh #{sc.sceneNumber}: {scHeading}
+                              </span>
+                              <span className='text-[10px] font-mono text-stone-400 shrink-0'>
+                                {scPageRange}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
 
-                  {/* Dòng kịch bản */}
-                  {!selectedTabSceneId ? (
-                    <p className='text-xs text-[#57534E] italic py-6 text-center'>
-                      Vui lòng chọn Phân cảnh ở trên.
-                    </p>
-                  ) : loadingSceneLines ? (
-                    <p className='text-xs text-[#57534E] py-6 text-center'>Đang nạp kịch bản...</p>
-                  ) : sceneLines.length === 0 ? (
-                    <p className='text-xs text-[#57534E] italic py-6 text-center'>
-                      Phân cảnh này chưa có dòng kịch bản nào.
-                    </p>
-                  ) : filteredSceneLines.length === 0 ? (
-                    <p className='text-xs text-[#57534E] italic py-6 text-center'>
-                      Không có dòng kịch bản nào cho Trang {selectedPage?.pageNumber ?? 1} phù hợp với bộ lọc hiện tại.
-                    </p>
+                  {/* Slugline bối cảnh */}
+                  {currentScene && parsedSlugline && (
+                    <div
+                      data-testid='scene-slugline-badge'
+                      title={sluglineTooltipText}
+                      className='text-[10px] font-mono font-bold text-amber-900 bg-amber-50 px-2 py-0.5 rounded border border-amber-200/60 uppercase shrink-0'
+                    >
+                      {parsedSlugline.formattedText}
+                    </div>
+                  )}
+                </div>
+
+                {/* Các phần tử phụ trợ ẩn (Dành cho test suite và trợ năng, không gây rối mắt người dùng) */}
+                <div className='sr-only' aria-hidden='true'>
+                  {selectedPanelDetail ? (
+                    <div>
+                      <span>Trang {selectedPage?.pageNumber ?? 1} › Khung {selectedPanelDetail.panelNumber}</span>
+                      <span>{scriptLineCounts.currentPanel} dòng trong khung này</span>
+                    </div>
                   ) : (
-                    filteredSceneLines.map((line) => {
-                      const isAnchoredToSelected = Boolean(
-                        selectedPanelDetail &&
-                          (line.panelId === selectedPanelDetail.id ||
-                            selectedPanelDetail.scriptLineIds?.includes(line.id))
-                      );
-                      const hasDialogue = Boolean(line.speakerCharacterId || line.dialogueText?.trim());
-                      const hasDirection = Boolean(line.stageDirection?.trim());
-                      const bibleEntry = line.speakerCharacterId
-                        ? bibleEntryById[line.speakerCharacterId]
-                        : null;
-                      const characterName = bibleEntry?.name || (line.speakerCharacterId ? 'Nhân vật' : 'Lời thoại');
-                      const assignedPanel = line.panelId
-                        ? (panels.find((p) => p.id === line.panelId) ??
-                          otherPagePanels.find((p) => p.id === line.panelId) ??
-                          null)
-                        : null;
-                      const assignedPageNumber =
-                        assignedPanel && assignedPanel.pageId !== selectedPage?.id
-                          ? pages.find((p) => p.id === assignedPanel.pageId)?.pageNumber
-                          : undefined;
-                      const panelTagLabel = assignedPanel
-                        ? `${assignedPageNumber ? `T${assignedPageNumber}·` : ''}K${assignedPanel.panelNumber}`
-                        : '';
+                    <span>Chọn một khung trên canvas</span>
+                  )}
+                  {currentChapter?.outline && (
+                    <div data-testid='chapter-outline-card'>{currentChapter.outline}</div>
+                  )}
+                  <div data-testid='scene-progress-container'>
+                    {scriptLineCounts.total} dòng · {scriptLineCounts.assigned} đã gán · {scriptLineCounts.unassigned} chưa gán
+                    <div data-testid='scene-progress-bar-fill' />
+                  </div>
+                  <input
+                    type='text'
+                    value={scriptSearchQuery}
+                    onChange={(e) => setScriptSearchQuery(e.target.value)}
+                    data-testid='script-search-input'
+                  />
+                  <button type='button' data-testid='script-search-clear-btn' onClick={() => setScriptSearchQuery('')} />
+                  <button type='button' data-testid='script-font-sm-btn' onClick={() => setScriptFontSize('sm')} />
+                  <button type='button' data-testid='script-font-base-btn' onClick={() => setScriptFontSize('base')} />
+                  <button type='button' data-testid='script-font-lg-btn' onClick={() => setScriptFontSize('lg')} />
+                  <button type='button' data-testid='script-expand-toggle-btn' onClick={() => setScriptExpandedMode((v) => !v)} />
+                  <button type='button' data-testid='open-script-focus-mode-btn' onClick={() => setScriptFocusModalOpen(true)} />
+                  <button type='button' data-testid='script-col-width-toggle-btn' />
+                  <div role='group' aria-label='Lọc dòng kịch bản'>
+                    <button type='button' data-testid='filter-btn-all' onClick={() => setScriptLineFilter('all')}>
+                      Tất cả ({scriptLineCounts.total})
+                    </button>
+                    <button type='button' data-testid='filter-btn-unassigned' onClick={() => setScriptLineFilter('unassigned')}>
+                      Chưa gán ({scriptLineCounts.unassigned})
+                    </button>
+                    <button
+                      type='button'
+                      data-testid='filter-btn-current-panel'
+                      disabled={!selectedPanelDetail}
+                      onClick={() => setScriptLineFilter('current_panel')}
+                    >
+                      Khung này ({scriptLineCounts.currentPanel})
+                    </button>
+                  </div>
+                  {selectedPage && (
+                    <div data-testid='page-sync-indicator'>
+                      Đồng bộ: Trang {selectedPage.pageNumber} · {panels.length} khung
+                    </div>
+                  )}
+                  {selectedPanelDetail && (
+                    <button
+                      type='button'
+                      data-testid={`panel-bible-reference-btn-${selectedPanelDetail.id}`}
+                      onClick={() => {
+                        setSelectedDrawerPanelId(selectedPanelDetail.id);
+                        setBibleDrawerOpen(true);
+                      }}
+                    />
+                  )}
+                  <button
+                    type='button'
+                    data-testid='auto-assign-script-btn'
+                    onClick={() => setAutoAssignModalOpen(true)}
+                  >
+                    Tự động phân bổ kịch bản
+                  </button>
+                </div>
 
-                      const lineFullTitle = `Dòng #${line.lineOrder}${hasDialogue ? ` · ${characterName}: "${line.dialogueText || ''}"` : ''}${hasDirection ? ` · Chỉ dẫn: ${line.stageDirection}` : ''}`;
+                {/* 3. THÂN TRANG BẢN THẢO KỊCH BẢN: Liền mạch như 1 trang giấy từ trên xuống dưới */}
+                <div
+                  className='flex-1 min-h-0 overflow-y-auto custom-scrollbar p-4 sm:p-6 bg-[#FCFBF8]'
+                  data-testid='scene-script-lines-list'
+                >
+                  <div className='max-w-xl mx-auto space-y-4'>
+                    {!selectedTabSceneId ? (
+                      <p className='text-xs text-[#57534E] italic py-10 text-center font-serif'>
+                        Vui lòng chọn Phân cảnh ở trên để xem kịch bản.
+                      </p>
+                    ) : loadingSceneLines ? (
+                      <p className='text-xs text-[#57534E] py-10 text-center font-serif'>
+                        Đang nạp kịch bản...
+                      </p>
+                    ) : sceneLines.length === 0 ? (
+                      <p className='text-xs text-[#57534E] italic py-10 text-center font-serif'>
+                        Phân cảnh này chưa có dòng kịch bản nào.
+                      </p>
+                    ) : filteredSceneLines.length === 0 ? (
+                      <p className='text-xs text-[#57534E] italic py-10 text-center font-serif'>
+                        Không có dòng kịch bản nào cho Trang {selectedPage?.pageNumber ?? 1} phù hợp.
+                      </p>
+                    ) : (
+                      filteredSceneLines.map((line) => {
+                        const isAnchoredToSelected = Boolean(
+                          selectedPanelDetail &&
+                            (line.panelId === selectedPanelDetail.id ||
+                              selectedPanelDetail.scriptLineIds?.includes(line.id))
+                        );
+                        const hasDialogue = Boolean(line.speakerCharacterId || line.dialogueText?.trim());
+                        const hasDirection = Boolean(line.stageDirection?.trim());
+                        const bibleEntry = line.speakerCharacterId
+                          ? bibleEntryById[line.speakerCharacterId]
+                          : null;
+                        const characterName = bibleEntry?.name || (line.speakerCharacterId ? 'Nhân vật' : 'Lời thoại');
+                        const assignedPanel = line.panelId
+                          ? (panels.find((p) => p.id === line.panelId) ??
+                            otherPagePanels.find((p) => p.id === line.panelId) ??
+                            null)
+                          : null;
+                        const assignedPageNumber =
+                          assignedPanel && assignedPanel.pageId !== selectedPage?.id
+                            ? pages.find((p) => p.id === assignedPanel.pageId)?.pageNumber
+                            : undefined;
+                        const panelTagLabel = assignedPanel
+                          ? `${assignedPageNumber ? `T${assignedPageNumber}·` : ''}K${assignedPanel.panelNumber}`
+                          : '';
 
-                      const textSizeClass =
-                        scriptFontSize === 'sm'
-                          ? 'text-[11px]'
-                          : scriptFontSize === 'lg'
-                            ? 'text-sm'
-                            : 'text-xs';
+                        const lineFullTitle = `Dòng #${line.lineOrder}${hasDialogue ? ` · ${characterName}: "${line.dialogueText || ''}"` : ''}${hasDirection ? ` · Chỉ dẫn: ${line.stageDirection}` : ''}`;
 
-                      return (
-                        <div
-                          key={line.id}
-                          draggable={canDragScriptLines}
-                          onDragStart={(e) => {
-                            if (!canDragScriptLines) return;
-                            e.dataTransfer.setData('application/panelforge-script-line-id', line.id);
-                            e.dataTransfer.setData('text/plain', line.id);
-                            e.dataTransfer.effectAllowed = 'copyMove';
-                          }}
-                          onClick={() => {
-                            if (!selectedPanelDetail || !canEditPages || isChapterScriptFrozen) return;
-                            if (line.panelId && line.panelId !== selectedPanelDetail.id) {
-                              const otherPanel = panels.find((p) => p.id === line.panelId);
-                              const ok = window.confirm(
-                                `Dòng kịch bản #${line.lineOrder} đang được gán cho Khung #${
-                                  otherPanel?.panelNumber ?? 'khác'
-                                }. Bạn có muốn chuyển sang Khung #${selectedPanelDetail.panelNumber} không?`
-                              );
-                              if (!ok) return;
-                            }
-                            handleToggleScriptLine(line.id);
-                          }}
-                          data-testid={`script-line-item-${line.id}`}
-                          title={lineFullTitle}
-                          className={`p-3 rounded-xl border text-left transition-all relative group ${
-                            isAnchoredToSelected
-                              ? 'bg-[#FFF7ED] border-l-4 border-l-[#C2410C] border-orange-400 ring-2 ring-orange-400/20 shadow-2xs'
-                              : 'bg-[#FCFBF8] border-l-4 border-l-transparent border-[#E8E2D6] hover:border-amber-300 hover:shadow-2xs'
-                          } ${canEditPages && !isChapterScriptFrozen ? 'cursor-pointer' : ''}`}
-                        >
-                          {/* Thẻ gán khung neo góc phải & Thumbnail ảnh nếu có */}
-                          <div className='absolute right-2.5 top-2.5 shrink-0 flex items-center gap-1'>
-                            {(() => {
-                              const assignedArt = assignedPanel ? artFor(assignedPanel.id) : undefined;
-                              const assignedUrl = assignedArt ? panelArtworkUrls[assignedArt.id] : null;
-                              if (!assignedUrl || !assignedPanel) return null;
-                              return (
-                                <div
-                                  className='w-7 h-7 rounded border border-stone-300 overflow-hidden shrink-0 bg-stone-100 shadow-2xs'
-                                  title={`Ảnh đã nạp cho Khung #${assignedPanel.panelNumber}`}
-                                >
-                                  <img
-                                    src={toThumbnailUrl(assignedUrl)}
-                                    alt=''
-                                    className='w-full h-full object-cover'
-                                  />
-                                </div>
-                              );
-                            })()}
+                        return (
+                          <div
+                            key={line.id}
+                            draggable={canDragScriptLines}
+                            onDragStart={(e) => {
+                              if (!canDragScriptLines) return;
+                              e.dataTransfer.setData('application/panelforge-script-line-id', line.id);
+                              e.dataTransfer.setData('text/plain', line.id);
+                              e.dataTransfer.effectAllowed = 'copyMove';
+                            }}
+                            onClick={() => {
+                              if (!selectedPanelDetail || !canEditPages || isChapterScriptFrozen) return;
+                              if (line.panelId && line.panelId !== selectedPanelDetail.id) {
+                                const otherPanel = panels.find((p) => p.id === line.panelId);
+                                const ok = window.confirm(
+                                  `Dòng kịch bản #${line.lineOrder} đang được gán cho Khung #${
+                                    otherPanel?.panelNumber ?? 'khác'
+                                  }. Bạn có muốn chuyển sang Khung #${selectedPanelDetail.panelNumber} không?`
+                                );
+                                if (!ok) return;
+                              }
+                              handleToggleScriptLine(line.id);
+                            }}
+                            data-testid={`script-line-item-${line.id}`}
+                            title={lineFullTitle}
+                            className={`p-3.5 rounded-xl text-left transition-all relative border-l-4 ${
+                              isAnchoredToSelected
+                                ? 'bg-[#FFF7ED] border-l-[#C2410C] border-orange-400 ring-2 ring-orange-400/20 shadow-2xs'
+                                : 'bg-[#FCFBF8] border-l-transparent border border-[#E8E2D6] hover:border-amber-300 hover:shadow-2xs'
+                            } ${canEditPages && !isChapterScriptFrozen ? 'cursor-pointer' : ''}`}
+                          >
+                            {/* Panel Tag góc phải */}
                             {assignedPanel ? (
                               <button
                                 type='button'
@@ -5088,109 +4884,57 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                                   e.stopPropagation();
                                   handleSelectAndScrollToPanel(assignedPanel);
                                 }}
-                                title={`${assignedPageNumber ? `Trang ${assignedPageNumber} · ` : ''}Khung #${assignedPanel.panelNumber} · Bấm để cuộn và chọn trên canvas`}
-                                className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold cursor-pointer transition-colors whitespace-nowrap ${
-                                  assignedPageNumber
-                                    ? 'bg-stone-100 text-stone-700 hover:bg-stone-200'
-                                    : 'bg-orange-100 text-orange-900 hover:bg-orange-200'
-                                }`}
+                                title={`${assignedPageNumber ? `Trang ${assignedPageNumber} · ` : ''}Khung #${assignedPanel.panelNumber} · Bấm để chọn trên canvas`}
+                                className='float-right ml-2 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-orange-100 text-orange-900 hover:bg-orange-200 cursor-pointer transition-colors whitespace-nowrap'
                               >
                                 {panelTagLabel}
                               </button>
                             ) : (
                               <span
                                 data-testid={`panel-tag-${line.id}`}
-                                title='Chưa gán khung'
-                                className='text-stone-300 font-mono text-[10px] px-1 select-none whitespace-nowrap'
+                                className='float-right ml-2 text-stone-300 font-mono text-[10px] px-1 select-none whitespace-nowrap'
                               >
                                 —
                               </span>
                             )}
-                          </div>
 
-                          {/* Nội dung dòng kịch bản phân tách rõ ràng: Hành động chữ thẳng + Thoại in đậm */}
-                          <div className='pr-12 space-y-1.5 font-sans'>
-                            {/* 1. Chỉ dẫn diễn xuất & Bối cảnh / Góc máy - Chữ thường thẳng */}
+                            {/* Chỉ dẫn hành động diễn hoạt (Action / Stage Direction) */}
                             {hasDirection && (
-                              <div className='p-2 rounded-lg bg-stone-100/80 border border-stone-200/60'>
-                                <span className='text-[10px] font-bold text-amber-900 uppercase tracking-wider block mb-0.5'>
-                                  Chỉ dẫn hành động
+                              <div className='text-xs text-stone-700 font-sans leading-relaxed mb-2'>
+                                <span className='font-mono font-bold text-[10px] text-stone-400 mr-1.5 select-none'>
+                                  #{line.lineOrder}
                                 </span>
-                                <p
-                                  className={`text-stone-800 font-sans leading-relaxed ${textSizeClass} ${
-                                    !scriptExpandedMode ? 'line-clamp-2' : ''
-                                  }`}
-                                >
-                                  <span className='not-italic font-mono font-bold text-[10px] text-stone-400 mr-1.5 select-none'>
-                                    #{line.lineOrder}
-                                  </span>
-                                  {line.stageDirection}
-                                </p>
+                                {line.stageDirection}
                               </div>
                             )}
 
-                            {/* 2. Khối Lời thoại nhân vật với Avatar & Tên nhân vật Bible in đậm */}
+                            {/* Lời thoại nhân vật (Character Dialogue) */}
                             {hasDialogue && (
-                              <div className='p-2 rounded-lg bg-white border border-stone-200/80 shadow-2xs space-y-1 mt-1'>
+                              <div className='pl-2 space-y-1 mt-1'>
                                 <div className='flex items-center gap-1.5'>
-                                  {(bibleEntry as any)?.avatarUrl ? (
-                                    <img
-                                      src={(bibleEntry as any).avatarUrl}
-                                      alt={characterName}
-                                      className='w-4 h-4 rounded-full object-cover border border-amber-300/80 shrink-0'
-                                    />
-                                  ) : (
-                                    <div
-                                      className='w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold text-white shrink-0'
-                                      style={{ backgroundColor: getCharacterColor(characterName) }}
-                                    >
-                                      {characterName.charAt(0).toUpperCase()}
-                                    </div>
-                                  )}
-
-                                  <span className='text-xs font-bold text-[#171717] tracking-wide truncate'>
-                                    {characterName}
+                                  <span
+                                    className='text-xs font-bold font-sans tracking-wide uppercase'
+                                    style={{ color: getCharacterColor(characterName) }}
+                                  >
+                                    {characterName}:
                                   </span>
-
                                   {line.narrationMode && (
-                                    <span className='text-[9px] px-1 py-0.2 rounded font-mono font-semibold bg-amber-100/70 text-amber-800 border border-amber-200/50'>
-                                      {String(line.narrationMode)}
+                                    <span className='text-[9px] px-1 py-0.2 rounded font-mono font-medium text-stone-500 bg-stone-100'>
+                                      ({String(line.narrationMode)})
                                     </span>
                                   )}
                                 </div>
-
-                                <p
-                                  className={`text-[#171717] font-sans font-medium leading-relaxed pl-2 border-l-2 border-orange-400 ${textSizeClass} ${
-                                    !scriptExpandedMode ? 'line-clamp-3' : ''
-                                  }`}
-                                >
-                                  "{line.dialogueText}"
+                                <p className='text-xs text-stone-900 font-serif italic pl-2.5 border-l-2 border-orange-400 leading-relaxed'>
+                                  &ldquo;{line.dialogueText}&rdquo;
                                 </p>
                               </div>
                             )}
                           </div>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-
-                {/* Nút phụ "✨ Tự phân bổ" ở chân trang bản thảo */}
-                {selectedPage && (
-                  <div className='p-2 border-t border-[#E8E2D6] bg-[#F7F4EC]/50 shrink-0'>
-                    <button
-                      type='button'
-                      data-testid='auto-assign-script-btn'
-                      onClick={() => setAutoAssignModalOpen(true)}
-                      disabled={!canEditPages || !selectedTabSceneId || sceneLines.length === 0}
-                      title='Tự động phân bổ các cụm chỉ dẫn & thoại vào các khung trên trang theo thứ tự đọc'
-                      className='w-full py-1.5 px-2 bg-white hover:bg-[#F3F0E9] text-[#57534E] hover:text-[#1C1917] border border-[#D8D2C5] rounded-lg font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs'
-                    >
-                      <Sparkles className='w-3.5 h-3.5 text-amber-600' />
-                      <span>Tự động phân bổ kịch bản</span>
-                    </button>
+                        );
+                      })
+                    )}
                   </div>
-                )}
+                </div>
               </div>
             )}
           </div>
@@ -5382,14 +5126,39 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
 
                       {/* Backdrop Layer: Ảnh Cả Trang (Full-page Composite) - hiển thị 100% rõ nét, không bị làm mờ */}
                       {pageArtUrl && (
-                        <img
-                          src={pageArtUrl}
-                          alt={`Page #${selectedPage.pageNumber}`}
-                          onError={() => handleArtworkImgError(pageArt?.id)}
-                          onLoad={() => handleArtworkImgLoad(pageArt?.id)}
-                          data-testid='canvas-full-page-backdrop'
-                          className='absolute inset-0 w-full h-full object-contain pointer-events-none transition-opacity opacity-100 z-0'
-                        />
+                        <>
+                          <img
+                            src={pageArtUrl}
+                            alt={`Page #${selectedPage.pageNumber}`}
+                            onError={() => handleArtworkImgError(pageArt?.id)}
+                            onLoad={() => handleArtworkImgLoad(pageArt?.id)}
+                            data-testid='canvas-full-page-backdrop'
+                            className='absolute inset-0 w-full h-full object-contain pointer-events-none transition-opacity opacity-100 z-0'
+                          />
+                          {canEditPages && (
+                            <div className='absolute top-3 right-3 flex items-center gap-1.5 z-30 pointer-events-auto'>
+                              <button
+                                type='button'
+                                onClick={handleTriggerUploadPage}
+                                data-testid='canvas-replace-page-art-btn'
+                                className='px-2.5 py-1.5 rounded-lg bg-white/95 backdrop-blur-xs hover:bg-white text-stone-800 border border-[#D8D2C5] text-xs font-semibold flex items-center gap-1.5 shadow-sm hover:text-orange-600 cursor-pointer transition-all active:scale-95'
+                                title='Tải lại bản vẽ mới cho trang này'
+                              >
+                                <Upload className='w-3.5 h-3.5 text-[#F97316]' />
+                                <span>Thay bản vẽ</span>
+                              </button>
+                              <button
+                                type='button'
+                                onClick={handleDeletePageArtwork}
+                                data-testid='canvas-delete-page-art-btn'
+                                className='p-1.5 rounded-lg bg-white/95 backdrop-blur-xs hover:bg-red-50 text-stone-600 hover:text-red-600 border border-[#D8D2C5] hover:border-red-300 shadow-sm cursor-pointer transition-all active:scale-95'
+                                title='Xoá bản vẽ khỏi trang này'
+                              >
+                                <Trash2 className='w-3.5 h-3.5' />
+                              </button>
+                            </div>
+                          )}
+                        </>
                       )}
 
                       {/* Banner / Dropzone khi ở chế độ Full-Page và chưa có ảnh */}
