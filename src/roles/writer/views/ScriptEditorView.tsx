@@ -692,6 +692,18 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
       const createdLineIdMap = new Map<string, string>();
 
+      // 3b. Tạo chuỗi văn bản kịch bản phân cảnh hoàn chỉnh (Screenplay Manuscript RawText)
+      const continuousScriptRawText = extractedLines
+        .map((l) => {
+          if (l.blockType === 'scene_heading') return `\n[ ${l.stageDirection?.toUpperCase()} ]\n`;
+          if (l.blockType === 'page_heading') return `\n=== ${l.stageDirection?.toUpperCase()} ===\n`;
+          if (l.blockType === 'panel_heading') return `\n--- ${l.stageDirection?.toUpperCase()} ---\n`;
+          if (l.dialogueText) return l.dialogueText;
+          return l.stageDirection || '';
+        })
+        .filter(Boolean)
+        .join('\n');
+
       // 4. Lưu đồng bộ hàng loạt (Batch Save) nguyên tử từng phân cảnh (Atomic 1-HTTP Roundtrip)
       for (const [targetSceneId, sceneLines] of linesByScene.entries()) {
         const batchPayload = sceneLines.map((line, idx) => ({
@@ -702,6 +714,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           speakerCharacterId: isValidGuid(line.speakerCharacterId) ? line.speakerCharacterId : null,
           narrationMode: line.narrationMode,
           clientLineId: isValidGuid(line.scriptLineId) ? line.scriptLineId : null,
+          panelId: isValidGuid(line.panelId) ? line.panelId : null,
         }));
 
         try {
@@ -712,6 +725,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               lines: batchPayload,
               expectedChapterVersion: currentVersion,
               summary: 'Lưu kịch bản từ trình soạn thảo',
+              rawText: continuousScriptRawText,
             }
           );
           if (res?.chapterVersion !== undefined && res?.chapterVersion !== null) {

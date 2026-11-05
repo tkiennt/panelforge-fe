@@ -359,6 +359,11 @@ export const ScriptLineBlockNode = Node.create({
 
           // 3.1 Tiêu đề trang (page_heading): Không thể xóa tiêu đề trang đầu tiên bằng backspace
           if (currentType === 'page_heading') {
+            const isAtStartOrEmpty = (empty && $from.parentOffset === 0) || currentBlock.textContent.trim() === '';
+            if (!isAtStartOrEmpty) {
+              return false;
+            }
+
             let isFirstPage = true;
             state.doc.descendants((node, pos) => {
               if (node.type.name === this.name && node.attrs?.blockType === 'page_heading') {
@@ -384,8 +389,13 @@ export const ScriptLineBlockNode = Node.create({
             }
           }
 
-          // 3.2 Cho phép xóa Panel bằng Backspace
+          // 3.2 Cho phép xóa Panel bằng Backspace khi con trỏ ở đầu dòng hoặc khối trống
           if (currentType === 'panel_heading') {
+            const isAtStartOrEmpty = (empty && $from.parentOffset === 0) || currentBlock.textContent.trim() === '';
+            if (!isAtStartOrEmpty) {
+              return false;
+            }
+
             const tr = state.tr.delete(from, to);
             try {
               const targetPos = Math.max(0, Math.min(from - 1, tr.doc.content.size));
@@ -420,15 +430,13 @@ export const ScriptLineBlockNode = Node.create({
 
           if (prevNode && prevNode.type.name === this.name && prevNode.attrs?.blockType === 'panel_heading') {
             if (currentBlock.textContent.trim() === '') {
-              const prevFrom = from - prevNode.nodeSize;
-              const tr = state.tr.delete(prevFrom, to);
-              try {
-                const targetPos = Math.max(0, Math.min(prevFrom - 1, tr.doc.content.size));
-                tr.setSelection(Selection.near(tr.doc.resolve(targetPos), -1));
-              } catch {}
+              const tr = state.tr.delete(from, to);
+              const prevPos = Math.max(0, from - 1);
+              tr.setSelection(TextSelection.create(tr.doc, Math.min(prevPos, tr.doc.content.size)));
               view.dispatch(tr);
               return true;
             }
+            return true;
           }
         }
 
@@ -555,17 +563,12 @@ export const ScriptLineBlockNode = Node.create({
           });
         }
 
-        // 4.4 QUY TẮC BẮT BUỘC: Khi nhấn Enter trên Panel, Page hoặc Lời dẫn (không có cú pháp đặc biệt):
-        // CHÈN 1 scriptLineBlock MẶC ĐỊNH RỖNG (CAPTION - LỜI DẪN TRUYỆN BÌNH THƯỜNG) TRỰC TIẾP BÊN DƯỚI.
-        // TUYỆT ĐỐI KHÔNG TỰ ĐỘNG CHUYỂN THÀNH DIALOGUE / NHÂN VẬT!
+        // 4.4 Khi nhấn Enter trên Page hoặc Panel: chèn 1 dòng caption rỗng bên dưới
         if (
           currentType === 'page_heading' ||
           currentType === 'panel_heading' ||
-          currentType === 'caption' ||
-          currentType === 'stage_direction' ||
           currentBlock.type.name === 'pageBlock' ||
-          currentBlock.type.name === 'panelBlock' ||
-          currentBlock.type.name === 'captionBlock'
+          currentBlock.type.name === 'panelBlock'
         ) {
           const emptyActionBlock = state.schema.nodes.scriptLineBlock.create({
             scriptLineId: generateGuid(),
@@ -583,7 +586,21 @@ export const ScriptLineBlockNode = Node.create({
           });
         }
 
-        // 4.5 Mặc định tạo khối Lời dẫn truyện (caption) tiếp theo, gõ tự do
+        // 4.5 Đối với các dòng văn bản (caption, stage_direction, dialogue, sfx...):
+        // Nếu con trỏ ở giữa dòng: tách dòng chính xác tại vị trí con trỏ
+        if ($from.parentOffset < currentBlock.content.size) {
+          const nextAttrs = {
+            ...currentBlock.attrs,
+            scriptLineId: generateGuid(),
+          };
+          const tr = state.tr.split($from.pos, 1, [
+            { type: state.schema.nodes.scriptLineBlock, attrs: nextAttrs },
+          ]);
+          view.dispatch(tr);
+          return true;
+        }
+
+        // 4.6 Nếu con trỏ ở cuối dòng: tạo khối caption tiếp theo bên dưới
         const emptyBlock = state.schema.nodes.scriptLineBlock.create({
           scriptLineId: generateGuid(),
           sceneId: currentBlock.attrs?.sceneId || null,

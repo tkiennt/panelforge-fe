@@ -253,5 +253,30 @@ describe('ScriptLineBlockNode - Keyboard Triggers (Tab & Space)', () => {
       expect(editor2.getJSON().content?.[0]?.attrs?.speakerName).toBeNull();
       expect(editor2.getJSON().content?.[0]?.attrs?.blockType).toBe('caption');
     });
+
+    it('không xóa panel_heading khi nhấn Backspace ở giữa dòng (parentOffset > 0)', () => {
+      const editor = createTestFlowEditor('<div data-block-type="panel_heading">Panel 1.1: [Cận cảnh]</div>');
+      // Đặt con trỏ ở ký tự thứ 6 (sau "Panel")
+      editor.commands.setTextSelection(6);
+      editor.commands.keyboardShortcut('Backspace');
+      const json = editor.getJSON();
+      expect(json.content?.[0]?.attrs?.blockType).toBe('panel_heading');
+    });
+
+    it('tách đôi dòng văn bản khi nhấn Enter ở giữa dòng', () => {
+      const editor = createTestFlowEditor('<div data-block-type="caption">Dòng một và dòng hai</div>');
+      // Đặt con trỏ ở giữa chuỗi (sau "Dòng một ")
+      editor.commands.setTextSelection(10);
+      const handled = editor.commands.keyboardShortcut('Enter');
+      expect(handled).toBe(true);
+
+      const json = editor.getJSON();
+      const scriptBlocks = (json.content || []).filter((n: any) => n.type === 'scriptLineBlock');
+      expect(scriptBlocks.length).toBe(2);
+      expect(scriptBlocks[0]?.attrs?.blockType).toBe('caption');
+      expect((scriptBlocks[0] as any)?.content?.[0]?.text).toBe('Dòng một ');
+      expect(scriptBlocks[1]?.attrs?.blockType).toBe('caption');
+      expect((scriptBlocks[1] as any)?.content?.[0]?.text).toBe('và dòng hai');
+    });
   });
 });

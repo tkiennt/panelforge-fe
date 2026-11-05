@@ -435,92 +435,14 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
         hoverOpenTimerRef.current = null;
       }
 
-      // Tự động nhận diện cú pháp khi gõ # hoặc - ở đầu dòng
+      // Cập nhật loại khối hiện tại để đồng bộ trạng thái thanh công cụ (không mutate document khi đang gõ)
       try {
-        const { state } = editor;
-        const { selection } = state;
-        const currentBlock = selection.$from.parent;
-
-        if (currentBlock && currentBlock.type.name === 'scriptLineBlock') {
-          const rawText = currentBlock.textContent.trim();
-          const currentType: MangaBlockType = currentBlock.attrs.blockType || 'stage_direction';
-          let detectedType: MangaBlockType | null = null;
-          let detectedSpeaker: string | null = null;
-
-          // 1. Nhận diện Trang: #, !, # Page 1, # Trang 1, ! Trang 1, Trang 1
-          if (
-            /^(?:[#!]\s*.*|(?:Trang|Page)\s*.*)/i.test(rawText) &&
-            (rawText.startsWith('#') || rawText.startsWith('!') || /^(?:Trang|Page)\s*\d*/i.test(rawText))
-          ) {
-            detectedType = 'page_heading';
-          }
-          // 2. Nhận diện Panel: -, ", - Panel 1.1, " Panel 1.1, Khung 1.1, #panel 1.1, - 1.1, " 1.1
-          else if (
-            /^(?:[-"”]\s*.*|(?:Panel|Khung)\s*.*|#panel\s*.*)/i.test(rawText) &&
-            (rawText.startsWith('-') ||
-              rawText.startsWith('"') ||
-              rawText.startsWith('”') ||
-              /^(?:Panel|Khung|#panel)/i.test(rawText))
-          ) {
-            detectedType = 'panel_heading';
-          }
-          // 3. Nhận diện Tiêu đề phân cảnh: CẢNH 1, INT., EXT., SCENE 1
-          else if (/^(?:CẢNH\s+\d+|INT\.|EXT\.|SCENE\s+\d+)/i.test(rawText)) {
-            detectedType = 'scene_heading';
-          }
-          // 4. Nhận diện Âm thanh / Chỉ dẫn SFX: * BÙM!, SFX: TIẾNG NỔ, * SCREECH *
-          else if (/^(?:\*|SFX\s*:)/i.test(rawText)) {
-            detectedType = 'sfx';
-          }
-          // 5. Nhận diện Chuyển cảnh: CUT TO:, FADE OUT:
-          else if (/^(?:CUT TO:|FADE OUT:|CHUYỂN CẢNH:)/i.test(rawText)) {
-            detectedType = 'transition';
-          }
-          // 2b. Nhận diện Lời dẫn truyện (Caption): "Lời dẫn truyện: ...", "Lời dẫn: ...", "Caption: ..."
-          else if (/^(?:Lời dẫn truyện|Lời dẫn|Caption|Dẫn chuyện)\s*:\s*([^"“].*)$/i.test(rawText)) {
-            detectedType = 'caption';
-          }
-          // 6. Nhận diện Thoại có cú pháp @SeriesBible : "LỜI THOẠI" hoặc NAME: "LỜI THOẠI"
-          else if (/^@?([\w\p{L}_-]+)(?:\/([a-zA-ZÀ-ỹ\s]+))?\s*:\s*["“]([^"”]+)["”]$/u.test(rawText)) {
-            const match = rawText.match(/^@?([\w\p{L}_-]+)(?:\/([a-zA-ZÀ-ỹ\s]+))?\s*:\s*["“]([^"”]+)["”]$/u);
-            if (match) {
-              detectedType = 'dialogue';
-              detectedSpeaker = match[1].trim();
-            }
-          }
-          // 6b. Nhận diện Lời dẫn chuyện có tên người dẫn/nhân vật: @NgườiDẫn : Lời dẫn không có ngoặc kép
-          else if (/^@([\w\p{L}_-]+)\s*:\s*([^"“\s].*)$/u.test(rawText)) {
-            detectedType = 'stage_direction';
-          }
-          // 7. Nhận diện Tên nhân vật: @MINH hoặc tên viết hoa đứng riêng một dòng
-          else if (
-            /^@([a-zA-ZÀ-Ỹ0-9_\s]{2,30})$/.test(rawText) ||
-            (rawText.length >= 2 &&
-              rawText.length <= 30 &&
-              rawText === rawText.toUpperCase() &&
-              !rawText.includes('.') &&
-              !rawText.includes(':') &&
-              !rawText.includes('-') &&
-              !/^\d+$/.test(rawText))
-          ) {
-            detectedType = 'character';
-            detectedSpeaker = rawText.replace(/^@/, '');
-          }
-
-          if (detectedType && detectedType !== currentType) {
-            const updates: Record<string, any> = { blockType: detectedType };
-            if (detectedSpeaker) {
-              updates.speakerName = detectedSpeaker;
-            }
-            editor.commands.updateAttributes('scriptLineBlock', updates);
-            setActiveBlockType(detectedType);
-          }
-
-          // Tự động đánh số lại toàn bộ Trang và Panel theo thứ tự tài liệu
-          renumberEditorState(editor);
+        const currentType = editor.state.selection.$from.parent?.attrs?.blockType;
+        if (currentType && currentType !== activeBlockType) {
+          setActiveBlockType(currentType);
         }
       } catch {
-        // Bỏ qua lỗi cú pháp tức thời
+        // Bỏ qua lỗi truy xuất trạng thái tức thời
       }
 
       if (localDraftTimerRef.current) {
@@ -764,6 +686,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
 
     setIsSaving(true);
     try {
+      renumberEditorState(editor);
       const defaultSceneId = scenes[0]?.id || '';
       const extracted = extractScriptLinesFromDoc(editor.getJSON(), defaultSceneId);
 
@@ -831,7 +754,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
     if (!editor) return;
     editor.chain().focus().updateAttributes('scriptLineBlock', { blockType: type }).run();
     setActiveBlockType(type);
-    renumberEditorState(editor);
+    setHasUnsavedChanges(true);
   };
 
   // Chèn nhanh Trang mới (! Trang X)
@@ -861,9 +784,9 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
     tr.setSelection(TextSelection.create(tr.doc, targetPos));
     view.dispatch(tr);
     editor.commands.focus();
+    setHasUnsavedChanges(true);
 
-    renumberEditorState(editor, targetPos);
-    onShowToast?.('Đã chèn Trang', `Đã thêm Trang ${formattedPage} (với " Panel ${nextNum}.1)`);
+    onShowToast?.('Đã chèn Trang', `Đã thêm Trang ${formattedPage}`);
   };
 
   // Chèn nhanh Khung hình mới (" Panel X.Y: Cận cảnh) theo số trang hiện tại
@@ -894,8 +817,8 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
     tr.setSelection(TextSelection.create(tr.doc, targetPos));
     view.dispatch(tr);
     editor.commands.focus();
+    setHasUnsavedChanges(true);
 
-    renumberEditorState(editor, targetPos);
     onShowToast?.('Đã chèn Panel', `Đã thêm khối Panel ${pageNum}.${panelNum} (${shotName})`);
   };
 
@@ -981,14 +904,12 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
     }
   };
   const compactBlockButtons: { type: MangaBlockType; label: string; icon: any }[] = [
-    { type: 'page_heading', label: 'Trang', icon: Layers },
-    { type: 'panel_heading', label: 'Panel', icon: LayoutGrid },
-    { type: 'scene_heading', label: 'Cảnh', icon: Clapperboard },
-    { type: 'caption', label: 'Lời dẫn', icon: FileText },
-    { type: 'sfx', label: '⚡ SFX', icon: Zap },
-    { type: 'stage_direction', label: 'Chỉ dẫn', icon: Film },
-    { type: 'character', label: 'Nhân vật', icon: User },
     { type: 'dialogue', label: 'Thoại', icon: MessageSquare },
+    { type: 'character', label: 'Nhân vật', icon: User },
+    { type: 'caption', label: 'Lời dẫn', icon: FileText },
+    { type: 'stage_direction', label: 'Chỉ dẫn', icon: Film },
+    { type: 'sfx', label: '⚡ SFX', icon: Zap },
+    { type: 'scene_heading', label: 'Phân cảnh', icon: Clapperboard },
     { type: 'transition', label: 'Chuyển cảnh', icon: Type },
   ];
 
@@ -1115,18 +1036,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
               caret-color: #C2410C !important;
             }
 
-            /* CSS Pseudo-elements cho Page, Panel, SFX và Character */
-            .paper-editor-sheet .script-block[data-block-type="page_heading"] .page-heading-content::before {
-              content: "! ";
-              font-weight: 900;
-              margin-right: 4px;
-            }
-            .paper-editor-sheet .script-block[data-block-type="panel_heading"]::before {
-              content: '" ';
-              font-weight: 800;
-              color: #4F46E5;
-              margin-right: 4px;
-            }
+            /* CSS Styling cho SFX và Character */
             .paper-editor-sheet .script-block[data-block-type="character"]::before {
               content: "";
               display: inline-block;

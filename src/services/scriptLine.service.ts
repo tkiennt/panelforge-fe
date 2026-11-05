@@ -123,12 +123,14 @@ export interface BatchScriptLineItem {
   bibleEntryIds?: string[] | null;
   narrationMode?: NarrationMode | null;
   clientLineId?: string | null;
+  panelId?: string | null;
 }
 
 export interface BatchSaveScriptLinesRequest {
   lines: BatchScriptLineItem[];
   expectedChapterVersion?: number | null;
   summary?: string | null;
+  rawText?: string | null;
 }
 
 export interface BatchSaveScriptLinesResult {
