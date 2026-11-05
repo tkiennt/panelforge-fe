@@ -140,4 +140,66 @@ describe('ArtistWorkspaceView (Clean Consolidated Single-Layout Architecture)', 
       expect(screen.getByTestId('workspace-toast')).toHaveTextContent(/Nộp bản thảo thành công/i);
     });
   });
+
+  it('supports Tab switching between Script and Character Bible in the left column', () => {
+    renderView();
+
+    // Mặc định tab Script đang active
+    expect(screen.getByTestId('tab-script-btn')).toBeInTheDocument();
+    expect(screen.getByTestId('tab-characters-btn')).toBeInTheDocument();
+    expect(screen.getByTestId('panel-script-card-1')).toBeInTheDocument();
+
+    // Chuyển sang tab Nhân vật
+    fireEvent.click(screen.getByTestId('tab-characters-btn'));
+    expect(screen.getByTestId('character-bible-list')).toBeInTheDocument();
+    expect(screen.getByTestId('character-card-char-1')).toHaveTextContent('Minh Triết');
+  });
+
+  it('supports collapsing and expanding the left context reference sidebar', () => {
+    renderView();
+
+    // Nút thu gọn ở header cột trái
+    const collapseBtn = screen.getByTestId('collapse-left-sidebar-btn');
+    fireEvent.click(collapseBtn);
+
+    // Sidebar bị gập
+    expect(screen.getByTestId('script-reader-section').className).toContain('w-0');
+
+    // Nút mở lại xuất hiện trên canvas
+    const expandBtn = screen.getByTestId('expand-left-sidebar-btn');
+    expect(expandBtn).toBeInTheDocument();
+    fireEvent.click(expandBtn);
+
+    // Sidebar mở lại bình thường
+    expect(screen.getByTestId('script-reader-column')).toBeInTheDocument();
+  });
+
+  it('toggles Zen Mode on and off via button or keyboard', () => {
+    renderView();
+
+    // Bật Zen Mode từ topbar
+    const zenBtn = screen.getByTestId('topbar-zen-mode-btn');
+    fireEvent.click(zenBtn);
+
+    // Topbar ẩn, Zen pill hiện
+    expect(screen.queryByTestId('artist-workspace-topbar')).not.toBeInTheDocument();
+    expect(screen.getByTestId('zen-mode-pill')).toBeInTheDocument();
+
+    // Thoát Zen Mode bằng phím Escape
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(screen.getByTestId('artist-workspace-topbar')).toBeInTheDocument();
+    expect(screen.queryByTestId('zen-mode-pill')).not.toBeInTheDocument();
+  });
+
+  it('renders bottom filmstrip thumbnail navigator and zoom controls', () => {
+    renderView();
+
+    // Filmstrip navigator
+    expect(screen.getByTestId('filmstrip-container')).toBeInTheDocument();
+    expect(screen.getByTestId('filmstrip-page-btn-1')).toBeInTheDocument();
+    expect(screen.getByTestId('filmstrip-page-btn-2')).toBeInTheDocument();
+
+    // Zoom controls on canvas
+    expect(screen.getByTestId('canvas-zoom-controls')).toBeInTheDocument();
+  });
 });

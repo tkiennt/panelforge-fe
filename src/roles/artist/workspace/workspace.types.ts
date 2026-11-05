@@ -68,3 +68,20 @@ export interface BreadcrumbInfo {
   pageNumber: number;
   totalPages: number;
 }
+
+export interface CharacterModelSheet {
+  id: string;
+  name: string;
+  role: string;
+  avatarUrl?: string;
+  modelSheetUrl?: string;
+  palette: string[];
+  notes?: string;
+}
+
+export interface PageFilmstripItem {
+  pageNumber: number;
+  hasArtwork: boolean;
+  panelCount: number;
+  thumbnailUrl?: string;
+}

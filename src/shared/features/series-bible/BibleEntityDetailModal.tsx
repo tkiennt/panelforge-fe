@@ -1259,7 +1259,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                   <span className='font-bold text-xs sm:text-sm text-[#1C1917] truncate'>
                     {visualCardInfo.title}
                   </span>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${visualCardInfo.badgeStyle}`}>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-100 text-orange-800 border border-orange-200`}>
                     {visualCardInfo.badge}
                   </span>
                 </div>

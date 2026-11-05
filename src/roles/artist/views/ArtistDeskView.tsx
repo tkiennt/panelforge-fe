@@ -2394,6 +2394,10 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
 
   // Thêm Panel thủ công (POST /api/pages/{pageId}/panels)
   const handleCreatePanel = async () => {
+    if (pageArtUrl) {
+      showToast('Không thể thêm khung', 'Trang này đã tải lên bản vẽ hoàn chỉnh. Hãy xoá tranh nếu muốn chia khung.', 'error');
+      return;
+    }
     if (!selectedPage || !canEditPages) return;
     const pageWidth = selectedPage.widthPx || 1200;
     const pageHeight = selectedPage.heightPx || 1800;
@@ -3617,20 +3621,26 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
               <button
                 type='button'
                 aria-pressed={layoutEdit}
-                disabled={isCurrentPageCarvedOut}
+                disabled={isCurrentPageCarvedOut || Boolean(pageArtUrl)}
                 onClick={() => {
+                  if (pageArtUrl) {
+                    showToast('Không thể sửa bố cục', 'Trang này đã tải lên bản vẽ hoàn chỉnh. Hãy xoá tranh nếu muốn chia lại khung.', 'error');
+                    return;
+                  }
                   if (layoutEdit) setMultiIds([]);
                   setLayoutEdit((v) => !v);
                 }}
                 data-testid='toggle-layout-edit'
                 title={
-                  isCurrentPageCarvedOut
-                    ? 'Trang này đã được tách việc cho người khác, không thể sửa bố cục'
-                    : layoutEdit
-                      ? 'Tắt chế độ sửa bố cục'
-                      : 'Bật chế độ sửa bố cục khung'
+                  pageArtUrl
+                    ? 'Trang đã có bản vẽ hoàn thiện, không thể sửa bố cục khung'
+                    : isCurrentPageCarvedOut
+                      ? 'Trang này đã được tách việc cho người khác, không thể sửa bố cục'
+                      : layoutEdit
+                        ? 'Tắt chế độ sửa bố cục'
+                        : 'Bật chế độ sửa bố cục khung'
                 }
-                className={`${toolbarBtn} ${layoutEdit ? toolbarOn : toolbarIdle}`}
+                className={`${toolbarBtn} ${layoutEdit ? toolbarOn : toolbarIdle} ${pageArtUrl ? 'opacity-40 cursor-not-allowed' : ''}`}
               >
                 <Grid2x2 className='w-3.5 h-3.5' />
                 <span className='hidden lg:inline'>Sửa bố cục</span>
@@ -3641,10 +3651,21 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
             {canEditPages && (
               <button
                 type='button'
-                onClick={() => setFrameTemplateModalOpen(true)}
+                disabled={Boolean(pageArtUrl)}
+                onClick={() => {
+                  if (pageArtUrl) {
+                    showToast('Không thể chỉnh mẫu khung', 'Trang này đã tải lên bản vẽ hoàn chỉnh. Không thể áp dụng mẫu khung đè lên tranh.', 'error');
+                    return;
+                  }
+                  setFrameTemplateModalOpen(true);
+                }}
                 data-testid='toolbar-frame-template-btn'
-                title='Áp dụng mẫu khung tranh dựng sẵn vào trang'
-                className={`${toolbarBtn} ${toolbarIdle}`}
+                title={
+                  pageArtUrl
+                    ? 'Trang đã tải lên bản vẽ hoàn chỉnh, không thể chỉnh mẫu khung'
+                    : 'Áp dụng mẫu khung tranh dựng sẵn vào trang'
+                }
+                className={`${toolbarBtn} ${toolbarIdle} ${pageArtUrl ? 'opacity-40 cursor-not-allowed' : ''}`}
               >
                 <LayoutTemplate className='w-3.5 h-3.5 text-[#C2410C]' />
                 <span className='hidden lg:inline'>Mẫu Khung</span>
@@ -3652,7 +3673,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
               </button>
             )}
 
-            {canEditPages && panels.length > 0 && (
+            {canEditPages && panels.length > 0 && (!pageArtUrl) && (
               <button
                 type='button'
                 onClick={() => setShowPanelsOverlay((v) => !v)}
@@ -4198,133 +4219,54 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
             {activeTab === 'pages' && (
               <>
                 {canEditPages && (
-                  <div className='pb-2 mb-2 border-b border-[#E7E2D7] space-y-2'>
-                    {/* Segmented Control chuyển đổi dứt khoát 2 chế độ làm việc */}
-                    <div
-                      className='p-0.5 bg-[#EBE7DF] rounded-xl flex items-center'
-                      data-testid='left-pages-mode-segmented'
-                    >
+                  <div className='pb-2 mb-2 border-b border-[#E7E2D7]'>
+                    <div className='flex items-center gap-1.5'>
                       <button
                         type='button'
-                        onClick={() => setUploadMode('page')}
-                        data-testid='left-mode-page-btn'
-                        className={`flex-1 py-1.5 px-2 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer text-[11px] ${
-                          uploadMode === 'page'
-                            ? 'bg-white text-orange-600 font-bold shadow-2xs'
-                            : 'text-stone-600 hover:text-stone-900'
-                        }`}
-                        title='Chế độ 1: Tải một ảnh hoàn chỉnh cho cả trang (từ Clip Studio Paint, Photoshop)'
+                        onClick={() => setCreateModalOpen(true)}
+                        disabled={!currentChapterId}
+                        className='flex-1 px-3 py-2 text-xs font-bold rounded-lg bg-[#F97316] text-white hover:bg-[#EA580C] flex items-center justify-center gap-1.5 cursor-pointer shadow-xs transition-all active:scale-95 disabled:opacity-40'
+                        title='Tạo trang mới cho chương'
+                        data-testid='left-create-empty-page-btn'
                       >
-                        <FileImage className='w-3.5 h-3.5' />
-                        <span>Tải cả trang</span>
+                        <Plus className='w-3.5 h-3.5' />
+                        <span>Tạo trang mới</span>
                       </button>
                       <button
                         type='button'
-                        disabled={hasPanelOnlyAssignmentOnPage}
-                        onClick={() => setUploadMode('panel')}
-                        data-testid='left-mode-panel-btn'
-                        className={`flex-1 py-1.5 px-2 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer text-[11px] ${
-                          uploadMode === 'panel'
-                            ? 'bg-white text-orange-600 font-bold shadow-2xs'
-                            : 'text-stone-600 hover:text-stone-900'
-                        }`}
-                        title='Chế độ 2: Dựng mẫu khung truyện và tải tranh cho từng panel riêng lẻ'
+                        onClick={() => {
+                          setUploadModalDefaultTab('bulk');
+                          setUploadModalOpen(true);
+                        }}
+                        disabled={!currentChapterId}
+                        className='px-2.5 py-2 text-xs font-semibold rounded-lg bg-white hover:bg-[#FAF8F5] text-stone-700 hover:text-stone-900 border border-[#D8D2C5] flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all active:scale-95 disabled:opacity-40'
+                        title='Tải hàng loạt ảnh trang truyện'
+                        data-testid='left-bulk-upload-btn'
                       >
-                        <LayoutTemplate className='w-3.5 h-3.5' />
-                        <span>Dựng Template</span>
+                        <Layers className='w-3.5 h-3.5 text-stone-500' />
+                        <span>Hàng loạt</span>
+                      </button>
+                      <button
+                        type='button'
+                        onClick={() => {
+                          if (pageArtUrl) {
+                            showToast('Không thể chỉnh mẫu khung', 'Trang này đã tải lên bản vẽ hoàn chỉnh. Không thể chia khung đè lên tranh.', 'error');
+                            return;
+                          }
+                          setFrameTemplateModalOpen(true);
+                        }}
+                        disabled={!currentChapterId || Boolean(pageArtUrl)}
+                        className={`p-2 rounded-lg bg-white border border-[#D8D2C5] transition-all shadow-2xs ${
+                          pageArtUrl
+                            ? 'opacity-40 cursor-not-allowed text-stone-400'
+                            : 'hover:bg-[#FAF8F5] text-stone-700 hover:text-stone-900 cursor-pointer active:scale-95'
+                        }`}
+                        title={pageArtUrl ? 'Trang đã có bản vẽ hoàn chỉnh, không thể chỉnh mẫu khung' : 'Kho Mẫu Khung dựng sẵn'}
+                        data-testid='left-frame-template-btn'
+                      >
+                        <LayoutTemplate className='w-3.5 h-3.5 text-stone-600' />
                       </button>
                     </div>
-
-                    {/* Thanh hành động tương ứng theo Chế độ đã chọn */}
-                    {uploadMode === 'page' ? (
-                      /* Chế độ 1: Tải cả trang (Full-page) - KHÔNG CÓ BẤT KỲ NÚT CHỌN TEMPLATE NÀO */
-                      <div className='space-y-1.5'>
-                        <div className='flex items-center gap-1.5'>
-                          <button
-                            type='button'
-                            onClick={() => {
-                              setUploadModalDefaultTab('single');
-                              setUploadModalOpen(true);
-                            }}
-                            disabled={!currentChapterId}
-                            className='flex-1 px-2.5 py-1.5 text-[11px] font-bold rounded-lg bg-orange-600 hover:bg-orange-700 text-white flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs transition-all active:scale-95 disabled:opacity-40'
-                            title='Tải ảnh vẽ hoàn thiện cho trang này'
-                            data-testid='left-upload-page-btn'
-                          >
-                            <Upload className='w-3.5 h-3.5' />
-                            <span>Tải ảnh trang này</span>
-                          </button>
-                          <button
-                            type='button'
-                            onClick={() => {
-                              setUploadModalDefaultTab('bulk');
-                              setUploadModalOpen(true);
-                            }}
-                            disabled={!currentChapterId}
-                            className='px-2.5 py-1.5 text-[11px] font-semibold rounded-lg bg-stone-100 hover:bg-orange-50 text-stone-700 hover:text-orange-700 border border-stone-200 hover:border-orange-300 flex items-center gap-1 cursor-pointer transition-all active:scale-95 disabled:opacity-40'
-                            title='Tải hàng loạt trang vào chương'
-                            data-testid='left-bulk-upload-btn'
-                          >
-                            <Layers className='w-3 h-3 text-orange-600' />
-                            <span>Hàng loạt</span>
-                          </button>
-                          <button
-                            type='button'
-                            onClick={() => setCreateModalOpen(true)}
-                            disabled={!currentChapterId}
-                            className='p-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-200 cursor-pointer disabled:opacity-40'
-                            title='Tạo trang trống mới'
-                            data-testid='left-create-empty-page-btn'
-                          >
-                            <Plus className='w-3.5 h-3.5' />
-                          </button>
-                        </div>
-                        <p className='text-[10px] text-stone-500 italic leading-snug'>
-                          Dành cho hoạ sĩ vẽ ngoài: tải 1 file ảnh hoàn thiện (PNG/JPG) cho toàn bộ trang.
-                        </p>
-                      </div>
-                    ) : (
-                      /* Chế độ 2: Dựng Template & Up từng Panel */
-                      <div className='space-y-1.5'>
-                        <div className='flex items-center gap-1.5'>
-                          <button
-                            type='button'
-                            onClick={() => setFrameTemplateModalOpen(true)}
-                            disabled={!currentChapterId}
-                            className='flex-1 px-2.5 py-1.5 text-[11px] font-bold rounded-lg bg-orange-600 hover:bg-orange-700 text-white flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs transition-all active:scale-95 disabled:opacity-40'
-                            title='Kho Mẫu Khung dựng sẵn'
-                            data-testid='left-frame-template-btn'
-                          >
-                            <LayoutTemplate className='w-3.5 h-3.5' />
-                            <span>Kho Mẫu Khung</span>
-                          </button>
-                          <button
-                            type='button'
-                            onClick={handleCreatePanel}
-                            disabled={!currentChapterId}
-                            className='px-2.5 py-1.5 text-[11px] font-semibold rounded-lg bg-stone-100 hover:bg-orange-50 text-stone-700 hover:text-orange-700 border border-stone-200 hover:border-orange-300 flex items-center gap-1 cursor-pointer transition-all active:scale-95 disabled:opacity-40'
-                            title='Thêm 1 ô khung panel'
-                            data-testid='left-add-panel-btn'
-                          >
-                            <Square className='w-3 h-3 text-orange-600' />
-                            <span>+ Khung</span>
-                          </button>
-                          <button
-                            type='button'
-                            onClick={() => setCreateModalOpen(true)}
-                            disabled={!currentChapterId}
-                            className='p-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-200 cursor-pointer disabled:opacity-40'
-                            title='Tạo trang trống mới'
-                            data-testid='left-create-empty-page-btn'
-                          >
-                            <Plus className='w-3.5 h-3.5' />
-                          </button>
-                        </div>
-                        <p className='text-[10px] text-stone-500 italic leading-snug'>
-                          Dựng bố cục khung truyện và tải tranh cho từng panel riêng biệt.
-                        </p>
-                      </div>
-                    )}
                   </div>
                 )}
                 {pages.length === 0 ? (
@@ -4450,21 +4392,19 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                                 <span className='min-w-0 flex-1 space-y-1'>
                                   <span className='font-semibold text-[#1C1917] flex items-center justify-between gap-1'>
                                     <span className='text-xs font-bold'>Trang {p.pageNumber}</span>
-                                    {/* Trạng thái tiến độ theo Chế độ */}
-                                    {uploadMode === 'page' ? (
-                                      (isSel ? pageArtUrl : p.isContentReady) ? (
-                                        <span className='px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200/60 inline-flex items-center gap-1'>
-                                          <span className='w-1.5 h-1.5 rounded-full bg-emerald-500' />
-                                          <span>Bản vẽ v1</span>
-                                        </span>
-                                      ) : (
-                                        <span className='px-1.5 py-0.2 rounded bg-stone-100 text-stone-500 text-[10px] font-medium border border-stone-200'>
-                                          Chưa có ảnh
-                                        </span>
-                                      )
+                                    {/* Trạng thái tiến độ: Thông minh, không chồng chéo */}
+                                    {(isSel ? pageArtUrl : p.isContentReady) ? (
+                                      <span className='px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200/60 inline-flex items-center gap-1'>
+                                        <span className='w-1.5 h-1.5 rounded-full bg-emerald-500' />
+                                        <span>Bản vẽ v1</span>
+                                      </span>
+                                    ) : (isSel ? panels.length : ((p as any).panelsCount ?? 0)) > 0 ? (
+                                      <span className='px-1.5 py-0.2 rounded bg-amber-50 text-amber-800 text-[10px] font-bold border border-amber-200'>
+                                        {isSel ? `${panels.length} khung` : `${(p as any).panelsCount} khung`}
+                                      </span>
                                     ) : (
-                                      <span className='px-1.5 py-0.2 rounded bg-orange-50 text-orange-700 text-[10px] font-bold border border-orange-200/60'>
-                                        {isSel ? `${panels.length} khung` : `${(p as any).panelsCount ?? 0} khung`}
+                                      <span className='px-1.5 py-0.2 rounded bg-stone-100 text-stone-500 text-[10px] font-medium border border-stone-200'>
+                                        Chưa có ảnh
                                       </span>
                                     )}
                                     {isCarvedOut && (
@@ -5373,72 +5313,53 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                       {panels.length === 0 && canEditPages && !pageArtUrl && !pendingPagePreview && (
                         <div
                           data-testid='canvas-empty-panels-overlay'
-                          className='absolute inset-6 flex flex-col items-center justify-center p-6 text-center bg-stone-50/95 backdrop-blur-xs rounded-2xl border-2 border-dashed border-[#D8D2C5] z-10 space-y-3'
+                          className='absolute inset-6 flex flex-col items-center justify-center p-6 text-center bg-stone-50/95 backdrop-blur-xs rounded-2xl border-2 border-dashed border-[#D8D2C5] z-10 space-y-4'
                         >
-                          <div className='w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center text-[#F97316] shadow-2xs'>
-                            <Upload className='w-6 h-6' />
+                          <div className='w-14 h-14 rounded-2xl bg-orange-100/80 border border-orange-200/60 flex items-center justify-center text-[#F97316] shadow-2xs'>
+                            <Upload className='w-7 h-7' />
                           </div>
                           <div>
-                            <h4 className='font-bold text-sm text-[#1C1917]'>
-                              {uploadMode === 'page'
-                                ? 'Trang chưa có ảnh bản thảo hoàn chỉnh'
-                                : 'Trang chưa có khung tranh nào'}
-                            </h4>
+                            <h4 className='font-bold text-base text-[#1C1917]'>Trang chưa có bản thảo tranh vẽ</h4>
                             <p className='text-xs text-[#57534E] max-w-sm mt-1 leading-relaxed'>
-                              {uploadMode === 'page'
-                                ? 'Kéo thả file ảnh vẽ trang truyện hoàn chỉnh (từ Clip Studio Paint, Photoshop, SAI...) vào đây hoặc bấm nút bên dưới.'
-                                : 'Chọn mẫu khung dựng sẵn để bắt đầu bố cục và tải ảnh cho từng ô khung tranh (Panel).'}
+                              Tải lên ảnh vẽ hoàn thiện cho toàn bộ trang (từ Clip Studio Paint, Photoshop, SAI) hoặc chọn mẫu khung để chia nhiều ô truyện theo kịch bản.
                             </p>
                           </div>
-                          <div className='flex flex-wrap items-center justify-center gap-2 pt-1'>
-                            {uploadMode === 'page' ? (
-                              <>
-                                <button
-                                  type='button'
-                                  onClick={handleTriggerUploadPage}
-                                  data-testid='canvas-empty-upload-btn'
-                                  className='px-3.5 py-2 text-xs font-bold rounded-lg bg-[#F97316] text-white hover:bg-[#EA580C] flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors'
-                                >
-                                  <Upload className='w-4 h-4' />
-                                  <span>Tải Ảnh Trang Này</span>
-                                </button>
-                                <button
-                                  type='button'
-                                  onClick={() => {
-                                    setUploadModalDefaultTab('bulk');
-                                    setUploadModalOpen(true);
-                                  }}
-                                  data-testid='canvas-empty-bulk-upload-btn'
-                                  className='px-3.5 py-2 text-xs font-semibold rounded-lg bg-white border border-[#D8D2C5] text-[#1C1917] hover:bg-[#F3F0E9] flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors'
-                                >
-                                  <Layers className='w-4 h-4 text-stone-600' />
-                                  <span>Tải Hàng Loạt Trang</span>
-                                </button>
-                              </>
-                            ) : (
-                              <>
-                                <button
-                                  type='button'
-                                  onClick={() => setFrameTemplateModalOpen(true)}
-                                  data-testid='canvas-empty-template-btn'
-                                  className='px-3.5 py-2 text-xs font-bold rounded-lg bg-[#F97316] text-white hover:bg-[#EA580C] flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors'
-                                  title='Dành riêng cho hoạ sĩ muốn chia khung truyện trực tiếp trên phần mềm'
-                                >
-                                  <LayoutTemplate className='w-4 h-4' />
-                                  <span>Kho Mẫu Khung</span>
-                                </button>
-                                <button
-                                  type='button'
-                                  onClick={handleCreatePanel}
-                                  data-testid='canvas-empty-create-panel-btn'
-                                  className='px-3.5 py-2 text-xs font-medium rounded-lg bg-white border border-[#D8D2C5] text-[#1C1917] hover:bg-[#F3F0E9] flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors'
-                                >
-                                  <Square className='w-3.5 h-3.5 text-stone-500' />
-                                  <span>+ 1 Khung Toàn Trang</span>
-                                </button>
-                              </>
-                            )}
+                          <div className='flex flex-wrap items-center justify-center gap-3 pt-1'>
+                            <button
+                              type='button'
+                              onClick={handleTriggerUploadPage}
+                              data-testid='canvas-empty-upload-btn'
+                              className='px-4 py-2.5 text-xs font-bold rounded-lg bg-[#F97316] text-white hover:bg-[#EA580C] flex items-center gap-2 cursor-pointer shadow-xs transition-all active:scale-95'
+                            >
+                              <Upload className='w-4 h-4' />
+                              <span>Tải ảnh lên</span>
+                            </button>
+                            <button
+                              type='button'
+                              onClick={() => setFrameTemplateModalOpen(true)}
+                              data-testid='canvas-empty-template-btn'
+                              className='px-4 py-2.5 text-xs font-semibold rounded-lg bg-white border border-[#D8D2C5] text-[#1C1917] hover:bg-[#F3F0E9] flex items-center gap-2 cursor-pointer shadow-2xs transition-all active:scale-95'
+                              title='Chọn mẫu khung truyện'
+                            >
+                              <LayoutTemplate className='w-4 h-4 text-[#F97316]' />
+                              <span>Chọn Template</span>
+                            </button>
+                            <button
+                              type='button'
+                              onClick={() => {
+                                setUploadModalDefaultTab('bulk');
+                                setUploadModalOpen(true);
+                              }}
+                              data-testid='canvas-empty-bulk-upload-btn'
+                              className='px-3 py-2.5 text-xs font-medium rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 flex items-center gap-1.5 cursor-pointer transition-all active:scale-95'
+                            >
+                              <Layers className='w-3.5 h-3.5 text-stone-500' />
+                              <span>Tải hàng loạt</span>
+                            </button>
                           </div>
+                          <span className='text-[10px] text-stone-400 mt-1 flex items-center gap-1'>
+                            Hỗ trợ kéo thả ảnh trực tiếp hoặc dán nhanh bằng <kbd className='px-1 py-0.5 bg-stone-100 border border-stone-300 rounded font-mono text-[9px] text-stone-600'>Ctrl+V</kbd>
+                          </span>
                         </div>
                       )}
 

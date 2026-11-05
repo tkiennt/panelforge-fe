@@ -41,6 +41,7 @@ export const ArtistPageCanvas: React.FC<ArtistPageCanvasProps> = ({
 
   const [dragOverPanelNumber, setDragOverPanelNumber] = useState<number | null>(null);
   const [isFullCanvasDragOver, setIsFullCanvasDragOver] = useState(false);
+  const [zoomPercent, setZoomPercent] = useState<number>(100);
   const fileInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
   const singlePageFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -126,7 +127,11 @@ export const ArtistPageCanvas: React.FC<ArtistPageCanvasProps> = ({
       {/* Manga Page Viewport (Tỷ lệ B5 1200x1800) */}
       <div
         data-testid='manga-b5-viewport'
-        className='w-full max-w-[560px] aspect-[1200/1800] bg-[#FAF8F5] border-2 border-[#171717] rounded-sm shadow-xl relative overflow-hidden flex flex-col select-none transition-all'
+        style={{
+          transform: zoomPercent === 100 ? undefined : `scale(${zoomPercent / 100})`,
+          transformOrigin: 'center center',
+        }}
+        className='w-full max-w-[560px] aspect-[1200/1800] bg-[#FAF8F5] border-2 border-[#171717] rounded-sm shadow-xl relative overflow-hidden flex flex-col select-none transition-transform'
         onDragOver={(e) => {
           e.preventDefault();
           if (isSinglePanel) setIsFullCanvasDragOver(true);
@@ -399,6 +404,40 @@ export const ArtistPageCanvas: React.FC<ArtistPageCanvasProps> = ({
           </button>
         </div>
       )}
+
+      {/* Floating Zoom Controls Bar */}
+      <div
+        data-testid='canvas-zoom-controls'
+        className='absolute bottom-3 right-4 bg-white/90 backdrop-blur-xs border border-stone-200 rounded-full px-2.5 py-1 shadow-md flex items-center gap-1.5 text-xs z-30 select-none'
+      >
+        <button
+          type='button'
+          onClick={() => setZoomPercent((z) => Math.max(50, z - 15))}
+          className='w-5 h-5 flex items-center justify-center rounded hover:bg-stone-100 text-stone-600 font-bold cursor-pointer transition-colors'
+          title='Thu nhỏ'
+        >
+          -
+        </button>
+        <span className='font-mono font-semibold text-[11px] text-stone-700 min-w-[36px] text-center'>
+          {zoomPercent}%
+        </span>
+        <button
+          type='button'
+          onClick={() => setZoomPercent((z) => Math.min(175, z + 15))}
+          className='w-5 h-5 flex items-center justify-center rounded hover:bg-stone-100 text-stone-600 font-bold cursor-pointer transition-colors'
+          title='Phóng to'
+        >
+          +
+        </button>
+        <button
+          type='button'
+          onClick={() => setZoomPercent(100)}
+          className='text-[10px] text-stone-400 hover:text-stone-700 font-medium ml-1 pl-1.5 border-l border-stone-200 cursor-pointer transition-colors'
+          title='Khôi phục 100%'
+        >
+          100%
+        </button>
+      </div>
     </div>
   );
 };

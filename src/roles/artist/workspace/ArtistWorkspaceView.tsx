@@ -11,6 +11,10 @@ import {
   Sparkles,
   ArrowLeft,
   BookOpen,
+  Maximize2,
+  Minimize2,
+  Layers,
+  Eye,
 } from 'lucide-react';
 import { ScriptReaderColumn } from './ScriptReaderColumn';
 import { ArtistPageCanvas } from './ArtistPageCanvas';
@@ -76,11 +80,16 @@ export const ArtistWorkspaceView: React.FC<ArtistWorkspaceViewProps> = ({ worksp
   const [totalPages, setTotalPages] = useState(18);
   const [selectedPanelNumber, setSelectedPanelNumber] = useState<number | null>(1);
 
-  // 3. Trạng thái kịch bản phân cảnh
+  // 3. Trạng thái giao diện tinh gọn: Zen Mode, Gập Sidebar Trái, Dải Thumbnail Đáy
+  const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState(false);
+  const [isZenMode, setIsZenMode] = useState(false);
+  const [isFilmstripOpen, setIsFilmstripOpen] = useState(true);
+
+  // 4. Trạng thái kịch bản phân cảnh
   const [sceneTitle, setSceneTitle] = useState('Phân cảnh 1: Cổng Thành Phía Nam');
   const [sceneSlugline, setSceneSlugline] = useState('NGOẠI · CỔNG THÀNH · SÁNG');
 
-  // 4. Trạng thái nộp duyệt & Toast
+  // 5. Trạng thái nộp duyệt & Toast
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [toastMessage, setToastMessage] = useState<{
     title: string;
@@ -96,7 +105,43 @@ export const ArtistWorkspaceView: React.FC<ArtistWorkspaceViewProps> = ({ worksp
     []
   );
 
-  // 5. Kiểm tra Submission Gate Rule:
+  // 6. Keyboard Shortcuts System cho Artist
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        target &&
+        (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
+      ) {
+        return;
+      }
+
+      if (e.key === '[') {
+        e.preventDefault();
+        setIsLeftSidebarCollapsed((prev) => !prev);
+      } else if (e.key === 'f' || e.key === 'F') {
+        if (!e.ctrlKey && !e.metaKey && !e.altKey) {
+          e.preventDefault();
+          setIsZenMode((prev) => !prev);
+        }
+      } else if (e.key === 'Escape') {
+        if (isZenMode) {
+          setIsZenMode(false);
+        } else if (isTemplateSidebarOpen) {
+          setIsTemplateSidebarOpen(false);
+        }
+      } else if (e.key === 'ArrowLeft') {
+        setCurrentPageNumber((p) => Math.max(1, p - 1));
+      } else if (e.key === 'ArrowRight') {
+        setCurrentPageNumber((p) => Math.min(totalPages, p + 1));
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isZenMode, isTemplateSidebarOpen, totalPages]);
+
+  // 7. Kiểm tra Submission Gate Rule:
   // Trang hợp lệ để nộp duyệt khi:
   // - HOẶC trang có 1 ảnh full-page duy nhất (templateId === 'single-full' và panels[0]?.artwork?.imageUrl)
   // - HOẶC TẤT CẢ các panel trong multi-panel template đều đã có ảnh nạp vào
@@ -107,7 +152,7 @@ export const ArtistWorkspaceView: React.FC<ArtistWorkspaceViewProps> = ({ worksp
     return panels.length > 0 && panels.every((p) => Boolean(p.artwork?.imageUrl));
   }, [templateId, panels]);
 
-  // 6. Badge tiến độ trực quan trên Top Bar
+  // 8. Badge tiến độ trực quan trên Top Bar
   const progressBadge = useMemo(() => {
     if (templateId === 'single-full' || panels.length <= 1) {
       const hasArt = Boolean(panels[0]?.artwork?.imageUrl);
@@ -260,164 +305,243 @@ export const ArtistWorkspaceView: React.FC<ArtistWorkspaceViewProps> = ({ worksp
   return (
     <div
       data-testid='artist-workspace-root'
-      className='flex flex-col h-screen w-full bg-[#FAF8F5] text-[#1C1917] overflow-hidden select-none font-sans'
+      className='flex flex-col h-screen w-full bg-[#FAF8F5] text-[#1C1917] overflow-hidden select-none font-sans relative'
     >
       {/* =========================================================================
-          ZONE A: TOP BAR (Compact, Minimalist, Không còn Mode-Switcher tabs)
+          ZEN / FOCUS MODE OVERLAY PILL (Khi Zen Mode bật)
           ========================================================================= */}
-      <header
-        data-testid='artist-workspace-topbar'
-        className='h-14 border-b border-[#D8D2C5] bg-white px-4 sm:px-6 flex items-center justify-between shrink-0 z-30 shadow-2xs'
-      >
-        {/* Left: Nút quay lại & Breadcrumb */}
-        <div className='flex items-center gap-2 sm:gap-3 min-w-0'>
+      {isZenMode && (
+        <div
+          data-testid='zen-mode-pill'
+          className='absolute top-3 left-1/2 -translate-x-1/2 z-50 bg-stone-900/90 text-white backdrop-blur-md px-4 py-1.5 rounded-full shadow-xl flex items-center gap-3 text-xs border border-white/10 animate-in fade-in slide-in-from-top-2'
+        >
+          <span className='font-bold text-[#F97316] flex items-center gap-1.5'>
+            <Maximize2 className='w-3.5 h-3.5' /> Chế độ Zen
+          </span>
+          <span className='text-stone-300 font-mono'>
+            Trang {currentPageNumber} / {totalPages}
+          </span>
+          <span className='text-stone-500'>•</span>
           <button
             type='button'
-            onClick={() => navigate(-1)}
-            className='p-1.5 rounded-lg border border-[#D8D2C5] text-stone-600 hover:text-stone-900 hover:bg-[#FAF8F5] transition-colors cursor-pointer'
-            title='Quay lại'
+            onClick={() => setIsZenMode(false)}
+            className='text-stone-300 hover:text-white underline cursor-pointer text-xs font-semibold'
           >
-            <ArrowLeft className='w-4 h-4' />
-          </button>
-
-          <nav
-            aria-label='Breadcrumb'
-            data-testid='artist-breadcrumb'
-            className='flex items-center gap-1.5 text-xs text-[#57534E] truncate'
-          >
-            <span className='hidden sm:inline font-medium hover:text-[#1C1917] cursor-pointer'>
-              Studio
-            </span>
-            <ChevronRight className='w-3.5 h-3.5 text-stone-400 shrink-0 hidden sm:inline' />
-            <span className='hidden md:inline font-medium hover:text-[#1C1917] cursor-pointer'>
-              Series
-            </span>
-            <ChevronRight className='w-3.5 h-3.5 text-stone-400 shrink-0 hidden md:inline' />
-            <span className='font-semibold text-[#1C1917] truncate'>Chương 1</span>
-            <ChevronRight className='w-3.5 h-3.5 text-stone-400 shrink-0' />
-            <span className='font-bold text-[#F97316] bg-orange-50 px-2 py-0.5 rounded border border-orange-200/60 shrink-0'>
-              Trang {currentPageNumber}
-            </span>
-          </nav>
-
-          {/* Bộ chuyển trang mini */}
-          <div className='hidden lg:flex items-center gap-1 border-l border-stone-200 pl-3 ml-1'>
-            <button
-              type='button'
-              disabled={currentPageNumber <= 1}
-              onClick={() => setCurrentPageNumber((p) => Math.max(1, p - 1))}
-              className='p-1 rounded hover:bg-stone-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
-              title='Trang trước'
-            >
-              <ChevronLeft className='w-3.5 h-3.5' />
-            </button>
-            <span className='text-[11px] font-semibold text-stone-600 px-1'>
-              {currentPageNumber} / {totalPages}
-            </span>
-            <button
-              type='button'
-              disabled={currentPageNumber >= totalPages}
-              onClick={() => setCurrentPageNumber((p) => Math.min(totalPages, p + 1))}
-              className='p-1 rounded hover:bg-stone-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
-              title='Trang kế'
-            >
-              <ChevronRight className='w-3.5 h-3.5' />
-            </button>
-          </div>
-        </div>
-
-        {/* Center: Nút mở nhanh Mẫu Khung Trang */}
-        <div className='flex items-center gap-2'>
-          <button
-            type='button'
-            data-testid='topbar-open-template-btn'
-            onClick={() => setIsTemplateSidebarOpen(true)}
-            className='px-3 py-1.5 rounded-lg border border-[#D8D2C5] bg-[#FAF8F5] hover:bg-white text-xs font-semibold text-[#1C1917] flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors'
-            title='Mở danh sách mẫu khung truyện B5'
-          >
-            <LayoutTemplate className='w-3.5 h-3.5 text-[#F97316]' />
-            <span className='hidden sm:inline'>Mẫu khung</span>
-            <span className='text-[10px] text-stone-400 font-mono'>
-              ({templateId === 'single-full' ? '1 ô' : `${panels.length} ô`})
-            </span>
+            Thoát (Esc / F)
           </button>
         </div>
-
-        {/* Right: Progress Badge & Primary Action CTA */}
-        <div className='flex items-center gap-3 shrink-0'>
-          {/* Progress Badge */}
-          <div
-            data-testid='progress-badge'
-            className={`px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 border transition-colors ${
-              progressBadge.ready
-                ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                : 'bg-stone-100 text-stone-600 border-stone-200'
-            }`}
-          >
-            <CheckCircle2
-              className={`w-3.5 h-3.5 ${
-                progressBadge.ready ? 'text-emerald-600' : 'text-stone-400'
-              }`}
-            />
-            <span className='hidden sm:inline'>{progressBadge.label}</span>
-            <span className='sm:hidden font-mono'>{progressBadge.label.split(' ')[0]}</span>
-          </div>
-
-          {/* Primary Action CTA: Nộp bản thảo */}
-          <button
-            type='button'
-            data-testid='submit-review-btn'
-            onClick={handleSubmitForReview}
-            disabled={isSubmitting || !isSubmissionReady}
-            className={`px-4 py-2 rounded-lg font-bold text-xs flex items-center gap-2 transition-all shadow-xs ${
-              isSubmissionReady
-                ? 'bg-[#F97316] text-white hover:bg-[#EA580C] cursor-pointer active:scale-95'
-                : 'bg-stone-200 text-stone-400 cursor-not-allowed border border-stone-300/60'
-            }`}
-            title={
-              !isSubmissionReady
-                ? 'Cần nạp đủ tranh cho tất cả các khung trước khi nộp duyệt'
-                : 'Nộp bản thảo hoàn chỉnh cho Editor duyệt'
-            }
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className='w-4 h-4 animate-spin' />
-                <span>Đang nộp...</span>
-              </>
-            ) : (
-              <>
-                <Send className='w-3.5 h-3.5' />
-                <span>Nộp bản thảo</span>
-              </>
-            )}
-          </button>
-        </div>
-      </header>
+      )}
 
       {/* =========================================================================
-          MAIN 2-ZONE SPLIT: 35% Left (Script Reader) / 65% Right (Page Canvas)
+          ZONE A: TOP BAR (Compact, Minimalist, Không còn Mode-Switcher tabs)
+          Ẩn khi ở chế độ Zen Mode
+          ========================================================================= */}
+      {!isZenMode && (
+        <header
+          data-testid='artist-workspace-topbar'
+          className='h-14 border-b border-[#D8D2C5] bg-white px-4 sm:px-6 flex items-center justify-between shrink-0 z-30 shadow-2xs'
+        >
+          {/* Left: Nút quay lại & Breadcrumb */}
+          <div className='flex items-center gap-2 sm:gap-3 min-w-0'>
+            <button
+              type='button'
+              onClick={() => navigate(-1)}
+              className='p-1.5 rounded-lg border border-[#D8D2C5] text-stone-600 hover:text-stone-900 hover:bg-[#FAF8F5] transition-colors cursor-pointer'
+              title='Quay lại'
+            >
+              <ArrowLeft className='w-4 h-4' />
+            </button>
+
+            <nav
+              aria-label='Breadcrumb'
+              data-testid='artist-breadcrumb'
+              className='flex items-center gap-1.5 text-xs text-[#57534E] truncate'
+            >
+              <span className='hidden sm:inline font-medium hover:text-[#1C1917] cursor-pointer'>
+                Studio
+              </span>
+              <ChevronRight className='w-3.5 h-3.5 text-stone-400 shrink-0 hidden sm:inline' />
+              <span className='hidden md:inline font-medium hover:text-[#1C1917] cursor-pointer'>
+                Series
+              </span>
+              <ChevronRight className='w-3.5 h-3.5 text-stone-400 shrink-0 hidden md:inline' />
+              <span className='font-semibold text-[#1C1917] truncate'>Chương 1</span>
+              <ChevronRight className='w-3.5 h-3.5 text-stone-400 shrink-0' />
+              <span className='font-bold text-[#F97316] bg-orange-50 px-2 py-0.5 rounded border border-orange-200/60 shrink-0'>
+                Trang {currentPageNumber}
+              </span>
+            </nav>
+
+            {/* Bộ chuyển trang mini */}
+            <div className='hidden lg:flex items-center gap-1 border-l border-stone-200 pl-3 ml-1'>
+              <button
+                type='button'
+                disabled={currentPageNumber <= 1}
+                onClick={() => setCurrentPageNumber((p) => Math.max(1, p - 1))}
+                className='p-1 rounded hover:bg-stone-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
+                title='Trang trước (←)'
+              >
+                <ChevronLeft className='w-3.5 h-3.5' />
+              </button>
+              <span className='text-[11px] font-semibold text-stone-600 px-1'>
+                {currentPageNumber} / {totalPages}
+              </span>
+              <button
+                type='button'
+                disabled={currentPageNumber >= totalPages}
+                onClick={() => setCurrentPageNumber((p) => Math.min(totalPages, p + 1))}
+                className='p-1 rounded hover:bg-stone-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
+                title='Trang kế (→)'
+              >
+                <ChevronRight className='w-3.5 h-3.5' />
+              </button>
+            </div>
+          </div>
+
+          {/* Center: Nút mở Mẫu Khung & Chế độ xem */}
+          <div className='flex items-center gap-2'>
+            <button
+              type='button'
+              data-testid='topbar-open-template-btn'
+              onClick={() => setIsTemplateSidebarOpen(true)}
+              className='px-3 py-1.5 rounded-lg border border-[#D8D2C5] bg-[#FAF8F5] hover:bg-white text-xs font-semibold text-[#1C1917] flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors'
+              title='Mở danh sách mẫu khung truyện B5'
+            >
+              <LayoutTemplate className='w-3.5 h-3.5 text-[#F97316]' />
+              <span className='hidden sm:inline'>Mẫu khung</span>
+              <span className='text-[10px] text-stone-400 font-mono'>
+                ({templateId === 'single-full' ? '1 ô' : `${panels.length} ô`})
+              </span>
+            </button>
+
+            {/* Toggle Filmstrip */}
+            <button
+              type='button'
+              data-testid='topbar-toggle-filmstrip-btn'
+              onClick={() => setIsFilmstripOpen((prev) => !prev)}
+              className={`px-2.5 py-1.5 rounded-lg border text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer ${
+                isFilmstripOpen
+                  ? 'border-orange-200 bg-orange-50/50 text-[#F97316]'
+                  : 'border-[#D8D2C5] bg-[#FAF8F5] text-stone-600 hover:text-stone-900'
+              }`}
+              title='Ẩn/Hiện dải trang thumbnail'
+            >
+              <Layers className='w-3.5 h-3.5' />
+              <span className='hidden md:inline'>Dải trang</span>
+            </button>
+
+            {/* Zen Mode Button */}
+            <button
+              type='button'
+              data-testid='topbar-zen-mode-btn'
+              onClick={() => setIsZenMode(true)}
+              className='px-2.5 py-1.5 rounded-lg border border-[#D8D2C5] bg-[#FAF8F5] hover:bg-white text-stone-600 hover:text-stone-900 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer'
+              title='Bật chế độ toàn màn hình Zen Mode (Phím F)'
+            >
+              <Maximize2 className='w-3.5 h-3.5' />
+              <span className='hidden lg:inline'>Zen</span>
+            </button>
+          </div>
+
+          {/* Right: Progress Badge & Primary Action CTA */}
+          <div className='flex items-center gap-3 shrink-0'>
+            {/* Progress Badge */}
+            <div
+              data-testid='progress-badge'
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 border transition-colors ${
+                progressBadge.ready
+                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                  : 'bg-stone-100 text-stone-600 border-stone-200'
+              }`}
+            >
+              <CheckCircle2
+                className={`w-3.5 h-3.5 ${
+                  progressBadge.ready ? 'text-emerald-600' : 'text-stone-400'
+                }`}
+              />
+              <span className='hidden sm:inline'>{progressBadge.label}</span>
+              <span className='sm:hidden font-mono'>{progressBadge.label.split(' ')[0]}</span>
+            </div>
+
+            {/* Primary Action CTA: Nộp bản thảo */}
+            <button
+              type='button'
+              data-testid='submit-review-btn'
+              onClick={handleSubmitForReview}
+              disabled={isSubmitting || !isSubmissionReady}
+              className={`px-4 py-2 rounded-lg font-bold text-xs flex items-center gap-2 transition-all shadow-xs ${
+                isSubmissionReady
+                  ? 'bg-[#F97316] text-white hover:bg-[#EA580C] cursor-pointer active:scale-95'
+                  : 'bg-stone-200 text-stone-400 cursor-not-allowed border border-stone-300/60'
+              }`}
+              title={
+                !isSubmissionReady
+                  ? 'Cần nạp đủ tranh cho tất cả các khung trước khi nộp duyệt'
+                  : 'Nộp bản thảo hoàn chỉnh cho Editor duyệt'
+              }
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className='w-4 h-4 animate-spin' />
+                  <span>Đang nộp...</span>
+                </>
+              ) : (
+                <>
+                  <Send className='w-3.5 h-3.5' />
+                  <span>Nộp bản thảo</span>
+                </>
+              )}
+            </button>
+          </div>
+        </header>
+      )}
+
+      {/* =========================================================================
+          MAIN 2-ZONE SPLIT: Left (Script Reader) / Right (Page Canvas)
           ========================================================================= */}
       <main className='flex-1 flex overflow-hidden relative'>
-        {/* LEFT COLUMN (35% Width): Writer Script Reader (Read-Only) */}
-        <section
-          data-testid='script-reader-section'
-          className='w-full lg:w-[35%] max-w-[480px] border-r border-[#D8D2C5] bg-[#FAF8F5] flex flex-col shrink-0 h-full overflow-hidden'
-        >
-          <ScriptReaderColumn
-            sceneTitle={sceneTitle}
-            sceneSlugline={sceneSlugline}
-            panels={panels}
-            selectedPanelNumber={selectedPanelNumber}
-            onSelectPanel={(panelNumber) => setSelectedPanelNumber(panelNumber)}
-          />
-        </section>
+        {/* LEFT COLUMN: Writer Script Reader (Read-Only) */}
+        {!isZenMode && (
+          <section
+            data-testid='script-reader-section'
+            className={`border-r border-[#D8D2C5] bg-[#FAF8F5] flex flex-col shrink-0 h-full overflow-hidden transition-all duration-200 ${
+              isLeftSidebarCollapsed
+                ? 'w-0 border-r-0'
+                : 'w-full lg:w-[35%] max-w-[440px]'
+            }`}
+          >
+            {!isLeftSidebarCollapsed && (
+              <ScriptReaderColumn
+                sceneTitle={sceneTitle}
+                sceneSlugline={sceneSlugline}
+                panels={panels}
+                selectedPanelNumber={selectedPanelNumber}
+                onSelectPanel={(panelNumber) => setSelectedPanelNumber(panelNumber)}
+                onToggleCollapse={() => setIsLeftSidebarCollapsed(true)}
+              />
+            )}
+          </section>
+        )}
 
-        {/* RIGHT COLUMN (65% Width): Artist Page Canvas Viewport */}
+        {/* RIGHT COLUMN: Artist Page Canvas Viewport */}
         <section
           data-testid='canvas-workspace-section'
           className='flex-1 flex flex-col h-full overflow-hidden relative'
         >
+          {/* Floating Re-open Sidebar Button (Khi cột trái bị thu gọn) */}
+          {isLeftSidebarCollapsed && !isZenMode && (
+            <button
+              type='button'
+              data-testid='expand-left-sidebar-btn'
+              onClick={() => setIsLeftSidebarCollapsed(false)}
+              className='absolute top-4 left-4 z-20 px-3 py-1.5 rounded-lg bg-white/90 backdrop-blur-xs border border-stone-200 shadow-md text-xs font-semibold text-stone-700 hover:text-stone-900 flex items-center gap-1.5 cursor-pointer transition-all hover:scale-105'
+              title='Mở lại thanh Tham chiếu kịch bản & nhân vật (Phím [)'
+            >
+              <BookOpen className='w-3.5 h-3.5 text-[#F97316]' />
+              <span>Tham chiếu (Phím [)</span>
+            </button>
+          )}
+
           <ArtistPageCanvas
             pageNumber={currentPageNumber}
             templateId={templateId}
@@ -439,6 +563,63 @@ export const ArtistWorkspaceView: React.FC<ArtistWorkspaceViewProps> = ({ worksp
           onSelectTemplate={handleSelectTemplate}
         />
       </main>
+
+      {/* =========================================================================
+          BOTTOM ZONE: FILMSTRIP DẢI TRANG MINI (Thumbnail Strip)
+          ========================================================================= */}
+      {isFilmstripOpen && !isZenMode && (
+        <footer
+          data-testid='filmstrip-container'
+          className='h-18 bg-white border-t border-[#D8D2C5] px-4 py-2 flex items-center gap-2 overflow-x-auto shrink-0 select-none z-20'
+        >
+          <div className='flex items-center gap-1.5 mr-2 shrink-0 border-r border-stone-200 pr-3'>
+            <Layers className='w-4 h-4 text-[#F97316]' />
+            <span className='text-[11px] font-bold uppercase tracking-wider text-stone-500'>
+              Dải trang ({totalPages})
+            </span>
+          </div>
+
+          <div className='flex items-center gap-1.5 overflow-x-auto custom-scrollbar py-0.5'>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => {
+              const isActive = pageNum === currentPageNumber;
+              const isPopulated = pageNum === 1 ? isSubmissionReady : false;
+
+              return (
+                <button
+                  key={pageNum}
+                  type='button'
+                  data-testid={`filmstrip-page-btn-${pageNum}`}
+                  onClick={() => setCurrentPageNumber(pageNum)}
+                  className={`w-13 h-13 rounded-lg border flex flex-col items-center justify-between p-1 transition-all cursor-pointer shrink-0 ${
+                    isActive
+                      ? 'border-[#F97316] bg-orange-50/80 shadow-xs ring-2 ring-[#F97316]/30'
+                      : 'border-stone-200 bg-[#FAF8F5] hover:bg-stone-100 hover:border-stone-300'
+                  }`}
+                  title={`Trang ${pageNum} (${isPopulated ? 'Đã nạp bản vẽ' : 'Chưa có bản vẽ'})`}
+                >
+                  <div className='flex items-center justify-between w-full px-0.5'>
+                    <span
+                      className={`text-[9px] font-bold font-mono ${
+                        isActive ? 'text-[#F97316]' : 'text-stone-700'
+                      }`}
+                    >
+                      P.{pageNum}
+                    </span>
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full ${
+                        isPopulated ? 'bg-emerald-500' : 'bg-stone-300'
+                      }`}
+                    />
+                  </div>
+                  <span className='text-[8px] text-stone-400 font-mono'>
+                    {isPopulated ? 'Sẵn sàng' : 'Trống'}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </footer>
+      )}
 
       {/* Toast Notification */}
       {toastMessage && (
