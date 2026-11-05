@@ -3547,7 +3547,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
 
   return (
     <div
-      className='flex-1 basis-0 min-h-0 w-full flex flex-col bg-[#F3F0E9] p-2 gap-2 overflow-hidden'
+      className='flex-1 flex flex-col bg-[#F3F0E9] h-[calc(100vh-64px)] max-h-[calc(100vh-64px)] w-full p-2 gap-2 overflow-hidden'
       data-testid='artist-desk'
     >
       {/* Global High-Z-Index Toast Portal */}
@@ -3589,7 +3589,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
           +-------------------------------------------------------------------------------------------------------+
          ========================================================================================= */}
       <header
-        className='shrink-0 relative z-30 bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl px-2.5 py-1.5 flex items-center justify-between gap-2 min-w-0 overflow-x-auto no-scrollbar shadow-2xs'
+        className='shrink-0 sticky top-0 z-40 bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl px-2.5 py-1.5 flex items-center justify-between gap-2 min-w-0 shadow-2xs'
         role='toolbar'
         aria-label='Thanh điều khiển bàn làm việc Artist'
         data-testid='artist-main-toolbar'
@@ -3632,7 +3632,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
               <div
                 role='menu'
                 aria-label='Danh sách chọn chương'
-                className='absolute left-0 top-full mt-1.5 w-64 bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl shadow-xl py-1 z-50 max-h-72 overflow-y-auto custom-scrollbar'
+                className='absolute left-0 top-full mt-1.5 w-64 bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl shadow-2xl ring-1 ring-black/5 py-1 z-50 max-h-72 overflow-y-auto custom-scrollbar'
               >
                 <div className='px-3 py-1.5 text-[10px] font-bold text-stone-400 uppercase tracking-wider border-b border-[#E5E0D8] flex items-center justify-between'>
                   <span>Danh sách chương</span>
@@ -3715,7 +3715,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
 
               {pageSwitcherOpen && (
                 <div
-                  className='absolute left-0 top-full mt-1.5 w-60 bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl shadow-xl py-1 z-50 max-h-72 overflow-y-auto custom-scrollbar'
+                  className='absolute left-0 top-full mt-1.5 w-60 bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl shadow-2xl ring-1 ring-black/5 py-1 z-50 max-h-72 overflow-y-auto custom-scrollbar'
                   role='menu'
                   aria-label='Danh sách chọn trang'
                 >
