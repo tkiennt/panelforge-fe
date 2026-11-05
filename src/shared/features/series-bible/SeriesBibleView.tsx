@@ -3418,8 +3418,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
 
               <div className='p-5 overflow-y-auto space-y-4 flex-1 custom-scrollbar'>
                 <div className='text-xs text-zinc-500 bg-zinc-50 p-2.5 rounded-lg border border-zinc-200 leading-relaxed'>
-                  Dữ liệu lưu trữ bất biến (Append-only). Mỗi thay đổi tạo một phiên bản gắn với mốc
-                  chương có hiệu lực và mã băm toàn vẹn dữ liệu.
+                  Toàn bộ lịch sử chỉnh sửa thiết kế được lưu giữ đầy đủ theo từng mốc chương, đảm bảo tính nhất quán và bảo toàn tiến trình sáng tác.
                 </div>
 
                 {loadingHistory ? (
@@ -3602,10 +3601,11 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                                           </span>
                                           {evt.eventHash && (
                                             <span
-                                              className='text-[9px] font-mono text-zinc-400'
-                                              title={evt.eventHash}
+                                              className='text-[10px] text-emerald-600 font-medium flex items-center gap-0.5'
+                                              title='Phiên bản đã được lưu vết an toàn'
                                             >
-                                              SHA-256: {evt.eventHash.substring(0, 8)}...
+                                              <ShieldCheck className='w-3 h-3' />
+                                              Đã chứng thực
                                             </span>
                                           )}
                                         </div>

@@ -111,11 +111,11 @@ export const AIProvenanceModal: React.FC<ModalProps> = ({ isOpen, onClose }) => 
                 này.
               </p>
               <div className='mt-3 flex gap-2'>
-                <span className='px-2 py-1 bg-white border border-[#DDD6FE] text-[#8B5CF6] text-xs font-bold rounded uppercase'>
-                  Data Privacy: ENTERPRISE
+                <span className='px-2.5 py-1 bg-white border border-[#DDD6FE] text-[#8B5CF6] text-xs font-semibold rounded'>
+                  Bảo mật: Tiêu chuẩn Studio
                 </span>
-                <span className='px-2 py-1 bg-white border border-[#DDD6FE] text-[#8B5CF6] text-xs font-bold rounded uppercase'>
-                  Training: OPT-OUT
+                <span className='px-2.5 py-1 bg-white border border-[#DDD6FE] text-[#8B5CF6] text-xs font-semibold rounded'>
+                  Huấn luyện dữ liệu: Đã tắt
                 </span>
               </div>
             </div>
@@ -167,8 +167,7 @@ export const AIProvenanceModal: React.FC<ModalProps> = ({ isOpen, onClose }) => 
           <div className='flex items-center gap-2 p-3 bg-[#F8F6F0] rounded-lg text-[#737373] text-xs'>
             <Lock className='w-4 h-4 shrink-0' />
             <p>
-              Dữ liệu truy vết này là bất biến (immutable) và được ký số (cryptographically signed)
-              để đảm bảo tính minh bạch bản quyền.
+              Nhật ký hỗ trợ sáng tác này được lưu vết bảo toàn nhằm bảo vệ tính minh bạch và bản quyền tác phẩm.
             </p>
           </div>
         </div>

@@ -440,10 +440,9 @@ export const PreviewLinksModal: React.FC<PreviewLinksModalProps> = ({
                     </button>
                   </div>
 
-                  <div className='text-xs text-amber-800 bg-amber-100/60 p-2 rounded-lg border border-amber-200/80'>
-                    ⚠️ <strong>Cảnh báo bảo mật:</strong> Token liên kết chỉ hiển thị một lần duy
-                    nhất trên giao diện (máy chủ chỉ lưu mã băm SHA-256). Vui lòng sao chép và gửi
-                    cho người nhận ngay bây giờ.
+                  <div className='text-xs text-amber-800 bg-amber-100/60 p-2.5 rounded-lg border border-amber-200/80'>
+                    ⚠️ <strong>Lưu ý bảo mật:</strong> Liên kết xem thử này chỉ hiển thị một lần duy
+                    nhất trên giao diện. Vui lòng sao chép và gửi cho người nhận ngay bây giờ.
                   </div>
                 </div>
               )}

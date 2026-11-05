@@ -28,6 +28,7 @@ import {
   FileText,
   Edit3,
   Trash2,
+  ShieldCheck,
 } from 'lucide-react';
 import { BibleEntity, normalizeWorkspaceRole } from '@/types';
 import { BibleEntryDto, BibleEntryRevisionDto, bibleService } from '@/services/bible.service';
@@ -920,15 +921,19 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
     return 'bg-stone-50 text-stone-700 border-stone-200';
   };
 
-  // Helper for technical hash detail collapsible section
+  // Helper for content integrity & copyright verification section
   const renderTechCollapsible = () => (
     <div className='pt-2 border-t border-zinc-200/70'>
       <button
         type='button'
         onClick={() => setTechOpen((v) => !v)}
+        aria-label='Chứng thực bản quyền & Toàn vẹn nội dung'
         className='w-full flex items-center justify-between text-xs text-zinc-500 hover:text-zinc-800 transition-colors py-1 cursor-pointer font-medium'
       >
-        <span>Chi tiết kỹ thuật &amp; Mã băm</span>
+        <span className='flex items-center gap-1.5'>
+          <ShieldCheck className='w-3.5 h-3.5 text-emerald-600' />
+          <span>Chứng thực bản quyền &amp; Toàn vẹn</span>
+        </span>
         <ChevronDown
           className={`w-3.5 h-3.5 transition-transform ${techOpen ? 'rotate-180' : ''}`}
         />
@@ -937,14 +942,17 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
       {techOpen && (
         <div className='mt-2.5 space-y-2 text-xs pt-1'>
           {activeRevision?.contentHash ? (
-            <div className='p-2.5 bg-white rounded-lg border border-zinc-200 space-y-1'>
+            <div className='p-2.5 bg-emerald-50/50 rounded-lg border border-emerald-200/60 space-y-1.5'>
               <div className='flex items-center justify-between'>
-                <span className='text-zinc-600 font-medium'>Mã băm nội dung (Hash):</span>
+                <span className='text-emerald-800 font-semibold flex items-center gap-1'>
+                  <CheckCircle2 className='w-3.5 h-3.5 text-emerald-600' />
+                  Bản gốc đã được bảo chứng toàn vẹn
+                </span>
                 <button
                   type='button'
                   onClick={() => handleCopyHash(activeRevision.contentHash)}
-                  className='inline-flex items-center gap-1 text-xs text-[#F97316] hover:underline font-medium cursor-pointer'
-                  title='Sao chép mã băm'
+                  className='inline-flex items-center gap-1 text-xs text-emerald-700 hover:underline font-medium cursor-pointer'
+                  title='Sao chép mã chứng thực'
                 >
                   {copiedHash ? (
                     <>
@@ -954,20 +962,20 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                   ) : (
                     <>
                       <Copy className='w-3 h-3' />
-                      <span>Sao chép</span>
+                      <span>Sao chép mã</span>
                     </>
                   )}
                 </button>
               </div>
-              <div className='font-mono text-xs sm:text-xs text-zinc-700 break-all select-all bg-zinc-50 p-2 rounded border border-zinc-200/60 leading-tight'>
-                {activeRevision.contentHash}
+              <div className='text-[11px] text-zinc-600 font-sans'>
+                Mã bảo chứng: <span className='font-mono font-medium text-zinc-800'>{activeRevision.contentHash.slice(0, 16)}…</span>
               </div>
             </div>
           ) : null}
 
           <div className='flex items-center justify-between text-xs text-zinc-500 px-1'>
-            <span>Mã định danh hệ thống (ID):</span>
-            <span className='font-mono text-zinc-700 select-all'>{entity.id}</span>
+            <span>Mã lưu trữ thực thể:</span>
+            <span className='font-mono text-zinc-700 select-all'>#{entity.id.slice(0, 8)}</span>
           </div>
         </div>
       )}

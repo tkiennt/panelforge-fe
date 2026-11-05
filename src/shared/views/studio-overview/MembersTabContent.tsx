@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Mail, Key, Edit3, Trash2 } from 'lucide-react';
+import { Search, Mail, Key, Edit3, Trash2, ShieldCheck } from 'lucide-react';
 
 const ROLE_BADGE_STYLE: Record<string, string> = {
   PRODUCER: 'bg-purple-50 text-purple-700 border-purple-200',
@@ -137,11 +137,11 @@ export const MembersTabContent: React.FC<MembersTabContentProps> = ({
                         </span>
                       )}
                       <span
-                        className='inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-mono font-medium'
-                        title='Khóa chữ ký số mật mã ECDSA P-256 đang hoạt động'
+                        className='inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-medium'
+                        title='Tài khoản thành viên đã được kích hoạt chữ ký bản quyền'
                       >
-                        <Key className='w-3 h-3 text-emerald-600' />
-                        <span>ECDSA P-256</span>
+                        <ShieldCheck className='w-3 h-3 text-emerald-600' />
+                        <span>Chữ ký xác thực</span>
                       </span>
                       <span className='flex items-center gap-1 text-xs font-medium'>
                         {member.isEmailConfirmed === false ? (

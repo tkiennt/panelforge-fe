@@ -191,23 +191,23 @@ describe('BibleEntityDetailModal UX/UI', () => {
     render(<BibleEntityDetailModal {...defaultProps} />);
 
     const toggleTechBtn = screen.getByRole('button', {
-      name: /Chi tiết kỹ thuật & Mã băm/i,
+      name: /Chứng thực bản quyền & Toàn vẹn/i,
     });
     expect(toggleTechBtn).toBeInTheDocument();
 
     // Hash not visible yet
     expect(
-      screen.queryByText('e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'),
+      screen.queryByText(/Bản gốc đã được bảo chứng toàn vẹn/i),
     ).not.toBeInTheDocument();
 
     // Expand
     fireEvent.click(toggleTechBtn);
 
     expect(
-      screen.getByText('e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'),
+      screen.getByText(/Bản gốc đã được bảo chứng toàn vẹn/i),
     ).toBeInTheDocument();
 
-    const copyBtn = screen.getByRole('button', { name: /Sao chép/i });
+    const copyBtn = screen.getByRole('button', { name: /Sao chép mã/i });
     fireEvent.click(copyBtn);
 
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith(

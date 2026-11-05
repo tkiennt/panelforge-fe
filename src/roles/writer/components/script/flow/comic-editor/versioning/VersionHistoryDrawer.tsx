@@ -91,7 +91,7 @@ export const VersionHistoryDrawer: React.FC<VersionHistoryDrawerProps> = ({
             <div>
               <h2 className="text-base font-bold text-slate-900">Lịch sử phiên bản kịch bản</h2>
               <p className="text-xs text-slate-500">
-                Toàn bộ bản snapshot bất biến & vòng đời duyệt (v1.0 → v2.0)
+                Lịch sử các mốc lưu và tiến trình phê duyệt kịch bản (v1.0 → v2.0)
               </p>
             </div>
           </div>
