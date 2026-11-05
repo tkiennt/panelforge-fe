@@ -44,6 +44,9 @@ const AdminDashboard = lazy(() =>
 const ArtistDeskView = lazy(() =>
   import('@/roles/artist/views/ArtistDeskView').then((m) => ({ default: m.ArtistDeskView })),
 );
+const ArtistWorkspaceView = lazy(() =>
+  import('@/roles/artist/workspace/ArtistWorkspaceView').then((m) => ({ default: m.ArtistWorkspaceView })),
+);
 const ReviewView = lazy(() =>
   import('@/roles/editor/views/ReviewView').then((m) => ({ default: m.ReviewView })),
 );
@@ -460,6 +463,10 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                 <Route
                   path='artist'
                   element={<ArtistDeskView workspaceRole={currentWorkspaceRole} />}
+                />
+                <Route
+                  path='artist/workspace'
+                  element={<ArtistWorkspaceView workspaceRole={currentWorkspaceRole} />}
                 />
                 <Route path='letterer' element={<LettererDeskView />} />
                 <Route path='export' element={<ExportView onShowToast={showToast} />} />
