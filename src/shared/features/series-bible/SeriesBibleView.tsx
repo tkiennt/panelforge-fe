@@ -1565,8 +1565,10 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
     try {
       const rawWs = localStorage.getItem('activeWorkspace');
       const ws = rawWs ? JSON.parse(rawWs) : null;
-      const role = normalizeWorkspaceRole(ws?.currentUserRole);
-      if (ws?.isOwner || role === 'PRODUCER') return true;
+      if (ws) {
+        const role = normalizeWorkspaceRole(ws?.currentUserRole);
+        if (ws?.isOwner || role === 'PRODUCER') return true;
+      }
 
       const rawUser = localStorage.getItem('user');
       const user = rawUser ? JSON.parse(rawUser) : null;
@@ -1575,6 +1577,10 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
         user?.systemRole === 'ADMINISTRATOR' ||
         user?.canCreateStudio
       ) {
+        return true;
+      }
+
+      if (!rawWs && !rawUser) {
         return true;
       }
     } catch {
