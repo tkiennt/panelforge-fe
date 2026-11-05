@@ -1730,22 +1730,28 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
     const nextStage = sortedStages.find((s) => s.stageOrder > stage.stageOrder);
     const nextStageName = nextStage?.name ?? 'giai đoạn tiếp theo';
 
+    const isLettering = slug.includes('letter') || stage.allowedRole === 'Letterer';
+
     const title = isPencil
       ? 'Internal Handoff: Bàn giao tự động Pencil ➔ Ink'
       : isInk
         ? 'Chuyển giao sang Lettering (Ink ➔ Lettering)'
-        : `Nộp hoàn tất công đoạn ${stage.name}`;
+        : isLettering
+          ? 'Gate 2 (Quality & Composite Gate): Nộp duyệt bản thảo'
+          : `Nộp hoàn tất công đoạn ${stage.name}`;
 
     const description = isPencil
       ? 'Không bắt Editor duyệt nét chì. Khi nộp, hệ thống sẽ tự động hoàn tất và mở việc Ink để bạn tiếp tục hoàn thiện liên tục không bị gián đoạn. Xác nhận bàn giao?'
       : isInk
         ? `Ngay khi bản vẽ Ink hoàn thành, hệ thống sẽ tự động mở task cho Letterer ráp bóng thoại và hiệu ứng âm thanh (SFX) dựa trên kịch bản đã khóa. Xác nhận chuyển giao sang ${nextStageName}?`
-        : `Xác nhận hoàn thành ${stage.name} và cho phép chuyển sang ${nextStageName}?`;
+        : isLettering
+          ? 'Nộp bản thảo hoàn chỉnh cho Editor kiểm tra trang hoàn thiện tổng thể (bao gồm nét vẽ, vị trí bóng thoại, độ dễ đọc, ngắt dòng tiếng Việt) ở Gate 2. Bắt lỗi trực quan trong bối cảnh hoàn chỉnh thay vì xem xét các thành phần rời rạc. Xác nhận nộp duyệt Gate 2?'
+          : `Xác nhận hoàn thành ${stage.name} và cho phép chuyển sang ${nextStageName}?`;
 
     const confirmed = await confirm({
       title,
       description,
-      confirmText: isPencil ? 'Bàn giao sang Ink ➔' : isInk ? 'Chuyển giao Lettering ➔' : 'Xác nhận nộp ➔',
+      confirmText: isPencil ? 'Bàn giao sang Ink ➔' : isInk ? 'Chuyển giao Lettering ➔' : isLettering ? 'Nộp duyệt Gate 2 ➔' : 'Xác nhận nộp ➔',
       cancelText: 'Quay lại',
       variant: 'info',
     });
@@ -1767,6 +1773,12 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
         showToast(
           'Chuyển giao Lettering thành công!',
           'Bản vẽ Ink hoàn thành. Hệ thống đã tự động mở task cho Letterer ráp bóng thoại & SFX dựa trên kịch bản khóa.',
+          'success',
+        );
+      } else if (isLettering) {
+        showToast(
+          'Nộp duyệt Gate 2 thành công!',
+          'Bản thảo hoàn thiện đã được gửi tới Editor để thẩm định chất lượng tổng thể trang (nét vẽ, bóng thoại, SFX và ngắt dòng tiếng Việt).',
           'success',
         );
       } else {
