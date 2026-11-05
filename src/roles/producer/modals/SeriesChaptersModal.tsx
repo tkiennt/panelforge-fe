@@ -32,7 +32,6 @@ import {
   CreateChapterRequest,
   UpdateChapterRequest,
 } from '@/services/chapter.service';
-import { assignmentService } from '@/services/assignment.service';
 import { ChapterAssignmentsModal } from './ChapterAssignmentsModal';
 import { ChapterReviewsModal } from '@/shared/modals/ChapterReviewsModal';
 import { ChapterProvenanceModal } from '@/shared/features/provenance/ChapterProvenanceModal';
@@ -277,39 +276,10 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
           const blocking = gate.items.filter((i) => i.blocking);
           const msg =
             blocking.map((b) => b.message).join('; ') ||
-            'Chương chưa hoàn thành đủ các điều kiện phê duyệt.';
-          
-          const shouldFastPass = await confirm({
-            title: `Chương ${chap.chapterNumber} còn điều kiện chưa đóng`,
-            description: `${msg}\n\nBạn có muốn tự động hoàn tất các tác vụ còn lại để Producer phê duyệt nghiệm thu chương ngay không? (Demo Fast-Pass)`,
-            confirmText: 'Duyệt nhanh & Nghiệm thu (Demo)',
-            cancelText: 'Hủy xem lại',
-            variant: 'warning',
-          });
-
-          if (!shouldFastPass) {
-            setActionLoading(false);
-            return;
-          }
-
-          // Demo Fast-pass: tự động approve các assignment còn lại
-          try {
-            const allAssignments = await assignmentService.getAssignments(chap.id);
-            for (const a of allAssignments) {
-              if (a.status !== 'Approved') {
-                try {
-                  if (String(a.status) === 'Submitted') {
-                    await assignmentService.openReview(chap.id, a.id).catch(() => {});
-                  }
-                  await assignmentService.approveAssignment(chap.id, a.id).catch(() => {});
-                } catch {
-                  /* ignore */
-                }
-              }
-            }
-          } catch (autoErr) {
-            console.warn('Fast-pass assignment error:', autoErr);
-          }
+            'Chương chưa hoàn thành đủ các điều kiện phê duyệt (còn công đoạn chờ Editor thẩm định).';
+          onShowToast?.('Chưa đủ điều kiện duyệt chương', msg);
+          setActionLoading(false);
+          return;
         }
       } catch (gateErr) {
         console.warn('Lỗi kiểm tra lock-gate:', gateErr);
