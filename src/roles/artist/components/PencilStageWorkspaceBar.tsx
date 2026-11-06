@@ -51,7 +51,7 @@ export const PencilStageWorkspaceBar: React.FC<Props> = ({
   return (
     <div
       data-testid='pencil-stage-workspace-bar'
-      className='bg-[#FCFBF8] border-b border-[#E8E3D8] px-3 py-1 flex items-center justify-between gap-2 shadow-2xs text-xs overflow-x-auto no-scrollbar'
+      className='bg-[#FCFBF8] border-b border-[#E8E3D8] px-3 py-0.5 min-h-[30px] h-[30px] flex items-center justify-between gap-2 shadow-2xs text-[11px] overflow-x-auto no-scrollbar select-none'
     >
       {/* Khối công cụ Pencil tinh gọn */}
       <div className='flex items-center gap-2 shrink-0'>
@@ -208,7 +208,7 @@ export const PencilStageWorkspaceBar: React.FC<Props> = ({
         onClick={onHandoffToInk}
         disabled={isSubmitting}
         title='Bàn giao nét chì sang Ink: Hoàn tất nội bộ, không qua duyệt Editor'
-        className='flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-bold shadow-2xs cursor-pointer transition-all active:scale-95 disabled:opacity-50 shrink-0 ml-auto'
+        className='flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-[#F97316] hover:bg-[#EA580C] text-white text-[11px] font-bold shadow-2xs cursor-pointer transition-all active:scale-95 disabled:opacity-50 shrink-0 ml-auto'
       >
         <span>Bàn giao sang Inking</span>
         <ArrowRight className='w-3 h-3' />

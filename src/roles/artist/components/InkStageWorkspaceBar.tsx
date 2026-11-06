@@ -78,7 +78,7 @@ export const InkStageWorkspaceBar: React.FC<Props> = ({
   return (
     <div
       data-testid='ink-stage-workspace-bar'
-      className='bg-[#FCFBF8] border-b border-[#E8E3D8] px-3 py-1 flex items-center justify-between gap-2 shadow-2xs text-xs overflow-x-auto no-scrollbar'
+      className='bg-[#FCFBF8] border-b border-[#E8E3D8] px-3 py-0.5 min-h-[30px] h-[30px] flex items-center justify-between gap-2 shadow-2xs text-[11px] overflow-x-auto no-scrollbar select-none'
     >
       {/* Khối công cụ Ink tinh gọn */}
       <div className='flex items-center gap-2 shrink-0'>
@@ -283,7 +283,7 @@ export const InkStageWorkspaceBar: React.FC<Props> = ({
         onClick={onHandoffToLettering}
         disabled={isSubmitting}
         title='Hoàn tất nét mực và mở việc ráp thoại cho Letterer'
-        className='flex items-center gap-1.5 px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-2xs cursor-pointer transition-all active:scale-95 disabled:opacity-50 shrink-0 ml-auto'
+        className='flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold shadow-2xs cursor-pointer transition-all active:scale-95 disabled:opacity-50 shrink-0 ml-auto'
       >
         <span>Hoàn tất nét ➔ Lettering</span>
         <ArrowRight className='w-3 h-3' />

@@ -91,7 +91,7 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
   return (
     <header
       data-testid='global-pipeline-header'
-      className='bg-[#FCFBF8] border-b border-[#D8D2C5] px-3 py-1.5 flex items-center justify-between gap-2 shrink-0 select-none shadow-2xs'
+      className='bg-[#FCFBF8] border-b border-[#D8D2C5] px-3 py-1 min-h-[38px] h-[38px] flex items-center justify-between gap-2 shrink-0 select-none shadow-2xs'
     >
       {/* 1. KHỐI TRÁI: ĐIỀU HƯỚNG CHƯƠNG & TRANG */}
       <div className='flex items-center gap-2 text-xs shrink-0'>
@@ -102,7 +102,7 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
             data-testid='header-switch-chapter-btn'
             title='Quay lại màn hình danh sách chọn chương'
             aria-label='Đổi chương'
-            className='h-7 px-2 inline-flex items-center gap-1 rounded-lg border border-[#D8D2C5] bg-[#FAF8F5] hover:bg-[#F3F0E9] text-stone-700 hover:text-stone-900 transition-colors cursor-pointer text-xs font-semibold shrink-0'
+            className='h-6 px-2 inline-flex items-center gap-1 rounded-md border border-[#D8D2C5] bg-[#FAF8F5] hover:bg-[#F3F0E9] text-stone-700 hover:text-stone-900 transition-colors cursor-pointer text-[11px] font-semibold shrink-0'
           >
             <ChevronLeft className='w-3.5 h-3.5 text-stone-600' />
             <span className='hidden sm:inline'>Đổi chương</span>
@@ -219,7 +219,7 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
                   disabled={isSubmittingHandoff}
                   data-testid='btn-handoff-pencil-ink'
                   title='Bàn giao nét chì sang Ink: Tự động mở việc Ink'
-                  className='h-7 px-3 inline-flex items-center gap-1.5 rounded-lg text-xs font-bold bg-[#F97316] hover:bg-orange-600 active:scale-95 text-white shadow-2xs cursor-pointer transition-all disabled:opacity-50'
+                  className='h-6.5 px-2.5 inline-flex items-center gap-1 rounded-md text-[11px] font-bold bg-[#F97316] hover:bg-orange-600 active:scale-95 text-white shadow-2xs cursor-pointer transition-all disabled:opacity-50'
                 >
                   {isSubmittingHandoff ? (
                     <Loader2 className='w-3 h-3 animate-spin' />
@@ -240,7 +240,7 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
                   disabled={isSubmittingHandoff}
                   data-testid='btn-handoff-ink-lettering'
                   title='Chuyển giao nét vẽ sang Lettering: Tự động mở việc ráp thoại cho Letterer'
-                  className='h-7 px-3 inline-flex items-center gap-1.5 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white shadow-2xs cursor-pointer transition-all disabled:opacity-50'
+                  className='h-6.5 px-2.5 inline-flex items-center gap-1 rounded-md text-[11px] font-bold bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white shadow-2xs cursor-pointer transition-all disabled:opacity-50'
                 >
                   {isSubmittingHandoff ? (
                     <Loader2 className='w-3 h-3 animate-spin' />
@@ -260,7 +260,7 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
                 disabled={isSubmittingHandoff}
                 data-testid='btn-handoff-lettering-gate2'
                 title='Nộp bản thảo hoàn chỉnh cho Editor thẩm định ở Gate 2'
-                className='h-7 px-3 inline-flex items-center gap-1.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white shadow-2xs cursor-pointer transition-all disabled:opacity-50'
+                className='h-6.5 px-2.5 inline-flex items-center gap-1 rounded-md text-[11px] font-bold bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white shadow-2xs cursor-pointer transition-all disabled:opacity-50'
               >
                 {isSubmittingHandoff ? (
                   <Loader2 className='w-3 h-3 animate-spin' />

@@ -3642,7 +3642,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
     ? `Ảnh cả trang ${stageLabel(pageArt.pipelineStageId)} v${pageArt.versionNumber}`
     : 'Chưa có ảnh cả trang';
   const toolbarBtn =
-    'h-8 px-2.5 inline-flex items-center gap-1.5 rounded-lg text-xs font-semibold border transition-colors cursor-pointer shrink-0 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#F97316] disabled:cursor-not-allowed disabled:bg-stone-100 disabled:text-stone-400 disabled:border-stone-200';
+    'h-7 px-2 inline-flex items-center gap-1 rounded-md text-[11px] font-semibold border transition-colors cursor-pointer shrink-0 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#F97316] disabled:cursor-not-allowed disabled:bg-stone-100 disabled:text-stone-400 disabled:border-stone-200';
   const toolbarIdle = 'bg-[#FCFBF8] text-[#1C1917] border-[#D8D2C5] hover:bg-[#F3F0E9]';
   const toolbarOn = 'bg-[#FFF2E6] text-[#C2410C] border-[#F97316]/50';
   const menuItem =
@@ -3758,7 +3758,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
 
       {/* Toolbar chính: 1 Hàng duy nhất (No Wrap), Tinh gọn, Không trùng lặp chức năng của Canvas */}
       <div
-        className='shrink-0 relative z-30 bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl px-2 py-1.5 flex items-center justify-between gap-2 min-w-0 overflow-x-auto no-scrollbar shadow-2xs'
+        className='shrink-0 relative z-30 bg-[#FCFBF8] border border-[#D8D2C5] rounded-lg px-2 py-0.5 min-h-[34px] h-[34px] flex items-center justify-between gap-1.5 min-w-0 overflow-x-auto no-scrollbar shadow-2xs'
         role='toolbar'
         aria-label='Thanh công cụ bàn vẽ'
         data-testid='artist-main-toolbar'
@@ -4519,8 +4519,8 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                     data-testid={`left-tab-${t.id}`}
                     onClick={() => {
                       setActiveTab(t.id);
-                      if (t.id === 'script' && leftColumnWidth < 320) {
-                        setLeftColumnWidth(340);
+                      if (t.id === 'script' && leftColumnWidth < 460) {
+                        setLeftColumnWidth(460);
                       }
                     }}
                     className={`flex-1 flex items-center justify-center gap-1.5 py-1 px-2.5 rounded-lg text-xs font-semibold cursor-pointer transition-all duration-200 focus-visible:outline-2 focus-visible:outline-[#F97316] ${
@@ -4881,49 +4881,104 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
 
             {activeTab === 'script' && (
               <div className='flex-1 flex flex-col min-h-0 bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl shadow-xs overflow-hidden'>
-                {/* 1. Header tinh gọn tối đa: Chỉ 1 dòng duy nhất */}
-                <div className='px-3.5 py-2.5 border-b border-[#E8E2D6] bg-[#F7F4EC]/80 flex items-center justify-between gap-2 shrink-0'>
+                {/* 1. Header tinh gọn tối đa: Tên trang + Điều khiển cỡ chữ + Độ rộng cột + Sao chép */}
+                <div className='px-3 py-2 border-b border-[#E8E2D6] bg-[#F7F4EC]/90 flex items-center justify-between gap-2 shrink-0'>
                   {/* Left: Tên kịch bản trang & nhãn chỉ đọc */}
-                  <div className='flex items-center gap-2 min-w-0'>
+                  <div className='flex items-center gap-1.5 min-w-0'>
                     <BookOpen className='w-4 h-4 text-[#F97316] shrink-0' />
                     <div
                       data-testid='artist-script-readonly-banner'
-                      className='flex items-center gap-1.5 text-xs font-bold text-[#1C1917] truncate'
+                      className='flex items-center gap-1 text-xs font-bold text-[#1C1917] truncate'
                     >
-                      <Lock className='w-3.5 h-3.5 text-amber-700 shrink-0' />
+                      <Lock className='w-3 h-3 text-amber-700 shrink-0' />
                       <span>Kịch bản Trang {selectedPage?.pageNumber ?? 1} (Chỉ đọc)</span>
                     </div>
                   </div>
 
-                  {/* Right: Bộ lật trang & Sao chép kịch bản */}
-                  <div className='flex items-center gap-2 shrink-0'>
+                  {/* Right: Bộ điều khiển cỡ chữ + Độ rộng cột + Lật trang + Sao chép */}
+                  <div className='flex items-center gap-1.5 shrink-0'>
+                    {/* Lucian Pill Font-Size Selector (A- / A / A+) */}
+                    <div className='flex items-center bg-[#EFECE6] p-0.5 rounded-lg border border-[#DDD6C8] shadow-2xs'>
+                      <button
+                        type='button'
+                        data-testid='script-font-sm-btn'
+                        onClick={() => setScriptFontSize('sm')}
+                        title='Cỡ chữ nhỏ (13px)'
+                        className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-all cursor-pointer ${
+                          scriptFontSize === 'sm'
+                            ? 'bg-white text-stone-900 shadow-2xs'
+                            : 'text-stone-500 hover:text-stone-800'
+                        }`}
+                      >
+                        A⁻
+                      </button>
+                      <button
+                        type='button'
+                        data-testid='script-font-base-btn'
+                        onClick={() => setScriptFontSize('base')}
+                        title='Cỡ chữ vừa (15px - Dễ đọc)'
+                        className={`px-1.5 py-0.5 rounded text-[11px] font-bold transition-all cursor-pointer ${
+                          scriptFontSize === 'base'
+                            ? 'bg-white text-stone-900 shadow-2xs'
+                            : 'text-stone-500 hover:text-stone-800'
+                        }`}
+                      >
+                        A
+                      </button>
+                      <button
+                        type='button'
+                        data-testid='script-font-lg-btn'
+                        onClick={() => setScriptFontSize('lg')}
+                        title='Cỡ chữ lớn (17px - Rõ nét từ xa)'
+                        className={`px-1.5 py-0.5 rounded text-xs font-black transition-all cursor-pointer ${
+                          scriptFontSize === 'lg'
+                            ? 'bg-white text-stone-900 shadow-2xs'
+                            : 'text-stone-500 hover:text-stone-800'
+                        }`}
+                      >
+                        A⁺
+                      </button>
+                    </div>
+
+                    {/* Nút Toggle mở rộng độ rộng cột kịch bản 460px <-> 580px */}
+                    <button
+                      type='button'
+                      data-testid='script-col-width-toggle-btn'
+                      onClick={() => setLeftColumnWidth((prev) => (prev >= 520 ? 460 : 580))}
+                      title={leftColumnWidth >= 520 ? 'Thu hẹp cột kịch bản (460px)' : 'Mở rộng cột kịch bản (580px)'}
+                      className='p-1 rounded-md border border-[#D8D2C5] bg-white hover:bg-stone-100 text-stone-600 cursor-pointer shadow-2xs'
+                    >
+                      <Columns className='w-3.5 h-3.5' />
+                    </button>
+
+                    {/* Bộ lật trang kịch bản */}
                     {selectedPage && pages.length > 0 && (
                       <div
                         data-testid='script-page-navigation-bar'
-                        className='flex items-center gap-1 shrink-0'
+                        className='hidden sm:flex items-center gap-0.5 shrink-0'
                       >
                         <button
                           type='button'
                           data-testid='script-prev-page-btn'
                           onClick={handlePrevPage}
                           disabled={pages.findIndex((p) => p.id === selectedPage.id) <= 0}
-                          title='Xem kịch bản trang trước'
+                          title='Kịch bản trang trước'
                           className='p-1 rounded-md border border-[#D8D2C5] hover:bg-[#EBE7DF] text-stone-600 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors bg-white'
                         >
-                          <ChevronLeft className='w-3.5 h-3.5' />
+                          <ChevronLeft className='w-3 h-3' />
                         </button>
-                        <span className='text-xs font-bold text-[#1C1917] font-mono px-1'>
-                          Trang {selectedPage.pageNumber} / {pages.length}
+                        <span className='text-[11px] font-bold text-[#1C1917] font-mono px-1'>
+                          T{selectedPage.pageNumber}/{pages.length}
                         </span>
                         <button
                           type='button'
                           data-testid='script-next-page-btn'
                           onClick={handleNextPage}
                           disabled={pages.findIndex((p) => p.id === selectedPage.id) >= pages.length - 1}
-                          title='Xem kịch bản trang kế tiếp'
+                          title='Kịch bản trang sau'
                           className='p-1 rounded-md border border-[#D8D2C5] hover:bg-[#EBE7DF] text-stone-600 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors bg-white'
                         >
-                          <ChevronRight className='w-3.5 h-3.5' />
+                          <ChevronRight className='w-3 h-3' />
                         </button>
                       </div>
                     )}
@@ -4932,13 +4987,13 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                       type='button'
                       data-testid='copy-page-script-btn'
                       onClick={handleCopyPageScript}
-                      title='Sao chép toàn bộ nội dung kịch bản trang hiện tại'
+                      title='Sao chép toàn bộ kịch bản trang hiện tại'
                       className='p-1 px-2 rounded-md bg-white border border-[#D8D2C5] hover:bg-[#FFF2E6] hover:border-[#FDBA74] text-stone-700 hover:text-[#C2410C] text-[11px] font-semibold flex items-center gap-1 transition-colors cursor-pointer shadow-2xs'
                     >
                       {copiedScript ? (
                         <>
                           <Check className='w-3 h-3 text-emerald-600' />
-                          <span className='text-emerald-700 hidden sm:inline'>Đã sao chép</span>
+                          <span className='text-emerald-700 hidden sm:inline'>Đã chép</span>
                         </>
                       ) : (
                         <>
@@ -4950,17 +5005,17 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                   </div>
                 </div>
 
-                {/* 2. Dòng Phân cảnh & Slugline bối cảnh (Thanh thoát như tiêu đề bản thảo) */}
-                <div className='px-4 py-2 border-b border-[#E8E2D6] bg-white flex items-center justify-between gap-2 shrink-0'>
-                  {/* Selector Phân cảnh */}
-                  <div className='relative flex-1 min-w-0' ref={sceneDropdownRef}>
+                {/* 2. Dòng Phân cảnh & Segmented Filter Pills (Lucian #039) */}
+                <div className='px-3 py-1.5 border-b border-[#E8E2D6] bg-white flex flex-wrap items-center justify-between gap-1.5 shrink-0'>
+                  {/* Selector Phân cảnh & Slugline */}
+                  <div className='relative flex items-center gap-1.5 min-w-0 flex-1' ref={sceneDropdownRef}>
                     <button
                       type='button'
                       data-testid='scene-selector-btn'
                       onClick={() => setSceneDropdownOpen((v) => !v)}
                       aria-expanded={sceneDropdownOpen}
                       aria-haspopup='listbox'
-                      className='text-left flex items-center gap-1.5 cursor-pointer group max-w-full'
+                      className='text-left flex items-center gap-1 cursor-pointer group truncate max-w-[220px]'
                     >
                       <span className='text-xs font-bold font-serif text-[#1C1917] truncate group-hover:text-[#F97316] transition-colors'>
                         {currentScene
@@ -5015,18 +5070,63 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                         })}
                       </div>
                     )}
+
+                    {/* Slugline bối cảnh */}
+                    {currentScene && parsedSlugline && (
+                      <div
+                        data-testid='scene-slugline-badge'
+                        title={sluglineTooltipText}
+                        className='text-[9px] font-mono font-bold text-amber-900 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200/60 uppercase shrink-0 truncate max-w-[130px]'
+                      >
+                        {parsedSlugline.formattedText}
+                      </div>
+                    )}
                   </div>
 
-                  {/* Slugline bối cảnh */}
-                  {currentScene && parsedSlugline && (
-                    <div
-                      data-testid='scene-slugline-badge'
-                      title={sluglineTooltipText}
-                      className='text-[10px] font-mono font-bold text-amber-900 bg-amber-50 px-2 py-0.5 rounded border border-amber-200/60 uppercase shrink-0'
+                  {/* Segmented Filter Pills (Lucian #039) */}
+                  <div
+                    role='group'
+                    aria-label='Lọc dòng kịch bản'
+                    className='flex items-center p-0.5 bg-[#F1EDE4] rounded-lg border border-[#DDD6C8] shrink-0 text-[10px] font-semibold'
+                  >
+                    <button
+                      type='button'
+                      data-testid='filter-btn-all'
+                      onClick={() => setScriptLineFilter('all')}
+                      className={`px-1.5 py-0.5 rounded-md transition-all cursor-pointer ${
+                        scriptLineFilter === 'all'
+                          ? 'bg-white text-stone-900 font-bold shadow-2xs'
+                          : 'text-stone-600 hover:text-stone-900'
+                      }`}
                     >
-                      {parsedSlugline.formattedText}
-                    </div>
-                  )}
+                      Tất cả ({scriptLineCounts.total})
+                    </button>
+                    <button
+                      type='button'
+                      data-testid='filter-btn-unassigned'
+                      onClick={() => setScriptLineFilter('unassigned')}
+                      className={`px-1.5 py-0.5 rounded-md transition-all cursor-pointer ${
+                        scriptLineFilter === 'unassigned'
+                          ? 'bg-white text-stone-900 font-bold shadow-2xs'
+                          : 'text-stone-600 hover:text-stone-900'
+                      }`}
+                    >
+                      Chưa gán ({scriptLineCounts.unassigned})
+                    </button>
+                    <button
+                      type='button'
+                      data-testid='filter-btn-current-panel'
+                      disabled={!selectedPanelDetail}
+                      onClick={() => setScriptLineFilter('current_panel')}
+                      className={`px-1.5 py-0.5 rounded-md transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
+                        scriptLineFilter === 'current_panel'
+                          ? 'bg-orange-500 text-white font-bold shadow-2xs'
+                          : 'text-stone-600 hover:text-stone-900'
+                      }`}
+                    >
+                      Khung này ({scriptLineCounts.currentPanel})
+                    </button>
+                  </div>
                 </div>
 
                 {/* Các phần tử phụ trợ ẩn (Dành cho test suite và trợ năng, không gây rối mắt người dùng) */}
@@ -5053,28 +5153,8 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                     data-testid='script-search-input'
                   />
                   <button type='button' data-testid='script-search-clear-btn' onClick={() => setScriptSearchQuery('')} />
-                  <button type='button' data-testid='script-font-sm-btn' onClick={() => setScriptFontSize('sm')} />
-                  <button type='button' data-testid='script-font-base-btn' onClick={() => setScriptFontSize('base')} />
-                  <button type='button' data-testid='script-font-lg-btn' onClick={() => setScriptFontSize('lg')} />
                   <button type='button' data-testid='script-expand-toggle-btn' onClick={() => setScriptExpandedMode((v) => !v)} />
                   <button type='button' data-testid='open-script-focus-mode-btn' onClick={() => setScriptFocusModalOpen(true)} />
-                  <button type='button' data-testid='script-col-width-toggle-btn' />
-                  <div role='group' aria-label='Lọc dòng kịch bản'>
-                    <button type='button' data-testid='filter-btn-all' onClick={() => setScriptLineFilter('all')}>
-                      Tất cả ({scriptLineCounts.total})
-                    </button>
-                    <button type='button' data-testid='filter-btn-unassigned' onClick={() => setScriptLineFilter('unassigned')}>
-                      Chưa gán ({scriptLineCounts.unassigned})
-                    </button>
-                    <button
-                      type='button'
-                      data-testid='filter-btn-current-panel'
-                      disabled={!selectedPanelDetail}
-                      onClick={() => setScriptLineFilter('current_panel')}
-                    >
-                      Khung này ({scriptLineCounts.currentPanel})
-                    </button>
-                  </div>
                   {selectedPage && (
                     <div data-testid='page-sync-indicator'>
                       Đồng bộ: Trang {selectedPage.pageNumber} · {panels.length} khung
@@ -5103,7 +5183,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
 
                 {/* 3. THÂN TRANG BẢN THẢO KỊCH BẢN: Liền mạch như 1 trang giấy từ trên xuống dưới */}
                 <div
-                  className='flex-1 min-h-0 overflow-y-auto custom-scrollbar p-4 sm:p-6 bg-[#FCFBF8]'
+                  className='flex-1 min-h-0 overflow-y-auto custom-scrollbar p-2.5 sm:p-3.5 bg-[#FAF8F5]'
                   data-testid='scene-script-lines-list'
                 >
                   <div className='max-w-xl mx-auto space-y-4'>
@@ -5273,7 +5353,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                                 <div className='flex-1 min-w-0'>
                                   {/* Chỉ dẫn hành động diễn hoạt (Action / Stage Direction) */}
                                   {hasDirection && (
-                                    <div className='text-[13px] text-stone-800 font-sans leading-relaxed'>
+                                    <div className={`text-stone-800 font-sans leading-relaxed ${scriptFontSize === 'sm' ? 'text-xs' : scriptFontSize === 'lg' ? 'text-[15px]' : 'text-sm'}`}>
                                       <span className='font-mono font-bold text-[10px] text-stone-400 mr-2 select-none'>
                                         #{line.lineOrder}
                                       </span>
@@ -5302,7 +5382,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                                           </span>
                                         )}
                                       </div>
-                                      <p className='text-[13px] text-stone-900 font-serif italic pl-2.5 border-l-2 border-orange-400 leading-relaxed'>
+                                      <p className={`text-stone-900 font-serif italic pl-3 border-l-2 border-orange-500 leading-relaxed bg-orange-50/30 rounded-r-lg p-2 my-1 ${scriptFontSize === 'sm' ? 'text-[13px]' : scriptFontSize === 'lg' ? 'text-[17px] font-semibold' : 'text-[15px]'}`}>
                                         &ldquo;{line.dialogueText}&rdquo;
                                       </p>
                                     </div>
