@@ -10,6 +10,7 @@ import {
   Loader2,
   Sparkles,
   ArrowLeft,
+  ArrowRight,
   BookOpen,
   Maximize2,
   Minimize2,
@@ -58,6 +59,8 @@ const INITIAL_SINGLE_PANEL: PanelBlockData[] = [
   },
 ];
 
+type ArtistStage = 'pencil' | 'ink' | 'lettering';
+
 interface ArtistWorkspaceViewProps {
   workspaceRole?: string;
 }
@@ -69,6 +72,9 @@ export const ArtistWorkspaceView: React.FC<ArtistWorkspaceViewProps> = ({ worksp
     chapterId?: string;
   }>();
   const navigate = useNavigate();
+
+  // 0. Stage Navigation State: Pencil -> Ink -> Lettering
+  const [currentStage, setCurrentStage] = useState<ArtistStage>('pencil');
 
   // 1. Trạng thái Template & Bố cục trang (Mặc định: 'single-full' - 1 panel bao trọn trang)
   const [templateId, setTemplateId] = useState<string>('single-full');
@@ -268,7 +274,7 @@ export const ArtistWorkspaceView: React.FC<ArtistWorkspaceViewProps> = ({ worksp
     handleSelectTemplate('single-full');
   }, [handleSelectTemplate]);
 
-  // Handler: Nộp duyệt bản thảo chương (Submit for Review)
+  // Handler: Nộp duyệt bản thảo chương (Submit for Review / Hand over to Ink)
   const handleSubmitForReview = async () => {
     if (!isSubmissionReady) {
       showToast(
@@ -286,11 +292,20 @@ export const ArtistWorkspaceView: React.FC<ArtistWorkspaceViewProps> = ({ worksp
       if (chapterId) {
         await chapterService.submitManuscript(chapterId);
       }
-      showToast(
-        'Nộp bản thảo thành công!',
-        `Toàn bộ trang vẽ của Chương đã được chuyển sang hàng đợi thẩm định của Editor/Producer.`,
-        'success'
-      );
+      if (currentStage === 'pencil') {
+        setCurrentStage('ink');
+        showToast(
+          'Bàn giao nét chì thành công!',
+          'Đã hoàn thành nét chì và chuyển trang sang giai đoạn Ink (Nét mực).',
+          'success'
+        );
+      } else {
+        showToast(
+          'Nộp bản thảo thành công!',
+          `Toàn bộ trang vẽ của Chương đã được chuyển sang hàng đợi thẩm định của Editor/Producer.`,
+          'success'
+        );
+      }
     } catch {
       showToast(
         'Nộp bản thảo thành công',
@@ -333,7 +348,7 @@ export const ArtistWorkspaceView: React.FC<ArtistWorkspaceViewProps> = ({ worksp
       )}
 
       {/* =========================================================================
-          ZONE A: TOP BAR (Compact, Minimalist, Không còn Mode-Switcher tabs)
+          ZONE A: TOP BAR (Streamlined Minimalist Header & Stage Badges)
           Ẩn khi ở chế độ Zen Mode
           ========================================================================= */}
       {!isZenMode && (
@@ -373,7 +388,7 @@ export const ArtistWorkspaceView: React.FC<ArtistWorkspaceViewProps> = ({ worksp
             </nav>
 
             {/* Bộ chuyển trang mini */}
-            <div className='hidden lg:flex items-center gap-1 border-l border-stone-200 pl-3 ml-1'>
+            <div className='hidden xl:flex items-center gap-1 border-l border-stone-200 pl-3 ml-1'>
               <button
                 type='button'
                 disabled={currentPageNumber <= 1}
@@ -398,8 +413,65 @@ export const ArtistWorkspaceView: React.FC<ArtistWorkspaceViewProps> = ({ worksp
             </div>
           </div>
 
-          {/* Center: Nút mở Mẫu Khung & Chế độ xem */}
-          <div className='flex items-center gap-2'>
+          {/* Center: STAGE NAVIGATION BADGES [Pencil Stage] -> [Ink Stage] -> [Lettering Stage] */}
+          <nav
+            aria-label='Stage Navigation'
+            data-testid='stage-navigation-badges'
+            className='flex items-center gap-1 p-0.5 bg-[#F1EDE4] rounded-xl border border-[#DFD9CD] shadow-inner shrink-0'
+          >
+            {[
+              { id: 'pencil' as const, label: 'Pencil Stage' },
+              { id: 'ink' as const, label: 'Ink Stage' },
+              { id: 'lettering' as const, label: 'Lettering Stage' },
+            ].map((stg, idx) => {
+              const isActive = currentStage === stg.id;
+              return (
+                <React.Fragment key={stg.id}>
+                  {idx > 0 && (
+                    <ChevronRight className='w-3 h-3 text-stone-400 shrink-0' aria-hidden='true' />
+                  )}
+                  <button
+                    type='button'
+                    data-testid={`stage-badge-${stg.id}`}
+                    onClick={() => setCurrentStage(stg.id)}
+                    aria-current={isActive ? 'step' : undefined}
+                    className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                      isActive
+                        ? 'bg-white text-stone-900 shadow-2xs font-bold'
+                        : 'text-stone-600 hover:text-stone-900 hover:bg-white/40'
+                    }`}
+                  >
+                    <span
+                      className={`w-2 h-2 rounded-full ${
+                        isActive ? 'bg-orange-600' : 'bg-stone-300'
+                      }`}
+                    />
+                    <span>{stg.label}</span>
+                  </button>
+                </React.Fragment>
+              );
+            })}
+          </nav>
+
+          {/* Right: Dropdown chuyển trang, Mẫu khung, Progress Badge & Primary Action CTA */}
+          <div className='flex items-center gap-2.5 shrink-0'>
+            {/* Dropdown chuyển trang */}
+            <select
+              id='page-select-dropdown'
+              data-testid='page-select-dropdown'
+              value={currentPageNumber}
+              onChange={(e) => setCurrentPageNumber(Number(e.target.value))}
+              aria-label='Chọn trang'
+              className='h-8 px-2 rounded-lg border border-[#D8D2C5] bg-[#FAF8F5] hover:bg-white text-xs font-bold text-stone-800 cursor-pointer focus:outline-none focus:ring-1 focus:ring-orange-500'
+            >
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((num) => (
+                <option key={num} value={num}>
+                  Trang {num} / {totalPages}
+                </option>
+              ))}
+            </select>
+
+            {/* Mẫu Khung */}
             <button
               type='button'
               data-testid='topbar-open-template-btn'
@@ -419,7 +491,7 @@ export const ArtistWorkspaceView: React.FC<ArtistWorkspaceViewProps> = ({ worksp
               type='button'
               data-testid='topbar-toggle-filmstrip-btn'
               onClick={() => setIsFilmstripOpen((prev) => !prev)}
-              className={`px-2.5 py-1.5 rounded-lg border text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer ${
+              className={`hidden md:flex px-2.5 py-1.5 rounded-lg border text-xs font-medium items-center gap-1.5 transition-colors cursor-pointer ${
                 isFilmstripOpen
                   ? 'border-orange-200 bg-orange-50/50 text-[#F97316]'
                   : 'border-[#D8D2C5] bg-[#FAF8F5] text-stone-600 hover:text-stone-900'
@@ -427,7 +499,7 @@ export const ArtistWorkspaceView: React.FC<ArtistWorkspaceViewProps> = ({ worksp
               title='Ẩn/Hiện dải trang thumbnail'
             >
               <Layers className='w-3.5 h-3.5' />
-              <span className='hidden md:inline'>Dải trang</span>
+              <span>Dải trang</span>
             </button>
 
             {/* Zen Mode Button */}
@@ -435,16 +507,13 @@ export const ArtistWorkspaceView: React.FC<ArtistWorkspaceViewProps> = ({ worksp
               type='button'
               data-testid='topbar-zen-mode-btn'
               onClick={() => setIsZenMode(true)}
-              className='px-2.5 py-1.5 rounded-lg border border-[#D8D2C5] bg-[#FAF8F5] hover:bg-white text-stone-600 hover:text-stone-900 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer'
+              className='hidden lg:flex px-2.5 py-1.5 rounded-lg border border-[#D8D2C5] bg-[#FAF8F5] hover:bg-white text-stone-600 hover:text-stone-900 text-xs font-medium items-center gap-1.5 transition-colors cursor-pointer'
               title='Bật chế độ toàn màn hình Zen Mode (Phím F)'
             >
               <Maximize2 className='w-3.5 h-3.5' />
-              <span className='hidden lg:inline'>Zen</span>
+              <span>Zen</span>
             </button>
-          </div>
 
-          {/* Right: Progress Badge & Primary Action CTA */}
-          <div className='flex items-center gap-3 shrink-0'>
             {/* Progress Badge */}
             <div
               data-testid='progress-badge'
@@ -463,7 +532,7 @@ export const ArtistWorkspaceView: React.FC<ArtistWorkspaceViewProps> = ({ worksp
               <span className='sm:hidden font-mono'>{progressBadge.label.split(' ')[0]}</span>
             </div>
 
-            {/* Primary Action CTA: Nộp bản thảo */}
+            {/* Primary Action CTA: [Hand over to Ink] hoặc [Submit for Review] styled with bg-orange-600 */}
             <button
               type='button'
               data-testid='submit-review-btn'
@@ -471,13 +540,15 @@ export const ArtistWorkspaceView: React.FC<ArtistWorkspaceViewProps> = ({ worksp
               disabled={isSubmitting || !isSubmissionReady}
               className={`px-4 py-2 rounded-lg font-bold text-xs flex items-center gap-2 transition-all shadow-xs ${
                 isSubmissionReady
-                  ? 'bg-[#F97316] text-white hover:bg-[#EA580C] cursor-pointer active:scale-95'
-                  : 'bg-stone-200 text-stone-400 cursor-not-allowed border border-stone-300/60'
+                  ? 'bg-orange-600 text-white hover:bg-orange-700 cursor-pointer active:scale-95'
+                  : 'bg-orange-600/40 text-white/80 cursor-not-allowed border border-orange-600/30'
               }`}
               title={
                 !isSubmissionReady
                   ? 'Cần nạp đủ tranh cho tất cả các khung trước khi nộp duyệt'
-                  : 'Nộp bản thảo hoàn chỉnh cho Editor duyệt'
+                  : currentStage === 'pencil'
+                    ? 'Bàn giao nét chì sang Ink'
+                    : 'Nộp bản thảo hoàn chỉnh cho Editor duyệt'
               }
             >
               {isSubmitting ? (
@@ -485,10 +556,15 @@ export const ArtistWorkspaceView: React.FC<ArtistWorkspaceViewProps> = ({ worksp
                   <Loader2 className='w-4 h-4 animate-spin' />
                   <span>Đang nộp...</span>
                 </>
+              ) : currentStage === 'pencil' ? (
+                <>
+                  <ArrowRight className='w-3.5 h-3.5' />
+                  <span>Hand over to Ink</span>
+                </>
               ) : (
                 <>
                   <Send className='w-3.5 h-3.5' />
-                  <span>Nộp bản thảo</span>
+                  <span>Submit for Review</span>
                 </>
               )}
             </button>
@@ -497,17 +573,17 @@ export const ArtistWorkspaceView: React.FC<ArtistWorkspaceViewProps> = ({ worksp
       )}
 
       {/* =========================================================================
-          MAIN 2-ZONE SPLIT: Left (Script Reader) / Right (Page Canvas)
+          MAIN 2-ZONE SPLIT: Left (30% Script Reader) / Right (70% Canvas Uploader)
           ========================================================================= */}
       <main className='flex-1 flex overflow-hidden relative'>
-        {/* LEFT COLUMN: Writer Script Reader (Read-Only) */}
+        {/* LEFT COLUMN: Writer Script Reader (Read-Only 30%) */}
         {!isZenMode && (
           <section
             data-testid='script-reader-section'
             className={`border-r border-[#D8D2C5] bg-[#FAF8F5] flex flex-col shrink-0 h-full overflow-hidden transition-all duration-200 ${
               isLeftSidebarCollapsed
                 ? 'w-0 border-r-0'
-                : 'w-full lg:w-[35%] max-w-[440px]'
+                : 'w-full lg:w-[30%] min-w-[300px] max-w-[420px]'
             }`}
           >
             {!isLeftSidebarCollapsed && (
@@ -523,10 +599,10 @@ export const ArtistWorkspaceView: React.FC<ArtistWorkspaceViewProps> = ({ worksp
           </section>
         )}
 
-        {/* RIGHT COLUMN: Artist Page Canvas Viewport */}
+        {/* RIGHT COLUMN: Artist Page Canvas Viewport & Uploader (70%) */}
         <section
           data-testid='canvas-workspace-section'
-          className='flex-1 flex flex-col h-full overflow-hidden relative'
+          className='w-full lg:w-[70%] flex-1 flex flex-col h-full overflow-hidden relative bg-[#FAF8F5]'
         >
           {/* Floating Re-open Sidebar Button (Khi cột trái bị thu gọn) */}
           {isLeftSidebarCollapsed && !isZenMode && (

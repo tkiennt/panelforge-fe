@@ -171,7 +171,7 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
         </span>
       </div>
 
-      {/* 2. KHỐI GIỮA: LUCIAN SLIDING 3-STAGE PILL TABS (#039 & #042) */}
+      {/* 2. KHỐI GIỮA: STAGE NAVIGATION BADGES SWITCHER [Pencil Stage] -> [Ink Stage] -> [Lettering Stage] */}
       <div
         data-testid='artist-stage-tabs-bar'
         className='flex items-center gap-1 p-0.5 bg-[#F1EDE4] rounded-xl border border-[#DFD9CD] shadow-inner shrink-0'
@@ -183,102 +183,126 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
           const isInkTab = slug.includes('ink') || slug.includes('nét') || slug.includes('mực') || idx === 1;
 
           const key = isPencilTab ? 'pencil' : isInkTab ? 'ink' : 'lettering';
-          const label = isPencilTab ? 'Pencil' : isInkTab ? 'Ink' : 'Lettering';
+          const label = isPencilTab ? 'Pencil Stage' : isInkTab ? 'Ink Stage' : 'Lettering Stage';
           const IconComp = isPencilTab ? Edit3 : isInkTab ? PenTool : Type;
 
           return (
-            <button
-              key={stage.id}
-              type='button'
-              onClick={() => onSelectStageFilter(stage.id)}
-              data-testid={`stage-tab-${stage.slug || stage.id || key}`}
-              data-stage-key={key}
-              aria-selected={isSelected}
-              role='tab'
-              title={`Chuyển sang ${stage.name}`}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                isSelected
-                  ? 'bg-white text-stone-900 shadow-2xs font-bold'
-                  : 'text-stone-600 hover:text-stone-900 hover:bg-white/40'
-              }`}
-            >
-              <span className='font-mono text-[10px] text-stone-400'>{idx + 1}.</span>
-              <IconComp className={`w-3 h-3 ${isSelected ? 'text-stone-900' : 'text-stone-500'}`} />
-              <span>{label}</span>
-            </button>
+            <React.Fragment key={stage.id}>
+              {idx > 0 && <ChevronRight className='w-3 h-3 text-stone-400 shrink-0' aria-hidden='true' />}
+              <button
+                type='button'
+                onClick={() => onSelectStageFilter(stage.id)}
+                data-testid={`stage-tab-${stage.slug || stage.id || key}`}
+                data-stage-key={key}
+                aria-selected={isSelected}
+                role='tab'
+                title={`Chuyển sang ${stage.name}`}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  isSelected
+                    ? 'bg-white text-stone-900 shadow-2xs font-bold'
+                    : 'text-stone-600 hover:text-stone-900 hover:bg-white/40'
+                }`}
+              >
+                <span className='font-mono text-[10px] text-stone-400'>{idx + 1}.</span>
+                <IconComp className={`w-3 h-3 ${isSelected ? 'text-stone-900' : 'text-stone-500'}`} />
+                <span>{label}</span>
+              </button>
+            </React.Fragment>
           );
         })}
       </div>
 
-      {/* 3. KHỐI PHẢI: NÚT ACTION BÀN GIAO / HANDOFF THEO NGỮ CẢNH */}
-      {canEdit && onHandoffStage && activeStage && (
-        <div className='flex items-center gap-2 shrink-0'>
-          {(() => {
-            const currentIdx = stageList.findIndex((s) => s.id === activeStage.id);
+      {/* 3. KHỐI PHẢI: NÚT ACTION BÀN GIAO / HANDOFF THEO NGỮ CẢNH & CHỌN TRANG */}
+      <div className='flex items-center gap-2 shrink-0'>
+        {/* Dropdown chuyển trang */}
+        {pages.length > 0 && (
+          <select
+            data-testid='header-page-dropdown'
+            value={selectedPage?.id || ''}
+            onChange={(e) => {
+              const p = pages.find((pg) => pg.id === e.target.value);
+              if (p) onSelectPage(p);
+            }}
+            aria-label='Chọn trang'
+            className='h-6.5 px-2 rounded-md border border-[#D8D2C5] bg-[#FAF8F5] hover:bg-white text-[11px] font-semibold text-stone-800 cursor-pointer focus:outline-none focus:ring-1 focus:ring-orange-500'
+          >
+            {pages.map((p) => (
+              <option key={p.id} value={p.id}>
+                Trang {p.pageNumber} / {pages.length}
+              </option>
+            ))}
+          </select>
+        )}
 
-            // BƯỚC 1: PENCIL ➔ INK
-            if (currentIdx === 0) {
+        {canEdit && onHandoffStage && activeStage && (
+          <>
+            {(() => {
+              const currentIdx = stageList.findIndex((s) => s.id === activeStage.id);
+
+              // BƯỚC 1: PENCIL ➔ INK
+              if (currentIdx === 0) {
+                return (
+                  <button
+                    type='button'
+                    onClick={() => onHandoffStage(activeStage)}
+                    disabled={isSubmittingHandoff}
+                    data-testid='btn-handoff-pencil-ink'
+                    title='Bàn giao nét chì sang Ink: Tự động mở việc Ink'
+                    className='h-6.5 px-2.5 inline-flex items-center gap-1 rounded-md text-[11px] font-bold bg-orange-600 hover:bg-orange-700 active:scale-95 text-white shadow-2xs cursor-pointer transition-all disabled:opacity-50'
+                  >
+                    {isSubmittingHandoff ? (
+                      <Loader2 className='w-3 h-3 animate-spin' />
+                    ) : (
+                      <ArrowRight className='w-3 h-3' />
+                    )}
+                    <span>Hand over to Ink</span>
+                  </button>
+                );
+              }
+
+              // BƯỚC 2: INK ➔ LETTERING
+              if (currentIdx === 1) {
+                return (
+                  <button
+                    type='button'
+                    onClick={() => onHandoffStage(activeStage)}
+                    disabled={isSubmittingHandoff}
+                    data-testid='btn-handoff-ink-lettering'
+                    title='Chuyển giao nét vẽ sang Lettering: Tự động mở việc ráp thoại cho Letterer'
+                    className='h-6.5 px-2.5 inline-flex items-center gap-1 rounded-md text-[11px] font-bold bg-orange-600 hover:bg-orange-700 active:scale-95 text-white shadow-2xs cursor-pointer transition-all disabled:opacity-50'
+                  >
+                    {isSubmittingHandoff ? (
+                      <Loader2 className='w-3 h-3 animate-spin' />
+                    ) : (
+                      <Sparkles className='w-3 h-3' />
+                    )}
+                    <span>Submit for Review</span>
+                  </button>
+                );
+              }
+
+              // BƯỚC 3: LETTERING ➔ DUYỆT GATE 2
               return (
                 <button
                   type='button'
                   onClick={() => onHandoffStage(activeStage)}
                   disabled={isSubmittingHandoff}
-                  data-testid='btn-handoff-pencil-ink'
-                  title='Bàn giao nét chì sang Ink: Tự động mở việc Ink'
-                  className='h-6.5 px-2.5 inline-flex items-center gap-1 rounded-md text-[11px] font-bold bg-[#F97316] hover:bg-orange-600 active:scale-95 text-white shadow-2xs cursor-pointer transition-all disabled:opacity-50'
+                  data-testid='btn-handoff-lettering-gate2'
+                  title='Nộp bản thảo hoàn chỉnh cho Editor thẩm định ở Gate 2'
+                  className='h-6.5 px-2.5 inline-flex items-center gap-1 rounded-md text-[11px] font-bold bg-orange-600 hover:bg-orange-700 active:scale-95 text-white shadow-2xs cursor-pointer transition-all disabled:opacity-50'
                 >
                   {isSubmittingHandoff ? (
                     <Loader2 className='w-3 h-3 animate-spin' />
                   ) : (
-                    <ArrowRight className='w-3 h-3' />
+                    <Send className='w-3 h-3' />
                   )}
-                  <span>Bàn giao Pencil ➔ Ink</span>
+                  <span>Submit for Review</span>
                 </button>
               );
-            }
-
-            // BƯỚC 2: INK ➔ LETTERING
-            if (currentIdx === 1) {
-              return (
-                <button
-                  type='button'
-                  onClick={() => onHandoffStage(activeStage)}
-                  disabled={isSubmittingHandoff}
-                  data-testid='btn-handoff-ink-lettering'
-                  title='Chuyển giao nét vẽ sang Lettering: Tự động mở việc ráp thoại cho Letterer'
-                  className='h-6.5 px-2.5 inline-flex items-center gap-1 rounded-md text-[11px] font-bold bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white shadow-2xs cursor-pointer transition-all disabled:opacity-50'
-                >
-                  {isSubmittingHandoff ? (
-                    <Loader2 className='w-3 h-3 animate-spin' />
-                  ) : (
-                    <Sparkles className='w-3 h-3' />
-                  )}
-                  <span>Chuyển giao ➔ Lettering</span>
-                </button>
-              );
-            }
-
-            // BƯỚC 3: LETTERING ➔ DUYỆT GATE 2
-            return (
-              <button
-                type='button'
-                onClick={() => onHandoffStage(activeStage)}
-                disabled={isSubmittingHandoff}
-                data-testid='btn-handoff-lettering-gate2'
-                title='Nộp bản thảo hoàn chỉnh cho Editor thẩm định ở Gate 2'
-                className='h-6.5 px-2.5 inline-flex items-center gap-1 rounded-md text-[11px] font-bold bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white shadow-2xs cursor-pointer transition-all disabled:opacity-50'
-              >
-                {isSubmittingHandoff ? (
-                  <Loader2 className='w-3 h-3 animate-spin' />
-                ) : (
-                  <Send className='w-3 h-3' />
-                )}
-                <span>Nộp duyệt Gate 2</span>
-              </button>
-            );
-          })()}
-        </div>
-      )}
+            })()}
+          </>
+        )}
+      </div>
     </header>
   );
 };

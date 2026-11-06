@@ -40,13 +40,70 @@ describe('ArtistWorkspaceView (Clean Consolidated Single-Layout Architecture)', 
     expect(screen.getByTestId('submit-review-btn')).toBeInTheDocument();
   });
 
-  it('renders Left Column (35%) Script Reader with scene title and formatted panel cards', () => {
+  it('renders interactive stage navigation badges switcher [Pencil Stage] -> [Ink Stage] -> [Lettering Stage]', () => {
     renderView();
+
+    // Stage navigation bar
+    expect(screen.getByTestId('stage-navigation-badges')).toBeInTheDocument();
+    const pencilBadge = screen.getByTestId('stage-badge-pencil');
+    const inkBadge = screen.getByTestId('stage-badge-ink');
+    const letteringBadge = screen.getByTestId('stage-badge-lettering');
+
+    expect(pencilBadge).toBeInTheDocument();
+    expect(pencilBadge).toHaveTextContent('Pencil Stage');
+    expect(inkBadge).toBeInTheDocument();
+    expect(inkBadge).toHaveTextContent('Ink Stage');
+    expect(letteringBadge).toBeInTheDocument();
+    expect(letteringBadge).toHaveTextContent('Lettering Stage');
+
+    // Default stage is Pencil -> CTA says Hand over to Ink
+    const submitBtn = screen.getByTestId('submit-review-btn');
+    expect(submitBtn).toHaveTextContent('Hand over to Ink');
+    expect(submitBtn.className).toContain('bg-orange-600');
+
+    // Switch to Ink Stage -> CTA updates to Submit for Review
+    fireEvent.click(inkBadge);
+    expect(submitBtn).toHaveTextContent('Submit for Review');
+  });
+
+  it('renders page-select dropdown for quick page navigation', () => {
+    renderView();
+
+    const pageDropdown = screen.getByTestId('page-select-dropdown');
+    expect(pageDropdown).toBeInTheDocument();
+    expect(pageDropdown).toHaveValue('1');
+
+    // Change to page 3
+    fireEvent.change(pageDropdown, { target: { value: '3' } });
+    expect(screen.getByTestId('artist-breadcrumb')).toHaveTextContent('Trang 3');
+  });
+
+  it('renders Left Column (30%) Script Reader with scene title and formatted panel cards', () => {
+    renderView();
+
+    const scriptSection = screen.getByTestId('script-reader-section');
+    expect(scriptSection).toBeInTheDocument();
+    expect(scriptSection.className).toContain('lg:w-[30%]');
 
     expect(screen.getByTestId('script-reader-column')).toBeInTheDocument();
     expect(screen.getByText(/Phân cảnh 1: Cổng Thành Phía Nam/i)).toBeInTheDocument();
     expect(screen.getByTestId('panel-script-card-1')).toBeInTheDocument();
     expect(screen.getByText(/Minh Triết:/i)).toBeInTheDocument();
+  });
+
+  it('renders Right Column (70%) Canvas Uploader in soft gray workspace and clean white canvas', () => {
+    renderView();
+
+    const canvasSection = screen.getByTestId('canvas-workspace-section');
+    expect(canvasSection).toBeInTheDocument();
+    expect(canvasSection.className).toContain('lg:w-[70%]');
+    expect(canvasSection.className).toContain('bg-[#FAF8F5]');
+
+    const canvasContainer = screen.getByTestId('artist-page-canvas-container');
+    expect(canvasContainer.className).toContain('bg-[#FAF8F5]');
+
+    const b5Viewport = screen.getByTestId('manga-b5-viewport');
+    expect(b5Viewport.className).toContain('bg-white');
   });
 
   it('defaults new page to Single-Panel layout with 2 centered action buttons: [Tải ảnh lên] and [Chọn Template]', () => {
@@ -116,7 +173,7 @@ describe('ArtistWorkspaceView (Clean Consolidated Single-Layout Architecture)', 
     expect(screen.getByTestId('panel-box-2').className).toContain('border-[#F97316]');
   });
 
-  it('Submission Gate Rule: validates review submission readiness', async () => {
+  it('Submission Gate Rule: validates review submission readiness and handoff to Ink', async () => {
     renderView();
 
     const submitBtn = screen.getByTestId('submit-review-btn');
@@ -134,10 +191,10 @@ describe('ArtistWorkspaceView (Clean Consolidated Single-Layout Architecture)', 
       expect(submitBtn).not.toBeDisabled();
     });
 
-    // Bấm nộp bản thảo
+    // Bấm bàn giao
     fireEvent.click(submitBtn);
     await waitFor(() => {
-      expect(screen.getByTestId('workspace-toast')).toHaveTextContent(/Nộp bản thảo thành công/i);
+      expect(screen.getByTestId('workspace-toast')).toHaveTextContent(/Bàn giao nét chì thành công/i);
     });
   });
 

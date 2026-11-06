@@ -85,7 +85,7 @@ export const ArtistPageCanvas: React.FC<ArtistPageCanvasProps> = ({
   return (
     <div
       data-testid='artist-page-canvas-container'
-      className='flex-1 flex flex-col items-center justify-center p-4 sm:p-6 lg:p-8 bg-[#EBE7DF] overflow-y-auto relative'
+      className='flex-1 flex flex-col items-center justify-center p-4 sm:p-6 lg:p-8 bg-[#FAF8F5] overflow-y-auto relative'
     >
       {/* Hidden File Input cho chế độ 1-panel */}
       <input
@@ -124,14 +124,14 @@ export const ArtistPageCanvas: React.FC<ArtistPageCanvasProps> = ({
         />
       ))}
 
-      {/* Manga Page Viewport (Tỷ lệ B5 1200x1800) */}
+      {/* Manga Page Viewport (Tỷ lệ B5 1200x1800, Clean White Canvas) */}
       <div
         data-testid='manga-b5-viewport'
         style={{
           transform: zoomPercent === 100 ? undefined : `scale(${zoomPercent / 100})`,
           transformOrigin: 'center center',
         }}
-        className='w-full max-w-[560px] aspect-[1200/1800] bg-[#FAF8F5] border-2 border-[#171717] rounded-sm shadow-xl relative overflow-hidden flex flex-col select-none transition-transform'
+        className='w-full max-w-[560px] aspect-[1200/1800] bg-white border-2 border-[#171717] rounded-sm shadow-xl relative overflow-hidden flex flex-col select-none transition-transform'
         onDragOver={(e) => {
           e.preventDefault();
           if (isSinglePanel) setIsFullCanvasDragOver(true);
@@ -151,20 +151,20 @@ export const ArtistPageCanvas: React.FC<ArtistPageCanvasProps> = ({
           }
         }}
       >
-        {/* Safe Margin / Bleed Guides viền mờ */}
-        <div className='absolute inset-3 border border-stone-200/50 pointer-events-none z-10' />
+        {/* Safe Margin viền mờ tối giản */}
+        <div className='absolute inset-3 border border-stone-200/40 pointer-events-none z-10' />
 
-        {/* TRƯỜNG HỢP 1: SINGLE-PANEL WORKSPACE (1 Khung mặc định) */}
+        {/* TRƯỜNG HỢP 1: SINGLE-PANEL WORKSPACE (1 Khung mặc định Toàn Trang) */}
         {isSinglePanel && (
-          <div className='w-full h-full p-4 relative flex items-center justify-center'>
+          <div className='w-full h-full p-4 relative flex items-center justify-center bg-white'>
             {!hasSingleArtwork ? (
-              /* EMPTY STATE: 2 Centered Primary Action Buttons */
+              /* EMPTY STATE: Centered Clean Dropzone */
               <div
                 data-testid='single-panel-empty-state'
                 className={`w-full h-full rounded border-2 border-dashed flex flex-col items-center justify-center p-6 text-center transition-colors ${
                   isFullCanvasDragOver
-                    ? 'border-[#F97316] bg-orange-50/60'
-                    : 'border-[#D8D2C5] bg-[#FAF8F5]'
+                    ? 'border-orange-500 bg-orange-50/60'
+                    : 'border-[#D8D2C5] bg-white'
                 }`}
               >
                 <div className='w-14 h-14 rounded-2xl bg-orange-100/80 border border-orange-200 flex items-center justify-center text-[#F97316] shadow-2xs mb-4'>
@@ -175,7 +175,7 @@ export const ArtistPageCanvas: React.FC<ArtistPageCanvasProps> = ({
                   Trang {pageNumber} chưa có tranh
                 </h3>
                 <p className='text-xs text-[#57534E] max-w-sm mb-6 leading-relaxed'>
-                  Nạp tranh vẽ hoàn chỉnh cho toàn bộ trang hoặc chọn mẫu khung để chia nhiều ô truyện theo kịch bản.
+                  Kéo thả bản vẽ toàn trang vào đây hoặc tải ảnh lên. Hỗ trợ nạp tranh toàn trang hoặc chọn mẫu khung để chia nhiều ô.
                 </p>
 
                 {/* 2 Centered CTA Buttons */}
@@ -184,7 +184,7 @@ export const ArtistPageCanvas: React.FC<ArtistPageCanvasProps> = ({
                     type='button'
                     data-testid='canvas-empty-upload-artwork-btn'
                     onClick={() => singlePageFileInputRef.current?.click()}
-                    className='w-full sm:w-auto flex-1 px-4 py-2.5 rounded-lg bg-[#F97316] text-white hover:bg-[#EA580C] font-bold text-xs flex items-center justify-center gap-2 cursor-pointer shadow-xs transition-all active:scale-[0.98]'
+                    className='w-full sm:w-auto flex-1 px-4 py-2.5 rounded-lg bg-orange-600 text-white hover:bg-orange-700 font-bold text-xs flex items-center justify-center gap-2 cursor-pointer shadow-xs transition-all active:scale-[0.98]'
                   >
                     <Upload className='w-4 h-4' />
                     <span>Tải ảnh lên</span>
@@ -253,7 +253,7 @@ export const ArtistPageCanvas: React.FC<ArtistPageCanvasProps> = ({
 
         {/* TRƯỜNG HỢP 2: MULTI-PANEL WORKSPACE (Chia nhiều khung truyện) */}
         {!isSinglePanel && (
-          <div className='w-full h-full relative'>
+          <div className='w-full h-full relative bg-white'>
             {panels.map((p) => {
               const isSelected = selectedPanelNumber === p.panelNumber;
               const isDragOver = dragOverPanelNumber === p.panelNumber;
