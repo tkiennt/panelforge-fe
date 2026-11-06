@@ -167,6 +167,7 @@ import { InkStageWorkspaceBar, type InkingNib, type ScreenToneLpi } from '../com
 import { LetteringStageWorkspaceBar } from '../components/LetteringStageWorkspaceBar';
 import { SafeZoneOverlay } from '../components/SafeZoneOverlay';
 import { ReadingFlowOverlay } from '../components/ReadingFlowOverlay';
+import { findStageByKind, getArtistStageKind } from '../utils/artistStage';
 
 export const DEFAULT_MANGA_STAGES: PipelineStageDto[] = [
   { id: 'stage-pencil', name: 'Nét chì (Pencil)', slug: 'pencil', stageOrder: 1, isEnabled: true, isApprovalGate: false, isInitial: true, isTerminal: false, allowedRole: 'Artist' },
@@ -1705,10 +1706,10 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
     stages.find((s) => s.isEnabled !== false) ||
     null;
 
-  const currentStageSlug = (currentActiveStage?.slug || currentActiveStage?.name || '').toLowerCase();
-  const isPencilStage = currentStageSlug.includes('pencil') || currentStageSlug.includes('chì');
-  const isInkStage = currentStageSlug.includes('ink') || currentStageSlug.includes('nét');
-  const isLetteringStage = currentStageSlug.includes('letter') || currentActiveStage?.allowedRole === 'Letterer';
+  const currentStageKind = getArtistStageKind(currentActiveStage);
+  const isPencilStage = currentStageKind === 'pencil';
+  const isInkStage = currentStageKind === 'ink';
+  const isLetteringStage = currentStageKind === 'lettering';
   const isPencilOrInkStage = isPencilStage || isInkStage;
   const canDragScriptLines = canEditPages && !isChapterScriptFrozen && isLetteringStage;
 
@@ -1723,24 +1724,28 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
   const storyboardImgUrl = storyboardArtwork ? panelArtworkUrls[storyboardArtwork.id] : null;
 
   const pencilArtwork = useMemo(() => {
-    const pStage = stages.find((s) => {
-      const sl = (s.slug || s.name || '').toLowerCase();
-      return sl.includes('pencil') || sl.includes('chì');
-    });
+    const pStage = findStageByKind(stages, 'pencil');
     if (!pStage) return null;
     return pickPageArtwork(pageArtworks, stages, pStage.id);
   }, [pageArtworks, stages]);
   const pencilImgUrl = pencilArtwork ? panelArtworkUrls[pencilArtwork.id] : null;
 
+  const inkArtwork = useMemo(() => {
+    const iStage = findStageByKind(stages, 'ink');
+    if (!iStage) return null;
+    return pickPageArtwork(pageArtworks, stages, iStage.id);
+  }, [pageArtworks, stages]);
+
+  // Ảnh của đúng công đoạn đang mở, dùng cho thanh công cụ/nhận diện vùng.
+  // Không fallback sang ảnh công đoạn khác để tránh hiển thị Pencil như thể là Ink.
+  const workflowArtwork = isPencilStage ? pencilArtwork : isInkStage ? inkArtwork : pageArt;
+  const workflowArtworkUrl = workflowArtwork ? panelArtworkUrls[workflowArtwork.id] : null;
+
   const hasArtworkForCurrentStage = useMemo(() => {
-    if (isPencilStage) {
-      return Boolean(pencilArtwork) || Boolean(pageArtUrl && isPencilStage) || pageArtworks.length > 0;
-    }
-    if (isInkStage) {
-      return Boolean(pageArt && isInkStage) || Boolean(pageArtUrl && isInkStage) || pageArtworks.length > 0;
-    }
-    return Boolean(pageArt) || pageArtworks.length > 0;
-  }, [isPencilStage, isInkStage, pencilArtwork, pageArt, pageArtUrl, pageArtworks.length]);
+    if (isPencilStage) return Boolean(pencilArtwork);
+    if (isInkStage) return Boolean(inkArtwork);
+    return Boolean(pageArt);
+  }, [isPencilStage, isInkStage, pencilArtwork, inkArtwork, pageArt]);
 
   const uploadedArtworksCount = pageArtworks.length;
 
@@ -4056,8 +4061,8 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                 safeZoneVisible={safeZoneVisible}
                 onToggleSafeZone={() => setSafeZoneVisible((v) => !v)}
                 onTriggerUpload={handleTriggerUploadPage}
-                hasInkArtwork={Boolean(pageArt && isInkStage)}
-                inkArtworkVersion={pageArt?.versionNumber ?? null}
+                hasInkArtwork={Boolean(inkArtwork)}
+                inkArtworkVersion={inkArtwork?.versionNumber ?? null}
                 isUploading={uploadingPage}
                 onHandoffToLettering={() => currentActiveStage && handleStageHandoff(currentActiveStage)}
                 isSubmitting={submittingStageHandoff}
@@ -5399,8 +5404,12 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                   })()}
                   assignmentBrief={findPageStageAssignment()?.brief}
                   artwork={
-                    pageArt && pageArtUrl
-                      ? { id: pageArt.id, versionNumber: pageArt.versionNumber, url: pageArtUrl }
+                    workflowArtwork && workflowArtworkUrl
+                      ? {
+                          id: workflowArtwork.id,
+                          versionNumber: workflowArtwork.versionNumber,
+                          url: workflowArtworkUrl,
+                        }
                       : null
                   }
                   pendingFile={pendingPageFile}
