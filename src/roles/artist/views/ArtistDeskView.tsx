@@ -4050,6 +4050,74 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
           </div>
         )}
 
+        {/* CỤM 2.5: CÔNG CỤ THEO NGỮ CẢNH GIAI ĐOẠN HIỆN TẠI (TÍCH HỢP TRỰC TIẾP VÀO TOOLBAR DUY NHẤT) */}
+        {currentChapterId && (
+          <div className='flex items-center gap-1.5 shrink-0 px-1 border-x border-[#D8D2C5]/80'>
+            {isPencilStage && (
+              <PencilStageWorkspaceBar
+                storyboardOpacity={storyboardOpacity}
+                onStoryboardOpacityChange={setStoryboardOpacity}
+                showStoryboardOverlay={showStoryboardOverlay}
+                onToggleStoryboardOverlay={() => setShowStoryboardOverlay((v) => !v)}
+                hasStoryboard={Boolean(storyboardImgUrl)}
+                bibleEntries={bibleEntries}
+                selectedBibleEntryId={selectedModelSheetId}
+                onSelectBibleEntry={setSelectedModelSheetId}
+                sketchColor={sketchColor}
+                onSketchColorChange={setSketchColor}
+                onTriggerUpload={handleTriggerUploadPage}
+                hasPencilArtwork={Boolean(pencilArtwork)}
+                pencilArtworkVersion={pencilArtwork?.versionNumber ?? null}
+                isUploading={uploadingPage}
+                onHandoffToInk={() => currentActiveStage && handleStageHandoff(currentActiveStage)}
+                isSubmitting={submittingStageHandoff}
+              />
+            )}
+
+            {isInkStage && (
+              <InkStageWorkspaceBar
+                pencilUnderlayVisible={pencilUnderlayVisible}
+                onTogglePencilUnderlay={() => setPencilUnderlayVisible((v) => !v)}
+                pencilUnderlayOpacity={pencilUnderlayOpacity}
+                onPencilUnderlayOpacityChange={setPencilUnderlayOpacity}
+                hasPencilArt={Boolean(pencilImgUrl)}
+                selectedNib={selectedNib}
+                onSelectNib={setSelectedNib}
+                screenToneEnabled={screenToneEnabled}
+                onToggleScreenTone={() => setScreenToneEnabled((v) => !v)}
+                selectedLpi={selectedLpi}
+                onSelectLpi={setSelectedLpi}
+                toneDensity={toneDensity}
+                onToneDensityChange={setToneDensity}
+                safeZoneVisible={safeZoneVisible}
+                onToggleSafeZone={() => setSafeZoneVisible((v) => !v)}
+                onTriggerUpload={handleTriggerUploadPage}
+                hasInkArtwork={Boolean(pageArt && isInkStage)}
+                inkArtworkVersion={pageArt?.versionNumber ?? null}
+                isUploading={uploadingPage}
+                onHandoffToLettering={() => currentActiveStage && handleStageHandoff(currentActiveStage)}
+                isSubmitting={submittingStageHandoff}
+              />
+            )}
+
+            {isLetteringStage && (
+              <LetteringStageWorkspaceBar
+                readingFlowVisible={readingFlowVisible}
+                onToggleReadingFlow={() => setReadingFlowVisible((v) => !v)}
+                onOpenAutoAssignModal={() => setAutoAssignModalOpen(true)}
+                scriptDrawerOpen={activeTab === 'script'}
+                onToggleScriptDrawer={() => setActiveTab(activeTab === 'script' ? 'pages' : 'script')}
+                unplacedCount={sceneLines.filter((l) => !l.panelId).length}
+                totalLetterableCount={sceneLines.length}
+                activeTool={letteringActiveTool}
+                onSelectTool={setLetteringActiveTool}
+                onSubmitToGate2={() => currentActiveStage && handleStageHandoff(currentActiveStage)}
+                isSubmitting={submittingStageHandoff}
+              />
+            )}
+          </div>
+        )}
+
         {/* CỤM 3 (BÊN PHẢI): TIẾN ĐỘ NỘP BẢN THẢO, CTA CHÍNH, ZOOM & INSPECTOR */}
         <div className='flex items-center gap-1.5 shrink-0 ml-auto'>
           {/* Nút Nộp Bản Thảo Chương */}
@@ -4311,72 +4379,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
 {/* Stage Tabs & Handoff đã tích hợp trực tiếp vào Unified Global Header */}
 
       {/* CONTEXT-DRIVEN EXCLUSIVE WORKSPACE BARS (PHẦN 3: GIAO DIỆN RIÊNG TỪNG GIAI ĐOẠN) */}
-      {currentChapterId && (
-        <>
-          {isPencilStage && (
-            <PencilStageWorkspaceBar
-              storyboardOpacity={storyboardOpacity}
-              onStoryboardOpacityChange={setStoryboardOpacity}
-              showStoryboardOverlay={showStoryboardOverlay}
-              onToggleStoryboardOverlay={() => setShowStoryboardOverlay((v) => !v)}
-              hasStoryboard={Boolean(storyboardImgUrl)}
-              bibleEntries={bibleEntries}
-              selectedBibleEntryId={selectedModelSheetId}
-              onSelectBibleEntry={setSelectedModelSheetId}
-              sketchColor={sketchColor}
-              onSketchColorChange={setSketchColor}
-              onTriggerUpload={handleTriggerUploadPage}
-              hasPencilArtwork={Boolean(pencilArtwork)}
-              pencilArtworkVersion={pencilArtwork?.versionNumber ?? null}
-              isUploading={uploadingPage}
-              onHandoffToInk={() => currentActiveStage && handleStageHandoff(currentActiveStage)}
-              isSubmitting={submittingStageHandoff}
-            />
-          )}
-
-          {isInkStage && (
-            <InkStageWorkspaceBar
-              pencilUnderlayVisible={pencilUnderlayVisible}
-              onTogglePencilUnderlay={() => setPencilUnderlayVisible((v) => !v)}
-              pencilUnderlayOpacity={pencilUnderlayOpacity}
-              onPencilUnderlayOpacityChange={setPencilUnderlayOpacity}
-              hasPencilArt={Boolean(pencilImgUrl)}
-              selectedNib={selectedNib}
-              onSelectNib={setSelectedNib}
-              screenToneEnabled={screenToneEnabled}
-              onToggleScreenTone={() => setScreenToneEnabled((v) => !v)}
-              selectedLpi={selectedLpi}
-              onSelectLpi={setSelectedLpi}
-              toneDensity={toneDensity}
-              onToneDensityChange={setToneDensity}
-              safeZoneVisible={safeZoneVisible}
-              onToggleSafeZone={() => setSafeZoneVisible((v) => !v)}
-              onTriggerUpload={handleTriggerUploadPage}
-              hasInkArtwork={Boolean(pageArt && isInkStage)}
-              inkArtworkVersion={pageArt?.versionNumber ?? null}
-              isUploading={uploadingPage}
-              onHandoffToLettering={() => currentActiveStage && handleStageHandoff(currentActiveStage)}
-              isSubmitting={submittingStageHandoff}
-            />
-          )}
-
-          {isLetteringStage && (
-            <LetteringStageWorkspaceBar
-              readingFlowVisible={readingFlowVisible}
-              onToggleReadingFlow={() => setReadingFlowVisible((v) => !v)}
-              onOpenAutoAssignModal={() => setAutoAssignModalOpen(true)}
-              scriptDrawerOpen={activeTab === 'script'}
-              onToggleScriptDrawer={() => setActiveTab(activeTab === 'script' ? 'pages' : 'script')}
-              unplacedCount={sceneLines.filter((l) => !l.panelId).length}
-              totalLetterableCount={sceneLines.length}
-              activeTool={letteringActiveTool}
-              onSelectTool={setLetteringActiveTool}
-              onSubmitToGate2={() => currentActiveStage && handleStageHandoff(currentActiveStage)}
-              isSubmitting={submittingStageHandoff}
-            />
-          )}
-        </>
-      )}
+      
 
       {/* Toolbar phụ khi bật "Sửa bố cục" */}
       {selectedPage && canEditPages && !isCurrentPageCarvedOut && layoutEdit && (
