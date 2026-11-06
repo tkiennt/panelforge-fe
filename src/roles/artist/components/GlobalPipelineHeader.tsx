@@ -99,7 +99,7 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
           <button
             type='button'
             onClick={onBackToChapters}
-            data-testid='header-switch-chapter-btn'
+            data-testid='switch-chapter-btn'
             title='Quay lại màn hình danh sách chọn chương'
             aria-label='Đổi chương'
             className='h-6 px-2 inline-flex items-center gap-1 rounded-md border border-[#D8D2C5] bg-[#FAF8F5] hover:bg-[#F3F0E9] text-stone-700 hover:text-stone-900 transition-colors cursor-pointer text-[11px] font-semibold shrink-0'
@@ -142,6 +142,12 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
           >
             Trang {selectedPage ? String(selectedPage.pageNumber).padStart(2, '0') : '--'}/
             {String(pages.length).padStart(2, '0')}
+          
+            {selectedPage && (
+              <span data-testid="toolbar-page-context" className="sr-only">
+                Trang {selectedPage.pageNumber}
+              </span>
+            )}
           </span>
 
           <button

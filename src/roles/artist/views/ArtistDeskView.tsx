@@ -3782,91 +3782,25 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
             )}
           </button>
 
-          <button
-            type='button'
-            onClick={() => {
-              setCurrentChapterId(null);
-              setSearchParams((prev) => {
-                const p = new URLSearchParams(prev);
-                p.delete('chapterId');
-                return p;
-              });
-            }}
-            data-testid='switch-chapter-btn'
-            title='Quay lại danh sách chọn chương'
-            aria-label='Đổi chương'
-            className={`${toolbarBtn} ${toolbarIdle} px-2`}
-          >
-            <BookOpen className='w-3.5 h-3.5 text-[#C2410C]' />
-            <span className='hidden sm:inline font-semibold'>Đổi chương</span>
-          </button>
-
-          <div className='flex items-center gap-1 min-w-0 text-xs text-[#57534E]'>
-            {chapters.length > 0 ? (
-              <>
-                <label htmlFor='artist-chapter-select' className='sr-only'>
-                  Chương
-                </label>
-                <select
-                  id='artist-chapter-select'
-                  value={currentChapterId || ''}
-                  onChange={(e) => {
-                    const newId = e.target.value;
-                    if (newId === '__all__') {
-                      setCurrentChapterId(null);
-                      setSearchParams((prev) => {
-                        const p = new URLSearchParams(prev);
-                        p.delete('chapterId');
-                        return p;
-                      });
-                      return;
-                    }
-                    handleSelectChapter(newId);
-                  }}
-                  className='h-8 max-w-[5.5rem] bg-transparent font-semibold text-[#1C1917] rounded-lg px-1 cursor-pointer hover:bg-[#F3F0E9] focus-visible:outline-2 focus-visible:outline-[#F97316] truncate'
-                >
-                  <option value='__all__'>📋 Tất cả chương…</option>
-                  {chapters.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      Chương {c.chapterNumber}
-                      {c.title ? `: ${c.title}` : ''}
-                    </option>
-                  ))}
-                </select>
-              </>
-            ) : (
-              <span>{loadingChapters ? 'Đang tải…' : 'Chưa có chương'}</span>
-            )}
-            {selectedPage && (
-              <>
-                <span aria-hidden='true'>/</span>
-                <span
-                  className='font-semibold text-[#1C1917] whitespace-nowrap'
-                  data-testid='toolbar-page-context'
-                >
-                  Trang {selectedPage.pageNumber}
-                </span>
-              </>
-            )}
-            {workBadge && (
-              <span
-                className={`ml-1 px-2 py-0.5 rounded-full border text-[11px] font-semibold whitespace-nowrap inline-flex items-center ${workBadge.tone}`}
-                data-testid='artist-work-status'
-                title={`${workStageName ? `Công đoạn công việc: ${workStageName} — ` : ''}${workBadge.label}`}
-              >
-                <span className='hidden 2xl:inline'>
-                  {workStageName ? `${workStageName} · ` : ''}
-                </span>
-                {workBadge.label.split(' · ')[0]}
-                {workBadge.label.includes('Chỉ xem') && (
-                  <>
-                    <Lock className='inline w-3 h-3 ml-1 -mt-px' aria-hidden='true' />
-                    <span className='sr-only'> · Chỉ xem</span>
-                  </>
-                )}
+          {/* Trạng thái phân công công việc của Artist (Gọn gàng, loại bỏ các nút điều hướng trùng với Header trên) */}
+          {workBadge && (
+            <span
+              className={`ml-1 px-2.5 py-0.5 rounded-full border text-[11px] font-semibold whitespace-nowrap inline-flex items-center ${workBadge.tone}`}
+              data-testid='artist-work-status'
+              title={`${workStageName ? `Công đoạn công việc: ${workStageName} — ` : ''}${workBadge.label}`}
+            >
+              <span className='hidden 2xl:inline'>
+                {workStageName ? `${workStageName} · ` : ''}
               </span>
-            )}
-          </div>
+              {workBadge.label.split(' · ')[0]}
+              {workBadge.label.includes('Chỉ xem') && (
+                <>
+                  <Lock className='inline w-3 h-3 ml-1 -mt-px' aria-hidden='true' />
+                  <span className='sr-only'> · Chỉ xem</span>
+                </>
+              )}
+            </span>
+          )}
         </div>
 
         {/* CỤM 2 (Ở GIỮA): CHẾ ĐỘ HIỂN THỊ & CÔNG CỤ VẼ TRANG (ĐÃ LỌC BỎ CÁC NÚT TRÙNG VỚI CANVAS) */}
@@ -4120,57 +4054,6 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
 
         {/* CỤM 3 (BÊN PHẢI): TIẾN ĐỘ NỘP BẢN THẢO, CTA CHÍNH, ZOOM & INSPECTOR */}
         <div className='flex items-center gap-1.5 shrink-0 ml-auto'>
-          {/* Nút Nộp Bản Thảo Chương */}
-          {currentChapterId && canEditPages && (
-            <button
-              type='button'
-              onClick={handleSubmitManuscript}
-              disabled={submittingManuscript || manuscriptStatus === 'Approved'}
-              data-testid='toolbar-submit-manuscript-btn'
-              title={
-                manuscriptStatus === 'Approved'
-                  ? 'Bản thảo chương này đã được duyệt hoàn tất'
-                  : manuscriptStatus === 'Submitted' || manuscriptStatus === 'UnderReview'
-                    ? 'Bản thảo đang trong quá trình thẩm định của Editor/Producer'
-                    : manuscriptStatus === 'ReworkRequired'
-                      ? 'Có phản hồi yêu cầu sửa — Bấm để nộp lại bản thảo sau khi hoàn thiện'
-                      : 'Nộp toàn bộ bản thảo của chương này cho Editor/Producer thẩm định'
-              }
-              className={`${toolbarBtn} font-semibold transition-all shadow-2xs ${
-                submittingManuscript
-                  ? 'bg-stone-100 text-stone-400 border-stone-200 cursor-wait'
-                  : manuscriptStatus === 'Approved'
-                    ? 'bg-emerald-50 text-emerald-800 border-emerald-300 cursor-default'
-                    : manuscriptStatus === 'Submitted' || manuscriptStatus === 'UnderReview'
-                      ? 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100 cursor-pointer'
-                      : manuscriptStatus === 'ReworkRequired'
-                        ? 'bg-amber-600 hover:bg-amber-700 text-white border-amber-600 animate-pulse cursor-pointer'
-                        : 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600 cursor-pointer'
-              }`}
-            >
-              {submittingManuscript ? (
-                <Loader2 className='w-3.5 h-3.5 animate-spin' />
-              ) : manuscriptStatus === 'Approved' ? (
-                <CheckCircle2 className='w-3.5 h-3.5 text-emerald-600' />
-              ) : manuscriptStatus === 'Submitted' || manuscriptStatus === 'UnderReview' ? (
-                <Clock className='w-3.5 h-3.5 text-amber-600' />
-              ) : (
-                <Send className='w-3.5 h-3.5 text-white' />
-              )}
-              <span className='whitespace-nowrap'>
-                {submittingManuscript
-                  ? 'Đang nộp...'
-                  : manuscriptStatus === 'Approved'
-                    ? 'Đã duyệt'
-                    : manuscriptStatus === 'Submitted' || manuscriptStatus === 'UnderReview'
-                      ? 'Chờ duyệt'
-                      : manuscriptStatus === 'ReworkRequired'
-                        ? 'Nộp lại bản thảo'
-                        : 'Nộp bản thảo'}
-              </span>
-            </button>
-          )}
-
           {/* Primary CTA (Assignment Gateway: Bắt đầu vẽ / Tải tranh) */}
           {primaryCta && (
             <>
