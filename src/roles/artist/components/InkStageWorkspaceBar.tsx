@@ -8,6 +8,10 @@ import {
   EyeOff,
   ArrowRight,
   ShieldCheck,
+  Upload,
+  CheckCircle2,
+  Info,
+  Loader2,
 } from 'lucide-react';
 
 export type InkingNib = 'g-pen' | 'maru-pen' | 'turnip-pen' | 'fill-bucket';
@@ -21,7 +25,7 @@ interface Props {
   onPencilUnderlayOpacityChange: (val: number) => void;
   hasPencilArt: boolean;
 
-  // Inking Toolset
+  // Inking Toolset / Style Presets
   selectedNib: InkingNib;
   onSelectNib: (nib: InkingNib) => void;
 
@@ -36,6 +40,12 @@ interface Props {
   // Safe-Zone & Bleed Margins
   safeZoneVisible: boolean;
   onToggleSafeZone: () => void;
+
+  // Dedicated Artwork Upload Action & Status (Hệ thống dùng để upload ảnh vì chưa hỗ trợ vẽ)
+  onTriggerUpload?: () => void;
+  hasInkArtwork?: boolean;
+  inkArtworkVersion?: number | null;
+  isUploading?: boolean;
 
   // Action Handoff
   onHandoffToLettering: () => void;
@@ -58,6 +68,10 @@ export const InkStageWorkspaceBar: React.FC<Props> = ({
   onToneDensityChange,
   safeZoneVisible,
   onToggleSafeZone,
+  onTriggerUpload,
+  hasInkArtwork = false,
+  inkArtworkVersion,
+  isUploading = false,
   onHandoffToLettering,
   isSubmitting = false,
 }) => {
@@ -80,74 +94,60 @@ export const InkStageWorkspaceBar: React.FC<Props> = ({
       data-testid='ink-stage-workspace-bar'
       className='bg-[#FCFBF8] border-b border-[#E8E3D8] px-3 py-0.5 min-h-[30px] h-[30px] flex items-center justify-between gap-2 shadow-2xs text-[11px] overflow-x-auto no-scrollbar select-none'
     >
-      {/* Khối công cụ Ink tinh gọn */}
+      {/* Khối công cụ Ink: Tối ưu cho quy trình Upload ảnh */}
       <div className='flex items-center gap-2 shrink-0'>
-        {/* Bộ ngòi mực Inking */}
-        <div className='flex items-center gap-0.5 bg-[#F3EFE6] p-0.5 rounded-lg border border-[#DDD6C8] font-semibold'>
-          <button
-            type='button'
-            data-testid='btn-nib-gpen'
-            onClick={() => onSelectNib('g-pen')}
-            title='G-Pen: Nét biến thiên lực nhấn'
-            className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${
-              selectedNib === 'g-pen'
-                ? 'bg-stone-900 text-white shadow-2xs font-bold'
-                : 'text-stone-600 hover:text-stone-900'
-            }`}
-          >
-            G-Pen
-          </button>
-          <button
-            type='button'
-            data-testid='btn-nib-maru'
-            onClick={() => onSelectNib('maru-pen')}
-            title='Maru Pen: Chi tiết mảnh & tóc'
-            className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${
-              selectedNib === 'maru-pen'
-                ? 'bg-stone-900 text-white shadow-2xs font-bold'
-                : 'text-stone-600 hover:text-stone-900'
-            }`}
-          >
-            Maru
-          </button>
-          <button
-            type='button'
-            data-testid='btn-nib-turnip'
-            onClick={() => onSelectNib('turnip-pen')}
-            title='Turnip Pen: Nét đều đặn'
-            className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${
-              selectedNib === 'turnip-pen'
-                ? 'bg-stone-900 text-white shadow-2xs font-bold'
-                : 'text-stone-600 hover:text-stone-900'
-            }`}
-          >
-            Kabura
-          </button>
-          <button
-            type='button'
-            data-testid='btn-nib-bucket'
-            onClick={() => onSelectNib('fill-bucket')}
-            title='Thùng sơn đổ mảng đen (Beta)'
-            className={`p-1 rounded-md transition-all cursor-pointer ${
-              selectedNib === 'fill-bucket'
-                ? 'bg-stone-900 text-white shadow-2xs font-bold'
-                : 'text-stone-600 hover:text-stone-900'
-            }`}
-          >
-            <PaintBucket className='w-3.5 h-3.5' />
-          </button>
+        {/* Badge thông báo quy trình: Hệ thống chỉ dùng tải ảnh vì chưa hỗ trợ vẽ trực tiếp */}
+        <div
+          data-testid='badge-ink-upload-mode'
+          title='Hệ thống hiện tại chưa hỗ trợ vẽ trực tiếp. Vui lòng tải file Line-art/Ink đã đi nét sạch hoàn thiện.'
+          className='flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-sky-50 text-sky-900 border border-sky-200/80 font-medium'
+        >
+          <Info className='w-3.5 h-3.5 text-sky-600 shrink-0' />
+          <span className='hidden sm:inline font-semibold'>Ink:</span>
+          <span>Upload Line-art</span>
         </div>
+
+        {/* Nút Upload ảnh Line-art / Ink trực tiếp */}
+        {onTriggerUpload && (
+          <button
+            type='button'
+            data-testid='btn-upload-ink-art'
+            onClick={onTriggerUpload}
+            disabled={isUploading}
+            title='Tải tệp ảnh Line-art/Ink hoàn thiện (PNG, JPG, WEBP) cho trang này'
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-2xs active:scale-95 disabled:opacity-50 ${
+              hasInkArtwork
+                ? 'bg-sky-100 hover:bg-sky-200 text-sky-900 border border-sky-300'
+                : 'bg-sky-700 hover:bg-sky-800 text-white'
+            }`}
+          >
+            {isUploading ? (
+              <Loader2 className='w-3.5 h-3.5 animate-spin' />
+            ) : hasInkArtwork ? (
+              <CheckCircle2 className='w-3.5 h-3.5 text-sky-700' />
+            ) : (
+              <Upload className='w-3.5 h-3.5' />
+            )}
+            <span>
+              {isUploading
+                ? 'Đang tải...'
+                : hasInkArtwork
+                  ? `Line-art v${inkArtworkVersion ?? 1} (Tải bản mới)`
+                  : '+ Tải ảnh Line-art'}
+            </span>
+          </button>
+        )}
 
         <span className='w-px h-4 bg-stone-300 mx-0.5' />
 
-        {/* Lớp phác thảo chì nền (Underlay) */}
+        {/* Lớp phác thảo chì nền (Underlay) để so khớp nét mực */}
         <div className='flex items-center gap-1.5 bg-[#F3EFE6] px-2 py-0.5 rounded-lg border border-[#DDD6C8]'>
           <button
             type='button'
             data-testid='btn-toggle-pencil-underlay'
             onClick={onTogglePencilUnderlay}
             disabled={!hasPencilArt}
-            title={hasPencilArt ? 'Ẩn / hiện chì nền (Phím H)' : 'Chưa có bản chì'}
+            title={hasPencilArt ? 'Ẩn / hiện chì nền để so khớp (Phím H)' : 'Chưa có bản chì'}
             className={`flex items-center gap-1 font-semibold cursor-pointer ${
               pencilUnderlayVisible && hasPencilArt
                 ? 'text-cyan-700 font-bold'
@@ -175,6 +175,80 @@ export const InkStageWorkspaceBar: React.FC<Props> = ({
           <span className='font-mono text-[10px] text-stone-600 w-6 text-right'>
             {pencilUnderlayVisible && hasPencilArt ? `${pencilUnderlayOpacity}%` : '0%'}
           </span>
+        </div>
+
+        <span className='w-px h-4 bg-stone-300 mx-0.5' />
+
+        {/* Safe-Zone Toggle */}
+        <button
+          type='button'
+          data-testid='btn-toggle-safe-zone'
+          onClick={onToggleSafeZone}
+          title='Khung an toàn in ấn: Live Area, Trim Line & Bleed'
+          className={`flex items-center gap-1 px-2 py-0.5 rounded-lg border font-semibold cursor-pointer transition-colors ${
+            safeZoneVisible
+              ? 'bg-emerald-50 text-emerald-900 border-emerald-300'
+              : 'bg-[#F3EFE6] text-stone-700 border-[#DDD6C8] hover:bg-stone-100'
+          }`}
+        >
+          <ShieldCheck className='w-3.5 h-3.5 text-emerald-600' />
+          <span>Khung in</span>
+        </button>
+
+        {/* Kiểu nét & Screen-Tone thông số kiểm tra */}
+        <div className='flex items-center gap-0.5 bg-[#F3EFE6] p-0.5 rounded-lg border border-[#DDD6C8] font-semibold'>
+          <button
+            type='button'
+            data-testid='btn-nib-gpen'
+            onClick={() => onSelectNib('g-pen')}
+            title='Kiểu nét G-Pen'
+            className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+              selectedNib === 'g-pen'
+                ? 'bg-stone-900 text-white shadow-2xs font-bold'
+                : 'text-stone-600 hover:text-stone-900'
+            }`}
+          >
+            G-Pen
+          </button>
+          <button
+            type='button'
+            data-testid='btn-nib-maru'
+            onClick={() => onSelectNib('maru-pen')}
+            title='Kiểu nét Maru'
+            className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+              selectedNib === 'maru-pen'
+                ? 'bg-stone-900 text-white shadow-2xs font-bold'
+                : 'text-stone-600 hover:text-stone-900'
+            }`}
+          >
+            Maru
+          </button>
+          <button
+            type='button'
+            data-testid='btn-nib-turnip'
+            onClick={() => onSelectNib('turnip-pen')}
+            title='Kiểu nét Kabura'
+            className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+              selectedNib === 'turnip-pen'
+                ? 'bg-stone-900 text-white shadow-2xs font-bold'
+                : 'text-stone-600 hover:text-stone-900'
+            }`}
+          >
+            Kabura
+          </button>
+          <button
+            type='button'
+            data-testid='btn-nib-bucket'
+            onClick={() => onSelectNib('fill-bucket')}
+            title='Đổ mảng đen'
+            className={`p-1 rounded-md transition-all cursor-pointer ${
+              selectedNib === 'fill-bucket'
+                ? 'bg-stone-900 text-white shadow-2xs font-bold'
+                : 'text-stone-600 hover:text-stone-900'
+            }`}
+          >
+            <PaintBucket className='w-3.5 h-3.5' />
+          </button>
         </div>
 
         {/* Screen-Tone Popover */}
@@ -258,22 +332,6 @@ export const InkStageWorkspaceBar: React.FC<Props> = ({
             </div>
           )}
         </div>
-
-        {/* Safe-Zone Toggle */}
-        <button
-          type='button'
-          data-testid='btn-toggle-safe-zone'
-          onClick={onToggleSafeZone}
-          title='Khung an toàn in ấn: Live Area, Trim Line & Bleed'
-          className={`flex items-center gap-1 px-2 py-0.5 rounded-lg border font-semibold cursor-pointer transition-colors ${
-            safeZoneVisible
-              ? 'bg-emerald-50 text-emerald-900 border-emerald-300'
-              : 'bg-[#F3EFE6] text-stone-700 border-[#DDD6C8] hover:bg-stone-100'
-          }`}
-        >
-          <ShieldCheck className='w-3.5 h-3.5 text-emerald-600' />
-          <span>Khung in</span>
-        </button>
       </div>
 
       {/* Nút hoàn tất nét vẽ & chuyển giao sang Lettering */}

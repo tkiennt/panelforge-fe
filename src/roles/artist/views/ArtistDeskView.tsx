@@ -3907,8 +3907,8 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                   aria-expanded={openMenu === 'upload'}
                   onClick={() => setOpenMenu((m) => (m === 'upload' ? null : 'upload'))}
                   data-testid='upload-menu-btn'
-                  aria-label={`Chế độ vẽ: ${uploadMode === 'page' ? 'cả trang' : 'từng khung'}`}
-                  title='Chọn chế độ vẽ: Vẽ cả trang liền mạch hoặc vẽ từng khung riêng biệt'
+                  aria-label={`Chế độ tải ảnh: ${uploadMode === 'page' ? 'cả trang' : 'từng khung'}`}
+                  title='Chọn chế độ tải ảnh: Tải cả trang liền mạch hoặc tải từng khung riêng biệt'
                   className={`${toolbarBtn} ${toolbarIdle} flex items-center gap-1`}
                 >
                   <Layers className='w-3.5 h-3.5 text-[#C2410C]' />
@@ -4325,6 +4325,10 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
               onSelectBibleEntry={setSelectedModelSheetId}
               sketchColor={sketchColor}
               onSketchColorChange={setSketchColor}
+              onTriggerUpload={handleTriggerUploadPage}
+              hasPencilArtwork={Boolean(pencilArtwork)}
+              pencilArtworkVersion={pencilArtwork?.versionNumber ?? null}
+              isUploading={uploadingPage}
               onHandoffToInk={() => currentActiveStage && handleStageHandoff(currentActiveStage)}
               isSubmitting={submittingStageHandoff}
             />
@@ -4347,6 +4351,10 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
               onToneDensityChange={setToneDensity}
               safeZoneVisible={safeZoneVisible}
               onToggleSafeZone={() => setSafeZoneVisible((v) => !v)}
+              onTriggerUpload={handleTriggerUploadPage}
+              hasInkArtwork={Boolean(pageArt && isInkStage)}
+              inkArtworkVersion={pageArt?.versionNumber ?? null}
+              isUploading={uploadingPage}
               onHandoffToLettering={() => currentActiveStage && handleStageHandoff(currentActiveStage)}
               isSubmitting={submittingStageHandoff}
             />
@@ -5557,9 +5565,17 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                             <Upload className='w-7 h-7' />
                           </div>
                           <div>
-                            <h4 className='font-bold text-base text-[#1C1917]'>Trang chưa có bản thảo tranh vẽ</h4>
+                            <h4 className='font-bold text-base text-[#1C1917]'>
+                              {isPencilStage
+                                ? 'Trang chưa có bản vẽ nét chì (Pencil)'
+                                : isInkStage
+                                  ? 'Trang chưa có bản vẽ hoàn thiện / Line-art (Ink)'
+                                  : 'Trang chưa có bản thảo tranh vẽ'}
+                            </h4>
                             <p className='text-xs text-[#57534E] max-w-sm mt-1 leading-relaxed'>
-                              Tải lên ảnh vẽ hoàn thiện cho toàn bộ trang (từ Clip Studio Paint, Photoshop, SAI) hoặc chọn mẫu khung để chia nhiều ô truyện theo kịch bản.
+                              {isPencilOrInkStage
+                                ? 'Hệ thống hiện tại chưa hỗ trợ vẽ trực tiếp. Vui lòng vẽ trên phần mềm ngoài (Clip Studio, Photoshop, Procreate...) rồi tải tệp ảnh lên.'
+                                : 'Tải lên ảnh vẽ hoàn thiện cho toàn bộ trang (từ Clip Studio Paint, Photoshop, SAI) hoặc chọn mẫu khung để chia nhiều ô truyện theo kịch bản.'}
                             </p>
                           </div>
                           <div className='flex flex-wrap items-center justify-center gap-3 pt-1'>
@@ -5877,7 +5893,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                                         }}
                                         className='px-2 py-0.5 bg-white hover:bg-stone-50 text-stone-700 border border-stone-300 rounded text-[11px] font-semibold cursor-pointer shadow-2xs transition-all active:scale-95'
                                       >
-                                        + Vẽ chì / Tải ảnh
+                                        + Tải ảnh {isPencilStage ? 'nét chì' : isInkStage ? 'line-art' : ''}
                                       </button>
                                     )}
                                     <button

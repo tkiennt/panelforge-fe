@@ -7,6 +7,10 @@ import {
   User,
   ArrowRight,
   BookmarkCheck,
+  Upload,
+  CheckCircle2,
+  Info,
+  Loader2,
 } from 'lucide-react';
 import { BibleEntryDto } from '@/services/bible.service';
 
@@ -23,9 +27,15 @@ interface Props {
   selectedBibleEntryId: string | null;
   onSelectBibleEntry: (id: string | null) => void;
 
-  // Two-Tone Sketch Palette
+  // Two-Tone Sketch Palette / Display Filter
   sketchColor: 'blue' | 'graphite';
   onSketchColorChange: (color: 'blue' | 'graphite') => void;
+
+  // Dedicated Artwork Upload Action & Status (Hệ thống dùng để upload ảnh vì chưa hỗ trợ vẽ)
+  onTriggerUpload?: () => void;
+  hasPencilArtwork?: boolean;
+  pencilArtworkVersion?: number | null;
+  isUploading?: boolean;
 
   // Action Handoff
   onHandoffToInk: () => void;
@@ -43,6 +53,10 @@ export const PencilStageWorkspaceBar: React.FC<Props> = ({
   onSelectBibleEntry,
   sketchColor,
   onSketchColorChange,
+  onTriggerUpload,
+  hasPencilArtwork = false,
+  pencilArtworkVersion,
+  isUploading = false,
   onHandoffToInk,
   isSubmitting = false,
 }) => {
@@ -53,15 +67,59 @@ export const PencilStageWorkspaceBar: React.FC<Props> = ({
       data-testid='pencil-stage-workspace-bar'
       className='bg-[#FCFBF8] border-b border-[#E8E3D8] px-3 py-0.5 min-h-[30px] h-[30px] flex items-center justify-between gap-2 shadow-2xs text-[11px] overflow-x-auto no-scrollbar select-none'
     >
-      {/* Khối công cụ Pencil tinh gọn */}
+      {/* Khối công cụ Pencil: Tối ưu cho quy trình Upload ảnh */}
       <div className='flex items-center gap-2 shrink-0'>
-        {/* Two-Tone Sketch Palette */}
+        {/* Badge định hướng: Hệ thống dùng để tải ảnh phác thảo nét chì vì không hỗ trợ vẽ */}
+        <div
+          data-testid='badge-pencil-upload-mode'
+          title='Hệ thống hiện tại chưa hỗ trợ vẽ trực tiếp. Vui lòng vẽ trên phần mềm ngoài (Clip Studio, Photoshop, SAI...) và tải tệp ảnh nét chì lên.'
+          className='flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-amber-50 text-amber-900 border border-amber-200/80 font-medium'
+        >
+          <Info className='w-3.5 h-3.5 text-amber-600 shrink-0' />
+          <span className='hidden sm:inline font-semibold'>Pencil:</span>
+          <span>Upload ảnh nét chì</span>
+        </div>
+
+        {/* Nút Upload ảnh nét chì trực tiếp */}
+        {onTriggerUpload && (
+          <button
+            type='button'
+            data-testid='btn-upload-pencil-art'
+            onClick={onTriggerUpload}
+            disabled={isUploading}
+            title='Tải tệp ảnh nét chì (PNG, JPG, WEBP) lên máy chủ'
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-2xs active:scale-95 disabled:opacity-50 ${
+              hasPencilArtwork
+                ? 'bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300'
+                : 'bg-amber-600 hover:bg-amber-700 text-white'
+            }`}
+          >
+            {isUploading ? (
+              <Loader2 className='w-3.5 h-3.5 animate-spin' />
+            ) : hasPencilArtwork ? (
+              <CheckCircle2 className='w-3.5 h-3.5 text-amber-700' />
+            ) : (
+              <Upload className='w-3.5 h-3.5' />
+            )}
+            <span>
+              {isUploading
+                ? 'Đang tải...'
+                : hasPencilArtwork
+                  ? `Nét chì v${pencilArtworkVersion ?? 1} (Tải bản mới)`
+                  : '+ Tải ảnh nét chì'}
+            </span>
+          </button>
+        )}
+
+        <span className='w-px h-4 bg-stone-300 mx-0.5' />
+
+        {/* Two-Tone Preview Tint (Bộ lọc xem nét chì: Chì Xanh / Chì Đen) */}
         <div className='flex items-center gap-0.5 bg-[#F3EFE6] p-0.5 rounded-lg border border-[#DDD6C8] font-semibold'>
           <button
             type='button'
             data-testid='btn-pencil-blue'
             onClick={() => onSketchColorChange('blue')}
-            title='Non-photo Blue Pencil: Phác thảo dáng & phối cảnh'
+            title='Chế độ xem Chì Xanh: Nét phác thảo dáng & phối cảnh'
             className={`flex items-center gap-1.5 px-2 py-0.5 rounded-md transition-all cursor-pointer ${
               sketchColor === 'blue'
                 ? 'bg-sky-600 text-white shadow-2xs font-bold'
@@ -75,7 +133,7 @@ export const PencilStageWorkspaceBar: React.FC<Props> = ({
             type='button'
             data-testid='btn-pencil-graphite'
             onClick={() => onSketchColorChange('graphite')}
-            title='Graphite Pencil: Chì đậm định hình nét'
+            title='Chế độ xem Chì Đen: Định hình nét đậm'
             className={`flex items-center gap-1.5 px-2 py-0.5 rounded-md transition-all cursor-pointer ${
               sketchColor === 'graphite'
                 ? 'bg-stone-800 text-white shadow-2xs font-bold'
@@ -89,14 +147,14 @@ export const PencilStageWorkspaceBar: React.FC<Props> = ({
 
         <span className='w-px h-4 bg-stone-300 mx-0.5' />
 
-        {/* Storyboard Overlay Mode */}
+        {/* Storyboard Overlay Mode: So sánh ảnh nét chì với Storyboard phân cảnh */}
         <div className='flex items-center gap-1.5 bg-[#F3EFE6] px-2 py-0.5 rounded-lg border border-[#DDD6C8]'>
           <button
             type='button'
             data-testid='btn-toggle-storyboard-overlay'
             onClick={onToggleStoryboardOverlay}
             disabled={!hasStoryboard}
-            title={hasStoryboard ? 'Ẩn / hiện lớp Storyboard' : 'Chưa có ảnh Storyboard'}
+            title={hasStoryboard ? 'Ẩn / hiện lớp Storyboard để so sánh' : 'Chưa có ảnh Storyboard'}
             className={`flex items-center gap-1 font-semibold cursor-pointer ${
               showStoryboardOverlay && hasStoryboard
                 ? 'text-orange-700'
