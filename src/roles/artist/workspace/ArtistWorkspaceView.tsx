@@ -559,7 +559,7 @@ export const ArtistWorkspaceView: React.FC<ArtistWorkspaceViewProps> = ({ worksp
               ) : currentStage === 'pencil' ? (
                 <>
                   <ArrowRight className='w-3.5 h-3.5' />
-                  <span>Hand over to Ink</span>
+                  <span>Submit to Ink</span>
                 </>
               ) : (
                 <>

@@ -21,6 +21,8 @@ interface UploadPagesModalProps {
   selectedPage: PageDto | null;
   pages: PageDto[];
   defaultStageId?: string;
+  /** Tên công đoạn nhận ảnh, hiển thị để hoạ sĩ xác nhận trước khi tải lên. */
+  stageName?: string;
   defaultTab?: 'single' | 'bulk';
   onSuccess: (targetPageId?: string) => Promise<void> | void;
   showToast: (title: string, message: string) => void;
@@ -65,6 +67,7 @@ export const UploadPagesModal: React.FC<UploadPagesModalProps> = ({
   selectedPage,
   pages,
   defaultStageId,
+  stageName,
   defaultTab = 'single',
   onSuccess,
   showToast,
@@ -364,6 +367,17 @@ export const UploadPagesModal: React.FC<UploadPagesModalProps> = ({
 
         {/* Modal Body */}
         <div className='flex-1 overflow-y-auto p-6 space-y-5 custom-scrollbar'>
+          {stageName && (
+            <div
+              data-testid='upload-target-stage'
+              className='flex items-center gap-2 rounded-xl border border-sky-200 bg-sky-50 px-3.5 py-2.5 text-xs text-sky-900'
+            >
+              <Layers className='w-4 h-4 shrink-0 text-sky-600' />
+              <span>
+                Ảnh sẽ được lưu vào công đoạn: <strong className='font-bold'>{stageName}</strong>
+              </span>
+            </div>
+          )}
           {activeTab === 'single' ? (
             /* TAB 1: TẢI 1 TRANG */
             <div className='space-y-4'>

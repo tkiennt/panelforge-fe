@@ -1694,6 +1694,17 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
     return sortedStages[0] || null;
   }, [viewStageId, myStageOnPage, sortedStages, myInProgress, myAssigned, currentChapterId]);
 
+  // Stage đích cho mọi thao tác upload: luôn theo công đoạn đang mở trên workspace,
+  // sau đó mới tới assignment của trang và cuối cùng là stage bật đầu tiên.
+  const uploadStageAssignment = findPageStageAssignment();
+  const uploadStage =
+    currentActiveStage ||
+    (uploadStageAssignment
+      ? stages.find((s) => s.id === uploadStageAssignment.pipelineStageId) || null
+      : null) ||
+    stages.find((s) => s.isEnabled !== false) ||
+    null;
+
   const currentStageSlug = (currentActiveStage?.slug || currentActiveStage?.name || '').toLowerCase();
   const isPencilStage = currentStageSlug.includes('pencil') || currentStageSlug.includes('chì');
   const isInkStage = currentStageSlug.includes('ink') || currentStageSlug.includes('nét');
@@ -1720,6 +1731,18 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
     return pickPageArtwork(pageArtworks, stages, pStage.id);
   }, [pageArtworks, stages]);
   const pencilImgUrl = pencilArtwork ? panelArtworkUrls[pencilArtwork.id] : null;
+
+  const hasArtworkForCurrentStage = useMemo(() => {
+    if (isPencilStage) {
+      return Boolean(pencilArtwork) || Boolean(pageArtUrl && isPencilStage) || pageArtworks.length > 0;
+    }
+    if (isInkStage) {
+      return Boolean(pageArt && isInkStage) || Boolean(pageArtUrl && isInkStage) || pageArtworks.length > 0;
+    }
+    return Boolean(pageArt) || pageArtworks.length > 0;
+  }, [isPencilStage, isInkStage, pencilArtwork, pageArt, pageArtUrl, pageArtworks.length]);
+
+  const uploadedArtworksCount = pageArtworks.length;
 
   const handleStageHandoff = async (stage: PipelineStageDto) => {
     if (!currentChapterId) return;
@@ -1814,6 +1837,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
     const stageAssignment = findStageAssignment(panelId);
     const effectiveStageId =
       stageAssignment?.pipelineStageId ||
+      currentActiveStage?.id ||
       stages.find((s) => s.isEnabled !== false)?.id ||
       stages[0]?.id;
     setUploadingPanelId(panelId);
@@ -1870,6 +1894,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
     const stageAssignment = findPageStageAssignment();
     const effectiveStageId =
       stageAssignment?.pipelineStageId ||
+      currentActiveStage?.id ||
       stages.find((s) => s.isEnabled !== false)?.id ||
       stages[0]?.id;
     if (!effectiveStageId) {
@@ -3753,6 +3778,8 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
           isSubmittingHandoff={submittingStageHandoff}
           canEdit={canEditPages}
           onBackToChapters={handleBackToChapterSelection}
+          hasArtworkForCurrentStage={hasArtworkForCurrentStage}
+          uploadedArtworksCount={uploadedArtworksCount}
         />
       )}
 
@@ -3773,7 +3800,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
             aria-label={isLeftCollapsed ? 'Mở cột Trang / Kịch bản' : 'Thu gọn cột Trang / Kịch bản'}
             title={isLeftCollapsed ? 'Mở cột Trang / Kịch bản' : 'Thu gọn cột Trang / Kịch bản'}
             data-testid='toggle-left-column'
-            className={`${toolbarBtn} ${toolbarIdle} w-8 px-0 justify-center`}
+            className={`${toolbarBtn} ${toolbarIdle} w-8 px-0 justify-center h-7`}
           >
             {isLeftCollapsed ? (
               <PanelLeftOpen className='w-4 h-4' />
@@ -3781,6 +3808,11 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
               <PanelLeftClose className='w-4 h-4' />
             )}
           </button>
+
+          {/* Stage Tool Label: PENCIL TOOLS / INK TOOLS / LETTERING TOOLS */}
+          <span className='hidden sm:inline-block font-mono text-[10px] font-black tracking-wider px-2 py-0.5 rounded bg-stone-200/80 text-stone-700 border border-stone-300 uppercase'>
+            {isPencilStage ? 'PENCIL TOOLS' : isInkStage ? 'INK TOOLS' : isLetteringStage ? 'LETTERING TOOLS' : 'TOOLS'}
+          </span>
 
           {/* Trạng thái phân công công việc của Artist (Gọn gàng, loại bỏ các nút điều hướng trùng với Header trên) */}
           {workBadge && (
@@ -3973,12 +4005,10 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                 }}
                 data-testid='desk-open-ai-assist-btn'
                 title='Tạo mô tả vẽ cho tất cả khung trong phân cảnh (Bước 1)'
-                className={`${toolbarBtn} text-violet-800 bg-violet-50 hover:bg-violet-100 border border-violet-200 font-semibold px-2`}
+                className={`${toolbarBtn} text-violet-800 bg-violet-50 hover:bg-violet-100 border border-violet-200 font-semibold px-2 h-7 text-xs hidden 2xl:flex items-center gap-1`}
               >
                 <Sparkles className='w-3.5 h-3.5 text-violet-600' />
-                <span className='hidden xl:inline'>Tạo mô tả vẽ (cả cảnh)</span>
-                <span className='xl:hidden hidden sm:inline'>AI Mô tả</span>
-                <span className='sr-only'>Tạo mô tả vẽ (cả cảnh)</span>
+                <span>AI Mô tả</span>
               </button>
             )}
           </div>
@@ -7300,7 +7330,8 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
         chapterId={currentChapterId || ''}
         selectedPage={selectedPage}
         pages={pages}
-        defaultStageId={stages.find((s) => s.isEnabled !== false)?.id || stages[0]?.id}
+        defaultStageId={uploadStage?.id}
+        stageName={uploadStage?.name}
         defaultTab={uploadModalDefaultTab}
         onSuccess={async (targetPageId?: string) => {
           setUploadMode('page');

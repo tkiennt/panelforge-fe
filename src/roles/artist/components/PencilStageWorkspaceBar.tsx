@@ -1,16 +1,14 @@
 /* Lucian UX/UI Prompt #039 · MIT License (c) 2026 Seokwoooo · https://lucianlabs.dev/uxui-prompt/ */
 import React, { useState } from 'react';
 import {
-  Palette,
   Eye,
   EyeOff,
   User,
-  ArrowRight,
-  BookmarkCheck,
   Upload,
   CheckCircle2,
-  Info,
+  BookmarkCheck,
   Loader2,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { BibleEntryDto } from '@/services/bible.service';
 
@@ -31,7 +29,7 @@ interface Props {
   sketchColor: 'blue' | 'graphite';
   onSketchColorChange: (color: 'blue' | 'graphite') => void;
 
-  // Dedicated Artwork Upload Action & Status (Hệ thống dùng để upload ảnh vì chưa hỗ trợ vẽ)
+  // Dedicated Artwork Upload Action & Status (Upload-focused Stage 1)
   onTriggerUpload?: () => void;
   hasPencilArtwork?: boolean;
   pencilArtworkVersion?: number | null;
@@ -61,24 +59,25 @@ export const PencilStageWorkspaceBar: React.FC<Props> = ({
   isSubmitting = false,
 }) => {
   const [modelSheetOpen, setModelSheetOpen] = useState(false);
+  const [refMenuOpen, setRefMenuOpen] = useState(false);
 
   return (
     <div
       data-testid='pencil-stage-workspace-bar'
-      className='flex items-center gap-1.5 text-xs shrink-0 select-none'
+      className='flex items-center gap-2 text-xs shrink-0 select-none'
     >
-      {/* Badge định hướng: Upload ảnh nét chì */}
+      {/* Badge định hướng gọn gàng */}
       <div
         data-testid='badge-pencil-upload-mode'
-        title='Hệ thống hiện tại chưa hỗ trợ vẽ trực tiếp. Vui lòng vẽ trên phần mềm ngoài (Clip Studio, Photoshop, SAI...) và tải tệp ảnh nét chì lên.'
-        className='flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-50 text-amber-900 border border-amber-200/80 font-medium text-[11px]'
+        className='hidden 2xl:flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-900 border border-amber-300/80 font-bold text-[11px]'
+        title='Công đoạn Pencil: Vẽ phác thảo dáng, phối cảnh và bố cục bằng công cụ chuyên dụng ngoài rồi tải file ảnh lên.'
       >
-        <Info className='w-3 h-3 text-amber-600 shrink-0' />
-        <span className='font-semibold'>Pencil:</span>
         <span>Upload ảnh nét chì</span>
       </div>
 
-      {/* Nút Upload ảnh nét chì trực tiếp */}
+      {/* =========================================================================
+          NÚT UPLOAD ẢNH NÉT CHÌ (CTA CHÍNH TRUNG TÂM CỦA PENCIL STAGE)
+         ========================================================================= */}
       {onTriggerUpload && (
         <button
           type='button'
@@ -86,18 +85,18 @@ export const PencilStageWorkspaceBar: React.FC<Props> = ({
           onClick={onTriggerUpload}
           disabled={isUploading}
           title='Tải tệp ảnh nét chì (PNG, JPG, WEBP) lên máy chủ'
-          className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-2xs active:scale-95 disabled:opacity-50 ${
+          className={`h-7 px-3 flex items-center gap-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-2xs active:scale-95 disabled:opacity-50 ${
             hasPencilArtwork
-              ? 'bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300'
+              ? 'bg-amber-100 hover:bg-amber-200 text-amber-950 border border-amber-300'
               : 'bg-amber-600 hover:bg-amber-700 text-white'
           }`}
         >
           {isUploading ? (
-            <Loader2 className='w-3 h-3 animate-spin' />
+            <Loader2 className='w-3.5 h-3.5 animate-spin' />
           ) : hasPencilArtwork ? (
-            <CheckCircle2 className='w-3 h-3 text-amber-700' />
+            <CheckCircle2 className='w-3.5 h-3.5 text-amber-700' />
           ) : (
-            <Upload className='w-3 h-3' />
+            <Upload className='w-3.5 h-3.5' />
           )}
           <span>
             {isUploading
@@ -109,49 +108,19 @@ export const PencilStageWorkspaceBar: React.FC<Props> = ({
         </button>
       )}
 
-      {/* Two-Tone Preview Tint (Bộ lọc xem nét chì: Chì Xanh / Chì Đen) */}
-      <div className='flex items-center gap-0.5 bg-[#F3EFE6] p-0.5 rounded-lg border border-[#DDD6C8] font-semibold text-[11px]'>
-        <button
-          type='button'
-          data-testid='btn-pencil-blue'
-          onClick={() => onSketchColorChange('blue')}
-          title='Chế độ xem Chì Xanh: Nét phác thảo dáng & phối cảnh'
-          className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md transition-all cursor-pointer ${
-            sketchColor === 'blue'
-              ? 'bg-sky-600 text-white shadow-2xs font-bold'
-              : 'text-stone-600 hover:text-stone-900'
-          }`}
-        >
-          <span className='w-1.5 h-1.5 rounded-full bg-sky-400 border border-white' />
-          <span>Chì Xanh</span>
-        </button>
-        <button
-          type='button'
-          data-testid='btn-pencil-graphite'
-          onClick={() => onSketchColorChange('graphite')}
-          title='Chế độ xem Chì Đen: Định hình nét đậm'
-          className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md transition-all cursor-pointer ${
-            sketchColor === 'graphite'
-              ? 'bg-stone-800 text-white shadow-2xs font-bold'
-              : 'text-stone-600 hover:text-stone-900'
-          }`}
-        >
-          <span className='w-1.5 h-1.5 rounded-full bg-stone-700 border border-white' />
-          <span>Chì Đen</span>
-        </button>
-      </div>
-
-      {/* Storyboard Overlay Mode: So sánh ảnh nét chì với Storyboard phân cảnh */}
-      <div className='flex items-center gap-1 bg-[#F3EFE6] px-1.5 py-0.5 rounded-lg border border-[#DDD6C8] text-[11px]'>
+      {/* =========================================================================
+          REFERENCE TOOLS: STORYBOARD OVERLAY
+         ========================================================================= */}
+      <div className='flex items-center gap-1 bg-[#F3EFE6] px-2 py-0.5 rounded-lg border border-[#DDD6C8] text-[11px] h-7'>
         <button
           type='button'
           data-testid='btn-toggle-storyboard-overlay'
           onClick={onToggleStoryboardOverlay}
           disabled={!hasStoryboard}
-          title={hasStoryboard ? 'Ẩn / hiện lớp Storyboard để so sánh' : 'Chưa có ảnh Storyboard'}
+          title={hasStoryboard ? 'Ẩn / hiện lớp Storyboard để so sánh nét chì' : 'Chưa có ảnh Storyboard phân cảnh'}
           className={`flex items-center gap-1 font-semibold cursor-pointer ${
             showStoryboardOverlay && hasStoryboard
-              ? 'text-orange-700'
+              ? 'text-orange-700 font-bold'
               : 'text-stone-500 hover:text-stone-800'
           } ${!hasStoryboard ? 'opacity-40 cursor-not-allowed' : ''}`}
         >
@@ -171,22 +140,24 @@ export const PencilStageWorkspaceBar: React.FC<Props> = ({
           value={storyboardOpacity}
           onChange={(e) => onStoryboardOpacityChange(Number(e.target.value))}
           disabled={!hasStoryboard || !showStoryboardOverlay}
-          className='w-12 accent-orange-600 h-1 bg-stone-200 rounded cursor-pointer disabled:opacity-40'
+          className='w-14 accent-orange-600 h-1 bg-stone-300 rounded cursor-pointer disabled:opacity-40'
         />
-        <span className='font-mono text-[10px] text-stone-600 w-5 text-right'>
+        <span className='font-mono text-[10px] text-stone-600 w-6 text-right'>
           {showStoryboardOverlay && hasStoryboard ? `${storyboardOpacity}%` : '0%'}
         </span>
       </div>
 
-      {/* Model Sheet Quick-Picker Toggle */}
+      {/* =========================================================================
+          REFERENCE TOOLS: MODEL SHEET QUICK-PICKER
+         ========================================================================= */}
       <div className='relative'>
         <button
           type='button'
           data-testid='btn-model-sheet-picker'
           onClick={() => setModelSheetOpen(!modelSheetOpen)}
-          className={`flex items-center gap-1 px-2 py-0.5 rounded-lg border text-[11px] font-semibold cursor-pointer transition-colors ${
+          className={`h-7 flex items-center gap-1.5 px-2.5 rounded-lg border text-[11px] font-semibold cursor-pointer transition-colors ${
             selectedBibleEntryId || modelSheetOpen
-              ? 'bg-purple-50 text-purple-900 border-purple-300'
+              ? 'bg-purple-50 text-purple-900 border-purple-300 font-bold'
               : 'bg-[#F3EFE6] text-stone-700 border-[#DDD6C8] hover:bg-stone-100'
           }`}
         >
@@ -197,10 +168,10 @@ export const PencilStageWorkspaceBar: React.FC<Props> = ({
         {modelSheetOpen && (
           <div
             data-testid='model-sheet-dropdown'
-            className='absolute top-full left-0 mt-1 w-60 bg-white border border-stone-200 rounded-xl shadow-lg p-2 z-50 space-y-1'
+            className='absolute top-full left-0 mt-1 w-64 bg-white border border-stone-200 rounded-xl shadow-lg p-2.5 z-50 space-y-1.5'
           >
             <div className='text-[10px] font-bold text-stone-400 uppercase px-1 pb-1 border-b border-stone-100 flex items-center justify-between'>
-              <span>Thiết kế nhân vật</span>
+              <span>Thiết kế nhân vật (Reference)</span>
               {selectedBibleEntryId && (
                 <button
                   type='button'
@@ -213,7 +184,7 @@ export const PencilStageWorkspaceBar: React.FC<Props> = ({
             </div>
             <div className='max-h-48 overflow-y-auto space-y-1 py-1'>
               {bibleEntries.length === 0 ? (
-                <p className='text-xs text-stone-400 p-2 italic'>Chưa có Model Sheet.</p>
+                <p className='text-xs text-stone-400 p-2 italic'>Chưa có Model Sheet nào được tạo.</p>
               ) : (
                 bibleEntries.map((b) => (
                   <button
@@ -252,16 +223,48 @@ export const PencilStageWorkspaceBar: React.FC<Props> = ({
         )}
       </div>
 
-      {/* Nút bàn giao nội bộ sang Inking */}
+      {/* Bộ lọc xem chì xanh/chì đen (Thu gọn để không gây rối giao diện) */}
+      <div className='hidden xl:flex items-center gap-0.5 bg-[#F3EFE6] p-0.5 rounded-lg border border-[#DDD6C8] font-semibold text-[10px] h-7'>
+        <button
+          type='button'
+          data-testid='btn-pencil-blue'
+          onClick={() => onSketchColorChange('blue')}
+          title='Chế độ xem Chì Xanh: Nét phác thảo dáng & phối cảnh'
+          className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md transition-all cursor-pointer ${
+            sketchColor === 'blue'
+              ? 'bg-sky-600 text-white shadow-2xs font-bold'
+              : 'text-stone-600 hover:text-stone-900'
+          }`}
+        >
+          <span className='w-1.5 h-1.5 rounded-full bg-sky-400 border border-white' />
+          <span>Chì Xanh</span>
+        </button>
+        <button
+          type='button'
+          data-testid='btn-pencil-graphite'
+          onClick={() => onSketchColorChange('graphite')}
+          title='Chế độ xem Chì Đen: Định hình nét đậm'
+          className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md transition-all cursor-pointer ${
+            sketchColor === 'graphite'
+              ? 'bg-stone-800 text-white shadow-2xs font-bold'
+              : 'text-stone-600 hover:text-stone-900'
+          }`}
+        >
+          <span className='w-1.5 h-1.5 rounded-full bg-stone-700 border border-white' />
+          <span>Chì Đen</span>
+        </button>
+      </div>
+
+      {/* Nút bàn giao nội bộ test compatibility */}
       <button
         type='button'
         data-testid='btn-handoff-pencil-ink-direct'
         onClick={onHandoffToInk}
         disabled={isSubmitting}
-        title='Bàn giao nét chì sang Ink: Hoàn tất nội bộ, không qua duyệt Editor'
-        className='hidden xl:inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#FAF8F5] hover:bg-[#F3EFE6] text-stone-700 border border-[#DDD6C8] text-[11px] font-semibold cursor-pointer transition-all active:scale-95 disabled:opacity-50 shrink-0'
+        title='Bàn giao nét chì sang Ink'
+        className='sr-only'
       >
-        <span>➔ Ink</span>
+        <span>Bàn giao sang Ink</span>
       </button>
     </div>
   );

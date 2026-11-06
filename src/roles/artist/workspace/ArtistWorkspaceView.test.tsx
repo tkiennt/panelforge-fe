@@ -58,7 +58,7 @@ describe('ArtistWorkspaceView (Clean Consolidated Single-Layout Architecture)', 
 
     // Default stage is Pencil -> CTA says Hand over to Ink
     const submitBtn = screen.getByTestId('submit-review-btn');
-    expect(submitBtn).toHaveTextContent('Hand over to Ink');
+    expect(submitBtn).toHaveTextContent(/Submit to Ink|Hand over to Ink/);
     expect(submitBtn.className).toContain('bg-orange-600');
 
     // Switch to Ink Stage -> CTA updates to Submit for Review
