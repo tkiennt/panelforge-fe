@@ -156,7 +156,6 @@ import { PageArtworkWorkflow } from '../components/PageArtworkWorkflow';
 import { UploadPagesModal } from '../components/UploadPagesModal';
 import { PageArtCrop } from '@/shared/features/collaboration/ArtworkPanel';
 import { seriesService, type SeriesDetailDto } from '@/services/series.service';
-// eslint-disable-next-line no-restricted-imports
 import { ChapterSelectionView } from '@/roles/writer/components/script/chapter-selection';
 import { pipelineService, type PipelineStageDto } from '@/services/pipeline.service';
 import { pickPanelArtwork, pickPageArtwork } from '@/shared/utils/stageArtworks';
@@ -176,7 +175,7 @@ import {
   MAX_ARTWORK_IMAGE_BYTES,
 } from '../utils/artistStage';
 
-const DEFAULT_MANGA_STAGES: PipelineStageDto[] = [
+export const DEFAULT_MANGA_STAGES: PipelineStageDto[] = [
   { id: 'stage-pencil', name: 'Nét chì (Pencil)', slug: 'pencil', stageOrder: 1, isEnabled: true, isApprovalGate: false, isInitial: true, isTerminal: false, allowedRole: 'Artist' },
   { id: 'stage-ink', name: 'Đi nét & Trame (Ink)', slug: 'ink', stageOrder: 2, isEnabled: true, isApprovalGate: false, isInitial: false, isTerminal: false, allowedRole: 'Artist' },
   { id: 'stage-lettering', name: 'Ráp thoại (Lettering)', slug: 'lettering', stageOrder: 3, isEnabled: true, allowedRole: 'Letterer', isApprovalGate: true, isInitial: false, isTerminal: true },
@@ -208,7 +207,7 @@ export interface ParsedSceneSlugline {
   emoji: string;
 }
 
-function parseSceneSlugline(
+export function parseSceneSlugline(
   scene: Partial<SceneDto & {
     slugline?: string | null;
     location?: string | null;
@@ -456,9 +455,9 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
 
   // Độ rộng cột trái (min 220px, max 420px, lưu localStorage)
   // Độ rộng cột trái (Lucian UX/UI: Tinh gọn 260px mặc định, không chiếm dụng Canvas vẽ)
-  const LEFT_COL_MIN_WIDTH = 280;
-  const LEFT_COL_MAX_WIDTH = 640;
-  const LEFT_COL_DEFAULT_WIDTH = 360;
+  const LEFT_COL_MIN_WIDTH = 220;
+  const LEFT_COL_MAX_WIDTH = 880;
+  const LEFT_COL_DEFAULT_WIDTH = 260;
 
   const [leftColumnWidth, setLeftColumnWidth] = useState<number>(() => {
     if (typeof window === 'undefined') return LEFT_COL_DEFAULT_WIDTH;
@@ -4014,6 +4013,9 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                     data-testid={`left-tab-${t.id}`}
                     onClick={() => {
                       setActiveTab(t.id);
+                      if (t.id === 'script' && leftColumnWidth < 540) {
+                        setLeftColumnWidth(560);
+                      }
                     }}
                     className={`flex-1 flex items-center justify-center gap-1.5 py-1 px-2.5 rounded-lg text-xs font-semibold cursor-pointer transition-all duration-200 focus-visible:outline-2 focus-visible:outline-[#F97316] ${
                       on
@@ -4373,103 +4375,223 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
 
             {activeTab === 'script' && (
               <div className='flex-1 flex flex-col min-h-0 bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl shadow-xs overflow-hidden'>
-                {/* Header kịch bản tối giản: Hiển thị Trang & Phân cảnh */}
-                <div className='px-3 py-2 border-b border-[#E8E2D6] bg-[#F7F4EC] flex items-center justify-between gap-2 shrink-0'>
-                  <div className='flex items-center gap-2 min-w-0 flex-1'>
-                    <span className='px-2 py-0.5 rounded-md bg-orange-100 text-[#C2410C] font-mono font-bold text-xs shrink-0'>
-                      Trang {selectedPage?.pageNumber ?? 1}
-                    </span>
-                    {currentScene && (
-                      <>
-                        <span className='text-stone-300 text-xs shrink-0'>·</span>
-                        <div className='relative min-w-0 flex-1' ref={sceneDropdownRef}>
-                          <button
-                            type='button'
-                            data-testid='scene-selector-btn'
-                            onClick={() => setSceneDropdownOpen((v) => !v)}
-                            aria-expanded={sceneDropdownOpen}
-                            aria-haspopup='listbox'
-                            className='text-left flex items-center gap-1 cursor-pointer group truncate max-w-full'
-                            title='Chuyển phân cảnh'
-                          >
-                            <span className='text-xs font-semibold text-stone-800 truncate group-hover:text-orange-600 transition-colors'>
-                              {`Phân cảnh #${currentScene.sceneNumber}: ${
-                                currentScene.heading || currentScene.sceneName || 'Không tiêu đề'
-                              }`}
-                            </span>
-                            {scenes.length > 1 && (
-                              <ChevronDown
-                                className={`w-3.5 h-3.5 text-stone-400 group-hover:text-stone-700 shrink-0 transition-transform ${
-                                  sceneDropdownOpen ? 'rotate-180' : ''
-                                }`}
-                              />
-                            )}
-                          </button>
+                {/* 1. Header tinh gọn tối đa: Tên trang + Điều khiển cỡ chữ + Độ rộng cột + Sao chép */}
+                <div className='px-3 py-2 border-b border-[#E8E2D6] bg-[#F7F4EC]/90 flex items-center justify-between gap-2 shrink-0'>
+                  {/* Left: Tên kịch bản trang & nhãn chỉ đọc */}
+                  <div className='flex items-center gap-1.5 min-w-0'>
+                    <BookOpen className='w-4 h-4 text-[#F97316] shrink-0' />
+                    <div
+                      data-testid='artist-script-readonly-banner'
+                      className='flex items-center gap-1 text-xs font-bold text-[#1C1917] truncate'
+                    >
+                      <Lock className='w-3 h-3 text-amber-700 shrink-0' />
+                      <span>Kịch bản Trang {selectedPage?.pageNumber ?? 1} (Chỉ đọc)</span>
+                    </div>
+                  </div>
 
-                          {/* Popover danh sách phân cảnh */}
-                          {sceneDropdownOpen && (
-                            <div
-                              role='listbox'
-                              data-testid='scene-dropdown-menu'
-                              className='absolute top-full left-0 mt-1 z-50 bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl shadow-xl p-1.5 space-y-1 max-h-64 overflow-y-auto custom-scrollbar w-72'
-                            >
-                              {scenes.map((sc) => {
-                                const isSelectedScene = sc.id === selectedTabSceneId;
-                                const scHeading = sc.heading || sc.sceneName || 'Không tiêu đề';
-                                const scPageRange = getScenePageAndPanelRange(sc);
-                                return (
-                                  <button
-                                    key={sc.id}
-                                    role='option'
-                                    aria-selected={isSelectedScene}
-                                    data-testid={`scene-dropdown-item-${sc.id}`}
-                                    type='button'
-                                    onClick={() => {
-                                      setSelectedTabSceneId(sc.id);
-                                      setSceneDropdownOpen(false);
-                                    }}
-                                    className={`w-full p-2 rounded-lg text-left transition-colors cursor-pointer flex items-center justify-between gap-2 ${
-                                      isSelectedScene
-                                        ? 'bg-[#FFF2E6] text-[#C2410C] font-bold'
-                                        : 'hover:bg-[#F3F0E9] text-[#1C1917]'
-                                    }`}
-                                  >
-                                    <span className='text-xs truncate'>
-                                      Phân cảnh #{sc.sceneNumber}: {scHeading}
-                                    </span>
-                                    <span className='text-[10px] font-mono text-stone-400 shrink-0'>
-                                      {scPageRange}
-                                    </span>
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          )}
-                        </div>
-                      </>
+                  {/* Right: Bộ điều khiển cỡ chữ + Độ rộng cột + Lật trang + Sao chép */}
+                  <div className='flex items-center gap-1.5 shrink-0'>
+                    {/* Lucian Pill Font-Size Selector (A- / A / A+) */}
+                    <div className='flex items-center bg-[#EFECE6] p-0.5 rounded-lg border border-[#DDD6C8] shadow-2xs'>
+                      <button
+                        type='button'
+                        data-testid='script-font-sm-btn'
+                        onClick={() => setScriptFontSize('sm')}
+                        title='Cỡ chữ nhỏ (13px)'
+                        className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-all cursor-pointer ${
+                          scriptFontSize === 'sm'
+                            ? 'bg-white text-stone-900 shadow-2xs'
+                            : 'text-stone-500 hover:text-stone-800'
+                        }`}
+                      >
+                        A⁻
+                      </button>
+                      <button
+                        type='button'
+                        data-testid='script-font-base-btn'
+                        onClick={() => setScriptFontSize('base')}
+                        title='Cỡ chữ vừa (15px - Dễ đọc)'
+                        className={`px-1.5 py-0.5 rounded text-[11px] font-bold transition-all cursor-pointer ${
+                          scriptFontSize === 'base'
+                            ? 'bg-white text-stone-900 shadow-2xs'
+                            : 'text-stone-500 hover:text-stone-800'
+                        }`}
+                      >
+                        A
+                      </button>
+                      <button
+                        type='button'
+                        data-testid='script-font-lg-btn'
+                        onClick={() => setScriptFontSize('lg')}
+                        title='Cỡ chữ lớn (17px - Rõ nét từ xa)'
+                        className={`px-1.5 py-0.5 rounded text-xs font-black transition-all cursor-pointer ${
+                          scriptFontSize === 'lg'
+                            ? 'bg-white text-stone-900 shadow-2xs'
+                            : 'text-stone-500 hover:text-stone-800'
+                        }`}
+                      >
+                        A⁺
+                      </button>
+                    </div>
+
+                    {/* Nút Toggle mở rộng độ rộng cột kịch bản 460px <-> 580px */}
+                    <button
+                      type='button'
+                      data-testid='script-col-width-toggle-btn'
+                      onClick={() => setLeftColumnWidth((prev) => (prev < 540 ? 620 : prev < 700 ? 780 : 480))}
+                      title={`Đổi độ rộng kịch bản (${leftColumnWidth < 540 ? '620px' : leftColumnWidth < 700 ? '780px' : '480px'})`}
+                      className='p-1 rounded-md border border-[#D8D2C5] bg-white hover:bg-stone-100 text-stone-600 cursor-pointer shadow-2xs'
+                    >
+                      <Columns className='w-3.5 h-3.5' />
+                    </button>
+
+                    {/* Bộ lật trang kịch bản */}
+                    {selectedPage && pages.length > 0 && (
+                      <div
+                        data-testid='script-page-navigation-bar'
+                        className='hidden sm:flex items-center gap-0.5 shrink-0'
+                      >
+                        <button
+                          type='button'
+                          data-testid='script-prev-page-btn'
+                          onClick={handlePrevPage}
+                          disabled={pages.findIndex((p) => p.id === selectedPage.id) <= 0}
+                          title='Kịch bản trang trước'
+                          className='p-1 rounded-md border border-[#D8D2C5] hover:bg-[#EBE7DF] text-stone-600 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors bg-white'
+                        >
+                          <ChevronLeft className='w-3 h-3' />
+                        </button>
+                        <span className='text-[11px] font-bold text-[#1C1917] font-mono px-1'>
+                          T{selectedPage.pageNumber}/{pages.length}
+                        </span>
+                        <button
+                          type='button'
+                          data-testid='script-next-page-btn'
+                          onClick={handleNextPage}
+                          disabled={pages.findIndex((p) => p.id === selectedPage.id) >= pages.length - 1}
+                          title='Kịch bản trang sau'
+                          className='p-1 rounded-md border border-[#D8D2C5] hover:bg-[#EBE7DF] text-stone-600 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors bg-white'
+                        >
+                          <ChevronRight className='w-3 h-3' />
+                        </button>
+                      </div>
                     )}
+
+                    <button
+                      type='button'
+                      data-testid='copy-page-script-btn'
+                      onClick={handleCopyPageScript}
+                      title='Sao chép toàn bộ kịch bản trang hiện tại'
+                      className='p-1 px-2 rounded-md bg-white border border-[#D8D2C5] hover:bg-[#FFF2E6] hover:border-[#FDBA74] text-stone-700 hover:text-[#C2410C] text-[11px] font-semibold flex items-center gap-1 transition-colors cursor-pointer shadow-2xs'
+                    >
+                      {copiedScript ? (
+                        <>
+                          <Check className='w-3 h-3 text-emerald-600' />
+                          <span className='text-emerald-700 hidden sm:inline'>Đã chép</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className='w-3 h-3' />
+                          <span className='hidden sm:inline'>Sao chép</span>
+                        </>
+                      )}
+                    </button>
                   </div>
                 </div>
 
-                {/* Các phần tử phụ trợ ẩn (Dành cho test suite và trợ năng, không gây rối mắt người dùng) */}
-                <div className='sr-only' aria-hidden='true'>
-                  <div
-                    data-testid='artist-script-readonly-banner'
-                    className='flex items-center gap-1 text-xs font-bold text-[#1C1917]'
-                  >
-                    <Lock className='w-3 h-3 text-amber-700 shrink-0' />
-                    <span>Kịch bản Trang {selectedPage?.pageNumber ?? 1} (Chỉ đọc)</span>
+                {/* 2. Dòng Phân cảnh & Segmented Filter Pills (Lucian #039) */}
+                <div className='px-3 py-1.5 border-b border-[#E8E2D6] bg-white flex flex-wrap items-center justify-between gap-1.5 shrink-0'>
+                  {/* Selector Phân cảnh & Slugline */}
+                  <div className='relative flex items-center gap-1.5 min-w-0 flex-1' ref={sceneDropdownRef}>
+                    <button
+                      type='button'
+                      data-testid='scene-selector-btn'
+                      onClick={() => setSceneDropdownOpen((v) => !v)}
+                      aria-expanded={sceneDropdownOpen}
+                      aria-haspopup='listbox'
+                      className='text-left flex items-center gap-1 cursor-pointer group truncate max-w-[220px]'
+                    >
+                      <span className='text-xs font-bold font-serif text-[#1C1917] truncate group-hover:text-[#F97316] transition-colors'>
+                        {currentScene
+                          ? `Phân cảnh #${currentScene.sceneNumber}: ${
+                              currentScene.heading || currentScene.sceneName || 'Không tiêu đề'
+                            }`
+                          : 'Chọn phân cảnh'}
+                      </span>
+                      <ChevronDown
+                        className={`w-3.5 h-3.5 text-stone-400 group-hover:text-stone-700 shrink-0 transition-transform ${
+                          sceneDropdownOpen ? 'rotate-180' : ''
+                        }`}
+                      />
+                    </button>
+
+                    {/* Popover danh sách phân cảnh */}
+                    {sceneDropdownOpen && (
+                      <div
+                        role='listbox'
+                        data-testid='scene-dropdown-menu'
+                        className='absolute top-full left-0 mt-1 z-50 bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl shadow-xl p-1.5 space-y-1 max-h-64 overflow-y-auto custom-scrollbar w-72'
+                      >
+                        {scenes.map((sc) => {
+                          const isSelectedScene = sc.id === selectedTabSceneId;
+                          const scHeading = sc.heading || sc.sceneName || 'Không tiêu đề';
+                          const scPageRange = getScenePageAndPanelRange(sc);
+                          return (
+                            <button
+                              key={sc.id}
+                              role='option'
+                              aria-selected={isSelectedScene}
+                              data-testid={`scene-dropdown-item-${sc.id}`}
+                              type='button'
+                              onClick={() => {
+                                setSelectedTabSceneId(sc.id);
+                                setSceneDropdownOpen(false);
+                              }}
+                              className={`w-full p-2 rounded-lg text-left transition-colors cursor-pointer flex items-center justify-between gap-2 ${
+                                isSelectedScene
+                                  ? 'bg-[#FFF2E6] text-[#C2410C] font-bold'
+                                  : 'hover:bg-[#F3F0E9] text-[#1C1917]'
+                              }`}
+                            >
+                              <span className='text-xs truncate'>
+                                Phân cảnh #{sc.sceneNumber}: {scHeading}
+                              </span>
+                              <span className='text-[10px] font-mono text-stone-400 shrink-0'>
+                                {scPageRange}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Slugline bối cảnh */}
+                    {currentScene && parsedSlugline && (
+                      <div
+                        data-testid='scene-slugline-badge'
+                        title={sluglineTooltipText}
+                        className='text-[9px] font-mono font-bold text-amber-900 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200/60 uppercase shrink-0 truncate max-w-[130px]'
+                      >
+                        {parsedSlugline.formattedText}
+                      </div>
+                    )}
                   </div>
-                  {currentScene && parsedSlugline && (
-                    <div data-testid='scene-slugline-badge'>
-                      {parsedSlugline.formattedText}
-                    </div>
-                  )}
-                  <div role='group' aria-label='Lọc dòng kịch bản'>
+
+                  {/* Segmented Filter Pills (Lucian #039) */}
+                  <div
+                    role='group'
+                    aria-label='Lọc dòng kịch bản'
+                    className='flex items-center p-0.5 bg-[#F1EDE4] rounded-lg border border-[#DDD6C8] shrink-0 text-[10px] font-semibold'
+                  >
                     <button
                       type='button'
                       data-testid='filter-btn-all'
                       onClick={() => setScriptLineFilter('all')}
+                      className={`px-1.5 py-0.5 rounded-md transition-all cursor-pointer ${
+                        scriptLineFilter === 'all'
+                          ? 'bg-white text-stone-900 font-bold shadow-2xs'
+                          : 'text-stone-600 hover:text-stone-900'
+                      }`}
                     >
                       Tất cả ({scriptLineCounts.total})
                     </button>
@@ -4477,6 +4599,11 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                       type='button'
                       data-testid='filter-btn-unassigned'
                       onClick={() => setScriptLineFilter('unassigned')}
+                      className={`px-1.5 py-0.5 rounded-md transition-all cursor-pointer ${
+                        scriptLineFilter === 'unassigned'
+                          ? 'bg-white text-stone-900 font-bold shadow-2xs'
+                          : 'text-stone-600 hover:text-stone-900'
+                      }`}
                     >
                       Chưa gán ({scriptLineCounts.unassigned})
                     </button>
@@ -4485,66 +4612,19 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                       data-testid='filter-btn-current-panel'
                       disabled={!selectedPanelDetail}
                       onClick={() => setScriptLineFilter('current_panel')}
+                      className={`px-1.5 py-0.5 rounded-md transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
+                        scriptLineFilter === 'current_panel'
+                          ? 'bg-orange-500 text-white font-bold shadow-2xs'
+                          : 'text-stone-600 hover:text-stone-900'
+                      }`}
                     >
                       Khung này ({scriptLineCounts.currentPanel})
                     </button>
                   </div>
-                  <button
-                    type='button'
-                    data-testid='script-font-sm-btn'
-                    onClick={() => setScriptFontSize('sm')}
-                  >
-                    A⁻
-                  </button>
-                  <button
-                    type='button'
-                    data-testid='script-font-base-btn'
-                    onClick={() => setScriptFontSize('base')}
-                  >
-                    A
-                  </button>
-                  <button
-                    type='button'
-                    data-testid='script-font-lg-btn'
-                    onClick={() => setScriptFontSize('lg')}
-                  >
-                    A⁺
-                  </button>
-                  <button
-                    type='button'
-                    data-testid='script-col-width-toggle-btn'
-                    onClick={() => setLeftColumnWidth((prev) => (prev < 540 ? 620 : 360))}
-                  >
-                    Đổi độ rộng
-                  </button>
-                  <div data-testid='script-page-navigation-bar'>
-                    <button
-                      type='button'
-                      data-testid='script-prev-page-btn'
-                      onClick={handlePrevPage}
-                      disabled={!selectedPage || pages.findIndex((p) => p.id === selectedPage.id) <= 0}
-                    >
-                      Trước
-                    </button>
-                    <span>
-                      T{selectedPage?.pageNumber ?? 1}/{pages.length}
-                    </span>
-                    <button
-                      type='button'
-                      data-testid='script-next-page-btn'
-                      onClick={handleNextPage}
-                      disabled={!selectedPage || pages.findIndex((p) => p.id === selectedPage.id) >= pages.length - 1}
-                    >
-                      Sau
-                    </button>
-                  </div>
-                  <button
-                    type='button'
-                    data-testid='copy-page-script-btn'
-                    onClick={handleCopyPageScript}
-                  >
-                    Sao chép
-                  </button>
+                </div>
+
+                {/* Các phần tử phụ trợ ẩn (Dành cho test suite và trợ năng, không gây rối mắt người dùng) */}
+                <div className='sr-only' aria-hidden='true'>
                   {selectedPanelDetail ? (
                     <div>
                       <span>Trang {selectedPage?.pageNumber ?? 1} › Khung {selectedPanelDetail.panelNumber}</span>
@@ -4642,7 +4722,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                               ? pages.find((p) => p.id === assignedPanel.pageId)?.pageNumber
                               : undefined;
                           const panelTagLabel = assignedPanel
-                            ? `${assignedPageNumber ? `T${assignedPageNumber}·` : ''}Khung ${assignedPanel.panelNumber} (K${assignedPanel.panelNumber})`
+                            ? `${assignedPageNumber ? `T${assignedPageNumber}·` : ''}K${assignedPanel.panelNumber}`
                             : '';
 
                           const lineFullTitle = `Dòng #${line.lineOrder}${hasDialogue ? ` · ${characterName}: "${line.dialogueText || ''}"` : ''}${hasDirection ? ` · Chỉ dẫn: ${line.stageDirection}` : ''}`;
@@ -4826,7 +4906,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                                 ) : (
                                   <span
                                     data-testid={`panel-tag-${line.id}`}
-                                    className='shrink-0 ml-2 text-stone-400 font-mono text-[10px] px-1.5 py-0.5 rounded bg-stone-100 border border-stone-200/50 select-none whitespace-nowrap'
+                                    className='shrink-0 ml-2 text-stone-300 font-mono text-[10px] px-1 select-none whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity'
                                   >
                                     —
                                   </span>
@@ -4850,7 +4930,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
             data-testid='artist-left-col-resizer'
             onMouseDown={handleLeftResizeStart}
             onDoubleClick={() => {
-              const resetWidth = LEFT_COL_DEFAULT_WIDTH;
+              const resetWidth = activeTab === 'pages' ? 260 : 340;
               setLeftColumnWidth(resetWidth);
               try {
                 localStorage.setItem('artist_desk_left_col_width', String(resetWidth));
@@ -5655,7 +5735,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
 
           {/* FLOATING CANVAS TOOLBAR (Photoshop/Figma Style Dock · Lucian #178 & #208 Inspired) */}
           <div
-            className='absolute bottom-4 left-1/2 -translate-x-1/2 z-40 bg-[#FCFBF8]/95 backdrop-blur-md border border-[#D8D2C5] rounded-2xl px-3.5 py-2 shadow-[0_12px_36px_-8px_rgba(40,30,20,0.25),0_2px_10px_rgba(0,0,0,0.08)] flex items-center gap-2 select-none'
+            className='absolute bottom-6 left-1/2 -translate-x-1/2 z-40 bg-[#FCFBF8]/95 backdrop-blur-md border border-[#D8D2C5] rounded-2xl px-3.5 py-2 shadow-[0_12px_36px_-8px_rgba(40,30,20,0.25),0_2px_10px_rgba(0,0,0,0.08)] flex items-center gap-2 select-none'
             role='toolbar'
             aria-label='Thanh công cụ bàn vẽ nổi'
             data-testid='artist-main-toolbar'
@@ -5961,44 +6041,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                   />
                 )}
 
-                {/* Lucian #011: Radial Menu cho các công cụ hỗ trợ phụ */}
-                <ArtistAuxiliaryRadialMenu
-                  canEditPages={canEditPages}
-                  isPencilStage={isPencilStage}
-                  isInkStage={isInkStage}
-                  hasStoryboard={Boolean(storyboardImgUrl)}
-                  showStoryboardOverlay={showStoryboardOverlay}
-                  onToggleStoryboardOverlay={() => setShowStoryboardOverlay((v) => !v)}
-                  storyboardOpacity={storyboardOpacity}
-                  onStoryboardOpacityChange={setStoryboardOpacity}
-                  bibleEntries={bibleEntries}
-                  selectedBibleEntryId={selectedModelSheetId}
-                  onSelectBibleEntry={setSelectedModelSheetId}
-                  onOpenAiAssist={() => {
-                    if (scenes.length === 0) {
-                      showToast(
-                        'Chưa có phân cảnh',
-                        'Chương này chưa có phân cảnh nào. Vui lòng tạo phân cảnh ở màn Kịch bản trước.',
-                      );
-                      return;
-                    }
-                    setAiPanelTargetPanelIds(null);
-                    setAiPanelOpen(true);
-                  }}
-                  layoutEdit={layoutEdit}
-                  onToggleLayoutEdit={() => {
-                    if (layoutEdit) setMultiIds([]);
-                    setLayoutEdit((v) => !v);
-                  }}
-                  disabledLayoutEdit={isCurrentPageCarvedOut}
-                  pencilUnderlayVisible={pencilUnderlayVisible}
-                  onTogglePencilUnderlay={() => setPencilUnderlayVisible((v) => !v)}
-                  hasPencilArt={Boolean(pencilImgUrl)}
-                  screenToneEnabled={screenToneEnabled}
-                  onToggleScreenTone={() => setScreenToneEnabled((v) => !v)}
-                  safeZoneVisible={safeZoneVisible}
-                  onToggleSafeZone={() => setSafeZoneVisible((v) => !v)}
-                />
+                
               </div>
             )}
 
@@ -6175,6 +6218,49 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                 )}
               </div>
             </div>
+          
+            {/* RADIAL MENU CHO CÔNG CỤ PHỤ (LUCIAN #011 FAB Ở GÓC DƯỚI BÊN PHẢI MÀN HÌNH TRUYỆN TRANH) */}
+            {selectedPage && (
+              <div className='absolute bottom-6 right-6 z-40'>
+                <ArtistAuxiliaryRadialMenu
+                  canEditPages={canEditPages}
+                  isPencilStage={isPencilStage}
+                  isInkStage={isInkStage}
+                  hasStoryboard={Boolean(storyboardImgUrl)}
+                  showStoryboardOverlay={showStoryboardOverlay}
+                  onToggleStoryboardOverlay={() => setShowStoryboardOverlay((v) => !v)}
+                  storyboardOpacity={storyboardOpacity}
+                  onStoryboardOpacityChange={setStoryboardOpacity}
+                  bibleEntries={bibleEntries}
+                  selectedBibleEntryId={selectedModelSheetId}
+                  onSelectBibleEntry={setSelectedModelSheetId}
+                  onOpenAiAssist={() => {
+                    if (scenes.length === 0) {
+                      showToast(
+                        'Chưa có phân cảnh',
+                        'Chương này chưa có phân cảnh nào. Vui lòng tạo phân cảnh ở màn Kịch bản trước.',
+                      );
+                      return;
+                    }
+                    setAiPanelTargetPanelIds(null);
+                    setAiPanelOpen(true);
+                  }}
+                  layoutEdit={layoutEdit}
+                  onToggleLayoutEdit={() => {
+                    if (layoutEdit) setMultiIds([]);
+                    setLayoutEdit((v) => !v);
+                  }}
+                  disabledLayoutEdit={isCurrentPageCarvedOut}
+                  pencilUnderlayVisible={pencilUnderlayVisible}
+                  onTogglePencilUnderlay={() => setPencilUnderlayVisible((v) => !v)}
+                  hasPencilArt={Boolean(pencilImgUrl)}
+                  screenToneEnabled={screenToneEnabled}
+                  onToggleScreenTone={() => setScreenToneEnabled((v) => !v)}
+                  safeZoneVisible={safeZoneVisible}
+                  onToggleSafeZone={() => setSafeZoneVisible((v) => !v)}
+                />
+              </div>
+            )}
           </div>
         </section>
 

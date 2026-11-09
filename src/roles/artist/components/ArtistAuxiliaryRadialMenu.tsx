@@ -15,7 +15,6 @@ import {
   Layers,
   BookmarkCheck,
   ShieldAlert,
-  Sparkle,
 } from 'lucide-react';
 import '@/styles/modules/lucian/lucian-011.css';
 
@@ -120,19 +119,19 @@ export const ArtistAuxiliaryRadialMenu: React.FC<ArtistAuxiliaryRadialMenuProps>
       data-testid='artist-auxiliary-radial-menu'
     >
       {/* =========================================================================
-          RADIAL SATELLITE ITEMS (Hình cánh quạt bung lên phía trên Canvas)
+          RADIAL SATELLITE ITEMS (Xòe rẻ quạt 90° từ góc dưới phải hướng vào Canvas)
           Tọa độ Arc:
-          Item 0: x = -105px, y = -40px
-          Item 1: x = -58px,  y = -85px
-          Item 2: x = 58px,   y = -85px
-          Item 3: x = 105px,  y = -40px
+          Item 0: x = -86px, y = -12px  (chếch ngang sang trái)
+          Item 1: x = -74px, y = -50px  (chếch góc 45°)
+          Item 2: x = -48px, y = -76px  (chếch góc 65°)
+          Item 3: x = -12px, y = -88px  (hướng thẳng lên trên)
          ========================================================================= */}
 
       {/* 1. NÚT AI SINH MÔ TẢ VẼ (CẢ CẢNH) */}
       {canEditPages && onOpenAiAssist && (
         <button
           type='button'
-          data-testid='desk-open-ai-assist-btn'
+          data-testid='radial-item-ai'
           onClick={() => {
             onOpenAiAssist();
             setIsOpen(false);
@@ -140,8 +139,8 @@ export const ArtistAuxiliaryRadialMenu: React.FC<ArtistAuxiliaryRadialMenuProps>
           className='u011-item'
           style={
             {
-              '--item-x': '-105px',
-              '--item-y': '-42px',
+              '--item-x': '-86px',
+              '--item-y': '-12px',
               '--item-bg': 'linear-gradient(135deg, #8B5CF6, #6D28D9)',
             } as React.CSSProperties
           }
@@ -161,8 +160,8 @@ export const ArtistAuxiliaryRadialMenu: React.FC<ArtistAuxiliaryRadialMenuProps>
           className='u011-item'
           style={
             {
-              '--item-x': '-58px',
-              '--item-y': '-85px',
+              '--item-x': '-74px',
+              '--item-y': '-50px',
               '--item-bg': showStoryboardOverlay
                 ? 'linear-gradient(135deg, #EA580C, #C2410C)'
                 : 'linear-gradient(135deg, #78716C, #57534E)',
@@ -202,8 +201,8 @@ export const ArtistAuxiliaryRadialMenu: React.FC<ArtistAuxiliaryRadialMenuProps>
           className='u011-item'
           style={
             {
-              '--item-x': '-58px',
-              '--item-y': '-85px',
+              '--item-x': '-74px',
+              '--item-y': '-50px',
               '--item-bg': pencilUnderlayVisible
                 ? 'linear-gradient(135deg, #0284C7, #0369A1)'
                 : 'linear-gradient(135deg, #78716C, #57534E)',
@@ -233,8 +232,8 @@ export const ArtistAuxiliaryRadialMenu: React.FC<ArtistAuxiliaryRadialMenuProps>
           className='u011-item'
           style={
             {
-              '--item-x': '58px',
-              '--item-y': '-85px',
+              '--item-x': '-48px',
+              '--item-y': '-76px',
               '--item-bg':
                 selectedBibleEntryId || modelSheetOpen
                   ? 'linear-gradient(135deg, #9333EA, #7E22CE)'
@@ -272,8 +271,8 @@ export const ArtistAuxiliaryRadialMenu: React.FC<ArtistAuxiliaryRadialMenuProps>
           className='u011-item'
           style={
             {
-              '--item-x': '105px',
-              '--item-y': '-42px',
+              '--item-x': '-12px',
+              '--item-y': '-88px',
               '--item-bg': layoutEdit
                 ? 'linear-gradient(135deg, #EA580C, #9A3412)'
                 : 'linear-gradient(135deg, #52525B, #3F3F46)',
@@ -304,8 +303,8 @@ export const ArtistAuxiliaryRadialMenu: React.FC<ArtistAuxiliaryRadialMenuProps>
           className='u011-item'
           style={
             {
-              '--item-x': '105px',
-              '--item-y': '-42px',
+              '--item-x': '-12px',
+              '--item-y': '-88px',
               '--item-bg': safeZoneVisible
                 ? 'linear-gradient(135deg, #0D9488, #0F766E)'
                 : 'linear-gradient(135deg, #52525B, #3F3F46)',
@@ -343,16 +342,16 @@ export const ArtistAuxiliaryRadialMenu: React.FC<ArtistAuxiliaryRadialMenuProps>
       </button>
 
       {/* =========================================================================
-          POPOVER: THANH TRƯỢT STORYBOARD OPACITY KHI BẤM NÚT STORYBOARD
+          POPOVER: THANH TRƯỢT STORYBOARD OPACITY (Mở về phía trên bên trái)
          ========================================================================= */}
       {storyboardSliderOpen && hasStoryboard && onStoryboardOpacityChange && (
         <div
-          className='absolute bottom-full mb-14 -left-16 bg-white border border-[#D8D2C5] rounded-xl shadow-xl p-2.5 z-50 flex items-center gap-2 min-w-[200px]'
+          className='absolute bottom-full right-0 mb-3 bg-white border border-[#D8D2C5] rounded-xl shadow-2xl p-2.5 z-50 flex items-center gap-2 min-w-[210px]'
           onClick={(e) => e.stopPropagation()}
         >
           <Eye className='w-3.5 h-3.5 text-orange-600 shrink-0' />
           <span className='text-[11px] font-bold text-stone-700 whitespace-nowrap'>
-            Độ mờ Storyboard:
+            Độ mờ:
           </span>
           <input
             type='range'
@@ -370,12 +369,12 @@ export const ArtistAuxiliaryRadialMenu: React.FC<ArtistAuxiliaryRadialMenuProps>
       )}
 
       {/* =========================================================================
-          POPOVER: MODEL SHEET DROPDOWN (KHI BẤM NÚT MODEL SHEET)
+          POPOVER: MODEL SHEET DROPDOWN (Mở về phía trên bên trái)
          ========================================================================= */}
       {modelSheetOpen && onSelectBibleEntry && (
         <div
           data-testid='model-sheet-dropdown'
-          className='absolute bottom-full mb-14 -left-12 w-64 bg-white border border-stone-200 rounded-xl shadow-xl p-2.5 z-50 space-y-1.5'
+          className='absolute bottom-full right-0 mb-3 w-64 bg-white border border-stone-200 rounded-xl shadow-2xl p-2.5 z-50 space-y-1.5'
           onClick={(e) => e.stopPropagation()}
         >
           <div className='text-[10px] font-bold text-stone-400 uppercase px-1 pb-1 border-b border-stone-100 flex items-center justify-between'>
