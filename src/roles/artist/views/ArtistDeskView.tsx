@@ -3806,7 +3806,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
 
   return (
     <div
-      className='flex-1 basis-0 min-h-0 w-full flex flex-col bg-[#F3F0E9] p-2 gap-2 overflow-hidden'
+      className='flex-1 basis-0 min-h-0 w-full flex flex-col bg-[#F3F0E9] overflow-hidden'
       data-testid='artist-desk'
     >
       {/* Global High-Z-Index Toast Portal */}
@@ -3865,529 +3865,14 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
           hasArtworkForCurrentStage={hasArtworkForCurrentStage}
           uploadedArtworksCount={uploadedArtworksCount}
           trueActiveStageId={trueActiveStage?.id}
+          onToggleLeftColumn={() => setIsLeftCollapsed((v) => !v)}
+          isLeftCollapsed={isLeftCollapsed}
         />
       )}
 
-      {/* Toolbar chính: 1 Hàng duy nhất (No Wrap), Tinh gọn, Không trùng lặp chức năng của Canvas */}
-      <div
-        className='shrink-0 relative z-30 bg-[#FCFBF8] border border-[#D8D2C5] rounded-lg px-2 py-0.5 min-h-[34px] h-[34px] flex items-center justify-between gap-1.5 min-w-0 overflow-x-auto no-scrollbar shadow-2xs'
-        role='toolbar'
-        aria-label='Thanh công cụ bàn vẽ'
-        data-testid='artist-main-toolbar'
-      >
-        {/* CỤM 1 (BÊN TRÁI): ĐIỀU HƯỚNG & NGỮ CẢNH TRANG */}
-        <div className='flex items-center gap-1.5 shrink-0 min-w-0'>
-          <button
-            type='button'
-            onClick={() => setIsLeftCollapsed((v) => !v)}
-            aria-expanded={!isLeftCollapsed}
-            aria-controls='artist-left-column'
-            aria-label={isLeftCollapsed ? 'Mở cột Trang / Kịch bản' : 'Thu gọn cột Trang / Kịch bản'}
-            title={isLeftCollapsed ? 'Mở cột Trang / Kịch bản' : 'Thu gọn cột Trang / Kịch bản'}
-            data-testid='toggle-left-column'
-            className={`${toolbarBtn} ${toolbarIdle} w-8 px-0 justify-center h-7`}
-          >
-            {isLeftCollapsed ? (
-              <PanelLeftOpen className='w-4 h-4' />
-            ) : (
-              <PanelLeftClose className='w-4 h-4' />
-            )}
-          </button>
-
-          {/* Stage Tool Label: PENCIL TOOLS / INK TOOLS / LETTERING TOOLS */}
-          <span className='hidden sm:inline-block font-mono text-[10px] font-black tracking-wider px-2 py-0.5 rounded bg-stone-200/80 text-stone-700 border border-stone-300 uppercase'>
-            {isPencilStage ? 'PENCIL TOOLS' : isInkStage ? 'INK TOOLS' : isLetteringStage ? 'LETTERING TOOLS' : 'TOOLS'}
-          </span>
-
-          {/* Trạng thái phân công công việc của Artist (Gọn gàng, loại bỏ các nút điều hướng trùng với Header trên) */}
-          {workBadge && (
-            <span
-              className={`ml-1 px-2.5 py-0.5 rounded-full border text-[11px] font-semibold whitespace-nowrap inline-flex items-center ${workBadge.tone}`}
-              data-testid='artist-work-status'
-              title={`${workStageName ? `Công đoạn công việc: ${workStageName} — ` : ''}${workBadge.label}`}
-            >
-              <span className='hidden 2xl:inline'>
-                {workStageName ? `${workStageName} · ` : ''}
-              </span>
-              {workBadge.label.split(' · ')[0]}
-              {workBadge.label.includes('Chỉ xem') && (
-                <>
-                  <Lock className='inline w-3 h-3 ml-1 -mt-px' aria-hidden='true' />
-                  <span className='sr-only'> · Chỉ xem</span>
-                </>
-              )}
-            </span>
-          )}
-        </div>
-
-        {/* CỤM 2 (Ở GIỮA): CHẾ ĐỘ HIỂN THỊ & CÔNG CỤ VẼ TRANG (ĐÃ LỌC BỎ CÁC NÚT TRÙNG VỚI CANVAS) */}
-        {selectedPage && (
-          <div className='flex items-center gap-1.5 shrink-0'>
-            <span className='w-px h-5 bg-[#D8D2C5] shrink-0' aria-hidden='true' />
-
-            {/* Chọn Layer Ảnh hiển thị */}
-            <label className='flex items-center gap-1 text-xs text-[#57534E] shrink-0'>
-              <Eye className='w-3.5 h-3.5 text-[#C2410C]' aria-hidden='true' />
-              <span className='hidden 2xl:inline whitespace-nowrap'>Ảnh hiển thị</span>
-              <span className='sr-only 2xl:hidden'>Ảnh hiển thị</span>
-              <select
-                value={viewStageId}
-                onChange={(e) => handleSelectStageFilter(e.target.value)}
-                data-testid='desk-stage-select'
-                title='Chỉ đổi ảnh đang xem trên canvas, không đổi công đoạn công việc'
-                className='h-8 max-w-[8.5rem] bg-[#FCFBF8] border border-[#D8D2C5] rounded-lg px-1.5 font-semibold text-[#1C1917] cursor-pointer focus-visible:outline-2 focus-visible:outline-[#F97316]'
-              >
-                <option value='AUTO'>
-                  Tự động{myStageOnPage ? ` (${stageLabel(myStageOnPage)})` : ''}
-                </option>
-                {stages.map((s) => {
-                  const sIdx = sortedStages.findIndex((st) => st.id === s.id);
-                  const activeIdx = sortedStages.findIndex((st) => st.id === trueActiveStage?.id);
-                  const isFutureStage = activeIdx >= 0 && sIdx > activeIdx;
-                  return (
-                    <option key={s.id} value={s.id} disabled={isFutureStage}>
-                      {s.stageOrder}. {s.name}
-                      {s.isEnabled === false ? ' (đã tắt)' : ''}
-                      {isFutureStage ? ' (chưa mở)' : ''}
-                    </option>
-                  );
-                })}
-              </select>
-            </label>
-
-            {/* Chế độ vẽ: Vẽ cả trang / Vẽ từng khung (Rành mạch, không trùng lặp nút Tải ảnh) */}
-            {canEditPages && (
-              <div className='relative shrink-0' data-menu-root>
-                <button
-                  type='button'
-                  aria-haspopup='menu'
-                  aria-expanded={openMenu === 'upload'}
-                  onClick={() => setOpenMenu((m) => (m === 'upload' ? null : 'upload'))}
-                  data-testid='upload-menu-btn'
-                  aria-label={`Chế độ tải ảnh: ${uploadMode === 'page' ? 'cả trang' : 'từng khung'}`}
-                  title='Chọn chế độ tải ảnh: Tải cả trang liền mạch hoặc tải từng khung riêng biệt'
-                  className={`${toolbarBtn} ${toolbarIdle} flex items-center gap-1`}
-                >
-                  <Layers className='w-3.5 h-3.5 text-[#C2410C]' />
-                  <span className='hidden md:inline font-medium text-xs'>
-                    {uploadMode === 'page' ? 'Cả trang' : 'Từng khung'}
-                  </span>
-                  <ChevronDown className='w-3 h-3 text-[#57534E]' />
-                </button>
-                {openMenu === 'upload' && (
-                  <div
-                    role='menu'
-                    aria-label='Chế độ tải ảnh'
-                    data-testid='upload-mode-toggle'
-                    className='absolute left-0 top-full mt-1 w-64 bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl shadow-xl py-1 z-50'
-                  >
-                    {[
-                      {
-                        mode: 'panel' as const,
-                        testId: 'mode-panel-slice',
-                        title: 'Từng khung',
-                        hint: selectedPanelDetail
-                          ? `Tải cho Khung #${selectedPanelDetail.panelNumber} đang chọn`
-                          : 'Chọn một khung trên trang để tải ảnh riêng',
-                      },
-                      ...(!hasPanelOnlyAssignmentOnPage
-                        ? [
-                            {
-                              mode: 'page' as const,
-                              testId: 'mode-full-page',
-                              title: 'Cả trang',
-                              hint: `Một ảnh cho cả Trang ${selectedPage.pageNumber}, có nhận diện khung & bóng thoại`,
-                            },
-                          ]
-                        : []),
-                    ].map((o) => (
-                      <button
-                        key={o.mode}
-                        type='button'
-                        role='menuitemradio'
-                        aria-checked={uploadMode === o.mode}
-                        data-testid={o.testId}
-                        onClick={() => {
-                          setUploadMode(o.mode);
-                          setOpenMenu(null);
-                        }}
-                        className={menuItem}
-                      >
-                        <Check
-                          className={`w-3.5 h-3.5 shrink-0 ${uploadMode === o.mode ? 'text-[#C2410C]' : 'invisible'}`}
-                        />
-                        <span className='min-w-0'>
-                          <span className='block font-semibold text-[#1C1917]'>{o.title}</span>
-                          <span className='block text-[11px] text-[#57534E]'>{o.hint}</span>
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Nút Mẫu Khung (vô hiệu hoá khi đã có tranh hoàn thiện) */}
-            {canEditPages && (
-              <button
-                type='button'
-                disabled={Boolean(pageArtUrl)}
-                onClick={() => {
-                  if (pageArtUrl) {
-                    showToast('Không thể chỉnh mẫu khung', 'Trang này đã tải lên bản vẽ hoàn chỉnh. Không thể áp dụng mẫu khung đè lên tranh.', 'error');
-                    return;
-                  }
-                  setFrameTemplateModalOpen(true);
-                }}
-                data-testid='toolbar-frame-template-btn'
-                title={
-                  pageArtUrl
-                    ? 'Trang đã tải lên bản vẽ hoàn chỉnh, không thể chỉnh mẫu khung'
-                    : 'Áp dụng mẫu khung tranh dựng sẵn vào trang'
-                }
-                className={`${toolbarBtn} ${toolbarIdle} ${pageArtUrl ? 'opacity-40 cursor-not-allowed' : ''}`}
-              >
-                <LayoutTemplate className='w-3.5 h-3.5 text-[#C2410C]' />
-                <span className='hidden lg:inline'>Mẫu Khung</span>
-                <span className='sr-only lg:hidden'>Mẫu Khung</span>
-              </button>
-            )}
-
-            {/* Nút Sửa bố cục (Chỉ hiện khi trang đã có panel và chưa có tranh toàn trang) */}
-            {canEditPages && !pageArtUrl && panels.length > 0 && (
-              <button
-                type='button'
-                aria-pressed={layoutEdit}
-                disabled={isCurrentPageCarvedOut}
-                onClick={() => {
-                  if (layoutEdit) setMultiIds([]);
-                  setLayoutEdit((v) => !v);
-                }}
-                data-testid='toggle-layout-edit'
-                title={
-                  isCurrentPageCarvedOut
-                    ? 'Trang này đã được tách việc cho người khác, không thể sửa bố cục'
-                    : layoutEdit
-                      ? 'Tắt chế độ sửa bố cục'
-                      : 'Bật chế độ sửa bố cục khung'
-                }
-                className={`${toolbarBtn} ${layoutEdit ? toolbarOn : toolbarIdle}`}
-              >
-                <Grid2x2 className='w-3.5 h-3.5' />
-                <span className='hidden lg:inline'>Sửa bố cục</span>
-                <span className='sr-only lg:hidden'>Sửa bố cục</span>
-              </button>
-            )}
-
-            {/* Nút AI Sinh Mô Tả Vẽ Cả Cảnh */}
-            {canEditPages && (
-              <button
-                type='button'
-                onClick={() => {
-                  if (scenes.length === 0) {
-                    showToast(
-                      'Chưa có phân cảnh',
-                      'Chương này chưa có phân cảnh nào. Vui lòng tạo phân cảnh ở màn Kịch bản trước.',
-                    );
-                    return;
-                  }
-                  setAiPanelTargetPanelIds(null);
-                  setAiPanelOpen(true);
-                }}
-                data-testid='desk-open-ai-assist-btn'
-                title='Tạo mô tả vẽ cho tất cả khung trong phân cảnh (Bước 1)'
-                className={`${toolbarBtn} text-violet-800 bg-violet-50 hover:bg-violet-100 border border-violet-200 font-semibold px-2 h-7 text-xs hidden 2xl:flex items-center gap-1`}
-              >
-                <Sparkles className='w-3.5 h-3.5 text-violet-600' />
-                <span>Tạo mô tả vẽ (cả cảnh)</span>
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* CỤM 2.5: CÔNG CỤ THEO NGỮ CẢNH GIAI ĐOẠN HIỆN TẠI (TÍCH HỢP TRỰC TIẾP VÀO TOOLBAR DUY NHẤT) */}
-        {currentChapterId && (
-          <div className='flex items-center gap-1.5 shrink-0 px-1 border-x border-[#D8D2C5]/80'>
-            {isPencilStage && (
-              <PencilStageWorkspaceBar
-                storyboardOpacity={storyboardOpacity}
-                onStoryboardOpacityChange={setStoryboardOpacity}
-                showStoryboardOverlay={showStoryboardOverlay}
-                onToggleStoryboardOverlay={() => setShowStoryboardOverlay((v) => !v)}
-                hasStoryboard={Boolean(storyboardImgUrl)}
-                bibleEntries={bibleEntries}
-                selectedBibleEntryId={selectedModelSheetId}
-                onSelectBibleEntry={setSelectedModelSheetId}
-                sketchColor={sketchColor}
-                onSketchColorChange={setSketchColor}
-                onTriggerUpload={handleTriggerUploadPage}
-                hasPencilArtwork={Boolean(pencilArtwork)}
-                pencilArtworkVersion={pencilArtwork?.versionNumber ?? null}
-                isUploading={uploadingPage}
-                onHandoffToInk={() => currentActiveStage && handleStageHandoff(currentActiveStage)}
-                isSubmitting={submittingStageHandoff}
-              />
-            )}
-
-            {isInkStage && (
-              <InkStageWorkspaceBar
-                pencilUnderlayVisible={pencilUnderlayVisible}
-                onTogglePencilUnderlay={() => setPencilUnderlayVisible((v) => !v)}
-                pencilUnderlayOpacity={pencilUnderlayOpacity}
-                onPencilUnderlayOpacityChange={setPencilUnderlayOpacity}
-                hasPencilArt={Boolean(pencilImgUrl)}
-                selectedNib={selectedNib}
-                onSelectNib={setSelectedNib}
-                screenToneEnabled={screenToneEnabled}
-                onToggleScreenTone={() => setScreenToneEnabled((v) => !v)}
-                selectedLpi={selectedLpi}
-                onSelectLpi={setSelectedLpi}
-                toneDensity={toneDensity}
-                onToneDensityChange={setToneDensity}
-                safeZoneVisible={safeZoneVisible}
-                onToggleSafeZone={() => setSafeZoneVisible((v) => !v)}
-                onTriggerUpload={handleTriggerUploadPage}
-                hasInkArtwork={Boolean(inkArtwork)}
-                inkArtworkVersion={inkArtwork?.versionNumber ?? null}
-                isUploading={uploadingPage}
-                onHandoffToLettering={() => currentActiveStage && handleStageHandoff(currentActiveStage)}
-                isSubmitting={submittingStageHandoff}
-              />
-            )}
-
-            {isLetteringStage && (
-              <LetteringStageWorkspaceBar
-                readingFlowVisible={readingFlowVisible}
-                onToggleReadingFlow={() => setReadingFlowVisible((v) => !v)}
-                onOpenAutoAssignModal={() => setAutoAssignModalOpen(true)}
-                scriptDrawerOpen={activeTab === 'script'}
-                onToggleScriptDrawer={() => setActiveTab(activeTab === 'script' ? 'pages' : 'script')}
-                unplacedCount={sceneLines.filter((l) => !l.panelId).length}
-                totalLetterableCount={sceneLines.length}
-                activeTool={letteringActiveTool}
-                onSelectTool={setLetteringActiveTool}
-                onSubmitToGate2={() => currentActiveStage && handleStageHandoff(currentActiveStage)}
-                isSubmitting={submittingStageHandoff}
-              />
-            )}
-          </div>
-        )}
-
-        {/* CỤM 3 (BÊN PHẢI): TIẾN ĐỘ NỘP BẢN THẢO, CTA CHÍNH, ZOOM & INSPECTOR */}
-        <div className='flex items-center gap-1.5 shrink-0 ml-auto'>
-          {/* Primary CTA (Assignment Gateway: Bắt đầu vẽ / Tải tranh) */}
-          {primaryCta && (
-            <>
-              <button
-                type='button'
-                onClick={() => runPrimaryCta(primaryCta.action)}
-                disabled={primaryCta.disabled}
-                title={primaryCta.reason ?? primaryCta.title}
-                aria-describedby={primaryCta.reason ? 'artist-cta-reason' : undefined}
-                data-testid={primaryCta.testId}
-                className={`${toolbarBtn} ${
-                  primaryCta.disabled
-                    ? ''
-                    : 'bg-[#EA580C] hover:bg-[#C2410C] text-white border-[#EA580C]'
-                } max-w-[12rem]`}
-              >
-                {startingAssignmentPanelId !== null && primaryCta.testId === 'cta-start-work' ? (
-                  <Loader2 className='w-3.5 h-3.5 animate-spin' />
-                ) : (
-                  primaryCta.icon
-                )}
-                <span className='truncate'>{primaryCta.label}</span>
-              </button>
-              {primaryCta.reason && (
-                <span id='artist-cta-reason' className='sr-only'>
-                  {primaryCta.reason}
-                </span>
-              )}
-            </>
-          )}
-
-          {/* Thu Phóng Canvas Gọn Gàng */}
-          {selectedPage && (
-            <div
-              className='inline-flex items-center h-8 bg-[#F3F0E9] p-0.5 rounded-lg border border-[#D8D2C5] shrink-0'
-              role='group'
-              aria-label='Thu phóng'
-            >
-              <button
-                type='button'
-                onClick={handleZoomOut}
-                disabled={zoomScale <= 0.3}
-                className='p-1 text-[#57534E] hover:text-[#1C1917] hover:bg-[#FCFBF8] rounded-md cursor-pointer disabled:opacity-30 focus-visible:outline-2 focus-visible:outline-[#F97316]'
-                title='Thu nhỏ'
-                aria-label='Thu nhỏ'
-              >
-                <ZoomOut className='w-3.5 h-3.5' />
-              </button>
-              <button
-                type='button'
-                onClick={handleResetZoom}
-                className='hidden 2xl:block px-1 text-[11px] font-mono font-bold text-[#1C1917] rounded hover:bg-[#FCFBF8] cursor-pointer min-w-[2.75rem] focus-visible:outline-2 focus-visible:outline-[#F97316]'
-                title='Đặt lại 100%'
-                aria-label={`Thu phóng ${Math.round(zoomScale * 100)}%, bấm để đặt lại 100%`}
-              >
-                {Math.round(zoomScale * 100)}%
-              </button>
-              <button
-                type='button'
-                onClick={handleZoomIn}
-                disabled={zoomScale >= 2.5}
-                className='p-1 text-[#57534E] hover:text-[#1C1917] hover:bg-[#FCFBF8] rounded-md cursor-pointer disabled:opacity-30 focus-visible:outline-2 focus-visible:outline-[#F97316]'
-                title='Phóng to'
-                aria-label='Phóng to'
-              >
-                <ZoomIn className='w-3.5 h-3.5' />
-              </button>
-              <button
-                type='button'
-                onClick={handleFitToScreen}
-                data-testid='zoom-fit-btn'
-                aria-pressed={isFitMode}
-                className={`px-1.5 py-0.5 text-[11px] font-semibold rounded cursor-pointer whitespace-nowrap focus-visible:outline-2 focus-visible:outline-[#F97316] ${
-                  isFitMode
-                    ? 'bg-white text-[#C2410C] shadow-2xs'
-                    : 'text-[#57534E] hover:text-[#1C1917] hover:bg-[#FCFBF8]'
-                }`}
-                title='Vừa khung: nhìn trọn trang'
-              >
-                Vừa khung
-              </button>
-            </div>
-          )}
-
-          {/* Nút Chi tiết (Inspector) */}
-          {selectedPage && (
-            <button
-              type='button'
-              onClick={() => (isRightCollapsed ? openDetails() : setIsRightCollapsed(true))}
-              aria-expanded={!isRightCollapsed}
-              aria-controls='artist-details'
-              data-testid='toggle-details'
-              className={`${toolbarBtn} ${isRightCollapsed ? toolbarIdle : toolbarOn} relative`}
-            >
-              <PanelRightOpen className='w-3.5 h-3.5' />
-              <span className='hidden md:inline'>Chi tiết</span>
-              <span className='sr-only md:hidden'>Chi tiết</span>
-              {hasFeedback && (
-                <span
-                  className='absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-500 border border-white'
-                  aria-label='Có phản hồi'
-                />
-              )}
-            </button>
-          )}
-
-          {/* Menu thao tác phụ Trang */}
-          <div className='relative shrink-0' data-menu-root>
-            <button
-              type='button'
-              aria-haspopup='menu'
-              aria-expanded={openMenu === 'page'}
-              aria-label='Thao tác trang'
-              title='Thao tác trang'
-              onClick={() => setOpenMenu((m) => (m === 'page' ? null : 'page'))}
-              data-testid='page-menu-btn'
-              className={`${toolbarBtn} ${toolbarIdle} w-8 px-0 justify-center`}
-            >
-              <MoreHorizontal className='w-4 h-4' />
-            </button>
-            {openMenu === 'page' && (
-              <div
-                role='menu'
-                aria-label='Thao tác trang'
-                className='absolute right-0 top-full mt-1 w-56 bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl shadow-xl py-1 z-50'
-              >
-                <button
-                  type='button'
-                  role='menuitem'
-                  onClick={() => {
-                    setOpenMenu(null);
-                    void loadPages();
-                  }}
-                  disabled={loading}
-                  className={menuItem}
-                >
-                  <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} /> Làm mới
-                </button>
-                <button
-                  type='button'
-                  role='menuitem'
-                  data-testid='artist-desk-bible-reference-btn'
-                  onClick={() => {
-                    setOpenMenu(null);
-                    setSelectedDrawerPanelId(selectedPanelId || null);
-                    setBibleDrawerOpen(true);
-                  }}
-                  className={menuItem}
-                >
-                  <BookOpen className='w-3.5 h-3.5' /> Tham chiếu Series Bible
-                </button>
-                {canEditPages && (
-                  <>
-                    <button
-                      type='button'
-                      role='menuitem'
-                      onClick={() => {
-                        setOpenMenu(null);
-                        setCreateModalOpen(true);
-                      }}
-                      disabled={!currentChapterId}
-                      className={menuItem}
-                    >
-                      <Plus className='w-3.5 h-3.5' /> Tạo trang mới
-                    </button>
-                    {selectedPage && (
-                      <>
-                        <button
-                          type='button'
-                          role='menuitem'
-                          data-testid='page-settings-btn'
-                          onClick={() => {
-                            setOpenMenu(null);
-                            setEditWidthPx(selectedPage.widthPx.toString());
-                            setEditHeightPx(selectedPage.heightPx.toString());
-                            setEditDpi(selectedPage.dpi.toString());
-                            setEditLayout(selectedPage.layoutFormat);
-                            setSettingsModalOpen(true);
-                          }}
-                          className={menuItem}
-                        >
-                          <Settings className='w-3.5 h-3.5' /> Cài đặt trang
-                        </button>
-                        <div className='my-1 border-t border-[#D8D2C5]' />
-                        <button
-                          type='button'
-                          role='menuitem'
-                          onClick={() => {
-                            setOpenMenu(null);
-                            handleDeletePage(selectedPage.id);
-                          }}
-                          className={`${menuItem} text-rose-700 hover:bg-rose-50`}
-                        >
-                          <Trash2 className='w-3.5 h-3.5' /> Xóa Trang {selectedPage.pageNumber}…
-                        </button>
-                      </>
-                    )}
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-{/* Stage Tabs & Handoff đã tích hợp trực tiếp vào Unified Global Header */}
-
-      {/* CONTEXT-DRIVEN EXCLUSIVE WORKSPACE BARS (PHẦN 3: GIAO DIỆN RIÊNG TỪNG GIAI ĐOẠN) */}
-      
-
       {/* Toolbar phụ khi bật "Sửa bố cục" */}
       {selectedPage && canEditPages && !isCurrentPageCarvedOut && layoutEdit && (
-        <div className='shrink-0 relative z-20' data-testid='layout-edit-bar'>
+        <div className='shrink-0 relative z-20 px-2 pt-2' data-testid='layout-edit-bar'>
           <PanelLayoutToolbar
             panelCount={panels.length}
             selectedCount={Math.max(multiIds.length, selectedPanelId ? 1 : 0)}
@@ -4476,7 +3961,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
       )}
 
       {/* Vùng làm việc: Trang/Kịch bản · Canvas · Chi tiết */}
-      <div className='flex-1 min-h-0 flex gap-2 relative'>
+      <div className='flex-1 min-h-0 flex gap-2 p-2 relative overflow-hidden'>
         {!isLeftCollapsed && (
           <button
             type='button'
@@ -5466,7 +4951,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
         </aside>
 
         {/* Canvas trung tâm */}
-        <section className='flex-1 min-w-0 min-h-0 flex flex-col gap-2' aria-label='Trang truyện'>
+        <section className='flex-1 min-w-0 min-h-0 flex flex-col gap-2 relative overflow-hidden' aria-label='Trang truyện'>
           {selectedPage ? (
             <>
               {isCurrentPageCarvedOut && (
@@ -6253,6 +5738,512 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
               )}
             </div>
           )}
+
+          {/* FLOATING CANVAS TOOLBAR (Photoshop/Figma Style Dock · Lucian #178 & #208 Inspired) */}
+          <div
+            className='absolute bottom-4 left-1/2 -translate-x-1/2 z-40 bg-[#FCFBF8]/95 backdrop-blur-md border border-[#D8D2C5] rounded-2xl px-3 py-1.5 shadow-[0_12px_36px_-8px_rgba(40,30,20,0.22),0_2px_8px_rgba(0,0,0,0.08)] flex items-center gap-1.5 max-w-[95%] overflow-x-auto no-scrollbar select-none'
+            role='toolbar'
+            aria-label='Thanh công cụ bàn vẽ nổi'
+            data-testid='artist-main-toolbar'
+          >
+            {/* CỤM 1 (BÊN TRÁI): ĐIỀU HƯỚNG & NGỮ CẢNH TRANG */}
+            <div className='flex items-center gap-1.5 shrink-0 min-w-0'>
+              <button
+                type='button'
+                onClick={() => setIsLeftCollapsed((v) => !v)}
+                aria-expanded={!isLeftCollapsed}
+                aria-controls='artist-left-column'
+                aria-label={isLeftCollapsed ? 'Mở cột Trang / Kịch bản' : 'Thu gọn cột Trang / Kịch bản'}
+                title={isLeftCollapsed ? 'Mở cột Trang / Kịch bản' : 'Thu gọn cột Trang / Kịch bản'}
+                data-testid='toggle-left-column'
+                className={`${toolbarBtn} ${toolbarIdle} w-7 h-7 px-0 justify-center rounded-lg`}
+              >
+                {isLeftCollapsed ? (
+                  <PanelLeftOpen className='w-3.5 h-3.5' />
+                ) : (
+                  <PanelLeftClose className='w-3.5 h-3.5' />
+                )}
+              </button>
+
+              {/* Trạng thái phân công công việc của Artist */}
+              {workBadge && (
+                <span
+                  className={`px-2 py-0.5 rounded-full border text-[11px] font-semibold whitespace-nowrap inline-flex items-center ${workBadge.tone}`}
+                  data-testid='artist-work-status'
+                  title={`${workStageName ? `Công đoạn công việc: ${workStageName} — ` : ''}${workBadge.label}`}
+                >
+                  <span className='hidden 2xl:inline'>
+                    {workStageName ? `${workStageName} · ` : ''}
+                  </span>
+                  {workBadge.label.split(' · ')[0]}
+                  {workBadge.label.includes('Chỉ xem') && (
+                    <>
+                      <Lock className='inline w-3 h-3 ml-1 -mt-px' aria-hidden='true' />
+                      <span className='sr-only'> · Chỉ xem</span>
+                    </>
+                  )}
+                </span>
+              )}
+
+              {/* Primary CTA (Assignment Gateway: Bắt đầu vẽ / Tải tranh) */}
+              {primaryCta && (
+                <>
+                  <button
+                    type='button'
+                    onClick={() => runPrimaryCta(primaryCta.action)}
+                    disabled={primaryCta.disabled}
+                    title={primaryCta.reason ?? primaryCta.title}
+                    aria-describedby={primaryCta.reason ? 'artist-cta-reason' : undefined}
+                    data-testid={primaryCta.testId}
+                    className={`${toolbarBtn} h-7 text-xs px-2.5 ${
+                      primaryCta.disabled
+                        ? ''
+                        : 'bg-[#EA580C] hover:bg-[#C2410C] text-white border-[#EA580C]'
+                    } max-w-[12rem] flex items-center gap-1.5 font-bold`}
+                  >
+                    {startingAssignmentPanelId !== null && primaryCta.testId === 'cta-start-work' ? (
+                      <Loader2 className='w-3.5 h-3.5 animate-spin' />
+                    ) : (
+                      primaryCta.icon
+                    )}
+                    <span className='truncate'>{primaryCta.label}</span>
+                  </button>
+                  {primaryCta.reason && (
+                    <span id='artist-cta-reason' className='sr-only'>
+                      {primaryCta.reason}
+                    </span>
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* CỤM 2 (Ở GIỮA): CHẾ ĐỘ HIỂN THỊ & CÔNG CỤ VẼ TRANG */}
+            {selectedPage && (
+              <div className='flex items-center gap-1.5 shrink-0'>
+                <span className='w-px h-5 bg-[#D8D2C5]' aria-hidden='true' />
+
+                {/* Chọn Layer Ảnh hiển thị */}
+                <label className='flex items-center gap-1 text-xs text-[#57534E] shrink-0'>
+                  <Eye className='w-3.5 h-3.5 text-[#C2410C]' aria-hidden='true' />
+                  <span className='hidden 2xl:inline whitespace-nowrap text-[11px] font-medium'>Ảnh hiển thị</span>
+                  <span className='sr-only 2xl:hidden'>Ảnh hiển thị</span>
+                  <select
+                    value={viewStageId}
+                    onChange={(e) => handleSelectStageFilter(e.target.value)}
+                    data-testid='desk-stage-select'
+                    title='Chỉ đổi ảnh đang xem trên canvas, không đổi công đoạn công việc'
+                    className='h-7 max-w-[8rem] bg-white border border-[#D8D2C5] rounded-lg px-1.5 font-semibold text-xs text-[#1C1917] cursor-pointer focus-visible:outline-2 focus-visible:outline-[#F97316]'
+                  >
+                    <option value='AUTO'>
+                      Tự động{myStageOnPage ? ` (${stageLabel(myStageOnPage)})` : ''}
+                    </option>
+                    {stages.map((s) => {
+                      const sIdx = sortedStages.findIndex((st) => st.id === s.id);
+                      const activeIdx = sortedStages.findIndex((st) => st.id === trueActiveStage?.id);
+                      const isFutureStage = activeIdx >= 0 && sIdx > activeIdx;
+                      return (
+                        <option key={s.id} value={s.id} disabled={isFutureStage}>
+                          {s.stageOrder}. {s.name}
+                          {s.isEnabled === false ? ' (đã tắt)' : ''}
+                          {isFutureStage ? ' (chưa mở)' : ''}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </label>
+
+                {/* Chế độ vẽ: Vẽ cả trang / Vẽ từng khung */}
+                {canEditPages && (
+                  <div className='relative shrink-0' data-menu-root>
+                    <button
+                      type='button'
+                      aria-haspopup='menu'
+                      aria-expanded={openMenu === 'upload'}
+                      onClick={() => setOpenMenu((m) => (m === 'upload' ? null : 'upload'))}
+                      data-testid='upload-menu-btn'
+                      aria-label={`Chế độ tải ảnh: ${uploadMode === 'page' ? 'cả trang' : 'từng khung'}`}
+                      title='Chọn chế độ tải ảnh: Tải cả trang liền mạch hoặc tải từng khung riêng biệt'
+                      className={`${toolbarBtn} ${toolbarIdle} h-7 text-xs px-2 flex items-center gap-1`}
+                    >
+                      <Layers className='w-3.5 h-3.5 text-[#C2410C]' />
+                      <span className='hidden md:inline font-medium text-xs'>
+                        {uploadMode === 'page' ? 'Cả trang' : 'Từng khung'}
+                      </span>
+                      <ChevronDown className='w-3 h-3 text-[#57534E]' />
+                    </button>
+                    {openMenu === 'upload' && (
+                      <div
+                        role='menu'
+                        aria-label='Chế độ tải ảnh'
+                        data-testid='upload-mode-toggle'
+                        className='absolute left-0 bottom-full mb-2 w-64 bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl shadow-xl py-1 z-50'
+                      >
+                        {[
+                          {
+                            mode: 'panel' as const,
+                            testId: 'mode-panel-slice',
+                            title: 'Từng khung',
+                            hint: selectedPanelDetail
+                              ? `Tải cho Khung #${selectedPanelDetail.panelNumber} đang chọn`
+                              : 'Chọn một khung trên trang để tải ảnh riêng',
+                          },
+                          ...(!hasPanelOnlyAssignmentOnPage
+                            ? [
+                                {
+                                  mode: 'page' as const,
+                                  testId: 'mode-full-page',
+                                  title: 'Cả trang',
+                                  hint: `Một ảnh cho cả Trang ${selectedPage.pageNumber}, có nhận diện khung & bóng thoại`,
+                                },
+                              ]
+                            : []),
+                        ].map((o) => (
+                          <button
+                            key={o.mode}
+                            type='button'
+                            role='menuitemradio'
+                            aria-checked={uploadMode === o.mode}
+                            data-testid={o.testId}
+                            onClick={() => {
+                              setUploadMode(o.mode);
+                              setOpenMenu(null);
+                            }}
+                            className={menuItem}
+                          >
+                            <Check
+                              className={`w-3.5 h-3.5 shrink-0 ${uploadMode === o.mode ? 'text-[#C2410C]' : 'invisible'}`}
+                            />
+                            <span className='min-w-0'>
+                              <span className='block font-semibold text-[#1C1917]'>{o.title}</span>
+                              <span className='block text-[11px] text-[#57534E]'>{o.hint}</span>
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Nút Mẫu Khung */}
+                {canEditPages && (
+                  <button
+                    type='button'
+                    disabled={Boolean(pageArtUrl)}
+                    onClick={() => {
+                      if (pageArtUrl) {
+                        showToast('Không thể chỉnh mẫu khung', 'Trang này đã tải lên bản vẽ hoàn chỉnh. Không thể áp dụng mẫu khung đè lên tranh.', 'error');
+                        return;
+                      }
+                      setFrameTemplateModalOpen(true);
+                    }}
+                    data-testid='toolbar-frame-template-btn'
+                    title={
+                      pageArtUrl
+                        ? 'Trang đã tải lên bản vẽ hoàn chỉnh, không thể chỉnh mẫu khung'
+                        : 'Áp dụng mẫu khung tranh dựng sẵn vào trang'
+                    }
+                    className={`${toolbarBtn} ${toolbarIdle} h-7 text-xs px-2 ${pageArtUrl ? 'opacity-40 cursor-not-allowed' : ''}`}
+                  >
+                    <LayoutTemplate className='w-3.5 h-3.5 text-[#C2410C]' />
+                    <span className='hidden lg:inline'>Mẫu Khung</span>
+                    <span className='sr-only lg:hidden'>Mẫu Khung</span>
+                  </button>
+                )}
+
+                {/* Nút Sửa bố cục */}
+                {canEditPages && !pageArtUrl && panels.length > 0 && (
+                  <button
+                    type='button'
+                    aria-pressed={layoutEdit}
+                    disabled={isCurrentPageCarvedOut}
+                    onClick={() => {
+                      if (layoutEdit) setMultiIds([]);
+                      setLayoutEdit((v) => !v);
+                    }}
+                    data-testid='toggle-layout-edit'
+                    title={
+                      isCurrentPageCarvedOut
+                        ? 'Trang này đã được tách việc cho người khác, không thể sửa bố cục'
+                        : layoutEdit
+                          ? 'Tắt chế độ sửa bố cục'
+                          : 'Bật chế độ sửa bố cục khung'
+                    }
+                    className={`${toolbarBtn} ${layoutEdit ? toolbarOn : toolbarIdle} h-7 text-xs px-2`}
+                  >
+                    <Grid2x2 className='w-3.5 h-3.5' />
+                    <span className='hidden lg:inline'>Sửa bố cục</span>
+                    <span className='sr-only lg:hidden'>Sửa bố cục</span>
+                  </button>
+                )}
+
+                {/* Nút AI Sinh Mô Tả Vẽ Cả Cảnh */}
+                {canEditPages && (
+                  <button
+                    type='button'
+                    onClick={() => {
+                      if (scenes.length === 0) {
+                        showToast(
+                          'Chưa có phân cảnh',
+                          'Chương này chưa có phân cảnh nào. Vui lòng tạo phân cảnh ở màn Kịch bản trước.',
+                        );
+                        return;
+                      }
+                      setAiPanelTargetPanelIds(null);
+                      setAiPanelOpen(true);
+                    }}
+                    data-testid='desk-open-ai-assist-btn'
+                    title='Tạo mô tả vẽ cho tất cả khung trong phân cảnh (Bước 1)'
+                    className={`${toolbarBtn} text-violet-800 bg-violet-50 hover:bg-violet-100 border border-violet-200 font-semibold px-2 h-7 text-xs flex items-center gap-1`}
+                  >
+                    <Sparkles className='w-3.5 h-3.5 text-violet-600' />
+                    <span>Tạo mô tả vẽ (cả cảnh)</span>
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* CỤM 2.5: CÔNG CỤ THEO NGỮ CẢNH GIAI ĐOẠN HIỆN TẠI */}
+            {currentChapterId && (
+              <div className='flex items-center gap-1.5 shrink-0 px-1 border-x border-[#D8D2C5]/80'>
+                {isPencilStage && (
+                  <PencilStageWorkspaceBar
+                    storyboardOpacity={storyboardOpacity}
+                    onStoryboardOpacityChange={setStoryboardOpacity}
+                    showStoryboardOverlay={showStoryboardOverlay}
+                    onToggleStoryboardOverlay={() => setShowStoryboardOverlay((v) => !v)}
+                    hasStoryboard={Boolean(storyboardImgUrl)}
+                    bibleEntries={bibleEntries}
+                    selectedBibleEntryId={selectedModelSheetId}
+                    onSelectBibleEntry={setSelectedModelSheetId}
+                    sketchColor={sketchColor}
+                    onSketchColorChange={setSketchColor}
+                    onTriggerUpload={handleTriggerUploadPage}
+                    hasPencilArtwork={Boolean(pencilArtwork)}
+                    pencilArtworkVersion={pencilArtwork?.versionNumber ?? null}
+                    isUploading={uploadingPage}
+                    onHandoffToInk={() => currentActiveStage && handleStageHandoff(currentActiveStage)}
+                    isSubmitting={submittingStageHandoff}
+                  />
+                )}
+
+                {isInkStage && (
+                  <InkStageWorkspaceBar
+                    pencilUnderlayVisible={pencilUnderlayVisible}
+                    onTogglePencilUnderlay={() => setPencilUnderlayVisible((v) => !v)}
+                    pencilUnderlayOpacity={pencilUnderlayOpacity}
+                    onPencilUnderlayOpacityChange={setPencilUnderlayOpacity}
+                    hasPencilArt={Boolean(pencilImgUrl)}
+                    selectedNib={selectedNib}
+                    onSelectNib={setSelectedNib}
+                    screenToneEnabled={screenToneEnabled}
+                    onToggleScreenTone={() => setScreenToneEnabled((v) => !v)}
+                    selectedLpi={selectedLpi}
+                    onSelectLpi={setSelectedLpi}
+                    toneDensity={toneDensity}
+                    onToneDensityChange={setToneDensity}
+                    safeZoneVisible={safeZoneVisible}
+                    onToggleSafeZone={() => setSafeZoneVisible((v) => !v)}
+                    onTriggerUpload={handleTriggerUploadPage}
+                    hasInkArtwork={Boolean(inkArtwork)}
+                    inkArtworkVersion={inkArtwork?.versionNumber ?? null}
+                    isUploading={uploadingPage}
+                    onHandoffToLettering={() => currentActiveStage && handleStageHandoff(currentActiveStage)}
+                    isSubmitting={submittingStageHandoff}
+                  />
+                )}
+
+                {isLetteringStage && (
+                  <LetteringStageWorkspaceBar
+                    readingFlowVisible={readingFlowVisible}
+                    onToggleReadingFlow={() => setReadingFlowVisible((v) => !v)}
+                    onOpenAutoAssignModal={() => setAutoAssignModalOpen(true)}
+                    scriptDrawerOpen={activeTab === 'script'}
+                    onToggleScriptDrawer={() => setActiveTab(activeTab === 'script' ? 'pages' : 'script')}
+                    unplacedCount={sceneLines.filter((l) => !l.panelId).length}
+                    totalLetterableCount={sceneLines.length}
+                    activeTool={letteringActiveTool}
+                    onSelectTool={setLetteringActiveTool}
+                    onSubmitToGate2={() => currentActiveStage && handleStageHandoff(currentActiveStage)}
+                    isSubmitting={submittingStageHandoff}
+                  />
+                )}
+              </div>
+            )}
+
+            {/* CỤM 3: THU PHÓNG & THAO TÁC CANVAS */}
+            <div className='flex items-center gap-1.5 shrink-0'>
+              {selectedPage && (
+                <div
+                  className='inline-flex items-center h-7 bg-[#F3F0E9] p-0.5 rounded-lg border border-[#D8D2C5] shrink-0'
+                  role='group'
+                  aria-label='Thu phóng'
+                >
+                  <button
+                    type='button'
+                    onClick={handleZoomOut}
+                    disabled={zoomScale <= 0.3}
+                    className='p-1 text-[#57534E] hover:text-[#1C1917] hover:bg-[#FCFBF8] rounded-md cursor-pointer disabled:opacity-30 focus-visible:outline-2 focus-visible:outline-[#F97316]'
+                    title='Thu nhỏ'
+                    aria-label='Thu nhỏ'
+                  >
+                    <ZoomOut className='w-3 h-3' />
+                  </button>
+                  <button
+                    type='button'
+                    onClick={handleResetZoom}
+                    className='hidden 2xl:block px-1 text-[11px] font-mono font-bold text-[#1C1917] rounded hover:bg-[#FCFBF8] cursor-pointer min-w-[2.5rem] focus-visible:outline-2 focus-visible:outline-[#F97316]'
+                    title='Đặt lại 100%'
+                    aria-label={`Thu phóng ${Math.round(zoomScale * 100)}%, bấm để đặt lại 100%`}
+                  >
+                    {Math.round(zoomScale * 100)}%
+                  </button>
+                  <button
+                    type='button'
+                    onClick={handleZoomIn}
+                    disabled={zoomScale >= 2.5}
+                    className='p-1 text-[#57534E] hover:text-[#1C1917] hover:bg-[#FCFBF8] rounded-md cursor-pointer disabled:opacity-30 focus-visible:outline-2 focus-visible:outline-[#F97316]'
+                    title='Phóng to'
+                    aria-label='Phóng to'
+                  >
+                    <ZoomIn className='w-3 h-3' />
+                  </button>
+                  <button
+                    type='button'
+                    onClick={handleFitToScreen}
+                    data-testid='zoom-fit-btn'
+                    aria-pressed={isFitMode}
+                    className={`px-1.5 py-0.5 text-[11px] font-semibold rounded cursor-pointer whitespace-nowrap focus-visible:outline-2 focus-visible:outline-[#F97316] ${
+                      isFitMode
+                        ? 'bg-white text-[#C2410C] shadow-2xs'
+                        : 'text-[#57534E] hover:text-[#1C1917] hover:bg-[#FCFBF8]'
+                    }`}
+                    title='Vừa khung: nhìn trọn trang'
+                  >
+                    Vừa khung
+                  </button>
+                </div>
+              )}
+
+              {/* Nút Chi tiết (Inspector) */}
+              {selectedPage && (
+                <button
+                  type='button'
+                  onClick={() => (isRightCollapsed ? openDetails() : setIsRightCollapsed(true))}
+                  aria-expanded={!isRightCollapsed}
+                  aria-controls='artist-details'
+                  data-testid='toggle-details'
+                  className={`${toolbarBtn} ${isRightCollapsed ? toolbarIdle : toolbarOn} h-7 text-xs px-2 relative`}
+                >
+                  <PanelRightOpen className='w-3.5 h-3.5' />
+                  <span className='hidden md:inline'>Chi tiết</span>
+                  <span className='sr-only md:hidden'>Chi tiết</span>
+                  {hasFeedback && (
+                    <span
+                      className='absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-500 border border-white'
+                      aria-label='Có phản hồi'
+                    />
+                  )}
+                </button>
+              )}
+
+              {/* Menu thao tác phụ Trang */}
+              <div className='relative shrink-0' data-menu-root>
+                <button
+                  type='button'
+                  aria-haspopup='menu'
+                  aria-expanded={openMenu === 'page'}
+                  aria-label='Thao tác trang'
+                  title='Thao tác trang'
+                  onClick={() => setOpenMenu((m) => (m === 'page' ? null : 'page'))}
+                  data-testid='page-menu-btn'
+                  className={`${toolbarBtn} ${toolbarIdle} w-7 h-7 px-0 justify-center rounded-lg`}
+                >
+                  <MoreHorizontal className='w-3.5 h-3.5' />
+                </button>
+                {openMenu === 'page' && (
+                  <div
+                    role='menu'
+                    aria-label='Thao tác trang'
+                    className='absolute right-0 bottom-full mb-2 w-56 bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl shadow-xl py-1 z-50'
+                  >
+                    <button
+                      type='button'
+                      role='menuitem'
+                      onClick={() => {
+                        setOpenMenu(null);
+                        void loadPages();
+                      }}
+                      disabled={loading}
+                      className={menuItem}
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} /> Làm mới
+                    </button>
+                    <button
+                      type='button'
+                      role='menuitem'
+                      data-testid='artist-desk-bible-reference-btn'
+                      onClick={() => {
+                        setOpenMenu(null);
+                        setSelectedDrawerPanelId(selectedPanelId || null);
+                        setBibleDrawerOpen(true);
+                      }}
+                      className={menuItem}
+                    >
+                      <BookOpen className='w-3.5 h-3.5' /> Tham chiếu Series Bible
+                    </button>
+                    {canEditPages && (
+                      <>
+                        <button
+                          type='button'
+                          role='menuitem'
+                          onClick={() => {
+                            setOpenMenu(null);
+                            setCreateModalOpen(true);
+                          }}
+                          disabled={!currentChapterId}
+                          className={menuItem}
+                        >
+                          <Plus className='w-3.5 h-3.5' /> Tạo trang mới
+                        </button>
+                        {selectedPage && (
+                          <>
+                            <button
+                              type='button'
+                              role='menuitem'
+                              data-testid='page-settings-btn'
+                              onClick={() => {
+                                setOpenMenu(null);
+                                setEditWidthPx(selectedPage.widthPx.toString());
+                                setEditHeightPx(selectedPage.heightPx.toString());
+                                setEditDpi(selectedPage.dpi.toString());
+                                setEditLayout(selectedPage.layoutFormat);
+                                setSettingsModalOpen(true);
+                              }}
+                              className={menuItem}
+                            >
+                              <Settings className='w-3.5 h-3.5' /> Cài đặt trang
+                            </button>
+                            <div className='my-1 border-t border-[#D8D2C5]' />
+                            <button
+                              type='button'
+                              role='menuitem'
+                              onClick={() => {
+                                setOpenMenu(null);
+                                handleDeletePage(selectedPage.id);
+                              }}
+                              className={`${menuItem} text-rose-700 hover:bg-rose-50`}
+                            >
+                              <Trash2 className='w-3.5 h-3.5' /> Xóa Trang {selectedPage.pageNumber}…
+                            </button>
+                          </>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </section>
 
         {/* Cột Chi tiết: mặc định đóng; inline từ 1280px, drawer khi hẹp hơn */}

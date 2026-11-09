@@ -14,6 +14,8 @@ import {
   CheckCircle2,
   Clock,
   Layers,
+  PanelLeftOpen,
+  PanelLeftClose,
 } from 'lucide-react';
 import { PageDto } from '@/services/page.service';
 import { ChapterDto } from '@/services/chapter.service';
@@ -37,6 +39,8 @@ interface Props {
   hasArtworkForCurrentStage?: boolean;
   uploadedArtworksCount?: number;
   trueActiveStageId?: string;
+  onToggleLeftColumn?: () => void;
+  isLeftCollapsed?: boolean;
 }
 
 export const GlobalPipelineHeader: React.FC<Props> = ({
@@ -56,6 +60,8 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
   hasArtworkForCurrentStage = true,
   uploadedArtworksCount = 0,
   trueActiveStageId,
+  onToggleLeftColumn,
+  isLeftCollapsed,
 }) => {
   const currentIndex = selectedPage ? pages.findIndex((p) => p.id === selectedPage.id) : -1;
   const hasPrev = currentIndex > 0;
@@ -101,16 +107,35 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
       : 'bg-purple-600';
 
   return (
-    <div
+    <header
       data-testid='global-pipeline-header'
       role='region'
       aria-label='Tiến độ công đoạn và bàn giao'
-      className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl px-3 py-1.5 min-h-[44px] flex items-center justify-between gap-3 shrink-0 select-none shadow-2xs z-30'
+      className='w-full bg-[#FCFBF8] border-b border-[#D8D2C5] px-4 py-1.5 min-h-[44px] flex items-center justify-between gap-3 shrink-0 select-none shadow-xs z-30'
     >
       {/* =========================================================================
           KHỐI TRÁI: ĐIỀU HƯỚNG CHƯƠNG & CURRENT WORKFLOW BADGE
          ========================================================================= */}
       <div className='flex items-center gap-2 text-xs shrink-0'>
+        {onToggleLeftColumn && (
+          <button
+            type='button'
+            onClick={onToggleLeftColumn}
+            aria-expanded={!isLeftCollapsed}
+            aria-controls='artist-left-column'
+            aria-label={isLeftCollapsed ? 'Mở cột Trang / Kịch bản' : 'Thu gọn cột Trang / Kịch bản'}
+            title={isLeftCollapsed ? 'Mở cột Trang / Kịch bản' : 'Thu gọn cột Trang / Kịch bản'}
+            data-testid='toggle-left-column'
+            className='h-7 w-7 inline-flex items-center justify-center rounded-lg border border-[#D8D2C5] bg-[#FAF8F5] hover:bg-[#F3F0E9] text-stone-700 hover:text-stone-900 transition-colors cursor-pointer text-xs shrink-0'
+          >
+            {isLeftCollapsed ? (
+              <PanelLeftOpen className='w-3.5 h-3.5' />
+            ) : (
+              <PanelLeftClose className='w-3.5 h-3.5' />
+            )}
+          </button>
+        )}
+
         {onBackToChapters && (
           <button
             type='button'
@@ -365,6 +390,6 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
           </>
         )}
       </div>
-    </div>
+    </header>
   );
 };
