@@ -1906,8 +1906,8 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
     setUploadingPanelId(panelId);
     try {
       console.log('[ArtistDesk] uploadArtworkFileForPanel starting:', { panelId, fileName: file.name, effectiveStageId });
-      setUploadProgressMsg('Đang kiểm tra & nén ảnh...');
-      showToast('Đang xử lý', 'Đang tối ưu tệp ảnh cho khung tranh...');
+      setUploadProgressMsg('Đang kiểm tra & chuẩn bị ảnh...');
+      showToast('Đang xử lý', 'Đang tối ưu ảnh cho khung tranh...');
       const sha256 = await computeFileSha256(file);
       setUploadProgressMsg('Đang tải lên máy chủ...');
       showToast('Đang tải lên', 'Đang tải artwork cho khung panel...');
@@ -1970,7 +1970,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
     }
     setUploadingPage(true);
     try {
-      setUploadProgressMsg('Đang kiểm tra & nén ảnh...');
+      setUploadProgressMsg('Đang chuẩn bị ảnh toàn trang...');
       showToast('Đang xử lý', 'Đang tối ưu ảnh toàn trang...');
       const sha256 = await computeFileSha256(file);
       setUploadProgressMsg('Đang tải ảnh toàn trang lên máy chủ...');

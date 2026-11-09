@@ -367,7 +367,7 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
                       type='button'
                       onClick={() => setSnapshotChapter(chap)}
                       className='px-3.5 py-1.5 rounded-full border border-[#D8D2C5] bg-[#FCFBF8] hover:bg-[#F3F0E9] text-xs font-semibold text-[#57534E] hover:text-[#1C1917] flex items-center gap-1.5 transition-colors cursor-pointer shadow-soft-sm'
-                      title='Bản duyệt bất biến của chương: đúng bản Producer đã duyệt (CF4)'
+                      title='Bản duyệt chính thức của chương: chuẩn theo phiên bản Producer đã phê duyệt'
                     >
                       <FileStack className='w-3.5 h-3.5 text-[#57534E]' />
                       <span>Bản duyệt</span>

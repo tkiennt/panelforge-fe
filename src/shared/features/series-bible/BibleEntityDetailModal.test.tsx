@@ -109,7 +109,7 @@ describe('BibleEntityDetailModal UX/UI', () => {
   it('displays Canon locked banner with chapter and approval date, without BR-18 code', () => {
     render(<BibleEntityDetailModal {...defaultProps} />);
 
-    expect(screen.getByText(/Canon đã khoá/i)).toBeInTheDocument();
+    expect(screen.getByText(/Đã khóa chuẩn/i)).toBeInTheDocument();
     expect(screen.getAllByText(/Ch\.\s*5\s*→\s*hết/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText(/Đã duyệt/i)).toBeInTheDocument();
 

@@ -168,8 +168,8 @@ export const PageDetailModal: React.FC<PageDetailModalProps> = ({
               </span>
             </div>
             <div className='flex items-center justify-between'>
-              <span className='text-[#57534E]'>Mã Hash SHA-256:</span>
-              <span className='text-emerald-700 font-bold'>9f4a..e12 Đã Khóa</span>
+              <span className='text-[#57534E]'>Trạng thái bản vẽ:</span>
+              <span className='text-emerald-700 font-bold'>Đã lưu an toàn</span>
             </div>
           </div>
 

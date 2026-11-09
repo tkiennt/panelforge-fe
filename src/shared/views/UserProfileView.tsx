@@ -1078,21 +1078,21 @@ export const UserProfileView: React.FC<UserProfileProps> = ({
                     </div>
                   </div>
 
-                  {/* Mã định danh tác giả (UUID) */}
+                  {/* Mã tác giả sáng tác */}
                   <div className='p-3.5 bg-white border border-[#E7E2D9] rounded-lg flex items-center justify-between text-xs shadow-2xs'>
                     <div className='flex items-center gap-2.5 min-w-0'>
                       <Lock className='w-4 h-4 text-[#57534E] shrink-0' />
                       <div className='min-w-0'>
                         <span className='font-semibold text-[#44403C] block'>
-                          Mã định danh tác giả (System UUID)
+                          Mã tác giả sáng tác
                         </span>
-                        <span className='text-[10px] font-mono text-[#57534E] block truncate'>
-                          {profile?.id || '—'}
+                        <span className='text-[11px] font-mono text-[#57534E] block truncate' title={profile?.id}>
+                          {profile?.id ? `PF-${profile.id.slice(0, 8).toUpperCase()}` : '—'}
                         </span>
                       </div>
                     </div>
-                    <span className='text-[10px] font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 shrink-0 font-bold'>
-                      VERIFIED
+                    <span className='text-[10px] font-mono text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 shrink-0 font-semibold'>
+                      ĐÃ XÁC THỰC
                     </span>
                   </div>
 

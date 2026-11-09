@@ -319,13 +319,13 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({
 
         {/* Content list */}
         <div className='p-4 overflow-y-auto space-y-3 custom-scrollbar text-xs flex-1'>
-          <div className='p-3 bg-[#ECFDF5] border border-[#10B981]/30 rounded-xl text-[#059669] flex items-center justify-between text-xs font-mono'>
+          <div className='p-3 bg-[#ECFDF5] border border-[#10B981]/30 rounded-xl text-[#059669] flex items-center justify-between text-xs'>
             <span className='flex items-center gap-2 font-semibold'>
               <CheckCircle className='w-4 h-4' />
-              Toàn bộ chuỗi Hash đã được đối soát chữ ký SHA-256 an toàn
+              Toàn bộ nhật ký hoạt động studio đã được chứng thực toàn vẹn
             </span>
-            <span className='text-[10px] bg-white px-2 py-0.5 rounded border border-[#10B981]/40'>
-              ECDSA-P256
+            <span className='text-[10px] bg-white px-2 py-0.5 rounded border border-[#10B981]/40 font-semibold'>
+              ĐÃ XÁC THỰC
             </span>
           </div>
 
@@ -376,11 +376,11 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({
 
                   <div className='flex items-center justify-between pt-1 text-[11px] font-mono'>
                     {log.hash ? (
-                      <span className='text-[#78716C] bg-[#F1EEE8] px-2 py-0.5 rounded border border-[#D8D2C5] truncate max-w-[360px]'>
-                        {log.hash}
+                      <span className='text-[#78716C] bg-[#F1EEE8] px-2 py-0.5 rounded border border-[#D8D2C5]' title={log.hash}>
+                        Mã bảo chứng: #{log.hash.slice(0, 8)}
                       </span>
                     ) : (
-                      <span className='text-[#A8A29E] text-[10px]'>AUDIT-RECORD-VERIFIED</span>
+                      <span className='text-[#059669] text-[10px] font-medium'>ĐÃ BẢO CHỨNG TOÀN VẸN</span>
                     )}
                     {log.statusTag && (
                       <span
