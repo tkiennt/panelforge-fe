@@ -8,13 +8,13 @@
       "approved": "Đã duyệt",
       "rejected": "Đã trả về"
     },
-    "approveAction": "Phê duyệt bản nộp",
-    "rejectAction": "Trả về yêu cầu sửa",
+    "approveAction": "Duyệt bản nộp",
+    "rejectAction": "Trả về sửa",
     "notes": "Ghi chú duyệt bài"
   },
   "changeRequest": {
     "title": "Yêu Cầu Sửa Đổi (Change Request)",
-    "create": "Tạo yêu cầu sửa",
+    "create": "Tạo yêu cầu",
     "severity": {
       "blocking": "Ngăn chặn (Blocking)",
       "warning": "Cảnh báo (Warning)",
@@ -26,8 +26,8 @@
       "verified": "Đã xác minh"
     },
     "description": "Nội dung yêu cầu sửa",
-    "markFixed": "Đánh dấu đã sửa",
-    "markVerified": "Xác nhận đã khắc phục"
+    "markFixed": "Đã sửa xong",
+    "markVerified": "Duyệt khắc phục"
   },
   "diff": {
     "title": "So Sánh Nét Vẽ (Diff View)",

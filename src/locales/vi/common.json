@@ -8,7 +8,7 @@
     "edit": "Sửa",
     "create": "Tạo mới",
     "creating": "Đang tạo...",
-    "confirm": "Xác nhận",
+    "confirm": "Tiếp tục",
     "close": "Đóng",
     "back": "Quay lại",
     "refresh": "Làm mới",
@@ -20,7 +20,7 @@
     "apply": "Áp dụng",
     "start": "Bắt đầu",
     "starting": "Đang bắt đầu...",
-    "submit": "Nộp bài",
+    "submit": "Nộp duyệt",
     "submitting": "Đang nộp...",
     "viewDetails": "Xem chi tiết",
     "selectAll": "Chọn tất cả",
@@ -46,12 +46,12 @@
   "messages": {
     "loading": "Đang tải dữ liệu...",
     "noData": "Không có dữ liệu hiển thị.",
-    "saveSuccess": "Lưu thành công.",
-    "saveError": "Lưu thất bại. Vui lòng thử lại.",
-    "deleteConfirm": "Bạn có chắc chắn muốn xóa mục này không?",
-    "networkError": "Mất kết nối mạng. Đã lưu thao tác ngoại tuyến.",
-    "unauthorized": "Bạn không có quyền thực hiện thao tác này.",
-    "conflictError": "Dữ liệu vừa được cập nhật bởi thành viên khác. Vui lòng làm mới."
+    "saveSuccess": "Lưu thành công. Thay đổi đã được ghi nhận.",
+    "saveError": "Lưu thất bại. Lỗi đường truyền, hãy thử lại.",
+    "deleteConfirm": "Xóa mục này? Thao tác không thể hoàn tác.",
+    "networkError": "Mất kết nối mạng. Đã lưu ngoại tuyến an toàn.",
+    "unauthorized": "Từ chối thao tác. Chưa đủ quyền vai trò trên hệ thống.",
+    "conflictError": "Xung đột dữ liệu. Bản ghi vừa được cập nhật, hãy tải lại."
   },
   "time": {
     "today": "Hôm nay",
@@ -72,17 +72,17 @@
     "syncing": "Đang đồng bộ..."
   },
   "unsaved": {
-    "title": "Bạn có thay đổi chưa lưu",
-    "plural": "Bạn có {count} thay đổi chưa lưu",
+    "title": "Có thay đổi chưa lưu",
+    "plural": "Có {count} thay đổi chưa lưu",
     "saved": "Đã lưu thay đổi",
-    "discard": "Hủy bỏ",
+    "discard": "Bỏ thay đổi",
     "save": "Lưu thay đổi",
     "saving": "Đang lưu..."
   },
   "dangerZone": {
-    "confirmDeleteTitle": "Xác nhận xóa vĩnh viễn",
-    "confirmDeleteDesc": "Hành động này không thể hoàn tác. Vui lòng nhập chính xác tên bên dưới để xác nhận xóa:",
-    "typeInputLabel": "Nhập lại tên để xác nhận"
+    "confirmDeleteTitle": "Xóa vĩnh viễn",
+    "confirmDeleteDesc": "Thao tác không thể hoàn tác. Nhập tên để xóa vĩnh viễn:",
+    "typeInputLabel": "Nhập tên xác nhận"
   },
   "auth": {
     "welcomeBack": "Chào mừng trở lại",
@@ -100,9 +100,9 @@
     "showPassword": "Hiện mật khẩu",
     "hidePassword": "Ẩn mật khẩu",
     "backHome": "Về trang chủ",
-    "errEmailRequired": "Vui lòng nhập địa chỉ email.",
+    "errEmailRequired": "Thiếu email. Hãy nhập địa chỉ email hợp lệ.",
     "errEmailInvalid": "Định dạng email không hợp lệ.",
-    "errPasswordRequired": "Vui lòng nhập mật khẩu.",
-    "errLoginFailed": "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin."
+    "errPasswordRequired": "Thiếu mật khẩu. Hãy nhập mật khẩu tài khoản.",
+    "errLoginFailed": "Đăng nhập thất bại. Sai thông tin tài khoản, hãy thử lại."
   }
 }

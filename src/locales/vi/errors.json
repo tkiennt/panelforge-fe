@@ -1,15 +1,15 @@
 {
-  "ERR_UNAUTHORIZED": "Phiên đăng nhập không hợp lệ hoặc đã hết hạn.",
-  "ERR_FORBIDDEN": "Bạn không có quyền thực hiện thao tác này.",
-  "ERR_NOT_FOUND": "Tài nguyên yêu cầu không tồn tại.",
-  "ERR_SERIES_NOT_FOUND": "Bộ truyện không tồn tại.",
-  "ERR_WORKSPACE_NOT_FOUND": "Không gian làm việc không tồn tại.",
-  "ERR_CHAPTER_READ_ONLY": "Chương này đã hoàn tất hoặc xuất bản, nội dung chỉ đọc.",
-  "ERR_CONFLICT": "Dữ liệu đã bị thay đổi bởi người khác, vui lòng tải lại.",
-  "ERR_VALIDATION_FAILED": "Dữ liệu không hợp lệ hoặc thiếu thông tin bắt buộc.",
-  "ERR_AI_UNAVAILABLE": "Dịch vụ AI đang bảo trì hoặc tạm thời không phản hồi.",
-  "ERR_AI_DISABLED": "Tính năng AI đã bị tắt trong hệ thống.",
-  "ERR_AI_QUOTA_EXCEEDED": "Đã vượt quá hạn mức sử dụng AI cho phép.",
-  "ERR_INTERNAL_SERVER_ERROR": "Đã xảy ra lỗi hệ thống, vui lòng thử lại sau.",
-  "unknown": "Đã xảy ra lỗi không xác định. Vui lòng thử lại sau."
+  "ERR_UNAUTHORIZED": "Hết phiên đăng nhập. Mã xác thực đã hết hạn, hãy đăng nhập lại.",
+  "ERR_FORBIDDEN": "Từ chối thao tác. Chưa đủ quyền vai trò, hãy kiểm tra phân quyền.",
+  "ERR_NOT_FOUND": "Không tìm thấy dữ liệu. Bản ghi không tồn tại hoặc đã bị xóa.",
+  "ERR_SERIES_NOT_FOUND": "Không tìm thấy truyện. Bộ truyện không tồn tại hoặc đã gỡ bỏ.",
+  "ERR_WORKSPACE_NOT_FOUND": "Không tìm thấy studio. Studio Workspace không tồn tại trên hệ thống.",
+  "ERR_CHAPTER_READ_ONLY": "Chương đã đóng băng. Nội dung đã duyệt xuất bản, chỉ cho phép đọc.",
+  "ERR_CONFLICT": "Xung đột phiên bản. Dữ liệu bị người khác cập nhật, hãy tải lại trang.",
+  "ERR_VALIDATION_FAILED": "Dữ liệu không hợp lệ. Thiếu trường bắt buộc, hãy kiểm tra biểu mẫu.",
+  "ERR_AI_UNAVAILABLE": "Dịch vụ AI gián đoạn. Máy chủ AI đang bận, hãy thử lại sau ít phút.",
+  "ERR_AI_DISABLED": "AI đang tạm dừng. Tính năng bị vô hiệu hóa bởi Quản trị studio.",
+  "ERR_AI_QUOTA_EXCEEDED": "Vượt hạn mức AI. Đã hết quota trong ngày, hãy nâng cấp gói.",
+  "ERR_INTERNAL_SERVER_ERROR": "Lỗi máy chủ nội bộ. Hệ thống gặp sự cố, hãy thử lại sau ít phút.",
+  "unknown": "Lỗi ngoài dự kiến. Không thể hoàn tất thao tác, hãy tải lại trang."
 }

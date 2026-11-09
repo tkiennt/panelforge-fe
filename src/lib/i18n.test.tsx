@@ -40,17 +40,17 @@ describe('i18n core engine', () => {
 
   it('tra cứu namespace errors chính xác cho cả VI và EN', () => {
     expect(translate('errors.ERR_NOT_FOUND', undefined, 'vi')).toBe(
-      'Tài nguyên yêu cầu không tồn tại.',
+      'Không tìm thấy dữ liệu. Bản ghi không tồn tại hoặc đã bị xóa.',
     );
     expect(translate('errors.ERR_NOT_FOUND', undefined, 'en')).toBe(
-      'The requested resource was not found.',
+      'Resource not found. Record does not exist or has been deleted.',
     );
     expect(translate('errors.ERR_SERIES_NOT_FOUND', undefined, 'vi')).toBe(
-      'Bộ truyện không tồn tại.',
+      'Không tìm thấy truyện. Bộ truyện không tồn tại hoặc đã gỡ bỏ.',
     );
-    expect(translate('errors.ERR_SERIES_NOT_FOUND', undefined, 'en')).toBe('Series not found.');
+    expect(translate('errors.ERR_SERIES_NOT_FOUND', undefined, 'en')).toBe('Series not found. Target series does not exist or was removed.');
     expect(translate('errors.ERR_CHAPTER_READ_ONLY', undefined, 'vi')).toBe(
-      'Chương này đã hoàn tất hoặc xuất bản, nội dung chỉ đọc.',
+      'Chương đã đóng băng. Nội dung đã duyệt xuất bản, chỉ cho phép đọc.',
     );
   });
 

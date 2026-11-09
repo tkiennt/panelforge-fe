@@ -25,7 +25,7 @@
     "supersedeAction": "Thay thế bản khoá",
     "supersedeTitle": "Tạo bản sửa đổi thay thế (Supersede Revision)",
     "supersedeDesc": "Bản sửa đổi mới sẽ được gửi đến Biên tập duyệt trước khi thay thế bản khoá hiện tại.",
-    "supersedeConfirm": "Xác nhận tạo bản thay thế",
+    "supersedeConfirm": "Tạo bản thay thế",
     "lockedWarning": "Mục này đã được duyệt và khoá chuẩn. Cần quyền Biên tập để tạo bản thay thế."
   },
   "drawer": {
@@ -33,7 +33,7 @@
     "panelReference": "Tham chiếu cho Khung #{number}",
     "noPanelSelection": "Chưa chọn khung tranh",
     "selectToView": "Chọn một khung để xem tài liệu nhân vật và bối cảnh xuất hiện trong phân cảnh.",
-    "copyPrompt": "Sao chép Prompt AI",
+    "copyPrompt": "Sao chép prompt",
     "promptCopied": "Đã sao chép prompt tham chiếu."
   }
 }

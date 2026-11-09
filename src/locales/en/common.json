@@ -8,7 +8,7 @@
     "edit": "Edit",
     "create": "Create",
     "creating": "Creating...",
-    "confirm": "Confirm",
+    "confirm": "Continue",
     "close": "Close",
     "back": "Back",
     "refresh": "Refresh",
@@ -20,7 +20,7 @@
     "apply": "Apply",
     "start": "Start",
     "starting": "Starting...",
-    "submit": "Submit",
+    "submit": "Submit for Review",
     "submitting": "Submitting...",
     "viewDetails": "View details",
     "selectAll": "Select all",
@@ -46,12 +46,12 @@
   "messages": {
     "loading": "Loading data...",
     "noData": "No data available.",
-    "saveSuccess": "Saved successfully.",
-    "saveError": "Save failed. Please try again.",
-    "deleteConfirm": "Are you sure you want to delete this item?",
-    "networkError": "Network connection lost. Changes saved offline.",
-    "unauthorized": "You do not have permission to perform this action.",
-    "conflictError": "Data was updated by another member. Please refresh."
+    "saveSuccess": "Saved successfully. All changes recorded.",
+    "saveError": "Save failed. Network connection error, please retry.",
+    "deleteConfirm": "Delete this item? This action cannot be undone.",
+    "networkError": "Network lost. Changes cached locally and safe.",
+    "unauthorized": "Access denied. Insufficient role permissions.",
+    "conflictError": "Data conflict. Record updated by another user, please reload."
   },
   "time": {
     "today": "Today",
@@ -72,17 +72,17 @@
     "syncing": "Syncing..."
   },
   "unsaved": {
-    "title": "You have unsaved changes",
-    "plural": "You have {count} unsaved changes",
+    "title": "Unsaved changes",
+    "plural": "{count} unsaved changes",
     "saved": "Changes saved",
-    "discard": "Discard",
+    "discard": "Discard changes",
     "save": "Save changes",
     "saving": "Saving..."
   },
   "dangerZone": {
-    "confirmDeleteTitle": "Confirm permanent deletion",
-    "confirmDeleteDesc": "This action cannot be undone. Please type the exact name below to confirm deletion:",
-    "typeInputLabel": "Re-type name to confirm"
+    "confirmDeleteTitle": "Delete Permanently",
+    "confirmDeleteDesc": "This action cannot be undone. Type the name below to proceed:",
+    "typeInputLabel": "Type name to confirm"
   },
   "auth": {
     "welcomeBack": "Welcome back",
@@ -100,9 +100,9 @@
     "showPassword": "Show password",
     "hidePassword": "Hide password",
     "backHome": "Back to home",
-    "errEmailRequired": "Please enter your email address.",
-    "errEmailInvalid": "Invalid email format.",
-    "errPasswordRequired": "Please enter your password.",
-    "errLoginFailed": "Sign in failed. Please check your details."
+    "errEmailRequired": "Email required. Please enter a valid email address.",
+    "errEmailInvalid": "Invalid email. Please check the address format.",
+    "errPasswordRequired": "Password required. Please enter your account password.",
+    "errLoginFailed": "Sign in failed. Invalid credentials, please retry."
   }
 }

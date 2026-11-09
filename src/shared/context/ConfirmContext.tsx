@@ -34,18 +34,18 @@ export const ConfirmProvider: React.FC<{ children: React.ReactNode }> = ({ child
       if (typeof options === 'string') {
         setModalState({
           isOpen: true,
-          title: 'Xác nhận thao tác',
+          title: 'Xác nhận yêu cầu',
           description: options,
-          confirmText: 'Xác nhận',
+          confirmText: 'Đồng ý',
           cancelText: 'Hủy',
           variant: 'danger',
         });
       } else {
         setModalState({
           isOpen: true,
-          title: options.title || 'Xác nhận thao tác',
+          title: options.title || 'Xác nhận yêu cầu',
           description: options.description,
-          confirmText: options.confirmText || 'Xác nhận',
+          confirmText: options.confirmText || 'Đồng ý',
           cancelText: options.cancelText || 'Hủy',
           variant: options.variant || 'danger',
         });
