@@ -7,11 +7,7 @@ import {
   downloadBlob,
 } from '@/services/admin.service';
 import { cn } from '@/lib/utils';
-import {
-  formatActionLabel,
-  formatEntityLabel,
-  getActionTone,
-} from '@/shared/utils/auditLogUtils';
+import { formatActionLabel, formatEntityLabel, getActionTone } from '@/shared/utils/auditLogUtils';
 import {
   AdminBadge,
   AdminButton,
@@ -25,7 +21,7 @@ import {
 } from './components/AdminUi';
 import { adminFieldClass, adminTable, useAdminToast } from './components/adminUiStyles';
 
-export const ENTITY_OPTIONS = [
+const ENTITY_OPTIONS = [
   { value: '', label: 'Tất cả đối tượng' },
   { value: 'Session', label: 'Phiên đăng nhập (Session)' },
   { value: 'User', label: 'Người dùng (User)' },
@@ -35,7 +31,7 @@ export const ENTITY_OPTIONS = [
   { value: 'Workspace', label: 'Studio' },
 ];
 
-export const ACTION_OPTIONS = [
+const ACTION_OPTIONS = [
   { value: '', label: 'Tất cả hành động' },
   { value: 'LOGIN', label: 'Đăng nhập (LOGIN)' },
   { value: 'LOGOUT', label: 'Đăng xuất (LOGOUT)' },
@@ -47,7 +43,7 @@ export const ACTION_OPTIONS = [
   { value: 'ASSIGN_PRODUCER', label: 'Cấp quyền tạo Studio' },
 ];
 
-export const actionTone = (act: string): AdminTone => getActionTone(act);
+const actionTone = (act: string): AdminTone => getActionTone(act);
 
 const logTime = (i: AuditLogDto) => new Date(i.timestampUtc || i.createdAt || '');
 
@@ -460,7 +456,10 @@ export const AdminAuditLogView: React.FC = () => {
               ['Thời gian', logTime(inspectLog).toLocaleString('vi-VN')],
               ['Người thực hiện', inspectLog.userEmail || inspectLog.userId || 'Hệ thống'],
               ['Hành động', `${formatActionLabel(inspectLog.action)} (${inspectLog.action})`],
-              ['Đối tượng', `${formatEntityLabel(inspectLog.entityName)} (${inspectLog.entityName})`],
+              [
+                'Đối tượng',
+                `${formatEntityLabel(inspectLog.entityName)} (${inspectLog.entityName})`,
+              ],
               ['Mã đối tượng', inspectLog.entityId],
               ['Studio', inspectLog.workspaceName || '—'],
               ['Địa chỉ IP', inspectLog.ipAddress || '—'],

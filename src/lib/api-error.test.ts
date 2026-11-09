@@ -19,7 +19,7 @@ describe('getApiErrorMessage utility', () => {
     vi.spyOn(axios, 'isAxiosError').mockReturnValue(true);
 
     const message = getApiErrorMessage(error);
-    expect(message).toBe('Bộ truyện không tồn tại.');
+    expect(message).toBe('Không tìm thấy truyện. Bộ truyện không tồn tại hoặc đã gỡ bỏ.');
   });
 
   it('fallback về data.error của backend nếu code chưa có trong từ điển', () => {
@@ -80,11 +80,11 @@ describe('getApiErrorMessage utility', () => {
 
     const unknownError = null;
     expect(getApiErrorMessage(unknownError)).toBe(
-      'Đã xảy ra lỗi không xác định. Vui lòng thử lại sau.',
+      'Lỗi ngoài dự kiến. Không thể hoàn tất thao tác, hãy tải lại trang.',
     );
 
     expect(getApiErrorMessage(unknownError, 'errors.ERR_UNAUTHORIZED')).toBe(
-      'Phiên đăng nhập không hợp lệ hoặc đã hết hạn.',
+      'Hết phiên đăng nhập. Mã xác thực đã hết hạn, hãy đăng nhập lại.',
     );
   });
 });

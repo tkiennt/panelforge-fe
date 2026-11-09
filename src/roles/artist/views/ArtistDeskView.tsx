@@ -83,6 +83,7 @@ import {
 } from '@/services/element.service';
 import { bibleService, BibleEntryDto } from '@/services/bible.service';
 import { FrameTemplateModal } from '@/roles/artist/modals/FrameTemplateModal';
+import { ArtistAuxiliaryRadialMenu } from '@/roles/artist/components/ArtistAuxiliaryRadialMenu';
 import { ThumbnailGenerationModal } from '@/roles/artist/modals/ThumbnailGenerationModal';
 import { AutoAssignScriptLinesModal } from '@/roles/artist/modals/AutoAssignScriptLinesModal';
 import { ScriptFocusModeModal } from '@/roles/artist/modals/ScriptFocusModeModal';
@@ -155,6 +156,7 @@ import { PageArtworkWorkflow } from '../components/PageArtworkWorkflow';
 import { UploadPagesModal } from '../components/UploadPagesModal';
 import { PageArtCrop } from '@/shared/features/collaboration/ArtworkPanel';
 import { seriesService, type SeriesDetailDto } from '@/services/series.service';
+// eslint-disable-next-line no-restricted-imports
 import { ChapterSelectionView } from '@/roles/writer/components/script/chapter-selection';
 import { pipelineService, type PipelineStageDto } from '@/services/pipeline.service';
 import { pickPanelArtwork, pickPageArtwork } from '@/shared/utils/stageArtworks';
@@ -174,7 +176,7 @@ import {
   MAX_ARTWORK_IMAGE_BYTES,
 } from '../utils/artistStage';
 
-export const DEFAULT_MANGA_STAGES: PipelineStageDto[] = [
+const DEFAULT_MANGA_STAGES: PipelineStageDto[] = [
   { id: 'stage-pencil', name: 'Nét chì (Pencil)', slug: 'pencil', stageOrder: 1, isEnabled: true, isApprovalGate: false, isInitial: true, isTerminal: false, allowedRole: 'Artist' },
   { id: 'stage-ink', name: 'Đi nét & Trame (Ink)', slug: 'ink', stageOrder: 2, isEnabled: true, isApprovalGate: false, isInitial: false, isTerminal: false, allowedRole: 'Artist' },
   { id: 'stage-lettering', name: 'Ráp thoại (Lettering)', slug: 'lettering', stageOrder: 3, isEnabled: true, allowedRole: 'Letterer', isApprovalGate: true, isInitial: false, isTerminal: true },
@@ -206,7 +208,7 @@ export interface ParsedSceneSlugline {
   emoji: string;
 }
 
-export function parseSceneSlugline(
+function parseSceneSlugline(
   scene: Partial<SceneDto & {
     slugline?: string | null;
     location?: string | null;
@@ -3643,14 +3645,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
         testId: 'cta-upload-panel',
       };
     }
-    return {
-      label: 'Tải ảnh',
-      icon: <Upload className='w-3.5 h-3.5' />,
-      action: 'none',
-      disabled: true,
-      reason: 'Chọn một khung trên trang, hoặc mở "Tải ảnh" → "Cả trang"',
-      testId: 'cta-upload-panel',
-    };
+    return null;
   })();
   const runPrimaryCta = (action: NonNullable<typeof primaryCta>['action']) => {
     if (action === 'create') setCreateModalOpen(true);
@@ -5741,7 +5736,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
 
           {/* FLOATING CANVAS TOOLBAR (Photoshop/Figma Style Dock · Lucian #178 & #208 Inspired) */}
           <div
-            className='absolute bottom-4 left-1/2 -translate-x-1/2 z-40 bg-[#FCFBF8]/95 backdrop-blur-md border border-[#D8D2C5] rounded-2xl px-3 py-1.5 shadow-[0_12px_36px_-8px_rgba(40,30,20,0.22),0_2px_8px_rgba(0,0,0,0.08)] flex items-center gap-1.5 max-w-[95%] overflow-x-auto no-scrollbar select-none'
+            className='absolute bottom-4 left-1/2 -translate-x-1/2 z-40 bg-[#FCFBF8]/95 backdrop-blur-md border border-[#D8D2C5] rounded-2xl px-3.5 py-2 shadow-[0_12px_36px_-8px_rgba(40,30,20,0.25),0_2px_10px_rgba(0,0,0,0.08)] flex items-center gap-2 select-none'
             role='toolbar'
             aria-label='Thanh công cụ bàn vẽ nổi'
             data-testid='artist-main-toolbar'
@@ -5756,7 +5751,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                 aria-label={isLeftCollapsed ? 'Mở cột Trang / Kịch bản' : 'Thu gọn cột Trang / Kịch bản'}
                 title={isLeftCollapsed ? 'Mở cột Trang / Kịch bản' : 'Thu gọn cột Trang / Kịch bản'}
                 data-testid='toggle-left-column'
-                className={`${toolbarBtn} ${toolbarIdle} w-7 h-7 px-0 justify-center rounded-lg`}
+                className={`${toolbarBtn} ${toolbarIdle} w-8 h-8 px-0 justify-center rounded-xl`}
               >
                 {isLeftCollapsed ? (
                   <PanelLeftOpen className='w-3.5 h-3.5' />
@@ -5823,7 +5818,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                 <span className='w-px h-5 bg-[#D8D2C5]' aria-hidden='true' />
 
                 {/* Chọn Layer Ảnh hiển thị */}
-                <label className='flex items-center gap-1 text-xs text-[#57534E] shrink-0'>
+                <label className='sr-only'>
                   <Eye className='w-3.5 h-3.5 text-[#C2410C]' aria-hidden='true' />
                   <span className='hidden 2xl:inline whitespace-nowrap text-[11px] font-medium'>Ảnh hiển thị</span>
                   <span className='sr-only 2xl:hidden'>Ảnh hiển thị</span>
@@ -5852,9 +5847,9 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                   </select>
                 </label>
 
-                {/* Chế độ vẽ: Vẽ cả trang / Vẽ từng khung */}
+                {/* Chế độ vẽ: Vẽ cả trang / Vẽ từng khung (Ẩn theo yêu cầu tinh giản) */}
                 {canEditPages && (
-                  <div className='relative shrink-0' data-menu-root>
+                  <div className='sr-only' data-menu-root>
                     <button
                       type='button'
                       aria-haspopup='menu'
@@ -5920,37 +5915,25 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                           </button>
                         ))}
                       </div>
-                    )}
+                )}
                   </div>
                 )}
 
-                {/* Nút Mẫu Khung */}
+                {/* Nút Mẫu Khung: Luôn mở modal chọn mẫu khung */}
                 {canEditPages && (
                   <button
                     type='button'
-                    disabled={Boolean(pageArtUrl)}
-                    onClick={() => {
-                      if (pageArtUrl) {
-                        showToast('Không thể chỉnh mẫu khung', 'Trang này đã tải lên bản vẽ hoàn chỉnh. Không thể áp dụng mẫu khung đè lên tranh.', 'error');
-                        return;
-                      }
-                      setFrameTemplateModalOpen(true);
-                    }}
+                    onClick={() => setFrameTemplateModalOpen(true)}
                     data-testid='toolbar-frame-template-btn'
-                    title={
-                      pageArtUrl
-                        ? 'Trang đã tải lên bản vẽ hoàn chỉnh, không thể chỉnh mẫu khung'
-                        : 'Áp dụng mẫu khung tranh dựng sẵn vào trang'
-                    }
-                    className={`${toolbarBtn} ${toolbarIdle} h-7 text-xs px-2 ${pageArtUrl ? 'opacity-40 cursor-not-allowed' : ''}`}
+                    title='Áp dụng mẫu khung tranh dựng sẵn vào trang'
+                    className={`${toolbarBtn} ${toolbarIdle} h-7 text-xs px-2.5 flex items-center gap-1.5 cursor-pointer font-medium hover:bg-stone-100 hover:text-stone-900`}
                   >
                     <LayoutTemplate className='w-3.5 h-3.5 text-[#C2410C]' />
-                    <span className='hidden lg:inline'>Mẫu Khung</span>
-                    <span className='sr-only lg:hidden'>Mẫu Khung</span>
+                    <span>Mẫu Khung</span>
                   </button>
                 )}
 
-                {/* Nút Sửa bố cục */}
+                {/* Nút Sửa bố cục (Ẩn trực quan, thao tác chính qua Lucian #011) */}
                 {canEditPages && !pageArtUrl && panels.length > 0 && (
                   <button
                     type='button'
@@ -5961,22 +5944,13 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                       setLayoutEdit((v) => !v);
                     }}
                     data-testid='toggle-layout-edit'
-                    title={
-                      isCurrentPageCarvedOut
-                        ? 'Trang này đã được tách việc cho người khác, không thể sửa bố cục'
-                        : layoutEdit
-                          ? 'Tắt chế độ sửa bố cục'
-                          : 'Bật chế độ sửa bố cục khung'
-                    }
-                    className={`${toolbarBtn} ${layoutEdit ? toolbarOn : toolbarIdle} h-7 text-xs px-2`}
+                    className='sr-only'
                   >
-                    <Grid2x2 className='w-3.5 h-3.5' />
-                    <span className='hidden lg:inline'>Sửa bố cục</span>
-                    <span className='sr-only lg:hidden'>Sửa bố cục</span>
+                    <span>Sửa bố cục</span>
                   </button>
                 )}
 
-                {/* Nút AI Sinh Mô Tả Vẽ Cả Cảnh */}
+                {/* Nút AI Sinh Mô Tả Vẽ (Ẩn trực quan, thao tác chính qua Lucian #011) */}
                 {canEditPages && (
                   <button
                     type='button'
@@ -5992,10 +5966,8 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                       setAiPanelOpen(true);
                     }}
                     data-testid='desk-open-ai-assist-btn'
-                    title='Tạo mô tả vẽ cho tất cả khung trong phân cảnh (Bước 1)'
-                    className={`${toolbarBtn} text-violet-800 bg-violet-50 hover:bg-violet-100 border border-violet-200 font-semibold px-2 h-7 text-xs flex items-center gap-1`}
+                    className='sr-only'
                   >
-                    <Sparkles className='w-3.5 h-3.5 text-violet-600' />
                     <span>Tạo mô tả vẽ (cả cảnh)</span>
                   </button>
                 )}
@@ -6007,6 +5979,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
               <div className='flex items-center gap-1.5 shrink-0 px-1 border-x border-[#D8D2C5]/80'>
                 {isPencilStage && (
                   <PencilStageWorkspaceBar
+                    onlyUploadButton={true}
                     storyboardOpacity={storyboardOpacity}
                     onStoryboardOpacityChange={setStoryboardOpacity}
                     showStoryboardOverlay={showStoryboardOverlay}
@@ -6028,6 +6001,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
 
                 {isInkStage && (
                   <InkStageWorkspaceBar
+                    onlyUploadButton={true}
                     pencilUnderlayVisible={pencilUnderlayVisible}
                     onTogglePencilUnderlay={() => setPencilUnderlayVisible((v) => !v)}
                     pencilUnderlayOpacity={pencilUnderlayOpacity}
@@ -6064,9 +6038,48 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                     activeTool={letteringActiveTool}
                     onSelectTool={setLetteringActiveTool}
                     onSubmitToGate2={() => currentActiveStage && handleStageHandoff(currentActiveStage)}
-                    isSubmitting={submittingStageHandoff}
+                                        isSubmitting={submittingStageHandoff}
                   />
                 )}
+
+                {/* Lucian #011: Radial Menu cho các công cụ hỗ trợ phụ */}
+                <ArtistAuxiliaryRadialMenu
+                  canEditPages={canEditPages}
+                  isPencilStage={isPencilStage}
+                  isInkStage={isInkStage}
+                  hasStoryboard={Boolean(storyboardImgUrl)}
+                  showStoryboardOverlay={showStoryboardOverlay}
+                  onToggleStoryboardOverlay={() => setShowStoryboardOverlay((v) => !v)}
+                  storyboardOpacity={storyboardOpacity}
+                  onStoryboardOpacityChange={setStoryboardOpacity}
+                  bibleEntries={bibleEntries}
+                  selectedBibleEntryId={selectedModelSheetId}
+                  onSelectBibleEntry={setSelectedModelSheetId}
+                  onOpenAiAssist={() => {
+                    if (scenes.length === 0) {
+                      showToast(
+                        'Chưa có phân cảnh',
+                        'Chương này chưa có phân cảnh nào. Vui lòng tạo phân cảnh ở màn Kịch bản trước.',
+                      );
+                      return;
+                    }
+                    setAiPanelTargetPanelIds(null);
+                    setAiPanelOpen(true);
+                  }}
+                  layoutEdit={layoutEdit}
+                  onToggleLayoutEdit={() => {
+                    if (layoutEdit) setMultiIds([]);
+                    setLayoutEdit((v) => !v);
+                  }}
+                  disabledLayoutEdit={isCurrentPageCarvedOut}
+                  pencilUnderlayVisible={pencilUnderlayVisible}
+                  onTogglePencilUnderlay={() => setPencilUnderlayVisible((v) => !v)}
+                  hasPencilArt={Boolean(pencilImgUrl)}
+                  screenToneEnabled={screenToneEnabled}
+                  onToggleScreenTone={() => setScreenToneEnabled((v) => !v)}
+                  safeZoneVisible={safeZoneVisible}
+                  onToggleSafeZone={() => setSafeZoneVisible((v) => !v)}
+                />
               </div>
             )}
 
@@ -6074,7 +6087,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
             <div className='flex items-center gap-1.5 shrink-0'>
               {selectedPage && (
                 <div
-                  className='inline-flex items-center h-7 bg-[#F3F0E9] p-0.5 rounded-lg border border-[#D8D2C5] shrink-0'
+                  className='inline-flex items-center h-8 bg-[#F3F0E9] p-1 rounded-xl border border-[#D8D2C5] shrink-0'
                   role='group'
                   aria-label='Thu phóng'
                 >
@@ -6132,7 +6145,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                   aria-expanded={!isRightCollapsed}
                   aria-controls='artist-details'
                   data-testid='toggle-details'
-                  className={`${toolbarBtn} ${isRightCollapsed ? toolbarIdle : toolbarOn} h-7 text-xs px-2 relative`}
+                  className={`${toolbarBtn} ${isRightCollapsed ? toolbarIdle : toolbarOn} h-8 text-xs px-2.5 rounded-xl relative`}
                 >
                   <PanelRightOpen className='w-3.5 h-3.5' />
                   <span className='hidden md:inline'>Chi tiết</span>

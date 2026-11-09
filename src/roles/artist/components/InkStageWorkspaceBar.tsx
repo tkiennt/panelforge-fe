@@ -13,6 +13,7 @@ export type InkingNib = 'g-pen' | 'maru-pen' | 'turnip-pen' | 'fill-bucket';
 export type ScreenToneLpi = 60 | 80 | 100;
 
 interface Props {
+  onlyUploadButton?: boolean;
   // Pencil Underlay Controller (Reference đối chiếu nét chì)
   pencilUnderlayVisible: boolean;
   onTogglePencilUnderlay: () => void;
@@ -48,6 +49,7 @@ interface Props {
 }
 
 export const InkStageWorkspaceBar: React.FC<Props> = ({
+  onlyUploadButton = false,
   pencilUnderlayVisible,
   onTogglePencilUnderlay,
   pencilUnderlayOpacity,
@@ -82,8 +84,8 @@ export const InkStageWorkspaceBar: React.FC<Props> = ({
       {/* Badge định hướng giai đoạn Ink */}
       <div
         data-testid='badge-ink-upload-mode'
-        className='hidden 2xl:flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-900 border border-indigo-300/80 font-bold text-[11px]'
-        title='Công đoạn Ink: Tải lên bản vẽ đã hoàn thiện nét mực/Line-art sạch.'
+        className='sr-only'
+        title='Công đoạn Ink: Upload Line-art'
       >
         <span>Upload Line-art</span>
       </div>
@@ -121,7 +123,7 @@ export const InkStageWorkspaceBar: React.FC<Props> = ({
         </button>
       )}
 
-      {/* =========================================================================
+      <div className={onlyUploadButton ? 'sr-only' : 'flex items-center gap-1.5'}>{/* =========================================================================
           REFERENCE TOOLS: LỚP CHÌ NỀN (PENCIL UNDERLAY GHOST REFERENCE)
          ========================================================================= */}
       <div className='flex items-center gap-1 bg-[#F3EFE6] px-2 py-0.5 rounded-lg border border-[#DDD6C8] text-[11px] h-7'>
@@ -176,8 +178,7 @@ export const InkStageWorkspaceBar: React.FC<Props> = ({
       >
         <ShieldCheck className='w-3 h-3 text-emerald-600' />
         <span>Khung in</span>
-      </button>
-
+      </button></div>
       {/* Nút bàn giao sang Lettering test compatibility */}
       <button
         type='button'

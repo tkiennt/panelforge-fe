@@ -16,7 +16,12 @@ import {
   ChevronRight,
   List,
 } from 'lucide-react';
-import { SceneDto, SceneDetailDto, SceneScriptLineSummaryDto, scriptLineService } from '@/services/scriptLine.service';
+import {
+  SceneDto,
+  SceneDetailDto,
+  SceneScriptLineSummaryDto,
+  scriptLineService,
+} from '@/services/scriptLine.service';
 import { BibleEntryDto } from '@/services/bible.service';
 import { PageDto } from '@/services/page.service';
 import { PanelDto } from '@/types/pipeline';
@@ -120,7 +125,7 @@ export const ScriptFocusModeModal: React.FC<ScriptFocusModeModalProps> = ({
             } as SceneDetailDto,
           };
         }
-      })
+      }),
     )
       .then((results) => {
         if (!alive) return;
@@ -129,8 +134,8 @@ export const ScriptFocusModeModal: React.FC<ScriptFocusModeModalProps> = ({
           map[item.id] = item.detail;
         }
         setSceneDetails(map);
-        if (scenes.length > 0 && !activeTocSceneId) {
-          setActiveTocSceneId(scenes[0].id);
+        if (scenes.length > 0) {
+          setActiveTocSceneId((prev) => prev ?? scenes[0].id);
         }
       })
       .finally(() => {
@@ -328,9 +333,7 @@ export const ScriptFocusModeModal: React.FC<ScriptFocusModeModalProps> = ({
                       </span>
                     </div>
                     {sc.summary && (
-                      <p className='text-[11px] text-stone-500 line-clamp-1 italic'>
-                        {sc.summary}
-                      </p>
+                      <p className='text-[11px] text-stone-500 line-clamp-1 italic'>{sc.summary}</p>
                     )}
                   </button>
                 );
@@ -377,8 +380,13 @@ export const ScriptFocusModeModal: React.FC<ScriptFocusModeModalProps> = ({
                   return null;
                 }
 
-                const isExt = sc.slugline?.toUpperCase().includes('EXT') || sc.heading?.toUpperCase().includes('NGOẠI');
-                const isNight = sc.slugline?.toUpperCase().includes('NIGHT') || sc.heading?.toUpperCase().includes('ĐÊM') || sc.slugline?.toUpperCase().includes('TỐI');
+                const isExt =
+                  sc.slugline?.toUpperCase().includes('EXT') ||
+                  sc.heading?.toUpperCase().includes('NGOẠI');
+                const isNight =
+                  sc.slugline?.toUpperCase().includes('NIGHT') ||
+                  sc.heading?.toUpperCase().includes('ĐÊM') ||
+                  sc.slugline?.toUpperCase().includes('TỐI');
 
                 return (
                   <section
@@ -400,9 +408,7 @@ export const ScriptFocusModeModal: React.FC<ScriptFocusModeModalProps> = ({
                         </div>
 
                         {sc.summary && (
-                          <p className='text-xs text-stone-600 italic'>
-                            {sc.summary}
-                          </p>
+                          <p className='text-xs text-stone-600 italic'>{sc.summary}</p>
                         )}
                       </div>
 
@@ -434,16 +440,22 @@ export const ScriptFocusModeModal: React.FC<ScriptFocusModeModalProps> = ({
                         </p>
                       ) : (
                         filteredLines.map((line) => {
-                          const hasDialogue = Boolean(line.speakerCharacterId || line.dialogueText?.trim());
+                          const hasDialogue = Boolean(
+                            line.speakerCharacterId || line.dialogueText?.trim(),
+                          );
                           const hasDirection = Boolean(line.stageDirection?.trim());
                           const bibleEntry = line.speakerCharacterId
                             ? bibleEntryById[line.speakerCharacterId]
                             : null;
-                          const characterName = bibleEntry?.name || (line.speakerCharacterId ? 'Nhân vật' : 'Lời thoại');
+                          const characterName =
+                            bibleEntry?.name ||
+                            (line.speakerCharacterId ? 'Nhân vật' : 'Lời thoại');
 
                           // Tìm panel và page được gán
                           const assignedPanel = line.panelId ? panelById[line.panelId] : null;
-                          const assignedPage = assignedPanel?.pageId ? pageById[assignedPanel.pageId] : null;
+                          const assignedPage = assignedPanel?.pageId
+                            ? pageById[assignedPanel.pageId]
+                            : null;
 
                           return (
                             <div
@@ -485,7 +497,8 @@ export const ScriptFocusModeModal: React.FC<ScriptFocusModeModalProps> = ({
                                   >
                                     <Layers className='w-3 h-3 text-amber-700' />
                                     <span>
-                                      Trang {assignedPage.pageNumber} › Khung {assignedPanel.panelNumber}
+                                      Trang {assignedPage.pageNumber} › Khung{' '}
+                                      {assignedPanel.panelNumber}
                                     </span>
                                     <ArrowRight className='w-2.5 h-2.5' />
                                   </button>
@@ -522,7 +535,7 @@ export const ScriptFocusModeModal: React.FC<ScriptFocusModeModalProps> = ({
                                     ) : (
                                       <div
                                         className={`w-5 h-5 rounded-full border text-[10px] font-bold flex items-center justify-center ${getCharacterColor(
-                                          characterName
+                                          characterName,
                                         )}`}
                                       >
                                         {characterName.charAt(0).toUpperCase()}

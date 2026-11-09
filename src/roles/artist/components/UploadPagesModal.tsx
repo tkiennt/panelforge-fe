@@ -55,13 +55,13 @@ export interface StagedFile {
   error?: string;
 }
 
-export function formatFileSize(bytes: number): string {
+function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export function getImageDimensions(file: File): Promise<{ width: number; height: number }> {
+function getImageDimensions(file: File): Promise<{ width: number; height: number }> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     const url = URL.createObjectURL(file);
@@ -136,10 +136,10 @@ export const UploadPagesModal: React.FC<UploadPagesModalProps> = ({
   // Check upload constraints on current page
   const canUpdateCurrentPage = Boolean(
     selectedPage &&
-      canEditPages &&
-      !isCurrentPageCarvedOut &&
-      !hasCarvedOutPanelOnPage &&
-      !hasPanelOnlyAssignmentOnPage,
+    canEditPages &&
+    !isCurrentPageCarvedOut &&
+    !hasCarvedOutPanelOnPage &&
+    !hasPanelOnlyAssignmentOnPage,
   );
 
   const currentPageBlockedReason = useMemo(() => {
@@ -332,9 +332,7 @@ export const UploadPagesModal: React.FC<UploadPagesModalProps> = ({
       // Append to existing bulk files and avoid duplicates by filename + size
       setBulkFiles((prev) => {
         const existingKeys = new Set(prev.map((x) => `${x.name}_${x.size}`));
-        const filteredNew = newStagedList.filter(
-          (x) => !existingKeys.has(`${x.name}_${x.size}`),
-        );
+        const filteredNew = newStagedList.filter((x) => !existingKeys.has(`${x.name}_${x.size}`));
 
         const combined = [...prev, ...filteredNew];
         // Natural sort
@@ -860,7 +858,8 @@ export const UploadPagesModal: React.FC<UploadPagesModalProps> = ({
                   Kéo thả nhiều ảnh vào đây hoặc bấm để chọn hàng loạt
                 </p>
                 <p className='text-xs text-stone-500 mt-1'>
-                  Hỗ trợ tải đồng thời hàng chục trang truyện (Tối đa 20MB/ảnh). Tự động sắp xếp theo thứ tự số trong tên tệp.
+                  Hỗ trợ tải đồng thời hàng chục trang truyện (Tối đa 20MB/ảnh). Tự động sắp xếp
+                  theo thứ tự số trong tên tệp.
                 </p>
               </div>
 
@@ -938,9 +937,7 @@ export const UploadPagesModal: React.FC<UploadPagesModalProps> = ({
                           <p className='font-semibold'>Cảnh báo ghi đè trang có sẵn:</p>
                           <p>
                             Ảnh sẽ được gán đè lên{' '}
-                            <strong>
-                              {Math.min(bulkFiles.length, pages.length)} trang có sẵn
-                            </strong>{' '}
+                            <strong>{Math.min(bulkFiles.length, pages.length)} trang có sẵn</strong>{' '}
                             (từ Trang 1 đến Trang {Math.min(bulkFiles.length, pages.length)})
                             {bulkFiles.length > pages.length &&
                               ` và tạo thêm ${bulkFiles.length - pages.length} trang mới ở cuối`}

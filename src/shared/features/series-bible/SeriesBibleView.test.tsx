@@ -375,12 +375,7 @@ describe('SeriesBibleView UX/UI improvements', () => {
       entries: entriesWithConcept,
     });
 
-    render(
-      <SeriesBibleView
-        activeProject={mockSeries as any}
-        onShowToast={vi.fn()}
-      />,
-    );
+    render(<SeriesBibleView activeProject={mockSeries as any} onShowToast={vi.fn()} />);
 
     await waitFor(() => {
       expect(screen.getByText(/Tần Mục/)).toBeDefined();
@@ -423,12 +418,7 @@ describe('SeriesBibleView UX/UI improvements', () => {
       entries: entriesWithConcept,
     });
 
-    render(
-      <SeriesBibleView
-        activeProject={mockSeries as any}
-        onShowToast={vi.fn()}
-      />,
-    );
+    render(<SeriesBibleView activeProject={mockSeries as any} onShowToast={vi.fn()} />);
 
     await waitFor(() => {
       expect(screen.getByTestId('artist-resubmit-btn-entry-chr-1')).toBeDefined();
@@ -445,8 +435,8 @@ describe('SeriesBibleView UX/UI improvements', () => {
 
     // Should display LucianConfirmModal
     await waitFor(() => {
-      expect(screen.getByText('Xác nhận nộp lại bản vẽ Concept Art')).toBeDefined();
-      expect(screen.getByText('Xác nhận nộp lại')).toBeDefined();
+      expect(screen.getByRole('heading', { name: 'Nộp lại Concept Art' })).toBeDefined();
+      expect(screen.getByText('Nộp lại bản')).toBeDefined();
     });
   });
   it('cho phép cấu hình tạo Thời kỳ (Era) mới ngay trên giao diện sinh version', async () => {
@@ -484,12 +474,7 @@ describe('SeriesBibleView UX/UI improvements', () => {
       isLocked: false,
     });
 
-    render(
-      <SeriesBibleView
-        activeProject={mockSeries as any}
-        onShowToast={vi.fn()}
-      />,
-    );
+    render(<SeriesBibleView activeProject={mockSeries as any} onShowToast={vi.fn()} />);
 
     // Mở Workbench của nhân vật
     await waitFor(() => {

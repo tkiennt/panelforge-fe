@@ -16,7 +16,7 @@ test.describe('E2E: Series Bible Multi-Role Collaboration (Writer & Artist)', ()
     },
   ];
 
-  let currentRevisions = [
+  const currentRevisions = [
     {
       id: 'rev-1',
       bibleEntryId: entityId,
@@ -156,7 +156,7 @@ test.describe('E2E: Series Bible Multi-Role Collaboration (Writer & Artist)', ()
     });
 
     // Series Bible route
-    await page.route(/\/api\/series\/[^\/]+\/bible(\?|$)/i, async (route) => {
+    await page.route(/\/api\/series\/[^/]+\/bible(\?|$)/i, async (route) => {
       if (route.request().method() === 'GET') {
         await route.fulfill({
           status: 200,
@@ -169,7 +169,7 @@ test.describe('E2E: Series Bible Multi-Role Collaboration (Writer & Artist)', ()
     });
 
     // Entry history route
-    await page.route(/\/api\/series\/[^\/]+\/bible\/entries\/[^\/]+\/history/i, async (route) => {
+    await page.route(/\/api\/series\/[^/]+\/bible\/entries\/[^/]+\/history/i, async (route) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -178,7 +178,7 @@ test.describe('E2E: Series Bible Multi-Role Collaboration (Writer & Artist)', ()
     });
 
     // Add revision route
-    await page.route(/\/api\/series\/[^\/]+\/bible\/entries\/[^\/]+\/revisions$/i, async (route) => {
+    await page.route(/\/api\/series\/[^/]+\/bible\/entries\/[^/]+\/revisions$/i, async (route) => {
       const payload = JSON.parse(route.request().postData() || '{}');
       const newRev = {
         id: `rev-${currentRevisions.length + 1}`,
@@ -204,11 +204,12 @@ test.describe('E2E: Series Bible Multi-Role Collaboration (Writer & Artist)', ()
     });
 
     // Artist submit concept route
-    await page.route(/\/api\/series\/[^\/]+\/bible\/entries\/[^\/]+\/concept/i, async (route) => {
+    await page.route(/\/api\/series\/[^/]+\/bible\/entries\/[^/]+\/concept/i, async (route) => {
       const payload = JSON.parse(route.request().postData() || '{}');
       const active = currentRevisions[currentRevisions.length - 1];
       active.reviewStatus = 'ConceptSubmitted';
-      active.referenceImageUrl = payload.referenceImageUrl || 'https://images.unsplash.com/photo-test-nami.png';
+      active.referenceImageUrl =
+        payload.referenceImageUrl || 'https://images.unsplash.com/photo-test-nami.png';
       active.summary = payload.summary || 'Artist nộp concept';
       await route.fulfill({
         status: 200,
@@ -218,28 +219,34 @@ test.describe('E2E: Series Bible Multi-Role Collaboration (Writer & Artist)', ()
     });
 
     // Writer endorse route
-    await page.route(/\/api\/series\/[^\/]+\/bible\/entries\/[^\/]+\/revisions\/[^\/]+\/endorse/i, async (route) => {
-      const active = currentRevisions[currentRevisions.length - 1];
-      active.reviewStatus = 'WriterEndorsed';
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify(active),
-      });
-    });
+    await page.route(
+      /\/api\/series\/[^/]+\/bible\/entries\/[^/]+\/revisions\/[^/]+\/endorse/i,
+      async (route) => {
+        const active = currentRevisions[currentRevisions.length - 1];
+        active.reviewStatus = 'WriterEndorsed';
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify(active),
+        });
+      },
+    );
 
     // Writer rework request route
-    await page.route(/\/api\/series\/[^\/]+\/bible\/entries\/[^\/]+\/revisions\/[^\/]+\/rework/i, async (route) => {
-      const payload = JSON.parse(route.request().postData() || '{}');
-      const active = currentRevisions[currentRevisions.length - 1];
-      active.reviewStatus = 'ReworkRequired';
-      (active as any).reworkFeedback = payload.reworkReason || 'Chỉnh lại nét vẽ';
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify(active),
-      });
-    });
+    await page.route(
+      /\/api\/series\/[^/]+\/bible\/entries\/[^/]+\/revisions\/[^/]+\/rework/i,
+      async (route) => {
+        const payload = JSON.parse(route.request().postData() || '{}');
+        const active = currentRevisions[currentRevisions.length - 1];
+        active.reviewStatus = 'ReworkRequired';
+        (active as any).reworkFeedback = payload.reworkReason || 'Chỉnh lại nét vẽ';
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify(active),
+        });
+      },
+    );
   };
 
   test('Kịch bản 1: Writer mở nhân vật, tạo thời kỳ mới "Timeskip (Ch.15+)" và màn hình không bị out', async ({
@@ -312,7 +319,9 @@ test.describe('E2E: Series Bible Multi-Role Collaboration (Writer & Artist)', ()
 
     // 5. Xác nhận không bị văng ra ngoài Series Bible tổng, Workbench vẫn mở và hiển thị Tab Era mới
     await expect(page.locator('#bible-entity-title')).toContainText('Nami');
-    await expect(page.locator('[data-testid^="era-tab-"]').filter({ hasText: 'Timeskip 2 năm' })).toBeVisible();
+    await expect(
+      page.locator('[data-testid^="era-tab-"]').filter({ hasText: 'Timeskip 2 năm' }),
+    ).toBeVisible();
   });
 
   test('Kịch bản 2: Artist nộp Concept Art và Writer duyệt / yêu cầu vẽ lại', async ({ page }) => {

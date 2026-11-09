@@ -19,11 +19,7 @@ import { BrowserRouter, useNavigate, useLocation } from 'react-router-dom';
 import { GlobalModals } from './app/GlobalModals';
 import { AppRoutes } from './app/routes';
 import { ROLE_MANIFEST } from './roles/roles';
-import {
-  ToastItemData,
-  ToastOptions,
-  ToastType,
-} from '@/shared/components/ToastNotification';
+import { ToastItemData, ToastOptions, ToastType } from '@/shared/components/ToastNotification';
 import { useToast, ToastProvider } from '@/shared/context/ToastContext';
 import { ConfirmProvider } from '@/shared/context/ConfirmContext';
 import { authService } from './services/auth.service';
@@ -127,7 +123,9 @@ function AppContent() {
           prev
             ? {
                 ...prev,
-                ...(customEvt.detail.avatarUrl !== undefined && { avatarUrl: customEvt.detail.avatarUrl }),
+                ...(customEvt.detail.avatarUrl !== undefined && {
+                  avatarUrl: customEvt.detail.avatarUrl,
+                }),
                 ...(customEvt.detail.name !== undefined && { name: customEvt.detail.name }),
               }
             : prev,
@@ -249,7 +247,9 @@ function AppContent() {
     setCurrentWorkspaceRole(wsRole);
     try {
       localStorage.setItem('workspaceRole', wsRole);
-    } catch {}
+    } catch {
+      // ignore
+    }
     setActiveProjectRoles([wsRole]);
     setViewScope('project');
 
@@ -562,7 +562,7 @@ function AppContent() {
     };
     window.addEventListener('auth:unauthorized', onUnauthorized);
     return () => window.removeEventListener('auth:unauthorized', onUnauthorized);
-  }, [navigate]);
+  }, [navigate, showToast]);
 
   // Keyboard shortcut for Command Palette
   useEffect(() => {
@@ -978,8 +978,6 @@ function AppContent() {
         </div>
       )}
       */}
-
-      
     </div>
   );
 }
@@ -989,9 +987,9 @@ export default function App() {
     <BrowserRouter>
       <ErrorBoundary>
         <ConfirmProvider>
-        <ToastProvider>
-          <AppContent />
-        </ToastProvider>
+          <ToastProvider>
+            <AppContent />
+          </ToastProvider>
         </ConfirmProvider>
       </ErrorBoundary>
     </BrowserRouter>

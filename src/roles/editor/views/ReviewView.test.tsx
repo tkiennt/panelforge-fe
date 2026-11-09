@@ -327,7 +327,7 @@ describe('ReviewView (CF3: duyệt, khoanh vùng, nhất quán)', () => {
     vi.mocked(assignmentService.getChangeRequests).mockResolvedValue([unverifiedCr] as any);
 
     renderView();
-    const approveBtn = await screen.findByRole('button', { name: /Duyệt/i });
+    const approveBtn = await screen.findByRole('button', { name: /Duyệt trang này/i });
     expect(approveBtn).toBeDisabled();
   });
 
@@ -344,7 +344,7 @@ describe('ReviewView (CF3: duyệt, khoanh vùng, nhất quán)', () => {
       ] as any);
 
     renderView();
-    const approveBtn = await screen.findByRole('button', { name: /Duyệt/i });
+    const approveBtn = await screen.findByRole('button', { name: /Duyệt trang này/i });
     expect(approveBtn).not.toBeDisabled();
 
     await user.click(approveBtn);
@@ -484,7 +484,7 @@ describe('ReviewView (CF3: duyệt, khoanh vùng, nhất quán)', () => {
 
     // Quyền duyệt được kích hoạt và vai trò được hiển thị trong header
     expect(await screen.findByText(/Vai trò: EDITOR/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Duyệt/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Duyệt trang này/i })).toBeInTheDocument();
   });
 
   it('lần nộp không có ảnh cả trang: tự động ghép ảnh các Panel từ submission.artworkReferenceIds lên khổ 1200x1800', async () => {

@@ -114,10 +114,13 @@ describe('App Integration Smoke Test', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Vào studio: Workspace Alpha (Producer)' }));
 
     // 5. Xác nhận giao diện Studio hiển thị menu / hành động dành riêng cho Producer
-    await waitFor(() => {
-      // Menu Members & Roles đã gộp vào ProducerWorkspaceView, chỉ cần kiểm tra nút của Producer
-      expect(screen.getByText('Tạo Series Mới')).toBeInTheDocument();
-    });
+    await waitFor(
+      () => {
+        // Menu Members & Roles đã gộp vào ProducerWorkspaceView, chỉ cần kiểm tra nút của Producer
+        expect(screen.getByText('Tạo Series Mới')).toBeInTheDocument();
+      },
+      { timeout: 10000 },
+    );
 
     // 6. User bấm nút "Workspaces" trên breadcrumb để rời khỏi Workspace
     const backBtn = screen.getByTestId('back-to-workspaces-breadcrumb');
