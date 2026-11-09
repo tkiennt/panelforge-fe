@@ -2015,7 +2015,7 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
           isLockedConflict ? 'Phiên bản đã khoá Canon (409)' : 'Xung đột phiên bản (409 CONFLICT)',
           isLockedConflict
             ? err.message ||
-                'Phiên bản hiện tại đã khoá Canon. Cần Producer sử dụng thao tác Thay thế (Supersede) để cập nhật.'
+                'Phiên bản hiện tại đã khoá Canon. Cần sử dụng thao tác Thay thế bản khóa (Supersede) để kích hoạt phiên bản sửa đổi v(N+1).'
             : 'Đã có người khác sửa đổi mục này hoặc mốc chương bị trùng! Đang mở Lịch sử để bạn đối chiếu.',
         );
         setAddRevModalOpen(false);
@@ -2798,11 +2798,11 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                         </span>
                         {entity.isLocked ? (
                           <span
-                            className='px-2 py-0.5 rounded bg-amber-500 text-white text-[9px] font-medium flex items-center gap-1 shadow-2xs'
-                            title='Character Sheet đã được Producer duyệt & khoá tham chiếu'
+                            className='px-2 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200 text-[9px] font-medium flex items-center gap-1 shadow-2xs'
+                            title='Character Sheet đã khóa chuẩn (Canon Locked) theo BR-15'
                           >
-                            <Lock className='w-2.5 h-2.5' />
-                            Đã khoá Canon
+                            <Lock className='w-2.5 h-2.5 text-purple-600' />
+                            🔒 Đã khóa chuẩn
                           </span>
                         ) : effRev?.reviewStatus === 'WriterEndorsed' ? (
                           <span
@@ -2849,11 +2849,11 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                       <div className='flex items-center gap-1.5'>
                         {entity.isLocked ? (
                           <span
-                            className='px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300 text-[10px] font-medium flex items-center gap-1'
-                            title='Character Sheet đã được Producer duyệt & khoá tham chiếu'
+                            className='px-2 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200 text-[10px] font-medium flex items-center gap-1'
+                            title='Character Sheet đã khóa chuẩn (Canon Locked) theo BR-15'
                           >
-                            <Lock className='w-2.5 h-2.5 text-amber-600' />
-                            Đã khoá Canon
+                            <Lock className='w-2.5 h-2.5 text-purple-600' />
+                            🔒 Đã khóa chuẩn
                           </span>
                         ) : effRev?.reviewStatus === 'WriterEndorsed' ? (
                           <span className='px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-medium flex items-center gap-1'>
@@ -3127,11 +3127,11 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                       </span>
                       {entity.isLocked ? (
                         <span
-                          className='px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300 text-[10px] font-medium flex items-center gap-1'
-                          title='Character Sheet đã được Producer duyệt & khoá tham chiếu'
+                          className='px-2 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200 text-[10px] font-medium flex items-center gap-1'
+                          title='Character Sheet đã khóa chuẩn (Canon Locked) theo BR-15'
                         >
-                          <Lock className='w-2.5 h-2.5 text-amber-600' />
-                          Đã khoá Canon
+                          <Lock className='w-2.5 h-2.5 text-purple-600' />
+                          🔒 Đã khóa chuẩn
                         </span>
                       ) : effRev?.reviewStatus === 'WriterEndorsed' ? (
                         <span className='px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-medium flex items-center gap-1'>

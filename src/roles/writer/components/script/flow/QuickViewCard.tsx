@@ -163,10 +163,10 @@ export const QuickViewCard: React.FC<QuickViewCardProps> = ({
 
         {data.type === 'bible' && data.isLocked && (
           <span
-            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0"
-            title="Đã khóa Canon"
+            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-semibold bg-purple-50 text-purple-700 border border-purple-200 shrink-0"
+            title="Đã khóa chuẩn (Canon Locked)"
           >
-            <Lock className="w-2.5 h-2.5" /> Canon
+            <Lock className="w-2.5 h-2.5 text-purple-600" /> 🔒 Đã khóa chuẩn
           </span>
         )}
 

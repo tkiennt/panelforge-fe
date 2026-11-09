@@ -2059,9 +2059,9 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             {currentChapter && (
               <span
                 className='text-[11px] font-bold px-2 py-0.5 rounded-md bg-[#F3F0E9] text-[#57534E] border border-[#E5E0D8]'
-                title='Phiên bản kiểm soát đồng thời (Concurrency Vector) của chương này. Lưu nhiều lần trong phiên sẽ ghi nhận vào bản hiện tại.'
+                title='Mốc đồng bộ của kịch bản chương này.'
               >
-                v{currentChapter.versionVector ?? 0}
+                Đồng bộ mốc v{currentChapter.versionVector ?? 0}
               </span>
             )}
             {savingStoryArc || savingOutline || submitting ? (
@@ -3174,7 +3174,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
                     : 'Thêm Dòng Kịch Bản Mới (UC-06)'}
                 </h3>
                 <p className='text-xs text-[#57534E]'>
-                  Phiên bản chương hiện tại: <strong>v{currentChapter?.versionVector}</strong>
+                  Mốc kịch bản hiện tại: <strong>v{currentChapter?.versionVector}</strong>
                 </p>
               </div>
               <button

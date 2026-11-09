@@ -79,7 +79,7 @@ export const BibleMention = Mention.extend({
     const code = HTMLAttributes['data-code'] || HTMLAttributes['data-label'] || HTMLAttributes.label || '';
     const label = HTMLAttributes['data-label'] || HTMLAttributes.label || code;
 
-    let colorStyle = 'border-amber-300 bg-amber-50 text-amber-800'; // Default: Character
+    let colorStyle = 'border-rose-300 bg-rose-50 text-[#E11D48]'; // Default: Character (Coral #E11D48)
     const isPanel = category.includes('panel');
     if (isPanel) {
       colorStyle = 'border-purple-300 bg-purple-50 text-purple-800';
@@ -96,7 +96,7 @@ export const BibleMention = Mention.extend({
     }
 
     // Hiển thị tên thực thể Series Bible (ưu tiên label/tên trước mã code, panel thì giữ mã khung hình)
-    const primaryText = isPanel ? (code || label) : (label || code);
+    const primaryText = code || label;
     const displayText = `@${primaryText}${isStub ? ' (Chưa có trong Bible)' : ''}`;
     const tooltipText = isPanel
       ? `@${code || label} (Khung tranh)`
