@@ -44,7 +44,7 @@ export function BalloonAppearancePanel({
             title={`Về hình bóng mặc định: ${defaultShapeLabel}`}
             className='text-[#57534E] hover:text-[#1C1917] font-normal cursor-pointer transition-colors'
           >
-            Về mặc định
+            Đặt lại chuẩn
           </button>
         )}
       </div>
@@ -138,7 +138,7 @@ export function BalloonAppearancePanel({
             title='Giữ cỡ chữ và bề rộng, đổi chiều cao bóng cho vừa chữ'
             className='py-1.5 border border-[#D8D2C5] rounded-lg bg-[#FCFBF8] hover:bg-[#F3F0E9] text-[#1C1917] font-medium cursor-pointer transition-colors'
           >
-            Vừa bóng theo chữ
+            Khớp bóng chữ
           </button>
           <button
             onClick={onFitText}
@@ -146,7 +146,7 @@ export function BalloonAppearancePanel({
             title='Giữ kích thước bóng, chọn cỡ chữ lớn nhất còn vừa (14–160px)'
             className='py-1.5 border border-[#D8D2C5] rounded-lg bg-[#FCFBF8] hover:bg-[#F3F0E9] text-[#1C1917] font-medium cursor-pointer transition-colors'
           >
-            Vừa chữ trong bóng
+            Khớp chữ bóng
           </button>
         </div>
       )}

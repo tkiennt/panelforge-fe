@@ -2004,7 +2004,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
       {/* Confirm Delete Revision Modal */}
       <LucianConfirmModal
         isOpen={!!revisionToDelete}
-        title='Xác nhận xóa phiên bản'
+        title='Xóa phiên bản'
         description={`Bạn có chắc chắn muốn xóa phiên bản v${revisionToDelete?.versionNumber || ''} này không? Thao tác này không thể hoàn tác.`}
         confirmText={isDeleting ? 'Đang xóa...' : 'Xóa phiên bản'}
         cancelText='Hủy'
@@ -2031,7 +2031,7 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
       {/* Confirm Delete Era Modal */}
       <LucianConfirmModal
         isOpen={!!eraToDelete}
-        title='Xác nhận xóa thời kỳ'
+        title='Xóa giai đoạn nhân vật'
         description={`Bạn có chắc chắn muốn xóa thời kỳ "${eraToDelete?.stageName || ''}" (Chương ${eraToDelete?.effectiveFromChapterNumber || 1}) và tất cả các phiên bản liên quan chưa khóa? Thao tác này không thể hoàn tác.`}
         confirmText={isDeleting ? 'Đang xóa...' : 'Xóa thời kỳ'}
         cancelText='Hủy'

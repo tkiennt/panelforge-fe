@@ -3853,10 +3853,10 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
         }}
         title={
           isArtistResubmit
-            ? 'Xác nhận nộp lại bản vẽ Concept Art'
-            : 'Xác nhận nộp bản vẽ Concept Art'
+            ? 'Nộp lại Concept Art'
+            : 'Nộp duyệt Concept Art'
         }
-        confirmText={isArtistResubmit ? 'Xác nhận nộp lại' : 'Xác nhận nộp'}
+        confirmText={isArtistResubmit ? 'Nộp lại bản' : 'Nộp duyệt'}
         cancelText='Kiểm tra lại'
         variant='info'
         description={

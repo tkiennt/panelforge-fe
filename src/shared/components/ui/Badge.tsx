@@ -27,7 +27,7 @@ export const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(
       <div
         ref={ref}
         className={cn(
-          'inline-flex items-center px-2.5 py-0.5 text-xs font-semibold tracking-wider transition-colors select-none',
+          'inline-flex items-center px-2.5 py-0.5 text-xs font-semibold tracking-wider transition-colors select-none whitespace-nowrap shrink-0',
           pill ? 'rounded-full' : 'rounded-md',
 
           // Neutral / Default

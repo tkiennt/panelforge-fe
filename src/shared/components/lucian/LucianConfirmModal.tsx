@@ -21,7 +21,7 @@ export const LucianConfirmModal: React.FC<LucianConfirmModalProps> = ({
   isOpen,
   title,
   description,
-  confirmText = 'Xác nhận',
+  confirmText = 'Đồng ý',
   cancelText = 'Hủy',
   variant = 'danger',
   onConfirm,
