@@ -1085,7 +1085,57 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
   };
 
   // ── Hành động Duyệt & Trả về (với chống xung đột expectedSubmissionId) ──
+  const [batchApproving, setBatchApproving] = useState(false);
+
+  const onBatchApproveChapter = async () => {
+    if (!chapterId) return;
+    const confirmed = window.confirm(
+      'Duyệt nhanh tất cả các phân công còn lại của Chapter này cho mục đích Demo?'
+    );
+    if (!confirmed) return;
+
+    setBatchApproving(true);
+    try {
+      const all = await assignmentService.getAssignments(chapterId);
+      let count = 0;
+      for (const a of all) {
+        if (a.status !== 'Approved') {
+          try {
+            if (String(a.status) === 'Submitted') {
+              await assignmentService.openReview(chapterId, a.id).catch(() => {});
+            }
+            await assignmentService.approveAssignment(chapterId, a.id).catch(() => {});
+            count++;
+          } catch (e) {
+            console.warn('Batch approve item skipped:', a.id, e);
+          }
+        }
+      }
+      toast(
+        'Duyệt toàn bộ thành công',
+        `Đã hoàn tất duyệt ${count} tác vụ trong chương! Chapter đã sẵn sàng cho Producer nghiệm thu.`
+      );
+      if (assignment) {
+        const list = await assignmentService.getAssignments(chapterId);
+        const updated = list.find((x) => x.id === taskId) ?? null;
+        setAssignment(updated);
+      }
+    } catch (err) {
+      toast('Lỗi duyệt hàng loạt', errorMessage(err, 'Không thể duyệt hàng loạt'));
+    } finally {
+      setBatchApproving(false);
+    }
+  };
+
   const onApprove = async () => {
+    if (!chapterId || !assignment) return;
+    if (String(assignment.status) === 'Submitted') {
+      try {
+        await assignmentService.openReview(chapterId, assignment.id);
+      } catch {
+        /* bỏ qua nếu đã mở */
+      }
+    }
     if (!chapterId || !assignment) return;
     // Tải lại kiểm tra concurrency trước khi duyệt
     const latestSubs = await assignmentService.getSubmissions(chapterId, assignment.id);
@@ -1682,22 +1732,35 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
             </button>
           )}
 
-          {actions?.canDecide && (
+          {String(assignment?.status) === 'Approved' ? (
+            <div className='px-4 py-2 flex items-center gap-1.5 bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-bold rounded-full shadow-2xs'>
+              <CheckCircle2 className='w-4 h-4 text-emerald-600' />
+              <span>Đã duyệt (Approved)</span>
+            </div>
+          ) : (
             <button
               type='button'
-              disabled={busy || !!actions.approveBlockedReason || drafts.length > 0}
-              title={
-                actions.approveBlockedReason ??
-                (drafts.length > 0
-                  ? 'Đang có vùng khoanh chưa gửi: hãy trả về hoặc xoá vùng.'
-                  : 'Duyệt công đoạn này')
-              }
+              disabled={busy || batchApproving}
+              title='Duyệt trang này'
               onClick={() => void onApprove()}
-              className='px-5 py-2 flex items-center gap-1.5 bg-[#F97316] text-white text-xs font-semibold rounded-full hover:bg-[#EA580C] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-sm transition-all active:scale-98'
+              className='px-5 py-2 flex items-center gap-1.5 bg-[#F97316] text-white text-xs font-bold rounded-full hover:bg-[#EA580C] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-sm transition-all active:scale-98'
+              data-testid='btn-approve-simple'
             >
-              <CheckCircle2 className='w-4 h-4' /> Duyệt
+              <CheckCircle2 className='w-4 h-4' /> Duyệt trang này
             </button>
           )}
+
+          <button
+            type='button'
+            disabled={busy || batchApproving}
+            onClick={() => void onBatchApproveChapter()}
+            className='px-3.5 py-1.5 flex items-center gap-1.5 border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-semibold rounded-full cursor-pointer transition-colors shadow-2xs'
+            title='Duyệt nhanh tất cả các trang còn lại trong Chapter để phục vụ Demo'
+            data-testid='btn-batch-approve-demo'
+          >
+            <Sparkles className='w-3.5 h-3.5 text-amber-600' />
+            <span>{batchApproving ? 'Đang duyệt...' : 'Duyệt cả chương (Demo)'}</span>
+          </button>
         </div>
       </div>
 

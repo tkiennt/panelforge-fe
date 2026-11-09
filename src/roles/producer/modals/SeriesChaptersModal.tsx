@@ -276,7 +276,7 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
           const blocking = gate.items.filter((i) => i.blocking);
           const msg =
             blocking.map((b) => b.message).join('; ') ||
-            'Chương chưa hoàn thành đủ các điều kiện phê duyệt.';
+            'Chương chưa hoàn thành đủ các điều kiện phê duyệt (còn công đoạn chờ Editor thẩm định).';
           onShowToast?.('Chưa đủ điều kiện duyệt chương', msg);
           setActionLoading(false);
           return;
@@ -871,11 +871,12 @@ export const SeriesChaptersModal: React.FC<SeriesChaptersModalProps> = ({
                                 type='button'
                                 onClick={() => handleApproveChapter(chap)}
                                 disabled={actionLoading}
-                                className='px-2 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-700 transition-all cursor-pointer flex items-center gap-1 font-semibold text-[11px] shadow-2xs disabled:opacity-50'
+                                className='px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-all cursor-pointer flex items-center gap-1.5 font-bold text-xs shadow-xs disabled:opacity-50 active:scale-98'
                                 title='Producer duyệt hoàn tất sản xuất -> chuyển sang Approved'
+                                data-testid={`producer-approve-chapter-${chap.id}`}
                               >
-                                <CheckCircle2 className='w-3.5 h-3.5 text-emerald-600' />
-                                <span>Duyệt</span>
+                                <CheckCircle2 className='w-3.5 h-3.5 text-emerald-200' />
+                                <span>Nghiệm thu & Duyệt</span>
                               </button>
                             )}
 
