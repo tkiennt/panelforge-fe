@@ -36,6 +36,7 @@ interface Props {
   onBackToChapters?: () => void;
   hasArtworkForCurrentStage?: boolean;
   uploadedArtworksCount?: number;
+  trueActiveStageId?: string;
 }
 
 export const GlobalPipelineHeader: React.FC<Props> = ({
@@ -54,6 +55,7 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
   onBackToChapters,
   hasArtworkForCurrentStage = true,
   uploadedArtworksCount = 0,
+  trueActiveStageId,
 }) => {
   const currentIndex = selectedPage ? pages.findIndex((p) => p.id === selectedPage.id) : -1;
   const hasPrev = currentIndex > 0;
@@ -68,7 +70,9 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
   };
 
   const stageList = stages.slice(0, 3);
-  const activeIndex = stageList.findIndex((s) => s.id === (currentActiveStage?.id || selectedStageFilter));
+  const activeIndex = stageList.findIndex(
+    (s) => s.id === (trueActiveStageId || currentActiveStage?.id || selectedStageFilter),
+  );
   const activeStage = activeIndex >= 0 ? stageList[activeIndex] : stageList[0];
 
   const currentStageSlug = (activeStage?.slug || activeStage?.name || '').toLowerCase();
@@ -97,14 +101,16 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
       : 'bg-purple-600';
 
   return (
-    <header
+    <div
       data-testid='global-pipeline-header'
-      className='bg-[#FCFBF8] border-b border-[#D8D2C5] px-3 py-1.5 min-h-[46px] flex items-center justify-between gap-3 shrink-0 select-none shadow-2xs z-40'
+      role='region'
+      aria-label='Tiến độ công đoạn và bàn giao'
+      className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl px-3 py-1.5 min-h-[44px] flex items-center justify-between gap-3 shrink-0 select-none shadow-2xs z-30'
     >
       {/* =========================================================================
-          TẦNG 2 - KHỐI TRÁI: CHAPTER NAVIGATION & CURRENT WORKFLOW BADGE
+          KHỐI TRÁI: ĐIỀU HƯỚNG CHƯƠNG & CURRENT WORKFLOW BADGE
          ========================================================================= */}
-      <div className='flex items-center gap-2.5 text-xs shrink-0'>
+      <div className='flex items-center gap-2 text-xs shrink-0'>
         {onBackToChapters && (
           <button
             type='button'
@@ -119,20 +125,6 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
           </button>
         )}
 
-        {/* Tên truyện / Tên chương */}
-        <div className='flex items-center gap-1.5 font-semibold text-stone-800'>
-          <span className='font-bold text-[#1C1917] hidden md:inline truncate max-w-[120px]'>
-            {seriesTitle}
-          </span>
-          <span className='text-stone-300 hidden md:inline'>/</span>
-          <div className='flex items-center gap-1 text-[#C2410C] font-bold'>
-            <BookOpen className='w-3.5 h-3.5' />
-            <span className='truncate max-w-[140px]'>
-              {chapter ? `Chương ${chapter.chapterNumber}` : 'Chương'}
-            </span>
-          </div>
-        </div>
-
         {/* Current Workflow Stage Badge */}
         <div
           data-testid='global-stage-tag'
@@ -144,14 +136,14 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
       </div>
 
       {/* =========================================================================
-          TẦNG 2 - KHỐI GIỮA: PRODUCTION STAGE PROGRESS NAVIGATION (1. Pencil -> 2. Ink -> 3. Lettering)
+          KHỐI GIỮA: PRODUCTION STAGE PROGRESS NAVIGATION (1. Pencil -> 2. Ink -> 3. Lettering)
          ========================================================================= */}
       <div
         data-testid='artist-stage-tabs-bar'
         className='flex items-center gap-1 p-0.5 bg-[#F1EDE4] rounded-xl border border-[#DFD9CD] shadow-inner shrink-0'
       >
         {stageList.map((stage, idx) => {
-          const isSelected = stage.id === activeStage?.id;
+          const isSelected = stage.id === (currentActiveStage?.id || activeStage?.id);
           const slug = (stage.slug || stage.name || '').toLowerCase();
           const isPencilTab = slug.includes('pencil') || slug.includes('chì') || idx === 0;
           const isInkTab = slug.includes('ink') || slug.includes('nét') || slug.includes('mực') || idx === 1;
@@ -160,14 +152,14 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
           const label = isPencilTab ? 'Pencil' : isInkTab ? 'Ink' : 'Lettering';
           const IconComp = isPencilTab ? Edit3 : isInkTab ? PenTool : Type;
 
-          // Subtitle phản ánh trạng thái chuẩn theo user proposal:
-          // 1. Pencil: "Đang thực hiện" hoặc "Hoàn thành"
-          // 2. Ink: "Chờ tiếp nhận" hoặc "Đang thực hiện" hoặc "Hoàn thành"
-          // 3. Lettering: "Chưa bắt đầu" hoặc "Đang thực hiện"
+          const isCurrentActive = idx === activeIndex;
+          const isCompleted = idx < activeIndex;
+          const isLocked = idx > activeIndex;
+
           let statusText = 'Chưa bắt đầu';
-          if (idx === activeIndex) {
+          if (isCurrentActive) {
             statusText = 'Đang thực hiện';
-          } else if (idx < activeIndex) {
+          } else if (isCompleted) {
             statusText = 'Hoàn thành';
           } else if (idx === activeIndex + 1) {
             statusText = 'Chờ tiếp nhận';
@@ -178,31 +170,42 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
               {idx > 0 && <ChevronRight className='w-3 h-3 text-stone-400 shrink-0' aria-hidden='true' />}
               <button
                 type='button'
-                onClick={() => onSelectStageFilter(stage.id)}
+                onClick={() => {
+                  if (isLocked) return;
+                  onSelectStageFilter(stage.id);
+                }}
+                disabled={isLocked}
+                aria-disabled={isLocked}
                 data-testid={`stage-tab-${stage.slug || stage.id || key}`}
                 data-stage-key={key}
                 aria-selected={isSelected}
                 role='tab'
-                title={`Chuyển sang công đoạn ${stage.name} (${statusText})`}
-                className={`flex items-center gap-2 px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                  isSelected
-                    ? 'bg-white text-stone-900 shadow-2xs font-bold border border-stone-200/60'
-                    : 'text-stone-600 hover:text-stone-900 hover:bg-white/40'
+                title={
+                  isLocked
+                    ? `Chưa mở — Phải hoàn tất và nộp công đoạn ${activeStage?.name || 'trước'} mới mở công đoạn này`
+                    : `Chuyển sang công đoạn ${stage.name} (${statusText})`
+                }
+                className={`flex items-center gap-2 px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                  isLocked
+                    ? 'opacity-40 cursor-not-allowed text-stone-400 select-none bg-stone-100/60'
+                    : isSelected
+                      ? 'bg-white text-stone-900 shadow-2xs font-bold border border-stone-200/60 cursor-pointer'
+                      : 'text-stone-600 hover:text-stone-900 hover:bg-white/40 cursor-pointer'
                 }`}
               >
                 <span className={`flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-mono font-bold ${
-                  isSelected ? 'bg-orange-600 text-white' : idx < activeIndex ? 'bg-emerald-600 text-white' : 'bg-stone-300 text-stone-700'
+                  isSelected ? 'bg-orange-600 text-white' : isCompleted ? 'bg-emerald-600 text-white' : 'bg-stone-300 text-stone-700'
                 }`}>
-                  {idx < activeIndex ? '✓' : idx + 1}
+                  {isCompleted ? '✓' : idx + 1}
                 </span>
 
                 <div className='flex flex-col text-left leading-tight'>
                   <div className='flex items-center gap-1'>
-                    <IconComp className={`w-3 h-3 ${isSelected ? 'text-orange-600' : 'text-stone-500'}`} />
+                    <IconComp className={`w-3 h-3 ${isSelected ? 'text-orange-600' : isLocked ? 'text-stone-400' : 'text-stone-500'}`} />
                     <span className='font-bold'>{label}</span>
                   </div>
                   <span className={`text-[9px] font-medium ${
-                    isSelected ? 'text-orange-700' : idx < activeIndex ? 'text-emerald-700' : 'text-stone-400'
+                    isSelected ? 'text-orange-700' : isCompleted ? 'text-emerald-700' : 'text-stone-400'
                   }`}>
                     {statusText}
                   </span>
@@ -362,6 +365,6 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
           </>
         )}
       </div>
-    </header>
+    </div>
   );
 };

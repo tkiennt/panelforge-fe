@@ -1638,6 +1638,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
   };
 
   const [submittingStageHandoff, setSubmittingStageHandoff] = useState<boolean>(false);
+  const [submittedStageIds, setSubmittedStageIds] = useState<string[]>([]);
 
   const sortedStages = useMemo(() => {
     // Chỉ giữ đúng 3 giai đoạn: Pencil ➔ Ink ➔ Letterer (Loại bỏ hoàn toàn Thumbnail, Color, Review)
@@ -1664,41 +1665,99 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
     return DEFAULT_MANGA_STAGES;
   }, [stages]);
 
-  const currentActiveStage = useMemo(() => {
-    if (viewStageId !== 'AUTO') {
-      const found = sortedStages.find((s) => {
-        if (s.id === viewStageId) return true;
-        const targetStr = viewStageId.toLowerCase();
-        const curKind = getArtistStageKind(s);
-        if (targetStr === 'pencil' && curKind === 'pencil') return true;
-        if (targetStr === 'ink' && curKind === 'ink') return true;
-        if (targetStr === 'lettering' && curKind === 'lettering') return true;
-        const curSlug = (s.slug || '').toLowerCase();
-        if (curSlug && curSlug === targetStr) return true;
-        return false;
-      });
-      return found || sortedStages[0] || null;
-    }
+  // Xác định công đoạn thật sự (trueActiveStage): không cho chuyển giữa chừng khi chưa nộp công đoạn trước
+  const trueActiveStage = useMemo(() => {
+    // 1. Phân công đang làm dở trên trang hiện tại
     if (myStageOnPage) {
-      return sortedStages.find((s) => s.id === myStageOnPage) || sortedStages[0] || null;
+      const found = sortedStages.find((s) => s.id === myStageOnPage);
+      if (found) return found;
     }
-    const activeTask = [...myInProgress, ...myAssigned].find((a) => a.chapterId === currentChapterId);
-    if (activeTask) {
-      return sortedStages.find((s) => s.id === activeTask.pipelineStageId) || sortedStages[0] || null;
-    }
-    return sortedStages[0] || null;
-  }, [viewStageId, myStageOnPage, sortedStages, myInProgress, myAssigned, currentChapterId]);
 
-  // Stage đích cho mọi thao tác upload: luôn theo công đoạn đang mở trên workspace,
-  // sau đó mới tới assignment của trang và cuối cùng là stage bật đầu tiên.
-  const uploadStageAssignment = findPageStageAssignment();
-  const uploadStage =
-    currentActiveStage ||
-    (uploadStageAssignment
-      ? stages.find((s) => s.id === uploadStageAssignment.pipelineStageId) || null
-      : null) ||
-    stages.find((s) => s.isEnabled !== false) ||
-    null;
+    // 2. Phân công của chính user trên chương này (InProgress / ChangesRequested / Assigned)
+    const myActiveTask = [...myInProgress, ...myChangesRequested, ...myAssigned].find(
+      (a) => a.chapterId === currentChapterId,
+    );
+    if (myActiveTask?.pipelineStageId) {
+      const found = sortedStages.find((s) => s.id === myActiveTask.pipelineStageId);
+      if (found) return found;
+    }
+
+    // 3. Phân công chung của chương từ danh sách tasks
+    const activeChapTask = tasks.find(
+      (t) =>
+        t.chapterId === currentChapterId &&
+        (t.status === 'InProgress' || t.status === 'Assigned' || t.status === 'ReworkRequired'),
+    );
+    if (activeChapTask?.pipelineStageId) {
+      const found = sortedStages.find((s) => s.id === activeChapTask.pipelineStageId);
+      if (found) return found;
+    }
+
+    // 4. Các stage đã được submit handoff thành công trong phiên làm việc
+    if (sortedStages.length >= 3) {
+      const pencilStage = sortedStages[0];
+      const inkStage = sortedStages[1];
+      const letteringStage = sortedStages[2];
+
+      if (submittedStageIds.includes(inkStage.id)) {
+        return letteringStage;
+      }
+      if (submittedStageIds.includes(pencilStage.id)) {
+        return inkStage;
+      }
+    }
+
+    // 5. Kiểm tra artwork có sẵn trên các trang
+    const hasInkArt = pageArtworks.some((a) => {
+      const sl = (stages.find((s) => s.id === a.pipelineStageId)?.slug || '').toLowerCase();
+      return sl.includes('ink') || sl.includes('nét') || sl.includes('mực');
+    });
+    if (hasInkArt && sortedStages.length > 1) {
+      return sortedStages[1]; // Ink
+    }
+
+    // 6. Mặc định công đoạn đầu tiên (Pencil)
+    return sortedStages[0] || null;
+  }, [
+    myStageOnPage,
+    myInProgress,
+    myChangesRequested,
+    myAssigned,
+    currentChapterId,
+    tasks,
+    submittedStageIds,
+    sortedStages,
+    pageArtworks,
+    stages,
+  ]);
+
+  // currentActiveStage luôn bám chặt theo trueActiveStage, không bị thay đổi tuỳ tiện khi người dùng xem layer khác
+  const currentActiveStage = trueActiveStage;
+
+  // Xử lý chuyển đổi bộ lọc xem ảnh (không cho nhảy cóc sang công đoạn tương lai chưa mở)
+  const handleSelectStageFilter = useCallback(
+    (stageId: string) => {
+      if (stageId === 'AUTO') {
+        setViewStageId('AUTO');
+        return;
+      }
+      const targetIdx = sortedStages.findIndex((s) => s.id === stageId);
+      const activeIdx = sortedStages.findIndex((s) => s.id === trueActiveStage?.id);
+      if (activeIdx >= 0 && targetIdx > activeIdx) {
+        showToast(
+          'Không thể chuyển công đoạn giữa chừng',
+          `Bạn phải hoàn tất và nộp công đoạn ${trueActiveStage?.name || 'hiện tại'} trước khi chuyển sang công đoạn tiếp theo.`,
+          'error',
+        );
+        return;
+      }
+      setViewStageId(stageId);
+    },
+    [sortedStages, trueActiveStage, showToast],
+  );
+
+  // Stage đích cho mọi thao tác upload: BẮT BUỘC theo đúng công đoạn đang thực hiện thật sự
+  const uploadStage = trueActiveStage;
 
   const currentStageKind = getArtistStageKind(currentActiveStage);
   const isPencilStage = currentStageKind === 'pencil';
@@ -1809,6 +1868,10 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
           `Đã chuyển giao thành công sang ${nextStageName}.`,
           'success',
         );
+      }
+
+      if (stage.id) {
+        setSubmittedStageIds((prev) => (prev.includes(stage.id) ? prev : [...prev, stage.id]));
       }
 
       if (nextStage) {
@@ -3788,7 +3851,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
           onSelectPage={setSelectedPage}
           currentActiveStage={currentActiveStage}
           selectedStageFilter={viewStageId}
-          onSelectStageFilter={setViewStageId}
+          onSelectStageFilter={handleSelectStageFilter}
           stages={sortedStages}
           pageProgressPercent={
             pages.length > 0 && selectedPage
@@ -3801,6 +3864,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
           onBackToChapters={handleBackToChapterSelection}
           hasArtworkForCurrentStage={hasArtworkForCurrentStage}
           uploadedArtworksCount={uploadedArtworksCount}
+          trueActiveStageId={trueActiveStage?.id}
         />
       )}
 
@@ -3868,7 +3932,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
               <span className='sr-only 2xl:hidden'>Ảnh hiển thị</span>
               <select
                 value={viewStageId}
-                onChange={(e) => setViewStageId(e.target.value)}
+                onChange={(e) => handleSelectStageFilter(e.target.value)}
                 data-testid='desk-stage-select'
                 title='Chỉ đổi ảnh đang xem trên canvas, không đổi công đoạn công việc'
                 className='h-8 max-w-[8.5rem] bg-[#FCFBF8] border border-[#D8D2C5] rounded-lg px-1.5 font-semibold text-[#1C1917] cursor-pointer focus-visible:outline-2 focus-visible:outline-[#F97316]'
@@ -3876,12 +3940,18 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                 <option value='AUTO'>
                   Tự động{myStageOnPage ? ` (${stageLabel(myStageOnPage)})` : ''}
                 </option>
-                {stages.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.stageOrder}. {s.name}
-                    {s.isEnabled === false ? ' (đã tắt)' : ''}
-                  </option>
-                ))}
+                {stages.map((s) => {
+                  const sIdx = sortedStages.findIndex((st) => st.id === s.id);
+                  const activeIdx = sortedStages.findIndex((st) => st.id === trueActiveStage?.id);
+                  const isFutureStage = activeIdx >= 0 && sIdx > activeIdx;
+                  return (
+                    <option key={s.id} value={s.id} disabled={isFutureStage}>
+                      {s.stageOrder}. {s.name}
+                      {s.isEnabled === false ? ' (đã tắt)' : ''}
+                      {isFutureStage ? ' (chưa mở)' : ''}
+                    </option>
+                  );
+                })}
               </select>
             </label>
 

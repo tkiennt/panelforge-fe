@@ -1185,17 +1185,21 @@ describe('ArtistDeskView', () => {
     });
 
     it('nút Tự động phân bổ kịch bản trong tab Kịch bản chỉ hiển thị ở stage Lettering, ẩn ở Pencil/Ink', async () => {
+      vi.mocked(assignmentService.getMyAssignments).mockResolvedValue([
+        {
+          id: 'as-let',
+          chapterId: 'chap-1',
+          entityType: 'Chapter',
+          targetEntityId: 'chap-1',
+          pipelineStageId: 'stg-5',
+          status: 'InProgress',
+        } as any,
+      ]);
+
       renderComponent();
 
       await screen.findByTestId('panel-canvas');
       fireEvent.click(screen.getByTestId('left-tab-script'));
-
-      // Ở stage Thumbnail / Pencil / Ink: Nút AI tách thoại bị ẩn để giữ không gian Zero-Clutter
-      expect(screen.queryByTestId('auto-assign-script-btn')).not.toBeInTheDocument();
-
-      // Khi chuyển sang stage Lettering:
-      const letteringTab = await screen.findByTestId('stage-tab-lettering');
-      fireEvent.click(letteringTab);
 
       const autoAssignBtn = await screen.findByTestId('auto-assign-script-btn');
       expect(autoAssignBtn).toBeInTheDocument();
@@ -1919,11 +1923,19 @@ describe('ArtistDeskView', () => {
       });
     });
 
-    it('bấm chuyển tab giai đoạn sang Ink và cho phép chuyển giao sang Lettering', async () => {
-      renderComponent();
+    it('cho phép nộp chuyển giao sang Lettering khi ở giai đoạn Ink', async () => {
+      vi.mocked(assignmentService.getMyAssignments).mockResolvedValue([
+        {
+          id: 'as-ink',
+          chapterId: 'chap-1',
+          entityType: 'Chapter',
+          targetEntityId: 'chap-1',
+          pipelineStageId: 'stg-3',
+          status: 'InProgress',
+        } as any,
+      ]);
 
-      const inkTab = await screen.findByTestId('stage-tab-stg-3');
-      fireEvent.click(inkTab);
+      renderComponent();
 
       await waitFor(() => {
         expect(screen.getByTestId('btn-handoff-ink-lettering')).toBeInTheDocument();
@@ -1934,6 +1946,34 @@ describe('ArtistDeskView', () => {
 
       await waitFor(() => {
         expect(chapterService.submitManuscript).toHaveBeenCalledWith('chap-1', 'stg-3');
+      });
+    });
+
+    it('khoá chuyển công đoạn giữa chừng và chỉ mở công đoạn tiếp theo sau khi nộp handoff', async () => {
+      renderComponent();
+
+      // Mặc định ở stage Pencil (stg-2)
+      const pencilTab = await screen.findByTestId('stage-tab-stg-2');
+      expect(pencilTab).toHaveAttribute('aria-selected', 'true');
+
+      // Tab Ink (stg-3) bị khoá không cho chuyển giữa chừng
+      const inkTab = await screen.findByTestId('stage-tab-stg-3');
+      expect(inkTab).toHaveAttribute('aria-disabled', 'true');
+      fireEvent.click(inkTab);
+      // Vẫn giữ nguyên ở stage Pencil
+      expect(pencilTab).toHaveAttribute('aria-selected', 'true');
+
+      // Tiến hành nộp handoff Pencil ➔ Ink
+      const handoffBtn = await screen.findByTestId('btn-handoff-pencil-ink');
+      fireEvent.click(handoffBtn);
+
+      await waitFor(() => {
+        expect(chapterService.submitManuscript).toHaveBeenCalledWith('chap-1', 'stg-2');
+      });
+
+      // Sau khi nộp thành công, hệ thống tự động mở khoá và chuyển sang Ink
+      await waitFor(() => {
+        expect(inkTab).toHaveAttribute('aria-selected', 'true');
       });
     });
   });
@@ -1974,11 +2014,18 @@ describe('ArtistDeskView', () => {
     });
 
     it('giai đoạn INK: hiển thị Inking Toolset, Screen-Tone, Lớp Chì Nền, Safe-Zone và nút Hoàn tất Lettering', async () => {
-      renderComponent();
+      vi.mocked(assignmentService.getMyAssignments).mockResolvedValue([
+        {
+          id: 'as-ink',
+          chapterId: 'chap-1',
+          entityType: 'Chapter',
+          targetEntityId: 'chap-1',
+          pipelineStageId: 'stg-3',
+          status: 'InProgress',
+        } as any,
+      ]);
 
-      // Chuyển sang stage Ink
-      const inkTab = await screen.findByTestId('stage-tab-stg-3');
-      fireEvent.click(inkTab);
+      renderComponent();
 
       // Ink Workspace Bar xuất hiện
       const inkBar = await screen.findByTestId('ink-stage-workspace-bar');
@@ -1999,13 +2046,20 @@ describe('ArtistDeskView', () => {
     });
 
     it('giai đoạn LETTERING: hiển thị Locked Script Checklist, AI Tách Thoại, Balloon Toolset, Reading Flow', async () => {
+      vi.mocked(assignmentService.getMyAssignments).mockResolvedValue([
+        {
+          id: 'as-let',
+          chapterId: 'chap-1',
+          entityType: 'Chapter',
+          targetEntityId: 'chap-1',
+          pipelineStageId: 'stg-5',
+          status: 'InProgress',
+        } as any,
+      ]);
+
       renderComponent();
 
       await screen.findByTestId('panel-canvas');
-
-      // Chuyển sang stage Lettering
-      const letteringTab = await screen.findByTestId('stage-tab-lettering');
-      fireEvent.click(letteringTab);
 
       // Lettering Workspace Bar xuất hiện
       const letteringBar = await screen.findByTestId('lettering-stage-workspace-bar');
