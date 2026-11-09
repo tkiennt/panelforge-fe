@@ -82,8 +82,8 @@ export const InkStageWorkspaceBar: React.FC<Props> = ({
       {/* Badge định hướng giai đoạn Ink */}
       <div
         data-testid='badge-ink-upload-mode'
-        className='hidden 2xl:flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-900 border border-indigo-300/80 font-bold text-[11px]'
-        title='Công đoạn Ink: Tải lên bản vẽ đã hoàn thiện nét mực/Line-art sạch.'
+        className='sr-only'
+        title='Công đoạn Ink: Upload Line-art'
       >
         <span>Upload Line-art</span>
       </div>

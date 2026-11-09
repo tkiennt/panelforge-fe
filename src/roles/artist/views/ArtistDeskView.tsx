@@ -5823,7 +5823,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                 <span className='w-px h-5 bg-[#D8D2C5]' aria-hidden='true' />
 
                 {/* Chọn Layer Ảnh hiển thị */}
-                <label className='flex items-center gap-1 text-xs text-[#57534E] shrink-0'>
+                <label className='sr-only'>
                   <Eye className='w-3.5 h-3.5 text-[#C2410C]' aria-hidden='true' />
                   <span className='hidden 2xl:inline whitespace-nowrap text-[11px] font-medium'>Ảnh hiển thị</span>
                   <span className='sr-only 2xl:hidden'>Ảnh hiển thị</span>
@@ -5852,9 +5852,9 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                   </select>
                 </label>
 
-                {/* Chế độ vẽ: Vẽ cả trang / Vẽ từng khung */}
+                {/* Chế độ vẽ: Vẽ cả trang / Vẽ từng khung (Ẩn theo yêu cầu tinh giản) */}
                 {canEditPages && (
-                  <div className='relative shrink-0' data-menu-root>
+                  <div className='sr-only' data-menu-root>
                     <button
                       type='button'
                       aria-haspopup='menu'
@@ -5920,33 +5920,21 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                           </button>
                         ))}
                       </div>
-                    )}
+                )}
                   </div>
                 )}
 
-                {/* Nút Mẫu Khung */}
+                {/* Nút Mẫu Khung: Luôn mở modal chọn mẫu khung */}
                 {canEditPages && (
                   <button
                     type='button'
-                    disabled={Boolean(pageArtUrl)}
-                    onClick={() => {
-                      if (pageArtUrl) {
-                        showToast('Không thể chỉnh mẫu khung', 'Trang này đã tải lên bản vẽ hoàn chỉnh. Không thể áp dụng mẫu khung đè lên tranh.', 'error');
-                        return;
-                      }
-                      setFrameTemplateModalOpen(true);
-                    }}
+                    onClick={() => setFrameTemplateModalOpen(true)}
                     data-testid='toolbar-frame-template-btn'
-                    title={
-                      pageArtUrl
-                        ? 'Trang đã tải lên bản vẽ hoàn chỉnh, không thể chỉnh mẫu khung'
-                        : 'Áp dụng mẫu khung tranh dựng sẵn vào trang'
-                    }
-                    className={`${toolbarBtn} ${toolbarIdle} h-7 text-xs px-2 ${pageArtUrl ? 'opacity-40 cursor-not-allowed' : ''}`}
+                    title='Áp dụng mẫu khung tranh dựng sẵn vào trang'
+                    className={`${toolbarBtn} ${toolbarIdle} h-7 text-xs px-2.5 flex items-center gap-1.5 cursor-pointer font-medium hover:bg-stone-100 hover:text-stone-900`}
                   >
                     <LayoutTemplate className='w-3.5 h-3.5 text-[#C2410C]' />
-                    <span className='hidden lg:inline'>Mẫu Khung</span>
-                    <span className='sr-only lg:hidden'>Mẫu Khung</span>
+                    <span>Mẫu Khung</span>
                   </button>
                 )}
 
