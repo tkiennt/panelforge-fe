@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import {
   Upload,
   Layers,
@@ -8,13 +8,19 @@ import {
   CheckCircle2,
   Loader2,
   Trash2,
-  ArrowRight,
-  Plus,
+  AlertTriangle,
+  RotateCcw,
 } from 'lucide-react';
 import { PageDto, pageService } from '@/services/page.service';
 import { artworkService, computeFileSha256 } from '@/services/artwork.service';
+import type { PipelineStageDto } from '@/services/pipeline.service';
+import {
+  ALLOWED_ARTWORK_IMAGE_TYPES,
+  MAX_ARTWORK_IMAGE_BYTES,
+  generateSafeId,
+} from '../utils/artistStage';
 
-interface UploadPagesModalProps {
+export interface UploadPagesModalProps {
   isOpen: boolean;
   onClose: () => void;
   chapterId: string;
@@ -23,12 +29,22 @@ interface UploadPagesModalProps {
   defaultStageId?: string;
   /** Tên công đoạn nhận ảnh, hiển thị để hoạ sĩ xác nhận trước khi tải lên. */
   stageName?: string;
+  /** Danh sách các công đoạn pipeline khả dụng để hoạ sĩ xem hoặc chọn công đoạn nhận ảnh. */
+  availableStages?: PipelineStageDto[];
   defaultTab?: 'single' | 'bulk';
+  /** Quyền sửa trang */
+  canEditPages?: boolean;
+  /** Trang hiện tại đã bị tách cho hoạ sĩ khác */
+  isCurrentPageCarvedOut?: boolean;
+  /** Trang hiện tại có khung đã tách việc */
+  hasCarvedOutPanelOnPage?: boolean;
+  /** Hoạ sĩ chỉ giữ việc theo khung trên trang này */
+  hasPanelOnlyAssignmentOnPage?: boolean;
   onSuccess: (targetPageId?: string) => Promise<void> | void;
   showToast: (title: string, message: string) => void;
 }
 
-interface StagedFile {
+export interface StagedFile {
   id: string;
   file: File;
   previewUrl: string;
@@ -36,25 +52,30 @@ interface StagedFile {
   size: number;
   width?: number;
   height?: number;
+  error?: string;
 }
 
-function formatFileSize(bytes: number): string {
+export function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function getImageDimensions(file: File): Promise<{ width: number; height: number }> {
-  return new Promise((resolve) => {
+export function getImageDimensions(file: File): Promise<{ width: number; height: number }> {
+  return new Promise((resolve, reject) => {
     const img = new Image();
     const url = URL.createObjectURL(file);
     img.onload = () => {
       URL.revokeObjectURL(url);
-      resolve({ width: img.naturalWidth || 1200, height: img.naturalHeight || 1800 });
+      if (!img.naturalWidth || !img.naturalHeight) {
+        reject(new Error(`Tệp ảnh "${file.name}" không hợp lệ hoặc có kích thước rỗng.`));
+        return;
+      }
+      resolve({ width: img.naturalWidth, height: img.naturalHeight });
     };
     img.onerror = () => {
       URL.revokeObjectURL(url);
-      resolve({ width: 1200, height: 1800 });
+      reject(new Error(`Không thể giải mã tệp ảnh "${file.name}". Tệp có thể đã bị hỏng.`));
     };
     img.src = url;
   });
@@ -68,16 +89,77 @@ export const UploadPagesModal: React.FC<UploadPagesModalProps> = ({
   pages,
   defaultStageId,
   stageName,
+  availableStages = [],
   defaultTab = 'single',
+  canEditPages = true,
+  isCurrentPageCarvedOut = false,
+  hasCarvedOutPanelOnPage = false,
+  hasPanelOnlyAssignmentOnPage = false,
   onSuccess,
   showToast,
 }) => {
   const [activeTab, setActiveTab] = useState<'single' | 'bulk'>(defaultTab);
 
+  // Stage selection state
+  const [selectedStageId, setSelectedStageId] = useState<string>(defaultStageId || '');
+
+  // Keep selectedStageId in sync when defaultStageId changes on open
+  useEffect(() => {
+    if (defaultStageId) {
+      setSelectedStageId(defaultStageId);
+    } else if (availableStages.length > 0) {
+      const firstEnabled = availableStages.find((s) => s.isEnabled !== false) || availableStages[0];
+      if (firstEnabled) setSelectedStageId(firstEnabled.id);
+    }
+  }, [defaultStageId, availableStages, isOpen]);
+
+  // Track all created object URLs to prevent memory leaks
+  const activePreviewUrlsRef = useRef<Set<string>>(new Set());
+  const trackPreviewUrl = useCallback((url: string) => {
+    activePreviewUrlsRef.current.add(url);
+    return url;
+  }, []);
+  const revokeTrackedUrl = useCallback((url?: string | null) => {
+    if (!url) return;
+    if (activePreviewUrlsRef.current.has(url)) {
+      URL.revokeObjectURL(url);
+      activePreviewUrlsRef.current.delete(url);
+    }
+  }, []);
+  const revokeAllTrackedUrls = useCallback(() => {
+    activePreviewUrlsRef.current.forEach((url) => {
+      URL.revokeObjectURL(url);
+    });
+    activePreviewUrlsRef.current.clear();
+  }, []);
+
+  // Check upload constraints on current page
+  const canUpdateCurrentPage = Boolean(
+    selectedPage &&
+      canEditPages &&
+      !isCurrentPageCarvedOut &&
+      !hasCarvedOutPanelOnPage &&
+      !hasPanelOnlyAssignmentOnPage,
+  );
+
+  const currentPageBlockedReason = useMemo(() => {
+    if (!canEditPages) return 'Bạn chỉ có quyền xem, không thể tải ảnh.';
+    if (isCurrentPageCarvedOut) {
+      return 'Trang này đã được tách cho hoạ sĩ khác ở cùng công đoạn, không thể tải ảnh toàn trang.';
+    }
+    if (hasCarvedOutPanelOnPage) {
+      return 'Trang này có khung tranh đã được tách cho người khác, chỉ có thể tải ảnh cho từng khung.';
+    }
+    if (hasPanelOnlyAssignmentOnPage) {
+      return 'Bạn đang giữ việc theo khung nên chỉ có thể tải ảnh cho khung được giao.';
+    }
+    return undefined;
+  }, [canEditPages, isCurrentPageCarvedOut, hasCarvedOutPanelOnPage, hasPanelOnlyAssignmentOnPage]);
+
   // Single page upload state
   const [singleFile, setSingleFile] = useState<StagedFile | null>(null);
   const [singleTargetMode, setSingleTargetMode] = useState<'current' | 'new'>(
-    selectedPage ? 'current' : 'new',
+    canUpdateCurrentPage ? 'current' : 'new',
   );
   const [isSingleUploading, setIsSingleUploading] = useState(false);
   const singleInputRef = useRef<HTMLInputElement>(null);
@@ -86,100 +168,204 @@ export const UploadPagesModal: React.FC<UploadPagesModalProps> = ({
   const [bulkFiles, setBulkFiles] = useState<StagedFile[]>([]);
   const [bulkTargetMode, setBulkTargetMode] = useState<'append' | 'replaceFromStart'>('append');
   const [isBulkUploading, setIsBulkUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number; message: string } | null>(
-    null,
-  );
+  const [isStagingFiles, setIsStagingFiles] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{
+    current: number;
+    total: number;
+    message: string;
+  } | null>(null);
   const bulkInputRef = useRef<HTMLInputElement>(null);
+
+  // Abort controller for cancelling ongoing bulk uploads
+  const uploadAbortRef = useRef<AbortController | null>(null);
+
+  // Race condition token for bulk file reading
+  const stagingTokenRef = useRef(0);
 
   // Drag states
   const [isDraggingSingle, setIsDraggingSingle] = useState(false);
   const [isDraggingBulk, setIsDraggingBulk] = useState(false);
 
-  // Reset or initialize on open
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      revokeAllTrackedUrls();
+    };
+  }, [revokeAllTrackedUrls]);
+
+  // Reset or initialize on open/close
   useEffect(() => {
     if (isOpen) {
       setActiveTab(defaultTab);
-      setSingleTargetMode(selectedPage ? 'current' : 'new');
+      setSingleTargetMode(canUpdateCurrentPage ? 'current' : 'new');
+      document.body.style.overflow = 'hidden';
     } else {
-      // Cleanup previews
-      if (singleFile) URL.revokeObjectURL(singleFile.previewUrl);
+      document.body.style.overflow = '';
+      if (uploadAbortRef.current) {
+        uploadAbortRef.current.abort();
+        uploadAbortRef.current = null;
+      }
+      revokeAllTrackedUrls();
       setSingleFile(null);
-      bulkFiles.forEach((f) => URL.revokeObjectURL(f.previewUrl));
       setBulkFiles([]);
       setIsSingleUploading(false);
       setIsBulkUploading(false);
+      setIsStagingFiles(false);
       setUploadProgress(null);
     }
-  }, [isOpen]);
+  }, [isOpen, defaultTab, canUpdateCurrentPage, revokeAllTrackedUrls]);
 
-  if (!isOpen) return null;
+  // Keyboard accessibility: Escape key to close modal if not uploading
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !isSingleUploading && !isBulkUploading) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, isSingleUploading, isBulkUploading, onClose]);
+
+  // Current stage display
+  const currentStageObj = useMemo(() => {
+    return (
+      availableStages.find((s) => s.id === selectedStageId) ||
+      (defaultStageId ? availableStages.find((s) => s.id === defaultStageId) : null) ||
+      null
+    );
+  }, [availableStages, selectedStageId, defaultStageId]);
+
+  const effectiveStageName = currentStageObj?.name || stageName || 'Mặc định';
 
   // Single file selection handler
   const handleSelectSingleFile = async (file: File) => {
-    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
+    if (!ALLOWED_ARTWORK_IMAGE_TYPES.includes(file.type as any)) {
       showToast('Định dạng không hỗ trợ', 'Vui lòng chọn ảnh định dạng PNG, JPG hoặc WebP.');
       return;
     }
-    if (file.size > 25 * 1024 * 1024) {
-      showToast('Ảnh quá lớn', 'Kích thước ảnh tối đa cho phép là 25 MB.');
+    if (file.size > MAX_ARTWORK_IMAGE_BYTES) {
+      showToast('Ảnh quá lớn', 'Kích thước ảnh tối đa cho phép là 20 MB (đồng bộ nhận diện vùng).');
       return;
     }
-    const dims = await getImageDimensions(file);
-    const previewUrl = URL.createObjectURL(file);
-    setSingleFile({
-      id: crypto.randomUUID(),
-      file,
-      previewUrl,
-      name: file.name,
-      size: file.size,
-      width: dims.width,
-      height: dims.height,
-    });
-  };
 
-  // Bulk files selection handler with natural alphanumeric sorting
-  const handleSelectBulkFiles = async (fileList: FileList | File[]) => {
-    const rawFiles = Array.from(fileList);
-    const validFiles = rawFiles.filter((f) =>
-      ['image/png', 'image/jpeg', 'image/webp'].includes(f.type) && f.size <= 25 * 1024 * 1024,
-    );
-
-    if (validFiles.length < rawFiles.length) {
-      showToast('Một số tệp bị bỏ qua', 'Chỉ chấp nhận tệp ảnh PNG, JPG, WebP và dung lượng ≤ 25MB.');
-    }
-
-    // Natural sort: page-1, page-2, page-10 instead of page-1, page-10, page-2
-    validFiles.sort((a, b) =>
-      a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }),
-    );
-
-    const stagedList: StagedFile[] = [];
-    for (const file of validFiles) {
+    try {
       const dims = await getImageDimensions(file);
-      stagedList.push({
-        id: crypto.randomUUID(),
+      // Revoke previous single file preview
+      if (singleFile?.previewUrl) {
+        revokeTrackedUrl(singleFile.previewUrl);
+      }
+
+      const previewUrl = trackPreviewUrl(URL.createObjectURL(file));
+      setSingleFile({
+        id: generateSafeId('single'),
         file,
-        previewUrl: URL.createObjectURL(file),
+        previewUrl,
         name: file.name,
         size: file.size,
         width: dims.width,
         height: dims.height,
       });
+    } catch (err: any) {
+      showToast('Tệp ảnh lỗi', err.message || 'Không thể đọc ảnh đã chọn.');
     }
-
-    setBulkFiles(stagedList);
   };
 
-  // Execute single file upload
+  // Bulk files selection handler with APPEND behavior & natural alphanumeric sorting
+  const handleSelectBulkFiles = async (fileList: FileList | File[]) => {
+    const rawFiles = Array.from(fileList);
+    const validFiles: File[] = [];
+    let oversizedCount = 0;
+    let unsupportedFormatCount = 0;
+
+    for (const f of rawFiles) {
+      if (!ALLOWED_ARTWORK_IMAGE_TYPES.includes(f.type as any)) {
+        unsupportedFormatCount++;
+      } else if (f.size > MAX_ARTWORK_IMAGE_BYTES) {
+        oversizedCount++;
+      } else {
+        validFiles.push(f);
+      }
+    }
+
+    if (unsupportedFormatCount > 0 || oversizedCount > 0) {
+      const reasons: string[] = [];
+      if (unsupportedFormatCount > 0) reasons.push(`${unsupportedFormatCount} tệp sai định dạng`);
+      if (oversizedCount > 0) reasons.push(`${oversizedCount} tệp vượt quá 20MB`);
+      showToast('Một số tệp bị bỏ qua', `Bỏ qua ${reasons.join(', ')}.`);
+    }
+
+    if (validFiles.length === 0) return;
+
+    const token = ++stagingTokenRef.current;
+    setIsStagingFiles(true);
+
+    try {
+      const newStagedList: StagedFile[] = [];
+      let corruptCount = 0;
+
+      for (const file of validFiles) {
+        if (stagingTokenRef.current !== token) return; // Staging cancelled by another pick
+        try {
+          const dims = await getImageDimensions(file);
+          const previewUrl = trackPreviewUrl(URL.createObjectURL(file));
+          newStagedList.push({
+            id: generateSafeId('bulk'),
+            file,
+            previewUrl,
+            name: file.name,
+            size: file.size,
+            width: dims.width,
+            height: dims.height,
+          });
+        } catch {
+          corruptCount++;
+        }
+      }
+
+      if (stagingTokenRef.current !== token) return;
+
+      if (corruptCount > 0) {
+        showToast('Ảnh bị hỏng', `Đã bỏ qua ${corruptCount} tệp ảnh không thể giải mã kích thước.`);
+      }
+
+      // Append to existing bulk files and avoid duplicates by filename + size
+      setBulkFiles((prev) => {
+        const existingKeys = new Set(prev.map((x) => `${x.name}_${x.size}`));
+        const filteredNew = newStagedList.filter(
+          (x) => !existingKeys.has(`${x.name}_${x.size}`),
+        );
+
+        const combined = [...prev, ...filteredNew];
+        // Natural sort
+        combined.sort((a, b) =>
+          a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }),
+        );
+        return combined;
+      });
+    } finally {
+      if (stagingTokenRef.current === token) {
+        setIsStagingFiles(false);
+      }
+    }
+  };
+
+  // Execute single file upload with ROLLBACK on failure
   const handleUploadSingle = async () => {
     if (!singleFile || !chapterId) return;
+
+    if (singleTargetMode === 'current' && !canUpdateCurrentPage) {
+      showToast('Không thể cập nhật trang', currentPageBlockedReason || 'Trang bị khoá chỉnh sửa.');
+      return;
+    }
+
     setIsSingleUploading(true);
+    let createdPageId: string | null = null;
 
     try {
       let targetPageId = selectedPage?.id;
 
       if (singleTargetMode === 'new' || !targetPageId) {
-        // Create new page
         const newPageNum = pages.length > 0 ? Math.max(...pages.map((p) => p.pageNumber)) + 1 : 1;
         const newPage = await pageService.createPage(chapterId, {
           pageNumber: newPageNum,
@@ -187,6 +373,7 @@ export const UploadPagesModal: React.FC<UploadPagesModalProps> = ({
           heightPx: singleFile.height || 1800,
           dpi: 300,
         });
+        createdPageId = newPage.id;
         targetPageId = newPage.id;
       }
 
@@ -195,7 +382,7 @@ export const UploadPagesModal: React.FC<UploadPagesModalProps> = ({
         chapterId,
         targetPageId,
         singleFile.file,
-        defaultStageId,
+        selectedStageId || defaultStageId,
         sha,
       );
 
@@ -204,99 +391,181 @@ export const UploadPagesModal: React.FC<UploadPagesModalProps> = ({
       onClose();
     } catch (err: any) {
       console.error('Lỗi khi tải ảnh:', err);
-      showToast('Lỗi tải ảnh', err.response?.data?.error || err.message || 'Không thể tải ảnh lên.');
+      // Rollback created page if upload failed
+      if (createdPageId) {
+        try {
+          await pageService.deletePage(createdPageId);
+          console.warn(`Đã thu hồi trang mồ côi #${createdPageId} sau khi tải ảnh lỗi.`);
+        } catch (delErr) {
+          console.error('Không thể thu hồi trang mồ côi:', delErr);
+        }
+      }
+      showToast(
+        'Lỗi tải ảnh',
+        err.response?.data?.error || err.message || 'Không thể tải ảnh lên.',
+      );
     } finally {
       setIsSingleUploading(false);
     }
   };
 
-  // Execute bulk upload
+  // Cancel ongoing upload
+  const handleCancelUpload = () => {
+    if (uploadAbortRef.current) {
+      uploadAbortRef.current.abort();
+      uploadAbortRef.current = null;
+    }
+    setIsBulkUploading(false);
+    setUploadProgress(null);
+    showToast('Đã dừng tải lên', 'Quá trình tải ảnh hàng loạt đã được huỷ.');
+  };
+
+  // Execute bulk upload with ROLLBACK on per-page failure and RETRY support
   const handleUploadBulk = async () => {
     if (bulkFiles.length === 0 || !chapterId) return;
+
     setIsBulkUploading(true);
+    const abortController = new AbortController();
+    uploadAbortRef.current = abortController;
 
     const total = bulkFiles.length;
     let successCount = 0;
     let firstTargetPageId: string | undefined;
+    let lastTargetPageId: string | undefined;
+
+    const failedItems: { item: StagedFile; error: string }[] = [];
+    const succeededIds = new Set<string>();
 
     try {
-      const sortedExistingPages = [...pages].sort(
-        (a, b) => a.pageNumber - b.pageNumber,
-      );
+      const sortedExistingPages = [...pages].sort((a, b) => a.pageNumber - b.pageNumber);
 
       for (let i = 0; i < total; i++) {
+        if (abortController.signal.aborted) {
+          break;
+        }
+
         const item = bulkFiles[i];
+        // Accurate progress before upload begins
         setUploadProgress({
-          current: i + 1,
+          current: i,
           total,
-          message: `Đang xử lý trang ${i + 1}/${total}: ${item.name}...`,
+          message: `Đang tải trang ${i + 1}/${total}: ${item.name}...`,
         });
 
         let targetPageId: string;
+        let createdPageId: string | null = null;
 
-        if (bulkTargetMode === 'replaceFromStart' && i < sortedExistingPages.length) {
-          // Gán vào trang có sẵn
-          targetPageId = sortedExistingPages[i].id;
-        } else {
-          // Tạo trang mới
-          const currentMaxPage =
-            sortedExistingPages.length > 0
-              ? Math.max(...sortedExistingPages.map((p) => p.pageNumber))
-              : 0;
-          const newPageNum = currentMaxPage + 1;
+        try {
+          if (bulkTargetMode === 'replaceFromStart' && i < sortedExistingPages.length) {
+            targetPageId = sortedExistingPages[i].id;
+          } else {
+            const currentMax =
+              sortedExistingPages.length > 0
+                ? Math.max(...sortedExistingPages.map((p) => p.pageNumber))
+                : 0;
+            const newPage = await pageService.createPage(chapterId, {
+              pageNumber: currentMax + 1,
+              widthPx: item.width || 1200,
+              heightPx: item.height || 1800,
+              dpi: 300,
+            });
+            createdPageId = newPage.id;
+            targetPageId = newPage.id;
+            sortedExistingPages.push(newPage);
+          }
 
-          const newPage = await pageService.createPage(chapterId, {
-            pageNumber: newPageNum,
-            widthPx: item.width || 1200,
-            heightPx: item.height || 1800,
-            dpi: 300,
+          if (!firstTargetPageId) firstTargetPageId = targetPageId;
+          lastTargetPageId = targetPageId;
+
+          const sha = await computeFileSha256(item.file);
+          await artworkService.uploadArtwork(
+            chapterId,
+            targetPageId,
+            item.file,
+            selectedStageId || defaultStageId,
+            sha,
+          );
+
+          successCount++;
+          succeededIds.add(item.id);
+
+          setUploadProgress({
+            current: i + 1,
+            total,
+            message: `Hoàn tất ${i + 1}/${total}: ${item.name}`,
           });
-          targetPageId = newPage.id;
-          sortedExistingPages.push(newPage);
+        } catch (itemErr: any) {
+          console.error(`Lỗi tải trang ${item.name}:`, itemErr);
+          // Rollback newly created page on failure
+          if (createdPageId) {
+            try {
+              await pageService.deletePage(createdPageId);
+              const idx = sortedExistingPages.findIndex((p) => p.id === createdPageId);
+              if (idx !== -1) sortedExistingPages.splice(idx, 1);
+            } catch (delErr) {
+              console.error('Không thể rollback trang:', delErr);
+            }
+          }
+          failedItems.push({
+            item,
+            error: itemErr.response?.data?.error || itemErr.message || 'Lỗi tải ảnh',
+          });
         }
-
-        if (!firstTargetPageId) {
-          firstTargetPageId = targetPageId;
-        }
-
-        // Upload Artwork
-        const sha = await computeFileSha256(item.file);
-        await artworkService.uploadArtwork(
-          chapterId,
-          targetPageId,
-          item.file,
-          defaultStageId,
-          sha,
-        );
-
-        successCount++;
       }
 
-      showToast(
-        'Tải hàng loạt thành công',
-        `Đã tải lên và gán thành công ${successCount}/${total} trang truyện!`,
-      );
-      await onSuccess(firstTargetPageId);
-      onClose();
-    } catch (err: any) {
-      console.error('Lỗi khi tải hàng loạt:', err);
-      showToast(
-        'Quá trình tải bị gián đoạn',
-        `Đã tải thành công ${successCount}/${total} trang. Lỗi: ${
-          err.response?.data?.error || err.message || 'Lỗi không xác định'
-        }`,
-      );
-      await onSuccess();
+      // Update bulkFiles state: remove succeeded, keep failed for easy retry
+      if (failedItems.length > 0) {
+        setBulkFiles((prev) => {
+          return prev
+            .filter((f) => !succeededIds.has(f.id))
+            .map((f) => {
+              const errInfo = failedItems.find((x) => x.item.id === f.id);
+              return errInfo ? { ...f, error: errInfo.error } : f;
+            });
+        });
+
+        showToast(
+          'Tải hàng loạt có lỗi',
+          `Đã tải thành công ${successCount}/${total} trang. Có ${failedItems.length} trang bị lỗi có thể thử lại.`,
+        );
+
+        if (successCount > 0) {
+          const targetToSelect =
+            bulkTargetMode === 'append'
+              ? lastTargetPageId || selectedPage?.id
+              : selectedPage?.id || firstTargetPageId;
+          await onSuccess(targetToSelect);
+        }
+      } else if (successCount > 0) {
+        showToast(
+          'Tải hàng loạt thành công',
+          `Đã tải lên và gán thành công ${successCount}/${total} trang truyện!`,
+        );
+        const targetToSelect =
+          bulkTargetMode === 'append'
+            ? lastTargetPageId || selectedPage?.id
+            : selectedPage?.id || firstTargetPageId;
+        await onSuccess(targetToSelect);
+        onClose();
+      }
     } finally {
       setIsBulkUploading(false);
       setUploadProgress(null);
+      uploadAbortRef.current = null;
     }
   };
+
+  if (!isOpen) return null;
 
   return (
     <div
       className='fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200'
       data-testid='upload-pages-modal-overlay'
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !isSingleUploading && !isBulkUploading) {
+          onClose();
+        }
+      }}
     >
       <div
         className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden text-[#1C1917]'
@@ -367,17 +636,37 @@ export const UploadPagesModal: React.FC<UploadPagesModalProps> = ({
 
         {/* Modal Body */}
         <div className='flex-1 overflow-y-auto p-6 space-y-5 custom-scrollbar'>
-          {stageName && (
-            <div
-              data-testid='upload-target-stage'
-              className='flex items-center gap-2 rounded-xl border border-sky-200 bg-sky-50 px-3.5 py-2.5 text-xs text-sky-900'
-            >
+          {/* Target Stage Banner / Selector */}
+          <div
+            data-testid='upload-target-stage'
+            className='flex items-center justify-between gap-2 rounded-xl border border-sky-200 bg-sky-50 px-3.5 py-2.5 text-xs text-sky-900'
+          >
+            <div className='flex items-center gap-2'>
               <Layers className='w-4 h-4 shrink-0 text-sky-600' />
               <span>
-                Ảnh sẽ được lưu vào công đoạn: <strong className='font-bold'>{stageName}</strong>
+                Đang tải vào công đoạn: <strong className='font-bold'>{effectiveStageName}</strong>
               </span>
             </div>
-          )}
+
+            {availableStages.length > 1 && (
+              <select
+                value={selectedStageId}
+                onChange={(e) => setSelectedStageId(e.target.value)}
+                disabled={isSingleUploading || isBulkUploading}
+                aria-label='Chọn công đoạn tải ảnh'
+                className='text-xs bg-white border border-sky-300 rounded-lg px-2 py-1 font-medium text-sky-900 focus:outline-hidden focus:ring-1 focus:ring-sky-500'
+              >
+                {availableStages
+                  .filter((s) => s.isEnabled !== false)
+                  .map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+              </select>
+            )}
+          </div>
+
           {activeTab === 'single' ? (
             /* TAB 1: TẢI 1 TRANG */
             <div className='space-y-4'>
@@ -420,7 +709,7 @@ export const UploadPagesModal: React.FC<UploadPagesModalProps> = ({
                     Kéo thả ảnh vào đây hoặc bấm để chọn
                   </p>
                   <p className='text-xs text-stone-500 mt-1'>
-                    Hỗ trợ định dạng PNG, JPG, WebP (Tối đa 25MB)
+                    Hỗ trợ định dạng PNG, JPG, WebP (Tối đa 20MB)
                   </p>
                 </div>
               ) : (
@@ -435,13 +724,16 @@ export const UploadPagesModal: React.FC<UploadPagesModalProps> = ({
                   </div>
                   <div className='flex-1 min-w-0 space-y-1.5'>
                     <div className='flex items-center justify-between'>
-                      <span className='font-bold text-sm text-stone-900 truncate' title={singleFile.name}>
+                      <span
+                        className='font-bold text-sm text-stone-900 truncate'
+                        title={singleFile.name}
+                      >
                         {singleFile.name}
                       </span>
                       <button
                         type='button'
                         onClick={() => {
-                          URL.revokeObjectURL(singleFile.previewUrl);
+                          revokeTrackedUrl(singleFile.previewUrl);
                           setSingleFile(null);
                         }}
                         className='text-stone-400 hover:text-rose-600 p-1 rounded-md hover:bg-rose-50 transition-colors'
@@ -453,7 +745,9 @@ export const UploadPagesModal: React.FC<UploadPagesModalProps> = ({
                     <div className='text-xs text-stone-500 flex gap-3'>
                       <span>Dung lượng: {formatFileSize(singleFile.size)}</span>
                       {singleFile.width && singleFile.height && (
-                        <span>Kích thước: {singleFile.width} × {singleFile.height}px</span>
+                        <span>
+                          Kích thước: {singleFile.width} × {singleFile.height}px
+                        </span>
                       )}
                     </div>
                     <div className='pt-1'>
@@ -472,14 +766,21 @@ export const UploadPagesModal: React.FC<UploadPagesModalProps> = ({
                 </label>
                 <div className='space-y-2'>
                   {selectedPage && (
-                    <label className='flex items-center gap-2.5 p-2.5 rounded-lg border border-[#D8D2C5] bg-white cursor-pointer hover:border-orange-300 transition-colors'>
+                    <label
+                      className={`flex items-start gap-2.5 p-2.5 rounded-lg border transition-colors ${
+                        canUpdateCurrentPage
+                          ? 'border-[#D8D2C5] bg-white cursor-pointer hover:border-orange-300'
+                          : 'border-stone-200 bg-stone-100/70 opacity-60 cursor-not-allowed'
+                      }`}
+                    >
                       <input
                         type='radio'
                         name='singleTarget'
                         value='current'
+                        disabled={!canUpdateCurrentPage}
                         checked={singleTargetMode === 'current'}
                         onChange={() => setSingleTargetMode('current')}
-                        className='text-orange-600 focus:ring-orange-500'
+                        className='text-orange-600 focus:ring-orange-500 mt-0.5'
                       />
                       <div className='text-xs'>
                         <span className='font-bold text-stone-900'>
@@ -488,17 +789,23 @@ export const UploadPagesModal: React.FC<UploadPagesModalProps> = ({
                         <p className='text-stone-500 text-[11px]'>
                           Tải phiên bản mới đè lên trang đang mở trên canvas
                         </p>
+                        {!canUpdateCurrentPage && currentPageBlockedReason && (
+                          <p className='text-amber-700 font-medium text-[11px] mt-1 flex items-center gap-1'>
+                            <AlertTriangle className='w-3 h-3 shrink-0' />
+                            {currentPageBlockedReason}
+                          </p>
+                        )}
                       </div>
                     </label>
                   )}
-                  <label className='flex items-center gap-2.5 p-2.5 rounded-lg border border-[#D8D2C5] bg-white cursor-pointer hover:border-orange-300 transition-colors'>
+                  <label className='flex items-start gap-2.5 p-2.5 rounded-lg border border-[#D8D2C5] bg-white cursor-pointer hover:border-orange-300 transition-colors'>
                     <input
                       type='radio'
                       name='singleTarget'
                       value='new'
                       checked={singleTargetMode === 'new'}
                       onChange={() => setSingleTargetMode('new')}
-                      className='text-orange-600 focus:ring-orange-500'
+                      className='text-orange-600 focus:ring-orange-500 mt-0.5'
                     />
                     <div className='text-xs'>
                       <span className='font-bold text-stone-900'>
@@ -553,9 +860,16 @@ export const UploadPagesModal: React.FC<UploadPagesModalProps> = ({
                   Kéo thả nhiều ảnh vào đây hoặc bấm để chọn hàng loạt
                 </p>
                 <p className='text-xs text-stone-500 mt-1'>
-                  Hỗ trợ tải đồng thời hàng chục trang truyện. Tự động sắp xếp theo thứ tự số trong tên tệp.
+                  Hỗ trợ tải đồng thời hàng chục trang truyện (Tối đa 20MB/ảnh). Tự động sắp xếp theo thứ tự số trong tên tệp.
                 </p>
               </div>
+
+              {isStagingFiles && (
+                <div className='flex items-center justify-center gap-2 p-3 bg-amber-50 rounded-xl text-xs text-amber-800 border border-amber-200'>
+                  <Loader2 className='w-4 h-4 animate-spin text-amber-600' />
+                  <span>Đang đọc và tạo bản xem trước ảnh...</span>
+                </div>
+              )}
 
               {/* Bulk options & list */}
               {bulkFiles.length > 0 && (
@@ -567,7 +881,7 @@ export const UploadPagesModal: React.FC<UploadPagesModalProps> = ({
                     <button
                       type='button'
                       onClick={() => {
-                        bulkFiles.forEach((f) => URL.revokeObjectURL(f.previewUrl));
+                        bulkFiles.forEach((f) => revokeTrackedUrl(f.previewUrl));
                         setBulkFiles([]);
                       }}
                       className='text-xs text-rose-600 hover:text-rose-700 font-semibold flex items-center gap-1 cursor-pointer'
@@ -593,7 +907,9 @@ export const UploadPagesModal: React.FC<UploadPagesModalProps> = ({
                         />
                         <div>
                           <span className='font-bold text-stone-900'>Tạo mới toàn bộ</span>
-                          <p className='text-stone-500 text-[10px]'>Tạo các trang tiếp theo ở cuối chương</p>
+                          <p className='text-stone-500 text-[10px]'>
+                            Tạo các trang tiếp theo ở cuối chương
+                          </p>
                         </div>
                       </label>
                       <label className='flex items-center gap-2 p-2 rounded-lg border border-[#D8D2C5] bg-white cursor-pointer hover:border-orange-300 text-xs'>
@@ -607,10 +923,32 @@ export const UploadPagesModal: React.FC<UploadPagesModalProps> = ({
                         />
                         <div>
                           <span className='font-bold text-stone-900'>Áp dụng từ Trang 1</span>
-                          <p className='text-stone-500 text-[10px]'>Ghi đè trang có sẵn, tạo mới nếu thiếu</p>
+                          <p className='text-stone-500 text-[10px]'>
+                            Ghi đè trang có sẵn, tạo mới nếu thiếu
+                          </p>
                         </div>
                       </label>
                     </div>
+
+                    {/* Warning Callout for replaceFromStart */}
+                    {bulkTargetMode === 'replaceFromStart' && pages.length > 0 && (
+                      <div className='flex items-start gap-2 p-2 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 text-[11px]'>
+                        <AlertTriangle className='w-4 h-4 text-amber-600 shrink-0 mt-0.5' />
+                        <div>
+                          <p className='font-semibold'>Cảnh báo ghi đè trang có sẵn:</p>
+                          <p>
+                            Ảnh sẽ được gán đè lên{' '}
+                            <strong>
+                              {Math.min(bulkFiles.length, pages.length)} trang có sẵn
+                            </strong>{' '}
+                            (từ Trang 1 đến Trang {Math.min(bulkFiles.length, pages.length)})
+                            {bulkFiles.length > pages.length &&
+                              ` và tạo thêm ${bulkFiles.length - pages.length} trang mới ở cuối`}
+                            .
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Thumbnail Grid */}
@@ -618,7 +956,9 @@ export const UploadPagesModal: React.FC<UploadPagesModalProps> = ({
                     {bulkFiles.map((item, idx) => (
                       <div
                         key={item.id}
-                        className='bg-white border border-[#D8D2C5] rounded-xl p-2 relative group flex flex-col items-center shadow-2xs'
+                        className={`bg-white border rounded-xl p-2 relative group flex flex-col items-center shadow-2xs ${
+                          item.error ? 'border-rose-400 bg-rose-50/30' : 'border-[#D8D2C5]'
+                        }`}
                       >
                         <span className='absolute top-1 left-1 z-10 px-1.5 py-0.5 rounded-md bg-black/70 text-white text-[10px] font-bold'>
                           #{idx + 1}
@@ -627,7 +967,7 @@ export const UploadPagesModal: React.FC<UploadPagesModalProps> = ({
                           type='button'
                           onClick={(e) => {
                             e.stopPropagation();
-                            URL.revokeObjectURL(item.previewUrl);
+                            revokeTrackedUrl(item.previewUrl);
                             setBulkFiles((prev) => prev.filter((x) => x.id !== item.id));
                           }}
                           className='absolute top-1 right-1 z-10 p-1 rounded-md bg-rose-500/80 hover:bg-rose-600 text-white opacity-0 group-hover:opacity-100 transition-opacity'
@@ -642,12 +982,23 @@ export const UploadPagesModal: React.FC<UploadPagesModalProps> = ({
                             className='w-full h-full object-contain'
                           />
                         </div>
-                        <span className='text-[11px] font-medium text-stone-700 truncate w-full text-center' title={item.name}>
+                        <span
+                          className='text-[11px] font-medium text-stone-700 truncate w-full text-center'
+                          title={item.name}
+                        >
                           {item.name}
                         </span>
                         <span className='text-[10px] text-stone-400'>
                           {formatFileSize(item.size)}
                         </span>
+                        {item.error && (
+                          <span
+                            className='text-[10px] text-rose-600 font-semibold truncate w-full text-center mt-0.5'
+                            title={item.error}
+                          >
+                            Lỗi: {item.error}
+                          </span>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -682,14 +1033,25 @@ export const UploadPagesModal: React.FC<UploadPagesModalProps> = ({
 
         {/* Footer actions */}
         <div className='flex items-center justify-between px-6 py-4 border-t border-[#E7E2D7] bg-[#F5F2EB]'>
-          <button
-            type='button'
-            onClick={onClose}
-            disabled={isSingleUploading || isBulkUploading}
-            className='px-4 py-2 text-xs font-semibold text-stone-700 hover:bg-stone-200/70 rounded-xl transition-colors disabled:opacity-40 cursor-pointer'
-          >
-            Hủy bỏ
-          </button>
+          {isBulkUploading ? (
+            <button
+              type='button'
+              onClick={handleCancelUpload}
+              className='px-4 py-2 text-xs font-bold text-rose-700 bg-rose-100 hover:bg-rose-200 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5'
+            >
+              <RotateCcw className='w-3.5 h-3.5' />
+              <span>Dừng tải lên</span>
+            </button>
+          ) : (
+            <button
+              type='button'
+              onClick={onClose}
+              disabled={isSingleUploading}
+              className='px-4 py-2 text-xs font-semibold text-stone-700 hover:bg-stone-200/70 rounded-xl transition-colors disabled:opacity-40 cursor-pointer'
+            >
+              Hủy bỏ
+            </button>
+          )}
 
           {activeTab === 'single' ? (
             <button
@@ -718,7 +1080,7 @@ export const UploadPagesModal: React.FC<UploadPagesModalProps> = ({
             <button
               type='button'
               onClick={handleUploadBulk}
-              disabled={bulkFiles.length === 0 || isBulkUploading}
+              disabled={bulkFiles.length === 0 || isBulkUploading || isStagingFiles}
               className='px-5 py-2 text-xs font-bold text-white bg-orange-600 hover:bg-orange-700 rounded-xl shadow-soft-sm transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
             >
               {isBulkUploading ? (
@@ -729,7 +1091,11 @@ export const UploadPagesModal: React.FC<UploadPagesModalProps> = ({
               ) : (
                 <>
                   <Upload className='w-4 h-4' />
-                  <span>Bắt đầu tải lên ({bulkFiles.length} trang)</span>
+                  <span>
+                    {bulkFiles.some((f) => f.error)
+                      ? `Thử lại tải lên (${bulkFiles.length} trang)`
+                      : `Bắt đầu tải lên (${bulkFiles.length} trang)`}
+                  </span>
                 </>
               )}
             </button>

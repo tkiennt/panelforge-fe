@@ -1870,6 +1870,22 @@ describe('ArtistDeskView', () => {
     beforeEach(() => {
       vi.spyOn(window, 'confirm').mockReturnValue(true);
       vi.mocked(chapterService.submitManuscript).mockResolvedValue({ id: 'ass-handoff' } as any);
+      vi.mocked(artworkService.getArtworks).mockResolvedValue([
+        {
+          id: 'art-pencil-1',
+          chapterId: 'chap-1',
+          pageId: 'page-1',
+          pipelineStageId: 'stg-2',
+          versionNumber: 1,
+        } as any,
+        {
+          id: 'art-ink-1',
+          chapterId: 'chap-1',
+          pageId: 'page-1',
+          pipelineStageId: 'stg-3',
+          versionNumber: 1,
+        } as any,
+      ]);
     });
 
     it('hiển thị thanh tab giai đoạn Lucian cho Artist với 3 công đoạn Pencil, Ink, Lettering', async () => {
@@ -1967,11 +1983,8 @@ describe('ArtistDeskView', () => {
       // Ink Workspace Bar xuất hiện
       const inkBar = await screen.findByTestId('ink-stage-workspace-bar');
       expect(inkBar).toBeInTheDocument();
-      expect(screen.getByTestId('btn-nib-gpen')).toBeInTheDocument();
-      expect(screen.getByTestId('btn-nib-maru')).toBeInTheDocument();
-      expect(screen.getByTestId('btn-nib-turnip')).toBeInTheDocument();
-      expect(screen.getByTestId('btn-nib-bucket')).toBeInTheDocument();
-      expect(screen.getByTestId('btn-screentone-toggle')).toBeInTheDocument();
+      expect(screen.getByTestId('badge-ink-upload-mode')).toBeInTheDocument();
+      expect(screen.getByTestId('btn-upload-ink-art')).toBeInTheDocument();
       expect(screen.getByTestId('btn-toggle-pencil-underlay')).toBeInTheDocument();
       expect(screen.getByTestId('btn-toggle-safe-zone')).toBeInTheDocument();
       expect(screen.getByTestId('btn-handoff-ink-lettering-direct')).toBeInTheDocument();

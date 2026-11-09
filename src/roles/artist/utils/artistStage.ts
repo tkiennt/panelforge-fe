@@ -53,3 +53,17 @@ export function findStageByKind<T extends StageLike>(
 ): T | undefined {
   return stages.find((stage) => getArtistStageKind(stage) === kind);
 }
+
+/** Giới hạn dung lượng tải ảnh trang và khung panel: 20 MB (thống nhất với giới hạn nhận diện vùng). */
+export const MAX_ARTWORK_IMAGE_BYTES = 20 * 1024 * 1024;
+export const ALLOWED_ARTWORK_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp'] as const;
+
+let localIdCounter = 0;
+/** Tạo định danh duy nhất an toàn trên cả Secure Context và HTTP LAN / Non-secure Context. */
+export function generateSafeId(prefix = 'local'): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  localIdCounter += 1;
+  return `${prefix}-${Date.now()}-${localIdCounter}`;
+}

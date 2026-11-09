@@ -167,7 +167,12 @@ import { InkStageWorkspaceBar, type InkingNib, type ScreenToneLpi } from '../com
 import { LetteringStageWorkspaceBar } from '../components/LetteringStageWorkspaceBar';
 import { SafeZoneOverlay } from '../components/SafeZoneOverlay';
 import { ReadingFlowOverlay } from '../components/ReadingFlowOverlay';
-import { findStageByKind, getArtistStageKind } from '../utils/artistStage';
+import {
+  findStageByKind,
+  getArtistStageKind,
+  ALLOWED_ARTWORK_IMAGE_TYPES,
+  MAX_ARTWORK_IMAGE_BYTES,
+} from '../utils/artistStage';
 
 export const DEFAULT_MANGA_STAGES: PipelineStageDto[] = [
   { id: 'stage-pencil', name: 'Nét chì (Pencil)', slug: 'pencil', stageOrder: 1, isEnabled: true, isApprovalGate: false, isInitial: true, isTerminal: false, allowedRole: 'Artist' },
@@ -1650,20 +1655,9 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
       .sort((a, b) => a.stageOrder - b.stageOrder);
 
     if (matched.length > 0) {
-      const pencil = matched.find((s) => {
-        const sl = (s.slug || s.name || '').toLowerCase();
-        return sl.includes('pencil') || sl.includes('chì');
-      }) || DEFAULT_MANGA_STAGES[0];
-
-      const ink = matched.find((s) => {
-        const sl = (s.slug || s.name || '').toLowerCase();
-        return sl.includes('ink') || sl.includes('nét') || sl.includes('mực');
-      }) || DEFAULT_MANGA_STAGES[1];
-
-      const lettering = matched.find((s) => {
-        const sl = (s.slug || s.name || '').toLowerCase();
-        return sl.includes('letter') || sl.includes('thoại') || s.allowedRole === 'Letterer';
-      }) || DEFAULT_MANGA_STAGES[2];
+      const pencil = findStageByKind(matched, 'pencil') || DEFAULT_MANGA_STAGES[0];
+      const ink = findStageByKind(matched, 'ink') || DEFAULT_MANGA_STAGES[1];
+      const lettering = findStageByKind(matched, 'lettering') || DEFAULT_MANGA_STAGES[2];
 
       return [pencil, ink, lettering];
     }
@@ -1675,12 +1669,12 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
       const found = sortedStages.find((s) => {
         if (s.id === viewStageId) return true;
         const targetStr = viewStageId.toLowerCase();
+        const curKind = getArtistStageKind(s);
+        if (targetStr === 'pencil' && curKind === 'pencil') return true;
+        if (targetStr === 'ink' && curKind === 'ink') return true;
+        if (targetStr === 'lettering' && curKind === 'lettering') return true;
         const curSlug = (s.slug || '').toLowerCase();
-        const curName = (s.name || '').toLowerCase();
         if (curSlug && curSlug === targetStr) return true;
-        if (targetStr.includes('pencil') && (curSlug.includes('pencil') || curName.includes('pencil') || curName.includes('chì'))) return true;
-        if (targetStr.includes('ink') && (curSlug.includes('ink') || curName.includes('ink') || curName.includes('nét') || curName.includes('mực'))) return true;
-        if (targetStr.includes('letter') && (curSlug.includes('letter') || curName.includes('letter') || s.allowedRole === 'Letterer')) return true;
         return false;
       });
       return found || sortedStages[0] || null;
@@ -1737,13 +1731,13 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
   }, [pageArtworks, stages]);
 
   // Ảnh của đúng công đoạn đang mở, dùng cho thanh công cụ/nhận diện vùng.
-  // Không fallback sang ảnh công đoạn khác để tránh hiển thị Pencil như thể là Ink.
-  const workflowArtwork = isPencilStage ? pencilArtwork : isInkStage ? inkArtwork : pageArt;
+  // Không fallback sang ảnh công đoạn khác khi ở Ink (tránh nhận diện vùng hoặc hiển thị Pencil thành Ink).
+  const workflowArtwork = isInkStage ? inkArtwork : isPencilStage ? (pencilArtwork || pageArt) : pageArt;
   const workflowArtworkUrl = workflowArtwork ? panelArtworkUrls[workflowArtwork.id] : null;
 
   const hasArtworkForCurrentStage = useMemo(() => {
-    if (isPencilStage) return Boolean(pencilArtwork);
     if (isInkStage) return Boolean(inkArtwork);
+    if (isPencilStage) return Boolean(pencilArtwork || pageArt);
     return Boolean(pageArt);
   }, [isPencilStage, isInkStage, pencilArtwork, inkArtwork, pageArt]);
 
@@ -1842,6 +1836,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
     const stageAssignment = findStageAssignment(panelId);
     const effectiveStageId =
       stageAssignment?.pipelineStageId ||
+      uploadStage?.id ||
       currentActiveStage?.id ||
       stages.find((s) => s.isEnabled !== false)?.id ||
       stages[0]?.id;
@@ -1898,8 +1893,9 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
     }
     const stageAssignment = findPageStageAssignment();
     const effectiveStageId =
-      stageAssignment?.pipelineStageId ||
+      uploadStage?.id ||
       currentActiveStage?.id ||
+      stageAssignment?.pipelineStageId ||
       stages.find((s) => s.isEnabled !== false)?.id ||
       stages[0]?.id;
     if (!effectiveStageId) {
@@ -1943,6 +1939,10 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
   };
 
   const handleTriggerUploadPage = () => {
+    if (!canEditPages) {
+      showToast('Không có quyền', 'Bạn chỉ có quyền xem trang này, không thể tải ảnh.');
+      return;
+    }
     setUploadModalDefaultTab('single');
     setUploadModalOpen(true);
   };
@@ -1950,17 +1950,25 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
   const handlePanelFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !uploadingPanelId) return;
+    if (!ALLOWED_ARTWORK_IMAGE_TYPES.includes(file.type as any)) {
+      showToast('Tệp không hợp lệ', 'Vui lòng chỉ tải lên tệp định dạng hình ảnh PNG, JPG hoặc WebP.');
+      return;
+    }
+    if (file.size > MAX_ARTWORK_IMAGE_BYTES) {
+      showToast('Tệp quá lớn', 'Dung lượng ảnh khung tối đa là 20MB (đồng bộ nhận diện vùng).');
+      return;
+    }
     await uploadArtworkFileForPanel(uploadingPanelId, file);
   };
 
   /** Chọn / kéo thả / dán ảnh toàn trang: chỉ giữ lại để xem trước, chưa tải lên. */
   const stagePageFile = (file: File) => {
-    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
+    if (!ALLOWED_ARTWORK_IMAGE_TYPES.includes(file.type as any)) {
       showToast('Tệp không hợp lệ', 'Ảnh trang chỉ nhận PNG, JPEG hoặc WEBP.');
       return;
     }
-    if (file.size > 25 * 1024 * 1024) {
-      showToast('Ảnh quá lớn', 'Artwork tối đa 25 MB.');
+    if (file.size > MAX_ARTWORK_IMAGE_BYTES) {
+      showToast('Ảnh quá lớn', 'Artwork tối đa 20 MB (đồng bộ nhận diện vùng).');
       return;
     }
     setPendingPageFile(file);
@@ -2012,10 +2020,17 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
 
   const handlePanelFileDrop = async (panelId: string, file?: File) => {
     if (!file) return;
-    if (!file.type.startsWith('image/')) {
+    if (!ALLOWED_ARTWORK_IMAGE_TYPES.includes(file.type as any)) {
       showToast(
         'Tệp không hợp lệ',
-        'Vui lòng chỉ tải lên tệp định dạng hình ảnh (PNG, JPG, WEBP,...).',
+        'Vui lòng chỉ tải lên tệp định dạng hình ảnh PNG, JPG hoặc WebP.',
+      );
+      return;
+    }
+    if (file.size > MAX_ARTWORK_IMAGE_BYTES) {
+      showToast(
+        'Tệp quá lớn',
+        'Dung lượng ảnh khung tối đa là 20MB (đồng bộ nhận diện vùng).',
       );
       return;
     }
@@ -2654,10 +2669,11 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
     if (!confirmed) return;
 
     try {
-      if (pageArt?.id) {
+      const artToDelete = workflowArtwork || pageArt;
+      if (artToDelete?.id) {
         setPanelArtworkUrls((prev) => {
           const next = { ...prev };
-          delete next[pageArt.id];
+          delete next[artToDelete.id];
           return next;
         });
       }
@@ -4013,7 +4029,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                 className={`${toolbarBtn} text-violet-800 bg-violet-50 hover:bg-violet-100 border border-violet-200 font-semibold px-2 h-7 text-xs hidden 2xl:flex items-center gap-1`}
               >
                 <Sparkles className='w-3.5 h-3.5 text-violet-600' />
-                <span>AI Mô tả</span>
+                <span>Tạo mô tả vẽ (cả cảnh)</span>
               </button>
             )}
           </div>
@@ -5565,14 +5581,14 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                         </>
                       )}
 
-                      {/* Backdrop Layer: Ảnh Cả Trang (Full-page Composite) - hiển thị 100% rõ nét, không bị làm mờ */}
-                      {pageArtUrl && (
+                      {/* Backdrop Layer: Ảnh Cả Trang (Full-page Composite) của đúng công đoạn đang mở */}
+                      {workflowArtworkUrl && (
                         <>
                           <img
-                            src={pageArtUrl}
+                            src={workflowArtworkUrl}
                             alt={`Page #${selectedPage.pageNumber}`}
-                            onError={() => handleArtworkImgError(pageArt?.id)}
-                            onLoad={() => handleArtworkImgLoad(pageArt?.id)}
+                            onError={() => handleArtworkImgError(workflowArtwork?.id)}
+                            onLoad={() => handleArtworkImgLoad(workflowArtwork?.id)}
                             data-testid='canvas-full-page-backdrop'
                             className='absolute inset-0 w-full h-full object-contain pointer-events-none transition-opacity opacity-100 z-0'
                           />
@@ -5604,7 +5620,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
 
                       {/* Banner / Dropzone khi ở chế độ Full-Page và chưa có ảnh */}
                       {uploadMode === 'page' &&
-                        !pageArtUrl &&
+                        !workflowArtworkUrl &&
                         !pendingPagePreview &&
                         !uploadingPage && (
                           <div
@@ -7341,7 +7357,12 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
         pages={pages}
         defaultStageId={uploadStage?.id}
         stageName={uploadStage?.name}
+        availableStages={sortedStages}
         defaultTab={uploadModalDefaultTab}
+        canEditPages={canEditPages}
+        isCurrentPageCarvedOut={isCurrentPageCarvedOut}
+        hasCarvedOutPanelOnPage={hasCarvedOutPanelOnPage}
+        hasPanelOnlyAssignmentOnPage={hasPanelOnlyAssignmentOnPage}
         onSuccess={async (targetPageId?: string) => {
           setUploadMode('page');
           await loadPages(targetPageId);

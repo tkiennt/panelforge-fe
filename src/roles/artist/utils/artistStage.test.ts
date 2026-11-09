@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
   findStageByKind,
+  generateSafeId,
   getArtistStageKind,
   isArtistInkStage,
   isArtistLetteringStage,
   isArtistPencilStage,
+  MAX_ARTWORK_IMAGE_BYTES,
 } from './artistStage';
 
 describe('getArtistStageKind', () => {
@@ -50,5 +52,21 @@ describe('findStageByKind', () => {
     expect(findStageByKind(stages, 'pencil')?.slug).toBe('pencil');
     expect(findStageByKind(stages, 'ink')?.slug).toBe('ink');
     expect(findStageByKind(stages, 'lettering')?.slug).toBe('lettering');
+  });
+});
+
+describe('generateSafeId', () => {
+  it('tạo id không rỗng và duy nhất', () => {
+    const id1 = generateSafeId('test');
+    const id2 = generateSafeId('test');
+    expect(id1).toBeTruthy();
+    expect(id2).toBeTruthy();
+    expect(id1).not.toBe(id2);
+  });
+});
+
+describe('MAX_ARTWORK_IMAGE_BYTES', () => {
+  it('là 20 MB để thống nhất với nhận diện vùng', () => {
+    expect(MAX_ARTWORK_IMAGE_BYTES).toBe(20 * 1024 * 1024);
   });
 });
