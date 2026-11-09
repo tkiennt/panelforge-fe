@@ -278,7 +278,7 @@ interface DialogProps {
   onApplied: () => Promise<void> | void;
 }
 
-const SplitReviewDialog: React.FC<DialogProps> = ({
+export const SplitReviewDialog: React.FC<DialogProps> = ({
   page,
   artwork,
   canEdit,

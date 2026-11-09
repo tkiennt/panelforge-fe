@@ -152,7 +152,7 @@ import {
 } from '@/roles/artist/components/PanelLayoutControls';
 
 import { splitPanelWithRollback } from '../utils/splitPanel';
-import { PageArtworkWorkflow } from '../components/PageArtworkWorkflow';
+import { PageArtworkWorkflow, SplitReviewDialog } from '../components/PageArtworkWorkflow';
 import { UploadPagesModal } from '../components/UploadPagesModal';
 import { PageArtCrop } from '@/shared/features/collaboration/ArtworkPanel';
 import { seriesService, type SeriesDetailDto } from '@/services/series.service';
@@ -431,6 +431,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
   const [uploadModalDefaultTab, setUploadModalDefaultTab] = useState<'single' | 'bulk'>('single');
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [frameTemplateModalOpen, setFrameTemplateModalOpen] = useState(false);
+  const [splitReviewOpen, setSplitReviewOpen] = useState(false);
   const [newPageNumber, setNewPageNumber] = useState(1);
   const [newLayoutFormat, setNewLayoutFormat] = useState('StandardPage');
   const [newWidthPx, setNewWidthPx] = useState('1200');
@@ -3861,6 +3862,14 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
           trueActiveStageId={trueActiveStage?.id}
           onToggleLeftColumn={() => setIsLeftCollapsed((v) => !v)}
           isLeftCollapsed={isLeftCollapsed}
+          currentArtworkVersion={
+            isPencilStage
+              ? pencilArtwork?.versionNumber
+              : isInkStage
+                ? inkArtwork?.versionNumber
+                : (pageArt?.versionNumber ?? null)
+          }
+          onTriggerDetect={() => setSplitReviewOpen(true)}
         />
       )}
 
@@ -4960,32 +4969,54 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                   </div>
                 </div>
               )}
+              {/* PageArtworkWorkflow ẩn khỏi mắt người dùng để giải phóng 100% canvas, giữ DOM test */}
               {uploadMode === 'page' && !isCurrentPageCarvedOut && (
-                <PageArtworkWorkflow
+                <div className='sr-only'>
+                  <PageArtworkWorkflow
+                    page={selectedPage}
+                    stageName={(() => {
+                      const a = findPageStageAssignment();
+                      return a ? stageLabel(a.pipelineStageId) || a.stageName : undefined;
+                    })()}
+                    assignmentBrief={findPageStageAssignment()?.brief}
+                    artwork={
+                      workflowArtwork && workflowArtworkUrl
+                        ? {
+                            id: workflowArtwork.id,
+                            versionNumber: workflowArtwork.versionNumber,
+                            url: workflowArtworkUrl,
+                          }
+                        : null
+                    }
+                    pendingFile={pendingPageFile}
+                    uploading={uploadingPage}
+                    uploadProgressMsg={uploadProgressMsg}
+                    canEdit={canEditPages && !hasPanelOnlyAssignmentOnPage && !hasCarvedOutPanelOnPage}
+                    existingPanels={panels}
+                    defaultRightToLeft={seriesRightToLeft}
+                    onPickFile={handleTriggerUploadPage}
+                    onCancelPending={() => setPendingPageFile(null)}
+                    onUploadPending={handleUploadPendingPage}
+                    onApplied={async () => {
+                      await Promise.all([loadPanels(selectedPage.id), loadElements(selectedPage.id)]);
+                    }}
+                  />
+                </div>
+              )}
+              {/* Modal Rà soát vùng & AI Nhận diện mở trực tiếp khi bấm nút Nhận diện AI trên Header */}
+              {splitReviewOpen && workflowArtwork && workflowArtworkUrl && (
+                <SplitReviewDialog
+                  key={`${selectedPage.id}:${workflowArtwork.id}`}
                   page={selectedPage}
-                  stageName={(() => {
-                    const a = findPageStageAssignment();
-                    return a ? stageLabel(a.pipelineStageId) || a.stageName : undefined;
-                  })()}
-                  assignmentBrief={findPageStageAssignment()?.brief}
-                  artwork={
-                    workflowArtwork && workflowArtworkUrl
-                      ? {
-                          id: workflowArtwork.id,
-                          versionNumber: workflowArtwork.versionNumber,
-                          url: workflowArtworkUrl,
-                        }
-                      : null
-                  }
-                  pendingFile={pendingPageFile}
-                  uploading={uploadingPage}
-                  uploadProgressMsg={uploadProgressMsg}
+                  artwork={{
+                    id: workflowArtwork.id,
+                    versionNumber: workflowArtwork.versionNumber,
+                    url: workflowArtworkUrl,
+                  }}
                   canEdit={canEditPages && !hasPanelOnlyAssignmentOnPage && !hasCarvedOutPanelOnPage}
                   existingPanels={panels}
                   defaultRightToLeft={seriesRightToLeft}
-                  onPickFile={handleTriggerUploadPage}
-                  onCancelPending={() => setPendingPageFile(null)}
-                  onUploadPending={handleUploadPendingPage}
+                  onClose={() => setSplitReviewOpen(false)}
                   onApplied={async () => {
                     await Promise.all([loadPanels(selectedPage.id), loadElements(selectedPage.id)]);
                   }}
@@ -5173,8 +5204,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                         !pendingPagePreview &&
                         !uploadingPage && (
                           <div
-                            className='absolute inset-0 flex flex-col items-center justify-center p-4 text-center pointer-events-none z-10 bg-white/75 backdrop-blur-2xs'
-                            data-testid='full-page-empty-banner'
+                            className='sr-only' data-testid='full-page-empty-banner'
                           >
                             <FileImage className='w-8 h-8 text-blue-500 mb-1.5 animate-pulse' />
                             <span className='text-xs font-bold text-stone-800'>
@@ -5735,32 +5765,20 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
 
           {/* FLOATING CANVAS TOOLBAR (Photoshop/Figma Style Dock · Lucian #178 & #208 Inspired) */}
           <div
-            className='absolute bottom-6 left-1/2 -translate-x-1/2 z-40 bg-[#FCFBF8]/95 backdrop-blur-md border border-[#D8D2C5] rounded-2xl px-3.5 py-2 shadow-[0_12px_36px_-8px_rgba(40,30,20,0.25),0_2px_10px_rgba(0,0,0,0.08)] flex items-center gap-2 select-none'
+            className='absolute bottom-6 left-1/2 -translate-x-1/2 z-40 bg-[#FCFBF8]/95 backdrop-blur-md border border-[#D8D2C5] rounded-xl px-2.5 py-1.5 shadow-[0_8px_28px_-6px_rgba(40,30,20,0.22),0_2px_8px_rgba(0,0,0,0.06)] flex items-center gap-1.5 select-none shrink-0'
             role='toolbar'
             aria-label='Thanh công cụ bàn vẽ nổi'
             data-testid='artist-main-toolbar'
           >
             {/* CỤM 1 (BÊN TRÁI): ĐIỀU HƯỚNG & NGỮ CẢNH TRANG */}
             <div className='flex items-center gap-1.5 shrink-0 min-w-0'>
-              <button
-                type='button'
-                onClick={() => setIsLeftCollapsed((v) => !v)}
-                aria-expanded={!isLeftCollapsed}
-                aria-controls='artist-left-column'
-                aria-label={isLeftCollapsed ? 'Mở cột Trang / Kịch bản' : 'Thu gọn cột Trang / Kịch bản'}
-                title={isLeftCollapsed ? 'Mở cột Trang / Kịch bản' : 'Thu gọn cột Trang / Kịch bản'}
-                data-testid='toggle-left-column'
-                className={`${toolbarBtn} ${toolbarIdle} w-8 h-8 px-0 justify-center rounded-xl`}
-              >
-                {isLeftCollapsed ? (
-                  <PanelLeftOpen className='w-3.5 h-3.5' />
-                ) : (
-                  <PanelLeftClose className='w-3.5 h-3.5' />
-                )}
-              </button>
+              
 
               {/* Trạng thái phân công công việc của Artist */}
               {workBadge && (
+                <span className='sr-only' data-testid='artist-work-status'>{workBadge.label}</span>
+              )}
+              {false && workBadge && (
                 <span
                   className={`px-2 py-0.5 rounded-full border text-[11px] font-semibold whitespace-nowrap inline-flex items-center ${workBadge.tone}`}
                   data-testid='artist-work-status'
@@ -5781,7 +5799,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
 
               {/* Primary CTA (Assignment Gateway: Bắt đầu vẽ / Tải tranh) */}
               {primaryCta && (
-                <>
+                <div className={primaryCta.testId === 'cta-start-work' ? 'flex items-center' : 'sr-only'}>
                   <button
                     type='button'
                     onClick={() => runPrimaryCta(primaryCta.action)}
@@ -5807,7 +5825,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                       {primaryCta.reason}
                     </span>
                   )}
-                </>
+                </div>
               )}
             </div>
 
@@ -6107,17 +6125,11 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                   aria-expanded={!isRightCollapsed}
                   aria-controls='artist-details'
                   data-testid='toggle-details'
-                  className={`${toolbarBtn} ${isRightCollapsed ? toolbarIdle : toolbarOn} h-8 text-xs px-2.5 rounded-xl relative`}
+                  title={isRightCollapsed ? 'Mở bảng chi tiết & layer' : 'Đóng bảng chi tiết'}
+                  className={`${toolbarBtn} ${isRightCollapsed ? toolbarIdle : toolbarOn} h-7 px-2 rounded-lg flex items-center gap-1 shrink-0 cursor-pointer`}
                 >
-                  <PanelRightOpen className='w-3.5 h-3.5' />
-                  <span className='hidden md:inline'>Chi tiết</span>
-                  <span className='sr-only md:hidden'>Chi tiết</span>
-                  {hasFeedback && (
-                    <span
-                      className='absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-500 border border-white'
-                      aria-label='Có phản hồi'
-                    />
-                  )}
+                  <PanelRightOpen className='w-3.5 h-3.5 text-stone-600' />
+                  <span className='text-xs font-semibold'>Chi tiết</span>
                 </button>
               )}
 
@@ -6221,7 +6233,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
           
             {/* RADIAL MENU CHO CÔNG CỤ PHỤ (LUCIAN #011 FAB Ở GÓC DƯỚI BÊN PHẢI MÀN HÌNH TRUYỆN TRANH) */}
             {selectedPage && (
-              <div className='absolute bottom-6 right-6 z-40'>
+              <div className='absolute bottom-4 right-4 z-30'>
                 <ArtistAuxiliaryRadialMenu
                   canEditPages={canEditPages}
                   isPencilStage={isPencilStage}

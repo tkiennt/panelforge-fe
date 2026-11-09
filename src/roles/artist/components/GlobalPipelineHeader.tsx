@@ -16,6 +16,7 @@ import {
   Layers,
   PanelLeftOpen,
   PanelLeftClose,
+  ScanSearch,
 } from 'lucide-react';
 import { PageDto } from '@/services/page.service';
 import { ChapterDto } from '@/services/chapter.service';
@@ -41,6 +42,8 @@ interface Props {
   trueActiveStageId?: string;
   onToggleLeftColumn?: () => void;
   isLeftCollapsed?: boolean;
+  currentArtworkVersion?: number | null;
+  onTriggerDetect?: () => void;
 }
 
 export const GlobalPipelineHeader: React.FC<Props> = ({
@@ -62,6 +65,8 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
   trueActiveStageId,
   onToggleLeftColumn,
   isLeftCollapsed,
+  currentArtworkVersion,
+  onTriggerDetect,
 }) => {
   const currentIndex = selectedPage ? pages.findIndex((p) => p.id === selectedPage.id) : -1;
   const hasPrev = currentIndex > 0;
@@ -156,7 +161,7 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
           className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-[11px] font-bold font-mono tracking-wide ${stageBadgeTone}`}
         >
           <span className={`w-1.5 h-1.5 rounded-full ${dotColor} animate-pulse`} />
-          <span>{stageProgressLabel}</span>
+          <span>{currentArtworkVersion ? `${stageProgressLabel} · v${currentArtworkVersion}` : stageProgressLabel}</span>
         </div>
       </div>
 
@@ -287,13 +292,27 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
           {/* Badge số ảnh đã upload */}
           <div
             data-testid='uploaded-assets-count-badge'
-            className='hidden sm:flex items-center gap-1 px-2 py-1 rounded-md bg-[#FAF8F5] border border-[#D8D2C5] text-[11px] font-semibold text-stone-600'
+            className='sr-only'
             title={`Trang này có ${uploadedArtworksCount} ảnh/bản vẽ đã tải lên`}
           >
             <Layers className='w-3 h-3 text-stone-400' />
             <span>{uploadedArtworksCount} ảnh đã upload</span>
           </div>
         </div>
+
+                {/* Nút Nhận diện AI Panel & Thoại (Trực quan trên Header Bar) */}
+        {canEdit && onTriggerDetect && hasArtworkForCurrentStage && (
+          <button
+            type='button'
+            onClick={onTriggerDetect}
+            data-testid='header-workflow-detect-btn'
+            title='Rà soát và nhận diện AI khung tranh (panels) & bóng thoại (speech balloons)'
+            className='h-7 px-2.5 inline-flex items-center gap-1.5 rounded-lg border border-orange-300 bg-orange-50 hover:bg-orange-100 text-orange-800 text-xs font-bold transition-all shadow-2xs active:scale-95 cursor-pointer'
+          >
+            <ScanSearch className='w-3.5 h-3.5 text-orange-600' />
+            <span className='hidden sm:inline'>Nhận diện AI</span>
+          </button>
+        )}
 
         {/* Nút Submit chuyển giao Stage (Production Handover Action) */}
         {canEdit && onHandoffStage && activeStage && (
