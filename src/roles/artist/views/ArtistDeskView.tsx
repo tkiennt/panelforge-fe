@@ -5735,7 +5735,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
 
           {/* FLOATING CANVAS TOOLBAR (Photoshop/Figma Style Dock · Lucian #178 & #208 Inspired) */}
           <div
-            className='absolute bottom-4 left-1/2 -translate-x-1/2 z-40 bg-[#FCFBF8]/95 backdrop-blur-md border border-[#D8D2C5] rounded-2xl px-3.5 py-2 shadow-[0_12px_36px_-8px_rgba(40,30,20,0.25),0_2px_10px_rgba(0,0,0,0.08)] flex items-center gap-2 select-none'
+            className='absolute bottom-6 left-1/2 -translate-x-1/2 z-40 bg-[#FCFBF8]/95 backdrop-blur-md border border-[#D8D2C5] rounded-2xl px-3.5 py-2 shadow-[0_12px_36px_-8px_rgba(40,30,20,0.25),0_2px_10px_rgba(0,0,0,0.08)] flex items-center gap-2 select-none'
             role='toolbar'
             aria-label='Thanh công cụ bàn vẽ nổi'
             data-testid='artist-main-toolbar'
@@ -6041,44 +6041,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                   />
                 )}
 
-                {/* Lucian #011: Radial Menu cho các công cụ hỗ trợ phụ */}
-                <ArtistAuxiliaryRadialMenu
-                  canEditPages={canEditPages}
-                  isPencilStage={isPencilStage}
-                  isInkStage={isInkStage}
-                  hasStoryboard={Boolean(storyboardImgUrl)}
-                  showStoryboardOverlay={showStoryboardOverlay}
-                  onToggleStoryboardOverlay={() => setShowStoryboardOverlay((v) => !v)}
-                  storyboardOpacity={storyboardOpacity}
-                  onStoryboardOpacityChange={setStoryboardOpacity}
-                  bibleEntries={bibleEntries}
-                  selectedBibleEntryId={selectedModelSheetId}
-                  onSelectBibleEntry={setSelectedModelSheetId}
-                  onOpenAiAssist={() => {
-                    if (scenes.length === 0) {
-                      showToast(
-                        'Chưa có phân cảnh',
-                        'Chương này chưa có phân cảnh nào. Vui lòng tạo phân cảnh ở màn Kịch bản trước.',
-                      );
-                      return;
-                    }
-                    setAiPanelTargetPanelIds(null);
-                    setAiPanelOpen(true);
-                  }}
-                  layoutEdit={layoutEdit}
-                  onToggleLayoutEdit={() => {
-                    if (layoutEdit) setMultiIds([]);
-                    setLayoutEdit((v) => !v);
-                  }}
-                  disabledLayoutEdit={isCurrentPageCarvedOut}
-                  pencilUnderlayVisible={pencilUnderlayVisible}
-                  onTogglePencilUnderlay={() => setPencilUnderlayVisible((v) => !v)}
-                  hasPencilArt={Boolean(pencilImgUrl)}
-                  screenToneEnabled={screenToneEnabled}
-                  onToggleScreenTone={() => setScreenToneEnabled((v) => !v)}
-                  safeZoneVisible={safeZoneVisible}
-                  onToggleSafeZone={() => setSafeZoneVisible((v) => !v)}
-                />
+                
               </div>
             )}
 
@@ -6255,6 +6218,49 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                 )}
               </div>
             </div>
+          
+            {/* RADIAL MENU CHO CÔNG CỤ PHỤ (LUCIAN #011 FAB Ở GÓC DƯỚI BÊN PHẢI MÀN HÌNH TRUYỆN TRANH) */}
+            {selectedPage && (
+              <div className='absolute bottom-6 right-6 z-40'>
+                <ArtistAuxiliaryRadialMenu
+                  canEditPages={canEditPages}
+                  isPencilStage={isPencilStage}
+                  isInkStage={isInkStage}
+                  hasStoryboard={Boolean(storyboardImgUrl)}
+                  showStoryboardOverlay={showStoryboardOverlay}
+                  onToggleStoryboardOverlay={() => setShowStoryboardOverlay((v) => !v)}
+                  storyboardOpacity={storyboardOpacity}
+                  onStoryboardOpacityChange={setStoryboardOpacity}
+                  bibleEntries={bibleEntries}
+                  selectedBibleEntryId={selectedModelSheetId}
+                  onSelectBibleEntry={setSelectedModelSheetId}
+                  onOpenAiAssist={() => {
+                    if (scenes.length === 0) {
+                      showToast(
+                        'Chưa có phân cảnh',
+                        'Chương này chưa có phân cảnh nào. Vui lòng tạo phân cảnh ở màn Kịch bản trước.',
+                      );
+                      return;
+                    }
+                    setAiPanelTargetPanelIds(null);
+                    setAiPanelOpen(true);
+                  }}
+                  layoutEdit={layoutEdit}
+                  onToggleLayoutEdit={() => {
+                    if (layoutEdit) setMultiIds([]);
+                    setLayoutEdit((v) => !v);
+                  }}
+                  disabledLayoutEdit={isCurrentPageCarvedOut}
+                  pencilUnderlayVisible={pencilUnderlayVisible}
+                  onTogglePencilUnderlay={() => setPencilUnderlayVisible((v) => !v)}
+                  hasPencilArt={Boolean(pencilImgUrl)}
+                  screenToneEnabled={screenToneEnabled}
+                  onToggleScreenTone={() => setScreenToneEnabled((v) => !v)}
+                  safeZoneVisible={safeZoneVisible}
+                  onToggleSafeZone={() => setSafeZoneVisible((v) => !v)}
+                />
+              </div>
+            )}
           </div>
         </section>
 
