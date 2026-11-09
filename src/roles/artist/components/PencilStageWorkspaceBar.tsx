@@ -13,6 +13,7 @@ import {
 import { BibleEntryDto } from '@/services/bible.service';
 
 interface Props {
+  onlyUploadButton?: boolean;
   // Storyboard Overlay
   storyboardOpacity: number;
   onStoryboardOpacityChange: (val: number) => void;
@@ -41,6 +42,7 @@ interface Props {
 }
 
 export const PencilStageWorkspaceBar: React.FC<Props> = ({
+  onlyUploadButton = false,
   storyboardOpacity,
   onStoryboardOpacityChange,
   showStoryboardOverlay,
@@ -108,7 +110,7 @@ export const PencilStageWorkspaceBar: React.FC<Props> = ({
         </button>
       )}
 
-      {/* =========================================================================
+      <div className={onlyUploadButton ? 'sr-only' : 'flex items-center gap-1.5'}>{/* =========================================================================
           REFERENCE TOOLS: STORYBOARD OVERLAY
          ========================================================================= */}
       <div className='flex items-center gap-1 bg-[#F3EFE6] px-2 py-0.5 rounded-lg border border-[#DDD6C8] text-[11px] h-7'>
@@ -221,7 +223,7 @@ export const PencilStageWorkspaceBar: React.FC<Props> = ({
             </div>
           </div>
         )}
-      </div>
+      </div></div>
 
       {/* Bộ lọc xem chì xanh/chì đen (Thu gọn để không gây rối giao diện) */}
       <div className='sr-only'>
