@@ -1575,68 +1575,27 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                     />
                   )}
 
-                  {/* Thanh công cụ nổi Studio Floating Bar cho Phác thảo toàn trang */}
-                  {currentSketch && (
+                  {/* Nút Tách khung đơn giản ở góc phải trên sau khi tải ảnh phác thảo */}
+                  {currentSketch && currentPagePanels.length === 0 && (
                     <div
-                      data-testid='pencil-sketch-floating-bar'
-                      className='absolute top-3.5 inset-x-auto z-40 flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-stone-900/95 text-white backdrop-blur-md shadow-2xl border border-white/15 text-xs animate-in fade-in slide-in-from-top-2 duration-200'
+                      data-testid='pencil-sketch-split-btn'
+                      className='absolute top-3 right-3 z-30 pointer-events-auto'
                     >
-                      <div className='flex items-center gap-1.5 font-bold text-amber-400 pl-0.5'>
-                        <Sparkles className='w-3.5 h-3.5 animate-pulse' />
-                        <span className='text-[11px]'>Phác thảo toàn trang</span>
-                      </div>
-                      <div className='h-3.5 w-px bg-white/20 mx-0.5' />
-
-                      <button
-                        type='button'
-                        onClick={handleToggleSketchVisibility}
-                        className='flex items-center gap-1 px-2 py-1 rounded-md hover:bg-white/10 text-stone-200 hover:text-white transition-colors cursor-pointer text-[11px]'
-                        title={currentSketch.isVisible ? 'Ẩn ảnh phác thảo' : 'Hiện ảnh phác thảo'}
-                      >
-                        {currentSketch.isVisible ? (
-                          <Eye className='w-3.5 h-3.5 text-emerald-400' />
-                        ) : (
-                          <EyeOff className='w-3.5 h-3.5 text-stone-400' />
-                        )}
-                        <span>{currentSketch.isVisible ? 'Hiện' : 'Ẩn'}</span>
-                      </button>
-
                       <button
                         type='button'
                         onClick={handleAutoDetectPanels}
                         disabled={isDetectingPanels}
-                        data-testid='btn-auto-detect-panels'
-                        className='flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold shadow-xs transition-all cursor-pointer disabled:opacity-60 text-[11px] hover:scale-105 active:scale-95'
+                        data-testid='btn-split-panels-simple'
+                        className='px-3.5 py-1.5 rounded-lg bg-stone-900 hover:bg-black text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm cursor-pointer transition-colors disabled:opacity-60'
                       >
                         {isDetectingPanels ? (
                           <>
-                            <Loader2 className='w-3.5 h-3.5 animate-spin' />
-                            <span>Đang tách panel...</span>
+                            <Loader2 className='w-3.5 h-3.5 animate-spin text-amber-400' />
+                            <span>Đang tách khung...</span>
                           </>
                         ) : (
-                          <>
-                            <Wand2 className='w-3.5 h-3.5' />
-                            <span>Tự động tách panel</span>
-                          </>
+                          <span>Tách khung</span>
                         )}
-                      </button>
-
-                      <button
-                        type='button'
-                        onClick={() => sketchFileInputRef.current?.click()}
-                        className='p-1 rounded-md hover:bg-white/10 text-stone-300 hover:text-white transition-colors cursor-pointer'
-                        title='Đổi ảnh phác thảo khác'
-                      >
-                        <RotateCcw className='w-3.5 h-3.5' />
-                      </button>
-
-                      <button
-                        type='button'
-                        onClick={handleRemoveSketch}
-                        className='p-1 rounded-md hover:bg-rose-500/20 text-stone-300 hover:text-rose-400 transition-colors cursor-pointer'
-                        title='Gỡ ảnh phác thảo'
-                      >
-                        <X className='w-3.5 h-3.5' />
                       </button>
                     </div>
                   )}
