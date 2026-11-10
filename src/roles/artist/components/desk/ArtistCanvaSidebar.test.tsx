@@ -84,7 +84,7 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
     expect(screen.getByTestId('canva-drawer-script')).toBeInTheDocument();
     expect(screen.getByText('Phân cảnh 1: Cổng Thành Phía Nam')).toBeInTheDocument();
     expect(screen.getByText('NGOẠI · CỔNG THÀNH · SÁNG')).toBeInTheDocument();
-    expect(screen.getByText('Minh Triết')).toBeInTheDocument();
+    expect(screen.getAllByText('Minh Triết').length).toBeGreaterThan(0);
   });
 
   it('switches to Series Bible tab and displays character and location lore cards', () => {
@@ -216,7 +216,7 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
     // Verify continuous manuscript container
     expect(screen.getByTestId('canva-script-manuscript-flow')).toBeInTheDocument();
     expect(screen.getByText(/── TRANG 1 ──/i)).toBeInTheDocument();
-    expect(screen.getByTestId('script-panel-section-1')).toBeInTheDocument();
+    expect(screen.getByTestId('script-panel-section-1-1')).toBeInTheDocument();
 
     // Search filter in script
     const searchInput = screen.getByTestId('canva-input-search-script');

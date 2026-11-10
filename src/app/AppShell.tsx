@@ -620,7 +620,7 @@ export function AppShell({
   return (
     <div className='h-screen w-full flex overflow-hidden text-[#1C1917] bg-[#F3F0E9]'>
       {/* --- MOBILE DRAWER (< md) --- */}
-      {!isReader && !isArtistDesk && (
+      {!isReader && (
         <SidebarDrawer
           isOpen={isMobileDrawerOpen}
           onClose={() => setIsMobileDrawerOpen(false)}
@@ -658,7 +658,7 @@ export function AppShell({
       )}
 
       {/* --- PERMANENT SIDEBAR (>= md) --- */}
-      {!isArtistDesk && (
+      {!isReader && (
         <AppShellSidebar
           currentUser={currentUser}
           activeWorkspace={activeWorkspace}
@@ -683,7 +683,7 @@ export function AppShell({
       <div className='flex-1 flex flex-col min-w-0 h-full bg-[#F3F0E9] relative overflow-hidden'>
         <header className='h-16 bg-[#FCFBF8]/95 backdrop-blur-md border-b border-[#D8D2C5] flex items-center justify-between px-4 md:px-6 shrink-0 z-20'>
           <div className='flex items-center gap-2 min-w-0'>
-            {!isReader && !isArtistDesk && (
+            {!isReader && (
               <button
                 type='button'
                 onClick={() => setIsMobileDrawerOpen(true)}
@@ -762,7 +762,7 @@ export function AppShell({
                           <span className='truncate'>
                             {chapterId.toLowerCase().startsWith('ch') || !isNaN(Number(chapterId))
                               ? `Chapter ${chapterId.replace(/^chapter-?/i, '')}`
-                              : `Chapter (${chapterId.slice(0, 8)})`}
+                              : 'Chapter'}
                           </span>
                         </div>
                       </>
