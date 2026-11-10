@@ -74,10 +74,9 @@ const DEFAULT_INITIAL_PAGES: PageDto[] = [
 
 /**
  * ArtistDeskView - Canva-Style Manga Workspace
- * - Background trong suốt tự nhiên (hòa hợp hoàn toàn với AppShell).
- * - Trang giấy trắng canh giữa màn hình tuyệt đối, đổ bóng tự nhiên như trang giấy vẽ thật.
- * - Mở lên mượt mà với hiệu ứng chuyển cảnh mềm mại.
- * - Quản lý trang nằm ở cạnh đáy theo kiểu Canva.
+ * - Background của không gian làm việc giữ nguyên như cũ (#F3F0E9 warm studio tone).
+ * - Trang giấy trắng canh giữa màn hình, đổ bóng tự nhiên như giấy vẽ thật.
+ * - Phần quản lý trang ở cạnh đáy: background trong suốt và căn giữa màn hình tuyệt đối.
  */
 export const ArtistDeskView: React.FC<ArtistDeskViewProps> = () => {
   const { seriesId } = useParams<{ workspaceId?: string; seriesId?: string }>();
@@ -222,10 +221,10 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = () => {
   return (
     <div
       ref={containerRef}
-      className='flex-1 basis-0 min-h-0 w-full h-full flex flex-col bg-transparent text-[#1C1917] overflow-hidden select-none relative animate-in fade-in duration-300'
+      className='flex-1 basis-0 min-h-0 w-full h-full flex flex-col bg-[#F3F0E9] text-[#1C1917] overflow-hidden select-none relative animate-in fade-in duration-300'
       data-testid='artist-desk'
     >
-      {/* KHU VỰC BÀN VẼ CHÍNH (CANVAS WORKSPACE) - Căn giữa màn hình tuyệt đối, nền trong suốt */}
+      {/* KHU VỰC BÀN VẼ CHÍNH (CANVAS WORKSPACE) - Căn giữa màn hình, giữ màu nền workspace #F3F0E9 */}
       <main
         className='relative flex-1 min-h-0 min-w-0 w-full h-full flex items-center justify-center p-4 sm:p-6 md:p-8 overflow-hidden'
         data-testid='artist-canvas-shell'
@@ -256,7 +255,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = () => {
         </div>
       </main>
 
-      {/* THANH QUẢN LÝ TRANG Ở ĐÁY MÀN HÌNH - PHONG CÁCH CANVA TRONG SUỐT GỌN GÀNG */}
+      {/* THANH QUẢN LÝ TRANG Ở ĐÁY MÀN HÌNH - BACKGROUND TRONG SUỐT & CĂN GIỮA MÀN HÌNH TUYỆT ĐỐI */}
       <ArtistBottomPageStrip
         pages={pages}
         selectedPageId={selectedPageId}
