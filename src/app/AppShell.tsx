@@ -561,7 +561,17 @@ export function AppShell({
       const cleanHref = href.startsWith('/') ? href.slice(1) : href;
       target = `/workspaces/${workspaceId}/series/${seriesId}/${cleanHref}`;
     }
-    navigate(target.startsWith('/') ? target : `/${target}`);
+    const finalTarget = target.startsWith('/') ? target : `/${target}`;
+    if (
+      typeof document !== 'undefined' &&
+      typeof (document as any).startViewTransition === 'function'
+    ) {
+      (document as any).startViewTransition(() => {
+        navigate(finalTarget);
+      });
+    } else {
+      navigate(finalTarget);
+    }
   };
 
   // Set isActive based on location pathname: ưu tiên route khớp chính xác nhất/dài nhất để tránh nhiều mục cùng active ngoài chủ đích
@@ -929,7 +939,7 @@ export function AppShell({
         </header>
 
         <main className='flex-1 overflow-y-auto custom-scrollbar flex flex-col relative min-h-0 bg-[#F3F0E9]'>
-          <div className='relative z-10 w-full min-h-full flex-1 flex flex-col'>
+          <div className='relative z-10 w-full min-h-full flex-1 flex flex-col transition-opacity duration-200 animate-in fade-in'>
             <ErrorBoundary>
               <Suspense fallback={<RouteFallback />}>{children || <Outlet />}</Suspense>
             </ErrorBoundary>
