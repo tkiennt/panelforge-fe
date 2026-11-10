@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
-import { BookOpen, Type, FileImage } from 'lucide-react';
+import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
+import { BookOpen, Type, FileImage, ChevronLeft } from 'lucide-react';
 import { chapterService, ChapterDto } from '@/services/chapter.service';
 import { pageService, PageDto } from '@/services/page.service';
 import { LetteringWorkspace } from './LetteringWorkspace';
 
 export default function LettererDeskView() {
-  const { seriesId } = useParams<{ workspaceId?: string; seriesId?: string }>();
+  const { workspaceId, seriesId } = useParams<{ workspaceId?: string; seriesId?: string }>();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const chapterIdFromUrl = searchParams.get('chapterId');
   const pageIdFromUrl = searchParams.get('pageId');
@@ -66,6 +67,24 @@ export default function LettererDeskView() {
         </div>
 
         <div className='flex items-center gap-3 flex-wrap'>
+          {/* Nút quay lại màn hình chọn chương */}
+          <button
+            type='button'
+            data-testid='letterer-back-to-selection-btn'
+            onClick={() => {
+              if (workspaceId && seriesId) {
+                navigate(`/workspaces/${workspaceId}/series/${seriesId}/letterer`);
+              } else {
+                navigate(-1);
+              }
+            }}
+            className='flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-[#57534E] hover:text-[#1C1917] hover:bg-[#EBE7DF] rounded-xl transition-colors cursor-pointer shrink-0 border border-[#E5E0D8] bg-[#F3F0E9]/50 shadow-2xs'
+            title='Quay lại màn hình danh sách chọn chương'
+          >
+            <ChevronLeft className='w-3.5 h-3.5' />
+            <span className='hidden sm:inline'>Đổi chương</span>
+          </button>
+
           {/* Chapter Selector */}
           {chapters.length > 0 && (
             <div className='flex items-center gap-1.5 bg-[#FCFBF8] px-3.5 py-1.5 rounded-full border border-[#D8D2C5] text-xs shadow-soft-sm'>

@@ -487,7 +487,13 @@ export const FocusWorkspaceLayout: React.FC<FocusWorkspaceLayoutProps> = ({
     const targetPath =
       headerConfig?.seriesPath ||
       (workspaceId && seriesId
-        ? getRoleDefaultPath(currentUser.workspaceRole || currentUser.role, workspaceId, seriesId)
+        ? location.pathname.includes('/artist')
+          ? `/workspaces/${workspaceId}/series/${seriesId}/artist`
+          : location.pathname.includes('/script')
+            ? `/workspaces/${workspaceId}/series/${seriesId}/script`
+            : location.pathname.includes('/letterer')
+              ? `/workspaces/${workspaceId}/series/${seriesId}/letterer`
+              : getRoleDefaultPath(currentUser.workspaceRole || currentUser.role, workspaceId, seriesId)
         : workspaceId
           ? `/workspaces/${workspaceId}/series`
           : '/workspaces');

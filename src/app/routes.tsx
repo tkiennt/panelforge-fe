@@ -95,7 +95,17 @@ const PublisherSeriesView = lazy(() =>
 const ScriptEditorView = lazy(() =>
   import('@/roles/writer/views/ScriptEditorView').then((m) => ({ default: m.ScriptEditorView })),
 );
+const ScriptChapterSelectionView = lazy(() =>
+  import('@/roles/writer/views/ScriptChapterSelectionView').then((m) => ({
+    default: m.ScriptChapterSelectionView,
+  })),
+);
 const LettererDeskView = lazy(() => import('@/roles/letterer/views/LettererDeskView'));
+const LettererChapterSelectionView = lazy(() =>
+  import('@/roles/letterer/views/LettererChapterSelectionView').then((m) => ({
+    default: m.LettererChapterSelectionView,
+  })),
+);
 import {
   SystemRole,
   WorkspaceRole,
@@ -452,6 +462,19 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                   path='artist'
                   element={<ArtistChapterSelectionView onShowToast={showToast} />}
                 />
+                <Route
+                  path='script'
+                  element={
+                    <ScriptChapterSelectionView
+                      onShowToast={showToast}
+                      workspaceRole={currentWorkspaceRole}
+                    />
+                  }
+                />
+                <Route
+                  path='letterer'
+                  element={<LettererChapterSelectionView onShowToast={showToast} />}
+                />
               </Route>
             </Route>
 
@@ -524,7 +547,7 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                 element={<ArtistWorkspaceView workspaceRole={currentWorkspaceRole} />}
               />
               <Route
-                path='script'
+                path='script/editor'
                 element={
                   <ScriptEditorView
                     currentUserId={currentUserInfo?.id}
@@ -533,7 +556,29 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                   />
                 }
               />
-              <Route path='letterer' element={<LettererDeskView />} />
+              <Route
+                path='script/editor/:chapterId'
+                element={
+                  <ScriptEditorView
+                    currentUserId={currentUserInfo?.id}
+                    onShowToast={showToast}
+                    workspaceRole={currentWorkspaceRole}
+                  />
+                }
+              />
+              <Route
+                path='chapters/:chapterId/script'
+                element={
+                  <ScriptEditorView
+                    currentUserId={currentUserInfo?.id}
+                    onShowToast={showToast}
+                    workspaceRole={currentWorkspaceRole}
+                  />
+                }
+              />
+              <Route path='letterer/desk' element={<LettererDeskView />} />
+              <Route path='letterer/desk/:chapterId' element={<LettererDeskView />} />
+              <Route path='chapters/:chapterId/letterer' element={<LettererDeskView />} />
               <Route
                 path='task/:taskId'
                 element={

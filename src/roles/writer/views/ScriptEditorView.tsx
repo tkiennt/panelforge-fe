@@ -1220,6 +1220,10 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     setSelectedScene(null);
     setScenes([]);
     setChapterScenesDetail([]);
+    if (workspaceId && seriesId) {
+      navigate(`/workspaces/${workspaceId}/series/${seriesId}/script`);
+      return;
+    }
     setSearchParams((prev) => {
       const p = new URLSearchParams(prev);
       p.delete('chapterId');
