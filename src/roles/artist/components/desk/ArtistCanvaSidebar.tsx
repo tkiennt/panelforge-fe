@@ -1941,19 +1941,6 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                     <span className='truncate'>{templateError}</span>
                   </div>
                 )}
-
-                {/* Banner cảnh báo khóa chọn khung khi trang đang có ảnh phác thảo toàn trang */}
-                {hasSketchUnderlay && (
-                  <div
-                    data-testid='canva-sketch-locked-banner'
-                    className='px-2.5 py-2 rounded-xl bg-amber-500/10 border border-amber-300/60 dark:border-amber-800/60 flex items-start gap-2 text-[10.5px] text-amber-800 dark:text-amber-300 animate-in fade-in duration-200'
-                  >
-                    <AlertTriangle className='w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5' />
-                    <span>
-                      Trang đang có ảnh phác thảo toàn trang. Tách khung hoặc gỡ ảnh trước khi chọn mẫu để tránh bị chồng khung.
-                    </span>
-                  </div>
-                )}
               </div>
 
               {/* Lưới thẻ mẫu khung */}
