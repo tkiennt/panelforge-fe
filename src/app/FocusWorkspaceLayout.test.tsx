@@ -55,4 +55,21 @@ describe('FocusWorkspaceLayout Component', () => {
     // AppShellSidebar is NOT present (preventing the 2-sidebar conflict!)
     expect(screen.queryByTestId('app-shell-sidebar')).not.toBeInTheDocument();
   });
+
+  it('supports toggling Zen Mode on via button or key and off via floating pill', () => {
+    renderLayout();
+
+    // Click Zen mode button
+    const zenBtn = screen.getByTestId('focus-zen-toggle-btn');
+    fireEvent.click(zenBtn);
+
+    // Header collapses, floating pill appears
+    expect(screen.queryByTestId('focus-studio-header')).not.toBeInTheDocument();
+    expect(screen.getByTestId('focus-zen-pill')).toBeInTheDocument();
+
+    // Exit Zen mode
+    fireEvent.click(screen.getByText(/Thoát Zen Mode/i));
+    expect(screen.getByTestId('focus-studio-header')).toBeInTheDocument();
+    expect(screen.queryByTestId('focus-zen-pill')).not.toBeInTheDocument();
+  });
 });
