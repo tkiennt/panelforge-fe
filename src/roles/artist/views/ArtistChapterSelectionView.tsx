@@ -19,6 +19,7 @@ import {
   AlertCircle,
   Loader2,
 } from 'lucide-react';
+import { PageContainer } from '@/shared/components/PageContainer';
 import { chapterService, ChapterDto } from '@/services/chapter.service';
 import { seriesService, SeriesDetailDto } from '@/services/series.service';
 
@@ -207,51 +208,30 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
   };
 
   return (
-    <div
+    <PageContainer
       data-testid='artist-chapter-selection-view'
-      className='w-full min-h-[calc(100vh-4rem)] px-4 sm:px-6 py-6 md:px-8 space-y-6 bg-[#FAF8F5] dark:bg-[#1C1917] text-[#1C1917] dark:text-[#F5F5F4] transition-colors'
+      className='space-y-6 py-6 text-[#1C1917] dark:text-[#F5F5F4] font-sans'
     >
-      {/* 1. TOP-BAR: TIÊU ĐỀ, HƯỚNG DẪN & THỐNG KÊ NHANH */}
+      {/* 1. TOP-BAR: TIÊU ĐỀ, HƯỚNG DẪN & THỐNG KÊ NHANH (KHÔNG LẶP LẠI BREADCRUMB CỦA APPSHELL ĐỂ TRÁNH TRÙNG 2 HEADER) */}
       <div className='bg-[#FCFBF8] dark:bg-[#292524] border border-[#D8D2C5] dark:border-stone-800 rounded-2xl p-5 sm:p-6 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-6'>
-        <div className='space-y-2 min-w-0'>
-          {/* Breadcrumb */}
-          <nav
-            aria-label='Breadcrumb'
-            className='flex items-center gap-1.5 text-xs text-[#78716C] dark:text-stone-400 font-medium flex-wrap'
-          >
-            <span className='hover:text-[#1C1917] dark:hover:text-stone-200 transition-colors'>
-              Trang chủ
+        <div className='space-y-1.5 min-w-0'>
+          <div className='flex items-center gap-2.5 flex-wrap'>
+            <span className='px-2.5 py-0.5 rounded-full bg-[#FFF2E6] dark:bg-orange-950/50 border border-[#F97316]/30 text-[#C2410C] dark:text-orange-400 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1'>
+              <Palette className='w-3 h-3' />
+              <span>ARTIST PRODUCTION DESK</span>
             </span>
-            <span className='text-[#A8A29E] select-none'>/</span>
-            <span className='hover:text-[#1C1917] dark:hover:text-stone-200 transition-colors'>
-              Series
-            </span>
-            <span className='text-[#A8A29E] select-none'>/</span>
-            <span className='text-[#C2410C] font-semibold truncate max-w-xs'>{seriesTitle}</span>
-            <span className='text-[#A8A29E] select-none'>/</span>
-            <span className='text-[#1C1917] dark:text-stone-200 font-semibold'>Bàn vẽ họa sĩ</span>
-          </nav>
-
-          {/* Tiêu đề & hướng dẫn */}
-          <div className='space-y-1'>
-            <div className='flex items-center gap-2.5 flex-wrap'>
-              <span className='px-2.5 py-0.5 rounded-full bg-[#FFF2E6] dark:bg-orange-950/50 border border-[#F97316]/30 text-[#C2410C] dark:text-orange-400 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1'>
-                <Palette className='w-3 h-3' />
-                <span>ARTIST PRODUCTION DESK</span>
-              </span>
-              <h1 className='text-xl sm:text-2xl font-bold font-serif text-[#1C1917] dark:text-stone-100 tracking-tight'>
-                Bàn vẽ họa sĩ — {seriesTitle}
-              </h1>
-            </div>
-            <p className='text-xs text-[#57534E] dark:text-stone-400 leading-relaxed max-w-3xl'>
-              <strong className='text-[#1C1917] dark:text-stone-200 font-semibold'>
-                Chọn Chương Để Mở Bàn Vẽ Chuyên Dụng
-              </strong>{' '}
-              — Lựa chọn một chương để bước vào không gian vẽ toàn màn hình độc lập (Focus
-              Workspace), phân rã bố cục khung tranh (Panel Templates), nạp bản thảo chì (Pencil),
-              đi nét mực (Ink) và tải tranh hoàn thiện.
-            </p>
+            <h1 className='text-xl sm:text-2xl font-bold font-serif text-[#1C1917] dark:text-stone-100 tracking-tight'>
+              Bàn vẽ họa sĩ — {seriesTitle}
+            </h1>
           </div>
+          <p className='text-xs text-[#57534E] dark:text-stone-400 leading-relaxed max-w-3xl'>
+            <strong className='text-[#1C1917] dark:text-stone-200 font-semibold'>
+              Chọn Chương Để Mở Bàn Vẽ Chuyên Dụng
+            </strong>{' '}
+            — Lựa chọn một chương để bước vào không gian vẽ toàn màn hình độc lập (Focus
+            Workspace), phân rã bố cục khung tranh (Panel Templates), nạp bản thảo chì (Pencil),
+            đi nét mực (Ink) và tải tranh hoàn thiện.
+          </p>
         </div>
 
         {/* Khối thống kê nhanh KPI */}
@@ -659,7 +639,7 @@ export const ArtistChapterSelectionView: React.FC<ArtistChapterSelectionViewProp
           </div>
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 };
 

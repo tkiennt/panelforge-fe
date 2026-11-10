@@ -279,7 +279,7 @@ export function AppShell({
               {
                 icon: FileText,
                 label: t('navigation.menu.script'),
-                href: `/workspaces/${workspaceId}/series/${seriesId}/script${chapterQuery}`,
+                href: `/workspaces/${workspaceId}/series/${seriesId}/script`,
               },
               {
                 icon: LayoutTemplate,
@@ -289,7 +289,7 @@ export function AppShell({
               {
                 icon: Type,
                 label: t('navigation.menu.lettering'),
-                href: `/workspaces/${workspaceId}/series/${seriesId}/letterer${chapterQuery}`,
+                href: `/workspaces/${workspaceId}/series/${seriesId}/letterer`,
               },
               {
                 icon: BookMarked,
@@ -366,7 +366,7 @@ export function AppShell({
               {
                 icon: FileText,
                 label: t('navigation.menu.script'),
-                href: `/workspaces/${workspaceId}/series/${seriesId}/script${chapterQuery}`,
+                href: `/workspaces/${workspaceId}/series/${seriesId}/script`,
               },
               // Màn làm việc riêng theo vai trò (route artist/letterer đã có trong routes.tsx)
               ...(effectiveRole === 'ARTIST'
@@ -383,7 +383,7 @@ export function AppShell({
                     {
                       icon: Type,
                       label: t('navigation.menu.lettering'),
-                      href: `/workspaces/${workspaceId}/series/${seriesId}/letterer${chapterQuery}`,
+                      href: `/workspaces/${workspaceId}/series/${seriesId}/letterer`,
                     },
                   ]
                 : []),
@@ -602,6 +602,12 @@ export function AppShell({
   const isArtistDesk =
     location.pathname.endsWith('/artist') ||
     location.pathname.endsWith('/artist/');
+  const isScriptDesk =
+    location.pathname.endsWith('/script') ||
+    location.pathname.endsWith('/script/');
+  const isLettererDesk =
+    location.pathname.endsWith('/letterer') ||
+    location.pathname.endsWith('/letterer/');
 
   return (
     <div className='h-screen w-full flex overflow-hidden text-[#1C1917] bg-[#F3F0E9]'>
@@ -774,6 +780,30 @@ export function AppShell({
                         >
                           <LayoutTemplate className='w-3.5 h-3.5 text-[#F97316]' />
                           <span className='truncate'>Bàn vẽ Khung tranh</span>
+                        </div>
+                      </>
+                    )}
+                    {isScriptDesk && (
+                      <>
+                        <span className='mx-1.5 text-[#a8a29e] font-bold select-none'>/</span>
+                        <div
+                          className='flex items-center gap-1.5 px-3 py-1 text-xs font-bold text-[#0c0a09] truncate bg-white rounded-full border border-[#d6d3d1] shadow-soft-sm'
+                          data-testid='header-script-breadcrumb'
+                        >
+                          <FileText className='w-3.5 h-3.5 text-[#C2410C]' />
+                          <span className='truncate'>Quản lý Kịch bản</span>
+                        </div>
+                      </>
+                    )}
+                    {isLettererDesk && (
+                      <>
+                        <span className='mx-1.5 text-[#a8a29e] font-bold select-none'>/</span>
+                        <div
+                          className='flex items-center gap-1.5 px-3 py-1 text-xs font-bold text-[#0c0a09] truncate bg-white rounded-full border border-[#d6d3d1] shadow-soft-sm'
+                          data-testid='header-letterer-breadcrumb'
+                        >
+                          <Type className='w-3.5 h-3.5 text-[#C2410C]' />
+                          <span className='truncate'>Bàn làm việc Chữ & Thoại</span>
                         </div>
                       </>
                     )}
