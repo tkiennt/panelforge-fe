@@ -1654,47 +1654,34 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                     </div>
                   )}
 
-                  {/* Empty State Card khi trang chưa có khung và chưa có phác thảo */}
+                  {/* 2 nút bấm thao tác trực tiếp trên trang giấy trắng */}
                   {currentPagePanels.length === 0 && !currentSketch && (
                     <div
-                      data-testid='artist-blank-state-card'
-                      className='absolute inset-0 z-20 flex items-center justify-center p-4 pointer-events-auto'
+                      data-testid='artist-blank-state-actions'
+                      className='absolute inset-0 z-20 flex items-center justify-center pointer-events-auto'
                     >
-                      <div className='w-full max-w-[320px] rounded-2xl bg-stone-50/90 dark:bg-stone-900/90 backdrop-blur-md border border-stone-200/90 dark:border-stone-800 p-5 text-center shadow-lg space-y-3.5 animate-in fade-in zoom-in-95 duration-200'>
-                        <div className='w-10 h-10 rounded-xl bg-orange-500/10 text-orange-600 dark:text-orange-400 mx-auto flex items-center justify-center border border-orange-500/20 shadow-2xs'>
-                          <Scissors className='w-5 h-5' />
-                        </div>
-                        <div className='space-y-1'>
-                          <h3 className='text-xs font-bold text-stone-900 dark:text-stone-100'>
-                            Trang giấy chưa có bố cục ô
-                          </h3>
-                          <p className='text-[11px] text-stone-500 dark:text-stone-400 leading-relaxed'>
-                            Tải ảnh phác thảo toàn trang để AI tự động tách khung, hoặc chọn mẫu khung dựng sẵn.
-                          </p>
-                        </div>
-                        <div className='flex flex-col gap-2 pt-1'>
-                          <button
-                            type='button'
-                            onClick={() => sketchFileInputRef.current?.click()}
-                            data-testid='btn-upload-sketch-empty'
-                            className='w-full py-2 px-3 rounded-xl bg-stone-900 hover:bg-black dark:bg-stone-100 dark:hover:bg-white text-white dark:text-stone-900 text-xs font-bold flex items-center justify-center gap-2 shadow-sm cursor-pointer transition-all hover:scale-[1.02] active:scale-95'
-                          >
-                            <Sparkles className='w-3.5 h-3.5 text-amber-400 dark:text-amber-600' />
-                            <span>Tải phác thảo & Tách panel</span>
-                          </button>
-                          <button
-                            type='button'
-                            onClick={() => {
-                              setActiveSidebarTab('templates');
-                              setIsSidebarDrawerOpen(true);
-                            }}
-                            data-testid='btn-open-templates-empty'
-                            className='w-full py-1.5 px-3 rounded-xl border border-stone-200 dark:border-stone-800 hover:bg-stone-100 dark:hover:bg-stone-800 text-[11px] font-semibold text-stone-700 dark:text-stone-300 flex items-center justify-center gap-1.5 cursor-pointer transition-colors'
-                          >
-                            <LayoutTemplate className='w-3.5 h-3.5 text-stone-500' />
-                            <span>Chọn mẫu khung dựng sẵn</span>
-                          </button>
-                        </div>
+                      <div className='flex items-center gap-2'>
+                        <button
+                          type='button'
+                          onClick={() => sketchFileInputRef.current?.click()}
+                          data-testid='btn-upload-sketch-simple'
+                          className='px-3.5 py-1.5 rounded-lg bg-stone-900 hover:bg-black text-white text-xs font-semibold flex items-center gap-1.5 shadow-2xs cursor-pointer transition-colors'
+                        >
+                          <Upload className='w-3.5 h-3.5' />
+                          <span>Tải phác thảo</span>
+                        </button>
+                        <button
+                          type='button'
+                          onClick={() => {
+                            setActiveSidebarTab('templates');
+                            setIsSidebarDrawerOpen(true);
+                          }}
+                          data-testid='btn-open-templates-simple'
+                          className='px-3.5 py-1.5 rounded-lg border border-stone-300 bg-white hover:bg-stone-50 text-stone-700 text-xs font-semibold flex items-center gap-1.5 shadow-2xs cursor-pointer transition-colors'
+                        >
+                          <LayoutTemplate className='w-3.5 h-3.5 text-stone-500' />
+                          <span>Chọn mẫu khung</span>
+                        </button>
                       </div>
                     </div>
                   )}
