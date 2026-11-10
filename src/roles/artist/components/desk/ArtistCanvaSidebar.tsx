@@ -1,5 +1,4 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
 import {
   Layers,
   FileText,
@@ -18,7 +17,6 @@ import {
   List,
   User,
   MapPin,
-  ArrowLeft,
 } from 'lucide-react';
 import { ArtistPageItem, PageStage } from './ArtistPageSidebar';
 import { SidebarTheme } from '@/app/sidebarTheme';
@@ -63,7 +61,6 @@ export interface ArtistCanvaSidebarProps {
   seriesTitle?: string;
   // Global Theme integration
   theme?: SidebarTheme;
-  onBackToStudio?: () => void;
 }
 
 const DEFAULT_SCRIPT_LINES: ScriptLineItem[] = [
@@ -183,11 +180,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
   bibleEntities = DEFAULT_BIBLE_ENTITIES,
   seriesTitle = 'Huyết Thống Viễn Cổ',
   theme,
-  onBackToStudio,
 }) => {
-  const navigate = useNavigate();
-  const { workspaceId, seriesId } = useParams<{ workspaceId?: string; seriesId?: string }>();
-
   // Đồng bộ theme hệ thống từ localStorage hoặc prop, mặc định theme màu sáng 'paper'
   const [currentTheme, setCurrentTheme] = useState<SidebarTheme>(() => {
     if (theme) return theme;
@@ -252,19 +245,6 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
     }
   };
 
-  // Quay lại Studio Workspace
-  const handleBack = () => {
-    if (onBackToStudio) {
-      onBackToStudio();
-    } else if (workspaceId && seriesId) {
-      navigate(`/workspaces/${workspaceId}/series/${seriesId}/workspace`);
-    } else if (workspaceId) {
-      navigate(`/workspaces/${workspaceId}`);
-    } else {
-      navigate('/workspaces');
-    }
-  };
-
   // Lọc danh sách trang
   const filteredPages = useMemo(() => {
     return pages.filter((p) => {
@@ -309,17 +289,6 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
         className='w-[72px] bg-[var(--sb-bg)] text-[var(--sb-muted)] flex flex-col items-center py-3 border-r border-[var(--sb-border)] shrink-0 justify-between transition-colors'
       >
         <div className='w-full flex flex-col items-center gap-2'>
-          {/* Nút Quay lại Studio Workspace */}
-          <button
-            type='button'
-            onClick={handleBack}
-            title='Quay lại Studio Workspace'
-            data-testid='canva-btn-back-studio'
-            className='w-10 h-10 rounded-xl bg-[var(--sb-surface)] hover:bg-[var(--sb-hover)] border border-[var(--sb-border)] flex items-center justify-center text-[var(--sb-text)] hover:text-[var(--sb-accent)] mb-2 transition-all cursor-pointer shadow-2xs'
-          >
-            <ArrowLeft className='w-4 h-4' />
-          </button>
-
           {/* Nút Tab 1: Pages (Trang) */}
           <button
             type='button'
