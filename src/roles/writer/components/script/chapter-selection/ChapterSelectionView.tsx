@@ -215,24 +215,24 @@ export const ChapterSelectionView: React.FC<ChapterSelectionViewProps> = ({
   return (
     <PageContainer
       data-testid="chapter-selection-view"
-      className="space-y-6 py-6 text-[#1C1917] dark:text-[#F5F5F4] font-sans"
+      className="space-y-6 py-6 text-[#1C1917] font-sans"
     >
       {/* 1. TOP-BAR: TIÊU ĐỀ & THỐNG KÊ NHANH (KHÔNG LẶP LẠI BREADCRUMB CỦA APPSHELL ĐỂ TRÁNH TRÙNG 2 HEADER) */}
-      <div className="bg-[#FCFBF8] dark:bg-[#292524] border border-[#D8D2C5] dark:border-stone-800 rounded-2xl p-5 sm:p-6 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+      <div className="bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl p-5 sm:p-6 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div className="space-y-1.5 min-w-0">
           {/* Tiêu đề trang & Mô tả hướng dẫn */}
           <div className="space-y-1">
             <div className="flex items-center gap-2.5 flex-wrap">
-              <span className="px-2.5 py-0.5 rounded-full bg-[#FFF2E6] dark:bg-orange-950/50 border border-[#F97316]/30 text-[#C2410C] dark:text-orange-400 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
+              <span className="px-2.5 py-0.5 rounded-full bg-[#FFF2E6] border border-[#F97316]/30 text-[#C2410C] text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
                 <BookOpen className="w-3 h-3" />
                 <span>SCRIPT MANAGEMENT HUB</span>
               </span>
-              <h1 className="text-xl sm:text-2xl font-bold font-serif text-[#1C1917] dark:text-stone-100 tracking-tight">
+              <h1 className="text-xl sm:text-2xl font-bold font-serif text-[#1C1917] tracking-tight">
                 Quản lý Kịch bản — {seriesTitle}
               </h1>
             </div>
-            <p className="text-xs text-[#57534E] dark:text-stone-400 leading-relaxed max-w-3xl">
-              <strong className="text-[#1C1917] dark:text-stone-200 font-semibold">Chọn Chương Để Mở Kịch Bản</strong> — Writer lựa chọn một chương được phân công để mở trang giấy kịch bản, quản lý phân cảnh, hội thoại và phân rã khung hình Thumbnail trong không gian làm việc chuyên dụng.
+            <p className="text-xs text-[#57534E] leading-relaxed max-w-3xl">
+              <strong className="text-[#1C1917] font-semibold">Chọn Chương Để Thực Hiện Kịch Bản</strong> — Writer lựa chọn một chương được phân công để mở trang giấy kịch bản, quản lý phân cảnh, hội thoại và phân rã khung hình Thumbnail trong không gian làm việc chuyên dụng.
             </p>
           </div>
         </div>
