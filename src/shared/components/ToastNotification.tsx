@@ -38,11 +38,11 @@ export interface ToastNotificationProps {
 }
 
 const TYPE_COLORS: Record<ToastType, string> = {
-  warning: '#F59E0B',
-  logout: '#A8A29E',
-  error: '#EF4444',
-  info: '#3B82F6',
-  success: '#10B981',
+  warning: '#D97706',
+  logout: '#78716C',
+  error: '#DC2626',
+  info: '#2563EB',
+  success: '#059669',
 };
 
 export const ToastItem: React.FC<ToastNotificationProps> = ({
@@ -125,11 +125,11 @@ export const ToastItem: React.FC<ToastNotificationProps> = ({
     }
   };
 
-  // Stack calculation
+  // Stack calculation (top-right downward expansion)
   const yOffset = isStacked
     ? isHovered
-      ? -(index * 74)
-      : -(index * 12)
+      ? (index * 76)
+      : (index * 12)
     : 0;
 
   const scale = isStacked && !isHovered ? Math.max(0.85, 1 - index * 0.05) : 1;
@@ -156,7 +156,8 @@ export const ToastItem: React.FC<ToastNotificationProps> = ({
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerUp}
       style={dynamicStyle}
-      className={`u070-t ${isDragging ? 'drag' : ''} ${isExiting ? 'leave' : ''} ${isBack ? 'back' : ''}`}
+      data-testid={`toast-item-${toast.type || 'success'}`}
+      className={`u070-t u070-type-${toast.type || 'success'} ${isDragging ? 'drag' : ''} ${isExiting ? 'leave' : ''} ${isBack ? 'back' : ''}`}
     >
       {/* Icon Badge */}
       <div className='u070-ic' aria-hidden='true'>

@@ -4,7 +4,7 @@
 .u070-zone {
   position: fixed;
   right: 24px;
-  bottom: 24px;
+  top: 24px;
   width: 380px;
   max-width: calc(100vw - 32px);
   pointer-events: none;
@@ -16,7 +16,7 @@
   .u070-zone {
     right: 16px;
     left: 16px;
-    bottom: 16px;
+    top: 16px;
     width: auto;
   }
 }
@@ -25,18 +25,20 @@
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 0;
+  top: 0;
   display: flex;
   align-items: flex-start;
   gap: 12px;
   min-height: 64px;
   padding: 14px 14px 16px 14px;
   border-radius: 18px;
-  background: var(--ux-surface, #1C1917);
-  box-shadow: 0 0 0 1px var(--ux-line, rgba(255, 255, 255, 0.08)),
-              0 20px 40px -15px var(--ux-shadow-strong, rgba(0, 0, 0, 0.5));
-  color: var(--ux-ink, #FCFBF8);
-  transform-origin: 50% 100%;
+  background: #FFFFFF;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05),
+              0 16px 36px -6px rgba(0, 0, 0, 0.1),
+              0 0 0 1px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  color: #1C1917;
+  transform-origin: 50% 0%;
   transform: translate(var(--dx, 0px), var(--y, 0px)) scale(var(--s, 1));
   opacity: var(--o, 1);
   transition: transform 0.45s cubic-bezier(0.3, 1.3, 0.5, 1), opacity 0.3s ease;
@@ -45,7 +47,31 @@
   -webkit-user-select: none;
   pointer-events: auto;
   overflow: hidden;
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(16px);
+}
+
+/* Kiểu dáng thông báo thành công sáng màu phong cách Lucian UX */
+.u070-t.u070-type-success {
+  background: #FFFFFF;
+  border: 1px solid rgba(16, 185, 129, 0.32);
+  box-shadow: 0 4px 12px -2px rgba(16, 185, 129, 0.1),
+              0 16px 36px -6px rgba(16, 185, 129, 0.16),
+              0 0 0 1px rgba(16, 185, 129, 0.18);
+}
+
+.dark .u070-t {
+  background: #1C1917;
+  color: #FCFBF8;
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08),
+              0 20px 40px -15px rgba(0, 0, 0, 0.5);
+}
+
+.dark .u070-t.u070-type-success {
+  background: #1C1917;
+  border-color: rgba(16, 185, 129, 0.35);
+  box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.25),
+              0 20px 40px -15px rgba(0, 0, 0, 0.5);
 }
 
 .u070-t.drag {
@@ -54,7 +80,7 @@
 }
 
 .u070-t.enter {
-  transform: translateY(60px) scale(0.92);
+  transform: translateY(-40px) scale(0.92);
   opacity: 0;
 }
 
@@ -106,8 +132,12 @@
   font-size: 13.5px;
   font-weight: 700;
   letter-spacing: -0.015em;
-  color: var(--ux-ink, #FCFBF8);
+  color: #0F172A;
   line-height: 1.3;
+}
+
+.dark .u070-tx b {
+  color: #FCFBF8;
 }
 
 .u070-tx small {
@@ -115,18 +145,22 @@
   margin-top: 3px;
   font-size: 12.5px;
   font-weight: 500;
-  color: var(--ux-ink-3, #A8A29E);
+  color: #475569;
   line-height: 1.45;
   text-wrap: pretty;
+}
+
+.dark .u070-tx small {
+  color: #A8A29E;
 }
 
 .u070-act {
   margin-top: 6px;
   height: 28px;
   padding: 0 10px;
-  border: 1px solid color-mix(in srgb, var(--c) 40%, transparent);
+  border: 1px solid color-mix(in srgb, var(--c) 30%, transparent);
   border-radius: 8px;
-  background: color-mix(in srgb, var(--c) 14%, transparent);
+  background: color-mix(in srgb, var(--c) 12%, transparent);
   font-size: 12px;
   font-weight: 650;
   color: var(--c);
@@ -138,7 +172,7 @@
 }
 
 .u070-act:hover {
-  background: color-mix(in srgb, var(--c) 25%, transparent);
+  background: color-mix(in srgb, var(--c) 22%, transparent);
   transform: translateY(-1px);
 }
 
@@ -157,7 +191,7 @@
   display: grid;
   place-items: center;
   background: none;
-  color: var(--ux-ink-3, #78716C);
+  color: #64748B;
   cursor: pointer;
   transition: all 0.2s ease;
   margin-top: -2px;
@@ -165,8 +199,17 @@
 }
 
 .u070-x:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: #0F172A;
+}
+
+.dark .u070-x {
+  color: #78716C;
+}
+
+.dark .u070-x:hover {
   background: rgba(255, 255, 255, 0.1);
-  color: var(--ux-ink, #FCFBF8);
+  color: #FCFBF8;
 }
 
 .u070-x:focus-visible {
