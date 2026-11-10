@@ -340,7 +340,7 @@ export const DEFAULT_FRAME_TEMPLATES: FrameTemplateDto[] = [
   // ── NHÓM 1: TỰ SỰ TIÊU CHUẨN (STANDARD & NARRATIVE) ─────────────────────────
   {
     id: 'f0000000-0000-0000-0000-00000000000c',
-    name: '4-Koma Classic (Ki-shō-ten-ketsu)',
+    name: '4 Khung 4-Koma Cổ Điển',
     code: 'TPL-MANGA-01',
     category: 'narrative',
     description: '4 khung truyện thẳng hàng (Khởi - Thừa - Chuyển - Hợp) chuẩn hài hước & đời thường',
@@ -357,7 +357,7 @@ export const DEFAULT_FRAME_TEMPLATES: FrameTemplateDto[] = [
   },
   {
     id: 'f0000000-0000-0000-0000-000000000008',
-    name: '3-Tier Balanced (5 Khung RTL)',
+    name: '3 Tầng Cân Bằng (5 Khung)',
     code: 'TPL-MANGA-02',
     category: 'narrative',
     description: 'Bố cục 3 tầng cổ điển: Tier 1 mở cảnh, Tier 2 trọng tâm kịch tính, Tier 3 chuyển tiếp trang',
@@ -375,7 +375,7 @@ export const DEFAULT_FRAME_TEMPLATES: FrameTemplateDto[] = [
   },
   {
     id: 'f0000000-0000-0000-0000-000000000006',
-    name: '3-Tier Dense (6 Khung Lưới 3×2)',
+    name: 'Lưới 3 Tầng Dày (6 Khung)',
     code: 'TPL-MANGA-03',
     category: 'narrative',
     description: 'Lưới 3 hàng × 2 cột cho các phân cảnh nhiều đối thoại, điều tra, tranh luận gay cấn',
@@ -394,7 +394,7 @@ export const DEFAULT_FRAME_TEMPLATES: FrameTemplateDto[] = [
   },
   {
     id: 'f0000000-0000-0000-0000-00000000000e',
-    name: 'Classic 9-Panel Grid (Watchmen Style)',
+    name: 'Lưới 9 Khung Cổ Điển',
     code: 'TPL-COMIC-01',
     category: 'narrative',
     description: 'Lưới 3×3 phong cách Watchmen/DC Classic: nhịp kể đều đặn, phân tích tâm lý sâu sắc',
@@ -477,7 +477,7 @@ export const DEFAULT_FRAME_TEMPLATES: FrameTemplateDto[] = [
   // ── NHÓM 2: HÀNH ĐỘNG & KỊCH TÍNH (ACTION & HIGH-TENSION) ────────────────────
   {
     id: 'f0000000-0000-0000-0000-00000000000a',
-    name: 'Dynamic Shonen Slanted (4 Khung Cắt Chéo)',
+    name: '4 Khung Vát Chéo Shonen',
     code: 'TPL-MANGA-04',
     category: 'action',
     description: 'Rãnh cắt chéo góc 15°-25° tạo xung lực gia tốc cực mạnh cho phân cảnh combat, ra đòn chớp nhoáng',
@@ -494,7 +494,7 @@ export const DEFAULT_FRAME_TEMPLATES: FrameTemplateDto[] = [
   },
   {
     id: 'f0000000-0000-0000-0000-000000000010',
-    name: 'Inset Panels (Khung Lồng Khung)',
+    name: 'Khung Lồng Khung (Inset)',
     code: 'TPL-MANGA-06',
     category: 'action',
     description: '1 khung toàn cảnh chiến trường làm nền lồng 2 khung cận cảnh biểu cảm và chi tiết vũ khí',
@@ -510,7 +510,7 @@ export const DEFAULT_FRAME_TEMPLATES: FrameTemplateDto[] = [
   },
   {
     id: 'builtin-5-action-dynamic',
-    name: 'Shonen Dynamic (5 Khung Cao Trào)',
+    name: '5 Khung Cao Trào Shonen',
     category: 'action',
     description: '1 khung mở lớn đầu trang kết hợp 4 khung đối đầu dồn dập',
     layoutFormat: 'StandardPage',
@@ -527,7 +527,7 @@ export const DEFAULT_FRAME_TEMPLATES: FrameTemplateDto[] = [
   },
   {
     id: 'f0000000-0000-0000-0000-000000000009',
-    name: 'Shonen Action Dense (6 Khung)',
+    name: '6 Khung Hành Động Dày',
     category: 'action',
     description: '1 mở đầu + 2 dồn dập + 1 cao trào lớn + 2 dư chấn phản ứng',
     layoutFormat: 'StandardPage',
@@ -547,7 +547,7 @@ export const DEFAULT_FRAME_TEMPLATES: FrameTemplateDto[] = [
   // ── NHÓM 3: ĐẠI CẢNH & ĐIỂM NHẤN (CINEMATIC & SPLASH) ─────────────────────────
   {
     id: 'f0000000-0000-0000-0000-000000000002',
-    name: 'Full Splash Bleed (1 Khung Tràn Lề)',
+    name: 'Đại Cảnh Tràn Lề',
     category: 'cinematic',
     description: '1 panel tràn viền 100% đến hết vùng Bleed dành cho trang bìa hoặc đại cảnh kết liễu',
     layoutFormat: 'StandardPage',
@@ -558,7 +558,7 @@ export const DEFAULT_FRAME_TEMPLATES: FrameTemplateDto[] = [
   },
   {
     id: 'f0000000-0000-0000-0000-000000000001',
-    name: 'Splash 1 Khung (Có Viền)',
+    name: 'Đại Cảnh 1 Khung',
     category: 'cinematic',
     description: '1 khung viền đơn toàn trang chuẩn lề in ấn',
     layoutFormat: 'StandardPage',
@@ -569,7 +569,7 @@ export const DEFAULT_FRAME_TEMPLATES: FrameTemplateDto[] = [
   },
   {
     id: 'f0000000-0000-0000-0000-00000000000d',
-    name: 'Hero Splash 70/30 (Dominant Layout)',
+    name: 'Đại Cảnh 70/30',
     code: 'TPL-MANGA-05',
     category: 'cinematic',
     description: 'Khung chiếm 70% trang trên cho cảnh đại chiến bùng nổ, 3 khung hẹp 30% dưới cho phản hồi của đồng đội',
@@ -586,10 +586,10 @@ export const DEFAULT_FRAME_TEMPLATES: FrameTemplateDto[] = [
   },
   {
     id: 'f0000000-0000-0000-0000-00000000000f',
-    name: 'Cinematic Widescreen (3 Bars)',
+    name: '3 Khung Điện Ảnh Rộng',
     code: 'TPL-COMIC-02',
     category: 'cinematic',
-    description: '3 thanh dài ngang tỉ lệ màn ảnh rộng cho cảnh thiên nhiên kéo dài hoặc du hành thời gian',
+    description: '3 thanh dài ngang tỉ lệ màn ảnh rộng widescreen cho cảnh thiên nhiên kéo dài hoặc du hành thời gian',
     layoutFormat: 'StandardPage',
     isBuiltIn: true,
     panelCount: 3,
@@ -602,7 +602,7 @@ export const DEFAULT_FRAME_TEMPLATES: FrameTemplateDto[] = [
   },
   {
     id: 'f0000000-0000-0000-0000-000000000007',
-    name: '1 Lớn + 2 Nhỏ (Phản Ứng Đối Xứng)',
+    name: '1 Khung Lớn + 2 Nhỏ',
     category: 'cinematic',
     description: '1 khung chính phía trên kết hợp 2 khung cận cảnh phân tích bên dưới',
     layoutFormat: 'StandardPage',
@@ -617,7 +617,7 @@ export const DEFAULT_FRAME_TEMPLATES: FrameTemplateDto[] = [
   },
   {
     id: 'f0000000-0000-0000-0000-00000000000b',
-    name: 'Trang Đôi: 1 Khung Toàn Cảnh + 3 Khung',
+    name: 'Trang Đôi: Toàn Cảnh + 3 Khung',
     category: 'cinematic',
     description: 'Bố cục trang đôi (Spread): Đại cảnh trải dài 2 trang kết hợp 3 khung nhịp điệu',
     layoutFormat: 'SpreadDouble',
@@ -635,7 +635,7 @@ export const DEFAULT_FRAME_TEMPLATES: FrameTemplateDto[] = [
   // ── NHÓM 4: WEBTOON / MOBILE VERTICAL SCROLL ──────────────────────────────────
   {
     id: 'f0000000-0000-0000-0000-000000000011',
-    name: 'Vertical Mobile Flow (3 Khung Cuộn)',
+    name: 'Cuộn Dọc 3 Khung (Webtoon)',
     code: 'TPL-WEBTOON-01',
     category: 'webtoon',
     description: 'Bố cục cuộn dọc tiêu chuẩn smartphone 9:16 với khoảng lặng ngừng nghỉ (negative space)',
@@ -651,7 +651,7 @@ export const DEFAULT_FRAME_TEMPLATES: FrameTemplateDto[] = [
   },
   {
     id: 'f0000000-0000-0000-0000-000000000012',
-    name: 'Webtoon Split Comparison (Song Song)',
+    name: 'So Sánh Song Song (Webtoon)',
     code: 'TPL-WEBTOON-02',
     category: 'webtoon',
     description: '1 khung dẫn đề ở trên + 2 cột song song 50-50 để miêu tả 2 góc nhìn đối thoại đồng thời',
@@ -667,7 +667,7 @@ export const DEFAULT_FRAME_TEMPLATES: FrameTemplateDto[] = [
   },
   {
     id: 'f0000000-0000-0000-0000-000000000013',
-    name: 'Webtoon Borderless Floating Flow',
+    name: 'Khung Nổi Không Viền (Webtoon)',
     code: 'TPL-WEBTOON-03',
     category: 'webtoon',
     description: 'Khung tranh không viền chìm dần vào trang cuộn, tạo cảm xúc bay bổng hoặc hồi tưởng',
@@ -1973,7 +1973,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                           }}
                           data-testid={`canva-template-card-${tpl.id}`}
                           title={tpl.description || tpl.name}
-                          className={`group p-2 rounded-xl border text-left cursor-pointer transition-all flex flex-col justify-between disabled:opacity-60 relative ${
+                          className={`group p-2.5 rounded-xl border text-left cursor-pointer transition-all flex flex-col justify-between disabled:opacity-60 relative ${
                             isSelected
                               ? 'bg-[var(--sb-active-bg)] border-[var(--sb-accent)] ring-1 ring-[var(--sb-accent)]/60 shadow-sm'
                               : isLayoutLocked
@@ -1981,24 +1981,8 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                                 : 'bg-[var(--sb-surface)] border-[var(--sb-border)] hover:border-[var(--sb-accent)]/50 hover:bg-[var(--sb-surface-hover)]'
                           }`}
                         >
-                          {/* Header của thẻ: Code badge & Category */}
-                          <div className='w-full flex items-center justify-between gap-1 mb-1.5'>
-                            {tpl.code ? (
-                              <span className='font-mono font-bold text-[8.5px] px-1 py-0.2 rounded bg-stone-200/80 dark:bg-stone-700/80 text-stone-800 dark:text-stone-200'>
-                                {tpl.code}
-                              </span>
-                            ) : (
-                              <span className='text-[8.5px] text-[var(--sb-muted)]'>
-                                {tpl.isBuiltIn ? 'Mặc định' : 'Tuỳ chỉnh'}
-                              </span>
-                            )}
-                            <span className={`text-[8px] font-semibold px-1 py-0.2 rounded border ${catBadge.cls}`}>
-                              {catBadge.label}
-                            </span>
-                          </div>
-
                           {/* Wireframe Preview tỷ lệ B5 / Spread */}
-                          <div className='w-full h-28 bg-stone-100/70 rounded-lg border border-[var(--sb-border)] flex items-center justify-center p-1.5 mb-2 relative overflow-hidden'>
+                          <div className='w-full h-28 bg-stone-100/70 rounded-lg border border-[var(--sb-border)] flex items-center justify-center p-1.5 mb-1.5 relative overflow-hidden'>
                             <div
                               className={`${
                                 tpl.layoutFormat === 'SpreadDouble'
@@ -2066,10 +2050,10 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                             )}
                           </div>
 
-                          {/* Tên & số khung */}
-                          <div className='w-full space-y-0.5'>
+                          {/* Tên & Phân loại + số lượng khung */}
+                          <div className='w-full space-y-1'>
                             <div
-                              className={`text-[11px] leading-tight truncate ${
+                              className={`text-[11.5px] leading-tight truncate ${
                                 isSelected
                                   ? 'font-bold text-[var(--sb-accent)]'
                                   : 'font-semibold text-[var(--sb-text)]'
@@ -2078,9 +2062,9 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                             >
                               {tpl.name}
                             </div>
-                            <div className='flex items-center justify-between text-[9.5px]'>
-                              <span className='text-[var(--sb-muted)] truncate max-w-[100px]' title={tpl.description}>
-                                {tpl.description ? tpl.description.slice(0, 22) + '...' : (tpl.isBuiltIn ? 'Chuẩn xuất bản' : 'Tuỳ chỉnh')}
+                            <div className='flex items-center justify-between text-[9px]'>
+                              <span className={`text-[8.5px] font-semibold px-1.5 py-0.2 rounded border ${catBadge.cls}`}>
+                                {catBadge.label}
                               </span>
                               <span
                                 className={`font-mono font-bold px-1.5 py-0.2 rounded shrink-0 ${
