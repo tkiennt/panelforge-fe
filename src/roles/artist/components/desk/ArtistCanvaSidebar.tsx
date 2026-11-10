@@ -327,27 +327,88 @@ const DEFAULT_BIBLE_ENTITIES: BibleEntityItem[] = [
 ];
 
 export const DEFAULT_FRAME_TEMPLATES: FrameTemplateDto[] = [
+  // ── NHÓM 1: TỰ SỰ TIÊU CHUẨN (STANDARD & NARRATIVE) ─────────────────────────
   {
-    id: 'builtin-single-full',
-    name: '1 Khung Toàn Trang (Có viền)',
+    id: 'f0000000-0000-0000-0000-00000000000c',
+    name: '4-Koma Classic (Ki-shō-ten-ketsu)',
+    code: 'TPL-MANGA-01',
+    category: 'narrative',
+    description: '4 khung truyện thẳng hàng (Khởi - Thừa - Chuyển - Hợp) chuẩn hài hước & đời thường',
     layoutFormat: 'StandardPage',
     isBuiltIn: true,
-    panelCount: 1,
-    slots: [{ x: 0.025, y: 0.025, w: 0.95, h: 0.95, borderless: false }],
+    panelCount: 4,
+    slots: [
+      { x: 0.025, y: 0.025, w: 0.95, h: 0.2285, borderless: false },
+      { x: 0.025, y: 0.2655, w: 0.95, h: 0.2285, borderless: false },
+      { x: 0.025, y: 0.506, w: 0.95, h: 0.2285, borderless: false },
+      { x: 0.025, y: 0.7465, w: 0.95, h: 0.2285, borderless: false },
+    ],
     createdAt: '2026-01-01T00:00:00Z',
   },
   {
-    id: 'builtin-single-bleed',
-    name: '1 Khung Tràn Lề (Splash Bleed)',
+    id: 'f0000000-0000-0000-0000-000000000008',
+    name: '3-Tier Balanced (5 Khung RTL)',
+    code: 'TPL-MANGA-02',
+    category: 'narrative',
+    description: 'Bố cục 3 tầng cổ điển: Tier 1 mở cảnh, Tier 2 trọng tâm kịch tính, Tier 3 chuyển tiếp trang',
     layoutFormat: 'StandardPage',
     isBuiltIn: true,
-    panelCount: 1,
-    slots: [{ x: 0, y: 0, w: 1, h: 1, borderless: true }],
+    panelCount: 5,
+    slots: [
+      { x: 0.506, y: 0.025, w: 0.469, h: 0.27, borderless: false },
+      { x: 0.025, y: 0.025, w: 0.469, h: 0.27, borderless: false },
+      { x: 0.025, y: 0.31, w: 0.95, h: 0.38, borderless: false },
+      { x: 0.506, y: 0.705, w: 0.469, h: 0.27, borderless: false },
+      { x: 0.025, y: 0.705, w: 0.469, h: 0.27, borderless: false },
+    ],
     createdAt: '2026-01-01T00:00:00Z',
   },
   {
-    id: 'builtin-2-panel-vert',
-    name: '2 Khung Dọc',
+    id: 'f0000000-0000-0000-0000-000000000006',
+    name: '3-Tier Dense (6 Khung Lưới 3×2)',
+    code: 'TPL-MANGA-03',
+    category: 'narrative',
+    description: 'Lưới 3 hàng × 2 cột cho các phân cảnh nhiều đối thoại, điều tra, tranh luận gay cấn',
+    layoutFormat: 'StandardPage',
+    isBuiltIn: true,
+    panelCount: 6,
+    slots: [
+      { x: 0.025, y: 0.025, w: 0.469, h: 0.296, borderless: false },
+      { x: 0.506, y: 0.025, w: 0.469, h: 0.296, borderless: false },
+      { x: 0.025, y: 0.336, w: 0.469, h: 0.296, borderless: false },
+      { x: 0.506, y: 0.336, w: 0.469, h: 0.296, borderless: false },
+      { x: 0.025, y: 0.647, w: 0.469, h: 0.296, borderless: false },
+      { x: 0.506, y: 0.647, w: 0.469, h: 0.296, borderless: false },
+    ],
+    createdAt: '2026-01-01T00:00:00Z',
+  },
+  {
+    id: 'f0000000-0000-0000-0000-00000000000e',
+    name: 'Classic 9-Panel Grid (Watchmen Style)',
+    code: 'TPL-COMIC-01',
+    category: 'narrative',
+    description: 'Lưới 3×3 phong cách Watchmen/DC Classic: nhịp kể đều đặn, phân tích tâm lý sâu sắc',
+    layoutFormat: 'StandardPage',
+    isBuiltIn: true,
+    panelCount: 9,
+    slots: [
+      { x: 0.025, y: 0.025, w: 0.3087, h: 0.3067, borderless: false },
+      { x: 0.3457, y: 0.025, w: 0.3087, h: 0.3067, borderless: false },
+      { x: 0.6663, y: 0.025, w: 0.3087, h: 0.3067, borderless: false },
+      { x: 0.025, y: 0.3467, w: 0.3087, h: 0.3067, borderless: false },
+      { x: 0.3457, y: 0.3467, w: 0.3087, h: 0.3067, borderless: false },
+      { x: 0.6663, y: 0.3467, w: 0.3087, h: 0.3067, borderless: false },
+      { x: 0.025, y: 0.6684, w: 0.3087, h: 0.3067, borderless: false },
+      { x: 0.3457, y: 0.6684, w: 0.3087, h: 0.3067, borderless: false },
+      { x: 0.6663, y: 0.6684, w: 0.3087, h: 0.3067, borderless: false },
+    ],
+    createdAt: '2026-01-01T00:00:00Z',
+  },
+  {
+    id: 'f0000000-0000-0000-0000-000000000003',
+    name: '2 Tầng Ngang Cơ Bản',
+    category: 'narrative',
+    description: 'Chia đôi trang theo chiều ngang, cân bằng nhịp kể',
     layoutFormat: 'StandardPage',
     isBuiltIn: true,
     panelCount: 2,
@@ -359,7 +420,9 @@ export const DEFAULT_FRAME_TEMPLATES: FrameTemplateDto[] = [
   },
   {
     id: 'builtin-2-panel-split',
-    name: '2 Khung Song Song',
+    name: '2 Khung Song Song (Đối thoại)',
+    category: 'narrative',
+    description: 'Chia đôi trang theo chiều dọc cho cảnh đối thoại hai nhân vật',
     layoutFormat: 'StandardPage',
     isBuiltIn: true,
     panelCount: 2,
@@ -370,8 +433,10 @@ export const DEFAULT_FRAME_TEMPLATES: FrameTemplateDto[] = [
     createdAt: '2026-01-01T00:00:00Z',
   },
   {
-    id: 'builtin-3-panel-shonen',
-    name: '3 Khung Shonen',
+    id: 'f0000000-0000-0000-0000-000000000004',
+    name: '3 Tầng Ngang Cơ Bản',
+    category: 'narrative',
+    description: '3 dải ngang bằng nhau cho phân cảnh diễn biến theo trình tự thời gian',
     layoutFormat: 'StandardPage',
     isBuiltIn: true,
     panelCount: 3,
@@ -383,8 +448,153 @@ export const DEFAULT_FRAME_TEMPLATES: FrameTemplateDto[] = [
     createdAt: '2026-01-01T00:00:00Z',
   },
   {
-    id: 'builtin-cinematic-widescreen',
-    name: '3 Khung Điện Ảnh',
+    id: 'f0000000-0000-0000-0000-000000000005',
+    name: '4 Khung (Lưới 2×2)',
+    category: 'narrative',
+    description: '4 ô vuông cân xứng cho nhịp kể phân đoạn',
+    layoutFormat: 'StandardPage',
+    isBuiltIn: true,
+    panelCount: 4,
+    slots: [
+      { x: 0.025, y: 0.025, w: 0.469, h: 0.4675, borderless: false },
+      { x: 0.506, y: 0.025, w: 0.469, h: 0.4675, borderless: false },
+      { x: 0.025, y: 0.5075, w: 0.469, h: 0.4675, borderless: false },
+      { x: 0.506, y: 0.5075, w: 0.469, h: 0.4675, borderless: false },
+    ],
+    createdAt: '2026-01-01T00:00:00Z',
+  },
+
+  // ── NHÓM 2: HÀNH ĐỘNG & KỊCH TÍNH (ACTION & HIGH-TENSION) ────────────────────
+  {
+    id: 'f0000000-0000-0000-0000-00000000000a',
+    name: 'Dynamic Shonen Slanted (4 Khung Cắt Chéo)',
+    code: 'TPL-MANGA-04',
+    category: 'action',
+    description: 'Rãnh cắt chéo góc 15°-25° tạo xung lực gia tốc cực mạnh cho phân cảnh combat, ra đòn chớp nhoáng',
+    layoutFormat: 'StandardPage',
+    isBuiltIn: true,
+    panelCount: 4,
+    slots: [
+      { x: 0.025, y: 0.025, w: 0.95, h: 0.28, corners: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 0.75 }, { x: 0, y: 1 }], borderless: false },
+      { x: 0.44, y: 0.26, w: 0.535, h: 0.38, corners: [{ x: 0, y: 0.22 }, { x: 1, y: 0 }, { x: 1, y: 1 }, { x: 0, y: 0.85 }], borderless: false },
+      { x: 0.025, y: 0.32, w: 0.40, h: 0.38, corners: [{ x: 0, y: 0 }, { x: 1, y: 0.15 }, { x: 1, y: 1 }, { x: 0, y: 0.85 }], borderless: false },
+      { x: 0.025, y: 0.685, w: 0.95, h: 0.29, corners: [{ x: 0, y: 0.15 }, { x: 1, y: 0.05 }, { x: 1, y: 1 }, { x: 0, y: 1 }], borderless: false },
+    ],
+    createdAt: '2026-01-01T00:00:00Z',
+  },
+  {
+    id: 'f0000000-0000-0000-0000-000000000010',
+    name: 'Inset Panels (Khung Lồng Khung)',
+    code: 'TPL-MANGA-06',
+    category: 'action',
+    description: '1 khung toàn cảnh chiến trường làm nền lồng 2 khung cận cảnh biểu cảm và chi tiết vũ khí',
+    layoutFormat: 'StandardPage',
+    isBuiltIn: true,
+    panelCount: 3,
+    slots: [
+      { x: 0.025, y: 0.025, w: 0.95, h: 0.95, borderless: false },
+      { x: 0.55, y: 0.08, w: 0.39, h: 0.26, borderless: false },
+      { x: 0.06, y: 0.62, w: 0.39, h: 0.26, borderless: false },
+    ],
+    createdAt: '2026-01-01T00:00:00Z',
+  },
+  {
+    id: 'builtin-5-action-dynamic',
+    name: 'Shonen Dynamic (5 Khung Cao Trào)',
+    category: 'action',
+    description: '1 khung mở lớn đầu trang kết hợp 4 khung đối đầu dồn dập',
+    layoutFormat: 'StandardPage',
+    isBuiltIn: true,
+    panelCount: 5,
+    slots: [
+      { x: 0.025, y: 0.025, w: 0.95, h: 0.44, borderless: false },
+      { x: 0.025, y: 0.48, w: 0.469, h: 0.22, borderless: false },
+      { x: 0.506, y: 0.48, w: 0.469, h: 0.22, borderless: false },
+      { x: 0.025, y: 0.715, w: 0.469, h: 0.26, borderless: false },
+      { x: 0.506, y: 0.715, w: 0.469, h: 0.26, borderless: false },
+    ],
+    createdAt: '2026-01-01T00:00:00Z',
+  },
+  {
+    id: 'f0000000-0000-0000-0000-000000000009',
+    name: 'Shonen Action Dense (6 Khung)',
+    category: 'action',
+    description: '1 mở đầu + 2 dồn dập + 1 cao trào lớn + 2 dư chấn phản ứng',
+    layoutFormat: 'StandardPage',
+    isBuiltIn: true,
+    panelCount: 6,
+    slots: [
+      { x: 0.025, y: 0.025, w: 0.95, h: 0.205, borderless: false },
+      { x: 0.025, y: 0.245, w: 0.469, h: 0.205, borderless: false },
+      { x: 0.506, y: 0.245, w: 0.469, h: 0.205, borderless: false },
+      { x: 0.025, y: 0.465, w: 0.95, h: 0.265, borderless: false },
+      { x: 0.025, y: 0.745, w: 0.469, h: 0.23, borderless: false },
+      { x: 0.506, y: 0.745, w: 0.469, h: 0.23, borderless: false },
+    ],
+    createdAt: '2026-01-01T00:00:00Z',
+  },
+
+  // ── NHÓM 3: ĐẠI CẢNH & ĐIỂM NHẤN (CINEMATIC & SPLASH) ─────────────────────────
+  {
+    id: 'f0000000-0000-0000-0000-000000000002',
+    name: 'Full Splash Bleed (1 Khung Tràn Lề)',
+    category: 'cinematic',
+    description: '1 panel tràn viền 100% đến hết vùng Bleed dành cho trang bìa hoặc đại cảnh kết liễu',
+    layoutFormat: 'StandardPage',
+    isBuiltIn: true,
+    panelCount: 1,
+    slots: [{ x: 0, y: 0, w: 1, h: 1, borderless: true }],
+    createdAt: '2026-01-01T00:00:00Z',
+  },
+  {
+    id: 'f0000000-0000-0000-0000-000000000001',
+    name: 'Splash 1 Khung (Có Viền)',
+    category: 'cinematic',
+    description: '1 khung viền đơn toàn trang chuẩn lề in ấn',
+    layoutFormat: 'StandardPage',
+    isBuiltIn: true,
+    panelCount: 1,
+    slots: [{ x: 0.025, y: 0.025, w: 0.95, h: 0.95, borderless: false }],
+    createdAt: '2026-01-01T00:00:00Z',
+  },
+  {
+    id: 'f0000000-0000-0000-0000-00000000000d',
+    name: 'Hero Splash 70/30 (Dominant Layout)',
+    code: 'TPL-MANGA-05',
+    category: 'cinematic',
+    description: 'Khung chiếm 70% trang trên cho cảnh đại chiến bùng nổ, 3 khung hẹp 30% dưới cho phản hồi của đồng đội',
+    layoutFormat: 'StandardPage',
+    isBuiltIn: true,
+    panelCount: 4,
+    slots: [
+      { x: 0.025, y: 0.025, w: 0.95, h: 0.67, borderless: false },
+      { x: 0.665, y: 0.71, w: 0.31, h: 0.265, borderless: false },
+      { x: 0.345, y: 0.71, w: 0.308, h: 0.265, borderless: false },
+      { x: 0.025, y: 0.71, w: 0.308, h: 0.265, borderless: false },
+    ],
+    createdAt: '2026-01-01T00:00:00Z',
+  },
+  {
+    id: 'f0000000-0000-0000-0000-00000000000f',
+    name: 'Cinematic Widescreen (3 Bars)',
+    code: 'TPL-COMIC-02',
+    category: 'cinematic',
+    description: '3 thanh dài ngang tỉ lệ màn ảnh rộng cho cảnh thiên nhiên kéo dài hoặc du hành thời gian',
+    layoutFormat: 'StandardPage',
+    isBuiltIn: true,
+    panelCount: 3,
+    slots: [
+      { x: 0.025, y: 0.025, w: 0.95, h: 0.29, borderless: false },
+      { x: 0.025, y: 0.33, w: 0.95, h: 0.29, borderless: false },
+      { x: 0.025, y: 0.635, w: 0.95, h: 0.34, borderless: false },
+    ],
+    createdAt: '2026-01-01T00:00:00Z',
+  },
+  {
+    id: 'f0000000-0000-0000-0000-000000000007',
+    name: '1 Lớn + 2 Nhỏ (Phản Ứng Đối Xứng)',
+    category: 'cinematic',
+    description: '1 khung chính phía trên kết hợp 2 khung cận cảnh phân tích bên dưới',
     layoutFormat: 'StandardPage',
     isBuiltIn: true,
     panelCount: 3,
@@ -396,31 +606,67 @@ export const DEFAULT_FRAME_TEMPLATES: FrameTemplateDto[] = [
     createdAt: '2026-01-01T00:00:00Z',
   },
   {
-    id: 'builtin-4-panel-yonkoma',
-    name: '4 Khung Yonkoma',
-    layoutFormat: 'StandardPage',
+    id: 'f0000000-0000-0000-0000-00000000000b',
+    name: 'Trang Đôi: 1 Khung Toàn Cảnh + 3 Khung',
+    category: 'cinematic',
+    description: 'Bố cục trang đôi (Spread): Đại cảnh trải dài 2 trang kết hợp 3 khung nhịp điệu',
+    layoutFormat: 'SpreadDouble',
     isBuiltIn: true,
     panelCount: 4,
     slots: [
-      { x: 0.03, y: 0.025, w: 0.94, h: 0.224, borderless: false },
-      { x: 0.03, y: 0.261, w: 0.94, h: 0.224, borderless: false },
-      { x: 0.03, y: 0.497, w: 0.94, h: 0.224, borderless: false },
-      { x: 0.03, y: 0.733, w: 0.94, h: 0.224, borderless: false },
+      { x: 0.025, y: 0.025, w: 0.95, h: 0.60, borderless: false },
+      { x: 0.025, y: 0.64, w: 0.305, h: 0.335, borderless: false },
+      { x: 0.345, y: 0.64, w: 0.305, h: 0.335, borderless: false },
+      { x: 0.665, y: 0.64, w: 0.31, h: 0.335, borderless: false },
+    ],
+    createdAt: '2026-01-01T00:00:00Z',
+  },
+
+  // ── NHÓM 4: WEBTOON / MOBILE VERTICAL SCROLL ──────────────────────────────────
+  {
+    id: 'f0000000-0000-0000-0000-000000000011',
+    name: 'Vertical Mobile Flow (3 Khung Cuộn)',
+    code: 'TPL-WEBTOON-01',
+    category: 'webtoon',
+    description: 'Bố cục cuộn dọc tiêu chuẩn smartphone 9:16 với khoảng lặng ngừng nghỉ (negative space)',
+    layoutFormat: 'WebtoonLongstrip',
+    isBuiltIn: true,
+    panelCount: 3,
+    slots: [
+      { x: 0.04, y: 0.04, w: 0.92, h: 0.27, borderless: false },
+      { x: 0.04, y: 0.36, w: 0.92, h: 0.27, borderless: false },
+      { x: 0.04, y: 0.68, w: 0.92, h: 0.28, borderless: false },
     ],
     createdAt: '2026-01-01T00:00:00Z',
   },
   {
-    id: 'builtin-5-action-dynamic',
-    name: '5 Khung Cao Trào',
-    layoutFormat: 'StandardPage',
+    id: 'f0000000-0000-0000-0000-000000000012',
+    name: 'Webtoon Split Comparison (Song Song)',
+    code: 'TPL-WEBTOON-02',
+    category: 'webtoon',
+    description: '1 khung dẫn đề ở trên + 2 cột song song 50-50 để miêu tả 2 góc nhìn đối thoại đồng thời',
+    layoutFormat: 'WebtoonLongstrip',
     isBuiltIn: true,
-    panelCount: 5,
+    panelCount: 3,
     slots: [
-      { x: 0.025, y: 0.025, w: 0.95, h: 0.44, borderless: false },
-      { x: 0.025, y: 0.48, w: 0.469, h: 0.22, borderless: false },
-      { x: 0.506, y: 0.48, w: 0.469, h: 0.22, borderless: false },
-      { x: 0.025, y: 0.715, w: 0.469, h: 0.26, borderless: false },
-      { x: 0.506, y: 0.715, w: 0.469, h: 0.26, borderless: false },
+      { x: 0.04, y: 0.04, w: 0.92, h: 0.32, borderless: false },
+      { x: 0.04, y: 0.40, w: 0.445, h: 0.55, borderless: false },
+      { x: 0.515, y: 0.40, w: 0.445, h: 0.55, borderless: false },
+    ],
+    createdAt: '2026-01-01T00:00:00Z',
+  },
+  {
+    id: 'f0000000-0000-0000-0000-000000000013',
+    name: 'Webtoon Borderless Floating Flow',
+    code: 'TPL-WEBTOON-03',
+    category: 'webtoon',
+    description: 'Khung tranh không viền chìm dần vào trang cuộn, tạo cảm xúc bay bổng hoặc hồi tưởng',
+    layoutFormat: 'WebtoonLongstrip',
+    isBuiltIn: true,
+    panelCount: 2,
+    slots: [
+      { x: 0, y: 0, w: 1, h: 0.45, borderless: true },
+      { x: 0.08, y: 0.52, w: 0.84, h: 0.42, borderless: true },
     ],
     createdAt: '2026-01-01T00:00:00Z',
   },
@@ -527,6 +773,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
   // Bộ lọc Mẫu khung tranh (Panel Templates)
   const [templateSearchQuery, setTemplateSearchQuery] = useState('');
   const [templateCountFilter, setTemplateCountFilter] = useState<'all' | '1-2' | '3' | '4+'>('all');
+  const [templateCategoryFilter, setTemplateCategoryFilter] = useState<'all' | 'narrative' | 'action' | 'cinematic' | 'webtoon'>('all');
 
   // Xử lý khi nhấn nút Tab Canva Dock
   const handleTabClick = (tab: CanvaSidebarTab) => {
@@ -693,9 +940,13 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
   // Lọc danh sách Mẫu Khung (Panel Templates)
   const filteredTemplates = useMemo(() => {
     return templates.filter((tpl) => {
+      const q = templateSearchQuery.trim().toLowerCase();
       const matchSearch =
-        templateSearchQuery.trim() === '' ||
-        tpl.name.toLowerCase().includes(templateSearchQuery.toLowerCase());
+        q === '' ||
+        tpl.name.toLowerCase().includes(q) ||
+        (tpl.code && tpl.code.toLowerCase().includes(q)) ||
+        (tpl.description && tpl.description.toLowerCase().includes(q));
+
       const count = tpl.panelCount || tpl.slots?.length || 0;
       const matchCount =
         templateCountFilter === 'all'
@@ -705,9 +956,14 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
             : templateCountFilter === '3'
               ? count === 3
               : count >= 4;
-      return matchSearch && matchCount;
+
+      const matchCategory =
+        templateCategoryFilter === 'all' ||
+        (tpl.category || 'narrative').toLowerCase() === templateCategoryFilter;
+
+      return matchSearch && matchCount && matchCategory;
     });
-  }, [templates, templateSearchQuery, templateCountFilter]);
+  }, [templates, templateSearchQuery, templateCountFilter, templateCategoryFilter]);
 
   return (
     <div
@@ -1585,7 +1841,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                 </div>
               </div>
 
-              {/* Thanh tìm kiếm & lọc số lượng khung */}
+              {/* Thanh tìm kiếm & lọc số lượng khung + nhóm mục đích kể chuyện */}
               <div className='p-3 border-b border-[var(--sb-border)] flex flex-col gap-2 shrink-0'>
                 <div className='relative'>
                   <Search className='w-3.5 h-3.5 text-[var(--sb-muted)] absolute left-2.5 top-2.5' />
@@ -1593,15 +1849,40 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                     type='text'
                     value={templateSearchQuery}
                     onChange={(e) => setTemplateSearchQuery(e.target.value)}
-                    placeholder='Tìm mẫu khung (Shonen, 4-Koma...)'
+                    placeholder='Tìm mẫu khung (TPL-MANGA-01, Shonen, 4-Koma...)'
                     data-testid='canva-input-search-templates'
                     className='w-full h-8 bg-[var(--sb-surface)] border border-[var(--sb-border)] rounded-lg pl-8 pr-3 text-[11px] text-[var(--sb-text)] placeholder-[var(--sb-muted)] focus:outline-none focus:border-[var(--sb-accent)]'
                   />
                 </div>
 
-                <div className='flex items-center gap-1 text-[10px]'>
+                {/* 1. Bộ lọc Nhóm Mục đích Kể chuyện (Koma-wari Storytelling Purpose) */}
+                <div className='flex items-center gap-1 overflow-x-auto custom-scrollbar pb-0.5 text-[9.5px]'>
                   {[
                     { id: 'all', label: 'Tất cả' },
+                    { id: 'narrative', label: 'Tự sự' },
+                    { id: 'action', label: 'Hành động' },
+                    { id: 'cinematic', label: 'Đại cảnh' },
+                    { id: 'webtoon', label: 'Cuộn dọc' },
+                  ].map((cat) => (
+                    <button
+                      key={cat.id}
+                      type='button'
+                      onClick={() => setTemplateCategoryFilter(cat.id as any)}
+                      className={`px-2 py-0.5 rounded-md font-semibold whitespace-nowrap transition-colors cursor-pointer ${
+                        templateCategoryFilter === cat.id
+                          ? 'bg-[var(--sb-accent)] text-white shadow-xs'
+                          : 'bg-[var(--sb-surface)] text-[var(--sb-muted)] hover:text-[var(--sb-text)]'
+                      }`}
+                    >
+                      {cat.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* 2. Bộ lọc số lượng khung */}
+                <div className='flex items-center gap-1 text-[9.5px]'>
+                  {[
+                    { id: 'all', label: 'Mọi số ô' },
                     { id: '1-2', label: '1–2 ô' },
                     { id: '3', label: '3 ô' },
                     { id: '4+', label: '4+ ô' },
@@ -1610,9 +1891,9 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                       key={f.id}
                       type='button'
                       onClick={() => setTemplateCountFilter(f.id as any)}
-                      className={`px-2.5 py-1 rounded-full font-medium transition-colors cursor-pointer ${
+                      className={`px-2 py-0.5 rounded-full font-medium transition-colors cursor-pointer ${
                         templateCountFilter === f.id
-                          ? 'bg-[var(--sb-accent)] text-white'
+                          ? 'bg-stone-800 text-white dark:bg-stone-200 dark:text-stone-900'
                           : 'bg-[var(--sb-surface)] text-[var(--sb-muted)] hover:text-[var(--sb-text)]'
                       }`}
                     >
@@ -1639,6 +1920,15 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                   <div className='grid grid-cols-2 gap-2.5'>
                     {filteredTemplates.map((tpl) => {
                       const isSelected = tpl.id === activeTemplateId;
+                      const catBadge =
+                        tpl.category === 'action'
+                          ? { label: 'Hành động', cls: 'bg-red-500/15 text-red-600 border-red-500/30' }
+                          : tpl.category === 'cinematic'
+                            ? { label: 'Đại cảnh', cls: 'bg-purple-500/15 text-purple-600 border-purple-500/30' }
+                            : tpl.category === 'webtoon'
+                              ? { label: 'Cuộn dọc', cls: 'bg-emerald-500/15 text-emerald-600 border-emerald-500/30' }
+                              : { label: 'Tự sự', cls: 'bg-blue-500/15 text-blue-600 border-blue-500/30' };
+
                       return (
                         <button
                           key={tpl.id}
@@ -1646,12 +1936,29 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                           disabled={isApplyingTemplate}
                           onClick={() => onSelectTemplate?.(tpl)}
                           data-testid={`canva-template-card-${tpl.id}`}
-                          className={`group p-2 rounded-xl border text-left cursor-pointer transition-all flex flex-col justify-between disabled:opacity-60 ${
+                          title={tpl.description || tpl.name}
+                          className={`group p-2 rounded-xl border text-left cursor-pointer transition-all flex flex-col justify-between disabled:opacity-60 relative ${
                             isSelected
                               ? 'bg-[var(--sb-active-bg)] border-[var(--sb-accent)] ring-1 ring-[var(--sb-accent)]/60 shadow-sm'
                               : 'bg-[var(--sb-surface)] border-[var(--sb-border)] hover:border-[var(--sb-accent)]/50 hover:bg-[var(--sb-surface-hover)]'
                           }`}
                         >
+                          {/* Header của thẻ: Code badge & Category */}
+                          <div className='w-full flex items-center justify-between gap-1 mb-1.5'>
+                            {tpl.code ? (
+                              <span className='font-mono font-bold text-[8.5px] px-1 py-0.2 rounded bg-stone-200/80 dark:bg-stone-700/80 text-stone-800 dark:text-stone-200'>
+                                {tpl.code}
+                              </span>
+                            ) : (
+                              <span className='text-[8.5px] text-[var(--sb-muted)]'>
+                                {tpl.isBuiltIn ? 'Mặc định' : 'Tuỳ chỉnh'}
+                              </span>
+                            )}
+                            <span className={`text-[8px] font-semibold px-1 py-0.2 rounded border ${catBadge.cls}`}>
+                              {catBadge.label}
+                            </span>
+                          </div>
+
                           {/* Wireframe Preview tỷ lệ B5 / Spread */}
                           <div className='w-full h-28 bg-stone-100/70 rounded-lg border border-[var(--sb-border)] flex items-center justify-center p-1.5 mb-2 relative overflow-hidden'>
                             <div
@@ -1700,7 +2007,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                           </div>
 
                           {/* Tên & số khung */}
-                          <div className='w-full space-y-1'>
+                          <div className='w-full space-y-0.5'>
                             <div
                               className={`text-[11px] leading-tight truncate ${
                                 isSelected
@@ -1712,11 +2019,11 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                               {tpl.name}
                             </div>
                             <div className='flex items-center justify-between text-[9.5px]'>
-                              <span className='text-[var(--sb-muted)]'>
-                                {tpl.isBuiltIn ? 'Mặc định' : 'Tuỳ chỉnh'}
+                              <span className='text-[var(--sb-muted)] truncate max-w-[100px]' title={tpl.description}>
+                                {tpl.description ? tpl.description.slice(0, 22) + '...' : (tpl.isBuiltIn ? 'Chuẩn xuất bản' : 'Tuỳ chỉnh')}
                               </span>
                               <span
-                                className={`font-mono font-bold px-1.5 py-0.2 rounded ${
+                                className={`font-mono font-bold px-1.5 py-0.2 rounded shrink-0 ${
                                   isSelected
                                     ? 'bg-[var(--sb-accent)] text-white'
                                     : 'bg-[var(--sb-surface-hover)] text-[var(--sb-muted)]'

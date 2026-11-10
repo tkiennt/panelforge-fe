@@ -36,6 +36,7 @@ export const FrameTemplateModal: React.FC<FrameTemplateModalProps> = ({
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [applying, setApplying] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState<'all' | 'narrative' | 'action' | 'cinematic' | 'webtoon'>('all');
 
   useEffect(() => {
     if (!isOpen || !workspaceId) return;
@@ -146,6 +147,30 @@ export const FrameTemplateModal: React.FC<FrameTemplateModalProps> = ({
           </div>
         )}
 
+        {/* Category Tabs: Mục đích kể chuyện */}
+        <div className='px-4 pt-2.5 pb-1 flex items-center gap-1.5 overflow-x-auto custom-scrollbar border-b border-[#E7E2D9] bg-[#FAF8F3]'>
+          {[
+            { id: 'all', label: 'Tất cả' },
+            { id: 'narrative', label: 'Tự sự (Narrative)' },
+            { id: 'action', label: 'Hành động (Action)' },
+            { id: 'cinematic', label: 'Đại cảnh (Cinematic)' },
+            { id: 'webtoon', label: 'Cuộn dọc (Webtoon)' },
+          ].map((cat) => (
+            <button
+              key={cat.id}
+              type='button'
+              onClick={() => setCategoryFilter(cat.id as any)}
+              className={`px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
+                categoryFilter === cat.id
+                  ? 'bg-[#C2410C] text-white shadow-xs'
+                  : 'text-[#78716C] hover:text-[#1C1917] hover:bg-[#EAE5D9]'
+              }`}
+            >
+              {cat.label}
+            </button>
+          ))}
+        </div>
+
         {/* Content body */}
         <div className='p-3 sm:p-4 flex-1 overflow-y-auto custom-scrollbar'>
           {loading ? (
@@ -158,19 +183,45 @@ export const FrameTemplateModal: React.FC<FrameTemplateModalProps> = ({
             </div>
           ) : (
             <div className='grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-3'>
-              {templates.map((tpl) => {
-                const isSelected = tpl.id === selectedTemplateId;
-                return (
-                  <div
-                    key={tpl.id}
-                    onClick={() => setSelectedTemplateId(tpl.id)}
-                    onDoubleClick={handleApply}
-                    className={`group p-2.5 rounded-xl border text-left cursor-pointer transition-all flex flex-col justify-between ${
-                      isSelected
-                        ? 'border-[#F97316] bg-[#FFF2E6]/60 ring-2 ring-[#F97316]/25 shadow-xs'
-                        : 'border-[#D8D2C5] bg-[#FCFBF8] hover:border-stone-400 hover:bg-stone-50/60'
-                    }`}
-                  >
+              {templates
+                .filter((tpl) => categoryFilter === 'all' || (tpl.category || 'narrative') === categoryFilter)
+                .map((tpl) => {
+                  const isSelected = tpl.id === selectedTemplateId;
+                  const catLabel =
+                    tpl.category === 'action'
+                      ? 'Hành động'
+                      : tpl.category === 'cinematic'
+                        ? 'Đại cảnh'
+                        : tpl.category === 'webtoon'
+                          ? 'Cuộn dọc'
+                          : 'Tự sự';
+                  return (
+                    <div
+                      key={tpl.id}
+                      onClick={() => setSelectedTemplateId(tpl.id)}
+                      onDoubleClick={handleApply}
+                      title={tpl.description || tpl.name}
+                      className={`group p-2.5 rounded-xl border text-left cursor-pointer transition-all flex flex-col justify-between ${
+                        isSelected
+                          ? 'border-[#F97316] bg-[#FFF2E6]/60 ring-2 ring-[#F97316]/25 shadow-xs'
+                          : 'border-[#D8D2C5] bg-[#FCFBF8] hover:border-stone-400 hover:bg-stone-50/60'
+                      }`}
+                    >
+                      {/* Top badge */}
+                      <div className='w-full flex items-center justify-between gap-1 mb-1.5'>
+                        {tpl.code ? (
+                          <span className='font-mono font-bold text-[9px] px-1.5 py-0.2 rounded bg-stone-200 text-stone-800'>
+                            {tpl.code}
+                          </span>
+                        ) : (
+                          <span className='text-[9px] text-[#78716C]'>
+                            {tpl.isBuiltIn ? 'Mặc định' : 'Tuỳ chỉnh'}
+                          </span>
+                        )}
+                        <span className='text-[8.5px] font-medium px-1.5 py-0.2 rounded bg-amber-100/80 text-amber-900 border border-amber-200/60'>
+                          {catLabel}
+                        </span>
+                      </div>
                     {/* Miniature Slot Layout Visualization */}
                     <div className='w-full h-28 sm:h-32 bg-[#F5F2EB] rounded-lg border border-[#E7E2D9] flex items-center justify-center p-1.5 mb-2 relative overflow-hidden group-hover:border-stone-300'>
                       <div

@@ -47,7 +47,7 @@ export interface PageLayoutState {
 export interface FramePresetTemplate {
   id: string;
   name: string;
-  category?: 'Kinh điển' | 'Hành động' | 'Đại cảnh' | 'Truyền thống';
+  category?: 'Kinh điển' | 'Hành động' | 'Đại cảnh' | 'Truyền thống' | 'Tự sự' | 'Webtoon' | string;
   description: string;
   panelCount: number;
   badge?: string;

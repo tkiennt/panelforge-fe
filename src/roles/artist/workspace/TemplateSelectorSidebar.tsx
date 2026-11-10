@@ -3,6 +3,7 @@ import { X, LayoutTemplate, Check, Sparkles, HelpCircle } from 'lucide-react';
 import { FramePresetTemplate } from './workspace.types';
 
 export const MANGA_FRAME_PRESETS: FramePresetTemplate[] = [
+  // ── NHÓM 1: TỰ SỰ TIÊU CHUẨN (STANDARD & NARRATIVE) ─────────────────────────
   {
     id: 'single-full',
     name: '1 Khung Toàn Trang',
@@ -20,6 +21,70 @@ export const MANGA_FRAME_PRESETS: FramePresetTemplate[] = [
     panelCount: 1,
     badge: 'Tràn lề',
     panels: [{ panelNumber: 1, x: 0, y: 0, width: 100, height: 100 }],
+  },
+  {
+    id: '4-panel-yonkoma',
+    name: '4-Koma Classic (Ki-shō-ten-ketsu)',
+    category: 'Tự sự',
+    description: 'Quy chuẩn 4 khung Ki-shō-ten-ketsu (Khai - Thừa - Chuyển - Hợp) theo lề chuẩn in ấn',
+    panelCount: 4,
+    badge: 'TPL-MANGA-01',
+    panels: [
+      { panelNumber: 1, x: 2.5, y: 2.5, width: 95, height: 22.85 },
+      { panelNumber: 2, x: 2.5, y: 26.55, width: 95, height: 22.85 },
+      { panelNumber: 3, x: 2.5, y: 50.6, width: 95, height: 22.85 },
+      { panelNumber: 4, x: 2.5, y: 74.65, width: 95, height: 22.85 },
+    ],
+  },
+  {
+    id: '3-tier-balanced',
+    name: '3-Tier Balanced (5 Khung RTL)',
+    category: 'Tự sự',
+    description: 'Bố cục 3 tầng cổ điển Manga: Tier 1 mở cảnh, Tier 2 kịch tính trọng tâm, Tier 3 chuyển tiếp trang',
+    panelCount: 5,
+    badge: 'TPL-MANGA-02',
+    panels: [
+      { panelNumber: 1, x: 50.6, y: 2.5, width: 46.9, height: 27 },
+      { panelNumber: 2, x: 2.5, y: 2.5, width: 46.9, height: 27 },
+      { panelNumber: 3, x: 2.5, y: 31, width: 95, height: 38 },
+      { panelNumber: 4, x: 50.6, y: 70.5, width: 46.9, height: 27 },
+      { panelNumber: 5, x: 2.5, y: 70.5, width: 46.9, height: 27 },
+    ],
+  },
+  {
+    id: '3-tier-dense',
+    name: '3-Tier Dense (6 Khung Lưới 3×2)',
+    category: 'Tự sự',
+    description: 'Lưới 3 hàng × 2 cột cho các phân cảnh nhiều đối thoại, điều tra, tranh luận gay cấn',
+    panelCount: 6,
+    badge: 'TPL-MANGA-03',
+    panels: [
+      { panelNumber: 1, x: 50.6, y: 2.5, width: 46.9, height: 29.6 },
+      { panelNumber: 2, x: 2.5, y: 2.5, width: 46.9, height: 29.6 },
+      { panelNumber: 3, x: 50.6, y: 33.6, width: 46.9, height: 29.6 },
+      { panelNumber: 4, x: 2.5, y: 33.6, width: 46.9, height: 29.6 },
+      { panelNumber: 5, x: 50.6, y: 64.7, width: 46.9, height: 29.6 },
+      { panelNumber: 6, x: 2.5, y: 64.7, width: 46.9, height: 29.6 },
+    ],
+  },
+  {
+    id: 'classic-9-grid',
+    name: 'Classic 9-Panel Grid (Watchmen Style)',
+    category: 'Tự sự',
+    description: 'Lưới 3 hàng × 3 cột đồng nhất phong cách Watchmen/DC Classic: nhịp kể đều đặn, phân tích tâm lý',
+    panelCount: 9,
+    badge: 'TPL-COMIC-01',
+    panels: [
+      { panelNumber: 1, x: 2.5, y: 2.5, width: 30.87, height: 30.67 },
+      { panelNumber: 2, x: 34.57, y: 2.5, width: 30.87, height: 30.67 },
+      { panelNumber: 3, x: 66.63, y: 2.5, width: 30.87, height: 30.67 },
+      { panelNumber: 4, x: 2.5, y: 34.67, width: 30.87, height: 30.67 },
+      { panelNumber: 5, x: 34.57, y: 34.67, width: 30.87, height: 30.67 },
+      { panelNumber: 6, x: 66.63, y: 34.67, width: 30.87, height: 30.67 },
+      { panelNumber: 7, x: 2.5, y: 66.84, width: 30.87, height: 30.67 },
+      { panelNumber: 8, x: 34.57, y: 66.84, width: 30.87, height: 30.67 },
+      { panelNumber: 9, x: 66.63, y: 66.84, width: 30.87, height: 30.67 },
+    ],
   },
   {
     id: '2-panel-vert',
@@ -58,18 +123,33 @@ export const MANGA_FRAME_PRESETS: FramePresetTemplate[] = [
       { panelNumber: 3, x: 2.5, y: 63.5, width: 95, height: 34 },
     ],
   },
+
+  // ── NHÓM 2: HÀNH ĐỘNG & KỊCH TÍNH (ACTION & HIGH-TENSION) ────────────────────
   {
-    id: '4-panel-yonkoma',
-    name: '4 Khung Yonkoma (4-Koma)',
-    category: 'Truyền thống',
-    description: 'Quy chuẩn 4 khung Ki-shō-ten-ketsu (Khai - Thừa - Chuyển - Hợp) theo lề chuẩn in ấn',
+    id: 'dynamic-shonen-slanted',
+    name: 'Dynamic Shonen Slanted (4 Khung Cắt Chéo)',
+    category: 'Hành động',
+    description: 'Rãnh cắt chéo góc 15°-25° tạo xung lực gia tốc cực mạnh cho phân cảnh combat, ra đòn chớp nhoáng',
     panelCount: 4,
-    badge: '4-Koma',
+    badge: 'TPL-MANGA-04',
     panels: [
-      { panelNumber: 1, x: 3, y: 2.5, width: 94, height: 22.4 },
-      { panelNumber: 2, x: 3, y: 26.1, width: 94, height: 22.4 },
-      { panelNumber: 3, x: 3, y: 49.7, width: 94, height: 22.4 },
-      { panelNumber: 4, x: 3, y: 73.3, width: 94, height: 22.4 },
+      { panelNumber: 1, x: 2.5, y: 2.5, width: 95, height: 28 },
+      { panelNumber: 2, x: 44, y: 26, width: 53.5, height: 38 },
+      { panelNumber: 3, x: 2.5, y: 32, width: 40, height: 38 },
+      { panelNumber: 4, x: 2.5, y: 68.5, width: 95, height: 29 },
+    ],
+  },
+  {
+    id: 'inset-panels',
+    name: 'Inset Panels (Khung Lồng Khung)',
+    category: 'Hành động',
+    description: '1 khung toàn cảnh chiến trường làm nền lồng 2 khung cận cảnh biểu cảm và chi tiết vũ khí',
+    panelCount: 3,
+    badge: 'Khung Lồng',
+    panels: [
+      { panelNumber: 1, x: 2.5, y: 2.5, width: 95, height: 95 },
+      { panelNumber: 2, x: 55, y: 8, width: 39, height: 26 },
+      { panelNumber: 3, x: 6, y: 62, width: 39, height: 26 },
     ],
   },
   {
@@ -87,17 +167,48 @@ export const MANGA_FRAME_PRESETS: FramePresetTemplate[] = [
       { panelNumber: 5, x: 50.6, y: 71.5, width: 46.9, height: 26 },
     ],
   },
+
+  // ── NHÓM 3: ĐẠI CẢNH & ĐIỂM NHẤN (CINEMATIC & SPLASH) ─────────────────────────
+  {
+    id: 'hero-splash-70-30',
+    name: 'Hero Splash 70/30 (Dominant Layout)',
+    category: 'Đại cảnh',
+    description: 'Khung 70% trang trên cho cảnh đại chiến bùng nổ, 3 khung hẹp 30% dưới cho phản hồi của đồng đội',
+    panelCount: 4,
+    badge: 'TPL-MANGA-05',
+    panels: [
+      { panelNumber: 1, x: 2.5, y: 2.5, width: 95, height: 67 },
+      { panelNumber: 2, x: 66.5, y: 71, width: 31, height: 26.5 },
+      { panelNumber: 3, x: 34.5, y: 71, width: 30.8, height: 26.5 },
+      { panelNumber: 4, x: 2.5, y: 71, width: 30.8, height: 26.5 },
+    ],
+  },
   {
     id: 'cinematic-widescreen',
-    name: 'Điện Ảnh Cinema (3 Khung)',
+    name: 'Cinematic Widescreen (3 Bars)',
     category: 'Đại cảnh',
-    description: '1 khung đại cảnh Cinematic tỉ lệ vàng ở trên cùng 2 khung phản ứng đối xứng ở dưới',
+    description: '3 thanh dài ngang tỉ lệ màn ảnh rộng cho cảnh thiên nhiên kéo dài hoặc du hành thời gian',
     panelCount: 3,
-    badge: 'Cinematic',
+    badge: 'TPL-COMIC-02',
     panels: [
-      { panelNumber: 1, x: 2.5, y: 2.5, width: 95, height: 52 },
-      { panelNumber: 2, x: 2.5, y: 56, width: 46.9, height: 41.5 },
-      { panelNumber: 3, x: 50.6, y: 56, width: 46.9, height: 41.5 },
+      { panelNumber: 1, x: 2.5, y: 2.5, width: 95, height: 29 },
+      { panelNumber: 2, x: 2.5, y: 33, width: 95, height: 29 },
+      { panelNumber: 3, x: 2.5, y: 63.5, width: 95, height: 34 },
+    ],
+  },
+
+  // ── NHÓM 4: WEBTOON / MOBILE VERTICAL SCROLL ──────────────────────────────────
+  {
+    id: 'webtoon-mobile-flow',
+    name: 'Vertical Mobile Flow (3 Khung Cuộn)',
+    category: 'Webtoon',
+    description: 'Bố cục cuộn dọc tiêu chuẩn smartphone 9:16 với khoảng lặng ngừng nghỉ (negative space)',
+    panelCount: 3,
+    badge: 'TPL-WEBTOON-01',
+    panels: [
+      { panelNumber: 1, x: 4, y: 4, width: 92, height: 27 },
+      { panelNumber: 2, x: 4, y: 36, width: 92, height: 27 },
+      { panelNumber: 3, x: 4, y: 68, width: 92, height: 28 },
     ],
   },
 ];
