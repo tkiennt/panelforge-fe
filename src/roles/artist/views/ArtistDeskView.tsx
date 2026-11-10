@@ -74,9 +74,10 @@ const DEFAULT_INITIAL_PAGES: PageDto[] = [
 
 /**
  * ArtistDeskView - Canva-Style Manga Workspace
- * - Giữ nguyên side tab của hệ thống hiện tại (AppShellSidebar).
- * - Canvas vẽ trang giấy trắng tinh ở trung tâm (loại bỏ hoàn toàn các chữ kỹ thuật).
- * - Quản lý trang nằm ở cạnh đáy theo kiểu Canva (đã xóa Ghi chú và Hẹn giờ).
+ * - Background trong suốt tự nhiên (hòa hợp hoàn toàn với AppShell).
+ * - Trang giấy trắng canh giữa màn hình tuyệt đối, đổ bóng tự nhiên như trang giấy vẽ thật.
+ * - Mở lên mượt mà với hiệu ứng chuyển cảnh mềm mại.
+ * - Quản lý trang nằm ở cạnh đáy theo kiểu Canva.
  */
 export const ArtistDeskView: React.FC<ArtistDeskViewProps> = () => {
   const { seriesId } = useParams<{ workspaceId?: string; seriesId?: string }>();
@@ -221,40 +222,41 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = () => {
   return (
     <div
       ref={containerRef}
-      className='flex-1 basis-0 min-h-0 w-full h-full flex flex-col bg-[#F3F0E9] text-[#1C1917] overflow-hidden select-none relative'
+      className='flex-1 basis-0 min-h-0 w-full h-full flex flex-col bg-transparent text-[#1C1917] overflow-hidden select-none relative animate-in fade-in duration-300'
       data-testid='artist-desk'
     >
-      {/* KHU VỰC BÀN VẼ CHÍNH (CANVAS WORKSPACE) - Co giãn tự do theo kích thước còn lại */}
+      {/* KHU VỰC BÀN VẼ CHÍNH (CANVAS WORKSPACE) - Căn giữa màn hình tuyệt đối, nền trong suốt */}
       <main
-        className='relative flex-1 min-h-0 min-w-0 w-full flex items-center justify-center p-4 sm:p-6 overflow-hidden'
+        className='relative flex-1 min-h-0 min-w-0 w-full h-full flex items-center justify-center p-4 sm:p-6 md:p-8 overflow-hidden'
         data-testid='artist-canvas-shell'
       >
-        {/* Wrapper phóng to/thu nhỏ canvas theo slider */}
+        {/* Wrapper phóng to/thu nhỏ canvas theo slider - Căn giữa tự nhiên */}
         <div
-          className='w-full h-full flex items-center justify-center transition-transform duration-100 ease-out origin-center'
+          className='w-full h-full flex items-center justify-center m-auto transition-transform duration-200 ease-out origin-center'
           style={{ transform: `scale(${zoomScale})` }}
         >
-          {/* Trang giấy trắng tinh chuẩn Manga (Tỷ lệ B5 Master 1:1.414, không chữ kỹ thuật) */}
+          {/* Trang giấy trắng tự nhiên (Chuẩn tỷ lệ Manga B5 1:1.414, hiệu ứng đổ bóng tự nhiên, mở lên mượt mà) */}
           <div
+            key={selectedPageId || 'default'}
             data-testid='artist-blank-sheet'
-            className='max-h-full max-w-full h-full w-auto aspect-[1/1.414] bg-white rounded-xs shadow-[0_14px_45px_rgba(28,25,23,0.08)] border border-[#D8D2C5] relative flex flex-col items-center justify-center p-6 sm:p-8 transition-all shrink-0'
+            className='max-h-full max-w-full h-full w-auto aspect-[1/1.414] bg-white rounded-[3px] shadow-[0_4px_16px_rgba(0,0,0,0.04),0_16px_40px_rgba(0,0,0,0.07)] border border-stone-200/90 relative flex flex-col items-center justify-center p-6 sm:p-8 transition-all duration-300 ease-out shrink-0 animate-in fade-in zoom-in-98'
           >
-            {/* Vùng vẽ trang giấy trắng tinh khiết */}
+            {/* Vùng vẽ trang giấy trắng tự nhiên */}
             <div
-              className='w-full h-full border border-dashed border-[#D8D2C5]/70 rounded-xs flex flex-col items-center justify-center relative'
+              className='w-full h-full border border-dashed border-stone-200/70 rounded-[2px] flex flex-col items-center justify-center relative'
               data-testid='artist-canvas-surface'
             >
-              {/* Dấu định vị 4 góc vẽ (Crop marks tinh tế) */}
-              <div className='absolute top-2 left-2 w-3 h-3 border-t-2 border-l-2 border-[#A8A29E]/70 pointer-events-none' />
-              <div className='absolute top-2 right-2 w-3 h-3 border-t-2 border-r-2 border-[#A8A29E]/70 pointer-events-none' />
-              <div className='absolute bottom-2 left-2 w-3 h-3 border-b-2 border-l-2 border-[#A8A29E]/70 pointer-events-none' />
-              <div className='absolute bottom-2 right-2 w-3 h-3 border-b-2 border-r-2 border-[#A8A29E]/70 pointer-events-none' />
+              {/* Dấu định vị 4 góc vẽ (Crop marks tinh tế, thanh thoát) */}
+              <div className='absolute top-2.5 left-2.5 w-3 h-3 border-t border-l border-stone-300/80 pointer-events-none' />
+              <div className='absolute top-2.5 right-2.5 w-3 h-3 border-t border-r border-stone-300/80 pointer-events-none' />
+              <div className='absolute bottom-2.5 left-2.5 w-3 h-3 border-b border-l border-stone-300/80 pointer-events-none' />
+              <div className='absolute bottom-2.5 right-2.5 w-3 h-3 border-b border-r border-stone-300/80 pointer-events-none' />
             </div>
           </div>
         </div>
       </main>
 
-      {/* THANH QUẢN LÝ TRANG Ở ĐÁY MÀN HÌNH - PHONG CÁCH CANVA */}
+      {/* THANH QUẢN LÝ TRANG Ở ĐÁY MÀN HÌNH - PHONG CÁCH CANVA TRONG SUỐT GỌN GÀNG */}
       <ArtistBottomPageStrip
         pages={pages}
         selectedPageId={selectedPageId}
