@@ -519,7 +519,7 @@ describe('ArtistDeskView - Header Colors, Stage Progression & Series/Chapter Pat
     });
     expect(screen.getByTestId('focus-series-link')).toHaveAttribute(
       'href',
-      '/workspaces/ws-1/series/ser-1/my-work',
+      '/workspaces/ws-1/series/ser-1/artist',
     );
 
     const chapterSelect = await screen.findByTestId('focus-chapter-select');
@@ -737,15 +737,14 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
     fireEvent.click(screen.getByTestId('canva-tab-templates'));
     fireEvent.click(screen.getByTestId('canva-template-card-f0000000-0000-0000-0000-000000000004'));
 
-    // Verify draft status bar is rendered underneath the canvas
+    // Verify Lucian-style save button is rendered at bottom-right beside the sheet
     expect(screen.getByTestId('canvas-bottom-layout-bar')).toBeInTheDocument();
-    expect(screen.getByTestId('canvas-layout-status-bar')).toBeInTheDocument();
-    expect(screen.getByText(/Bản nháp bố cục/i)).toBeInTheDocument();
-    expect(screen.getByTestId('canvas-btn-save-layout')).toBeInTheDocument();
+    const saveBtn = screen.getByTestId('canvas-btn-save-layout');
+    expect(saveBtn).toBeInTheDocument();
+    expect(saveBtn).toHaveTextContent('Lưu');
 
-    // In draft mode, panels display "Chưa lưu bố cục", dropzone is NOT accessible
+    // In draft mode, dropzone is NOT accessible
     expect(screen.queryByTestId('panel-dropzone-1')).not.toBeInTheDocument();
-    expect(screen.getAllByText('Chưa lưu bố cục')[0]).toBeInTheDocument();
 
     // Verify smooth template switching in draft mode (switch to 4-Koma without any modal blocking)
     fireEvent.click(screen.getByTestId('canva-template-card-f0000000-0000-0000-0000-00000000000c'));
@@ -761,18 +760,17 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
     fireEvent.click(card2.querySelector('[role="button"]') || card2);
     expect(screen.queryByTestId('canvas-panel-template-overlay')).not.toBeInTheDocument();
 
-    // Return to Page 1 -> 3-panel template is still preserved
+    // Return to Page 1 -> 3-panel template is still preserved and save button remains visible
     const card1 = screen.getByTestId('canva-page-card-1');
     fireEvent.click(card1.querySelector('[role="button"]') || card1);
     expect(screen.getByTestId('canvas-panel-frame-3')).toBeInTheDocument();
     expect(screen.getByTestId('canvas-btn-save-layout')).toBeInTheDocument();
 
-    // Save layout (located underneath the artwork frame)
+    // Save layout (lucian button) -> saves and button turns off (disappears)
     fireEvent.click(screen.getByTestId('canvas-btn-save-layout'));
 
-    // Status bar changes to saved / locked
-    expect(screen.getByText(/Đã lưu bố cục/i)).toBeInTheDocument();
-    expect(screen.getByTestId('canvas-btn-unlock-layout')).toBeInTheDocument();
+    // After saving, save button is hidden / turned off
+    expect(screen.queryByTestId('canvas-btn-save-layout')).not.toBeInTheDocument();
 
     // Dropzone is now enabled for each panel
     expect(screen.getByTestId('panel-dropzone-1')).toBeInTheDocument();
@@ -794,7 +792,7 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
     });
 
     // When artist tries to unlock while page has artwork, confirmation modal appears
-    fireEvent.click(screen.getByTestId('canvas-btn-unlock-layout'));
+    fireEvent.click(screen.getByTestId('canva-btn-unlock-template'));
     expect(screen.getByTestId('modal-unlock-layout-confirm')).toBeInTheDocument();
     expect(screen.getByText(/Mở khóa đổi mẫu khung trang\?/i)).toBeInTheDocument();
 
@@ -803,11 +801,11 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
     expect(screen.queryByTestId('modal-unlock-layout-confirm')).not.toBeInTheDocument();
     expect(screen.getByAltText('panel1-sketch.png')).toBeInTheDocument();
 
-    // Confirm unlock resets artwork and returns to draft template selection
-    fireEvent.click(screen.getByTestId('canvas-btn-unlock-layout'));
+    // Confirm unlock resets artwork and returns to draft template selection -> Save button reappears
+    fireEvent.click(screen.getByTestId('canva-btn-unlock-template'));
     fireEvent.click(screen.getByTestId('btn-confirm-unlock'));
     expect(screen.queryByTestId('modal-unlock-layout-confirm')).not.toBeInTheDocument();
-    expect(screen.getByText(/Bản nháp bố cục/i)).toBeInTheDocument();
+    expect(screen.getByTestId('canvas-btn-save-layout')).toBeInTheDocument();
     expect(screen.queryByAltText('panel1-sketch.png')).not.toBeInTheDocument();
   });
 });

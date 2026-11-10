@@ -330,7 +330,7 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
 
     fireEvent.click(screen.getByTestId('canva-tab-templates'));
     expect(screen.getByTestId('canva-layout-locked-banner')).toBeInTheDocument();
-    expect(screen.getByText('Bố cục trang đã lưu')).toBeInTheDocument();
+    expect(screen.getByText('Đã lưu')).toBeInTheDocument();
 
     // Clicking unlock button triggers onUnlockLayout
     fireEvent.click(screen.getByTestId('canva-btn-unlock-template'));
