@@ -11,6 +11,7 @@ import { bibleService } from '@/services/bible.service';
 import { seriesService } from '@/services/series.service';
 import { pipelineService } from '@/services/pipeline.service';
 import { assignmentService } from '@/services/assignment.service';
+import { frameTemplateService } from '@/services/frameTemplate.service';
 import { FocusWorkspaceLayout } from '@/app/FocusWorkspaceLayout';
 
 afterEach(() => {
@@ -351,7 +352,7 @@ describe('ArtistDeskView - Real API Series Bible & Continuous Script Integration
 });
 
 describe('ArtistDeskView - Header Colors, Stage Progression & Series/Chapter Paths', () => {
-  it('displays system warm-paper header with series link, chapter switcher, and advances stages on Submit without technical jargon', async () => {
+  it('displays system warm-paper header with series link, chapter switcher, and advances Pencil -> Ink -> Dialogue on Submit', async () => {
     vi.spyOn(seriesService, 'getSeriesById').mockResolvedValue({
       id: 'ser-1',
       workspaceId: 'ws-1',
@@ -426,9 +427,20 @@ describe('ArtistDeskView - Header Colors, Stage Progression & Series/Chapter Pat
           slug: 'ink',
           stageOrder: 3,
           allowedRole: 'Artist',
-          isApprovalGate: true,
+          isApprovalGate: false,
           isInitial: false,
           isTerminal: false,
+          isEnabled: true,
+        },
+        {
+          id: 'st-dialogue',
+          name: 'Dialogue',
+          slug: 'lettering',
+          stageOrder: 4,
+          allowedRole: 'Letterer',
+          isApprovalGate: true,
+          isInitial: false,
+          isTerminal: true,
           isEnabled: true,
         },
       ],
@@ -515,16 +527,18 @@ describe('ArtistDeskView - Header Colors, Stage Progression & Series/Chapter Pat
     expect(chapterSelect).toHaveTextContent('Chương 1: Khởi Hành');
     expect(chapterSelect).toHaveTextContent('Chương 2: Cơn Bão Đêm');
 
-    // Stage stepper displays localized Vietnamese stage names without technical jargon
+    // Stage stepper displays Pencil -> Ink -> Dialogue
     await waitFor(() => {
-      expect(screen.getByTestId('focus-stage-step-0')).toHaveTextContent('Vẽ chì');
+      expect(screen.getByTestId('focus-stage-step-0')).toHaveTextContent('Pencil');
     });
-    expect(screen.getByTestId('focus-stage-step-1')).toHaveTextContent('Đi nét mực');
+    expect(screen.getByTestId('focus-stage-step-1')).toHaveTextContent('Ink');
+    expect(screen.getByTestId('focus-stage-step-2')).toHaveTextContent('Dialogue');
     expect(screen.getByTestId('focus-stage-step-0')).toHaveAttribute('data-stage-state', 'current');
     expect(screen.getByTestId('focus-stage-step-1')).toHaveAttribute('data-stage-state', 'upcoming');
+    expect(screen.getByTestId('focus-stage-step-2')).toHaveAttribute('data-stage-state', 'upcoming');
     expect(screen.queryByText(/SHA-256|CAS|DPI|Canon|Zen Mode/i)).not.toBeInTheDocument();
 
-    // Submit advances from Stage 1 (Vẽ chì) -> Stage 2 (Đi nét mực)
+    // Submit 1: Pencil -> Ink
     fireEvent.click(screen.getByTestId('focus-submit-stage-btn'));
     await waitFor(() => {
       expect(submitSpy).toHaveBeenCalledWith('chap-1', 'assign-pencil');
@@ -532,7 +546,14 @@ describe('ArtistDeskView - Header Colors, Stage Progression & Series/Chapter Pat
       expect(screen.getByTestId('focus-stage-step-1')).toHaveAttribute('data-stage-state', 'current');
     });
 
-    // Final Submit completes the stage flow
+    // Submit 2: Ink -> Dialogue
+    fireEvent.click(screen.getByTestId('focus-submit-stage-btn'));
+    await waitFor(() => {
+      expect(screen.getByTestId('focus-stage-step-1')).toHaveAttribute('data-stage-state', 'completed');
+      expect(screen.getByTestId('focus-stage-step-2')).toHaveAttribute('data-stage-state', 'current');
+    });
+
+    // Submit 3: Dialogue -> Completed
     expect(screen.getByTestId('focus-submit-stage-btn')).toHaveTextContent('Nộp hoàn thiện');
     fireEvent.click(screen.getByTestId('focus-submit-stage-btn'));
     await waitFor(() => {
@@ -544,5 +565,156 @@ describe('ArtistDeskView - Header Colors, Stage Progression & Series/Chapter Pat
     await waitFor(() => {
       expect(pagesSpy).toHaveBeenCalledWith('chap-2');
     });
+  });
+});
+
+describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => {
+  it('applies selected template immediately on the currently selected page only', () => {
+    render(
+      <MemoryRouter initialEntries={['/workspaces/ws-1/series/ser-1/artist']}>
+        <Routes>
+          <Route
+            path='/workspaces/:workspaceId/series/:seriesId/artist'
+            element={<ArtistDeskView workspaceRole='ARTIST' />}
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    // Initially blank paper has no template overlay
+    expect(screen.queryByTestId('canvas-panel-template-overlay')).not.toBeInTheDocument();
+
+    // Open Templates tab and select 3 Khung Shonen for Page 1
+    fireEvent.click(screen.getByTestId('canva-tab-templates'));
+    expect(screen.getByTestId('canva-drawer-templates')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('canva-template-card-builtin-3-panel-shonen'));
+
+    // Page 1 sheet now renders 3 panels
+    expect(screen.getByTestId('canvas-panel-template-overlay')).toBeInTheDocument();
+    expect(screen.getByTestId('canvas-panel-frame-1')).toBeInTheDocument();
+    expect(screen.getByTestId('canvas-panel-frame-2')).toBeInTheDocument();
+    expect(screen.getByTestId('canvas-panel-frame-3')).toBeInTheDocument();
+
+    // Switch to Page 2 -> Page 2 is still blank until user applies template to Page 2
+    const card2 = screen.getByTestId('canva-page-card-2');
+    fireEvent.click(card2.querySelector('[role="button"]')!);
+    expect(screen.queryByTestId('canvas-panel-template-overlay')).not.toBeInTheDocument();
+
+    // Apply 4 Khung Yonkoma to Page 2
+    fireEvent.click(screen.getByTestId('canva-template-card-builtin-4-panel-yonkoma'));
+    expect(screen.getByTestId('canvas-panel-frame-4')).toBeInTheDocument();
+
+    // Clear template on Page 2 -> Page 2 returns to blank, while Page 1 keeps its 3-panel template
+    fireEvent.click(screen.getByTestId('canva-btn-clear-template'));
+    expect(screen.queryByTestId('canvas-panel-template-overlay')).not.toBeInTheDocument();
+
+    const card1 = screen.getByTestId('canva-page-card-1');
+    fireEvent.click(card1.querySelector('[role="button"]')!);
+    expect(screen.getByTestId('canvas-panel-template-overlay')).toBeInTheDocument();
+    expect(screen.getByTestId('canvas-panel-frame-3')).toBeInTheDocument();
+  });
+
+  it('fetches workspace frame templates and calls applyFrameTemplate API for real backend page', async () => {
+    const pageGuid = '11111111-1111-1111-1111-111111111111';
+    const chapGuid = '22222222-2222-2222-2222-222222222222';
+    const tplGuid = '33333333-3333-3333-3333-333333333333';
+
+    vi.spyOn(chapterService, 'getChaptersBySeries').mockResolvedValueOnce({
+      items: [
+        {
+          id: chapGuid,
+          seriesId: 'ser-real',
+          chapterNumber: 1,
+          title: 'Chương 1',
+          versionVector: 1,
+          createdAt: '2026-01-01T00:00:00Z',
+          scenesCount: 0,
+          pagesCount: 1,
+        },
+      ],
+      totalCount: 1,
+      pageIndex: 1,
+      pageSize: 20,
+      totalPages: 1,
+    });
+
+    vi.spyOn(pageService, 'getPagesByChapter').mockResolvedValueOnce([
+      {
+        id: pageGuid,
+        chapterId: chapGuid,
+        pageNumber: 1,
+        layoutFormat: 'B5',
+        widthPx: 1200,
+        heightPx: 1800,
+        dpi: 600,
+        elementsCount: 0,
+      },
+    ]);
+
+    vi.spyOn(panelService, 'getPanelsByPage').mockResolvedValueOnce([]);
+
+    vi.spyOn(frameTemplateService, 'getFrameTemplates').mockResolvedValueOnce([
+      {
+        id: tplGuid,
+        workspaceId: 'ws-real',
+        name: 'Mẫu 2 Khung API',
+        layoutFormat: 'StandardPage',
+        isBuiltIn: false,
+        panelCount: 2,
+        slots: [
+          { x: 0.05, y: 0.05, w: 0.9, h: 0.4, borderless: false },
+          { x: 0.05, y: 0.5, w: 0.9, h: 0.45, borderless: true },
+        ],
+        createdAt: '2026-01-01T00:00:00Z',
+      },
+    ]);
+
+    const applySpy = vi.spyOn(frameTemplateService, 'applyFrameTemplate').mockResolvedValueOnce([
+      {
+        id: 'created-pnl-1',
+        pageId: pageGuid,
+        panelNumber: 1,
+        boundingBox: JSON.stringify({ normalized: { x: 0.05, y: 0.05, w: 0.9, h: 0.4 } }),
+        readingOrder: 1,
+        createdAt: '2026-01-01T00:00:00Z',
+      },
+      {
+        id: 'created-pnl-2',
+        pageId: pageGuid,
+        panelNumber: 2,
+        boundingBox: JSON.stringify({
+          normalized: { x: 0.05, y: 0.5, w: 0.9, h: 0.45 },
+          borderless: true,
+        }),
+        readingOrder: 2,
+        createdAt: '2026-01-01T00:00:00Z',
+      },
+    ]);
+
+    render(
+      <MemoryRouter initialEntries={['/workspaces/ws-real/series/ser-real/artist']}>
+        <Routes>
+          <Route
+            path='/workspaces/:workspaceId/series/:seriesId/artist'
+            element={<ArtistDeskView workspaceRole='ARTIST' />}
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByTestId('canva-tab-templates'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId(`canva-template-card-${tplGuid}`)).toBeInTheDocument();
+      expect(screen.getByTestId('canva-page-counter')).toHaveTextContent('1 / 1');
+    });
+
+    fireEvent.click(screen.getByTestId(`canva-template-card-${tplGuid}`));
+
+    await waitFor(() => {
+      expect(applySpy).toHaveBeenCalledWith(pageGuid, tplGuid);
+    });
+    expect(screen.getByTestId('canvas-panel-frame-1')).toBeInTheDocument();
+    expect(screen.getByTestId('canvas-panel-frame-2')).toBeInTheDocument();
   });
 });

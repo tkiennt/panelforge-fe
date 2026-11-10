@@ -53,18 +53,22 @@ const CHARACTER_COLORS = [
 ];
 
 const DEFAULT_ARTIST_STAGES: FocusStageItem[] = [
-  { id: 'stage-pencil', label: 'Vẽ chì', key: 'pencil' },
-  { id: 'stage-ink', label: 'Đi nét mực', key: 'ink' },
-  { id: 'stage-finish', label: 'Hoàn thiện tranh', key: 'completed' },
+  { id: 'stage-pencil', label: 'Pencil', key: 'pencil' },
+  { id: 'stage-ink', label: 'Ink', key: 'ink' },
+  { id: 'stage-dialogue', label: 'Dialogue', key: 'lettering' },
 ];
 
 function localizeArtistStageLabel(stage: Pick<PipelineStageDto, 'name' | 'slug'>): string {
   const kind = getArtistStageKind(stage);
-  if (kind === 'pencil') return 'Vẽ chì';
-  if (kind === 'ink') return 'Đi nét mực';
-  if (kind === 'lettering') return 'Chèn thoại';
+  if (kind === 'pencil') return 'Pencil';
+  if (kind === 'ink') return 'Ink';
+  if (kind === 'lettering') return 'Dialogue';
+
+  const lower = `${stage.slug || ''} ${stage.name || ''}`.toLowerCase();
+  if (lower.includes('dialogue') || lower.includes('thoại')) return 'Dialogue';
 
   const boardKind = stageKindOf(stage.name || '');
+  if (boardKind === 'letter') return 'Dialogue';
   if (boardKind === 'thumbnail') return 'Bố cục khung';
   if (boardKind === 'color') return 'Hoàn thiện tranh';
   if (boardKind === 'script') return 'Kịch bản';
@@ -77,7 +81,9 @@ function resolveStageKey(stage: Pick<PipelineStageDto, 'name' | 'slug'>): PageSt
   const kind = getArtistStageKind(stage);
   if (kind === 'ink') return 'ink';
   if (kind === 'lettering') return 'lettering';
-  if (stageKindOf(stage.name || '') === 'color') return 'completed';
+  const boardKind = stageKindOf(stage.name || '');
+  if (boardKind === 'letter') return 'lettering';
+  if (boardKind === 'color') return 'completed';
   return 'pencil';
 }
 
@@ -333,16 +339,16 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
           .sort((a, b) => a.stageOrder - b.stageOrder);
 
         const filteredArtist = enabledSorted.filter((s) => {
-          if (s.allowedRole === 'Artist') return true;
           const bKind = stageKindOf(s.name || '');
           const aKind = getArtistStageKind(s);
           return (
+            s.allowedRole === 'Artist' ||
             aKind === 'pencil' ||
             aKind === 'ink' ||
-            bKind === 'thumbnail' ||
+            aKind === 'lettering' ||
             bKind === 'pencil' ||
             bKind === 'ink' ||
-            bKind === 'color'
+            bKind === 'letter'
           );
         });
 
@@ -554,6 +560,9 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     }
   }, []);
 
+  const currentChapterIdRef = useRef<string | null>(currentChapterId);
+  currentChapterIdRef.current = currentChapterId;
+
   // Tải thông tin Bộ truyện & danh sách Chương (tự động chọn chương đầu tiên nếu URL chưa có chapterId)
   useEffect(() => {
     let alive = true;
@@ -578,7 +587,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
           if (!alive) return;
           const sortedChapters = [...items].sort((a, b) => a.chapterNumber - b.chapterNumber);
           setChapters(sortedChapters);
-          if (!chapterIdFromUrl && !currentChapterId && sortedChapters.length > 0) {
+          if (!currentChapterIdRef.current && sortedChapters.length > 0) {
             const firstId = sortedChapters[0].id;
             setCurrentChapterId(firstId);
             setSearchParams(
@@ -597,7 +606,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     return () => {
       alive = false;
     };
-  }, [seriesId, chapterIdFromUrl, currentChapterId, setSearchParams]);
+  }, [seriesId, setSearchParams]);
 
   useEffect(() => {
     if (currentChapterId) {
