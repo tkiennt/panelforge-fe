@@ -1192,35 +1192,47 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
         {/* 2. KHU VỰC LÀM VIỆC CHÍNH (TRANG GIẤY TRẮNG Ở TRÊN + QUẢN LÝ TRANG Ở DƯỚI) */}
         <div className='flex-1 min-h-0 min-w-0 h-full flex flex-col overflow-hidden relative'>
           <main
-            className='relative flex-1 min-h-0 min-w-0 w-full h-full flex items-center justify-center p-4 sm:p-6 md:p-8 overflow-hidden'
+            className='relative flex-1 min-h-0 min-w-0 w-full h-full flex items-center justify-center p-2 sm:p-3 md:p-4 overflow-hidden'
             data-testid='artist-canvas-shell'
           >
             <div
               className='w-full h-full flex items-center justify-center m-auto transition-transform duration-200 ease-out origin-center'
               style={{ transform: `scale(${zoomScale})` }}
             >
-              {/* Trang giấy trắng tự nhiên chuẩn tỷ lệ 1:1.414 */}
+              {/* Trang giấy trắng chuẩn in ấn Manga B5 (tỷ lệ 1:1.414, đầy đủ vùng Bleed, Trim Line & Safe Zone) */}
               <div
                 key={selectedPageId || 'default'}
                 data-testid='artist-blank-sheet'
-                className='max-h-full max-w-full h-full w-auto aspect-[1/1.414] bg-white rounded-[3px] shadow-[0_4px_16px_rgba(0,0,0,0.04),0_16px_40px_rgba(0,0,0,0.07)] border border-stone-200/90 relative flex flex-col items-center justify-center p-6 sm:p-8 transition-all duration-300 ease-out shrink-0 animate-in fade-in zoom-in-98'
+                className='max-h-full max-w-full h-full w-auto aspect-[1/1.414] bg-white rounded-[2px] shadow-[0_4px_24px_rgba(0,0,0,0.06),0_12px_44px_rgba(0,0,0,0.08)] border border-stone-300/80 relative flex flex-col items-center justify-center p-0 overflow-hidden shrink-0 transition-all duration-300 ease-out animate-in fade-in zoom-in-98'
               >
-                {/* Vùng vẽ trang giấy trắng */}
+                {/* Vùng vẽ trang giấy trắng - Khung toạ độ 1:1 chuẩn theo khổ trang */}
                 <div
-                  className='w-full h-full border border-dashed border-stone-200/70 rounded-[2px] flex flex-col items-center justify-center relative overflow-hidden'
+                  className='w-full h-full relative overflow-hidden bg-white'
                   data-testid='artist-canvas-surface'
                 >
-                  {/* Dấu định vị 4 góc trang */}
-                  <div className='absolute top-2.5 left-2.5 w-3 h-3 border-t border-l border-stone-300/80 pointer-events-none' />
-                  <div className='absolute top-2.5 right-2.5 w-3 h-3 border-t border-r border-stone-300/80 pointer-events-none' />
-                  <div className='absolute bottom-2.5 left-2.5 w-3 h-3 border-b border-l border-stone-300/80 pointer-events-none' />
-                  <div className='absolute bottom-2.5 right-2.5 w-3 h-3 border-b border-r border-stone-300/80 pointer-events-none' />
+                  {/* 1. Đường viền xén Trim Line chuẩn in ấn (3mm ~ 1.8% từ mép tràn lề Bleed) */}
+                  <div
+                    className='absolute inset-[1.8%] border border-dashed border-stone-300/50 pointer-events-none z-10'
+                    title='Đường xén thành phẩm (Trim Line - 3mm Bleed)'
+                  />
 
-                  {/* Lớp hiển thị các khung Panel tham khảo của trang hiện tại (khi đã chọn mẫu khung) */}
+                  {/* 2. Đường biên vùng an toàn nội dung (Safe Zone / Live Area: 0.375" từ vết xén) */}
+                  <div
+                    className='absolute top-[2.8%] bottom-[2.8%] left-[2.8%] right-[2.8%] border border-dotted border-stone-200/60 pointer-events-none z-10'
+                    title='Vùng an toàn nội dung thoại & hình vẽ chính (Live Safe Area)'
+                  />
+
+                  {/* Dấu định vị xén (Crop Marks) 4 góc trang chuẩn in ấn tại Trim Line */}
+                  <div className='absolute top-[1.8%] left-[1.8%] w-3 h-3 border-t border-l border-stone-400/80 pointer-events-none z-10' />
+                  <div className='absolute top-[1.8%] right-[1.8%] w-3 h-3 border-t border-r border-stone-400/80 pointer-events-none z-10' />
+                  <div className='absolute bottom-[1.8%] left-[1.8%] w-3 h-3 border-b border-l border-stone-400/80 pointer-events-none z-10' />
+                  <div className='absolute bottom-[1.8%] right-[1.8%] w-3 h-3 border-b border-r border-stone-400/80 pointer-events-none z-10' />
+
+                  {/* Lớp hiển thị các khung Panel chuẩn tỷ lệ trang (không bị thụt lùi hay padding kép) */}
                   {currentPagePanels.length > 0 && (
                     <div
                       data-testid='canvas-panel-template-overlay'
-                      className='absolute inset-2 pointer-events-none'
+                      className='absolute inset-0 pointer-events-none z-20'
                     >
                       {currentPagePanels.map((pnl, idx) => {
                         const box = parseBoundingBox(
@@ -1235,8 +1247,8 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                             data-testid={`canvas-panel-frame-${panelNum}`}
                             className={`absolute transition-all duration-200 ${
                               box.borderless
-                                ? 'border border-dashed border-orange-500/75 bg-orange-50/15'
-                                : 'border-[1.5px] border-stone-800/80 bg-stone-50/20'
+                                ? 'border-2 border-dashed border-orange-500/85 bg-orange-50/15'
+                                : 'border-2 border-stone-900 bg-stone-50/10 shadow-2xs'
                             }`}
                             style={{
                               left: `${box.percentX}%`,
@@ -1250,7 +1262,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                                 : undefined,
                             }}
                           >
-                            <span className='absolute top-1 left-1.5 px-1 py-0.2 rounded text-[10px] font-mono font-bold bg-white/90 text-stone-700 border border-stone-300/80 shadow-2xs'>
+                            <span className='absolute top-1 left-1.5 px-1 py-0.2 rounded text-[10px] font-mono font-bold bg-white/95 text-stone-800 border border-stone-300/80 shadow-2xs'>
                               #{panelNum}
                             </span>
                           </div>

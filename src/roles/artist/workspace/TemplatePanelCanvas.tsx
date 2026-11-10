@@ -14,28 +14,38 @@ import { PanelBlockData, FramePresetTemplate } from './workspace.types';
 
 export const FRAME_PRESETS: FramePresetTemplate[] = [
   {
+    id: 'preset-single-bleed',
+    name: '1 Khung Tràn Lề (Full Bleed)',
+    description: 'Tranh toàn trang tràn mép bleed 100%, dành cho trang bìa hoặc đại cảnh splash',
+    panelCount: 1,
+    previewGrid: '1 row',
+    panels: [
+      { panelNumber: 1, x: 0, y: 0, width: 100, height: 100 },
+    ],
+  },
+  {
     id: 'preset-3-row',
     name: '3 Khung Cơ Bản',
-    description: 'Bố cục 3 hàng dọc kinh điển cho manga truyền thống',
+    description: 'Bố cục 3 hàng dọc kinh điển cho manga truyền thống (lề chuẩn manga 2.5% phủ 95% trang)',
     panelCount: 3,
     previewGrid: '3 rows',
     panels: [
-      { panelNumber: 1, x: 5, y: 4, width: 90, height: 28 },
-      { panelNumber: 2, x: 5, y: 35, width: 90, height: 28 },
-      { panelNumber: 3, x: 5, y: 66, width: 90, height: 30 },
+      { panelNumber: 1, x: 2.5, y: 2.5, width: 95, height: 29 },
+      { panelNumber: 2, x: 2.5, y: 33, width: 95, height: 29 },
+      { panelNumber: 3, x: 2.5, y: 63.5, width: 95, height: 34 },
     ],
   },
   {
     id: 'preset-4-yonkoma',
     name: '4-Koma (Yonkoma)',
-    description: '4 khung truyện thẳng hàng chuẩn hài hước & đời thường',
+    description: '4 khung truyện thẳng hàng chuẩn hài hước & đời thường (căn lề chuẩn in ấn)',
     panelCount: 4,
     previewGrid: '4 rows',
     panels: [
-      { panelNumber: 1, x: 10, y: 3, width: 80, height: 21 },
-      { panelNumber: 2, x: 10, y: 27, width: 80, height: 21 },
-      { panelNumber: 3, x: 10, y: 51, width: 80, height: 21 },
-      { panelNumber: 4, x: 10, y: 75, width: 80, height: 21 },
+      { panelNumber: 1, x: 3, y: 2.5, width: 94, height: 22.4 },
+      { panelNumber: 2, x: 3, y: 26.1, width: 94, height: 22.4 },
+      { panelNumber: 3, x: 3, y: 49.7, width: 94, height: 22.4 },
+      { panelNumber: 4, x: 3, y: 73.3, width: 94, height: 22.4 },
     ],
   },
   {
@@ -45,11 +55,11 @@ export const FRAME_PRESETS: FramePresetTemplate[] = [
     panelCount: 5,
     previewGrid: 'dynamic',
     panels: [
-      { panelNumber: 1, x: 5, y: 4, width: 90, height: 38 },
-      { panelNumber: 2, x: 5, y: 45, width: 43, height: 24 },
-      { panelNumber: 3, x: 52, y: 45, width: 43, height: 24 },
-      { panelNumber: 4, x: 5, y: 72, width: 43, height: 24 },
-      { panelNumber: 5, x: 52, y: 72, width: 43, height: 24 },
+      { panelNumber: 1, x: 2.5, y: 2.5, width: 95, height: 44 },
+      { panelNumber: 2, x: 2.5, y: 48, width: 46.9, height: 22 },
+      { panelNumber: 3, x: 50.6, y: 48, width: 46.9, height: 22 },
+      { panelNumber: 4, x: 2.5, y: 71.5, width: 46.9, height: 26 },
+      { panelNumber: 5, x: 50.6, y: 71.5, width: 46.9, height: 26 },
     ],
   },
   {
@@ -59,8 +69,8 @@ export const FRAME_PRESETS: FramePresetTemplate[] = [
     panelCount: 2,
     previewGrid: '2 rows',
     panels: [
-      { panelNumber: 1, x: 5, y: 4, width: 90, height: 44 },
-      { panelNumber: 2, x: 5, y: 52, width: 90, height: 44 },
+      { panelNumber: 1, x: 2.5, y: 2.5, width: 95, height: 46.75 },
+      { panelNumber: 2, x: 2.5, y: 50.75, width: 95, height: 46.75 },
     ],
   },
 ];
@@ -150,6 +160,18 @@ export const TemplatePanelCanvas: React.FC<TemplatePanelCanvasProps> = ({
           data-testid='manga-panel-canvas-sheet'
           className='w-[480px] h-[720px] max-h-[85vh] bg-white rounded-xl shadow-2xl border border-stone-300 relative overflow-hidden select-none'
         >
+          {/* Print Production Guides: Trim line (1.8% ~0.125" / 3mm bleed) & Live Safe Margin */}
+          <div
+            aria-hidden='true'
+            className='absolute inset-[1.8%] pointer-events-none border border-dashed border-stone-300/40 z-0'
+            title='Đường xén chuẩn (Trim Line: 3mm / 0.125" Bleed)'
+          />
+          <div
+            aria-hidden='true'
+            className='absolute top-[3.8%] bottom-[3.8%] left-[4.8%] right-[4.8%] pointer-events-none border border-dotted border-stone-200/50 z-0'
+            title='Vùng an toàn (Live Safe Area)'
+          />
+
           {panels.map((panel) => {
             const isSelected = selectedPanelNumber === panel.panelNumber;
             const isHovered = hoveredPanelNumber === panel.panelNumber;
