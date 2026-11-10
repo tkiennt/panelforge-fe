@@ -304,4 +304,40 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
     fireEvent.click(screen.getByTestId('canva-btn-clear-template'));
     expect(handleClearTemplate).toHaveBeenCalledTimes(1);
   });
+
+  it('renders locked layout banner when isLayoutLocked=true and triggers onUnlockLayout', () => {
+    const handleUnlock = vi.fn();
+    const handleSelectTemplate = vi.fn();
+
+    renderWithRouter(
+      <ArtistCanvaSidebar
+        pages={MOCK_PAGES}
+        selectedPageId='page-1'
+        onSelectPage={vi.fn()}
+        onAddPage={vi.fn()}
+        onDuplicatePage={vi.fn()}
+        onDeletePage={vi.fn()}
+        onMovePage={vi.fn()}
+        onToggleVisibility={vi.fn()}
+        activeTemplateId='builtin-3-panel-shonen'
+        hasPagePanels={true}
+        isLayoutLocked={true}
+        onUnlockLayout={handleUnlock}
+        onSelectTemplate={handleSelectTemplate}
+      />
+    );
+
+    fireEvent.click(screen.getByTestId('canva-tab-templates'));
+    expect(screen.getByTestId('canva-layout-locked-banner')).toBeInTheDocument();
+    expect(screen.getByText('Bố cục trang đã chốt')).toBeInTheDocument();
+
+    // Clicking unlock button triggers onUnlockLayout
+    fireEvent.click(screen.getByTestId('canva-btn-unlock-template'));
+    expect(handleUnlock).toHaveBeenCalledTimes(1);
+
+    // Clicking a different template card when locked triggers unlock prompt rather than directly switching
+    fireEvent.click(screen.getByTestId('canva-template-card-builtin-4-panel-yonkoma'));
+    expect(handleUnlock).toHaveBeenCalledTimes(2);
+    expect(handleSelectTemplate).not.toHaveBeenCalled();
+  });
 });
