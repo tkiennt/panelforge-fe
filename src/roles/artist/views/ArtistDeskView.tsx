@@ -79,26 +79,27 @@ const CHARACTER_COLORS = [
 const DEFAULT_ARTIST_STAGES: FocusStageItem[] = [
   { id: 'stage-pencil', label: 'Pencil', key: 'pencil' },
   { id: 'stage-ink', label: 'Ink', key: 'ink' },
-  { id: 'stage-dialogue', label: 'Dialogue', key: 'lettering' },
+  { id: 'stage-letter', label: 'Letter', key: 'lettering' },
 ];
 
 function localizeArtistStageLabel(stage: Pick<PipelineStageDto, 'name' | 'slug'>): string {
   const kind = getArtistStageKind(stage);
   if (kind === 'pencil') return 'Pencil';
   if (kind === 'ink') return 'Ink';
-  if (kind === 'lettering') return 'Dialogue';
+  if (kind === 'lettering') return 'Letter';
 
   const lower = `${stage.slug || ''} ${stage.name || ''}`.toLowerCase();
-  if (lower.includes('dialogue') || lower.includes('thoại')) return 'Dialogue';
+  if (lower.includes('letter') || lower.includes('dialogue') || lower.includes('thoại')) return 'Letter';
+  if (lower.includes('ink') || lower.includes('mực') || lower.includes('nét')) return 'Ink';
+  if (lower.includes('pencil') || lower.includes('chì') || lower.includes('layout') || lower.includes('bố cục') || lower.includes('thumbnail')) return 'Pencil';
 
   const boardKind = stageKindOf(stage.name || '');
-  if (boardKind === 'letter') return 'Dialogue';
-  if (boardKind === 'thumbnail') return 'Bố cục khung';
-  if (boardKind === 'color') return 'Hoàn thiện tranh';
-  if (boardKind === 'script') return 'Kịch bản';
+  if (boardKind === 'letter') return 'Letter';
+  if (boardKind === 'ink') return 'Ink';
+  if (boardKind === 'pencil' || boardKind === 'thumbnail') return 'Pencil';
 
   const cleaned = (stage.name || '').replace(/\s*\([A-Za-z0-9\s/-]+\)\s*/g, '').trim();
-  return cleaned || 'Thực hiện';
+  return cleaned || 'Pencil';
 }
 
 function resolveStageKey(stage: Pick<PipelineStageDto, 'name' | 'slug'>): PageStage {
@@ -379,29 +380,41 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
           .filter((s) => s.isEnabled !== false)
           .sort((a, b) => a.stageOrder - b.stageOrder);
 
-        const filteredArtist = enabledSorted.filter((s) => {
-          const bKind = stageKindOf(s.name || '');
-          const aKind = getArtistStageKind(s);
-          return (
-            s.allowedRole === 'Artist' ||
-            aKind === 'pencil' ||
-            aKind === 'ink' ||
-            aKind === 'lettering' ||
-            bKind === 'pencil' ||
-            bKind === 'ink' ||
-            bKind === 'letter'
-          );
-        });
+        // Bố cục tranh không phải 1 stage mà nằm chung với Pencil.
+        // Thanh header của Artist chuẩn hoá gồm đúng 3 trạng thái: Pencil -> Ink -> Letter
+        const artistPencil = enabledSorted.find(
+          (s) => getArtistStageKind(s) === 'pencil' || stageKindOf(s.name || '') === 'pencil',
+        );
+        const artistInk = enabledSorted.find(
+          (s) => getArtistStageKind(s) === 'ink' || stageKindOf(s.name || '') === 'ink',
+        );
+        const artistLetter = enabledSorted.find(
+          (s) =>
+            getArtistStageKind(s) === 'lettering' ||
+            stageKindOf(s.name || '') === 'letter' ||
+            (s.name || '').toLowerCase().includes('dialogue') ||
+            (s.name || '').toLowerCase().includes('thoại'),
+        );
 
-        if (filteredArtist.length > 0) {
-          setArtistStages(
-            filteredArtist.map((s) => ({
-              id: s.id,
-              label: localizeArtistStageLabel(s),
-              key: resolveStageKey(s),
-            })),
-          );
-        }
+        const normalizedArtistStages: FocusStageItem[] = [
+          {
+            id: artistPencil?.id || 'stage-pencil',
+            label: 'Pencil',
+            key: 'pencil',
+          },
+          {
+            id: artistInk?.id || 'stage-ink',
+            label: 'Ink',
+            key: 'ink',
+          },
+          {
+            id: artistLetter?.id || 'stage-letter',
+            label: 'Letter',
+            key: 'lettering',
+          },
+        ];
+
+        setArtistStages(normalizedArtistStages);
       })
       .catch(() => {
         // Giữ bộ công đoạn mặc định nếu chưa kết nối quy trình
@@ -508,17 +521,22 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
           );
           const nextMap: Record<string, { pageNumber: number; panelNumber: number }> = {};
           const nextPanelsByPage: Record<string, PanelDto[]> = {};
+          const backendLockedMap: Record<string, boolean> = {};
           panelResults.forEach(({ pageId, pageNumber, panels }) => {
-            nextPanelsByPage[pageId] = panels;
-            panels.forEach((pnl) => {
-              nextMap[pnl.id] = {
-                pageNumber,
-                panelNumber: pnl.panelNumber || pnl.readingOrder || 1,
-              };
-            });
+            if (panels && panels.length > 0) {
+              nextPanelsByPage[pageId] = panels;
+              backendLockedMap[pageId] = true;
+              panels.forEach((pnl) => {
+                nextMap[pnl.id] = {
+                  pageNumber,
+                  panelNumber: pnl.panelNumber || pnl.readingOrder || 1,
+                };
+              });
+            }
           });
           setPanelsByPageId((prev) => ({ ...prev, ...nextPanelsByPage }));
-          setPanelPageMap(nextMap);
+          setPanelPageMap((prev) => ({ ...prev, ...nextMap }));
+          setLockedTemplateByPageId((prev) => ({ ...prev, ...backendLockedMap }));
         }
       }
     } catch {
@@ -1057,17 +1075,68 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     [frameTemplates, currentTemplateId],
   );
 
-  // Chốt mẫu khung cho trang hiện tại (chuyển từ Draft -> Locked Artwork Phase)
-  const handleLockLayout = useCallback(() => {
+  // Lưu bố cục mẫu khung cho trang hiện tại (chuyển từ Draft -> Saved / Locked Artwork Phase)
+  const handleSaveLayout = useCallback(async () => {
     if (!selectedPage) return;
-    setLockedTemplateByPageId((prev) => ({ ...prev, [selectedPage.id]: true }));
-    toast.success(
-      'Đã chốt bố cục trang',
-      `Khung vẽ Trang #${selectedPage.pageNumber} đã sẵn sàng nhận ảnh. Bạn có thể nạp tranh vào từng ô.`,
-    );
-  }, [selectedPage, toast]);
+    const targetPage = selectedPage;
+    const templateId = activeTemplateByPageId[targetPage.id];
+    const template =
+      frameTemplates.find((t) => t.id === templateId) ||
+      DEFAULT_FRAME_TEMPLATES.find((t) => t.id === templateId);
 
-  // Yêu cầu mở khóa để đổi mẫu khung (bảo vệ tránh mất tranh)
+    setLockedTemplateByPageId((prev) => ({ ...prev, [targetPage.id]: true }));
+
+    if (
+      templateId &&
+      isGuid(targetPage.id) &&
+      !templateId.startsWith('builtin-') &&
+      frameTemplateService?.applyFrameTemplate
+    ) {
+      setIsApplyingTemplate(true);
+      try {
+        const createdPanels = await frameTemplateService.applyFrameTemplate(
+          targetPage.id,
+          templateId,
+        );
+        if (Array.isArray(createdPanels) && createdPanels.length > 0) {
+          const sorted = [...createdPanels].sort(
+            (a, b) => (a.readingOrder || a.panelNumber) - (b.readingOrder || b.panelNumber),
+          );
+          setPanelsByPageId((prev) => ({ ...prev, [targetPage.id]: sorted }));
+          setPanelPageMap((prev) => {
+            const next = { ...prev };
+            sorted.forEach((pnl) => {
+              next[pnl.id] = {
+                pageNumber: targetPage.pageNumber,
+                panelNumber: pnl.panelNumber || pnl.readingOrder || 1,
+                sceneId: pnl.sceneId,
+              };
+            });
+            return next;
+          });
+          setPages((prev) =>
+            prev.map((pg) =>
+              pg.id === targetPage.id ? { ...pg, elementsCount: sorted.length } : pg,
+            ),
+          );
+        }
+      } catch (err: any) {
+        setTemplateError(err?.message || 'Không thể lưu mẫu khung lên máy chủ.');
+      } finally {
+        setIsApplyingTemplate(false);
+      }
+    }
+
+    toast.success(
+      'Đã lưu bố cục trang',
+      `Khung vẽ Trang #${targetPage.pageNumber} (${template?.name || 'Mẫu khung'}) đã sẵn sàng nhận ảnh. Bạn có thể nạp tranh vào từng ô.`,
+    );
+  }, [selectedPage, activeTemplateByPageId, frameTemplates, toast]);
+
+  // Alias tương thích với các component và test cũ
+  const handleLockLayout = handleSaveLayout;
+
+  // Yêu cầu mở khóa để đổi mẫu khung (bảo vệ tránh mất tranh khi trang đã có bản vẽ)
   const handleRequestUnlockLayout = useCallback(() => {
     if (!selectedPage) return;
     if (!hasCurrentPageArtwork) {
@@ -1161,18 +1230,23 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     [selectedPage, toast],
   );
 
-  // Áp dụng mẫu khung tranh tham khảo vào TRANG HIỆN TẠI
-  const handleSelectTemplate = async (template: FrameTemplateDto) => {
+  // Áp dụng mẫu khung tranh tham khảo vào TRANG HIỆN TẠI (chế độ nháp, chuyển đổi mượt mà)
+  const handleSelectTemplate = (template: FrameTemplateDto) => {
     if (!selectedPage) return;
     const targetPage = selectedPage;
 
-    // Nếu trang đang bị khóa bố cục, hướng dẫn mở khóa trước
-    if (lockedTemplateByPageId[targetPage.id]) {
+    // Nếu trang đã chốt bố cục VÀ đã có tranh thực tế: cảnh báo an toàn trước khi đổi
+    if (lockedTemplateByPageId[targetPage.id] && hasCurrentPageArtwork) {
       handleRequestUnlockLayout();
       return;
     }
 
     setTemplateError(null);
+
+    // Nếu trang đang ở trạng thái đã chốt nhưng chưa có tranh: cho phép đổi sang mẫu mới mượt mà
+    if (lockedTemplateByPageId[targetPage.id]) {
+      setLockedTemplateByPageId((prev) => ({ ...prev, [targetPage.id]: false }));
+    }
 
     const nowIso = new Date().toISOString();
     const localPanels: PanelDto[] = template.slots.map((slot, idx) => ({
@@ -1197,46 +1271,6 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
         pg.id === targetPage.id ? { ...pg, elementsCount: localPanels.length } : pg,
       ),
     );
-
-    if (
-      isGuid(targetPage.id) &&
-      !template.id.startsWith('builtin-') &&
-      frameTemplateService?.applyFrameTemplate
-    ) {
-      setIsApplyingTemplate(true);
-      try {
-        const createdPanels = await frameTemplateService.applyFrameTemplate(
-          targetPage.id,
-          template.id,
-        );
-        if (Array.isArray(createdPanels) && createdPanels.length > 0) {
-          const sorted = [...createdPanels].sort(
-            (a, b) => (a.readingOrder || a.panelNumber) - (b.readingOrder || b.panelNumber),
-          );
-          setPanelsByPageId((prev) => ({ ...prev, [targetPage.id]: sorted }));
-          setPanelPageMap((prev) => {
-            const next = { ...prev };
-            sorted.forEach((pnl) => {
-              next[pnl.id] = {
-                pageNumber: targetPage.pageNumber,
-                panelNumber: pnl.panelNumber || pnl.readingOrder || 1,
-                sceneId: pnl.sceneId,
-              };
-            });
-            return next;
-          });
-          setPages((prev) =>
-            prev.map((pg) =>
-              pg.id === targetPage.id ? { ...pg, elementsCount: sorted.length } : pg,
-            ),
-          );
-        }
-      } catch (err: any) {
-        setTemplateError(err?.message || 'Không thể lưu mẫu khung lên máy chủ.');
-      } finally {
-        setIsApplyingTemplate(false);
-      }
-    }
   };
 
   // Xoá khung tham khảo của trang hiện tại (trở về giấy trắng)
@@ -1410,62 +1444,6 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                   <div className='absolute bottom-[1.8%] left-[1.8%] w-3 h-3 border-b border-l border-stone-400/80 pointer-events-none z-10' />
                   <div className='absolute bottom-[1.8%] right-[1.8%] w-3 h-3 border-b border-r border-stone-400/80 pointer-events-none z-10' />
 
-                  {/* Banner Trạng thái Bố Cục Trang (Nằm ở trên cùng trang Manga) */}
-                  {currentPagePanels.length > 0 && (
-                    <div
-                      data-testid='canvas-layout-status-bar'
-                      className='absolute top-3 inset-x-4 z-30 pointer-events-auto flex items-center justify-between px-3 py-1.5 rounded-xl bg-white/95 backdrop-blur-md border border-stone-200/90 shadow-sm transition-all'
-                    >
-                      <div className='flex items-center gap-2 text-xs'>
-                        {isCurrentPageLayoutLocked ? (
-                          <>
-                            <span className='inline-flex items-center gap-1 font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full text-[11px]'>
-                              <Lock className='w-3 h-3' />
-                              <span>Đã chốt bố cục ({currentPagePanels.length} khung)</span>
-                            </span>
-                            <span className='hidden sm:inline text-stone-500 text-[11px]'>
-                              {currentTemplate?.name || 'Mẫu khung'}
-                            </span>
-                          </>
-                        ) : (
-                          <>
-                            <span className='inline-flex items-center gap-1 font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full text-[11px]'>
-                              <Unlock className='w-3 h-3' />
-                              <span>Bản nháp bố cục</span>
-                            </span>
-                            <span className='text-stone-500 text-[11px]'>
-                              (Chốt mẫu để mở tính năng nạp tranh)
-                            </span>
-                          </>
-                        )}
-                      </div>
-
-                      <div className='flex items-center gap-1.5'>
-                        {isCurrentPageLayoutLocked ? (
-                          <button
-                            type='button'
-                            onClick={handleRequestUnlockLayout}
-                            data-testid='canvas-btn-unlock-layout'
-                            className='px-2.5 py-1 rounded-lg border border-stone-200 bg-stone-50 hover:bg-stone-100 text-stone-700 text-[11px] font-semibold flex items-center gap-1 cursor-pointer transition-colors shadow-2xs'
-                          >
-                            <RotateCcw className='w-3 h-3 text-amber-600' />
-                            <span>Mở khóa đổi mẫu...</span>
-                          </button>
-                        ) : (
-                          <button
-                            type='button'
-                            onClick={handleLockLayout}
-                            data-testid='canvas-btn-lock-layout'
-                            className='px-3 py-1 rounded-lg bg-stone-900 hover:bg-stone-800 text-white text-[11px] font-bold flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all'
-                          >
-                            <CheckCircle2 className='w-3.5 h-3.5 text-emerald-400' />
-                            <span>Chốt bố cục trang này</span>
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
                   {/* Lớp hiển thị các khung Panel */}
                   {currentPagePanels.length > 0 && (
                     <div
@@ -1575,10 +1553,13 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                                 </div>
                               )
                             ) : (
-                              /* Chưa chốt bố cục: Hiển thị trạng thái chờ chốt */
-                              <div className='w-full h-full flex items-center justify-center p-2'>
+                              /* Chưa lưu bố cục: Không cho tải ảnh, hướng dẫn lưu ở thanh bên dưới */
+                              <div className='w-full h-full flex flex-col items-center justify-center p-2 select-none pointer-events-none'>
                                 <span className='text-[10px] text-stone-400 font-mono italic text-center'>
-                                  Chốt mẫu để mở nạp tranh
+                                  Chưa lưu bố cục
+                                </span>
+                                <span className='text-[9px] text-stone-400 text-center mt-0.5'>
+                                  Lưu mẫu ở dưới khung tranh để nạp ảnh
                                 </span>
                               </div>
                             )}
@@ -1606,6 +1587,76 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                 </div>
               </div>
             </div>
+
+            {/* THANH ĐIỀU KHIỂN & LƯU BỐ CỤC NẰM NGAY DƯỚI KHUNG TRANH */}
+            {currentPagePanels.length > 0 && (
+              <div
+                data-testid='canvas-bottom-layout-bar'
+                className='w-full max-w-xl mx-auto flex items-center justify-between gap-3 px-4 py-2 mt-2 rounded-xl bg-white/95 dark:bg-stone-900/95 border border-stone-200 dark:border-stone-800 shadow-md backdrop-blur-xs z-30 transition-all select-none shrink-0'
+              >
+                <div
+                  data-testid='canvas-layout-status-bar'
+                  className='flex items-center gap-2 text-xs min-w-0'
+                >
+                  {isCurrentPageLayoutLocked ? (
+                    <>
+                      <span className='inline-flex items-center gap-1 font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 px-2 py-0.5 rounded-full text-[11px] shrink-0'>
+                        <Lock className='w-3 h-3 text-emerald-600' />
+                        <span>Đã lưu bố cục ({currentPagePanels.length} khung)</span>
+                      </span>
+                      <span className='text-stone-600 dark:text-stone-300 font-medium truncate text-xs'>
+                        {currentTemplate?.name || 'Mẫu khung'} • Sẵn sàng nạp tranh
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span className='inline-flex items-center gap-1 font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full text-[11px] shrink-0 animate-pulse'>
+                        <Unlock className='w-3 h-3 text-amber-600' />
+                        <span>Bản nháp bố cục</span>
+                      </span>
+                      <span className='text-stone-600 dark:text-stone-300 font-medium truncate text-xs'>
+                        {currentTemplate?.name || `${currentPagePanels.length} khung`} • Lưu để mở nạp tranh
+                      </span>
+                    </>
+                  )}
+                </div>
+
+                <div className='flex items-center gap-2 shrink-0'>
+                  {isCurrentPageLayoutLocked ? (
+                    <button
+                      type='button'
+                      onClick={handleRequestUnlockLayout}
+                      data-testid='canvas-btn-unlock-layout'
+                      className='px-3 py-1.5 rounded-lg border border-stone-300 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-700 dark:text-stone-300 text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors shadow-2xs'
+                    >
+                      <RotateCcw className='w-3.5 h-3.5 text-amber-600' />
+                      <span>Đổi mẫu khung</span>
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        type='button'
+                        onClick={handleClearTemplate}
+                        data-testid='canvas-btn-cancel-template'
+                        className='px-2.5 py-1.5 rounded-lg text-stone-500 hover:text-stone-800 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 text-xs font-medium cursor-pointer transition-colors'
+                      >
+                        Hủy mẫu
+                      </button>
+                      <button
+                        type='button'
+                        onClick={handleSaveLayout}
+                        disabled={isApplyingTemplate}
+                        data-testid='canvas-btn-save-layout'
+                        className='px-3.5 py-1.5 rounded-lg bg-stone-900 hover:bg-stone-800 dark:bg-stone-100 dark:hover:bg-stone-200 text-white dark:text-stone-900 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition-all active:scale-95 disabled:opacity-60'
+                      >
+                        <CheckCircle2 className='w-4 h-4 text-emerald-400 dark:text-emerald-600' />
+                        <span>{isApplyingTemplate ? 'Đang lưu...' : 'Lưu bố cục trang này'}</span>
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
           </main>
 
           {/* THANH QUẢN LÝ TRANG Ở ĐÁY MÀN HÌNH */}

@@ -322,6 +322,7 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
         activeTemplateId='f0000000-0000-0000-0000-000000000004'
         hasPagePanels={true}
         isLayoutLocked={true}
+        hasPageArtwork={true}
         onUnlockLayout={handleUnlock}
         onSelectTemplate={handleSelectTemplate}
       />
@@ -329,7 +330,7 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
 
     fireEvent.click(screen.getByTestId('canva-tab-templates'));
     expect(screen.getByTestId('canva-layout-locked-banner')).toBeInTheDocument();
-    expect(screen.getByText('Bố cục trang đã chốt')).toBeInTheDocument();
+    expect(screen.getByText('Bố cục trang đã lưu')).toBeInTheDocument();
 
     // Clicking unlock button triggers onUnlockLayout
     fireEvent.click(screen.getByTestId('canva-btn-unlock-template'));

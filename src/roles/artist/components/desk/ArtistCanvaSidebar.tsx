@@ -1950,14 +1950,14 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                     <div className='flex items-center justify-between'>
                       <div className='flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-400'>
                         <Lock className='w-3.5 h-3.5 shrink-0' />
-                        <span>Bố cục trang đã chốt</span>
+                        <span>Bố cục trang đã lưu</span>
                       </div>
                       <span className='px-1.5 py-0.5 rounded text-[9.5px] font-mono font-bold bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300'>
-                        ĐÃ KHÓA
+                        ĐÃ LƯU
                       </span>
                     </div>
                     <p className='text-[10px] text-[var(--sb-muted)] leading-relaxed'>
-                      Khung đã chốt để bạn an tâm nạp tranh. Mở khóa nếu cần đổi bố cục khác.
+                      Khung đã lưu để bạn an tâm nạp tranh. Nhấn đổi mẫu nếu muốn thay đổi bố cục khác.
                     </p>
                     {onUnlockLayout && (
                       <button
@@ -1967,7 +1967,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                         className='w-full py-1.5 px-2.5 rounded-lg border border-[var(--sb-border)] bg-[var(--sb-surface)] hover:bg-[var(--sb-surface-hover)] text-[10.5px] font-semibold text-[var(--sb-text)] flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-2xs'
                       >
                         <RotateCcw className='w-3 h-3 text-amber-500' />
-                        <span>Mở khóa đổi mẫu khung</span>
+                        <span>Đổi mẫu khung</span>
                       </button>
                     )}
                   </div>
@@ -1989,12 +1989,12 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                           className='px-2.5 py-1 rounded-lg bg-[var(--sb-accent)] hover:opacity-90 text-white text-[10.5px] font-bold flex items-center gap-1 shadow-2xs cursor-pointer transition-all'
                         >
                           <CheckCircle2 className='w-3 h-3' />
-                          <span>Chốt mẫu</span>
+                          <span>Lưu mẫu</span>
                         </button>
                       )}
                     </div>
                     <p className='text-[10px] text-[var(--sb-muted)] leading-relaxed'>
-                      Chọn mẫu ưng ý rồi bấm <strong className='text-[var(--sb-text)]'>Chốt mẫu</strong> để mở tính năng nạp tranh vào từng ô.
+                      Chọn mẫu ưng ý rồi bấm <strong className='text-[var(--sb-text)]'>Lưu bố cục</strong> ở dưới khung tranh để mở tính năng nạp tranh.
                     </p>
                   </div>
                 )}
@@ -2025,9 +2025,9 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                           type='button'
                           disabled={isApplyingTemplate}
                           onClick={() => {
-                            if (isLayoutLocked && !isSelected) {
+                            if (isLayoutLocked && hasPageArtwork && !isSelected) {
                               onUnlockLayout?.();
-                            } else if (!isLayoutLocked) {
+                            } else {
                               onSelectTemplate?.(tpl);
                             }
                           }}

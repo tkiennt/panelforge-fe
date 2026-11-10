@@ -352,7 +352,7 @@ describe('ArtistDeskView - Real API Series Bible & Continuous Script Integration
 });
 
 describe('ArtistDeskView - Header Colors, Stage Progression & Series/Chapter Paths', () => {
-  it('displays system warm-paper header with series link, chapter switcher, and advances Pencil -> Ink -> Dialogue on Submit', async () => {
+  it('displays system warm-paper header with series link, chapter switcher, and advances Pencil -> Ink -> Letter on Submit', async () => {
     vi.spyOn(seriesService, 'getSeriesById').mockResolvedValue({
       id: 'ser-1',
       workspaceId: 'ws-1',
@@ -527,12 +527,12 @@ describe('ArtistDeskView - Header Colors, Stage Progression & Series/Chapter Pat
     expect(chapterSelect).toHaveTextContent('Chương 1: Khởi Hành');
     expect(chapterSelect).toHaveTextContent('Chương 2: Cơn Bão Đêm');
 
-    // Stage stepper displays Pencil -> Ink -> Dialogue
+    // Stage stepper displays strictly 3 stages: Pencil -> Ink -> Letter
     await waitFor(() => {
       expect(screen.getByTestId('focus-stage-step-0')).toHaveTextContent('Pencil');
     });
     expect(screen.getByTestId('focus-stage-step-1')).toHaveTextContent('Ink');
-    expect(screen.getByTestId('focus-stage-step-2')).toHaveTextContent('Dialogue');
+    expect(screen.getByTestId('focus-stage-step-2')).toHaveTextContent('Letter');
     expect(screen.getByTestId('focus-stage-step-0')).toHaveAttribute('data-stage-state', 'current');
     expect(screen.getByTestId('focus-stage-step-1')).toHaveAttribute('data-stage-state', 'upcoming');
     expect(screen.getByTestId('focus-stage-step-2')).toHaveAttribute('data-stage-state', 'upcoming');
@@ -546,14 +546,14 @@ describe('ArtistDeskView - Header Colors, Stage Progression & Series/Chapter Pat
       expect(screen.getByTestId('focus-stage-step-1')).toHaveAttribute('data-stage-state', 'current');
     });
 
-    // Submit 2: Ink -> Dialogue
+    // Submit 2: Ink -> Letter
     fireEvent.click(screen.getByTestId('focus-submit-stage-btn'));
     await waitFor(() => {
       expect(screen.getByTestId('focus-stage-step-1')).toHaveAttribute('data-stage-state', 'completed');
       expect(screen.getByTestId('focus-stage-step-2')).toHaveAttribute('data-stage-state', 'current');
     });
 
-    // Submit 3: Dialogue -> Completed
+    // Submit 3: Letter -> Completed
     expect(screen.getByTestId('focus-submit-stage-btn')).toHaveTextContent('Nộp hoàn thiện');
     fireEvent.click(screen.getByTestId('focus-submit-stage-btn'));
     await waitFor(() => {
@@ -711,6 +711,9 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
 
     fireEvent.click(screen.getByTestId(`canva-template-card-${tplGuid}`));
 
+    // Save layout to persist on server
+    fireEvent.click(screen.getByTestId('canvas-btn-save-layout'));
+
     await waitFor(() => {
       expect(applySpy).toHaveBeenCalledWith(pageGuid, tplGuid);
     });
@@ -730,24 +733,45 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
       </MemoryRouter>,
     );
 
-    // Open templates tab and select 3 Khung Shonen
+    // Open templates tab and select 3 Khung Shonen for Page 1
     fireEvent.click(screen.getByTestId('canva-tab-templates'));
     fireEvent.click(screen.getByTestId('canva-template-card-f0000000-0000-0000-0000-000000000004'));
 
-    // Verify draft status bar is rendered
+    // Verify draft status bar is rendered underneath the canvas
+    expect(screen.getByTestId('canvas-bottom-layout-bar')).toBeInTheDocument();
     expect(screen.getByTestId('canvas-layout-status-bar')).toBeInTheDocument();
     expect(screen.getByText(/Bản nháp bố cục/i)).toBeInTheDocument();
-    expect(screen.getByTestId('canvas-btn-lock-layout')).toBeInTheDocument();
+    expect(screen.getByTestId('canvas-btn-save-layout')).toBeInTheDocument();
 
-    // In draft mode, panels display "Chốt mẫu để mở nạp tranh", dropzone is NOT accessible
+    // In draft mode, panels display "Chưa lưu bố cục", dropzone is NOT accessible
     expect(screen.queryByTestId('panel-dropzone-1')).not.toBeInTheDocument();
-    expect(screen.getAllByText('Chốt mẫu để mở nạp tranh')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('Chưa lưu bố cục')[0]).toBeInTheDocument();
 
-    // Lock layout
-    fireEvent.click(screen.getByTestId('canvas-btn-lock-layout'));
+    // Verify smooth template switching in draft mode (switch to 4-Koma without any modal blocking)
+    fireEvent.click(screen.getByTestId('canva-template-card-f0000000-0000-0000-0000-00000000000c'));
+    expect(screen.getByTestId('canvas-panel-frame-4')).toBeInTheDocument();
 
-    // Status bar changes to locked
-    expect(screen.getByText(/Đã chốt bố cục/i)).toBeInTheDocument();
+    // Switch back to 3 Khung Shonen
+    fireEvent.click(screen.getByTestId('canva-template-card-f0000000-0000-0000-0000-000000000004'));
+    expect(screen.getByTestId('canvas-panel-frame-3')).toBeInTheDocument();
+    expect(screen.queryByTestId('canvas-panel-frame-4')).not.toBeInTheDocument();
+
+    // Verify page switching persistence: switch to Page 2 then back to Page 1
+    const card2 = screen.getByTestId('canva-page-card-2');
+    fireEvent.click(card2.querySelector('[role="button"]') || card2);
+    expect(screen.queryByTestId('canvas-panel-template-overlay')).not.toBeInTheDocument();
+
+    // Return to Page 1 -> 3-panel template is still preserved
+    const card1 = screen.getByTestId('canva-page-card-1');
+    fireEvent.click(card1.querySelector('[role="button"]') || card1);
+    expect(screen.getByTestId('canvas-panel-frame-3')).toBeInTheDocument();
+    expect(screen.getByTestId('canvas-btn-save-layout')).toBeInTheDocument();
+
+    // Save layout (located underneath the artwork frame)
+    fireEvent.click(screen.getByTestId('canvas-btn-save-layout'));
+
+    // Status bar changes to saved / locked
+    expect(screen.getByText(/Đã lưu bố cục/i)).toBeInTheDocument();
     expect(screen.getByTestId('canvas-btn-unlock-layout')).toBeInTheDocument();
 
     // Dropzone is now enabled for each panel
