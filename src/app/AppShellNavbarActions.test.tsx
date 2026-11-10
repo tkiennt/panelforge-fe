@@ -90,7 +90,20 @@ describe('AppShell Navbar/Sidebar 3 Functions: Notifications, Global Search, My 
   });
 
   describe('AppShellSidebar: trạng thái do AppShell điều khiển bằng click', () => {
-    it('không còn nút toggle trong sidebar (logo chỉ là thương hiệu)', () => {
+    it('hiển thị nút toggle bên trong side rail khi có onToggleSidebar', () => {
+      const handleToggle = vi.fn();
+      render(
+        <MemoryRouter>
+          <AppShellSidebar {...defaultProps} isCollapsed={false} onToggleSidebar={handleToggle} />
+        </MemoryRouter>,
+      );
+      const toggleBtn = screen.getByTestId('sidebar-rail-toggle-btn');
+      expect(toggleBtn).toBeInTheDocument();
+      fireEvent.click(toggleBtn);
+      expect(handleToggle).toHaveBeenCalledTimes(1);
+    });
+
+    it('không hiển thị nút toggle khi không truyền onToggleSidebar', () => {
       render(
         <MemoryRouter>
           <AppShellSidebar {...defaultProps} isCollapsed={false} />
