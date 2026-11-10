@@ -56,6 +56,25 @@ describe('ToastNotification Component', () => {
     expect(statusEl).toHaveAttribute('aria-live', 'polite');
   });
 
+  it('hiển thị thông báo thành công với icon tick xanh, lớp u070-type-success và role status', () => {
+    const mockOnClose = vi.fn();
+    const successToast: ToastItemData = {
+      id: 'success-layout',
+      title: 'Đã lưu bố cục trang',
+      desc: 'Khung vẽ Trang #1 đã sẵn sàng nhận ảnh.',
+      type: 'success',
+    };
+
+    render(<ToastItem toast={successToast} onClose={mockOnClose} />);
+
+    expect(screen.getByText('Đã lưu bố cục trang')).toBeInTheDocument();
+    expect(screen.getByText('Khung vẽ Trang #1 đã sẵn sàng nhận ảnh.')).toBeInTheDocument();
+    expect(screen.getByTestId('toast-icon-success')).toBeInTheDocument();
+    const item = screen.getByTestId('toast-item-success');
+    expect(item).toHaveClass('u070-type-success');
+    expect(item).toHaveAttribute('role', 'status');
+  });
+
   it('hỗ trợ nút hành động "Đăng nhập lại" khi có action và gọi đúng callback', () => {
     const mockOnClose = vi.fn();
     const mockActionClick = vi.fn();
