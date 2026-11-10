@@ -9,6 +9,7 @@ import { panelService } from '@/services/panel.service';
 import { scriptLineService } from '@/services/scriptLine.service';
 import { bibleService } from '@/services/bible.service';
 import { seriesService } from '@/services/series.service';
+import { frameTemplateService } from '@/services/frameTemplate.service';
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -344,5 +345,155 @@ describe('ArtistDeskView - Real API Series Bible & Continuous Script Integration
     expect(screen.getByText('Vết sẹo chữ X ở cổ tay trái')).toBeInTheDocument();
     expect(screen.getByText('Canon')).toBeInTheDocument();
     expect(screen.getByRole('img')).toHaveAttribute('src', 'https://example.com/kurogane.png');
+  });
+});
+
+describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => {
+  it('applies selected template immediately on the currently selected page only', () => {
+    render(
+      <MemoryRouter initialEntries={['/workspaces/ws-1/series/ser-1/artist']}>
+        <Routes>
+          <Route
+            path='/workspaces/:workspaceId/series/:seriesId/artist'
+            element={<ArtistDeskView workspaceRole='ARTIST' />}
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    // Initially blank paper has no template overlay
+    expect(screen.queryByTestId('canvas-panel-template-overlay')).not.toBeInTheDocument();
+
+    // Open Templates tab and select 3 Khung Shonen for Page 1
+    fireEvent.click(screen.getByTestId('canva-tab-templates'));
+    expect(screen.getByTestId('canva-drawer-templates')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('canva-template-card-builtin-3-panel-shonen'));
+
+    // Page 1 sheet now renders 3 panels
+    expect(screen.getByTestId('canvas-panel-template-overlay')).toBeInTheDocument();
+    expect(screen.getByTestId('canvas-panel-frame-1')).toBeInTheDocument();
+    expect(screen.getByTestId('canvas-panel-frame-2')).toBeInTheDocument();
+    expect(screen.getByTestId('canvas-panel-frame-3')).toBeInTheDocument();
+
+    // Switch to Page 2 -> Page 2 is still blank until user applies template to Page 2
+    const card2 = screen.getByTestId('canva-page-card-2');
+    fireEvent.click(card2.querySelector('[role="button"]')!);
+    expect(screen.queryByTestId('canvas-panel-template-overlay')).not.toBeInTheDocument();
+
+    // Apply 4 Khung Yonkoma to Page 2
+    fireEvent.click(screen.getByTestId('canva-template-card-builtin-4-panel-yonkoma'));
+    expect(screen.getByTestId('canvas-panel-frame-4')).toBeInTheDocument();
+
+    // Clear template on Page 2 -> Page 2 returns to blank, while Page 1 keeps its 3-panel template
+    fireEvent.click(screen.getByTestId('canva-btn-clear-template'));
+    expect(screen.queryByTestId('canvas-panel-template-overlay')).not.toBeInTheDocument();
+
+    const card1 = screen.getByTestId('canva-page-card-1');
+    fireEvent.click(card1.querySelector('[role="button"]')!);
+    expect(screen.getByTestId('canvas-panel-template-overlay')).toBeInTheDocument();
+    expect(screen.getByTestId('canvas-panel-frame-3')).toBeInTheDocument();
+  });
+
+  it('fetches workspace frame templates and calls applyFrameTemplate API for real backend page', async () => {
+    const pageGuid = '11111111-1111-1111-1111-111111111111';
+    const chapGuid = '22222222-2222-2222-2222-222222222222';
+    const tplGuid = '33333333-3333-3333-3333-333333333333';
+
+    vi.spyOn(chapterService, 'getChaptersBySeries').mockResolvedValueOnce({
+      items: [
+        {
+          id: chapGuid,
+          seriesId: 'ser-real',
+          chapterNumber: 1,
+          title: 'Chương 1',
+          versionVector: 1,
+          createdAt: '2026-01-01T00:00:00Z',
+          scenesCount: 0,
+          pagesCount: 1,
+        },
+      ],
+      totalCount: 1,
+      pageIndex: 1,
+      pageSize: 20,
+      totalPages: 1,
+    });
+
+    vi.spyOn(pageService, 'getPagesByChapter').mockResolvedValueOnce([
+      {
+        id: pageGuid,
+        chapterId: chapGuid,
+        pageNumber: 1,
+        layoutFormat: 'B5',
+        widthPx: 1200,
+        heightPx: 1800,
+        dpi: 600,
+        elementsCount: 0,
+      },
+    ]);
+
+    vi.spyOn(panelService, 'getPanelsByPage').mockResolvedValueOnce([]);
+
+    vi.spyOn(frameTemplateService, 'getFrameTemplates').mockResolvedValueOnce([
+      {
+        id: tplGuid,
+        workspaceId: 'ws-real',
+        name: 'Mẫu 2 Khung API',
+        layoutFormat: 'StandardPage',
+        isBuiltIn: false,
+        panelCount: 2,
+        slots: [
+          { x: 0.05, y: 0.05, w: 0.9, h: 0.4, borderless: false },
+          { x: 0.05, y: 0.5, w: 0.9, h: 0.45, borderless: true },
+        ],
+        createdAt: '2026-01-01T00:00:00Z',
+      },
+    ]);
+
+    const applySpy = vi.spyOn(frameTemplateService, 'applyFrameTemplate').mockResolvedValueOnce([
+      {
+        id: 'created-pnl-1',
+        pageId: pageGuid,
+        panelNumber: 1,
+        boundingBox: JSON.stringify({ normalized: { x: 0.05, y: 0.05, w: 0.9, h: 0.4 } }),
+        readingOrder: 1,
+        createdAt: '2026-01-01T00:00:00Z',
+      },
+      {
+        id: 'created-pnl-2',
+        pageId: pageGuid,
+        panelNumber: 2,
+        boundingBox: JSON.stringify({
+          normalized: { x: 0.05, y: 0.5, w: 0.9, h: 0.45 },
+          borderless: true,
+        }),
+        readingOrder: 2,
+        createdAt: '2026-01-01T00:00:00Z',
+      },
+    ]);
+
+    render(
+      <MemoryRouter initialEntries={['/workspaces/ws-real/series/ser-real/artist']}>
+        <Routes>
+          <Route
+            path='/workspaces/:workspaceId/series/:seriesId/artist'
+            element={<ArtistDeskView workspaceRole='ARTIST' />}
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByTestId('canva-tab-templates'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId(`canva-template-card-${tplGuid}`)).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId(`canva-template-card-${tplGuid}`));
+
+    await waitFor(() => {
+      expect(applySpy).toHaveBeenCalledWith(pageGuid, tplGuid);
+    });
+    expect(screen.getByTestId('canvas-panel-frame-1')).toBeInTheDocument();
+    expect(screen.getByTestId('canvas-panel-frame-2')).toBeInTheDocument();
   });
 });

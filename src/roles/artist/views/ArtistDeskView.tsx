@@ -1,15 +1,19 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
-import { pageService, PageDto } from '@/services/page.service';
+import { pageService, PageDto, isGuid } from '@/services/page.service';
 import { panelService } from '@/services/panel.service';
 import { chapterService, ChapterDto } from '@/services/chapter.service';
 import { scriptLineService } from '@/services/scriptLine.service';
 import { bibleService, BibleEntryDto } from '@/services/bible.service';
 import { seriesService } from '@/services/series.service';
+import { frameTemplateService, FrameTemplateDto } from '@/services/frameTemplate.service';
+import { PanelDto } from '@/types/pipeline';
+import { parseBoundingBox } from '../utils/panelBoundingBox';
 import {
   ArtistCanvaSidebar,
   ScriptLineItem,
   BibleEntityItem,
+  DEFAULT_FRAME_TEMPLATES,
 } from '../components/desk/ArtistCanvaSidebar';
 import { ArtistBottomPageStrip } from '../components/desk/ArtistBottomPageStrip';
 
@@ -207,7 +211,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   initialScriptLines,
   initialBibleEntities,
 }) => {
-  const { seriesId } = useParams<{ workspaceId?: string; seriesId?: string }>();
+  const { workspaceId, seriesId } = useParams<{ workspaceId?: string; seriesId?: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const chapterIdFromUrl = searchParams.get('chapterId');
 
@@ -222,6 +226,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     initialScriptLines,
   );
   const [hasLoadedRealScript, setHasLoadedRealScript] = useState(false);
+  const [panelsByPageId, setPanelsByPageId] = useState<Record<string, PanelDto[]>>({});
   const [panelPageMap, setPanelPageMap] = useState<
     Record<string, { pageNumber: number; panelNumber: number; sceneId?: string | null }>
   >({});
@@ -230,6 +235,13 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   const [hasLoadedRealBible, setHasLoadedRealBible] = useState(false);
   const [isLoadingScript, setIsLoadingScript] = useState(false);
   const [isLoadingBible, setIsLoadingBible] = useState(false);
+
+  // Dữ liệu & trạng thái Panel Templates theo từng trang
+  const [frameTemplates, setFrameTemplates] = useState<FrameTemplateDto[]>(DEFAULT_FRAME_TEMPLATES);
+  const [activeTemplateByPageId, setActiveTemplateByPageId] = useState<Record<string, string>>({});
+  const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
+  const [isApplyingTemplate, setIsApplyingTemplate] = useState(false);
+  const [templateError, setTemplateError] = useState<string | null>(null);
 
   // Điều khiển thanh trang & canvas
   const [isFilmstripOpen, setIsFilmstripOpen] = useState(true);
@@ -248,14 +260,18 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
           sortedPages.some((p) => p.id === prev) ? prev : sortedPages[0].id,
         );
 
-        // Tải danh sách panel của từng trang để đồng bộ chính xác script line thuộc về trang & khung nào
+        // Tải danh sách panel của từng trang để đồng bộ chính xác script line & hiển thị khung trang hiện tại
         if (panelService?.getPanelsByPage) {
           const panelResults = await Promise.all(
             sortedPages.map((pg) =>
               panelService
                 .getPanelsByPage(pg.id)
-                .then((panels) => ({ pageNumber: pg.pageNumber, panels: panels || [] }))
-                .catch(() => ({ pageNumber: pg.pageNumber, panels: [] })),
+                .then((panels) => ({
+                  pageId: pg.id,
+                  pageNumber: pg.pageNumber,
+                  panels: (panels || []).sort((a, b) => (a.readingOrder || a.panelNumber) - (b.readingOrder || b.panelNumber)),
+                }))
+                .catch(() => ({ pageId: pg.id, pageNumber: pg.pageNumber, panels: [] })),
             ),
           );
           const nextMap: Record<
@@ -263,7 +279,10 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
             { pageNumber: number; panelNumber: number; sceneId?: string | null }
           > = {};
           const nextScenePages: Record<string, Set<number>> = {};
-          panelResults.forEach(({ pageNumber, panels }) => {
+          const nextPanelsByPage: Record<string, PanelDto[]> = {};
+
+          panelResults.forEach(({ pageId, pageNumber, panels }) => {
+            nextPanelsByPage[pageId] = panels;
             panels.forEach((pnl) => {
               nextMap[pnl.id] = {
                 pageNumber,
@@ -276,6 +295,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
               }
             });
           });
+          setPanelsByPageId((prev) => ({ ...prev, ...nextPanelsByPage }));
           setPanelPageMap(nextMap);
           const normalizedScenePages: Record<string, number[]> = {};
           Object.entries(nextScenePages).forEach(([sId, set]) => {
@@ -418,6 +438,30 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
       loadBibleEntities(seriesId);
     }
   }, [seriesId, loadBibleEntities]);
+
+  // Tải danh sách Mẫu Khung (Frame Templates) từ Workspace (fallback sang mẫu B5 dựng sẵn khi offline)
+  useEffect(() => {
+    let alive = true;
+    if (!workspaceId || !frameTemplateService?.getFrameTemplates) return;
+    setIsLoadingTemplates(true);
+    frameTemplateService
+      .getFrameTemplates(workspaceId)
+      .then((data) => {
+        if (!alive) return;
+        if (Array.isArray(data) && data.length > 0) {
+          setFrameTemplates(data);
+        }
+      })
+      .catch(() => {
+        // Giữ DEFAULT_FRAME_TEMPLATES khi chưa kết nối backend
+      })
+      .finally(() => {
+        if (alive) setIsLoadingTemplates(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [workspaceId]);
 
   // Chuyển đổi ChapterDto đang chọn -> tiêu đề chương hiển thị trên Sidebar Script
   const activeChapter = useMemo(
@@ -652,6 +696,117 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     setSelectedPageId(duplicated.id);
   };
 
+  // Các panel của trang hiện tại & template đang chọn cho trang hiện tại
+  const currentPagePanels = useMemo(
+    () => (selectedPage ? panelsByPageId[selectedPage.id] || [] : []),
+    [selectedPage, panelsByPageId],
+  );
+  const currentTemplateId = selectedPage ? activeTemplateByPageId[selectedPage.id] || null : null;
+
+  // Áp dụng mẫu khung tranh tham khảo vào TRANG HIỆN TẠI (effective immediately on selectedPage)
+  const handleSelectTemplate = async (template: FrameTemplateDto) => {
+    if (!selectedPage) return;
+    const targetPage = selectedPage;
+    setTemplateError(null);
+
+    // Tạo danh sách panel tham khảo tức thì từ slots của template
+    const nowIso = new Date().toISOString();
+    const localPanels: PanelDto[] = template.slots.map((slot, idx) => ({
+      id: `tpl-panel-${targetPage.id}-${idx + 1}`,
+      pageId: targetPage.id,
+      panelNumber: idx + 1,
+      readingOrder: idx + 1,
+      boundingBox: JSON.stringify({
+        normalized: { x: slot.x, y: slot.y, w: slot.w, h: slot.h },
+        corners: slot.corners || undefined,
+        borderless: Boolean(slot.borderless),
+        pageWidthPx: targetPage.widthPx || 1200,
+        pageHeightPx: targetPage.heightPx || 1800,
+      }),
+      createdAt: nowIso,
+    }));
+
+    setPanelsByPageId((prev) => ({ ...prev, [targetPage.id]: localPanels }));
+    setActiveTemplateByPageId((prev) => ({ ...prev, [targetPage.id]: template.id }));
+    setPages((prev) =>
+      prev.map((pg) =>
+        pg.id === targetPage.id ? { ...pg, elementsCount: localPanels.length } : pg,
+      ),
+    );
+
+    // Đồng bộ với Backend API nếu trang là GUID thật & template từ backend (không phải builtin fallback)
+    if (
+      isGuid(targetPage.id) &&
+      !template.id.startsWith('builtin-') &&
+      frameTemplateService?.applyFrameTemplate
+    ) {
+      setIsApplyingTemplate(true);
+      try {
+        const createdPanels = await frameTemplateService.applyFrameTemplate(
+          targetPage.id,
+          template.id,
+        );
+        if (Array.isArray(createdPanels) && createdPanels.length > 0) {
+          const sorted = [...createdPanels].sort(
+            (a, b) => (a.readingOrder || a.panelNumber) - (b.readingOrder || b.panelNumber),
+          );
+          setPanelsByPageId((prev) => ({ ...prev, [targetPage.id]: sorted }));
+          setPanelPageMap((prev) => {
+            const next = { ...prev };
+            sorted.forEach((pnl) => {
+              next[pnl.id] = {
+                pageNumber: targetPage.pageNumber,
+                panelNumber: pnl.panelNumber || pnl.readingOrder || 1,
+                sceneId: pnl.sceneId,
+              };
+            });
+            return next;
+          });
+          setPages((prev) =>
+            prev.map((pg) =>
+              pg.id === targetPage.id ? { ...pg, elementsCount: sorted.length } : pg,
+            ),
+          );
+        }
+      } catch (err: any) {
+        setTemplateError(err?.message || 'Không thể lưu mẫu khung lên máy chủ.');
+      } finally {
+        setIsApplyingTemplate(false);
+      }
+    }
+  };
+
+  // Xoá khung tham khảo của trang hiện tại (trở về giấy trắng)
+  const handleClearTemplate = async () => {
+    if (!selectedPage) return;
+    const targetPage = selectedPage;
+    const existingPanels = panelsByPageId[targetPage.id] || [];
+    setTemplateError(null);
+
+    setPanelsByPageId((prev) => {
+      const next = { ...prev };
+      delete next[targetPage.id];
+      return next;
+    });
+    setActiveTemplateByPageId((prev) => {
+      const next = { ...prev };
+      delete next[targetPage.id];
+      return next;
+    });
+    setPages((prev) =>
+      prev.map((pg) => (pg.id === targetPage.id ? { ...pg, elementsCount: 0 } : pg)),
+    );
+
+    if (panelService?.deletePanel) {
+      const realIds = existingPanels
+        .map((p) => p.id)
+        .filter((id) => isGuid(id));
+      if (realIds.length > 0) {
+        await Promise.all(realIds.map((id) => panelService.deletePanel(id).catch(() => null)));
+      }
+    }
+  };
+
   // Bật/tắt toàn màn hình
   const handleToggleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -669,7 +824,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
       className='flex-1 basis-0 min-h-0 w-full h-full flex flex-row bg-[#F3F0E9] text-[#1C1917] overflow-hidden select-none relative animate-in fade-in duration-300'
       data-testid='artist-desk'
     >
-      {/* 1. SIDEBAR CÔNG CỤ ARTIST (Kịch bản Script + Series Bible) */}
+      {/* 1. SIDEBAR CÔNG CỤ ARTIST (Kịch bản Script + Series Bible + Mẫu Khung) */}
       <ArtistCanvaSidebar
         pages={pages.map((p) => ({
           id: p.id,
@@ -701,6 +856,14 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
         bibleEntities={bibleEntities}
         seriesTitle={seriesTitle}
         isLoadingBible={isLoadingBible}
+        templates={frameTemplates}
+        activeTemplateId={currentTemplateId}
+        onSelectTemplate={handleSelectTemplate}
+        onClearTemplate={handleClearTemplate}
+        hasPagePanels={currentPagePanels.length > 0}
+        isLoadingTemplates={isLoadingTemplates}
+        isApplyingTemplate={isApplyingTemplate}
+        templateError={templateError}
         theme='paper'
       />
 
@@ -724,7 +887,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
             >
               {/* Vùng vẽ trang giấy trắng tự nhiên */}
               <div
-                className='w-full h-full border border-dashed border-stone-200/70 rounded-[2px] flex flex-col items-center justify-center relative'
+                className='w-full h-full border border-dashed border-stone-200/70 rounded-[2px] flex flex-col items-center justify-center relative overflow-hidden'
                 data-testid='artist-canvas-surface'
               >
                 {/* Dấu định vị 4 góc vẽ (Crop marks tinh tế, thanh thoát) */}
@@ -732,6 +895,49 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                 <div className='absolute top-2.5 right-2.5 w-3 h-3 border-t border-r border-stone-300/80 pointer-events-none' />
                 <div className='absolute bottom-2.5 left-2.5 w-3 h-3 border-b border-l border-stone-300/80 pointer-events-none' />
                 <div className='absolute bottom-2.5 right-2.5 w-3 h-3 border-b border-r border-stone-300/80 pointer-events-none' />
+
+                {/* Lớp hiển thị các khung Panel tham khảo của trang hiện tại (khi đã chọn mẫu khung) */}
+                {currentPagePanels.length > 0 && (
+                  <div
+                    data-testid='canvas-panel-template-overlay'
+                    className='absolute inset-2 pointer-events-none'
+                  >
+                    {currentPagePanels.map((pnl, idx) => {
+                      const box = parseBoundingBox(
+                        pnl.boundingBox,
+                        selectedPage?.widthPx || 1200,
+                        selectedPage?.heightPx || 1800,
+                      );
+                      const panelNum = pnl.panelNumber || idx + 1;
+                      return (
+                        <div
+                          key={pnl.id}
+                          data-testid={`canvas-panel-frame-${panelNum}`}
+                          className={`absolute transition-all duration-200 ${
+                            box.borderless
+                              ? 'border border-dashed border-orange-500/75 bg-orange-50/15'
+                              : 'border-[1.5px] border-stone-800/80 bg-stone-50/20'
+                          }`}
+                          style={{
+                            left: `${box.percentX}%`,
+                            top: `${box.percentY}%`,
+                            width: `${box.percentW}%`,
+                            height: `${box.percentH}%`,
+                            clipPath: box.corners?.length
+                              ? `polygon(${box.corners
+                                  .map((c) => `${c.x * 100}% ${c.y * 100}%`)
+                                  .join(', ')})`
+                              : undefined,
+                          }}
+                        >
+                          <span className='absolute top-1 left-1.5 px-1 py-0.2 rounded text-[10px] font-mono font-bold bg-white/90 text-stone-700 border border-stone-300/80 shadow-2xs'>
+                            #{panelNum}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
           </div>

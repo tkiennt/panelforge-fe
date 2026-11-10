@@ -17,13 +17,18 @@ import {
   List,
   User,
   MapPin,
+  LayoutTemplate,
+  CheckCircle2,
+  RotateCcw,
+  AlertTriangle,
 } from 'lucide-react';
 import { ArtistPageItem, PageStage } from './ArtistPageSidebar';
 import { SidebarTheme } from '@/app/sidebarTheme';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
+import { FrameTemplateDto } from '@/services/frameTemplate.service';
 import '@/styles/modules/sidebar-theme.css';
 
-export type CanvaSidebarTab = 'pages' | 'script' | 'bible';
+export type CanvaSidebarTab = 'pages' | 'script' | 'bible' | 'templates';
 
 export interface ScriptLineItem {
   id: string;
@@ -85,6 +90,15 @@ export interface ArtistCanvaSidebarProps {
   bibleEntities?: BibleEntityItem[];
   seriesTitle?: string;
   isLoadingBible?: boolean;
+  // Panel Template props (Áp dụng tức thì vào trang hiện tại)
+  templates?: FrameTemplateDto[];
+  activeTemplateId?: string | null;
+  onSelectTemplate?: (template: FrameTemplateDto) => void;
+  onClearTemplate?: () => void;
+  hasPagePanels?: boolean;
+  isLoadingTemplates?: boolean;
+  isApplyingTemplate?: boolean;
+  templateError?: string | null;
   // Global Theme integration
   theme?: SidebarTheme;
   // Tùy chọn ẩn tab Trang khi quản lý trang đã chuyển xuống đáy
@@ -301,12 +315,103 @@ const DEFAULT_BIBLE_ENTITIES: BibleEntityItem[] = [
   },
 ];
 
+export const DEFAULT_FRAME_TEMPLATES: FrameTemplateDto[] = [
+  {
+    id: 'builtin-single-full',
+    name: '1 Khung Toàn Trang',
+    layoutFormat: 'StandardPage',
+    isBuiltIn: true,
+    panelCount: 1,
+    slots: [{ x: 0.04, y: 0.03, w: 0.92, h: 0.94, borderless: false }],
+    createdAt: '2026-01-01T00:00:00Z',
+  },
+  {
+    id: 'builtin-2-panel-vert',
+    name: '2 Khung Dọc',
+    layoutFormat: 'StandardPage',
+    isBuiltIn: true,
+    panelCount: 2,
+    slots: [
+      { x: 0.04, y: 0.03, w: 0.92, h: 0.45, borderless: false },
+      { x: 0.04, y: 0.52, w: 0.92, h: 0.45, borderless: false },
+    ],
+    createdAt: '2026-01-01T00:00:00Z',
+  },
+  {
+    id: 'builtin-2-panel-split',
+    name: '2 Khung Song Song',
+    layoutFormat: 'StandardPage',
+    isBuiltIn: true,
+    panelCount: 2,
+    slots: [
+      { x: 0.04, y: 0.03, w: 0.44, h: 0.94, borderless: false },
+      { x: 0.52, y: 0.03, w: 0.44, h: 0.94, borderless: false },
+    ],
+    createdAt: '2026-01-01T00:00:00Z',
+  },
+  {
+    id: 'builtin-3-panel-shonen',
+    name: '3 Khung Shonen',
+    layoutFormat: 'StandardPage',
+    isBuiltIn: true,
+    panelCount: 3,
+    slots: [
+      { x: 0.04, y: 0.03, w: 0.92, h: 0.28, borderless: false },
+      { x: 0.04, y: 0.34, w: 0.92, h: 0.28, borderless: false },
+      { x: 0.04, y: 0.65, w: 0.92, h: 0.32, borderless: false },
+    ],
+    createdAt: '2026-01-01T00:00:00Z',
+  },
+  {
+    id: 'builtin-cinematic-widescreen',
+    name: '3 Khung Điện Ảnh',
+    layoutFormat: 'StandardPage',
+    isBuiltIn: true,
+    panelCount: 3,
+    slots: [
+      { x: 0.04, y: 0.03, w: 0.92, h: 0.5, borderless: false },
+      { x: 0.04, y: 0.56, w: 0.44, h: 0.41, borderless: false },
+      { x: 0.52, y: 0.56, w: 0.44, h: 0.41, borderless: false },
+    ],
+    createdAt: '2026-01-01T00:00:00Z',
+  },
+  {
+    id: 'builtin-4-panel-yonkoma',
+    name: '4 Khung Yonkoma',
+    layoutFormat: 'StandardPage',
+    isBuiltIn: true,
+    panelCount: 4,
+    slots: [
+      { x: 0.08, y: 0.03, w: 0.84, h: 0.21, borderless: false },
+      { x: 0.08, y: 0.27, w: 0.84, h: 0.21, borderless: false },
+      { x: 0.08, y: 0.51, w: 0.84, h: 0.21, borderless: false },
+      { x: 0.08, y: 0.75, w: 0.84, h: 0.21, borderless: false },
+    ],
+    createdAt: '2026-01-01T00:00:00Z',
+  },
+  {
+    id: 'builtin-5-action-dynamic',
+    name: '5 Khung Cao Trào',
+    layoutFormat: 'StandardPage',
+    isBuiltIn: true,
+    panelCount: 5,
+    slots: [
+      { x: 0.04, y: 0.03, w: 0.92, h: 0.42, borderless: false },
+      { x: 0.04, y: 0.48, w: 0.44, h: 0.22, borderless: false },
+      { x: 0.52, y: 0.48, w: 0.44, h: 0.22, borderless: false },
+      { x: 0.04, y: 0.73, w: 0.44, h: 0.24, borderless: false },
+      { x: 0.52, y: 0.73, w: 0.44, h: 0.24, borderless: false },
+    ],
+    createdAt: '2026-01-01T00:00:00Z',
+  },
+];
+
 /**
  * ArtistCanvaSidebar - Sidebar Canva Navigation chuyên biệt cho Artist Desk
  * - Đồng bộ hoàn toàn bảng màu & biến CSS với Sidebar toàn hệ thống (.pf-sidebar & data-sb-theme).
  * - Đóng vai trò là thanh Sidebar chính khi Artist vào màn hình làm việc bản vẽ.
- * - Thanh công cụ chính Canva Dock (72px): [Pages] - [Script] - [Series Bible] cùng nút quay lại Studio.
- * - Ngăn phụ trượt Canva Drawer (340px): Xem kịch bản, tra cứu bible, quản lý toàn diện trang tranh.
+ * - Thanh công cụ chính Canva Dock (72px): [Pages] - [Script] - [Series Bible] - [Khung] cùng nút thu gọn.
+ * - Ngăn phụ trượt Canva Drawer (340px): Xem kịch bản, tra cứu bible, chọn mẫu khung tham khảo.
  */
 export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
   pages,
@@ -328,6 +433,14 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
   bibleEntities = DEFAULT_BIBLE_ENTITIES,
   seriesTitle = 'Huyết Thống Viễn Cổ',
   isLoadingBible = false,
+  templates = DEFAULT_FRAME_TEMPLATES,
+  activeTemplateId = null,
+  onSelectTemplate,
+  onClearTemplate,
+  hasPagePanels = false,
+  isLoadingTemplates = false,
+  isApplyingTemplate = false,
+  templateError = null,
   theme,
   hidePagesTab = false,
 }) => {
@@ -390,6 +503,10 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
   // Bộ lọc Bible
   const [bibleCategory, setBibleCategory] = useState<'all' | 'character' | 'location' | 'lore'>('all');
   const [bibleSearchQuery, setBibleSearchQuery] = useState('');
+
+  // Bộ lọc Mẫu khung tranh (Panel Templates)
+  const [templateSearchQuery, setTemplateSearchQuery] = useState('');
+  const [templateCountFilter, setTemplateCountFilter] = useState<'all' | '1-2' | '3' | '4+'>('all');
 
   // Xử lý khi nhấn nút Tab Canva Dock
   const handleTabClick = (tab: CanvaSidebarTab) => {
@@ -553,6 +670,25 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
     });
   }, [bibleEntities, bibleCategory, bibleSearchQuery]);
 
+  // Lọc danh sách Mẫu Khung (Panel Templates)
+  const filteredTemplates = useMemo(() => {
+    return templates.filter((tpl) => {
+      const matchSearch =
+        templateSearchQuery.trim() === '' ||
+        tpl.name.toLowerCase().includes(templateSearchQuery.toLowerCase());
+      const count = tpl.panelCount || tpl.slots?.length || 0;
+      const matchCount =
+        templateCountFilter === 'all'
+          ? true
+          : templateCountFilter === '1-2'
+            ? count <= 2
+            : templateCountFilter === '3'
+              ? count === 3
+              : count >= 4;
+      return matchSearch && matchCount;
+    });
+  }, [templates, templateSearchQuery, templateCountFilter]);
+
   return (
     <div
       className='pf-sidebar flex h-full select-none z-30 shrink-0 font-sans shadow-xl relative'
@@ -631,6 +767,27 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
               }`}
             />
             <span className='text-[10px] tracking-tight'>Bible</span>
+          </button>
+
+          {/* Nút Tab 4: Mẫu Khung Tranh (Panel Templates) */}
+          <button
+            type='button'
+            onClick={() => handleTabClick('templates')}
+            data-testid='canva-tab-templates'
+            className={`w-[60px] h-[60px] rounded-xl flex flex-col items-center justify-center transition-all cursor-pointer ${
+              activeTab === 'templates' && isDrawerOpen
+                ? 'bg-[var(--sb-active-bg)] text-[var(--sb-text)] ring-1 ring-[var(--sb-accent)]/60 shadow-md font-semibold'
+                : 'hover:bg-[var(--sb-hover)] hover:text-[var(--sb-text)] text-[var(--sb-muted)]'
+            }`}
+          >
+            <LayoutTemplate
+              className={`w-5 h-5 mb-1 ${
+                activeTab === 'templates' && isDrawerOpen
+                  ? 'text-[var(--sb-accent)]'
+                  : 'text-current'
+              }`}
+            />
+            <span className='text-[10px] tracking-tight'>Mẫu khung</span>
           </button>
         </div>
 
@@ -1347,6 +1504,212 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                       )}
                     </div>
                   ))
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* -------------------------------------------------------------
+              TAB 4: PANEL TEMPLATES (CHỌN MẪU KHUNG THAM KHẢO CHO TRANG HIỆN TẠI)
+              ------------------------------------------------------------- */}
+          {activeTab === 'templates' && (
+            <div
+              data-testid='canva-drawer-templates'
+              className='flex flex-col h-full overflow-hidden'
+            >
+              {/* Header Drawer Templates */}
+              <div className='p-3.5 border-b border-[var(--sb-border)] bg-[var(--sb-surface)] shrink-0 space-y-1.5'>
+                <div className='flex items-center justify-between gap-2'>
+                  <div className='flex items-center gap-1.5'>
+                    <span className='text-[10px] font-mono uppercase px-2 py-0.5 rounded-full bg-[var(--sb-surface-hover)] text-[var(--sb-accent)] border border-[var(--sb-border)] font-bold'>
+                      Mẫu Khung
+                    </span>
+                    {isLoadingTemplates && (
+                      <span className='text-[10px] text-[var(--sb-muted)] animate-pulse'>
+                        Đang nạp...
+                      </span>
+                    )}
+                    {isApplyingTemplate && (
+                      <span className='text-[10px] text-[var(--sb-accent)] animate-pulse font-medium'>
+                        Đang áp dụng...
+                      </span>
+                    )}
+                  </div>
+                  <span className='text-[10px] font-semibold text-[var(--sb-accent)]'>
+                    Trang {activePageNumber}
+                  </span>
+                </div>
+
+                <div className='flex items-center justify-between gap-2'>
+                  <div>
+                    <h2 className='text-xs font-bold text-[var(--sb-text)] tracking-tight'>
+                      Mẫu Khung Tranh Tham Khảo
+                    </h2>
+                    <p className='text-[10.5px] text-[var(--sb-muted)] mt-0.5'>
+                      Chọn mẫu để áp dụng trực tiếp vào Trang {activePageNumber}
+                    </p>
+                  </div>
+
+                  {(hasPagePanels || activeTemplateId) && onClearTemplate && (
+                    <button
+                      type='button'
+                      onClick={onClearTemplate}
+                      data-testid='canva-btn-clear-template'
+                      title='Xoá khung tham khảo trên trang này'
+                      className='px-2 py-1 rounded-lg text-[10px] font-semibold border border-[var(--sb-border)] bg-[var(--sb-hover)] hover:bg-rose-500/10 hover:text-rose-600 hover:border-rose-300 text-[var(--sb-muted)] flex items-center gap-1 transition-colors cursor-pointer shrink-0'
+                    >
+                      <RotateCcw className='w-3 h-3' />
+                      <span>Đặt lại</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Thanh tìm kiếm & lọc số lượng khung */}
+              <div className='p-3 border-b border-[var(--sb-border)] flex flex-col gap-2 shrink-0'>
+                <div className='relative'>
+                  <Search className='w-3.5 h-3.5 text-[var(--sb-muted)] absolute left-2.5 top-2.5' />
+                  <input
+                    type='text'
+                    value={templateSearchQuery}
+                    onChange={(e) => setTemplateSearchQuery(e.target.value)}
+                    placeholder='Tìm mẫu khung (Shonen, 4-Koma...)'
+                    data-testid='canva-input-search-templates'
+                    className='w-full h-8 bg-[var(--sb-surface)] border border-[var(--sb-border)] rounded-lg pl-8 pr-3 text-[11px] text-[var(--sb-text)] placeholder-[var(--sb-muted)] focus:outline-none focus:border-[var(--sb-accent)]'
+                  />
+                </div>
+
+                <div className='flex items-center gap-1 text-[10px]'>
+                  {[
+                    { id: 'all', label: 'Tất cả' },
+                    { id: '1-2', label: '1–2 ô' },
+                    { id: '3', label: '3 ô' },
+                    { id: '4+', label: '4+ ô' },
+                  ].map((f) => (
+                    <button
+                      key={f.id}
+                      type='button'
+                      onClick={() => setTemplateCountFilter(f.id as any)}
+                      className={`px-2.5 py-1 rounded-full font-medium transition-colors cursor-pointer ${
+                        templateCountFilter === f.id
+                          ? 'bg-[var(--sb-accent)] text-white'
+                          : 'bg-[var(--sb-surface)] text-[var(--sb-muted)] hover:text-[var(--sb-text)]'
+                      }`}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+
+                {templateError && (
+                  <div className='px-2.5 py-1.5 rounded-lg bg-rose-500/10 border border-rose-300/60 flex items-center gap-1.5 text-[10.5px] text-rose-600'>
+                    <AlertTriangle className='w-3.5 h-3.5 shrink-0' />
+                    <span className='truncate'>{templateError}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Lưới thẻ mẫu khung */}
+              <div className='flex-1 overflow-y-auto p-3 custom-scrollbar'>
+                {filteredTemplates.length === 0 ? (
+                  <div className='py-12 px-3 text-center text-[var(--sb-muted)] text-xs italic'>
+                    Không tìm thấy mẫu khung phù hợp.
+                  </div>
+                ) : (
+                  <div className='grid grid-cols-2 gap-2.5'>
+                    {filteredTemplates.map((tpl) => {
+                      const isSelected = tpl.id === activeTemplateId;
+                      return (
+                        <button
+                          key={tpl.id}
+                          type='button'
+                          disabled={isApplyingTemplate}
+                          onClick={() => onSelectTemplate?.(tpl)}
+                          data-testid={`canva-template-card-${tpl.id}`}
+                          className={`group p-2 rounded-xl border text-left cursor-pointer transition-all flex flex-col justify-between disabled:opacity-60 ${
+                            isSelected
+                              ? 'bg-[var(--sb-active-bg)] border-[var(--sb-accent)] ring-1 ring-[var(--sb-accent)]/60 shadow-sm'
+                              : 'bg-[var(--sb-surface)] border-[var(--sb-border)] hover:border-[var(--sb-accent)]/50 hover:bg-[var(--sb-surface-hover)]'
+                          }`}
+                        >
+                          {/* Wireframe Preview tỷ lệ B5 / Spread */}
+                          <div className='w-full h-28 bg-stone-100/70 rounded-lg border border-[var(--sb-border)] flex items-center justify-center p-1.5 mb-2 relative overflow-hidden'>
+                            <div
+                              className={`${
+                                tpl.layoutFormat === 'SpreadDouble'
+                                  ? 'aspect-[3/2] w-full max-h-full'
+                                  : 'aspect-[2/3] h-full'
+                              } bg-white border border-stone-300 rounded-xs relative overflow-hidden shadow-2xs`}
+                            >
+                              {tpl.slots.map((s, idx) => (
+                                <div
+                                  key={idx}
+                                  className={`absolute border flex items-center justify-center font-mono text-[8px] font-bold transition-colors ${
+                                    s.borderless
+                                      ? 'border-dashed border-orange-400'
+                                      : isSelected
+                                        ? 'border-[var(--sb-accent)]'
+                                        : 'border-stone-700'
+                                  } ${
+                                    isSelected
+                                      ? 'bg-[var(--sb-accent)]/15 text-[var(--sb-accent)]'
+                                      : 'bg-stone-100/90 text-stone-600'
+                                  }`}
+                                  style={{
+                                    left: `${s.x * 100}%`,
+                                    top: `${s.y * 100}%`,
+                                    width: `${s.w * 100}%`,
+                                    height: `${s.h * 100}%`,
+                                    clipPath: s.corners?.length
+                                      ? `polygon(${s.corners
+                                          .map((c) => `${c.x * 100}% ${c.y * 100}%`)
+                                          .join(', ')})`
+                                      : undefined,
+                                  }}
+                                >
+                                  {idx + 1}
+                                </div>
+                              ))}
+                            </div>
+
+                            {isSelected && (
+                              <div className='absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-[var(--sb-accent)] text-white flex items-center justify-center shadow-xs'>
+                                <CheckCircle2 className='w-3 h-3' />
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Tên & số khung */}
+                          <div className='w-full space-y-1'>
+                            <div
+                              className={`text-[11px] leading-tight truncate ${
+                                isSelected
+                                  ? 'font-bold text-[var(--sb-accent)]'
+                                  : 'font-semibold text-[var(--sb-text)]'
+                              }`}
+                              title={tpl.name}
+                            >
+                              {tpl.name}
+                            </div>
+                            <div className='flex items-center justify-between text-[9.5px]'>
+                              <span className='text-[var(--sb-muted)]'>
+                                {tpl.isBuiltIn ? 'Mặc định' : 'Tuỳ chỉnh'}
+                              </span>
+                              <span
+                                className={`font-mono font-bold px-1.5 py-0.2 rounded ${
+                                  isSelected
+                                    ? 'bg-[var(--sb-accent)] text-white'
+                                    : 'bg-[var(--sb-surface-hover)] text-[var(--sb-muted)]'
+                                }`}
+                              >
+                                {tpl.panelCount || tpl.slots.length} ô
+                              </span>
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
                 )}
               </div>
             </div>
