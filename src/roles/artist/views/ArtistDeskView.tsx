@@ -820,10 +820,10 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
 
   const seriesPath = useMemo(() => {
     if (workspaceId && seriesId) {
-      return getRoleDefaultPath(workspaceRole || 'ARTIST', workspaceId, seriesId);
+      return `/workspaces/${workspaceId}/series/${seriesId}/artist`;
     }
     return workspaceId ? `/workspaces/${workspaceId}/series` : '/workspaces';
-  }, [workspaceId, seriesId, workspaceRole]);
+  }, [workspaceId, seriesId]);
 
   const chapterPath = useMemo(() => {
     if (workspaceId && seriesId && currentChapterId) {

@@ -519,7 +519,7 @@ describe('ArtistDeskView - Header Colors, Stage Progression & Series/Chapter Pat
     });
     expect(screen.getByTestId('focus-series-link')).toHaveAttribute(
       'href',
-      '/workspaces/ws-1/series/ser-1/my-work',
+      '/workspaces/ws-1/series/ser-1/artist',
     );
 
     const chapterSelect = await screen.findByTestId('focus-chapter-select');
