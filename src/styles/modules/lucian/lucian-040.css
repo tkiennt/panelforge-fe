@@ -292,11 +292,32 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .u040,
+  .u040 *,
+  .u040 *::before,
+  .u040 *::after,
+  .u040-container,
+  .u040-container *,
+  .u040-container *::before,
+  .u040-container *::after,
   .u040-rail,
+  .u040-rail *,
+  .u040-rail *::before,
+  .u040-rail *::after,
   .u040-hl,
+  .u040-tog,
   .u040-tog svg,
+  .u040-it,
   .u040-it span,
-  .u040-bd {
+  .u040-bd,
+  .u040-name,
+  .u040-me,
+  .u040-me-info,
+  .u040-main h3 {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
     transition: none !important;
+    scroll-behavior: auto !important;
   }
 }

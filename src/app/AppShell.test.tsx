@@ -242,8 +242,8 @@ describe('AppShell Component', () => {
     expect(toggleBtn).toHaveAttribute('aria-label', 'Thu gọn thanh điều hướng');
     expect(toggleBtn).toHaveAttribute('aria-expanded', 'true');
     expect(toggleBtn).toHaveAttribute('aria-controls', 'app-shell-sidebar');
-    // Nút nằm trong header (cạnh breadcrumb), không nằm trong sidebar
-    expect(sidebar).not.toContainElement(toggleBtn);
+    // Nút nằm bên trong side rail (Lucian UX/UI Prompt #040)
+    expect(sidebar).toContainElement(toggleBtn);
 
     // Bấm thu gọn
     fireEvent.click(toggleBtn);

@@ -2,7 +2,17 @@
 /* Adapted for PanelForge Editorial AI Studio Design System */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronDown, Briefcase, BookOpen, LogOut, Server, Check, Palette } from 'lucide-react';
+import {
+  ChevronDown,
+  Briefcase,
+  BookOpen,
+  LogOut,
+  Server,
+  Check,
+  Palette,
+  PanelLeftClose,
+  PanelLeftOpen,
+} from 'lucide-react';
 import { CurrentUser } from './AppShell';
 import { SeriesDto } from '@/services/series.service';
 import { seriesService } from '@/services/series.service';
@@ -47,6 +57,9 @@ export interface AppShellSidebarProps {
   onSelectSeries?: (seriesId: string) => void;
   isRailExpanded?: boolean;
   isCollapsed?: boolean;
+  onToggleSidebar?: () => void;
+  onToggleCollapse?: () => void;
+  onToggleRail?: () => void;
   isMobileDrawer?: boolean;
   theme?: SidebarTheme;
   onChangeTheme?: (theme: SidebarTheme) => void;
@@ -75,11 +88,15 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
   onSelectSeries,
   isRailExpanded,
   isCollapsed: isCollapsedProp,
+  onToggleSidebar,
+  onToggleCollapse,
+  onToggleRail,
   isMobileDrawer = false,
   theme = 'ink',
   onChangeTheme,
 }) => {
   const { t } = useTranslation();
+  const handleToggle = onToggleSidebar || onToggleCollapse || onToggleRail;
   const isCollapsed =
     !isMobileDrawer &&
     (isCollapsedProp !== undefined
@@ -88,6 +105,9 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
         ? !isRailExpanded
         : false);
   const showFullContent = isMobileDrawer || !isCollapsed;
+  const toggleLabel = isCollapsed
+    ? t('navigation.sidebar.expand', 'Mở rộng thanh điều hướng')
+    : t('navigation.sidebar.collapse', 'Thu gọn thanh điều hướng');
 
   const [seriesPos, setSeriesPos] = useState<FloatPos | null>(null);
   const [themePos, setThemePos] = useState<FloatPos | null>(null);
@@ -218,16 +238,20 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
       data-testid={isMobileDrawer ? 'mobile-sidebar-nav' : 'app-shell-sidebar'}
       aria-label='Main menu'
     >
-      {/* Brand: chỉ hiển thị thương hiệu, không kiêm nút đóng/mở */}
+      {/* Brand & Rail Toggle: Thương hiệu và nút thu gọn / mở rộng bên trong side rail (Lucian #040) */}
       <div
-        className={`px-3 flex items-center h-16 shrink-0 border-b ${
-          showFullContent ? (isMobileDrawer ? 'pr-12' : '') : 'justify-center'
+        className={`px-3 flex items-center h-16 shrink-0 border-b relative ${
+          showFullContent
+            ? isMobileDrawer
+              ? 'justify-between pr-12'
+              : 'justify-between'
+            : 'flex-col justify-center gap-1 py-1'
         }`}
         style={{ borderColor: 'var(--sb-border)' }}
       >
-        <div className='flex items-center gap-2.5 min-w-0 flex-1'>
+        <div className={`flex items-center gap-2.5 min-w-0 ${showFullContent ? 'flex-1' : ''}`}>
           <BrandMark
-            size={28}
+            size={showFullContent ? 28 : 22}
             tone={theme === 'paper' ? undefined : 'paper'}
             className='shrink-0'
           />
@@ -253,6 +277,29 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
             </span>
           )}
         </div>
+
+        {handleToggle && !isMobileDrawer && (
+          <button
+            type='button'
+            onClick={handleToggle}
+            aria-label={toggleLabel}
+            title={toggleLabel}
+            aria-expanded={!isCollapsed}
+            aria-controls={SIDEBAR_ID}
+            data-testid='sidebar-rail-toggle-btn'
+            className={
+              showFullContent
+                ? 'p-1.5 rounded-lg text-[var(--sb-muted)] hover:text-[var(--sb-text)] hover:bg-[var(--sb-hover)] transition-colors cursor-pointer shrink-0 focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--sb-accent)]'
+                : 'w-7 h-6 rounded-md flex items-center justify-center text-[var(--sb-muted)] hover:text-[var(--sb-text)] hover:bg-[var(--sb-hover)] transition-colors cursor-pointer shrink-0 focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--sb-accent)]'
+            }
+          >
+            {isCollapsed ? (
+              <PanelLeftOpen className='w-4 h-4' />
+            ) : (
+              <PanelLeftClose className='w-4 h-4' />
+            )}
+          </button>
+        )}
       </div>
 
       {/* Workspace & Series Context Switchers */}

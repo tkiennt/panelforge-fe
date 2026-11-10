@@ -43,8 +43,6 @@ import {
   KeyRound,
   Send,
   Menu,
-  PanelLeftClose,
-  PanelLeftOpen,
 } from 'lucide-react';
 import { AppShellSidebar } from './AppShellSidebar';
 import { SIDEBAR_ID, SIDEBAR_THEMES, type SidebarTheme } from './sidebarTheme';
@@ -537,9 +535,6 @@ export function AppShell({
       // ignore
     }
   };
-  const toggleLabel = isSidebarCollapsed
-    ? t('navigation.sidebar.expand', 'Mở rộng thanh điều hướng')
-    : t('navigation.sidebar.collapse', 'Thu gọn thanh điều hướng');
 
   const navSections = rawSections.map((sec) => ({
     ...sec,
@@ -662,6 +657,7 @@ export function AppShell({
         onLogout={onLogout}
         onSelectSeries={onSelectSeries}
         isCollapsed={isSidebarCollapsed}
+        onToggleSidebar={handleToggleSidebar}
         isMobileDrawer={false}
         theme={sidebarTheme}
         onChangeTheme={handleChangeSidebarTheme}
@@ -681,24 +677,6 @@ export function AppShell({
                 data-testid='appshell-hamburger-btn'
               >
                 <Menu className='w-5 h-5' />
-              </button>
-            )}
-            {!isReader && (
-              <button
-                type='button'
-                onClick={handleToggleSidebar}
-                aria-label={toggleLabel}
-                title={toggleLabel}
-                aria-expanded={!isSidebarCollapsed}
-                aria-controls={SIDEBAR_ID}
-                data-testid='sidebar-rail-toggle-btn'
-                className='hidden md:inline-flex items-center justify-center w-10 h-10 -ml-2 rounded-lg text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9] transition-colors duration-150 cursor-pointer shrink-0 focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#C2410C]'
-              >
-                {isSidebarCollapsed ? (
-                  <PanelLeftOpen className='w-[18px] h-[18px]' />
-                ) : (
-                  <PanelLeftClose className='w-[18px] h-[18px]' />
-                )}
               </button>
             )}
             {isReader ? (
