@@ -6,6 +6,7 @@ import {
   Command,
   Maximize2,
   Minimize2,
+  Loader2,
 } from 'lucide-react';
 import { BrandMark } from '@/shared/components/BrandMark';
 import { MangaProject } from '@/types';
@@ -25,8 +26,8 @@ export interface FocusWorkspaceLayoutProps {
  * Áp dụng theo quy ước SIDEBAR_CONVENTION.md:
  * - Ẩn hoàn toàn AppShellSidebar (thanh điều hướng toàn app) để tối đa hoá diện tích hiển thị.
  * - Cung cấp Compact Studio Header (h-12) gồm nút quay lại, breadcrumb, trạng thái lưu.
- * - Nhường 100% không gian còn lại cho Sidebar công cụ nghiệp vụ duy nhất và Bàn vẽ Manga.
- * - Hỗ trợ hiệu ứng chuyển đổi mượt mà (smooth transition) và Chế độ Zen Mode toàn màn hình (Phím tắt F).
+ * - Hỗ trợ bước chuyển mượt mà ra/vào dự án (View Transition API & smooth fade exit).
+ * - Hỗ trợ Chế độ Zen Mode toàn màn hình (Phím tắt F hoặc Escape).
  */
 export const FocusWorkspaceLayout: React.FC<FocusWorkspaceLayoutProps> = ({
   currentUser,
@@ -38,6 +39,7 @@ export const FocusWorkspaceLayout: React.FC<FocusWorkspaceLayoutProps> = ({
   const location = useLocation();
   const params = useParams();
   const [isZenMode, setIsZenMode] = useState(false);
+  const [isExiting, setIsExiting] = useState(false);
 
   const workspaceId = params.workspaceId ?? activeWorkspace?.id;
   const seriesId = params.seriesId ?? (activeSeries as any)?.id;
@@ -82,19 +84,39 @@ export const FocusWorkspaceLayout: React.FC<FocusWorkspaceLayoutProps> = ({
     return 'Phòng làm việc sáng tác';
   };
 
+  // Bước chuyển mượt mà khi quay về dự án (Smooth exit transition)
   const handleBackToProject = () => {
-    if (workspaceId && seriesId) {
-      navigate(`/workspaces/${workspaceId}/series/${seriesId}/dashboard`);
-    } else if (workspaceId) {
-      navigate(`/workspaces/${workspaceId}/series`);
+    if (isExiting) return;
+
+    const targetPath =
+      workspaceId && seriesId
+        ? `/workspaces/${workspaceId}/series/${seriesId}/dashboard`
+        : workspaceId
+          ? `/workspaces/${workspaceId}/series`
+          : '/workspaces';
+
+    if (
+      typeof document !== 'undefined' &&
+      typeof (document as any).startViewTransition === 'function'
+    ) {
+      (document as any).startViewTransition(() => {
+        navigate(targetPath);
+      });
     } else {
-      navigate('/workspaces');
+      setIsExiting(true);
+      setTimeout(() => {
+        navigate(targetPath);
+      }, 160);
     }
   };
 
   return (
     <div
-      className='h-screen w-full flex flex-col overflow-hidden bg-[#181615] text-[#FCFBF8] select-none transition-colors duration-300'
+      className={`h-screen w-full flex flex-col overflow-hidden bg-[#181615] text-[#FCFBF8] select-none transition-all duration-200 ease-out ${
+        isExiting
+          ? 'opacity-0 scale-[0.995] filter blur-[0.5px] pointer-events-none'
+          : 'opacity-100 scale-100 filter-none'
+      }`}
       data-testid='focus-workspace-layout'
     >
       {/* --- FLOATING ZEN PILL KHI BẬT ZEN MODE --- */}
@@ -106,7 +128,7 @@ export const FocusWorkspaceLayout: React.FC<FocusWorkspaceLayoutProps> = ({
           <button
             type='button'
             onClick={() => setIsZenMode(false)}
-            className='flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#1C1917]/90 backdrop-blur-md border border-[#3E3A36] text-xs font-mono text-stone-200 hover:text-white hover:bg-[#292524] shadow-lg cursor-pointer transition-all'
+            className='flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#1C1917]/90 backdrop-blur-md border border-[#3E3A36] text-xs font-mono text-stone-200 hover:text-white hover:bg-[#292524] shadow-lg cursor-pointer transition-all active:scale-95'
             title='Thoát chế độ Zen Mode (Phím F hoặc Escape)'
           >
             <Minimize2 className='w-3.5 h-3.5 text-[#F97316]' />
@@ -116,7 +138,7 @@ export const FocusWorkspaceLayout: React.FC<FocusWorkspaceLayoutProps> = ({
       ) : (
         /* --- COMPACT STUDIO HEADER (h-12 ~ 48px) VỚI HIỆU ỨNG TRƯỢT XUỐNG MƯỢT MÀ --- */
         <header
-          className='h-12 bg-[#1C1917] border-b border-[#292524] px-3 sm:px-4 flex items-center justify-between shrink-0 z-30 select-none transition-all duration-300 ease-out animate-in fade-in slide-in-from-top-2'
+          className='h-12 bg-[#1C1917] border-b border-[#292524] px-3 sm:px-4 flex items-center justify-between shrink-0 z-30 select-none transition-all duration-200 ease-out animate-in fade-in slide-in-from-top-2'
           data-testid='focus-studio-header'
         >
           {/* Phía trái: Nút thoát bàn vẽ + Breadcrumb */}
@@ -124,11 +146,16 @@ export const FocusWorkspaceLayout: React.FC<FocusWorkspaceLayoutProps> = ({
             <button
               type='button'
               onClick={handleBackToProject}
+              disabled={isExiting}
               data-testid='focus-back-btn'
               title='Quay lại Dashboard dự án (Thoát chế độ tập trung)'
-              className='flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium text-[#A8A29E] hover:text-[#FCFBF8] hover:bg-[#292524] transition-colors cursor-pointer shrink-0 focus:outline-none focus-visible:outline-2 focus-visible:outline-[#C2410C]'
+              className='group flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium text-[#A8A29E] hover:text-[#FCFBF8] hover:bg-[#292524] active:scale-95 transition-all duration-150 cursor-pointer shrink-0 focus:outline-none focus-visible:outline-2 focus-visible:outline-[#C2410C] disabled:opacity-60'
             >
-              <ArrowLeft className='w-4 h-4' />
+              {isExiting ? (
+                <Loader2 className='w-4 h-4 animate-spin text-[#F97316]' />
+              ) : (
+                <ArrowLeft className='w-4 h-4 transition-transform duration-150 group-hover:-translate-x-0.5' />
+              )}
               <span className='hidden sm:inline font-semibold'>Về dự án</span>
             </button>
 
@@ -164,7 +191,7 @@ export const FocusWorkspaceLayout: React.FC<FocusWorkspaceLayoutProps> = ({
               onClick={() => setIsZenMode(true)}
               title='Chế độ tập trung tối đa / Zen Mode (Phím F)'
               data-testid='focus-zen-toggle-btn'
-              className='flex items-center gap-1.5 px-2 py-1 rounded-md bg-[#24201E] border border-[#2E2A27] text-xs font-mono text-[#A8A29E] hover:text-[#FCFBF8] hover:border-[#44403C] transition-colors cursor-pointer'
+              className='flex items-center gap-1.5 px-2 py-1 rounded-md bg-[#24201E] border border-[#2E2A27] text-xs font-mono text-[#A8A29E] hover:text-[#FCFBF8] hover:border-[#44403C] active:scale-95 transition-all cursor-pointer'
             >
               <Maximize2 className='w-3.5 h-3.5 text-[#F97316]' />
               <span className='hidden sm:inline'>Zen Mode</span>
@@ -178,7 +205,7 @@ export const FocusWorkspaceLayout: React.FC<FocusWorkspaceLayoutProps> = ({
                 )
               }
               title='Mở Command Palette (Ctrl+K / ⌘K)'
-              className='hidden sm:flex items-center gap-1 px-2 py-1 rounded-md bg-[#24201E] border border-[#2E2A27] text-[11px] font-mono text-[#A8A29E] hover:text-[#FCFBF8] hover:border-[#44403C] transition-colors cursor-pointer'
+              className='hidden sm:flex items-center gap-1 px-2 py-1 rounded-md bg-[#24201E] border border-[#2E2A27] text-[11px] font-mono text-[#A8A29E] hover:text-[#FCFBF8] hover:border-[#44403C] active:scale-95 transition-all cursor-pointer'
             >
               <Command className='w-3 h-3' />
               <span>K</span>
@@ -196,14 +223,14 @@ export const FocusWorkspaceLayout: React.FC<FocusWorkspaceLayoutProps> = ({
         </header>
       )}
 
-      {/* --- WORKSPACE BODY: BƯỚC CHUYỂN MƯỢT MÀ VỚI ANIMATE-IN FADE-IN DURATION-300 --- */}
+      {/* --- WORKSPACE BODY: BƯỚC CHUYỂN MƯỢT MÀ VỚI ANIMATE-IN FADE-IN DURATION-250 --- */}
       <main
-        className='flex-1 min-h-0 min-w-0 w-full flex flex-col overflow-hidden relative transition-all duration-300 ease-out'
+        className='flex-1 min-h-0 min-w-0 w-full flex flex-col overflow-hidden relative transition-all duration-200 ease-out'
         data-testid='focus-workspace-body'
       >
         <div
           key={location.pathname}
-          className='w-full h-full flex-1 flex flex-col overflow-hidden animate-in fade-in duration-300 ease-out'
+          className='w-full h-full flex-1 flex flex-col overflow-hidden animate-in fade-in duration-250 ease-out'
         >
           {children ?? <Outlet />}
         </div>

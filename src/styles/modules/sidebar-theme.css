@@ -119,3 +119,10 @@
     animation: none;
   }
 }
+
+/* Smooth View Transition for Workspace In/Out (Browser View Transition API) */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 200ms;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
