@@ -30,10 +30,10 @@ export const FRAME_PRESETS: FramePresetTemplate[] = [
     panelCount: 4,
     previewGrid: '4 rows',
     panels: [
-      { panelNumber: 1, x: 2.5, y: 2.5, width: 95, height: 22.85 },
-      { panelNumber: 2, x: 2.5, y: 26.55, width: 95, height: 22.85 },
-      { panelNumber: 3, x: 2.5, y: 50.6, width: 95, height: 22.85 },
-      { panelNumber: 4, x: 2.5, y: 74.65, width: 95, height: 22.85 },
+      { panelNumber: 1, x: 18, y: 2.5, width: 64, height: 22.85 },
+      { panelNumber: 2, x: 18, y: 26.55, width: 64, height: 22.85 },
+      { panelNumber: 3, x: 18, y: 50.6, width: 64, height: 22.85 },
+      { panelNumber: 4, x: 18, y: 74.65, width: 64, height: 22.85 },
     ],
   },
   {
@@ -107,6 +107,18 @@ export const FRAME_PRESETS: FramePresetTemplate[] = [
     ],
   },
   {
+    id: 'preset-inset-panels',
+    name: 'Inset Panels (Khung Lồng Khung)',
+    description: '1 khung toàn cảnh chiến trường làm nền lồng 2 khung cận cảnh biểu cảm và chi tiết vũ khí (TPL-MANGA-06)',
+    panelCount: 3,
+    previewGrid: 'inset',
+    panels: [
+      { panelNumber: 1, x: 2.5, y: 2.5, width: 95, height: 95 },
+      { panelNumber: 2, x: 55, y: 8, width: 39, height: 26 },
+      { panelNumber: 3, x: 6, y: 62, width: 39, height: 26 },
+    ],
+  },
+  {
     id: 'preset-action-dynamic',
     name: 'Hành Động Shonen (5 Khung)',
     description: '1 khung mở lớn đầu trang kết hợp 4 khung đối đầu dồn dập',
@@ -114,10 +126,10 @@ export const FRAME_PRESETS: FramePresetTemplate[] = [
     previewGrid: 'dynamic',
     panels: [
       { panelNumber: 1, x: 2.5, y: 2.5, width: 95, height: 44 },
-      { panelNumber: 2, x: 2.5, y: 48, width: 46.9, height: 22 },
-      { panelNumber: 3, x: 50.6, y: 48, width: 46.9, height: 22 },
-      { panelNumber: 4, x: 2.5, y: 71.5, width: 46.9, height: 26 },
-      { panelNumber: 5, x: 50.6, y: 71.5, width: 46.9, height: 26 },
+      { panelNumber: 2, x: 50.6, y: 48, width: 46.9, height: 22 },
+      { panelNumber: 3, x: 2.5, y: 48, width: 46.9, height: 22 },
+      { panelNumber: 4, x: 50.6, y: 71.5, width: 46.9, height: 26 },
+      { panelNumber: 5, x: 2.5, y: 71.5, width: 46.9, height: 26 },
     ],
   },
   {
@@ -267,11 +279,13 @@ export const TemplatePanelCanvas: React.FC<TemplatePanelCanvasProps> = ({
                 }}
                 className={`border-2 border-[#171717] transition-all duration-150 relative overflow-hidden group cursor-pointer ${
                   isSelected
-                    ? 'ring-3 ring-[#F97316] z-20 shadow-md'
+                    ? 'ring-3 ring-[#F97316] z-30 shadow-md'
                     : isHovered
-                      ? 'border-[#F97316] ring-2 ring-[#F97316]/40 z-10'
-                      : 'hover:border-stone-800'
-                } ${!hasArt ? 'bg-stone-50/70' : 'bg-black'}`}
+                      ? 'border-[#F97316] ring-2 ring-[#F97316]/40 z-20'
+                      : panel.width < 50 && panel.height < 50 && panels.some((p) => p.width > 80)
+                        ? 'z-10 shadow-md bg-white'
+                        : 'hover:border-stone-800'
+                } ${!hasArt ? (panel.width < 50 && panel.height < 50 && panels.some((p) => p.width > 80) ? 'bg-white' : 'bg-stone-50/70') : 'bg-black'}`}
               >
                 {/* Hidden File Input for this specific panel */}
                 <input
