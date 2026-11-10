@@ -1629,14 +1629,14 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                       data-testid='artist-blank-state-actions'
                       className='absolute inset-0 z-20 flex items-center justify-center pointer-events-auto'
                     >
-                      <div className='flex items-center gap-3'>
+                      <div className='flex items-center gap-2.5'>
                         <button
                           type='button'
                           onClick={() => sketchFileInputRef.current?.click()}
                           data-testid='btn-upload-sketch-simple'
-                          className='px-5 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold flex items-center gap-2 shadow-sm cursor-pointer transition-all hover:scale-105 active:scale-95'
+                          className='px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm cursor-pointer transition-all hover:scale-105 active:scale-95'
                         >
-                          <Upload className='w-4 h-4' />
+                          <Upload className='w-3.5 h-3.5' />
                           <span>Tải phác thảo</span>
                         </button>
                         <button
@@ -1646,9 +1646,9 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                             setIsSidebarDrawerOpen(true);
                           }}
                           data-testid='btn-open-templates-simple'
-                          className='px-5 py-2.5 rounded-xl border border-stone-300 bg-white hover:bg-stone-50 text-stone-800 text-sm font-bold flex items-center gap-2 shadow-2xs cursor-pointer transition-all hover:scale-105 active:scale-95'
+                          className='px-4 py-2 rounded-lg border border-stone-300 bg-white hover:bg-stone-50 text-stone-800 text-xs font-bold flex items-center gap-1.5 shadow-2xs cursor-pointer transition-all hover:scale-105 active:scale-95'
                         >
-                          <LayoutTemplate className='w-4 h-4 text-stone-600' />
+                          <LayoutTemplate className='w-3.5 h-3.5 text-stone-600' />
                           <span>Chọn mẫu khung</span>
                         </button>
                       </div>
