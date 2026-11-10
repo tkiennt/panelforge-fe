@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   Layers,
   FileText,
@@ -17,13 +18,11 @@ import {
   List,
   User,
   MapPin,
-  BookOpen,
-  Info,
-  CheckCircle2,
-  SlidersHorizontal,
-  ExternalLink,
+  ArrowLeft,
 } from 'lucide-react';
 import { ArtistPageItem, PageStage } from './ArtistPageSidebar';
+import { SidebarTheme } from '@/app/sidebarTheme';
+import '@/styles/modules/sidebar-theme.css';
 
 export type CanvaSidebarTab = 'pages' | 'script' | 'bible';
 
@@ -62,6 +61,9 @@ export interface ArtistCanvaSidebarProps {
   // Bible props
   bibleEntities?: BibleEntityItem[];
   seriesTitle?: string;
+  // Global Theme integration
+  theme?: SidebarTheme;
+  onBackToStudio?: () => void;
 }
 
 const DEFAULT_SCRIPT_LINES: ScriptLineItem[] = [
@@ -160,10 +162,11 @@ const DEFAULT_BIBLE_ENTITIES: BibleEntityItem[] = [
 ];
 
 /**
- * ArtistCanvaSidebar - Sidebar Canva Navigation đa năng cho Artist Desk
- * - Thanh công cụ chính Canva Dock (72px) bên trái: Chuyển đổi giữa [Pages] - [Script] - [Series Bible].
- * - Ngăn trượt mở rộng Canva Drawer (340px): Hiển thị nội dung chi tiết tương ứng với tab được chọn.
- * - Nhấp lại vào tab đang mở sẽ thu gọn Drawer (trải nghiệm Canvas mượt mà tương tự Canva Editor).
+ * ArtistCanvaSidebar - Sidebar Canva Navigation chuyên biệt cho Artist Desk
+ * - Đồng bộ hoàn toàn bảng màu & biến CSS với Sidebar toàn hệ thống (.pf-sidebar & data-sb-theme).
+ * - Đóng vai trò là thanh Sidebar chính khi Artist vào màn hình làm việc bản vẽ.
+ * - Thanh công cụ chính Canva Dock (72px): [Pages] - [Script] - [Series Bible] cùng nút quay lại Studio.
+ * - Ngăn phụ trượt Canva Drawer (340px): Xem kịch bản, tra cứu bible, quản lý toàn diện trang tranh.
  */
 export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
   pages,
@@ -179,8 +182,30 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
   sceneSlugline = 'NGOẠI · CỔNG THÀNH · SÁNG',
   bibleEntities = DEFAULT_BIBLE_ENTITIES,
   seriesTitle = 'Huyết Thống Viễn Cổ',
+  theme,
+  onBackToStudio,
 }) => {
-  // Trạng thái tab Canva đang hoạt động: 'pages' | 'script' | 'bible'
+  const navigate = useNavigate();
+  const { workspaceId, seriesId } = useParams<{ workspaceId?: string; seriesId?: string }>();
+
+  // Đồng bộ theme hệ thống từ localStorage hoặc prop
+  const [currentTheme, setCurrentTheme] = useState<SidebarTheme>(() => {
+    if (theme) return theme;
+    try {
+      const saved = localStorage.getItem('pf.sidebar.theme');
+      return (saved as SidebarTheme) || 'ink';
+    } catch {
+      return 'ink';
+    }
+  });
+
+  useEffect(() => {
+    if (theme) {
+      setCurrentTheme(theme);
+    }
+  }, [theme]);
+
+  // Trạng thái tab Canva: 'pages' | 'script' | 'bible'
   const [activeTab, setActiveTab] = useState<CanvaSidebarTab>('pages');
   // Trạng thái mở/đóng ngăn phụ (Canva Drawer)
   const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(true);
@@ -194,15 +219,26 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
   const [bibleCategory, setBibleCategory] = useState<'all' | 'character' | 'location' | 'lore'>('all');
   const [bibleSearchQuery, setBibleSearchQuery] = useState('');
 
-  // Xử lý khi nhấn vào nút Tab Canva Dock
+  // Xử lý khi nhấn nút Tab Canva Dock
   const handleTabClick = (tab: CanvaSidebarTab) => {
     if (activeTab === tab) {
-      // Nhấn lại tab hiện tại -> Toggle đóng/mở Drawer (chuẩn Canva)
       setIsDrawerOpen((prev) => !prev);
     } else {
-      // Chuyển sang tab mới và đảm bảo Drawer luôn mở
       setActiveTab(tab);
       setIsDrawerOpen(true);
+    }
+  };
+
+  // Quay lại Studio Workspace
+  const handleBack = () => {
+    if (onBackToStudio) {
+      onBackToStudio();
+    } else if (workspaceId && seriesId) {
+      navigate(`/workspaces/${workspaceId}/series/${seriesId}/workspace`);
+    } else if (workspaceId) {
+      navigate(`/workspaces/${workspaceId}`);
+    } else {
+      navigate('/workspaces');
     }
   };
 
@@ -236,37 +272,50 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
   const selectedPage = pages[selectedPageIndex] || null;
 
   return (
-    <div className='flex h-full select-none z-30 shrink-0 font-sans shadow-xl relative'>
+    <div
+      className='pf-sidebar flex h-full select-none z-30 shrink-0 font-sans shadow-xl relative'
+      data-sb-theme={currentTheme}
+      data-testid='artist-desk-sidebar'
+    >
       {/* =========================================================================
           1. CANVA PRIMARY DOCK (Thanh biểu tượng chính 72px)
-          - Luôn ghim cố định ở góc trái ngoài cùng, nền tối #121316
+          - Sử dụng các biến CSS chuẩn hệ thống: var(--sb-bg), var(--sb-border), var(--sb-accent)...
           ========================================================================= */}
       <nav
         data-testid='canva-primary-dock'
-        className='w-[72px] bg-[#121316] text-[#A6AAB4] flex flex-col items-center py-3 border-r border-[#26282E] shrink-0 justify-between'
+        className='w-[72px] bg-[var(--sb-bg)] text-[var(--sb-muted)] flex flex-col items-center py-3 border-r border-[var(--sb-border)] shrink-0 justify-between transition-colors'
       >
         <div className='w-full flex flex-col items-center gap-2'>
-          {/* Logo / Huy hiệu phong cách Canva Editor */}
-          <div
-            title='PanelForge Manga Studio'
-            className='w-10 h-10 rounded-xl bg-gradient-to-tr from-[#7D2AE8] to-[#00C4CC] flex items-center justify-center text-white font-bold text-sm shadow-md mb-2 cursor-pointer hover:scale-105 transition-transform'
+          {/* Nút Quay lại Studio Workspace */}
+          <button
+            type='button'
+            onClick={handleBack}
+            title='Quay lại Studio Workspace'
+            data-testid='canva-btn-back-studio'
+            className='w-10 h-10 rounded-xl bg-[var(--sb-surface)] hover:bg-[var(--sb-hover)] border border-[var(--sb-border)] flex items-center justify-center text-[var(--sb-text)] hover:text-[var(--sb-accent)] mb-2 transition-all cursor-pointer shadow-2xs'
           >
-            PF
-          </div>
+            <ArrowLeft className='w-4 h-4' />
+          </button>
 
           {/* Nút Tab 1: Pages (Trang) */}
           <button
             type='button'
             onClick={() => handleTabClick('pages')}
             data-testid='canva-tab-pages'
-            className={`w-[60px] h-[60px] rounded-xl flex flex-col items-center justify-center transition-all ${
+            className={`w-[60px] h-[60px] rounded-xl flex flex-col items-center justify-center transition-all cursor-pointer ${
               activeTab === 'pages' && isDrawerOpen
-                ? 'bg-gradient-to-br from-[#7D2AE8] to-[#591AC2] text-white shadow-lg shadow-purple-900/30'
-                : 'hover:bg-[#202227] hover:text-white text-[#A6AAB4]'
+                ? 'bg-[var(--sb-active-bg)] text-[var(--sb-text)] ring-1 ring-[var(--sb-accent)]/60 shadow-md font-semibold'
+                : 'hover:bg-[var(--sb-hover)] hover:text-[var(--sb-text)] text-[var(--sb-muted)]'
             }`}
           >
-            <Layers className='w-5 h-5 mb-1' />
-            <span className='text-[10px] font-semibold tracking-tight'>Trang</span>
+            <Layers
+              className={`w-5 h-5 mb-1 ${
+                activeTab === 'pages' && isDrawerOpen
+                  ? 'text-[var(--sb-accent)]'
+                  : 'text-current'
+              }`}
+            />
+            <span className='text-[10px] tracking-tight'>Trang</span>
           </button>
 
           {/* Nút Tab 2: Script (Kịch bản) */}
@@ -274,14 +323,20 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
             type='button'
             onClick={() => handleTabClick('script')}
             data-testid='canva-tab-script'
-            className={`w-[60px] h-[60px] rounded-xl flex flex-col items-center justify-center transition-all ${
+            className={`w-[60px] h-[60px] rounded-xl flex flex-col items-center justify-center transition-all cursor-pointer ${
               activeTab === 'script' && isDrawerOpen
-                ? 'bg-gradient-to-br from-[#7D2AE8] to-[#591AC2] text-white shadow-lg shadow-purple-900/30'
-                : 'hover:bg-[#202227] hover:text-white text-[#A6AAB4]'
+                ? 'bg-[var(--sb-active-bg)] text-[var(--sb-text)] ring-1 ring-[var(--sb-accent)]/60 shadow-md font-semibold'
+                : 'hover:bg-[var(--sb-hover)] hover:text-[var(--sb-text)] text-[var(--sb-muted)]'
             }`}
           >
-            <FileText className='w-5 h-5 mb-1' />
-            <span className='text-[10px] font-semibold tracking-tight'>Kịch bản</span>
+            <FileText
+              className={`w-5 h-5 mb-1 ${
+                activeTab === 'script' && isDrawerOpen
+                  ? 'text-[var(--sb-accent)]'
+                  : 'text-current'
+              }`}
+            />
+            <span className='text-[10px] tracking-tight'>Kịch bản</span>
           </button>
 
           {/* Nút Tab 3: Series Bible */}
@@ -289,14 +344,20 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
             type='button'
             onClick={() => handleTabClick('bible')}
             data-testid='canva-tab-bible'
-            className={`w-[60px] h-[60px] rounded-xl flex flex-col items-center justify-center transition-all ${
+            className={`w-[60px] h-[60px] rounded-xl flex flex-col items-center justify-center transition-all cursor-pointer ${
               activeTab === 'bible' && isDrawerOpen
-                ? 'bg-gradient-to-br from-[#7D2AE8] to-[#591AC2] text-white shadow-lg shadow-purple-900/30'
-                : 'hover:bg-[#202227] hover:text-white text-[#A6AAB4]'
+                ? 'bg-[var(--sb-active-bg)] text-[var(--sb-text)] ring-1 ring-[var(--sb-accent)]/60 shadow-md font-semibold'
+                : 'hover:bg-[var(--sb-hover)] hover:text-[var(--sb-text)] text-[var(--sb-muted)]'
             }`}
           >
-            <Sparkles className='w-5 h-5 mb-1' />
-            <span className='text-[10px] font-semibold tracking-tight'>Bible</span>
+            <Sparkles
+              className={`w-5 h-5 mb-1 ${
+                activeTab === 'bible' && isDrawerOpen
+                  ? 'text-[var(--sb-accent)]'
+                  : 'text-current'
+              }`}
+            />
+            <span className='text-[10px] tracking-tight'>Bible</span>
           </button>
         </div>
 
@@ -304,9 +365,9 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
         <button
           type='button'
           onClick={() => setIsDrawerOpen((prev) => !prev)}
-          title={isDrawerOpen ? 'Thu gọn thanh bên' : 'Mở rộng thanh bên'}
+          title={isDrawerOpen ? 'Thu gọn ngăn chi tiết' : 'Mở rộng ngăn chi tiết'}
           data-testid='canva-drawer-toggle'
-          className='w-10 h-10 rounded-lg hover:bg-[#202227] text-[#A6AAB4] hover:text-white flex items-center justify-center transition-colors'
+          className='w-10 h-10 rounded-lg hover:bg-[var(--sb-hover)] text-[var(--sb-muted)] hover:text-[var(--sb-text)] flex items-center justify-center transition-colors cursor-pointer'
         >
           {isDrawerOpen ? (
             <ChevronLeft className='w-5 h-5' />
@@ -318,12 +379,12 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
 
       {/* =========================================================================
           2. CANVA SECONDARY DRAWER (Ngăn nội dung chi tiết 340px)
-          - Hiển thị nội dung tương ứng theo tab: Pages | Script | Bible
+          - Sử dụng var(--sb-popover, var(--sb-bg)) đồng bộ với theme hệ thống
           ========================================================================= */}
       {isDrawerOpen && (
         <aside
           data-testid='canva-secondary-drawer'
-          className='w-[330px] sm:w-[350px] bg-[#1E1F24] text-[#E0E2EC] border-r border-[#2C2D35] flex flex-col h-full overflow-hidden'
+          className='w-[330px] sm:w-[350px] bg-[var(--sb-popover,var(--sb-bg))] text-[var(--sb-text)] border-r border-[var(--sb-border)] flex flex-col h-full overflow-hidden'
         >
           {/* -------------------------------------------------------------
               TAB 1: PAGES (QUẢN LÝ TRANG)
@@ -334,52 +395,52 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
               className='flex flex-col h-full overflow-hidden'
             >
               {/* Header Drawer Trang */}
-              <div className='p-3.5 border-b border-[#2C2D35] bg-[#18191D] flex items-center justify-between shrink-0'>
+              <div className='p-3.5 border-b border-[var(--sb-border)] bg-[var(--sb-surface)] flex items-center justify-between shrink-0'>
                 <div>
-                  <h2 className='text-xs font-bold uppercase tracking-wider text-white flex items-center gap-1.5'>
-                    <Layers className='w-4 h-4 text-[#7D2AE8]' />
+                  <h2 className='text-xs font-bold uppercase tracking-wider text-[var(--sb-text)] flex items-center gap-1.5'>
+                    <Layers className='w-4 h-4 text-[var(--sb-accent)]' />
                     Quản Lý Trang ({pages.length})
                   </h2>
-                  <p className='text-[11px] text-[#8C90A0] mt-0.5'>
+                  <p className='text-[11px] text-[var(--sb-muted)] mt-0.5'>
                     Tỷ lệ chuẩn Manga B5 Tankōbon
                   </p>
                 </div>
 
-                {/* Nút thêm trang Canva tím nổi bật */}
+                {/* Nút thêm trang đồng bộ màu accent hệ thống */}
                 <button
                   type='button'
                   onClick={onAddPage}
                   data-testid='canva-btn-add-page-header'
-                  className='h-7 px-2.5 rounded-lg bg-[#7D2AE8] hover:bg-[#6C20CE] text-white text-[11px] font-semibold flex items-center gap-1 transition-all shadow-sm'
+                  className='h-7 px-2.5 rounded-lg bg-[var(--sb-accent)] hover:opacity-90 text-white text-[11px] font-semibold flex items-center gap-1 transition-all shadow-xs cursor-pointer'
                 >
                   <Plus className='w-3.5 h-3.5' /> Thêm trang
                 </button>
               </div>
 
               {/* Thanh lọc & tìm kiếm trang */}
-              <div className='p-3 border-b border-[#2C2D35] bg-[#1E1F24] flex flex-col gap-2 shrink-0'>
+              <div className='p-3 border-b border-[var(--sb-border)] flex flex-col gap-2 shrink-0'>
                 <div className='flex items-center gap-2'>
                   <div className='flex-1 relative'>
-                    <Search className='w-3.5 h-3.5 text-[#8C90A0] absolute left-2.5 top-2.5' />
+                    <Search className='w-3.5 h-3.5 text-[var(--sb-muted)] absolute left-2.5 top-2.5' />
                     <input
                       type='text'
                       value={pageSearchQuery}
                       onChange={(e) => setPageSearchQuery(e.target.value)}
                       placeholder='Tìm theo tên trang hoặc số...'
                       data-testid='canva-input-search-pages'
-                      className='w-full h-8 bg-[#15161A] border border-[#31333B] rounded-lg pl-8 pr-3 text-[11px] text-white placeholder-[#8C90A0] focus:outline-none focus:border-[#7D2AE8]'
+                      className='w-full h-8 bg-[var(--sb-surface)] border border-[var(--sb-border)] rounded-lg pl-8 pr-3 text-[11px] text-[var(--sb-text)] placeholder-[var(--sb-muted)] focus:outline-none focus:border-[var(--sb-accent)]'
                     />
                   </div>
 
-                  <div className='flex items-center bg-[#15161A] border border-[#31333B] rounded-lg p-0.5'>
+                  <div className='flex items-center bg-[var(--sb-surface)] border border-[var(--sb-border)] rounded-lg p-0.5'>
                     <button
                       type='button'
                       onClick={() => setPageViewMode('thumbnail')}
                       data-testid='canva-btn-view-grid'
-                      className={`w-7 h-7 flex items-center justify-center rounded-md ${
+                      className={`w-7 h-7 flex items-center justify-center rounded-md cursor-pointer ${
                         pageViewMode === 'thumbnail'
-                          ? 'bg-[#7D2AE8] text-white'
-                          : 'text-[#8C90A0] hover:text-white'
+                          ? 'bg-[var(--sb-accent)] text-white'
+                          : 'text-[var(--sb-muted)] hover:text-[var(--sb-text)]'
                       }`}
                     >
                       <LayoutGrid className='w-3.5 h-3.5' />
@@ -388,10 +449,10 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                       type='button'
                       onClick={() => setPageViewMode('compact')}
                       data-testid='canva-btn-view-list'
-                      className={`w-7 h-7 flex items-center justify-center rounded-md ${
+                      className={`w-7 h-7 flex items-center justify-center rounded-md cursor-pointer ${
                         pageViewMode === 'compact'
-                          ? 'bg-[#7D2AE8] text-white'
-                          : 'text-[#8C90A0] hover:text-white'
+                          ? 'bg-[var(--sb-accent)] text-white'
+                          : 'text-[var(--sb-muted)] hover:text-[var(--sb-text)]'
                       }`}
                     >
                       <List className='w-3.5 h-3.5' />
@@ -415,10 +476,10 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                           key={stage}
                           type='button'
                           onClick={() => setPageFilterStage(stage)}
-                          className={`px-2 py-1 rounded-full shrink-0 font-medium transition-colors ${
+                          className={`px-2.5 py-1 rounded-full shrink-0 font-medium transition-colors cursor-pointer ${
                             pageFilterStage === stage
-                              ? 'bg-white text-black'
-                              : 'bg-[#15161A] text-[#8C90A0] hover:text-white hover:bg-[#282931]'
+                              ? 'bg-[var(--sb-accent)] text-white'
+                              : 'bg-[var(--sb-surface)] text-[var(--sb-muted)] hover:text-[var(--sb-text)] hover:bg-[var(--sb-hover)]'
                           }`}
                         >
                           {labels[stage]}
@@ -443,15 +504,15 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                       onClick={() => onSelectPage(page.id)}
                       className={`group relative flex gap-3 p-2.5 rounded-xl border cursor-pointer transition-all ${
                         isSelected
-                          ? 'bg-[#282338] border-[#7D2AE8] ring-1 ring-[#7D2AE8] shadow-md'
-                          : 'bg-[#18191D] border-[#2C2D35] hover:border-[#40434F] hover:bg-[#202227]'
+                          ? 'bg-[var(--sb-active-bg)] border-[var(--sb-accent)] ring-1 ring-[var(--sb-accent)]/60 shadow-sm'
+                          : 'bg-[var(--sb-surface)] border-[var(--sb-border)] hover:border-[var(--sb-accent)]/50 hover:bg-[var(--sb-surface-hover)]'
                       }`}
                     >
                       {/* Mini B5 Manga Thumbnail */}
                       <div
-                        className={`w-14 h-20 bg-white rounded-md border shrink-0 flex flex-col items-center justify-between p-1 shadow-sm transition-opacity ${
+                        className={`w-14 h-20 bg-white rounded-md border shrink-0 flex flex-col items-center justify-between p-1 shadow-2xs transition-opacity ${
                           page.isVisible ? 'opacity-100' : 'opacity-30'
-                        } ${isSelected ? 'border-purple-400' : 'border-neutral-300'}`}
+                        } ${isSelected ? 'border-[var(--sb-accent)]' : 'border-neutral-300'}`}
                       >
                         <div className='flex justify-between w-full opacity-40'>
                           <div className='w-1 h-1 border-t border-l border-neutral-600' />
@@ -472,26 +533,26 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                       <div className='flex-1 min-w-0 flex flex-col justify-between py-0.5'>
                         <div>
                           <div className='flex items-center justify-between gap-1'>
-                            <span className='text-xs font-bold text-white truncate'>
+                            <span className='text-xs font-bold text-[var(--sb-text)] truncate'>
                               Trang {page.pageNumber}
                             </span>
-                            <span className='text-[9px] px-1.5 py-0.5 rounded-full bg-purple-950/70 text-purple-300 border border-purple-800/50 font-medium'>
+                            <span className='text-[9px] px-1.5 py-0.5 rounded-full bg-[var(--sb-surface-hover)] text-[var(--sb-accent)] border border-[var(--sb-border)] font-medium'>
                               {page.stage}
                             </span>
                           </div>
-                          <p className='text-[11px] text-[#8C90A0] truncate mt-0.5'>
+                          <p className='text-[11px] text-[var(--sb-muted)] truncate mt-0.5'>
                             {page.title}
                           </p>
                         </div>
 
-                        <div className='flex items-center justify-between text-[10px] text-[#8C90A0]'>
+                        <div className='flex items-center justify-between text-[10px] text-[var(--sb-muted)]'>
                           <span>{page.panelsCount} khung</span>
                           <span>{page.format || 'B5 Master'}</span>
                         </div>
                       </div>
 
                       {/* Thao tác hover nhanh */}
-                      <div className='absolute top-2 right-2 hidden group-hover:flex items-center gap-1 bg-[#121316]/90 p-1 rounded-lg border border-[#31333B]'>
+                      <div className='absolute top-2 right-2 hidden group-hover:flex items-center gap-1 bg-[var(--sb-popover,var(--sb-bg))] p-1 rounded-lg border border-[var(--sb-border)] shadow-md'>
                         <button
                           type='button'
                           onClick={(e) => {
@@ -499,11 +560,11 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                             onToggleVisibility(page.id);
                           }}
                           data-testid={`canva-btn-eye-${page.pageNumber}`}
-                          className='p-1 text-[#8C90A0] hover:text-white rounded hover:bg-[#202227]'
+                          className='p-1 text-[var(--sb-muted)] hover:text-[var(--sb-text)] rounded hover:bg-[var(--sb-hover)] cursor-pointer'
                           title={page.isVisible ? 'Ẩn trang' : 'Hiện trang'}
                         >
                           {page.isVisible ? (
-                            <Eye className='w-3.5 h-3.5 text-purple-400' />
+                            <Eye className='w-3.5 h-3.5 text-[var(--sb-accent)]' />
                           ) : (
                             <EyeOff className='w-3.5 h-3.5 opacity-50' />
                           )}
@@ -514,7 +575,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                             e.stopPropagation();
                             onDuplicatePage(page.id);
                           }}
-                          className='p-1 text-[#8C90A0] hover:text-white rounded hover:bg-[#202227]'
+                          className='p-1 text-[var(--sb-muted)] hover:text-[var(--sb-text)] rounded hover:bg-[var(--sb-hover)] cursor-pointer'
                           title='Nhân đôi trang'
                         >
                           <Copy className='w-3.5 h-3.5' />
@@ -525,7 +586,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                             e.stopPropagation();
                             onDeletePage(page.id);
                           }}
-                          className='p-1 text-rose-400 hover:text-rose-200 rounded hover:bg-rose-950/50'
+                          className='p-1 text-rose-400 hover:text-rose-200 rounded hover:bg-rose-950/50 cursor-pointer'
                           title='Xoá trang'
                         >
                           <Trash2 className='w-3.5 h-3.5' />
@@ -537,14 +598,14 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
               </div>
 
               {/* Footer quản lý trang */}
-              <div className='p-2.5 border-t border-[#2C2D35] bg-[#18191D] flex items-center justify-between text-xs text-[#8C90A0] shrink-0'>
+              <div className='p-2.5 border-t border-[var(--sb-border)] bg-[var(--sb-surface)] flex items-center justify-between text-xs text-[var(--sb-muted)] shrink-0'>
                 <span>Đang chọn: Trang {selectedPage?.pageNumber || 1}</span>
                 <div className='flex items-center gap-1'>
                   <button
                     type='button'
                     disabled={!selectedPage || selectedPageIndex === 0}
                     onClick={() => selectedPage && onMovePage(selectedPage.id, 'up')}
-                    className='p-1.5 rounded-lg hover:bg-[#25262C] text-[#8C90A0] hover:text-white disabled:opacity-30'
+                    className='p-1.5 rounded-lg hover:bg-[var(--sb-hover)] text-[var(--sb-muted)] hover:text-[var(--sb-text)] disabled:opacity-30 cursor-pointer'
                     title='Di chuyển trang lên'
                   >
                     <ChevronUp className='w-4 h-4' />
@@ -553,7 +614,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                     type='button'
                     disabled={!selectedPage || selectedPageIndex === pages.length - 1}
                     onClick={() => selectedPage && onMovePage(selectedPage.id, 'down')}
-                    className='p-1.5 rounded-lg hover:bg-[#25262C] text-[#8C90A0] hover:text-white disabled:opacity-30'
+                    className='p-1.5 rounded-lg hover:bg-[var(--sb-hover)] text-[var(--sb-muted)] hover:text-[var(--sb-text)] disabled:opacity-30 cursor-pointer'
                     title='Di chuyển trang xuống'
                   >
                     <ChevronDown className='w-4 h-4' />
@@ -572,19 +633,19 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
               className='flex flex-col h-full overflow-hidden'
             >
               {/* Header Drawer Kịch bản */}
-              <div className='p-3.5 border-b border-[#2C2D35] bg-[#18191D] shrink-0'>
+              <div className='p-3.5 border-b border-[var(--sb-border)] bg-[var(--sb-surface)] shrink-0'>
                 <div className='flex items-center justify-between mb-1'>
-                  <span className='text-[10px] font-mono uppercase px-2 py-0.5 rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-800/50 font-bold'>
+                  <span className='text-[10px] font-mono uppercase px-2 py-0.5 rounded-full bg-[var(--sb-surface-hover)] text-[var(--sb-accent)] border border-[var(--sb-border)] font-bold'>
                     Kịch Bản Chương 1
                   </span>
-                  <span className='text-[10px] text-[#8C90A0]'>
+                  <span className='text-[10px] text-[var(--sb-muted)]'>
                     Trang {selectedPage?.pageNumber || 1}
                   </span>
                 </div>
-                <h2 className='text-xs font-bold text-white tracking-tight truncate'>
+                <h2 className='text-xs font-bold text-[var(--sb-text)] tracking-tight truncate'>
                   {sceneTitle}
                 </h2>
-                <p className='text-[10px] font-mono text-[#8C90A0] uppercase truncate mt-0.5'>
+                <p className='text-[10px] font-mono text-[var(--sb-muted)] uppercase truncate mt-0.5'>
                   {sceneSlugline}
                 </p>
               </div>
@@ -595,16 +656,16 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                   <div
                     key={line.id}
                     data-testid={`script-line-${line.id}`}
-                    className='p-3 rounded-xl bg-[#18191D] border border-[#2C2D35] space-y-1.5 hover:border-[#40434F] transition-colors'
+                    className='p-3 rounded-xl bg-[var(--sb-surface)] border border-[var(--sb-border)] space-y-1.5 hover:border-[var(--sb-accent)]/50 transition-colors'
                   >
                     <div className='flex items-center justify-between'>
-                      <span className='text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#25262C] text-neutral-300 font-semibold'>
+                      <span className='text-[10px] font-mono px-1.5 py-0.5 rounded bg-[var(--sb-surface-hover)] text-[var(--sb-text)] font-semibold'>
                         Khung {line.panelNumber}
                       </span>
                       {line.characterName && (
                         <span
                           className='text-[11px] font-bold'
-                          style={{ color: line.characterColor || '#F97316' }}
+                          style={{ color: line.characterColor || 'var(--sb-accent)' }}
                         >
                           {line.characterName}
                         </span>
@@ -612,13 +673,13 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                     </div>
 
                     {line.stageDirection && (
-                      <p className='text-[11px] text-[#A6AAB4] italic leading-relaxed bg-[#141518] p-2 rounded-lg border border-[#26282E]'>
+                      <p className='text-[11px] text-[var(--sb-muted)] italic leading-relaxed bg-[var(--sb-hover)] p-2 rounded-lg border border-[var(--sb-border)]'>
                         🎬 {line.stageDirection}
                       </p>
                     )}
 
                     {line.dialogueText && (
-                      <div className='text-xs text-white bg-purple-950/30 p-2.5 rounded-lg border border-purple-900/40 font-serif leading-relaxed'>
+                      <div className='text-xs text-[var(--sb-text)] bg-[var(--sb-active-bg)] p-2.5 rounded-lg border border-[var(--sb-border)] font-serif leading-relaxed'>
                         💬 &ldquo;{line.dialogueText}&rdquo;
                       </div>
                     )}
@@ -637,29 +698,29 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
               className='flex flex-col h-full overflow-hidden'
             >
               {/* Header Drawer Bible */}
-              <div className='p-3.5 border-b border-[#2C2D35] bg-[#18191D] shrink-0'>
+              <div className='p-3.5 border-b border-[var(--sb-border)] bg-[var(--sb-surface)] shrink-0'>
                 <div className='flex items-center justify-between mb-1'>
-                  <span className='text-[10px] font-mono uppercase px-2 py-0.5 rounded-full bg-purple-950/80 text-purple-300 border border-purple-800/50 font-bold'>
+                  <span className='text-[10px] font-mono uppercase px-2 py-0.5 rounded-full bg-[var(--sb-surface-hover)] text-[var(--sb-accent)] border border-[var(--sb-border)] font-bold'>
                     Series Bible
                   </span>
-                  <span className='text-[10px] text-[#8C90A0]'>{seriesTitle}</span>
+                  <span className='text-[10px] text-[var(--sb-muted)]'>{seriesTitle}</span>
                 </div>
-                <h2 className='text-xs font-bold text-white tracking-tight'>
+                <h2 className='text-xs font-bold text-[var(--sb-text)] tracking-tight'>
                   Tra Cứu Nhân Vật & Bối Cảnh Canon
                 </h2>
               </div>
 
               {/* Thanh lọc phân loại Bible */}
-              <div className='p-3 border-b border-[#2C2D35] bg-[#1E1F24] flex flex-col gap-2 shrink-0'>
+              <div className='p-3 border-b border-[var(--sb-border)] flex flex-col gap-2 shrink-0'>
                 <div className='relative'>
-                  <Search className='w-3.5 h-3.5 text-[#8C90A0] absolute left-2.5 top-2.5' />
+                  <Search className='w-3.5 h-3.5 text-[var(--sb-muted)] absolute left-2.5 top-2.5' />
                   <input
                     type='text'
                     value={bibleSearchQuery}
                     onChange={(e) => setBibleSearchQuery(e.target.value)}
                     placeholder='Tìm nhân vật, địa danh, quy tắc...'
                     data-testid='canva-input-search-bible'
-                    className='w-full h-8 bg-[#15161A] border border-[#31333B] rounded-lg pl-8 pr-3 text-[11px] text-white placeholder-[#8C90A0] focus:outline-none focus:border-[#7D2AE8]'
+                    className='w-full h-8 bg-[var(--sb-surface)] border border-[var(--sb-border)] rounded-lg pl-8 pr-3 text-[11px] text-[var(--sb-text)] placeholder-[var(--sb-muted)] focus:outline-none focus:border-[var(--sb-accent)]'
                   />
                 </div>
 
@@ -674,10 +735,10 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                       key={cat.id}
                       type='button'
                       onClick={() => setBibleCategory(cat.id as any)}
-                      className={`px-2.5 py-1 rounded-full font-medium transition-colors ${
+                      className={`px-2.5 py-1 rounded-full font-medium transition-colors cursor-pointer ${
                         bibleCategory === cat.id
-                          ? 'bg-[#7D2AE8] text-white'
-                          : 'bg-[#15161A] text-[#8C90A0] hover:text-white'
+                          ? 'bg-[var(--sb-accent)] text-white'
+                          : 'bg-[var(--sb-surface)] text-[var(--sb-muted)] hover:text-[var(--sb-text)]'
                       }`}
                     >
                       {cat.label}
@@ -692,7 +753,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                   <div
                     key={item.id}
                     data-testid={`bible-entity-${item.id}`}
-                    className='p-3 rounded-xl bg-[#18191D] border border-[#2C2D35] space-y-2 hover:border-[#40434F] transition-colors'
+                    className='p-3 rounded-xl bg-[var(--sb-surface)] border border-[var(--sb-border)] space-y-2 hover:border-[var(--sb-accent)]/50 transition-colors'
                   >
                     <div className='flex items-center justify-between'>
                       <div className='flex items-center gap-1.5'>
@@ -703,25 +764,25 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                         ) : (
                           <Sparkles className='w-4 h-4 text-emerald-400' />
                         )}
-                        <span className='text-xs font-bold text-white'>
+                        <span className='text-xs font-bold text-[var(--sb-text)]'>
                           {item.name}
                         </span>
                       </div>
-                      <span className='text-[9px] px-2 py-0.5 rounded-full bg-[#25262C] text-neutral-300 font-medium'>
+                      <span className='text-[9px] px-2 py-0.5 rounded-full bg-[var(--sb-surface-hover)] text-[var(--sb-muted)] font-medium'>
                         {item.tag}
                       </span>
                     </div>
 
-                    <p className='text-[11px] text-[#A6AAB4] leading-relaxed'>
+                    <p className='text-[11px] text-[var(--sb-muted)] leading-relaxed'>
                       {item.description}
                     </p>
 
                     {item.visualNotes.length > 0 && (
-                      <div className='space-y-1 pt-1 border-t border-[#26282E]'>
-                        <span className='text-[9px] font-semibold text-purple-300 uppercase tracking-wider'>
+                      <div className='space-y-1 pt-1 border-t border-[var(--sb-border)]'>
+                        <span className='text-[9px] font-semibold text-[var(--sb-accent)] uppercase tracking-wider'>
                           Đặc điểm tạo hình:
                         </span>
-                        <ul className='text-[10px] text-[#8C90A0] space-y-0.5 list-disc list-inside'>
+                        <ul className='text-[10px] text-[var(--sb-muted)] space-y-0.5 list-disc list-inside'>
                           {item.visualNotes.map((note, idx) => (
                             <li key={idx} className='leading-tight'>
                               {note}

@@ -5,6 +5,7 @@ import {
   BibleEntityItem,
 } from '../components/desk/ArtistCanvaSidebar';
 import { ArtistPageItem } from '../components/desk/ArtistPageSidebar';
+import { SidebarTheme } from '@/app/sidebarTheme';
 import { EyeOff } from 'lucide-react';
 
 export interface ArtistDeskViewProps {
@@ -12,6 +13,7 @@ export interface ArtistDeskViewProps {
   initialPages?: ArtistPageItem[];
   initialScriptLines?: ScriptLineItem[];
   initialBibleEntities?: BibleEntityItem[];
+  theme?: SidebarTheme;
 }
 
 const DEFAULT_MANGA_PAGES: ArtistPageItem[] = [
@@ -65,6 +67,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   initialPages = DEFAULT_MANGA_PAGES,
   initialScriptLines,
   initialBibleEntities,
+  theme,
 }) => {
   const [pages, setPages] = useState<ArtistPageItem[]>(initialPages);
   const [selectedPageId, setSelectedPageId] = useState<string>(
@@ -229,6 +232,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
         onToggleVisibility={handleToggleVisibility}
         scriptLines={initialScriptLines}
         bibleEntities={initialBibleEntities}
+        theme={theme}
       />
 
       {/* 2. Khung bàn vẽ trung tâm - Main Canvas Shell */}

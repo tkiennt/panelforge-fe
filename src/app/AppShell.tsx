@@ -603,10 +603,14 @@ export function AppShell({
     return null;
   };
 
+  const isArtistDesk =
+    location.pathname.endsWith('/artist') ||
+    location.pathname.endsWith('/artist/');
+
   return (
     <div className='h-screen w-full flex overflow-hidden text-[#1C1917] bg-[#F3F0E9]'>
       {/* --- MOBILE DRAWER (< md) --- */}
-      {!isReader && (
+      {!isReader && !isArtistDesk && (
         <SidebarDrawer
           isOpen={isMobileDrawerOpen}
           onClose={() => setIsMobileDrawerOpen(false)}
@@ -644,30 +648,32 @@ export function AppShell({
       )}
 
       {/* --- PERMANENT SIDEBAR (>= md) --- */}
-      <AppShellSidebar
-        currentUser={currentUser}
-        activeWorkspace={activeWorkspace}
-        activeSeries={effectiveActiveSeries as any}
-        workspaceId={workspaceId}
-        seriesId={seriesId}
-        isReader={isReader}
-        navSections={navSections}
-        handleNavClick={handleNavClick}
-        renderBadge={renderBadge}
-        onLogout={onLogout}
-        onSelectSeries={onSelectSeries}
-        isCollapsed={isSidebarCollapsed}
-        onToggleSidebar={handleToggleSidebar}
-        isMobileDrawer={false}
-        theme={sidebarTheme}
-        onChangeTheme={handleChangeSidebarTheme}
-      />
+      {!isArtistDesk && (
+        <AppShellSidebar
+          currentUser={currentUser}
+          activeWorkspace={activeWorkspace}
+          activeSeries={effectiveActiveSeries as any}
+          workspaceId={workspaceId}
+          seriesId={seriesId}
+          isReader={isReader}
+          navSections={navSections}
+          handleNavClick={handleNavClick}
+          renderBadge={renderBadge}
+          onLogout={onLogout}
+          onSelectSeries={onSelectSeries}
+          isCollapsed={isSidebarCollapsed}
+          onToggleSidebar={handleToggleSidebar}
+          isMobileDrawer={false}
+          theme={sidebarTheme}
+          onChangeTheme={handleChangeSidebarTheme}
+        />
+      )}
 
       {/* --- RIGHT WRAPPER --- */}
       <div className='flex-1 flex flex-col min-w-0 h-full bg-[#F3F0E9] relative overflow-hidden'>
         <header className='h-16 bg-[#FCFBF8]/95 backdrop-blur-md border-b border-[#D8D2C5] flex items-center justify-between px-4 md:px-6 shrink-0 z-20'>
           <div className='flex items-center gap-2 min-w-0'>
-            {!isReader && (
+            {!isReader && !isArtistDesk && (
               <button
                 type='button'
                 onClick={() => setIsMobileDrawerOpen(true)}
@@ -748,6 +754,18 @@ export function AppShell({
                               ? `Chapter ${chapterId.replace(/^chapter-?/i, '')}`
                               : `Chapter (${chapterId.slice(0, 8)})`}
                           </span>
+                        </div>
+                      </>
+                    )}
+                    {isArtistDesk && (
+                      <>
+                        <span className='mx-1.5 text-[#a8a29e] font-bold select-none'>/</span>
+                        <div
+                          className='flex items-center gap-1.5 px-3 py-1 text-xs font-bold text-[#0c0a09] truncate bg-white rounded-full border border-[#d6d3d1] shadow-soft-sm'
+                          data-testid='header-artist-breadcrumb'
+                        >
+                          <LayoutTemplate className='w-3.5 h-3.5 text-[#F97316]' />
+                          <span className='truncate'>Bàn vẽ Khung tranh</span>
                         </div>
                       </>
                     )}

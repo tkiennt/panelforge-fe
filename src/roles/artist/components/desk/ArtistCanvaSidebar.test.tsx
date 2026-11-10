@@ -1,6 +1,7 @@
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { ArtistCanvaSidebar } from './ArtistCanvaSidebar';
 import { ArtistPageItem } from './ArtistPageSidebar';
 
@@ -25,9 +26,13 @@ const MOCK_PAGES: ArtistPageItem[] = [
   },
 ];
 
+const renderWithRouter = (ui: React.ReactElement) => {
+  return render(<MemoryRouter>{ui}</MemoryRouter>);
+};
+
 describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () => {
   it('renders Canva primary dock with Pages, Script, and Bible tabs', () => {
-    render(
+    renderWithRouter(
       <ArtistCanvaSidebar
         pages={MOCK_PAGES}
         selectedPageId='page-1'
@@ -53,7 +58,7 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
   });
 
   it('switches to Script tab and displays scene slugline, character dialogue and stage directions', () => {
-    render(
+    renderWithRouter(
       <ArtistCanvaSidebar
         pages={MOCK_PAGES}
         selectedPageId='page-1'
@@ -77,7 +82,7 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
   });
 
   it('switches to Series Bible tab and displays character and location lore cards', () => {
-    render(
+    renderWithRouter(
       <ArtistCanvaSidebar
         pages={MOCK_PAGES}
         selectedPageId='page-1'
@@ -101,7 +106,7 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
   });
 
   it('toggles drawer collapse when clicking active tab again or drawer toggle button', () => {
-    render(
+    renderWithRouter(
       <ArtistCanvaSidebar
         pages={MOCK_PAGES}
         selectedPageId='page-1'
@@ -131,7 +136,7 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
     const handleAdd = vi.fn();
     const handleToggleVis = vi.fn();
 
-    render(
+    renderWithRouter(
       <ArtistCanvaSidebar
         pages={MOCK_PAGES}
         selectedPageId='page-1'
@@ -155,5 +160,24 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
     // Toggle eye on Page 1
     fireEvent.click(screen.getByTestId('canva-btn-eye-1'));
     expect(handleToggleVis).toHaveBeenCalledWith('page-1');
+  });
+
+  it('supports custom theme integration with system sidebar theme', () => {
+    renderWithRouter(
+      <ArtistCanvaSidebar
+        pages={MOCK_PAGES}
+        selectedPageId='page-1'
+        onSelectPage={vi.fn()}
+        onAddPage={vi.fn()}
+        onDuplicatePage={vi.fn()}
+        onDeletePage={vi.fn()}
+        onMovePage={vi.fn()}
+        onToggleVisibility={vi.fn()}
+        theme='paper'
+      />
+    );
+
+    const sidebar = screen.getByTestId('artist-desk-sidebar');
+    expect(sidebar).toHaveAttribute('data-sb-theme', 'paper');
   });
 });
