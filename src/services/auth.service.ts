@@ -44,7 +44,12 @@ export interface LandingContextDto {
   systemRole: string;
   canCreateStudio: boolean;
   workspaces: LandingWorkspaceDto[];
-  suggestedLanding: 'AdminDashboard' | 'YourWorkspaces' | 'StudioCreation' | 'PublicCatalog';
+  suggestedLanding:
+    | 'AdminDashboard'
+    | 'PublisherPortal'
+    | 'YourWorkspaces'
+    | 'StudioCreation'
+    | 'PublicCatalog';
 }
 
 async function parseErrorResponse(error: any, defaultMessage: string): Promise<string> {

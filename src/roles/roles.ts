@@ -49,9 +49,9 @@ export const ROLE_MANIFEST = {
   },
   PUBLISHER: {
     label: 'Publisher',
-    scope: 'workspace',
+    scope: 'system',
     folder: 'roles/publisher',
-    defaultRoute: 'publishing',
+    defaultRoute: '/publisher/desk',
   },
   READER: {
     label: 'Reader',
@@ -74,6 +74,7 @@ export function getRoleDefaultPath(
   if (!role) return '/workspaces';
   const upperRole = String(role).toUpperCase();
   if (upperRole === 'ADMINISTRATOR') return '/admin';
+  if (upperRole === 'PUBLISHER') return '/publisher/desk';
   if (upperRole === 'READER') return '/catalog';
 
   if (!workspaceId) return '/workspaces';

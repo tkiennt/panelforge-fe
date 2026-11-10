@@ -82,6 +82,11 @@ const PublisherDeskView = lazy(() =>
     default: m.PublisherDeskView,
   })),
 );
+const PublisherSeriesView = lazy(() =>
+  import('@/roles/publisher/views/PublisherSeriesView').then((m) => ({
+    default: m.PublisherSeriesView,
+  })),
+);
 const ScriptEditorView = lazy(() =>
   import('@/roles/writer/views/ScriptEditorView').then((m) => ({ default: m.ScriptEditorView })),
 );
@@ -311,23 +316,27 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
           <Route
             path='workspaces'
             element={
-              <div className='h-screen w-full overflow-y-auto custom-scrollbar bg-[#FAF8F4]'>
-                <WorkspaceListView
-                  onSelectWorkspace={handleSelectWorkspace}
-                  currentUser={{
-                    name:
-                      currentUserInfo?.name ||
-                      firebaseUser?.displayName ||
-                      firebaseUser?.email?.split('@')[0] ||
-                      'User',
-                    email: currentUserInfo?.email || firebaseUser?.email || '',
-                    role: currentRole,
-                    avatarUrl: resolveUserAvatar(currentUserInfo, firebaseUser),
-                    canCreateStudio: currentUserInfo?.canCreateStudio,
-                  }}
-                  onLogout={handleLogout}
-                />
-              </div>
+              currentRole === 'PUBLISHER' ? (
+                <Navigate to='/publisher/desk' replace />
+              ) : (
+                <div className='h-screen w-full overflow-y-auto custom-scrollbar bg-[#FAF8F4]'>
+                  <WorkspaceListView
+                    onSelectWorkspace={handleSelectWorkspace}
+                    currentUser={{
+                      name:
+                        currentUserInfo?.name ||
+                        firebaseUser?.displayName ||
+                        firebaseUser?.email?.split('@')[0] ||
+                        'User',
+                      email: currentUserInfo?.email || firebaseUser?.email || '',
+                      role: currentRole,
+                      avatarUrl: resolveUserAvatar(currentUserInfo, firebaseUser),
+                      canCreateStudio: currentUserInfo?.canCreateStudio,
+                    }}
+                    onLogout={handleLogout}
+                  />
+                </div>
+              )
             }
           />
 
@@ -464,6 +473,17 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                 />
               }
             />
+
+            {/* Dedicated Top-Level Publisher Portal */}
+            <Route path='publisher'>
+              <Route index element={<Navigate to='desk' replace />} />
+              <Route path='desk' element={<PublisherDeskView onShowToast={showToast} />} />
+              <Route path='series' element={<PublisherSeriesView onShowToast={showToast} />} />
+              <Route
+                path='catalog'
+                element={<PublicCatalogView onBackToWorkspaces={() => navigate('/publisher/desk')} />}
+              />
+            </Route>
           </Route>
 
           {/* FOCUSED STUDIO WORKSPACE ROUTES: Desk & Editors (Dedicated layout without AppShellSidebar) */}

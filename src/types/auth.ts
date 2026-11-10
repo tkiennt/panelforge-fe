@@ -1,7 +1,7 @@
 export type StudioRole = 'Lead Producer' | 'Artist' | 'Writer' | 'Editor' | 'Letterer';
 export type RoleKey = 'producer' | 'artist' | 'writer' | 'editor' | 'letterer';
 
-export type SystemRole = 'ADMINISTRATOR' | 'USER';
+export type SystemRole = 'ADMINISTRATOR' | 'USER' | 'PUBLISHER';
 
 export type WorkspaceRole = 'PRODUCER' | 'WRITER' | 'ARTIST' | 'LETTERER' | 'EDITOR' | 'PUBLISHER';
 
@@ -38,6 +38,7 @@ export function normalizeSystemRole(role: any): SystemRole {
   if (!role && role !== 0) return 'USER';
   const r = String(role).trim().toUpperCase();
   if (r === 'ADMIN' || r === 'ADMINISTRATOR' || r === '1') return 'ADMINISTRATOR';
+  if (r === 'PUBLISHER' || r === '2') return 'PUBLISHER';
   return 'USER';
 }
 
@@ -75,6 +76,7 @@ export function getRoleFromToken(customToken?: string | null): SystemRole | null
 
   // Hỗ trợ mock token phục vụ unit test / dev mode
   if (token === 'mock-admin-token') return 'ADMINISTRATOR';
+  if (token === 'mock-publisher-token') return 'PUBLISHER';
   if (token.startsWith('mock-')) return 'USER';
 
   try {

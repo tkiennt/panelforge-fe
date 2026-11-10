@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Send,
   Calendar,
@@ -15,8 +15,17 @@ import {
   Filter,
   RefreshCw,
   FileStack,
+  Search,
+  Briefcase,
+  BookMarked,
+  X,
 } from 'lucide-react';
-import { chapterService, ChapterDto } from '@/services/chapter.service';
+import {
+  publisherService,
+  PublisherChapterDto,
+  PublisherSeriesDto,
+  PublisherWorkspaceDto,
+} from '@/services/publisher.service';
 import { PublishScheduleModal } from '../modals/PublishScheduleModal';
 import { RejectChapterModal } from '../modals/RejectChapterModal';
 import { ChapterReviewsModal } from '@/shared/modals/ChapterReviewsModal';
@@ -29,32 +38,66 @@ interface PublisherDeskViewProps {
 }
 
 export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToast }) => {
-  const { seriesId, workspaceId } = useParams<{ seriesId: string; workspaceId: string }>();
+  const routeParams = useParams<{ seriesId?: string; workspaceId?: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  const [chapters, setChapters] = useState<ChapterDto[]>([]);
+  // URL Query or Route params
+  const paramWorkspaceId = routeParams.workspaceId || searchParams.get('workspaceId') || '';
+  const paramSeriesId = routeParams.seriesId || searchParams.get('seriesId') || '';
+
+  const [workspaces, setWorkspaces] = useState<PublisherWorkspaceDto[]>([]);
+  const [seriesList, setSeriesList] = useState<PublisherSeriesDto[]>([]);
+  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>(paramWorkspaceId);
+  const [selectedSeriesId, setSelectedSeriesId] = useState<string>(paramSeriesId);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+
+  const [chapters, setChapters] = useState<PublisherChapterDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'approved' | 'published' | 'all'>('approved');
 
   // Modals state
-  const [publishingChapter, setPublishingChapter] = useState<ChapterDto | null>(null);
-  const [rejectingChapter, setRejectingChapter] = useState<ChapterDto | null>(null);
-  const [reviewingChapter, setReviewingChapter] = useState<ChapterDto | null>(null);
-  const [readingChapter, setReadingChapter] = useState<ChapterDto | null>(null);
-  const [snapshotChapter, setSnapshotChapter] = useState<ChapterDto | null>(null);
+  const [publishingChapter, setPublishingChapter] = useState<PublisherChapterDto | null>(null);
+  const [rejectingChapter, setRejectingChapter] = useState<PublisherChapterDto | null>(null);
+  const [reviewingChapter, setReviewingChapter] = useState<PublisherChapterDto | null>(null);
+  const [readingChapter, setReadingChapter] = useState<PublisherChapterDto | null>(null);
+  const [snapshotChapter, setSnapshotChapter] = useState<PublisherChapterDto | null>(null);
 
+  // Load Workspaces for filter dropdown
+  useEffect(() => {
+    publisherService
+      .getWorkspaces()
+      .then((data) => setWorkspaces(data || []))
+      .catch((err) => console.warn('Không thể tải danh sách Studio:', err));
+  }, []);
+
+  // Load Series for filter dropdown when selectedWorkspaceId changes
+  useEffect(() => {
+    publisherService
+      .getSeries({ workspaceId: selectedWorkspaceId || undefined })
+      .then((data) => setSeriesList(data || []))
+      .catch((err) => console.warn('Không thể tải danh sách Series:', err));
+  }, [selectedWorkspaceId]);
+
+  // Fetch chapters
   const fetchChapters = useCallback(async () => {
-    if (!seriesId) return;
     setLoading(true);
     try {
-      const res = await chapterService.getChaptersBySeries(seriesId, 1, 100);
+      const res = await publisherService.getChapters({
+        status: 'all',
+        workspaceId: selectedWorkspaceId || undefined,
+        seriesId: selectedSeriesId || undefined,
+        search: searchQuery || undefined,
+        pageIndex: 1,
+        pageSize: 100,
+      });
       setChapters(res.items || []);
     } catch (err: any) {
-      onShowToast?.('Không thể tải danh sách chương', err.message);
+      onShowToast?.('Không thể tải danh sách chương', err.message || 'Lỗi kết nối máy chủ');
     } finally {
       setLoading(false);
     }
-  }, [seriesId, onShowToast]);
+  }, [selectedWorkspaceId, selectedSeriesId, searchQuery, onShowToast]);
 
   useEffect(() => {
     fetchChapters();
@@ -79,6 +122,13 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
     }
   };
 
+  const clearFilters = () => {
+    setSelectedWorkspaceId('');
+    setSelectedSeriesId('');
+    setSearchQuery('');
+    setSearchParams({});
+  };
+
   return (
     <div className='min-h-full bg-[#F3F0E9] p-6 space-y-6'>
       {/* Header Banner */}
@@ -90,21 +140,21 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
           <div>
             <div className='flex items-center gap-2'>
               <h1 className='text-xl font-serif font-bold text-[#1C1917]'>
-                Bàn Làm Việc Publisher // Cổng Duyệt Xuất Bản
+                Cổng Xuất Bản Hệ Thống // Publisher Portal
               </h1>
               <span className='px-2 py-0.5 rounded bg-[#FFF2E6] text-[#C2410C] border border-[#FDBA74] text-xs font-mono font-bold'>
                 STAGE: PUBLISHING
               </span>
             </div>
             <p className='text-xs text-[#57534E] mt-1'>
-              Duyệt thẩm định chương sau khi Producer hoàn tất sản xuất, lên lịch phát hành hoặc
-              xuất bản trực tiếp tới độc giả công khai.
+              Duyệt thẩm định chương từ tất cả các Studio sau khi Producer hoàn tất sản xuất, lên lịch phát hành hoặc xuất bản trực tiếp tới độc giả công khai.
             </p>
           </div>
         </div>
 
-        <div className='flex items-center gap-2.5'>
+        <div className='flex items-center gap-2.5 flex-wrap'>
           <button
+            type='button'
             onClick={fetchChapters}
             disabled={loading}
             className='px-3 py-1.5 bg-[#FCFBF8] border border-[#D8D2C5] hover:bg-[#F3F0E9] text-xs font-semibold text-[#57534E] hover:text-[#1C1917] rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs'
@@ -113,12 +163,79 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
             <span>Làm mới</span>
           </button>
           <button
-            onClick={() => navigate(`/workspaces/${workspaceId}/series/${seriesId}/workspace`)}
+            type='button'
+            onClick={() => navigate('/publisher/series')}
             className='px-3.5 py-1.5 bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer shadow-soft-sm active:scale-95'
           >
-            <Layers className='w-3.5 h-3.5' />
-            <span>Vào Production Board</span>
+            <BookMarked className='w-3.5 h-3.5' />
+            <span>Quản Lý Series &amp; Bible</span>
           </button>
+        </div>
+      </div>
+
+      {/* Filter Bar: Cross-Studio & Series */}
+      <div className='bg-[#FCFBF8] border border-[#D8D2C5] rounded-2xl p-4 shadow-2xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3'>
+        <div className='flex flex-wrap items-center gap-3 flex-1'>
+          {/* Studio Filter */}
+          <div className='flex items-center gap-1.5'>
+            <Briefcase className='w-4 h-4 text-[#C2410C] shrink-0' />
+            <select
+              value={selectedWorkspaceId}
+              onChange={(e) => {
+                setSelectedWorkspaceId(e.target.value);
+                setSelectedSeriesId('');
+              }}
+              className='text-xs font-medium bg-[#F8F6F0] border border-[#D8D2C5] rounded-xl px-3 py-2 text-[#1C1917] focus:outline-none focus:ring-2 focus:ring-[#F97316]/30 cursor-pointer min-w-[160px]'
+            >
+              <option value=''>Tất cả Studio</option>
+              {workspaces.map((ws) => (
+                <option key={ws.id} value={ws.id}>
+                  {ws.name} {ws.approvedChaptersCount > 0 ? `(${ws.approvedChaptersCount} chờ duyệt)` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Series Filter */}
+          <div className='flex items-center gap-1.5'>
+            <BookOpen className='w-4 h-4 text-[#C2410C] shrink-0' />
+            <select
+              value={selectedSeriesId}
+              onChange={(e) => setSelectedSeriesId(e.target.value)}
+              className='text-xs font-medium bg-[#F8F6F0] border border-[#D8D2C5] rounded-xl px-3 py-2 text-[#1C1917] focus:outline-none focus:ring-2 focus:ring-[#F97316]/30 cursor-pointer min-w-[180px]'
+            >
+              <option value=''>Tất cả Bộ truyện (Series)</option>
+              {seriesList.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.title} ({s.workspaceName})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Keyword Search */}
+          <div className='relative flex-1 min-w-[200px]'>
+            <Search className='w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2' />
+            <input
+              type='text'
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder='Tìm theo tên chương, bộ truyện, studio...'
+              className='w-full text-xs bg-[#F8F6F0] border border-[#D8D2C5] rounded-xl pl-9 pr-3 py-2 text-[#1C1917] placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-[#F97316]/30'
+            />
+          </div>
+
+          {(selectedWorkspaceId || selectedSeriesId || searchQuery) && (
+            <button
+              type='button'
+              onClick={clearFilters}
+              className='px-2.5 py-1.5 rounded-xl border border-stone-300 hover:bg-stone-200 text-xs font-semibold text-stone-600 flex items-center gap-1 transition-colors cursor-pointer'
+              title='Xóa bộ lọc'
+            >
+              <X className='w-3.5 h-3.5' />
+              <span>Xóa lọc</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -180,7 +297,7 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
             {chapters.length}
           </div>
           <p className='text-xs text-[#57534E] mt-1 font-medium'>
-            Tất cả các chương trong bộ truyện
+            Tất cả các chương trong phạm vi lọc
           </p>
         </div>
       </div>
@@ -195,7 +312,7 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
                 ? 'Danh Sách Chương Chờ Publisher Phê Duyệt'
                 : activeTab === 'published'
                   ? 'Danh Sách Chương Đã Phát Hành & Lên Lịch'
-                  : 'Tất Cả Các Chương Trong Series'}
+                  : 'Tất Cả Các Chương'}
             </span>
             <span className='px-2 py-0.5 rounded-full bg-[#FFF2E6] text-[#C2410C] border border-[#FDBA74] text-xs font-mono font-bold'>
               {filteredChapters.length}
@@ -204,6 +321,7 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
 
           <div className='flex items-center gap-1.5'>
             <button
+              type='button'
               onClick={() => setActiveTab('approved')}
               className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                 activeTab === 'approved'
@@ -214,6 +332,7 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
               Chờ duyệt ({approvedChapters.length})
             </button>
             <button
+              type='button'
               onClick={() => setActiveTab('published')}
               className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                 activeTab === 'published'
@@ -224,6 +343,7 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
               Đã phát hành ({publishedChapters.length})
             </button>
             <button
+              type='button'
               onClick={() => setActiveTab('all')}
               className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                 activeTab === 'all'
@@ -247,7 +367,7 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
             <p className='text-xs text-[#57534E] max-w-sm mx-auto'>
               {activeTab === 'approved'
                 ? 'Khi Producer hoàn tất sản xuất và duyệt chương (Approve), chương sẽ tự động xuất hiện tại đây để Publisher xem xét và phát hành.'
-                : 'Mọi chương được tạo trong Series sẽ hiển thị tại danh mục này.'}
+                : 'Mọi chương được tạo trong Studio sẽ hiển thị tại danh mục này.'}
             </p>
           </div>
         ) : (
@@ -286,12 +406,25 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
                     )}
                     <div className='space-y-1.5 min-w-0'>
                       <div className='flex items-center gap-2.5 flex-wrap'>
+                        {/* Studio Badge */}
+                        <span className='px-2 py-0.5 rounded bg-stone-200 text-stone-800 font-sans font-semibold text-[11px] flex items-center gap-1 border border-stone-300'>
+                          <Briefcase className='w-3 h-3 text-[#C2410C]' />
+                          <span>{chap.workspaceName}</span>
+                        </span>
+
+                        {/* Series Title */}
+                        <span className='px-2 py-0.5 rounded bg-amber-100 text-amber-900 font-sans font-bold text-[11px] border border-amber-300'>
+                          {chap.seriesTitle}
+                        </span>
+
                         <span className='px-2.5 py-0.5 rounded-lg bg-[#1C1917] text-[#FCFBF8] font-mono font-bold text-xs'>
                           Chương #{chap.chapterNumber}
                         </span>
+
                         <h3 className='font-bold text-sm text-[#1C1917]'>
                           {chap.title || 'Chưa đặt tiêu đề'}
                         </h3>
+
                         {chap.status === 'Approved' && (
                           <span className='px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-[#FFF2E6] text-[#C2410C] border border-[#FDBA74] flex items-center gap-1'>
                             <Clock className='w-3 h-3 text-[#C2410C]' />
@@ -451,9 +584,9 @@ export const PublisherDeskView: React.FC<PublisherDeskViewProps> = ({ onShowToas
         />
       )}
 
-      {snapshotChapter && seriesId && (
+      {snapshotChapter && (
         <ChapterProvenanceModal
-          seriesId={seriesId}
+          seriesId={snapshotChapter.seriesId}
           chapterId={snapshotChapter.id}
           chapterNumber={snapshotChapter.chapterNumber}
           chapterTitle={snapshotChapter.title}

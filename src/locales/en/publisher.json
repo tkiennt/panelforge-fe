@@ -15,12 +15,15 @@
     "scheduled": "Scheduled"
   },
   "desk": {
-    "title": "Publisher Desk // Publishing Gate",
-    "subtitle": "Review chapters after Producer completes production, schedule releases or publish directly to public readers.",
+    "title": "Publisher Portal // System Publishing Gate",
+    "subtitle": "Review chapters across all Studios after Producer completes production, schedule releases or publish directly to public readers.",
     "waitingApproval": "Awaiting Publishing Approval",
     "waitingApprovalDesc": "Producer has approved production",
     "publishedAndScheduled": "Published & Scheduled",
     "allChapters": "All Chapters",
-    "enterBoard": "Enter Production Board"
+    "enterBoard": "Enter Production Board",
+    "studioFilter": "All Studios",
+    "seriesFilter": "All Series",
+    "manageSeries": "Manage Series & Bible"
   }
 }

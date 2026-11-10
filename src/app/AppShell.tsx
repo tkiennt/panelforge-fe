@@ -228,6 +228,10 @@ export function AppShell({
     currentUser.role === 'READER' ||
     currentUser.workspaceRole === ('READER' as any);
 
+  const isPublisher =
+    currentUser.role === 'PUBLISHER' ||
+    location.pathname.startsWith('/publisher');
+
   const effectiveRole = currentUser.workspaceRole
     ? String(currentUser.workspaceRole).toUpperCase()
     : currentUser.activeRoles && currentUser.activeRoles.length > 0
@@ -317,50 +321,30 @@ export function AppShell({
       }
     }
 
-    if (effectiveRole === 'PUBLISHER') {
-      if (isSeriesContext) {
-        return [
-          {
-            section: t('navigation.sections.publishing'),
-            items: [
-              {
-                icon: Send,
-                label: t('navigation.menu.publishingGate'),
-                href: `/workspaces/${workspaceId}/series/${seriesId}/publishing`,
-                badge: { type: 'dot', color: 'bg-indigo-600' },
-              },
-              {
-                icon: BookMarked,
-                label: t('navigation.menu.bible'),
-                href: `/workspaces/${workspaceId}/series/${seriesId}/bible`,
-              },
-              {
-                icon: BookOpen,
-                label: t('navigation.menu.publicCatalog'),
-                href: '/catalog',
-              },
-            ],
-          },
-        ];
-      } else {
-        return [
-          {
-            section: t('navigation.sections.publisherDesk'),
-            items: [
-              {
-                icon: LayoutDashboard,
-                label: t('navigation.menu.seriesList'),
-                href: seriesListHref,
-              },
-              {
-                icon: BookOpen,
-                label: t('navigation.menu.publicCatalog'),
-                href: '/catalog',
-              },
-            ],
-          },
-        ];
-      }
+    if (isPublisher || effectiveRole === 'PUBLISHER') {
+      return [
+        {
+          section: t('navigation.sections.publisherDesk') || 'Cổng Xuất Bản',
+          items: [
+            {
+              icon: Send,
+              label: t('navigation.menu.publishingGate') || 'Cổng Duyệt Xuất Bản',
+              href: '/publisher/desk',
+              badge: { type: 'dot', color: 'bg-orange-500' },
+            },
+            {
+              icon: BookMarked,
+              label: t('navigation.menu.seriesBible') || 'Quản Lý Series & Bible',
+              href: '/publisher/series',
+            },
+            {
+              icon: BookOpen,
+              label: t('navigation.menu.publicCatalog') || 'Danh Mục Công Khai',
+              href: '/catalog',
+            },
+          ],
+        },
+      ];
     }
 
     if (
@@ -556,6 +540,7 @@ export function AppShell({
       !href.startsWith('/workspace') &&
       !href.startsWith('/catalog') &&
       !href.startsWith('/admin') &&
+      !href.startsWith('/publisher') &&
       !href.startsWith('/notifications') &&
       !href.startsWith('/profile')
     ) {
@@ -696,7 +681,19 @@ export function AppShell({
                 <Menu className='w-5 h-5' />
               </button>
             )}
-            {isReader ? (
+            {isPublisher ? (
+              <div className='flex items-center gap-3'>
+                <BrandMark size={28} className='shrink-0' />
+                <div className='flex items-center gap-2'>
+                  <span className='text-[#1C1917] font-serif font-bold text-sm'>
+                    PanelForge // Cổng Xuất Bản
+                  </span>
+                  <span className='px-2 py-0.5 rounded-full bg-[#FFF2E6] text-[#C2410C] border border-[#FDBA74] text-[10px] font-mono font-bold'>
+                    PUBLISHER PORTAL
+                  </span>
+                </div>
+              </div>
+            ) : isReader ? (
               <div className='flex items-center gap-3'>
                 <BrandMark size={28} className='shrink-0' />
                 <div>
@@ -895,19 +892,34 @@ export function AppShell({
                       <span>{t('navigation.menu.twoFactor')}</span>
                     </button>
 
-                    <button
-                      type='button'
-                      data-testid='user-menu-switch-workspace'
-                      onClick={() => {
-                        setUserMenuOpen(false);
-                        if (onNavigate) onNavigate('/workspaces');
-                        navigate('/workspaces');
-                      }}
-                      className='w-full text-left flex items-center gap-2 text-xs text-[#57534E] hover:text-[#1C1917] hover:bg-[#FFF2E6] px-3 py-2 rounded-lg transition-colors cursor-pointer'
-                    >
-                      <Briefcase className='w-3.5 h-3.5 text-[#F97316]' />
-                      <span>{t('navigation.menu.switchWorkspace')}</span>
-                    </button>
+                    {isPublisher ? (
+                      <button
+                        type='button'
+                        data-testid='user-menu-publisher-desk'
+                        onClick={() => {
+                          setUserMenuOpen(false);
+                          navigate('/publisher/desk');
+                        }}
+                        className='w-full text-left flex items-center gap-2 text-xs text-[#57534E] hover:text-[#1C1917] hover:bg-[#FFF2E6] px-3 py-2 rounded-lg transition-colors cursor-pointer'
+                      >
+                        <Send className='w-3.5 h-3.5 text-[#F97316]' />
+                        <span>Bàn Làm Việc Publisher</span>
+                      </button>
+                    ) : (
+                      <button
+                        type='button'
+                        data-testid='user-menu-switch-workspace'
+                        onClick={() => {
+                          setUserMenuOpen(false);
+                          if (onNavigate) onNavigate('/workspaces');
+                          navigate('/workspaces');
+                        }}
+                        className='w-full text-left flex items-center gap-2 text-xs text-[#57534E] hover:text-[#1C1917] hover:bg-[#FFF2E6] px-3 py-2 rounded-lg transition-colors cursor-pointer'
+                      >
+                        <Briefcase className='w-3.5 h-3.5 text-[#F97316]' />
+                        <span>{t('navigation.menu.switchWorkspace')}</span>
+                      </button>
+                    )}
 
                     <div className='my-1 border-t border-[#D8D2C5]' />
 

@@ -147,6 +147,13 @@ function AppContent() {
       setViewScope('project');
       setCurrentView('admin-dash');
       navigate(ROLE_MANIFEST.ADMINISTRATOR.defaultRoute);
+    } else if (role === 'PUBLISHER') {
+      setCurrentRole('PUBLISHER');
+      setActiveProjectRoles(['PUBLISHER']);
+      setCurrentWorkspaceRole('PUBLISHER');
+      setViewScope('project');
+      setCurrentView('publisher-desk');
+      navigate('/publisher/desk');
     } else {
       setCurrentRole('USER');
       setCurrentWorkspaceRole(null);
@@ -675,7 +682,9 @@ function AppContent() {
   const defaultRedirectPath =
     isAuthenticated && (verifiedRole === 'ADMINISTRATOR' || currentRole === 'ADMINISTRATOR')
       ? '/admin'
-      : '/workspaces';
+      : isAuthenticated && (verifiedRole === 'PUBLISHER' || currentRole === 'PUBLISHER')
+        ? '/publisher/desk'
+        : '/workspaces';
 
   const handleApiLoginSuccess = (authResponse: any, customRedirect?: string) => {
     setIsLoginModalOpen(false);
@@ -716,18 +725,26 @@ function AppContent() {
       return;
     }
 
-    // BR-23 / F3: Luồng chuẩn PanelForge: Admin -> /admin, còn lại vào /workspaces -> Series -> Không gian làm việc
+    // BR-23 / F3: Luồng chuẩn PanelForge: Admin -> /admin, Publisher -> /publisher/desk, còn lại vào /workspaces -> Series -> Không gian làm việc
     authService
       .getLandingContext()
       .then((landing) => {
         if (landing?.suggestedLanding === 'AdminDashboard' || role === 'ADMINISTRATOR') {
           navigate('/admin');
+        } else if (landing?.suggestedLanding === 'PublisherPortal' || role === 'PUBLISHER') {
+          navigate('/publisher/desk');
         } else {
           navigate('/workspaces');
         }
       })
       .catch(() => {
-        navigate(role === 'ADMINISTRATOR' ? '/admin' : '/workspaces');
+        navigate(
+          role === 'ADMINISTRATOR'
+            ? '/admin'
+            : role === 'PUBLISHER'
+              ? '/publisher/desk'
+              : '/workspaces',
+        );
       });
 
     showToast(
@@ -816,6 +833,20 @@ function AppContent() {
               setIsLoginModalOpen(false);
               navigate('/admin');
               showToast('Đăng nhập thành công', 'Chào mừng Quản trị viên hệ thống!');
+            } else if (name === 'publisher') {
+              setIsAuthenticated(true);
+              setCurrentRole('PUBLISHER');
+              setCurrentWorkspaceRole('PUBLISHER');
+              setCurrentUserInfo({
+                name: 'Grace Publisher',
+                email: username,
+                role: 'PUBLISHER',
+              });
+              localStorage.setItem('userRole', 'PUBLISHER');
+              localStorage.setItem('token', 'mock-publisher-token');
+              setIsLoginModalOpen(false);
+              navigate('/publisher/desk');
+              showToast('Đăng nhập thành công', 'Chào mừng Grace Publisher!');
             } else if (password === '123456') {
               setIsAuthenticated(true);
               setCurrentRole('USER');
@@ -872,7 +903,13 @@ function AppContent() {
               localStorage.setItem('refreshToken', res.refreshToken);
             }
 
-            navigate(role === 'ADMINISTRATOR' ? '/admin' : '/workspaces');
+            navigate(
+              role === 'ADMINISTRATOR'
+                ? '/admin'
+                : role === 'PUBLISHER'
+                  ? '/publisher/desk'
+                  : '/workspaces',
+            );
             const displayName =
               res?.user?.fullName || res?.user?.email || res?.displayName || res?.email || 'bạn';
             const roleLabel = role === 'ADMINISTRATOR' ? 'Administrator' : 'User';

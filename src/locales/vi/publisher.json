@@ -15,12 +15,15 @@
     "scheduled": "Đã lên lịch"
   },
   "desk": {
-    "title": "Bàn Làm Việc Publisher // Cổng Duyệt Xuất Bản",
-    "subtitle": "Duyệt thẩm định chương sau khi Producer hoàn tất sản xuất, lên lịch phát hành hoặc xuất bản trực tiếp tới độc giả công khai.",
+    "title": "Cổng Xuất Bản Hệ Thống // Publisher Portal",
+    "subtitle": "Duyệt thẩm định chương từ tất cả các Studio sau khi Producer hoàn tất sản xuất, lên lịch phát hành hoặc xuất bản trực tiếp tới độc giả công khai.",
     "waitingApproval": "Chờ Duyệt Xuất Bản",
     "waitingApprovalDesc": "Producer đã duyệt hoàn tất sản xuất",
     "publishedAndScheduled": "Đã Xuất Bản & Lên Lịch",
     "allChapters": "Tất Cả Chương",
-    "enterBoard": "Vào Production Board"
+    "enterBoard": "Vào Production Board",
+    "studioFilter": "Tất cả Studio",
+    "seriesFilter": "Tất cả Bộ truyện (Series)",
+    "manageSeries": "Quản Lý Series & Bible"
   }
 }
