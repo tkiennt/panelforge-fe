@@ -1417,12 +1417,14 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
               className='w-full h-full flex items-center justify-center m-auto transition-transform duration-200 ease-out origin-center'
               style={{ transform: `scale(${zoomScale})` }}
             >
-              {/* Trang giấy trắng chuẩn in ấn Manga B5 (tỷ lệ 1:1.414, đầy đủ vùng Bleed, Trim Line & Safe Zone) */}
-              <div
-                key={selectedPageId || 'default'}
-                data-testid='artist-blank-sheet'
-                className='max-h-full max-w-full h-full w-auto aspect-[1/1.414] bg-white rounded-[2px] shadow-[0_4px_24px_rgba(0,0,0,0.06),0_12px_44px_rgba(0,0,0,0.08)] border border-stone-300/80 relative flex flex-col items-center justify-center p-0 overflow-hidden shrink-0 transition-all duration-300 ease-out animate-in fade-in zoom-in-98'
-              >
+              {/* Khung định vị trang giấy Manga B5 và nút thao tác gắn liền trang giấy */}
+              <div className='relative max-h-full max-w-full h-full w-auto aspect-[1/1.414] shrink-0 flex items-center justify-center'>
+                {/* Trang giấy trắng chuẩn in ấn Manga B5 (tỷ lệ 1:1.414, đầy đủ vùng Bleed, Trim Line & Safe Zone) */}
+                <div
+                  key={selectedPageId || 'default'}
+                  data-testid='artist-blank-sheet'
+                  className='w-full h-full bg-white rounded-[2px] shadow-[0_4px_24px_rgba(0,0,0,0.06),0_12px_44px_rgba(0,0,0,0.08)] border border-stone-300/80 relative flex flex-col items-center justify-center p-0 overflow-hidden transition-all duration-300 ease-out animate-in fade-in zoom-in-98'
+                >
                 {/* Vùng vẽ trang giấy trắng - Khung toạ độ 1:1 chuẩn theo khổ trang */}
                 <div
                   className='w-full h-full relative overflow-hidden bg-white'
@@ -1627,33 +1629,34 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                   )}
                 </div>
               </div>
-            </div>
 
-            {/* Nút LƯU phong cách Lucian UX/UI: Đặt bên phải dưới ngay bên cạnh trang giấy, sau khi lưu thì tắt nút */}
-            {currentPagePanels.length > 0 && !isCurrentPageLayoutLocked && (
-              <div
-                data-testid='canvas-bottom-layout-bar'
-                className='absolute bottom-6 right-8 z-30 animate-in fade-in zoom-in-95 duration-200'
-              >
-                <button
-                  type='button'
-                  onClick={handleSaveLayout}
-                  disabled={isApplyingTemplate}
-                  data-testid='canvas-btn-save-layout'
-                  data-btn-lock-alias='canvas-btn-lock-layout'
-                  aria-label='Lưu bố cục'
-                  className='group relative inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-stone-900 hover:bg-black text-white dark:bg-stone-100 dark:hover:bg-white dark:text-stone-900 text-xs font-bold tracking-wide shadow-[0_8px_24px_-4px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.25)] border border-white/15 dark:border-black/10 backdrop-blur-md transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer disabled:opacity-60'
+              {/* Nút LƯU phong cách Lucian UX/UI: Đặt bên phải dưới ngay bên cạnh / góc trang giấy, sau khi lưu thì tắt nút */}
+              {currentPagePanels.length > 0 && !isCurrentPageLayoutLocked && (
+                <div
+                  data-testid='canvas-bottom-layout-bar'
+                  className='absolute bottom-3 right-3 z-30 animate-in fade-in zoom-in-95 duration-200 pointer-events-auto'
                 >
-                  {isApplyingTemplate ? (
-                    <Loader2 className='w-3.5 h-3.5 animate-spin' />
-                  ) : (
-                    <Check className='w-3.5 h-3.5 text-emerald-400 dark:text-emerald-600 transition-transform group-hover:scale-110' />
-                  )}
-                  <span>Lưu</span>
-                </button>
-              </div>
-            )}
-          </main>
+                  <button
+                    type='button'
+                    onClick={handleSaveLayout}
+                    disabled={isApplyingTemplate}
+                    data-testid='canvas-btn-save-layout'
+                    data-btn-lock-alias='canvas-btn-lock-layout'
+                    aria-label='Lưu bố cục'
+                    className='group relative inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-full bg-stone-900 hover:bg-black text-white dark:bg-stone-100 dark:hover:bg-white dark:text-stone-900 text-xs font-bold tracking-wide shadow-[0_8px_20px_-4px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.25)] border border-white/20 dark:border-black/15 backdrop-blur-md transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer disabled:opacity-60'
+                  >
+                    {isApplyingTemplate ? (
+                      <Loader2 className='w-3.5 h-3.5 animate-spin' />
+                    ) : (
+                      <Check className='w-3.5 h-3.5 text-emerald-400 dark:text-emerald-600 transition-transform group-hover:scale-110' />
+                    )}
+                    <span>Lưu</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </main>
 
           {/* THANH QUẢN LÝ TRANG Ở ĐÁY MÀN HÌNH */}
           <ArtistBottomPageStrip

@@ -329,16 +329,12 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
     );
 
     fireEvent.click(screen.getByTestId('canva-tab-templates'));
-    expect(screen.getByTestId('canva-layout-locked-banner')).toBeInTheDocument();
-    expect(screen.getByText('Đã lưu')).toBeInTheDocument();
+    // Status banner is removed to keep template drawer clean
+    expect(screen.queryByTestId('canva-layout-locked-banner')).not.toBeInTheDocument();
 
-    // Clicking unlock button triggers onUnlockLayout
-    fireEvent.click(screen.getByTestId('canva-btn-unlock-template'));
-    expect(handleUnlock).toHaveBeenCalledTimes(1);
-
-    // Clicking a different template card when locked triggers unlock prompt rather than directly switching
+    // Clicking a different template card when locked with artwork triggers unlock prompt rather than directly switching
     fireEvent.click(screen.getByTestId('canva-template-card-f0000000-0000-0000-0000-00000000000c'));
-    expect(handleUnlock).toHaveBeenCalledTimes(2);
+    expect(handleUnlock).toHaveBeenCalledTimes(1);
     expect(handleSelectTemplate).not.toHaveBeenCalled();
   });
 });
