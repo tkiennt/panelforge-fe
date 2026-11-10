@@ -17,6 +17,7 @@ import {
   UploadCloud,
   ImagePlus,
   Eye,
+  EyeOff,
   Trash2,
   CheckCircle2,
   Check,
@@ -27,7 +28,12 @@ import {
   Unlock,
   X,
   LayoutTemplate,
+  Sparkles,
+  Wand2,
+  Scissors,
+  Upload,
 } from 'lucide-react';
+import { detectPanelsFromSketchImage } from '../lib/panelDetection';
 import { getRoleDefaultPath } from '@/roles/roles';
 import {
   formatChapterLabel,
@@ -343,6 +349,12 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   const [panelArtworksByPageId, setPanelArtworksByPageId] = useState<
     Record<string, Record<string, PanelArtworkData>>
   >({});
+  // Ảnh phác thảo toàn trang của từng trang (dành cho tính năng Tự động tách panel ở khâu Pencil)
+  const [fullPageSketchesByPageId, setFullPageSketchesByPageId] = useState<
+    Record<string, { imageUrl: string; fileName: string; isVisible: boolean }>
+  >({});
+  const [isDetectingPanels, setIsDetectingPanels] = useState(false);
+  const sketchFileInputRef = useRef<HTMLInputElement | null>(null);
   // Modal xác nhận an toàn khi mở khóa đổi mẫu khung nếu đã có tranh
   const [isUnlockConfirmOpen, setIsUnlockConfirmOpen] = useState(false);
   // Modal xem tranh phóng to
@@ -1062,6 +1074,10 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     [selectedPage, panelsByPageId],
   );
   const currentTemplateId = selectedPage ? activeTemplateByPageId[selectedPage.id] || null : null;
+  const currentSketch = useMemo(
+    () => (selectedPage ? fullPageSketchesByPageId[selectedPage.id] || null : null),
+    [selectedPage, fullPageSketchesByPageId],
+  );
 
   const isCurrentPageLayoutLocked = Boolean(selectedPage && lockedTemplateByPageId[selectedPage.id]);
   const currentPageArtworks = useMemo(
@@ -1312,6 +1328,107 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     }
   };
 
+  // Tải ảnh phác thảo toàn trang (Pencil Stage)
+  const handleUploadFullPageSketch = (file: File) => {
+    if (!selectedPage) return;
+    const targetPage = selectedPage;
+    const localUrl = URL.createObjectURL(file);
+
+    setFullPageSketchesByPageId((prev) => ({
+      ...prev,
+      [targetPage.id]: {
+        imageUrl: localUrl,
+        fileName: file.name,
+        isVisible: true,
+      },
+    }));
+
+    toast.success(
+      'Đã nạp ảnh phác thảo toàn trang',
+      'Bấm "Tự động tách panel" để AI phân tích rãnh và sinh các ô tranh Manga.',
+    );
+  };
+
+  // Bật/tắt hiển thị ảnh phác thảo phía dưới
+  const handleToggleSketchVisibility = () => {
+    if (!selectedPage || !currentSketch) return;
+    const targetPage = selectedPage;
+    setFullPageSketchesByPageId((prev) => ({
+      ...prev,
+      [targetPage.id]: {
+        ...prev[targetPage.id],
+        isVisible: !prev[targetPage.id].isVisible,
+      },
+    }));
+  };
+
+  // Gỡ ảnh phác thảo
+  const handleRemoveSketch = () => {
+    if (!selectedPage) return;
+    const targetPage = selectedPage;
+    setFullPageSketchesByPageId((prev) => {
+      const next = { ...prev };
+      delete next[targetPage.id];
+      return next;
+    });
+    toast.info('Đã gỡ ảnh phác thảo', 'Đã xóa bản phác thảo toàn trang.');
+  };
+
+  // Tự động tách panel từ ảnh phác thảo toàn trang (Chỉ nhận diện Panel, KHÔNG đụng đến thoại)
+  const handleAutoDetectPanels = async () => {
+    if (!selectedPage || !currentSketch) return;
+    const targetPage = selectedPage;
+
+    setIsDetectingPanels(true);
+    setTemplateError(null);
+
+    try {
+      const detection = await detectPanelsFromSketchImage(currentSketch.imageUrl, {
+        pageWidth: targetPage.widthPx || 1200,
+        pageHeight: targetPage.heightPx || 1800,
+      });
+
+      const nowIso = new Date().toISOString();
+      const detectedPanels: PanelDto[] = detection.panels.map((p) => ({
+        id: `detected-panel-${targetPage.id}-${p.panelNumber}-${Date.now()}`,
+        pageId: targetPage.id,
+        panelNumber: p.panelNumber,
+        readingOrder: p.readingOrder,
+        boundingBox: JSON.stringify({
+          normalized: { x: p.x, y: p.y, w: p.w, h: p.h },
+          borderless: Boolean(p.borderless),
+          pageWidthPx: targetPage.widthPx || 1200,
+          pageHeightPx: targetPage.heightPx || 1800,
+        }),
+        createdAt: nowIso,
+      }));
+
+      setPanelsByPageId((prev) => ({ ...prev, [targetPage.id]: detectedPanels }));
+      setLockedTemplateByPageId((prev) => ({ ...prev, [targetPage.id]: false }));
+      setActiveTemplateByPageId((prev) => {
+        const next = { ...prev };
+        delete next[targetPage.id];
+        return next;
+      });
+
+      setPages((prev) =>
+        prev.map((pg) =>
+          pg.id === targetPage.id ? { ...pg, elementsCount: detectedPanels.length } : pg,
+        ),
+      );
+
+      toast.success(
+        'Tách panel thành công!',
+        `Đã nhận diện ${detectedPanels.length} ô khung theo chuẩn Manga RTL. Bấm "Lưu" để chốt bố cục.`,
+      );
+    } catch (err) {
+      console.error('Lỗi nhận diện panel:', err);
+      toast.error('Không thể tách panel', 'Vui lòng kiểm tra lại ảnh phác thảo hoặc chọn mẫu khung dựng sẵn.');
+    } finally {
+      setIsDetectingPanels(false);
+    }
+  };
+
   // Bật/tắt toàn màn hình
   const handleToggleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -1445,6 +1562,154 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                   <div className='absolute top-[1.8%] right-[1.8%] w-3 h-3 border-t border-r border-stone-400/80 pointer-events-none z-10' />
                   <div className='absolute bottom-[1.8%] left-[1.8%] w-3 h-3 border-b border-l border-stone-400/80 pointer-events-none z-10' />
                   <div className='absolute bottom-[1.8%] right-[1.8%] w-3 h-3 border-b border-r border-stone-400/80 pointer-events-none z-10' />
+
+                  {/* Lớp hiển thị ảnh phác thảo toàn trang (Pencil Stage Sketch Underlay) */}
+                  {currentSketch && (
+                    <img
+                      src={currentSketch.imageUrl}
+                      alt={currentSketch.fileName}
+                      className='absolute inset-0 w-full h-full object-contain pointer-events-none z-5 select-none transition-opacity duration-300'
+                      style={{ opacity: currentSketch.isVisible ? 0.5 : 0 }}
+                    />
+                  )}
+
+                  {/* Thanh công cụ nổi Studio Floating Bar cho Phác thảo toàn trang */}
+                  {currentSketch && (
+                    <div
+                      data-testid='pencil-sketch-floating-bar'
+                      className='absolute top-3.5 inset-x-auto z-40 flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-stone-900/95 text-white backdrop-blur-md shadow-2xl border border-white/15 text-xs animate-in fade-in slide-in-from-top-2 duration-200'
+                    >
+                      <div className='flex items-center gap-1.5 font-bold text-amber-400 pl-0.5'>
+                        <Sparkles className='w-3.5 h-3.5 animate-pulse' />
+                        <span className='text-[11px]'>Phác thảo toàn trang</span>
+                      </div>
+                      <div className='h-3.5 w-px bg-white/20 mx-0.5' />
+
+                      <button
+                        type='button'
+                        onClick={handleToggleSketchVisibility}
+                        className='flex items-center gap-1 px-2 py-1 rounded-md hover:bg-white/10 text-stone-200 hover:text-white transition-colors cursor-pointer text-[11px]'
+                        title={currentSketch.isVisible ? 'Ẩn ảnh phác thảo' : 'Hiện ảnh phác thảo'}
+                      >
+                        {currentSketch.isVisible ? (
+                          <Eye className='w-3.5 h-3.5 text-emerald-400' />
+                        ) : (
+                          <EyeOff className='w-3.5 h-3.5 text-stone-400' />
+                        )}
+                        <span>{currentSketch.isVisible ? 'Hiện' : 'Ẩn'}</span>
+                      </button>
+
+                      <button
+                        type='button'
+                        onClick={handleAutoDetectPanels}
+                        disabled={isDetectingPanels}
+                        data-testid='btn-auto-detect-panels'
+                        className='flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold shadow-xs transition-all cursor-pointer disabled:opacity-60 text-[11px] hover:scale-105 active:scale-95'
+                      >
+                        {isDetectingPanels ? (
+                          <>
+                            <Loader2 className='w-3.5 h-3.5 animate-spin' />
+                            <span>Đang tách panel...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Wand2 className='w-3.5 h-3.5' />
+                            <span>Tự động tách panel</span>
+                          </>
+                        )}
+                      </button>
+
+                      <button
+                        type='button'
+                        onClick={() => sketchFileInputRef.current?.click()}
+                        className='p-1 rounded-md hover:bg-white/10 text-stone-300 hover:text-white transition-colors cursor-pointer'
+                        title='Đổi ảnh phác thảo khác'
+                      >
+                        <RotateCcw className='w-3.5 h-3.5' />
+                      </button>
+
+                      <button
+                        type='button'
+                        onClick={handleRemoveSketch}
+                        className='p-1 rounded-md hover:bg-rose-500/20 text-stone-300 hover:text-rose-400 transition-colors cursor-pointer'
+                        title='Gỡ ảnh phác thảo'
+                      >
+                        <X className='w-3.5 h-3.5' />
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Hiệu ứng quét Scanner khi đang tách panel */}
+                  {isDetectingPanels && (
+                    <div className='absolute inset-0 z-35 pointer-events-none overflow-hidden animate-in fade-in duration-150'>
+                      <div className='w-full h-1 bg-gradient-to-r from-transparent via-amber-400 to-transparent shadow-[0_0_12px_#f59e0b] animate-bounce' />
+                      <div className='absolute inset-0 bg-stone-900/10 backdrop-blur-[0.5px] flex items-center justify-center'>
+                        <div className='px-4 py-2 rounded-xl bg-stone-900/90 text-white text-xs font-semibold shadow-xl flex items-center gap-2 border border-amber-400/30'>
+                          <Loader2 className='w-4 h-4 text-amber-400 animate-spin' />
+                          <span>AI đang quét rãnh và tách các ô panel...</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Empty State Card khi trang chưa có khung và chưa có phác thảo */}
+                  {currentPagePanels.length === 0 && !currentSketch && (
+                    <div
+                      data-testid='artist-blank-state-card'
+                      className='absolute inset-0 z-20 flex items-center justify-center p-4 pointer-events-auto'
+                    >
+                      <div className='w-full max-w-[320px] rounded-2xl bg-stone-50/90 dark:bg-stone-900/90 backdrop-blur-md border border-stone-200/90 dark:border-stone-800 p-5 text-center shadow-lg space-y-3.5 animate-in fade-in zoom-in-95 duration-200'>
+                        <div className='w-10 h-10 rounded-xl bg-orange-500/10 text-orange-600 dark:text-orange-400 mx-auto flex items-center justify-center border border-orange-500/20 shadow-2xs'>
+                          <Scissors className='w-5 h-5' />
+                        </div>
+                        <div className='space-y-1'>
+                          <h3 className='text-xs font-bold text-stone-900 dark:text-stone-100'>
+                            Trang giấy chưa có bố cục ô
+                          </h3>
+                          <p className='text-[11px] text-stone-500 dark:text-stone-400 leading-relaxed'>
+                            Tải ảnh phác thảo toàn trang để AI tự động tách khung, hoặc chọn mẫu khung dựng sẵn.
+                          </p>
+                        </div>
+                        <div className='flex flex-col gap-2 pt-1'>
+                          <button
+                            type='button'
+                            onClick={() => sketchFileInputRef.current?.click()}
+                            data-testid='btn-upload-sketch-empty'
+                            className='w-full py-2 px-3 rounded-xl bg-stone-900 hover:bg-black dark:bg-stone-100 dark:hover:bg-white text-white dark:text-stone-900 text-xs font-bold flex items-center justify-center gap-2 shadow-sm cursor-pointer transition-all hover:scale-[1.02] active:scale-95'
+                          >
+                            <Sparkles className='w-3.5 h-3.5 text-amber-400 dark:text-amber-600' />
+                            <span>Tải phác thảo & Tách panel</span>
+                          </button>
+                          <button
+                            type='button'
+                            onClick={() => {
+                              setActiveSidebarTab('templates');
+                              setIsSidebarDrawerOpen(true);
+                            }}
+                            data-testid='btn-open-templates-empty'
+                            className='w-full py-1.5 px-3 rounded-xl border border-stone-200 dark:border-stone-800 hover:bg-stone-100 dark:hover:bg-stone-800 text-[11px] font-semibold text-stone-700 dark:text-stone-300 flex items-center justify-center gap-1.5 cursor-pointer transition-colors'
+                          >
+                            <LayoutTemplate className='w-3.5 h-3.5 text-stone-500' />
+                            <span>Chọn mẫu khung dựng sẵn</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Hidden File Input cho ảnh phác thảo toàn trang */}
+                  <input
+                    ref={sketchFileInputRef}
+                    type='file'
+                    accept='image/png,image/jpeg,image/webp'
+                    className='hidden'
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files.length > 0) {
+                        handleUploadFullPageSketch(e.target.files[0]);
+                        e.target.value = '';
+                      }
+                    }}
+                  />
 
                   {/* Lớp hiển thị các khung Panel */}
                   {currentPagePanels.length > 0 && (
