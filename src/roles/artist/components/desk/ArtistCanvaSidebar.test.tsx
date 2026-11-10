@@ -444,7 +444,7 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
     expect(drawer).toHaveClass('w-[280px]');
 
     expect(screen.getByTestId('canva-drawer-history')).toBeInTheDocument();
-    expect(screen.getByText('v3')).toBeInTheDocument();
+    expect(screen.getByTestId('history-entry-v3')).toHaveTextContent('v3');
     expect(screen.getByText('Hiện hành')).toBeInTheDocument();
 
     // v2 has "Khôi phục bản này"
