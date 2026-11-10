@@ -108,7 +108,7 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
     const drawer = screen.getByTestId('canva-secondary-drawer');
     expect(drawer).toHaveClass('w-[330px]');
     expect(screen.getByTestId('canva-drawer-bible')).toBeInTheDocument();
-    expect(screen.getByText(/Tra Cứu Nhân Vật & Bối Cảnh Canon/i)).toBeInTheDocument();
+    expect(screen.getByText(/Tra cứu nhân vật & bối cảnh/i)).toBeInTheDocument();
     expect(screen.getByText('Minh Triết (Nhân vật chính)')).toBeInTheDocument();
     expect(screen.getByText('Cổng Thành Phía Nam (Nam Môn Quan)')).toBeInTheDocument();
   });

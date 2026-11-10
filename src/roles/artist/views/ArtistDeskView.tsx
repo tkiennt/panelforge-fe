@@ -1,17 +1,32 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { pageService, PageDto } from '@/services/page.service';
 import { panelService } from '@/services/panel.service';
 import { chapterService, ChapterDto } from '@/services/chapter.service';
 import { scriptLineService } from '@/services/scriptLine.service';
 import { bibleService, BibleEntryDto } from '@/services/bible.service';
 import { seriesService } from '@/services/series.service';
+import { pipelineService, PipelineStageDto } from '@/services/pipeline.service';
+import { assignmentService, AssignmentDto } from '@/services/assignment.service';
+import { useToast } from '@/shared/context/ToastContext';
+import { getRoleDefaultPath } from '@/roles/roles';
+import {
+  formatChapterLabel,
+  stageKindOf,
+} from '@/shared/features/pipeline-board/productionBoard.utils';
+import {
+  FocusStageItem,
+  FocusStudioHeaderBar,
+  useFocusHeaderContext,
+} from '@/app/FocusWorkspaceLayout';
+import { getArtistStageKind } from '../utils/artistStage';
 import {
   ArtistCanvaSidebar,
   ScriptLineItem,
   BibleEntityItem,
 } from '../components/desk/ArtistCanvaSidebar';
 import { ArtistBottomPageStrip } from '../components/desk/ArtistBottomPageStrip';
+import { PageStage } from '../components/desk/ArtistPageSidebar';
 
 export interface ArtistDeskViewProps {
   workspaceRole?: string | null;
@@ -32,6 +47,35 @@ const CHARACTER_COLORS = [
   '#D97706',
   '#2563EB',
 ];
+
+const DEFAULT_ARTIST_STAGES: FocusStageItem[] = [
+  { id: 'stage-pencil', label: 'Vẽ chì', key: 'pencil' },
+  { id: 'stage-ink', label: 'Đi nét mực', key: 'ink' },
+  { id: 'stage-finish', label: 'Hoàn thiện tranh', key: 'completed' },
+];
+
+function localizeArtistStageLabel(stage: Pick<PipelineStageDto, 'name' | 'slug'>): string {
+  const kind = getArtistStageKind(stage);
+  if (kind === 'pencil') return 'Vẽ chì';
+  if (kind === 'ink') return 'Đi nét mực';
+  if (kind === 'lettering') return 'Chèn thoại';
+
+  const boardKind = stageKindOf(stage.name || '');
+  if (boardKind === 'thumbnail') return 'Bố cục khung';
+  if (boardKind === 'color') return 'Hoàn thiện tranh';
+  if (boardKind === 'script') return 'Kịch bản';
+
+  const cleaned = (stage.name || '').replace(/\s*\([A-Za-z0-9\s/-]+\)\s*/g, '').trim();
+  return cleaned || 'Thực hiện';
+}
+
+function resolveStageKey(stage: Pick<PipelineStageDto, 'name' | 'slug'>): PageStage {
+  const kind = getArtistStageKind(stage);
+  if (kind === 'ink') return 'ink';
+  if (kind === 'lettering') return 'lettering';
+  if (stageKindOf(stage.name || '') === 'color') return 'completed';
+  return 'pencil';
+}
 
 function getDeterministicColor(key: string): string {
   let hash = 0;
@@ -56,11 +100,11 @@ function mapBibleCategory(cat: string | number): 'character' | 'location' | 'lor
 function getBibleCategoryTag(cat: string | number, subtitle?: string | null): string {
   if (subtitle?.trim()) return subtitle.trim();
   const s = String(cat).toLowerCase();
-  if (s.includes('char') || s === '0' || s === '1') return 'Nhân vật Canon';
-  if (s.includes('loc') || s === '2') return 'Bối cảnh Canon';
+  if (s.includes('char') || s === '0' || s === '1') return 'Nhân vật';
+  if (s.includes('loc') || s === '2') return 'Bối cảnh';
   if (s.includes('style') || s === '4') return 'Quy tắc mỹ thuật';
-  if (s.includes('prop') || s === '2' || s === '3') return 'Đạo cụ & Thuật ngữ';
-  return 'Lore / Quy tắc';
+  if (s.includes('prop') || s === '3') return 'Đạo cụ & Thuật ngữ';
+  return 'Thiết lập thế giới';
 }
 
 const ATTRIBUTE_LABELS: Record<string, string> = {
@@ -197,19 +241,30 @@ const DEFAULT_INITIAL_PAGES: PageDto[] = [
 ];
 
 /**
- * ArtistDeskView - Canva-Style Manga Workspace
- * - Bên trái: Sidebar công cụ Artist (ArtistCanvaSidebar) chứa 2 tab chuyên dụng: Script (Kịch bản) và Series Bible.
- * - Trung tâm: Bàn vẽ trang giấy trắng Manga B5 căn giữa màn hình tuyệt đối, đổ bóng tự nhiên.
- * - Cạnh đáy: Thanh quản lý trang kiểu Canva (ArtistBottomPageStrip) nền trong suốt, căn giữa màn hình.
+ * ArtistDeskView - Không gian vẽ dành riêng cho Họa sĩ
+ * - Header hệ thống hiển thị đường dẫn Bộ truyện / Chương, các công đoạn vẽ và nút Nộp chuyển công đoạn.
+ * - Bên trái: Sidebar công cụ (Kịch bản tham chiếu và Hồ sơ nhân vật & bối cảnh).
+ * - Trung tâm: Bàn vẽ trang giấy trắng tỷ lệ chuẩn căn giữa màn hình.
+ * - Cạnh đáy: Thanh quản lý trang nền trong suốt, căn giữa màn hình.
  */
 export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   workspaceRole,
   initialScriptLines,
   initialBibleEntities,
 }) => {
-  const { seriesId } = useParams<{ workspaceId?: string; seriesId?: string }>();
+  const { workspaceId, seriesId, chapterId: chapterIdFromParam } = useParams<{
+    workspaceId?: string;
+    seriesId?: string;
+    chapterId?: string;
+  }>();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const chapterIdFromUrl = searchParams.get('chapterId');
+  const toast = useToast();
+  const focusHeader = useFocusHeaderContext();
+
+  const chapterIdFromUrl = chapterIdFromParam || searchParams.get('chapterId');
+  const assignmentIdFromUrl = searchParams.get('assignmentId');
 
   const [currentChapterId, setCurrentChapterId] = useState<string | null>(chapterIdFromUrl);
   const [chapters, setChapters] = useState<ChapterDto[]>([]);
@@ -217,7 +272,14 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   const [pages, setPages] = useState<PageDto[]>(DEFAULT_INITIAL_PAGES);
   const [selectedPageId, setSelectedPageId] = useState<string | null>(DEFAULT_INITIAL_PAGES[0].id);
 
-  // Dữ liệu thực tế từ Backend cho Script & Series Bible
+  // Tiến độ công đoạn (Stage progression trên Header)
+  const [artistStages, setArtistStages] = useState<FocusStageItem[]>(DEFAULT_ARTIST_STAGES);
+  const [currentStageIndex, setCurrentStageIndex] = useState<number>(0);
+  const [isStageFlowCompleted, setIsStageFlowCompleted] = useState<boolean>(false);
+  const [isSubmittingStage, setIsSubmittingStage] = useState<boolean>(false);
+  const [chapterAssignments, setChapterAssignments] = useState<AssignmentDto[]>([]);
+
+  // Dữ liệu thực tế từ Backend cho Kịch bản & Hồ sơ truyện
   const [rawScriptLines, setRawScriptLines] = useState<RawLoadedScriptLine[] | undefined>(
     initialScriptLines,
   );
@@ -225,17 +287,138 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   const [panelPageMap, setPanelPageMap] = useState<
     Record<string, { pageNumber: number; panelNumber: number; sceneId?: string | null }>
   >({});
-  const [panelScenePagesMap, setPanelScenePagesMap] = useState<Record<string, number[]>>({});
   const [rawBibleEntries, setRawBibleEntries] = useState<BibleEntryDto[]>([]);
   const [hasLoadedRealBible, setHasLoadedRealBible] = useState(false);
   const [isLoadingScript, setIsLoadingScript] = useState(false);
   const [isLoadingBible, setIsLoadingBible] = useState(false);
 
-  // Điều khiển thanh trang & canvas
+  // Điều khiển thanh trang & khung vẽ
   const [isFilmstripOpen, setIsFilmstripOpen] = useState(true);
   const [zoomScale, setZoomScale] = useState(1.0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Đồng bộ chapterId khi URL thay đổi từ bên ngoài
+  useEffect(() => {
+    if (chapterIdFromUrl && chapterIdFromUrl !== currentChapterId) {
+      setCurrentChapterId(chapterIdFromUrl);
+      setIsStageFlowCompleted(false);
+      setCurrentStageIndex(0);
+    }
+  }, [chapterIdFromUrl, currentChapterId]);
+
+  // Nạp các công đoạn sản xuất dành cho Họa sĩ từ quy trình bộ truyện
+  useEffect(() => {
+    let alive = true;
+    if (!seriesId || !pipelineService?.getSeriesPipeline) return;
+
+    pipelineService
+      .getSeriesPipeline(seriesId)
+      .then((pipeline) => {
+        if (!alive || !Array.isArray(pipeline?.stages)) return;
+        const enabledSorted = [...pipeline.stages]
+          .filter((s) => s.isEnabled !== false)
+          .sort((a, b) => a.stageOrder - b.stageOrder);
+
+        const filteredArtist = enabledSorted.filter((s) => {
+          if (s.allowedRole === 'Artist') return true;
+          const bKind = stageKindOf(s.name || '');
+          const aKind = getArtistStageKind(s);
+          return (
+            aKind === 'pencil' ||
+            aKind === 'ink' ||
+            bKind === 'thumbnail' ||
+            bKind === 'pencil' ||
+            bKind === 'ink' ||
+            bKind === 'color'
+          );
+        });
+
+        if (filteredArtist.length > 0) {
+          setArtistStages(
+            filteredArtist.map((s) => ({
+              id: s.id,
+              label: localizeArtistStageLabel(s),
+              key: resolveStageKey(s),
+            })),
+          );
+        }
+      })
+      .catch(() => {
+        // Giữ bộ công đoạn mặc định nếu chưa kết nối quy trình
+      });
+
+    return () => {
+      alive = false;
+    };
+  }, [seriesId]);
+
+  // Nạp công việc phân công của chương để đồng bộ công đoạn đang thực hiện
+  useEffect(() => {
+    let alive = true;
+    if (!currentChapterId || !assignmentService?.getAssignments) return;
+
+    assignmentService
+      .getAssignments(currentChapterId)
+      .then((list) => {
+        if (!alive || !Array.isArray(list)) return;
+        setChapterAssignments(list);
+
+        if (assignmentIdFromUrl) {
+          const target = list.find((a) => a.id === assignmentIdFromUrl);
+          if (target) {
+            const idx = artistStages.findIndex((s) => s.id === target.pipelineStageId);
+            if (idx >= 0) {
+              const st = String(target.status || '').toLowerCase();
+              if (st === 'submitted' || st === 'underreview' || st === 'approved') {
+                if (idx < artistStages.length - 1) {
+                  setCurrentStageIndex(idx + 1);
+                  setIsStageFlowCompleted(false);
+                } else {
+                  setCurrentStageIndex(idx);
+                  setIsStageFlowCompleted(true);
+                }
+              } else {
+                setCurrentStageIndex(idx);
+                setIsStageFlowCompleted(false);
+              }
+              return;
+            }
+          }
+        }
+
+        const stageIds = new Set(artistStages.map((s) => s.id));
+        const related = list.filter((a) => stageIds.has(a.pipelineStageId));
+        if (related.length === 0) return;
+
+        const activeAssignment = related.find((a) => {
+          const st = String(a.status || '').toLowerCase();
+          return st === 'inprogress' || st === 'reworkrequired' || st === 'assigned';
+        });
+
+        if (activeAssignment) {
+          const idx = artistStages.findIndex((s) => s.id === activeAssignment.pipelineStageId);
+          if (idx >= 0) {
+            setCurrentStageIndex(idx);
+            setIsStageFlowCompleted(false);
+          }
+        } else {
+          const allSubmittedOrDone = related.every((a) => {
+            const st = String(a.status || '').toLowerCase();
+            return st === 'submitted' || st === 'underreview' || st === 'approved';
+          });
+          if (allSubmittedOrDone) {
+            setCurrentStageIndex(Math.max(0, artistStages.length - 1));
+            setIsStageFlowCompleted(true);
+          }
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      alive = false;
+    };
+  }, [currentChapterId, assignmentIdFromUrl, artistStages]);
 
   // Tải danh sách trang từ API backend nếu có chapterId + ánh xạ panel -> trang để đồng bộ kịch bản
   const loadPages = useCallback(async (chapId: string) => {
@@ -248,7 +431,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
           sortedPages.some((p) => p.id === prev) ? prev : sortedPages[0].id,
         );
 
-        // Tải danh sách panel của từng trang để đồng bộ chính xác script line thuộc về trang & khung nào
+        // Tải danh sách khung của từng trang để đồng bộ chính xác dòng kịch bản thuộc về trang & khung nào
         if (panelService?.getPanelsByPage) {
           const panelResults = await Promise.all(
             sortedPages.map((pg) =>
@@ -258,30 +441,16 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                 .catch(() => ({ pageNumber: pg.pageNumber, panels: [] })),
             ),
           );
-          const nextMap: Record<
-            string,
-            { pageNumber: number; panelNumber: number; sceneId?: string | null }
-          > = {};
-          const nextScenePages: Record<string, Set<number>> = {};
+          const nextMap: Record<string, { pageNumber: number; panelNumber: number }> = {};
           panelResults.forEach(({ pageNumber, panels }) => {
             panels.forEach((pnl) => {
               nextMap[pnl.id] = {
                 pageNumber,
                 panelNumber: pnl.panelNumber || pnl.readingOrder || 1,
-                sceneId: pnl.sceneId,
               };
-              if (pnl.sceneId) {
-                if (!nextScenePages[pnl.sceneId]) nextScenePages[pnl.sceneId] = new Set();
-                nextScenePages[pnl.sceneId].add(pageNumber);
-              }
             });
           });
           setPanelPageMap(nextMap);
-          const normalizedScenePages: Record<string, number[]> = {};
-          Object.entries(nextScenePages).forEach(([sId, set]) => {
-            normalizedScenePages[sId] = Array.from(set).sort((a, b) => a - b);
-          });
-          setPanelScenePagesMap(normalizedScenePages);
         }
       }
     } catch {
@@ -289,7 +458,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     }
   }, []);
 
-  // Tải dữ liệu kịch bản thực tế của chapter qua danh sách phân cảnh (sắp xếp theo thứ tự cảnh & dòng)
+  // Tải dữ liệu kịch bản thực tế của chương qua danh sách phân cảnh (sắp xếp theo thứ tự cảnh & dòng)
   const loadScriptLines = useCallback(async (chapId: string) => {
     if (!scriptLineService?.getScenesByChapter) return;
     setIsLoadingScript(true);
@@ -344,7 +513,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     }
   }, []);
 
-  // Tải dữ liệu Series Bible thực tế của Series
+  // Tải dữ liệu Hồ sơ truyện thực tế của bộ truyện
   const loadBibleEntities = useCallback(async (sId: string) => {
     if (!bibleService?.getSeriesBible) return;
     setIsLoadingBible(true);
@@ -364,7 +533,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     }
   }, []);
 
-  // Tải thông tin Series & danh sách Chương (tự động chọn chương đầu tiên nếu URL chưa có chapterId)
+  // Tải thông tin Bộ truyện & danh sách Chương (tự động chọn chương đầu tiên nếu URL chưa có chapterId)
   useEffect(() => {
     let alive = true;
     if (!seriesId) return;
@@ -388,14 +557,17 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
           if (!alive) return;
           const sortedChapters = [...items].sort((a, b) => a.chapterNumber - b.chapterNumber);
           setChapters(sortedChapters);
-          if (!currentChapterId && sortedChapters.length > 0) {
+          if (!chapterIdFromUrl && !currentChapterId && sortedChapters.length > 0) {
             const firstId = sortedChapters[0].id;
             setCurrentChapterId(firstId);
-            setSearchParams((prev) => {
-              const next = new URLSearchParams(prev);
-              next.set('chapterId', firstId);
-              return next;
-            });
+            setSearchParams(
+              (prev) => {
+                const next = new URLSearchParams(prev);
+                next.set('chapterId', firstId);
+                return next;
+              },
+              { replace: true },
+            );
           }
         })
         .catch(() => {});
@@ -404,7 +576,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     return () => {
       alive = false;
     };
-  }, [seriesId, currentChapterId, setSearchParams]);
+  }, [seriesId, chapterIdFromUrl, currentChapterId, setSearchParams]);
 
   useEffect(() => {
     if (currentChapterId) {
@@ -419,29 +591,174 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     }
   }, [seriesId, loadBibleEntities]);
 
-  // Chuyển đổi ChapterDto đang chọn -> tiêu đề chương hiển thị trên Sidebar Script
+  // Chuyển đổi ChapterDto đang chọn -> tiêu đề chương hiển thị trên Header & Sidebar Kịch bản
   const activeChapter = useMemo(
     () => chapters.find((c) => c.id === currentChapterId) || null,
     [chapters, currentChapterId],
   );
   const activeChapterTitle = useMemo(() => {
     if (!activeChapter) return undefined;
-    return `Chương ${activeChapter.chapterNumber}${activeChapter.title ? `: ${activeChapter.title}` : ''}`;
+    return formatChapterLabel(activeChapter.chapterNumber, activeChapter.title);
   }, [activeChapter]);
 
   const handleSelectChapter = useCallback(
     (chapId: string) => {
       setCurrentChapterId(chapId);
-      setSearchParams((prev) => {
-        const next = new URLSearchParams(prev);
-        next.set('chapterId', chapId);
-        return next;
-      });
+      setCurrentStageIndex(0);
+      setIsStageFlowCompleted(false);
+
+      if (chapterIdFromParam && workspaceId && seriesId) {
+        const nextSearch = new URLSearchParams(searchParams);
+        nextSearch.delete('chapterId');
+        const qs = nextSearch.toString();
+        navigate(
+          `/workspaces/${workspaceId}/series/${seriesId}/chapters/${chapId}/artist${qs ? `?${qs}` : ''}`,
+        );
+      } else {
+        setSearchParams((prev) => {
+          const next = new URLSearchParams(prev);
+          next.set('chapterId', chapId);
+          return next;
+        });
+      }
     },
-    [setSearchParams],
+    [chapterIdFromParam, workspaceId, seriesId, searchParams, navigate, setSearchParams],
   );
 
-  // Chuyển đổi danh sách Series Bible thực tế + bản đồ tra cứu tên nhân vật cho Script
+  // Xử lý bấm Nộp (Submit) trên Header để hoàn tất và chuyển sang công đoạn tiếp theo
+  const handleSubmitStage = useCallback(async () => {
+    if (isSubmittingStage || isStageFlowCompleted || artistStages.length === 0) return;
+
+    const currentStage = artistStages[currentStageIndex];
+    if (!currentStage) return;
+
+    setIsSubmittingStage(true);
+    try {
+      if (currentChapterId) {
+        const matchingAssignment =
+          (assignmentIdFromUrl
+            ? chapterAssignments.find(
+                (a) =>
+                  a.id === assignmentIdFromUrl &&
+                  a.pipelineStageId === currentStage.id,
+              )
+            : undefined) ||
+          chapterAssignments.find((a) => {
+            const st = String(a.status || '').toLowerCase();
+            return (
+              a.pipelineStageId === currentStage.id &&
+              (st === 'assigned' || st === 'inprogress' || st === 'reworkrequired')
+            );
+          });
+
+        if (matchingAssignment) {
+          try {
+            const statusLower = String(matchingAssignment.status || '').toLowerCase();
+            if (
+              (statusLower === 'assigned' || statusLower === 'reworkrequired') &&
+              assignmentService?.startAssignment
+            ) {
+              await assignmentService.startAssignment(currentChapterId, matchingAssignment.id);
+            }
+            if (assignmentService?.submitAssignment) {
+              const updated = await assignmentService.submitAssignment(
+                currentChapterId,
+                matchingAssignment.id,
+              );
+              if (updated) {
+                setChapterAssignments((prev) =>
+                  prev.map((a) => (a.id === updated.id ? updated : a)),
+                );
+              }
+            }
+          } catch {
+            // Không chặn luồng chuyển bước trên bàn vẽ nếu API phân công chưa sẵn sàng
+          }
+        }
+      }
+
+      if (currentStageIndex < artistStages.length - 1) {
+        const nextIdx = currentStageIndex + 1;
+        setCurrentStageIndex(nextIdx);
+        toast.success(
+          'Chuyển công đoạn thành công',
+          `Đã hoàn tất "${currentStage.label}" và chuyển sang "${artistStages[nextIdx].label}".`,
+        );
+      } else {
+        setIsStageFlowCompleted(true);
+        toast.success(
+          'Hoàn tất bản vẽ',
+          `Đã nộp "${currentStage.label}" để chờ kiểm duyệt.`,
+        );
+      }
+    } finally {
+      setIsSubmittingStage(false);
+    }
+  }, [
+    isSubmittingStage,
+    isStageFlowCompleted,
+    artistStages,
+    currentStageIndex,
+    currentChapterId,
+    assignmentIdFromUrl,
+    chapterAssignments,
+    toast,
+  ]);
+
+  const seriesPath = useMemo(() => {
+    if (workspaceId && seriesId) {
+      return getRoleDefaultPath(workspaceRole || 'ARTIST', workspaceId, seriesId);
+    }
+    return workspaceId ? `/workspaces/${workspaceId}/series` : '/workspaces';
+  }, [workspaceId, seriesId, workspaceRole]);
+
+  const chapterPath = useMemo(() => {
+    if (workspaceId && seriesId && currentChapterId) {
+      return `/workspaces/${workspaceId}/series/${seriesId}/workspace?chapterId=${encodeURIComponent(currentChapterId)}`;
+    }
+    return seriesPath;
+  }, [workspaceId, seriesId, currentChapterId, seriesPath]);
+
+  // Đồng bộ thông tin Header lên FocusWorkspaceLayout (đường dẫn Series/Chương + công đoạn + nút Nộp)
+  useEffect(() => {
+    if (!focusHeader?.isInsideFocusLayout) return;
+    focusHeader.setHeaderConfig({
+      seriesTitle,
+      seriesPath,
+      chapters,
+      currentChapterId,
+      chapterPath,
+      onSelectChapter: handleSelectChapter,
+      stages: artistStages,
+      currentStageIndex,
+      isStageFlowCompleted,
+      isSubmittingStage,
+      onSubmitStage: handleSubmitStage,
+    });
+  }, [
+    focusHeader,
+    seriesTitle,
+    seriesPath,
+    chapters,
+    currentChapterId,
+    chapterPath,
+    handleSelectChapter,
+    artistStages,
+    currentStageIndex,
+    isStageFlowCompleted,
+    isSubmittingStage,
+    handleSubmitStage,
+  ]);
+
+  useEffect(() => {
+    return () => {
+      if (focusHeader?.isInsideFocusLayout) {
+        focusHeader.setHeaderConfig(null);
+      }
+    };
+  }, [focusHeader]);
+
+  // Chuyển đổi danh sách Hồ sơ truyện thực tế + bản đồ tra cứu tên nhân vật cho Kịch bản
   const { bibleEntities, characterById } = useMemo(() => {
     const charMap = new Map<string, { name: string; color: string }>();
 
@@ -488,61 +805,25 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   // Tìm trang hiện tại đang được chọn
   const selectedPage = pages.find((p) => p.id === selectedPageId) || pages[0] || null;
 
-  // Đồng bộ script lines với Trang, Panel và Tên/Màu nhân vật từ Series Bible
+  // Đồng bộ các dòng kịch bản với Trang, Khung và Tên/Màu nhân vật từ Hồ sơ truyện
   const resolvedScriptLines = useMemo(() => {
     if (!hasLoadedRealScript && !initialScriptLines) return undefined;
     const source: RawLoadedScriptLine[] | undefined = rawScriptLines || initialScriptLines;
     if (!source) return undefined;
 
-    // Thu thập danh sách tất cả các trang thuộc từng phân cảnh (từ page.sceneId và panel.sceneId)
-    const sceneToPagesMap = new Map<string, number[]>();
-    const addScenePage = (sId: string, pageNum: number) => {
-      const list = sceneToPagesMap.get(sId) || [];
-      if (!list.includes(pageNum)) {
-        list.push(pageNum);
-        list.sort((a, b) => a - b);
-        sceneToPagesMap.set(sId, list);
-      }
-    };
+    const sceneToPageMap = new Map<string, number>();
     pages.forEach((p) => {
-      if (p.sceneId) addScenePage(p.sceneId, p.pageNumber);
-    });
-    Object.entries(panelScenePagesMap).forEach(([sId, pageNums]) => {
-      pageNums.forEach((pNum) => addScenePage(sId, pNum));
-    });
-
-    // Đếm tổng số dòng trong từng scene chưa có panelId để chia đều sang các trang thuộc cùng scene đó
-    const unpaneledLinesByScene = new Map<string, string[]>();
-    source.forEach((line) => {
-      const hasPanel = Boolean(line.panelId && panelPageMap[line.panelId]);
-      if (!hasPanel && !line.pageNumber && line.sceneId) {
-        const arr = unpaneledLinesByScene.get(line.sceneId) || [];
-        arr.push(line.id);
-        unpaneledLinesByScene.set(line.sceneId, arr);
+      if (p.sceneId && !sceneToPageMap.has(p.sceneId)) {
+        sceneToPageMap.set(p.sceneId, p.pageNumber);
       }
     });
 
     return source.map((line): ScriptLineItem => {
       const fromPanel = line.panelId ? panelPageMap[line.panelId] : undefined;
-      let sceneFallbackPage: number | undefined;
-      if (!fromPanel && !line.pageNumber && line.sceneId) {
-        const scenePages = sceneToPagesMap.get(line.sceneId);
-        if (scenePages && scenePages.length > 0) {
-          if (scenePages.length === 1) {
-            sceneFallbackPage = scenePages[0];
-          } else {
-            const idsInScene = unpaneledLinesByScene.get(line.sceneId) || [];
-            const idx = Math.max(0, idsInScene.indexOf(line.id));
-            const bucket = Math.min(
-              scenePages.length - 1,
-              Math.floor((idx * scenePages.length) / Math.max(1, idsInScene.length)),
-            );
-            sceneFallbackPage = scenePages[bucket];
-          }
-        }
-      }
-
-      const resolvedPageNum = fromPanel?.pageNumber ?? line.pageNumber ?? sceneFallbackPage;
+      const resolvedPageNum =
+        fromPanel?.pageNumber ??
+        line.pageNumber ??
+        (line.sceneId ? sceneToPageMap.get(line.sceneId) : undefined);
       const resolvedPanelNum = fromPanel?.panelNumber ?? line.panelNumber;
 
       const charInfo = line.speakerCharacterId
@@ -568,7 +849,6 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     initialScriptLines,
     pages,
     panelPageMap,
-    panelScenePagesMap,
     characterById,
   ]);
 
@@ -579,6 +859,15 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
       slugline: first?.sceneSlugline || undefined,
     };
   }, [resolvedScriptLines, activeChapterTitle]);
+
+  const activeStageKey: PageStage = useMemo(() => {
+    if (isStageFlowCompleted) return 'completed';
+    const current = artistStages[currentStageIndex];
+    if (current?.key === 'ink' || current?.key === 'lettering' || current?.key === 'completed') {
+      return current.key;
+    }
+    return 'pencil';
+  }, [isStageFlowCompleted, artistStages, currentStageIndex]);
 
   // Thao tác trang: Chọn trang
   const handleSelectPage = (page: PageDto) => {
@@ -617,7 +906,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
           setSelectedPageId(created.id);
         }
       } catch {
-        // Giữ lại newPage ở state local
+        // Giữ lại trang mới ở trạng thái tạm thời
       }
     }
   };
@@ -635,7 +924,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
       try {
         await pageService.deletePage(pageId);
       } catch {
-        // Đã xóa trên local
+        // Đã xóa trên giao diện
       }
     }
   };
@@ -666,93 +955,119 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   return (
     <div
       ref={containerRef}
-      className='flex-1 basis-0 min-h-0 w-full h-full flex flex-row bg-[#F3F0E9] text-[#1C1917] overflow-hidden select-none relative animate-in fade-in duration-300'
+      className='flex-1 basis-0 min-h-0 w-full h-full flex flex-col bg-[#F3F0E9] text-[#1C1917] overflow-hidden select-none relative animate-in fade-in duration-300'
       data-testid='artist-desk'
     >
-      {/* 1. SIDEBAR CÔNG CỤ ARTIST (Kịch bản Script + Series Bible) */}
-      <ArtistCanvaSidebar
-        pages={pages.map((p) => ({
-          id: p.id,
-          pageNumber: p.pageNumber,
-          title: `Trang ${p.pageNumber}`,
-          stage: 'pencil',
-          panelsCount: p.elementsCount || 1,
-          format: p.layoutFormat || 'B5',
-          isVisible: true,
-        }))}
-        selectedPageId={selectedPageId || ''}
-        onSelectPage={(id) => setSelectedPageId(id)}
-        onAddPage={handleAddPage}
-        onDuplicatePage={() => {
-          if (selectedPage) handleDuplicatePage(selectedPage);
-        }}
-        onDeletePage={(id) => handleDeletePage(id)}
-        onMovePage={() => {}}
-        onToggleVisibility={() => {}}
-        hidePagesTab={true}
-        scriptLines={resolvedScriptLines}
-        sceneTitle={firstSceneMeta.title}
-        sceneSlugline={firstSceneMeta.slugline}
-        chapterTitle={activeChapterTitle}
-        chapters={chapters}
-        selectedChapterId={currentChapterId}
-        onSelectChapter={handleSelectChapter}
-        isLoadingScript={isLoadingScript}
-        bibleEntities={bibleEntities}
-        seriesTitle={seriesTitle}
-        isLoadingBible={isLoadingBible}
-        theme='paper'
-      />
+      {/* Fallback Header khi màn hình ArtistDeskView được render độc lập bên ngoài FocusWorkspaceLayout */}
+      {!focusHeader?.isInsideFocusLayout && (
+        <FocusStudioHeaderBar
+          workspaceId={workspaceId}
+          seriesId={seriesId}
+          chapterId={currentChapterId}
+          pathname={location.pathname}
+          userRole={workspaceRole || 'ARTIST'}
+          activeSeriesTitle={seriesTitle}
+          headerConfig={{
+            seriesTitle,
+            seriesPath,
+            chapters,
+            currentChapterId,
+            chapterPath,
+            onSelectChapter: handleSelectChapter,
+            stages: artistStages,
+            currentStageIndex,
+            isStageFlowCompleted,
+            isSubmittingStage,
+            onSubmitStage: handleSubmitStage,
+          }}
+          showFocusControls={false}
+        />
+      )}
 
-      {/* 2. KHU VỰC LÀM VIỆC CHÍNH (CANVAS TRANG GIẤY TRẮNG Ở TRÊN + QUẢN LÝ TRANG CANVA Ở DƯỚI) */}
-      <div className='flex-1 min-h-0 min-w-0 h-full flex flex-col overflow-hidden relative'>
-        {/* KHU VỰC BÀN VẼ CHÍNH (CANVAS WORKSPACE) - Căn giữa màn hình, giữ màu nền workspace #F3F0E9 */}
-        <main
-          className='relative flex-1 min-h-0 min-w-0 w-full h-full flex items-center justify-center p-4 sm:p-6 md:p-8 overflow-hidden'
-          data-testid='artist-canvas-shell'
-        >
-          {/* Wrapper phóng to/thu nhỏ canvas theo slider - Căn giữa tự nhiên */}
-          <div
-            className='w-full h-full flex items-center justify-center m-auto transition-transform duration-200 ease-out origin-center'
-            style={{ transform: `scale(${zoomScale})` }}
+      <div className='flex-1 min-h-0 w-full flex flex-row overflow-hidden relative'>
+        {/* 1. SIDEBAR CÔNG CỤ HỌA SĨ (Kịch bản tham chiếu + Hồ sơ truyện) */}
+        <ArtistCanvaSidebar
+          pages={pages.map((p) => ({
+            id: p.id,
+            pageNumber: p.pageNumber,
+            title: `Trang ${p.pageNumber}`,
+            stage: activeStageKey,
+            panelsCount: p.elementsCount || 1,
+            format: p.layoutFormat || 'B5',
+            isVisible: true,
+          }))}
+          selectedPageId={selectedPageId || ''}
+          onSelectPage={(id) => setSelectedPageId(id)}
+          onAddPage={handleAddPage}
+          onDuplicatePage={() => {
+            if (selectedPage) handleDuplicatePage(selectedPage);
+          }}
+          onDeletePage={(id) => handleDeletePage(id)}
+          onMovePage={() => {}}
+          onToggleVisibility={() => {}}
+          hidePagesTab={true}
+          scriptLines={resolvedScriptLines}
+          sceneTitle={firstSceneMeta.title}
+          sceneSlugline={firstSceneMeta.slugline}
+          chapterTitle={activeChapterTitle}
+          chapters={chapters}
+          selectedChapterId={currentChapterId}
+          onSelectChapter={handleSelectChapter}
+          isLoadingScript={isLoadingScript}
+          bibleEntities={bibleEntities}
+          seriesTitle={seriesTitle}
+          isLoadingBible={isLoadingBible}
+          theme='paper'
+        />
+
+        {/* 2. KHU VỰC LÀM VIỆC CHÍNH (TRANG GIẤY TRẮNG Ở TRÊN + QUẢN LÝ TRANG Ở DƯỚI) */}
+        <div className='flex-1 min-h-0 min-w-0 h-full flex flex-col overflow-hidden relative'>
+          <main
+            className='relative flex-1 min-h-0 min-w-0 w-full h-full flex items-center justify-center p-4 sm:p-6 md:p-8 overflow-hidden'
+            data-testid='artist-canvas-shell'
           >
-            {/* Trang giấy trắng tự nhiên (Chuẩn tỷ lệ Manga B5 1:1.414, hiệu ứng đổ bóng tự nhiên, mở lên mượt mà) */}
             <div
-              key={selectedPageId || 'default'}
-              data-testid='artist-blank-sheet'
-              className='max-h-full max-w-full h-full w-auto aspect-[1/1.414] bg-white rounded-[3px] shadow-[0_4px_16px_rgba(0,0,0,0.04),0_16px_40px_rgba(0,0,0,0.07)] border border-stone-200/90 relative flex flex-col items-center justify-center p-6 sm:p-8 transition-all duration-300 ease-out shrink-0 animate-in fade-in zoom-in-98'
+              className='w-full h-full flex items-center justify-center m-auto transition-transform duration-200 ease-out origin-center'
+              style={{ transform: `scale(${zoomScale})` }}
             >
-              {/* Vùng vẽ trang giấy trắng tự nhiên */}
+              {/* Trang giấy trắng tự nhiên chuẩn tỷ lệ 1:1.414 */}
               <div
-                className='w-full h-full border border-dashed border-stone-200/70 rounded-[2px] flex flex-col items-center justify-center relative'
-                data-testid='artist-canvas-surface'
+                key={selectedPageId || 'default'}
+                data-testid='artist-blank-sheet'
+                className='max-h-full max-w-full h-full w-auto aspect-[1/1.414] bg-white rounded-[3px] shadow-[0_4px_16px_rgba(0,0,0,0.04),0_16px_40px_rgba(0,0,0,0.07)] border border-stone-200/90 relative flex flex-col items-center justify-center p-6 sm:p-8 transition-all duration-300 ease-out shrink-0 animate-in fade-in zoom-in-98'
               >
-                {/* Dấu định vị 4 góc vẽ (Crop marks tinh tế, thanh thoát) */}
-                <div className='absolute top-2.5 left-2.5 w-3 h-3 border-t border-l border-stone-300/80 pointer-events-none' />
-                <div className='absolute top-2.5 right-2.5 w-3 h-3 border-t border-r border-stone-300/80 pointer-events-none' />
-                <div className='absolute bottom-2.5 left-2.5 w-3 h-3 border-b border-l border-stone-300/80 pointer-events-none' />
-                <div className='absolute bottom-2.5 right-2.5 w-3 h-3 border-b border-r border-stone-300/80 pointer-events-none' />
+                {/* Vùng vẽ trang giấy trắng */}
+                <div
+                  className='w-full h-full border border-dashed border-stone-200/70 rounded-[2px] flex flex-col items-center justify-center relative'
+                  data-testid='artist-canvas-surface'
+                >
+                  {/* Dấu định vị 4 góc trang */}
+                  <div className='absolute top-2.5 left-2.5 w-3 h-3 border-t border-l border-stone-300/80 pointer-events-none' />
+                  <div className='absolute top-2.5 right-2.5 w-3 h-3 border-t border-r border-stone-300/80 pointer-events-none' />
+                  <div className='absolute bottom-2.5 left-2.5 w-3 h-3 border-b border-l border-stone-300/80 pointer-events-none' />
+                  <div className='absolute bottom-2.5 right-2.5 w-3 h-3 border-b border-r border-stone-300/80 pointer-events-none' />
+                </div>
               </div>
             </div>
-          </div>
-        </main>
+          </main>
 
-        {/* THANH QUẢN LÝ TRANG Ở ĐÁY MÀN HÌNH - BACKGROUND TRONG SUỐT & CĂN GIỮA MÀN HÌNH TUYỆT ĐỐI */}
-        <ArtistBottomPageStrip
-          pages={pages}
-          selectedPageId={selectedPageId}
-          onSelectPage={handleSelectPage}
-          onAddPage={handleAddPage}
-          onDeletePage={handleDeletePage}
-          onDuplicatePage={handleDuplicatePage}
-          isFilmstripOpen={isFilmstripOpen}
-          onToggleFilmstrip={() => setIsFilmstripOpen((v) => !v)}
-          zoomScale={zoomScale}
-          onZoomChange={setZoomScale}
-          isFullscreen={isFullscreen}
-          onToggleFullscreen={handleToggleFullscreen}
-          canEdit={true}
-        />
+          {/* THANH QUẢN LÝ TRANG Ở ĐÁY MÀN HÌNH */}
+          <ArtistBottomPageStrip
+            pages={pages}
+            selectedPageId={selectedPageId}
+            onSelectPage={handleSelectPage}
+            onAddPage={handleAddPage}
+            onDeletePage={handleDeletePage}
+            onDuplicatePage={handleDuplicatePage}
+            isFilmstripOpen={isFilmstripOpen}
+            onToggleFilmstrip={() => setIsFilmstripOpen((v) => !v)}
+            zoomScale={zoomScale}
+            onZoomChange={setZoomScale}
+            isFullscreen={isFullscreen}
+            onToggleFullscreen={handleToggleFullscreen}
+            canEdit={true}
+          />
+        </div>
       </div>
     </div>
   );

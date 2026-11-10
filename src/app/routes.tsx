@@ -483,6 +483,10 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                 element={<ArtistDeskView workspaceRole={currentWorkspaceRole} />}
               />
               <Route
+                path='chapters/:chapterId/artist'
+                element={<ArtistDeskView workspaceRole={currentWorkspaceRole} />}
+              />
+              <Route
                 path='artist/workspace'
                 element={<ArtistWorkspaceView workspaceRole={currentWorkspaceRole} />}
               />

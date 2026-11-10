@@ -91,6 +91,17 @@ export interface ArtistCanvaSidebarProps {
   hidePagesTab?: boolean;
 }
 
+function formatNarrationMode(mode?: string): string | null {
+  if (!mode || mode === 'Present') return null;
+  const lower = mode.toLowerCase();
+  if (lower.includes('flashback')) return 'Hồi tưởng';
+  if (lower.includes('inner') || lower.includes('monologue') || lower.includes('thought')) {
+    return 'Độc thoại nội tâm';
+  }
+  if (lower.includes('voice') || lower.includes('narrat')) return 'Lời dẫn';
+  return null;
+}
+
 const DEFAULT_SCRIPT_LINES: ScriptLineItem[] = [
   {
     id: 'line-1',
@@ -99,7 +110,7 @@ const DEFAULT_SCRIPT_LINES: ScriptLineItem[] = [
     sceneTitle: 'Phân cảnh 1: Cổng Thành Phía Nam',
     sceneSlugline: 'NGOẠI · CỔNG THÀNH · SÁNG',
     stageDirection:
-      'Góc toàn cảnh (Extreme Wide Shot): Thung lũng hoang tàn sau cơn bão cát. Khói bốc lên từ tháp quan sát cổng thành phía Nam.',
+      'Góc toàn cảnh: Thung lũng hoang tàn sau cơn bão cát. Khói bốc lên từ tháp quan sát cổng thành phía Nam.',
   },
   {
     id: 'line-2',
@@ -119,7 +130,7 @@ const DEFAULT_SCRIPT_LINES: ScriptLineItem[] = [
     sceneTitle: 'Phân cảnh 1: Cổng Thành Phía Nam',
     sceneSlugline: 'NGOẠI · CỔNG THÀNH · SÁNG',
     stageDirection:
-      'Cận cảnh (Close-Up): Thanh kiếm của Minh Triết cắm sâu xuống lớp cát lún, ánh thép phản chiếu vệt nắng đầu tiên của bình minh.',
+      'Cận cảnh: Thanh kiếm của Minh Triết cắm sâu xuống lớp cát lún, ánh thép phản chiếu vệt nắng đầu tiên của bình minh.',
   },
   {
     id: 'line-4',
@@ -139,7 +150,7 @@ const DEFAULT_SCRIPT_LINES: ScriptLineItem[] = [
     sceneTitle: 'Phân cảnh 1: Cổng Thành Phía Nam',
     sceneSlugline: 'NGOẠI · CỔNG THÀNH · SÁNG',
     stageDirection:
-      'Góc hất từ dưới lên (Low Angle): Cửa sắt nặng nề bắt đầu rung chuyển với âm thanh rít chói tai.',
+      'Góc hất từ dưới lên: Cửa sắt nặng nề bắt đầu rung chuyển với âm thanh rít chói tai.',
   },
   {
     id: 'line-6',
@@ -168,7 +179,7 @@ const DEFAULT_SCRIPT_LINES: ScriptLineItem[] = [
     sceneTitle: 'Phân cảnh 2: Phố Cổ Trong Sương',
     sceneSlugline: 'NGOẠI · HẺM ĐÁ CỔ · SÁNG',
     stageDirection:
-      'Góc trung cảnh (Medium Shot): Hai người áp sát bức tường rêu, tiếng bước chân tuần tra nặng nề vang vọng phía đầu hẻm.',
+      'Góc trung cảnh: Hai người áp sát bức tường rêu, tiếng bước chân tuần tra nặng nề vang vọng phía đầu hẻm.',
   },
   {
     id: 'line-9',
@@ -208,7 +219,7 @@ const DEFAULT_SCRIPT_LINES: ScriptLineItem[] = [
     sceneTitle: 'Phân cảnh 3: Mật Thất Cổ Tự',
     sceneSlugline: 'NỘI · TÀNG THƯ CÁC · TỐI',
     stageDirection:
-      'Đặc tả (Extreme Close-Up): Dấu ấn Hắc Long bất ngờ phát sáng đỏ rực trên nền đá khi Minh Triết chạm tay vào cuộn thư.',
+      'Đặc tả cận cảnh: Dấu ấn Hắc Long bất ngờ phát sáng đỏ rực trên nền đá khi Minh Triết chạm tay vào cuộn thư.',
   },
   {
     id: 'line-13',
@@ -228,7 +239,7 @@ const DEFAULT_SCRIPT_LINES: ScriptLineItem[] = [
     sceneTitle: 'Phân cảnh 4: Thoát Khỏi Vòng Vây',
     sceneSlugline: 'NGOẠI · THÁP CHUÔNG PHÍA TÂY · CHIỀU TÀ',
     stageDirection:
-      'Góc động (Action Angle): Minh Triết vung kiếm chém đứt dây xích cửa sập, ánh hoàng hôn rực rỡ tràn vào khung hình.',
+      'Góc hành động: Minh Triết vung kiếm chém đứt dây xích cửa sập, ánh hoàng hôn rực rỡ tràn vào khung hình.',
   },
   {
     id: 'line-15',
@@ -276,7 +287,7 @@ const DEFAULT_BIBLE_ENTITIES: BibleEntityItem[] = [
     id: 'loc-1',
     name: 'Cổng Thành Phía Nam (Nam Môn Quan)',
     category: 'location',
-    tag: 'Địa danh Canon',
+    tag: 'Địa danh chính',
     color: '#8B5CF6',
     description:
       'Cửa ngõ phòng thủ kiên cố ngăn cách sa mạc Tử Thần với đô thành Thượng Cảnh.',
@@ -290,7 +301,7 @@ const DEFAULT_BIBLE_ENTITIES: BibleEntityItem[] = [
     id: 'lore-1',
     name: 'Dấu Ấn Hắc Long',
     category: 'lore',
-    tag: 'Quy tắc Canon',
+    tag: 'Quy tắc cốt truyện',
     color: '#EF4444',
     description:
       'Ký hiệu nguyền rủa của hoàng tộc thoái vị. Khi xuất hiện ở đâu, nơi đó sẽ chịu phong ấn vĩnh viễn.',
@@ -383,7 +394,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
   const [pageSearchQuery, setPageSearchQuery] = useState('');
   const [pageViewMode, setPageViewMode] = useState<'thumbnail' | 'compact'>('thumbnail');
 
-  // Bộ lọc Script (Tab Script: mặc định hiển thị xuyên suốt toàn bộ kịch bản, có thể lọc theo trang đang chọn)
+  // Bộ lọc Kịch bản (Tab Kịch bản: mặc định hiển thị xuyên suốt toàn bộ kịch bản, có thể chuyển sang trang đang chọn)
   const [scriptSearchQuery, setScriptSearchQuery] = useState('');
   const [scriptViewMode, setScriptViewMode] = useState<'all' | 'current-page'>('all');
 
@@ -623,15 +634,15 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                 : 'hover:bg-[var(--sb-hover)] hover:text-[var(--sb-text)] text-[var(--sb-muted)]'
             }`}
           >
-            <Sparkles
-              className={`w-5 h-5 mb-1 ${
-                activeTab === 'bible' && isDrawerOpen
-                  ? 'text-[var(--sb-accent)]'
-                  : 'text-current'
-              }`}
-            />
-            <span className='text-[10px] tracking-tight'>Bible</span>
-          </button>
+              <Sparkles
+                className={`w-5 h-5 mb-1 ${
+                  activeTab === 'bible' && isDrawerOpen
+                    ? 'text-[var(--sb-accent)]'
+                    : 'text-current'
+                }`}
+              />
+              <span className='text-[10px] tracking-tight'>Hồ sơ</span>
+            </button>
         </div>
 
         {/* Nút thu gọn / mở rộng Drawer nhanh ở đáy dock */}
@@ -679,7 +690,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                     Quản Lý Trang ({pages.length})
                   </h2>
                   <p className='text-[11px] text-[var(--sb-muted)] mt-0.5'>
-                    Tỷ lệ chuẩn Manga B5 Tankōbon
+                    Khổ trang truyện tiêu chuẩn
                   </p>
                 </div>
 
@@ -824,7 +835,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
 
                         <div className='flex items-center justify-between text-[10px] text-[var(--sb-muted)]'>
                           <span>{page.panelsCount} khung</span>
-                          <span>{page.format || 'B5 Master'}</span>
+                          <span>{page.format || 'Khổ tiêu chuẩn'}</span>
                         </div>
                       </div>
 
@@ -970,18 +981,6 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                   <div className='flex items-center gap-1 text-[10px]'>
                     <button
                       type='button'
-                      onClick={() => setScriptViewMode('current-page')}
-                      data-testid='canva-script-mode-current-page'
-                      className={`flex-1 py-1 px-2 rounded-md font-medium transition-colors cursor-pointer text-center ${
-                        scriptViewMode === 'current-page'
-                          ? 'bg-[var(--sb-accent)] text-white'
-                          : 'bg-[var(--sb-hover)] text-[var(--sb-muted)] hover:text-[var(--sb-text)]'
-                      }`}
-                    >
-                      Trang {activePageNumber}
-                    </button>
-                    <button
-                      type='button'
                       onClick={() => setScriptViewMode('all')}
                       data-testid='canva-script-mode-all'
                       className={`flex-1 py-1 px-2 rounded-md font-medium transition-colors cursor-pointer text-center ${
@@ -991,6 +990,18 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                       }`}
                     >
                       Toàn bộ kịch bản
+                    </button>
+                    <button
+                      type='button'
+                      onClick={() => setScriptViewMode('current-page')}
+                      data-testid='canva-script-mode-current-page'
+                      className={`flex-1 py-1 px-2 rounded-md font-medium transition-colors cursor-pointer text-center ${
+                        scriptViewMode === 'current-page'
+                          ? 'bg-[var(--sb-accent)] text-white'
+                          : 'bg-[var(--sb-hover)] text-[var(--sb-muted)] hover:text-[var(--sb-text)]'
+                      }`}
+                    >
+                      Trang {activePageNumber}
                     </button>
                   </div>
                 </div>
@@ -1118,9 +1129,9 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                                                 >
                                                   {line.characterName}
                                                 </span>
-                                                {line.narrationMode && line.narrationMode !== 'Present' && (
-                                                  <span className='text-[9px] font-mono text-[var(--sb-muted)]'>
-                                                    ({line.narrationMode})
+                                                {formatNarrationMode(line.narrationMode) && (
+                                                  <span className='text-[9px] text-[var(--sb-muted)]'>
+                                                    ({formatNarrationMode(line.narrationMode)})
                                                   </span>
                                                 )}
                                               </div>
@@ -1185,9 +1196,9 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                                           >
                                             {line.characterName}
                                           </span>
-                                          {line.narrationMode && line.narrationMode !== 'Present' && (
-                                            <span className='text-[9px] font-mono text-[var(--sb-muted)]'>
-                                              ({line.narrationMode})
+                                          {formatNarrationMode(line.narrationMode) && (
+                                            <span className='text-[9px] text-[var(--sb-muted)]'>
+                                              ({formatNarrationMode(line.narrationMode)})
                                             </span>
                                           )}
                                         </div>
@@ -1218,21 +1229,21 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
               data-testid='canva-drawer-bible'
               className='flex flex-col h-full overflow-hidden'
             >
-              {/* Header Drawer Bible */}
+              {/* Header Drawer Hồ sơ */}
               <div className='p-3.5 border-b border-[var(--sb-border)] bg-[var(--sb-surface)] shrink-0'>
                 <div className='flex items-center justify-between mb-1'>
                   <div className='flex items-center gap-1.5'>
-                    <span className='text-[10px] font-mono uppercase px-2 py-0.5 rounded-full bg-[var(--sb-surface-hover)] text-[var(--sb-accent)] border border-[var(--sb-border)] font-bold'>
-                      Series Bible
+                    <span className='text-[10px] uppercase px-2 py-0.5 rounded-full bg-[var(--sb-surface-hover)] text-[var(--sb-accent)] border border-[var(--sb-border)] font-bold'>
+                      Hồ sơ truyện
                     </span>
                     {isLoadingBible && (
-                      <span className='text-[10px] text-[var(--sb-muted)] animate-pulse'>Đang nạp...</span>
+                      <span className='text-[10px] text-[var(--sb-muted)] animate-pulse'>Đang tải...</span>
                     )}
                   </div>
                   <span className='text-[10px] text-[var(--sb-muted)] truncate max-w-[130px]'>{seriesTitle}</span>
                 </div>
                 <h2 className='text-xs font-bold text-[var(--sb-text)] tracking-tight'>
-                  Tra Cứu Nhân Vật & Bối Cảnh Canon
+                  Tra cứu nhân vật & bối cảnh
                 </h2>
               </div>
 
@@ -1278,8 +1289,8 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                 {filteredBible.length === 0 ? (
                   <div className='py-12 px-3 text-center text-[var(--sb-muted)] text-xs italic'>
                     {bibleEntities.length === 0 && !isLoadingBible
-                      ? 'Series chưa có mục Bible nào.'
-                      : 'Không tìm thấy mục Series Bible phù hợp.'}
+                      ? 'Bộ truyện chưa có hồ sơ tham chiếu nào.'
+                      : 'Không tìm thấy thông tin phù hợp.'}
                   </div>
                 ) : (
                   filteredBible.map((item) => (
@@ -1316,7 +1327,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                         <div className='flex items-center gap-1 shrink-0'>
                           {item.status === 'CanonLocked' && (
                             <span className='text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 font-semibold'>
-                              Canon
+                              Đã chốt
                             </span>
                           )}
                           <span className='text-[9px] px-2 py-0.5 rounded-full bg-[var(--sb-surface-hover)] text-[var(--sb-muted)] font-medium'>

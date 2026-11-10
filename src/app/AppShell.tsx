@@ -220,7 +220,8 @@ export function AppShell({
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [failedAvatarUrl, setFailedAvatarUrl] = useState<string | null>(null);
   const searchParams = new URLSearchParams(location.search);
-  const chapterId = searchParams.get('chapterId');
+  const chapterId = params.chapterId || searchParams.get('chapterId');
+  const chapterQuery = chapterId ? `?chapterId=${encodeURIComponent(chapterId)}` : '';
 
   const isReader =
     currentUser.activeRoles?.includes('READER') ||
@@ -264,7 +265,7 @@ export function AppShell({
               {
                 icon: Kanban,
                 label: t('navigation.menu.production'),
-                href: `/workspaces/${workspaceId}/series/${seriesId}/workspace`,
+                href: `/workspaces/${workspaceId}/series/${seriesId}/workspace${chapterQuery}`,
               },
               {
                 icon: Layers,
@@ -274,17 +275,17 @@ export function AppShell({
               {
                 icon: FileText,
                 label: t('navigation.menu.script'),
-                href: `/workspaces/${workspaceId}/series/${seriesId}/script`,
+                href: `/workspaces/${workspaceId}/series/${seriesId}/script${chapterQuery}`,
               },
               {
                 icon: LayoutTemplate,
                 label: t('navigation.menu.desk'),
-                href: `/workspaces/${workspaceId}/series/${seriesId}/artist`,
+                href: `/workspaces/${workspaceId}/series/${seriesId}/artist${chapterQuery}`,
               },
               {
                 icon: Type,
                 label: t('navigation.menu.lettering'),
-                href: `/workspaces/${workspaceId}/series/${seriesId}/letterer`,
+                href: `/workspaces/${workspaceId}/series/${seriesId}/letterer${chapterQuery}`,
               },
               {
                 icon: BookMarked,
@@ -381,7 +382,7 @@ export function AppShell({
               {
                 icon: FileText,
                 label: t('navigation.menu.script'),
-                href: `/workspaces/${workspaceId}/series/${seriesId}/script`,
+                href: `/workspaces/${workspaceId}/series/${seriesId}/script${chapterQuery}`,
               },
               // Màn làm việc riêng theo vai trò (route artist/letterer đã có trong routes.tsx)
               ...(effectiveRole === 'ARTIST'
@@ -389,7 +390,7 @@ export function AppShell({
                     {
                       icon: LayoutTemplate,
                       label: t('navigation.menu.desk'),
-                      href: `/workspaces/${workspaceId}/series/${seriesId}/artist`,
+                      href: `/workspaces/${workspaceId}/series/${seriesId}/artist${chapterQuery}`,
                     },
                   ]
                 : []),
@@ -398,7 +399,7 @@ export function AppShell({
                     {
                       icon: Type,
                       label: t('navigation.menu.lettering'),
-                      href: `/workspaces/${workspaceId}/series/${seriesId}/letterer`,
+                      href: `/workspaces/${workspaceId}/series/${seriesId}/letterer${chapterQuery}`,
                     },
                   ]
                 : []),
@@ -415,7 +416,7 @@ export function AppShell({
               {
                 icon: Kanban,
                 label: t('navigation.menu.production'),
-                href: `/workspaces/${workspaceId}/series/${seriesId}/workspace`,
+                href: `/workspaces/${workspaceId}/series/${seriesId}/workspace${chapterQuery}`,
               },
             ],
           },

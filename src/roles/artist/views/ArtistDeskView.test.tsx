@@ -9,6 +9,9 @@ import { panelService } from '@/services/panel.service';
 import { scriptLineService } from '@/services/scriptLine.service';
 import { bibleService } from '@/services/bible.service';
 import { seriesService } from '@/services/series.service';
+import { pipelineService } from '@/services/pipeline.service';
+import { assignmentService } from '@/services/assignment.service';
+import { FocusWorkspaceLayout } from '@/app/FocusWorkspaceLayout';
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -342,7 +345,204 @@ describe('ArtistDeskView - Real API Series Bible & Continuous Script Integration
     expect(screen.getByText('Thợ rèn ẩn danh mang cánh tay máy.')).toBeInTheDocument();
     expect(screen.getByText('Ngoại hình: Tóc bạc cắt ngắn, áo choàng đen')).toBeInTheDocument();
     expect(screen.getByText('Vết sẹo chữ X ở cổ tay trái')).toBeInTheDocument();
-    expect(screen.getByText('Canon')).toBeInTheDocument();
+    expect(screen.getByText('Đã chốt')).toBeInTheDocument();
     expect(screen.getByRole('img')).toHaveAttribute('src', 'https://example.com/kurogane.png');
+  });
+});
+
+describe('ArtistDeskView - Header Colors, Stage Progression & Series/Chapter Paths', () => {
+  it('displays system warm-paper header with series link, chapter switcher, and advances stages on Submit without technical jargon', async () => {
+    vi.spyOn(seriesService, 'getSeriesById').mockResolvedValue({
+      id: 'ser-1',
+      workspaceId: 'ws-1',
+      title: 'Kiếm Sĩ Phương Đông',
+      readingDirection: 0,
+      genre: 'Action',
+      format: 'Manga',
+      createdAt: '2026-01-01T00:00:00Z',
+      chaptersCount: 2,
+      chapters: [],
+    });
+
+    vi.spyOn(chapterService, 'getChaptersBySeries').mockResolvedValue({
+      items: [
+        {
+          id: 'chap-1',
+          seriesId: 'ser-1',
+          chapterNumber: 1,
+          title: 'Khởi Hành',
+          versionVector: 1,
+          createdAt: '2026-01-01T00:00:00Z',
+          scenesCount: 1,
+          pagesCount: 1,
+        },
+        {
+          id: 'chap-2',
+          seriesId: 'ser-1',
+          chapterNumber: 2,
+          title: 'Cơn Bão Đêm',
+          versionVector: 1,
+          createdAt: '2026-01-02T00:00:00Z',
+          scenesCount: 1,
+          pagesCount: 1,
+        },
+      ],
+      totalCount: 2,
+      pageIndex: 1,
+      pageSize: 20,
+      totalPages: 1,
+    });
+
+    vi.spyOn(pipelineService, 'getSeriesPipeline').mockResolvedValue({
+      id: 'pipe-1',
+      seriesId: 'ser-1',
+      name: 'Quy trình chuẩn',
+      stages: [
+        {
+          id: 'st-script',
+          name: 'Kịch bản (Script)',
+          slug: 'script',
+          stageOrder: 1,
+          allowedRole: 'Writer',
+          isApprovalGate: false,
+          isInitial: true,
+          isTerminal: false,
+          isEnabled: true,
+        },
+        {
+          id: 'st-pencil',
+          name: 'Nét chì (Pencil)',
+          slug: 'pencil',
+          stageOrder: 2,
+          allowedRole: 'Artist',
+          isApprovalGate: false,
+          isInitial: false,
+          isTerminal: false,
+          isEnabled: true,
+        },
+        {
+          id: 'st-ink',
+          name: 'Đi nét mực (Ink)',
+          slug: 'ink',
+          stageOrder: 3,
+          allowedRole: 'Artist',
+          isApprovalGate: true,
+          isInitial: false,
+          isTerminal: false,
+          isEnabled: true,
+        },
+      ],
+      transitions: [],
+    });
+
+    vi.spyOn(assignmentService, 'getAssignments').mockResolvedValue([
+      {
+        id: 'assign-pencil',
+        seriesId: 'ser-1',
+        chapterId: 'chap-1',
+        entityType: 'Chapter',
+        targetEntityId: 'chap-1',
+        pipelineStageId: 'st-pencil',
+        assigneeUserId: 'user-1',
+        assignedRole: 'ARTIST',
+        brief: 'Vẽ chương 1',
+        status: 'InProgress',
+        priority: 'Medium',
+        createdAt: '2026-01-01T00:00:00Z',
+      },
+    ]);
+
+    const submitSpy = vi
+      .spyOn(assignmentService, 'submitAssignment')
+      .mockResolvedValue({
+        id: 'assign-pencil',
+        seriesId: 'ser-1',
+        chapterId: 'chap-1',
+        entityType: 'Chapter',
+        targetEntityId: 'chap-1',
+        pipelineStageId: 'st-pencil',
+        assigneeUserId: 'user-1',
+        assignedRole: 'ARTIST',
+        brief: 'Vẽ chương 1',
+        status: 'Submitted',
+        priority: 'Medium',
+        createdAt: '2026-01-01T00:00:00Z',
+      });
+
+    const pagesSpy = vi.spyOn(pageService, 'getPagesByChapter').mockResolvedValue([]);
+
+    render(
+      <MemoryRouter initialEntries={['/workspaces/ws-1/series/ser-1/chapters/chap-1/artist']}>
+        <Routes>
+          <Route
+            element={
+              <FocusWorkspaceLayout
+                currentUser={{
+                  name: 'Họa Sĩ A',
+                  role: 'USER',
+                  workspaceRole: 'ARTIST' as any,
+                  activeRoles: ['ARTIST'],
+                  avatarInitials: 'HA',
+                }}
+              />
+            }
+          >
+            <Route
+              path='/workspaces/:workspaceId/series/:seriesId/chapters/:chapterId/artist'
+              element={<ArtistDeskView workspaceRole='ARTIST' />}
+            />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    // Only a single system-colored header renders
+    const headers = screen.getAllByTestId('focus-studio-header');
+    expect(headers).toHaveLength(1);
+    expect(headers[0]).toHaveClass('bg-[#FCFBF8]/95', 'border-[#D8D2C5]');
+
+    // Wait for Series title, Chapter select, and Artist stages to load
+    await waitFor(() => {
+      expect(screen.getByTestId('focus-series-link')).toHaveTextContent('Kiếm Sĩ Phương Đông');
+    });
+    expect(screen.getByTestId('focus-series-link')).toHaveAttribute(
+      'href',
+      '/workspaces/ws-1/series/ser-1/my-work',
+    );
+
+    const chapterSelect = await screen.findByTestId('focus-chapter-select');
+    expect(chapterSelect).toHaveValue('chap-1');
+    expect(chapterSelect).toHaveTextContent('Chương 1: Khởi Hành');
+    expect(chapterSelect).toHaveTextContent('Chương 2: Cơn Bão Đêm');
+
+    // Stage stepper displays localized Vietnamese stage names without technical jargon
+    await waitFor(() => {
+      expect(screen.getByTestId('focus-stage-step-0')).toHaveTextContent('Vẽ chì');
+    });
+    expect(screen.getByTestId('focus-stage-step-1')).toHaveTextContent('Đi nét mực');
+    expect(screen.getByTestId('focus-stage-step-0')).toHaveAttribute('data-stage-state', 'current');
+    expect(screen.getByTestId('focus-stage-step-1')).toHaveAttribute('data-stage-state', 'upcoming');
+    expect(screen.queryByText(/SHA-256|CAS|DPI|Canon|Zen Mode/i)).not.toBeInTheDocument();
+
+    // Submit advances from Stage 1 (Vẽ chì) -> Stage 2 (Đi nét mực)
+    fireEvent.click(screen.getByTestId('focus-submit-stage-btn'));
+    await waitFor(() => {
+      expect(submitSpy).toHaveBeenCalledWith('chap-1', 'assign-pencil');
+      expect(screen.getByTestId('focus-stage-step-0')).toHaveAttribute('data-stage-state', 'completed');
+      expect(screen.getByTestId('focus-stage-step-1')).toHaveAttribute('data-stage-state', 'current');
+    });
+
+    // Final Submit completes the stage flow
+    expect(screen.getByTestId('focus-submit-stage-btn')).toHaveTextContent('Nộp hoàn thiện');
+    fireEvent.click(screen.getByTestId('focus-submit-stage-btn'));
+    await waitFor(() => {
+      expect(screen.getByTestId('focus-stage-completed-badge')).toHaveTextContent('Đã nộp chờ duyệt');
+    });
+
+    // Switching chapter reloads the selected chapter
+    fireEvent.change(screen.getByTestId('focus-chapter-select'), { target: { value: 'chap-2' } });
+    await waitFor(() => {
+      expect(pagesSpy).toHaveBeenCalledWith('chap-2');
+    });
   });
 });

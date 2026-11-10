@@ -1,5 +1,5 @@
 import React from 'react';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { FocusWorkspaceLayout } from './FocusWorkspaceLayout';
@@ -14,7 +14,7 @@ describe('FocusWorkspaceLayout Component', () => {
     avatarInitials: 'KM',
   };
 
-  const renderLayout = (route = '/workspaces/ws-1/series/ser-1/artist') => {
+  const renderLayout = (route = '/workspaces/ws-1/series/ser-1/artist?chapterId=01') => {
     return render(
       <MemoryRouter initialEntries={[route]}>
         <Routes>
@@ -23,7 +23,7 @@ describe('FocusWorkspaceLayout Component', () => {
               <FocusWorkspaceLayout
                 currentUser={dummyUser}
                 activeWorkspace={{ id: 'ws-1', name: 'Manga Studio X' }}
-                activeSeries={{ title: 'Chainsaw Blade', subtitle: 'Arc 1' }}
+                activeSeries={{ id: 'ser-1', title: 'Chainsaw Blade', subtitle: 'Arc 1' }}
               />
             }
           >
@@ -37,38 +37,50 @@ describe('FocusWorkspaceLayout Component', () => {
     );
   };
 
-  it('renders FocusWorkspaceLayout with compact header and without AppShellSidebar', () => {
+  it('renders FocusWorkspaceLayout with system warm-paper header colors, series/chapter links, and no technical jargon', () => {
     renderLayout();
 
-    // Compact Studio Header exists
-    expect(screen.getByTestId('focus-studio-header')).toBeInTheDocument();
+    const layout = screen.getByTestId('focus-workspace-layout');
+    expect(layout).toHaveClass('bg-[#F3F0E9]', 'text-[#1C1917]');
+
+    const header = screen.getByTestId('focus-studio-header');
+    expect(header).toHaveClass('bg-[#FCFBF8]/95', 'border-[#D8D2C5]');
     expect(screen.getByTestId('focus-back-btn')).toBeInTheDocument();
 
-    // Breadcrumb displays correct workspace and desk title
-    expect(screen.getByText('Bàn vẽ Artist (Manga B5 Desk)')).toBeInTheDocument();
-    expect(screen.getByText('Auto-saved (SHA-256 CAS)')).toBeInTheDocument();
-    expect(screen.getByText('B5 Master (600 DPI)')).toBeInTheDocument();
+    // Series link points directly to ARTIST role series path
+    const seriesLink = screen.getByTestId('focus-series-link');
+    expect(seriesLink).toHaveTextContent('Chainsaw Blade');
+    expect(seriesLink).toHaveAttribute('href', '/workspaces/ws-1/series/ser-1/my-work');
 
-    // Content is rendered
+    // Chapter breadcrumb points directly to chapter workspace
+    const chapterBreadcrumb = screen.getByTestId('focus-chapter-breadcrumb');
+    expect(chapterBreadcrumb).toHaveTextContent('Chương 01');
+    expect(screen.getByTestId('focus-chapter-link')).toHaveAttribute(
+      'href',
+      '/workspaces/ws-1/series/ser-1/workspace?chapterId=01',
+    );
+
+    // No technical jargon visible
+    expect(screen.queryByText(/SHA-256|CAS|DPI|B5 Master|Zen Mode|Manga B5 Desk/i)).not.toBeInTheDocument();
+    expect(screen.getByText('Đã lưu tự động')).toBeInTheDocument();
+
+    // Content is rendered and AppShellSidebar is NOT present
     expect(screen.getByTestId('artist-desk-content')).toBeInTheDocument();
-
-    // AppShellSidebar is NOT present (preventing the 2-sidebar conflict!)
     expect(screen.queryByTestId('app-shell-sidebar')).not.toBeInTheDocument();
   });
 
-  it('supports toggling Zen Mode on via button or key and off via floating pill', () => {
+  it('supports toggling full focus mode on and off cleanly', () => {
     renderLayout();
 
-    // Click Zen mode button
-    const zenBtn = screen.getByTestId('focus-zen-toggle-btn');
-    fireEvent.click(zenBtn);
+    const focusBtn = screen.getByTestId('focus-zen-toggle-btn');
+    expect(focusBtn).toHaveTextContent('Tập trung');
+    fireEvent.click(focusBtn);
 
-    // Header collapses, floating pill appears
     expect(screen.queryByTestId('focus-studio-header')).not.toBeInTheDocument();
-    expect(screen.getByTestId('focus-zen-pill')).toBeInTheDocument();
+    const exitPill = screen.getByTestId('focus-zen-pill');
+    expect(exitPill).toHaveTextContent('Thoát toàn màn hình (F)');
 
-    // Exit Zen mode
-    fireEvent.click(screen.getByText(/Thoát Zen Mode/i));
+    fireEvent.click(screen.getByText(/Thoát toàn màn hình/i));
     expect(screen.getByTestId('focus-studio-header')).toBeInTheDocument();
     expect(screen.queryByTestId('focus-zen-pill')).not.toBeInTheDocument();
   });

@@ -187,7 +187,7 @@ export const ArtistBottomPageStrip: React.FC<ArtistBottomPageStripProps> = ({
               value={zoomScale}
               onChange={(e) => onZoomChange(parseFloat(e.target.value))}
               className='w-16 sm:w-24 h-1.5 bg-stone-300/70 rounded-lg appearance-none cursor-pointer accent-[#7C3AED]'
-              title='Phóng to / thu nhỏ canvas'
+              title='Phóng to / thu nhỏ trang vẽ'
             />
 
             <button
