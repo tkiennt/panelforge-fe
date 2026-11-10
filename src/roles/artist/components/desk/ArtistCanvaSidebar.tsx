@@ -188,14 +188,14 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
   const navigate = useNavigate();
   const { workspaceId, seriesId } = useParams<{ workspaceId?: string; seriesId?: string }>();
 
-  // Đồng bộ theme hệ thống từ localStorage hoặc prop
+  // Đồng bộ theme hệ thống từ localStorage hoặc prop, mặc định theme màu sáng 'paper'
   const [currentTheme, setCurrentTheme] = useState<SidebarTheme>(() => {
     if (theme) return theme;
     try {
       const saved = localStorage.getItem('pf.sidebar.theme');
-      return (saved as SidebarTheme) || 'ink';
+      return (saved as SidebarTheme) || 'paper';
     } catch {
-      return 'ink';
+      return 'paper';
     }
   });
 
@@ -207,8 +207,31 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
 
   // Trạng thái tab Canva: 'pages' | 'script' | 'bible'
   const [activeTab, setActiveTab] = useState<CanvaSidebarTab>('pages');
-  // Trạng thái mở/đóng ngăn phụ (Canva Drawer)
-  const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(true);
+  // Trạng thái mở/đóng ngăn phụ (Canva Drawer): Mặc định ĐÓNG (false) để chỉ hiển thị trang giấy trắng tinh
+  const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
+
+  // Phím tắt '[' để mở/đóng nhanh Drawer
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+
+      if (e.key === '[') {
+        e.preventDefault();
+        setIsDrawerOpen((prev) => !prev);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Bộ lọc trang (Tab Pages)
   const [pageFilterStage, setPageFilterStage] = useState<PageStage | 'all'>('all');
@@ -379,13 +402,17 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
 
       {/* =========================================================================
           2. CANVA SECONDARY DRAWER (Ngăn nội dung chi tiết 340px)
-          - Sử dụng var(--sb-popover, var(--sb-bg)) đồng bộ với theme hệ thống
+          - Hiệu ứng trượt mở mượt mà (transition-all duration-300 ease-in-out)
           ========================================================================= */}
-      {isDrawerOpen && (
-        <aside
-          data-testid='canva-secondary-drawer'
-          className='w-[330px] sm:w-[350px] bg-[var(--sb-popover,var(--sb-bg))] text-[var(--sb-text)] border-r border-[var(--sb-border)] flex flex-col h-full overflow-hidden'
-        >
+      <aside
+        data-testid='canva-secondary-drawer'
+        aria-hidden={!isDrawerOpen}
+        className={`bg-[var(--sb-popover,var(--sb-bg))] text-[var(--sb-text)] border-r border-[var(--sb-border)] flex flex-col h-full overflow-hidden transition-all duration-300 ease-in-out shrink-0 ${
+          isDrawerOpen
+            ? 'w-[330px] sm:w-[350px] opacity-100 shadow-xl'
+            : 'w-0 opacity-0 pointer-events-none border-r-0'
+        }`}
+      >
           {/* -------------------------------------------------------------
               TAB 1: PAGES (QUẢN LÝ TRANG)
               ------------------------------------------------------------- */}
@@ -797,7 +824,6 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
             </div>
           )}
         </aside>
-      )}
     </div>
   );
 };

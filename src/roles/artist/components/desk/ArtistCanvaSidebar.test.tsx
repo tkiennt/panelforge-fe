@@ -31,7 +31,7 @@ const renderWithRouter = (ui: React.ReactElement) => {
 };
 
 describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () => {
-  it('renders Canva primary dock with Pages, Script, and Bible tabs', () => {
+  it('renders Canva primary dock, keeping drawer initially closed for clean canvas entrance', () => {
     renderWithRouter(
       <ArtistCanvaSidebar
         pages={MOCK_PAGES}
@@ -45,15 +45,19 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
       />
     );
 
-    // Primary dock
+    // Primary dock is rendered
     expect(screen.getByTestId('canva-primary-dock')).toBeInTheDocument();
     expect(screen.getByTestId('canva-tab-pages')).toBeInTheDocument();
     expect(screen.getByTestId('canva-tab-script')).toBeInTheDocument();
     expect(screen.getByTestId('canva-tab-bible')).toBeInTheDocument();
 
-    // Default active tab is Pages
-    expect(screen.getByTestId('canva-secondary-drawer')).toBeInTheDocument();
-    expect(screen.getByTestId('canva-drawer-pages')).toBeInTheDocument();
+    // Drawer starts closed (w-0) so user sees only the blank paper initially
+    const drawer = screen.getByTestId('canva-secondary-drawer');
+    expect(drawer).toHaveClass('w-0');
+
+    // Clicking Pages tab opens drawer
+    fireEvent.click(screen.getByTestId('canva-tab-pages'));
+    expect(drawer).toHaveClass('w-[330px]');
     expect(screen.getByText('Quản Lý Trang (2)')).toBeInTheDocument();
   });
 
@@ -71,10 +75,12 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
       />
     );
 
-    // Click Script tab in dock
+    // Click Script tab in dock to open it
     fireEvent.click(screen.getByTestId('canva-tab-script'));
 
-    // Drawer switches to Script
+    // Drawer opens and switches to Script
+    const drawer = screen.getByTestId('canva-secondary-drawer');
+    expect(drawer).toHaveClass('w-[330px]');
     expect(screen.getByTestId('canva-drawer-script')).toBeInTheDocument();
     expect(screen.getByText('Phân cảnh 1: Cổng Thành Phía Nam')).toBeInTheDocument();
     expect(screen.getByText('NGOẠI · CỔNG THÀNH · SÁNG')).toBeInTheDocument();
@@ -95,10 +101,12 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
       />
     );
 
-    // Click Bible tab in dock
+    // Click Bible tab in dock to open it
     fireEvent.click(screen.getByTestId('canva-tab-bible'));
 
-    // Drawer switches to Bible
+    // Drawer opens and switches to Bible
+    const drawer = screen.getByTestId('canva-secondary-drawer');
+    expect(drawer).toHaveClass('w-[330px]');
     expect(screen.getByTestId('canva-drawer-bible')).toBeInTheDocument();
     expect(screen.getByText(/Tra Cứu Nhân Vật & Bối Cảnh Canon/i)).toBeInTheDocument();
     expect(screen.getByText('Minh Triết (Nhân vật chính)')).toBeInTheDocument();
@@ -119,16 +127,20 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
       />
     );
 
-    // Drawer is initially open
-    expect(screen.getByTestId('canva-secondary-drawer')).toBeInTheDocument();
+    const drawer = screen.getByTestId('canva-secondary-drawer');
+    expect(drawer).toHaveClass('w-0');
 
-    // Click active tab 'pages' again -> Drawer closes (Canva behavior)
+    // Click tab 'pages' -> Drawer opens
     fireEvent.click(screen.getByTestId('canva-tab-pages'));
-    expect(screen.queryByTestId('canva-secondary-drawer')).not.toBeInTheDocument();
+    expect(drawer).toHaveClass('w-[330px]');
+
+    // Click tab 'pages' again -> Drawer closes (Canva behavior)
+    fireEvent.click(screen.getByTestId('canva-tab-pages'));
+    expect(drawer).toHaveClass('w-0');
 
     // Click drawer toggle button at bottom -> Drawer opens back
     fireEvent.click(screen.getByTestId('canva-drawer-toggle'));
-    expect(screen.getByTestId('canva-secondary-drawer')).toBeInTheDocument();
+    expect(drawer).toHaveClass('w-[330px]');
   });
 
   it('handles page selection, addition, and eye visibility toggle', () => {
@@ -149,6 +161,9 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
       />
     );
 
+    // Open pages drawer
+    fireEvent.click(screen.getByTestId('canva-tab-pages'));
+
     // Select Page 2
     fireEvent.click(screen.getByTestId('canva-page-card-2'));
     expect(handleSelect).toHaveBeenCalledWith('page-2');
@@ -162,7 +177,7 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
     expect(handleToggleVis).toHaveBeenCalledWith('page-1');
   });
 
-  it('supports custom theme integration with system sidebar theme', () => {
+  it('defaults to light theme paper and supports custom theme integration', () => {
     renderWithRouter(
       <ArtistCanvaSidebar
         pages={MOCK_PAGES}
@@ -173,11 +188,11 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
         onDeletePage={vi.fn()}
         onMovePage={vi.fn()}
         onToggleVisibility={vi.fn()}
-        theme='paper'
       />
     );
 
     const sidebar = screen.getByTestId('artist-desk-sidebar');
+    // Default theme is paper (màu sáng)
     expect(sidebar).toHaveAttribute('data-sb-theme', 'paper');
   });
 });

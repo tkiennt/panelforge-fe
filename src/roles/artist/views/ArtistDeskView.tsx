@@ -217,7 +217,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
 
   return (
     <div
-      className='flex-1 basis-0 min-h-0 w-full h-full flex flex-row bg-[#F3F0E9] text-[#1C1917] overflow-hidden select-none relative'
+      className='flex-1 basis-0 min-h-0 w-full h-full flex flex-row bg-[#F3F0E9] text-[#1C1917] overflow-hidden select-none relative animate-in fade-in duration-300'
       data-testid='artist-desk'
     >
       {/* 1. Sidebar Canva đa năng: Xem Pages, Script, Series Bible */}
@@ -232,33 +232,33 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
         onToggleVisibility={handleToggleVisibility}
         scriptLines={initialScriptLines}
         bibleEntities={initialBibleEntities}
-        theme={theme}
+        theme={theme || 'paper'}
       />
 
       {/* 2. Khung bàn vẽ trung tâm - Main Canvas Shell */}
       <main
-        className='flex-1 basis-0 min-h-0 min-w-0 h-full flex flex-col items-center justify-center p-4 sm:p-6 md:p-8 overflow-hidden relative'
+        className='flex-1 basis-0 min-h-0 min-w-0 h-full flex flex-col items-center justify-center p-4 sm:p-6 md:p-8 overflow-hidden relative transition-all duration-300 ease-in-out'
         data-testid='artist-canvas-shell'
       >
-        {/* Thanh trạng thái nhanh của trang đang vẽ (Canva-style Canvas Pill) */}
+        {/* Thanh trạng thái nhanh của trang đang vẽ (Light Paper Style Canvas Pill) */}
         {selectedPage && (
           <header
             data-testid='canvas-page-header'
-            className='absolute top-3 left-4 sm:left-6 z-10 flex items-center gap-2 bg-[#121316]/90 backdrop-blur-md text-[#A6AAB4] px-3.5 py-1.5 rounded-full border border-[#26282E] shadow-md text-[11px]'
+            className='absolute top-3 left-4 sm:left-6 z-10 flex items-center gap-2 bg-[#FCFBF8]/95 backdrop-blur-md text-[#57534E] px-3.5 py-1.5 rounded-full border border-[#D8D2C5] shadow-xs text-[11px] transition-all duration-300'
           >
-            <span className='font-mono font-bold text-white'>
+            <span className='font-mono font-bold text-[#1C1917]'>
               TRANG {String(selectedPage.pageNumber).padStart(2, '0')}
             </span>
-            <span className='text-[#555]'>•</span>
-            <span className='truncate max-w-[160px] sm:max-w-[240px] text-neutral-200 font-medium'>
+            <span className='text-[#A8A29E]'>•</span>
+            <span className='truncate max-w-[160px] sm:max-w-[240px] text-[#1C1917] font-medium'>
               {selectedPage.title}
             </span>
-            <span className='text-[#555]'>•</span>
-            <span className='text-[10px] text-neutral-400'>
+            <span className='text-[#A8A29E]'>•</span>
+            <span className='text-[10px] text-[#57534E]'>
               {selectedPage.format || 'B5 Master (600 DPI)'}
             </span>
-            <span className='text-[#555]'>•</span>
-            <span className='text-[10px] text-purple-400 font-semibold'>
+            <span className='text-[#A8A29E]'>•</span>
+            <span className='text-[10px] text-[#C2410C] font-semibold'>
               {selectedPage.panelsCount} khung
             </span>
           </header>
@@ -267,10 +267,10 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
         {/* Trang giấy trắng tinh bản vẽ chuẩn Manga (Tỷ lệ B5 Master 1:1.414, tự động co giãn fit chuẩn xác theo viewport) */}
         <div
           data-testid='artist-blank-sheet'
-          className={`max-h-full max-w-full h-full w-auto aspect-[1/1.414] bg-white rounded-xs shadow-[0_12px_40px_rgba(28,25,23,0.08)] border border-[#D8D2C5] relative flex flex-col items-center justify-center p-6 sm:p-8 transition-all shrink-0 ${
+          className={`max-h-full max-w-full h-full w-auto aspect-[1/1.414] bg-white rounded-xs shadow-[0_12px_40px_rgba(28,25,23,0.06)] border border-[#D8D2C5] relative flex flex-col items-center justify-center p-6 sm:p-8 transition-all duration-300 ease-out shrink-0 ${
             selectedPage && !selectedPage.isVisible
               ? 'opacity-40 filter grayscale'
-              : 'opacity-100 hover:shadow-[0_16px_48px_rgba(28,25,23,0.12)]'
+              : 'opacity-100 hover:shadow-[0_16px_48px_rgba(28,25,23,0.10)]'
           }`}
         >
           {/* Vùng vẽ trang giấy trắng (Empty Canvas Surface) */}
