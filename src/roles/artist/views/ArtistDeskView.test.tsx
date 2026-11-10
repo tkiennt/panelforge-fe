@@ -717,4 +717,73 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
     expect(screen.getByTestId('canvas-panel-frame-1')).toBeInTheDocument();
     expect(screen.getByTestId('canvas-panel-frame-2')).toBeInTheDocument();
   });
+
+  it('enforces layout locking before uploading artworks and guards re-templating with confirmation modal', async () => {
+    render(
+      <MemoryRouter initialEntries={['/workspaces/ws-1/series/ser-1/artist']}>
+        <Routes>
+          <Route
+            path='/workspaces/:workspaceId/series/:seriesId/artist'
+            element={<ArtistDeskView workspaceRole='ARTIST' />}
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    // Open templates tab and select 3 Khung Shonen
+    fireEvent.click(screen.getByTestId('canva-tab-templates'));
+    fireEvent.click(screen.getByTestId('canva-template-card-builtin-3-panel-shonen'));
+
+    // Verify draft status bar is rendered
+    expect(screen.getByTestId('canvas-layout-status-bar')).toBeInTheDocument();
+    expect(screen.getByText(/Bản nháp bố cục/i)).toBeInTheDocument();
+    expect(screen.getByTestId('canvas-btn-lock-layout')).toBeInTheDocument();
+
+    // In draft mode, panels display "Chốt mẫu để mở nạp tranh", dropzone is NOT accessible
+    expect(screen.queryByTestId('panel-dropzone-1')).not.toBeInTheDocument();
+    expect(screen.getAllByText('Chốt mẫu để mở nạp tranh')[0]).toBeInTheDocument();
+
+    // Lock layout
+    fireEvent.click(screen.getByTestId('canvas-btn-lock-layout'));
+
+    // Status bar changes to locked
+    expect(screen.getByText(/Đã chốt bố cục/i)).toBeInTheDocument();
+    expect(screen.getByTestId('canvas-btn-unlock-layout')).toBeInTheDocument();
+
+    // Dropzone is now enabled for each panel
+    expect(screen.getByTestId('panel-dropzone-1')).toBeInTheDocument();
+    expect(screen.getByTestId('panel-dropzone-2')).toBeInTheDocument();
+    expect(screen.getByTestId('panel-dropzone-3')).toBeInTheDocument();
+
+    // Simulate uploading artwork by dropping a mock image file onto panel 1 dropzone
+    const mockFile = new File(['artwork content'], 'panel1-sketch.png', { type: 'image/png' });
+    fireEvent.drop(screen.getByTestId('panel-dropzone-1'), {
+      dataTransfer: { files: [mockFile] },
+    });
+
+    // Panel 1 now displays the artwork image and action buttons (view, replace, remove)
+    await waitFor(() => {
+      expect(screen.getByAltText('panel1-sketch.png')).toBeInTheDocument();
+      expect(screen.getByTestId('panel-btn-view-1')).toBeInTheDocument();
+      expect(screen.getByTestId('panel-btn-replace-1')).toBeInTheDocument();
+      expect(screen.getByTestId('panel-btn-remove-1')).toBeInTheDocument();
+    });
+
+    // When artist tries to unlock while page has artwork, confirmation modal appears
+    fireEvent.click(screen.getByTestId('canvas-btn-unlock-layout'));
+    expect(screen.getByTestId('modal-unlock-layout-confirm')).toBeInTheDocument();
+    expect(screen.getByText(/Mở khóa đổi mẫu khung trang\?/i)).toBeInTheDocument();
+
+    // Cancel preserves locked layout and artwork
+    fireEvent.click(screen.getByTestId('btn-cancel-unlock'));
+    expect(screen.queryByTestId('modal-unlock-layout-confirm')).not.toBeInTheDocument();
+    expect(screen.getByAltText('panel1-sketch.png')).toBeInTheDocument();
+
+    // Confirm unlock resets artwork and returns to draft template selection
+    fireEvent.click(screen.getByTestId('canvas-btn-unlock-layout'));
+    fireEvent.click(screen.getByTestId('btn-confirm-unlock'));
+    expect(screen.queryByTestId('modal-unlock-layout-confirm')).not.toBeInTheDocument();
+    expect(screen.getByText(/Bản nháp bố cục/i)).toBeInTheDocument();
+    expect(screen.queryByAltText('panel1-sketch.png')).not.toBeInTheDocument();
+  });
 });

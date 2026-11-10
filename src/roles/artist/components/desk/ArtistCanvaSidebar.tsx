@@ -21,6 +21,8 @@ import {
   CheckCircle2,
   RotateCcw,
   AlertTriangle,
+  Lock,
+  Unlock,
 } from 'lucide-react';
 import { ArtistPageItem, PageStage } from './ArtistPageSidebar';
 import { SidebarTheme } from '@/app/sidebarTheme';
@@ -99,6 +101,16 @@ export interface ArtistCanvaSidebarProps {
   isLoadingTemplates?: boolean;
   isApplyingTemplate?: boolean;
   templateError?: string | null;
+  // Layout Lock / Confirm props
+  isLayoutLocked?: boolean;
+  onLockLayout?: () => void;
+  onUnlockLayout?: () => void;
+  hasPageArtwork?: boolean;
+  // Controlled tab & drawer props
+  activeTab?: CanvaSidebarTab;
+  onTabChange?: (tab: CanvaSidebarTab) => void;
+  isDrawerOpen?: boolean;
+  onToggleDrawer?: (open?: boolean) => void;
   // Global Theme integration
   theme?: SidebarTheme;
   // Tùy chọn ẩn tab Trang khi quản lý trang đã chuyển xuống đáy
@@ -461,6 +473,14 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
   isLoadingTemplates = false,
   isApplyingTemplate = false,
   templateError = null,
+  isLayoutLocked = false,
+  onLockLayout,
+  onUnlockLayout,
+  hasPageArtwork = false,
+  activeTab: activeTabProp,
+  onTabChange,
+  isDrawerOpen: isDrawerOpenProp,
+  onToggleDrawer,
   theme,
   hidePagesTab = false,
 }) => {
@@ -482,11 +502,23 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
   }, [theme]);
 
   // Trạng thái tab Canva: 'pages' | 'script' | 'bible' (mặc định 'script' nếu tab Pages ẩn)
-  const [activeTab, setActiveTab] = useState<CanvaSidebarTab>(
+  const [internalActiveTab, setInternalActiveTab] = useState<CanvaSidebarTab>(
     hidePagesTab ? 'script' : 'pages'
   );
+  const activeTab = activeTabProp !== undefined ? activeTabProp : internalActiveTab;
+  const setActiveTab = (tab: CanvaSidebarTab) => {
+    setInternalActiveTab(tab);
+    onTabChange?.(tab);
+  };
+
   // Trạng thái mở/đóng ngăn phụ (Canva Drawer): Mặc định ĐÓNG (false) để chỉ hiển thị trang giấy trắng tinh
-  const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
+  const [internalDrawerOpen, setInternalDrawerOpen] = useState<boolean>(false);
+  const isDrawerOpen = isDrawerOpenProp !== undefined ? isDrawerOpenProp : internalDrawerOpen;
+  const setIsDrawerOpen = (open: boolean | ((prev: boolean) => boolean)) => {
+    const nextVal = typeof open === 'function' ? open(isDrawerOpen) : open;
+    setInternalDrawerOpen(nextVal);
+    onToggleDrawer?.(nextVal);
+  };
 
   // Phím tắt '[' để mở/đóng nhanh Drawer
   useEffect(() => {
@@ -1627,6 +1659,64 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                     <span className='truncate'>{templateError}</span>
                   </div>
                 )}
+
+                {/* Banner trạng thái Khóa / Chốt Bố Cục */}
+                {isLayoutLocked ? (
+                  <div
+                    data-testid='canva-layout-locked-banner'
+                    className='p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-300/60 dark:border-emerald-800/60 space-y-2'
+                  >
+                    <div className='flex items-center justify-between'>
+                      <div className='flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-400'>
+                        <Lock className='w-3.5 h-3.5 shrink-0' />
+                        <span>Bố cục trang đã chốt</span>
+                      </div>
+                      <span className='px-1.5 py-0.5 rounded text-[9.5px] font-mono font-bold bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300'>
+                        ĐÃ KHÓA
+                      </span>
+                    </div>
+                    <p className='text-[10px] text-[var(--sb-muted)] leading-relaxed'>
+                      Khung đã chốt để bạn an tâm nạp tranh. Mở khóa nếu cần đổi bố cục khác.
+                    </p>
+                    {onUnlockLayout && (
+                      <button
+                        type='button'
+                        onClick={onUnlockLayout}
+                        data-testid='canva-btn-unlock-template'
+                        className='w-full py-1.5 px-2.5 rounded-lg border border-[var(--sb-border)] bg-[var(--sb-surface)] hover:bg-[var(--sb-surface-hover)] text-[10.5px] font-semibold text-[var(--sb-text)] flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-2xs'
+                      >
+                        <RotateCcw className='w-3 h-3 text-amber-500' />
+                        <span>Mở khóa đổi mẫu khung</span>
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div
+                    data-testid='canva-layout-draft-banner'
+                    className='p-2.5 rounded-xl bg-amber-500/10 border border-amber-300/60 dark:border-amber-800/60 space-y-2'
+                  >
+                    <div className='flex items-center justify-between gap-2'>
+                      <div className='flex items-center gap-1.5 text-[11px] font-bold text-amber-800 dark:text-amber-400'>
+                        <Unlock className='w-3.5 h-3.5 shrink-0' />
+                        <span>Chế độ chọn bố cục nháp</span>
+                      </div>
+                      {hasPagePanels && onLockLayout && (
+                        <button
+                          type='button'
+                          onClick={onLockLayout}
+                          data-testid='canva-btn-confirm-template'
+                          className='px-2.5 py-1 rounded-lg bg-[var(--sb-accent)] hover:opacity-90 text-white text-[10.5px] font-bold flex items-center gap-1 shadow-2xs cursor-pointer transition-all'
+                        >
+                          <CheckCircle2 className='w-3 h-3' />
+                          <span>Chốt mẫu</span>
+                        </button>
+                      )}
+                    </div>
+                    <p className='text-[10px] text-[var(--sb-muted)] leading-relaxed'>
+                      Chọn mẫu ưng ý rồi bấm <strong className='text-[var(--sb-text)]'>Chốt mẫu</strong> để mở tính năng nạp tranh vào từng ô.
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Lưới thẻ mẫu khung */}
@@ -1644,12 +1734,20 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                           key={tpl.id}
                           type='button'
                           disabled={isApplyingTemplate}
-                          onClick={() => onSelectTemplate?.(tpl)}
+                          onClick={() => {
+                            if (isLayoutLocked && !isSelected) {
+                              onUnlockLayout?.();
+                            } else if (!isLayoutLocked) {
+                              onSelectTemplate?.(tpl);
+                            }
+                          }}
                           data-testid={`canva-template-card-${tpl.id}`}
                           className={`group p-2 rounded-xl border text-left cursor-pointer transition-all flex flex-col justify-between disabled:opacity-60 ${
                             isSelected
                               ? 'bg-[var(--sb-active-bg)] border-[var(--sb-accent)] ring-1 ring-[var(--sb-accent)]/60 shadow-sm'
-                              : 'bg-[var(--sb-surface)] border-[var(--sb-border)] hover:border-[var(--sb-accent)]/50 hover:bg-[var(--sb-surface-hover)]'
+                              : isLayoutLocked
+                                ? 'bg-[var(--sb-surface)] border-[var(--sb-border)] opacity-70 hover:opacity-100 hover:border-amber-400'
+                                : 'bg-[var(--sb-surface)] border-[var(--sb-border)] hover:border-[var(--sb-accent)]/50 hover:bg-[var(--sb-surface-hover)]'
                           }`}
                         >
                           {/* Wireframe Preview tỷ lệ B5 / Spread */}
