@@ -344,9 +344,11 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
               disabled={isSubmittingStage}
               data-testid='focus-submit-stage-btn'
               title={
-                isLastStage
-                  ? 'Nộp hoàn thiện công đoạn cuối để chờ duyệt'
-                  : 'Nộp công đoạn hiện tại và chuyển sang công đoạn tiếp theo'
+                headerConfig.submitButtonLabel
+                  ? `${headerConfig.submitButtonLabel} để chờ duyệt`
+                  : isLastStage
+                  ? 'Nộp hoàn thiện bản thảo để chờ duyệt'
+                  : 'Nộp bản thảo công đoạn hiện tại'
               }
               className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#C2410C] hover:bg-[#9A3412] text-white text-xs font-bold shadow-xs active:scale-95 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed shrink-0'
             >
@@ -360,8 +362,7 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
               <span>
                 {isSubmittingStage
                   ? 'Đang nộp...'
-                  : headerConfig.submitButtonLabel ||
-                    (isLastStage ? 'Nộp hoàn thiện' : 'Nộp & Qua bước')}
+                  : headerConfig.submitButtonLabel || 'Nộp bản thảo'}
               </span>
             </button>
           ))}

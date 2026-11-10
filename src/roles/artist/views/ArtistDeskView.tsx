@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { pageService, PageDto, isGuid } from '@/services/page.service';
+import { pageService, PageDto, PageHistoryDto, isGuid } from '@/services/page.service';
 import { panelService } from '@/services/panel.service';
 import { chapterService, ChapterDto } from '@/services/chapter.service';
 import { scriptLineService } from '@/services/scriptLine.service';
@@ -10,7 +10,7 @@ import { pipelineService, PipelineStageDto } from '@/services/pipeline.service';
 import { assignmentService, AssignmentDto } from '@/services/assignment.service';
 import { frameTemplateService, FrameTemplateDto } from '@/services/frameTemplate.service';
 import { artworkService } from '@/services/artwork.service';
-import { PanelDto } from '@/types/pipeline';
+import { PanelDto, ChangeRequestDto } from '@/types/pipeline';
 import { parseBoundingBox } from '../utils/panelBoundingBox';
 import { useToast } from '@/shared/context/ToastContext';
 import {
@@ -366,6 +366,16 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   const [activeSidebarTab, setActiveSidebarTab] = useState<CanvaSidebarTab | undefined>(undefined);
   const [isSidebarDrawerOpen, setIsSidebarDrawerOpen] = useState<boolean | undefined>(undefined);
 
+  // Yêu cầu chỉnh sửa công đoạn (Sidetab Change Requests)
+  const [changeRequests, setChangeRequests] = useState<ChangeRequestDto[]>([]);
+  const [isLoadingChangeRequests, setIsLoadingChangeRequests] = useState(false);
+  const [isResolvingChangeRequest, setIsResolvingChangeRequest] = useState(false);
+
+  // Lịch sử phiên bản trang (Page History Drawer)
+  const [pageHistory, setPageHistory] = useState<PageHistoryDto | null>(null);
+  const [isLoadingPageHistory, setIsLoadingPageHistory] = useState(false);
+  const [isRestoringVersion, setIsRestoringVersion] = useState(false);
+
   // Điều khiển thanh trang & khung vẽ
   const [isFilmstripOpen, setIsFilmstripOpen] = useState(true);
   const [zoomScale, setZoomScale] = useState(1.0);
@@ -633,6 +643,116 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     }
   }, []);
 
+  // Tải danh sách Yêu cầu chỉnh sửa của chương
+  const loadChangeRequests = useCallback(async (chapId: string) => {
+    if (!assignmentService?.getChangeRequests) return;
+    setIsLoadingChangeRequests(true);
+    try {
+      const list = await assignmentService.getChangeRequests(chapId);
+      setChangeRequests(list || []);
+    } catch {
+      setChangeRequests([]);
+    } finally {
+      setIsLoadingChangeRequests(false);
+    }
+  }, []);
+
+  // Tải lịch sử phiên bản của trang được chọn
+  const loadPageHistory = useCallback(async (pgId: string) => {
+    if (!pageService?.getPageHistory || !isGuid(pgId)) {
+      setPageHistory(null);
+      return;
+    }
+    setIsLoadingPageHistory(true);
+    try {
+      const history = await pageService.getPageHistory(pgId);
+      setPageHistory(history || null);
+    } catch {
+      setPageHistory(null);
+    } finally {
+      setIsLoadingPageHistory(false);
+    }
+  }, []);
+
+  // Xử lý Họa sĩ báo đã sửa Change Request
+  const handleResolveChangeRequest = useCallback(
+    async (changeRequestId: string, note?: string) => {
+      if (!currentChapterId || !assignmentService?.resolveChangeRequest) return;
+      setIsResolvingChangeRequest(true);
+      try {
+        await assignmentService.resolveChangeRequest(currentChapterId, changeRequestId, note);
+        toast.success(
+          'Đã báo hoàn tất chỉnh sửa',
+          'Yêu cầu đã được chuyển sang trạng thái chờ duyệt lại.',
+        );
+        loadChangeRequests(currentChapterId);
+      } catch (err: any) {
+        toast.error('Không thể cập nhật yêu cầu', err?.message || 'Vui lòng thử lại sau.');
+      } finally {
+        setIsResolvingChangeRequest(false);
+      }
+    },
+    [currentChapterId, toast, loadChangeRequests],
+  );
+
+  // Điều hướng xem vị trí yêu cầu chỉnh sửa (nhảy đến trang và khung tương ứng)
+  const handleNavigateToChangeRequestTarget = useCallback(
+    (cr: ChangeRequestDto) => {
+      if (!cr) return;
+      let targetPanelId: string | null = null;
+      if (cr.regionJson) {
+        try {
+          const parsed = JSON.parse(cr.regionJson);
+          if (parsed.panelId) targetPanelId = parsed.panelId;
+        } catch {
+          // ignore
+        }
+      }
+
+      if (targetPanelId) {
+        for (const [pgId, pList] of Object.entries(panelsByPageId)) {
+          if (pList.some((p) => p.id === targetPanelId)) {
+            setSelectedPageId(pgId);
+            toast.info('Đã chuyển đến trang cần sửa', `Khung số ${targetPanelId}`);
+            return;
+          }
+        }
+      }
+
+      toast.info('Yêu cầu chỉnh sửa', cr.description?.slice(0, 80) || 'Kiểm tra bản vẽ của trang hiện tại.');
+    },
+    [panelsByPageId, toast],
+  );
+
+  // Khôi phục trang về một phiên bản cũ trong lịch sử
+  const handleRestoreVersion = useCallback(
+    async (version: number) => {
+      const targetPage = pages.find((p) => p.id === selectedPageId) || pages[0] || null;
+      if (!targetPage || !pageService?.restorePageVersion || !pageHistory) return;
+      setIsRestoringVersion(true);
+      try {
+        await pageService.restorePageVersion(
+          targetPage.id,
+          version,
+          pageHistory.currentVersion,
+        );
+        toast.success(
+          'Khôi phục thành công!',
+          `Trang ${targetPage.pageNumber} đã được khôi phục về phiên bản v${version}.`,
+        );
+        if (currentChapterId) {
+          await loadPages(currentChapterId);
+        }
+        await loadPageHistory(targetPage.id);
+      } catch (err: any) {
+        toast.error('Không thể khôi phục phiên bản', err?.message || 'Vui lòng thử lại.');
+      } finally {
+        setIsRestoringVersion(false);
+      }
+    },
+    [pages, selectedPageId, pageHistory, currentChapterId, loadPages, loadPageHistory, toast],
+  );
+
   const currentChapterIdRef = useRef<string | null>(currentChapterId);
   currentChapterIdRef.current = currentChapterId;
 
@@ -685,8 +805,15 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     if (currentChapterId) {
       loadPages(currentChapterId);
       loadScriptLines(currentChapterId);
+      loadChangeRequests(currentChapterId);
     }
-  }, [currentChapterId, loadPages, loadScriptLines]);
+  }, [currentChapterId, loadPages, loadScriptLines, loadChangeRequests]);
+
+  useEffect(() => {
+    if (selectedPageId) {
+      loadPageHistory(selectedPageId);
+    }
+  }, [selectedPageId, loadPageHistory]);
 
   useEffect(() => {
     if (seriesId) {
@@ -861,6 +988,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
       isStageFlowCompleted,
       isSubmittingStage,
       onSubmitStage: handleSubmitStage,
+      submitButtonLabel: 'Nộp bản thảo',
     });
   }, [
     focusHeader,
@@ -1476,6 +1604,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
             isStageFlowCompleted,
             isSubmittingStage,
             onSubmitStage: handleSubmitStage,
+            submitButtonLabel: 'Nộp bản thảo',
           }}
           showFocusControls={false}
         />
@@ -1531,6 +1660,20 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
           onTabChange={(tab) => setActiveSidebarTab(tab)}
           isDrawerOpen={isSidebarDrawerOpen}
           onToggleDrawer={(open) => setIsSidebarDrawerOpen(open)}
+          changeRequests={changeRequests}
+          isLoadingChangeRequests={isLoadingChangeRequests}
+          onResolveChangeRequest={handleResolveChangeRequest}
+          isResolvingChangeRequest={isResolvingChangeRequest}
+          onNavigateToChangeRequestTarget={handleNavigateToChangeRequestTarget}
+          pageHistory={pageHistory}
+          isLoadingPageHistory={isLoadingPageHistory}
+          onRestoreVersion={handleRestoreVersion}
+          isRestoringVersion={isRestoringVersion}
+          onRefreshHistory={() => {
+            if (selectedPageId) {
+              loadPageHistory(selectedPageId);
+            }
+          }}
           theme='paper'
         />
 
