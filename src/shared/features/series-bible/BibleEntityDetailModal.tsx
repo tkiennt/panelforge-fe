@@ -1554,7 +1554,11 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                     activeRevision.reviewStatus !== 'CanonLocked' && (
                       <button
                         type='button'
-                        disabled={isLocking}
+                        disabled={
+                          isLocking ||
+                          (activeRevision.reviewStatus !== 'WriterEndorsed' &&
+                            activeRevision.reviewStatus !== 4)
+                        }
                         onClick={async () => {
                           setIsLocking(true);
                           try {
@@ -1565,7 +1569,12 @@ export const BibleEntityDetailModal: React.FC<BibleEntityDetailModalProps> = ({
                         }}
                         className='px-3.5 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs hover:shadow transition-all cursor-pointer disabled:opacity-50'
                         data-testid='detail-lock-btn'
-                        title='Khóa phiên bản này làm quy chuẩn chính thức cho toàn bộ dự án'
+                        title={
+                          activeRevision.reviewStatus !== 'WriterEndorsed' &&
+                          activeRevision.reviewStatus !== 4
+                            ? 'Chỉ có thể khoá Canon phiên bản đã được Writer phê duyệt (WriterEndorsed) (BR-25)'
+                            : 'Khóa phiên bản này làm quy chuẩn chính thức cho toàn bộ dự án'
+                        }
                       >
                         <Lock className='w-3.5 h-3.5' />
                         <span>{isLocking ? 'Đang khóa...' : 'Khóa Canon chính thức'}</span>

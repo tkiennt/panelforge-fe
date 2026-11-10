@@ -1614,10 +1614,10 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
       return;
     }
 
-    if (rev.reviewStatus === 'ReworkRequired') {
+    if (rev.reviewStatus !== 'WriterEndorsed' && rev.reviewStatus !== 4) {
       onShowToast(
-        'Chưa thể khoá Canon',
-        'Phiên bản đang bị yêu cầu vẽ lại (ReworkRequired), không thể duyệt & khoá Canon.',
+        'Chưa thể khoá Canon (BR-25)',
+        'Chỉ có thể khoá Canon phiên bản đã được Writer phê duyệt (WriterEndorsed).',
       );
       return;
     }
@@ -3694,13 +3694,13 @@ export const SeriesBibleView: React.FC<SeriesBibleViewProps> = ({
                                       type='button'
                                       disabled={
                                         lockingRevisionId === rev.id ||
-                                        rev.reviewStatus === 'ReworkRequired'
+                                        (rev.reviewStatus !== 'WriterEndorsed' && rev.reviewStatus !== 4)
                                       }
                                       onClick={() => void handleLockRevision(rev)}
                                       className='px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-semibold flex items-center gap-1 transition-colors shadow-2xs disabled:opacity-50 cursor-pointer'
                                       title={
-                                        rev.reviewStatus === 'ReworkRequired'
-                                          ? 'Bản vẽ đang bị yêu cầu vẽ lại, chưa thể khoá Canon'
+                                        rev.reviewStatus !== 'WriterEndorsed' && rev.reviewStatus !== 4
+                                          ? 'Chỉ có thể khoá Canon phiên bản đã được Writer phê duyệt (WriterEndorsed) (BR-25)'
                                           : 'Producer phê duyệt và khoá phiên bản này làm tham chiếu chuẩn Canon'
                                       }
                                       data-testid={`btn-lock-canon-${rev.id}`}
