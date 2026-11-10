@@ -104,6 +104,8 @@ export interface ArtistCanvaSidebarProps {
   onLockLayout?: () => void;
   onUnlockLayout?: () => void;
   hasPageArtwork?: boolean;
+  // Khóa chọn mẫu khi trang đang chứa bản phác thảo toàn trang (tránh đè chồng khung)
+  hasSketchUnderlay?: boolean;
   // Controlled tab & drawer props
   activeTab?: CanvaSidebarTab;
   onTabChange?: (tab: CanvaSidebarTab) => void;
@@ -721,6 +723,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
   onLockLayout,
   onUnlockLayout,
   hasPageArtwork = false,
+  hasSketchUnderlay = false,
   activeTab: activeTabProp,
   onTabChange,
   isDrawerOpen: isDrawerOpenProp,
@@ -1938,6 +1941,19 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                     <span className='truncate'>{templateError}</span>
                   </div>
                 )}
+
+                {/* Banner cảnh báo khóa chọn khung khi trang đang có ảnh phác thảo toàn trang */}
+                {hasSketchUnderlay && (
+                  <div
+                    data-testid='canva-sketch-locked-banner'
+                    className='px-2.5 py-2 rounded-xl bg-amber-500/10 border border-amber-300/60 dark:border-amber-800/60 flex items-start gap-2 text-[10.5px] text-amber-800 dark:text-amber-300 animate-in fade-in duration-200'
+                  >
+                    <AlertTriangle className='w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5' />
+                    <span>
+                      Trang đang có ảnh phác thảo toàn trang. Tách khung hoặc gỡ ảnh trước khi chọn mẫu để tránh bị chồng khung.
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Lưới thẻ mẫu khung */}
@@ -1963,8 +1979,9 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                         <button
                           key={tpl.id}
                           type='button'
-                          disabled={isApplyingTemplate}
+                          disabled={isApplyingTemplate || hasSketchUnderlay}
                           onClick={() => {
+                            if (hasSketchUnderlay) return;
                             if (isLayoutLocked && hasPageArtwork && !isSelected) {
                               onUnlockLayout?.();
                             } else {
@@ -1972,13 +1989,19 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                             }
                           }}
                           data-testid={`canva-template-card-${tpl.id}`}
-                          title={tpl.description || tpl.name}
-                          className={`group p-2.5 rounded-xl border text-left cursor-pointer transition-all flex flex-col justify-between disabled:opacity-60 relative ${
-                            isSelected
-                              ? 'bg-[var(--sb-active-bg)] border-[var(--sb-accent)] ring-1 ring-[var(--sb-accent)]/60 shadow-sm'
-                              : isLayoutLocked
-                                ? 'bg-[var(--sb-surface)] border-[var(--sb-border)] opacity-70 hover:opacity-100 hover:border-amber-400'
-                                : 'bg-[var(--sb-surface)] border-[var(--sb-border)] hover:border-[var(--sb-accent)]/50 hover:bg-[var(--sb-surface-hover)]'
+                          title={
+                            hasSketchUnderlay
+                              ? 'Trang đang có ảnh phác thảo toàn trang. Vui lòng tách khung hoặc gỡ ảnh trước.'
+                              : (tpl.description || tpl.name)
+                          }
+                          className={`group p-2.5 rounded-xl border text-left transition-all flex flex-col justify-between relative ${
+                            hasSketchUnderlay
+                              ? 'opacity-40 cursor-not-allowed bg-stone-100/50 border-stone-200'
+                              : isSelected
+                                ? 'bg-[var(--sb-active-bg)] border-[var(--sb-accent)] ring-1 ring-[var(--sb-accent)]/60 shadow-sm cursor-pointer'
+                                : isLayoutLocked
+                                  ? 'bg-[var(--sb-surface)] border-[var(--sb-border)] opacity-70 hover:opacity-100 hover:border-amber-400 cursor-pointer'
+                                  : 'bg-[var(--sb-surface)] border-[var(--sb-border)] hover:border-[var(--sb-accent)]/50 hover:bg-[var(--sb-surface-hover)] cursor-pointer'
                           }`}
                         >
                           {/* Wireframe Preview tỷ lệ B5 / Spread */}

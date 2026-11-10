@@ -1253,6 +1253,15 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     if (!selectedPage) return;
     const targetPage = selectedPage;
 
+    // Không cho phép chọn khung khi trang đang có ảnh phác thảo toàn trang (tránh bị chồng lên)
+    if (currentSketch) {
+      toast.warning(
+        'Không thể chọn mẫu khung',
+        'Trang đang có ảnh phác thảo toàn trang. Vui lòng bấm "Tách khung" hoặc gỡ ảnh phác thảo để tránh bị chồng khung.',
+      );
+      return;
+    }
+
     // Nếu trang đã chốt bố cục VÀ đã có tranh thực tế: cảnh báo an toàn trước khi đổi
     if (lockedTemplateByPageId[targetPage.id] && hasCurrentPageArtwork) {
       handleRequestUnlockLayout();
@@ -1517,6 +1526,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
           onLockLayout={handleLockLayout}
           onUnlockLayout={handleRequestUnlockLayout}
           hasPageArtwork={hasCurrentPageArtwork}
+          hasSketchUnderlay={Boolean(currentSketch)}
           activeTab={activeSidebarTab}
           onTabChange={(tab) => setActiveSidebarTab(tab)}
           isDrawerOpen={isSidebarDrawerOpen}
