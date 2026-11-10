@@ -1,84 +1,84 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { pageService, PageDto } from '@/services/page.service';
-import { chapterService, ChapterDto } from '@/services/chapter.service';
+import { chapterService } from '@/services/chapter.service';
 import { ArtistBottomPageStrip } from '../components/desk/ArtistBottomPageStrip';
 
 export interface ArtistDeskViewProps {
   workspaceRole?: string | null;
 }
 
-// Dữ liệu trang mặc định ban đầu nếu chapter chưa có trang hoặc khi đang tải
+// Dữ liệu trang khởi tạo mặc định nếu chương chưa có trang
 const DEFAULT_INITIAL_PAGES: PageDto[] = [
   {
     id: 'page-default-1',
     chapterId: 'chap-1',
     pageNumber: 1,
-    layoutFormat: 'B5 Tankōbon Master (600 DPI)',
+    layoutFormat: 'B5',
     widthPx: 1200,
     heightPx: 1800,
     dpi: 600,
-    elementsCount: 4,
+    elementsCount: 0,
   },
   {
     id: 'page-default-2',
     chapterId: 'chap-1',
     pageNumber: 2,
-    layoutFormat: 'B5 Tankōbon Master (600 DPI)',
+    layoutFormat: 'B5',
     widthPx: 1200,
     heightPx: 1800,
     dpi: 600,
-    elementsCount: 6,
+    elementsCount: 0,
   },
   {
     id: 'page-default-3',
     chapterId: 'chap-1',
     pageNumber: 3,
-    layoutFormat: 'B5 Tankōbon Master (600 DPI)',
+    layoutFormat: 'B5',
     widthPx: 1200,
     heightPx: 1800,
     dpi: 600,
-    elementsCount: 3,
+    elementsCount: 0,
   },
   {
     id: 'page-default-4',
     chapterId: 'chap-1',
     pageNumber: 4,
-    layoutFormat: 'B5 Tankōbon Master (600 DPI)',
+    layoutFormat: 'B5',
     widthPx: 1200,
     heightPx: 1800,
     dpi: 600,
-    elementsCount: 5,
+    elementsCount: 0,
   },
   {
     id: 'page-default-5',
     chapterId: 'chap-1',
     pageNumber: 5,
-    layoutFormat: 'B5 Tankōbon Master (600 DPI)',
+    layoutFormat: 'B5',
     widthPx: 1200,
     heightPx: 1800,
     dpi: 600,
-    elementsCount: 2,
+    elementsCount: 0,
   },
   {
     id: 'page-default-6',
     chapterId: 'chap-1',
     pageNumber: 6,
-    layoutFormat: 'B5 Tankōbon Master (600 DPI)',
+    layoutFormat: 'B5',
     widthPx: 1200,
     heightPx: 1800,
     dpi: 600,
-    elementsCount: 7,
+    elementsCount: 0,
   },
 ];
 
 /**
- * ArtistDeskView - Canva-Style Artist Workspace
- * - Quản lý trang nằm ở đáy màn hình theo phong cách Canva (horizontal thumbnail filmstrip + bottom utility bar).
- * - Canvas vẽ trung tâm fit bên trong không gian còn lại của viewport mà không đụng chạm header hay footer.
- * - Zoom slider co giãn canvas mượt mà.
+ * ArtistDeskView - Canva-Style Manga Workspace
+ * - Giữ nguyên side tab của hệ thống hiện tại (AppShellSidebar).
+ * - Canvas vẽ trang giấy trắng tinh ở trung tâm (loại bỏ hoàn toàn các chữ kỹ thuật).
+ * - Quản lý trang nằm ở cạnh đáy theo kiểu Canva (đã xóa Ghi chú và Hẹn giờ).
  */
-export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole }) => {
+export const ArtistDeskView: React.FC<ArtistDeskViewProps> = () => {
   const { seriesId } = useParams<{ workspaceId?: string; seriesId?: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const chapterIdFromUrl = searchParams.get('chapterId');
@@ -93,7 +93,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
   const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Tải danh sách trang thực tế từ backend nếu có chapterId
+  // Tải danh sách trang từ API backend nếu có chapterId
   const loadPages = useCallback(async (chapId: string) => {
     try {
       const fetched = await pageService.getPagesByChapter(chapId);
@@ -102,20 +102,19 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
         setSelectedPageId((prev) => (fetched.some((p) => p.id === prev) ? prev : fetched[0].id));
       }
     } catch {
-      // Giữ pages hiện tại nếu offline hoặc lỗi mạng
+      // Giữ trang mặc định nếu chưa kết nối hoặc có lỗi
     }
   }, []);
 
-  // Tự động tìm chapter đầu tiên của Series nếu URL chưa có chapterId
+  // Tự động tìm chapter đầu tiên nếu URL chưa có chapterId
   useEffect(() => {
     let alive = true;
     if (seriesId && !currentChapterId && chapterService.getChaptersBySeries) {
       chapterService
         .getChaptersBySeries(seriesId)
-        .then((chaps: any) => {
-          const items = Array.isArray(chaps) ? chaps : chaps?.items || [];
-          if (!alive || items.length === 0) return;
-          const firstId = items[0].id;
+        .then((chaps) => {
+          if (!alive || !chaps || chaps.length === 0) return;
+          const firstId = chaps[0].id;
           setCurrentChapterId(firstId);
           setSearchParams((prev) => {
             const next = new URLSearchParams(prev);
@@ -136,9 +135,6 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
     }
   }, [currentChapterId, loadPages]);
 
-  // Tìm trang hiện tại đang được chọn
-  const selectedPage = pages.find((p) => p.id === selectedPageId) || pages[0] || null;
-
   // Thao tác trang: Chọn trang
   const handleSelectPage = (page: PageDto) => {
     setSelectedPageId(page.id);
@@ -152,7 +148,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
       id: tempId,
       chapterId: currentChapterId || 'default-chapter',
       pageNumber: nextNumber,
-      layoutFormat: 'B5 Tankōbon Master (600 DPI)',
+      layoutFormat: 'B5',
       widthPx: 1200,
       heightPx: 1800,
       dpi: 600,
@@ -162,7 +158,6 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
     setPages((prev) => [...prev, newPage]);
     setSelectedPageId(newPage.id);
 
-    // Lưu vào API nếu có chapterId hợp lệ
     if (currentChapterId) {
       try {
         const created = await pageService.createPage(currentChapterId, {
@@ -239,41 +234,21 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
           className='w-full h-full flex items-center justify-center transition-transform duration-100 ease-out origin-center'
           style={{ transform: `scale(${zoomScale})` }}
         >
-          {/* Trang giấy trắng Manga chuẩn B5 (Tỷ lệ 1:1.414) */}
+          {/* Trang giấy trắng tinh chuẩn Manga (Tỷ lệ B5 Master 1:1.414, không chữ kỹ thuật) */}
           <div
             data-testid='artist-blank-sheet'
-            className='max-h-full max-w-full h-full w-auto aspect-[1/1.414] bg-white rounded-xs shadow-[0_14px_45px_rgba(28,25,23,0.09)] border border-[#D8D2C5] relative flex flex-col items-center justify-center p-6 sm:p-8 transition-all shrink-0'
+            className='max-h-full max-w-full h-full w-auto aspect-[1/1.414] bg-white rounded-xs shadow-[0_14px_45px_rgba(28,25,23,0.08)] border border-[#D8D2C5] relative flex flex-col items-center justify-center p-6 sm:p-8 transition-all shrink-0'
           >
-            {/* Vùng vẽ trang giấy trắng (Empty Canvas Surface) */}
+            {/* Vùng vẽ trang giấy trắng tinh khiết */}
             <div
-              className='w-full h-full border border-dashed border-[#D8D2C5]/80 rounded-xs flex flex-col items-center justify-between p-4 relative'
+              className='w-full h-full border border-dashed border-[#D8D2C5]/70 rounded-xs flex flex-col items-center justify-center relative'
               data-testid='artist-canvas-surface'
             >
-              {/* Dấu định vị góc vẽ (Registration Crop Marks) */}
-              <div className='absolute top-2 left-2 w-3 h-3 border-t-2 border-l-2 border-[#A8A29E]/80 pointer-events-none' />
-              <div className='absolute top-2 right-2 w-3 h-3 border-t-2 border-r-2 border-[#A8A29E]/80 pointer-events-none' />
-              <div className='absolute bottom-2 left-2 w-3 h-3 border-b-2 border-l-2 border-[#A8A29E]/80 pointer-events-none' />
-              <div className='absolute bottom-2 right-2 w-3 h-3 border-b-2 border-r-2 border-[#A8A29E]/80 pointer-events-none' />
-
-              {/* Header nhỏ trên trang giấy trắng (Chỉ số trang tinh tế) */}
-              <div className='w-full flex items-center justify-between text-[11px] font-mono text-[#A8A29E] select-none'>
-                <span>P.{selectedPage?.pageNumber ?? 1}</span>
-                <span>{selectedPage?.layoutFormat || 'B5 Master'}</span>
-              </div>
-
-              {/* Trung tâm trang giấy */}
-              <div className='text-center opacity-40 select-none pointer-events-none'>
-                <p className='text-xs font-medium text-stone-500'>
-                  Trang {selectedPage?.pageNumber ?? 1}
-                </p>
-                <p className='text-[10px] text-stone-400 mt-0.5'>Bản vẽ trống sẵn sàng thiết kế</p>
-              </div>
-
-              {/* Footer nhỏ trên trang giấy trắng */}
-              <div className='w-full flex items-center justify-between text-[10px] font-mono text-[#A8A29E]/60 select-none'>
-                <span>600 DPI</span>
-                <span>SAFE ZONE</span>
-              </div>
+              {/* Dấu định vị 4 góc vẽ (Crop marks tinh tế) */}
+              <div className='absolute top-2 left-2 w-3 h-3 border-t-2 border-l-2 border-[#A8A29E]/70 pointer-events-none' />
+              <div className='absolute top-2 right-2 w-3 h-3 border-t-2 border-r-2 border-[#A8A29E]/70 pointer-events-none' />
+              <div className='absolute bottom-2 left-2 w-3 h-3 border-b-2 border-l-2 border-[#A8A29E]/70 pointer-events-none' />
+              <div className='absolute bottom-2 right-2 w-3 h-3 border-b-2 border-r-2 border-[#A8A29E]/70 pointer-events-none' />
             </div>
           </div>
         </div>

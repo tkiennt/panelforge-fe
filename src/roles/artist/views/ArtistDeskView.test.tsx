@@ -4,8 +4,8 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ArtistDeskView } from './ArtistDeskView';
 
-describe('ArtistDeskView - Canva-style Manga Desk', () => {
-  it('renders artist desk initially focused on blank paper sheet with Canva left dock', () => {
+describe('ArtistDeskView - Canva-Style Bottom Page Manager', () => {
+  it('renders artist desk with centered clean manga canvas and Canva bottom page dock', () => {
     render(
       <MemoryRouter initialEntries={['/workspaces/ws-1/series/ser-1/artist']}>
         <Routes>
@@ -14,31 +14,28 @@ describe('ArtistDeskView - Canva-style Manga Desk', () => {
             element={<ArtistDeskView workspaceRole='ARTIST' />}
           />
         </Routes>
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     // Main desk container
     expect(screen.getByTestId('artist-desk')).toBeInTheDocument();
 
-    // Canva Primary Dock with 3 tabs
-    expect(screen.getByTestId('canva-primary-dock')).toBeInTheDocument();
-    expect(screen.getByTestId('canva-tab-pages')).toBeInTheDocument();
-    expect(screen.getByTestId('canva-tab-script')).toBeInTheDocument();
-    expect(screen.getByTestId('canva-tab-bible')).toBeInTheDocument();
-
-    // Canva Secondary Drawer is closed initially (w-0) for clean blank paper focus
-    expect(screen.getByTestId('canva-secondary-drawer')).toHaveClass('w-0');
-
-    // Canvas Shell
+    // Canvas Shell & Clean Blank Manga Paper without technical text
     expect(screen.getByTestId('artist-canvas-shell')).toBeInTheDocument();
-    expect(screen.getByTestId('canvas-page-header')).toHaveTextContent('TRANG 01');
-
-    // Blank Manga B5 Paper Sheet is clearly visible and centered
     expect(screen.getByTestId('artist-blank-sheet')).toBeInTheDocument();
     expect(screen.getByTestId('artist-canvas-surface')).toBeInTheDocument();
+
+    // Canva Bottom Page Manager exists
+    expect(screen.getByTestId('canva-bottom-page-manager')).toBeInTheDocument();
+    expect(screen.getByTestId('canva-page-filmstrip')).toBeInTheDocument();
+    expect(screen.getByTestId('canva-bottom-bar')).toBeInTheDocument();
+
+    // Page thumbnails are rendered
+    expect(screen.getByTestId('canva-page-card-1')).toBeInTheDocument();
+    expect(screen.getByTestId('canva-page-counter')).toHaveTextContent('1 / 6');
   });
 
-  it('switches between Canva tabs (Pages -> Script -> Bible) when opened by user', () => {
+  it('selects a different page when clicking on thumbnail card', () => {
     render(
       <MemoryRouter initialEntries={['/workspaces/ws-1/series/ser-1/artist']}>
         <Routes>
@@ -47,24 +44,18 @@ describe('ArtistDeskView - Canva-style Manga Desk', () => {
             element={<ArtistDeskView workspaceRole='ARTIST' />}
           />
         </Routes>
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
-    // 1. User opens Pages drawer
-    fireEvent.click(screen.getByTestId('canva-tab-pages'));
-    expect(screen.getByTestId('canva-secondary-drawer')).toHaveClass('w-[330px]');
-    expect(screen.getByTestId('canva-drawer-pages')).toBeInTheDocument();
+    // Click on page 2 thumbnail
+    const card2 = screen.getByTestId('canva-page-card-2');
+    fireEvent.click(card2.querySelector('[role="button"]')!);
 
-    // 2. Click Script tab
-    fireEvent.click(screen.getByTestId('canva-tab-script'));
-    expect(screen.getByTestId('canva-drawer-script')).toBeInTheDocument();
-
-    // 3. Click Bible tab
-    fireEvent.click(screen.getByTestId('canva-tab-bible'));
-    expect(screen.getByTestId('canva-drawer-bible')).toBeInTheDocument();
+    // Counter updates to 2 / 6
+    expect(screen.getByTestId('canva-page-counter')).toHaveTextContent('2 / 6');
   });
 
-  it('selects and adds pages via Canva sidebar when opened', () => {
+  it('adds a new page when clicking Add Page button', () => {
     render(
       <MemoryRouter initialEntries={['/workspaces/ws-1/series/ser-1/artist']}>
         <Routes>
@@ -73,22 +64,18 @@ describe('ArtistDeskView - Canva-style Manga Desk', () => {
             element={<ArtistDeskView workspaceRole='ARTIST' />}
           />
         </Routes>
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
-    // Open pages drawer
-    fireEvent.click(screen.getByTestId('canva-tab-pages'));
+    const addBtn = screen.getByTestId('canva-add-page-btn');
+    fireEvent.click(addBtn);
 
-    // Select Page 2
-    fireEvent.click(screen.getByTestId('canva-page-card-2'));
-    expect(screen.getByTestId('canvas-page-header')).toHaveTextContent('TRANG 02');
-
-    // Add new page
-    fireEvent.click(screen.getByTestId('canva-btn-add-page-header'));
-    expect(screen.getByTestId('canvas-page-header')).toHaveTextContent('TRANG 05');
+    // New page 7 is created and active
+    expect(screen.getByTestId('canva-page-card-7')).toBeInTheDocument();
+    expect(screen.getByTestId('canva-page-counter')).toHaveTextContent('7 / 7');
   });
 
-  it('shows hidden notice when page visibility eye icon is toggled off', () => {
+  it('toggles page filmstrip visibility when clicking Trang button', () => {
     render(
       <MemoryRouter initialEntries={['/workspaces/ws-1/series/ser-1/artist']}>
         <Routes>
@@ -97,14 +84,15 @@ describe('ArtistDeskView - Canva-style Manga Desk', () => {
             element={<ArtistDeskView workspaceRole='ARTIST' />}
           />
         </Routes>
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
-    // Open pages drawer
-    fireEvent.click(screen.getByTestId('canva-tab-pages'));
+    expect(screen.getByTestId('canva-page-filmstrip')).toBeInTheDocument();
 
-    // Toggle eye on Page 1
-    fireEvent.click(screen.getByTestId('canva-btn-eye-1'));
-    expect(screen.getByTestId('page-hidden-notice')).toHaveTextContent('Trang 1 đang tạm ẩn');
+    const toggleBtn = screen.getByTestId('canva-toggle-pages-btn');
+    fireEvent.click(toggleBtn);
+
+    // Filmstrip is hidden
+    expect(screen.queryByTestId('canva-page-filmstrip')).not.toBeInTheDocument();
   });
 });

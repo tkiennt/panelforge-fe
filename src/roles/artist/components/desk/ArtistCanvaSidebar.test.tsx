@@ -195,4 +195,69 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
     // Default theme is paper (màu sáng)
     expect(sidebar).toHaveAttribute('data-sb-theme', 'paper');
   });
+
+  it('renders script in continuous manuscript flow by page and panel for reference without box cards', () => {
+    renderWithRouter(
+      <ArtistCanvaSidebar
+        pages={MOCK_PAGES}
+        selectedPageId='page-1'
+        onSelectPage={vi.fn()}
+        onAddPage={vi.fn()}
+        onDuplicatePage={vi.fn()}
+        onDeletePage={vi.fn()}
+        onMovePage={vi.fn()}
+        onToggleVisibility={vi.fn()}
+      />
+    );
+
+    // Open Script tab
+    fireEvent.click(screen.getByTestId('canva-tab-script'));
+
+    // Verify continuous manuscript container
+    expect(screen.getByTestId('canva-script-manuscript-flow')).toBeInTheDocument();
+    expect(screen.getByText(/── TRANG 1 ──/i)).toBeInTheDocument();
+    expect(screen.getByTestId('script-panel-section-1')).toBeInTheDocument();
+
+    // Search filter in script
+    const searchInput = screen.getByTestId('canva-input-search-script');
+    fireEvent.change(searchInput, { target: { value: 'Hắc Long' } });
+    expect(screen.getByText(/Thanh Hà/i)).toBeInTheDocument();
+  });
+
+  it('renders series bible with reference image and turnaround visual notes', () => {
+    const customBible = [
+      {
+        id: 'bible-1',
+        name: 'Chiến Thần Viễn Cổ',
+        category: 'character' as const,
+        tag: 'Huyền thoại',
+        description:
+          'Chiến binh cổ đại mặc chiến giáp hoàng kim.',
+        visualNotes: ['Chiến giáp hoàng kim rực rỡ', 'Thương bạc dài 3 mét'],
+        imageUrl: 'https://example.com/character-sheet.png',
+      },
+    ];
+
+    renderWithRouter(
+      <ArtistCanvaSidebar
+        pages={MOCK_PAGES}
+        selectedPageId='page-1'
+        onSelectPage={vi.fn()}
+        onAddPage={vi.fn()}
+        onDuplicatePage={vi.fn()}
+        onDeletePage={vi.fn()}
+        onMovePage={vi.fn()}
+        onToggleVisibility={vi.fn()}
+        bibleEntities={customBible}
+      />
+    );
+
+    // Open Bible tab
+    fireEvent.click(screen.getByTestId('canva-tab-bible'));
+
+    expect(screen.getByText('Chiến Thần Viễn Cổ')).toBeInTheDocument();
+    expect(screen.getByText('Chiến giáp hoàng kim rực rỡ')).toBeInTheDocument();
+    const img = screen.getByRole('img');
+    expect(img).toHaveAttribute('src', 'https://example.com/character-sheet.png');
+  });
 });
