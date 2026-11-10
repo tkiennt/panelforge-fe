@@ -260,4 +260,48 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
     const img = screen.getByRole('img');
     expect(img).toHaveAttribute('src', 'https://example.com/character-sheet.png');
   });
+
+  it('switches to Templates tab, filters presets, selects template and clears template', () => {
+    const handleSelectTemplate = vi.fn();
+    const handleClearTemplate = vi.fn();
+
+    renderWithRouter(
+      <ArtistCanvaSidebar
+        pages={MOCK_PAGES}
+        selectedPageId='page-1'
+        onSelectPage={vi.fn()}
+        onAddPage={vi.fn()}
+        onDuplicatePage={vi.fn()}
+        onDeletePage={vi.fn()}
+        onMovePage={vi.fn()}
+        onToggleVisibility={vi.fn()}
+        activeTemplateId='builtin-3-panel-shonen'
+        hasPagePanels={true}
+        onSelectTemplate={handleSelectTemplate}
+        onClearTemplate={handleClearTemplate}
+      />
+    );
+
+    // Open Templates tab
+    fireEvent.click(screen.getByTestId('canva-tab-templates'));
+    expect(screen.getByTestId('canva-drawer-templates')).toBeInTheDocument();
+    expect(screen.getByText('Mẫu Khung Tranh Tham Khảo')).toBeInTheDocument();
+
+    // Select a different template
+    fireEvent.click(screen.getByTestId('canva-template-card-builtin-4-panel-yonkoma'));
+    expect(handleSelectTemplate).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'builtin-4-panel-yonkoma', panelCount: 4 })
+    );
+
+    // Search filter
+    fireEvent.change(screen.getByTestId('canva-input-search-templates'), {
+      target: { value: 'Điện Ảnh' },
+    });
+    expect(screen.getByTestId('canva-template-card-builtin-cinematic-widescreen')).toBeInTheDocument();
+    expect(screen.queryByTestId('canva-template-card-builtin-4-panel-yonkoma')).not.toBeInTheDocument();
+
+    // Clear template button works
+    fireEvent.click(screen.getByTestId('canva-btn-clear-template'));
+    expect(handleClearTemplate).toHaveBeenCalledTimes(1);
+  });
 });
