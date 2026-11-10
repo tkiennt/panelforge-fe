@@ -1579,18 +1579,18 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                   {currentSketch && currentPagePanels.length === 0 && (
                     <div
                       data-testid='pencil-sketch-split-btn'
-                      className='absolute top-3 right-3 z-30 pointer-events-auto'
+                      className='absolute top-3.5 right-3.5 z-30 pointer-events-auto'
                     >
                       <button
                         type='button'
                         onClick={handleAutoDetectPanels}
                         disabled={isDetectingPanels}
                         data-testid='btn-split-panels-simple'
-                        className='px-3.5 py-1.5 rounded-lg bg-stone-900 hover:bg-black text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm cursor-pointer transition-colors disabled:opacity-60'
+                        className='px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm cursor-pointer transition-colors disabled:opacity-60'
                       >
                         {isDetectingPanels ? (
                           <>
-                            <Loader2 className='w-3.5 h-3.5 animate-spin text-amber-400' />
+                            <Loader2 className='w-3.5 h-3.5 animate-spin text-white' />
                             <span>Đang tách khung...</span>
                           </>
                         ) : (
@@ -1619,14 +1619,14 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                       data-testid='artist-blank-state-actions'
                       className='absolute inset-0 z-20 flex items-center justify-center pointer-events-auto'
                     >
-                      <div className='flex items-center gap-2'>
+                      <div className='flex items-center gap-3'>
                         <button
                           type='button'
                           onClick={() => sketchFileInputRef.current?.click()}
                           data-testid='btn-upload-sketch-simple'
-                          className='px-3.5 py-1.5 rounded-lg bg-stone-900 hover:bg-black text-white text-xs font-semibold flex items-center gap-1.5 shadow-2xs cursor-pointer transition-colors'
+                          className='px-5 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold flex items-center gap-2 shadow-sm cursor-pointer transition-all hover:scale-105 active:scale-95'
                         >
-                          <Upload className='w-3.5 h-3.5' />
+                          <Upload className='w-4 h-4' />
                           <span>Tải phác thảo</span>
                         </button>
                         <button
@@ -1636,9 +1636,9 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                             setIsSidebarDrawerOpen(true);
                           }}
                           data-testid='btn-open-templates-simple'
-                          className='px-3.5 py-1.5 rounded-lg border border-stone-300 bg-white hover:bg-stone-50 text-stone-700 text-xs font-semibold flex items-center gap-1.5 shadow-2xs cursor-pointer transition-colors'
+                          className='px-5 py-2.5 rounded-xl border border-stone-300 bg-white hover:bg-stone-50 text-stone-800 text-sm font-bold flex items-center gap-2 shadow-2xs cursor-pointer transition-all hover:scale-105 active:scale-95'
                         >
-                          <LayoutTemplate className='w-3.5 h-3.5 text-stone-500' />
+                          <LayoutTemplate className='w-4 h-4 text-stone-600' />
                           <span>Chọn mẫu khung</span>
                         </button>
                       </div>
