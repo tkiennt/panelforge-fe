@@ -350,10 +350,10 @@ export const DEFAULT_FRAME_TEMPLATES: FrameTemplateDto[] = [
     isBuiltIn: true,
     panelCount: 4,
     slots: [
-      { x: 0.025, y: 0.025, w: 0.95, h: 0.2285, borderless: false },
-      { x: 0.025, y: 0.2655, w: 0.95, h: 0.2285, borderless: false },
-      { x: 0.025, y: 0.506, w: 0.95, h: 0.2285, borderless: false },
-      { x: 0.025, y: 0.7465, w: 0.95, h: 0.2285, borderless: false },
+      { x: 0.18, y: 0.025, w: 0.64, h: 0.2285, borderless: false },
+      { x: 0.18, y: 0.2655, w: 0.64, h: 0.2285, borderless: false },
+      { x: 0.18, y: 0.506, w: 0.64, h: 0.2285, borderless: false },
+      { x: 0.18, y: 0.7465, w: 0.64, h: 0.2285, borderless: false },
     ],
     createdAt: '2026-01-01T00:00:00Z',
   },
@@ -385,12 +385,12 @@ export const DEFAULT_FRAME_TEMPLATES: FrameTemplateDto[] = [
     isBuiltIn: true,
     panelCount: 6,
     slots: [
-      { x: 0.025, y: 0.025, w: 0.469, h: 0.296, borderless: false },
       { x: 0.506, y: 0.025, w: 0.469, h: 0.296, borderless: false },
-      { x: 0.025, y: 0.336, w: 0.469, h: 0.296, borderless: false },
+      { x: 0.025, y: 0.025, w: 0.469, h: 0.296, borderless: false },
       { x: 0.506, y: 0.336, w: 0.469, h: 0.296, borderless: false },
-      { x: 0.025, y: 0.647, w: 0.469, h: 0.296, borderless: false },
+      { x: 0.025, y: 0.336, w: 0.469, h: 0.296, borderless: false },
       { x: 0.506, y: 0.647, w: 0.469, h: 0.296, borderless: false },
+      { x: 0.025, y: 0.647, w: 0.469, h: 0.296, borderless: false },
     ],
     createdAt: '2026-01-01T00:00:00Z',
   },
@@ -439,8 +439,8 @@ export const DEFAULT_FRAME_TEMPLATES: FrameTemplateDto[] = [
     isBuiltIn: true,
     panelCount: 2,
     slots: [
-      { x: 0.025, y: 0.025, w: 0.469, h: 0.95, borderless: false },
       { x: 0.506, y: 0.025, w: 0.469, h: 0.95, borderless: false },
+      { x: 0.025, y: 0.025, w: 0.469, h: 0.95, borderless: false },
     ],
     createdAt: '2026-01-01T00:00:00Z',
   },
@@ -468,10 +468,10 @@ export const DEFAULT_FRAME_TEMPLATES: FrameTemplateDto[] = [
     isBuiltIn: true,
     panelCount: 4,
     slots: [
-      { x: 0.025, y: 0.025, w: 0.469, h: 0.4675, borderless: false },
       { x: 0.506, y: 0.025, w: 0.469, h: 0.4675, borderless: false },
-      { x: 0.025, y: 0.5075, w: 0.469, h: 0.4675, borderless: false },
+      { x: 0.025, y: 0.025, w: 0.469, h: 0.4675, borderless: false },
       { x: 0.506, y: 0.5075, w: 0.469, h: 0.4675, borderless: false },
+      { x: 0.025, y: 0.5075, w: 0.469, h: 0.4675, borderless: false },
     ],
     createdAt: '2026-01-01T00:00:00Z',
   },
@@ -520,10 +520,10 @@ export const DEFAULT_FRAME_TEMPLATES: FrameTemplateDto[] = [
     panelCount: 5,
     slots: [
       { x: 0.025, y: 0.025, w: 0.95, h: 0.44, borderless: false },
-      { x: 0.025, y: 0.48, w: 0.469, h: 0.22, borderless: false },
       { x: 0.506, y: 0.48, w: 0.469, h: 0.22, borderless: false },
-      { x: 0.025, y: 0.715, w: 0.469, h: 0.26, borderless: false },
+      { x: 0.025, y: 0.48, w: 0.469, h: 0.22, borderless: false },
       { x: 0.506, y: 0.715, w: 0.469, h: 0.26, borderless: false },
+      { x: 0.025, y: 0.715, w: 0.469, h: 0.26, borderless: false },
     ],
     createdAt: '2026-01-01T00:00:00Z',
   },
@@ -537,11 +537,11 @@ export const DEFAULT_FRAME_TEMPLATES: FrameTemplateDto[] = [
     panelCount: 6,
     slots: [
       { x: 0.025, y: 0.025, w: 0.95, h: 0.205, borderless: false },
-      { x: 0.025, y: 0.245, w: 0.469, h: 0.205, borderless: false },
       { x: 0.506, y: 0.245, w: 0.469, h: 0.205, borderless: false },
+      { x: 0.025, y: 0.245, w: 0.469, h: 0.205, borderless: false },
       { x: 0.025, y: 0.465, w: 0.95, h: 0.265, borderless: false },
-      { x: 0.025, y: 0.745, w: 0.469, h: 0.23, borderless: false },
       { x: 0.506, y: 0.745, w: 0.469, h: 0.23, borderless: false },
+      { x: 0.025, y: 0.745, w: 0.469, h: 0.23, borderless: false },
     ],
     createdAt: '2026-01-01T00:00:00Z',
   },
@@ -612,8 +612,8 @@ export const DEFAULT_FRAME_TEMPLATES: FrameTemplateDto[] = [
     panelCount: 3,
     slots: [
       { x: 0.025, y: 0.025, w: 0.95, h: 0.52, borderless: false },
-      { x: 0.025, y: 0.56, w: 0.469, h: 0.415, borderless: false },
       { x: 0.506, y: 0.56, w: 0.469, h: 0.415, borderless: false },
+      { x: 0.025, y: 0.56, w: 0.469, h: 0.415, borderless: false },
     ],
     createdAt: '2026-01-01T00:00:00Z',
   },
@@ -641,7 +641,7 @@ export const DEFAULT_FRAME_TEMPLATES: FrameTemplateDto[] = [
     code: 'TPL-WEBTOON-01',
     category: 'webtoon',
     description: 'Bố cục cuộn dọc tiêu chuẩn smartphone 9:16 với khoảng lặng ngừng nghỉ (negative space)',
-    layoutFormat: 'WebtoonLongstrip',
+    layoutFormat: 'StandardPage',
     isBuiltIn: true,
     panelCount: 3,
     slots: [
@@ -657,13 +657,13 @@ export const DEFAULT_FRAME_TEMPLATES: FrameTemplateDto[] = [
     code: 'TPL-WEBTOON-02',
     category: 'webtoon',
     description: '1 khung dẫn đề ở trên + 2 cột song song 50-50 để miêu tả 2 góc nhìn đối thoại đồng thời',
-    layoutFormat: 'WebtoonLongstrip',
+    layoutFormat: 'StandardPage',
     isBuiltIn: true,
     panelCount: 3,
     slots: [
       { x: 0.04, y: 0.04, w: 0.92, h: 0.32, borderless: false },
-      { x: 0.04, y: 0.40, w: 0.445, h: 0.55, borderless: false },
       { x: 0.515, y: 0.40, w: 0.445, h: 0.55, borderless: false },
+      { x: 0.04, y: 0.40, w: 0.445, h: 0.55, borderless: false },
     ],
     createdAt: '2026-01-01T00:00:00Z',
   },
@@ -673,7 +673,7 @@ export const DEFAULT_FRAME_TEMPLATES: FrameTemplateDto[] = [
     code: 'TPL-WEBTOON-03',
     category: 'webtoon',
     description: 'Khung tranh không viền chìm dần vào trang cuộn, tạo cảm xúc bay bổng hoặc hồi tưởng',
-    layoutFormat: 'WebtoonLongstrip',
+    layoutFormat: 'StandardPage',
     isBuiltIn: true,
     panelCount: 2,
     slots: [
@@ -2066,35 +2066,57 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                                   : 'aspect-[2/3] h-full'
                               } bg-white border border-stone-300 rounded-xs relative overflow-hidden shadow-2xs`}
                             >
-                              {tpl.slots.map((s, idx) => (
-                                <div
-                                  key={idx}
-                                  className={`absolute border flex items-center justify-center font-mono text-[8px] font-bold transition-colors ${
-                                    s.borderless
-                                      ? 'border-dashed border-orange-400'
-                                      : isSelected
-                                        ? 'border-[var(--sb-accent)]'
-                                        : 'border-stone-700'
-                                  } ${
-                                    isSelected
-                                      ? 'bg-[var(--sb-accent)]/15 text-[var(--sb-accent)]'
-                                      : 'bg-stone-100/90 text-stone-600'
-                                  }`}
-                                  style={{
-                                    left: `${s.x * 100}%`,
-                                    top: `${s.y * 100}%`,
-                                    width: `${s.w * 100}%`,
-                                    height: `${s.h * 100}%`,
-                                    clipPath: s.corners?.length
-                                      ? `polygon(${s.corners
-                                          .map((c) => `${c.x * 100}% ${c.y * 100}%`)
-                                          .join(', ')})`
-                                      : undefined,
-                                  }}
-                                >
-                                  {idx + 1}
-                                </div>
-                              ))}
+                              {tpl.slots.map((s, idx) => {
+                                const isInsetChild = tpl.code === 'TPL-MANGA-06' && idx > 0;
+                                const hasCorners = Boolean(s.corners && s.corners.length >= 3);
+                                return (
+                                  <div
+                                    key={idx}
+                                    className={`absolute flex items-center justify-center font-mono text-[8px] font-bold transition-colors ${
+                                      hasCorners
+                                        ? ''
+                                        : s.borderless
+                                          ? 'border border-dashed border-orange-400'
+                                          : isSelected
+                                            ? 'border border-[var(--sb-accent)]'
+                                            : 'border border-stone-700'
+                                    } ${
+                                      isInsetChild
+                                        ? 'bg-white shadow-xs z-10 text-stone-800 border border-stone-800'
+                                        : isSelected
+                                          ? 'bg-[var(--sb-accent)]/15 text-[var(--sb-accent)]'
+                                          : 'bg-stone-100/90 text-stone-600'
+                                    }`}
+                                    style={{
+                                      left: `${s.x * 100}%`,
+                                      top: `${s.y * 100}%`,
+                                      width: `${s.w * 100}%`,
+                                      height: `${s.h * 100}%`,
+                                      clipPath: hasCorners
+                                        ? `polygon(${s.corners!.map((c) => `${c.x * 100}% ${c.y * 100}%`).join(', ')})`
+                                        : undefined,
+                                    }}
+                                  >
+                                    {hasCorners && (
+                                      <svg
+                                        className='absolute inset-0 w-full h-full pointer-events-none'
+                                        viewBox='0 0 100 100'
+                                        preserveAspectRatio='none'
+                                      >
+                                        <polygon
+                                          points={s.corners!.map((c) => `${c.x * 100},${c.y * 100}`).join(' ')}
+                                          fill={isSelected ? 'currentColor' : '#f5f5f4'}
+                                          fillOpacity={isSelected ? 0.15 : 0.9}
+                                          stroke={isSelected ? 'var(--sb-accent)' : '#44403c'}
+                                          strokeWidth='3'
+                                          vectorEffect='non-scaling-stroke'
+                                        />
+                                      </svg>
+                                    )}
+                                    <span className='relative z-10'>{idx + 1}</span>
+                                  </div>
+                                );
+                              })}
                             </div>
 
                             {isSelected && (

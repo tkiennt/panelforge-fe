@@ -30,10 +30,10 @@ export const MANGA_FRAME_PRESETS: FramePresetTemplate[] = [
     panelCount: 4,
     badge: 'TPL-MANGA-01',
     panels: [
-      { panelNumber: 1, x: 2.5, y: 2.5, width: 95, height: 22.85 },
-      { panelNumber: 2, x: 2.5, y: 26.55, width: 95, height: 22.85 },
-      { panelNumber: 3, x: 2.5, y: 50.6, width: 95, height: 22.85 },
-      { panelNumber: 4, x: 2.5, y: 74.65, width: 95, height: 22.85 },
+      { panelNumber: 1, x: 18, y: 2.5, width: 64, height: 22.85 },
+      { panelNumber: 2, x: 18, y: 26.55, width: 64, height: 22.85 },
+      { panelNumber: 3, x: 18, y: 50.6, width: 64, height: 22.85 },
+      { panelNumber: 4, x: 18, y: 74.65, width: 64, height: 22.85 },
     ],
   },
   {
@@ -106,8 +106,8 @@ export const MANGA_FRAME_PRESETS: FramePresetTemplate[] = [
     panelCount: 2,
     badge: '2 Khung',
     panels: [
-      { panelNumber: 1, x: 2.5, y: 2.5, width: 46.9, height: 95 },
-      { panelNumber: 2, x: 50.6, y: 2.5, width: 46.9, height: 95 },
+      { panelNumber: 1, x: 50.6, y: 2.5, width: 46.9, height: 95 },
+      { panelNumber: 2, x: 2.5, y: 2.5, width: 46.9, height: 95 },
     ],
   },
   {
@@ -161,10 +161,10 @@ export const MANGA_FRAME_PRESETS: FramePresetTemplate[] = [
     badge: 'Cao trào',
     panels: [
       { panelNumber: 1, x: 2.5, y: 2.5, width: 95, height: 44 },
-      { panelNumber: 2, x: 2.5, y: 48, width: 46.9, height: 22 },
-      { panelNumber: 3, x: 50.6, y: 48, width: 46.9, height: 22 },
-      { panelNumber: 4, x: 2.5, y: 71.5, width: 46.9, height: 26 },
-      { panelNumber: 5, x: 50.6, y: 71.5, width: 46.9, height: 26 },
+      { panelNumber: 2, x: 50.6, y: 48, width: 46.9, height: 22 },
+      { panelNumber: 3, x: 2.5, y: 48, width: 46.9, height: 22 },
+      { panelNumber: 4, x: 50.6, y: 71.5, width: 46.9, height: 26 },
+      { panelNumber: 5, x: 2.5, y: 71.5, width: 46.9, height: 26 },
     ],
   },
 
@@ -304,26 +304,31 @@ export const TemplateSelectorSidebar: React.FC<TemplateSelectorSidebarProps> = (
                 <div className='flex items-start gap-3'>
                   {/* Wireframe Thumbnail thu nhỏ (Tỷ lệ B5) */}
                   <div className='w-14 h-20 bg-stone-50 border border-[#D8D2C5] rounded-md relative shrink-0 overflow-hidden shadow-2xs group-hover:border-stone-400 transition-colors'>
-                    {preset.panels.map((p) => (
-                      <div
-                        key={p.panelNumber}
-                        className={`absolute border flex items-center justify-center transition-colors ${
-                          isSelected
-                            ? 'border-[#F97316] bg-orange-100/50'
-                            : 'border-[#171717]/80 bg-white group-hover:border-[#171717]'
-                        }`}
-                        style={{
-                          left: `${p.x}%`,
-                          top: `${p.y}%`,
-                          width: `${p.width}%`,
-                          height: `${p.height}%`,
-                        }}
-                      >
-                        <span className='text-[8px] font-mono font-bold text-stone-500'>
-                          #{p.panelNumber}
-                        </span>
-                      </div>
-                    ))}
+                    {preset.panels.map((p) => {
+                      const isInsetChild = preset.id === 'inset-panels' && p.panelNumber > 1;
+                      return (
+                        <div
+                          key={p.panelNumber}
+                          className={`absolute border flex items-center justify-center transition-colors ${
+                            isInsetChild ? 'z-10 shadow-xs' : ''
+                          } ${
+                            isSelected
+                              ? 'border-[#F97316] bg-orange-100/50'
+                              : 'border-[#171717]/80 bg-white group-hover:border-[#171717]'
+                          }`}
+                          style={{
+                            left: `${p.x}%`,
+                            top: `${p.y}%`,
+                            width: `${p.width}%`,
+                            height: `${p.height}%`,
+                          }}
+                        >
+                          <span className='text-[8px] font-mono font-bold text-stone-500'>
+                            #{p.panelNumber}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
 
                   {/* Thông tin Preset */}

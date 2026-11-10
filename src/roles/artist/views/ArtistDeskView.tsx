@@ -1480,30 +1480,76 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                         );
                         const panelNum = pnl.panelNumber || idx + 1;
                         const artwork = currentPageArtworks[pnl.id];
+                        const hasCorners = Boolean(box.corners && box.corners.length >= 3);
+                        // Nhận diện Inset Panel (Khung lồng) khi có khung nhỏ nằm đè lên khung lớn
+                        const isInsetChild = Boolean(
+                          (currentTemplate?.code === 'TPL-MANGA-06' && idx > 0) ||
+                          (box.percentW < 50 && box.percentH < 50 && currentPagePanels.some((_, i) => i !== idx && parseBoundingBox(currentPagePanels[i].boundingBox, selectedPage?.widthPx || 1200, selectedPage?.heightPx || 1800).percentW > 80))
+                        );
 
                         return (
                           <div
                             key={pnl.id}
                             data-testid={`canvas-panel-frame-${panelNum}`}
                             className={`absolute transition-all duration-200 overflow-hidden ${
-                              box.borderless
-                                ? 'border-2 border-dashed border-orange-500/85 bg-orange-50/15'
-                                : isCurrentPageLayoutLocked
-                                  ? 'border-2 border-stone-900 bg-stone-50/20 shadow-2xs'
-                                  : 'border-2 border-dashed border-stone-400/80 bg-stone-100/30'
+                              isInsetChild ? 'z-30 shadow-md bg-white' : 'z-20'
+                            } ${
+                              hasCorners
+                                ? ''
+                                : box.borderless
+                                  ? 'border-2 border-dashed border-orange-500/85 bg-orange-50/15'
+                                  : isCurrentPageLayoutLocked
+                                    ? isInsetChild
+                                      ? 'border-2 border-stone-900 bg-white'
+                                      : 'border-2 border-stone-900 bg-stone-50/20 shadow-2xs'
+                                    : isInsetChild
+                                      ? 'border-2 border-dashed border-stone-600 bg-white'
+                                      : 'border-2 border-dashed border-stone-400/80 bg-stone-100/30'
                             } ${isCurrentPageLayoutLocked ? 'pointer-events-auto' : 'pointer-events-none'}`}
                             style={{
                               left: `${box.percentX}%`,
                               top: `${box.percentY}%`,
                               width: `${box.percentW}%`,
                               height: `${box.percentH}%`,
-                              clipPath: box.corners?.length
-                                ? `polygon(${box.corners
+                              clipPath: hasCorners
+                                ? `polygon(${box.corners!
                                     .map((c) => `${c.x * 100}% ${c.y * 100}%`)
                                     .join(', ')})`
                                 : undefined,
                             }}
                           >
+                            {/* Viền SVG stroke cho các khung cắt chéo (Slanted Polygon) */}
+                            {hasCorners && (
+                              <svg
+                                className='absolute inset-0 w-full h-full pointer-events-none z-10'
+                                viewBox='0 0 100 100'
+                                preserveAspectRatio='none'
+                              >
+                                <polygon
+                                  points={box.corners!.map((c) => `${c.x * 100},${c.y * 100}`).join(' ')}
+                                  fill={
+                                    isInsetChild
+                                      ? '#ffffff'
+                                      : isCurrentPageLayoutLocked
+                                        ? 'rgba(250, 250, 249, 0.2)'
+                                        : 'rgba(245, 245, 244, 0.3)'
+                                  }
+                                  stroke={
+                                    box.borderless
+                                      ? '#f97316'
+                                      : isCurrentPageLayoutLocked
+                                        ? '#1c1917'
+                                        : '#78716c'
+                                  }
+                                  strokeWidth={isCurrentPageLayoutLocked ? '2.5' : '2'}
+                                  strokeDasharray={
+                                    box.borderless || !isCurrentPageLayoutLocked ? '6 4' : undefined
+                                  }
+                                  vectorEffect='non-scaling-stroke'
+                                />
+                              </svg>
+                            )}
+
                             {/* Số thứ tự đọc Manga */}
                             <span className='absolute top-1 left-1.5 z-20 px-1 py-0.2 rounded text-[10px] font-mono font-bold bg-white/95 text-stone-800 border border-stone-300/80 shadow-2xs'>
                               #{panelNum}
