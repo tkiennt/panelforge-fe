@@ -21,12 +21,18 @@ export interface FrameTemplateDto {
   slots: FrameSlot[];
   createdAt: string;
   createdBy?: string | null;
+  category?: 'narrative' | 'action' | 'cinematic' | 'webtoon' | string;
+  code?: string;
+  description?: string;
 }
 
 export interface CreateFrameTemplateRequest {
   name: string;
   layoutFormat?: 'StandardPage' | 'SpreadDouble' | 'WebtoonLongstrip' | string;
   slots: FrameSlot[];
+  category?: 'narrative' | 'action' | 'cinematic' | 'webtoon' | string;
+  code?: string;
+  description?: string;
 }
 
 function extractError(error: any, defaultMsg: string): any {
