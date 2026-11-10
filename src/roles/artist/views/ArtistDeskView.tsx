@@ -162,7 +162,6 @@ import { pickPanelArtwork, pickPageArtwork } from '@/shared/utils/stageArtworks'
 import { ElementConflictModal } from '@/shared/modals/ElementConflictModal';
 import { CanvasMinimap, LayerStackingOrder } from '@/shared/components/lucian';
 import { GlobalPipelineHeader } from '../components/GlobalPipelineHeader';
-import { LucianArtistStageTabs } from '../components/LucianArtistStageTabs';
 import { PencilStageWorkspaceBar } from '../components/PencilStageWorkspaceBar';
 import { InkStageWorkspaceBar, type InkingNib, type ScreenToneLpi } from '../components/InkStageWorkspaceBar';
 import { LetteringStageWorkspaceBar } from '../components/LetteringStageWorkspaceBar';
@@ -1759,7 +1758,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
   );
 
   // Stage đích cho mọi thao tác upload: BẮT BUỘC theo đúng công đoạn đang thực hiện thật sự
-  const uploadStage = trueActiveStage;
+  const uploadStage = trueActiveStage || currentActiveStage || sortedStages[0];
 
   const currentStageKind = getArtistStageKind(currentActiveStage);
   const isPencilStage = currentStageKind === 'pencil';
@@ -1806,14 +1805,13 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
 
   const handleStageHandoff = async (stage: PipelineStageDto) => {
     if (!currentChapterId) return;
-    const slug = (stage.slug || stage.name || '').toLowerCase();
-    const isPencil = slug.includes('pencil') || slug.includes('chì');
-    const isInk = slug.includes('ink') || slug.includes('nét');
+    const kind = getArtistStageKind(stage);
+    const isPencil = kind === 'pencil';
+    const isInk = kind === 'ink';
+    const isLettering = kind === 'lettering';
 
     const nextStage = sortedStages.find((s) => s.stageOrder > stage.stageOrder);
     const nextStageName = nextStage?.name ?? 'giai đoạn tiếp theo';
-
-    const isLettering = slug.includes('letter') || stage.allowedRole === 'Letterer';
 
     const title = isPencil
       ? 'Internal Handoff: Bàn giao tự động Pencil ➔ Ink'
@@ -5204,7 +5202,8 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                         !pendingPagePreview &&
                         !uploadingPage && (
                           <div
-                            className='sr-only' data-testid='full-page-empty-banner'
+                            className='absolute inset-0 flex flex-col items-center justify-center p-6 text-center border-2 border-dashed border-stone-300 dark:border-stone-700 rounded-xl bg-stone-50/80 dark:bg-stone-900/80 backdrop-blur-sm pointer-events-auto z-10 m-4'
+                            data-testid='full-page-empty-banner'
                           >
                             <FileImage className='w-8 h-8 text-blue-500 mb-1.5 animate-pulse' />
                             <span className='text-xs font-bold text-stone-800'>
@@ -5835,16 +5834,15 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                 <span className='w-px h-5 bg-[#D8D2C5]' aria-hidden='true' />
 
                 {/* Chọn Layer Ảnh hiển thị */}
-                <label className='sr-only'>
+                <label className='flex items-center gap-1 text-[11px] font-medium text-stone-600 bg-[#F3EFE6] px-2 py-0.5 rounded-lg border border-[#DDD6C8] h-7 cursor-pointer' title='Chỉ đổi ảnh đang xem trên canvas, không đổi công đoạn'>
                   <Eye className='w-3.5 h-3.5 text-[#C2410C]' aria-hidden='true' />
-                  <span className='hidden 2xl:inline whitespace-nowrap text-[11px] font-medium'>Ảnh hiển thị</span>
-                  <span className='sr-only 2xl:hidden'>Ảnh hiển thị</span>
+                  <span className='hidden 2xl:inline whitespace-nowrap text-[11px] font-medium'>Ảnh hiển thị:</span>
                   <select
                     value={viewStageId}
                     onChange={(e) => handleSelectStageFilter(e.target.value)}
                     data-testid='desk-stage-select'
                     title='Chỉ đổi ảnh đang xem trên canvas, không đổi công đoạn công việc'
-                    className='h-7 max-w-[8rem] bg-white border border-[#D8D2C5] rounded-lg px-1.5 font-semibold text-xs text-[#1C1917] cursor-pointer focus-visible:outline-2 focus-visible:outline-[#F97316]'
+                    className='h-6 max-w-[8rem] bg-white border border-[#D8D2C5] rounded px-1 font-semibold text-xs text-[#1C1917] cursor-pointer focus-visible:outline-2 focus-visible:outline-[#F97316]'
                   >
                     <option value='AUTO'>
                       Tự động{myStageOnPage ? ` (${stageLabel(myStageOnPage)})` : ''}
@@ -5864,9 +5862,9 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                   </select>
                 </label>
 
-                {/* Chế độ vẽ: Vẽ cả trang / Vẽ từng khung (Ẩn theo yêu cầu tinh giản) */}
+                {/* Chế độ vẽ: Vẽ cả trang / Vẽ từng khung */}
                 {canEditPages && (
-                  <div className='sr-only' data-menu-root>
+                  <div className='relative' data-menu-root>
                     <button
                       type='button'
                       aria-haspopup='menu'
@@ -6230,10 +6228,11 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                 )}
               </div>
             </div>
-          
-            {/* RADIAL MENU CHO CÔNG CỤ PHỤ (LUCIAN #011 FAB Ở GÓC DƯỚI BÊN PHẢI MÀN HÌNH TRUYỆN TRANH) */}
-            {selectedPage && (
-              <div className='absolute bottom-4 right-4 z-30'>
+          </div>
+
+          {/* RADIAL MENU CHO CÔNG CỤ PHỤ (LUCIAN #011 FAB Ở GÓC DƯỚI BÊN PHẢI MÀN HÌNH TRUYỆN TRANH) */}
+          {selectedPage && (
+            <div className='absolute bottom-6 right-6 z-40'>
                 <ArtistAuxiliaryRadialMenu
                   canEditPages={canEditPages}
                   isPencilStage={isPencilStage}
@@ -6266,14 +6265,11 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({ workspaceRole })
                   pencilUnderlayVisible={pencilUnderlayVisible}
                   onTogglePencilUnderlay={() => setPencilUnderlayVisible((v) => !v)}
                   hasPencilArt={Boolean(pencilImgUrl)}
-                  screenToneEnabled={screenToneEnabled}
-                  onToggleScreenTone={() => setScreenToneEnabled((v) => !v)}
                   safeZoneVisible={safeZoneVisible}
                   onToggleSafeZone={() => setSafeZoneVisible((v) => !v)}
                 />
               </div>
             )}
-          </div>
         </section>
 
         {/* Cột Chi tiết: mặc định đóng; inline từ 1280px, drawer khi hẹp hơn */}

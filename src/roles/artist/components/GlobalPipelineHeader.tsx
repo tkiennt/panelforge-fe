@@ -21,6 +21,7 @@ import {
 import { PageDto } from '@/services/page.service';
 import { ChapterDto } from '@/services/chapter.service';
 import { PipelineStageDto } from '@/services/pipeline.service';
+import { getArtistStageKind } from '../utils/artistStage';
 
 interface Props {
   seriesTitle?: string;
@@ -80,16 +81,17 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
     if (hasNext) onSelectPage(pages[currentIndex + 1]);
   };
 
-  const stageList = stages.slice(0, 3);
+  const artistStages = stages.filter((s) => s.isEnabled !== false && getArtistStageKind(s) !== null);
+  const stageList = artistStages.length > 0 ? artistStages : stages.slice(0, 3);
   const activeIndex = stageList.findIndex(
     (s) => s.id === (trueActiveStageId || currentActiveStage?.id || selectedStageFilter),
   );
   const activeStage = activeIndex >= 0 ? stageList[activeIndex] : stageList[0];
 
-  const currentStageSlug = (activeStage?.slug || activeStage?.name || '').toLowerCase();
-  const isPencil = currentStageSlug.includes('pencil') || currentStageSlug.includes('chì') || activeIndex === 0;
-  const isInk = currentStageSlug.includes('ink') || currentStageSlug.includes('nét') || currentStageSlug.includes('mực') || activeIndex === 1;
-  const isLettering = currentStageSlug.includes('letter') || activeStage?.allowedRole === 'Letterer' || activeIndex === 2;
+  const activeStageKind = getArtistStageKind(activeStage);
+  const isPencil = activeStageKind === 'pencil' || (!activeStageKind && activeIndex === 0);
+  const isInk = activeStageKind === 'ink' || (!activeStageKind && activeIndex === 1);
+  const isLettering = activeStageKind === 'lettering' || (!activeStageKind && activeIndex === 2);
 
   const stageProgressLabel = isPencil
     ? 'PENCIL IN PROGRESS'
@@ -174,12 +176,13 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
       >
         {stageList.map((stage, idx) => {
           const isSelected = stage.id === (currentActiveStage?.id || activeStage?.id);
-          const slug = (stage.slug || stage.name || '').toLowerCase();
-          const isPencilTab = slug.includes('pencil') || slug.includes('chì') || idx === 0;
-          const isInkTab = slug.includes('ink') || slug.includes('nét') || slug.includes('mực') || idx === 1;
+          const kind = getArtistStageKind(stage);
+          const isPencilTab = kind === 'pencil' || (!kind && idx === 0);
+          const isInkTab = kind === 'ink' || (!kind && idx === 1);
+          const isLetteringTab = kind === 'lettering' || (!kind && idx === 2);
 
-          const key = isPencilTab ? 'pencil' : isInkTab ? 'ink' : 'lettering';
-          const label = isPencilTab ? 'Pencil' : isInkTab ? 'Ink' : 'Lettering';
+          const key = isPencilTab ? 'pencil' : isInkTab ? 'ink' : isLetteringTab ? 'lettering' : (stage.slug || stage.id);
+          const label = isPencilTab ? 'Pencil' : isInkTab ? 'Ink' : isLetteringTab ? 'Lettering' : stage.name;
           const IconComp = isPencilTab ? Edit3 : isInkTab ? PenTool : Type;
 
           const isCurrentActive = idx === activeIndex;
@@ -320,9 +323,10 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
             {(() => {
               const currentIdx = stageList.findIndex((s) => s.id === activeStage.id);
               const canSubmit = hasArtworkForCurrentStage && !isSubmittingHandoff;
+              const kind = activeStageKind || (currentIdx === 0 ? 'pencil' : currentIdx === 1 ? 'ink' : 'lettering');
 
               // BƯỚC 1: PENCIL ➔ INK: Submit to Ink
-              if (currentIdx === 0) {
+              if (kind === 'pencil') {
                 return (
                   <button
                     type='button'
@@ -351,7 +355,7 @@ export const GlobalPipelineHeader: React.FC<Props> = ({
               }
 
               // BƯỚC 2: INK ➔ LETTERING: Submit to Lettering
-              if (currentIdx === 1) {
+              if (kind === 'ink') {
                 return (
                   <button
                     type='button'

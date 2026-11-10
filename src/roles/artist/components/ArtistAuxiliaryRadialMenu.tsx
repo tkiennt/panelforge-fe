@@ -53,8 +53,6 @@ interface ArtistAuxiliaryRadialMenuProps {
   pencilUnderlayVisible?: boolean;
   onTogglePencilUnderlay?: () => void;
   hasPencilArt?: boolean;
-  screenToneEnabled?: boolean;
-  onToggleScreenTone?: () => void;
   safeZoneVisible?: boolean;
   onToggleSafeZone?: () => void;
 }
@@ -78,8 +76,6 @@ export const ArtistAuxiliaryRadialMenu: React.FC<ArtistAuxiliaryRadialMenuProps>
   pencilUnderlayVisible = true,
   onTogglePencilUnderlay,
   hasPencilArt = false,
-  screenToneEnabled = false,
-  onToggleScreenTone,
   safeZoneVisible = false,
   onToggleSafeZone,
 }) => {
@@ -355,7 +351,7 @@ export const ArtistAuxiliaryRadialMenu: React.FC<ArtistAuxiliaryRadialMenuProps>
           </span>
           <input
             type='range'
-            data-testid='input-storyboard-opacity'
+            data-testid='radial-storyboard-opacity-input'
             min={0}
             max={100}
             value={storyboardOpacity}
@@ -373,7 +369,7 @@ export const ArtistAuxiliaryRadialMenu: React.FC<ArtistAuxiliaryRadialMenuProps>
          ========================================================================= */}
       {modelSheetOpen && onSelectBibleEntry && (
         <div
-          data-testid='model-sheet-dropdown'
+          data-testid='radial-model-sheet-dropdown'
           className='absolute bottom-full right-0 mb-3 w-64 bg-white border border-stone-200 rounded-xl shadow-2xl p-2.5 z-50 space-y-1.5'
           onClick={(e) => e.stopPropagation()}
         >
