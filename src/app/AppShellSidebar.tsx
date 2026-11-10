@@ -202,7 +202,7 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
       : {};
 
   const rowSize = showFullContent
-    ? `justify-start gap-3 px-3 ${isMobileDrawer ? 'min-h-[44px]' : 'min-h-[40px]'}`
+    ? `justify-start gap-3 px-4 ${isMobileDrawer ? 'min-h-[44px]' : 'min-h-[40px]'}`
     : 'justify-center w-10 h-10 mx-auto';
 
   const workspaceLabel = `Workspace: ${activeWorkspace?.name || 'Chọn Workspace'}`;
@@ -232,7 +232,9 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
       className={
         isMobileDrawer
           ? 'pf-sidebar w-full flex flex-col select-none h-full overflow-hidden'
-          : 'pf-sidebar hidden md:flex flex-col shrink-0 select-none z-20 h-full border-r overflow-hidden relative'
+          : `pf-sidebar hidden md:flex flex-col shrink-0 select-none z-20 h-full border-r overflow-hidden relative transition-[width] duration-200 ${
+              showFullContent ? 'w-64' : 'w-16'
+            }`
       }
       data-collapsed={isCollapsed ? 'true' : 'false'}
       data-testid={isMobileDrawer ? 'mobile-sidebar-nav' : 'app-shell-sidebar'}
@@ -240,12 +242,12 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
     >
       {/* Brand & Rail Toggle: Thương hiệu và nút thu gọn / mở rộng bên trong side rail (Lucian #040) */}
       <div
-        className={`px-3 flex items-center h-16 shrink-0 border-b relative ${
+        className={`px-4 flex items-center h-16 shrink-0 border-b relative ${
           showFullContent
             ? isMobileDrawer
               ? 'justify-between pr-12'
               : 'justify-between'
-            : 'flex-col justify-center gap-1 py-1'
+            : 'flex-col justify-center gap-1 py-1 px-2'
         }`}
         style={{ borderColor: 'var(--sb-border)' }}
       >
@@ -303,7 +305,7 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
       </div>
 
       {/* Workspace & Series Context Switchers */}
-      <div className={`mt-3 space-y-1.5 ${showFullContent ? 'mx-3' : 'mx-2'}`}>
+      <div className={`mt-3 space-y-1.5 ${showFullContent ? 'mx-4' : 'mx-2'}`}>
         {currentUser.activeRoles?.includes('ADMINISTRATOR') && (
           <div
             className={`flex items-center gap-2 px-1 mb-2 ${
@@ -474,7 +476,7 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
       {/* Navigation List */}
       <nav
         className={`mt-4 flex-1 min-h-0 overflow-y-auto overflow-x-hidden space-y-4 custom-scrollbar ${
-          showFullContent ? 'px-3' : 'px-2'
+          showFullContent ? 'px-4' : 'px-2'
         }`}
         aria-label='Điều hướng chính'
         onScroll={() => setTip(null)}
@@ -487,7 +489,7 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
           >
             {showFullContent && (
               <div
-                className='pf-sb-label text-[10px] font-bold px-3 mb-1.5 uppercase tracking-wider font-mono'
+                className='pf-sb-label text-[11px] font-semibold px-2 mb-1.5 uppercase tracking-wider font-mono'
                 style={{ color: 'var(--sb-muted)' }}
               >
                 {section.section}
@@ -501,8 +503,12 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
                     key={i}
                     href={`#${item.href}`}
                     onClick={(e) => handleNavClick(e, item.href)}
-                    className={`pf-sb-item group relative flex items-center rounded-xl cursor-pointer focus:outline-none ${
+                    className={`pf-sb-item group relative flex items-center rounded-xl cursor-pointer focus:outline-none transition-all duration-150 ${
                       showFullContent ? `${rowSize} py-2.5` : rowSize
+                    } ${
+                      item.isActive
+                        ? 'bg-[var(--sb-active-bg)] text-[var(--sb-text)] font-semibold shadow-xs'
+                        : ''
                     }`}
                     aria-current={item.isActive ? 'page' : undefined}
                     title={showFullContent ? item.label : undefined}
@@ -511,12 +517,17 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
                   >
                     {item.isActive && (
                       <span
-                        className='absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[22px] rounded-r'
-                        style={{ background: 'var(--sb-accent)' }}
+                        className='absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-r bg-[var(--sb-accent)] shadow-[0_0_8px_var(--sb-accent)]'
                         aria-hidden='true'
                       />
                     )}
-                    {IconComp && <IconComp className='pf-sb-icon w-5 h-5 shrink-0 stroke-[1.9]' />}
+                    {IconComp && (
+                      <IconComp
+                        className={`pf-sb-icon w-5 h-5 shrink-0 stroke-[1.9] ${
+                          item.isActive ? 'text-[var(--sb-accent)]' : ''
+                        }`}
+                      />
+                    )}
                     {showFullContent && (
                       <>
                         <span className='pf-sb-label font-sans text-[13.5px] leading-5 flex-1 text-left'>
@@ -539,7 +550,7 @@ export const AppShellSidebar: React.FC<AppShellSidebarProps> = ({
 
       {/* Footer: Giao diện thanh bên + Đăng xuất */}
       <div
-        className={`shrink-0 border-t space-y-1 ${showFullContent ? 'p-3' : 'p-2'}`}
+        className={`shrink-0 border-t space-y-1 ${showFullContent ? 'p-4' : 'p-2'}`}
         style={{ borderColor: 'var(--sb-border)' }}
       >
         {onChangeTheme && (

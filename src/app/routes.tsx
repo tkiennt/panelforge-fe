@@ -10,6 +10,7 @@ import {
 } from 'react-router-dom';
 import { User } from 'firebase/auth';
 import { AppShell } from './AppShell';
+import { FocusWorkspaceLayout } from './FocusWorkspaceLayout';
 import { AuthLayout } from '@/roles/guest/views/AuthLayout';
 import { LoginPage } from '@/roles/guest/views/LoginPage';
 import { RegisterPage } from '@/roles/guest/views/RegisterPage';
@@ -223,6 +224,26 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
   const navigate = useNavigate();
   const location = useLocation();
 
+  const appCurrentUser = {
+    name:
+      currentUserInfo?.name ||
+      firebaseUser?.displayName ||
+      firebaseUser?.email?.split('@')[0] ||
+      'Tatsuki F.',
+    role: currentRole,
+    workspaceRole: currentWorkspaceRole,
+    activeRoles: activeProjectRoles,
+    avatarUrl: resolveUserAvatar(currentUserInfo, firebaseUser),
+    avatarInitials: (
+      currentUserInfo?.name ||
+      firebaseUser?.displayName ||
+      currentRole ||
+      'U'
+    )
+      .charAt(0)
+      .toUpperCase(),
+  };
+
   return (
     <Suspense fallback={<RouteFallback />}>
       <Routes>
@@ -317,25 +338,7 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
           <Route
             element={
               <AppShell
-                currentUser={{
-                  name:
-                    currentUserInfo?.name ||
-                    firebaseUser?.displayName ||
-                    firebaseUser?.email?.split('@')[0] ||
-                    'Tatsuki F.',
-                  role: currentRole,
-                  workspaceRole: currentWorkspaceRole,
-                  activeRoles: activeProjectRoles,
-                  avatarUrl: resolveUserAvatar(currentUserInfo, firebaseUser),
-                  avatarInitials: (
-                    currentUserInfo?.name ||
-                    firebaseUser?.displayName ||
-                    currentRole ||
-                    'U'
-                  )
-                    .charAt(0)
-                    .toUpperCase(),
-                }}
+                currentUser={appCurrentUser}
                 activeWorkspace={activeWorkspace}
                 activeSeries={activeProject}
                 aiState='active'
@@ -408,16 +411,6 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                   }
                 />
                 <Route
-                  path='task/:taskId'
-                  element={
-                    <TaskEditorView
-                      activeRoles={activeProjectRoles}
-                      onShowToast={showToast}
-                      isDevMode={isDevMode}
-                    />
-                  }
-                />
-                <Route
                   path='bible'
                   element={
                     <SeriesBibleView
@@ -439,36 +432,7 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                     />
                   }
                 />
-                <Route
-                  path='review/:taskId'
-                  element={
-                    <ReviewView
-                      currentUserId={currentUserInfo?.id}
-                      workspaceRole={currentWorkspaceRole}
-                      onShowToast={showToast}
-                    />
-                  }
-                />
-                <Route
-                  path='script'
-                  element={
-                    <ScriptEditorView
-                      currentUserId={currentUserInfo?.id}
-                      onShowToast={showToast}
-                      workspaceRole={currentWorkspaceRole}
-                    />
-                  }
-                />
                 <Route path='publishing' element={<PublisherDeskView onShowToast={showToast} />} />
-                <Route
-                  path='artist'
-                  element={<ArtistDeskView workspaceRole={currentWorkspaceRole} />}
-                />
-                <Route
-                  path='artist/workspace'
-                  element={<ArtistWorkspaceView workspaceRole={currentWorkspaceRole} />}
-                />
-                <Route path='letterer' element={<LettererDeskView />} />
                 <Route path='export' element={<ExportView onShowToast={showToast} />} />
               </Route>
             </Route>
@@ -489,16 +453,6 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
               }
             />
             <Route
-              path='review/:taskId'
-              element={
-                <ReviewView
-                  currentUserId={currentUserInfo?.id}
-                  workspaceRole={currentWorkspaceRole}
-                  onShowToast={showToast}
-                />
-              }
-            />
-            <Route
               path='catalog'
               element={<PublicCatalogView onBackToWorkspaces={() => navigate('/workspaces')} />}
             />
@@ -510,6 +464,60 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                 />
               }
             />
+          </Route>
+
+          {/* FOCUSED STUDIO WORKSPACE ROUTES: Desk & Editors (Dedicated layout without AppShellSidebar) */}
+          <Route
+            element={
+              <FocusWorkspaceLayout
+                currentUser={appCurrentUser}
+                activeWorkspace={activeWorkspace}
+                activeSeries={activeProject}
+                onLogout={handleLogout}
+              />
+            }
+          >
+            <Route path='workspaces/:workspaceId/series/:seriesId'>
+              <Route
+                path='artist'
+                element={<ArtistDeskView workspaceRole={currentWorkspaceRole} />}
+              />
+              <Route
+                path='artist/workspace'
+                element={<ArtistWorkspaceView workspaceRole={currentWorkspaceRole} />}
+              />
+              <Route
+                path='script'
+                element={
+                  <ScriptEditorView
+                    currentUserId={currentUserInfo?.id}
+                    onShowToast={showToast}
+                    workspaceRole={currentWorkspaceRole}
+                  />
+                }
+              />
+              <Route path='letterer' element={<LettererDeskView />} />
+              <Route
+                path='task/:taskId'
+                element={
+                  <TaskEditorView
+                    activeRoles={activeProjectRoles}
+                    onShowToast={showToast}
+                    isDevMode={isDevMode}
+                  />
+                }
+              />
+              <Route
+                path='review/:taskId'
+                element={
+                  <ReviewView
+                    currentUserId={currentUserInfo?.id}
+                    workspaceRole={currentWorkspaceRole}
+                    onShowToast={showToast}
+                  />
+                }
+              />
+            </Route>
           </Route>
 
           {/* Standalone Global Admin Portal (Decoupled completely from GlobalAppShell) */}
