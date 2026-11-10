@@ -587,7 +587,7 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
     // Open Templates tab and select 3 Khung Shonen for Page 1
     fireEvent.click(screen.getByTestId('canva-tab-templates'));
     expect(screen.getByTestId('canva-drawer-templates')).toBeInTheDocument();
-    fireEvent.click(screen.getByTestId('canva-template-card-builtin-3-panel-shonen'));
+    fireEvent.click(screen.getByTestId('canva-template-card-f0000000-0000-0000-0000-000000000004'));
 
     // Page 1 sheet now renders 3 panels
     expect(screen.getByTestId('canvas-panel-template-overlay')).toBeInTheDocument();
@@ -601,7 +601,7 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
     expect(screen.queryByTestId('canvas-panel-template-overlay')).not.toBeInTheDocument();
 
     // Apply 4 Khung Yonkoma to Page 2
-    fireEvent.click(screen.getByTestId('canva-template-card-builtin-4-panel-yonkoma'));
+    fireEvent.click(screen.getByTestId('canva-template-card-f0000000-0000-0000-0000-00000000000c'));
     expect(screen.getByTestId('canvas-panel-frame-4')).toBeInTheDocument();
 
     // Clear template on Page 2 -> Page 2 returns to blank, while Page 1 keeps its 3-panel template
@@ -732,7 +732,7 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
 
     // Open templates tab and select 3 Khung Shonen
     fireEvent.click(screen.getByTestId('canva-tab-templates'));
-    fireEvent.click(screen.getByTestId('canva-template-card-builtin-3-panel-shonen'));
+    fireEvent.click(screen.getByTestId('canva-template-card-f0000000-0000-0000-0000-000000000004'));
 
     // Verify draft status bar is rendered
     expect(screen.getByTestId('canvas-layout-status-bar')).toBeInTheDocument();

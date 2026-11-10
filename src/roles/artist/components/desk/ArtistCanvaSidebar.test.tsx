@@ -275,7 +275,7 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
         onDeletePage={vi.fn()}
         onMovePage={vi.fn()}
         onToggleVisibility={vi.fn()}
-        activeTemplateId='builtin-3-panel-shonen'
+        activeTemplateId='f0000000-0000-0000-0000-000000000004'
         hasPagePanels={true}
         onSelectTemplate={handleSelectTemplate}
         onClearTemplate={handleClearTemplate}
@@ -287,18 +287,18 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
     expect(screen.getByTestId('canva-drawer-templates')).toBeInTheDocument();
     expect(screen.getByText('Mẫu Khung Tranh Tham Khảo')).toBeInTheDocument();
 
-    // Select a different template
-    fireEvent.click(screen.getByTestId('canva-template-card-builtin-4-panel-yonkoma'));
+    // Select a different template (4-Koma Classic)
+    fireEvent.click(screen.getByTestId('canva-template-card-f0000000-0000-0000-0000-00000000000c'));
     expect(handleSelectTemplate).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 'builtin-4-panel-yonkoma', panelCount: 4 })
+      expect.objectContaining({ id: 'f0000000-0000-0000-0000-00000000000c', panelCount: 4 })
     );
 
     // Search filter
     fireEvent.change(screen.getByTestId('canva-input-search-templates'), {
-      target: { value: 'Điện Ảnh' },
+      target: { value: 'Widescreen' },
     });
-    expect(screen.getByTestId('canva-template-card-builtin-cinematic-widescreen')).toBeInTheDocument();
-    expect(screen.queryByTestId('canva-template-card-builtin-4-panel-yonkoma')).not.toBeInTheDocument();
+    expect(screen.getByTestId('canva-template-card-f0000000-0000-0000-0000-00000000000f')).toBeInTheDocument();
+    expect(screen.queryByTestId('canva-template-card-f0000000-0000-0000-0000-00000000000c')).not.toBeInTheDocument();
 
     // Clear template button works
     fireEvent.click(screen.getByTestId('canva-btn-clear-template'));
@@ -319,7 +319,7 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
         onDeletePage={vi.fn()}
         onMovePage={vi.fn()}
         onToggleVisibility={vi.fn()}
-        activeTemplateId='builtin-3-panel-shonen'
+        activeTemplateId='f0000000-0000-0000-0000-000000000004'
         hasPagePanels={true}
         isLayoutLocked={true}
         onUnlockLayout={handleUnlock}
@@ -336,7 +336,7 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
     expect(handleUnlock).toHaveBeenCalledTimes(1);
 
     // Clicking a different template card when locked triggers unlock prompt rather than directly switching
-    fireEvent.click(screen.getByTestId('canva-template-card-builtin-4-panel-yonkoma'));
+    fireEvent.click(screen.getByTestId('canva-template-card-f0000000-0000-0000-0000-00000000000c'));
     expect(handleUnlock).toHaveBeenCalledTimes(2);
     expect(handleSelectTemplate).not.toHaveBeenCalled();
   });
