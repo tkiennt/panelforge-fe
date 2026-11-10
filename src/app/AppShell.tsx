@@ -284,7 +284,7 @@ export function AppShell({
               {
                 icon: LayoutTemplate,
                 label: t('navigation.menu.desk'),
-                href: `/workspaces/${workspaceId}/series/${seriesId}/artist${chapterQuery}`,
+                href: `/workspaces/${workspaceId}/series/${seriesId}/artist`,
               },
               {
                 icon: Type,
@@ -374,7 +374,7 @@ export function AppShell({
                     {
                       icon: LayoutTemplate,
                       label: t('navigation.menu.desk'),
-                      href: `/workspaces/${workspaceId}/series/${seriesId}/artist${chapterQuery}`,
+                      href: `/workspaces/${workspaceId}/series/${seriesId}/artist`,
                     },
                   ]
                 : []),
