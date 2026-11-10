@@ -3,8 +3,8 @@
 
 .u070-zone {
   position: fixed;
-  right: 24px;
-  top: 24px;
+  right: 20px;
+  top: 76px;
   width: 380px;
   max-width: calc(100vw - 32px);
   pointer-events: none;
@@ -16,7 +16,7 @@
   .u070-zone {
     right: 16px;
     left: 16px;
-    top: 16px;
+    top: 76px;
     width: auto;
   }
 }
@@ -80,7 +80,7 @@
 }
 
 .u070-t.enter {
-  transform: translateY(-40px) scale(0.92);
+  transform: translateX(32px) scale(0.96);
   opacity: 0;
 }
 
