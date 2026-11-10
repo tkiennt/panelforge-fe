@@ -791,8 +791,11 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
       expect(screen.getByTestId('panel-btn-remove-1')).toBeInTheDocument();
     });
 
-    // When artist tries to unlock while page has artwork, confirmation modal appears
-    fireEvent.click(screen.getByTestId('canva-btn-unlock-template'));
+    // Switch to templates tab to select another template
+    fireEvent.click(screen.getByTestId('canva-tab-templates'));
+
+    // When artist tries to switch template while page has artwork, confirmation modal appears
+    fireEvent.click(screen.getByTestId('canva-template-card-f0000000-0000-0000-0000-00000000000c'));
     expect(screen.getByTestId('modal-unlock-layout-confirm')).toBeInTheDocument();
     expect(screen.getByText(/Mở khóa đổi mẫu khung trang\?/i)).toBeInTheDocument();
 
@@ -802,7 +805,7 @@ describe('ArtistDeskView - Panel Template Tab Effective on Current Page', () => 
     expect(screen.getByAltText('panel1-sketch.png')).toBeInTheDocument();
 
     // Confirm unlock resets artwork and returns to draft template selection -> Save button reappears
-    fireEvent.click(screen.getByTestId('canva-btn-unlock-template'));
+    fireEvent.click(screen.getByTestId('canva-template-card-f0000000-0000-0000-0000-00000000000c'));
     fireEvent.click(screen.getByTestId('btn-confirm-unlock'));
     expect(screen.queryByTestId('modal-unlock-layout-confirm')).not.toBeInTheDocument();
     expect(screen.getByTestId('canvas-btn-save-layout')).toBeInTheDocument();

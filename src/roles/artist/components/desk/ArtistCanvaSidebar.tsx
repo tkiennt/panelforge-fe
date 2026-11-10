@@ -21,8 +21,6 @@ import {
   CheckCircle2,
   RotateCcw,
   AlertTriangle,
-  Lock,
-  Unlock,
 } from 'lucide-react';
 import { ArtistPageItem, PageStage } from './ArtistPageSidebar';
 import { SidebarTheme } from '@/app/sidebarTheme';
@@ -1940,49 +1938,6 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                     <span className='truncate'>{templateError}</span>
                   </div>
                 )}
-
-                {/* Banner trạng thái Khóa / Chốt Bố Cục */}
-                {isLayoutLocked ? (
-                  <div
-                    data-testid='canva-layout-locked-banner'
-                    className='p-2 rounded-xl bg-emerald-500/10 border border-emerald-300/50 dark:border-emerald-800/50 flex items-center justify-between'
-                  >
-                    <div className='flex items-center gap-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400'>
-                      <Lock className='w-3.5 h-3.5 shrink-0' />
-                      <span>Đã lưu</span>
-                    </div>
-                    {onUnlockLayout && (
-                      <button
-                        type='button'
-                        onClick={onUnlockLayout}
-                        data-testid='canva-btn-unlock-template'
-                        className='px-2.5 py-1 rounded-lg border border-[var(--sb-border)] bg-[var(--sb-surface)] hover:bg-[var(--sb-surface-hover)] text-[10.5px] font-medium text-[var(--sb-text)] flex items-center gap-1 transition-colors cursor-pointer shadow-2xs'
-                      >
-                        <RotateCcw className='w-3 h-3 text-amber-500' />
-                        <span>Đổi mẫu</span>
-                      </button>
-                    )}
-                  </div>
-                ) : hasPagePanels && onLockLayout ? (
-                  <div
-                    data-testid='canva-layout-draft-banner'
-                    className='p-2 rounded-xl bg-amber-500/10 border border-amber-300/50 dark:border-amber-800/50 flex items-center justify-between'
-                  >
-                    <div className='flex items-center gap-1.5 text-xs font-semibold text-amber-800 dark:text-amber-400'>
-                      <Unlock className='w-3.5 h-3.5 shrink-0' />
-                      <span>Nháp</span>
-                    </div>
-                    <button
-                      type='button'
-                      onClick={onLockLayout}
-                      data-testid='canva-btn-confirm-template'
-                      className='px-3 py-1 rounded-full bg-stone-900 hover:bg-black text-white text-[10.5px] font-bold flex items-center gap-1 shadow-2xs cursor-pointer transition-all'
-                    >
-                      <CheckCircle2 className='w-3 h-3 text-emerald-400' />
-                      <span>Lưu</span>
-                    </button>
-                  </div>
-                ) : null}
               </div>
 
               {/* Lưới thẻ mẫu khung */}
