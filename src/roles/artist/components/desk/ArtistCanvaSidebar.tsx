@@ -20,15 +20,17 @@ import {
 } from 'lucide-react';
 import { ArtistPageItem, PageStage } from './ArtistPageSidebar';
 import { SidebarTheme } from '@/app/sidebarTheme';
+import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import '@/styles/modules/sidebar-theme.css';
 
 export type CanvaSidebarTab = 'pages' | 'script' | 'bible';
 
 export interface ScriptLineItem {
   id: string;
-  panelNumber: number;
+  panelNumber?: number;
   pageNumber?: number;
   sceneId?: string;
+  sceneNumber?: number;
   sceneTitle?: string;
   sceneSlugline?: string;
   characterName?: string;
@@ -37,6 +39,7 @@ export interface ScriptLineItem {
   stageDirection?: string;
   narrationMode?: string;
   panelId?: string;
+  lineOrder?: number;
 }
 
 export interface BibleEntityItem {
@@ -54,6 +57,12 @@ export interface BibleEntityItem {
   status?: string;
 }
 
+export interface SidebarChapterOption {
+  id: string;
+  chapterNumber: number;
+  title?: string | null;
+}
+
 export interface ArtistCanvaSidebarProps {
   pages: ArtistPageItem[];
   selectedPageId: string;
@@ -68,6 +77,9 @@ export interface ArtistCanvaSidebarProps {
   sceneTitle?: string;
   sceneSlugline?: string;
   chapterTitle?: string;
+  chapters?: SidebarChapterOption[];
+  selectedChapterId?: string | null;
+  onSelectChapter?: (chapterId: string) => void;
   isLoadingScript?: boolean;
   // Bible props
   bibleEntities?: BibleEntityItem[];
@@ -75,6 +87,8 @@ export interface ArtistCanvaSidebarProps {
   isLoadingBible?: boolean;
   // Global Theme integration
   theme?: SidebarTheme;
+  // Tùy chọn ẩn tab Trang khi quản lý trang đã chuyển xuống đáy
+  hidePagesTab?: boolean;
 }
 
 const DEFAULT_SCRIPT_LINES: ScriptLineItem[] = [
@@ -82,6 +96,8 @@ const DEFAULT_SCRIPT_LINES: ScriptLineItem[] = [
     id: 'line-1',
     pageNumber: 1,
     panelNumber: 1,
+    sceneTitle: 'Phân cảnh 1: Cổng Thành Phía Nam',
+    sceneSlugline: 'NGOẠI · CỔNG THÀNH · SÁNG',
     stageDirection:
       'Góc toàn cảnh (Extreme Wide Shot): Thung lũng hoang tàn sau cơn bão cát. Khói bốc lên từ tháp quan sát cổng thành phía Nam.',
   },
@@ -89,6 +105,8 @@ const DEFAULT_SCRIPT_LINES: ScriptLineItem[] = [
     id: 'line-2',
     pageNumber: 1,
     panelNumber: 1,
+    sceneTitle: 'Phân cảnh 1: Cổng Thành Phía Nam',
+    sceneSlugline: 'NGOẠI · CỔNG THÀNH · SÁNG',
     characterName: 'Minh Triết',
     characterColor: '#F97316',
     dialogueText:
@@ -98,6 +116,8 @@ const DEFAULT_SCRIPT_LINES: ScriptLineItem[] = [
     id: 'line-3',
     pageNumber: 1,
     panelNumber: 2,
+    sceneTitle: 'Phân cảnh 1: Cổng Thành Phía Nam',
+    sceneSlugline: 'NGOẠI · CỔNG THÀNH · SÁNG',
     stageDirection:
       'Cận cảnh (Close-Up): Thanh kiếm của Minh Triết cắm sâu xuống lớp cát lún, ánh thép phản chiếu vệt nắng đầu tiên của bình minh.',
   },
@@ -105,6 +125,8 @@ const DEFAULT_SCRIPT_LINES: ScriptLineItem[] = [
     id: 'line-4',
     pageNumber: 1,
     panelNumber: 3,
+    sceneTitle: 'Phân cảnh 1: Cổng Thành Phía Nam',
+    sceneSlugline: 'NGOẠI · CỔNG THÀNH · SÁNG',
     characterName: 'Thanh Hà',
     characterColor: '#06B6D4',
     dialogueText:
@@ -114,6 +136,8 @@ const DEFAULT_SCRIPT_LINES: ScriptLineItem[] = [
     id: 'line-5',
     pageNumber: 1,
     panelNumber: 4,
+    sceneTitle: 'Phân cảnh 1: Cổng Thành Phía Nam',
+    sceneSlugline: 'NGOẠI · CỔNG THÀNH · SÁNG',
     stageDirection:
       'Góc hất từ dưới lên (Low Angle): Cửa sắt nặng nề bắt đầu rung chuyển với âm thanh rít chói tai.',
   },
@@ -121,6 +145,8 @@ const DEFAULT_SCRIPT_LINES: ScriptLineItem[] = [
     id: 'line-6',
     pageNumber: 2,
     panelNumber: 1,
+    sceneTitle: 'Phân cảnh 2: Phố Cổ Trong Sương',
+    sceneSlugline: 'NGOẠI · ĐÔ THÀNH THƯỢNG CẢNH · SƯƠNG SỚM',
     stageDirection:
       'Đại cảnh thành phố cổ kính chìm trong màn sương mờ ảo. Những ngọn tháp cao vút chọc thủng tầng mây.',
   },
@@ -128,10 +154,92 @@ const DEFAULT_SCRIPT_LINES: ScriptLineItem[] = [
     id: 'line-7',
     pageNumber: 2,
     panelNumber: 2,
+    sceneTitle: 'Phân cảnh 2: Phố Cổ Trong Sương',
+    sceneSlugline: 'NGOẠI · ĐÔ THÀNH THƯỢNG CẢNH · SƯƠNG SỚM',
     characterName: 'Minh Triết',
     characterColor: '#F97316',
     dialogueText:
       'Mau tìm chỗ ẩn nấp trước khi đội tuần tra phát hiện!',
+  },
+  {
+    id: 'line-8',
+    pageNumber: 3,
+    panelNumber: 1,
+    sceneTitle: 'Phân cảnh 2: Phố Cổ Trong Sương',
+    sceneSlugline: 'NGOẠI · HẺM ĐÁ CỔ · SÁNG',
+    stageDirection:
+      'Góc trung cảnh (Medium Shot): Hai người áp sát bức tường rêu, tiếng bước chân tuần tra nặng nề vang vọng phía đầu hẻm.',
+  },
+  {
+    id: 'line-9',
+    pageNumber: 3,
+    panelNumber: 2,
+    sceneTitle: 'Phân cảnh 2: Phố Cổ Trong Sương',
+    sceneSlugline: 'NGOẠI · HẺM ĐÁ CỔ · SÁNG',
+    characterName: 'Thanh Hà',
+    characterColor: '#06B6D4',
+    dialogueText:
+      'Đội hình bọn chúng có 5 người. Để tôi dùng phong thuật đánh lạc hướng phía bên kia.',
+  },
+  {
+    id: 'line-10',
+    pageNumber: 4,
+    panelNumber: 1,
+    sceneTitle: 'Phân cảnh 3: Mật Thất Cổ Tự',
+    sceneSlugline: 'NỘI · TÀNG THƯ CÁC · TỐI',
+    stageDirection:
+      'Ánh sáng hắt từ khe cửa đá rọi vào bàn thờ cổ phủ đầy bụi thời gian.',
+  },
+  {
+    id: 'line-11',
+    pageNumber: 4,
+    panelNumber: 2,
+    sceneTitle: 'Phân cảnh 3: Mật Thất Cổ Tự',
+    sceneSlugline: 'NỘI · TÀNG THƯ CÁC · TỐI',
+    characterName: 'Minh Triết',
+    characterColor: '#F97316',
+    dialogueText:
+      'Cuộn gia phả Viễn Cổ vẫn còn nguyên vẹn ở đây!',
+  },
+  {
+    id: 'line-12',
+    pageNumber: 5,
+    panelNumber: 1,
+    sceneTitle: 'Phân cảnh 3: Mật Thất Cổ Tự',
+    sceneSlugline: 'NỘI · TÀNG THƯ CÁC · TỐI',
+    stageDirection:
+      'Đặc tả (Extreme Close-Up): Dấu ấn Hắc Long bất ngờ phát sáng đỏ rực trên nền đá khi Minh Triết chạm tay vào cuộn thư.',
+  },
+  {
+    id: 'line-13',
+    pageNumber: 5,
+    panelNumber: 2,
+    sceneTitle: 'Phân cảnh 3: Mật Thất Cổ Tự',
+    sceneSlugline: 'NỘI · TÀNG THƯ CÁC · TỐI',
+    characterName: 'Thanh Hà',
+    characterColor: '#06B6D4',
+    dialogueText:
+      'Cẩn thận! Cả căn mật thất đang tự động kích hoạt cơ quan phong ấn!',
+  },
+  {
+    id: 'line-14',
+    pageNumber: 6,
+    panelNumber: 1,
+    sceneTitle: 'Phân cảnh 4: Thoát Khỏi Vòng Vây',
+    sceneSlugline: 'NGOẠI · THÁP CHUÔNG PHÍA TÂY · CHIỀU TÀ',
+    stageDirection:
+      'Góc động (Action Angle): Minh Triết vung kiếm chém đứt dây xích cửa sập, ánh hoàng hôn rực rỡ tràn vào khung hình.',
+  },
+  {
+    id: 'line-15',
+    pageNumber: 6,
+    panelNumber: 2,
+    sceneTitle: 'Phân cảnh 4: Thoát Khỏi Vòng Vây',
+    sceneSlugline: 'NGOẠI · THÁP CHUÔNG PHÍA TÂY · CHIỀU TÀ',
+    characterName: 'Minh Triết',
+    characterColor: '#F97316',
+    dialogueText:
+      'Chúng ta phải rời khỏi Thượng Cảnh trước khi màn đêm buông xuống!',
   },
 ];
 
@@ -213,11 +321,15 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
   sceneTitle = 'Phân cảnh 1: Cổng Thành Phía Nam',
   sceneSlugline = 'NGOẠI · CỔNG THÀNH · SÁNG',
   chapterTitle,
+  chapters,
+  selectedChapterId,
+  onSelectChapter,
   isLoadingScript = false,
   bibleEntities = DEFAULT_BIBLE_ENTITIES,
   seriesTitle = 'Huyết Thống Viễn Cổ',
   isLoadingBible = false,
   theme,
+  hidePagesTab = false,
 }) => {
   // Đồng bộ theme hệ thống từ localStorage hoặc prop, mặc định theme màu sáng 'paper'
   const [currentTheme, setCurrentTheme] = useState<SidebarTheme>(() => {
@@ -236,8 +348,10 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
     }
   }, [theme]);
 
-  // Trạng thái tab Canva: 'pages' | 'script' | 'bible'
-  const [activeTab, setActiveTab] = useState<CanvaSidebarTab>('pages');
+  // Trạng thái tab Canva: 'pages' | 'script' | 'bible' (mặc định 'script' nếu tab Pages ẩn)
+  const [activeTab, setActiveTab] = useState<CanvaSidebarTab>(
+    hidePagesTab ? 'script' : 'pages'
+  );
   // Trạng thái mở/đóng ngăn phụ (Canva Drawer): Mặc định ĐÓNG (false) để chỉ hiển thị trang giấy trắng tinh
   const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
 
@@ -269,7 +383,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
   const [pageSearchQuery, setPageSearchQuery] = useState('');
   const [pageViewMode, setPageViewMode] = useState<'thumbnail' | 'compact'>('thumbnail');
 
-  // Bộ lọc Script (Tab Script: tìm kiếm và chế độ xem xuyên suốt vs trang hiện tại)
+  // Bộ lọc Script (Tab Script: mặc định hiển thị xuyên suốt toàn bộ kịch bản, có thể lọc theo trang đang chọn)
   const [scriptSearchQuery, setScriptSearchQuery] = useState('');
   const [scriptViewMode, setScriptViewMode] = useState<'all' | 'current-page'>('all');
 
@@ -302,9 +416,44 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
 
   const selectedPageIndex = pages.findIndex((p) => p.id === selectedPageId);
   const selectedPage = pages[selectedPageIndex] || null;
+  const activePageNumber = selectedPage?.pageNumber || 1;
 
-  // Xử lý kịch bản: gom nhóm theo Trang (Page) và Khung (Panel), hiển thị văn bản liền mạch xuyên suốt để tham khảo
-  const groupedScriptByPage = useMemo(() => {
+  // Đồng bộ tiêu đề phân cảnh & slugline theo đúng trang đang chọn
+  const activeSceneInfo = useMemo(() => {
+    const linesForPage = scriptLines.filter(
+      (l) => (l.pageNumber || 1) === activePageNumber
+    );
+    const lineWithScene = linesForPage.find((l) => l.sceneTitle || l.sceneSlugline);
+    if (lineWithScene) {
+      return {
+        title: lineWithScene.sceneTitle || sceneTitle,
+        slugline: lineWithScene.sceneSlugline || sceneSlugline,
+      };
+    }
+    if (linesForPage.length > 0) {
+      return {
+        title: sceneTitle,
+        slugline: sceneSlugline,
+      };
+    }
+    return {
+      title: `Trang ${activePageNumber}`,
+      slugline: undefined,
+    };
+  }, [scriptLines, activePageNumber, sceneTitle, sceneSlugline]);
+
+  // Tự động cuộn tới phân đoạn kịch bản của trang đang chọn khi đổi trang hoặc đổi chế độ xem
+  useEffect(() => {
+    if (activeTab === 'script' && isDrawerOpen) {
+      const anchor = document.getElementById(`script-page-anchor-${activePageNumber}`);
+      if (anchor && typeof anchor.scrollIntoView === 'function') {
+        anchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  }, [activePageNumber, activeTab, isDrawerOpen, scriptViewMode]);
+
+  // Xử lý kịch bản: lọc & gom nhóm theo Trang -> Khung (panel), cộng các phân cảnh chưa gán trang để đọc xuyên suốt
+  const { groupedScriptByPage, groupedUnpagedScenes } = useMemo(() => {
     let lines = scriptLines;
 
     // Tìm kiếm trong kịch bản
@@ -315,20 +464,26 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
           (l.dialogueText && l.dialogueText.toLowerCase().includes(q)) ||
           (l.stageDirection && l.stageDirection.toLowerCase().includes(q)) ||
           (l.characterName && l.characterName.toLowerCase().includes(q)) ||
-          (l.sceneTitle && l.sceneTitle.toLowerCase().includes(q))
+          (l.sceneTitle && l.sceneTitle.toLowerCase().includes(q)) ||
+          (l.sceneSlugline && l.sceneSlugline.toLowerCase().includes(q))
       );
     }
 
-    // Chế độ xem: Toàn bộ kịch bản xuyên suốt vs Chỉ xem trang đang vẽ
-    if (scriptViewMode === 'current-page' && selectedPage) {
-      lines = lines.filter((l) => (l.pageNumber || 1) === selectedPage.pageNumber);
-    }
+    // Phân tách các dòng đã gắn với Trang và các dòng chưa gán trang
+    const pagedLines = lines.filter((l) => typeof l.pageNumber === 'number' && l.pageNumber > 0);
+    const unpagedLines = lines.filter((l) => typeof l.pageNumber !== 'number' || l.pageNumber <= 0);
 
-    // Gom nhóm theo Trang -> Khung
+    // Chế độ xem: Toàn bộ kịch bản xuyên suốt vs Chỉ xem trang đang vẽ
+    const filteredPagedLines =
+      scriptViewMode === 'current-page' && selectedPage
+        ? pagedLines.filter((l) => l.pageNumber === selectedPage.pageNumber)
+        : pagedLines;
+
+    // Gom nhóm theo Trang -> Khung (panelNumber === 0 cho các dòng thuộc trang nhưng chưa gán panel)
     const pageMap = new Map<number, Map<number, ScriptLineItem[]>>();
-    lines.forEach((l) => {
-      const pNum = l.pageNumber || 1;
-      const panelNum = l.panelNumber || 1;
+    filteredPagedLines.forEach((l) => {
+      const pNum = l.pageNumber!;
+      const panelNum = typeof l.panelNumber === 'number' && l.panelNumber > 0 ? l.panelNumber : 0;
       if (!pageMap.has(pNum)) {
         pageMap.set(pNum, new Map<number, ScriptLineItem[]>());
       }
@@ -340,9 +495,13 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
     });
 
     const sortedPages = Array.from(pageMap.keys()).sort((a, b) => a - b);
-    return sortedPages.map((pNum) => {
+    const byPage = sortedPages.map((pNum) => {
       const panelMap = pageMap.get(pNum)!;
-      const sortedPanels = Array.from(panelMap.keys()).sort((a, b) => a - b);
+      const sortedPanels = Array.from(panelMap.keys()).sort((a, b) => {
+        if (a === 0) return 1;
+        if (b === 0) return -1;
+        return a - b;
+      });
       return {
         pageNumber: pNum,
         panelsInPage: sortedPanels.map((panelNum) => ({
@@ -351,6 +510,34 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
         })),
       };
     });
+
+    // Gom nhóm các dòng chưa gắn trang theo Phân cảnh (chỉ hiển thị ở chế độ Toàn bộ kịch bản)
+    const sceneMap = new Map<
+      string,
+      { sceneNumber?: number; sceneTitle?: string; sceneSlugline?: string; lines: ScriptLineItem[] }
+    >();
+    if (scriptViewMode === 'all') {
+      unpagedLines.forEach((l) => {
+        const key = l.sceneId || l.sceneTitle || 'unpaged-default';
+        if (!sceneMap.has(key)) {
+          sceneMap.set(key, {
+            sceneNumber: l.sceneNumber,
+            sceneTitle: l.sceneTitle,
+            sceneSlugline: l.sceneSlugline,
+            lines: [],
+          });
+        }
+        sceneMap.get(key)!.lines.push(l);
+      });
+    }
+
+    return {
+      groupedScriptByPage: byPage,
+      groupedUnpagedScenes: Array.from(sceneMap.entries()).map(([key, val]) => ({
+        key,
+        ...val,
+      })),
+    };
   }, [scriptLines, scriptSearchQuery, scriptViewMode, selectedPage]);
 
   // Lọc danh sách Series Bible
@@ -381,26 +568,28 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
         className='w-[72px] bg-[var(--sb-bg)] text-[var(--sb-muted)] flex flex-col items-center py-3 border-r border-[var(--sb-border)] shrink-0 justify-between transition-colors'
       >
         <div className='w-full flex flex-col items-center gap-2'>
-          {/* Nút Tab 1: Pages (Trang) */}
-          <button
-            type='button'
-            onClick={() => handleTabClick('pages')}
-            data-testid='canva-tab-pages'
-            className={`w-[60px] h-[60px] rounded-xl flex flex-col items-center justify-center transition-all cursor-pointer ${
-              activeTab === 'pages' && isDrawerOpen
-                ? 'bg-[var(--sb-active-bg)] text-[var(--sb-text)] ring-1 ring-[var(--sb-accent)]/60 shadow-md font-semibold'
-                : 'hover:bg-[var(--sb-hover)] hover:text-[var(--sb-text)] text-[var(--sb-muted)]'
-            }`}
-          >
-            <Layers
-              className={`w-5 h-5 mb-1 ${
+          {/* Nút Tab 1: Pages (Trang) - Có thể ẩn nếu đã có quản lý trang ở đáy */}
+          {!hidePagesTab && (
+            <button
+              type='button'
+              onClick={() => handleTabClick('pages')}
+              data-testid='canva-tab-pages'
+              className={`w-[60px] h-[60px] rounded-xl flex flex-col items-center justify-center transition-all cursor-pointer ${
                 activeTab === 'pages' && isDrawerOpen
-                  ? 'text-[var(--sb-accent)]'
-                  : 'text-current'
+                  ? 'bg-[var(--sb-active-bg)] text-[var(--sb-text)] ring-1 ring-[var(--sb-accent)]/60 shadow-md font-semibold'
+                  : 'hover:bg-[var(--sb-hover)] hover:text-[var(--sb-text)] text-[var(--sb-muted)]'
               }`}
-            />
-            <span className='text-[10px] tracking-tight'>Trang</span>
-          </button>
+            >
+              <Layers
+                className={`w-5 h-5 mb-1 ${
+                  activeTab === 'pages' && isDrawerOpen
+                    ? 'text-[var(--sb-accent)]'
+                    : 'text-current'
+                }`}
+              />
+              <span className='text-[10px] tracking-tight'>Trang</span>
+            </button>
+          )}
 
           {/* Nút Tab 2: Script (Kịch bản) */}
           <button
@@ -477,7 +666,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
           {/* -------------------------------------------------------------
               TAB 1: PAGES (QUẢN LÝ TRANG)
               ------------------------------------------------------------- */}
-          {activeTab === 'pages' && (
+          {isDrawerOpen && activeTab === 'pages' && (
             <div
               data-testid='canva-drawer-pages'
               className='flex flex-col h-full overflow-hidden'
@@ -722,32 +911,49 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
             >
               {/* Header Drawer Kịch bản */}
               <div className='p-3.5 border-b border-[var(--sb-border)] bg-[var(--sb-surface)] shrink-0 space-y-2'>
-                <div className='flex items-center justify-between'>
-                  <div className='flex items-center gap-1.5'>
-                    <span className='text-[10px] font-mono uppercase px-2 py-0.5 rounded-full bg-[var(--sb-surface-hover)] text-[var(--sb-accent)] border border-[var(--sb-border)] font-bold'>
-                      {chapterTitle || 'Kịch Bản Tham Chiếu'}
-                    </span>
+                <div className='flex items-center justify-between gap-2'>
+                  <div className='flex items-center gap-1.5 min-w-0'>
+                    {chapters && chapters.length > 1 && onSelectChapter ? (
+                      <select
+                        value={selectedChapterId || ''}
+                        onChange={(e) => onSelectChapter(e.target.value)}
+                        data-testid='canva-script-chapter-select'
+                        className='text-[10px] font-mono uppercase px-2 py-0.5 rounded-full bg-[var(--sb-surface-hover)] text-[var(--sb-accent)] border border-[var(--sb-border)] font-bold focus:outline-none max-w-[190px] truncate cursor-pointer'
+                      >
+                        {chapters.map((ch) => (
+                          <option key={ch.id} value={ch.id}>
+                            {`Chương ${ch.chapterNumber}${ch.title ? `: ${ch.title}` : ''}`}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <span className='text-[10px] font-mono uppercase px-2 py-0.5 rounded-full bg-[var(--sb-surface-hover)] text-[var(--sb-accent)] border border-[var(--sb-border)] font-bold truncate max-w-[200px]'>
+                        {chapterTitle || 'Kịch Bản Tham Chiếu'}
+                      </span>
+                    )}
                     {isLoadingScript && (
-                      <span className='text-[10px] text-[var(--sb-muted)] animate-pulse'>Đang tải...</span>
+                      <span className='text-[10px] text-[var(--sb-muted)] animate-pulse shrink-0'>
+                        Đang tải...
+                      </span>
                     )}
                   </div>
-                  <span className='text-[10px] font-medium text-[var(--sb-muted)]'>
+                  <span className='text-[10px] font-medium text-[var(--sb-muted)] shrink-0'>
                     Trang {selectedPage?.pageNumber || 1}
                   </span>
                 </div>
 
                 <div>
                   <h2 className='text-xs font-bold text-[var(--sb-text)] tracking-tight truncate'>
-                    {sceneTitle}
+                    {activeSceneInfo.title}
                   </h2>
-                  {sceneSlugline && (
+                  {activeSceneInfo.slugline && (
                     <p className='text-[10px] font-mono text-[var(--sb-muted)] uppercase truncate mt-0.5'>
-                      {sceneSlugline}
+                      {activeSceneInfo.slugline}
                     </p>
                   )}
                 </div>
 
-                {/* Thanh tìm kiếm kịch bản & Chế độ xem: Xuyên suốt vs Trang hiện tại */}
+                {/* Thanh tìm kiếm kịch bản & Chế độ xem: Toàn bộ kịch bản xuyên suốt vs Trang đang chọn */}
                 <div className='space-y-1.5 pt-1'>
                   <div className='relative'>
                     <Search className='w-3.5 h-3.5 text-[var(--sb-muted)] absolute left-2.5 top-2.5' />
@@ -764,7 +970,20 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                   <div className='flex items-center gap-1 text-[10px]'>
                     <button
                       type='button'
+                      onClick={() => setScriptViewMode('current-page')}
+                      data-testid='canva-script-mode-current-page'
+                      className={`flex-1 py-1 px-2 rounded-md font-medium transition-colors cursor-pointer text-center ${
+                        scriptViewMode === 'current-page'
+                          ? 'bg-[var(--sb-accent)] text-white'
+                          : 'bg-[var(--sb-hover)] text-[var(--sb-muted)] hover:text-[var(--sb-text)]'
+                      }`}
+                    >
+                      Trang {activePageNumber}
+                    </button>
+                    <button
+                      type='button'
                       onClick={() => setScriptViewMode('all')}
+                      data-testid='canva-script-mode-all'
                       className={`flex-1 py-1 px-2 rounded-md font-medium transition-colors cursor-pointer text-center ${
                         scriptViewMode === 'all'
                           ? 'bg-[var(--sb-accent)] text-white'
@@ -773,17 +992,6 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                     >
                       Toàn bộ kịch bản
                     </button>
-                    <button
-                      type='button'
-                      onClick={() => setScriptViewMode('current-page')}
-                      className={`flex-1 py-1 px-2 rounded-md font-medium transition-colors cursor-pointer text-center ${
-                        scriptViewMode === 'current-page'
-                          ? 'bg-[var(--sb-accent)] text-white'
-                          : 'bg-[var(--sb-hover)] text-[var(--sb-muted)] hover:text-[var(--sb-text)]'
-                      }`}
-                    >
-                      Trang {selectedPage?.pageNumber || 1}
-                    </button>
                   </div>
                 </div>
               </div>
@@ -791,105 +999,212 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
               {/* Thân văn bản kịch bản liền mạch xuyên suốt theo trang & panel (không chia thành từng ô hộp) */}
               <div
                 data-testid='canva-script-manuscript-flow'
-                className='flex-1 overflow-y-auto p-3.5 space-y-4 custom-scrollbar text-left font-sans select-text'
+                className='flex-1 overflow-y-auto px-4 py-3 space-y-5 custom-scrollbar text-left font-sans select-text'
               >
-                {groupedScriptByPage.length === 0 ? (
-                  <div className='py-12 text-center text-[var(--sb-muted)] text-xs italic'>
-                    Không tìm thấy nội dung kịch bản phù hợp.
+                {groupedScriptByPage.length === 0 && groupedUnpagedScenes.length === 0 ? (
+                  <div className='py-12 px-3 text-center space-y-2.5'>
+                    <p className='text-[var(--sb-muted)] text-xs italic'>
+                      {scriptLines.length === 0 && !isLoadingScript
+                        ? 'Chương này chưa có nội dung kịch bản.'
+                        : scriptViewMode === 'current-page' && !scriptSearchQuery.trim()
+                          ? `Trang ${activePageNumber} chưa có nội dung kịch bản được gán.`
+                          : 'Không tìm thấy nội dung kịch bản phù hợp.'}
+                    </p>
+                    {scriptViewMode === 'current-page' && !scriptSearchQuery.trim() && scriptLines.length > 0 && (
+                      <button
+                        type='button'
+                        onClick={() => setScriptViewMode('all')}
+                        className='inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-medium bg-[var(--sb-surface)] border border-[var(--sb-border)] text-[var(--sb-accent)] hover:bg-[var(--sb-hover)] transition-colors cursor-pointer'
+                      >
+                        Xem toàn bộ kịch bản
+                      </button>
+                    )}
                   </div>
                 ) : (
-                  groupedScriptByPage.map(({ pageNumber, panelsInPage }) => {
-                    const isSelectedPage = pageNumber === (selectedPage?.pageNumber || 1);
-                    return (
-                      <div
-                        key={`script-page-${pageNumber}`}
-                        className='space-y-2.5'
-                      >
-                        {/* Tiêu đề phân trang nhẹ nhàng */}
+                  <>
+                    {groupedScriptByPage.map(({ pageNumber, panelsInPage }) => {
+                      const isSelectedPage = pageNumber === activePageNumber;
+                      const matchingPage = pages.find((p) => p.pageNumber === pageNumber);
+                      let lastSceneKey = '';
+
+                      return (
                         <div
-                          className={`flex items-center justify-between pb-1 border-b transition-colors ${
-                            isSelectedPage
-                              ? 'border-[var(--sb-accent)] text-[var(--sb-accent)]'
-                              : 'border-[var(--sb-border)] text-[var(--sb-muted)]'
-                          }`}
+                          key={`script-page-${pageNumber}`}
+                          id={`script-page-anchor-${pageNumber}`}
+                          className='space-y-3'
                         >
-                          <div className='flex items-center gap-2'>
-                            <span className='font-mono text-xs font-bold uppercase tracking-wider'>
-                              ── TRANG {pageNumber} ──
-                            </span>
-                            {isSelectedPage && (
-                              <span className='text-[9px] px-1.5 py-0.2 rounded-full bg-[var(--sb-accent)] text-white font-medium'>
-                                Đang vẽ
+                          {/* Tiêu đề phân trang nhẹ nhàng (click để nhảy tới trang vẽ) */}
+                          <button
+                            type='button'
+                            onClick={() => matchingPage && onSelectPage(matchingPage.id)}
+                            disabled={!matchingPage}
+                            className={`w-full flex items-center justify-between pb-1 border-b transition-colors text-left ${
+                              matchingPage ? 'cursor-pointer hover:opacity-80' : 'cursor-default'
+                            } ${
+                              isSelectedPage
+                                ? 'border-[var(--sb-accent)] text-[var(--sb-accent)]'
+                                : 'border-[var(--sb-border)] text-[var(--sb-muted)]'
+                            }`}
+                          >
+                            <div className='flex items-center gap-2'>
+                              <span className='font-mono text-xs font-bold uppercase tracking-wider'>
+                                ── TRANG {pageNumber} ──
                               </span>
-                            )}
-                          </div>
-                          <span className='text-[10px] font-mono opacity-80'>
-                            {panelsInPage.length} khung
-                          </span>
-                        </div>
-
-                        {/* Danh sách các khung và lời thoại trong trang (liền mạch, không chia ô hộp) */}
-                        <div className='space-y-3 pl-1'>
-                          {panelsInPage.map(({ panelNumber, lines }) => (
-                            <div
-                              key={`script-panel-${pageNumber}-${panelNumber}`}
-                              data-testid={`script-panel-section-${pageNumber}-${panelNumber}`}
-                              className='space-y-1.5'
-                            >
-                              {/* Header Panel nhỏ gọn, không viền hộp */}
-                              <div className='flex items-center gap-2 pt-1'>
-                                <span className='text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-[var(--sb-surface-hover)] text-[var(--sb-accent)] border border-[var(--sb-border)]'>
-                                  Khung {panelNumber}
+                              {isSelectedPage && (
+                                <span className='text-[9px] px-1.5 py-0.2 rounded-full bg-[var(--sb-accent)] text-white font-medium'>
+                                  Đang vẽ
                                 </span>
-                              </div>
+                              )}
+                            </div>
+                            <span className='text-[10px] font-mono opacity-80'>
+                              {panelsInPage.filter((p) => p.panelNumber > 0).length || panelsInPage.length} khung
+                            </span>
+                          </button>
 
-                              {/* Các dòng thoại & chỉ dẫn chảy liền mạch */}
-                              <div className='space-y-2 pl-2 border-l border-[var(--sb-border)]'>
-                                {lines.map((line) => (
-                                  <div
-                                    key={line.id}
-                                    data-testid={`script-line-${line.id}`}
-                                    className='space-y-1'
-                                  >
-                                    {/* Chỉ dẫn hành động / bối cảnh */}
-                                    {line.stageDirection && (
-                                      <p className='text-[11.5px] text-[var(--sb-muted)] italic leading-relaxed font-sans'>
-                                        🎬 {line.stageDirection}
-                                      </p>
-                                    )}
+                          {/* Danh sách các khung và lời thoại trong trang (chảy liền mạch, không chia ô hộp) */}
+                          <div className='space-y-3'>
+                            {panelsInPage.map(({ panelNumber, lines }) => {
+                              const firstSceneTitle = lines[0]?.sceneTitle || '';
+                              const firstSceneSlug = lines[0]?.sceneSlugline || '';
+                              const sceneKey = `${firstSceneTitle}|${firstSceneSlug}`;
+                              const showSceneHeader = Boolean(firstSceneTitle && sceneKey !== lastSceneKey);
+                              if (firstSceneTitle) {
+                                lastSceneKey = sceneKey;
+                              }
 
-                                    {/* Lời thoại nhân vật */}
-                                    {line.dialogueText && (
-                                      <div className='pl-2 border-l-2 border-[var(--sb-accent)]/60 py-0.5'>
-                                        {line.characterName && (
-                                          <div className='flex items-center gap-1.5'>
-                                            <span
-                                              className='text-[11px] font-bold tracking-wide uppercase'
-                                              style={{ color: line.characterColor || 'var(--sb-accent)' }}
-                                            >
-                                              {line.characterName}
-                                            </span>
-                                            {line.narrationMode && line.narrationMode !== 'Present' && (
-                                              <span className='text-[9px] font-mono px-1 py-0.2 rounded bg-[var(--sb-hover)] text-[var(--sb-muted)]'>
-                                                ({line.narrationMode})
-                                              </span>
+                              return (
+                                <div
+                                  key={`script-panel-${pageNumber}-${panelNumber}`}
+                                  data-testid={`script-panel-section-${pageNumber}-${panelNumber}`}
+                                  className='space-y-1.5'
+                                >
+                                  {showSceneHeader && (
+                                    <div className='pt-0.5 text-[10px] font-mono uppercase tracking-wider text-[var(--sb-muted)]'>
+                                      {firstSceneTitle}
+                                      {firstSceneSlug ? ` · ${firstSceneSlug}` : ''}
+                                    </div>
+                                  )}
+
+                                  {/* Nhãn Khung gọn nhẹ không đóng khung hộp */}
+                                  <div className='flex items-center gap-2 pt-0.5'>
+                                    <span className='text-[10.5px] font-mono font-bold uppercase tracking-wider text-[var(--sb-accent)]'>
+                                      {panelNumber > 0 ? `Khung ${panelNumber}` : 'Chưa gán khung'}
+                                    </span>
+                                  </div>
+
+                                  {/* Các dòng thoại & chỉ dẫn chảy liền mạch */}
+                                  <div className='space-y-2 pl-2.5 border-l border-[var(--sb-border)]'>
+                                    {lines.map((line) => (
+                                      <div
+                                        key={line.id}
+                                        data-testid={`script-line-${line.id}`}
+                                        className='space-y-1'
+                                      >
+                                        {/* Chỉ dẫn hành động / bối cảnh */}
+                                        {line.stageDirection && (
+                                          <p className='text-[11.5px] text-[var(--sb-muted)] italic leading-relaxed font-sans'>
+                                            🎬 {line.stageDirection}
+                                          </p>
+                                        )}
+
+                                        {/* Lời thoại nhân vật */}
+                                        {line.dialogueText && (
+                                          <div className='py-0.5'>
+                                            {line.characterName && (
+                                              <div className='flex items-center gap-1.5'>
+                                                <span
+                                                  className='text-[11px] font-bold tracking-wide uppercase'
+                                                  style={{ color: line.characterColor || 'var(--sb-accent)' }}
+                                                >
+                                                  {line.characterName}
+                                                </span>
+                                                {line.narrationMode && line.narrationMode !== 'Present' && (
+                                                  <span className='text-[9px] font-mono text-[var(--sb-muted)]'>
+                                                    ({line.narrationMode})
+                                                  </span>
+                                                )}
+                                              </div>
                                             )}
+                                            <p className='text-xs text-[var(--sb-text)] font-serif leading-relaxed mt-0.5'>
+                                              &ldquo;{line.dialogueText}&rdquo;
+                                            </p>
                                           </div>
                                         )}
-                                        <p className='text-xs text-[var(--sb-text)] font-serif leading-relaxed mt-0.5'>
-                                          &ldquo;{line.dialogueText}&rdquo;
-                                        </p>
                                       </div>
-                                    )}
+                                    ))}
                                   </div>
-                                ))}
-                              </div>
-                            </div>
-                          ))}
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
+                      );
+                    })}
+
+                    {/* Các phân cảnh chưa gắn vào trang/panel (hiển thị xuyên suốt liền mạch để tham khảo) */}
+                    {groupedUnpagedScenes.length > 0 && (
+                      <div className='space-y-4 pt-1' data-testid='script-unpaged-scenes'>
+                        {groupedScriptByPage.length > 0 && (
+                          <div className='text-[10px] font-mono uppercase tracking-wider text-[var(--sb-muted)] border-t border-dashed border-[var(--sb-border)] pt-3'>
+                            Phân cảnh chưa gắn trang
+                          </div>
+                        )}
+                        {groupedUnpagedScenes.map((scene) => (
+                          <div key={`unpaged-scene-${scene.key}`} className='space-y-2'>
+                            <div className='pb-1 border-b border-[var(--sb-border)]'>
+                              <div className='font-mono text-[11px] font-bold uppercase tracking-wider text-[var(--sb-accent)]'>
+                                {scene.sceneTitle ||
+                                  (scene.sceneNumber ? `Phân cảnh ${scene.sceneNumber}` : 'Phân cảnh')}
+                              </div>
+                              {scene.sceneSlugline && (
+                                <div className='text-[10px] font-mono uppercase text-[var(--sb-muted)] mt-0.5'>
+                                  {scene.sceneSlugline}
+                                </div>
+                              )}
+                            </div>
+
+                            <div className='space-y-2 pl-2.5 border-l border-[var(--sb-border)]'>
+                              {scene.lines.map((line) => (
+                                <div
+                                  key={line.id}
+                                  data-testid={`script-line-${line.id}`}
+                                  className='space-y-1'
+                                >
+                                  {line.stageDirection && (
+                                    <p className='text-[11.5px] text-[var(--sb-muted)] italic leading-relaxed font-sans'>
+                                      🎬 {line.stageDirection}
+                                    </p>
+                                  )}
+                                  {line.dialogueText && (
+                                    <div className='py-0.5'>
+                                      {line.characterName && (
+                                        <div className='flex items-center gap-1.5'>
+                                          <span
+                                            className='text-[11px] font-bold tracking-wide uppercase'
+                                            style={{ color: line.characterColor || 'var(--sb-accent)' }}
+                                          >
+                                            {line.characterName}
+                                          </span>
+                                          {line.narrationMode && line.narrationMode !== 'Present' && (
+                                            <span className='text-[9px] font-mono text-[var(--sb-muted)]'>
+                                              ({line.narrationMode})
+                                            </span>
+                                          )}
+                                        </div>
+                                      )}
+                                      <p className='text-xs text-[var(--sb-text)] font-serif leading-relaxed mt-0.5'>
+                                        &ldquo;{line.dialogueText}&rdquo;
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    );
-                  })
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -960,62 +1275,79 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
 
               {/* Danh sách thẻ thực thể Bible */}
               <div className='flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar'>
-                {filteredBible.map((item) => (
-                  <div
-                    key={item.id}
-                    data-testid={`bible-entity-${item.id}`}
-                    className='p-3 rounded-xl bg-[var(--sb-surface)] border border-[var(--sb-border)] space-y-2 hover:border-[var(--sb-accent)]/50 transition-colors'
-                  >
-                    {/* Ảnh tham chiếu nếu có */}
-                    {item.imageUrl && (
-                      <div className='w-full h-28 rounded-lg overflow-hidden bg-black/5 border border-[var(--sb-border)] relative mb-2'>
-                        <img
-                          src={item.imageUrl}
-                          alt={item.name}
-                          className='w-full h-full object-cover object-top'
-                          loading='lazy'
-                        />
-                      </div>
-                    )}
-
-                    <div className='flex items-center justify-between'>
-                      <div className='flex items-center gap-1.5 min-w-0'>
-                        {item.category === 'character' ? (
-                          <User className='w-4 h-4 text-orange-400 shrink-0' />
-                        ) : item.category === 'location' ? (
-                          <MapPin className='w-4 h-4 text-purple-400 shrink-0' />
-                        ) : (
-                          <Sparkles className='w-4 h-4 text-emerald-400 shrink-0' />
-                        )}
-                        <span className='text-xs font-bold text-[var(--sb-text)] truncate'>
-                          {item.name}
-                        </span>
-                      </div>
-                      <span className='text-[9px] px-2 py-0.5 rounded-full bg-[var(--sb-surface-hover)] text-[var(--sb-muted)] font-medium shrink-0'>
-                        {item.tag}
-                      </span>
-                    </div>
-
-                    <p className='text-[11px] text-[var(--sb-muted)] leading-relaxed'>
-                      {item.description}
-                    </p>
-
-                    {item.visualNotes && item.visualNotes.length > 0 && (
-                      <div className='space-y-1 pt-1 border-t border-[var(--sb-border)]'>
-                        <span className='text-[9px] font-semibold text-[var(--sb-accent)] uppercase tracking-wider'>
-                          Đặc điểm tạo hình:
-                        </span>
-                        <ul className='text-[10px] text-[var(--sb-muted)] space-y-0.5 list-disc list-inside'>
-                          {item.visualNotes.map((note, idx) => (
-                            <li key={idx} className='leading-tight'>
-                              {note}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
+                {filteredBible.length === 0 ? (
+                  <div className='py-12 px-3 text-center text-[var(--sb-muted)] text-xs italic'>
+                    {bibleEntities.length === 0 && !isLoadingBible
+                      ? 'Series chưa có mục Bible nào.'
+                      : 'Không tìm thấy mục Series Bible phù hợp.'}
                   </div>
-                ))}
+                ) : (
+                  filteredBible.map((item) => (
+                    <div
+                      key={item.id}
+                      data-testid={`bible-entity-${item.id}`}
+                      className='p-3 rounded-xl bg-[var(--sb-surface)] border border-[var(--sb-border)] space-y-2 hover:border-[var(--sb-accent)]/50 transition-colors'
+                    >
+                      {/* Ảnh tham chiếu nếu có */}
+                      {item.imageUrl && (
+                        <div className='w-full h-28 rounded-lg overflow-hidden bg-black/5 border border-[var(--sb-border)] relative mb-2'>
+                          <AuthenticatedImage
+                            src={item.imageUrl}
+                            alt={item.name}
+                            className='w-full h-full object-cover object-top'
+                            loading='lazy'
+                          />
+                        </div>
+                      )}
+
+                      <div className='flex items-center justify-between gap-1.5'>
+                        <div className='flex items-center gap-1.5 min-w-0'>
+                          {item.category === 'character' ? (
+                            <User className='w-4 h-4 text-orange-400 shrink-0' />
+                          ) : item.category === 'location' ? (
+                            <MapPin className='w-4 h-4 text-purple-400 shrink-0' />
+                          ) : (
+                            <Sparkles className='w-4 h-4 text-emerald-400 shrink-0' />
+                          )}
+                          <span className='text-xs font-bold text-[var(--sb-text)] truncate'>
+                            {item.name}
+                          </span>
+                        </div>
+                        <div className='flex items-center gap-1 shrink-0'>
+                          {item.status === 'CanonLocked' && (
+                            <span className='text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 font-semibold'>
+                              Canon
+                            </span>
+                          )}
+                          <span className='text-[9px] px-2 py-0.5 rounded-full bg-[var(--sb-surface-hover)] text-[var(--sb-muted)] font-medium'>
+                            {item.tag}
+                          </span>
+                        </div>
+                      </div>
+
+                      {item.description && (
+                        <p className='text-[11px] text-[var(--sb-muted)] leading-relaxed'>
+                          {item.description}
+                        </p>
+                      )}
+
+                      {item.visualNotes && item.visualNotes.length > 0 && (
+                        <div className='space-y-1 pt-1 border-t border-[var(--sb-border)]'>
+                          <span className='text-[9px] font-semibold text-[var(--sb-accent)] uppercase tracking-wider'>
+                            Đặc điểm tạo hình:
+                          </span>
+                          <ul className='text-[10px] text-[var(--sb-muted)] space-y-0.5 list-disc list-inside'>
+                            {item.visualNotes.map((note, idx) => (
+                              <li key={idx} className='leading-tight'>
+                                {note}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           )}

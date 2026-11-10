@@ -75,7 +75,7 @@ export const ArtistBottomPageStrip: React.FC<ArtistBottomPageStripProps> = ({
                   className='flex flex-col items-center gap-1.5 shrink-0 group'
                   data-testid={`canva-page-card-${page.pageNumber}`}
                 >
-                  {/* Khung thumbnail trang trắng sạch sẽ, tự nhiên */}
+                  {/* Khung thumbnail trang trắng sạch sẽ, tự nhiên THEO CHIỀU DỌC (Tỷ lệ Manga B5 dọc 1:1.414) */}
                   <div
                     role='button'
                     tabIndex={0}
@@ -83,21 +83,21 @@ export const ArtistBottomPageStrip: React.FC<ArtistBottomPageStripProps> = ({
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') onSelectPage(page);
                     }}
-                    className={`relative w-[104px] h-[74px] rounded-[3px] bg-white border cursor-pointer transition-all duration-200 flex flex-col items-center justify-center shadow-xs overflow-hidden ${
+                    className={`relative w-[58px] h-[82px] rounded-[3px] bg-white border cursor-pointer transition-all duration-200 flex flex-col items-center justify-center shadow-xs overflow-hidden ${
                       isSelected
                         ? 'border-[#7C3AED] ring-2 ring-[#7C3AED]/35 shadow-sm scale-[1.02]'
                         : 'border-stone-300/80 hover:border-stone-400 hover:shadow-xs'
                     }`}
                     aria-label={`Trang ${page.pageNumber}`}
                   >
-                    {/* Trang giấy trắng thu nhỏ tự nhiên */}
-                    <div className='w-full h-full p-2 flex items-center justify-center pointer-events-none'>
+                    {/* Trang giấy trắng thu nhỏ tự nhiên theo chiều dọc */}
+                    <div className='w-full h-full p-1.5 flex items-center justify-center pointer-events-none'>
                       <div className='w-full h-full border border-dashed border-stone-200/90 rounded-[2px] bg-stone-50/20' />
                     </div>
 
                     {/* Nút tác vụ nhanh khi hover (Xóa / Nhân bản) */}
                     {canEdit && (
-                      <div className='absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-center gap-1 bg-[#1C1917]/80 rounded p-0.5 backdrop-blur-xs'>
+                      <div className='absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-center gap-0.5 bg-[#1C1917]/85 rounded p-0.5 backdrop-blur-xs z-10'>
                         {onDuplicatePage && (
                           <button
                             type='button'
@@ -108,7 +108,7 @@ export const ArtistBottomPageStrip: React.FC<ArtistBottomPageStripProps> = ({
                             }}
                             className='p-0.5 text-white hover:text-orange-300 rounded cursor-pointer'
                           >
-                            <Copy className='w-3 h-3' />
+                            <Copy className='w-2.5 h-2.5' />
                           </button>
                         )}
                         {onDeletePage && pages.length > 1 && (
@@ -121,7 +121,7 @@ export const ArtistBottomPageStrip: React.FC<ArtistBottomPageStripProps> = ({
                             }}
                             className='p-0.5 text-white hover:text-rose-400 rounded cursor-pointer'
                           >
-                            <Trash2 className='w-3 h-3' />
+                            <Trash2 className='w-2.5 h-2.5' />
                           </button>
                         )}
                       </div>
@@ -140,7 +140,7 @@ export const ArtistBottomPageStrip: React.FC<ArtistBottomPageStripProps> = ({
               );
             })}
 
-            {/* Nút Thêm trang mới (+) ở cuối filmstrip */}
+            {/* Nút Thêm trang mới (+) ở cuối filmstrip - Chiều dọc đồng bộ */}
             {canEdit && (
               <div className='flex flex-col items-center gap-1.5 shrink-0'>
                 <button
@@ -148,10 +148,12 @@ export const ArtistBottomPageStrip: React.FC<ArtistBottomPageStripProps> = ({
                   onClick={onAddPage}
                   title='Thêm trang mới'
                   data-testid='canva-add-page-btn'
-                  className='w-[104px] h-[74px] rounded-[3px] border border-dashed border-stone-400/80 hover:border-[#7C3AED] hover:bg-violet-50/40 text-stone-500 hover:text-[#7C3AED] flex flex-col items-center justify-center gap-1 cursor-pointer transition-all duration-200'
+                  className='w-[58px] h-[82px] rounded-[3px] border border-dashed border-stone-400/80 hover:border-[#7C3AED] hover:bg-violet-50/40 text-stone-500 hover:text-[#7C3AED] flex flex-col items-center justify-center gap-1 cursor-pointer transition-all duration-200'
                 >
                   <Plus className='w-4 h-4' />
-                  <span className='text-[11px] font-semibold'>Thêm trang</span>
+                  <span className='text-[10px] font-semibold leading-tight text-center px-1'>
+                    Thêm<br />trang
+                  </span>
                 </button>
                 <span className='text-xs text-transparent select-none'>+</span>
               </div>

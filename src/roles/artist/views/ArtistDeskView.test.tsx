@@ -1,11 +1,21 @@
 import React from 'react';
-import { describe, it, expect } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ArtistDeskView } from './ArtistDeskView';
+import { chapterService } from '@/services/chapter.service';
+import { pageService } from '@/services/page.service';
+import { panelService } from '@/services/panel.service';
+import { scriptLineService } from '@/services/scriptLine.service';
+import { bibleService } from '@/services/bible.service';
+import { seriesService } from '@/services/series.service';
 
-describe('ArtistDeskView - Canva-Style Bottom Page Manager', () => {
-  it('renders artist desk with centered clean manga canvas and Canva bottom page dock', () => {
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
+describe('ArtistDeskView - Integrated Canva Sidebar (Script & Bible) + Bottom Page Manager', () => {
+  it('renders ArtistCanvaSidebar with Script and Series Bible tabs (Pages tab hidden) alongside bottom page manager', () => {
     render(
       <MemoryRouter initialEntries={['/workspaces/ws-1/series/ser-1/artist']}>
         <Routes>
@@ -20,7 +30,13 @@ describe('ArtistDeskView - Canva-Style Bottom Page Manager', () => {
     // Main desk container
     expect(screen.getByTestId('artist-desk')).toBeInTheDocument();
 
-    // Canvas Shell & Clean Blank Manga Paper without technical text
+    // Left Sidebar (ArtistCanvaSidebar) exists with Script and Bible tabs ONLY
+    expect(screen.getByTestId('artist-desk-sidebar')).toBeInTheDocument();
+    expect(screen.getByTestId('canva-tab-script')).toBeInTheDocument();
+    expect(screen.getByTestId('canva-tab-bible')).toBeInTheDocument();
+    expect(screen.queryByTestId('canva-tab-pages')).not.toBeInTheDocument();
+
+    // Canvas Shell & Clean Blank Manga Paper
     expect(screen.getByTestId('artist-canvas-shell')).toBeInTheDocument();
     expect(screen.getByTestId('artist-blank-sheet')).toBeInTheDocument();
     expect(screen.getByTestId('artist-canvas-surface')).toBeInTheDocument();
@@ -35,7 +51,7 @@ describe('ArtistDeskView - Canva-Style Bottom Page Manager', () => {
     expect(screen.getByTestId('canva-page-counter')).toHaveTextContent('1 / 6');
   });
 
-  it('selects a different page when clicking on thumbnail card', () => {
+  it('switches between Script and Bible tabs in sidebar drawer', () => {
     render(
       <MemoryRouter initialEntries={['/workspaces/ws-1/series/ser-1/artist']}>
         <Routes>
@@ -47,15 +63,16 @@ describe('ArtistDeskView - Canva-Style Bottom Page Manager', () => {
       </MemoryRouter>,
     );
 
-    // Click on page 2 thumbnail
-    const card2 = screen.getByTestId('canva-page-card-2');
-    fireEvent.click(card2.querySelector('[role="button"]')!);
+    // Open Script tab
+    fireEvent.click(screen.getByTestId('canva-tab-script'));
+    expect(screen.getByTestId('canva-secondary-drawer')).not.toHaveClass('w-0');
 
-    // Counter updates to 2 / 6
-    expect(screen.getByTestId('canva-page-counter')).toHaveTextContent('2 / 6');
+    // Switch to Bible tab
+    fireEvent.click(screen.getByTestId('canva-tab-bible'));
+    expect(screen.getByTestId('canva-secondary-drawer')).not.toHaveClass('w-0');
   });
 
-  it('adds a new page when clicking Add Page button', () => {
+  it('selects a different page and adds a new page from bottom filmstrip', () => {
     render(
       <MemoryRouter initialEntries={['/workspaces/ws-1/series/ser-1/artist']}>
         <Routes>
@@ -67,15 +84,20 @@ describe('ArtistDeskView - Canva-Style Bottom Page Manager', () => {
       </MemoryRouter>,
     );
 
-    const addBtn = screen.getByTestId('canva-add-page-btn');
-    fireEvent.click(addBtn);
+    // Select page 2
+    const card2 = screen.getByTestId('canva-page-card-2');
+    const card2Btn = card2.querySelector('[role="button"]')!;
+    expect(card2Btn).toHaveClass('w-[58px]', 'h-[82px]');
+    fireEvent.click(card2Btn);
+    expect(screen.getByTestId('canva-page-counter')).toHaveTextContent('2 / 6');
 
-    // New page 7 is created and active
+    // Add new page 7
+    fireEvent.click(screen.getByTestId('canva-add-page-btn'));
     expect(screen.getByTestId('canva-page-card-7')).toBeInTheDocument();
     expect(screen.getByTestId('canva-page-counter')).toHaveTextContent('7 / 7');
   });
 
-  it('toggles page filmstrip visibility when clicking Trang button', () => {
+  it('displays continuous script across pages by default and supports syncing to current page', () => {
     render(
       <MemoryRouter initialEntries={['/workspaces/ws-1/series/ser-1/artist']}>
         <Routes>
@@ -87,12 +109,240 @@ describe('ArtistDeskView - Canva-Style Bottom Page Manager', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByTestId('canva-page-filmstrip')).toBeInTheDocument();
+    // Open Script tab -> defaults to continuous ("xuyên suốt") view showing Page 1 & Page 2
+    fireEvent.click(screen.getByTestId('canva-tab-script'));
+    expect(screen.getByText(/── TRANG 1 ──/i)).toBeInTheDocument();
+    expect(screen.getByText(/── TRANG 2 ──/i)).toBeInTheDocument();
+    expect(screen.getByTestId('script-line-line-1')).toBeInTheDocument();
+    expect(screen.getByTestId('script-line-line-6')).toBeInTheDocument();
 
-    const toggleBtn = screen.getByTestId('canva-toggle-pages-btn');
-    fireEvent.click(toggleBtn);
+    // Filter to current page mode -> shows Page 1 only, then updates to Page 2 when page 2 selected
+    fireEvent.click(screen.getByTestId('canva-script-mode-current-page'));
+    expect(screen.getByTestId('script-line-line-1')).toBeInTheDocument();
+    expect(screen.queryByTestId('script-line-line-6')).not.toBeInTheDocument();
 
-    // Filmstrip is hidden
-    expect(screen.queryByTestId('canva-page-filmstrip')).not.toBeInTheDocument();
+    const card2 = screen.getByTestId('canva-page-card-2');
+    fireEvent.click(card2.querySelector('[role="button"]')!);
+    expect(screen.getByText(/── TRANG 2 ──/i)).toBeInTheDocument();
+    expect(screen.getByTestId('script-line-line-6')).toBeInTheDocument();
+    expect(screen.queryByTestId('script-line-line-1')).not.toBeInTheDocument();
+  });
+});
+
+describe('ArtistDeskView - Real API Series Bible & Continuous Script Integration', () => {
+  it('fetches real Series Bible and Script across pages and panels without card boxes', async () => {
+    vi.spyOn(seriesService, 'getSeriesById').mockResolvedValueOnce({
+      id: 'ser-real',
+      workspaceId: 'ws-1',
+      title: 'Huyền Thoại Phương Đông',
+      readingDirection: 0,
+      genre: 'Action',
+      format: 'Manga',
+      createdAt: '2026-01-01T00:00:00Z',
+      chaptersCount: 1,
+      chapters: [],
+    });
+
+    vi.spyOn(chapterService, 'getChaptersBySeries').mockResolvedValueOnce({
+      items: [
+        {
+          id: 'chap-real-1',
+          seriesId: 'ser-real',
+          chapterNumber: 1,
+          title: 'Khởi Hành Lúc Bình Minh',
+          versionVector: 1,
+          createdAt: '2026-01-01T00:00:00Z',
+          scenesCount: 1,
+          pagesCount: 2,
+        },
+      ],
+      totalCount: 1,
+      pageIndex: 1,
+      pageSize: 20,
+      totalPages: 1,
+    });
+
+    vi.spyOn(bibleService, 'getSeriesBible').mockResolvedValueOnce({
+      id: 'bible-real',
+      seriesId: 'ser-real',
+      workspaceId: 'ws-1',
+      name: 'Huyền Thoại Phương Đông',
+      version: 1,
+      entries: [
+        {
+          id: 'char-kuro',
+          seriesBibleId: 'bible-real',
+          category: 'Character',
+          code: 'CHAR-01',
+          name: 'Kurogane',
+          subtitle: 'Thợ Rèn Kiếm',
+          description: 'Thợ rèn ẩn danh mang cánh tay máy.',
+          detailsJson: JSON.stringify({
+            attributes: {
+              appearance: 'Tóc bạc cắt ngắn, áo choàng đen',
+            },
+            visualNotes: ['Vết sẹo chữ X ở cổ tay trái'],
+          }),
+          referenceImageUrl: 'https://example.com/kurogane.png',
+          priority: 'CanonCritical',
+          strictCheck: true,
+          isActive: true,
+          createdAt: '2026-01-01T00:00:00Z',
+          effectiveRevision: {
+            id: 'rev-1',
+            bibleEntryId: 'char-kuro',
+            versionNumber: 1,
+            summary: 'Bản canon đầu tiên',
+            snapshotJson: '{}',
+            contentHash: 'hash-1',
+            effectiveFromChapterNumber: 1,
+            isInitialVersion: true,
+            createdAt: '2026-01-01T00:00:00Z',
+            reviewStatus: 'CanonLocked',
+          },
+        },
+      ],
+    });
+
+    vi.spyOn(pageService, 'getPagesByChapter').mockResolvedValueOnce([
+      {
+        id: 'pg-1',
+        chapterId: 'chap-real-1',
+        pageNumber: 1,
+        layoutFormat: 'B5',
+        widthPx: 1200,
+        heightPx: 1800,
+        dpi: 600,
+        elementsCount: 1,
+      },
+      {
+        id: 'pg-2',
+        chapterId: 'chap-real-1',
+        pageNumber: 2,
+        layoutFormat: 'B5',
+        widthPx: 1200,
+        heightPx: 1800,
+        dpi: 600,
+        elementsCount: 1,
+      },
+    ]);
+
+    vi.spyOn(panelService, 'getPanelsByPage').mockImplementation(async (pageId: string) => {
+      if (pageId === 'pg-1') {
+        return [
+          {
+            id: 'pnl-1-1',
+            pageId: 'pg-1',
+            panelNumber: 1,
+            boundingBox: '{}',
+            readingOrder: 1,
+            createdAt: '2026-01-01T00:00:00Z',
+          },
+        ];
+      }
+      if (pageId === 'pg-2') {
+        return [
+          {
+            id: 'pnl-2-2',
+            pageId: 'pg-2',
+            panelNumber: 2,
+            boundingBox: '{}',
+            readingOrder: 2,
+            createdAt: '2026-01-01T00:00:00Z',
+          },
+        ];
+      }
+      return [];
+    });
+
+    vi.spyOn(scriptLineService, 'getScenesByChapter').mockResolvedValueOnce([
+      {
+        id: 'sc-real-1',
+        chapterId: 'chap-real-1',
+        sceneNumber: 1,
+        heading: 'Lò Rèn Bên Vách Núi',
+        slugline: 'NỘI · LÒ RÈN · BÌNH MINH',
+        createdAt: '2026-01-01T00:00:00Z',
+        scriptLinesCount: 3,
+        pagesCount: 2,
+      },
+    ]);
+
+    vi.spyOn(scriptLineService, 'getSceneById').mockResolvedValueOnce({
+      id: 'sc-real-1',
+      chapterId: 'chap-real-1',
+      sceneNumber: 1,
+      heading: 'Lò Rèn Bên Vách Núi',
+      slugline: 'NỘI · LÒ RÈN · BÌNH MINH',
+      createdAt: '2026-01-01T00:00:00Z',
+      scriptLines: [
+        {
+          id: 'ln-1',
+          lineOrder: 1,
+          stageDirection: 'Tia lửa bắn tung toé trên mặt đe.',
+          dialogueText: 'Thanh kiếm này vẫn chưa đủ sắc.',
+          speakerCharacterId: 'char-kuro',
+          panelId: 'pnl-1-1',
+          narrationMode: 'Present',
+        },
+        {
+          id: 'ln-2',
+          lineOrder: 2,
+          dialogueText: 'Chúng ta cần thêm tinh thể băng.',
+          speakerCharacterId: 'char-kuro',
+          panelId: 'pnl-2-2',
+          narrationMode: 'Flashback',
+        },
+        {
+          id: 'ln-3',
+          lineOrder: 3,
+          stageDirection: 'Cảnh chuyển sang bầu trời đầy mây xám (chưa gán trang).',
+          speakerCharacterId: null,
+          panelId: null,
+        },
+      ],
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/workspaces/ws-1/series/ser-real/artist']}>
+        <Routes>
+          <Route
+            path='/workspaces/:workspaceId/series/:seriesId/artist'
+            element={<ArtistDeskView workspaceRole='ARTIST' />}
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    // Open Script tab
+    fireEvent.click(screen.getByTestId('canva-tab-script'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('script-line-ln-1')).toBeInTheDocument();
+    });
+
+    // Verify continuous pages & panels layout
+    expect(screen.getByText(/── TRANG 1 ──/i)).toBeInTheDocument();
+    expect(screen.getByText(/── TRANG 2 ──/i)).toBeInTheDocument();
+    expect(screen.getByTestId('script-panel-section-1-1')).toBeInTheDocument();
+    expect(screen.getByTestId('script-panel-section-2-2')).toBeInTheDocument();
+    // Character name resolved from Bible entry ID
+    expect(screen.getAllByText('Kurogane').length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText(/Thanh kiếm này vẫn chưa đủ sắc\./i)).toBeInTheDocument();
+    expect(screen.getByText(/Chúng ta cần thêm tinh thể băng\./i)).toBeInTheDocument();
+    // Unpaged line still flows cleanly under unpaged scene section
+    expect(screen.getByTestId('script-unpaged-scenes')).toBeInTheDocument();
+    expect(screen.getByText(/Cảnh chuyển sang bầu trời đầy mây xám/i)).toBeInTheDocument();
+
+    // Open Series Bible tab & verify parsed visualNotes + image + CanonLocked badge
+    fireEvent.click(screen.getByTestId('canva-tab-bible'));
+    await waitFor(() => {
+      expect(screen.getByTestId('bible-entity-char-kuro')).toBeInTheDocument();
+    });
+    expect(screen.getByText('Thợ rèn ẩn danh mang cánh tay máy.')).toBeInTheDocument();
+    expect(screen.getByText('Ngoại hình: Tóc bạc cắt ngắn, áo choàng đen')).toBeInTheDocument();
+    expect(screen.getByText('Vết sẹo chữ X ở cổ tay trái')).toBeInTheDocument();
+    expect(screen.getByText('Canon')).toBeInTheDocument();
+    expect(screen.getByRole('img')).toHaveAttribute('src', 'https://example.com/kurogane.png');
   });
 });
