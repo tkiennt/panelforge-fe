@@ -31,9 +31,9 @@ export interface ArtistBottomPageStripProps {
 
 /**
  * ArtistBottomPageStrip - Quản lý trang kiểu Canva (Bottom Filmstrip & Utility Bar)
- * - Đã loại bỏ ghi chú, hẹn giờ, và các chữ kĩ thuật không cần thiết.
- * - Hàng trên: Filmstrip chứa thumbnails các trang trắng sạch sẽ, số trang bên dưới, nút thêm trang.
- * - Hàng dưới: Thanh tiện ích gọn gàng gồm Zoom slider, Nút Trang (thu/mở), Bộ đếm trang (e.g. 6 / 12), Toàn màn hình.
+ * - Nền bán trong suốt (glassmorphism/translucent backdrop-blur) hòa nhập tự nhiên với nền workspace.
+ * - Hiệu ứng mở mượt mà (smooth spring transition).
+ * - Không có ghi chú, hẹn giờ hay chữ kĩ thuật thừa.
  */
 export const ArtistBottomPageStrip: React.FC<ArtistBottomPageStripProps> = ({
   pages,
@@ -56,13 +56,13 @@ export const ArtistBottomPageStrip: React.FC<ArtistBottomPageStripProps> = ({
 
   return (
     <footer
-      className='w-full shrink-0 flex flex-col bg-[#FCFBF8] border-t border-[#D8D2C5] shadow-xs select-none z-30 transition-all duration-200'
+      className='w-full shrink-0 flex flex-col bg-[#FCFBF8]/85 backdrop-blur-md border-t border-[#D8D2C5]/70 shadow-2xs select-none z-30 transition-all duration-300 ease-in-out'
       data-testid='canva-bottom-page-manager'
     >
       {/* 1. HÀNG THUMBNAIL CÁC TRANG (FILMSTRIP) */}
       {isFilmstripOpen && (
         <div
-          className='w-full border-b border-[#E7E2D6] bg-[#F7F5F0]/80 backdrop-blur-sm px-4 py-3 overflow-x-auto flex items-center gap-3 custom-scrollbar transition-all'
+          className='w-full border-b border-[#E7E2D6]/60 bg-[#F7F5F0]/60 backdrop-blur-xs px-4 py-3 overflow-x-auto flex items-center gap-3 custom-scrollbar transition-all duration-300 ease-in-out animate-in fade-in slide-in-from-bottom-2'
           data-testid='canva-page-filmstrip'
         >
           {pages.map((page, index) => {
@@ -73,7 +73,7 @@ export const ArtistBottomPageStrip: React.FC<ArtistBottomPageStripProps> = ({
                 className='flex flex-col items-center gap-1.5 shrink-0 group'
                 data-testid={`canva-page-card-${page.pageNumber}`}
               >
-                {/* Khung thumbnail trang trắng sạch sẽ */}
+                {/* Khung thumbnail trang trắng sạch sẽ, tự nhiên */}
                 <div
                   role='button'
                   tabIndex={0}
@@ -81,21 +81,21 @@ export const ArtistBottomPageStrip: React.FC<ArtistBottomPageStripProps> = ({
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') onSelectPage(page);
                   }}
-                  className={`relative w-[104px] h-[74px] rounded-sm bg-white border cursor-pointer transition-all flex flex-col items-center justify-center shadow-xs overflow-hidden ${
+                  className={`relative w-[104px] h-[74px] rounded-[3px] bg-white border cursor-pointer transition-all duration-200 flex flex-col items-center justify-center shadow-xs overflow-hidden ${
                     isSelected
-                      ? 'border-[#7C3AED] ring-2 ring-[#7C3AED]/40 shadow-sm'
-                      : 'border-[#D8D2C5] hover:border-[#A8A29E] hover:shadow-xs'
+                      ? 'border-[#7C3AED] ring-2 ring-[#7C3AED]/35 shadow-sm scale-[1.02]'
+                      : 'border-stone-200 hover:border-stone-400 hover:shadow-xs'
                   }`}
                   aria-label={`Trang ${page.pageNumber}`}
                 >
-                  {/* Trang giấy trắng thu nhỏ (Không chữ kỹ thuật) */}
+                  {/* Trang giấy trắng thu nhỏ tự nhiên (Không chữ kỹ thuật) */}
                   <div className='w-full h-full p-2 flex items-center justify-center pointer-events-none'>
-                    <div className='w-full h-full border border-dashed border-stone-200 rounded-[2px] bg-stone-50/30' />
+                    <div className='w-full h-full border border-dashed border-stone-200/80 rounded-[2px] bg-stone-50/20' />
                   </div>
 
                   {/* Nút tác vụ nhanh khi hover (Xóa / Nhân bản) */}
                   {canEdit && (
-                    <div className='absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 bg-[#1C1917]/80 rounded p-0.5 backdrop-blur-xs'>
+                    <div className='absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-center gap-1 bg-[#1C1917]/80 rounded p-0.5 backdrop-blur-xs'>
                       {onDuplicatePage && (
                         <button
                           type='button'
@@ -128,7 +128,7 @@ export const ArtistBottomPageStrip: React.FC<ArtistBottomPageStripProps> = ({
 
                 {/* Số thứ tự trang dưới thumbnail (Chuẩn Canva) */}
                 <span
-                  className={`text-xs font-medium ${
+                  className={`text-xs font-medium transition-colors ${
                     isSelected ? 'text-[#7C3AED] font-bold' : 'text-[#57534E]'
                   }`}
                 >
@@ -146,9 +146,9 @@ export const ArtistBottomPageStrip: React.FC<ArtistBottomPageStripProps> = ({
                 onClick={onAddPage}
                 title='Thêm trang mới'
                 data-testid='canva-add-page-btn'
-                className='w-[104px] h-[74px] rounded-sm border-2 border-dashed border-[#D8D2C5] hover:border-[#7C3AED] hover:bg-[#F5F3FF] text-[#57534E] hover:text-[#7C3AED] flex flex-col items-center justify-center gap-1 cursor-pointer transition-all'
+                className='w-[104px] h-[74px] rounded-[3px] border border-dashed border-stone-300 hover:border-[#7C3AED] hover:bg-violet-50/40 text-stone-500 hover:text-[#7C3AED] flex flex-col items-center justify-center gap-1 cursor-pointer transition-all duration-200'
               >
-                <Plus className='w-5 h-5' />
+                <Plus className='w-4 h-4' />
                 <span className='text-[11px] font-semibold'>Thêm trang</span>
               </button>
               <span className='text-xs text-transparent select-none'>+</span>
@@ -162,7 +162,7 @@ export const ArtistBottomPageStrip: React.FC<ArtistBottomPageStripProps> = ({
         className='h-10 px-4 flex items-center justify-between text-xs text-[#57534E]'
         data-testid='canva-bottom-bar'
       >
-        {/* Góc trái: Trống gọn gàng (Đã bỏ Ghi chú & Hẹn giờ) */}
+        {/* Góc trái: Trống gọn gàng */}
         <div className='flex items-center gap-2' />
 
         {/* Góc phải: Slider Zoom, Toggle Pages, Page Counter, Fullscreen */}
@@ -172,7 +172,7 @@ export const ArtistBottomPageStrip: React.FC<ArtistBottomPageStripProps> = ({
             <button
               type='button'
               onClick={() => onZoomChange(Math.max(0.3, zoomScale - 0.1))}
-              className='p-1 rounded hover:bg-[#F3F0E9] text-[#57534E] hover:text-[#1C1917] cursor-pointer'
+              className='p-1 rounded hover:bg-stone-200/50 text-[#57534E] hover:text-[#1C1917] cursor-pointer transition-colors'
               title='Thu nhỏ'
             >
               <ZoomOut className='w-3.5 h-3.5' />
@@ -192,7 +192,7 @@ export const ArtistBottomPageStrip: React.FC<ArtistBottomPageStripProps> = ({
             <button
               type='button'
               onClick={() => onZoomChange(Math.min(2.0, zoomScale + 0.1))}
-              className='p-1 rounded hover:bg-[#F3F0E9] text-[#57534E] hover:text-[#1C1917] cursor-pointer'
+              className='p-1 rounded hover:bg-stone-200/50 text-[#57534E] hover:text-[#1C1917] cursor-pointer transition-colors'
               title='Phóng to'
             >
               <ZoomIn className='w-3.5 h-3.5' />
@@ -203,7 +203,7 @@ export const ArtistBottomPageStrip: React.FC<ArtistBottomPageStripProps> = ({
             </span>
           </div>
 
-          <div className='w-[1px] h-4 bg-[#D8D2C5]' />
+          <div className='w-[1px] h-4 bg-[#D8D2C5]/70' />
 
           {/* Nút Toggle mở/đóng hàng trang (Pages Button) */}
           <button
@@ -213,7 +213,7 @@ export const ArtistBottomPageStrip: React.FC<ArtistBottomPageStripProps> = ({
             className={`flex items-center gap-1.5 px-2.5 py-1 rounded transition-colors cursor-pointer font-medium ${
               isFilmstripOpen
                 ? 'bg-[#F5F3FF] text-[#7C3AED] font-semibold'
-                : 'hover:bg-[#F3F0E9] text-[#57534E] hover:text-[#1C1917]'
+                : 'hover:bg-stone-200/50 text-[#57534E] hover:text-[#1C1917]'
             }`}
             title={isFilmstripOpen ? 'Thu gọn hàng trang' : 'Mở hàng trang'}
           >
@@ -239,7 +239,7 @@ export const ArtistBottomPageStrip: React.FC<ArtistBottomPageStripProps> = ({
             <button
               type='button'
               onClick={onToggleFullscreen}
-              className='p-1 rounded hover:bg-[#F3F0E9] text-[#57534E] hover:text-[#1C1917] transition-colors cursor-pointer'
+              className='p-1 rounded hover:bg-stone-200/50 text-[#57534E] hover:text-[#1C1917] transition-colors cursor-pointer'
               title={isFullscreen ? 'Thoát toàn màn hình' : 'Toàn màn hình'}
             >
               {isFullscreen ? (
