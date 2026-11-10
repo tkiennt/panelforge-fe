@@ -21,14 +21,22 @@ import {
   CheckCircle2,
   RotateCcw,
   AlertTriangle,
+  AlertCircle,
+  History as HistoryIcon,
+  Clock,
+  Check,
+  ArrowUpRight,
+  Loader2,
 } from 'lucide-react';
 import { ArtistPageItem, PageStage } from './ArtistPageSidebar';
 import { SidebarTheme } from '@/app/sidebarTheme';
 import { AuthenticatedImage } from '@/shared/components/AuthenticatedImage';
 import { FrameTemplateDto } from '@/services/frameTemplate.service';
+import { ChangeRequestDto } from '@/types/pipeline';
+import { PageHistoryDto } from '@/services/page.service';
 import '@/styles/modules/sidebar-theme.css';
 
-export type CanvaSidebarTab = 'pages' | 'script' | 'bible' | 'templates';
+export type CanvaSidebarTab = 'pages' | 'script' | 'bible' | 'templates' | 'changes' | 'history';
 
 export interface ScriptLineItem {
   id: string;
@@ -113,6 +121,18 @@ export interface ArtistCanvaSidebarProps {
   theme?: SidebarTheme;
   // Tùy chọn ẩn tab Trang khi quản lý trang đã chuyển xuống đáy
   hidePagesTab?: boolean;
+  // Change Requests (Yêu cầu chỉnh sửa công đoạn)
+  changeRequests?: ChangeRequestDto[];
+  isLoadingChangeRequests?: boolean;
+  onResolveChangeRequest?: (id: string, note?: string) => Promise<void> | void;
+  isResolvingChangeRequest?: boolean;
+  onNavigateToChangeRequestTarget?: (cr: ChangeRequestDto) => void;
+  // Page History & Restore
+  pageHistory?: PageHistoryDto | null;
+  isLoadingPageHistory?: boolean;
+  onRestoreVersion?: (version: number) => Promise<void> | void;
+  isRestoringVersion?: boolean;
+  onRefreshHistory?: () => void;
 }
 
 function formatNarrationMode(mode?: string): string | null {
@@ -727,6 +747,16 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
   onToggleDrawer,
   theme,
   hidePagesTab = false,
+  changeRequests = [],
+  isLoadingChangeRequests = false,
+  onResolveChangeRequest,
+  isResolvingChangeRequest = false,
+  onNavigateToChangeRequestTarget,
+  pageHistory = null,
+  isLoadingPageHistory = false,
+  onRestoreVersion,
+  isRestoringVersion = false,
+  onRefreshHistory,
 }) => {
   // Đồng bộ theme hệ thống từ localStorage hoặc prop, mặc định theme màu sáng 'paper'
   const [currentTheme, setCurrentTheme] = useState<SidebarTheme>(() => {
@@ -804,6 +834,33 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
   const [templateSearchQuery, setTemplateSearchQuery] = useState('');
   const [templateCountFilter, setTemplateCountFilter] = useState<'all' | '1-2' | '3' | '4+'>('all');
   const [templateCategoryFilter, setTemplateCategoryFilter] = useState<'all' | 'narrative' | 'action' | 'cinematic' | 'webtoon'>('all');
+
+  // Trạng thái cho Yêu cầu chỉnh sửa (Tab Changes)
+  const [changeFilterStatus, setChangeFilterStatus] = useState<'all' | 'open' | 'resolved'>('all');
+  const [resolveNoteByCrId, setResolveNoteByCrId] = useState<Record<string, string>>({});
+  const [activeResolveInputId, setActiveResolveInputId] = useState<string | null>(null);
+
+  // Trạng thái cho Lịch sử phiên bản (Tab History)
+  const [confirmRestoreVersion, setConfirmRestoreVersion] = useState<number | null>(null);
+
+  // Đếm số lượng Change Requests cần sửa (Open)
+  const openChangeRequestsCount = useMemo(() => {
+    return changeRequests.filter((cr) => {
+      const s = String(cr.status).toLowerCase();
+      return s === 'open' || s === '0' || cr.status === 0;
+    }).length;
+  }, [changeRequests]);
+
+  // Danh sách Change Requests sau khi lọc
+  const filteredChangeRequests = useMemo(() => {
+    return changeRequests.filter((cr) => {
+      const s = String(cr.status).toLowerCase();
+      const isOpen = s === 'open' || s === '0' || cr.status === 0;
+      if (changeFilterStatus === 'open') return isOpen;
+      if (changeFilterStatus === 'resolved') return !isOpen;
+      return true;
+    });
+  }, [changeRequests, changeFilterStatus]);
 
   // Xử lý khi nhấn nút Tab Canva Dock
   const handleTabClick = (tab: CanvaSidebarTab) => {
@@ -1095,6 +1152,62 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
             />
             <span className='text-[10px] tracking-tight'>Mẫu khung</span>
           </button>
+
+          {/* Nút Tab 5: Yêu cầu chỉnh sửa (Sidetab Change Requests) */}
+          <button
+            type='button'
+            onClick={() => handleTabClick('changes')}
+            data-testid='canva-tab-changes'
+            className={`w-[60px] h-[60px] rounded-xl flex flex-col items-center justify-center transition-all cursor-pointer relative ${
+              activeTab === 'changes' && isDrawerOpen
+                ? 'bg-[var(--sb-active-bg)] text-[var(--sb-text)] ring-1 ring-[var(--sb-accent)]/60 shadow-md font-semibold'
+                : 'hover:bg-[var(--sb-hover)] hover:text-[var(--sb-text)] text-[var(--sb-muted)]'
+            }`}
+            title='Yêu cầu chỉnh sửa bản thảo'
+          >
+            <div className='relative'>
+              <AlertCircle
+                className={`w-5 h-5 mb-1 ${
+                  activeTab === 'changes' && isDrawerOpen
+                    ? 'text-[var(--sb-accent)]'
+                    : openChangeRequestsCount > 0
+                    ? 'text-rose-500'
+                    : 'text-current'
+                }`}
+              />
+              {openChangeRequestsCount > 0 && (
+                <span
+                  data-testid='changes-badge-counter'
+                  className='absolute -top-1 -right-2 px-1 min-w-[15px] h-[15px] rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center shadow-xs animate-in zoom-in-75'
+                >
+                  {openChangeRequestsCount > 9 ? '9+' : openChangeRequestsCount}
+                </span>
+              )}
+            </div>
+            <span className='text-[10px] tracking-tight'>Sửa đổi</span>
+          </button>
+
+          {/* Nút Tab 6: Lịch sử phiên bản trang (Page History Drawer) */}
+          <button
+            type='button'
+            onClick={() => handleTabClick('history')}
+            data-testid='canva-tab-history'
+            className={`w-[60px] h-[60px] rounded-xl flex flex-col items-center justify-center transition-all cursor-pointer ${
+              activeTab === 'history' && isDrawerOpen
+                ? 'bg-[var(--sb-active-bg)] text-[var(--sb-text)] ring-1 ring-[var(--sb-accent)]/60 shadow-md font-semibold'
+                : 'hover:bg-[var(--sb-hover)] hover:text-[var(--sb-text)] text-[var(--sb-muted)]'
+            }`}
+            title='Lịch sử phiên bản trang'
+          >
+            <HistoryIcon
+              className={`w-5 h-5 mb-1 ${
+                activeTab === 'history' && isDrawerOpen
+                  ? 'text-[var(--sb-accent)]'
+                  : 'text-current'
+              }`}
+            />
+            <span className='text-[10px] tracking-tight'>Lịch sử</span>
+          </button>
         </div>
 
         {/* Nút thu gọn / mở rộng Drawer nhanh ở đáy dock */}
@@ -1114,7 +1227,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
       </nav>
 
       {/* =========================================================================
-          2. CANVA SECONDARY DRAWER (Ngăn nội dung chi tiết 340px)
+          2. CANVA SECONDARY DRAWER (Ngăn nội dung chi tiết: History là drawer nhỏ 280-290px, các tab khác 330-350px)
           - Hiệu ứng trượt mở mượt mà (transition-all duration-300 ease-in-out)
           ========================================================================= */}
       <aside
@@ -1122,7 +1235,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
         aria-hidden={!isDrawerOpen}
         className={`bg-[var(--sb-popover,var(--sb-bg))] text-[var(--sb-text)] border-r border-[var(--sb-border)] flex flex-col h-full overflow-hidden transition-all duration-300 ease-in-out shrink-0 ${
           isDrawerOpen
-            ? 'w-[330px] sm:w-[350px] opacity-100 shadow-xl'
+            ? `${activeTab === 'history' ? 'w-[280px] sm:w-[290px]' : 'w-[330px] sm:w-[350px]'} opacity-100 shadow-xl`
             : 'w-0 opacity-0 pointer-events-none border-r-0'
         }`}
       >
@@ -2078,6 +2191,369 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                             </div>
                           </div>
                         </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          {/* -------------------------------------------------------------
+              TAB 5: CHANGES (YÊU CẦU CHỈNH SỬA)
+              ------------------------------------------------------------- */}
+          {isDrawerOpen && activeTab === 'changes' && (
+            <div
+              data-testid='canva-drawer-changes'
+              className='flex flex-col h-full overflow-hidden'
+            >
+              {/* Header Drawer */}
+              <div className='p-3.5 border-b border-[var(--sb-border)] shrink-0 space-y-2.5'>
+                <div className='flex items-center justify-between'>
+                  <div className='flex items-center gap-2'>
+                    <AlertCircle className='w-4 h-4 text-rose-500' />
+                    <h3 className='text-xs font-bold text-[var(--sb-text)] uppercase tracking-wider'>
+                      Yêu cầu chỉnh sửa
+                    </h3>
+                  </div>
+                  {openChangeRequestsCount > 0 && (
+                    <span className='px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 text-[10px] font-bold border border-rose-500/20'>
+                      {openChangeRequestsCount} cần xử lý
+                    </span>
+                  )}
+                </div>
+
+                <p className='text-[11px] text-[var(--sb-muted)] leading-relaxed'>
+                  Các ghi chú và phản hồi từ Đạo diễn & Biên tập viên yêu cầu chỉnh sửa bản vẽ.
+                </p>
+
+                {/* Filter Chips */}
+                <div className='flex items-center gap-1.5 pt-1'>
+                  {(
+                    [
+                      { key: 'all', label: 'Tất cả' },
+                      { key: 'open', label: `Cần sửa (${openChangeRequestsCount})` },
+                      { key: 'resolved', label: 'Đã xong' },
+                    ] as const
+                  ).map((chip) => (
+                    <button
+                      key={chip.key}
+                      type='button'
+                      onClick={() => setChangeFilterStatus(chip.key)}
+                      data-testid={`btn-filter-cr-${chip.key}`}
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-all cursor-pointer ${
+                        changeFilterStatus === chip.key
+                          ? 'bg-[var(--sb-accent)] text-white shadow-2xs'
+                          : 'bg-[var(--sb-surface)] text-[var(--sb-muted)] hover:text-[var(--sb-text)] hover:bg-[var(--sb-surface-hover)] border border-[var(--sb-border)]'
+                      }`}
+                    >
+                      {chip.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Danh sách Yêu cầu chỉnh sửa */}
+              <div className='flex-1 overflow-y-auto p-3 space-y-2.5'>
+                {isLoadingChangeRequests ? (
+                  <div className='flex flex-col items-center justify-center py-12 gap-2 text-[var(--sb-muted)]'>
+                    <Loader2 className='w-5 h-5 animate-spin text-[var(--sb-accent)]' />
+                    <span className='text-xs'>Đang tải danh sách yêu cầu...</span>
+                  </div>
+                ) : filteredChangeRequests.length === 0 ? (
+                  <div className='flex flex-col items-center justify-center py-12 text-center p-4 space-y-2'>
+                    <div className='w-10 h-10 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center'>
+                      <CheckCircle2 className='w-5 h-5' />
+                    </div>
+                    <div className='text-xs font-semibold text-[var(--sb-text)]'>
+                      Không có yêu cầu chỉnh sửa nào
+                    </div>
+                    <div className='text-[11px] text-[var(--sb-muted)] max-w-[220px]'>
+                      {changeFilterStatus === 'open'
+                        ? 'Tất cả yêu cầu đã được xử lý xong!'
+                        : 'Biên tập viên chưa ghi nhận yêu cầu chỉnh sửa cho chương này.'}
+                    </div>
+                  </div>
+                ) : (
+                  filteredChangeRequests.map((cr) => {
+                    const statusStr = String(cr.status).toLowerCase();
+                    const isOpen = statusStr === 'open' || statusStr === '0' || cr.status === 0;
+                    const isResolved = statusStr === 'resolved' || statusStr === '1' || cr.status === 1;
+                    const isVerified = statusStr === 'verified' || statusStr === '2' || cr.status === 2;
+                    const isInputOpen = activeResolveInputId === cr.id;
+
+                    return (
+                      <div
+                        key={cr.id}
+                        data-testid={`change-request-card-${cr.id}`}
+                        className={`rounded-xl border p-3 space-y-2 transition-all ${
+                          isOpen
+                            ? 'bg-rose-50/40 dark:bg-rose-950/20 border-rose-200/80 dark:border-rose-900/40'
+                            : isResolved
+                            ? 'bg-amber-50/40 dark:bg-amber-950/20 border-amber-200/80 dark:border-amber-900/40'
+                            : 'bg-[var(--sb-surface)] border-[var(--sb-border)] opacity-80'
+                        }`}
+                      >
+                        <div className='flex items-center justify-between gap-2'>
+                          <span
+                            className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                              isOpen
+                                ? 'bg-rose-500 text-white'
+                                : isResolved
+                                ? 'bg-amber-500 text-white'
+                                : isVerified
+                                ? 'bg-emerald-600 text-white'
+                                : 'bg-stone-500 text-white'
+                            }`}
+                          >
+                            {isOpen ? 'Cần sửa' : isResolved ? 'Đã báo sửa' : isVerified ? 'Đã duyệt đạt' : 'Đã đóng'}
+                          </span>
+                          {cr.dueDate && (
+                            <span className='text-[10px] text-[var(--sb-muted)] flex items-center gap-1'>
+                              <Clock className='w-3 h-3' />
+                              <span>Hạn: {new Date(cr.dueDate).toLocaleDateString('vi-VN')}</span>
+                            </span>
+                          )}
+                        </div>
+
+                        <p className='text-xs text-[var(--sb-text)] font-medium leading-relaxed whitespace-pre-wrap'>
+                          {cr.description}
+                        </p>
+
+                        {cr.reviewerComment && (
+                          <div className='p-2 rounded-lg bg-[var(--sb-surface-hover)] border border-[var(--sb-border)] text-[11px] text-[var(--sb-muted)] space-y-0.5'>
+                            <div className='font-semibold text-[10px] text-[var(--sb-text)]'>Phản hồi của kiểm duyệt:</div>
+                            <div className='italic'>{cr.reviewerComment}</div>
+                          </div>
+                        )}
+
+                        {cr.resolutionNote && (
+                          <div className='p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-800 dark:text-emerald-300 space-y-0.5'>
+                            <div className='font-semibold text-[10px]'>Ghi chú đã sửa của Họa sĩ:</div>
+                            <div>{cr.resolutionNote}</div>
+                          </div>
+                        )}
+
+                        {isInputOpen && (
+                          <div className='space-y-1.5 pt-1.5 border-t border-[var(--sb-border)] animate-in fade-in duration-150'>
+                            <input
+                              type='text'
+                              value={resolveNoteByCrId[cr.id] || ''}
+                              onChange={(e) =>
+                                setResolveNoteByCrId((prev) => ({ ...prev, [cr.id]: e.target.value }))
+                              }
+                              placeholder='Ghi chú cách bạn đã khắc phục (tuỳ chọn)...'
+                              className='w-full px-2.5 py-1.5 rounded-lg border border-[var(--sb-border)] bg-[var(--sb-surface)] text-xs text-[var(--sb-text)] placeholder:text-[var(--sb-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--sb-accent)]'
+                            />
+                            <div className='flex items-center justify-end gap-1.5'>
+                              <button
+                                type='button'
+                                onClick={() => setActiveResolveInputId(null)}
+                                className='px-2 py-1 rounded-md text-[10px] text-[var(--sb-muted)] hover:bg-[var(--sb-surface-hover)] cursor-pointer'
+                              >
+                                Hủy
+                              </button>
+                              <button
+                                type='button'
+                                disabled={isResolvingChangeRequest}
+                                onClick={() => {
+                                  onResolveChangeRequest?.(cr.id, resolveNoteByCrId[cr.id]);
+                                  setActiveResolveInputId(null);
+                                }}
+                                data-testid={`btn-confirm-resolve-${cr.id}`}
+                                className='px-2.5 py-1 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-colors'
+                              >
+                                <Check className='w-3 h-3' />
+                                <span>Xác nhận đã sửa</span>
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        <div className='flex items-center justify-end gap-1.5 pt-1'>
+                          {onNavigateToChangeRequestTarget && (
+                            <button
+                              type='button'
+                              onClick={() => onNavigateToChangeRequestTarget(cr)}
+                              data-testid={`btn-navigate-cr-${cr.id}`}
+                              className='px-2 py-1 rounded-lg border border-[var(--sb-border)] hover:bg-[var(--sb-surface-hover)] text-[10px] font-semibold text-[var(--sb-text)] flex items-center gap-1 cursor-pointer transition-colors'
+                            >
+                              <ArrowUpRight className='w-3 h-3 text-[var(--sb-accent)]' />
+                              <span>Xem vị trí</span>
+                            </button>
+                          )}
+
+                          {isOpen && !isInputOpen && onResolveChangeRequest && (
+                            <button
+                              type='button'
+                              onClick={() => setActiveResolveInputId(cr.id)}
+                              data-testid={`btn-resolve-cr-${cr.id}`}
+                              className='px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-colors'
+                            >
+                              <Check className='w-3 h-3' />
+                              <span>Báo đã sửa...</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* -------------------------------------------------------------
+              TAB 6: HISTORY (LỊCH SỬ PHIÊN BẢN TRANG - DRAWER NHỎ 280-290px)
+              ------------------------------------------------------------- */}
+          {isDrawerOpen && activeTab === 'history' && (
+            <div
+              data-testid='canva-drawer-history'
+              className='flex flex-col h-full overflow-hidden'
+            >
+              {/* Header Drawer nhỏ */}
+              <div className='p-3 border-b border-[var(--sb-border)] shrink-0 space-y-1.5'>
+                <div className='flex items-center justify-between'>
+                  <div className='flex items-center gap-1.5'>
+                    <HistoryIcon className='w-4 h-4 text-[var(--sb-accent)]' />
+                    <h3 className='text-xs font-bold text-[var(--sb-text)] uppercase tracking-wider'>
+                      Lịch sử trang
+                    </h3>
+                  </div>
+                  {onRefreshHistory && (
+                    <button
+                      type='button'
+                      onClick={onRefreshHistory}
+                      data-testid='btn-refresh-history'
+                      title='Tải lại lịch sử phiên bản'
+                      className='w-6 h-6 rounded-md hover:bg-[var(--sb-surface-hover)] text-[var(--sb-muted)] hover:text-[var(--sb-text)] flex items-center justify-center transition-colors cursor-pointer'
+                    >
+                      <RotateCcw className='w-3.5 h-3.5' />
+                    </button>
+                  )}
+                </div>
+
+                <div className='flex items-center justify-between text-[11px] text-[var(--sb-muted)]'>
+                  <span>Trang {selectedPage?.pageNumber || activePageNumber}</span>
+                  <span className='font-mono font-bold text-[var(--sb-accent)]'>
+                    v{pageHistory?.currentVersion || 1}
+                  </span>
+                </div>
+              </div>
+
+              {/* Timeline lịch sử */}
+              <div className='flex-1 overflow-y-auto p-3 space-y-2'>
+                {isLoadingPageHistory ? (
+                  <div className='flex flex-col items-center justify-center py-10 gap-2 text-[var(--sb-muted)]'>
+                    <Loader2 className='w-4 h-4 animate-spin text-[var(--sb-accent)]' />
+                    <span className='text-[11px]'>Đang tải lịch sử...</span>
+                  </div>
+                ) : !pageHistory || !pageHistory.items || pageHistory.items.length === 0 ? (
+                  <div className='flex flex-col items-center justify-center py-10 text-center space-y-2 text-[var(--sb-muted)]'>
+                    <Clock className='w-6 h-6 text-stone-400' />
+                    <div className='text-xs font-semibold text-[var(--sb-text)]'>Phiên bản ban đầu</div>
+                    <div className='text-[10px] leading-relaxed max-w-[200px]'>
+                      Trang chưa có lịch sử chỉnh sửa. Mọi thay đổi khung vẽ sẽ tự động tạo phiên bản mới.
+                    </div>
+                  </div>
+                ) : (
+                  <div className='relative pl-3.5 border-l-2 border-[var(--sb-border)] space-y-3.5 my-1'>
+                    {pageHistory.items.map((entry) => {
+                      const isCurrent = entry.version === pageHistory.currentVersion;
+                      const isConfirming = confirmRestoreVersion === entry.version;
+
+                      const eventLabel = (() => {
+                        switch (entry.eventType) {
+                          case 'PageCreated':
+                            return 'Khởi tạo trang';
+                          case 'ElementAdded':
+                            return 'Thêm đối tượng';
+                          case 'ElementMoved':
+                            return 'Di chuyển đối tượng';
+                          case 'ElementRemoved':
+                            return 'Xóa đối tượng';
+                          case 'ElementRestored':
+                            return 'Phục hồi đối tượng';
+                          case 'CanvasUpdated':
+                            return 'Cập nhật canvas';
+                          case 'VersionRestored':
+                            return 'Khôi phục bản cũ';
+                          default:
+                            return entry.eventType || 'Chỉnh sửa bản vẽ';
+                        }
+                      })();
+
+                      return (
+                        <div
+                          key={`history-v${entry.version}`}
+                          data-testid={`history-entry-v${entry.version}`}
+                          className='relative space-y-1'
+                        >
+                          <div
+                            className={`absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full border-2 border-[var(--sb-popover,var(--sb-bg))] ${
+                              isCurrent
+                                ? 'bg-emerald-500 ring-2 ring-emerald-500/30'
+                                : 'bg-[var(--sb-border)]'
+                            }`}
+                          />
+
+                          <div className='flex items-center justify-between gap-1'>
+                            <span className='font-mono text-xs font-bold text-[var(--sb-text)]'>
+                              v{entry.version}
+                            </span>
+                            {isCurrent && (
+                              <span className='px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[9px] font-bold border border-emerald-500/20'>
+                                Hiện hành
+                              </span>
+                            )}
+                          </div>
+
+                          <div className='text-[11px] text-[var(--sb-muted)]'>
+                            {eventLabel}
+                          </div>
+
+                          {!isCurrent && onRestoreVersion && (
+                            <div className='pt-1'>
+                              {isConfirming ? (
+                                <div className='p-2 rounded-lg bg-amber-500/10 border border-amber-500/30 space-y-1.5 animate-in fade-in duration-150'>
+                                  <div className='text-[10px] text-amber-700 dark:text-amber-300 font-semibold'>
+                                    Khôi phục về v{entry.version}?
+                                  </div>
+                                  <div className='flex items-center gap-1'>
+                                    <button
+                                      type='button'
+                                      disabled={isRestoringVersion}
+                                      onClick={() => {
+                                        onRestoreVersion(entry.version);
+                                        setConfirmRestoreVersion(null);
+                                      }}
+                                      data-testid={`btn-confirm-restore-v${entry.version}`}
+                                      className='flex-1 py-1 rounded bg-amber-600 hover:bg-amber-700 text-white text-[10px] font-bold cursor-pointer transition-colors'
+                                    >
+                                      {isRestoringVersion ? 'Đang khôi phục...' : 'Đồng ý'}
+                                    </button>
+                                    <button
+                                      type='button'
+                                      onClick={() => setConfirmRestoreVersion(null)}
+                                      className='px-2 py-1 rounded text-[10px] text-[var(--sb-muted)] hover:bg-[var(--sb-surface-hover)] cursor-pointer'
+                                    >
+                                      Hủy
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <button
+                                  type='button'
+                                  onClick={() => setConfirmRestoreVersion(entry.version)}
+                                  data-testid={`btn-restore-v${entry.version}`}
+                                  className='text-[10px] font-semibold text-[var(--sb-accent)] hover:underline flex items-center gap-1 cursor-pointer'
+                                >
+                                  <RotateCcw className='w-3 h-3' />
+                                  <span>Khôi phục bản này</span>
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       );
                     })}
                   </div>

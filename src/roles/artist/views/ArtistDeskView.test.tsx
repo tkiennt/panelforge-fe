@@ -554,7 +554,7 @@ describe('ArtistDeskView - Header Colors, Stage Progression & Series/Chapter Pat
     });
 
     // Submit 3: Letter -> Completed
-    expect(screen.getByTestId('focus-submit-stage-btn')).toHaveTextContent('Nộp hoàn thiện');
+    expect(screen.getByTestId('focus-submit-stage-btn')).toHaveTextContent('Nộp bản thảo');
     fireEvent.click(screen.getByTestId('focus-submit-stage-btn'));
     await waitFor(() => {
       expect(screen.getByTestId('focus-stage-completed-badge')).toHaveTextContent('Đã nộp chờ duyệt');

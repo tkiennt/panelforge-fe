@@ -337,4 +337,126 @@ describe('ArtistCanvaSidebar - Canva-style Navigation & Multi-Tab Drawer', () =>
     expect(handleUnlock).toHaveBeenCalledTimes(1);
     expect(handleSelectTemplate).not.toHaveBeenCalled();
   });
+
+  it('renders Sidetab Changes (Tab 5) with badge counter, filters, and resolve actions', () => {
+    const handleResolve = vi.fn();
+    const handleNavigate = vi.fn();
+
+    const mockCRs = [
+      {
+        id: 'cr-1',
+        assignmentId: 'assign-1',
+        chapterId: 'chap-1',
+        responsibleUserId: 'user-1',
+        createdByUserId: 'editor-1',
+        description: 'Vẽ lại góc nghiêng thanh kiếm của nhân vật chính ở khung 2',
+        status: 'Open' as const,
+        reviewerComment: 'Góc kiếm hiện tại che mất biểu cảm gương mặt',
+        createdAt: '2026-11-10T10:00:00Z',
+      },
+      {
+        id: 'cr-2',
+        assignmentId: 'assign-1',
+        chapterId: 'chap-1',
+        responsibleUserId: 'user-1',
+        createdByUserId: 'editor-1',
+        description: 'Bổ sung hiệu ứng tốc độ',
+        status: 'Resolved' as const,
+        resolutionNote: 'Đã thêm các đường speed lines ở mép phải khung',
+        createdAt: '2026-11-10T09:00:00Z',
+      },
+    ];
+
+    renderWithRouter(
+      <ArtistCanvaSidebar
+        pages={MOCK_PAGES}
+        selectedPageId='page-1'
+        onSelectPage={vi.fn()}
+        onAddPage={vi.fn()}
+        onDuplicatePage={vi.fn()}
+        onDeletePage={vi.fn()}
+        onMovePage={vi.fn()}
+        onToggleVisibility={vi.fn()}
+        changeRequests={mockCRs}
+        onResolveChangeRequest={handleResolve}
+        onNavigateToChangeRequestTarget={handleNavigate}
+      />
+    );
+
+    // Badge counter shows 1 open request
+    expect(screen.getByTestId('changes-badge-counter')).toHaveTextContent('1');
+
+    // Click tab changes to open drawer
+    fireEvent.click(screen.getByTestId('canva-tab-changes'));
+    expect(screen.getByTestId('canva-drawer-changes')).toBeInTheDocument();
+    expect(screen.getByText('Vẽ lại góc nghiêng thanh kiếm của nhân vật chính ở khung 2')).toBeInTheDocument();
+
+    // Click "Xem vị trí" triggers onNavigateToChangeRequestTarget
+    fireEvent.click(screen.getByTestId('btn-navigate-cr-cr-1'));
+    expect(handleNavigate).toHaveBeenCalledWith(mockCRs[0]);
+
+    // Click "Báo đã sửa..." reveals resolve input
+    fireEvent.click(screen.getByTestId('btn-resolve-cr-cr-1'));
+    const input = screen.getByPlaceholderText('Ghi chú cách bạn đã khắc phục (tuỳ chọn)...');
+    expect(input).toBeInTheDocument();
+    fireEvent.change(input, { target: { value: 'Đã xoay góc kiếm 15 độ' } });
+    fireEvent.click(screen.getByTestId('btn-confirm-resolve-cr-1'));
+    expect(handleResolve).toHaveBeenCalledWith('cr-1', 'Đã xoay góc kiếm 15 độ');
+  });
+
+  it('renders History Drawer (Tab 6) as compact drawer with timeline and restore action', () => {
+    const handleRestore = vi.fn();
+    const handleRefresh = vi.fn();
+
+    const mockHistory = {
+      pageId: 'page-1',
+      currentVersion: 3,
+      page: 1,
+      pageSize: 50,
+      totalCount: 3,
+      items: [
+        { version: 3, eventType: 'CanvasUpdated', occurredAtUtc: '2026-11-10T10:00:00Z', summary: 'Cập nhật canvas' },
+        { version: 2, eventType: 'ElementAdded', occurredAtUtc: '2026-11-10T09:30:00Z', summary: 'Thêm đối tượng' },
+        { version: 1, eventType: 'PageCreated', occurredAtUtc: '2026-11-10T09:00:00Z', summary: 'Khởi tạo trang' },
+      ],
+    };
+
+    renderWithRouter(
+      <ArtistCanvaSidebar
+        pages={MOCK_PAGES}
+        selectedPageId='page-1'
+        onSelectPage={vi.fn()}
+        onAddPage={vi.fn()}
+        onDuplicatePage={vi.fn()}
+        onDeletePage={vi.fn()}
+        onMovePage={vi.fn()}
+        onToggleVisibility={vi.fn()}
+        pageHistory={mockHistory}
+        onRestoreVersion={handleRestore}
+        onRefreshHistory={handleRefresh}
+      />
+    );
+
+    // Click History tab
+    fireEvent.click(screen.getByTestId('canva-tab-history'));
+    const drawer = screen.getByTestId('canva-secondary-drawer');
+    // Compact drawer width
+    expect(drawer).toHaveClass('w-[280px]');
+
+    expect(screen.getByTestId('canva-drawer-history')).toBeInTheDocument();
+    expect(screen.getByText('v3')).toBeInTheDocument();
+    expect(screen.getByText('Hiện hành')).toBeInTheDocument();
+
+    // v2 has "Khôi phục bản này"
+    const restoreBtnV2 = screen.getByTestId('btn-restore-v2');
+    fireEvent.click(restoreBtnV2);
+    // Confirm prompt appears
+    expect(screen.getByText('Khôi phục về v2?')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('btn-confirm-restore-v2'));
+    expect(handleRestore).toHaveBeenCalledWith(2);
+
+    // Refresh button
+    fireEvent.click(screen.getByTestId('btn-refresh-history'));
+    expect(handleRefresh).toHaveBeenCalledTimes(1);
+  });
 });
