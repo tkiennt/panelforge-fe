@@ -1,13 +1,17 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  ArtistPageSidebar,
-  ArtistPageItem,
-} from '../components/desk/ArtistPageSidebar';
+  ArtistCanvaSidebar,
+  ScriptLineItem,
+  BibleEntityItem,
+} from '../components/desk/ArtistCanvaSidebar';
+import { ArtistPageItem } from '../components/desk/ArtistPageSidebar';
 import { EyeOff } from 'lucide-react';
 
 export interface ArtistDeskViewProps {
   workspaceRole?: string | null;
   initialPages?: ArtistPageItem[];
+  initialScriptLines?: ScriptLineItem[];
+  initialBibleEntities?: BibleEntityItem[];
 }
 
 const DEFAULT_MANGA_PAGES: ArtistPageItem[] = [
@@ -50,28 +54,29 @@ const DEFAULT_MANGA_PAGES: ArtistPageItem[] = [
 ];
 
 /**
- * ArtistDeskView - Bàn vẽ Artist với Sidebar quản lý trang chuẩn phong cách Adobe Photoshop
- * - Sidebar bên trái kiểu Photoshop: Bảng Pages/Artboards, lọc giai đoạn, thu gọn mini-strip,
- *   thêm/nhân bản/xoá/sắp xếp thứ tự trang và bật tắt con mắt hiển thị.
- * - Khung bàn vẽ trung tâm: Tự động co giãn mượt mà theo trạng thái đóng/mở sidebar,
- *   phản chiếu trực tiếp trang giấy Manga B5 Master được chọn.
+ * ArtistDeskView - Bàn vẽ Artist với Sidebar đa năng phong cách Canva Editor
+ * - Thanh bên Canva Navigation: Chuyển đổi 3 chế độ xem [Trang / Pages] - [Kịch bản / Script] - [Series Bible].
+ * - Ngăn trượt Canva Drawer: Tích hợp đầy đủ xem kịch bản, tra cứu lore/nhân vật canon,
+ *   và quản lý thêm/nhân bản/xoá/sắp xếp thứ tự trang.
+ * - Khung vẽ trung tâm Manga B5: Tự động co giãn theo ngăn trượt Canva.
  */
 export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   workspaceRole,
   initialPages = DEFAULT_MANGA_PAGES,
+  initialScriptLines,
+  initialBibleEntities,
 }) => {
   const [pages, setPages] = useState<ArtistPageItem[]>(initialPages);
   const [selectedPageId, setSelectedPageId] = useState<string>(
     initialPages[0]?.id || 'page-1'
   );
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
 
   // Tìm trang hiện tại đang được chọn
   const selectedPage = useMemo(() => {
     return pages.find((p) => p.id === selectedPageId) || pages[0] || null;
   }, [pages, selectedPageId]);
 
-  // Điều hướng phím tắt: '[' để thu gọn/mở rộng sidebar, mũi tên Trái/Phải để đổi trang
+  // Điều hướng bàn phím phím mũi tên Trái/Phải để đổi trang
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
@@ -84,10 +89,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
         return;
       }
 
-      if (e.key === '[') {
-        e.preventDefault();
-        setIsSidebarCollapsed((prev) => !prev);
-      } else if (e.key === 'ArrowLeft') {
+      if (e.key === 'ArrowLeft') {
         e.preventDefault();
         setPages((currentPages) => {
           const currentIndex = currentPages.findIndex(
@@ -215,8 +217,8 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
       className='flex-1 basis-0 min-h-0 w-full h-full flex flex-row bg-[#F3F0E9] text-[#1C1917] overflow-hidden select-none relative'
       data-testid='artist-desk'
     >
-      {/* 1. Sidebar bên trái quản lý trang kiểu Adobe Photoshop */}
-      <ArtistPageSidebar
+      {/* 1. Sidebar Canva đa năng: Xem Pages, Script, Series Bible */}
+      <ArtistCanvaSidebar
         pages={pages}
         selectedPageId={selectedPage?.id || ''}
         onSelectPage={handleSelectPage}
@@ -225,8 +227,8 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
         onDeletePage={handleDeletePage}
         onMovePage={handleMovePage}
         onToggleVisibility={handleToggleVisibility}
-        isCollapsed={isSidebarCollapsed}
-        onToggleCollapse={() => setIsSidebarCollapsed((prev) => !prev)}
+        scriptLines={initialScriptLines}
+        bibleEntities={initialBibleEntities}
       />
 
       {/* 2. Khung bàn vẽ trung tâm - Main Canvas Shell */}
@@ -234,25 +236,25 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
         className='flex-1 basis-0 min-h-0 min-w-0 h-full flex flex-col items-center justify-center p-4 sm:p-6 md:p-8 overflow-hidden relative'
         data-testid='artist-canvas-shell'
       >
-        {/* Thanh trạng thái nhanh của trang đang vẽ (Canvas Header Pill) */}
+        {/* Thanh trạng thái nhanh của trang đang vẽ (Canva-style Canvas Pill) */}
         {selectedPage && (
           <header
             data-testid='canvas-page-header'
-            className='absolute top-3 left-4 sm:left-6 z-10 flex items-center gap-2 bg-[#252526]/85 backdrop-blur-xs text-[#CCCCCC] px-3 py-1 rounded-xs border border-[#383838] shadow-sm text-[11px]'
+            className='absolute top-3 left-4 sm:left-6 z-10 flex items-center gap-2 bg-[#121316]/90 backdrop-blur-md text-[#A6AAB4] px-3.5 py-1.5 rounded-full border border-[#26282E] shadow-md text-[11px]'
           >
             <span className='font-mono font-bold text-white'>
               TRANG {String(selectedPage.pageNumber).padStart(2, '0')}
             </span>
-            <span className='text-[#858585]'>•</span>
-            <span className='truncate max-w-[160px] sm:max-w-[240px]'>
+            <span className='text-[#555]'>•</span>
+            <span className='truncate max-w-[160px] sm:max-w-[240px] text-neutral-200 font-medium'>
               {selectedPage.title}
             </span>
-            <span className='text-[#858585]'>•</span>
-            <span className='text-[10px] text-[#858585]'>
+            <span className='text-[#555]'>•</span>
+            <span className='text-[10px] text-neutral-400'>
               {selectedPage.format || 'B5 Master (600 DPI)'}
             </span>
-            <span className='text-[#858585]'>•</span>
-            <span className='text-[10px] text-[#007ACC] font-semibold'>
+            <span className='text-[#555]'>•</span>
+            <span className='text-[10px] text-purple-400 font-semibold'>
               {selectedPage.panelsCount} khung
             </span>
           </header>
@@ -289,7 +291,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                   Trang {selectedPage.pageNumber} đang tạm ẩn
                 </span>
                 <span className='text-[10px] opacity-75'>
-                  Bấm biểu tượng con mắt ở bảng trang để mở lại
+                  Bấm biểu tượng con mắt ở ngăn Trang Canva để mở lại
                 </span>
               </div>
             ) : (
