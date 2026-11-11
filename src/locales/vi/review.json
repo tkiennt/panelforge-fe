@@ -55,5 +55,18 @@
     "humanContribution": "Đóng góp hoạ sĩ: {percent}%",
     "aiAssisted": "AI hỗ trợ: {percent}%",
     "auditTrail": "Nhật ký kiểm toán"
+  },
+  "desk": {
+    "title": "Bàn Thẩm Định Biên Tập (Editor Desk)",
+    "subtitle": "Hàng đợi kiểm soát chất lượng theo 2 cổng Gate 1 & Gate 2",
+    "gateAll": "Tất cả cổng",
+    "gate1": "Gate 1: Storyboard / Phân cảnh",
+    "gate2": "Gate 2: Quality & Composite",
+    "statusSubmitted": "Chờ mở duyệt",
+    "statusUnderReview": "Đang thẩm định",
+    "antiSelfApproval": "Quy tắc 4 mắt (BR-26): Bạn là tác giả của bản nộp này nên không được tự duyệt.",
+    "openReviewAction": "Mở Thẩm Định",
+    "continueReviewAction": "Tiếp tục thẩm định",
+    "lockedSelfAction": "Khóa: Cần Editor khác duyệt"
   }
 }

@@ -55,5 +55,18 @@
     "humanContribution": "Human Contribution: {percent}%",
     "aiAssisted": "AI Assisted: {percent}%",
     "auditTrail": "Audit Trail"
+  },
+  "desk": {
+    "title": "Editor Desk Review Queue",
+    "subtitle": "Editorial quality control inbox organized by Gate 1 & Gate 2",
+    "gateAll": "All Gates",
+    "gate1": "Gate 1: Storyboard / Layout",
+    "gate2": "Gate 2: Quality & Composite",
+    "statusSubmitted": "Pending Review",
+    "statusUnderReview": "Under Review",
+    "antiSelfApproval": "4-Eyes Principle (BR-26): You are the author of this submission and cannot review your own work.",
+    "openReviewAction": "Open Review",
+    "continueReviewAction": "Continue Review",
+    "lockedSelfAction": "Locked: Requires Another Editor"
   }
 }

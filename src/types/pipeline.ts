@@ -634,3 +634,36 @@ export interface PageVisualContinuityDto {
   failed: number;
   panels: PanelVisualContinuityDto[];
 }
+
+export type EditorQualityGate = 'all' | 'gate1' | 'gate2';
+
+export interface EditorReviewQueueItemDto {
+  assignmentId: string;
+  chapterId: string;
+  chapterNumber: number;
+  chapterTitle: string;
+  seriesId: string;
+  seriesTitle: string;
+  pipelineStageId: string;
+  stageName: string;
+  stageOrder: number;
+  stageColorCode: string;
+  gate: 'gate1' | 'gate2' | 'other';
+  status: AssignmentStatus;
+  entityType: WorkflowEntityType;
+  targetEntityId?: string | null;
+  scopeLabel: string;
+  assigneeUserId?: string | null;
+  assigneeName?: string | null;
+  assigneeAvatarUrl?: string | null;
+  latestSubmissionId?: string | null;
+  submissionAttempt: number;
+  submittedAt?: string | null;
+  isSelfSubmission: boolean;
+  openChangeRequestsCount: number;
+  dueDate?: string | null;
+  priority: AssignmentPriority;
+  createdAt: string;
+  artworkReferenceIds?: string[];
+}
+
