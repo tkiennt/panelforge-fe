@@ -81,6 +81,19 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
     loadData();
   }, [loadData]);
 
+  // Helper to determine destination review URL
+  const getReviewUrl = (item: EditorReviewQueueItemDto) => {
+    const isScriptReview =
+      item.scopeLabel?.toLowerCase().includes('kịch bản') ||
+      item.scopeLabel?.toLowerCase().includes('script') ||
+      item.stageName?.toLowerCase().includes('kịch bản') ||
+      item.stageName?.toLowerCase().includes('script');
+
+    return isScriptReview
+      ? `/workspaces/${workspaceId}/series/${seriesId}/chapters/${item.chapterId}/script/review?assignmentId=${item.assignmentId}`
+      : `/workspaces/${workspaceId}/series/${seriesId}/review/${item.assignmentId}`;
+  };
+
   // Handle Open Review
   const handleOpenReview = async (item: EditorReviewQueueItemDto) => {
     if (!workspaceId || !seriesId) return;
@@ -98,7 +111,7 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
         await assignmentService.openReview(item.chapterId, item.assignmentId);
         onShowToast?.('Bắt đầu thẩm định', `Đã mở phiên duyệt cho ${item.scopeLabel}`);
       }
-      navigate(`/workspaces/${workspaceId}/series/${seriesId}/review/${item.assignmentId}`);
+      navigate(getReviewUrl(item));
     } catch (err: any) {
       console.error('Không thể mở phiên duyệt:', err);
       onShowToast?.('Lỗi mở duyệt', err.message || 'Không thể mở phiên thẩm định bài nộp.');
@@ -109,7 +122,7 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({
 
   const handleContinueReview = (item: EditorReviewQueueItemDto) => {
     if (!workspaceId || !seriesId) return;
-    navigate(`/workspaces/${workspaceId}/series/${seriesId}/review/${item.assignmentId}`);
+    navigate(getReviewUrl(item));
   };
 
   // Metrics computation

@@ -59,6 +59,9 @@ const ReviewView = lazy(() =>
 const EditorDeskView = lazy(() =>
   import('@/roles/editor/views/EditorDeskView').then((m) => ({ default: m.EditorDeskView })),
 );
+const ScriptReviewView = lazy(() =>
+  import('@/roles/editor/views/ScriptReviewView').then((m) => ({ default: m.ScriptReviewView })),
+);
 const NotificationCenterView = lazy(() =>
   import('@/shared/views/NotificationCenterView').then((m) => ({
     default: m.NotificationCenterView,
@@ -589,6 +592,26 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
               <Route
                 path='editor/desk/:chapterId'
                 element={<EditorDeskView workspaceRole={currentWorkspaceRole} onShowToast={showToast} />}
+              />
+              <Route
+                path='script/review/:chapterId'
+                element={
+                  <ScriptReviewView
+                    currentUserId={currentUserInfo?.id}
+                    workspaceRole={currentWorkspaceRole}
+                    onShowToast={showToast}
+                  />
+                }
+              />
+              <Route
+                path='chapters/:chapterId/script/review'
+                element={
+                  <ScriptReviewView
+                    currentUserId={currentUserInfo?.id}
+                    workspaceRole={currentWorkspaceRole}
+                    onShowToast={showToast}
+                  />
+                }
               />
               <Route
                 path='task/:taskId'
