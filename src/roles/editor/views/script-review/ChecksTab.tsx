@@ -11,6 +11,8 @@ import { useTranslation } from '@/lib/i18n';
 import type { ChapterBibleGateResultDto, ChapterDto } from '@/services/chapter.service';
 import type { ConsistencyFindingDto } from '@/types/pipeline';
 import { anchorKey } from './scriptReviewModel';
+import { OPEN_FINDING_STATUSES } from '../review-shared/reviewModel';
+import { ReasonForm } from '../review-shared/ReasonForm';
 
 export type FindingDecision = 'Confirmed' | 'Rejected' | 'Ignored' | 'NeedsClarification';
 
@@ -32,53 +34,12 @@ interface ChecksTabProps {
   onDecideReopen: (approve: boolean) => void;
 }
 
-const OPEN_FINDING = new Set(['Open', 'Confirmed', 'NeedsClarification']);
+const OPEN_FINDING = new Set(OPEN_FINDING_STATUSES);
 
 const SEVERITY_BADGE: Record<string, string> = {
   Blocking: 'bg-rose-50 text-rose-800 border-rose-200',
   Warning: 'bg-amber-50 text-amber-800 border-amber-200',
   Info: 'bg-stone-100 text-stone-600 border-stone-200',
-};
-
-const ReasonInline: React.FC<{
-  label: string;
-  confirmLabel: string;
-  onConfirm: (text: string) => void;
-  onCancel: () => void;
-}> = ({ label, confirmLabel, onConfirm, onCancel }) => {
-  const { t } = useTranslation('review');
-  const [text, setText] = useState('');
-  return (
-    <div className='mt-2 space-y-2'>
-      <label className='block text-xs font-semibold text-stone-700'>
-        {label}
-        <textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          rows={2}
-          autoFocus
-          className='mt-1 w-full resize-y rounded-md border border-stone-200 bg-white px-2 py-1.5 text-sm font-normal text-stone-800 focus:border-orange-500 focus:outline-none'
-        />
-      </label>
-      <div className='flex justify-end gap-2'>
-        <button
-          type='button'
-          onClick={onCancel}
-          className='rounded-full border border-stone-200 bg-white px-3 py-1 text-xs font-semibold text-stone-700 hover:bg-stone-100'
-        >
-          {t('scriptReview.common.cancel')}
-        </button>
-        <button
-          type='button'
-          disabled={!text.trim()}
-          onClick={() => onConfirm(text.trim())}
-          className='rounded-full bg-stone-900 px-3 py-1 text-xs font-semibold text-white hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-50'
-        >
-          {confirmLabel}
-        </button>
-      </div>
-    </div>
-  );
 };
 
 export const ChecksTab: React.FC<ChecksTabProps> = ({
@@ -262,7 +223,8 @@ export const ChecksTab: React.FC<ChecksTabProps> = ({
                     </div>
                   )}
                   {noteFor?.id === f.id && (
-                    <ReasonInline
+                    <ReasonForm
+                      tone='neutral'
                       label={
                         noteFor.decision === 'Ignored'
                           ? t('scriptReview.checks.ignoreReason')
@@ -367,7 +329,8 @@ export const ChecksTab: React.FC<ChecksTabProps> = ({
           </button>
         )}
         {unfreezing && (
-          <ReasonInline
+          <ReasonForm
+            tone='neutral'
             label={t('scriptReview.checks.unfreezeReason')}
             confirmLabel={t('scriptReview.checks.unfreeze')}
             onCancel={() => setUnfreezing(false)}

@@ -233,5 +233,75 @@
       "load": "Không tải được dữ liệu kịch bản của chương này.",
       "generic": "Đã có lỗi xảy ra."
     }
+  },
+  "artworkReview": {
+    "header": {
+      "page": "Trang {number}"
+    },
+    "toolbar": {
+      "compare": "So với bản trước",
+      "zoomIn": "Phóng to",
+      "zoomOut": "Thu nhỏ",
+      "zoomReset": "Về 100%"
+    },
+    "canvas": {
+      "drawHint": "Kéo chuột trên bản nộp để khoanh vùng cần sửa.",
+      "empty": "Lần nộp này chưa có ảnh để duyệt.",
+      "attempt": "Lần nộp {attempt}",
+      "version": "Phiên bản {version}",
+      "current": "{label} · đang duyệt",
+      "orphan": "Lần nộp {attempt}: bố cục khung lúc nộp không còn nên không ghép được trang, chỉ xem được ảnh từng khung."
+    },
+    "notes": {
+      "region": "Vùng {label}",
+      "whole": "Cả trang",
+      "draftsHint": "Chưa gửi. Mỗi vùng thành một yêu cầu sửa khi bạn trả bài.",
+      "resolvedTitle": "Người làm báo đã sửa",
+      "resolvedHint": "Bật “So với bản trước” để đối chiếu vùng cũ, rồi xác minh hoặc mở lại kèm lý do.",
+      "assigneeReply": "Người làm:",
+      "reopenReason": "Vì sao chưa đạt? (gửi lại cho người làm)",
+      "rejectTitle": "Chấp nhận phản hồi của người làm và đóng yêu cầu này",
+      "emptyCanDraw": "Chưa có nhận xét. Kéo chuột trên bản nộp để khoanh vùng cần sửa.",
+      "describe": "Mô tả vùng cần sửa"
+    },
+    "checks": {
+      "title": "Nhất quán hình ảnh",
+      "notRun": "Chưa có báo cáo. Chạy kiểm tra để so nhân vật với character sheet đã khoá.",
+      "summary": "{open} độ lệch cần xử lý ở trang này · ngưỡng {threshold}%",
+      "panel": "khung {number}",
+      "similarity": "Tương đồng {score}% (ngưỡng {threshold}%)",
+      "sheet": "Character sheet",
+      "artwork": "Bản vẽ",
+      "clarifyQuestion": "Câu hỏi cần Artist làm rõ"
+    },
+    "impact": {
+      "title": "Cần kiểm tra ảnh hưởng",
+      "keep": "Giữ kết quả",
+      "rework": "Yêu cầu làm lại",
+      "reason": "Lý do (ghi vào nhật ký)"
+    },
+    "notice": {
+      "notReviewer": "Vai trò của bạn chỉ được xem, không duyệt bản nộp."
+    },
+    "decision": {
+      "summaryLabel": "Nhận xét chung gửi người làm",
+      "return": "Trả bài",
+      "approve": "Duyệt bản nộp",
+      "emptyDrafts": "Còn {count} vùng khoanh chưa có mô tả.",
+      "blockingDeviations": "Trang này còn {count} độ lệch hình ảnh mức chặn chưa xử lý."
+    },
+    "toast": {
+      "returnedTitle": "Đã trả bài",
+      "approvedTitle": "Đã duyệt bản nộp",
+      "visualFailed": "Không chạy được kiểm tra hình ảnh",
+      "impactFailed": "Không lưu được quyết định"
+    },
+    "errors": {
+      "loadTitle": "Không mở được bản nộp",
+      "load": "Không tải được dữ liệu duyệt.",
+      "notFound": "Không tìm thấy việc cần duyệt.",
+      "noChapter": "Thiếu chương. Hãy mở màn duyệt từ bàn thẩm định.",
+      "artwork": "Không tải được ảnh bản nộp."
+    }
   }
 }
