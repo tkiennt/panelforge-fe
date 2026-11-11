@@ -1063,6 +1063,14 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
   const { bibleEntities, characterById } = useMemo(() => {
     const charMap = new Map<string, { name: string; color: string }>();
 
+    // Luôn nạp trước các thực thể từ props initialBibleEntities nếu có
+    if (initialBibleEntities) {
+      initialBibleEntities.forEach((e) => {
+        const color = e.color || getDeterministicColor(e.name);
+        charMap.set(e.id, { name: e.name, color });
+      });
+    }
+
     if (!hasLoadedRealBible) {
       return { bibleEntities: initialBibleEntities, characterById: charMap };
     }
@@ -1072,8 +1080,10 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
       .map((e) => {
         const category = mapBibleCategory(e.category);
         const color = getDeterministicColor(e.id || e.name);
-        if (category === 'character') {
-          charMap.set(e.id, { name: e.name, color });
+        // Lưu tất cả thực thể vào charMap theo id và code để tra cứu người nói
+        charMap.set(e.id, { name: e.name, color });
+        if (e.code) {
+          charMap.set(e.code, { name: e.name, color });
         }
         const { visualNotes, gallery } = extractBibleVisualDetails(e);
         const resolvedImage =
@@ -1124,17 +1134,62 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
       const resolvedPageNum =
         fromPanel?.pageNumber ??
         line.pageNumber ??
-        (line.sceneId ? sceneToPageMap.get(line.sceneId) : undefined);
-      const resolvedPanelNum = fromPanel?.panelNumber ?? line.panelNumber;
+        (line.sceneId ? sceneToPageMap.get(line.sceneId) : undefined) ??
+        1;
+      const resolvedPanelNum = fromPanel?.panelNumber ?? line.panelNumber ?? 1;
 
-      const charInfo = line.speakerCharacterId
-        ? characterById.get(line.speakerCharacterId)
-        : undefined;
-      const resolvedCharName = line.characterName || charInfo?.name;
+      // Phân tích người nói và nội dung hội thoại
+      const rawText = (line.dialogueText || line.stageDirection || '').trim();
+      let speaker = (line.characterName || '').trim();
+      let cleanText = rawText;
+
+      // 1. Tra cứu theo speakerCharacterId trong bản đồ nhân vật
+      if (!speaker && line.speakerCharacterId && characterById.has(line.speakerCharacterId)) {
+        speaker = characterById.get(line.speakerCharacterId)!.name;
+      }
+
+      // 2. Tách cú pháp @TênNhânVật: "Lời thoại" hoặc @Tên: Lời thoại
+      const atMatch = rawText.match(/^@([a-zA-ZÀ-ỹ0-9_\s]{2,30})\s*:\s*["“]?(.*?)["”]?$/);
+      if (atMatch) {
+        if (!speaker) speaker = atMatch[1].trim();
+        cleanText = atMatch[2].trim();
+      } else {
+        // 3. Tách cú pháp Tên: "Lời thoại" hoặc Tên: Lời thoại
+        const colonMatch = rawText.match(/^([A-ZÀ-Ỹ][a-zA-ZÀ-ỹ0-9_\s]{1,25})\s*:\s*["“]?(.*?)["”]?$/);
+        if (colonMatch) {
+          const prefix = colonMatch[1].trim();
+          const isCaption = /^(Lời dẫn|Dẫn chuyện|Caption|Ghi chú|Hồi tưởng|Bối cảnh)$/i.test(prefix);
+          if (isCaption) {
+            if (!speaker) speaker = prefix;
+            cleanText = colonMatch[2].trim();
+          } else {
+            if (!speaker) speaker = prefix;
+            cleanText = colonMatch[2].trim();
+          }
+        } else {
+          // 4. Tách cú pháp [Tên] Lời thoại
+          const bracketMatch = rawText.match(/^\[([a-zA-ZÀ-ỹ0-9_\s]{2,25})\]\s*["“]?(.*?)["”]?$/);
+          if (bracketMatch) {
+            if (!speaker) speaker = bracketMatch[1].trim();
+            cleanText = bracketMatch[2].trim();
+          } else {
+            // 5. Nếu có ngoặc kép "..." mà chưa rõ người nói
+            const quotedMatch = rawText.match(/^["“](.*?)["”]$/);
+            if (quotedMatch) {
+              if (!speaker) speaker = 'Nhân vật';
+              cleanText = quotedMatch[1].trim();
+            } else if (!speaker && line.dialogueText) {
+              speaker = 'Nhân vật';
+            }
+          }
+        }
+      }
+
+      const resolvedCharName = speaker || 'Người dẫn';
       const resolvedCharColor =
         line.characterColor ||
-        charInfo?.color ||
-        (resolvedCharName ? getDeterministicColor(resolvedCharName) : undefined);
+        (line.speakerCharacterId && characterById.get(line.speakerCharacterId)?.color) ||
+        getDeterministicColor(resolvedCharName);
 
       return {
         ...line,
@@ -1142,6 +1197,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
         panelNumber: resolvedPanelNum,
         characterName: resolvedCharName,
         characterColor: resolvedCharColor,
+        dialogueText: cleanText || line.dialogueText,
       };
     });
   }, [
@@ -1741,10 +1797,25 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     const defaultW = type === 'NARRATION_BOX' ? 320 : 260;
     const defaultH = type === 'NARRATION_BOX' ? 120 : 160;
 
-    // Phân bổ toạ độ so le theo chuẩn Manga RTL
-    const stepIdx = currentList.length % 5;
-    const defaultX = Math.max(50, (targetPage.widthPx || 1200) - defaultW - 60 - stepIdx * 40);
-    const defaultY = 80 + stepIdx * 180;
+    // Phân bổ toạ độ: Ưu tiên đặt trực tiếp vào khung truyện (panel) tương ứng với câu thoại
+    const targetPanelIndex = scriptLine?.panelNumber ? Math.max(0, scriptLine.panelNumber - 1) : 0;
+    const targetPanel = currentPagePanels[targetPanelIndex] || currentPagePanels[0];
+
+    let defaultX = 60;
+    let defaultY = 80;
+    if (targetPanel) {
+      const pBox = parseBoundingBox(
+        targetPanel.boundingBox,
+        targetPage.widthPx || 1200,
+        targetPage.heightPx || 1800
+      );
+      defaultX = pBox.pixelX + Math.max(10, Math.round((pBox.pixelW - defaultW) / 2));
+      defaultY = pBox.pixelY + Math.max(10, Math.round((pBox.pixelH - defaultH) / 2));
+    } else {
+      const stepIdx = currentList.length % 5;
+      defaultX = Math.max(50, (targetPage.widthPx || 1200) - defaultW - 60 - stepIdx * 40);
+      defaultY = 80 + stepIdx * 180;
+    }
     const clamped = clampBalloonToPanel(defaultX, defaultY, defaultW, defaultH);
 
     const newElement: ElementSnapshotDto = {

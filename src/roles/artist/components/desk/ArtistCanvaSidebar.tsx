@@ -859,6 +859,9 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
   const [resolveNoteByCrId, setResolveNoteByCrId] = useState<Record<string, string>>({});
   const [activeResolveInputId, setActiveResolveInputId] = useState<string | null>(null);
 
+  // Trạng thái lọc câu thoại kịch bản trong Tab Lettering (mặc định chỉ hiển thị trang hiện tại)
+  const [letteringFilterCurrentPage, setLetteringFilterCurrentPage] = useState(true);
+
   // Trạng thái cho Lịch sử phiên bản (Tab History)
   const [confirmRestoreVersion, setConfirmRestoreVersion] = useState<number | null>(null);
 
@@ -907,6 +910,15 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
   const selectedPageIndex = pages.findIndex((p) => p.id === selectedPageId);
   const selectedPage = pages[selectedPageIndex] || null;
   const activePageNumber = selectedPage?.pageNumber || 1;
+
+  // Danh sách câu thoại hiển thị trong Tab Lettering (theo trang hiện tại hoặc toàn bộ)
+  const displayedLetteringScriptLines = useMemo(() => {
+    if (!letteringFilterCurrentPage) return scriptLines;
+    const pageLines = scriptLines.filter(
+      (l) => (l.pageNumber ?? 1) === activePageNumber
+    );
+    return pageLines.length > 0 ? pageLines : scriptLines;
+  }, [scriptLines, letteringFilterCurrentPage, activePageNumber]);
 
   // Đồng bộ tiêu đề phân cảnh & slugline theo đúng trang đang chọn
   const activeSceneInfo = useMemo(() => {
@@ -2700,19 +2712,41 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                     <FileText className='w-3.5 h-3.5 text-stone-500' />
                     <span>Gắn câu thoại kịch bản</span>
                   </label>
-                  <span className='text-[10px] text-[var(--sb-muted)]'>
-                    {scriptLines.length} câu
-                  </span>
+                  <div className='flex items-center gap-1.5'>
+                    <button
+                      type='button'
+                      onClick={() => setLetteringFilterCurrentPage((prev) => !prev)}
+                      className={`px-2 py-0.5 rounded text-[10px] font-semibold border transition-all cursor-pointer ${
+                        letteringFilterCurrentPage
+                          ? 'bg-orange-500/10 border-orange-500/30 text-orange-600 dark:text-orange-400'
+                          : 'bg-stone-100 border-stone-200 text-stone-600 dark:bg-stone-800 dark:border-stone-700 dark:text-stone-300'
+                      }`}
+                      title='Lọc câu thoại theo trang đang chọn'
+                    >
+                      {letteringFilterCurrentPage ? `Trang #${activePageNumber}` : 'Tất cả'}
+                    </button>
+                    <span className='text-[10px] text-[var(--sb-muted)]'>
+                      {displayedLetteringScriptLines.length} câu
+                    </span>
+                  </div>
                 </div>
 
                 <div className='space-y-1.5 max-h-56 overflow-y-auto custom-scrollbar pr-1'>
-                  {scriptLines.length === 0 ? (
+                  {displayedLetteringScriptLines.length === 0 ? (
                     <p className='text-xs text-[var(--sb-muted)] italic p-2 bg-[var(--sb-surface-hover)] rounded-lg'>
-                      Chưa có câu thoại nào trong phân cảnh.
+                      Chưa có câu thoại nào cho trang này.
                     </p>
                   ) : (
-                    scriptLines.map((line) => {
+                    displayedLetteringScriptLines.map((line) => {
                       const isLinked = letteringElements.some((el) => el.scriptLineId === line.id);
+                      const isNarrator =
+                        !line.characterName ||
+                        line.characterName === 'Người dẫn' ||
+                        line.characterName === 'Lời dẫn';
+                      const suggestedType: 'SPEECH_BALLOON' | 'THOUGHT_BALLOON' | 'NARRATION_BOX' = isNarrator
+                        ? 'NARRATION_BOX'
+                        : 'SPEECH_BALLOON';
+
                       return (
                         <div
                           key={line.id}
@@ -2721,7 +2755,7 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                             e.dataTransfer.setData(
                               'application/json',
                               JSON.stringify({
-                                type: line.speakerCharacterId || line.characterName ? 'SPEECH_BALLOON' : 'NARRATION_BOX',
+                                type: suggestedType,
                                 scriptLine: line,
                               })
                             );
@@ -2729,7 +2763,6 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                             e.dataTransfer.effectAllowed = 'copy';
                           }}
                           onClick={() => {
-                            const suggestedType = line.speakerCharacterId || line.characterName ? 'SPEECH_BALLOON' : 'NARRATION_BOX';
                             onAddLetteringElement?.(suggestedType, line);
                           }}
                           data-testid={`lettering-script-line-${line.id}`}
@@ -2740,19 +2773,26 @@ export const ArtistCanvaSidebar: React.FC<ArtistCanvaSidebarProps> = ({
                           }`}
                         >
                           <div className='flex items-center justify-between gap-1'>
-                            <span
-                              className='font-bold text-[11px] truncate flex items-center gap-1'
-                              style={{ color: line.characterColor || '#EA580C' }}
-                            >
-                              {line.characterName || 'Người dẫn'}
-                            </span>
+                            <div className='flex items-center gap-1.5 min-w-0'>
+                              {/* Huy hiệu Page & Panel */}
+                              <span className='px-1.5 py-0.5 rounded bg-stone-100 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 font-mono font-bold text-[9px] text-stone-600 dark:text-stone-300 shrink-0'>
+                                P.{line.pageNumber || activePageNumber} · Ô {line.panelNumber || 1}
+                              </span>
+                              {/* Tên người nói */}
+                              <span
+                                className='font-bold text-[11px] truncate'
+                                style={{ color: line.characterColor || (isNarrator ? '#78716C' : '#EA580C') }}
+                              >
+                                {line.characterName || (isNarrator ? 'Người dẫn' : 'Nhân vật')}
+                              </span>
+                            </div>
                             {isLinked && (
-                              <span className='text-[9px] px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 font-semibold'>
+                              <span className='text-[9px] px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 font-semibold shrink-0'>
                                 ✓ Đã gắn
                               </span>
                             )}
                           </div>
-                          <p className='text-[11px] text-stone-600 line-clamp-2'>
+                          <p className='text-[11px] text-stone-600 dark:text-stone-300 line-clamp-2'>
                             {line.dialogueText || line.stageDirection}
                           </p>
                         </div>
