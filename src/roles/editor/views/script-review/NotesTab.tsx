@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { CheckCircle2, Pencil, RotateCcw, Trash2, XCircle } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import type { ChangeRequestDto } from '@/types/pipeline';
-import { anchorKey, crStatus, type CrStatus, type ReviewDraft } from './scriptReviewModel';
+import { anchorKey, type ReviewDraft } from './scriptReviewModel';
+import { CR_STATUS_BADGE, crStatus, type CrStatus } from '../review-shared/reviewModel';
+import { ReasonForm } from '../review-shared/ReasonForm';
 
 export interface LineLocation {
   label: string;
@@ -24,61 +26,11 @@ interface NotesTabProps {
   onReject: (cr: ChangeRequestDto, reason: string) => void;
 }
 
-const STATUS_BADGE: Record<CrStatus, string> = {
-  Open: 'bg-rose-50 text-rose-800 border-rose-200',
-  Resolved: 'bg-amber-50 text-amber-800 border-amber-200',
-  Verified: 'bg-emerald-50 text-emerald-800 border-emerald-200',
-  Rejected: 'bg-stone-100 text-stone-600 border-stone-200',
-};
-
 const Quote: React.FC<{ text: string }> = ({ text }) => (
   <p className='mt-1.5 line-clamp-2 border-l-2 border-stone-200 pl-2 text-xs italic text-stone-600'>
     {text}
   </p>
 );
-
-/** Ô nhập lý do bắt buộc cho "chưa đạt" (Resolved → Open) và "bỏ yêu cầu" (Open → Rejected). */
-const ReasonForm: React.FC<{
-  label: string;
-  confirmLabel: string;
-  busy: boolean;
-  onConfirm: (text: string) => void;
-  onCancel: () => void;
-}> = ({ label, confirmLabel, busy, onConfirm, onCancel }) => {
-  const { t } = useTranslation('review');
-  const [text, setText] = useState('');
-  return (
-    <div className='mt-2 space-y-2'>
-      <label className='block text-xs font-semibold text-stone-700'>
-        {label}
-        <textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          rows={2}
-          autoFocus
-          className='mt-1 w-full resize-y rounded-md border border-stone-200 bg-white px-2 py-1.5 text-sm font-normal text-stone-800 focus:border-orange-500 focus:outline-none'
-        />
-      </label>
-      <div className='flex justify-end gap-2'>
-        <button
-          type='button'
-          onClick={onCancel}
-          className='rounded-full border border-stone-200 bg-white px-3 py-1 text-xs font-semibold text-stone-700 hover:bg-stone-100'
-        >
-          {t('scriptReview.common.cancel')}
-        </button>
-        <button
-          type='button'
-          disabled={!text.trim() || busy}
-          onClick={() => onConfirm(text.trim())}
-          className='rounded-full border border-rose-300 bg-white px-3 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50'
-        >
-          {confirmLabel}
-        </button>
-      </div>
-    </div>
-  );
-};
 
 export const NotesTab: React.FC<NotesTabProps> = ({
   drafts,
@@ -123,7 +75,7 @@ export const NotesTab: React.FC<NotesTabProps> = ({
             {loc.label}
           </button>
           <span
-            className={`whitespace-nowrap rounded-full border px-2 py-0.5 text-xs font-medium ${STATUS_BADGE[s]}`}
+            className={`whitespace-nowrap rounded-full border px-2 py-0.5 text-xs font-medium ${CR_STATUS_BADGE[s]}`}
           >
             {t(`scriptReview.crStatus.${s}`)}
           </span>
