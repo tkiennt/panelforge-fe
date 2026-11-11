@@ -32,6 +32,9 @@ import {
   Wand2,
   Scissors,
   Upload,
+  ZoomIn,
+  ZoomOut,
+  Copy,
 } from 'lucide-react';
 import { detectPanelsFromSketchImage, cropImageByBoundingBox } from '../lib/panelDetection';
 import { getRoleDefaultPath } from '@/roles/roles';
@@ -393,6 +396,21 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     initialElemX: number;
     initialElemY: number;
   } | null>(null);
+
+  // Kéo thay đổi kích thước bóng thoại (Interactive Resizing)
+  const [resizingBalloonInfo, setResizingBalloonInfo] = useState<{
+    elementId: string;
+    handle: 'se' | 'sw' | 'ne' | 'nw';
+    startX: number;
+    startY: number;
+    initialX: number;
+    initialY: number;
+    initialW: number;
+    initialH: number;
+  } | null>(null);
+
+  // Bộ nhớ tạm sao chép bóng thoại (Copy & Paste Clipboard)
+  const [copiedLetteringElement, setCopiedLetteringElement] = useState<ElementSnapshotDto | null>(null);
 
   // Yêu cầu chỉnh sửa công đoạn (Sidetab Change Requests)
   const [changeRequests, setChangeRequests] = useState<ChangeRequestDto[]>([]);
@@ -1611,6 +1629,105 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     }
   };
 
+  // Giới hạn tọa độ bóng thoại nằm trọn vẹn trong khung truyện (Panel Bounding Box)
+  const clampBalloonToPanel = useCallback(
+    (targetX: number, targetY: number, elemW: number, elemH: number) => {
+      const pageWidth = selectedPage?.widthPx || 1200;
+      const pageHeight = selectedPage?.heightPx || 1800;
+
+      if (!currentPagePanels || currentPagePanels.length === 0) {
+        // Trang chưa có khung panel: giới hạn theo lề an toàn của trang
+        const minX = 40;
+        const minY = 40;
+        const maxX = Math.max(minX, pageWidth - 40 - elemW);
+        const maxY = Math.max(minY, pageHeight - 40 - elemH);
+        return {
+          x: Math.round(Math.max(minX, Math.min(maxX, targetX))),
+          y: Math.round(Math.max(minY, Math.min(maxY, targetY))),
+        };
+      }
+
+      // Danh sách bounding box các panel của trang (tọa độ pixel thực tế)
+      const panelBoxes = currentPagePanels.map((p) => {
+        const parsed = parseBoundingBox(p.boundingBox, pageWidth, pageHeight);
+        return {
+          id: p.id,
+          minX: parsed.pixelX,
+          minY: parsed.pixelY,
+          maxX: parsed.pixelX + parsed.pixelW,
+          maxY: parsed.pixelY + parsed.pixelH,
+          width: parsed.pixelW,
+          height: parsed.pixelH,
+        };
+      });
+
+      // Tâm dự kiến của bóng thoại
+      const centerX = targetX + elemW / 2;
+      const centerY = targetY + elemH / 2;
+
+      // Tìm panel chứa tâm bóng thoại
+      let matchedPanel = panelBoxes.find(
+        (b) => centerX >= b.minX && centerX <= b.maxX && centerY >= b.minY && centerY <= b.maxY
+      );
+
+      // Nếu con trỏ chuột nằm ở ngoài (rãnh ngăn hoặc lề), tìm panel gần nhất theo khoảng cách tâm
+      if (!matchedPanel) {
+        let minDist = Infinity;
+        for (const b of panelBoxes) {
+          const pCenterX = b.minX + b.width / 2;
+          const pCenterY = b.minY + b.height / 2;
+          const dist = Math.hypot(centerX - pCenterX, centerY - pCenterY);
+          if (dist < minDist) {
+            minDist = dist;
+            matchedPanel = b;
+          }
+        }
+      }
+
+      const activeBox = matchedPanel || panelBoxes[0];
+      const maxClampX = Math.max(activeBox.minX, activeBox.maxX - elemW);
+      const maxClampY = Math.max(activeBox.minY, activeBox.maxY - elemH);
+
+      return {
+        x: Math.round(Math.max(activeBox.minX, Math.min(maxClampX, targetX))),
+        y: Math.round(Math.max(activeBox.minY, Math.min(maxClampY, targetY))),
+      };
+    },
+    [selectedPage, currentPagePanels]
+  );
+
+  // Phóng to / Thu nhỏ bóng thoại theo tỷ lệ (Phím + / - hoặc nút toolbar)
+  const handleScaleBalloon = useCallback(
+    (elementId: string, factor: number) => {
+      if (!selectedPage) return;
+      setLetteringElementsByPageId((prev) => {
+        const list = prev[selectedPage.id] || [];
+        return {
+          ...prev,
+          [selectedPage.id]: list.map((item) => {
+            if (item.elementId !== elementId) return item;
+            const newW = Math.max(80, Math.min(800, Math.round(item.width * factor)));
+            const newH = Math.max(45, Math.min(600, Math.round(item.height * factor)));
+            // Giữ nguyên tâm bóng thoại khi phóng to thu nhỏ
+            const deltaW = newW - item.width;
+            const deltaH = newH - item.height;
+            const targetX = item.x - deltaW / 2;
+            const targetY = item.y - deltaH / 2;
+            const clamped = clampBalloonToPanel(targetX, targetY, newW, newH);
+            return {
+              ...item,
+              x: clamped.x,
+              y: clamped.y,
+              width: newW,
+              height: newH,
+            };
+          }),
+        };
+      });
+    },
+    [selectedPage, clampBalloonToPanel]
+  );
+
   // Thêm mới / Gắn câu thoại vào bóng thoại trên trang (Lettering P0)
   const handleAddLetteringElement = (
     type: 'SPEECH_BALLOON' | 'THOUGHT_BALLOON' | 'NARRATION_BOX',
@@ -1628,12 +1745,13 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     const stepIdx = currentList.length % 5;
     const defaultX = Math.max(50, (targetPage.widthPx || 1200) - defaultW - 60 - stepIdx * 40);
     const defaultY = 80 + stepIdx * 180;
+    const clamped = clampBalloonToPanel(defaultX, defaultY, defaultW, defaultH);
 
     const newElement: ElementSnapshotDto = {
       elementId: newId,
       elementType: type,
-      x: defaultX,
-      y: defaultY,
+      x: clamped.x,
+      y: clamped.y,
       width: defaultW,
       height: defaultH,
       zIndex: currentList.length + 1,
@@ -1666,7 +1784,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     toast.info('Đã xóa bóng thoại', '');
   };
 
-  // Xử lý di chuyển bóng thoại (Pointer Drag)
+  // Xử lý di chuyển bóng thoại (Pointer Drag) đồng bộ trỏ chuột và giới hạn trong khung truyện
   const handleBalloonPointerDown = (e: React.PointerEvent, elementId: string) => {
     if (e.button !== 0) return; // Chỉ bắt chuột trái
     e.stopPropagation();
@@ -1692,18 +1810,16 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
     const dx = (e.clientX - draggingBalloonInfo.startX) / zoomScale;
     const dy = (e.clientY - draggingBalloonInfo.startY) / zoomScale;
 
-    const pageWidth = selectedPage.widthPx || 1200;
-    const pageHeight = selectedPage.heightPx || 1800;
-
     setLetteringElementsByPageId((prev) => {
       const pageList = prev[selectedPage.id] || [];
       return {
         ...prev,
         [selectedPage.id]: pageList.map((item) => {
           if (item.elementId !== draggingBalloonInfo.elementId) return item;
-          const newX = Math.max(0, Math.min(pageWidth - item.width, draggingBalloonInfo.initialElemX + dx));
-          const newY = Math.max(0, Math.min(pageHeight - item.height, draggingBalloonInfo.initialElemY + dy));
-          return { ...item, x: Math.round(newX), y: Math.round(newY) };
+          const targetX = draggingBalloonInfo.initialElemX + dx;
+          const targetY = draggingBalloonInfo.initialElemY + dy;
+          const clamped = clampBalloonToPanel(targetX, targetY, item.width, item.height);
+          return { ...item, x: clamped.x, y: clamped.y };
         }),
       };
     });
@@ -1720,6 +1836,209 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
       setDraggingBalloonInfo(null);
     }
   };
+
+  // Xử lý thay đổi kích thước bóng thoại bằng cách kéo 4 góc (Resize Drag)
+  const handleBalloonResizeStart = (
+    e: React.PointerEvent,
+    elementId: string,
+    handle: 'se' | 'sw' | 'ne' | 'nw'
+  ) => {
+    e.stopPropagation();
+    const target = e.currentTarget as HTMLElement;
+    target.setPointerCapture(e.pointerId);
+
+    const currentList = selectedPage ? letteringElementsByPageId[selectedPage.id] || [] : [];
+    const elem = currentList.find((item) => item.elementId === elementId);
+    if (!elem) return;
+
+    setSelectedLetteringElementId(elementId);
+    setResizingBalloonInfo({
+      elementId,
+      handle,
+      startX: e.clientX,
+      startY: e.clientY,
+      initialX: elem.x,
+      initialY: elem.y,
+      initialW: elem.width,
+      initialH: elem.height,
+    });
+  };
+
+  const handleBalloonResizeMove = (e: React.PointerEvent) => {
+    if (!resizingBalloonInfo || !selectedPage) return;
+    const dx = (e.clientX - resizingBalloonInfo.startX) / zoomScale;
+    const dy = (e.clientY - resizingBalloonInfo.startY) / zoomScale;
+
+    setLetteringElementsByPageId((prev) => {
+      const pageList = prev[selectedPage.id] || [];
+      return {
+        ...prev,
+        [selectedPage.id]: pageList.map((item) => {
+          if (item.elementId !== resizingBalloonInfo.elementId) return item;
+
+          let newX = resizingBalloonInfo.initialX;
+          let newY = resizingBalloonInfo.initialY;
+          let newW = resizingBalloonInfo.initialW;
+          let newH = resizingBalloonInfo.initialH;
+
+          if (resizingBalloonInfo.handle === 'se') {
+            newW = Math.max(90, resizingBalloonInfo.initialW + dx);
+            newH = Math.max(50, resizingBalloonInfo.initialH + dy);
+          } else if (resizingBalloonInfo.handle === 'sw') {
+            const rawW = resizingBalloonInfo.initialW - dx;
+            newW = Math.max(90, rawW);
+            newX = resizingBalloonInfo.initialX + (resizingBalloonInfo.initialW - newW);
+            newH = Math.max(50, resizingBalloonInfo.initialH + dy);
+          } else if (resizingBalloonInfo.handle === 'ne') {
+            newW = Math.max(90, resizingBalloonInfo.initialW + dx);
+            const rawH = resizingBalloonInfo.initialH - dy;
+            newH = Math.max(50, rawH);
+            newY = resizingBalloonInfo.initialY + (resizingBalloonInfo.initialH - newH);
+          } else if (resizingBalloonInfo.handle === 'nw') {
+            const rawW = resizingBalloonInfo.initialW - dx;
+            newW = Math.max(90, rawW);
+            newX = resizingBalloonInfo.initialX + (resizingBalloonInfo.initialW - newW);
+            const rawH = resizingBalloonInfo.initialH - dy;
+            newH = Math.max(50, rawH);
+            newY = resizingBalloonInfo.initialY + (resizingBalloonInfo.initialH - newH);
+          }
+
+          const clamped = clampBalloonToPanel(newX, newY, newW, newH);
+          return {
+            ...item,
+            x: clamped.x,
+            y: clamped.y,
+            width: Math.round(newW),
+            height: Math.round(newH),
+          };
+        }),
+      };
+    });
+  };
+
+  const handleBalloonResizeEnd = (e: React.PointerEvent) => {
+    if (resizingBalloonInfo) {
+      try {
+        const target = e.currentTarget as HTMLElement;
+        target.releasePointerCapture(e.pointerId);
+      } catch {
+        // ignore
+      }
+      setResizingBalloonInfo(null);
+    }
+  };
+
+  // Lắng nghe phím tắt thao tác bóng thoại (Delete, Copy Ctrl+C, Paste Ctrl+V, Duplicate Ctrl+D, Phóng to/Thu nhỏ +/-)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Bỏ qua nếu đang nhập liệu trong ô input/textarea
+      const activeEl = document.activeElement as HTMLElement | null;
+      const targetTag = activeEl?.tagName?.toUpperCase();
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(targetTag || '') || activeEl?.isContentEditable) {
+        return;
+      }
+
+      const isCtrlOrCmd = e.ctrlKey || e.metaKey;
+
+      // Xóa bóng: Phím Delete hoặc Backspace
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedLetteringElementId) {
+        e.preventDefault();
+        handleDeleteLetteringElement(selectedLetteringElementId);
+        return;
+      }
+
+      // Sao chép bóng: Ctrl+C / Cmd+C
+      if (isCtrlOrCmd && (e.key === 'c' || e.key === 'C') && selectedLetteringElementId) {
+        const currentList = selectedPage ? letteringElementsByPageId[selectedPage.id] || [] : [];
+        const elem = currentList.find((item) => item.elementId === selectedLetteringElementId);
+        if (elem) {
+          e.preventDefault();
+          setCopiedLetteringElement(elem);
+          toast.info('Đã sao chép bóng thoại', 'Nhấn Ctrl+V để dán');
+        }
+        return;
+      }
+
+      // Dán bóng: Ctrl+V / Cmd+V
+      if (isCtrlOrCmd && (e.key === 'v' || e.key === 'V') && copiedLetteringElement && selectedPage) {
+        e.preventDefault();
+        const currentList = letteringElementsByPageId[selectedPage.id] || [];
+        const newId = `elem-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+        const clamped = clampBalloonToPanel(
+          copiedLetteringElement.x + 24,
+          copiedLetteringElement.y + 24,
+          copiedLetteringElement.width,
+          copiedLetteringElement.height
+        );
+        const pasted: ElementSnapshotDto = {
+          ...copiedLetteringElement,
+          elementId: newId,
+          x: clamped.x,
+          y: clamped.y,
+          readingOrder: currentList.length + 1,
+          zIndex: currentList.length + 1,
+        };
+        setLetteringElementsByPageId((prev) => ({
+          ...prev,
+          [selectedPage.id]: [...(prev[selectedPage.id] || []), pasted],
+        }));
+        setSelectedLetteringElementId(newId);
+        toast.success('Đã dán bóng thoại', '');
+        return;
+      }
+
+      // Nhân bản: Ctrl+D
+      if (isCtrlOrCmd && (e.key === 'd' || e.key === 'D') && selectedLetteringElementId && selectedPage) {
+        e.preventDefault();
+        const currentList = letteringElementsByPageId[selectedPage.id] || [];
+        const elem = currentList.find((item) => item.elementId === selectedLetteringElementId);
+        if (elem) {
+          const newId = `elem-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+          const clamped = clampBalloonToPanel(elem.x + 24, elem.y + 24, elem.width, elem.height);
+          const duplicated: ElementSnapshotDto = {
+            ...elem,
+            elementId: newId,
+            x: clamped.x,
+            y: clamped.y,
+            readingOrder: currentList.length + 1,
+            zIndex: currentList.length + 1,
+          };
+          setLetteringElementsByPageId((prev) => ({
+            ...prev,
+            [selectedPage.id]: [...(prev[selectedPage.id] || []), duplicated],
+          }));
+          setSelectedLetteringElementId(newId);
+          toast.success('Đã nhân bản bóng thoại', '');
+        }
+        return;
+      }
+
+      // Phóng to (+ / =)
+      if (selectedLetteringElementId && (e.key === '+' || e.key === '=')) {
+        e.preventDefault();
+        handleScaleBalloon(selectedLetteringElementId, 1.15);
+        return;
+      }
+
+      // Thu nhỏ (- / _)
+      if (selectedLetteringElementId && (e.key === '-' || e.key === '_')) {
+        e.preventDefault();
+        handleScaleBalloon(selectedLetteringElementId, 0.85);
+        return;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [
+    selectedLetteringElementId,
+    copiedLetteringElement,
+    selectedPage,
+    letteringElementsByPageId,
+    clampBalloonToPanel,
+    handleScaleBalloon,
+    toast,
+  ]);
 
   // Bật/tắt toàn màn hình
   const handleToggleFullscreen = () => {
@@ -1859,6 +2178,7 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                 <div
                   className='w-full h-full relative overflow-hidden bg-white'
                   data-testid='artist-canvas-surface'
+                  onClick={() => setSelectedLetteringElementId(null)}
                 >
                   {/* 1. Đường viền xén Trim Line chuẩn in ấn (3mm ~ 1.8% từ mép tràn lề Bleed) */}
                   <div
@@ -2178,6 +2498,9 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                           ? createThoughtBalloonPath(b.width, b.height)
                           : null;
 
+                        const isDragging = draggingBalloonInfo?.elementId === b.elementId;
+                        const isResizing = resizingBalloonInfo?.elementId === b.elementId;
+
                         return (
                           <div
                             key={b.elementId}
@@ -2189,7 +2512,9 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                             onPointerDown={(e) => handleBalloonPointerDown(e, b.elementId)}
                             onPointerMove={handleBalloonPointerMove}
                             onPointerUp={handleBalloonPointerUp}
-                            className={`absolute pointer-events-auto cursor-move select-none touch-none transition-shadow ${
+                            className={`absolute pointer-events-auto cursor-move select-none touch-none ${
+                              isDragging || isResizing ? 'transition-none z-40 shadow-lg' : 'transition-shadow'
+                            } ${
                               isSelected ? 'ring-2 ring-orange-500 ring-offset-2 z-30' : 'z-20 hover:ring-1 hover:ring-orange-400'
                             }`}
                             style={{
@@ -2199,6 +2524,95 @@ export const ArtistDeskView: React.FC<ArtistDeskViewProps> = ({
                               height: `${heightPct}%`,
                             }}
                           >
+                            {/* Thanh công cụ nổi khi bóng được chọn (Phóng to, Thu nhỏ, Sao chép, Xóa) */}
+                            {isSelected && (
+                              <div
+                                data-testid={`lettering-toolbar-${b.elementId}`}
+                                className='absolute -top-10 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1 bg-stone-900/95 text-white px-2 py-1 rounded-xl shadow-lg border border-stone-700/80 backdrop-blur-xs text-[11px] select-none pointer-events-auto'
+                                onClick={(e) => e.stopPropagation()}
+                                onPointerDown={(e) => e.stopPropagation()}
+                              >
+                                <button
+                                  type='button'
+                                  onClick={() => handleScaleBalloon(b.elementId, 1.15)}
+                                  className='p-1 hover:bg-stone-800 rounded text-stone-200 hover:text-white transition-colors cursor-pointer'
+                                  title='Phóng to (Phím +)'
+                                  data-testid={`btn-zoom-in-${b.elementId}`}
+                                >
+                                  <ZoomIn className='w-3.5 h-3.5' />
+                                </button>
+                                <button
+                                  type='button'
+                                  onClick={() => handleScaleBalloon(b.elementId, 0.85)}
+                                  className='p-1 hover:bg-stone-800 rounded text-stone-200 hover:text-white transition-colors cursor-pointer'
+                                  title='Thu nhỏ (Phím -)'
+                                  data-testid={`btn-zoom-out-${b.elementId}`}
+                                >
+                                  <ZoomOut className='w-3.5 h-3.5' />
+                                </button>
+                                <div className='w-px h-3 bg-stone-700' />
+                                <button
+                                  type='button'
+                                  onClick={() => {
+                                    setCopiedLetteringElement(b);
+                                    toast.info('Đã sao chép bóng thoại', 'Nhấn Ctrl+V để dán');
+                                  }}
+                                  className='p-1 hover:bg-stone-800 rounded text-stone-200 hover:text-white transition-colors cursor-pointer'
+                                  title='Sao chép (Ctrl+C)'
+                                  data-testid={`btn-copy-${b.elementId}`}
+                                >
+                                  <Copy className='w-3.5 h-3.5' />
+                                </button>
+                                <button
+                                  type='button'
+                                  onClick={() => handleDeleteLetteringElement(b.elementId)}
+                                  className='p-1 hover:bg-rose-500/30 text-rose-300 hover:text-rose-200 rounded transition-colors cursor-pointer'
+                                  title='Xóa bóng (Del / Backspace)'
+                                  data-testid={`btn-delete-${b.elementId}`}
+                                >
+                                  <Trash2 className='w-3.5 h-3.5' />
+                                </button>
+                              </div>
+                            )}
+
+                            {/* 4 điểm kéo thay đổi kích thước ở góc (Resize Handles) */}
+                            {isSelected && (
+                              <>
+                                <div
+                                  data-testid={`lettering-resize-nw-${b.elementId}`}
+                                  onPointerDown={(e) => handleBalloonResizeStart(e, b.elementId, 'nw')}
+                                  onPointerMove={handleBalloonResizeMove}
+                                  onPointerUp={handleBalloonResizeEnd}
+                                  className='absolute -top-1.5 -left-1.5 w-3.5 h-3.5 bg-white border-2 border-orange-500 rounded-full cursor-nwse-resize z-40 shadow-xs pointer-events-auto touch-none'
+                                  title='Kéo để thay đổi kích thước'
+                                />
+                                <div
+                                  data-testid={`lettering-resize-ne-${b.elementId}`}
+                                  onPointerDown={(e) => handleBalloonResizeStart(e, b.elementId, 'ne')}
+                                  onPointerMove={handleBalloonResizeMove}
+                                  onPointerUp={handleBalloonResizeEnd}
+                                  className='absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-white border-2 border-orange-500 rounded-full cursor-nesw-resize z-40 shadow-xs pointer-events-auto touch-none'
+                                  title='Kéo để thay đổi kích thước'
+                                />
+                                <div
+                                  data-testid={`lettering-resize-se-${b.elementId}`}
+                                  onPointerDown={(e) => handleBalloonResizeStart(e, b.elementId, 'se')}
+                                  onPointerMove={handleBalloonResizeMove}
+                                  onPointerUp={handleBalloonResizeEnd}
+                                  className='absolute -bottom-1.5 -right-1.5 w-3.5 h-3.5 bg-white border-2 border-orange-500 rounded-full cursor-nwse-resize z-40 shadow-xs pointer-events-auto touch-none'
+                                  title='Kéo để thay đổi kích thước'
+                                />
+                                <div
+                                  data-testid={`lettering-resize-sw-${b.elementId}`}
+                                  onPointerDown={(e) => handleBalloonResizeStart(e, b.elementId, 'sw')}
+                                  onPointerMove={handleBalloonResizeMove}
+                                  onPointerUp={handleBalloonResizeEnd}
+                                  className='absolute -bottom-1.5 -left-1.5 w-3.5 h-3.5 bg-white border-2 border-orange-500 rounded-full cursor-nesw-resize z-40 shadow-xs pointer-events-auto touch-none'
+                                  title='Kéo để thay đổi kích thước'
+                                />
+                              </>
+                            )}
+
                             {/* Vẽ hình dạng bóng qua SVG hoặc Box */}
                             {isNarration ? (
                               <div className='w-full h-full bg-amber-50/90 border-2 border-stone-800 rounded-xs shadow-sm p-2 flex items-center justify-center text-center'>
