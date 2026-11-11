@@ -124,98 +124,56 @@ export function renumberEditorState(editor: any, preferredPos?: number): boolean
   return false;
 }
 
+const PANEL_SHOTS_4 = ['Toàn cảnh', 'Trung cảnh', 'Cận cảnh', 'Góc đặc tả'];
+const PANEL_SHOTS_5 = ['Toàn cảnh', 'Trung cảnh', 'Cận cảnh', 'Góc nghiêng', 'Góc đặc tả'];
+
+function scriptBlock(attrs: Record<string, unknown>, text?: string): any {
+  return {
+    type: 'scriptLineBlock',
+    attrs: { scriptLineId: generateGuid(), narrationMode: 'Present', ...attrs },
+    ...(text ? { content: [{ type: 'text', text }] } : {}),
+  };
+}
+
 /**
- * Tạo danh sách khối TipTap đại diện cho 1 trang Manga có sẵn 4 hoặc 5 panel tiêu chuẩn
- * - Panel .1: [Toàn cảnh]
- * - Panel .2: [Trung cảnh]
- * - Panel .3: [Cận cảnh]
- * - Panel .4: [Góc đặc tả]
- * - (Tùy chọn) Panel .5: [Góc nghiêng / Kết trang]
+ * Một Panel = tiêu đề + ô mô tả hành động + 1 ô lời thoại.
+ * Hai ô sau để trống (hiển thị placeholder) nên nếu Writer không điền thì không bị lưu thành ScriptLine rác.
  */
+export function createPanelSlotBlocks(
+  pageNumber: number,
+  panelNumber: number,
+  shot: string = 'Toàn cảnh',
+  sceneId?: string | null
+): any[] {
+  const base = { sceneId: sceneId || null, pageNumber, panelNumber };
+  return [
+    scriptBlock({ ...base, blockType: 'panel_heading' as MangaBlockType }, `" Panel ${pageNumber}.${panelNumber}: [${shot}]`),
+    scriptBlock({ ...base, blockType: 'stage_direction' as MangaBlockType, inPanel: true }),
+    scriptBlock({ ...base, blockType: 'dialogue' as MangaBlockType, inPanel: true }),
+  ];
+}
+
+export function getDefaultPanelShot(panelNumber: number, panelsCount: number = 4): string {
+  const shots = panelsCount === 5 ? PANEL_SHOTS_5 : PANEL_SHOTS_4;
+  return shots[(panelNumber - 1) % shots.length];
+}
+
+/** Trang mới có sẵn 4 hoặc 5 Panel trống (4-koma/webtoon hoặc manga shonen). */
 export function createStructuredMangaPageBlocks(
   pageNumber: number = 1,
   panelsCount: 4 | 5 = 4,
-  sceneId?: string | null,
-  speakerName?: string
+  sceneId?: string | null
 ): any[] {
   const pStr = String(pageNumber).padStart(2, '0');
-  const blocks: any[] = [];
-
-  // Khối tiêu đề trang
-  blocks.push({
-    type: 'scriptLineBlock',
-    attrs: {
-      scriptLineId: generateGuid(),
-      sceneId: sceneId || null,
-      blockType: 'page_heading' as MangaBlockType,
-      narrationMode: 'Present',
-      pageNumber,
-      panelNumber: 0,
-    },
-    content: [{ type: 'text', text: `Trang ${pStr}` }],
-  });
-
-  const shots4 = ['Toàn cảnh', 'Trung cảnh', 'Cận cảnh', 'Góc đặc tả'];
-  const shots5 = ['Toàn cảnh', 'Trung cảnh', 'Cận cảnh', 'Góc nghiêng', 'Góc đặc tả'];
-  const shots = panelsCount === 5 ? shots5 : shots4;
-
-  const defaultSpeaker = speakerName || 'Nhân vật';
-
-  shots.forEach((shot, idx) => {
-    const pNum = idx + 1;
-    // Tiêu đề Panel
-    blocks.push({
-      type: 'scriptLineBlock',
-      attrs: {
-        scriptLineId: generateGuid(),
-        sceneId: sceneId || null,
-        blockType: 'panel_heading' as MangaBlockType,
-        narrationMode: 'Present',
-        pageNumber,
-        panelNumber: pNum,
-      },
-      content: [{ type: 'text', text: `" Panel ${pageNumber}.${pNum}: [${shot}]` }],
-    });
-
-    // Khối hành động / mô tả bối cảnh
-    blocks.push({
-      type: 'scriptLineBlock',
-      attrs: {
-        scriptLineId: generateGuid(),
-        sceneId: sceneId || null,
-        blockType: 'stage_direction' as MangaBlockType,
-        narrationMode: 'Present',
-        pageNumber,
-        panelNumber: pNum,
-        inPanel: true,
-      },
-      content: [
-        {
-          type: 'text',
-          text: idx === 0 ? 'Mô tả không gian và bối cảnh phân cảnh.' : `Hành động diễn biến khung ${pNum}.`,
-        },
-      ],
-    });
-
-    // Khối thoại (mẫu cho panel 2 và 3)
-    if (idx === 1 || idx === 2) {
-      blocks.push({
-        type: 'scriptLineBlock',
-        attrs: {
-          scriptLineId: generateGuid(),
-          sceneId: sceneId || null,
-          blockType: 'dialogue' as MangaBlockType,
-          speakerName: defaultSpeaker,
-          narrationMode: 'Present',
-          pageNumber,
-          panelNumber: pNum,
-          inPanel: true,
-        },
-        content: [{ type: 'text', text: `@${defaultSpeaker} : "Lời thoại nhân vật tại khung ${pNum}."` }],
-      });
-    }
-  });
-
+  const blocks: any[] = [
+    scriptBlock(
+      { sceneId: sceneId || null, blockType: 'page_heading' as MangaBlockType, pageNumber, panelNumber: 0 },
+      `Trang ${pStr}`
+    ),
+  ];
+  for (let pNum = 1; pNum <= panelsCount; pNum++) {
+    blocks.push(...createPanelSlotBlocks(pageNumber, pNum, getDefaultPanelShot(pNum, panelsCount), sceneId));
+  }
   return blocks;
 }
 
@@ -352,9 +310,7 @@ export function scenesToTipTapDoc(
 
     // 2. Thêm từng ScriptLine trong Scene
     if (!scene.scriptLines || scene.scriptLines.length === 0) {
-      const defaultSpeaker = allBibleEntries?.find((e) => e.category === 'Character')?.name || 'Nhân vật';
-      const initialPageBlocks = createStructuredMangaPageBlocks(1, 4, scene.id, defaultSpeaker);
-      content.push(...initialPageBlocks);
+      content.push(...createStructuredMangaPageBlocks(1, 4, scene.id));
     } else {
       scene.scriptLines.forEach((line, index) => {
         const associatedPanel = line.panelId ? panelMap.get(line.panelId) : undefined;
@@ -412,9 +368,10 @@ export function scenesToTipTapDoc(
           });
         }
 
-        // 2. Dòng người nói (nếu có speaker liên kết)
+        // 2. Dòng người nói đứng riêng — chỉ khi không có lời thoại. Dòng thoại đã mang tên người nói
+        // ("@Tên : ..."); thêm khối riêng sẽ bị lưu lại thành một ScriptLine trùng ở lần lưu sau.
         const resolvedSpeaker = getSpeakerName ? getSpeakerName(line.speakerCharacterId) : null;
-        if (line.speakerCharacterId && resolvedSpeaker) {
+        if (line.speakerCharacterId && resolvedSpeaker && !line.dialogueText) {
           content.push({
             type: 'scriptLineBlock',
             attrs: {
@@ -478,8 +435,7 @@ export function scenesToTipTapDoc(
         },
       ],
     });
-    const defaultSpeaker = allBibleEntries?.find((e) => e.category === 'Character')?.name || 'Nhân vật';
-    content.push(...createStructuredMangaPageBlocks(1, 4, null, defaultSpeaker));
+    content.push(...createStructuredMangaPageBlocks(1, 4, null));
   }
 
   return renumberTipTapDoc({
@@ -637,8 +593,35 @@ export function extractScriptLinesFromDoc(doc: any, defaultSceneId: string): Ext
       continue;
     }
 
+    // 0. Thoại gõ bằng @mention nhân vật: [mention] : "LỜI THOẠI" -> text đã thành "(CODE) : \"...\"".
+    // Không có nhánh này thì dòng thoại bị lưu thành StageDirection và mất SpeakerCharacterId.
+    const leadingMention = block.content?.[0]?.type === 'bibleMention' ? block.content[0].attrs : null;
+    const mentionDialogueMatch =
+      leadingMention && (!leadingMention.category || leadingMention.category === 'Character')
+        ? textTrimmed.match(/^\([^)]+\)\s*:\s*["“](.*?)["”]$/u)
+        : null;
+    if (mentionDialogueMatch) {
+      if (!mentionDialogueMatch[1].trim()) continue;
+      results.push({
+        scriptLineId: attrs.scriptLineId || generateGuid(),
+        sceneId: currentSceneId,
+        dialogueText: textTrimmed,
+        stageDirection: null,
+        speakerCharacterId: leadingMention.id || attrs.speakerCharacterId || currentSpeakerId,
+        narrationMode: attrs.narrationMode || 'Present',
+        lineOrder: order++,
+        panelId: currentPanelId || attrs.panelId || null,
+        pageNumber: currentPageNumber,
+        panelNumber: currentPanelNumber,
+      });
+      currentSpeakerId = null;
+      continue;
+    }
+
     // 1. Nhận diện Thoại có cú pháp @SeriesBible : "LỜI THOẠI" (Bắt buộc có @ VÀ đóng mở ngoặc kép)
     const quotedDialogueMatch = textTrimmed.match(/^@([\w\p{L}_-]+)\s*:\s*["“](.*?)["”]$/u);
+    // Bóng thoại chưa điền chữ (@Tên : "") không được lưu thành ScriptLine
+    if (quotedDialogueMatch && !quotedDialogueMatch[2].trim()) continue;
     if (quotedDialogueMatch) {
       results.push({
         scriptLineId: attrs.scriptLineId || generateGuid(),

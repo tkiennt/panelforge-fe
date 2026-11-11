@@ -78,6 +78,10 @@ import { ScreenplayFlowEditor } from '../components/script/flow/ScreenplayFlowEd
 import { ExtractedScriptLinePayload } from '../components/script/flow/scriptFlowAdapter';
 import { BibleCharactersDrawer } from '../components/script/BibleCharactersDrawer';
 import { WriterChangeRequestsDrawer } from '../components/script/WriterChangeRequestsDrawer';
+import { ScriptStudioRail, type ScriptRailItem } from '../components/script/ScriptStudioRail';
+import { ScriptScenesDrawer } from '../components/script/ScriptScenesDrawer';
+import { useFocusHeaderContext } from '@/app/FocusWorkspaceLayout';
+import { FileInput } from 'lucide-react';
 import { offlineQueueService } from '@/services/offlineQueue.service';
 import { saveDraft, clearDraft, readRestorableDraft, type LocalDraft } from '@/lib/localDraft';
 import { OfflineStatusBanner } from '@/shared/components/OfflineStatusBanner';
@@ -86,7 +90,6 @@ import { UnsavedChangesBar, LucianConfirmModal, TypeToConfirmModal } from '@/sha
 import { useTranslation } from '@/lib/i18n';
 import { useConfirm } from '@/shared/context/ConfirmContext';
 import { ThumbnailDrawer } from '../components/script/thumbnail-studio/components/ThumbnailDrawer';
-import { FloatingThumbnailPill } from '../components/script/thumbnail-studio/components/FloatingThumbnailPill';
 import { ThumbnailStudioBoard } from '../components/script/thumbnail-studio/components/ThumbnailStudioBoard';
 import { useComicStudioStore } from '../components/script/thumbnail-studio/store/useComicStudioStore';
 import { scenesToComicScriptText } from '../components/script/thumbnail-studio/lib/comicScriptParser';
@@ -349,8 +352,9 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
   // Mặc định mở side drawer phù hợp môi trường
   const [activeSideDrawer, setActiveSideDrawer] = useState<
-    'narrative' | 'consistency' | 'characters' | 'changeRequests' | null
+    'scenes' | 'narrative' | 'consistency' | 'characters' | 'changeRequests' | null
   >(null);
+  const [importRequestKey, setImportRequestKey] = useState(0);
 
   // Modals phụ trợ
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
@@ -2020,6 +2024,88 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     );
   });
 
+  // Đưa Bộ truyện / Chương, các công đoạn kịch bản và nút Gửi duyệt lên header chung (giống Bàn vẽ).
+  // Handler đi qua ref vì chúng được tạo lại mỗi lần render; đưa trực tiếp vào deps sẽ gây vòng lặp setHeaderConfig.
+  const focusHeader = useFocusHeaderContext();
+  const isWriterRole = normRole === 'WRITER' || effectiveRole === 'WRITER';
+  const writerStatus = myWriterAssignment?.status;
+  const isAwaitingReview =
+    writerStatus === 'Submitted' || writerStatus === 'UnderReview' || writerStatus === 'Approved';
+  const canSubmitScript =
+    Boolean(currentChapter) &&
+    !isScriptFrozen &&
+    (isProducer ||
+      (isWriterRole && Boolean(myWriterAssignment) && !isAwaitingReview && openChangeRequestCount === 0));
+  const scriptStageIndex = isScriptFrozen ? 2 : isAwaitingReview ? 1 : 0;
+
+  const submitScriptRef = React.useRef<() => void>(() => {});
+  const selectChapterRef = React.useRef(handleSelectChapter);
+  useEffect(() => {
+    submitScriptRef.current = () => {
+      if (isProducer) {
+        if (bibleGateResult && !bibleGateResult.isPassed) {
+          setBibleGateModalOpen(true);
+          return;
+        }
+        void handleFreezeScript();
+        return;
+      }
+      void handleSubmitScriptToEditor();
+    };
+    selectChapterRef.current = handleSelectChapter;
+  });
+
+  const headerChapters = useMemo(
+    () => chapters.map((c) => ({ id: c.id, chapterNumber: c.chapterNumber, title: c.title })),
+    [chapters],
+  );
+  const scriptStages = useMemo(
+    () => [
+      { id: 'write', label: t('scriptStudio.stages.write') },
+      { id: 'review', label: t('scriptStudio.stages.review') },
+      { id: 'lock', label: t('scriptStudio.stages.lock') },
+    ],
+    [t],
+  );
+
+  useEffect(() => {
+    if (!focusHeader?.isInsideFocusLayout || !currentChapter) return;
+    focusHeader.setHeaderConfig({
+      seriesTitle: seriesDetail?.title,
+      seriesPath: workspaceId && seriesId ? `/workspaces/${workspaceId}/series/${seriesId}/script` : undefined,
+      chapters: headerChapters,
+      currentChapterId: currentChapter.id,
+      onSelectChapter: (id: string) => selectChapterRef.current(id),
+      stages: scriptStages,
+      currentStageIndex: scriptStageIndex,
+      isStageFlowCompleted: isScriptFrozen,
+      isSubmittingStage: submittingToEditor || freezingScript,
+      onSubmitStage: canSubmitScript ? () => submitScriptRef.current() : undefined,
+      submitButtonLabel: isProducer ? t('scriptStudio.submit.producer') : t('scriptStudio.submit.writer'),
+    });
+  }, [
+    focusHeader,
+    currentChapter,
+    seriesDetail?.title,
+    workspaceId,
+    seriesId,
+    headerChapters,
+    scriptStages,
+    scriptStageIndex,
+    isScriptFrozen,
+    submittingToEditor,
+    freezingScript,
+    canSubmitScript,
+    isProducer,
+    t,
+  ]);
+
+  useEffect(() => {
+    return () => {
+      focusHeader?.setHeaderConfig(null);
+    };
+  }, [focusHeader]);
+
   // Nếu chưa chọn Chapter (hoặc vừa vào trang chưa có query chapterId): Hiển thị màn hình Chọn Chương
   if (!currentChapter) {
     return (
@@ -2036,6 +2122,159 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       </div>
     );
   }
+
+  const toggleDrawer = (drawer: NonNullable<typeof activeSideDrawer>) =>
+    setActiveSideDrawer((prev) => (prev === drawer ? null : drawer));
+
+  const railItems: ScriptRailItem[] = [
+    {
+      id: 'scenes',
+      label: t('scriptStudio.rail.scenes'),
+      icon: Clapperboard,
+      active: activeSideDrawer === 'scenes',
+      testId: 'rail-scenes-btn',
+      onClick: () => toggleDrawer('scenes'),
+    },
+    {
+      id: 'outline',
+      label: t('scriptStudio.rail.outline'),
+      icon: Compass,
+      active: activeSideDrawer === 'narrative',
+      testId: 'toggle-narrative-context-btn',
+      onClick: () => toggleDrawer('narrative'),
+    },
+    {
+      id: 'characters',
+      label: t('scriptStudio.rail.characters'),
+      icon: User,
+      active: activeSideDrawer === 'characters',
+      testId: 'rail-characters-btn',
+      onClick: () => toggleDrawer('characters'),
+    },
+    {
+      id: 'consistency',
+      label: t('scriptStudio.rail.consistency'),
+      icon: ShieldCheck,
+      active: activeSideDrawer === 'consistency',
+      badge: openFindingsCount,
+      busy: loadingConsistency,
+      disabled: loadingConsistency || !currentChapter?.id,
+      testId: 'run-consistency-check-btn',
+      onClick: handleRunConsistencyCheck,
+    },
+    ...(changeRequests.length > 0 || writerAssignmentStatus === 'ReworkRequired'
+      ? [
+          {
+            id: 'change-requests',
+            label: t('writerChangeRequests.toggle'),
+            icon: ClipboardList,
+            tone: openChangeRequestCount > 0 ? 'warn' : 'default',
+            active: activeSideDrawer === 'changeRequests',
+            badge: openChangeRequestCount,
+            busy: loadingChangeRequests,
+            testId: 'writer-change-requests-btn',
+            onClick: () => toggleDrawer('changeRequests'),
+          } satisfies ScriptRailItem,
+        ]
+      : []),
+    ...(canEditScript && !isChapterLocked
+      ? [
+          {
+            id: 'import',
+            label: t('scriptStudio.rail.import'),
+            icon: FileInput,
+            testId: 'rail-import-btn',
+            onClick: () => {
+              setEditorMode('flow');
+              setImportRequestKey((k) => k + 1);
+            },
+          } satisfies ScriptRailItem,
+          {
+            id: 'ai',
+            label: t('scriptStudio.rail.ai'),
+            icon: Sparkles,
+            tone: 'ai',
+            testId: 'rail-ai-btn',
+            menu: [
+              {
+                id: 'draft',
+                label: t('scriptStudio.ai.draft'),
+                hint: selectedScene ? undefined : t('scriptStudio.ai.needScene'),
+                disabled: !selectedScene,
+                testId: 'open-ai-draft-btn',
+                onSelect: () => setAiPanelOpen(true),
+              },
+              {
+                id: 'storyboard',
+                label: t('scriptStudio.ai.storyboard'),
+                hint: !selectedScene
+                  ? t('scriptStudio.ai.needScene')
+                  : sceneHasPanels
+                    ? t('scriptStudio.ai.storyboardLocked')
+                    : undefined,
+                disabled: !selectedScene,
+                testId: 'open-ai-storyboard-btn',
+                onSelect: () => setStoryboardPanelOpen(true),
+              },
+            ],
+          } satisfies ScriptRailItem,
+        ]
+      : []),
+    {
+      id: 'history',
+      label: t('scriptStudio.rail.history'),
+      icon: History,
+      disabled: !selectedScene,
+      testId: 'open-script-history-btn',
+      onClick: () => setHistoryOpen(true),
+    },
+  ];
+
+  const railFooterItems: ScriptRailItem[] = [
+    {
+      id: 'bible-gate',
+      label: t('scriptStudio.rail.bibleGate'),
+      icon: ShieldCheck,
+      tone: bibleGateResult ? (bibleGateResult.isPassed ? 'ok' : 'warn') : 'default',
+      busy: loadingBibleGate,
+      testId: 'chapter-bible-gate-btn',
+      onClick: () => setBibleGateModalOpen(true),
+    },
+  ];
+
+  const viewModes = [
+    { mode: 'flow', icon: FileText, label: t('scriptStudio.views.paper'), testId: 'tab-flow' },
+    { mode: 'cards', icon: Layers, label: t('scriptStudio.views.cards'), testId: 'tab-cards' },
+    { mode: 'thumbnail', icon: Film, label: t('scriptStudio.views.thumbnail'), testId: 'tab-thumbnail' },
+  ] as const;
+
+  const viewSwitcher = (
+    <div
+      role='group'
+      aria-label={t('scriptStudio.views.label')}
+      className='flex items-center gap-0.5 p-0.5 rounded-lg bg-[#F3F0E9] border border-stone-200/80 shrink-0'
+    >
+      {viewModes.map(({ mode, icon: Icon, label, testId }) => {
+        const isActive = editorMode === mode || (mode === 'thumbnail' && editorMode === 'storyboard');
+        return (
+          <button
+            key={mode}
+            type='button'
+            data-testid={testId}
+            aria-pressed={isActive}
+            title={label}
+            onClick={() => setEditorMode(mode)}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer ${
+              isActive ? 'bg-white text-stone-900 shadow-2xs' : 'text-stone-500 hover:text-stone-900'
+            }`}
+          >
+            <Icon className='w-3.5 h-3.5' />
+            <span className='hidden xl:inline'>{label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
 
   return (
     <div className='flex-1 flex flex-col bg-[#F3F0E9] h-[calc(100vh-64px)] overflow-hidden text-[#1C1917]'>
@@ -2055,335 +2294,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         }}
         isSaving={savingStoryArc || savingOutline}
       />
-      {/* LUCIAN UX/UI x CHECKLIST DESIGN: MINIMALIST EDITORIAL HEADER (44px) */}
-      <header className='shrink-0 bg-[#FCFBF8] border-b border-[#EBE7DF] px-4 md:px-6 py-2 flex items-center justify-between gap-3 shadow-2xs z-30 min-h-[44px]'>
-        <h1 className='sr-only'>Biên Soạn Kịch Bản Phân Cảnh (Script Editor)</h1>
-
-        {/* 1. Trái: Context Chương (Breadcrumb-style) + Trạng thái lưu */}
-        <div className='flex items-center gap-2.5 shrink-0 z-10'>
-          {chapters.length > 0 && (
-            <div className='flex items-center gap-2 bg-[#F3F0E9]/70 hover:bg-[#F3F0E9] px-3 py-1.5 rounded-xl border border-[#E5E0D8] transition-colors shadow-2xs shrink-0 group'>
-              <BookOpen className='w-4 h-4 text-[#C2410C] shrink-0' />
-              <label
-                htmlFor='script-chapter-select'
-                className='text-[11px] font-bold uppercase tracking-wider text-[#78716C]'
-              >
-                Chương:
-              </label>
-              <select
-                id='script-chapter-select'
-                value={currentChapter?.id || ''}
-                onChange={(e) => handleSelectChapter(e.target.value)}
-                className='bg-transparent text-xs font-bold text-[#1C1917] outline-none cursor-pointer max-w-[280px] truncate pr-1'
-              >
-                {chapters.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {formatChapterOption(c.chapterNumber, c.title)}
-                  </option>
-                ))}
-                <option value='__all__'>← Chọn chương khác...</option>
-              </select>
-              {isProducer && currentChapter && !isChapterLocked && (
-                <button
-                  type='button'
-                  data-testid='delete-current-chapter-btn'
-                  onClick={() => setChapterToDelete(currentChapter)}
-                  className='p-1 text-[#78716C] hover:text-[#DC2626] hover:bg-[#FEE2E2] rounded-md transition-colors cursor-pointer shrink-0 ml-0.5'
-                  title={`Xoá Chương ${currentChapter.chapterNumber}`}
-                  aria-label={`Xoá Chương ${currentChapter.chapterNumber}`}
-                >
-                  <Trash2 className='w-3.5 h-3.5' />
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* Nút quay lại màn hình chọn chương */}
-          <button
-            type='button'
-            data-testid='back-to-chapter-selection-btn'
-            onClick={handleBackToChapterSelection}
-            className='flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-[#57534E] hover:text-[#1C1917] hover:bg-[#EBE7DF] rounded-xl transition-colors cursor-pointer shrink-0 border border-[#E5E0D8] bg-[#F3F0E9]/50 shadow-2xs'
-            title='Quay lại màn hình danh sách chọn chương'
-          >
-            <ChevronLeft className='w-3.5 h-3.5' />
-            <span className='hidden sm:inline'>Đổi chương</span>
-          </button>
-
-          {/* Trạng thái lưu & Phiên bản chương (Working Draft Concurrency Vector) */}
-          <div className='flex items-center gap-1.5 text-xs font-mono'>
-            {currentChapter && (
-              <span
-                className='text-[11px] font-bold px-2 py-0.5 rounded-md bg-[#F3F0E9] text-[#57534E] border border-[#E5E0D8]'
-                title='Mốc đồng bộ của kịch bản chương này.'
-              >
-                Đồng bộ mốc v{currentChapter.versionVector ?? 0}
-              </span>
-            )}
-            {savingStoryArc || savingOutline || submitting ? (
-              <span className='flex items-center gap-1.5 text-[11px] font-medium text-amber-700 bg-amber-50 border border-amber-200/60 px-2 py-0.5 rounded-md'>
-                <RefreshCw className='w-3 h-3 animate-spin text-amber-600' />
-                <span className='hidden sm:inline'>Đang lưu...</span>
-              </span>
-            ) : hasUnsavedChanges ? (
-              <span className='flex items-center gap-1.5 text-[11px] font-semibold text-amber-800 bg-amber-50/80 border border-amber-300/60 px-2 py-0.5 rounded-md'>
-                <span className='w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse' />
-                <span className='hidden sm:inline'>Chưa lưu</span>
-              </span>
-            ) : (
-              <span className='flex items-center gap-1 text-[11px] font-medium text-emerald-700 bg-emerald-50/70 border border-emerald-200/60 px-2 py-0.5 rounded-md'>
-                <Check className='w-3 h-3 text-emerald-600' />
-                <span className='hidden sm:inline'>Đã lưu</span>
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* 2. Giữa: Lucian #039 Sliding Pill Tabs (Segmented Control Chế độ xem) */}
-        <div className='flex items-center bg-[#F3F0E9] p-0.5 rounded-xl border border-[#E5E0D8] shadow-2xs'>
-          <button
-            type='button'
-            data-testid='tab-flow'
-            onClick={() => setEditorMode('flow')}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-              editorMode === 'flow'
-                ? 'bg-white text-[#1C1917] shadow-2xs'
-                : 'text-[#78716C] hover:text-[#1C1917]'
-            }`}
-            title='Soạn thảo kịch bản liên tục dạng văn bản'
-          >
-            <FileText className='w-3.5 h-3.5' />
-            <span className='hidden sm:inline'>Trang giấy</span>
-          </button>
-          <button
-            type='button'
-            data-testid='tab-cards'
-            onClick={() => setEditorMode('cards')}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-              editorMode === 'cards'
-                ? 'bg-white text-[#1C1917] shadow-2xs'
-                : 'text-[#78716C] hover:text-[#1C1917]'
-            }`}
-            title='Xem cấu trúc theo thẻ phân cảnh'
-          >
-            <Layers className='w-3.5 h-3.5' />
-            <span className='hidden sm:inline'>Thẻ cảnh</span>
-          </button>
-          <button
-            type='button'
-            data-testid='tab-thumbnail'
-            onClick={() => setEditorMode('thumbnail')}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-              editorMode === 'thumbnail' || editorMode === 'storyboard'
-                ? 'bg-white text-[#1C1917] shadow-2xs'
-                : 'text-[#78716C] hover:text-[#1C1917]'
-            }`}
-            title='Không gian phân rã khung & vẽ phác thảo Thumbnail'
-          >
-            <Film className='w-3.5 h-3.5' />
-            <span className='hidden sm:inline'>Thumbnail</span>
-          </button>
-        </div>
-
-        {/* 3. Phải: Nhóm công cụ phụ trợ tối giản (Checklist: High Proximity, Low Visual Noise) */}
-        <div className='flex items-center gap-1.5'>
-          {/* Đề cương & Bối cảnh */}
-          <button
-            type='button'
-            data-testid='toggle-narrative-context-btn'
-            onClick={() =>
-              setActiveSideDrawer((prev) => (prev === 'narrative' ? null : 'narrative'))
-            }
-            className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${
-              activeSideDrawer === 'narrative'
-                ? 'bg-[#FFF2E6] text-[#C2410C] border-[#F97316] font-bold shadow-2xs'
-                : 'bg-white/80 text-[#57534E] hover:bg-[#F3F0E9] border-[#E5E0D8]'
-            }`}
-            title='Đề cương & Bối cảnh phân cảnh'
-          >
-            <Compass className='w-3.5 h-3.5 text-[#C2410C]' />
-            <span className='hidden lg:inline'>Đề cương</span>
-            {outlineWordCount > 0 && (
-              <span className='text-[10px] font-mono font-bold bg-[#F8F6F0] px-1 rounded text-[#1C1917]'>
-                {outlineWordCount}
-              </span>
-            )}
-          </button>
-
-          {/* Kiểm tra nhất quán */}
-          <button
-            type='button'
-            data-testid='run-consistency-check-btn'
-            onClick={handleRunConsistencyCheck}
-            disabled={loadingConsistency || !currentChapter?.id}
-            className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer disabled:opacity-50 ${
-              activeSideDrawer === 'consistency'
-                ? 'bg-violet-700 text-white border-transparent shadow-2xs font-bold'
-                : 'bg-white/80 text-violet-900 hover:bg-violet-50 border-[#E5E0D8]'
-            }`}
-            title={`Kiểm tra nhất quán (${openFindingsCount} cần xử lý)`}
-          >
-            <ShieldCheck
-              className={`w-3.5 h-3.5 ${activeSideDrawer === 'consistency' ? 'text-white' : 'text-violet-600'} ${loadingConsistency ? 'animate-spin' : ''}`}
-            />
-            <span className='hidden lg:inline'>Nhất quán</span>
-            {openFindingsCount > 0 && (
-              <span className='px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[10px] font-mono font-bold'>
-                {openFindingsCount}
-              </span>
-            )}
-          </button>
-
-          {/* Nhân vật Series Bible */}
-          <button
-            type='button'
-            aria-label='Nhân vật Bible'
-            onClick={() =>
-              setActiveSideDrawer((prev) => (prev === 'characters' ? null : 'characters'))
-            }
-            className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${
-              activeSideDrawer === 'characters'
-                ? 'bg-purple-700 text-white border-transparent shadow-2xs font-bold'
-                : 'bg-white/80 text-purple-900 hover:bg-purple-50 border-[#E5E0D8]'
-            }`}
-            title='Xem danh sách nhân vật Canon từ Series Bible'
-          >
-            <User
-              className={`w-3.5 h-3.5 ${activeSideDrawer === 'characters' ? 'text-white' : 'text-purple-600'}`}
-            />
-            <span className='hidden lg:inline'>Nhân vật Bible ({characters.length})</span>
-          </button>
-
-          {/* Chapter-Scoped Bible Gate */}
-          {currentChapter && (
-            <button
-              type='button'
-              onClick={() => setBibleGateModalOpen(true)}
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${
-                bibleGateResult?.isPassed
-                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
-                  : bibleGateResult && !bibleGateResult.isPassed
-                    ? 'bg-rose-50 text-rose-800 border-rose-200 hover:bg-rose-100'
-                    : 'bg-white/80 text-[#57534E] border-[#E5E0D8] hover:bg-[#F3F0E9]'
-              }`}
-              title='Rào chắn Bible theo Chương (Bible Gate)'
-              data-testid='chapter-bible-gate-btn'
-            >
-              <ShieldCheck
-                className={`w-3.5 h-3.5 ${
-                  bibleGateResult?.isPassed
-                    ? 'text-emerald-600'
-                    : bibleGateResult && !bibleGateResult.isPassed
-                      ? 'text-rose-600'
-                      : 'text-gray-500'
-                }`}
-              />
-              <span className='hidden xl:inline'>Bible Gate</span>
-            </button>
-          )}
-
-          {/* Nút Làm mới */}
-          <button
-            type='button'
-            onClick={() => {
-              if (currentChapter?.id) {
-                refreshChapterDetail(currentChapter.id);
-                loadScenes();
-                void checkChapterBibleGate(currentChapter.id);
-              }
-            }}
-            disabled={loadingScenes || loadingDetail}
-            className='p-1.5 text-[#78716C] hover:text-[#1C1917] hover:bg-[#F3F0E9] border border-[#E5E0D8] rounded-xl transition-all cursor-pointer bg-white/80'
-            title='Làm mới kịch bản'
-          >
-            <RefreshCw
-              className={`w-3.5 h-3.5 ${loadingScenes || loadingDetail ? 'animate-spin' : ''}`}
-            />
-          </button>
-
-          {(changeRequests.length > 0 || writerAssignmentStatus === 'ReworkRequired') && (
-            <button
-              type='button'
-              onClick={() =>
-                setActiveSideDrawer((prev) => (prev === 'changeRequests' ? null : 'changeRequests'))
-              }
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${
-                activeSideDrawer === 'changeRequests'
-                  ? 'bg-rose-700 text-white border-transparent shadow-2xs font-bold'
-                  : 'bg-white/80 text-rose-900 hover:bg-rose-50 border-[#E5E0D8]'
-              }`}
-              title={t('writerChangeRequests.toggleTitle', { count: openChangeRequestCount })}
-              data-testid='writer-change-requests-btn'
-            >
-              <ClipboardList
-                className={`w-3.5 h-3.5 ${activeSideDrawer === 'changeRequests' ? 'text-white' : 'text-rose-600'}`}
-              />
-              <span className='hidden lg:inline'>{t('writerChangeRequests.toggle')}</span>
-              {openChangeRequestCount > 0 && (
-                <span className='px-1.5 rounded-full bg-rose-500 text-white text-xs font-mono font-bold'>
-                  {openChangeRequestCount}
-                </span>
-              )}
-            </button>
-          )}
-
-          {/* Writer Submit to Editor Button */}
-          {(normRole === 'WRITER' || effectiveRole === 'WRITER') && !isScriptFrozen && currentChapter && (
-            <button
-              type='button'
-              disabled={
-                submittingToEditor ||
-                !myWriterAssignment ||
-                openChangeRequestCount > 0 ||
-                myWriterAssignment.status === 'Submitted' ||
-                myWriterAssignment.status === 'UnderReview' ||
-                myWriterAssignment.status === 'Approved'
-              }
-              onClick={() => void handleSubmitScriptToEditor()}
-              className='inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-[#0284C7] hover:bg-[#0369A1] disabled:bg-zinc-200 disabled:text-zinc-400 rounded-xl transition-all cursor-pointer shadow-2xs ml-1'
-              title={
-                !myWriterAssignment
-                  ? 'Chưa có phân công việc Writer trên Kanban để nộp duyệt'
-                  : openChangeRequestCount > 0
-                    ? t('writerChangeRequests.gateBlocked', { count: openChangeRequestCount })
-                  : myWriterAssignment.status === 'Submitted' || myWriterAssignment.status === 'UnderReview'
-                    ? 'Kịch bản đang được Editor thẩm định'
-                    : myWriterAssignment.status === 'Approved'
-                      ? 'Kịch bản đã được duyệt'
-                      : 'Gửi kịch bản hoàn thiện cho Editor thẩm định'
-              }
-              data-testid='submit-to-editor-btn'
-            >
-              <Send className={`w-3.5 h-3.5 ${submittingToEditor ? 'animate-spin' : ''}`} />
-              <span className='hidden sm:inline'>
-                {submittingToEditor
-                  ? 'Đang gửi...'
-                  : myWriterAssignment?.status === 'Submitted' || myWriterAssignment?.status === 'UnderReview'
-                    ? 'Đang chờ duyệt'
-                    : myWriterAssignment?.status === 'Approved'
-                      ? 'Đã duyệt'
-                      : 'Gửi Editor duyệt'}
-              </span>
-            </button>
-          )}
-
-          {/* Producer Freeze Script Button */}
-          {normRole === 'PRODUCER' && !isScriptFrozen && currentChapter && (
-            <button
-              type='button'
-              disabled={freezingScript || (bibleGateResult !== null && !bibleGateResult.isPassed)}
-              onClick={() => void handleFreezeScript()}
-              className='inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-[#F97316] hover:bg-[#EA580C] disabled:bg-zinc-300 disabled:text-zinc-500 rounded-xl transition-all cursor-pointer shadow-2xs ml-1'
-              title='Duyệt kịch bản và bắt đầu sản xuất hình ảnh'
-              data-testid='freeze-script-btn'
-            >
-              <Sparkles className='w-3.5 h-3.5' />
-              <span className='hidden sm:inline'>Duyệt kịch bản</span>
-            </button>
-          )}
-        </div>
-      </header>
-
       {/* NFR-09: Thanh trạng thái kết nối & hàng đợi ngoại tuyến */}
       <OfflineStatusBanner className='px-4 py-2 border-b border-[#D8D2C5]' />
 
@@ -2579,445 +2489,166 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         </div>
       )}
 
-      {/* 3. Khu vực làm việc chính: Phân cảnh (trái, có thể thu gọn) | Editor (trung tâm) | Drawers (phải) */}
+      <h1 className='sr-only'>Biên Soạn Kịch Bản Phân Cảnh (Script Editor)</h1>
+
+      {/* 3. Bàn viết: thanh biểu tượng (trái) | ngăn kéo phân cảnh | trang giấy (giữa) | drawers (phải) */}
       <div className='flex-1 flex overflow-hidden relative'>
-        {/* LEFT: Điều hướng phân cảnh (Collapsible) */}
-        <div
-          className={`shrink-0 border-r border-[#D8D2C5] bg-[#FCFBF8] flex flex-col transition-all duration-200 z-10 ${
-            isSceneNavOpen ? 'w-[260px] md:w-[280px]' : 'w-12'
-          }`}
-        >
-          {/* Header thanh phân cảnh */}
-          <div className='p-3 border-b border-[#D8D2C5] bg-[#F8F6F0] flex items-center justify-between gap-2'>
-            {isSceneNavOpen ? (
-              <>
-                <div className='flex items-center gap-2 min-w-0'>
-                  <Clapperboard className='w-4 h-4 text-[#C2410C] shrink-0' />
-                  <h2 className='text-xs font-bold text-[#1C1917] truncate'>
-                    Phân cảnh ({scenes.length})
-                  </h2>
-                </div>
-                <div className='flex items-center gap-1'>
-                  {canEditScript && !isChapterLocked && (
-                    <button
-                      type='button'
-                      onClick={handleOpenCreateScene}
-                      className='p-1 text-[#C2410C] hover:bg-[#FFF2E6] rounded-lg cursor-pointer transition-colors'
-                      title='Thêm phân cảnh mới'
-                    >
-                      <Plus className='w-4 h-4' />
-                    </button>
-                  )}
-                  <button
-                    type='button'
-                    onClick={() => setIsSceneNavOpen(false)}
-                    className='p-1 text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9] rounded-lg cursor-pointer transition-colors'
-                    title='Thu gọn danh sách cảnh'
-                  >
-                    <PanelLeftClose className='w-4 h-4' />
-                  </button>
-                </div>
-              </>
-            ) : (
-              <button
-                type='button'
-                onClick={() => setIsSceneNavOpen(true)}
-                className='w-full flex items-center justify-center p-1 text-[#57534E] hover:text-[#1C1917] hover:bg-[#F3F0E9] rounded-lg cursor-pointer'
-                title='Mở rộng danh sách cảnh'
-              >
-                <PanelLeft className='w-4 h-4 text-[#C2410C]' />
-              </button>
-            )}
-          </div>
+        <ScriptStudioRail
+          ariaLabel={t('scriptStudio.rail.label')}
+          items={railItems}
+          footerItems={railFooterItems}
+        />
 
-          {/* Nội dung danh sách phân cảnh */}
-          {isSceneNavOpen ? (
-            <>
-              {/* Search cảnh nếu có nhiều hơn 3 cảnh */}
-              {scenes.length > 3 && (
-                <div className='p-2 border-b border-[#D8D2C5] bg-[#F8F6F0]/60'>
-                  <div className='relative'>
-                    <Search className='w-3 h-3 text-[#57534E] absolute left-2.5 top-2' />
-                    <input
-                      type='text'
-                      value={sceneSearchQuery}
-                      onChange={(e) => setSceneSearchQuery(e.target.value)}
-                      placeholder='Tìm phân cảnh...'
-                      className='w-full pl-7 pr-2 py-1 text-xs border border-[#D8D2C5] rounded-lg outline-none focus:border-[#F97316] bg-[#FCFBF8] text-[#1C1917]'
-                    />
-                  </div>
-                </div>
-              )}
+        {activeSideDrawer === 'scenes' && (
+          <ScriptScenesDrawer
+            scenes={filteredScenes}
+            selectedSceneId={selectedScene?.id}
+            canEdit={canEditScript && !isChapterLocked}
+            onSelect={handleSelectScene}
+            onAdd={handleOpenCreateScene}
+            onRenameSelected={handleOpenEditScene}
+            onDelete={(s) => setSceneToDelete(s)}
+            onClose={() => setActiveSideDrawer(null)}
+            onDeleteChapter={
+              isProducer && currentChapter && !isChapterLocked
+                ? () => setChapterToDelete(currentChapter)
+                : undefined
+            }
+          />
+        )}
 
-              <div className='flex-1 overflow-y-auto p-2 space-y-1.5 custom-scrollbar'>
-                {scenes.length === 0 ? (
-                  <div className='text-center py-10 px-3 text-xs text-[#57534E] bg-[#FCFBF8] rounded-xl border border-dashed border-[#D8D2C5]'>
-                    Chương này chưa có phân cảnh nào.
-                    {canEditScript && !isChapterLocked && (
-                      <button
-                        type='button'
-                        onClick={handleOpenCreateScene}
-                        className='block mx-auto mt-2 text-[#C2410C] font-bold hover:underline cursor-pointer'
-                      >
-                        + Tạo cảnh đầu tiên
-                      </button>
-                    )}
-                  </div>
-                ) : (
-                  filteredScenes.map((s) => {
-                    const isSelected = selectedScene?.id === s?.id;
-                    return (
-                      <div
-                        key={s.id}
-                        onClick={() => handleSelectScene(s)}
-                        className={`p-2.5 rounded-xl border transition-all cursor-pointer text-left group ${
-                          isSelected
-                            ? 'border-[#F97316] bg-[#FFF2E6] shadow-2xs border-l-4 border-l-[#C2410C]'
-                            : 'border-[#D8D2C5] bg-[#FCFBF8] hover:bg-[#F8F6F0] hover:border-[#D8D2C5]'
-                        }`}
-                      >
-                        <div className='flex items-center justify-between text-xs font-bold mb-0.5'>
-                          <span
-                            className={isSelected ? 'text-[#1C1917] font-bold' : 'text-[#1C1917]'}
-                          >
-                            Cảnh {s.sceneNumber}
-                          </span>
-                          <div className='flex items-center gap-1.5'>
-                            <span className='font-mono text-xs text-[#57534E] bg-[#F3F0E9] border border-[#D8D2C5] px-2 py-0.5 rounded-md'>
-                              {s.scriptLinesCount} dòng
-                            </span>
-                            {canEditScript && !isChapterLocked && scenes.length > 1 && (
-                              <button
-                                type='button'
-                                data-testid={`delete-scene-${s.sceneNumber}-btn`}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSceneToDelete(s);
-                                }}
-                                className='p-1 rounded-md text-[#78716C] hover:text-rose-600 hover:bg-rose-50 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100 cursor-pointer'
-                                title={`Xoá Cảnh ${s.sceneNumber}`}
-                              >
-                                <Trash2 className='w-3.5 h-3.5' />
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                        <div className='text-xs text-[#1C1917] font-medium truncate'>
-                          {s.heading || 'Chưa đặt tiêu đề'}
-                        </div>
-                        {s.summary && (
-                          <p className='text-xs text-[#57534E] line-clamp-1 mt-0.5'>{s.summary}</p>
-                        )}
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </>
-          ) : (
-            // Dạng thu gọn (Icon mini rail)
-            <div className='flex-1 overflow-y-auto py-2 space-y-1 custom-scrollbar flex flex-col items-center'>
-              {scenes.map((s) => {
-                const isSelected = selectedScene?.id === s.id;
-                return (
-                  <button
-                    key={s.id}
-                    type='button'
-                    onClick={() => handleSelectScene(s)}
-                    className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs transition-all cursor-pointer ${
-                      isSelected
-                        ? 'bg-[#F97316] text-white shadow-xs'
-                        : 'text-[#57534E] hover:bg-[#F3F0E9]'
-                    }`}
-                    title={`Cảnh ${s.sceneNumber}: ${s.heading || 'Chưa đặt tiêu đề'}`}
-                  >
-                    {s.sceneNumber}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* CENTER: Bàn làm việc Kịch bản (Ưu tiên vùng nhìn đầu tiên, tràn chiều rộng) */}
         <div className='flex-1 flex flex-col overflow-hidden min-w-0 bg-[#F3F0E9]'>
-
-
-          {selectedScene ? (
-            <>
-              {/* Scene Header & Actions */}
-              <div className='shrink-0 bg-[#FCFBF8] border-b border-[#D8D2C5] px-6 py-3.5 flex flex-wrap items-center justify-between gap-3 shadow-2xs'>
-                <div className='min-w-0 flex-1'>
-                  <div>
-                    <div className='flex items-center gap-2 flex-wrap'>
-                      <span className='px-2.5 py-0.5 rounded-md bg-[#1C1917] text-[#FCFBF8] font-mono text-xs font-bold tracking-wider'>
-                        CẢNH {selectedScene.sceneNumber}
-                      </span>
-                      <span className='text-xs font-mono text-[#57534E]'>
-                        ID: {selectedScene.id ? `${selectedScene.id.substring(0, 8)}...` : 'N/A'}
-                      </span>
-                      {selectedScene.defaultNarrationMode &&
-                        selectedScene.defaultNarrationMode !== 'Present' && (
-                          <span className='text-xs font-medium text-purple-700 bg-purple-50 border border-purple-200 px-2.5 py-0.5 rounded-full'>
-                            Mặc định: {selectedScene.defaultNarrationMode}
-                          </span>
-                        )}
-                    </div>
-                    <h3 className='text-base md:text-lg font-bold font-serif text-[#1C1917] mt-1 truncate'>
-                      {selectedScene.heading || 'Phân cảnh chưa đặt tiêu đề'}
-                    </h3>
-                    {selectedScene.summary && (
-                      <p className='text-xs text-[#57534E] italic mt-0.5 truncate'>
-                        &ldquo;{selectedScene.summary}&rdquo;
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Toolbar cho phân cảnh */}
-                <div className='flex items-center gap-2 flex-wrap shrink-0'>
-                  {canEditScript && !isChapterLocked && selectedScene && (
-                    <div className='flex items-center gap-1 border-r border-[#D8D2C5] pr-2 mr-1'>
-                      <button
-                        type='button'
-                        data-testid='edit-scene-heading-btn'
-                        onClick={handleOpenEditScene}
-                        className='inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#1C1917] bg-[#F3F0E9] hover:bg-[#EAE5D9] border border-[#D8D2C5] rounded-lg cursor-pointer transition-colors shadow-2xs'
-                        title='Sửa tiêu đề phân cảnh (Đồng bộ trực tiếp trên giấy và trong modal)'
-                      >
-                        <Edit2 className='w-3.5 h-3.5 text-[#57534E]' />
-                        <span>Sửa tiêu đề cảnh</span>
-                      </button>
-                      {scenes.length > 1 && (
-                        <button
-                          type='button'
-                          data-testid='toolbar-delete-scene-btn'
-                          onClick={() => setSceneToDelete(selectedScene)}
-                          className='inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg cursor-pointer transition-colors shadow-2xs'
-                          title='Xoá phân cảnh này'
-                        >
-                          <Trash2 className='w-3.5 h-3.5 text-rose-600' />
-                          <span>Xoá cảnh</span>
-                        </button>
-                      )}
-                    </div>
-                  )}
-
-
-
-                  <button
-                    type='button'
-                    data-testid='toggle-thumbnail-drawer-btn'
-                    onClick={() => setEditorMode('thumbnail')}
-                    className='inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-[#C2410C] bg-[#FFF2E6] hover:bg-[#FFE5D0] border border-[#F97316]/40 rounded-full transition-all cursor-pointer shadow-xs'
-                    title='Xem Storyboard & Thẻ phân cảnh Thumbnail (Phím tắt: Ctrl+B)'
-                  >
-                    <Film className='w-3.5 h-3.5 text-[#C2410C]' />
-                    <span>🎞️ Storyboard / Thumbnails</span>
-                  </button>
-
-                  <button
-                    type='button'
-                    data-testid='open-script-history-btn'
-                    onClick={() => setHistoryOpen(true)}
-                    className='inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-[#57534E] bg-[#FCFBF8] hover:bg-[#F3F0E9] border border-[#D8D2C5] rounded-full transition-all cursor-pointer shadow-soft-sm'
-                  >
-                    <History className='w-3.5 h-3.5 text-[#57534E]' />
-                    <span className='hidden sm:inline'>Lịch sử phiên bản</span>
-                  </button>
-
-                  {canEditScript && (
-                    <button
-                      type='button'
-                      data-testid='open-ai-draft-btn'
-                      onClick={() => setAiPanelOpen(true)}
-                      className='inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-violet-800 bg-violet-50 hover:bg-violet-100 border border-violet-200 rounded-full transition-all cursor-pointer shadow-soft-sm'
-                    >
-                      <Sparkles className='w-3.5 h-3.5 text-violet-600' />
-                      <span className='hidden sm:inline'>Viết nháp bằng AI</span>
-                    </button>
-                  )}
-
-                  {canEditScript && (
-                    <button
-                      type='button'
-                      data-testid='open-ai-storyboard-btn'
-                      onClick={() => setStoryboardPanelOpen(true)}
-                      className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-full transition-all cursor-pointer shadow-soft-sm border ${
-                        sceneHasPanels
-                          ? 'text-amber-800 bg-amber-50 hover:bg-amber-100 border-amber-200'
-                          : 'text-indigo-800 bg-indigo-50 hover:bg-indigo-100 border-indigo-200'
-                      }`}
-                      title={
-                        sceneHasPanels
-                          ? 'Phân cảnh đã có khung tranh (khóa tự tạo; dùng Tự động phân bổ trên Bàn vẽ)'
-                          : 'Tự động tạo Trang, Khung và gán kịch bản bằng AI'
-                      }
-                    >
-                      <LayoutTemplate className={`w-3.5 h-3.5 ${sceneHasPanels ? 'text-amber-600' : 'text-indigo-600'}`} />
-                      <span className='hidden sm:inline'>Phân khung bằng AI</span>
-                      {sceneHasPanels && (
-                        <span className='ml-0.5 rounded bg-amber-200/80 px-1.5 py-0.5 text-[10px] font-medium text-amber-900'>
-                          Đã có khung
-                        </span>
-                      )}
-                    </button>
-                  )}
-
-                  {canEditScript && !isChapterLocked && (editorMode === 'cards' || isTestEnvironment) && (
-                    <button
-                      type='button'
-                      data-testid='open-add-line-btn'
-                      onClick={handleOpenAddLine}
-                      className='btn-cta-primary'
-                    >
-                      <Plus className='w-4 h-4' />
-                      <span>Thêm Dòng Kịch Bản</span>
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Danh sách Dòng Kịch Bản (Ưu tiên vùng nhìn đầu tiên) */}
-              <div className='flex-1 overflow-y-auto p-4 md:p-6 space-y-3.5 custom-scrollbar'>
-                {editorMode === 'flow' ? (
-                  /* TRANG GIẤY KỊCH BẢN (EDITORIAL SCRIPT PAPER) - Giữ editor luôn ổn định, không bị unmount khi lưu */
-                  <div className='max-w-6xl mx-auto w-full'>
-                    <ScreenplayFlowEditor
-                      key={currentChapter?.id || 'flow-editor'}
-                      chapterId={currentChapter?.id}
-                      chapterNumber={currentChapter?.chapterNumber}
-                      chapterVersion={currentChapter?.versionVector ?? 0}
-                      scenes={chapterScenesDetail.length > 0 ? chapterScenesDetail : (selectedScene ? [selectedScene] : [])}
-                      allBibleEntries={allBibleEntries}
-                      consistencyFindings={findings}
-                      canEditScript={canEditScript}
-                      isChapterLocked={isChapterLocked}
-                      scriptContentHash={currentChapter?.scriptContentHash}
-                      getSpeakerName={getSpeakerName}
-                      onSaveLines={handleSaveFlowLines}
-                      onCreateStub={handleCreateStubEntity}
-                      onShowToast={onShowToast}
-                    />
-                  </div>
-                ) : editorMode === 'thumbnail' || editorMode === 'storyboard' ? (
-                  /* THUMBNAIL STUDIO & STORYBOARD BOARD */
-                  <div className='flex-1 flex flex-col h-full -m-4 md:-m-6'>
-                    <ThumbnailStudioBoard
-                      scenes={chapterScenesDetail.length > 0 ? chapterScenesDetail : (selectedScene ? [selectedScene] : [])}
-                      canEdit={canEditScript && !isChapterLocked}
-                      getSpeakerName={getSpeakerName}
-                      onShowToast={onShowToast}
-                    />
-                  </div>
-                ) : loadingDetail ? (
-                  <div className='flex items-center justify-center py-20 text-[#57534E] text-xs'>
-                    <RefreshCw className='w-5 h-5 animate-spin mr-2 text-[#C2410C]' />
-                    <span>Đang nạp chi tiết phân cảnh...</span>
-                  </div>
-                ) : !selectedScene.scriptLines || selectedScene.scriptLines.length === 0 ? (
-                  <div className='text-center py-16 border border-dashed border-[#D8D2C5] rounded-2xl text-[#57534E] text-xs bg-[#FCFBF8]'>
-                    <MessageSquare className='w-8 h-8 text-[#57534E]/50 mx-auto mb-2' />
-                    Phân cảnh này chưa có dòng kịch bản nào.
-                    {canEditScript && !isChapterLocked && (
-                      <button
-                        type='button'
-                        onClick={handleOpenAddLine}
-                        className='block mx-auto mt-3 px-3.5 py-1.5 text-xs font-bold text-white bg-[#F97316] hover:bg-[#EA580C] rounded-xl cursor-pointer shadow-xs'
-                      >
-                        + Thêm dòng kịch bản đầu tiên
-                      </button>
-                    )}
-                  </div>
-                ) : (
-                  selectedScene.scriptLines.map((line, index) => {
-                    const speakerName = getSpeakerName(line.speakerCharacterId);
-                    const character = characters.find((c) => c.id === line.speakerCharacterId);
-                    const isFirst = index === 0;
-                    const isLast = index === (selectedScene.scriptLines?.length || 0) - 1;
-                    const isDragging = draggedLineIndex === index;
-                    const isDragOver = dragOverLineIndex === index && draggedLineIndex !== index;
-                    const isHighlighted = highlightedLineId === line.id;
-
-                    const lineFinding = findings.find(
-                      (f) =>
-                        f.scriptLineId === line.id &&
-                        f.status !== 'Resolved' &&
-                        f.status !== 'Rejected' &&
-                        f.status !== 'Ignored' &&
-                        f.status !== 'Stale',
-                    );
-
-                    return (
-                      <ScriptLineItem
-                        key={line.id}
-                        line={line}
-                        index={index}
-                        speakerName={speakerName}
-                        character={character}
-                        allBibleEntries={allBibleEntries}
-                        isFirst={isFirst}
-                        isLast={isLast}
-                        canEditScript={canEditScript}
-                        isChapterLocked={isChapterLocked}
-                        isReorderingLines={isReorderingLines}
-                        isDragging={isDragging}
-                        isDragOver={isDragOver}
-                        isHighlighted={isHighlighted}
-                        lineFinding={lineFinding}
-                        onDragStart={handleDragStart}
-                        onDragOver={handleDragOver}
-                        onDragEnd={() => {
-                          setDraggedLineIndex(null);
-                          setDragOverLineIndex(null);
-                        }}
-                        onDrop={handleDrop}
-                        onMoveLine={handleMoveLine}
-                        onEditLine={handleOpenEditLine}
-                        onDeleteLine={handleDeleteLine}
-                      />
-                    );
-                  })
-                )}
-              </div>
-            </>
-          ) : loadingScenes || loadingChapters || loadingDetail ? (
-            <div className='flex-1 flex flex-col items-center justify-center text-center p-12 text-[#57534E]'>
-              <RefreshCw className='w-8 h-8 animate-spin text-[#C2410C] mb-3' />
-              <h3 className='text-sm font-bold text-[#1C1917]'>Đang nạp kịch bản...</h3>
-              <p className='text-xs mt-1 text-[#57534E]'>Chuẩn bị không gian soạn thảo kịch bản trực tiếp</p>
+          {(loadingScenes || loadingChapters || loadingDetail) &&
+          chapterScenesDetail.length === 0 &&
+          !selectedScene ? (
+            <div className='flex-1 flex flex-col items-center justify-center text-center p-12 text-stone-500'>
+              <RefreshCw className='w-6 h-6 animate-spin text-[#C2410C] mb-3' />
+              <p className='font-serif text-base text-stone-800'>Đang nạp kịch bản…</p>
             </div>
+          ) : editorMode === 'flow' ? (
+            <ScreenplayFlowEditor
+              key={currentChapter?.id || 'flow-editor'}
+              chapterId={currentChapter?.id}
+              chapterNumber={currentChapter?.chapterNumber}
+              chapterVersion={currentChapter?.versionVector ?? 0}
+              scenes={
+                chapterScenesDetail.length > 0
+                  ? chapterScenesDetail
+                  : selectedScene
+                    ? [selectedScene]
+                    : []
+              }
+              allBibleEntries={allBibleEntries}
+              consistencyFindings={findings}
+              canEditScript={canEditScript}
+              isChapterLocked={isChapterLocked}
+              scriptContentHash={currentChapter?.scriptContentHash}
+              getSpeakerName={getSpeakerName}
+              onSaveLines={handleSaveFlowLines}
+              onCreateStub={handleCreateStubEntity}
+              onShowToast={onShowToast}
+              importRequestKey={importRequestKey}
+              dockLeading={viewSwitcher}
+              manuscriptTitle={formatChapterOption(currentChapter.chapterNumber, currentChapter.title)}
+            />
           ) : (
-            // Mở thẳng trình soạn thảo Screenplay Flow, loại bỏ hoàn toàn màn hình trung gian chọn phân cảnh
-            <div className='flex-1 flex flex-col overflow-hidden'>
-              {editorMode === 'thumbnail' || editorMode === 'storyboard' ? (
-                <div className='flex-1 flex flex-col h-full'>
+            <div className='flex-1 min-h-0 flex flex-col'>
+              <div className='flex-1 min-h-0 overflow-y-auto custom-scrollbar'>
+                {editorMode === 'thumbnail' || editorMode === 'storyboard' ? (
                   <ThumbnailStudioBoard
-                    scenes={chapterScenesDetail.length > 0 ? chapterScenesDetail : []}
+                    scenes={
+                      chapterScenesDetail.length > 0
+                        ? chapterScenesDetail
+                        : selectedScene
+                          ? [selectedScene]
+                          : []
+                    }
                     canEdit={canEditScript && !isChapterLocked}
                     getSpeakerName={getSpeakerName}
                     onShowToast={onShowToast}
                   />
-                </div>
-              ) : (
-              <div className='max-w-6xl mx-auto w-full p-4 overflow-y-auto'>
-                <ScreenplayFlowEditor
-                chapterId={currentChapter?.id}
-                chapterNumber={currentChapter?.chapterNumber}
-                chapterVersion={currentChapter?.versionVector ?? 0}
-                scenes={chapterScenesDetail.length > 0 ? chapterScenesDetail : []}
-                allBibleEntries={allBibleEntries}
-                consistencyFindings={findings}
-                canEditScript={canEditScript}
-                isChapterLocked={isChapterLocked}
-                scriptContentHash={currentChapter?.scriptContentHash}
-                getSpeakerName={getSpeakerName}
-                onSaveLines={handleSaveFlowLines}
-                onCreateStub={handleCreateStubEntity}
-                onShowToast={onShowToast}
-                />
+                ) : !selectedScene ? (
+                  <p className='text-center text-sm text-stone-500 py-20'>{t('scriptStudio.ai.needScene')}</p>
+                ) : (
+                  <div className='max-w-3xl mx-auto w-full px-4 py-8 space-y-3'>
+                    <div className='flex items-center justify-between gap-3 pb-2'>
+                      <div className='min-w-0'>
+                        <p className='text-xs uppercase tracking-[0.14em] text-stone-500'>
+                          {formatChapterOption(currentChapter.chapterNumber, currentChapter.title)}
+                        </p>
+                        <h2 className='font-serif text-xl text-stone-900 truncate'>
+                          {selectedScene.heading ||
+                            t('scriptStudio.scenes.scene', { n: selectedScene.sceneNumber })}
+                        </h2>
+                      </div>
+                      {canEditScript && !isChapterLocked && (
+                        <button
+                          type='button'
+                          data-testid='open-add-line-btn'
+                          onClick={handleOpenAddLine}
+                          className='btn-cta-primary shrink-0'
+                        >
+                          <Plus className='w-4 h-4' />
+                          <span>Thêm dòng</span>
+                        </button>
+                      )}
+                    </div>
+                    {loadingDetail ? (
+                      <div className='flex items-center justify-center py-16 text-stone-500 text-sm'>
+                        <RefreshCw className='w-4 h-4 animate-spin mr-2 text-[#C2410C]' />
+                        Đang nạp chi tiết phân cảnh…
+                      </div>
+                    ) : !selectedScene.scriptLines || selectedScene.scriptLines.length === 0 ? (
+                      <p className='text-center py-16 text-sm text-stone-500'>
+                        Phân cảnh này chưa có dòng kịch bản nào.
+                      </p>
+                    ) : (
+                      selectedScene.scriptLines.map((line, index) => {
+                        const lineFinding = findings.find(
+                          (f) =>
+                            f.scriptLineId === line.id &&
+                            f.status !== 'Resolved' &&
+                            f.status !== 'Rejected' &&
+                            f.status !== 'Ignored' &&
+                            f.status !== 'Stale',
+                        );
+                        return (
+                          <ScriptLineItem
+                            key={line.id}
+                            line={line}
+                            index={index}
+                            speakerName={getSpeakerName(line.speakerCharacterId)}
+                            character={characters.find((c) => c.id === line.speakerCharacterId)}
+                            allBibleEntries={allBibleEntries}
+                            isFirst={index === 0}
+                            isLast={index === (selectedScene.scriptLines?.length || 0) - 1}
+                            canEditScript={canEditScript}
+                            isChapterLocked={isChapterLocked}
+                            isReorderingLines={isReorderingLines}
+                            isDragging={draggedLineIndex === index}
+                            isDragOver={dragOverLineIndex === index && draggedLineIndex !== index}
+                            isHighlighted={highlightedLineId === line.id}
+                            lineFinding={lineFinding}
+                            onDragStart={handleDragStart}
+                            onDragOver={handleDragOver}
+                            onDragEnd={() => {
+                              setDraggedLineIndex(null);
+                              setDragOverLineIndex(null);
+                            }}
+                            onDrop={handleDrop}
+                            onMoveLine={handleMoveLine}
+                            onEditLine={handleOpenEditLine}
+                            onDeleteLine={handleDeleteLine}
+                          />
+                        );
+                      })
+                    )}
+                  </div>
+                )}
               </div>
-            )}
+              <div className='shrink-0 border-t border-stone-200/80 bg-[#FCFBF8]/95 px-3 sm:px-5 py-2 flex items-center'>
+                {viewSwitcher}
+              </div>
             </div>
           )}
         </div>
@@ -3658,8 +3289,6 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
       {/* Slide-over Thumbnail Drawer (On-demand Reactive Storyboard) */}
       <ThumbnailDrawer />
 
-      {/* Persistent Floating Shortcut Pill (Page X | Panel Y) */}
-      <FloatingThumbnailPill />
     </div>
   );
 };

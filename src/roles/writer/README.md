@@ -6,12 +6,18 @@ Biên kịch (Writer) chịu trách nhiệm sáng tác kịch bản truyện tra
 ## 2. Route & Màn hình
 - **Route mặc định**: `/workspaces/:workspaceId/series/:seriesId/script`
 - **Màn hình chính**:
-  - `ScriptEditorView.tsx`: Màn hình soạn thảo kịch bản chuyên sâu toàn màn hình, hỗ trợ kiểm tra phiên bản (version compare), đề cương khối kịch bản và AI Breakdown.
+  - `ScriptEditorView.tsx`: Bàn viết kịch bản, bố cục theo Bàn vẽ của Artist:
+    - Header chung (`FocusWorkspaceLayout`): Bộ truyện / Chương, công đoạn Viết → Editor duyệt → Khóa kịch bản, nút Gửi Editor duyệt (Producer: Duyệt kịch bản).
+    - Thanh biểu tượng trái (`ScriptStudioRail`): Phân cảnh, Đề cương, Nhân vật, Nhất quán, Nhập, Trợ lý AI, Lịch sử, Bible Gate.
+    - Trang giấy ở giữa (`ScreenplayFlowEditor`): chỉ có chữ; "+ Panel" trên tiêu đề trang, "+ Thoại" trên tiêu đề panel.
+    - Thanh đáy: chế độ xem (Trang giấy / Thẻ dòng / Thumbnail), loại dòng, dải trang + "Thêm trang" (4 hoặc 5 khung), trạng thái lưu (Ctrl+S).
   - `WriterWorkspace.tsx`: Bàn làm việc nhanh của biên kịch trong cửa sổ phân cảnh / Spread Workbench.
 
 ## 3. Thành phần (Components)
 - `ScriptEditor.tsx`: Trình soạn thảo kịch bản tích hợp trong Task Editor đa vai trò.
 - `components/script/`:
+  - `ScriptStudioRail.tsx`: Thanh biểu tượng 72px của bàn viết (cùng theme `pf-sidebar` với Bàn vẽ), hỗ trợ badge và menu con.
+  - `ScriptScenesDrawer.tsx`: Ngăn kéo danh sách phân cảnh (chọn, đổi tên, xoá cảnh; Producer xoá chương).
   - `ScriptLineItem.tsx`: Biên tập chi tiết từng dòng kịch bản (Speaker, loại thoại, nội dung, ghi chú âm thanh/hành động).
   - `BibleCharactersDrawer.tsx`: Drawer tra cứu và gán nhanh nhân vật/thực thể Bible vào dòng kịch bản.
   - `ConsistencyFindingsDrawer.tsx`: Drawer hiển thị kết quả kiểm tra nhất quán kịch bản và cuộn tới dòng thoại tương ứng.

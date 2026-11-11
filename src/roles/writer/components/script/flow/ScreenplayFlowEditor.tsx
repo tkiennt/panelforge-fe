@@ -3,28 +3,8 @@ import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react';
 import { TextSelection } from '@tiptap/pm/state';
 import StarterKit from '@tiptap/starter-kit';
-import {
-  Lock,
-  Save,
-  CheckCircle2,
-  AlertTriangle,
-  Type,
-  User,
-  MessageSquare,
-  Clapperboard,
-  Film,
-  RotateCcw,
-  Trash2,
-  Plus,
-  Layers,
-  Zap,
-  FileText,
-  LayoutGrid,
-  HelpCircle,
-  Sparkles,
-  ChevronDown,
-  ChevronUp,
-} from 'lucide-react';
+import { AlertTriangle, Check, ChevronDown, Loader2, Plus, RotateCcw, Save, Trash2 } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n';
 import { SceneDetailDto, NarrationMode } from '@/services/scriptLine.service';
 import { PageDto } from '@/services/page.service';
 import { PanelDto } from '@/types/pipeline';
@@ -42,6 +22,8 @@ import {
   generateGuid,
   renumberEditorState,
   createStructuredMangaPageBlocks,
+  createPanelSlotBlocks,
+  getDefaultPanelShot,
 } from './scriptFlowAdapter';
 import { MangaBlockType } from './types';
 import { getNextPageNumber, getNextPanelNumber } from './comic-editor/comicCounting';
@@ -66,7 +48,51 @@ interface ScreenplayFlowEditorProps {
   onOpenInArtistDesk?: (pageNumber?: number, panelId?: string) => void;
   onCreateInBible?: (tempCode: string, name?: string) => void;
   onShowToast?: (title: string, desc: string) => void;
+  /** Mỗi lần tăng giá trị sẽ mở hộp thoại nhập kịch bản (gọi từ thanh biểu tượng bên trái) */
+  importRequestKey?: number;
+  /** Phần tử đặt ở đầu thanh đáy, ví dụ bộ chọn chế độ xem của màn hình cha */
+  dockLeading?: React.ReactNode;
+  /** Tiêu đề bản thảo in ở đầu tờ giấy, ví dụ "Chương 1: Khởi đầu" */
+  manuscriptTitle?: string;
 }
+
+interface PageOutlineItem {
+  pageNumber: number;
+  pos: number;
+  panels: number;
+}
+
+/** Danh sách Trang (vị trí + số panel) để hiển thị dải trang ở thanh đáy */
+function buildPageOutline(doc: any): PageOutlineItem[] {
+  const pages: PageOutlineItem[] = [];
+  doc.forEach((node: any, offset: number) => {
+    const type = node.attrs?.blockType;
+    if (type === 'page_heading') {
+      pages.push({ pageNumber: node.attrs.pageNumber || pages.length + 1, pos: offset, panels: 0 });
+    } else if (type === 'panel_heading' && pages.length > 0) {
+      pages[pages.length - 1].panels++;
+    }
+  });
+  return pages;
+}
+
+function findActivePage(outline: PageOutlineItem[], pos: number): number | null {
+  let active: number | null = null;
+  for (const p of outline) {
+    if (p.pos <= pos) active = p.pageNumber;
+  }
+  return active;
+}
+
+const DOCK_BLOCK_TYPES: MangaBlockType[] = [
+  'stage_direction',
+  'dialogue',
+  'character',
+  'caption',
+  'sfx',
+  'transition',
+  'scene_heading',
+];
 
 interface LocalScriptDraft {
   doc: any;
@@ -92,7 +118,11 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   onOpenInArtistDesk,
   onCreateInBible,
   onShowToast,
+  importRequestKey = 0,
+  dockLeading,
+  manuscriptTitle,
 }) => {
+  const { t } = useTranslation('production');
   const [isSaving, setIsSaving] = useState(false);
   const justSavedRef = useRef(false);
   const [lastSavedTime, setLastSavedTime] = useState<string | null>(null);
@@ -105,8 +135,26 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   const [activeBlockType, setActiveBlockType] = useState<MangaBlockType>('dialogue');
   const [activeNarrationMode, setActiveNarrationMode] = useState<NarrationMode>('Present');
   const [pendingDraft, setPendingDraft] = useState<LocalScriptDraft | null>(null);
-  const [showCheatSheet, setShowCheatSheet] = useState(false);
   const [showAiConvertModal, setShowAiConvertModal] = useState(false);
+  const [pageOutline, setPageOutline] = useState<PageOutlineItem[]>([]);
+  const [activePageNumber, setActivePageNumber] = useState<number | null>(null);
+  const [addPageMenuOpen, setAddPageMenuOpen] = useState(false);
+
+  const syncPageOutline = (doc: any, selectionPos: number) => {
+    const outline = buildPageOutline(doc);
+    // Giữ nguyên mảng cũ khi cấu trúc trang không đổi để không render lại thanh đáy mỗi lần gõ phím
+    setPageOutline((prev) =>
+      prev.length === outline.length &&
+      prev.every((p, i) => p.pos === outline[i].pos && p.panels === outline[i].panels && p.pageNumber === outline[i].pageNumber)
+        ? prev
+        : outline
+    );
+    setActivePageNumber(findActivePage(outline, selectionPos));
+  };
+
+  useEffect(() => {
+    if (importRequestKey > 0) setShowAiConvertModal(true);
+  }, [importRequestKey]);
 
   // Quick View Card State
   const [quickViewCardData, setQuickViewCardData] = useState<QuickViewCardData | null>(null);
@@ -288,7 +336,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
     editorProps: {
       attributes: {
         class:
-          'focus:outline-none min-h-[700px] font-mono text-sm leading-relaxed text-gray-900 bg-transparent selection:bg-orange-100 selection:text-orange-900 caret-[#C2410C]',
+          'focus:outline-none min-h-[60vh] font-studio text-[15px] leading-7 text-stone-900 bg-transparent selection:bg-orange-100 selection:text-orange-900 caret-[#C2410C]',
       },
       handleClick: (view, _pos, event) => {
         const target = event.target as HTMLElement;
@@ -313,6 +361,70 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
             }
             return true;
           }
+        }
+
+        // 1b. "+ Thoại" trên tiêu đề Panel: thêm bóng thoại trống ở cuối Panel đó
+        // 1c. "+ Panel" trên tiêu đề Trang: thêm Panel trống ở cuối Trang đó
+        const addDialogueBtn = target.closest('.panel-add-dialogue-btn');
+        const addPanelBtn = target.closest('.page-add-panel-btn');
+        if (addDialogueBtn || addPanelBtn) {
+          const isPanelAction = Boolean(addDialogueBtn);
+          const headingEl = (addDialogueBtn || addPanelBtn)!.closest(
+            isPanelAction ? '[data-block-type="panel_heading"]' : '[data-block-type="page_heading"]'
+          );
+          if (!headingEl || !view.editable) return true;
+          const { doc } = view.state;
+          const $heading = doc.resolve(view.posAtDOM(headingEl, 0));
+          let depth = $heading.depth;
+          while (depth > 0 && $heading.node(depth).type.name !== 'scriptLineBlock') depth--;
+          if (depth === 0) return true;
+          const headingPos = $heading.before(depth);
+          const heading = $heading.node(depth);
+
+          // Panel kết thúc ở tiêu đề Panel/Trang/Cảnh kế tiếp; Trang kết thúc ở tiêu đề Trang/Cảnh kế tiếp
+          const stopTypes = isPanelAction
+            ? ['panel_heading', 'page_heading', 'scene_heading']
+            : ['page_heading', 'scene_heading'];
+          let insertPos = doc.content.size;
+          let panelsInPage = 0;
+          doc.forEach((node, offset) => {
+            if (offset <= headingPos || insertPos !== doc.content.size) return;
+            if (stopTypes.includes(node.attrs?.blockType)) {
+              insertPos = offset;
+              return;
+            }
+            if (node.attrs?.blockType === 'panel_heading') panelsInPage++;
+          });
+
+          const pageNumber = heading.attrs.pageNumber || 1;
+          const sceneId = heading.attrs.sceneId || null;
+          const json = isPanelAction
+            ? [
+                {
+                  type: 'scriptLineBlock',
+                  attrs: {
+                    scriptLineId: generateGuid(),
+                    sceneId,
+                    blockType: 'dialogue',
+                    narrationMode: 'Present',
+                    pageNumber,
+                    panelNumber: heading.attrs.panelNumber,
+                    inPanel: true,
+                  },
+                },
+              ]
+            : createPanelSlotBlocks(pageNumber, panelsInPage + 1, getDefaultPanelShot(panelsInPage + 1), sceneId);
+
+          const nodes = json.map((n) => view.state.schema.nodeFromJSON(n));
+          const tr = view.state.tr.insert(insertPos, nodes);
+          // Panel mới: con trỏ vào ô mô tả (bỏ qua tiêu đề panel). Thoại mới: con trỏ vào chính nó.
+          const cursorPos = isPanelAction ? insertPos + 1 : insertPos + nodes[0].nodeSize + 1;
+          tr.setSelection(TextSelection.create(tr.doc, cursorPos)).scrollIntoView();
+          view.dispatch(tr);
+          view.focus();
+          if (!isPanelAction) renumberEditorState(editor, cursorPos);
+          setHasUnsavedChanges(true);
+          return true;
         }
 
         // 2. Nút Xóa khung (Panel Delete Button)
@@ -510,7 +622,11 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
         return false;
       },
     },
+    onCreate: ({ editor }) => {
+      syncPageOutline(editor.state.doc, editor.state.selection.from);
+    },
     onSelectionUpdate: ({ editor }) => {
+      syncPageOutline(editor.state.doc, editor.state.selection.from);
       const currentBlock = editor.state.selection.$from.parent;
       if (currentBlock && currentBlock.type.name === 'scriptLineBlock') {
         setActiveBlockType(currentBlock.attrs.blockType || 'stage_direction');
@@ -518,6 +634,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
       }
     },
     onUpdate: ({ editor, transaction }) => {
+      syncPageOutline(editor.state.doc, editor.state.selection.from);
       if (transaction?.getMeta('preventUnsavedChanges')) return;
       // Chế độ chỉ đọc (đóng băng / không có quyền): transaction do hệ thống (chip, đánh số lại, nạp nội dung)
       // không phải chỉnh sửa của người dùng → không đánh dấu chưa lưu, không ghi bản nháp.
@@ -672,7 +789,8 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
   // Cập nhật trạng thái chỉ đọc khi quyền hạn hoặc chương bị đóng băng
   useEffect(() => {
     if (editor) {
-      editor.setEditable(canEditScript && !isChapterLocked);
+      // emitUpdate=false: đổi quyền sửa không phải là chỉnh sửa nội dung, không được đánh dấu "chưa lưu"
+      editor.setEditable(canEditScript && !isChapterLocked, false);
     }
   }, [editor, canEditScript, isChapterLocked]);
 
@@ -773,6 +891,8 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
       });
 
       if (hasUpdate) {
+        tr.setMeta('addToHistory', false);
+        tr.setMeta('preventUnsavedChanges', true);
         editor.view.dispatch(tr);
       }
     } catch (syncErr) {
@@ -861,139 +981,49 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
     setHasUnsavedChanges(true);
   };
 
-  // Chèn nhanh Trang mới (! Trang X)
-  const handleInsertPage = () => {
-    if (!editor || !canEditScript || isChapterLocked) return;
-    const { state, view } = editor;
-    const { selection } = state;
-    const { $from } = selection;
-
-    const nextNum = getNextPageNumber(state.doc);
-    const formattedPage = String(nextNum).padStart(2, '0');
-    const pageText = `Trang ${formattedPage}`;
-
-    // Chèn sau khối hiện tại nếu đang trong một khối, hoặc tại vị trí con trỏ
-    const insertPos = $from.parent.type.name === 'doc' ? selection.from : $from.after();
-    const newBlock = state.schema.nodes.scriptLineBlock.create(
-      {
-        scriptLineId: generateGuid(),
-        blockType: 'page_heading',
-        pageNumber: nextNum,
-      },
-      state.schema.text(pageText)
-    );
-
-    const tr = state.tr.insert(insertPos, newBlock);
-    const targetPos = insertPos + 1 + pageText.length;
-    tr.setSelection(TextSelection.create(tr.doc, targetPos));
-    view.dispatch(tr);
-    editor.commands.focus();
-    setHasUnsavedChanges(true);
-
-    onShowToast?.('Đã chèn Trang', `Đã thêm Trang ${formattedPage}`);
-  };
-
-  // Chèn nhanh Khung hình mới (" Panel X.Y: Cận cảnh) theo số trang hiện tại
-  const handleInsertPanel = (shotName: string = 'Cận cảnh') => {
-    if (!editor || !canEditScript || isChapterLocked) return;
-    const { state, view } = editor;
-    const { selection } = state;
-    const { $from } = selection;
-
-    // Lấy số trang và số panel tiếp theo dựa trên khối hiện tại con trỏ đang đứng
-    const { pageNum, panelNum } = getNextPanelNumber(state.doc, $from.pos);
-    const panelLabel = `" Panel ${pageNum}.${panelNum}: [${shotName}]`;
-
-    // Chèn ngay sau khối hiện tại
-    const insertPos = $from.parent.type.name === 'doc' ? selection.from : $from.after();
-    const newBlock = state.schema.nodes.scriptLineBlock.create(
-      {
-        scriptLineId: generateGuid(),
-        blockType: 'panel_heading',
-        pageNumber: pageNum,
-        panelNumber: panelNum,
-      },
-      state.schema.text(panelLabel)
-    );
-
-    const tr = state.tr.insert(insertPos, newBlock);
-    const targetPos = insertPos + 1 + panelLabel.length;
-    tr.setSelection(TextSelection.create(tr.doc, targetPos));
-    view.dispatch(tr);
-    editor.commands.focus();
-    setHasUnsavedChanges(true);
-
-    onShowToast?.('Đã chèn Panel', `Đã thêm khối Panel ${pageNum}.${panelNum} (${shotName})`);
-  };
-
-  // Chèn một Trang hoàn chỉnh có sẵn 4 hoặc 5 Panel cố định
+  // Thêm Trang mới ở cuối kịch bản, có sẵn 4 hoặc 5 Panel trống
   const handleInsertStructuredPage = (panelsCount: 4 | 5 = 4) => {
     if (!editor || !canEditScript || isChapterLocked) return;
-    const { state } = editor;
-    const nextNum = getNextPageNumber(state.doc);
-    const defaultSceneId = scenes[0]?.id || null;
-    const defaultSpeaker = allBibleEntries?.find((e) => e.category === 'Character')?.name || 'Nhân vật';
-
-    const newBlocks = createStructuredMangaPageBlocks(nextNum, panelsCount, defaultSceneId, defaultSpeaker);
-
-    editor.chain().focus().insertContent(newBlocks).run();
+    const nextNum = getNextPageNumber(editor.state.doc);
+    const newBlocks = createStructuredMangaPageBlocks(nextNum, panelsCount, scenes[0]?.id || null);
+    const endPos = editor.state.doc.content.size;
+    // Con trỏ đặt vào ô mô tả của Panel đầu tiên: sau page heading và panel heading
+    editor.chain().insertContentAt(endPos, newBlocks).run();
     renumberEditorState(editor);
+    focusFirstEmptySlotAfter(endPos);
     setHasUnsavedChanges(true);
-
-    onShowToast?.(
-      `Đã chèn Trang ${nextNum}`,
-      `Tạo sẵn Trang ${nextNum} với ${panelsCount} Panel tiêu chuẩn và các dòng thoại mẫu.`
-    );
+    onShowToast?.(`Đã thêm Trang ${nextNum}`, `Trang ${nextNum} có sẵn ${panelsCount} Panel trống.`);
   };
 
-  // Chèn mẫu cấu trúc Manga/Webtoon hoàn chỉnh
-  const handleInsertComicTemplate = () => {
-    if (!editor || !canEditScript || isChapterLocked) return;
-    editor
-      .chain()
-      .focus()
-      .insertContent([
-        {
-          type: 'scriptLineBlock',
-          attrs: { scriptLineId: generateGuid(), blockType: 'page_heading' },
-          content: [{ type: 'text', text: 'Trang 01' }],
-        },
-        {
-          type: 'scriptLineBlock',
-          attrs: { scriptLineId: generateGuid(), blockType: 'panel_heading' },
-          content: [{ type: 'text', text: '" Panel 1.1: [Toàn cảnh]' }],
-        },
-        {
-          type: 'scriptLineBlock',
-          attrs: { scriptLineId: generateGuid(), blockType: 'stage_direction' },
-          content: [{ type: 'text', text: 'Thành phố Neo Tokyo về đêm rực rỡ ánh đèn neon dưới làn mưa phùn.' }],
-        },
-        {
-          type: 'scriptLineBlock',
-          attrs: { scriptLineId: generateGuid(), blockType: 'panel_heading' },
-          content: [{ type: 'text', text: '" Panel 1.2: [Cận cảnh]' }],
-        },
-        {
-          type: 'scriptLineBlock',
-          attrs: { scriptLineId: generateGuid(), blockType: 'dialogue', speakerName: 'Minh' },
-          content: [{ type: 'text', text: '@Minh : "Chúng ta không còn nhiều thời gian nữa..."' }],
-        },
-      ])
-      .run();
-
-    renumberEditorState(editor);
-    onShowToast?.('Đã chèn mẫu', 'Đã thêm mẫu cấu trúc Trang 1 (Panel 1.1, Panel 1.2) và Thoại.');
+  // Đặt con trỏ vào khối scriptLineBlock rỗng đầu tiên kể từ vị trí `fromPos`
+  const focusFirstEmptySlotAfter = (fromPos: number) => {
+    if (!editor) return;
+    let target: number | null = null;
+    editor.state.doc.descendants((node, pos) => {
+      if (target !== null) return false;
+      if (pos >= fromPos && node.type.name === 'scriptLineBlock' && node.content.size === 0) {
+        target = pos + 1;
+      }
+      return false;
+    });
+    if (target !== null) {
+      editor.chain().focus().setTextSelection(target).scrollIntoView().run();
+    }
   };
 
   // Áp dụng kịch bản sau khi chuyển đổi bằng Smart Heuristic / AI
   const handleApplyConvertedScript = (scriptText: string, mode: 'append' | 'insert' | 'replace') => {
     if (!editor) return;
     const defaultSceneId = scenes[0]?.id || '';
+    const characters = allBibleEntries
+      .filter((e) => e.category === 'Character' && e.isActive)
+      .map((e) => ({ id: e.id, name: e.name, code: e.code }));
 
     if (mode === 'replace') {
       const blocks = convertScriptTextToScreenplayBlocks(scriptText, {
         startingPageNumber: 1,
         sceneId: defaultSceneId,
+        characters,
       });
       editor.commands.setContent({ type: 'doc', content: blocks });
       setHasUnsavedChanges(true);
@@ -1006,6 +1036,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
       const blocks = convertScriptTextToScreenplayBlocks(scriptText, {
         startingPageNumber: nextNum,
         sceneId: defaultSceneId,
+        characters,
       });
       const endPos = editor.state.doc.content.size;
       editor.chain().focus().insertContentAt(endPos, blocks).run();
@@ -1020,6 +1051,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
       const blocks = convertScriptTextToScreenplayBlocks(scriptText, {
         startingPageNumber: currentNum,
         sceneId: defaultSceneId,
+        characters,
       });
       editor.chain().focus().insertContent(blocks).run();
       setHasUnsavedChanges(true);
@@ -1027,427 +1059,285 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
       return;
     }
   };
-  const compactBlockButtons: { type: MangaBlockType; label: string; icon: any }[] = [
-    { type: 'dialogue', label: 'Thoại', icon: MessageSquare },
-    { type: 'character', label: 'Nhân vật', icon: User },
-    { type: 'caption', label: 'Lời dẫn', icon: FileText },
-    { type: 'stage_direction', label: 'Chỉ dẫn', icon: Film },
-    { type: 'sfx', label: '⚡ SFX', icon: Zap },
-    { type: 'scene_heading', label: 'Phân cảnh', icon: Clapperboard },
-    { type: 'transition', label: 'Chuyển cảnh', icon: Type },
-  ];
-
   const isReadOnly = !canEditScript || isChapterLocked;
+  const activeBlockIsHeading = activeBlockType === 'page_heading' || activeBlockType === 'panel_heading';
+
+  const scrollToPage = (pos: number) => {
+    if (!editor) return;
+    const dom = editor.view.nodeDOM(pos) as HTMLElement | null;
+    dom?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    editor.chain().focus().setTextSelection(pos + 1).run();
+  };
+
+  const saveStatus = isSaving
+    ? t('scriptStudio.dock.saving')
+    : hasUnsavedChanges
+      ? t('scriptStudio.dock.unsaved')
+      : lastSavedTime
+        ? t('scriptStudio.dock.saved', { time: lastSavedTime })
+        : t('scriptStudio.dock.idle');
 
   return (
-    <div className="flex flex-col lg:flex-row items-start justify-center gap-6 w-full py-6 px-2 sm:px-4 bg-[#F2EFE9] min-h-[calc(100vh-100px)]">
-      {/* 1. KHUNG TRANG GIẤY SOẠN THẢO CHÍNH (CONTINUOUS LONG PAPER SHEET ~880px) */}
-      <div
-        className="max-w-[880px] w-full mx-auto bg-white border border-[#E0DCD3] shadow-md rounded-xs flex flex-col min-h-[1100px] relative text-gray-900 transition-shadow hover:shadow-lg"
-        onMouseOver={(e) => {
-          const target = e.target as HTMLElement;
-          const mentionEl = target.closest('.mention') as HTMLElement | null;
-          if (mentionEl) {
-            const label = mentionEl.getAttribute('data-label') || '';
-            const id = mentionEl.getAttribute('data-id') || '';
-            const entry = allBibleEntries.find((b) => b.id === id || b.name.toLowerCase() === label.toLowerCase());
-            if (entry) {
-              const rect = mentionEl.getBoundingClientRect();
-              setHoveredMention({
-                x: rect.left,
-                y: rect.bottom + 8,
-                entry,
-              });
-              return;
-            }
-          }
-        }}
-        onMouseOut={(e) => {
-          const target = e.target as HTMLElement;
-          if (target.closest('.mention')) {
-            setHoveredMention(null);
-          }
-        }}
-      >
-        {/* Banner Khôi phục Bản Nháp Cục Bộ (Local Draft Recovery Banner) */}
-        {pendingDraft && !isReadOnly && (
-          <div className="flex items-center justify-between gap-3 px-6 py-2.5 bg-amber-50 border-b border-amber-200 text-amber-900 text-xs">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-              <span>
-                Bản nháp lúc{' '}
-                <strong>
-                  {new Date(pendingDraft.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </strong>{' '}
-                chưa lưu.
-              </span>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                type="button"
-                onClick={handleRestoreDraft}
-                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-amber-800 bg-amber-200/80 hover:bg-amber-300 rounded-lg transition-colors cursor-pointer"
-              >
-                <RotateCcw className="w-3.5 h-3.5" /> Khôi phục
-              </button>
-              <button
-                type="button"
-                onClick={handleDiscardDraft}
-                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
-              >
-                <Trash2 className="w-3.5 h-3.5" /> Bỏ qua
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Bảng Cẩm Nang Cú Pháp Rút Gọn */}
-        {showCheatSheet && (
-          <div className="bg-[#FAF8F5] border-b border-[#E5E0D8] p-4 text-xs space-y-2 animate-in fade-in duration-150">
-            <div className="flex items-center justify-between">
-              <span className="font-bold text-[#C2410C] flex items-center gap-1.5 text-xs">
-                <Sparkles className="w-3.5 h-3.5" />
-                Cú pháp phân đoạn Screenplay (Trang giấy liền mạch):
-              </span>
-              <button
-                type="button"
-                onClick={() => setShowCheatSheet(false)}
-                className="text-gray-400 hover:text-gray-600 p-0.5 cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
-              <div className="bg-white p-2 rounded-lg border border-[#E5E0D8]">
-                <strong className="text-[#EA580C]"># (gõ đầu dòng)</strong>
-                <p className="text-gray-500">Tạo Trang cam tự đánh số</p>
-              </div>
-              <div className="bg-white p-2 rounded-lg border border-[#E5E0D8]">
-                <strong className="text-purple-700">- (gõ đầu dòng)</strong>
-                <p className="text-gray-500">Tạo Panel tím tự đánh số</p>
-              </div>
-              <div className="bg-white p-2 rounded-lg border border-[#E5E0D8]">
-                <strong className="text-amber-800">LUFFY: Thoại</strong>
-                <p className="text-gray-500">Lời thoại nhân vật</p>
-              </div>
-              <div className="bg-white p-2 rounded-lg border border-[#E5E0D8]">
-                <strong className="text-stone-700">@...</strong>
-                <p className="text-gray-500">Chèn chip Bible & Panel</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* VÙNG SOẠN THẢO TRANG GIẤY TIPTAP — CHỈ CÓ CHỮ, KHÔNG CÓ ẢNH CỐ ĐỊNH NÀO */}
+    <div className="flex-1 min-h-0 flex flex-col bg-[#F3F0E9]">
+      {/* Bàn viết: tờ giấy đặt giữa nền giấy ấm, không có thanh công cụ chen vào vùng viết */}
+      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-3 sm:px-6 py-8">
         <div
-          data-testid="paper-editor-sheet"
-          className="relative paper-editor-sheet flex-1 px-8 sm:px-14 py-10 transition-colors"
-          onMouseOver={handleSheetMouseOver}
-          onMouseOut={handleSheetMouseOut}
-          onClick={() => {
-            if (editor && !editor.isFocused) {
-              editor.commands.focus();
+          className="max-w-[820px] mx-auto bg-white rounded-sm border border-stone-200/80 shadow-[0_1px_2px_rgba(28,25,23,0.05),0_12px_32px_-16px_rgba(28,25,23,0.22)] relative"
+          onMouseOver={(e) => {
+            const target = e.target as HTMLElement;
+            const mentionEl = target.closest('.mention') as HTMLElement | null;
+            if (mentionEl) {
+              const label = mentionEl.getAttribute('data-label') || '';
+              const id = mentionEl.getAttribute('data-id') || '';
+              const entry = allBibleEntries.find((b) => b.id === id || b.name.toLowerCase() === label.toLowerCase());
+              if (entry) {
+                const rect = mentionEl.getBoundingClientRect();
+                setHoveredMention({ x: rect.left, y: rect.bottom + 8, entry });
+              }
             }
           }}
+          onMouseOut={(e) => {
+            if ((e.target as HTMLElement).closest('.mention')) setHoveredMention(null);
+          }}
         >
-          <style>{`
-            /* Con trỏ chuột tương phản cao (Screenplay I-Beam & Stylus Cursor) */
-            .paper-editor-sheet,
-            .paper-editor-sheet .tiptap,
-            .paper-editor-sheet .ProseMirror,
-            .paper-editor-sheet .script-block {
-              cursor: text !important;
-              caret-color: #C2410C !important;
-            }
-
-            /* CSS Styling cho SFX và Character */
-            .paper-editor-sheet .script-block[data-block-type="character"]::before {
-              content: "";
-              display: inline-block;
-              width: 8px;
-              height: 8px;
-              border-radius: 9999px;
-              background-color: #4F46E5;
-              margin-right: 8px;
-              vertical-align: middle;
-            }
-            .paper-editor-sheet .script-block[data-block-type="sfx"]::before {
-              content: "⚡ SFX";
-              display: inline-flex;
-              align-items: center;
-              font-family: inherit;
-              font-size: 10px;
-              font-weight: 900;
-              letter-spacing: 0.05em;
-              background-color: #F59E0B;
-              color: white;
-              padding: 1px 6px;
-              border-radius: 4px;
-              margin-right: 8px;
-              user-select: none;
-              vertical-align: middle;
-            }
-            .paper-editor-sheet .mention {
-              user-select: text !important;
-            }
-
-            /* Hiệu ứng di chuột trực quan trên từng dòng kịch bản (Ambient Line Hover) */
-            .paper-editor-sheet .script-block {
-              position: relative;
-              border-radius: 4px;
-              transition: background-color 0.1s ease;
-            }
-            .paper-editor-sheet .script-block:hover {
-              background-color: rgba(234, 88, 12, 0.03);
-            }
-            .paper-editor-sheet .ProseMirror-focused .script-block:focus,
-            .paper-editor-sheet .script-block.ProseMirror-selectednode {
-              outline: none;
-              background-color: rgba(234, 88, 12, 0.05);
-            }
-          `}</style>
-          <EditorContent editor={editor} />
-
-          {/* D. Hovercard hiển thị chân dung & tóm tắt tiểu sử nhân vật */}
-          {hoveredMention && (
-            <div
-              style={{ top: hoveredMention.y, left: hoveredMention.x }}
-              className="fixed z-50 bg-white rounded-xl shadow-2xl border border-indigo-100 p-3 w-72 pointer-events-none animate-in fade-in zoom-in-95 duration-100"
-            >
-              <div className="flex items-center gap-2.5">
-                {hoveredMention.entry.referenceImageUrl || hoveredMention.entry.effectiveRevision?.referenceImageUrl ? (
-                  <img
-                    src={hoveredMention.entry.referenceImageUrl || hoveredMention.entry.effectiveRevision?.referenceImageUrl || ''}
-                    alt={hoveredMention.entry.name}
-                    className="w-10 h-10 rounded-full object-cover border border-indigo-200 shrink-0"
-                  />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-indigo-100 text-[#4338CA] font-bold text-sm flex items-center justify-center shrink-0">
-                    {hoveredMention.entry.name.charAt(0).toUpperCase()}
-                  </div>
-                )}
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-bold text-xs text-gray-900 truncate">{hoveredMention.entry.name}</span>
-                    <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-indigo-50 text-[#4338CA] border border-indigo-200 shrink-0">
-                      {hoveredMention.entry.category === 'Location' ? '📍 Địa danh' : hoveredMention.entry.category === 'Prop' ? '📦 Đạo cụ' : '👤 Nhân vật'}
-                    </span>
-                  </div>
-                  {hoveredMention.entry.subtitle && (
-                    <p className="text-[10px] text-gray-500 truncate">{hoveredMention.entry.subtitle}</p>
-                  )}
-                </div>
+          {pendingDraft && !isReadOnly && (
+            <div className="flex items-center justify-between gap-3 px-6 py-2.5 bg-amber-50 border-b border-amber-200 text-amber-900 text-xs">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>
+                  Bản nháp lúc{' '}
+                  <strong>
+                    {new Date(pendingDraft.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </strong>{' '}
+                  chưa lưu.
+                </span>
               </div>
-              {(hoveredMention.entry.description || hoveredMention.entry.effectiveRevision?.summary) && (
-                <p className="mt-2 text-[11px] text-gray-600 line-clamp-2 leading-relaxed border-t border-gray-100 pt-1.5">
-                  {hoveredMention.entry.description || hoveredMention.entry.effectiveRevision?.summary}
-                </p>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={handleRestoreDraft}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-amber-800 bg-amber-200/80 hover:bg-amber-300 rounded-lg transition-colors cursor-pointer"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" /> Khôi phục
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDiscardDraft}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-stone-600 hover:text-stone-900 transition-colors cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" /> Bỏ qua
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div
+            data-testid="paper-editor-sheet"
+            className="relative paper-editor-sheet px-8 sm:px-16 lg:px-20 py-12 sm:py-16"
+            onMouseOver={handleSheetMouseOver}
+            onMouseOut={handleSheetMouseOut}
+            onClick={() => {
+              if (editor && !editor.isFocused) editor.commands.focus();
+            }}
+          >
+            <style>{`
+              .paper-editor-sheet .ProseMirror,
+              .paper-editor-sheet .script-block {
+                cursor: text;
+                caret-color: #C2410C;
+              }
+              .paper-editor-sheet .mention { user-select: text !important; }
+              .paper-editor-sheet .script-block { position: relative; border-radius: 4px; }
+              .paper-editor-sheet .script-block[data-block-type="sfx"]::before {
+                content: "SFX";
+                display: inline-block;
+                font-size: 12px;
+                font-weight: 700;
+                letter-spacing: 0.08em;
+                color: #B45309;
+                margin-right: 10px;
+              }
+            `}</style>
+            {manuscriptTitle && (
+              <h2 className="font-serif text-3xl sm:text-4xl text-stone-900 text-center mb-12 select-none">
+                {manuscriptTitle}
+              </h2>
+            )}
+            <EditorContent editor={editor} />
+
+            {hoveredMention && (
+              <div
+                style={{ top: hoveredMention.y, left: hoveredMention.x }}
+                className="fixed z-50 bg-white rounded-xl shadow-xl border border-stone-200/80 p-3 w-72 pointer-events-none animate-in fade-in zoom-in-95 duration-100"
+              >
+                <div className="flex items-center gap-2.5">
+                  {hoveredMention.entry.referenceImageUrl || hoveredMention.entry.effectiveRevision?.referenceImageUrl ? (
+                    <img
+                      src={hoveredMention.entry.referenceImageUrl || hoveredMention.entry.effectiveRevision?.referenceImageUrl || ''}
+                      alt={hoveredMention.entry.name}
+                      className="w-10 h-10 rounded-full object-cover border border-stone-200 shrink-0"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-orange-50 text-[#C2410C] font-serif text-base flex items-center justify-center shrink-0">
+                      {hoveredMention.entry.name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <span className="block font-semibold text-sm text-stone-900 truncate">{hoveredMention.entry.name}</span>
+                    {hoveredMention.entry.subtitle && (
+                      <span className="block text-xs text-stone-500 truncate">{hoveredMention.entry.subtitle}</span>
+                    )}
+                  </div>
+                </div>
+                {(hoveredMention.entry.description || hoveredMention.entry.effectiveRevision?.summary) && (
+                  <p className="mt-2 text-xs text-stone-600 line-clamp-3 leading-relaxed border-t border-stone-100 pt-2">
+                    {hoveredMention.entry.description || hoveredMention.entry.effectiveRevision?.summary}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {quickViewCardData && quickViewPos && (
+            <QuickViewCard
+              data={quickViewCardData}
+              position={quickViewPos}
+              onMouseEnter={handleCardMouseEnter}
+              onMouseLeave={handleCardMouseLeave}
+            />
+          )}
+        </div>
+      </div>
+
+      {/* Thanh đáy kiểu Bàn vẽ: loại dòng · dải trang · trạng thái lưu */}
+      <div
+        data-testid="script-bottom-dock"
+        className="shrink-0 border-t border-stone-200/80 bg-[#FCFBF8]/95 px-3 sm:px-5 py-2 flex items-center gap-3 sm:gap-4"
+      >
+        {dockLeading}
+
+        {!isReadOnly && (
+          <label className="hidden md:flex items-center gap-2 text-xs text-stone-500 shrink-0">
+            <span className="hidden 2xl:inline">{t('scriptStudio.dock.blockType')}</span>
+            <select
+              data-testid="dock-block-type-select"
+              value={activeBlockIsHeading ? '' : activeBlockType}
+              disabled={activeBlockIsHeading}
+              onChange={(e) => setBlockType(e.target.value as MangaBlockType)}
+              className="rounded-lg border border-stone-200 bg-white px-2 py-1.5 text-sm text-stone-800 outline-none focus:border-orange-400 disabled:opacity-50 cursor-pointer"
+            >
+              {activeBlockIsHeading && <option value="">{t(`scriptStudio.blocks.${activeBlockType}`)}</option>}
+              {DOCK_BLOCK_TYPES.map((type) => (
+                <option key={type} value={type}>
+                  {t(`scriptStudio.blocks.${type}`)}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+
+        <div className="flex-1 min-w-0 flex items-center justify-center-safe gap-1.5">
+        <nav
+          aria-label={t('scriptStudio.dock.pages')}
+          className="min-w-0 flex items-center gap-1.5 overflow-x-auto custom-scrollbar py-0.5"
+        >
+          {pageOutline.map((p) => {
+            const isActive = p.pageNumber === activePageNumber;
+            return (
+              <button
+                key={`${p.pageNumber}-${p.pos}`}
+                type="button"
+                onClick={() => scrollToPage(p.pos)}
+                title={t('scriptStudio.dock.page', { n: p.pageNumber })}
+                aria-current={isActive ? 'page' : undefined}
+                className={`shrink-0 w-9 h-11 rounded-[3px] border flex flex-col items-center justify-end pb-1 gap-1 transition-all cursor-pointer ${
+                  isActive
+                    ? 'border-[#EA580C] bg-white shadow-sm ring-1 ring-[#EA580C]/30'
+                    : 'border-stone-200 bg-white hover:border-stone-400'
+                }`}
+              >
+                <span className="flex flex-col gap-[2px] w-5">
+                  {Array.from({ length: Math.min(p.panels, 5) }).map((_, idx) => (
+                    <span key={idx} className={`h-[3px] rounded-full ${isActive ? 'bg-orange-300' : 'bg-stone-200'}`} />
+                  ))}
+                </span>
+                <span className={`text-xs font-mono leading-none ${isActive ? 'text-[#C2410C] font-bold' : 'text-stone-500'}`}>
+                  {p.pageNumber}
+                </span>
+              </button>
+            );
+          })}
+        </nav>
+
+          {!isReadOnly && (
+            <div className="relative shrink-0">
+              <button
+                type="button"
+                data-testid="dock-add-page-btn"
+                onClick={() => setAddPageMenuOpen((v) => !v)}
+                aria-expanded={addPageMenuOpen}
+                className="h-11 px-3 rounded-[3px] border border-dashed border-stone-300 text-stone-500 hover:text-[#C2410C] hover:border-[#EA580C] flex items-center gap-1 text-xs font-medium cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>{t('scriptStudio.dock.addPage')}</span>
+                <ChevronDown className="w-3 h-3" />
+              </button>
+              {addPageMenuOpen && (
+                <div
+                  role="menu"
+                  className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-44 rounded-xl border border-stone-200/80 bg-white p-1.5 shadow-lg z-40"
+                >
+                  {([4, 5] as const).map((count) => (
+                    <button
+                      key={count}
+                      type="button"
+                      role="menuitem"
+                      data-testid={`dock-add-page-${count}`}
+                      onClick={() => {
+                        setAddPageMenuOpen(false);
+                        handleInsertStructuredPage(count);
+                      }}
+                      className="w-full text-left px-3 py-2 rounded-lg text-sm text-stone-800 hover:bg-orange-50 cursor-pointer"
+                    >
+                      {t(count === 4 ? 'scriptStudio.dock.fourPanels' : 'scriptStudio.dock.fivePanels')}
+                    </button>
+                  ))}
+                </div>
               )}
             </div>
           )}
         </div>
 
-        {/* Thẻ xem nhanh hợp nhất (QuickViewCard) hiển thị dạng tooltip nổi */}
-        {quickViewCardData && quickViewPos && (
-          <QuickViewCard
-            data={quickViewCardData}
-            position={quickViewPos}
-            onMouseEnter={handleCardMouseEnter}
-            onMouseLeave={handleCardMouseLeave}
-          />
-        )}
-
-        {/* Footer thông tin rút gọn */}
-        <div className="flex items-center justify-between px-8 py-3 bg-[#FAF8F5] border-t border-[#EBE7DF] text-[11px] text-gray-500 font-mono">
-          <div className="flex items-center gap-3">
-            <span>Gõ # tạo Trang · Gõ - tạo Panel · Gõ @ gợi ý Bible/Panel</span>
-          </div>
-          <div>
-            Khối: <strong className="text-amber-700 uppercase">{activeBlockType}</strong>
-          </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {!isReadOnly && (
+            <span className="hidden 2xl:inline text-xs text-stone-400 font-mono">{t('scriptStudio.dock.syntaxHint')}</span>
+          )}
+          {!isReadOnly && (
+            <button
+              type="button"
+              data-testid="dock-save-btn"
+              disabled={!hasUnsavedChanges || isSaving}
+              onClick={handleManualSave}
+              title="Ctrl + S"
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer disabled:cursor-default ${
+                hasUnsavedChanges
+                  ? 'bg-[#EA580C] text-white hover:bg-[#C2410C]'
+                  : 'text-stone-500 bg-transparent'
+              }`}
+            >
+              {isSaving ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : hasUnsavedChanges ? (
+                <Save className="w-3.5 h-3.5" />
+              ) : (
+                <Check className="w-3.5 h-3.5 text-emerald-600" />
+              )}
+              <span>{saveStatus}</span>
+            </button>
+          )}
         </div>
       </div>
 
-      {/* 2. THANH CÔNG CỤ TINH GỌN BÊN TAY PHẢI (RIGHT COMPACT TOOL PALETTE) */}
-      {/* Chỉ đọc: toàn bộ nút đều bị khoá nên ẩn bảng, chỉ giữ Cú pháp để trang giấy rộng chỗ */}
-      {isReadOnly ? (
-        <aside className="w-full lg:w-auto shrink-0 lg:sticky lg:top-4 font-sans" data-testid="flow-readonly-palette">
-          <button
-            type="button"
-            onClick={() => setShowCheatSheet((prev) => !prev)}
-            className="flex items-center gap-1 py-1.5 px-2.5 rounded-lg text-xs font-semibold bg-white text-stone-600 border border-gray-200 hover:text-stone-900 cursor-pointer"
-            title="Xem bảng hướng dẫn cú pháp gõ Trang & Khung hình"
-          >
-            <HelpCircle className="w-3.5 h-3.5 text-[#C2410C]" />
-            <span>Cú pháp</span>
-          </button>
-        </aside>
-      ) : (
-        <aside className="w-full lg:w-48 shrink-0 lg:sticky lg:top-4 space-y-2.5 font-sans">
-          {/* Nhóm 1: Tạo Nhanh Trang & Panel */}
-          <div className="bg-white border border-[#D8D2C5] rounded-xl p-3 shadow-xs space-y-2">
-            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-1">
-              Cấu trúc phân đoạn
-            </div>
-
-            <button
-              type="button"
-              disabled={!canEditScript || isChapterLocked}
-              onClick={handleInsertPage}
-              className="flex items-center justify-center gap-1.5 w-full py-2 px-3 rounded-lg text-xs font-bold text-white bg-[#EA580C] hover:bg-[#C2410C] shadow-2xs transition-all disabled:opacity-40 cursor-pointer"
-              title="Chèn Trang mới: # Trang N"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <Layers className="w-3.5 h-3.5" />
-              <span>+ Trang (cam)</span>
-            </button>
-
-            {/* Tạo trang cố định 4 hoặc 5 Panel chuẩn */}
-            <div className="grid grid-cols-2 gap-1.5 pt-0.5">
-              <button
-                type="button"
-                disabled={!canEditScript || isChapterLocked}
-                onClick={() => handleInsertStructuredPage(4)}
-                className="flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-[11px] font-bold text-stone-800 bg-[#FAF9F5] hover:bg-stone-100 border border-stone-300 shadow-2xs transition-all disabled:opacity-40 cursor-pointer"
-                title="Tạo Trang mới có sẵn 4 Panel chuẩn (4-Koma / Webtoon)"
-              >
-                <Plus className="w-3 h-3 text-[#EA580C]" />
-                <span>Trang 4 Ô</span>
-              </button>
-
-              <button
-                type="button"
-                disabled={!canEditScript || isChapterLocked}
-                onClick={() => handleInsertStructuredPage(5)}
-                className="flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-[11px] font-bold text-stone-800 bg-[#FAF9F5] hover:bg-stone-100 border border-stone-300 shadow-2xs transition-all disabled:opacity-40 cursor-pointer"
-                title="Tạo Trang mới có sẵn 5 Panel chuẩn (Manga Shonen)"
-              >
-                <Plus className="w-3 h-3 text-[#EA580C]" />
-                <span>Trang 5 Ô</span>
-              </button>
-            </div>
-
-            <button
-              type="button"
-              disabled={!canEditScript || isChapterLocked}
-              onClick={() => handleInsertPanel('Cận cảnh')}
-              className="flex items-center justify-center gap-1.5 w-full py-2 px-3 rounded-lg text-xs font-bold text-purple-950 bg-purple-100 hover:bg-purple-200 border border-purple-300 shadow-2xs transition-all disabled:opacity-40 cursor-pointer"
-              title="Chèn Khung hình mới: - Panel X.Y"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <LayoutGrid className="w-3.5 h-3.5" />
-              <span>+ Panel (tím)</span>
-            </button>
-
-            <button
-              type="button"
-              disabled={!canEditScript || isChapterLocked}
-              onClick={handleInsertComicTemplate}
-              className="flex items-center justify-center gap-1.5 w-full py-1.5 px-3 rounded-lg text-xs font-semibold text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-200 transition-all disabled:opacity-40 cursor-pointer"
-              title="Chèn mẫu cấu trúc Trang & Panel"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-              <span>Mẫu truyện</span>
-            </button>
-
-            <button
-              type="button"
-              disabled={!canEditScript || isChapterLocked}
-              onClick={() => setShowAiConvertModal(true)}
-              className="flex items-center justify-center gap-1.5 w-full py-1.5 px-3 rounded-lg text-xs font-bold text-white bg-gradient-to-r from-[#C2410C] to-indigo-700 hover:from-[#9A3412] hover:to-indigo-800 shadow-2xs transition-all disabled:opacity-40 cursor-pointer"
-              title="Chuyển đổi văn bản thô hoặc AI tạo kịch bản"
-            >
-              <Zap className="w-3.5 h-3.5 text-amber-300" />
-              <span>⚡ AI Chuyển đổi</span>
-            </button>
-          </div>
-
-          {/* Nhóm 2: Định Dạng Khối (Blocks) */}
-          <div className="bg-white border border-[#D8D2C5] rounded-xl p-3 shadow-xs space-y-1.5">
-            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-1">
-              Khối kịch bản
-            </div>
-
-            <div className="grid grid-cols-1 gap-1">
-              {compactBlockButtons.map(({ type, label, icon: Icon }) => (
-                <button
-                  key={type}
-                  type="button"
-                  disabled={!canEditScript || isChapterLocked}
-                  onClick={() => setBlockType(type)}
-                  className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 w-full text-left ${activeBlockType === type
-                      ? 'bg-amber-600 text-white shadow-2xs font-bold'
-                      : 'bg-white text-gray-700 border border-gray-200/80 hover:border-amber-400 hover:text-amber-700'
-                    } disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer`}
-                >
-                  <Icon className="w-3.5 h-3.5 shrink-0" />
-                  <span className="truncate">{label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Nhóm 3: Lưu & Cú Pháp */}
-          <div className="bg-white border border-[#D8D2C5] rounded-xl p-3 shadow-xs space-y-2">
-            <button
-              type="button"
-              disabled={!hasUnsavedChanges || isSaving || !canEditScript || isChapterLocked}
-              onClick={handleManualSave}
-              title="Lưu kịch bản lên máy chủ (Ctrl + S)"
-              className="flex items-center justify-center gap-1.5 w-full py-2 px-3 rounded-lg text-xs font-bold bg-[#EA580C] text-white hover:bg-[#C2410C] shadow-2xs transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-            >
-              <Save className="w-3.5 h-3.5" />
-              <span>{isSaving ? 'Đang lưu...' : 'Lưu kịch bản'}</span>
-            </button>
-
-            {/* Trạng thái lưu gọn */}
-            <div className="text-[11px] text-center font-mono py-0.5">
-              {isSaving ? (
-                <span className="text-amber-600 font-medium">Đang lưu...</span>
-              ) : hasUnsavedChanges ? (
-                <span className="text-amber-700 font-medium flex items-center justify-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" /> Chưa lưu (Ctrl+S)
-                </span>
-              ) : lastSavedTime ? (
-                <span className="text-emerald-600 flex items-center justify-center gap-1">
-                  <CheckCircle2 className="w-3 h-3 text-emerald-500" /> Đã lưu {lastSavedTime}
-                </span>
-              ) : (
-                <span className="text-gray-400">Ctrl + S để lưu</span>
-              )}
-            </div>
-
-            {/* Thông tin phiên bản & cơ chế lưu Working Draft */}
-            <div className="pt-2 border-t border-[#EBE7DF] text-[10px] text-gray-500 text-center leading-tight">
-              <div className="font-semibold text-gray-700 flex items-center justify-center gap-1">
-                <span>Bản thảo:</span>
-                <span className="font-mono font-bold text-amber-800 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200">
-                  v{chapterVersion ?? 0}
-                </span>
-              </div>
-              <p className="text-[9px] text-gray-400 mt-1">
-                Writer lưu không tăng version. Chỉ tăng khi gửi Editor duyệt và Editor yêu cầu viết lại.
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setShowCheatSheet((prev) => !prev)}
-              className={`flex items-center justify-center gap-1 w-full py-1.5 px-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer border ${showCheatSheet
-                  ? 'bg-[#FFF2E6] text-[#C2410C] border-[#FDBA74]'
-                  : 'bg-white text-stone-600 border-gray-200 hover:text-stone-900'
-                }`}
-              title="Xem bảng hướng dẫn cú pháp gõ Trang & Khung hình"
-            >
-              <HelpCircle className="w-3.5 h-3.5 text-[#C2410C]" />
-              <span>Cú pháp Screenplay</span>
-              {showCheatSheet ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-            </button>
-          </div>
-        </aside>
-      )}
-
-      {/* 4. MODAL SMART CONVERT & AI BIÊN KỊCH */}
       <AiScriptConvertModal
         isOpen={showAiConvertModal}
         onClose={() => setShowAiConvertModal(false)}

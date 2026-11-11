@@ -10,6 +10,9 @@ import {
 import { MangaBlockType } from '../types';
 import { generateGuid, renumberEditorState } from '../scriptFlowAdapter';
 
+const HEADING_CONTROL_CLASS =
+  'shrink-0 cursor-pointer select-none font-sans normal-case tracking-normal text-xs font-medium px-2 py-0.5 rounded-md transition-all';
+
 export const ScriptLineBlockNode = Node.create({
   name: 'scriptLineBlock',
   group: 'block',
@@ -129,112 +132,71 @@ export const ScriptLineBlockNode = Node.create({
 
   renderHTML({ HTMLAttributes }) {
     const blockType = (HTMLAttributes['data-block-type'] || 'caption') as MangaBlockType;
-    const inPanel = HTMLAttributes['data-in-panel'] === 'true';
-
-    const panelIndent = inPanel && blockType !== 'page_heading' && blockType !== 'panel_heading' && blockType !== 'scene_heading'
-      ? 'pl-3 ml-1 '
-      : '';
-    let classNames = `script-block font-mono my-1 transition-all duration-150 outline-none ${panelIndent}`;
+    const attrs = (extra: string) =>
+      mergeAttributes(HTMLAttributes, {
+        class: `script-block outline-none transition-colors duration-150 ${extra}`,
+        'data-block-type': blockType,
+      });
+    // Nút điều khiển nằm ngoài vùng chữ, chỉ hiện rõ khi rê chuột vào dòng tiêu đề để giữ trang giấy yên tĩnh
+    const control = (cls: string, title: string, label: string, alwaysVisible = false) => [
+      'button',
+      {
+        type: 'button',
+        class: `${cls} ${HEADING_CONTROL_CLASS} ${alwaysVisible ? 'opacity-70' : 'opacity-0'} group-hover:opacity-100 focus:opacity-100`,
+        contenteditable: 'false',
+        title,
+      },
+      label,
+    ];
 
     switch (blockType) {
       case 'scene_heading':
-        classNames += 'font-bold uppercase tracking-wider text-base text-gray-900 border-b border-gray-300 pb-1 mt-4 mb-2 flex items-center justify-between group';
         return [
           'div',
-          mergeAttributes(HTMLAttributes, { class: classNames, 'data-block-type': blockType }),
+          attrs('group flex items-baseline justify-between gap-3 font-serif text-2xl text-stone-900 mt-12 first:mt-0 mb-5 pb-3 border-b border-stone-200'),
           ['span', { class: 'scene-heading-content flex-1' }, 0],
-          [
-            'button',
-            {
-              type: 'button',
-              class:
-                'scene-delete-btn ml-auto cursor-pointer select-none text-[11px] font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 hover:text-rose-700 border border-rose-200 px-2 py-0.5 rounded-md transition-all shadow-2xs opacity-0 group-hover:opacity-100 focus:opacity-100',
-              contenteditable: 'false',
-              title: 'Xóa cảnh này',
-            },
-            '✕ Xóa cảnh',
-          ],
+          control('scene-delete-btn text-rose-600 hover:bg-rose-50', 'Xóa cảnh này', 'Xóa cảnh'),
         ];
 
       case 'page_heading':
-        // A. KHỐI TIÊU ĐỀ TRANG (PAGE_HEADING): Viền cam #C2410C 2px, nền #FFF2E6, bo góc 12px
-        classNames += 'font-bold uppercase tracking-wider text-xs sm:text-sm text-[#C2410C] bg-[#FFF2E6] border-2 border-[#C2410C] px-4 py-2.5 mt-6 mb-3 rounded-[12px] shadow-sm flex items-center justify-between gap-2.5 select-text group';
         return [
           'div',
-          mergeAttributes(HTMLAttributes, { class: classNames, 'data-block-type': blockType }),
-          ['span', { class: 'page-heading-content flex-1' }, 0],
-          [
-            'button',
-            {
-              type: 'button',
-              class:
-                'page-delete-btn ml-auto cursor-pointer select-none text-[11px] font-semibold text-rose-600 bg-white/70 hover:bg-rose-50 hover:text-rose-700 border border-rose-200 px-2 py-0.5 rounded-md transition-all shadow-2xs opacity-0 group-hover:opacity-100 focus:opacity-100',
-              contenteditable: 'false',
-              title: 'Xóa trang này',
-            },
-            '✕ Xóa trang',
-          ],
-          [
-            'button',
-            {
-              type: 'button',
-              class:
-                'page-toggle-btn cursor-pointer select-none text-[11px] font-semibold text-[#C2410C] bg-white/70 hover:bg-white border border-[#C2410C]/30 px-2.5 py-0.5 rounded-md transition-all shadow-2xs',
-              contenteditable: 'false',
-            },
-            '▼ Thu gọn',
-          ],
+          attrs('group flex items-center gap-2 mt-12 mb-3 pt-4 border-t border-dashed border-stone-300 select-text'),
+          ['span', { class: 'page-heading-content flex-1 font-serif text-lg tracking-wide text-[#C2410C]' }, 0],
+          control('page-add-panel-btn text-[#C2410C] hover:bg-orange-50', 'Thêm panel trống vào cuối trang này', '+ Panel', true),
+          control('page-delete-btn text-rose-600 hover:bg-rose-50', 'Xóa trang này', 'Xóa trang'),
+          control('page-toggle-btn text-stone-500 hover:bg-stone-100', 'Thu gọn / mở rộng trang', '▼ Thu gọn'),
         ];
 
-      case 'panel_heading': {
-        // B. KHỐI TIÊU ĐỀ KHUNG (PANEL_HEADING): Viền trái tím #4F46E5 4px, nền xám nhạt #F8FAFC
-        classNames += 'font-bold text-xs uppercase tracking-wide text-slate-800 bg-[#F8FAFC] border-l-4 border-[#4F46E5] px-3.5 py-2 mt-4 mb-2 rounded-r-lg shadow-2xs flex items-center gap-2 select-text group';
+      case 'panel_heading':
         return [
           'div',
-          mergeAttributes(HTMLAttributes, { class: classNames, 'data-block-type': blockType }),
+          attrs('group flex items-center gap-2 mt-7 mb-2 pl-3 border-l-2 border-orange-300 text-xs font-semibold uppercase tracking-[0.14em] text-stone-500 select-text'),
           ['span', { class: 'panel-heading-text flex-1' }, 0],
-          [
-            'button',
-            {
-              type: 'button',
-              class:
-                'panel-delete-btn ml-auto cursor-pointer select-none text-[11px] font-semibold text-rose-600 bg-white hover:bg-rose-50 hover:text-rose-700 border border-rose-200 px-2 py-0.5 rounded-md transition-all shadow-2xs opacity-0 group-hover:opacity-100 focus:opacity-100',
-              contenteditable: 'false',
-              title: 'Xóa khung này',
-            },
-            '✕ Xóa khung',
-          ],
+          control('panel-add-dialogue-btn text-stone-600 hover:text-[#C2410C] hover:bg-orange-50', 'Thêm bóng thoại vào cuối panel này', '+ Thoại', true),
+          control('panel-delete-btn text-rose-600 hover:bg-rose-50', 'Xóa khung này', 'Xóa khung'),
         ];
-      }
+
+      case 'stage_direction':
+        return ['div', attrs('font-studio text-[15px] leading-7 text-stone-700 my-1.5'), 0];
 
       case 'caption':
-      case 'stage_direction':
-        // C. LỜI DẪN TRUYỆN: Chữ thường đứng, màu #334155, 14px, gõ tự do bình thường
-        classNames += 'font-sans text-[14px] text-[#334155] py-0.5 my-1 leading-relaxed not-italic outline-none';
-        return ['div', mergeAttributes(HTMLAttributes, { class: classNames, 'data-block-type': blockType }), 0];
+        return ['div', attrs('font-serif italic text-[15px] leading-7 text-stone-600 my-2 pl-4 border-l border-stone-300'), 0];
 
       case 'character':
-        // D. TÊN NHÂN VẬT: Thẻ chip bo tròn, nền tím nhạt, chữ tím đậm #4338CA, có chấm màu đại diện
-        classNames += 'font-sans font-bold text-xs uppercase tracking-wide text-[#4338CA] bg-indigo-50 border border-indigo-200 px-3 py-1 rounded-full shadow-2xs inline-flex items-center gap-1.5 ml-6 sm:ml-12 mt-3 mb-1';
-        return ['div', mergeAttributes(HTMLAttributes, { class: classNames, 'data-block-type': blockType }), 0];
+        return ['div', attrs('font-studio text-xs font-semibold uppercase tracking-[0.16em] text-stone-600 ml-16 sm:ml-28 mt-5 mb-0.5'), 0];
 
       case 'dialogue':
-        // E. LỜI THOẠI: In nghiêng, màu #0F172A, 15px, thụt lề nhẹ vào trong giống bong bóng thoại
-        classNames += 'font-sans italic text-[#0F172A] text-[15px] ml-6 sm:ml-12 pl-3.5 border-l-2 border-indigo-200 my-1.5 leading-relaxed';
-        return ['div', mergeAttributes(HTMLAttributes, { class: classNames, 'data-block-type': blockType }), 0];
+        return ['div', attrs('font-studio text-[15px] leading-7 text-stone-900 ml-10 sm:ml-20 mr-4 sm:mr-16 my-2'), 0];
 
       case 'sfx':
-        // F. HIỆU ỨNG ÂM THANH (SFX): Huy hiệu vàng hổ phách, tia chớp ⚡, font Monospace kỹ thuật nổi bật
-        classNames += 'font-mono text-xs sm:text-sm my-1.5 px-3 py-1.5 rounded-lg border border-amber-300 bg-[#FFFBEB] text-amber-950 flex items-center gap-2.5 shadow-2xs not-italic';
-        return ['div', mergeAttributes(HTMLAttributes, { class: classNames, 'data-block-type': blockType }), 0];
+        return ['div', attrs('font-comic text-xl tracking-wide text-amber-700 my-2 ml-4'), 0];
 
       case 'transition':
-        classNames += 'font-semibold uppercase text-right text-gray-500 text-xs tracking-widest my-2';
-        return ['div', mergeAttributes(HTMLAttributes, { class: classNames, 'data-block-type': blockType }), 0];
+        return ['div', attrs('text-right text-xs font-semibold uppercase tracking-[0.2em] text-stone-400 my-4'), 0];
 
       default:
-        classNames += 'text-gray-800 text-sm';
-        return ['div', mergeAttributes(HTMLAttributes, { class: classNames, 'data-block-type': blockType }), 0];
+        return ['div', attrs('font-studio text-[15px] leading-7 text-stone-800 my-1'), 0];
     }
   },
 
