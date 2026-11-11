@@ -920,15 +920,13 @@ export const ChapterReviewView: React.FC<ChapterReviewViewProps> = ({
             type='button'
             onClick={() => {
               if (effectiveWsId && seriesId) {
-                navigate(
-                  `/workspaces/${effectiveWsId}/series/${seriesId}/my-work?chapterId=${chapterId}`,
-                );
+                navigate(`/workspaces/${effectiveWsId}/series/${seriesId}/editor/desk`);
               } else {
                 navigate(-1);
               }
             }}
-            aria-label='Quay lại'
-            className='w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#F3F0E9] text-[#57534E] hover:text-[#1C1917] cursor-pointer transition-colors'
+            aria-label='Quay lại Bàn Thẩm Định'
+            className='w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#F3F0E9] text-[#57534E] hover:text-[#1C1917] cursor-pointer transition-colors shadow-2xs border border-[#D8D2C5]'
           >
             <ArrowLeft className='w-4 h-4' />
           </button>

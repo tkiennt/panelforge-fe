@@ -254,15 +254,17 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
   workspaceRole,
   onShowToast,
 }) => {
-  const { taskId, workspaceId, wsId, seriesId } = useParams<{
+  const { taskId, workspaceId, wsId, seriesId, chapterId: paramChapterId } = useParams<{
     taskId?: string;
     workspaceId?: string;
     wsId?: string;
     seriesId?: string;
+    chapterId?: string;
   }>();
   const effectiveWsId = workspaceId || wsId;
   const [search] = useSearchParams();
-  const chapterId = search.get('chapterId');
+  const [discoveredChapterId, setDiscoveredChapterId] = useState<string | null>(null);
+  const chapterId = paramChapterId || search.get('chapterId') || discoveredChapterId;
   const navigate = useNavigate();
 
   // Tự nạp và duy trì vai trò người dùng trong Workspace (hỗ trợ mở trực tiếp bằng URL hoặc F5)
@@ -419,16 +421,31 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
   }, []);
 
   const load = useCallback(async () => {
-    if (!chapterId || !taskId) return;
+    if (!taskId) return;
+    let activeChapterId = chapterId;
+    if (!activeChapterId && effectiveWsId) {
+      try {
+        const myTasks = await assignmentService.getMyWorkspaceAssignments(effectiveWsId);
+        const matched = myTasks.find((t) => t.id === taskId);
+        if (matched?.chapterId) {
+          activeChapterId = matched.chapterId;
+          setDiscoveredChapterId(matched.chapterId);
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+    if (!activeChapterId) return;
+
     setLoading(true);
     setError(null);
     try {
       const [list, crs, fs, subs, vr] = await Promise.all([
-        assignmentService.getAssignments(chapterId),
-        assignmentService.getChangeRequests(chapterId, { assignmentId: taskId }),
-        assignmentService.getConsistencyFindings(chapterId),
-        assignmentService.getSubmissions(chapterId, taskId),
-        assignmentService.getVisualConsistencyReport(chapterId).catch(() => null),
+        assignmentService.getAssignments(activeChapterId),
+        assignmentService.getChangeRequests(activeChapterId, { assignmentId: taskId }),
+        assignmentService.getConsistencyFindings(activeChapterId),
+        assignmentService.getSubmissions(activeChapterId, taskId),
+        assignmentService.getVisualConsistencyReport(activeChapterId).catch(() => null),
       ]);
       const sortedSubs = [...subs].sort((x, y) => x.attemptNumber - y.attemptNumber);
       setSubmissions(sortedSubs);
@@ -538,11 +555,11 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
       if (a) {
         const progress: StageProgressDto[] =
           String(a.entityType) === 'Panel'
-            ? await assignmentService.getStageProgress(chapterId)
+            ? await assignmentService.getStageProgress(activeChapterId)
             : [];
         const pageId = resolvePageId(a, progress);
         const [arts, pagePanels] = await Promise.all([
-          pageId ? artworkService.getArtworks(chapterId, pageId, a.pipelineStageId) : [],
+          pageId ? artworkService.getArtworks(activeChapterId, pageId, a.pipelineStageId) : [],
           pageId ? panelService.getPanelsByPage(pageId).catch(() => []) : [],
         ]);
         setPanels(pagePanels);
@@ -1666,30 +1683,42 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
           <button
             type='button'
             onClick={() => {
-              if (window.history.length > 1) {
+              if (effectiveWsId && seriesId) {
+                navigate(`/workspaces/${effectiveWsId}/series/${seriesId}/editor/desk`);
+              } else if (window.history.length > 1) {
                 navigate(-1);
-              } else if (effectiveWsId && seriesId) {
-                navigate(`/workspaces/${effectiveWsId}/series/${seriesId}/my-work`);
-              } else if (effectiveWsId) {
-                navigate(`/workspaces/${effectiveWsId}/series`);
               } else {
                 navigate('/workspaces');
               }
             }}
-            aria-label='Quay lại'
-            className='w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#F3F0E9] text-[#57534E] hover:text-[#1C1917] cursor-pointer transition-colors'
+            aria-label='Quay lại Bàn Thẩm Định'
+            className='w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#F3F0E9] text-[#57534E] hover:text-[#1C1917] cursor-pointer transition-colors shadow-2xs border border-[#D8D2C5]'
           >
             <ArrowLeft className='w-4 h-4' />
           </button>
           <div className='min-w-0'>
-            <div className='flex items-center gap-2'>
+            <div className='flex items-center gap-2 flex-wrap'>
               <h2 className='text-sm sm:text-base font-serif font-bold text-[#1C1917] truncate'>
-                Duyệt: {assignment.brief}
+                {assignment.brief}
               </h2>
+              {/* Gate Badge */}
+              <span
+                className={`px-2 py-0.5 rounded text-[11px] font-bold border ${
+                  assignment.pipelineStageId?.toLowerCase().includes('storyboard') ||
+                  assignment.stageName?.toLowerCase().includes('storyboard')
+                    ? 'bg-purple-50 text-purple-700 border-purple-200'
+                    : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                }`}
+              >
+                {assignment.pipelineStageId?.toLowerCase().includes('storyboard') ||
+                assignment.stageName?.toLowerCase().includes('storyboard')
+                  ? 'Gate 1 · Storyboard'
+                  : 'Gate 2 · Composite Quality'}
+              </span>
               {current && (
                 <span className='px-2 py-0.5 rounded text-xs font-bold bg-[#FFF2E6] text-[#C2410C] border border-[#F97316]/30'>
-                  Đang duyệt: {label(current)}
-                  {pendingSub ? ` (lần nộp ${pendingSub.attemptNumber})` : ''}
+                  {label(current)}
+                  {pendingSub ? ` (lần #${pendingSub.attemptNumber})` : ''}
                 </span>
               )}
             </div>
@@ -1701,7 +1730,20 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
         </div>
 
         {/* Các nút hành động chính */}
-        <div className='flex items-center gap-2 shrink-0'>
+        <div className='flex items-center gap-2 shrink-0 flex-wrap'>
+          {chapterId && effectiveWsId && seriesId && (
+            <button
+              type='button'
+              onClick={() =>
+                navigate(`/workspaces/${effectiveWsId}/series/${seriesId}/chapters/${chapterId}/review`)
+              }
+              className='px-3 py-1.5 flex items-center gap-1.5 border border-[#D8D2C5] bg-[#FCFBF8] hover:bg-[#F3F0E9] text-[#57534E] hover:text-[#1C1917] rounded-lg text-xs font-semibold cursor-pointer shadow-2xs transition-colors'
+              title='Xem tổng quan toàn bộ các trang và khung tranh của Chương'
+            >
+              <Layers className='w-3.5 h-3.5 text-[#C2410C]' />
+              <span>Toàn bộ chương</span>
+            </button>
+          )}
           {actions?.canOpenReview && (
             <button
               type='button'

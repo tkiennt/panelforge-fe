@@ -642,6 +642,16 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                   />
                 }
               />
+              <Route
+                path='chapters/:chapterId/review/:taskId'
+                element={
+                  <ReviewView
+                    currentUserId={currentUserInfo?.id}
+                    workspaceRole={currentWorkspaceRole}
+                    onShowToast={showToast}
+                  />
+                }
+              />
             </Route>
           </Route>
 
