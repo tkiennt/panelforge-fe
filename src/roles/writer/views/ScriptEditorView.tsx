@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import {
   FileText,
@@ -38,6 +38,7 @@ import {
   Film,
   AlertCircle,
   Send,
+  ClipboardList,
 } from 'lucide-react';
 import {
   scriptLineService,
@@ -61,9 +62,11 @@ import { seriesService, SeriesDetailDto } from '@/services/series.service';
 import {
   assignmentService,
   AssignmentDto,
+  ChangeRequestDto,
   ConsistencyFindingDto,
   ConsistencyCheckResultDto,
 } from '@/services/assignment.service';
+import { crStatus } from '@/roles/editor/views/script-review/scriptReviewModel';
 import { workspaceService, type WorkspaceMemberDto } from '@/services/workspace.service';
 import { normalizeWorkspaceRole } from '@/types/auth';
 import { AiAssistPanel } from '@/shared/features/ai-agents/AiAssistPanel';
@@ -74,6 +77,7 @@ import { ConsistencyFindingsDrawer } from '../components/script/ConsistencyFindi
 import { ScreenplayFlowEditor } from '../components/script/flow/ScreenplayFlowEditor';
 import { ExtractedScriptLinePayload } from '../components/script/flow/scriptFlowAdapter';
 import { BibleCharactersDrawer } from '../components/script/BibleCharactersDrawer';
+import { WriterChangeRequestsDrawer } from '../components/script/WriterChangeRequestsDrawer';
 import { offlineQueueService } from '@/services/offlineQueue.service';
 import { saveDraft, clearDraft, readRestorableDraft, type LocalDraft } from '@/lib/localDraft';
 import { OfflineStatusBanner } from '@/shared/components/OfflineStatusBanner';
@@ -215,6 +219,39 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     return writerAssignments[0] || null;
   }, [writerAssignments, effectiveUserId]);
 
+  // Yêu cầu sửa Editor gửi khi trả kịch bản; BE chặn nộp lại khi còn CR Open.
+  const [changeRequests, setChangeRequests] = useState<ChangeRequestDto[]>([]);
+  const [loadingChangeRequests, setLoadingChangeRequests] = useState(false);
+  const autoOpenedCrForRef = useRef<string | null>(null);
+  const writerAssignmentChapterId = myWriterAssignment?.chapterId;
+  const writerAssignmentId = myWriterAssignment?.id;
+  const writerAssignmentStatus = myWriterAssignment?.status;
+
+  const loadChangeRequests = useCallback(async () => {
+    if (!writerAssignmentChapterId || !writerAssignmentId) {
+      setChangeRequests([]);
+      return;
+    }
+    setLoadingChangeRequests(true);
+    try {
+      const res = await assignmentService.getChangeRequests(writerAssignmentChapterId, {
+        assignmentId: writerAssignmentId,
+      });
+      setChangeRequests(res);
+    } finally {
+      setLoadingChangeRequests(false);
+    }
+  }, [writerAssignmentChapterId, writerAssignmentId]);
+
+  useEffect(() => {
+    void loadChangeRequests();
+  }, [loadChangeRequests, writerAssignmentStatus]);
+
+  const openChangeRequestCount = useMemo(
+    () => changeRequests.filter((c) => crStatus(c.status) === 'Open').length,
+    [changeRequests],
+  );
+
   const [submittingToEditor, setSubmittingToEditor] = useState(false);
 
   const canEditScript = useMemo(() => {
@@ -312,7 +349,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
 
   // Mặc định mở side drawer phù hợp môi trường
   const [activeSideDrawer, setActiveSideDrawer] = useState<
-    'narrative' | 'consistency' | 'characters' | null
+    'narrative' | 'consistency' | 'characters' | 'changeRequests' | null
   >(null);
 
   // Modals phụ trợ
@@ -1361,6 +1398,44 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
     }, 4500);
   };
 
+  // Mở bảng yêu cầu sửa một lần cho mỗi lượt Editor trả kịch bản còn CR Open.
+  useEffect(() => {
+    if (!writerAssignmentId || writerAssignmentStatus !== 'ReworkRequired') return;
+    if (openChangeRequestCount === 0 || autoOpenedCrForRef.current === writerAssignmentId) return;
+    autoOpenedCrForRef.current = writerAssignmentId;
+    setActiveSideDrawer('changeRequests');
+  }, [writerAssignmentId, writerAssignmentStatus, openChangeRequestCount]);
+
+  const handleResolveChangeRequest = async (changeRequestId: string, note: string) => {
+    if (!writerAssignmentChapterId) return false;
+    try {
+      const updated = await assignmentService.resolveChangeRequest(
+        writerAssignmentChapterId,
+        changeRequestId,
+        note || undefined,
+      );
+      setChangeRequests((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+      notify(t('writerChangeRequests.resolvedToastTitle'), t('writerChangeRequests.resolvedToastDesc'));
+      return true;
+    } catch (err: any) {
+      notify(t('writerChangeRequests.resolveFailed'), err?.message ?? '');
+      return false;
+    }
+  };
+
+  const handleJumpToChangeRequest = (cr: ChangeRequestDto) => {
+    if (cr.scriptLineId) {
+      void handleScrollToLine(cr.scriptLineId);
+      return;
+    }
+    const scene = scenes.find((sc) => sc.id === cr.sceneId);
+    if (scene) {
+      handleSelectScene(scene);
+    } else {
+      notify(t('writerChangeRequests.sceneMissingTitle'), t('writerChangeRequests.sceneMissingDesc'));
+    }
+  };
+
   // --- CRUD SCENE ---
   const handleOpenCreateScene = () => {
     setIsEditingScene(false);
@@ -2226,6 +2301,32 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
             />
           </button>
 
+          {(changeRequests.length > 0 || writerAssignmentStatus === 'ReworkRequired') && (
+            <button
+              type='button'
+              onClick={() =>
+                setActiveSideDrawer((prev) => (prev === 'changeRequests' ? null : 'changeRequests'))
+              }
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${
+                activeSideDrawer === 'changeRequests'
+                  ? 'bg-rose-700 text-white border-transparent shadow-2xs font-bold'
+                  : 'bg-white/80 text-rose-900 hover:bg-rose-50 border-[#E5E0D8]'
+              }`}
+              title={t('writerChangeRequests.toggleTitle', { count: openChangeRequestCount })}
+              data-testid='writer-change-requests-btn'
+            >
+              <ClipboardList
+                className={`w-3.5 h-3.5 ${activeSideDrawer === 'changeRequests' ? 'text-white' : 'text-rose-600'}`}
+              />
+              <span className='hidden lg:inline'>{t('writerChangeRequests.toggle')}</span>
+              {openChangeRequestCount > 0 && (
+                <span className='px-1.5 rounded-full bg-rose-500 text-white text-xs font-mono font-bold'>
+                  {openChangeRequestCount}
+                </span>
+              )}
+            </button>
+          )}
+
           {/* Writer Submit to Editor Button */}
           {(normRole === 'WRITER' || effectiveRole === 'WRITER') && !isScriptFrozen && currentChapter && (
             <button
@@ -2233,6 +2334,7 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               disabled={
                 submittingToEditor ||
                 !myWriterAssignment ||
+                openChangeRequestCount > 0 ||
                 myWriterAssignment.status === 'Submitted' ||
                 myWriterAssignment.status === 'UnderReview' ||
                 myWriterAssignment.status === 'Approved'
@@ -2242,6 +2344,8 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
               title={
                 !myWriterAssignment
                   ? 'Chưa có phân công việc Writer trên Kanban để nộp duyệt'
+                  : openChangeRequestCount > 0
+                    ? t('writerChangeRequests.gateBlocked', { count: openChangeRequestCount })
                   : myWriterAssignment.status === 'Submitted' || myWriterAssignment.status === 'UnderReview'
                     ? 'Kịch bản đang được Editor thẩm định'
                     : myWriterAssignment.status === 'Approved'
@@ -2954,6 +3058,17 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
           isOpen={activeSideDrawer === 'characters'}
           onClose={() => setActiveSideDrawer(null)}
           characters={characters}
+        />
+
+        <WriterChangeRequestsDrawer
+          isOpen={activeSideDrawer === 'changeRequests'}
+          onClose={() => setActiveSideDrawer(null)}
+          changeRequests={changeRequests}
+          loading={loadingChangeRequests}
+          generalNote={myWriterAssignment?.lastFeedbackComment}
+          canResolve={isAssignedWriter && !isScriptFrozen}
+          onResolve={handleResolveChangeRequest}
+          onJump={handleJumpToChangeRequest}
         />
       </div>
 

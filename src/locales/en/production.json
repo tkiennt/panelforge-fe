@@ -75,5 +75,40 @@
     "subtitle": "Choose a preset panel grid for this page",
     "applyConfirm": "Applying this template will replace existing panels on this page.",
     "noTemplates": "No templates available."
+  },
+  "writerChangeRequests": {
+    "title": "Editor change requests ({count})",
+    "summary": "{open} to fix · {resolved} awaiting Editor check",
+    "close": "Close change requests",
+    "toggle": "Change requests",
+    "toggleTitle": "Editor change requests ({count} to fix)",
+    "gateBlocked": "{count} change requests still open. Mark them all fixed before resubmitting to the Editor.",
+    "gateAwaitingVerify": "All fixed. {count} awaiting Editor check; you can resubmit the script.",
+    "gateClear": "No change requests left to fix.",
+    "generalNote": "Editor's general note",
+    "loading": "Loading change requests...",
+    "empty": "The Editor has not sent any change requests for this script.",
+    "status": {
+      "Open": "To fix",
+      "Resolved": "Awaiting Editor check",
+      "Verified": "Verified by Editor",
+      "Rejected": "Withdrawn"
+    },
+    "jumpLine": "Go to line",
+    "jumpScene": "Go to scene",
+    "quotedAt": "When the Editor commented",
+    "yourNote": "Your note:",
+    "editorReply": "Editor reply:",
+    "awaitingVerify": "The Editor will check this when you resubmit the script.",
+    "markResolved": "Mark as fixed",
+    "notePlaceholder": "Note for the Editor (optional): what you changed, or why you kept it...",
+    "cancel": "Cancel",
+    "saving": "Saving...",
+    "confirmResolve": "Confirm fixed",
+    "resolvedToastTitle": "Marked as fixed",
+    "resolvedToastDesc": "The request now waits for the Editor to check it.",
+    "resolveFailed": "Could not mark as fixed",
+    "sceneMissingTitle": "Scene not found",
+    "sceneMissingDesc": "The scene the Editor commented on is no longer in this chapter."
   }
 }
