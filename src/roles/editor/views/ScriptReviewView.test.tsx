@@ -186,6 +186,7 @@ describe('ScriptReviewView', () => {
     renderView('?assignmentId=asg-script');
 
     await screen.findByText('Ngươi không thể thoát khỏi đây đâu!');
+    expect(assignmentService.getAssignmentById).toHaveBeenCalledWith('asg-script', 'chap-101');
     const lineButtons = screen.getAllByTitle(/Nhận xét dòng này/);
     fireEvent.click(lineButtons[1]);
     fireEvent.change(screen.getByPlaceholderText(/Cần sửa gì ở đây/), {

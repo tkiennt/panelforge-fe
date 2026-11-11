@@ -28,10 +28,10 @@ import {
   draftsToChangeItems,
   isCrClosed,
   lineText,
-  readDrafts,
-  writeDrafts,
   type ReviewDraft,
 } from './script-review/scriptReviewModel';
+import { newDraftId, readDrafts, writeDrafts } from './review-shared/reviewModel';
+import { DecisionBar } from './review-shared/DecisionBar';
 
 interface ScriptReviewViewProps {
   currentUserId?: string;
@@ -41,11 +41,6 @@ interface ScriptReviewViewProps {
 
 const errorMessage = (err: unknown, fallback: string) =>
   err instanceof Error && err.message ? err.message : fallback;
-
-const newId = () =>
-  typeof crypto !== 'undefined' && 'randomUUID' in crypto
-    ? crypto.randomUUID()
-    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
 /**
  * Duyệt kịch bản (cổng Script, CF3). Editor đọc bản nộp, mỗi nhận xét trên dòng/phân cảnh là một yêu cầu sửa;
@@ -109,7 +104,7 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
 
       if (assignmentId) {
         const [a, crs, subs] = await Promise.all([
-          assignmentService.getAssignmentById(chapterId, assignmentId),
+          assignmentService.getAssignmentById(assignmentId, chapterId),
           assignmentService.getChangeRequests(chapterId, { assignmentId }),
           assignmentService.getSubmissions(chapterId, assignmentId),
         ]);
@@ -131,12 +126,13 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
   const submissionId = latestSubmission?.id ?? null;
 
   useEffect(() => {
-    if (assignmentId) setDrafts(readDrafts(assignmentId, submissionId));
+    if (assignmentId)
+      setDrafts(readDrafts<ReviewDraft>('scriptReview', assignmentId, submissionId));
   }, [assignmentId, submissionId]);
 
   const updateDrafts = (next: ReviewDraft[]) => {
     setDrafts(next);
-    if (assignmentId) writeDrafts(assignmentId, submissionId, next);
+    if (assignmentId) writeDrafts('scriptReview', assignmentId, submissionId, next);
   };
 
   const work = useMemo(
@@ -239,7 +235,7 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
       updateDrafts([
         ...drafts,
         {
-          id: newId(),
+          id: newDraftId(),
           sceneId: composer.sceneId,
           scriptLineId: composer.scriptLineId,
           quotedText: composer.quotedText,
@@ -646,48 +642,29 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
           </div>
 
           {canDecide && (
-            <div className='shrink-0 space-y-3 border-t border-stone-200 bg-[#FAF9F5] p-4'>
-              <label className='block text-sm font-semibold text-stone-800'>
-                {t('scriptReview.decision.summaryLabel')}
-                <textarea
-                  value={summary}
-                  onChange={(e) => setSummary(e.target.value)}
-                  rows={2}
-                  placeholder={t('scriptReview.decision.summaryPlaceholder')}
-                  className='mt-1 w-full resize-y rounded-md border border-stone-200 bg-white px-3 py-2 text-sm font-normal text-stone-800 focus:border-orange-500 focus:outline-none'
-                />
-              </label>
-              {blockingFindings > 0 && (
-                <p className='flex items-start gap-1.5 text-xs text-amber-900'>
-                  <AlertTriangle className='mt-0.5 h-3.5 w-3.5 shrink-0' aria-hidden='true' />
-                  {t('scriptReview.decision.blockingFindings', { count: blockingFindings })}
-                </p>
-              )}
-              {approveBlocker && <p className='text-xs text-stone-600'>{approveBlocker}</p>}
-              <div className='flex flex-wrap gap-2'>
-                <button
-                  type='button'
-                  onClick={handleReturn}
-                  disabled={!summary.trim() || busy === 'return'}
-                  title={!summary.trim() ? t('scriptReview.decision.summaryRequired') : undefined}
-                  className='inline-flex flex-1 items-center justify-center gap-1.5 rounded-full border border-rose-300 bg-white px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50'
-                >
-                  <CornerUpLeft className='h-4 w-4' aria-hidden='true' />
-                  {drafts.length > 0
+            <DecisionBar
+              summary={summary}
+              onSummaryChange={setSummary}
+              labels={{
+                summary: t('scriptReview.decision.summaryLabel'),
+                summaryPlaceholder: t('scriptReview.decision.summaryPlaceholder'),
+                summaryRequired: t('scriptReview.decision.summaryRequired'),
+                returnAction:
+                  drafts.length > 0
                     ? t('scriptReview.decision.returnWithNotes', { count: drafts.length })
-                    : t('scriptReview.decision.return')}
-                </button>
-                <button
-                  type='button'
-                  onClick={handleApprove}
-                  disabled={!!approveBlocker || busy === 'approve'}
-                  className='inline-flex flex-1 items-center justify-center gap-1.5 rounded-full bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50'
-                >
-                  <CheckCircle2 className='h-4 w-4' aria-hidden='true' />
-                  {t('scriptReview.decision.approve')}
-                </button>
-              </div>
-            </div>
+                    : t('scriptReview.decision.return'),
+                approve: t('scriptReview.decision.approve'),
+              }}
+              warning={
+                blockingFindings > 0
+                  ? t('scriptReview.decision.blockingFindings', { count: blockingFindings })
+                  : null
+              }
+              approveBlocker={approveBlocker}
+              busy={busy === 'return' || busy === 'approve' ? busy : null}
+              onReturn={handleReturn}
+              onApprove={handleApprove}
+            />
           )}
         </aside>
       </div>

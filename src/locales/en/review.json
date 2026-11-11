@@ -233,5 +233,75 @@
       "load": "Could not load this chapter's script.",
       "generic": "Something went wrong."
     }
+  },
+  "artworkReview": {
+    "header": {
+      "page": "Page {number}"
+    },
+    "toolbar": {
+      "compare": "Compare with previous",
+      "zoomIn": "Zoom in",
+      "zoomOut": "Zoom out",
+      "zoomReset": "Reset to 100%"
+    },
+    "canvas": {
+      "drawHint": "Drag on the submission to mark an area that needs changes.",
+      "empty": "This submission has no artwork to review.",
+      "attempt": "Submission {attempt}",
+      "version": "Version {version}",
+      "current": "{label} · under review",
+      "orphan": "Submission {attempt}: its panel layout no longer exists, so the page cannot be composed; only individual panel images are shown."
+    },
+    "notes": {
+      "region": "Area {label}",
+      "whole": "Whole page",
+      "draftsHint": "Not sent yet. Each area becomes a change request when you return the work.",
+      "resolvedTitle": "Marked as fixed",
+      "resolvedHint": "Turn on “Compare with previous” to check the old area, then verify or reopen with a reason.",
+      "assigneeReply": "Assignee:",
+      "reopenReason": "Why is it not fixed? (sent to the assignee)",
+      "rejectTitle": "Accept the assignee's objection and close this request",
+      "emptyCanDraw": "No notes yet. Drag on the submission to mark an area.",
+      "describe": "Describe the change needed"
+    },
+    "checks": {
+      "title": "Visual consistency",
+      "notRun": "No report yet. Run the check to compare characters with their locked sheets.",
+      "summary": "{open} deviations to triage on this page · threshold {threshold}%",
+      "panel": "panel {number}",
+      "similarity": "Similarity {score}% (threshold {threshold}%)",
+      "sheet": "Character sheet",
+      "artwork": "Artwork",
+      "clarifyQuestion": "Question for the artist"
+    },
+    "impact": {
+      "title": "Impact review needed",
+      "keep": "Keep result",
+      "rework": "Request rework",
+      "reason": "Reason (logged)"
+    },
+    "notice": {
+      "notReviewer": "Your role can view but not review submissions."
+    },
+    "decision": {
+      "summaryLabel": "General note to the assignee",
+      "return": "Return work",
+      "approve": "Approve submission",
+      "emptyDrafts": "{count} marked areas have no description.",
+      "blockingDeviations": "This page has {count} unresolved blocking visual deviations."
+    },
+    "toast": {
+      "returnedTitle": "Work returned",
+      "approvedTitle": "Submission approved",
+      "visualFailed": "Could not run the visual check",
+      "impactFailed": "Could not save the decision"
+    },
+    "errors": {
+      "loadTitle": "Could not open the submission",
+      "load": "Could not load the review data.",
+      "notFound": "The work to review was not found.",
+      "noChapter": "Missing chapter. Open the review from the review desk.",
+      "artwork": "Could not load the submitted artwork."
+    }
   }
 }
