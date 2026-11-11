@@ -590,7 +590,7 @@ export function AppShell({
     if (badge.type === 'text') {
       return (
         <span
-          className={`text-[11px] font-mono px-1.5 py-0.5 rounded font-semibold ${badge.color} shrink-0 max-w-[80px] truncate`}
+          className={`text-xs font-mono px-1.5 py-0.5 rounded font-semibold ${badge.color} shrink-0 max-w-[80px] truncate`}
         >
           {badge.text}
         </span>
@@ -694,7 +694,7 @@ export function AppShell({
                   <span className='text-[#1C1917] font-serif font-bold text-sm'>
                     PanelForge // Cổng Xuất Bản
                   </span>
-                  <span className='px-2 py-0.5 rounded-full bg-[#FFF2E6] text-[#C2410C] border border-[#FDBA74] text-[10px] font-mono font-bold'>
+                  <span className='px-2 py-0.5 rounded-full bg-[#FFF2E6] text-[#C2410C] border border-[#FDBA74] text-xs font-mono font-bold'>
                     PUBLISHER PORTAL
                   </span>
                 </div>
@@ -870,7 +870,7 @@ export function AppShell({
                   <span className='text-xs font-semibold text-[#1C1917] leading-tight'>
                     {currentUser.name}
                   </span>
-                  <span className='text-[10px] text-[#57534E] font-mono leading-tight'>
+                  <span className='text-xs text-[#57534E] font-mono leading-tight'>
                     {currentUser.role}
                   </span>
                 </div>
@@ -883,7 +883,7 @@ export function AppShell({
                   <div className='absolute right-0 mt-2 w-56 bg-[#FCFBF8] border border-[#D8D2C5] rounded-xl shadow-editorial z-50 p-1.5 text-xs animate-in fade-in-50 zoom-in-95'>
                     <div className='px-3 py-2 border-b border-[#D8D2C5] mb-1'>
                       <p className='font-semibold text-[#1C1917]'>{currentUser.name}</p>
-                      <p className='text-[10px] text-[#57534E] font-mono'>{currentUser.role}</p>
+                      <p className='text-xs text-[#57534E] font-mono'>{currentUser.role}</p>
                     </div>
 
                     <button
