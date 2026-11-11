@@ -146,6 +146,10 @@ describe('ScriptReviewView', () => {
     );
     vi.spyOn(chapterService, 'checkBibleGate').mockResolvedValue(mockBibleGate as any);
     vi.spyOn(assignmentService, 'getConsistencyFindings').mockResolvedValue([] as any);
+    vi.spyOn(assignmentService, 'runConsistencyCheck').mockResolvedValue({
+      checkedAt: '2026-11-11T08:00:00Z',
+      findings: [],
+    } as any);
     vi.spyOn(assignmentService, 'getAssignmentById').mockResolvedValue(scriptAssignment() as any);
     vi.spyOn(assignmentService, 'getChangeRequests').mockResolvedValue([] as any);
     vi.spyOn(assignmentService, 'getSubmissions').mockResolvedValue([submission] as any);
@@ -187,6 +191,10 @@ describe('ScriptReviewView', () => {
 
     await screen.findByText('Ngươi không thể thoát khỏi đây đâu!');
     expect(assignmentService.getAssignmentById).toHaveBeenCalledWith('asg-script', 'chap-101');
+    // Kiểm tra nhất quán bằng code tự chạy khi phiên duyệt đang mở
+    await waitFor(() =>
+      expect(assignmentService.runConsistencyCheck).toHaveBeenCalledWith('chap-101'),
+    );
     const lineButtons = screen.getAllByTitle(/Nhận xét dòng này/);
     fireEvent.click(lineButtons[1]);
     fireEvent.change(screen.getByPlaceholderText(/Cần sửa gì ở đây/), {

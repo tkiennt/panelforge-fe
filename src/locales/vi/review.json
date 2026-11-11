@@ -170,7 +170,10 @@
       "unfreezeReason": "Lý do mở lại (ghi vào nhật ký)",
       "reopenRequested": "Writer xin mở lại kịch bản",
       "approveReopen": "Đồng ý mở lại",
-      "rejectReopen": "Từ chối"
+      "rejectReopen": "Từ chối",
+      "recheck": "Kiểm tra lại",
+      "checkedAt": "Đã kiểm tra lúc {time} · luật bằng code, không dùng AI",
+      "codeRules": "Luật bằng code, không dùng AI. Tự chạy khi mở duyệt."
     },
     "severity": {
       "Blocking": "Chặn",
@@ -272,7 +275,8 @@
       "similarity": "Tương đồng {score}% (ngưỡng {threshold}%)",
       "sheet": "Character sheet",
       "artwork": "Bản vẽ",
-      "clarifyQuestion": "Câu hỏi cần Artist làm rõ"
+      "clarifyQuestion": "Câu hỏi cần Artist làm rõ",
+      "runAi": "Chạy kiểm tra AI"
     },
     "impact": {
       "title": "Cần kiểm tra ảnh hưởng",

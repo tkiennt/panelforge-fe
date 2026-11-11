@@ -24,6 +24,15 @@ export const CR_STATUS_BADGE: Record<CrStatus, string> = {
   Rejected: 'bg-stone-100 text-stone-600 border-stone-200',
 };
 
+/**
+ * Phát hiện do AI nêu (khớp ConsistencyChecker.IsAiOrVisualFinding ở backend). Chỉ những phát hiện này mang màu tím;
+ * phát hiện từ luật bằng code dùng màu cảnh báo.
+ */
+export const isAiFinding = (ruleCode: string) =>
+  ruleCode === 'VISUAL_CHARACTER_DEVIATION' ||
+  ruleCode === 'IMAGE_INCONSISTENCY' ||
+  ruleCode.startsWith('AI_CONTINUITY');
+
 /** Phát hiện nhất quán còn cần người xử lý (BR-21). */
 export const OPEN_FINDING_STATUSES = ['Open', 'Confirmed', 'NeedsClarification'];
 

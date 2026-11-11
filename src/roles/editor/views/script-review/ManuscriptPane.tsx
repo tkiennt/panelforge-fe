@@ -4,6 +4,7 @@ import { useTranslation } from '@/lib/i18n';
 import type { SceneDetailDto, SceneScriptLineSummaryDto } from '@/services/scriptLine.service';
 import type { ChangeRequestDto, ConsistencyFindingDto } from '@/types/pipeline';
 import { anchorKey, crStatus, isCrClosed, lineText, type ReviewDraft } from './scriptReviewModel';
+import { isAiFinding } from '../review-shared/reviewModel';
 
 export interface AnchorMarks {
   drafts: ReviewDraft[];
@@ -41,7 +42,8 @@ const markerClass = (m: AnchorMarks | undefined) => {
   const live = m.crs.filter((c) => !isCrClosed(c));
   if (live.some((c) => crStatus(c.status) === 'Open')) return 'border-rose-500';
   if (live.some((c) => crStatus(c.status) === 'Resolved')) return 'border-amber-500';
-  if (m.findings.length > 0) return 'border-violet-500';
+  if (m.findings.some((f) => isAiFinding(f.ruleCode))) return 'border-violet-500';
+  if (m.findings.length > 0) return 'border-amber-500';
   return 'border-transparent';
 };
 

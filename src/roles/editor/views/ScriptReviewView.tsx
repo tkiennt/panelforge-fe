@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { AlertTriangle, ArrowLeft, CheckCircle2, CornerUpLeft, Lock } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
@@ -148,6 +148,28 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
     [assignment, currentUserId, workspaceRole, changeRequests],
   );
   const canDecide = work?.canDecide ?? false;
+
+  // Kiểm tra nhất quán kịch bản là luật bằng code, chạy lại an toàn (ghép theo fingerprint, BR-21):
+  // tự chạy một lần cho mỗi lần nộp khi phiên duyệt đang mở để kết quả luôn mới, không bắt Editor tự bấm.
+  const [checkedAt, setCheckedAt] = useState<string | null>(null);
+  const autoCheckedFor = useRef<string | null>(null);
+  useEffect(() => {
+    const key = `${chapterId}:${submissionId ?? ''}`;
+    if (!canDecide || !chapterId || autoCheckedFor.current === key) return;
+    autoCheckedFor.current = key;
+    assignmentService
+      .runConsistencyCheck(chapterId)
+      .then((res) => {
+        setFindings(res.findings ?? []);
+        setCheckedAt(res.checkedAt);
+      })
+      .catch((err) =>
+        onShowToast?.(
+          t('scriptReview.toast.checkFailed'),
+          err instanceof Error ? err.message : t('scriptReview.errors.generic'),
+        ),
+      );
+  }, [canDecide, chapterId, submissionId, onShowToast, t]);
 
   // ── Tra cứu vị trí: số thứ tự dòng trong cảnh khớp với số hiển thị ở bản thảo ──
   const lineIndex = useMemo(() => {
@@ -361,6 +383,7 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
       async () => {
         const res = await assignmentService.runConsistencyCheck(chapterId);
         setFindings(res.findings ?? []);
+        setCheckedAt(res.checkedAt);
         setTab('checks');
       },
       t('scriptReview.toast.checkFailed'),
@@ -615,6 +638,7 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
                 isProducer={isProducer}
                 busy={busy}
                 onRunCheck={handleRunCheck}
+                checkedAt={checkedAt}
                 onTriage={handleTriage}
                 onFindingToComment={handleFindingToComment}
                 onFreeze={() =>

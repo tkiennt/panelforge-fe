@@ -170,7 +170,10 @@
       "unfreezeReason": "Reason for unfreezing (logged)",
       "reopenRequested": "Writer asked to reopen the script",
       "approveReopen": "Approve reopen",
-      "rejectReopen": "Decline"
+      "rejectReopen": "Decline",
+      "recheck": "Check again",
+      "checkedAt": "Checked at {time} · code rules, no AI",
+      "codeRules": "Code rules, no AI. Runs when the review opens."
     },
     "severity": {
       "Blocking": "Blocking",
@@ -272,7 +275,8 @@
       "similarity": "Similarity {score}% (threshold {threshold}%)",
       "sheet": "Character sheet",
       "artwork": "Artwork",
-      "clarifyQuestion": "Question for the artist"
+      "clarifyQuestion": "Question for the artist",
+      "runAi": "Run AI check"
     },
     "impact": {
       "title": "Impact review needed",
