@@ -79,34 +79,27 @@ export const BibleMention = Mention.extend({
     const code = HTMLAttributes['data-code'] || HTMLAttributes['data-label'] || HTMLAttributes.label || '';
     const label = HTMLAttributes['data-label'] || HTMLAttributes.label || code;
 
-    let colorStyle = 'border-rose-300 bg-rose-50 text-[#E11D48]'; // Default: Character (Coral #E11D48)
+    // Mục Series Bible = tím (theo DESIGN_RULES); tham chiếu Panel trung tính; mã chưa có trong Bible = hổ phách (cảnh báo)
     const isPanel = category.includes('panel');
-    if (isPanel) {
-      colorStyle = 'border-purple-300 bg-purple-50 text-purple-800';
-    } else if (category.includes('loc') || category.includes('địa danh') || category.includes('location')) {
-      colorStyle = 'border-emerald-300 bg-emerald-50 text-emerald-800';
-    } else if (category.includes('prop') || category.includes('đạo cụ')) {
-      colorStyle = 'border-cyan-300 bg-cyan-50 text-cyan-800';
-    } else if (category.includes('term') || category.includes('thuật ngữ')) {
-      colorStyle = 'border-indigo-300 bg-indigo-50 text-indigo-800';
-    }
+    const colorStyle = isStub
+      ? 'text-amber-800 decoration-amber-500 decoration-dashed'
+      : isPanel
+        ? 'text-stone-700 decoration-stone-300'
+        : 'text-violet-800 decoration-violet-300 hover:decoration-violet-600';
 
-    if (isStub) {
-      colorStyle = 'border-amber-500 border-dashed bg-amber-50/90 text-amber-900';
-    }
-
-    // Hiển thị tên thực thể Series Bible (ưu tiên label/tên trước mã code, panel thì giữ mã khung hình)
-    const primaryText = code || label;
-    const displayText = `@${primaryText}${isStub ? ' (Chưa có trong Bible)' : ''}`;
+    // Trên trang giấy hiển thị tên như chữ viết; mã chỉ dùng cho khung tranh và mục chưa có trong Bible
+    const displayText = isPanel ? `@${code || label}` : isStub ? `@${code || label}` : label || code;
     const tooltipText = isPanel
       ? `@${code || label} (Khung tranh)`
-      : `@${label || code}${code && code !== label ? ` [${code}]` : ''} (${category}) - Bấm để xem thông tin Bible`;
+      : isStub
+        ? `@${code || label}: chưa có trong Series Bible`
+        : `${label || code}${code && code !== label ? ` [${code}]` : ''} (${category}) - Bấm để xem thông tin Bible`;
 
     return [
       'span',
       mergeAttributes(
         {
-          class: `mention inline-flex items-center gap-1 whitespace-nowrap align-baseline px-1.5 py-0.5 rounded text-[11px] font-semibold font-mono tracking-tight border ${colorStyle} shadow-2xs select-none mx-0.5 cursor-pointer transition-all hover:scale-[1.02]`,
+          class: `mention whitespace-nowrap font-semibold underline decoration-2 underline-offset-4 select-none cursor-pointer transition-colors ${colorStyle}`,
           'data-id': HTMLAttributes['data-id'],
           'data-label': label,
           'data-code': code,

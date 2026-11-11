@@ -10,6 +10,22 @@ import {
 import { MangaBlockType } from '../types';
 import { generateGuid, renumberEditorState } from '../scriptFlowAdapter';
 
+/** Tab / Shift+Tab xoay vòng loại dòng nội dung (tiêu đề Trang/Panel/Cảnh không nằm trong vòng) */
+const CYCLE_TYPES: MangaBlockType[] = ['stage_direction', 'dialogue', 'caption', 'sfx'];
+
+/** Khối dòng nội dung mới khi nhấn Enter: luôn là hành động, giữ phân cảnh và vị trí Trang/Panel hiện tại */
+function nextActionAttrs(current: Record<string, unknown>) {
+  return {
+    scriptLineId: generateGuid(),
+    sceneId: current.sceneId ?? null,
+    blockType: 'stage_direction' as MangaBlockType,
+    narrationMode: 'Present',
+    pageNumber: current.pageNumber ?? null,
+    panelNumber: current.panelNumber ?? null,
+    inPanel: current.inPanel ?? false,
+  };
+}
+
 const HEADING_CONTROL_CLASS =
   'shrink-0 cursor-pointer select-none font-sans normal-case tracking-normal text-xs font-medium px-2 py-0.5 rounded-md transition-all';
 
@@ -120,83 +136,110 @@ export const ScriptLineBlockNode = Node.create({
   },
 
   parseHTML() {
+    // Thoại có nhãn người nói: nội dung nằm trong .dialogue-text, nhãn tên không được đọc lại thành chữ (copy/dán)
+    const contentElement = (el: HTMLElement) =>
+      (el.querySelector(':scope > .dialogue-text') as HTMLElement | null) ?? el;
     return [
-      {
-        tag: 'div[data-script-line-id]',
-      },
-      {
-        tag: 'div[data-block-type]',
-      },
+      { tag: 'div[data-script-line-id]', contentElement },
+      { tag: 'div[data-block-type]', contentElement },
     ];
   },
 
-  renderHTML({ HTMLAttributes }) {
+  renderHTML({ node, HTMLAttributes }) {
     const blockType = (HTMLAttributes['data-block-type'] || 'caption') as MangaBlockType;
     const attrs = (extra: string) =>
       mergeAttributes(HTMLAttributes, {
         class: `script-block outline-none transition-colors duration-150 ${extra}`,
         'data-block-type': blockType,
       });
-    // Nút điều khiển nằm ngoài vùng chữ, chỉ hiện rõ khi rê chuột vào dòng tiêu đề để giữ trang giấy yên tĩnh
-    const control = (cls: string, title: string, label: string, alwaysVisible = false) => [
+    const control = (cls: string, title: string, label: string) => [
       'button',
-      {
-        type: 'button',
-        class: `${cls} ${HEADING_CONTROL_CLASS} ${alwaysVisible ? 'opacity-70' : 'opacity-0'} group-hover:opacity-100 focus:opacity-100`,
-        contenteditable: 'false',
-        title,
-      },
+      { type: 'button', class: `${cls} ${HEADING_CONTROL_CLASS}`, contenteditable: 'false', title },
       label,
     ];
+    // Nút của tiêu đề nằm chồng lên mép phải, chỉ hiện khi rê chuột / focus để trang giấy luôn yên tĩnh
+    const controls = (...buttons: unknown[]) => [
+      'span',
+      {
+        class:
+          'absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-0.5 rounded-md bg-white pl-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity',
+        contenteditable: 'false',
+      },
+      ...buttons,
+    ];
+    const rule = () => ['span', { class: 'h-px flex-1 bg-stone-200', contenteditable: 'false' }];
 
     switch (blockType) {
       case 'scene_heading':
         return [
           'div',
-          attrs('group flex items-baseline justify-between gap-3 font-serif text-2xl text-stone-900 mt-12 first:mt-0 mb-5 pb-3 border-b border-stone-200'),
-          ['span', { class: 'scene-heading-content flex-1' }, 0],
-          control('scene-delete-btn text-rose-600 hover:bg-rose-50', 'Xóa cảnh này', 'Xóa cảnh'),
-        ];
+          attrs('group relative font-serif text-2xl text-stone-900 mt-16 first:mt-0 mb-6'),
+          ['span', { class: 'scene-heading-content' }, 0],
+          controls(control('scene-delete-btn text-rose-700 hover:bg-rose-50', 'Xóa cảnh này', 'Xóa cảnh')),
+        ] as any;
 
       case 'page_heading':
         return [
           'div',
-          attrs('group flex items-center gap-2 mt-12 mb-3 pt-4 border-t border-dashed border-stone-300 select-text'),
-          ['span', { class: 'page-heading-content flex-1 font-serif text-lg tracking-wide text-[#C2410C]' }, 0],
-          control('page-add-panel-btn text-[#C2410C] hover:bg-orange-50', 'Thêm panel trống vào cuối trang này', '+ Panel', true),
-          control('page-delete-btn text-rose-600 hover:bg-rose-50', 'Xóa trang này', 'Xóa trang'),
-          control('page-toggle-btn text-stone-500 hover:bg-stone-100', 'Thu gọn / mở rộng trang', '▼ Thu gọn'),
-        ];
+          attrs('group relative flex items-center gap-4 mt-14 mb-6 select-text'),
+          rule(),
+          ['span', { class: 'page-heading-content text-xs font-semibold uppercase tracking-[0.3em] text-stone-500' }, 0],
+          rule(),
+          controls(
+            control('page-add-panel-btn text-stone-600 hover:text-stone-900 hover:bg-stone-100', 'Thêm panel trống vào cuối trang này', '+ Panel'),
+            control('page-toggle-btn text-stone-600 hover:text-stone-900 hover:bg-stone-100', 'Thu gọn / mở rộng trang', '▼ Thu gọn'),
+            control('page-delete-btn text-rose-700 hover:bg-rose-50', 'Xóa trang này', 'Xóa trang')
+          ),
+        ] as any;
 
       case 'panel_heading':
         return [
           'div',
-          attrs('group flex items-center gap-2 mt-7 mb-2 pl-3 border-l-2 border-orange-300 text-xs font-semibold uppercase tracking-[0.14em] text-stone-500 select-text'),
-          ['span', { class: 'panel-heading-text flex-1' }, 0],
-          control('panel-add-dialogue-btn text-stone-600 hover:text-[#C2410C] hover:bg-orange-50', 'Thêm bóng thoại vào cuối panel này', '+ Thoại', true),
-          control('panel-delete-btn text-rose-600 hover:bg-rose-50', 'Xóa khung này', 'Xóa khung'),
-        ];
+          attrs('group relative mt-8 mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-stone-500 select-text'),
+          ['span', { class: 'panel-heading-text' }, 0],
+          controls(
+            control('panel-add-dialogue-btn text-stone-600 hover:text-stone-900 hover:bg-stone-100', 'Thêm bóng thoại vào cuối panel này', '+ Thoại'),
+            control('panel-delete-btn text-rose-700 hover:bg-rose-50', 'Xóa khung này', 'Xóa khung')
+          ),
+        ] as any;
 
       case 'stage_direction':
-        return ['div', attrs('font-studio text-[15px] leading-7 text-stone-700 my-1.5'), 0];
+        return ['div', attrs('font-studio text-[15px] leading-7 text-stone-800 my-2'), 0];
 
       case 'caption':
-        return ['div', attrs('font-serif italic text-[15px] leading-7 text-stone-600 my-2 pl-4 border-l border-stone-300'), 0];
+        return ['div', attrs('font-serif italic text-[15px] leading-7 text-stone-700 my-3 pl-4 border-l-2 border-stone-200'), 0];
 
       case 'character':
-        return ['div', attrs('font-studio text-xs font-semibold uppercase tracking-[0.16em] text-stone-600 ml-16 sm:ml-28 mt-5 mb-0.5'), 0];
+        return ['div', attrs('font-studio text-xs font-semibold uppercase tracking-[0.16em] text-stone-600 ml-[14%] mt-5 mb-0.5'), 0];
 
-      case 'dialogue':
-        return ['div', attrs('font-studio text-[15px] leading-7 text-stone-900 ml-10 sm:ml-20 mr-4 sm:mr-16 my-2'), 0];
+      case 'dialogue': {
+        // Kiểu kịch bản phim: tên người nói thành nhãn phía trên, lời thoại trong cột hẹp ở giữa
+        const speaker = node.attrs.speakerName as string | null;
+        const textClass = 'dialogue-text font-studio text-[15px] leading-7 text-stone-900';
+        if (!speaker) return ['div', attrs(`${textClass} my-3 ml-[14%] mr-[10%]`), 0];
+        return [
+          'div',
+          attrs('my-3 ml-[14%] mr-[10%]'),
+          [
+            'span',
+            {
+              class: 'speaker-label block font-studio text-xs font-semibold uppercase tracking-[0.16em] text-stone-600 select-none',
+              contenteditable: 'false',
+            },
+            speaker,
+          ],
+          ['div', { class: textClass }, 0],
+        ];
+      }
 
       case 'sfx':
-        return ['div', attrs('font-comic text-xl tracking-wide text-amber-700 my-2 ml-4'), 0];
+        return ['div', attrs('font-comic text-2xl tracking-wide text-stone-900 my-3 ml-6'), 0];
 
       case 'transition':
-        return ['div', attrs('text-right text-xs font-semibold uppercase tracking-[0.2em] text-stone-400 my-4'), 0];
+        return ['div', attrs('text-right text-xs font-semibold uppercase tracking-[0.2em] text-stone-500 my-4'), 0];
 
       default:
-        return ['div', attrs('font-studio text-[15px] leading-7 text-stone-800 my-1'), 0];
+        return ['div', attrs('font-studio text-[15px] leading-7 text-stone-800 my-2'), 0];
     }
   },
 
@@ -359,9 +402,11 @@ export const ScriptLineBlockNode = Node.create({
           return true;
         }
 
-        // 2.3 Cho phép viết tự do: Không ép Tab chuyển sang character/dialogue
-        return false;
+        // 2.3 Tab đổi loại dòng: Hành động → Thoại → Lời dẫn → SFX
+        return cycleBlockType(editor, 1);
       },
+
+      'Shift-Tab': ({ editor }) => cycleBlockType(editor, -1),
 
       // 3. Backspace: Cho phép xóa Scene, Page, Panel mượt mà kèm tự động đánh số lại
       Backspace: ({ editor }) => {
@@ -375,6 +420,14 @@ export const ScriptLineBlockNode = Node.create({
 
         if (currentBlock.type.name === this.name) {
           const currentType = currentBlock.attrs.blockType || 'stage_direction';
+
+          // 3.-1 Backspace ở đầu lời thoại: bỏ nhãn người nói trước (lần sau mới nối dòng)
+          if (currentType === 'dialogue' && currentBlock.attrs.speakerName && empty && $from.parentOffset === 0) {
+            view.dispatch(
+              state.tr.setNodeMarkup(from, undefined, { ...currentBlock.attrs, speakerName: null, speakerCharacterId: null })
+            );
+            return true;
+          }
 
           // 3.0 Tiêu đề cảnh (scene_heading): Cho phép xóa cảnh nếu không phải cảnh đầu tiên
           if (currentType === 'scene_heading') {
@@ -591,8 +644,7 @@ export const ScriptLineBlockNode = Node.create({
         const strictDialogueMatch = rawText.match(/^@([\w\p{L}_-]+)\s*:\s*["“]([^"”]*?)["”]$/u);
         if (strictDialogueMatch) {
           const speakerName = strictDialogueMatch[1].trim();
-          const dialogue = strictDialogueMatch[2].trim();
-          const displayText = `@${speakerName} : "${dialogue}"`;
+          const displayText = strictDialogueMatch[2].trim();
 
           const from = $from.before();
           const to = $from.after();
@@ -603,16 +655,11 @@ export const ScriptLineBlockNode = Node.create({
               blockType: 'dialogue',
               speakerName,
             },
-            state.schema.text(displayText)
+            displayText ? state.schema.text(displayText) : undefined
           );
 
           // Tạo một scriptLineBlock mặc định rỗng (caption) bên dưới cho phép viết tự do
-          const nextBlock = state.schema.nodes.scriptLineBlock.create({
-            scriptLineId: generateGuid(),
-            sceneId: currentBlock.attrs?.sceneId || null,
-            blockType: 'caption',
-            narrationMode: 'Present',
-          });
+          const nextBlock = state.schema.nodes.scriptLineBlock.create(nextActionAttrs(currentBlock.attrs));
 
           return editor.commands.command(({ tr, dispatch }) => {
             tr.replaceWith(from, to, [dialogueBlock, nextBlock]);
@@ -641,12 +688,7 @@ export const ScriptLineBlockNode = Node.create({
           );
 
           // Dòng tiếp theo là caption cho phép viết tự do
-          const nextBlock = state.schema.nodes.scriptLineBlock.create({
-            scriptLineId: generateGuid(),
-            sceneId: currentBlock.attrs?.sceneId || null,
-            blockType: 'caption',
-            narrationMode: 'Present',
-          });
+          const nextBlock = state.schema.nodes.scriptLineBlock.create(nextActionAttrs(currentBlock.attrs));
 
           return editor.commands.command(({ tr, dispatch }) => {
             tr.replaceWith(from, to, [sfxBlock, nextBlock]);
@@ -675,12 +717,7 @@ export const ScriptLineBlockNode = Node.create({
           );
 
           // Dòng tiếp theo là caption cho phép viết tự do
-          const nextBlock = state.schema.nodes.scriptLineBlock.create({
-            scriptLineId: generateGuid(),
-            sceneId: currentBlock.attrs?.sceneId || null,
-            blockType: 'caption',
-            narrationMode: 'Present',
-          });
+          const nextBlock = state.schema.nodes.scriptLineBlock.create(nextActionAttrs(currentBlock.attrs));
 
           return editor.commands.command(({ tr, dispatch }) => {
             tr.replaceWith(from, to, [captionBlock, nextBlock]);
@@ -691,19 +728,27 @@ export const ScriptLineBlockNode = Node.create({
           });
         }
 
-        // 4.4 Khi nhấn Enter trên Page hoặc Panel: chèn 1 dòng caption rỗng bên dưới
+        // 4.35 Enter trên dòng thoại / lời dẫn / SFX còn trống: quay về dòng hành động thay vì thêm dòng trống
+        if (!rawText && ['dialogue', 'caption', 'sfx', 'character'].includes(currentType)) {
+          view.dispatch(
+            state.tr.setNodeMarkup($from.before(), undefined, {
+              ...currentBlock.attrs,
+              blockType: 'stage_direction',
+              speakerName: null,
+              speakerCharacterId: null,
+            })
+          );
+          return true;
+        }
+
+        // 4.4 Khi nhấn Enter trên Page hoặc Panel: chèn 1 dòng hành động rỗng bên dưới
         if (
           currentType === 'page_heading' ||
           currentType === 'panel_heading' ||
           currentBlock.type.name === 'pageBlock' ||
           currentBlock.type.name === 'panelBlock'
         ) {
-          const emptyActionBlock = state.schema.nodes.scriptLineBlock.create({
-            scriptLineId: generateGuid(),
-            sceneId: currentBlock.attrs?.sceneId || null,
-            blockType: 'caption',
-            narrationMode: 'Present',
-          });
+          const emptyActionBlock = state.schema.nodes.scriptLineBlock.create(nextActionAttrs(currentBlock.attrs));
 
           const insertPos = $from.after();
           return editor.commands.command(({ tr, dispatch }) => {
@@ -728,13 +773,8 @@ export const ScriptLineBlockNode = Node.create({
           return true;
         }
 
-        // 4.6 Nếu con trỏ ở cuối dòng: tạo khối caption tiếp theo bên dưới
-        const emptyBlock = state.schema.nodes.scriptLineBlock.create({
-          scriptLineId: generateGuid(),
-          sceneId: currentBlock.attrs?.sceneId || null,
-          blockType: 'caption',
-          narrationMode: 'Present',
-        });
+        // 4.6 Con trỏ ở cuối dòng: dòng mới luôn là hành động (sau lời thoại cũng vậy, như kịch bản phim)
+        const emptyBlock = state.schema.nodes.scriptLineBlock.create(nextActionAttrs(currentBlock.attrs));
 
         const insertPos = $from.after();
         const tr = state.tr.insert(insertPos, emptyBlock);
@@ -745,3 +785,21 @@ export const ScriptLineBlockNode = Node.create({
     };
   },
 });
+
+function cycleBlockType(editor: any, step: 1 | -1): boolean {
+  const { state, view } = editor;
+  const { $from } = state.selection;
+  const block = $from.parent;
+  if (block.type.name !== 'scriptLineBlock') return false;
+  const index = CYCLE_TYPES.indexOf(block.attrs.blockType);
+  if (index === -1) return false; // tiêu đề Trang / Panel / Cảnh giữ nguyên
+  const nextType = CYCLE_TYPES[(index + step + CYCLE_TYPES.length) % CYCLE_TYPES.length];
+  view.dispatch(
+    state.tr.setNodeMarkup($from.before(), undefined, {
+      ...block.attrs,
+      blockType: nextType,
+      ...(nextType === 'dialogue' ? {} : { speakerName: null, speakerCharacterId: null }),
+    })
+  );
+  return true;
+}

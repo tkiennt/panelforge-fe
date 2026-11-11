@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  splitSpeakerLine,
   scenesToTipTapDoc,
   extractScriptLinesFromDoc,
   renumberTipTapDoc,
@@ -53,7 +54,8 @@ describe('scriptFlowAdapter (Dual-Mode Single Source of Truth)', () => {
     // Block 2: Dialogue mang luôn tên người nói, không sinh khối Character riêng
     expect(doc.content[1].attrs.blockType).toBe('dialogue');
     expect(doc.content[1].attrs.speakerCharacterId).toBe('char-hero');
-    expect(doc.content[1].content[0].text).toBe('@Anh Hùng : "Cuối cùng ta cũng đã tìm thấy ngươi!"');
+    expect(doc.content[1].attrs.speakerName).toBe('Anh Hùng');
+    expect(doc.content[1].content[0].text).toBe('Cuối cùng ta cũng đã tìm thấy ngươi!');
 
     // Block 3: Stage direction
     expect(doc.content[2].attrs.blockType).toBe('stage_direction');
@@ -490,7 +492,57 @@ describe('Lưu đúng cấu trúc Nhân vật -> Lời thoại', () => {
     const doc = scenesToTipTapDoc(scenes, () => 'Minh');
     const lines = extractScriptLinesFromDoc(doc, 'sc-1').filter((l) => l.blockType !== 'scene_heading');
     expect(lines).toHaveLength(1);
-    expect(lines[0]).toMatchObject({ dialogueText: '@Minh : "Xin chào"', speakerCharacterId: 'chr-1' });
+    expect(lines[0]).toMatchObject({ dialogueText: 'Minh: "Xin chào"', speakerCharacterId: 'chr-1' });
   });
 });
 
+describe('Thoại có nhãn người nói và loại dòng khi lưu / mở lại', () => {
+  const bible = [
+    { id: 'chr-naruto', name: 'Naruto', code: 'NARUTO', category: 'Character' },
+    { id: 'loc-1', name: 'Konoha', code: 'LOC-KONOHA', category: 'Location' },
+  ] as any;
+  const scene = (scriptLines: any[]): SceneDetailDto[] => [
+    {
+      id: 'sc-1', chapterId: 'c-1', sceneNumber: 1, heading: 'A', summary: null,
+      defaultNarrationMode: 'Present', createdAt: '2026-01-01', version: 1,
+      scriptLines: scriptLines.map((l, i) => ({ id: `l-${i}`, lineOrder: i + 1, narrationMode: 'Present', speakerCharacterId: null, dialogueText: null, stageDirection: null, ...l })),
+    },
+  ];
+  const roundTrip = (lines: any[]) =>
+    extractScriptLinesFromDoc(scenesToTipTapDoc(scene(lines), () => null, undefined, undefined, bible), 'sc-1')
+      .filter((l) => l.blockType !== 'scene_heading');
+
+  it('chỉ nhận tên người nói khi có @, là mã, khớp Bible hoặc viết HOA', () => {
+    expect(splitSpeakerLine('naruto: Đi thôi', bible)).toMatchObject({ speakerName: 'Naruto', speakerCharacterId: 'chr-naruto' });
+    expect(splitSpeakerLine('MINH: "Chạy!"', bible)).toMatchObject({ speakerName: 'MINH', text: 'Chạy!', quoted: true });
+    expect(splitSpeakerLine('@Lan : chào', bible)).toMatchObject({ speakerName: 'Lan' });
+    expect(splitSpeakerLine('(NARUTO) : "Yo"', bible)).toMatchObject({ speakerName: 'Naruto', text: 'Yo' });
+    expect(splitSpeakerLine('Bối cảnh: phòng học', bible)).toBeNull();
+    expect(splitSpeakerLine('Konoha: làng lá', bible)).toBeNull();
+  });
+
+  it('lời thoại, SFX và lời dẫn giữ nguyên loại sau khi lưu rồi mở lại', () => {
+    const saved = roundTrip([
+      { dialogueText: 'Naruto: "Tớ sẽ thành Hokage!"', speakerCharacterId: 'chr-naruto' },
+      { stageDirection: 'SFX: Bùm!' },
+      { stageDirection: 'Lời dẫn: Mười năm sau.' },
+      { stageDirection: 'Naruto chạy ra cổng làng.' },
+    ]);
+    expect(saved.map((l) => l.dialogueText ?? l.stageDirection)).toEqual([
+      'Naruto: "Tớ sẽ thành Hokage!"',
+      'SFX: Bùm!',
+      'Lời dẫn: Mười năm sau.',
+      'Naruto chạy ra cổng làng.',
+    ]);
+    expect(saved[0].speakerCharacterId).toBe('chr-naruto');
+  });
+
+  it('dòng thoại cũ bị lưu nhầm thành chỉ dẫn được sửa thành lời thoại khi lưu lại', () => {
+    const saved = roundTrip([{ stageDirection: '(NARUTO) : "Chào Iruka-sensei"' }]);
+    expect(saved[0]).toMatchObject({
+      dialogueText: 'Naruto: "Chào Iruka-sensei"',
+      stageDirection: null,
+      speakerCharacterId: 'chr-naruto',
+    });
+  });
+});

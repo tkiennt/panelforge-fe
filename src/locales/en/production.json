@@ -154,8 +154,7 @@
       "unsaved": "Unsaved · Ctrl+S",
       "saved": "Saved at {time}",
       "idle": "Ctrl+S to save",
-      "blockType": "Line type",
-      "syntaxHint": "# page · - panel · @ character"
+      "typingHelp": "Tab / Shift+Tab: change line type · \"Name:\" at line start: dialogue · Enter on an empty line: back to action · Ctrl+S: save"
     },
     "blocks": {
       "dialogue": "Dialogue",
@@ -185,6 +184,9 @@
       "unlistedTitle": "Some pages are no longer in the script",
       "unlistedDesc": "Page {pages} still exists on the Artist desk but the script no longer mentions it. It was not deleted; ask the Producer or Artist to remove it if needed.",
       "structureFailed": "Lines saved, but the Page / Panel structure was not"
+    },
+    "paper": {
+      "hint": "Just write. Enter for a new line · type \"Name:\" for dialogue · Tab changes the line type"
     }
   }
 }
