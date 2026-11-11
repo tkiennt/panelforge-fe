@@ -38,8 +38,12 @@
       "publisher": "Nhà phát hành",
       "reader": "Độc giả",
       "member": "Thành viên"
-    }
-  },  "hub": "Studio Hub",
+    },
+    "pendingReviews": "{count} bài chờ duyệt",
+    "noPendingReviews": "Chưa có bài chờ duyệt",
+    "enterReview": "Chọn bộ truyện để duyệt"
+  },
+  "hub": "Studio Hub",
   "loading": "Đang tải danh sách Workspace...",
   "emptyTitle": "Chào mừng đến với PanelForge",
   "emptyDesc": "Bạn chưa thuộc về Studio Workspace nào. Hãy tạo một Studio mới hoặc nhờ Producer gửi lời mời tham gia.",
@@ -71,5 +75,21 @@
     "publisher": "Nhà phát hành (Publisher)",
     "reader": "Độc giả (Reader)",
     "member": "Thành viên"
+  },
+  "owner": "Chủ sở hữu",
+  "library": {
+    "title": "Thư viện Bộ truyện",
+    "subtitle": {
+      "PRODUCER": "Mở một bộ truyện để giao việc, theo dõi công đoạn và duyệt chương.",
+      "EDITOR": "Chọn bộ truyện để mở bàn duyệt: kịch bản, bố cục và bản hoàn thiện đang chờ bạn.",
+      "WRITER": "Chọn bộ truyện để soạn kịch bản và liên kết Series Bible.",
+      "ARTIST": "Chọn bộ truyện để vào bàn vẽ: bố cục trang, khung tranh và artwork.",
+      "LETTERER": "Chọn bộ truyện để chèn bóng thoại và đồng bộ với kịch bản.",
+      "default": "Chọn một bộ truyện để bắt đầu làm việc."
+    },
+    "open": {
+      "EDITOR": "Vào bàn duyệt",
+      "default": "Mở bộ truyện"
+    }
   }
 }

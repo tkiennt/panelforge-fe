@@ -4,6 +4,7 @@ import { useTranslation } from '@/lib/i18n';
 import type { SceneDetailDto, SceneScriptLineSummaryDto } from '@/services/scriptLine.service';
 import type { ChangeRequestDto, ConsistencyFindingDto } from '@/types/pipeline';
 import { anchorKey, crStatus, isCrClosed, lineText, type ReviewDraft } from './scriptReviewModel';
+import { isAiFinding } from '../review-shared/reviewModel';
 
 export interface AnchorMarks {
   drafts: ReviewDraft[];
@@ -41,7 +42,8 @@ const markerClass = (m: AnchorMarks | undefined) => {
   const live = m.crs.filter((c) => !isCrClosed(c));
   if (live.some((c) => crStatus(c.status) === 'Open')) return 'border-rose-500';
   if (live.some((c) => crStatus(c.status) === 'Resolved')) return 'border-amber-500';
-  if (m.findings.length > 0) return 'border-violet-500';
+  if (m.findings.some((f) => isAiFinding(f.ruleCode))) return 'border-violet-500';
+  if (m.findings.length > 0) return 'border-amber-500';
   return 'border-transparent';
 };
 
@@ -186,7 +188,7 @@ export const ManuscriptPane: React.FC<ManuscriptPaneProps> = ({
                     quotedText: lineText(line),
                   });
                 }}
-                className='inline-flex items-center gap-1 rounded-full border border-stone-200 bg-white px-2 py-0.5 text-xs font-semibold text-stone-700 opacity-0 transition-opacity duration-150 hover:border-orange-300 hover:text-orange-700 focus:opacity-100 group-hover:opacity-100'
+                className='inline-flex items-center gap-1 rounded-full border border-stone-200 bg-white px-2 py-0.5 text-xs font-semibold text-stone-700 transition-opacity duration-150 hover:border-orange-300 hover:text-orange-700 focus:opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100'
                 title={t('scriptReview.manuscript.commentLineTitle')}
               >
                 <MessageSquarePlus className='h-3.5 w-3.5' aria-hidden='true' />

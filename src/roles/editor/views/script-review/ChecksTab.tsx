@@ -4,14 +4,14 @@ import {
   CheckCircle2,
   Lock,
   MessageSquarePlus,
-  Sparkles,
+  RotateCcw,
   Unlock,
 } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import type { ChapterBibleGateResultDto, ChapterDto } from '@/services/chapter.service';
 import type { ConsistencyFindingDto } from '@/types/pipeline';
 import { anchorKey } from './scriptReviewModel';
-import { OPEN_FINDING_STATUSES } from '../review-shared/reviewModel';
+import { OPEN_FINDING_STATUSES, isAiFinding } from '../review-shared/reviewModel';
 import { ReasonForm } from '../review-shared/ReasonForm';
 
 export type FindingDecision = 'Confirmed' | 'Rejected' | 'Ignored' | 'NeedsClarification';
@@ -27,6 +27,8 @@ interface ChecksTabProps {
   isProducer: boolean;
   busy: string | null;
   onRunCheck: () => void;
+  /** Thời điểm kiểm tra gần nhất (tự chạy khi mở phiên duyệt). */
+  checkedAt: string | null;
   onTriage: (finding: ConsistencyFindingDto, decision: FindingDecision, note?: string) => void;
   onFindingToComment: (finding: ConsistencyFindingDto) => void;
   onFreeze: () => void;
@@ -53,19 +55,25 @@ export const ChecksTab: React.FC<ChecksTabProps> = ({
   isProducer,
   busy,
   onRunCheck,
+  checkedAt,
   onTriage,
   onFindingToComment,
   onFreeze,
   onUnfreeze,
   onDecideReopen,
 }) => {
-  const { t } = useTranslation('review');
+  const { t, lang } = useTranslation('review');
   const [noteFor, setNoteFor] = useState<{ id: string; decision: FindingDecision } | null>(null);
   const [unfreezing, setUnfreezing] = useState(false);
 
   const openFindings = findings.filter((f) => OPEN_FINDING.has(String(f.status)));
   const blockingOpen = openFindings.filter((f) => String(f.severity) === 'Blocking').length;
-  const pendingEntities = bibleGate?.items.filter((i) => !i.isLocked) ?? [];
+  // Một mục Bible có thể vừa là người nói vừa được liên kết: gộp theo id để không lặp
+  const pendingEntities = [
+    ...new Map(
+      (bibleGate?.items ?? []).filter((i) => !i.isLocked).map((i) => [i.bibleEntryId, i]),
+    ).values(),
+  ];
   const isFrozen = chapter.isScriptFrozen === true;
   const freezeBlocked = bibleGate && !bibleGate.isPassed;
 
@@ -120,14 +128,24 @@ export const ChecksTab: React.FC<ChecksTabProps> = ({
             type='button'
             onClick={onRunCheck}
             disabled={busy === 'consistency'}
-            className='inline-flex items-center gap-1 rounded-full bg-violet-600 px-3 py-1 text-xs font-semibold text-white hover:bg-violet-700 disabled:opacity-50'
+            className='inline-flex items-center gap-1 rounded-full border border-stone-200 bg-white px-3 py-1 text-xs font-semibold text-stone-700 hover:bg-stone-100 disabled:opacity-50'
           >
-            <Sparkles className='h-3.5 w-3.5' aria-hidden='true' />
+            <RotateCcw className='h-3.5 w-3.5' aria-hidden='true' />
             {busy === 'consistency'
               ? t('scriptReview.checks.running')
-              : t('scriptReview.checks.run')}
+              : t('scriptReview.checks.recheck')}
           </button>
         </div>
+        <p className='mt-1 text-xs text-stone-500'>
+          {checkedAt
+            ? t('scriptReview.checks.checkedAt', {
+                time: new Date(checkedAt).toLocaleTimeString(lang === 'vi' ? 'vi-VN' : 'en-GB', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                }),
+              })
+            : t('scriptReview.checks.codeRules')}
+        </p>
         <p className='mt-1 text-xs text-stone-500'>
           {findings.length === 0
             ? t('scriptReview.checks.noFindings')
@@ -144,7 +162,9 @@ export const ChecksTab: React.FC<ChecksTabProps> = ({
               return (
                 <li
                   key={f.id}
-                  className='rounded-lg border border-stone-200/80 border-l-2 border-l-violet-500 bg-white p-3'
+                  className={`rounded-lg border border-l-2 border-stone-200/80 bg-white p-3 ${
+                    isAiFinding(f.ruleCode) ? 'border-l-violet-500' : 'border-l-amber-500'
+                  }`}
                 >
                   <div className='flex items-start justify-between gap-2'>
                     <span className='font-mono text-xs text-stone-500'>{f.ruleCode}</span>

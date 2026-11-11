@@ -1,11 +1,4 @@
-import React, {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -164,11 +157,20 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
   const isSubmittingStage = Boolean(headerConfig?.isSubmittingStage);
   const isLastStage = stages.length > 0 && currentStageIndex >= stages.length - 1;
 
+  // Editor: màn duyệt quay về bàn duyệt (đường mặc định của vai trò); từ bàn duyệt quay về thư viện bộ truyện.
+  const isEditorDesk = pathname.includes('/editor/desk');
+  const isEditorReview =
+    String(userRole ?? '').toUpperCase() === 'EDITOR' &&
+    (pathname.includes('/script/review') || pathname.includes('/review/'));
+  const isReadOnlyReview = isEditorDesk || isEditorReview;
+  const backPath =
+    isEditorDesk && workspaceId ? `/workspaces/${workspaceId}/series` : resolvedSeriesPath;
+
   const handleBackClick = () => {
     if (onBack) {
       onBack();
     } else {
-      navigate(resolvedSeriesPath);
+      navigate(backPath);
     }
   };
 
@@ -192,7 +194,9 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
           ) : (
             <ArrowLeft className='w-3.5 h-3.5 transition-transform duration-150 group-hover:-translate-x-0.5' />
           )}
-          <span className='hidden sm:inline'>Về bộ truyện</span>
+          <span className='hidden sm:inline'>
+            {isEditorReview ? 'Về bàn duyệt' : 'Về bộ truyện'}
+          </span>
         </button>
 
         <span className='text-[#D8D2C5] font-bold select-none'>/</span>
@@ -275,19 +279,12 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
             {stages.map((stage, idx) => {
               const isCompleted = isStageFlowCompleted || idx < currentStageIndex;
               const isCurrent = !isStageFlowCompleted && idx === currentStageIndex;
-              const stepState = isCompleted
-                ? 'completed'
-                : isCurrent
-                  ? 'current'
-                  : 'upcoming';
+              const stepState = isCompleted ? 'completed' : isCurrent ? 'current' : 'upcoming';
 
               return (
                 <React.Fragment key={stage.id}>
                   {idx > 0 && (
-                    <ChevronRight
-                      className='w-3 h-3 text-[#A8A29E] shrink-0'
-                      aria-hidden='true'
-                    />
+                    <ChevronRight className='w-3 h-3 text-[#A8A29E] shrink-0' aria-hidden='true' />
                   )}
                   <div
                     role='listitem'
@@ -320,7 +317,7 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
               );
             })}
           </div>
-        ) : (
+        ) : isReadOnlyReview ? null : (
           <div className='hidden lg:flex items-center gap-1.5 bg-[#F3F0E9] px-3 py-1 rounded-full border border-[#D8D2C5] text-[11px] font-medium text-[#57534E] shrink-0'>
             <CheckCircle2 className='w-3.5 h-3.5 text-emerald-600' />
             <span>Đã lưu tự động</span>
@@ -349,8 +346,8 @@ export const FocusStudioHeaderBar: React.FC<FocusStudioHeaderBarProps> = ({
                 headerConfig.submitButtonLabel
                   ? `${headerConfig.submitButtonLabel} để chờ duyệt`
                   : isLastStage
-                  ? 'Nộp hoàn thiện bản thảo để chờ duyệt'
-                  : 'Nộp bản thảo công đoạn hiện tại'
+                    ? 'Nộp hoàn thiện bản thảo để chờ duyệt'
+                    : 'Nộp bản thảo công đoạn hiện tại'
               }
               className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#C2410C] hover:bg-[#9A3412] text-white text-xs font-bold shadow-xs active:scale-95 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed shrink-0'
             >
@@ -496,7 +493,11 @@ export const FocusWorkspaceLayout: React.FC<FocusWorkspaceLayoutProps> = ({
             ? `/workspaces/${workspaceId}/series/${seriesId}/script`
             : location.pathname.includes('/letterer')
               ? `/workspaces/${workspaceId}/series/${seriesId}/letterer`
-              : getRoleDefaultPath(currentUser.workspaceRole || currentUser.role, workspaceId, seriesId)
+              : getRoleDefaultPath(
+                  currentUser.workspaceRole || currentUser.role,
+                  workspaceId,
+                  seriesId,
+                )
         : workspaceId
           ? `/workspaces/${workspaceId}/series`
           : '/workspaces');

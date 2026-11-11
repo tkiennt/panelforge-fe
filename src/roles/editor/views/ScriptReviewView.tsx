@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { AlertTriangle, ArrowLeft, CheckCircle2, CornerUpLeft, Lock } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
@@ -64,7 +64,7 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
   const [searchParams] = useSearchParams();
   const assignmentId = searchParams.get('assignmentId');
   const navigate = useNavigate();
-  const { t } = useTranslation('review');
+  const { t, lang } = useTranslation('review');
 
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -148,6 +148,28 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
     [assignment, currentUserId, workspaceRole, changeRequests],
   );
   const canDecide = work?.canDecide ?? false;
+
+  // Kiểm tra nhất quán kịch bản là luật bằng code, chạy lại an toàn (ghép theo fingerprint, BR-21):
+  // tự chạy một lần cho mỗi lần nộp khi phiên duyệt đang mở để kết quả luôn mới, không bắt Editor tự bấm.
+  const [checkedAt, setCheckedAt] = useState<string | null>(null);
+  const autoCheckedFor = useRef<string | null>(null);
+  useEffect(() => {
+    const key = `${chapterId}:${submissionId ?? ''}`;
+    if (!canDecide || !chapterId || autoCheckedFor.current === key) return;
+    autoCheckedFor.current = key;
+    assignmentService
+      .runConsistencyCheck(chapterId)
+      .then((res) => {
+        setFindings(res.findings ?? []);
+        setCheckedAt(res.checkedAt);
+      })
+      .catch((err) =>
+        onShowToast?.(
+          t('scriptReview.toast.checkFailed'),
+          err instanceof Error ? err.message : t('scriptReview.errors.generic'),
+        ),
+      );
+  }, [canDecide, chapterId, submissionId, onShowToast, t]);
 
   // ── Tra cứu vị trí: số thứ tự dòng trong cảnh khớp với số hiển thị ở bản thảo ──
   const lineIndex = useMemo(() => {
@@ -361,6 +383,7 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
       async () => {
         const res = await assignmentService.runConsistencyCheck(chapterId);
         setFindings(res.findings ?? []);
+        setCheckedAt(res.checkedAt);
         setTab('checks');
       },
       t('scriptReview.toast.checkFailed'),
@@ -447,15 +470,6 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
     <div className='flex min-h-0 flex-1 flex-col bg-[#FAF9F5] font-sans text-stone-900'>
       <header className='flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-stone-200 bg-white px-4 py-3'>
         <div className='flex min-w-0 items-center gap-3'>
-          <button
-            type='button'
-            onClick={backToDesk}
-            className='rounded-full border border-stone-200 p-1.5 text-stone-600 hover:bg-stone-100 hover:text-stone-900'
-            aria-label={t('scriptReview.common.backToDesk')}
-            title={t('scriptReview.common.backToDesk')}
-          >
-            <ArrowLeft className='h-4 w-4' />
-          </button>
           <div className='min-w-0'>
             <h1 className='truncate font-serif text-lg font-bold tracking-tight text-stone-900'>
               {t('scriptReview.header.title', { number: chapter.chapterNumber })}
@@ -465,7 +479,9 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
               {latestSubmission
                 ? t('scriptReview.header.submission', {
                     attempt: latestSubmission.attemptNumber,
-                    date: new Date(latestSubmission.submittedAt).toLocaleString(),
+                    date: new Date(latestSubmission.submittedAt).toLocaleString(
+                      lang === 'vi' ? 'vi-VN' : 'en-GB',
+                    ),
                   })
                 : t('scriptReview.header.noSubmission')}
               {' · '}
@@ -563,7 +579,7 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
         </main>
 
         {/* Nhận xét, kiểm tra và quyết định */}
-        <aside className='flex max-h-[60vh] w-full shrink-0 flex-col border-t border-stone-200 bg-white lg:max-h-none lg:w-96 lg:border-l lg:border-t-0'>
+        <aside className='flex max-h-[45vh] w-full shrink-0 flex-col border-t border-stone-200 bg-white lg:max-h-none lg:w-96 lg:border-l lg:border-t-0'>
           <div role='tablist' className='flex shrink-0 border-b border-stone-200 px-2'>
             {(['notes', 'checks'] as const).map((key) => (
               <button
@@ -622,6 +638,7 @@ export const ScriptReviewView: React.FC<ScriptReviewViewProps> = ({
                 isProducer={isProducer}
                 busy={busy}
                 onRunCheck={handleRunCheck}
+                checkedAt={checkedAt}
                 onTriage={handleTriage}
                 onFindingToComment={handleFindingToComment}
                 onFreeze={() =>

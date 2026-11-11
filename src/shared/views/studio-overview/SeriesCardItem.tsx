@@ -32,6 +32,8 @@ export interface SeriesCardItemProps {
   onClearCover: (seriesId: string) => void;
   onEditSeries: (series: SeriesDto) => void;
   onDeleteSeries: (series: SeriesDto) => void;
+  /** Nhãn nút mở theo vai trò (DESIGN_RULES 5.1); mặc định "Mở bộ truyện". */
+  openLabel?: string;
 }
 
 export const SeriesCardItem: React.FC<SeriesCardItemProps> = ({
@@ -48,6 +50,7 @@ export const SeriesCardItem: React.FC<SeriesCardItemProps> = ({
   onClearCover,
   onEditSeries,
   onDeleteSeries,
+  openLabel = 'Mở bộ truyện',
 }) => {
   const displayCoverUrl = s.coverUrl || s.avatarUrl;
 
@@ -290,7 +293,7 @@ export const SeriesCardItem: React.FC<SeriesCardItemProps> = ({
           className='flex-1 h-11 px-3.5 bg-stone-900 hover:bg-stone-800 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all shadow-soft-xs hover:shadow-soft-sm active:scale-98 cursor-pointer'
           title={`Mở không gian làm việc của bộ truyện ${s.title}`}
         >
-          <span>Mở bộ truyện</span>
+          <span>{openLabel}</span>
           <ArrowRight className='w-3.5 h-3.5 text-orange-400' />
         </button>
 

@@ -1,4 +1,4 @@
- {
+{
   "title": "Studio Workspaces",
   "subtitle": "Select a Studio Workspace to start collaborating or create a new one",
   "catalog": "Creative spaces",
@@ -38,8 +38,12 @@
       "publisher": "Publisher",
       "reader": "Reader",
       "member": "Member"
-    }
-  },  "hub": "Studio Hub",
+    },
+    "pendingReviews": "{count} awaiting review",
+    "noPendingReviews": "Nothing to review",
+    "enterReview": "Choose a series to review"
+  },
+  "hub": "Studio Hub",
   "loading": "Loading Workspaces...",
   "emptyTitle": "Welcome to PanelForge",
   "emptyDesc": "You are not a member of any Studio Workspace yet. Create a new Studio or request an invitation from a Producer.",
@@ -71,5 +75,21 @@
     "publisher": "Publisher",
     "reader": "Reader",
     "member": "Member"
+  },
+  "owner": "Owner",
+  "library": {
+    "title": "Series Library",
+    "subtitle": {
+      "PRODUCER": "Open a series to assign work, track stages and approve chapters.",
+      "EDITOR": "Choose a series to open its review desk: scripts, layouts and finished pages waiting for you.",
+      "WRITER": "Choose a series to write scripts and link the Series Bible.",
+      "ARTIST": "Choose a series to open the drawing desk: page layouts, panels and artwork.",
+      "LETTERER": "Choose a series to place balloons and sync them with the script.",
+      "default": "Choose a series to start working."
+    },
+    "open": {
+      "EDITOR": "Open review desk",
+      "default": "Open series"
+    }
   }
 }

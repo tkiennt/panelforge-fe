@@ -164,7 +164,7 @@ const getRoleNavConfig = (
     {
       section: t('navigation.sections.desk'),
       items: [
-        { icon: Layers, label: t('navigation.menu.myWork'), href: '/my-work' },
+        { icon: ShieldCheck, label: t('navigation.menu.reviewDesk'), href: '/editor/desk' },
         { icon: BookMarked, label: t('navigation.menu.bible'), href: '/bible' },
       ],
     },
@@ -229,8 +229,7 @@ export function AppShell({
     currentUser.workspaceRole === ('READER' as any);
 
   const isPublisher =
-    currentUser.role === 'PUBLISHER' ||
-    location.pathname.startsWith('/publisher');
+    currentUser.role === 'PUBLISHER' || location.pathname.startsWith('/publisher');
 
   const effectiveRole = currentUser.workspaceRole
     ? String(currentUser.workspaceRole).toUpperCase()
@@ -600,14 +599,11 @@ export function AppShell({
   };
 
   const isArtistDesk =
-    location.pathname.endsWith('/artist') ||
-    location.pathname.endsWith('/artist/');
+    location.pathname.endsWith('/artist') || location.pathname.endsWith('/artist/');
   const isScriptDesk =
-    location.pathname.endsWith('/script') ||
-    location.pathname.endsWith('/script/');
+    location.pathname.endsWith('/script') || location.pathname.endsWith('/script/');
   const isLettererDesk =
-    location.pathname.endsWith('/letterer') ||
-    location.pathname.endsWith('/letterer/');
+    location.pathname.endsWith('/letterer') || location.pathname.endsWith('/letterer/');
 
   return (
     <div className='h-screen w-full flex overflow-hidden text-[#1C1917] bg-[#F3F0E9]'>
