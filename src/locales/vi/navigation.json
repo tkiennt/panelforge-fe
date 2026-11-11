@@ -45,7 +45,8 @@
     "changePassword": "Đổi mật khẩu",
     "twoFactor": "Bảo mật hai lớp (2FA)",
     "switchWorkspace": "Đổi Workspace",
-    "logout": "Đăng xuất"
+    "logout": "Đăng xuất",
+    "reviewDesk": "Bàn duyệt"
   },
   "header": {
     "searchPlaceholder": "Tìm kiếm khung tranh, thoại, tư liệu...",

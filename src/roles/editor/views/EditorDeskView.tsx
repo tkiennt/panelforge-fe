@@ -228,12 +228,10 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({ workspaceRole, o
               <span className='font-bold text-[#1C1917]'>{metrics.underReviewCount}</span>
             </div>
             <div className='flex items-center gap-1.5'>
-              <span className='w-2 h-2 rounded-full bg-purple-500' />
               <span className='text-[#57534E] font-medium'>Gate 1: Storyboard:</span>
               <span className='font-bold text-[#1C1917]'>{metrics.gate1Count}</span>
             </div>
             <div className='flex items-center gap-1.5'>
-              <span className='w-2 h-2 rounded-full bg-emerald-500' />
               <span className='text-[#57534E] font-medium'>Gate 2: Composite:</span>
               <span className='font-bold text-[#1C1917]'>{metrics.gate2Count}</span>
             </div>
@@ -272,11 +270,10 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({ workspaceRole, o
               onClick={() => setActiveGate('gate1')}
               className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
                 activeGate === 'gate1'
-                  ? 'bg-[#FCFBF8] text-purple-900 shadow-soft-sm font-bold'
-                  : 'text-[#57534E] hover:text-purple-800'
+                  ? 'bg-[#FCFBF8] text-[#1C1917] shadow-soft-sm font-bold'
+                  : 'text-[#57534E] hover:text-[#1C1917]'
               }`}
             >
-              <span className='w-2 h-2 rounded-full bg-purple-500' />
               {t('desk.gate1', 'Gate 1: Storyboard')} ({metrics.gate1Count})
             </button>
             <button
@@ -284,11 +281,10 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({ workspaceRole, o
               onClick={() => setActiveGate('gate2')}
               className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
                 activeGate === 'gate2'
-                  ? 'bg-[#FCFBF8] text-emerald-900 shadow-soft-sm font-bold'
-                  : 'text-[#57534E] hover:text-emerald-800'
+                  ? 'bg-[#FCFBF8] text-[#1C1917] shadow-soft-sm font-bold'
+                  : 'text-[#57534E] hover:text-[#1C1917]'
               }`}
             >
-              <span className='w-2 h-2 rounded-full bg-emerald-500' />
               {t('desk.gate2', 'Gate 2: Composite')} ({metrics.gate2Count})
             </button>
           </div>
@@ -381,23 +377,11 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({ workspaceRole, o
                       : 'border-[#D8D2C5] hover:border-[#F97316]'
                   }`}
                 >
-                  {/* Subtle top indicator bar */}
-                  <div
-                    className={`absolute top-0 left-4 right-4 h-[2px] rounded-t-full ${
-                      isGate1 ? 'bg-purple-500' : 'bg-emerald-500'
-                    }`}
-                  />
-
                   {/* Top: Metadata & Title */}
                   <div>
                     {/* Gate & Status Row */}
                     <div className='flex items-center justify-between text-xs mb-2 pt-1'>
                       <span className='font-semibold flex items-center gap-1.5 text-[#57534E]'>
-                        <span
-                          className={`w-2 h-2 rounded-full ${
-                            isGate1 ? 'bg-purple-600' : 'bg-emerald-600'
-                          }`}
-                        />
                         {item.stageSlug === 'script'
                           ? t('desk.gate1Script', 'Gate 1: Kịch bản')
                           : isGate1
@@ -479,11 +463,7 @@ export const EditorDeskView: React.FC<EditorDeskViewProps> = ({ workspaceRole, o
                   </div>
 
                   {/* Footer & Action Button */}
-                  <div className='pt-2.5 mt-2 border-t border-[#E5E0D8]/70 flex items-center justify-between gap-2'>
-                    <span className='text-[11px] text-[#A8A29E] font-mono'>
-                      #{item.assignmentId.substring(0, 6)}
-                    </span>
-
+                  <div className='pt-2.5 mt-2 border-t border-[#E5E0D8]/70 flex items-center justify-end gap-2'>
                     {item.isSelfSubmission ? (
                       <button
                         type='button'

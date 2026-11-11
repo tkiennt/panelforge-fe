@@ -57,7 +57,7 @@
     "auditTrail": "Audit Trail"
   },
   "desk": {
-    "title": "Editor Desk Review Queue",
+    "title": "Editor review desk",
     "subtitle": "Editorial quality control inbox organized by Gate 1 & Gate 2",
     "gateAll": "All Gates",
     "gate1": "Gate 1: Storyboard / Layout",

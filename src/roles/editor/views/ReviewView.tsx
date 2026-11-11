@@ -72,7 +72,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
   const chapterId = paramChapterId || search.get('chapterId') || '';
   const effectiveWsId = workspaceId || wsId || null;
   const navigate = useNavigate();
-  const { t } = useTranslation('review');
+  const { t, lang } = useTranslation('review');
 
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -450,15 +450,6 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
     <div className='flex min-h-0 flex-1 flex-col bg-[#FAF9F5] font-sans text-stone-900'>
       <header className='flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-stone-200 bg-white px-4 py-3'>
         <div className='flex min-w-0 items-center gap-3'>
-          <button
-            type='button'
-            onClick={backToDesk}
-            className='rounded-full border border-stone-200 p-1.5 text-stone-600 hover:bg-stone-100 hover:text-stone-900'
-            aria-label={t('scriptReview.common.backToDesk')}
-            title={t('scriptReview.common.backToDesk')}
-          >
-            <ArrowLeft className='h-4 w-4' />
-          </button>
           <div className='min-w-0'>
             <h1 className='truncate font-serif text-lg font-bold tracking-tight text-stone-900'>
               {[
@@ -475,7 +466,9 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
               {latestSub
                 ? t('scriptReview.header.submission', {
                     attempt: latestSub.attemptNumber,
-                    date: new Date(latestSub.submittedAt).toLocaleString(),
+                    date: new Date(latestSub.submittedAt).toLocaleString(
+                      lang === 'vi' ? 'vi-VN' : 'en-GB',
+                    ),
                   })
                 : t('scriptReview.header.noSubmission')}
             </p>
@@ -639,7 +632,7 @@ export const ReviewView: React.FC<ReviewViewProps> = ({
           </div>
         </main>
 
-        <aside className='flex max-h-[60vh] w-full shrink-0 flex-col border-t border-stone-200 bg-white lg:max-h-none lg:w-96 lg:border-l lg:border-t-0'>
+        <aside className='flex max-h-[45vh] w-full shrink-0 flex-col border-t border-stone-200 bg-white lg:max-h-none lg:w-96 lg:border-l lg:border-t-0'>
           <div role='tablist' className='flex shrink-0 border-b border-stone-200 px-2'>
             {(['notes', 'checks'] as const).map((key) => (
               <button

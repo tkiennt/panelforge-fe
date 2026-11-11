@@ -65,7 +65,12 @@ export const ChecksTab: React.FC<ChecksTabProps> = ({
 
   const openFindings = findings.filter((f) => OPEN_FINDING.has(String(f.status)));
   const blockingOpen = openFindings.filter((f) => String(f.severity) === 'Blocking').length;
-  const pendingEntities = bibleGate?.items.filter((i) => !i.isLocked) ?? [];
+  // Một mục Bible có thể vừa là người nói vừa được liên kết: gộp theo id để không lặp
+  const pendingEntities = [
+    ...new Map(
+      (bibleGate?.items ?? []).filter((i) => !i.isLocked).map((i) => [i.bibleEntryId, i]),
+    ).values(),
+  ];
   const isFrozen = chapter.isScriptFrozen === true;
   const freezeBlocked = bibleGate && !bibleGate.isPassed;
 

@@ -391,18 +391,14 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                                   {ws.name}
                                 </h2>
                                 <span
-                                  className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                                    ws.currentUserRole === 'EDITOR'
-                                      ? 'bg-rose-50 text-rose-700 border border-rose-200/80 font-semibold'
-                                      : 'bg-[#E7E1D5]/60 text-[#57534E]'
-                                  }`}
+                                  className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${'bg-[#E7E1D5]/60 text-[#57534E]'}`}
                                 >
                                   {roleLabel(ws.currentUserRole)}
                                 </span>
                               </div>
                               {ws.ownerName && (
                                 <p className='text-xs text-[#78716C] truncate'>
-                                  {t('workspace.owner') || 'Chủ sở hữu'}: {ws.ownerName}
+                                  {t('workspace.owner')}: {ws.ownerName}
                                 </p>
                               )}
                             </div>
@@ -468,18 +464,19 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                             {(ws.currentUserRole === 'EDITOR' ||
                               (ws.pendingEditorReviews ?? 0) > 0) && (
                               <span
-                                className='inline-flex items-center gap-1.5 font-semibold text-rose-700 bg-rose-50 border border-rose-200/70 px-2 py-0.5 rounded-md text-xs tabular-nums shrink-0 shadow-2xs'
-                                title='Số bài nộp chờ Editor kiểm tra và duyệt chất lượng (Gate 1 Storyboard & Gate 2 Composite)'
+                                className={`inline-flex items-center gap-1 font-medium px-2 py-0.5 rounded-full text-xs tabular-nums shrink-0 border ${
+                                  (ws.pendingEditorReviews ?? 0) > 0
+                                    ? 'bg-amber-50 text-amber-800 border-amber-200'
+                                    : 'bg-stone-100 text-stone-600 border-stone-200'
+                                }`}
                               >
-                                <span
-                                  className='w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse'
-                                  aria-hidden='true'
-                                />
-                                <ShieldCheck className='w-3 h-3 text-rose-600' aria-hidden='true' />
+                                <ShieldCheck className='w-3.5 h-3.5' aria-hidden='true' />
                                 <span>
                                   {(ws.pendingEditorReviews ?? 0) > 0
-                                    ? `${ws.pendingEditorReviews} bài chờ duyệt`
-                                    : 'Sẵn sàng duyệt bài'}
+                                    ? t('workspace.shelf.pendingReviews', {
+                                        count: ws.pendingEditorReviews ?? 0,
+                                      })
+                                    : t('workspace.shelf.noPendingReviews')}
                                 </span>
                               </span>
                             )}
@@ -501,16 +498,12 @@ export const WorkspaceListView: React.FC<WorkspaceListViewProps> = ({
                             <button
                               type='button'
                               onClick={() => onSelectWorkspace(ws)}
-                              className={`ws-btn-enter ws-focus inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold ${
-                                ws.currentUserRole === 'EDITOR'
-                                  ? 'text-rose-700 bg-rose-50 border border-rose-300 hover:bg-rose-100 shadow-2xs'
-                                  : 'text-[#C2410C] bg-[#FFF7ED] border border-[#FDBA74] hover:bg-[#FFEDD5]'
-                              }`}
+                              className='ws-btn-enter ws-focus inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-[#C2410C] bg-[#FFF7ED] border border-[#FDBA74] hover:bg-[#FFEDD5]'
                               aria-label={`${t('workspace.shelf.enter')}: ${ws.name}`}
                             >
                               <span>
                                 {ws.currentUserRole === 'EDITOR'
-                                  ? 'Vào Bàn Duyệt'
+                                  ? t('workspace.shelf.enterReview')
                                   : t('workspace.shelf.enter')}
                               </span>
                               <ArrowRight className='ws-arrow w-3.5 h-3.5' aria-hidden='true' />

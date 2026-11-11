@@ -57,7 +57,7 @@
     "auditTrail": "Nhật ký kiểm toán"
   },
   "desk": {
-    "title": "Bàn Thẩm Định Biên Tập (Editor Desk)",
+    "title": "Bàn thẩm định biên tập",
     "subtitle": "Hàng đợi kiểm soát chất lượng theo 2 cổng Gate 1 & Gate 2",
     "gateAll": "Tất cả cổng",
     "gate1": "Gate 1: Storyboard / Phân cảnh",

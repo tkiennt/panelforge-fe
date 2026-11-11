@@ -45,7 +45,8 @@
     "changePassword": "Change Password",
     "twoFactor": "Two-Factor Auth (2FA)",
     "switchWorkspace": "Switch Workspace",
-    "logout": "Log Out"
+    "logout": "Log Out",
+    "reviewDesk": "Review desk"
   },
   "header": {
     "searchPlaceholder": "Search frames, dialogues, assets...",

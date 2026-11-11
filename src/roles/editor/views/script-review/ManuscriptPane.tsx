@@ -186,7 +186,7 @@ export const ManuscriptPane: React.FC<ManuscriptPaneProps> = ({
                     quotedText: lineText(line),
                   });
                 }}
-                className='inline-flex items-center gap-1 rounded-full border border-stone-200 bg-white px-2 py-0.5 text-xs font-semibold text-stone-700 opacity-0 transition-opacity duration-150 hover:border-orange-300 hover:text-orange-700 focus:opacity-100 group-hover:opacity-100'
+                className='inline-flex items-center gap-1 rounded-full border border-stone-200 bg-white px-2 py-0.5 text-xs font-semibold text-stone-700 transition-opacity duration-150 hover:border-orange-300 hover:text-orange-700 focus:opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100'
                 title={t('scriptReview.manuscript.commentLineTitle')}
               >
                 <MessageSquarePlus className='h-3.5 w-3.5' aria-hidden='true' />

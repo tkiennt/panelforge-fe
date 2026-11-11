@@ -40,9 +40,11 @@ import { WorkspaceAuditModal, EditMemberAccessModal } from './studio-overview/St
 import { useConfirm } from '@/shared/context/ConfirmContext';
 import { useToast } from '@/shared/context/ToastContext';
 import { formatReadingDirection } from './studio-overview/formatters';
+import { useTranslation } from '@/lib/i18n';
 
 export const StudioOverviewView: React.FC = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const confirm = useConfirm();
   const { workspaceId } = useParams();
   const [, setWorkspaces] = useState<WorkspaceDto[]>([]);
@@ -677,10 +679,13 @@ export const StudioOverviewView: React.FC = () => {
               <span>{activeWorkspace?.name || 'Studio Workspace'}</span>
             </div>
             <h1 className='text-2xl sm:text-3xl font-serif font-bold text-[#1C1917] tracking-tight mt-1'>
-              Thư viện Bộ truyện
+              {t('workspace.library.title')}
             </h1>
             <p className='text-xs sm:text-sm text-[#57534E] mt-1 leading-relaxed max-w-2xl'>
-              Mở một bộ truyện để giao việc, theo dõi công đoạn và duyệt chương.
+              {t(
+                `workspace.library.subtitle.${isProducer ? 'PRODUCER' : (wsRole ?? 'default')}`,
+                t('workspace.library.subtitle.default'),
+              )}
             </p>
           </div>
 
@@ -848,6 +853,10 @@ export const StudioOverviewView: React.FC = () => {
               onCreateSeries={() => setCreateSeriesModalOpen(true)}
               onClearFilters={handleClearFilters}
               onOpenSeries={handleOpenSeries}
+              openLabel={t(
+                `workspace.library.open.${isProducer ? 'default' : (wsRole ?? 'default')}`,
+                t('workspace.library.open.default'),
+              )}
               onOpenChapters={(ser) => setSelectedChapterSeries(ser)}
               onOpenPipeline={(ser) => setSelectedPipelineSeries(ser)}
               onOpenPresets={(ser) => setSelectedPresetsSeries(ser)}
