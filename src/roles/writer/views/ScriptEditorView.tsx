@@ -856,89 +856,40 @@ export const ScriptEditorView: React.FC<ScriptEditorViewProps> = ({
         }
       }
 
-      // 5.5 Đồng bộ Trang (Page) và Khung (Panel) với Bàn vẽ
+      // 5.5 Khung Trang → Panel → dòng: một request, một transaction phía server; không xoá trang nào
       if (currentChapter?.id) {
+        const structure = new Map<number, Map<number, string[]>>();
+        for (const line of extractedLines) {
+          if (line.blockType === 'scene_heading' || !line.pageNumber || line.pageNumber <= 0) continue;
+          const panelsOfPage = structure.get(line.pageNumber) ?? new Map<number, string[]>();
+          structure.set(line.pageNumber, panelsOfPage);
+          if (!line.panelNumber || line.panelNumber <= 0) continue;
+          const ids = panelsOfPage.get(line.panelNumber) ?? [];
+          panelsOfPage.set(line.panelNumber, ids);
+          const savedId = createdLineIdMap.get(line.scriptLineId) || line.scriptLineId;
+          if (isValidGuid(savedId)) ids.push(savedId);
+        }
+        const pagesPayload = Array.from(structure.entries())
+          .sort(([a], [b]) => a - b)
+          .map(([pageNumber, panelsOfPage]) => ({
+            pageNumber,
+            panels: Array.from(panelsOfPage.entries())
+              .sort(([a], [b]) => a - b)
+              .map(([panelNumber, scriptLineIds]) => ({ panelNumber, scriptLineIds })),
+          }));
+
         try {
-          const extractedPageNumbers = Array.from(
-            new Set(
-              extractedLines
-                .map((l) => l.pageNumber)
-                .filter((p): p is number => typeof p === 'number' && p > 0)
-            )
-          ).sort((a, b) => a - b);
-
-          // Tự động xóa các trang thừa không còn xuất hiện trong kịch bản
-          for (const p of chapterPages) {
-            if (!extractedPageNumbers.includes(p.pageNumber)) {
-              try {
-                await pageService.deletePage(p.id);
-              } catch (delPErr) {
-                console.warn(`Lỗi xóa trang thừa ${p.pageNumber}:`, delPErr);
-              }
-            }
-          }
-
-          const currentPages = [...chapterPages].filter((p) => extractedPageNumbers.includes(p.pageNumber));
-          for (const pageNum of extractedPageNumbers) {
-            const pageExists = currentPages.some((p) => p.pageNumber === pageNum);
-            if (!pageExists) {
-              try {
-                const createdPage = await pageService.createPage(currentChapter.id, { pageNumber: pageNum });
-                currentPages.push(createdPage);
-              } catch (pErr) {
-                console.warn('Lỗi tạo Page từ kịch bản:', pErr);
-              }
-            }
-          }
-
-          const currentPanels = [...chapterPanels];
-          for (const page of currentPages) {
-            const pageLines = extractedLines.filter((l) => l.pageNumber === page.pageNumber);
-            const distinctPanelNumbers = Array.from(
-              new Set(
-                pageLines
-                  .map((l) => l.panelNumber)
-                  .filter((p): p is number => typeof p === 'number' && p > 0)
-              )
+          const synced = await pageService.syncScriptStructure(currentChapter.id, pagesPayload);
+          if (synced.unlistedPageNumbers.length > 0) {
+            notify(
+              t('scriptStudio.save.unlistedTitle'),
+              t('scriptStudio.save.unlistedDesc', { pages: synced.unlistedPageNumbers.join(', ') }),
             );
-
-            for (const pNum of distinctPanelNumbers) {
-              let panel = currentPanels.find(
-                (p) => (p as any).pageNumber === page.pageNumber && p.panelNumber === pNum
-              );
-              if (!panel) {
-                try {
-                  const createdPanel = await panelService.createPanel(page.id, {
-                    panelNumber: pNum,
-                    boundingBox: JSON.stringify({ x: 0, y: 0, width: 400, height: 300, unit: 'px' }),
-                  });
-                  (createdPanel as any).pageNumber = page.pageNumber;
-                  currentPanels.push(createdPanel);
-                  panel = createdPanel;
-                } catch (panErr) {
-                  console.warn('Lỗi tạo Panel từ kịch bản:', panErr);
-                }
-              }
-
-              if (panel) {
-                const linesForThisPanel = pageLines
-                  .filter((l) => l.panelNumber === pNum)
-                  .map((l) => createdLineIdMap.get(l.scriptLineId) || l.scriptLineId);
-
-                if (linesForThisPanel.length > 0) {
-                  try {
-                    await panelService.assignPanelScriptLines(panel.id, linesForThisPanel);
-                  } catch (assignErr) {
-                    console.warn('Lỗi gán dòng cho panel:', assignErr);
-                  }
-                }
-              }
-            }
           }
-
           await loadPagesAndPanels(currentChapter.id);
-        } catch (syncErr) {
-          console.warn('Lỗi đồng bộ Trang/Panel:', syncErr);
+        } catch (structureErr: any) {
+          // Dòng kịch bản đã lưu; chỉ khung Trang/Panel chưa đồng bộ nên báo rõ thay vì nuốt lỗi
+          notify(t('scriptStudio.save.structureFailed'), structureErr?.message ?? '');
         }
       }
 

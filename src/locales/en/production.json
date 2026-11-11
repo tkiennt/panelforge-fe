@@ -180,6 +180,11 @@
       "deleteChapter": "Delete this chapter",
       "close": "Close",
       "scene": "Scene {n}"
+    },
+    "save": {
+      "unlistedTitle": "Some pages are no longer in the script",
+      "unlistedDesc": "Page {pages} still exists on the Artist desk but the script no longer mentions it. It was not deleted; ask the Producer or Artist to remove it if needed.",
+      "structureFailed": "Lines saved, but the Page / Panel structure was not"
     }
   }
 }

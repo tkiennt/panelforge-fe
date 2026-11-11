@@ -1,5 +1,6 @@
 // src/roles/writer/components/script/flow/converter/scriptConverterAdapter.ts
 import { generateGuid } from '../scriptFlowAdapter';
+import type { ExtractedScriptLinePayload } from '../scriptFlowAdapter';
 import { MangaBlockType } from '../types';
 
 export interface ConverterAdapterOptions {
@@ -38,6 +39,25 @@ export function extractSpeakerName(rawSpeaker: string): string | null {
     if (lower === keyword || lower.startsWith(`${keyword} `)) return null;
   }
   return name;
+}
+
+/**
+ * Dòng thoại gõ tay "MINH: ..." / "@Minh : ..." chưa có SpeakerCharacterId → gán theo tên trong Series Bible.
+ * Dòng đã có speaker (chọn qua @mention) giữ nguyên.
+ */
+export function linkTypedSpeakers(
+  lines: ExtractedScriptLinePayload[],
+  characters: ConverterAdapterOptions['characters']
+): ExtractedScriptLinePayload[] {
+  if (!characters?.length) return lines;
+  return lines.map((line) => {
+    if (line.speakerCharacterId || !line.dialogueText) return line;
+    const colon = line.dialogueText.indexOf(':');
+    if (colon <= 0) return line;
+    const name = extractSpeakerName(line.dialogueText.slice(0, colon));
+    const match = name ? matchBibleCharacter(name, characters) : null;
+    return match ? { ...line, speakerCharacterId: match.id } : line;
+  });
 }
 
 export function matchBibleCharacter(

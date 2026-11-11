@@ -1,6 +1,7 @@
 // src/roles/writer/components/script/flow/converter/scriptConverterAdapter.test.ts
 import { describe, it, expect } from 'vitest';
 import {
+  linkTypedSpeakers,
   parseScriptTextToBlocks,
   convertScriptTextToComicBlocks,
   convertScriptTextToScreenplayBlocks,
@@ -244,5 +245,21 @@ Tiếng còi cảnh sát vang lên từ xa.
     expect(dialogue.attrs.speakerName).toBe('Minh');
     expect(dialogue.attrs.pageNumber).toBe(1);
     expect(dialogue.attrs.panelNumber).toBe(1);
+  });
+
+  it('gán speaker theo Bible cho dòng thoại gõ tay, giữ nguyên dòng đã có speaker', () => {
+    const base = { sceneId: 's', narrationMode: 'Present' as const, lineOrder: 1, stageDirection: null };
+    const lines = linkTypedSpeakers(
+      [
+        { ...base, scriptLineId: 'a', dialogueText: 'NARUTO: "Tớ sẽ thành Hokage!"', speakerCharacterId: null },
+        { ...base, scriptLineId: 'b', dialogueText: '@Sasuke : "..."', speakerCharacterId: 'chr-picked' },
+        { ...base, scriptLineId: 'c', dialogueText: 'Ai đó: "Không có trong Bible"', speakerCharacterId: null },
+      ],
+      [
+        { id: 'chr-naruto', name: 'Naruto' },
+        { id: 'chr-sasuke', name: 'Sasuke' },
+      ]
+    );
+    expect(lines.map((l) => l.speakerCharacterId)).toEqual(['chr-naruto', 'chr-picked', null]);
   });
 });

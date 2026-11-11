@@ -27,7 +27,7 @@ import {
 } from './scriptFlowAdapter';
 import { MangaBlockType } from './types';
 import { getNextPageNumber, getNextPanelNumber } from './comic-editor/comicCounting';
-import { AiScriptConvertModal, convertScriptTextToScreenplayBlocks } from './converter';
+import { AiScriptConvertModal, convertScriptTextToScreenplayBlocks, linkTypedSpeakers } from './converter';
 
 interface ScreenplayFlowEditorProps {
   chapterId?: string;
@@ -912,7 +912,10 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
     try {
       renumberEditorState(editor);
       const defaultSceneId = scenes[0]?.id || '';
-      const extracted = extractScriptLinesFromDoc(editor.getJSON(), defaultSceneId);
+      const characters = allBibleEntries
+        .filter((e) => e.category === 'Character' && e.isActive)
+        .map((e) => ({ id: e.id, name: e.name, code: e.code }));
+      const extracted = linkTypedSpeakers(extractScriptLinesFromDoc(editor.getJSON(), defaultSceneId), characters);
 
       await onSaveLines(extracted);
       justSavedRef.current = true;
@@ -941,6 +944,7 @@ export const ScreenplayFlowEditor: React.FC<ScreenplayFlowEditorProps> = ({
     onSaveLines,
     onShowToast,
     draftStorageKey,
+    allBibleEntries,
   ]);
 
   // Phím tắt toàn cục: Ctrl + S / Cmd + S để lưu kịch bản

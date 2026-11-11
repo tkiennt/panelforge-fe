@@ -180,6 +180,11 @@
       "deleteChapter": "Xoá chương này",
       "close": "Đóng",
       "scene": "Cảnh {n}"
+    },
+    "save": {
+      "unlistedTitle": "Có trang không còn trong kịch bản",
+      "unlistedDesc": "Trang {pages} vẫn còn trên Bàn vẽ nhưng kịch bản không nhắc tới. Trang không bị xoá; báo Producer hoặc Artist nếu cần bỏ.",
+      "structureFailed": "Đã lưu lời thoại, chưa lưu được khung Trang / Panel"
     }
   }
 }
