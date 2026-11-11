@@ -5,9 +5,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { EditorDeskView } from './EditorDeskView';
 import { assignmentService } from '@/services/assignment.service';
 import { seriesService } from '@/services/series.service';
-import {
-  EditorReviewQueueItemDto,
-} from '@/types';
+import { EditorReviewQueueItemDto } from '@/types';
 
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', async () => {
@@ -18,7 +16,9 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-const sampleItem = (overrides: Partial<EditorReviewQueueItemDto> = {}): EditorReviewQueueItemDto => ({
+const sampleItem = (
+  overrides: Partial<EditorReviewQueueItemDto> = {},
+): EditorReviewQueueItemDto => ({
   assignmentId: 'asg-001',
   chapterId: 'chap-101',
   chapterNumber: 12,
@@ -27,6 +27,7 @@ const sampleItem = (overrides: Partial<EditorReviewQueueItemDto> = {}): EditorRe
   seriesTitle: 'Đại Chiến Thần Binh',
   pipelineStageId: 'stg-storyboard',
   stageName: 'Storyboard',
+  stageSlug: 'storyboard',
   stageOrder: 1,
   stageColorCode: '#9333EA',
   gate: 'gate1',
@@ -58,7 +59,7 @@ const renderView = (props: Partial<React.ComponentProps<typeof EditorDeskView>> 
           element={<EditorDeskView workspaceRole='EDITOR' {...props} />}
         />
       </Routes>
-    </MemoryRouter>
+    </MemoryRouter>,
   );
 
 describe('EditorDeskView Component', () => {
@@ -74,6 +75,7 @@ describe('EditorDeskView Component', () => {
         assignmentId: 'asg-002',
         chapterNumber: 12,
         stageName: 'Mực & Thoại',
+        stageSlug: 'letter',
         gate: 'gate2',
         scopeLabel: 'Trang 5',
         status: 'UnderReview',
@@ -145,9 +147,7 @@ describe('EditorDeskView Component', () => {
     });
 
     // Verify warning banner is displayed
-    expect(
-      screen.getByText(/Quy tắc 4 mắt \(BR-26\)/i)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Quy tắc 4 mắt \(BR-26\)/i)).toBeInTheDocument();
 
     // Verify button is disabled with lock text
     const lockedBtn = screen.getByRole('button', {
@@ -188,11 +188,11 @@ describe('EditorDeskView Component', () => {
     await waitFor(() => {
       expect(assignmentService.openReview).toHaveBeenCalledWith('chap-101', 'asg-open-me');
       expect(mockNavigate).toHaveBeenCalledWith(
-        '/workspaces/ws-1/series/series-001/review/asg-open-me'
+        '/workspaces/ws-1/series/series-001/review/asg-open-me',
       );
       expect(onShowToast).toHaveBeenCalledWith(
         'Bắt đầu thẩm định',
-        expect.stringContaining('Trang 4')
+        expect.stringContaining('Trang 4'),
       );
     });
   });
@@ -220,7 +220,7 @@ describe('EditorDeskView Component', () => {
 
     expect(openReviewSpy).not.toHaveBeenCalled();
     expect(mockNavigate).toHaveBeenCalledWith(
-      '/workspaces/ws-1/series/series-001/review/asg-under-review'
+      '/workspaces/ws-1/series/series-001/review/asg-under-review',
     );
   });
 
@@ -255,9 +255,7 @@ describe('EditorDeskView Component', () => {
     renderView();
 
     await waitFor(() => {
-      expect(
-        screen.getByText('Hàng Đợi Thẩm Định Đang Sạch (Inbox Zero)')
-      ).toBeInTheDocument();
+      expect(screen.getByText('Hàng Đợi Thẩm Định Đang Sạch (Inbox Zero)')).toBeInTheDocument();
     });
   });
 });

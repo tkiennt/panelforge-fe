@@ -646,9 +646,11 @@ export interface EditorReviewQueueItemDto {
   seriesTitle: string;
   pipelineStageId: string;
   stageName: string;
+  /** Định danh ổn định của công đoạn (vd. 'script', 'ink', 'letter') — dùng để rẽ nhánh, không dùng stageName. */
+  stageSlug: string;
   stageOrder: number;
   stageColorCode: string;
-  gate: 'gate1' | 'gate2' | 'other';
+  gate: 'gate1' | 'gate2';
   status: AssignmentStatus;
   entityType: WorkflowEntityType;
   targetEntityId?: string | null;
